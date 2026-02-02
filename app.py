@@ -54,6 +54,7 @@ def calculate_streak(dates):
 def index():
     return "Sharp Picks API is running!"
 
+@app.route('/api/model/calibration')
 @app.route('/api/validation/detailed')
 def detailed_validation():
     """Check model calibration by confidence buckets - only forward predictions"""

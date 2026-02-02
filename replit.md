@@ -32,7 +32,8 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - `GET /api/predictions` - Model predictions
 - `GET /api/arbitrage` - Arbitrage opportunities
 - `GET /api/performance` - Model performance stats
-- `GET /api/validation/detailed` - Calibration check by confidence bucket
+- `GET /api/model/calibration` - Calibration check by confidence bucket
+- `GET /api/validation/detailed` - Alias for calibration endpoint
 
 ## Configuration
 - Minimum confidence threshold: 55%
