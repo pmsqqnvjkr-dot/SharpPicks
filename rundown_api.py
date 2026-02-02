@@ -51,7 +51,7 @@ def get_nba_events():
         print("   ⚠️ No RAPIDAPI_KEY found")
         return None
     
-    url = "https://therundown.io/api/v2/sports/4/events"
+    today = datetime.now().strftime('%Y-%m-%d')
     
     headers = {
         "x-rapidapi-key": RAPIDAPI_KEY,
@@ -60,7 +60,7 @@ def get_nba_events():
     
     try:
         response = requests.get(
-            f"https://therundown-therundown-v1.p.rapidapi.com/sports/{SPORT_ID}/events",
+            f"https://therundown-therundown-v1.p.rapidapi.com/sports/{SPORT_ID}/events/{today}",
             headers=headers,
             timeout=15
         )
@@ -213,9 +213,11 @@ def test_connection():
         "x-rapidapi-host": "therundown-therundown-v1.p.rapidapi.com"
     }
     
+    today = datetime.now().strftime('%Y-%m-%d')
+    
     try:
         response = requests.get(
-            f"https://therundown-therundown-v1.p.rapidapi.com/sports/{SPORT_ID}/events",
+            f"https://therundown-therundown-v1.p.rapidapi.com/sports/{SPORT_ID}/events/{today}",
             headers=headers,
             timeout=15
         )
