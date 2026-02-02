@@ -276,7 +276,7 @@ def dashboard():
     return Response(DASHBOARD_HTML, mimetype='text/html')
 
 if __name__ == '__main__':
-    print("Starting Sharp Picks API on http://0.0.0.0:5000")
-    print("Dashboard: http://0.0.0.0:5000/dashboard")
+    print("Starting Sharp Picks API on http://0.0.0.0:8000")
+    print("API endpoints available at /api/*")
     print("Scheduled: Daily collection at 9:00 AM and 9:00 PM")
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    app.run(host='0.0.0.0', port=8000, debug=False, use_reloader=False)
