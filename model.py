@@ -13,15 +13,16 @@ import os
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier, AdaBoostClassifier
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.calibration import CalibratedClassifierCV, calibration_curve
+from sklearn.metrics import accuracy_score, classification_report, brier_score_loss
 import xgboost as xgb
 
 
 class EnsemblePredictor:
-    """Ensemble model combining multiple ML algorithms"""
+    """Ensemble model combining multiple ML algorithms with probability calibration"""
     
     def __init__(self):
-        self.models = {
+        self.base_models = {
             'gradient_boosting': GradientBoostingClassifier(
                 n_estimators=100,
                 max_depth=5,
@@ -46,9 +47,11 @@ class EnsemblePredictor:
                 random_state=42
             )
         }
+        self.models = {}
         self.scaler = StandardScaler()
         self.trained = False
         self.feature_names = []
+        self.calibration_stats = {}
     
     def load_data(self):
         """Load training data from database"""
@@ -145,9 +148,9 @@ class EnsemblePredictor:
         return target
     
     def train(self):
-        """Train all models in the ensemble"""
+        """Train all models in the ensemble with probability calibration"""
         print("\n" + "="*60)
-        print("🤖 TRAINING ENSEMBLE MODEL")
+        print("🤖 TRAINING CALIBRATED ENSEMBLE MODEL")
         print("="*60 + "\n")
         
         # Load data
@@ -170,7 +173,7 @@ class EnsemblePredictor:
         
         self.feature_names = X.columns.tolist()
         
-        # Split data
+        # Split data - need extra split for calibration
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42
         )
@@ -179,59 +182,111 @@ class EnsemblePredictor:
         X_train_scaled = self.scaler.fit_transform(X_train)
         X_test_scaled = self.scaler.transform(X_test)
         
-        print("Training models:")
-        print("-" * 40)
+        print("Training and calibrating models:")
+        print("-" * 50)
         
         results = {}
         
-        for name, model in self.models.items():
+        for name, base_model in self.base_models.items():
             print(f"   Training {name}...", end=" ")
             
-            model.fit(X_train_scaled, y_train)
+            # Wrap with CalibratedClassifierCV for probability calibration
+            # Uses isotonic regression for calibration (better for larger datasets)
+            # method='sigmoid' uses Platt scaling (better for smaller datasets)
+            calibration_method = 'isotonic' if len(X_train) > 100 else 'sigmoid'
+            
+            calibrated_model = CalibratedClassifierCV(
+                base_model,
+                method=calibration_method,
+                cv=5  # 5-fold cross-validation for calibration
+            )
+            
+            calibrated_model.fit(X_train_scaled, y_train)
+            self.models[name] = calibrated_model
             
             # Evaluate
-            train_score = model.score(X_train_scaled, y_train)
-            test_score = model.score(X_test_scaled, y_test)
+            train_preds = calibrated_model.predict(X_train_scaled)
+            test_preds = calibrated_model.predict(X_test_scaled)
+            train_score = accuracy_score(y_train, train_preds)
+            test_score = accuracy_score(y_test, test_preds)
             
-            # Cross-validation
-            cv_scores = cross_val_score(model, X_train_scaled, y_train, cv=5)
+            # Brier score (lower is better - measures probability calibration)
+            test_proba = calibrated_model.predict_proba(X_test_scaled)[:, 1]
+            brier = brier_score_loss(y_test, test_proba)
             
             results[name] = {
                 'train': train_score,
                 'test': test_score,
-                'cv_mean': cv_scores.mean(),
-                'cv_std': cv_scores.std()
+                'brier': brier
             }
             
-            print(f"✅ Test Accuracy: {test_score:.1%}")
+            print(f"✅ Acc: {test_score:.1%} | Brier: {brier:.3f}")
         
-        print("\n" + "-" * 40)
-        print("\n📈 MODEL PERFORMANCE:")
-        print("-" * 60)
-        print(f"{'Model':<20} {'Train':>10} {'Test':>10} {'CV Mean':>10}")
-        print("-" * 60)
+        print("\n" + "-" * 50)
+        print("\n📈 MODEL PERFORMANCE (Calibrated):")
+        print("-" * 70)
+        print(f"{'Model':<20} {'Train Acc':>12} {'Test Acc':>12} {'Brier Score':>12}")
+        print("-" * 70)
         
         for name, scores in results.items():
-            print(f"{name:<20} {scores['train']:>10.1%} {scores['test']:>10.1%} {scores['cv_mean']:>10.1%}")
+            print(f"{name:<20} {scores['train']:>12.1%} {scores['test']:>12.1%} {scores['brier']:>12.3f}")
         
-        # Ensemble accuracy
-        ensemble_preds = self.predict_proba(X_test_scaled)
-        ensemble_classes = (ensemble_preds >= 0.5).astype(int)
+        # Ensemble accuracy and calibration
+        ensemble_proba = self.predict_proba(X_test_scaled)
+        ensemble_classes = (ensemble_proba >= 0.5).astype(int)
         ensemble_acc = accuracy_score(y_test, ensemble_classes)
+        ensemble_brier = brier_score_loss(y_test, ensemble_proba)
         
-        print("-" * 60)
-        print(f"{'ENSEMBLE (avg)':<20} {'-':>10} {ensemble_acc:>10.1%}")
-        print("-" * 60)
+        print("-" * 70)
+        print(f"{'ENSEMBLE (avg)':<20} {'-':>12} {ensemble_acc:>12.1%} {ensemble_brier:>12.3f}")
+        print("-" * 70)
+        
+        # Calculate calibration curve for ensemble
+        self._analyze_calibration(y_test, ensemble_proba)
         
         self.trained = True
         
         # Save model
         self.save()
         
-        print(f"\n✅ Model trained and saved!")
-        print(f"   Ensemble Test Accuracy: {ensemble_acc:.1%}\n")
+        print(f"\n✅ Calibrated model trained and saved!")
+        print(f"   Ensemble Test Accuracy: {ensemble_acc:.1%}")
+        print(f"   Brier Score: {ensemble_brier:.3f} (lower is better)\n")
         
         return True
+    
+    def _analyze_calibration(self, y_true, y_prob, n_bins=5):
+        """Analyze probability calibration quality"""
+        print("\n📊 CALIBRATION ANALYSIS:")
+        print("-" * 50)
+        
+        # Get calibration curve
+        prob_true, prob_pred = calibration_curve(y_true, y_prob, n_bins=n_bins, strategy='uniform')
+        
+        self.calibration_stats = {
+            'prob_true': prob_true.tolist(),
+            'prob_pred': prob_pred.tolist()
+        }
+        
+        print(f"{'Predicted':>12} {'Actual':>12} {'Diff':>10}")
+        print("-" * 40)
+        
+        for pred, true in zip(prob_pred, prob_true):
+            diff = pred - true
+            indicator = "✓" if abs(diff) < 0.05 else "⚠️" if abs(diff) < 0.10 else "❌"
+            print(f"{pred:>12.1%} {true:>12.1%} {diff:>+9.1%} {indicator}")
+        
+        # Overall calibration error
+        cal_error = np.mean(np.abs(prob_pred - prob_true))
+        print("-" * 40)
+        print(f"Mean Calibration Error: {cal_error:.1%}")
+        
+        if cal_error < 0.05:
+            print("✅ Excellent calibration - probabilities match reality well!")
+        elif cal_error < 0.10:
+            print("👍 Good calibration - probabilities are reasonably accurate")
+        else:
+            print("⚠️ Fair calibration - probabilities may need adjustment")
     
     def predict_proba(self, X):
         """Get averaged probability predictions from all models"""
@@ -370,9 +425,11 @@ class EnsemblePredictor:
         """Save the trained model"""
         model_data = {
             'models': self.models,
+            'base_models': self.base_models,
             'scaler': self.scaler,
             'feature_names': self.feature_names,
-            'trained': self.trained
+            'trained': self.trained,
+            'calibration_stats': self.calibration_stats
         }
         
         with open(filepath, 'wb') as f:
@@ -388,9 +445,11 @@ class EnsemblePredictor:
                 model_data = pickle.load(f)
             
             self.models = model_data['models']
+            self.base_models = model_data.get('base_models', self.base_models)
             self.scaler = model_data['scaler']
             self.feature_names = model_data['feature_names']
             self.trained = model_data['trained']
+            self.calibration_stats = model_data.get('calibration_stats', {})
             
             return True
         except:
@@ -405,15 +464,56 @@ class EnsemblePredictor:
         print("\n📊 FEATURE IMPORTANCE (Random Forest):")
         print("-" * 40)
         
-        rf = self.models['random_forest']
+        rf_calibrated = self.models['random_forest']
+        rf_base = rf_calibrated.calibrated_classifiers_[0].estimator
+        
         importance = pd.DataFrame({
             'feature': self.feature_names,
-            'importance': rf.feature_importances_
+            'importance': rf_base.feature_importances_
         }).sort_values('importance', ascending=False)
         
         for _, row in importance.head(10).iterrows():
             bar = "█" * int(row['importance'] * 50)
             print(f"   {row['feature']:<20} {bar} {row['importance']:.3f}")
+        
+        print()
+    
+    def show_calibration(self):
+        """Display calibration statistics"""
+        if not self.trained:
+            print("❌ Model not trained yet.\n")
+            return
+        
+        if not self.calibration_stats:
+            print("ℹ️  No calibration stats available. Retrain the model.\n")
+            return
+        
+        print("\n📊 PROBABILITY CALIBRATION:")
+        print("-" * 50)
+        print("How well do predicted probabilities match actual outcomes?\n")
+        
+        prob_true = self.calibration_stats.get('prob_true', [])
+        prob_pred = self.calibration_stats.get('prob_pred', [])
+        
+        print(f"{'Predicted':>12} {'Actual':>12} {'Status':>12}")
+        print("-" * 40)
+        
+        for pred, true in zip(prob_pred, prob_true):
+            diff = abs(pred - true)
+            if diff < 0.05:
+                status = "✅ Perfect"
+            elif diff < 0.10:
+                status = "👍 Good"
+            else:
+                status = "⚠️ Off"
+            print(f"{pred:>12.1%} {true:>12.1%} {status:>12}")
+        
+        if prob_pred and prob_true:
+            cal_error = np.mean([abs(p - t) for p, t in zip(prob_pred, prob_true)])
+            print("-" * 40)
+            print(f"\nMean Calibration Error: {cal_error:.1%}")
+            print("\nInterpretation: When model says 60% confidence,")
+            print(f"actual win rate should be ~60%. Current error: {cal_error:.1%}")
         
         print()
 
@@ -434,6 +534,9 @@ def main():
         elif cmd == 'importance':
             predictor.load_model()
             predictor.show_feature_importance()
+        elif cmd == 'calibration':
+            predictor.load_model()
+            predictor.show_calibration()
         else:
             print(f"Unknown command: {cmd}")
             print_usage()
@@ -442,12 +545,16 @@ def main():
 
 
 def print_usage():
-    print("\n🏀 SHARP PICKS MODEL")
-    print("="*40)
+    print("\n🏀 SHARP PICKS MODEL (Calibrated Ensemble)")
+    print("="*50)
     print("\nCommands:")
-    print("   python model.py train      - Train the ensemble model")
-    print("   python model.py predict    - Get predictions for today")
-    print("   python model.py importance - Show feature importance")
+    print("   python model.py train       - Train the calibrated ensemble")
+    print("   python model.py predict     - Get predictions for today")
+    print("   python model.py importance  - Show feature importance")
+    print("   python model.py calibration - Show probability calibration")
+    print()
+    print("Calibration ensures that when the model says")
+    print("60% confidence, it actually wins ~60% of the time.")
     print()
 
 
