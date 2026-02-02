@@ -70,8 +70,8 @@ class EnsemblePredictor:
                 line_movement,
                 spread_result, home_score, away_score
             FROM games
-            WHERE spread_result IS NOT NULL
-            AND home_score IS NOT NULL
+            WHERE home_score IS NOT NULL
+            AND away_score IS NOT NULL
         '''
         
         df = pd.read_sql_query(query, conn)
@@ -83,19 +83,21 @@ class EnsemblePredictor:
         """Create features from raw data"""
         features = pd.DataFrame()
         
-        # Spread features
-        features['spread_home'] = df['spread_home'].fillna(0)
-        features['spread_open'] = df['spread_home_open'].fillna(df['spread_home'])
-        features['line_movement'] = df['line_movement'].fillna(0)
+        # Spread features (default to 0 if missing)
+        features['spread_home'] = pd.to_numeric(df['spread_home'], errors='coerce').fillna(0)
+        spread_open = pd.to_numeric(df.get('spread_home_open', pd.Series([0]*len(df))), errors='coerce')
+        features['spread_open'] = spread_open.fillna(features['spread_home'])
+        features['line_movement'] = pd.to_numeric(df.get('line_movement', pd.Series([0]*len(df))), errors='coerce').fillna(0)
         
         # Total features
-        features['total'] = df['total'].fillna(220)
-        features['total_open'] = df['total_open'].fillna(df['total'])
+        features['total'] = pd.to_numeric(df.get('total', pd.Series([220]*len(df))), errors='coerce').fillna(220)
+        total_open = pd.to_numeric(df.get('total_open', pd.Series([220]*len(df))), errors='coerce')
+        features['total_open'] = total_open.fillna(features['total'])
         features['total_movement'] = features['total'] - features['total_open']
         
         # Moneyline features
-        features['home_ml'] = df['home_ml'].fillna(0)
-        features['away_ml'] = df['away_ml'].fillna(0)
+        features['home_ml'] = pd.to_numeric(df.get('home_ml', pd.Series([0]*len(df))), errors='coerce').fillna(0)
+        features['away_ml'] = pd.to_numeric(df.get('away_ml', pd.Series([0]*len(df))), errors='coerce').fillna(0)
         features['ml_diff'] = features['home_ml'] - features['away_ml']
         
         # Record features (parse W-L records)
@@ -127,13 +129,15 @@ class EnsemblePredictor:
             total = len(form_str)
             return wins / total if total > 0 else 0.5
         
-        features['home_form'] = df['home_last5'].apply(parse_form)
-        features['away_form'] = df['away_last5'].apply(parse_form)
+        home_last5 = df.get('home_last5', pd.Series(['']*len(df)))
+        away_last5 = df.get('away_last5', pd.Series(['']*len(df)))
+        features['home_form'] = home_last5.apply(parse_form)
+        features['away_form'] = away_last5.apply(parse_form)
         features['form_diff'] = features['home_form'] - features['away_form']
         
         # Rest days features
-        features['home_rest'] = df['home_rest_days'].fillna(1)
-        features['away_rest'] = df['away_rest_days'].fillna(1)
+        features['home_rest'] = pd.to_numeric(df.get('home_rest_days', pd.Series([1]*len(df))), errors='coerce').fillna(1)
+        features['away_rest'] = pd.to_numeric(df.get('away_rest_days', pd.Series([1]*len(df))), errors='coerce').fillna(1)
         features['rest_advantage'] = features['home_rest'] - features['away_rest']
         
         # Spread size features
@@ -143,8 +147,20 @@ class EnsemblePredictor:
         return features
     
     def prepare_target(self, df):
-        """Create target variable (1 = home covers, 0 = away covers)"""
-        target = (df['spread_result'] == 'HOME_COVER').astype(int)
+        """Create target variable (1 = home wins/covers, 0 = away wins/covers)"""
+        # Calculate score margin
+        margin = df['home_score'] - df['away_score']
+        
+        # If we have spread data, use actual cover result
+        # Otherwise, use home win as proxy (home team wins = 1)
+        if 'spread_home' in df.columns and df['spread_home'].notna().sum() > len(df) * 0.5:
+            # Use spread cover: home covers if margin > -spread
+            spread = df['spread_home'].fillna(0)
+            target = (margin + spread > 0).astype(int)
+        else:
+            # Use simple home win as target
+            target = (margin > 0).astype(int)
+        
         return target
     
     def train(self):
