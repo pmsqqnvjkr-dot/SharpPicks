@@ -1,0 +1,348 @@
+“””
+SHARP PICKS DASHBOARD API
+Backend endpoints to power the admin dashboard
+
+This provides real-time stats on:
+
+- Data collection progress
+- Model performance
+- Win/loss tracking
+- System health
+  “””
+
+from flask import Flask, jsonify
+from flask_cors import CORS
+import sqlite3
+from datetime import datetime, timedelta
+
+app = Flask(**name**)
+CORS(app)  # Allow React frontend to access
+
+def get_db_connection():
+“”“Connect to SQLite database”””
+conn = sqlite3.connect(‘sharp_picks.db’)
+conn.row_factory = sqlite3.Row  # Return dict-like rows
+return conn
+
+@app.route(’/api/admin/stats’, methods=[‘GET’])
+def get_admin_stats():
+“””
+Main dashboard stats endpoint
+Returns all key metrics for the dashboard
+“””
+conn = get_db_connection()
+cursor = conn.cursor()
+
+```
+# === DATA COLLECTION STATS ===
+
+# Total games collected
+cursor.execute('SELECT COUNT(*) as count FROM games')
+total_games = cursor.fetchone()['count']
+
+# Games with results
+cursor.execute('SELECT COUNT(*) as count FROM results')
+games_with_results = cursor.fetchone()['count']
+
+# NBA specific
+cursor.execute('SELECT COUNT(*) as count FROM games WHERE sport_type = "nba"')
+nba_collected = cursor.fetchone()['count']
+
+# CBB specific (if exists)
+cursor.execute('SELECT COUNT(*) as count FROM games WHERE sport_type = "ncaab"')
+cbb_collected = cursor.fetchone()['count']
+
+# Collection streak (days in a row)
+cursor.execute('''
+    SELECT DISTINCT DATE(collected_at) as date 
+    FROM games 
+    ORDER BY date DESC 
+    LIMIT 30
+''')
+collection_dates = [row['date'] for row in cursor.fetchall()]
+streak = calculate_streak(collection_dates)
+
+# === MODEL PERFORMANCE STATS ===
+
+# Win/loss record
+cursor.execute('''
+    SELECT 
+        SUM(CASE WHEN result = 'W' THEN 1 ELSE 0 END) as wins,
+        SUM(CASE WHEN result = 'L' THEN 1 ELSE 0 END) as losses
+    FROM predictions
+    WHERE result IS NOT NULL
+''')
+record = cursor.fetchone()
+wins = record['wins'] or 0
+losses = record['losses'] or 0
+total_picks = wins + losses
+win_rate = (wins / total_picks * 100) if total_picks > 0 else 0
+
+# Total profit
+cursor.execute('''
+    SELECT SUM(profit) as total_profit,
+           SUM(bet_amount) as total_risked
+    FROM predictions
+    WHERE result IS NOT NULL
+''')
+profit_data = cursor.fetchone()
+total_profit = profit_data['total_profit'] or 0
+total_risked = profit_data['total_risked'] or 0
+roi = (total_profit / total_risked * 100) if total_risked > 0 else 0
+
+# Last 7 days profit
+seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
+cursor.execute('''
+    SELECT SUM(profit) as profit
+    FROM predictions
+    WHERE result IS NOT NULL
+    AND settled_at >= ?
+''', (seven_days_ago,))
+last_7_days_profit = cursor.fetchone()['profit'] or 0
+
+# CLV (Closing Line Value)
+cursor.execute('''
+    SELECT AVG(clv) as avg_clv
+    FROM predictions
+    WHERE clv IS NOT NULL
+''')
+avg_clv = cursor.fetchone()['avg_clv'] or 0
+
+# === PROFIT HISTORY ===
+
+cursor.execute('''
+    SELECT 
+        DATE(settled_at) as date,
+        SUM(profit) as daily_profit
+    FROM predictions
+    WHERE result IS NOT NULL
+    GROUP BY DATE(settled_at)
+    ORDER BY date DESC
+    LIMIT 30
+''')
+
+profit_history = []
+cumulative = 0
+for row in reversed(list(cursor.fetchall())):
+    cumulative += row['daily_profit']
+    profit_history.append({
+        'date': row['date'],
+        'profit': round(cumulative, 2)
+    })
+
+# === PERFORMANCE BY CONFIDENCE ===
+
+confidence_ranges = [
+    ('60-70%', 60, 70),
+    ('70-80%', 70, 80),
+    ('80%+', 80, 100)
+]
+
+by_confidence = []
+for range_name, min_conf, max_conf in confidence_ranges:
+    cursor.execute('''
+        SELECT 
+            SUM(CASE WHEN result = 'W' THEN 1 ELSE 0 END) as wins,
+            SUM(CASE WHEN result = 'L' THEN 1 ELSE 0 END) as losses,
+            SUM(profit) as profit,
+            SUM(bet_amount) as risked
+        FROM predictions
+        WHERE confidence >= ? AND confidence < ?
+        AND result IS NOT NULL
+    ''', (min_conf, max_conf))
+    
+    data = cursor.fetchone()
+    conf_wins = data['wins'] or 0
+    conf_losses = data['losses'] or 0
+    conf_total = conf_wins + conf_losses
+    
+    if conf_total > 0:
+        by_confidence.append({
+            'range': range_name,
+            'wins': conf_wins,
+            'losses': conf_losses,
+            'winRate': round(conf_wins / conf_total * 100, 1),
+            'roi': round((data['profit'] / data['risked'] * 100) if data['risked'] > 0 else 0, 1),
+            'profitable': data['profit'] > 0
+        })
+
+# === RECENT PICKS ===
+
+cursor.execute('''
+    SELECT 
+        p.game,
+        p.pick,
+        p.confidence,
+        p.result,
+        p.profit,
+        DATE(p.created_at) as date
+    FROM predictions p
+    ORDER BY p.created_at DESC
+    LIMIT 10
+''')
+
+recent_picks = []
+for row in cursor.fetchall():
+    recent_picks.append({
+        'date': row['date'],
+        'game': row['game'],
+        'pick': row['pick'],
+        'confidence': row['confidence'],
+        'result': row['result'] or 'PENDING',
+        'profit': round(row['profit'], 2) if row['profit'] else 0
+    })
+
+# === SYSTEM HEALTH ===
+
+system_health = [
+    {
+        'name': 'Data Collection',
+        'status': 'operational' if streak > 0 else 'warning',
+        'message': f'{streak} day streak' if streak > 0 else 'No recent collection'
+    },
+    {
+        'name': 'API Status',
+        'status': 'operational',  # Would check actual API health
+        'message': 'All systems operational'
+    },
+    {
+        'name': 'Database',
+        'status': 'operational',
+        'message': f'{total_games} games stored'
+    }
+]
+
+conn.close()
+
+# === RETURN ALL STATS ===
+
+return jsonify({
+    # Overall stats
+    'gamesCollected': total_games,
+    'gamesWithResults': games_with_results,
+    'collectionStreak': streak,
+    
+    # Win/loss
+    'wins': wins,
+    'losses': losses,
+    'winRate': round(win_rate, 1),
+    
+    # Profit
+    'totalProfit': round(total_profit, 2),
+    'roi': round(roi, 1),
+    'last7DaysProfit': round(last_7_days_profit, 2),
+    
+    # CLV
+    'avgCLV': round(avg_clv, 2),
+    
+    # Sport breakdown
+    'nba': {
+        'collected': nba_collected
+    },
+    'cbb': {
+        'collected': cbb_collected
+    } if cbb_collected > 0 else None,
+    
+    # Charts
+    'profitHistory': profit_history,
+    'byConfidence': by_confidence,
+    
+    # Tables
+    'recentPicks': recent_picks,
+    
+    # System
+    'systemHealth': system_health
+})
+```
+
+def calculate_streak(dates):
+“”“Calculate how many days in a row we’ve collected data”””
+if not dates:
+return 0
+
+```
+streak = 1
+for i in range(len(dates) - 1):
+    date1 = datetime.fromisoformat(dates[i])
+    date2 = datetime.fromisoformat(dates[i + 1])
+    
+    # Check if consecutive days
+    if (date1 - date2).days == 1:
+        streak += 1
+    else:
+        break
+
+return streak
+```
+
+@app.route(’/api/admin/stats/live’, methods=[‘GET’])
+def get_live_stats():
+“””
+Lightweight endpoint for live updates
+Returns only frequently-changing stats
+“””
+conn = get_db_connection()
+cursor = conn.cursor()
+
+```
+# Games collected today
+today = datetime.now().date().isoformat()
+cursor.execute('''
+    SELECT COUNT(*) as count 
+    FROM games 
+    WHERE DATE(collected_at) = ?
+''', (today,))
+games_today = cursor.fetchone()['count']
+
+# Pending picks
+cursor.execute('''
+    SELECT COUNT(*) as count 
+    FROM predictions 
+    WHERE result IS NULL
+''')
+pending_picks = cursor.fetchone()['count']
+
+conn.close()
+
+return jsonify({
+    'gamesToday': games_today,
+    'pendingPicks': pending_picks,
+    'timestamp': datetime.now().isoformat()
+})
+```
+
+@app.route(’/api/admin/collection-log’, methods=[‘GET’])
+def get_collection_log():
+“””
+Returns detailed collection log for debugging
+“””
+conn = get_db_connection()
+cursor = conn.cursor()
+
+```
+cursor.execute('''
+    SELECT 
+        DATE(collected_at) as date,
+        COUNT(*) as games_collected,
+        GROUP_CONCAT(DISTINCT sport_type) as sports
+    FROM games
+    GROUP BY DATE(collected_at)
+    ORDER BY date DESC
+    LIMIT 30
+''')
+
+log = []
+for row in cursor.fetchall():
+    log.append({
+        'date': row['date'],
+        'games': row['games_collected'],
+        'sports': row['sports'].split(',') if row['sports'] else []
+    })
+
+conn.close()
+
+return jsonify({'log': log})
+```
+
+if **name** == ‘**main**’:
+app.run(host=‘0.0.0.0’, port=5000, debug=True)
