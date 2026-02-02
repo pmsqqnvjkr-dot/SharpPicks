@@ -800,6 +800,176 @@ def collect_closing_lines():
         print(f"❌ Error: {e}\n")
 
 
+def generate_report():
+    """Generate a summary report of collected data"""
+    print("\n" + "="*60)
+    print("📊 SHARP PICKS - DATA COLLECTION REPORT")
+    print("="*60 + "\n")
+    
+    conn = sqlite3.connect('sharp_picks.db')
+    cursor = conn.cursor()
+    
+    # 1. Total games collected
+    cursor.execute('SELECT COUNT(*) FROM games')
+    total_games = cursor.fetchone()[0]
+    
+    cursor.execute('SELECT COUNT(*) FROM games WHERE home_score IS NOT NULL')
+    completed_games = cursor.fetchone()[0]
+    
+    cursor.execute('SELECT COUNT(*) FROM games WHERE home_score IS NULL')
+    upcoming_games = cursor.fetchone()[0]
+    
+    print("📈 TOTAL GAMES COLLECTED")
+    print("-" * 40)
+    print(f"   Total Games: {total_games}")
+    print(f"   Completed (with scores): {completed_games}")
+    print(f"   Upcoming (no scores yet): {upcoming_games}")
+    
+    # 2. Breakdown by team
+    print("\n📋 GAMES BY TEAM (Top 10)")
+    print("-" * 40)
+    
+    cursor.execute('''
+        SELECT team, COUNT(*) as games FROM (
+            SELECT home_team as team FROM games
+            UNION ALL
+            SELECT away_team as team FROM games
+        ) GROUP BY team ORDER BY games DESC LIMIT 10
+    ''')
+    
+    teams = cursor.fetchall()
+    for team, count in teams:
+        bar = "█" * (count * 2)
+        print(f"   {team:<25} {bar} {count}")
+    
+    # 3. Average spreads
+    print("\n📐 SPREAD STATISTICS")
+    print("-" * 40)
+    
+    cursor.execute('''
+        SELECT 
+            AVG(ABS(spread_home)) as avg_spread,
+            MIN(spread_home) as biggest_dog,
+            MAX(spread_home) as biggest_fav,
+            AVG(line_movement) as avg_movement
+        FROM games WHERE spread_home IS NOT NULL
+    ''')
+    
+    stats = cursor.fetchone()
+    if stats[0]:
+        print(f"   Average Spread Size: {stats[0]:.1f} points")
+        print(f"   Biggest Home Dog: +{abs(stats[1]):.1f}")
+        print(f"   Biggest Home Favorite: {stats[2]:.1f}")
+        if stats[3]:
+            print(f"   Average Line Movement: {stats[3]:+.2f}")
+    
+    # Spread distribution
+    cursor.execute('''
+        SELECT 
+            CASE 
+                WHEN ABS(spread_home) <= 3 THEN '1-3 pts'
+                WHEN ABS(spread_home) <= 6 THEN '4-6 pts'
+                WHEN ABS(spread_home) <= 9 THEN '7-9 pts'
+                ELSE '10+ pts'
+            END as bucket,
+            COUNT(*) as count
+        FROM games WHERE spread_home IS NOT NULL
+        GROUP BY bucket ORDER BY bucket
+    ''')
+    
+    print("\n   Spread Distribution:")
+    for bucket, count in cursor.fetchall():
+        pct = (count / total_games * 100) if total_games > 0 else 0
+        bar = "█" * int(pct / 2)
+        print(f"      {bucket:<10} {bar} {count} ({pct:.0f}%)")
+    
+    # 4. Most common totals
+    print("\n🎯 TOTAL (O/U) STATISTICS")
+    print("-" * 40)
+    
+    cursor.execute('''
+        SELECT 
+            AVG(total) as avg_total,
+            MIN(total) as min_total,
+            MAX(total) as max_total
+        FROM games WHERE total IS NOT NULL
+    ''')
+    
+    total_stats = cursor.fetchone()
+    if total_stats[0]:
+        print(f"   Average Total: {total_stats[0]:.1f}")
+        print(f"   Lowest Total: {total_stats[1]:.1f}")
+        print(f"   Highest Total: {total_stats[2]:.1f}")
+    
+    cursor.execute('''
+        SELECT ROUND(total, 0) as rounded_total, COUNT(*) as count
+        FROM games WHERE total IS NOT NULL
+        GROUP BY rounded_total ORDER BY count DESC LIMIT 5
+    ''')
+    
+    print("\n   Most Common Totals:")
+    for total, count in cursor.fetchall():
+        print(f"      {total:.0f}: {count} games")
+    
+    # 5. Collection streak
+    print("\n📅 COLLECTION STREAK")
+    print("-" * 40)
+    
+    cursor.execute('''
+        SELECT DISTINCT DATE(game_date) as d 
+        FROM games 
+        ORDER BY d DESC
+    ''')
+    
+    dates = [row[0] for row in cursor.fetchall()]
+    
+    if dates:
+        streak = 1
+        today = datetime.now().date()
+        
+        sorted_dates = sorted(set(dates), reverse=True)
+        
+        for i in range(len(sorted_dates) - 1):
+            try:
+                d1 = datetime.strptime(sorted_dates[i], '%Y-%m-%d').date()
+                d2 = datetime.strptime(sorted_dates[i+1], '%Y-%m-%d').date()
+                
+                if (d1 - d2).days == 1:
+                    streak += 1
+                else:
+                    break
+            except:
+                break
+        
+        first_date = min(dates) if dates else 'N/A'
+        last_date = max(dates) if dates else 'N/A'
+        
+        print(f"   First Collection: {first_date}")
+        print(f"   Latest Collection: {last_date}")
+        print(f"   Consecutive Days: {streak}")
+        print(f"   Total Days with Data: {len(set(dates))}")
+    
+    # Spread results (if we have completed games)
+    if completed_games > 0:
+        print("\n🏆 SPREAD RESULTS (Completed Games)")
+        print("-" * 40)
+        
+        cursor.execute('''
+            SELECT spread_result, COUNT(*) as count
+            FROM games WHERE spread_result IS NOT NULL
+            GROUP BY spread_result
+        ''')
+        
+        results = cursor.fetchall()
+        for result, count in results:
+            pct = (count / completed_games * 100)
+            print(f"   {result}: {count} ({pct:.1f}%)")
+    
+    conn.close()
+    
+    print("\n" + "="*60 + "\n")
+
+
 # Main execution
 if __name__ == "__main__":
     import sys
@@ -807,14 +977,19 @@ if __name__ == "__main__":
     setup_database()
     
     # Check for command line argument
-    if len(sys.argv) > 1 and sys.argv[1] == '--close':
-        # Closing lines mode - run right before games start
-        collect_closing_lines()
+    if len(sys.argv) > 1:
+        if sys.argv[1] == '--close':
+            collect_closing_lines()
+        elif sys.argv[1] == '--report':
+            generate_report()
+        else:
+            print(f"Unknown command: {sys.argv[1]}")
     else:
         # Normal daily collection
         collect_yesterdays_scores()
         collect_todays_games()
     
     print("\n💡 Commands:")
-    print("   python main.py         - Daily collection (scores + opening/current lines)")
-    print("   python main.py --close - Capture closing lines before games\n")
+    print("   python main.py          - Daily collection (scores + opening/current lines)")
+    print("   python main.py --close  - Capture closing lines before games")
+    print("   python main.py --report - Show data collection report\n")
