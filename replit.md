@@ -3,6 +3,11 @@
 ## Overview
 Comprehensive NBA betting analysis system with automated data collection, calibrated ensemble ML models for spread predictions, arbitrage detection, live game analysis, and responsible gambling monitoring.
 
+## Tech Stack
+- **Frontend**: React + Vite (port 5000)
+- **Backend**: Python/Flask (port 8000)
+- **Database**: SQLite (sharp_picks.db)
+
 ## Current Status
 - **Model Accuracy**: 79.4% on test data (15,131 games)
 - **Brier Score**: 0.139 (excellent calibration)
@@ -10,6 +15,8 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - **Backtest ROI**: +47.26% simulated on historical data
 
 ## Recent Changes (Feb 2026)
+- **Converted frontend to React** with Vite build system
+- Added TrustBanner component showing model stats
 - Added NBA pace/offensive/defensive ratings features
 - Implemented sample weighting (recent games weighted higher)
 - Added betting filters with minimum confidence threshold
@@ -18,7 +25,11 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - Added retry logic with exponential backoff for NBA stats API
 
 ## Key Files
-- `app.py` - Flask API and web dashboard
+- `client/` - React frontend (Vite)
+  - `src/App.jsx` - Main dashboard component
+  - `src/components/TrustBanner.jsx` - Model stats banner
+  - `src/components/CalibrationChart.jsx` - Calibration visualization
+- `app.py` - Flask API backend (port 8000)
 - `model.py` - Ensemble ML prediction model
 - `main.py` - Data collection script
 - `nba_ratings.py` - Team pace/ratings fetcher (with retry logic)
