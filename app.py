@@ -1,15 +1,33 @@
 """
 SHARP PICKS - ALL-IN-ONE APP
-Flask server with API endpoints and dashboard
+Flask server with API endpoints, dashboard, and scheduled tasks
 """
 
 from flask import Flask, jsonify, Response
 from flask_cors import CORS
 import sqlite3
+import subprocess
+import atexit
 from datetime import datetime, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 CORS(app)
+
+def collect_todays_games():
+    """Run the main.py data collector"""
+    print(f"[{datetime.now()}] Running scheduled data collection...")
+    try:
+        subprocess.run(['python', 'main.py'], timeout=300)
+        print(f"[{datetime.now()}] Data collection completed!")
+    except Exception as e:
+        print(f"[{datetime.now()}] Collection error: {e}")
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(collect_todays_games, 'cron', hour=9, minute=0, id='daily_collection')
+scheduler.add_job(collect_todays_games, 'cron', hour=21, minute=0, id='evening_collection')
+scheduler.start()
+atexit.register(lambda: scheduler.shutdown())
 
 def get_db():
     conn = sqlite3.connect('sharp_picks.db')
@@ -192,4 +210,5 @@ def dashboard():
 if __name__ == '__main__':
     print("Starting Sharp Picks API on http://0.0.0.0:5000")
     print("Dashboard: http://0.0.0.0:5000/dashboard")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    print("Scheduled: Daily collection at 9:00 AM and 9:00 PM")
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)

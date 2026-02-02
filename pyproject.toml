@@ -5,6 +5,7 @@ description = ""
 authors = ["Your Name <you@example.com>"]
 requires-python = ">=3.11"
 dependencies = [
+    "apscheduler>=3.11.2",
     "flask>=3.1.2",
     "flask-cors>=6.0.2",
     "lightgbm>=4.6.0",
