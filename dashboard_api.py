@@ -3,13 +3,14 @@ SHARP PICKS DASHBOARD API
 Backend endpoints to power the admin dashboard
 """
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from flask_cors import CORS
 import sqlite3
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
 CORS(app)
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 def get_db_connection():
     """Connect to SQLite database"""
@@ -246,9 +247,15 @@ def get_collection_log():
     
     return jsonify({'log': log})
 
-@app.route('/', methods=['GET'])
-def index():
-    """Health check"""
+@app.route('/')
+@app.route('/dashboard')
+def dashboard():
+    """Serve the React dashboard"""
+    return render_template('dashboard.html')
+
+@app.route('/api', methods=['GET'])
+def api_index():
+    """API health check"""
     return jsonify({
         'status': 'ok',
         'service': 'Sharp Picks Dashboard API',
