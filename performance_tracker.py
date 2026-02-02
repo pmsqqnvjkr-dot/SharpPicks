@@ -196,6 +196,70 @@ def get_recent_predictions(limit=20):
     return df
 
 
+def check_calibration():
+    """Check model calibration by confidence bucket"""
+    ensure_tracking_table()
+    conn = sqlite3.connect('sharp_picks.db')
+    
+    query = '''
+        SELECT confidence, is_correct, actual_result
+        FROM prediction_log 
+        WHERE actual_result IS NOT NULL
+        AND actual_result != 'PUSH'
+    '''
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    
+    if len(df) == 0:
+        print("\n⚠️ No resolved predictions for calibration check")
+        return None
+    
+    print("\n" + "="*60)
+    print("📊 MODEL CALIBRATION CHECK")
+    print("="*60)
+    print(f"{'Confidence':<15} {'Expected':>10} {'Actual':>10} {'Count':>8} {'Error':>10}")
+    print("-"*60)
+    
+    calibration_data = []
+    for conf_bucket in [50, 55, 60, 65, 70, 80]:
+        high = conf_bucket + 5 if conf_bucket < 80 else 100
+        mask = (df['confidence'] * 100 >= conf_bucket) & (df['confidence'] * 100 < high)
+        picks = df[mask]
+        
+        if len(picks) > 0:
+            actual_win_rate = picks['is_correct'].mean() * 100
+            expected = (conf_bucket + high) / 2
+            error = actual_win_rate - expected
+            
+            status = "✅" if abs(error) < 5 else "⚠️" if abs(error) < 10 else "❌"
+            
+            print(f"{conf_bucket}-{high}%{'':<7} {expected:>9.1f}% {actual_win_rate:>9.1f}% {len(picks):>8} {error:>+9.1f}% {status}")
+            
+            calibration_data.append({
+                'bucket': f"{conf_bucket}-{high}%",
+                'expected': expected,
+                'actual': actual_win_rate,
+                'count': len(picks),
+                'error': error
+            })
+    
+    if calibration_data:
+        mean_error = np.mean([abs(d['error']) for d in calibration_data])
+        print("-"*60)
+        print(f"Mean Absolute Error: {mean_error:.1f}%")
+        if mean_error < 3:
+            print("📈 Excellent calibration!")
+        elif mean_error < 5:
+            print("👍 Good calibration")
+        elif mean_error < 10:
+            print("⚠️ Moderate calibration - may need adjustment")
+        else:
+            print("❌ Poor calibration - model overconfident or underconfident")
+    
+    print("="*60 + "\n")
+    return calibration_data
+
+
 def show_performance_report():
     """Display performance tracking report"""
     update_results()
@@ -263,5 +327,7 @@ if __name__ == "__main__":
             print(f"✅ Updated {updated} prediction results")
         elif sys.argv[1] == 'report':
             show_performance_report()
+        elif sys.argv[1] == 'calibration':
+            check_calibration()
     else:
         show_performance_report()
