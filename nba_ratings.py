@@ -4,9 +4,13 @@ Uses NBA stats API for advanced team metrics
 """
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import sqlite3
 from datetime import datetime
 import time
+import json
+import os
 
 NBA_STATS_HEADERS = {
     'Host': 'stats.nba.com',
@@ -29,6 +33,55 @@ TEAM_ID_MAP = {
     'POR': 1610612757, 'SAC': 1610612758, 'SAS': 1610612759, 'TOR': 1610612761,
     'UTA': 1610612762, 'WAS': 1610612764
 }
+
+CACHE_FILE = 'ratings_cache.json'
+
+
+def create_retry_session(max_retries=3, backoff_factor=2):
+    """Create requests session with retry logic and exponential backoff"""
+    session = requests.Session()
+    retry = Retry(
+        total=max_retries,
+        backoff_factor=backoff_factor,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"]
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
+
+
+def save_ratings_cache(team_stats):
+    """Save ratings to local cache file"""
+    if not team_stats:
+        return
+    cache = {
+        'timestamp': datetime.now().isoformat(),
+        'data': team_stats
+    }
+    try:
+        with open(CACHE_FILE, 'w') as f:
+            json.dump(cache, f)
+        print(f"   💾 Cached ratings to {CACHE_FILE}")
+    except Exception as e:
+        print(f"   ⚠️ Cache save error: {e}")
+
+
+def load_cached_ratings():
+    """Load ratings from cache file as fallback"""
+    if not os.path.exists(CACHE_FILE):
+        print("   ⚠️ No cached ratings available")
+        return None
+    
+    try:
+        with open(CACHE_FILE, 'r') as f:
+            cache = json.load(f)
+        print(f"   📂 Using cached ratings from {cache.get('timestamp', 'unknown')}")
+        return cache.get('data')
+    except Exception as e:
+        print(f"   ⚠️ Cache load error: {e}")
+        return None
 
 def ensure_ratings_table():
     """Create team_ratings table if not exists"""
@@ -54,7 +107,7 @@ def ensure_ratings_table():
 
 
 def fetch_team_stats(season='2025-26'):
-    """Fetch team advanced stats from NBA API"""
+    """Fetch team advanced stats from NBA API with retry logic"""
     print(f"\n📊 Fetching NBA team ratings for {season}...")
     
     url = 'https://stats.nba.com/stats/leaguedashteamstats'
@@ -93,7 +146,9 @@ def fetch_team_stats(season='2025-26'):
     }
     
     try:
-        response = requests.get(url, headers=NBA_STATS_HEADERS, params=params, timeout=30)
+        session = create_retry_session(max_retries=3, backoff_factor=2)
+        print(f"   🔄 Connecting with retry logic (3 attempts, exponential backoff)...")
+        response = session.get(url, headers=NBA_STATS_HEADERS, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
         
@@ -116,10 +171,16 @@ def fetch_team_stats(season='2025-26'):
             })
         
         print(f"   ✅ Fetched stats for {len(team_stats)} teams")
+        save_ratings_cache(team_stats)
         return team_stats
         
     except requests.exceptions.RequestException as e:
-        print(f"   ⚠️ NBA API error: {e}")
+        print(f"   ⚠️ NBA API error after retries: {e}")
+        print(f"   🔄 Attempting to load from cache...")
+        cached = load_cached_ratings()
+        if cached:
+            return cached
+        print(f"   ⚠️ No cached ratings available, using defaults")
         return None
 
 

@@ -15,12 +15,13 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - Added betting filters with minimum confidence threshold
 - Created live performance tracking system
 - Model now uses 36 features (up from 23)
+- Added retry logic with exponential backoff for NBA stats API
 
 ## Key Files
 - `app.py` - Flask API and web dashboard
 - `model.py` - Ensemble ML prediction model
 - `main.py` - Data collection script
-- `nba_ratings.py` - Team pace/ratings fetcher
+- `nba_ratings.py` - Team pace/ratings fetcher (with retry logic)
 - `performance_tracker.py` - Prediction logging/tracking
 - `rundown_api.py` - The Rundown API integration
 - `arbitrage.py` - Arbitrage opportunity detector
