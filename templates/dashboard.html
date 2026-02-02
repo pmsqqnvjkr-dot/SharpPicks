@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sharp Picks Dashboard</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -15,161 +12,219 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            background: #0F172A;
             min-height: 100vh;
-            color: #e4e4e7;
+            color: #fff;
         }
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 24px;
         }
         .header {
             text-align: center;
-            padding: 30px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 30px;
+            padding: 40px 0;
+            margin-bottom: 32px;
         }
         .header h1 {
             font-size: 2.5rem;
-            background: linear-gradient(90deg, #f59e0b, #ef4444);
+            font-weight: 700;
+            background: linear-gradient(135deg, #3B82F6, #6366F1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            margin-bottom: 8px;
         }
         .header p {
-            color: #71717a;
-            margin-top: 8px;
+            color: #94A3B8;
+            font-size: 1rem;
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
         }
         .card {
-            background: rgba(255,255,255,0.05);
+            background: rgba(30, 41, 59, 0.8);
             border-radius: 16px;
-            padding: 24px;
-            border: 1px solid rgba(255,255,255,0.1);
+            padding: 28px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
             backdrop-filter: blur(10px);
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
         }
-        .card-title {
-            font-size: 0.875rem;
-            color: #a1a1aa;
+        .card-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #94A3B8;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 12px;
+            letter-spacing: 0.1em;
+            margin-bottom: 16px;
         }
         .card-value {
-            font-size: 2.5rem;
+            font-size: 3rem;
             font-weight: 700;
             color: #fff;
+            line-height: 1;
         }
         .card-subtitle {
             font-size: 0.875rem;
-            color: #71717a;
-            margin-top: 8px;
+            color: #64748B;
+            margin-top: 12px;
+        }
+        .progress-container {
+            margin-top: 20px;
         }
         .progress-bar {
             width: 100%;
-            height: 12px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 6px;
+            height: 10px;
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 5px;
             overflow: hidden;
-            margin-top: 16px;
         }
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #f59e0b, #ef4444);
-            border-radius: 6px;
-            transition: width 0.5s ease;
+            background: linear-gradient(90deg, #3B82F6, #6366F1);
+            border-radius: 5px;
+            transition: width 0.6s ease;
+        }
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: #64748B;
         }
         .streak-card {
-            background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(239,68,68,0.2));
-            border-color: rgba(245,158,11,0.3);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(99, 102, 241, 0.15));
+            border-color: rgba(99, 102, 241, 0.3);
         }
-        .streak-value {
+        .streak-display {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
         }
-        .fire {
-            font-size: 2rem;
+        .fire-emoji {
+            font-size: 2.5rem;
+        }
+        .streak-message {
+            margin-top: 12px;
+            padding: 8px 16px;
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 8px;
+            display: inline-block;
+            font-size: 0.875rem;
+            color: #A5B4FC;
+        }
+        .health-card {
+            grid-column: 1 / -1;
         }
         .health-grid {
             display: grid;
-            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
             margin-top: 16px;
         }
         .health-item {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 8px;
+            padding: 16px;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
         }
         .health-dot {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
+            flex-shrink: 0;
         }
         .health-dot.operational {
-            background: #22c55e;
-            box-shadow: 0 0 8px #22c55e;
+            background: #22C55E;
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
         }
         .health-dot.warning {
-            background: #f59e0b;
-            box-shadow: 0 0 8px #f59e0b;
+            background: #F59E0B;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
         }
         .health-dot.error {
-            background: #ef4444;
-            box-shadow: 0 0 8px #ef4444;
+            background: #EF4444;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+        }
+        .health-info {
+            flex: 1;
         }
         .health-name {
-            flex: 1;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #fff;
         }
         .health-message {
             font-size: 0.75rem;
-            color: #71717a;
+            color: #64748B;
+            margin-top: 2px;
         }
-        .stats-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+        .quick-stats {
+            grid-column: 1 / -1;
         }
-        .stats-row:last-child {
-            border-bottom: none;
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
         }
-        .stats-label {
-            color: #a1a1aa;
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
         }
-        .stats-value {
-            font-weight: 600;
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
         }
-        .stats-value.positive {
-            color: #22c55e;
+        .stat-value.positive {
+            color: #22C55E;
         }
-        .stats-value.negative {
-            color: #ef4444;
+        .stat-value.negative {
+            color: #EF4444;
         }
-        .refresh-indicator {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.6);
-            padding: 8px 16px;
-            border-radius: 20px;
+        .stat-label {
             font-size: 0.75rem;
-            color: #71717a;
+            color: #64748B;
+            margin-top: 4px;
+        }
+        .refresh-badge {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 10px 18px;
+            border-radius: 24px;
+            font-size: 0.75rem;
+            color: #64748B;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        .refresh-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #22C55E;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         .loading {
             display: flex;
@@ -178,172 +233,155 @@
             min-height: 400px;
         }
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top-color: #f59e0b;
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(148, 163, 184, 0.2);
+            border-top-color: #3B82F6;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        .wide-card {
-            grid-column: 1 / -1;
-        }
         @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            .header {
+                padding: 24px 0;
+            }
             .header h1 {
                 font-size: 1.75rem;
             }
             .card-value {
-                font-size: 2rem;
+                font-size: 2.25rem;
             }
-            .container {
-                padding: 12px;
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .health-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <div id="root"></div>
-    
-    <script type="text/babel">
-        {% raw %}
-        const { useState, useEffect } = React;
+    <div class="container">
+        <header class="header">
+            <h1>Sharp Picks Dashboard</h1>
+            <p>NBA Betting Analysis System</p>
+        </header>
 
-        function Dashboard() {
-            const [stats, setStats] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [lastUpdate, setLastUpdate] = useState(null);
+        <div id="content">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
 
-            const fetchStats = async () => {
-                try {
-                    const response = await fetch('/api/admin/stats');
-                    const data = await response.json();
-                    setStats(data);
-                    setLastUpdate(new Date());
-                    setLoading(false);
-                } catch (error) {
-                    console.error('Failed to fetch stats:', error);
-                }
-            };
+    <div class="refresh-badge" id="refresh-badge">
+        <span class="refresh-dot"></span>
+        <span id="last-update">Loading...</span>
+    </div>
 
-            useEffect(() => {
-                fetchStats();
-                const interval = setInterval(fetchStats, 30000);
-                return () => clearInterval(interval);
-            }, []);
-
-            if (loading) {
-                return (
-                    <div className="loading">
-                        <div className="spinner"></div>
-                    </div>
-                );
+    <script>
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                const data = await response.json();
+                renderDashboard(data);
+                document.getElementById('last-update').textContent = 
+                    'Updated ' + new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error('Failed to fetch stats:', error);
             }
-
-            const progressPercent = Math.min((stats.gamesWithResults / 50) * 100, 100);
-            const streakFires = stats.collectionStreak >= 7 ? 3 : stats.collectionStreak >= 3 ? 2 : 1;
-
-            return (
-                <div className="container">
-                    <header className="header">
-                        <h1>Sharp Picks Dashboard</h1>
-                        <p>NBA Betting Analysis System</p>
-                    </header>
-
-                    <div className="grid">
-                        <div className="card">
-                            <div className="card-title">Games Collected</div>
-                            <div className="card-value">{stats.gamesCollected}</div>
-                            <div className="card-subtitle">
-                                {stats.gamesWithResults} / 50 with results ({progressPercent.toFixed(0)}%)
-                            </div>
-                            <div className="progress-bar">
-                                <div 
-                                    className="progress-fill" 
-                                    style={{ width: `${progressPercent}%` }}
-                                ></div>
-                            </div>
-                        </div>
-
-                        <div className="card streak-card">
-                            <div className="card-title">Collection Streak</div>
-                            <div className="streak-value">
-                                <span className="fire">{'🔥'.repeat(streakFires)}</span>
-                                <span className="card-value">{stats.collectionStreak}</span>
-                            </div>
-                            <div className="card-subtitle">
-                                {stats.collectionStreak >= 7 ? 'On fire! Keep it up!' : 
-                                 stats.collectionStreak >= 3 ? 'Great streak going!' : 
-                                 'Building momentum...'}
-                            </div>
-                        </div>
-
-                        <div className="card">
-                            <div className="card-title">Win Rate</div>
-                            <div className="card-value">
-                                {stats.winRate > 0 ? `${stats.winRate}%` : '--'}
-                            </div>
-                            <div className="card-subtitle">
-                                {stats.wins}W - {stats.losses}L
-                            </div>
-                        </div>
-
-                        <div className="card">
-                            <div className="card-title">Total Profit</div>
-                            <div className={`card-value ${stats.totalProfit >= 0 ? 'positive' : 'negative'}`} 
-                                 style={{ color: stats.totalProfit >= 0 ? '#22c55e' : '#ef4444' }}>
-                                {stats.totalProfit >= 0 ? '+' : ''}{stats.totalProfit > 0 ? `$${stats.totalProfit.toFixed(2)}` : '--'}
-                            </div>
-                            <div className="card-subtitle">
-                                {stats.roi > 0 ? `${stats.roi.toFixed(1)}% ROI` : 'Start logging bets'}
-                            </div>
-                        </div>
-
-                        <div className="card wide-card">
-                            <div className="card-title">System Health</div>
-                            <div className="health-grid">
-                                {stats.systemHealth.map((item, index) => (
-                                    <div key={index} className="health-item">
-                                        <div className={`health-dot ${item.status}`}></div>
-                                        <span className="health-name">{item.name}</span>
-                                        <span className="health-message">{item.message}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="card wide-card">
-                            <div className="card-title">Quick Stats</div>
-                            <div className="stats-row">
-                                <span className="stats-label">Model Status</span>
-                                <span className="stats-value">
-                                    {stats.gamesWithResults >= 50 ? '✅ Ready to train' : `⏳ Need ${50 - stats.gamesWithResults} more games`}
-                                </span>
-                            </div>
-                            <div className="stats-row">
-                                <span className="stats-label">Last 7 Days Profit</span>
-                                <span className={`stats-value ${stats.last7DaysProfit >= 0 ? 'positive' : 'negative'}`}>
-                                    {stats.last7DaysProfit !== 0 ? `$${stats.last7DaysProfit.toFixed(2)}` : '--'}
-                                </span>
-                            </div>
-                            <div className="stats-row">
-                                <span className="stats-label">Games with Results</span>
-                                <span className="stats-value">{stats.gamesWithResults}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="refresh-indicator">
-                        Last updated: {lastUpdate ? lastUpdate.toLocaleTimeString() : '--'}
-                    </div>
-                </div>
-            );
         }
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<Dashboard />);
-        {% endraw %}
+        function renderDashboard(stats) {
+            const progressPercent = Math.min((stats.gamesWithResults / 50) * 100, 100);
+            const streak = stats.collectionStreak;
+            const fireCount = streak >= 7 ? 3 : streak >= 3 ? 2 : 1;
+            const fireEmojis = '🔥'.repeat(fireCount);
+            
+            let streakMessage = 'Just getting started';
+            if (streak >= 7) streakMessage = 'On fire! Keep it up!';
+            else if (streak >= 3) streakMessage = 'Great streak going!';
+            else if (streak >= 1) streakMessage = 'Building momentum...';
+
+            const html = `
+                <div class="grid">
+                    <div class="card">
+                        <div class="card-label">Games Collected</div>
+                        <div class="card-value">${stats.gamesCollected}</div>
+                        <div class="card-subtitle">${stats.gamesWithResults} of 50 with results</div>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                            </div>
+                            <div class="progress-text">
+                                <span>Progress</span>
+                                <span>${progressPercent.toFixed(0)}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card streak-card">
+                        <div class="card-label">Collection Streak</div>
+                        <div class="streak-display">
+                            <span class="fire-emoji">${fireEmojis}</span>
+                            <span class="card-value">${streak}</span>
+                        </div>
+                        <div class="streak-message">${streakMessage}</div>
+                    </div>
+
+                    <div class="card health-card">
+                        <div class="card-label">System Health</div>
+                        <div class="health-grid">
+                            ${stats.systemHealth.map(item => `
+                                <div class="health-item">
+                                    <div class="health-dot ${item.status}"></div>
+                                    <div class="health-info">
+                                        <div class="health-name">${item.name}</div>
+                                        <div class="health-message">${item.message}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="card quick-stats">
+                        <div class="card-label">Performance</div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value">${stats.wins}W - ${stats.losses}L</div>
+                                <div class="stat-label">Record</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${stats.winRate > 0 ? stats.winRate + '%' : '--'}</div>
+                                <div class="stat-label">Win Rate</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value ${stats.totalProfit >= 0 ? 'positive' : 'negative'}">
+                                    ${stats.totalProfit !== 0 ? (stats.totalProfit >= 0 ? '+' : '') + '$' + stats.totalProfit.toFixed(2) : '--'}
+                                </div>
+                                <div class="stat-label">Total Profit</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value ${stats.roi >= 0 ? 'positive' : 'negative'}">
+                                    ${stats.roi !== 0 ? stats.roi.toFixed(1) + '%' : '--'}
+                                </div>
+                                <div class="stat-label">ROI</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('content').innerHTML = html;
+        }
+
+        fetchStats();
+        setInterval(fetchStats, 30000);
     </script>
 </body>
 </html>
