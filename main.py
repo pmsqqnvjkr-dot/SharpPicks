@@ -800,6 +800,126 @@ def collect_closing_lines():
         print(f"❌ Error: {e}\n")
 
 
+def show_visualization():
+    """Display ASCII charts of collection progress"""
+    print("\n" + "="*60)
+    print("📈 SHARP PICKS - COLLECTION VISUALIZATION")
+    print("="*60 + "\n")
+    
+    conn = sqlite3.connect('sharp_picks.db')
+    cursor = conn.cursor()
+    
+    # Get games per day
+    cursor.execute('''
+        SELECT DATE(game_date) as day, COUNT(*) as count
+        FROM games
+        GROUP BY day
+        ORDER BY day
+    ''')
+    
+    daily_data = cursor.fetchall()
+    conn.close()
+    
+    if not daily_data:
+        print("No data to visualize yet. Run the collector first!\n")
+        return
+    
+    # BAR CHART - Games per day
+    print("📊 GAMES COLLECTED PER DAY")
+    print("-" * 50)
+    
+    max_count = max(d[1] for d in daily_data)
+    bar_width = 30
+    
+    for date, count in daily_data:
+        short_date = date[5:] if date else "?"  # MM-DD format
+        bar_len = int(count / max_count * bar_width) if max_count > 0 else 0
+        bar = "█" * bar_len + "░" * (bar_width - bar_len)
+        print(f"   {short_date} │{bar}│ {count}")
+    
+    print()
+    
+    # CUMULATIVE LINE GRAPH
+    print("📈 CUMULATIVE TOTAL (Progress Over Time)")
+    print("-" * 50)
+    
+    cumulative = []
+    total = 0
+    for date, count in daily_data:
+        total += count
+        cumulative.append((date, total))
+    
+    # ASCII line graph
+    height = 8
+    width = min(len(cumulative) * 4, 40)
+    max_val = cumulative[-1][1] if cumulative else 1
+    
+    # Create graph grid
+    graph = [[' ' for _ in range(width + 10)] for _ in range(height + 1)]
+    
+    # Y-axis labels
+    for i in range(height + 1):
+        val = int(max_val * (height - i) / height)
+        label = f"{val:>3}"
+        for j, c in enumerate(label):
+            graph[i][j] = c
+        graph[i][4] = '│'
+    
+    # Plot points
+    for idx, (date, val) in enumerate(cumulative):
+        x = 5 + idx * 3
+        if x < width + 5:
+            y = height - int(val / max_val * height) if max_val > 0 else height
+            y = max(0, min(height, y))
+            
+            # Draw vertical line from bottom to point
+            for row in range(y, height + 1):
+                if graph[row][x] == ' ':
+                    graph[row][x] = '│' if row > y else '●'
+            graph[y][x] = '●'
+    
+    # Print graph
+    for row in graph:
+        print("   " + "".join(row))
+    
+    # X-axis
+    print("   " + " " * 4 + "└" + "─" * (width))
+    
+    # X-axis labels
+    x_labels = "     "
+    for idx, (date, _) in enumerate(cumulative):
+        if idx < (width // 3):
+            x_labels += date[8:10] + " "  # Day only
+    print("   " + x_labels)
+    
+    # Summary stats
+    print(f"\n   Total Collected: {cumulative[-1][1]} games")
+    print(f"   Collection Days: {len(daily_data)}")
+    avg = sum(d[1] for d in daily_data) / len(daily_data)
+    print(f"   Average Per Day: {avg:.1f} games")
+    
+    # Progress to goal
+    goal = 50
+    current = cumulative[-1][1]
+    pct = min(current / goal * 100, 100)
+    
+    print(f"\n🎯 PROGRESS TO 50-GAME GOAL")
+    print("-" * 50)
+    
+    prog_bar = "█" * int(pct / 2) + "░" * (50 - int(pct / 2))
+    print(f"   [{prog_bar}]")
+    print(f"   {current}/50 games ({pct:.0f}%)")
+    
+    if current >= goal:
+        print("\n   ✨ Goal reached! Ready to train the model!")
+    else:
+        remaining = goal - current
+        days_left = int(remaining / avg) + 1 if avg > 0 else 999
+        print(f"\n   ⏳ {remaining} games to go (~{days_left} days at current pace)")
+    
+    print("\n" + "="*60 + "\n")
+
+
 def generate_report():
     """Generate a summary report of collected data"""
     print("\n" + "="*60)
@@ -970,6 +1090,82 @@ def generate_report():
     print("\n" + "="*60 + "\n")
 
 
+def show_welcome():
+    """Show welcome message with progress stats"""
+    conn = sqlite3.connect('sharp_picks.db')
+    cursor = conn.cursor()
+    
+    # Total games
+    cursor.execute('SELECT COUNT(*) FROM games')
+    total_games = cursor.fetchone()[0]
+    
+    # Games with results (needed for training)
+    cursor.execute('SELECT COUNT(*) FROM games WHERE spread_result IS NOT NULL')
+    completed_games = cursor.fetchone()[0]
+    
+    # Calculate streak
+    cursor.execute('SELECT DISTINCT DATE(game_date) FROM games ORDER BY game_date DESC')
+    dates = [row[0] for row in cursor.fetchall()]
+    
+    streak = 0
+    if dates:
+        sorted_dates = sorted(set(dates), reverse=True)
+        streak = 1
+        for i in range(len(sorted_dates) - 1):
+            try:
+                d1 = datetime.strptime(sorted_dates[i], '%Y-%m-%d').date()
+                d2 = datetime.strptime(sorted_dates[i+1], '%Y-%m-%d').date()
+                if (d1 - d2).days == 1:
+                    streak += 1
+                else:
+                    break
+            except:
+                break
+    
+    conn.close()
+    
+    # Progress calculations
+    goal = 50
+    progress = min(completed_games / goal * 100, 100)
+    games_needed = max(0, goal - completed_games)
+    
+    # Estimate days until ready (assume ~6 games per day complete)
+    games_per_day = 6
+    days_until_ready = max(0, (games_needed + games_per_day - 1) // games_per_day)
+    
+    # Display welcome
+    print("\n" + "="*50)
+    print("🏀 SHARP PICKS - NBA DATA COLLECTOR")
+    print("="*50)
+    
+    # Streak display
+    if streak >= 7:
+        streak_emoji = "🔥🔥🔥"
+    elif streak >= 3:
+        streak_emoji = "🔥"
+    else:
+        streak_emoji = "📅"
+    
+    print(f"\n{streak_emoji} Collection Streak: {streak} day{'s' if streak != 1 else ''}")
+    print(f"📊 Total Games Collected: {total_games}")
+    print(f"✅ Games with Results: {completed_games}")
+    
+    # Progress bar
+    bar_length = 20
+    filled = int(progress / 100 * bar_length)
+    bar = "█" * filled + "░" * (bar_length - filled)
+    print(f"\n🎯 Progress to Training: [{bar}] {progress:.0f}%")
+    print(f"   {completed_games}/50 games with results")
+    
+    if completed_games >= goal:
+        print("\n✨ READY TO TRAIN! Run: python model.py train")
+    else:
+        print(f"\n⏳ ~{days_until_ready} day{'s' if days_until_ready != 1 else ''} until ready to train")
+        print(f"   Need {games_needed} more completed games")
+    
+    print("\n" + "-"*50 + "\n")
+
+
 # Main execution
 if __name__ == "__main__":
     import sys
@@ -982,14 +1178,18 @@ if __name__ == "__main__":
             collect_closing_lines()
         elif sys.argv[1] == '--report':
             generate_report()
+        elif sys.argv[1] == '--viz':
+            show_visualization()
         else:
             print(f"Unknown command: {sys.argv[1]}")
     else:
-        # Normal daily collection
+        # Show welcome and run normal collection
+        show_welcome()
         collect_yesterdays_scores()
         collect_todays_games()
     
     print("\n💡 Commands:")
     print("   python main.py          - Daily collection (scores + opening/current lines)")
     print("   python main.py --close  - Capture closing lines before games")
-    print("   python main.py --report - Show data collection report\n")
+    print("   python main.py --report - Show data collection report")
+    print("   python main.py --viz    - Show progress visualization\n")
