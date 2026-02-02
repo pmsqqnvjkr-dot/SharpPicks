@@ -6,10 +6,105 @@ Run this daily to build your dataset
 import requests
 import sqlite3
 import os
+import time
+import random
 from datetime import datetime, timedelta
 
 # Get API key from Replit Secrets
 API_KEY = os.environ.get('ODDS_API_KEY')
+
+# API usage tracking
+API_USAGE = {'remaining': 500, 'used': 0}
+
+
+def api_request_with_retry(url, params, max_retries=3):
+    """Make API request with retry logic and usage tracking"""
+    global API_USAGE
+    
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            
+            # Track API usage from headers
+            remaining = response.headers.get('x-requests-remaining')
+            used = response.headers.get('x-requests-used')
+            
+            if remaining:
+                API_USAGE['remaining'] = int(remaining)
+            if used:
+                API_USAGE['used'] = int(used)
+            
+            # Check for rate limiting
+            if response.status_code == 429:
+                wait_time = (attempt + 1) * 5
+                print(f"   ⏳ Rate limited. Waiting {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+                continue
+            
+            # Success
+            if response.status_code == 200:
+                return response
+            
+            # Other errors
+            if response.status_code >= 500:
+                wait_time = (attempt + 1) * 2
+                print(f"   ⚠️ Server error {response.status_code}. Retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+                continue
+            
+            # Client error - don't retry
+            return response
+            
+        except requests.exceptions.Timeout:
+            wait_time = (attempt + 1) * 2
+            print(f"   ⏱️ Request timeout. Retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+            time.sleep(wait_time)
+            
+        except requests.exceptions.ConnectionError:
+            wait_time = (attempt + 1) * 3
+            print(f"   🔌 Connection error. Retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+            time.sleep(wait_time)
+            
+        except Exception as e:
+            print(f"   ❌ Unexpected error: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2)
+    
+    return None
+
+
+def check_api_usage():
+    """Check and warn about API usage"""
+    remaining = API_USAGE['remaining']
+    used = API_USAGE['used']
+    
+    if remaining <= 50:
+        print("\n" + "!"*50)
+        print(f"🚨 CRITICAL: Only {remaining} API calls remaining!")
+        print("   Your monthly limit resets on the 1st.")
+        print("   Consider pausing collection to save calls.")
+        print("!"*50 + "\n")
+    elif remaining <= 100:
+        print(f"\n⚠️ WARNING: {remaining} API calls remaining (approaching limit)")
+    elif remaining <= 200:
+        print(f"\n📊 API Usage: {used}/500 used, {remaining} remaining")
+
+
+def show_no_games_message():
+    """Show encouraging message when no games today"""
+    messages = [
+        "🌴 No NBA games today - enjoy the break!",
+        "📺 Off-day! Perfect time to review your data.",
+        "☕ No games scheduled. Your streak continues tomorrow!",
+        "🏖️ Rest day for the NBA. Check back tomorrow!",
+        "📊 No games today, but your model keeps learning!",
+    ]
+    
+    print(f"\n{random.choice(messages)}")
+    print("\n💡 While you wait, try:")
+    print("   python main.py --report - View your collection stats")
+    print("   python main.py --viz    - See progress visualization")
+    print("   python model.py train   - Train model (if 50+ games)\n")
 
 # Team name mapping (Odds API -> ESPN abbreviation)
 TEAM_ABBR_MAP = {
@@ -489,7 +584,12 @@ def collect_todays_games():
     }
     
     try:
-        response = requests.get(url, params=params)
+        response = api_request_with_retry(url, params)
+        
+        if response is None:
+            print("\n❌ Failed to connect after 3 attempts.")
+            print("   Please check your internet connection and try again.\n")
+            return
         
         if response.status_code != 200:
             print(f"\n❌ API Error {response.status_code}")
@@ -497,14 +597,16 @@ def collect_todays_games():
             return
         
         games = response.json()
-        remaining = response.headers.get('x-requests-remaining', '?')
         
         print(f"✅ API Connected!")
         print(f"   Games found: {len(games)}")
-        print(f"   API calls left: {remaining}/500\n")
+        print(f"   API calls left: {API_USAGE['remaining']}/500\n")
+        
+        # Check API usage and warn if needed
+        check_api_usage()
         
         if len(games) == 0:
-            print("ℹ️  No NBA games today (off-day)\n")
+            show_no_games_message()
             show_stats()
             return
         
@@ -717,16 +819,23 @@ def collect_closing_lines():
     }
     
     try:
-        response = requests.get(url, params=params)
+        response = api_request_with_retry(url, params)
+        
+        if response is None:
+            print("\n❌ Failed to connect after 3 attempts.")
+            print("   Please check your internet connection and try again.\n")
+            return
         
         if response.status_code != 200:
             print(f"❌ API Error: {response.status_code}")
             return
         
         games = response.json()
-        remaining = response.headers.get('x-requests-remaining', '?')
         
-        print(f"✅ Connected! API calls left: {remaining}/500\n")
+        print(f"✅ Connected! API calls left: {API_USAGE['remaining']}/500\n")
+        
+        # Check API usage and warn if needed
+        check_api_usage()
         
         conn = sqlite3.connect('sharp_picks.db')
         cursor = conn.cursor()
