@@ -1,12 +1,13 @@
 """
 🏀 SHARP PICKS - ENSEMBLE PREDICTION MODEL
 Uses multiple ML models to predict NBA spread outcomes
+Enhanced with pace/ratings features, sample weighting, and betting filters
 """
 
 import sqlite3
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 import pickle
 import os
 
@@ -16,6 +17,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 from sklearn.metrics import accuracy_score, classification_report, brier_score_loss
 import xgboost as xgb
+
+MIN_CONFIDENCE_THRESHOLD = 0.55
+STRONG_CONFIDENCE_THRESHOLD = 0.60
 
 
 class EnsemblePredictor:
@@ -54,24 +58,30 @@ class EnsemblePredictor:
         self.calibration_stats = {}
     
     def load_data(self):
-        """Load training data from database"""
+        """Load training data from database with team ratings"""
         conn = sqlite3.connect('sharp_picks.db')
         
         query = '''
             SELECT 
-                home_team, away_team, game_date,
-                spread_home, spread_home_open, spread_home_close,
-                total, total_open, total_close,
-                home_ml, away_ml,
-                home_record, away_record,
-                home_home_record, away_away_record,
-                home_last5, away_last5,
-                home_rest_days, away_rest_days,
-                line_movement,
-                spread_result, home_score, away_score
-            FROM games
-            WHERE home_score IS NOT NULL
-            AND away_score IS NOT NULL
+                g.home_team, g.away_team, g.game_date,
+                g.spread_home, g.spread_home_open, g.spread_home_close,
+                g.total, g.total_open, g.total_close,
+                g.home_ml, g.away_ml,
+                g.home_record, g.away_record,
+                g.home_home_record, g.away_away_record,
+                g.home_last5, g.away_last5,
+                g.home_rest_days, g.away_rest_days,
+                g.line_movement,
+                g.spread_result, g.home_score, g.away_score,
+                hr.pace as home_pace, hr.off_rating as home_off_rtg, 
+                hr.def_rating as home_def_rtg, hr.net_rating as home_net_rtg,
+                ar.pace as away_pace, ar.off_rating as away_off_rtg,
+                ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg
+            FROM games g
+            LEFT JOIN team_ratings hr ON g.home_team = hr.team_abbr
+            LEFT JOIN team_ratings ar ON g.away_team = ar.team_abbr
+            WHERE g.home_score IS NOT NULL
+            AND g.away_score IS NOT NULL
         '''
         
         df = pd.read_sql_query(query, conn)
@@ -79,33 +89,64 @@ class EnsemblePredictor:
         
         return df
     
+    def calculate_sample_weights(self, df):
+        """Calculate sample weights - recent games weighted higher"""
+        weights = np.ones(len(df))
+        
+        if 'game_date' not in df.columns:
+            return weights
+        
+        try:
+            dates = pd.to_datetime(df['game_date'], errors='coerce')
+            valid_mask = dates.notna()
+            
+            if valid_mask.sum() == 0:
+                return weights
+            
+            max_date = dates[valid_mask].max()
+            min_date = dates[valid_mask].min()
+            date_range = (max_date - min_date).days
+            
+            if date_range > 0:
+                days_ago = (max_date - dates).dt.days.fillna(date_range)
+                recency = 1 - (days_ago / date_range)
+                weights = 1.0 + recency
+                
+                current_season_start = datetime(max_date.year if max_date.month >= 10 else max_date.year - 1, 10, 1)
+                current_season_mask = dates >= current_season_start
+                weights = np.where(current_season_mask, weights * 1.5, weights)
+            
+            weights = weights / weights.mean()
+            
+        except Exception as e:
+            print(f"   ⚠️ Weight calculation error: {e}")
+            weights = np.ones(len(df))
+        
+        return weights
+    
     def engineer_features(self, df):
-        """Create features from raw data"""
+        """Create features from raw data including pace/ratings"""
         features = pd.DataFrame()
         
-        # Spread features (default to 0 if missing)
         features['spread_home'] = pd.to_numeric(df['spread_home'], errors='coerce').fillna(0)
         spread_open = pd.to_numeric(df.get('spread_home_open', pd.Series([0]*len(df))), errors='coerce')
         features['spread_open'] = spread_open.fillna(features['spread_home'])
         features['line_movement'] = pd.to_numeric(df.get('line_movement', pd.Series([0]*len(df))), errors='coerce').fillna(0)
         
-        # Total features
         features['total'] = pd.to_numeric(df.get('total', pd.Series([220]*len(df))), errors='coerce').fillna(220)
         total_open = pd.to_numeric(df.get('total_open', pd.Series([220]*len(df))), errors='coerce')
         features['total_open'] = total_open.fillna(features['total'])
         features['total_movement'] = features['total'] - features['total_open']
         
-        # Moneyline features
         features['home_ml'] = pd.to_numeric(df.get('home_ml', pd.Series([0]*len(df))), errors='coerce').fillna(0)
         features['away_ml'] = pd.to_numeric(df.get('away_ml', pd.Series([0]*len(df))), errors='coerce').fillna(0)
         features['ml_diff'] = features['home_ml'] - features['away_ml']
         
-        # Record features (parse W-L records)
         def parse_record(record):
             if pd.isna(record) or record == 'N/A':
                 return 0.5
             try:
-                parts = record.split('-')
+                parts = str(record).split('-')
                 wins = int(parts[0])
                 losses = int(parts[1])
                 return wins / (wins + losses) if (wins + losses) > 0 else 0.5
@@ -116,17 +157,15 @@ class EnsemblePredictor:
         features['away_win_pct'] = df['away_record'].apply(parse_record)
         features['win_pct_diff'] = features['home_win_pct'] - features['away_win_pct']
         
-        # Home/Away split features
         features['home_home_pct'] = df['home_home_record'].apply(parse_record)
         features['away_away_pct'] = df['away_away_record'].apply(parse_record)
         features['split_advantage'] = features['home_home_pct'] - features['away_away_pct']
         
-        # Form features (parse L5 string like "WWLWL")
         def parse_form(form_str):
             if pd.isna(form_str) or not form_str:
                 return 0.5
-            wins = form_str.count('W')
-            total = len(form_str)
+            wins = str(form_str).count('W')
+            total = len(str(form_str))
             return wins / total if total > 0 else 0.5
         
         home_last5 = df.get('home_last5', pd.Series(['']*len(df)))
@@ -135,14 +174,29 @@ class EnsemblePredictor:
         features['away_form'] = away_last5.apply(parse_form)
         features['form_diff'] = features['home_form'] - features['away_form']
         
-        # Rest days features
         features['home_rest'] = pd.to_numeric(df.get('home_rest_days', pd.Series([1]*len(df))), errors='coerce').fillna(1)
         features['away_rest'] = pd.to_numeric(df.get('away_rest_days', pd.Series([1]*len(df))), errors='coerce').fillna(1)
         features['rest_advantage'] = features['home_rest'] - features['away_rest']
         
-        # Spread size features
         features['spread_abs'] = features['spread_home'].abs()
         features['is_favorite'] = (features['spread_home'] < 0).astype(int)
+        
+        features['home_pace'] = pd.to_numeric(df.get('home_pace', pd.Series([100.0]*len(df))), errors='coerce').fillna(100.0)
+        features['away_pace'] = pd.to_numeric(df.get('away_pace', pd.Series([100.0]*len(df))), errors='coerce').fillna(100.0)
+        features['pace_diff'] = features['home_pace'] - features['away_pace']
+        features['combined_pace'] = (features['home_pace'] + features['away_pace']) / 2
+        
+        features['home_off_rtg'] = pd.to_numeric(df.get('home_off_rtg', pd.Series([110.0]*len(df))), errors='coerce').fillna(110.0)
+        features['home_def_rtg'] = pd.to_numeric(df.get('home_def_rtg', pd.Series([110.0]*len(df))), errors='coerce').fillna(110.0)
+        features['away_off_rtg'] = pd.to_numeric(df.get('away_off_rtg', pd.Series([110.0]*len(df))), errors='coerce').fillna(110.0)
+        features['away_def_rtg'] = pd.to_numeric(df.get('away_def_rtg', pd.Series([110.0]*len(df))), errors='coerce').fillna(110.0)
+        
+        features['home_net_rtg'] = pd.to_numeric(df.get('home_net_rtg', pd.Series([0.0]*len(df))), errors='coerce').fillna(0.0)
+        features['away_net_rtg'] = pd.to_numeric(df.get('away_net_rtg', pd.Series([0.0]*len(df))), errors='coerce').fillna(0.0)
+        features['net_rtg_diff'] = features['home_net_rtg'] - features['away_net_rtg']
+        
+        features['off_matchup'] = features['home_off_rtg'] - features['away_def_rtg']
+        features['def_matchup'] = features['away_off_rtg'] - features['home_def_rtg']
         
         return features
     
@@ -163,13 +217,12 @@ class EnsemblePredictor:
         
         return target
     
-    def train(self):
-        """Train all models in the ensemble with probability calibration"""
+    def train(self, use_sample_weights=True):
+        """Train all models in the ensemble with probability calibration and sample weighting"""
         print("\n" + "="*60)
         print("🤖 TRAINING CALIBRATED ENSEMBLE MODEL")
         print("="*60 + "\n")
         
-        # Load data
         df = self.load_data()
         
         if len(df) < 20:
@@ -178,21 +231,28 @@ class EnsemblePredictor:
             print(f"   Keep collecting data!\n")
             return False
         
-        print(f"📊 Training on {len(df)} games with results\n")
+        print(f"📊 Training on {len(df)} games with results")
         
-        # Filter out pushes for binary classification
         df = df[df['spread_result'] != 'PUSH']
         
-        # Prepare features and target
         X = self.engineer_features(df)
         y = self.prepare_target(df)
         
-        self.feature_names = X.columns.tolist()
+        if use_sample_weights:
+            sample_weights = self.calculate_sample_weights(df)
+            print(f"   📈 Using recency-weighted samples (current season 1.5x)")
+        else:
+            sample_weights = np.ones(len(df))
         
-        # Split data - need extra split for calibration
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
+        self.feature_names = X.columns.tolist()
+        print(f"   📋 Using {len(self.feature_names)} features\n")
+        
+        indices = np.arange(len(X))
+        train_idx, test_idx = train_test_split(indices, test_size=0.2, random_state=42)
+        
+        X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+        weights_train = sample_weights[train_idx]
         
         # Scale features
         X_train_scaled = self.scaler.fit_transform(X_train)
@@ -206,18 +266,27 @@ class EnsemblePredictor:
         for name, base_model in self.base_models.items():
             print(f"   Training {name}...", end=" ")
             
-            # Wrap with CalibratedClassifierCV for probability calibration
-            # Uses isotonic regression for calibration (better for larger datasets)
-            # method='sigmoid' uses Platt scaling (better for smaller datasets)
+            import copy
+            weighted_base = copy.deepcopy(base_model)
+            
+            try:
+                weighted_base.fit(X_train_scaled, y_train, sample_weight=weights_train)
+            except TypeError:
+                weighted_base.fit(X_train_scaled, y_train)
+            
             calibration_method = 'isotonic' if len(X_train) > 100 else 'sigmoid'
             
             calibrated_model = CalibratedClassifierCV(
                 base_model,
                 method=calibration_method,
-                cv=5  # 5-fold cross-validation for calibration
+                cv=5
             )
             
-            calibrated_model.fit(X_train_scaled, y_train)
+            try:
+                calibrated_model.fit(X_train_scaled, y_train, sample_weight=weights_train)
+            except TypeError:
+                calibrated_model.fit(X_train_scaled, y_train)
+            
             self.models[name] = calibrated_model
             
             # Evaluate
@@ -325,34 +394,43 @@ class EnsemblePredictor:
         proba = self.predict_proba(X)
         return (proba >= 0.5).astype(int)
     
-    def predict_games(self):
-        """Make predictions for today's upcoming games"""
+    def predict_games(self, min_confidence=None, log_predictions=True):
+        """Make predictions for today's upcoming games with filtering"""
         print("\n" + "="*60)
         print("🎯 TODAY'S PREDICTIONS")
         print("="*60 + "\n")
+        
+        if min_confidence is None:
+            min_confidence = MIN_CONFIDENCE_THRESHOLD
         
         if not self.trained:
             self.load_model()
             if not self.trained:
                 print("❌ No trained model found. Run training first.\n")
-                return
+                return []
         
         conn = sqlite3.connect('sharp_picks.db')
         
         query = '''
             SELECT 
-                id, home_team, away_team, game_date, game_time,
-                spread_home, spread_home_open, spread_home_close,
-                total, total_open, total_close,
-                home_ml, away_ml,
-                home_record, away_record,
-                home_home_record, away_away_record,
-                home_last5, away_last5,
-                home_rest_days, away_rest_days,
-                line_movement
-            FROM games
-            WHERE home_score IS NULL
-            AND spread_home IS NOT NULL
+                g.id, g.home_team, g.away_team, g.game_date, g.game_time,
+                g.spread_home, g.spread_home_open, g.spread_home_close,
+                g.total, g.total_open, g.total_close,
+                g.home_ml, g.away_ml,
+                g.home_record, g.away_record,
+                g.home_home_record, g.away_away_record,
+                g.home_last5, g.away_last5,
+                g.home_rest_days, g.away_rest_days,
+                g.line_movement,
+                hr.pace as home_pace, hr.off_rating as home_off_rtg,
+                hr.def_rating as home_def_rtg, hr.net_rating as home_net_rtg,
+                ar.pace as away_pace, ar.off_rating as away_off_rtg,
+                ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg
+            FROM games g
+            LEFT JOIN team_ratings hr ON g.home_team = hr.team_abbr
+            LEFT JOIN team_ratings ar ON g.away_team = ar.team_abbr
+            WHERE g.home_score IS NULL
+            AND g.spread_home IS NOT NULL
         '''
         
         df = pd.read_sql_query(query, conn)
@@ -360,25 +438,21 @@ class EnsemblePredictor:
         
         if len(df) == 0:
             print("ℹ️  No upcoming games to predict.\n")
-            return
+            return []
         
-        print(f"📊 Analyzing {len(df)} upcoming games...\n")
+        print(f"📊 Analyzing {len(df)} upcoming games...")
+        print(f"   🎚️  Minimum confidence filter: {min_confidence*100:.0f}%\n")
         
-        # Prepare features
         X = self.engineer_features(df)
+        
+        missing_features = [f for f in self.feature_names if f not in X.columns]
+        for feat in missing_features:
+            X[feat] = 0
+        X = X[self.feature_names]
+        
         X_scaled = self.scaler.transform(X)
         
-        # Get predictions from each model
-        all_predictions = {}
-        for name, model in self.models.items():
-            all_predictions[name] = model.predict_proba(X_scaled)[:, 1]
-        
-        # Ensemble prediction
         ensemble_proba = self.predict_proba(X_scaled)
-        
-        print("-" * 70)
-        print(f"{'Game':<35} {'Pick':<15} {'Confidence':>10} {'Edge':>8}")
-        print("-" * 70)
         
         picks = []
         
@@ -388,10 +462,8 @@ class EnsemblePredictor:
             home = row['home_team']
             away = row['away_team']
             spread = row['spread_home']
-            
             proba = ensemble_proba[idx]
             
-            # Determine pick
             if proba >= 0.5:
                 pick = f"{home} {spread:+.1f}"
                 confidence = proba
@@ -399,43 +471,69 @@ class EnsemblePredictor:
                 pick = f"{away} {-spread:+.1f}"
                 confidence = 1 - proba
             
-            # Calculate edge (how far from 50%)
             edge = abs(proba - 0.5) * 2
             
-            # Star rating based on confidence
-            if confidence >= 0.65:
-                stars = "⭐⭐⭐"
+            if confidence >= STRONG_CONFIDENCE_THRESHOLD:
                 rating = "STRONG"
-            elif confidence >= 0.58:
-                stars = "⭐⭐"
+            elif confidence >= MIN_CONFIDENCE_THRESHOLD:
                 rating = "LEAN"
             else:
-                stars = "⭐"
                 rating = "SLIGHT"
             
-            game_str = f"{away} @ {home}"[:34]
-            
-            print(f"{game_str:<35} {pick:<15} {confidence:>9.1%} {edge:>7.1%}")
-            
             picks.append({
+                'game_id': row['id'],
+                'game_date': row['game_date'],
                 'game': f"{away} @ {home}",
+                'home_team': home,
+                'away_team': away,
+                'spread': spread,
                 'pick': pick,
                 'confidence': confidence,
                 'edge': edge,
                 'rating': rating,
-                'home_proba': proba
+                'home_proba': proba,
+                'passes_filter': confidence >= min_confidence
             })
         
-        print("-" * 70)
+        filtered_picks = [p for p in picks if p['passes_filter']]
+        excluded_count = len(picks) - len(filtered_picks)
         
-        # Show top picks
-        strong_picks = [p for p in picks if p['confidence'] >= 0.58]
+        print("-" * 75)
+        print(f"{'Game':<30} {'Pick':<18} {'Conf':>8} {'Edge':>7} {'Rating':>10}")
+        print("-" * 75)
+        
+        for pick in sorted(filtered_picks, key=lambda x: x['confidence'], reverse=True):
+            game_str = pick['game'][:29]
+            print(f"{game_str:<30} {pick['pick']:<18} {pick['confidence']:>7.1%} {pick['edge']:>6.1%} {pick['rating']:>10}")
+        
+        print("-" * 75)
+        
+        if excluded_count > 0:
+            print(f"\n⚠️  {excluded_count} games below {min_confidence*100:.0f}% confidence (filtered out)")
+        
+        if log_predictions:
+            try:
+                from performance_tracker import log_prediction
+                logged = 0
+                for pick in picks:
+                    if log_prediction(
+                        pick['game_id'], pick['game_date'], pick['home_team'], pick['away_team'],
+                        pick['spread'], pick['pick'], pick['confidence'], pick['home_proba']
+                    ):
+                        logged += 1
+                if logged > 0:
+                    print(f"📊 Logged {logged} new predictions for tracking")
+            except Exception as e:
+                pass
+        
+        strong_picks = [p for p in filtered_picks if p['confidence'] >= STRONG_CONFIDENCE_THRESHOLD]
         if strong_picks:
-            print("\n🔥 TOP PICKS (58%+ confidence):")
+            print(f"\n🔥 TOP PICKS ({STRONG_CONFIDENCE_THRESHOLD*100:.0f}%+ confidence):")
             for pick in sorted(strong_picks, key=lambda x: x['confidence'], reverse=True):
                 print(f"   {pick['rating']}: {pick['pick']} ({pick['confidence']:.1%})")
         
         print()
+        return filtered_picks
     
     def save(self, filepath='sharp_picks_model.pkl'):
         """Save the trained model"""
