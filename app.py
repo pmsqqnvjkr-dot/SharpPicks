@@ -54,6 +54,57 @@ def calculate_streak(dates):
 def index():
     return "Sharp Picks API is running!"
 
+@app.route('/api/validation/detailed')
+def detailed_validation():
+    """Check model calibration by confidence buckets - only forward predictions"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    buckets = {}
+    for conf_min in [50, 55, 60, 65, 70, 80]:
+        conf_max = conf_min + 5 if conf_min < 80 else 100
+        
+        cursor.execute('''
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as wins
+            FROM prediction_log
+            WHERE confidence >= ? AND confidence < ?
+            AND actual_result IS NOT NULL
+            AND actual_result != 'PUSH'
+            AND logged_at < game_date
+        ''', (conf_min / 100.0, conf_max / 100.0))
+        
+        result = cursor.fetchone()
+        total = result['total'] if result['total'] else 0
+        wins = result['wins'] if result['wins'] else 0
+        expected_rate = (conf_min + conf_max) / 2
+        actual_rate = (wins / total * 100) if total > 0 else 0
+        
+        buckets[f'{conf_min}-{conf_max}%'] = {
+            'total': total,
+            'wins': wins,
+            'actual_rate': round(actual_rate, 1),
+            'expected_rate': expected_rate,
+            'error': round(actual_rate - expected_rate, 1),
+            'calibrated': abs(actual_rate - expected_rate) < 5 if total > 0 else None
+        }
+    
+    mean_error = 0
+    valid_buckets = [b for b in buckets.values() if b['total'] > 0]
+    if valid_buckets:
+        mean_error = sum(abs(b['error']) for b in valid_buckets) / len(valid_buckets)
+    
+    conn.close()
+    
+    return jsonify({
+        'buckets': buckets,
+        'mean_absolute_error': round(mean_error, 1),
+        'calibration_status': 'excellent' if mean_error < 3 else 'good' if mean_error < 5 else 'moderate' if mean_error < 10 else 'poor',
+        'total_predictions': sum(b['total'] for b in buckets.values())
+    })
+
+
 @app.route('/api/admin/stats')
 def get_stats():
     conn = get_db()
