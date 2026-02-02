@@ -54,6 +54,7 @@ def setup_database():
         CREATE TABLE IF NOT EXISTS games (
             id TEXT PRIMARY KEY,
             game_date TEXT,
+            game_time TEXT,
             home_team TEXT,
             away_team TEXT,
             spread_home REAL,
@@ -76,12 +77,24 @@ def setup_database():
             home_rest_days INTEGER,
             away_rest_days INTEGER,
             home_injuries TEXT,
-            away_injuries TEXT
+            away_injuries TEXT,
+            spread_home_open REAL,
+            total_open REAL,
+            home_ml_open INTEGER,
+            away_ml_open INTEGER,
+            open_collected_at TEXT,
+            spread_home_close REAL,
+            total_close REAL,
+            home_ml_close INTEGER,
+            away_ml_close INTEGER,
+            close_collected_at TEXT,
+            line_movement REAL
         )
     ''')
     
     # Add new columns if they don't exist
     new_columns = [
+        ('game_time', 'TEXT'),
         ('home_score', 'INTEGER'),
         ('away_score', 'INTEGER'),
         ('spread_result', 'TEXT'),
@@ -97,6 +110,17 @@ def setup_database():
         ('away_rest_days', 'INTEGER'),
         ('home_injuries', 'TEXT'),
         ('away_injuries', 'TEXT'),
+        ('spread_home_open', 'REAL'),
+        ('total_open', 'REAL'),
+        ('home_ml_open', 'INTEGER'),
+        ('away_ml_open', 'INTEGER'),
+        ('open_collected_at', 'TEXT'),
+        ('spread_home_close', 'REAL'),
+        ('total_close', 'REAL'),
+        ('home_ml_close', 'INTEGER'),
+        ('away_ml_close', 'INTEGER'),
+        ('close_collected_at', 'TEXT'),
+        ('line_movement', 'REAL'),
     ]
     
     for col_name, col_type in new_columns:
@@ -544,43 +568,75 @@ def collect_todays_games():
             home_injuries = injuries.get(home, '')
             away_injuries = injuries.get(away, '')
             
-            # Save to database
-            cursor.execute('''
-                INSERT INTO games 
-                (id, game_date, home_team, away_team, 
-                 spread_home, spread_away, total, home_ml, away_ml, collected_at,
-                 home_record, away_record, home_home_record, away_away_record,
-                 home_last5, away_last5, home_rest_days, away_rest_days,
-                 home_injuries, away_injuries)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    spread_home = excluded.spread_home,
-                    spread_away = excluded.spread_away,
-                    total = excluded.total,
-                    home_ml = excluded.home_ml,
-                    away_ml = excluded.away_ml,
-                    collected_at = excluded.collected_at,
-                    home_record = excluded.home_record,
-                    away_record = excluded.away_record,
-                    home_home_record = excluded.home_home_record,
-                    away_away_record = excluded.away_away_record,
-                    home_last5 = excluded.home_last5,
-                    away_last5 = excluded.away_last5,
-                    home_rest_days = excluded.home_rest_days,
-                    away_rest_days = excluded.away_rest_days,
-                    home_injuries = excluded.home_injuries,
-                    away_injuries = excluded.away_injuries
-            ''', (
-                game_id, commence_time, home, away,
-                spread_home, spread_away, total, home_ml, away_ml,
-                datetime.now().isoformat(),
-                home_record, away_record, home_home_record, away_away_record,
-                home_last5, away_last5, home_rest, away_rest,
-                home_injuries, away_injuries
-            ))
+            # Get game time
+            game_time = game.get('commence_time', '')
+            
+            # Check if game already exists (to preserve opening line)
+            cursor.execute('SELECT id, spread_home_open FROM games WHERE id = ?', (game_id,))
+            existing = cursor.fetchone()
+            
+            is_new_game = existing is None
+            has_opening = existing and existing[1] is not None
+            
+            if is_new_game:
+                # New game - save as opening line
+                cursor.execute('''
+                    INSERT INTO games 
+                    (id, game_date, game_time, home_team, away_team, 
+                     spread_home, spread_away, total, home_ml, away_ml, collected_at,
+                     spread_home_open, total_open, home_ml_open, away_ml_open, open_collected_at,
+                     home_record, away_record, home_home_record, away_away_record,
+                     home_last5, away_last5, home_rest_days, away_rest_days,
+                     home_injuries, away_injuries)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    game_id, commence_time, game_time, home, away,
+                    spread_home, spread_away, total, home_ml, away_ml,
+                    datetime.now().isoformat(),
+                    spread_home, total, home_ml, away_ml, datetime.now().isoformat(),
+                    home_record, away_record, home_home_record, away_away_record,
+                    home_last5, away_last5, home_rest, away_rest,
+                    home_injuries, away_injuries
+                ))
+                line_status = "📌 OPENING"
+            else:
+                # Existing game - update current line only
+                cursor.execute('''
+                    UPDATE games SET
+                        spread_home = ?, spread_away = ?, total = ?, 
+                        home_ml = ?, away_ml = ?, collected_at = ?,
+                        game_time = ?,
+                        home_record = ?, away_record = ?, 
+                        home_home_record = ?, away_away_record = ?,
+                        home_last5 = ?, away_last5 = ?, 
+                        home_rest_days = ?, away_rest_days = ?,
+                        home_injuries = ?, away_injuries = ?
+                    WHERE id = ?
+                ''', (
+                    spread_home, spread_away, total, home_ml, away_ml,
+                    datetime.now().isoformat(), game_time,
+                    home_record, away_record, home_home_record, away_away_record,
+                    home_last5, away_last5, home_rest, away_rest,
+                    home_injuries, away_injuries,
+                    game_id
+                ))
+                
+                # Calculate line movement if we have opening
+                if has_opening:
+                    cursor.execute('SELECT spread_home_open FROM games WHERE id = ?', (game_id,))
+                    open_spread = cursor.fetchone()[0]
+                    if open_spread and spread_home:
+                        movement = spread_home - open_spread
+                        cursor.execute('UPDATE games SET line_movement = ? WHERE id = ?', 
+                                      (movement, game_id))
+                        line_status = f"📊 CURRENT (moved {movement:+.1f})" if movement != 0 else "📊 CURRENT"
+                    else:
+                        line_status = "📊 CURRENT"
+                else:
+                    line_status = "📊 CURRENT"
             
             # Display enhanced info
-            print(f"📊 {away} @ {home}")
+            print(f"{line_status} {away} @ {home}")
             print(f"   📈 Records: {away} ({away_record}) vs {home} ({home_record})")
             if spread_home:
                 print(f"   📉 Spread: {home} {spread_home:+.1f}")
@@ -641,9 +697,124 @@ def show_stats():
     print("="*60)
 
 
+def collect_closing_lines():
+    """Collect closing lines for games starting soon (within 30 min)"""
+    print("\n" + "="*60)
+    print("⏰ COLLECTING CLOSING LINES")
+    print("="*60 + "\n")
+    
+    if not API_KEY:
+        print("❌ ERROR: No API key found!")
+        return
+    
+    url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
+    params = {
+        'apiKey': API_KEY,
+        'regions': 'us',
+        'markets': 'spreads,totals,h2h',
+        'oddsFormat': 'american',
+        'bookmakers': 'draftkings'
+    }
+    
+    try:
+        response = requests.get(url, params=params)
+        
+        if response.status_code != 200:
+            print(f"❌ API Error: {response.status_code}")
+            return
+        
+        games = response.json()
+        remaining = response.headers.get('x-requests-remaining', '?')
+        
+        print(f"✅ Connected! API calls left: {remaining}/500\n")
+        
+        conn = sqlite3.connect('sharp_picks.db')
+        cursor = conn.cursor()
+        
+        updated = 0
+        
+        for game in games:
+            game_id = game['id']
+            home = game['home_team']
+            away = game['away_team']
+            
+            # Check if game exists and hasn't started
+            cursor.execute('SELECT id, spread_home_open FROM games WHERE id = ? AND home_score IS NULL', (game_id,))
+            existing = cursor.fetchone()
+            
+            if not existing:
+                continue
+            
+            # Extract odds
+            spread_home = None
+            total = None
+            home_ml = None
+            away_ml = None
+            
+            if game.get('bookmakers'):
+                bookmaker = game['bookmakers'][0]
+                
+                for market in bookmaker.get('markets', []):
+                    if market['key'] == 'spreads':
+                        for outcome in market['outcomes']:
+                            if outcome['name'] == home:
+                                spread_home = outcome['point']
+                    elif market['key'] == 'totals':
+                        total = market['outcomes'][0]['point']
+                    elif market['key'] == 'h2h':
+                        for outcome in market['outcomes']:
+                            if outcome['name'] == home:
+                                home_ml = outcome['price']
+                            else:
+                                away_ml = outcome['price']
+            
+            # Update closing line
+            cursor.execute('''
+                UPDATE games SET
+                    spread_home_close = ?, total_close = ?,
+                    home_ml_close = ?, away_ml_close = ?,
+                    close_collected_at = ?
+                WHERE id = ?
+            ''', (spread_home, total, home_ml, away_ml, 
+                  datetime.now().isoformat(), game_id))
+            
+            # Calculate total line movement
+            open_spread = existing[1]
+            if open_spread and spread_home:
+                movement = spread_home - open_spread
+                cursor.execute('UPDATE games SET line_movement = ? WHERE id = ?', 
+                              (movement, game_id))
+                move_str = f" (moved {movement:+.1f})" if movement != 0 else ""
+            else:
+                move_str = ""
+            
+            updated += 1
+            print(f"🔒 {away} @ {home}: Close {spread_home:+.1f}{move_str}")
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"\n✅ Captured closing lines for {updated} games\n")
+        
+    except Exception as e:
+        print(f"❌ Error: {e}\n")
+
+
 # Main execution
 if __name__ == "__main__":
+    import sys
+    
     setup_database()
-    collect_yesterdays_scores()
-    collect_todays_games()
-    print("\n💡 Run daily to collect data!\n")
+    
+    # Check for command line argument
+    if len(sys.argv) > 1 and sys.argv[1] == '--close':
+        # Closing lines mode - run right before games start
+        collect_closing_lines()
+    else:
+        # Normal daily collection
+        collect_yesterdays_scores()
+        collect_todays_games()
+    
+    print("\n💡 Commands:")
+    print("   python main.py         - Daily collection (scores + opening/current lines)")
+    print("   python main.py --close - Capture closing lines before games\n")
