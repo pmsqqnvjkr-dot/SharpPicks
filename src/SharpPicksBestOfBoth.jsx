@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Zap, Target, TrendingUp, CheckCircle, Lock, Crown, Share2, X, Activity, Mail, Download, Copy, Flame, BarChart3, AlertCircle, DollarSign } from 'lucide-react';
+import { Zap, Target, TrendingUp, CheckCircle, Lock, Crown, Share2, X, Activity, Mail, Download, Copy, Flame, BarChart3, AlertCircle, DollarSign, LogIn, LogOut, User } from 'lucide-react';
 
 export default function SharpPicksBestOfBoth() {
-  // ============ USER STATE ============
+  // ============ AUTH STATE ============
+  const [authUser, setAuthUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  
+  // ============ USER STATE (derived from auth) ============
   const [isPaidUser, setIsPaidUser] = useState(false);
   const [isNewPaidUser, setIsNewPaidUser] = useState(false);
   const [unitSize, setUnitSize] = useState(null);
@@ -34,6 +38,28 @@ export default function SharpPicksBestOfBoth() {
   const [viewedFOMO, setViewedFOMO] = useState(0);
   const fomoRef = useRef(null);
   
+  // ============ FETCH AUTH USER ============
+  useEffect(() => {
+    const fetchAuthUser = async () => {
+      try {
+        const res = await fetch('/api/auth/user');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            setAuthUser(data.user);
+            setIsPaidUser(data.user.is_premium || false);
+            setUnitSize(data.user.unit_size || 100);
+          }
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+    fetchAuthUser();
+  }, []);
+  
   // ============ FETCH REAL DATA FROM API ============
   useEffect(() => {
     const fetchData = async () => {
@@ -61,6 +87,41 @@ export default function SharpPicksBestOfBoth() {
     
     fetchData();
   }, []);
+  
+  // ============ AUTH HELPERS ============
+  const handleLogin = () => {
+    window.location.href = '/auth/replit_auth/login';
+  };
+  
+  const handleLogout = () => {
+    window.location.href = '/auth/replit_auth/logout';
+  };
+  
+  const handlePremiumUpgrade = async () => {
+    try {
+      const res = await fetch('/api/auth/upgrade', { method: 'POST' });
+      if (res.ok) {
+        setIsPaidUser(true);
+        setIsNewPaidUser(true);
+        setShowUpgrade(false);
+        setShowWelcome(true);
+      }
+    } catch (error) {
+      console.error('Upgrade failed:', error);
+    }
+  };
+  
+  const saveUnitSize = async (size) => {
+    try {
+      await fetch('/api/auth/unit-size', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unit_size: size })
+      });
+    } catch (error) {
+      console.error('Failed to save unit size:', error);
+    }
+  };
   
   // ============ CALCULATE STATS FROM REAL TRACKED BETS ============
   const settledBets = trackedBets.filter(b => b.result);
@@ -200,8 +261,12 @@ export default function SharpPicksBestOfBoth() {
 
   // ============ HANDLERS ============
   const handleSetUnitSize = (size) => {
-    setUnitSize(parseInt(size));
+    const sizeInt = parseInt(size);
+    setUnitSize(sizeInt);
     setShowUnitSetup(false);
+    if (authUser) {
+      saveUnitSize(sizeInt);
+    }
   };
   
   const handleOpenTrackModal = (pick) => {
@@ -281,10 +346,11 @@ export default function SharpPicksBestOfBoth() {
   };
 
   const handleUpgrade = () => {
-    setIsPaidUser(true);
-    setIsNewPaidUser(true);
-    setShowUpgrade(false);
-    setShowWelcome(true);
+    if (authUser) {
+      handlePremiumUpgrade();
+    } else {
+      handleLogin();
+    }
   };
 
   if (loading) {
@@ -747,15 +813,53 @@ export default function SharpPicksBestOfBoth() {
               </div>
             </div>
 
-            {!isPaidUser && (
-              <button
-                onClick={() => setShowUpgrade(true)}
-                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center space-x-2 shadow-lg"
-              >
-                <Crown className="w-4 h-4" />
-                <span>Upgrade</span>
-              </button>
-            )}
+            <div className="flex items-center space-x-3">
+              {authUser ? (
+                <>
+                  <div className="flex items-center space-x-2">
+                    {authUser.profile_image_url ? (
+                      <img 
+                        src={authUser.profile_image_url} 
+                        alt="Profile" 
+                        className="w-8 h-8 rounded-full object-cover border-2 border-slate-600"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+                        <User className="w-4 h-4 text-slate-400" />
+                      </div>
+                    )}
+                    <span className="text-white text-sm font-bold hidden sm:block">
+                      {authUser.first_name || authUser.email?.split('@')[0] || 'User'}
+                    </span>
+                  </div>
+                  {!isPaidUser && (
+                    <button
+                      onClick={() => setShowUpgrade(true)}
+                      className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center space-x-2"
+                    >
+                      <Crown className="w-4 h-4" />
+                      <span>Upgrade</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition-all"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleLogin}
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center space-x-2"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Sign In</span>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -1322,39 +1426,6 @@ export default function SharpPicksBestOfBoth() {
         </div>
       </footer>
 
-      {/* DEV CONTROLS */}
-      <div className="fixed bottom-4 right-4 bg-slate-900 border border-slate-700 rounded-xl p-4 space-y-2 z-50 shadow-2xl">
-        <div className="text-white text-xs font-bold mb-2">🛠️ Dev Mode:</div>
-        <button
-          onClick={() => {
-            setIsPaidUser(false);
-            setIsNewPaidUser(false);
-          }}
-          className={`w-full text-xs px-3 py-2 rounded transition-all ${!isPaidUser ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
-        >
-          Free User
-        </button>
-        <button
-          onClick={() => {
-            setIsPaidUser(true);
-            setIsNewPaidUser(true);
-            setUnitSize(null);
-          }}
-          className={`w-full text-xs px-3 py-2 rounded transition-all ${isPaidUser && isNewPaidUser ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
-        >
-          New Paid User
-        </button>
-        <button
-          onClick={() => {
-            setIsPaidUser(true);
-            setIsNewPaidUser(false);
-            setUnitSize(100);
-          }}
-          className={`w-full text-xs px-3 py-2 rounded transition-all ${isPaidUser && !isNewPaidUser ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
-        >
-          Active Paid User
-        </button>
-      </div>
     </div>
   );
 }

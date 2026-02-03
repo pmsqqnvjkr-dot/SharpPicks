@@ -1,18 +1,49 @@
 """
 SHARP PICKS - ALL-IN-ONE APP
-Flask server with API endpoints, dashboard, and scheduled tasks
+Flask server with API endpoints, dashboard, authentication, and scheduled tasks
 """
 
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, Response, session
 from flask_cors import CORS
+from flask_login import current_user
+from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3
 import subprocess
 import atexit
+import os
+import logging
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from models import db, User, TrackedBet
+
+logging.basicConfig(level=logging.DEBUG)
+
 app = Flask(__name__)
+app.secret_key = os.environ.get("SESSION_SECRET")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    'pool_pre_ping': True,
+    "pool_recycle": 300,
+}
+
+db.init_app(app)
 CORS(app)
+
+from replit_auth import init_login_manager, make_replit_blueprint, require_login
+init_login_manager(app)
+app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
+
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+
+with app.app_context():
+    db.create_all()
+    logging.info("Database tables created")
 
 def collect_todays_games():
     """Run the main.py data collector"""
@@ -53,6 +84,129 @@ def calculate_streak(dates):
 @app.route('/')
 def index():
     return "Sharp Picks API is running!"
+
+@app.route('/api/auth/user')
+def get_current_user():
+    """Get current authenticated user info"""
+    if current_user.is_authenticated:
+        return jsonify({
+            'authenticated': True,
+            'user': {
+                'id': current_user.id,
+                'email': current_user.email,
+                'first_name': current_user.first_name,
+                'last_name': current_user.last_name,
+                'profile_image_url': current_user.profile_image_url,
+                'is_premium': current_user.is_premium,
+                'unit_size': current_user.unit_size
+            }
+        })
+    return jsonify({'authenticated': False, 'user': None})
+
+@app.route('/api/auth/upgrade', methods=['POST'])
+@require_login
+def upgrade_user():
+    """Upgrade user to premium (demo - would integrate with Stripe)"""
+    current_user.is_premium = True
+    db.session.commit()
+    return jsonify({'success': True, 'is_premium': True})
+
+@app.route('/api/auth/unit-size', methods=['POST'])
+@require_login
+def set_unit_size():
+    """Set user's unit size"""
+    from flask import request
+    data = request.get_json()
+    unit_size = data.get('unit_size', 100)
+    current_user.unit_size = unit_size
+    db.session.commit()
+    return jsonify({'success': True, 'unit_size': unit_size})
+
+@app.route('/api/bets', methods=['GET'])
+@require_login
+def get_user_bets():
+    """Get user's tracked bets"""
+    bets = TrackedBet.query.filter_by(user_id=current_user.id).order_by(TrackedBet.created_at.desc()).all()
+    return jsonify({
+        'bets': [{
+            'id': b.id,
+            'pick': b.pick,
+            'game': b.game,
+            'bet_amount': b.bet_amount,
+            'odds': b.odds,
+            'to_win': b.to_win,
+            'result': b.result,
+            'profit': b.profit,
+            'created_at': b.created_at.isoformat()
+        } for b in bets]
+    })
+
+@app.route('/api/bets', methods=['POST'])
+@require_login
+def track_bet():
+    """Track a new bet"""
+    from flask import request
+    data = request.get_json()
+    
+    bet = TrackedBet(
+        user_id=current_user.id,
+        pick=data.get('pick'),
+        game=data.get('game'),
+        bet_amount=data.get('bet_amount', 100),
+        odds=data.get('odds', -110),
+        to_win=data.get('to_win', 0)
+    )
+    db.session.add(bet)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'bet': {
+            'id': bet.id,
+            'pick': bet.pick,
+            'game': bet.game,
+            'bet_amount': bet.bet_amount
+        }
+    })
+
+@app.route('/api/bets/<int:bet_id>/result', methods=['POST'])
+@require_login
+def update_bet_result(bet_id):
+    """Update bet result"""
+    from flask import request
+    data = request.get_json()
+    
+    bet = TrackedBet.query.filter_by(id=bet_id, user_id=current_user.id).first()
+    if not bet:
+        return jsonify({'error': 'Bet not found'}), 404
+    
+    bet.result = data.get('result')
+    bet.profit = data.get('profit', 0)
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/user/stats')
+@require_login
+def get_user_stats():
+    """Get user's betting stats"""
+    bets = TrackedBet.query.filter_by(user_id=current_user.id).all()
+    settled = [b for b in bets if b.result]
+    
+    wins = len([b for b in settled if b.result == 'W'])
+    losses = len([b for b in settled if b.result == 'L'])
+    total_profit = sum(b.profit for b in settled)
+    total_risked = sum(b.bet_amount for b in settled)
+    
+    return jsonify({
+        'total_bets': len(bets),
+        'settled': len(settled),
+        'wins': wins,
+        'losses': losses,
+        'win_rate': round(wins / len(settled) * 100, 1) if settled else 0,
+        'total_profit': round(total_profit, 2),
+        'roi': round(total_profit / total_risked * 100, 1) if total_risked else 0
+    })
 
 @app.route('/api/model/calibration')
 @app.route('/api/validation/detailed')
@@ -284,118 +438,18 @@ def get_stats():
         ]
     })
 
-DASHBOARD_HTML = '''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sharp Picks Dashboard</title>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0F172A;min-height:100vh;color:#fff}
-        .container{max-width:1200px;margin:0 auto;padding:24px}
-        .header{text-align:center;padding:40px 0;margin-bottom:32px}
-        .header h1{font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,#3B82F6,#6366F1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-        .header p{color:#94A3B8;margin-top:8px}
-        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
-        .card{background:rgba(30,41,59,0.8);border-radius:16px;padding:28px;border:1px solid rgba(148,163,184,0.1);transition:transform 0.2s}
-        .card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.3)}
-        .card-label{font-size:0.75rem;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px}
-        .card-value{font-size:3rem;font-weight:700;color:#fff}
-        .card-sub{font-size:0.875rem;color:#64748B;margin-top:12px}
-        .progress{margin-top:20px}
-        .progress-bar{width:100%;height:10px;background:rgba(148,163,184,0.2);border-radius:5px;overflow:hidden}
-        .progress-fill{height:100%;background:linear-gradient(90deg,#3B82F6,#6366F1);border-radius:5px;transition:width 0.6s}
-        .progress-text{display:flex;justify-content:space-between;margin-top:8px;font-size:0.75rem;color:#64748B}
-        .streak{background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(99,102,241,0.15));border-color:rgba(99,102,241,0.3)}
-        .streak-row{display:flex;align-items:center;gap:16px}
-        .fire{font-size:2.5rem}
-        .streak-msg{margin-top:12px;padding:8px 16px;background:rgba(99,102,241,0.2);border-radius:8px;display:inline-block;font-size:0.875rem;color:#A5B4FC}
-        .health{grid-column:1/-1}
-        .health-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:16px}
-        .health-item{display:flex;align-items:center;gap:12px;padding:16px;background:rgba(15,23,42,0.6);border-radius:12px;border:1px solid rgba(148,163,184,0.1)}
-        .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
-        .dot.operational{background:#22C55E;box-shadow:0 0 12px rgba(34,197,94,0.5)}
-        .dot.warning{background:#F59E0B;box-shadow:0 0 12px rgba(245,158,11,0.5)}
-        .health-name{font-weight:600;font-size:0.875rem}
-        .health-msg{font-size:0.75rem;color:#64748B;margin-top:2px}
-        .perf{grid-column:1/-1}
-        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-top:16px}
-        .stat{text-align:center;padding:20px;background:rgba(15,23,42,0.6);border-radius:12px;border:1px solid rgba(148,163,184,0.1)}
-        .stat-val{font-size:1.5rem;font-weight:700}
-        .stat-val.pos{color:#22C55E}.stat-val.neg{color:#EF4444}
-        .stat-lbl{font-size:0.75rem;color:#64748B;margin-top:4px}
-        .badge{position:fixed;bottom:24px;right:24px;background:rgba(30,41,59,0.9);padding:10px 18px;border-radius:24px;font-size:0.75rem;color:#64748B;border:1px solid rgba(148,163,184,0.2)}
-        .pulse{display:inline-block;width:8px;height:8px;background:#22C55E;border-radius:50%;margin-right:8px;animation:pulse 2s infinite}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-        .loading{display:flex;justify-content:center;align-items:center;min-height:400px}
-        .spinner{width:48px;height:48px;border:4px solid rgba(148,163,184,0.2);border-top-color:#3B82F6;border-radius:50%;animation:spin 1s linear infinite}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        @media(max-width:768px){.container{padding:16px}.header h1{font-size:1.75rem}.card-value{font-size:2.25rem}.grid{grid-template-columns:1fr}}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header class="header"><h1>Sharp Picks Dashboard</h1><p>NBA Betting Analysis System</p></header>
-        <div id="content"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-    <div class="badge"><span class="pulse"></span><span id="time">Loading...</span></div>
-    <script>
-        async function load(){
-            try{
-                const r=await fetch('/api/admin/stats');
-                const s=await r.json();
-                render(s);
-                document.getElementById('time').textContent='Updated '+new Date().toLocaleTimeString();
-            }catch(e){console.error(e)}
-        }
-        function render(s){
-            const pct=Math.min((s.gamesWithResults/50)*100,100);
-            const fire='🔥'.repeat(s.collectionStreak>=7?3:s.collectionStreak>=3?2:1);
-            const msg=s.collectionStreak>=7?'On fire!':s.collectionStreak>=3?'Great streak!':'Building...';
-            document.getElementById('content').innerHTML=`
-                <div class="grid">
-                    <div class="card">
-                        <div class="card-label">Games Collected</div>
-                        <div class="card-value">${s.gamesCollected}</div>
-                        <div class="card-sub">${s.gamesWithResults} of 50 with results</div>
-                        <div class="progress"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-                        <div class="progress-text"><span>Progress</span><span>${pct.toFixed(0)}%</span></div></div>
-                    </div>
-                    <div class="card streak">
-                        <div class="card-label">Collection Streak</div>
-                        <div class="streak-row"><span class="fire">${fire}</span><span class="card-value">${s.collectionStreak}</span></div>
-                        <div class="streak-msg">${msg}</div>
-                    </div>
-                    <div class="card health">
-                        <div class="card-label">System Health</div>
-                        <div class="health-grid">${s.systemHealth.map(h=>`
-                            <div class="health-item"><div class="dot ${h.status}"></div><div><div class="health-name">${h.name}</div><div class="health-msg">${h.message}</div></div></div>
-                        `).join('')}</div>
-                    </div>
-                    <div class="card perf">
-                        <div class="card-label">Performance</div>
-                        <div class="stats-grid">
-                            <div class="stat"><div class="stat-val pos">${s.modelAccuracy||79.5}%</div><div class="stat-lbl">Model Accuracy</div></div>
-                            <div class="stat"><div class="stat-val">${s.modelBrier||0.139}</div><div class="stat-lbl">Brier Score</div></div>
-                            <div class="stat"><div class="stat-val">${s.homeCover||0}</div><div class="stat-lbl">Home Covers</div></div>
-                            <div class="stat"><div class="stat-val">${s.awayCover||0}</div><div class="stat-lbl">Away Covers</div></div>
-                        </div>
-                    </div>
-                </div>`;
-        }
-        load();
-        setInterval(load,30000);
-    </script>
-</body>
-</html>'''
-
 @app.route('/dashboard')
 def dashboard():
-    return Response(DASHBOARD_HTML, mimetype='text/html')
+    return Response('''<!DOCTYPE html>
+<html><head><title>Sharp Picks Dashboard</title></head>
+<body style="background:#0F172A;color:#fff;font-family:system-ui;text-align:center;padding:50px;">
+<h1>Sharp Picks Dashboard</h1>
+<p>API is running. Use the React frontend for the full experience.</p>
+</body></html>''', mimetype='text/html')
 
 if __name__ == '__main__':
     print("Starting Sharp Picks API on http://0.0.0.0:8000")
     print("API endpoints available at /api/*")
+    print("Auth endpoints available at /auth/*")
     print("Scheduled: Daily collection at 9:00 AM and 9:00 PM")
     app.run(host='0.0.0.0', port=8000, debug=False, use_reloader=False)
