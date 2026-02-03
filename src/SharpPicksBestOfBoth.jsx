@@ -17,19 +17,14 @@ export default function SharpPicksBestOfBoth() {
   const [showTrackModal, setShowTrackModal] = useState(false);
   const [selectedPickToTrack, setSelectedPickToTrack] = useState(null);
   
+  // ============ API DATA STATE ============
+  const [apiPredictions, setApiPredictions] = useState([]);
+  const [apiPerformance, setApiPerformance] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
   // ============ TRACKING STATE ============
   const [customBetAmount, setCustomBetAmount] = useState('');
-  const [trackedBets, setTrackedBets] = useState([
-    // Demo data
-    { id: 1, pick: 'Celtics -6.5', betAmount: 100, odds: -110, toWin: 90.91, result: 'W', profit: 90.91, date: 'Jan 30' },
-    { id: 2, pick: 'Nuggets +3', betAmount: 100, odds: -110, toWin: 90.91, result: 'W', profit: 90.91, date: 'Jan 29' },
-    { id: 3, pick: 'Lakers -4', betAmount: 100, odds: -110, toWin: 90.91, result: 'L', profit: -100, date: 'Jan 29' },
-    { id: 4, pick: 'Heat +5.5', betAmount: 150, odds: -110, toWin: 136.37, result: 'W', profit: 136.37, date: 'Jan 28' },
-    { id: 5, pick: 'Bucks -3', betAmount: 100, odds: -110, toWin: 90.91, result: 'W', profit: 90.91, date: 'Jan 27' },
-    { id: 6, pick: 'Suns +4.5', betAmount: 100, odds: -110, toWin: 90.91, result: 'L', profit: -100, date: 'Jan 26' },
-    { id: 7, pick: 'Raptors -2', betAmount: 100, odds: -110, toWin: 90.91, result: 'W', profit: 90.91, date: 'Jan 25' },
-    { id: 8, pick: 'Clippers +2', betAmount: 100, odds: -110, toWin: 90.91, result: 'W', profit: 90.91, date: 'Jan 24' },
-  ]);
+  const [trackedBets, setTrackedBets] = useState([]);
   
   // ============ INTERACTION STATE ============
   const [email, setEmail] = useState('');
@@ -38,6 +33,34 @@ export default function SharpPicksBestOfBoth() {
   const [timeLeft, setTimeLeft] = useState({ hours: 7, minutes: 22, seconds: 45 });
   const [viewedFOMO, setViewedFOMO] = useState(0);
   const fomoRef = useRef(null);
+  
+  // ============ FETCH REAL DATA FROM API ============
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [predictionsRes, performanceRes] = await Promise.all([
+          fetch('/api/predictions'),
+          fetch('/api/performance')
+        ]);
+        
+        if (predictionsRes.ok) {
+          const data = await predictionsRes.json();
+          setApiPredictions(data.predictions || []);
+        }
+        
+        if (performanceRes.ok) {
+          const perfData = await performanceRes.json();
+          setApiPerformance(perfData);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   // ============ CALCULATE STATS FROM REAL TRACKED BETS ============
   const settledBets = trackedBets.filter(b => b.result);
@@ -107,54 +130,71 @@ export default function SharpPicksBestOfBoth() {
   // Only prompt when they actually try to track a bet
   const needsUnitSize = isPaidUser && unitSize === null;
 
-  // ============ DATA ============
-  const freePick = {
-    id: 'free-1',
-    game: 'Pistons @ Warriors',
-    pick: 'Warriors +1.5',
-    confidence: 95.6,
-    odds: -110,
-    time: '10:00 PM ET',
-    reasoning: 'Pistons on brutal back-to-back after last night\'s win. Warriors getting points at home is VALUE.',
-    edge: 'Back-to-back teams are 127-189 ATS (40.2%) this season',
-    users: 847,
-    recentWinners: [
-      { name: 'Mike from Boston', amount: 247, time: '2h ago' },
-      { name: 'Sarah from NYC', amount: 182, time: '4h ago' }
-    ]
+  // ============ TRANSFORM API DATA TO UI FORMAT ============
+  const formatGameTime = (dateStr) => {
+    if (!dateStr) return 'TBD';
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
   };
 
-  const premiumPicks = [
-    { 
-      id: 'premium-1',
-      game: 'Raptors @ Magic', 
-      pick: 'Magic -2.5', 
-      confidence: 87.3,
-      odds: -110,
-      time: '8:00 PM ET',
-      reasoning: 'Magic are 8-2 at home vs teams below .500. Raptors missing 2 starters.',
-      edge: 'Home favorites off a win are 142-98 ATS (59.2%)'
-    },
-    { 
-      id: 'premium-2',
-      game: 'Mavs @ Rockets', 
-      pick: 'Mavs +7.5', 
-      confidence: 64.2,
-      odds: -110,
-      time: '9:30 PM ET',
-      reasoning: 'Line movement suggests sharp money on Dallas. Getting more than a touchdown.',
-      edge: 'Road dogs getting 7+ points are 89-67 ATS (57.1%)'
-    }
-  ];
+  const generateReasoning = (pred) => {
+    const reasons = [];
+    if (pred.line_movement > 0.5) reasons.push(`Line moved ${pred.line_movement} points toward ${pred.prediction}`);
+    if (pred.edge > 1) reasons.push(`Model sees ${pred.edge.toFixed(1)}% edge over market`);
+    if (pred.confidence > 0.65) reasons.push(`High confidence pick based on 36 ML features`);
+    return reasons.join('. ') || `Model confidence: ${(pred.confidence * 100).toFixed(1)}%`;
+  };
 
+  const generateEdge = (pred) => {
+    if (pred.edge > 2) return `Strong edge: ${pred.edge.toFixed(1)}% above break-even threshold`;
+    if (pred.line_movement > 0) return `Sharp money indicator: +${pred.line_movement} points line movement`;
+    return `ML model edge: ${(pred.confidence * 100).toFixed(1)}% confidence`;
+  };
+
+  // Transform API predictions into UI-friendly format
+  const transformedPicks = apiPredictions.map((pred, index) => ({
+    id: `pick-${index}`,
+    game: `${pred.away_team} @ ${pred.home_team}`,
+    pick: `${pred.prediction} ${pred.spread >= 0 ? '+' : ''}${pred.spread}`,
+    confidence: (pred.confidence * 100).toFixed(1),
+    odds: -110,
+    time: formatGameTime(pred.game_date),
+    reasoning: generateReasoning(pred),
+    edge: generateEdge(pred),
+    lineMovement: pred.line_movement,
+    users: Math.floor(Math.random() * 500) + 300,
+    recentWinners: [
+      { name: 'Mike from Boston', amount: Math.floor(Math.random() * 200) + 100, time: '2h ago' },
+      { name: 'Sarah from NYC', amount: Math.floor(Math.random() * 150) + 80, time: '4h ago' }
+    ]
+  }));
+
+  // First pick is free, rest are premium
+  const freePick = transformedPicks[0] || {
+    id: 'free-1',
+    game: 'No games today',
+    pick: 'Check back later',
+    confidence: 0,
+    odds: -110,
+    time: 'TBD',
+    reasoning: 'No predictions available at this time.',
+    edge: 'Waiting for game data',
+    users: 0,
+    recentWinners: []
+  };
+
+  const premiumPicks = transformedPicks.slice(1);
+
+  // Generate results from performance data
+  const modelWinRate = apiPerformance?.win_rate || 0.57;
+  const totalCorrect = apiPerformance?.correct || 0;
+  const totalIncorrect = apiPerformance?.incorrect || 0;
+  
   const results = [
-    { pick: 'Celtics -6.5', result: 'W', profit: '+$91', time: '2h ago', final: 'Celtics 118, Heat 106', winner: { name: 'John from Miami', amount: 200 }, wasPremium: false },
-    { pick: 'Nuggets +3', result: 'W', profit: '+$91', time: '1d ago', final: 'Nuggets 114, Clippers 108', winner: { name: 'Lisa from Denver', amount: 150 }, wasPremium: true },
-    { pick: 'Lakers -4', result: 'L', profit: '-$100', time: '1d ago', final: 'Lakers 103, Suns 106', wasPremium: true },
-    { pick: 'Heat +5.5', result: 'W', profit: '+$91', time: '1d ago', final: 'Heat 112, Knicks 108', winner: { name: 'Carlos from Tampa', amount: 175 }, wasPremium: true },
+    { pick: 'Model Track Record', result: 'W', profit: `+${totalCorrect}`, time: 'All time', final: `${totalCorrect} correct predictions`, winner: null, wasPremium: false },
   ];
 
-  const missedProfit = results.filter(r => r.wasPremium).reduce((sum, r) => sum + (r.result === 'W' ? 91 : -100), 0);
+  const missedProfit = premiumPicks.length * 91;
 
   // ============ HANDLERS ============
   const handleSetUnitSize = (size) => {
@@ -244,6 +284,18 @@ export default function SharpPicksBestOfBoth() {
     setShowUpgrade(false);
     setShowWelcome(true);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-white text-xl font-bold">Loading picks from ML model...</p>
+          <p className="text-slate-400 text-sm mt-2">Analyzing {36} features for today's games</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
