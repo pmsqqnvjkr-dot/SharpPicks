@@ -29,6 +29,8 @@ export default function SharpPicksBestOfBoth() {
   // ============ API DATA STATE ============
   const [apiPredictions, setApiPredictions] = useState([]);
   const [apiPerformance, setApiPerformance] = useState(null);
+  const [modelStats, setModelStats] = useState(null);
+  const [recentResults, setRecentResults] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // ============ TRACKING STATE ============
@@ -40,8 +42,6 @@ export default function SharpPicksBestOfBoth() {
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [selectedWin, setSelectedWin] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
-  const [winnerSeed, setWinnerSeed] = useState(0);
-  const [userCounts, setUserCounts] = useState({});
   const [viewedFOMO, setViewedFOMO] = useState(0);
   const fomoRef = useRef(null);
   
@@ -71,9 +71,10 @@ export default function SharpPicksBestOfBoth() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [predictionsRes, performanceRes] = await Promise.all([
+        const [predictionsRes, performanceRes, statsRes] = await Promise.all([
           fetch('/api/predictions'),
-          fetch('/api/performance')
+          fetch('/api/performance'),
+          fetch('/api/admin/stats')
         ]);
         
         if (predictionsRes.ok) {
@@ -84,6 +85,22 @@ export default function SharpPicksBestOfBoth() {
         if (performanceRes.ok) {
           const perfData = await performanceRes.json();
           setApiPerformance(perfData);
+        }
+        
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setModelStats({
+            winRate: statsData.modelAccuracy,
+            brier: statsData.modelBrier,
+            totalGames: statsData.gamesCollected
+          });
+        }
+        
+        // Fetch recent results
+        const resultsRes = await fetch('/api/recent-results');
+        if (resultsRes.ok) {
+          const resultsData = await resultsRes.json();
+          setRecentResults(resultsData.results || []);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -263,42 +280,6 @@ export default function SharpPicksBestOfBoth() {
     return () => clearInterval(timer);
   }, [apiPredictions]);
 
-  // ============ DYNAMIC WINNER ROTATION ============
-  useEffect(() => {
-    const winnerTimer = setInterval(() => {
-      setWinnerSeed(prev => prev + 1);
-    }, 8000);
-    return () => clearInterval(winnerTimer);
-  }, []);
-
-  // ============ STABLE USER COUNTS WITH GRADUAL INCREASE ============
-  useEffect(() => {
-    // Initialize user counts for each prediction
-    if (apiPredictions.length > 0 && Object.keys(userCounts).length === 0) {
-      const initialCounts = {};
-      apiPredictions.forEach((pred, index) => {
-        initialCounts[`pick-${index}`] = 300 + (index * 50) + Math.floor(Math.random() * 200);
-      });
-      setUserCounts(initialCounts);
-    }
-  }, [apiPredictions]);
-
-  // Gradually increase user counts every 15-30 seconds
-  useEffect(() => {
-    const userTimer = setInterval(() => {
-      setUserCounts(prev => {
-        const updated = { ...prev };
-        Object.keys(updated).forEach(key => {
-          if (Math.random() > 0.5) {
-            updated[key] = updated[key] + Math.floor(Math.random() * 3) + 1;
-          }
-        });
-        return updated;
-      });
-    }, 15000);
-    return () => clearInterval(userTimer);
-  }, []);
-
   // Check if user needs to set unit size - but don't force it
   // Only prompt when they actually try to track a bet
   const needsUnitSize = isPaidUser && unitSize === null;
@@ -351,24 +332,6 @@ export default function SharpPicksBestOfBoth() {
     return `ML model edge: ${(pred.confidence * 100).toFixed(1)}% confidence`;
   };
 
-  // Dynamic winner name generation
-  const firstNames = ['Mike', 'Sarah', 'James', 'Maria', 'Chris', 'Alex', 'Jordan', 'Taylor', 'Ryan', 'Casey', 'Morgan', 'Drew', 'Pat', 'Sam', 'Tony', 'Nick', 'Dave', 'Eric', 'Brian', 'Kevin'];
-  const cities = ['Boston', 'NYC', 'LA', 'Chicago', 'Miami', 'Denver', 'Phoenix', 'Dallas', 'Atlanta', 'Seattle', 'Portland', 'Vegas', 'Detroit', 'Philly', 'Houston', 'Austin', 'Tampa', 'Orlando', 'San Diego', 'Charlotte'];
-  const recentTimes = ['just now', '1m ago', '3m ago', '5m ago', '12m ago', '18m ago', '25m ago', '32m ago', '45m ago', '1h ago', '2h ago', '3h ago'];
-  
-  const generateRandomWinner = (seed) => {
-    const combinedSeed = seed + winnerSeed;
-    const nameIdx = (combinedSeed * 7) % firstNames.length;
-    const cityIdx = (combinedSeed * 13) % cities.length;
-    const timeIdx = combinedSeed % recentTimes.length;
-    const amount = 75 + ((combinedSeed * 47) % 375);
-    return {
-      name: `${firstNames[nameIdx]} from ${cities[cityIdx]}`,
-      amount,
-      time: recentTimes[timeIdx]
-    };
-  };
-
   // Transform API predictions into UI-friendly format
   const transformedPicks = apiPredictions.map((pred, index) => ({
     id: `pick-${index}`,
@@ -380,12 +343,7 @@ export default function SharpPicksBestOfBoth() {
     gameDate: new Date(pred.game_date),
     reasoning: generateReasoning(pred),
     edge: generateEdge(pred),
-    lineMovement: pred.line_movement,
-    users: userCounts[`pick-${index}`] || 400,
-    recentWinners: [
-      generateRandomWinner(index * 2),
-      generateRandomWinner(index * 2 + 1)
-    ]
+    lineMovement: pred.line_movement
   }));
 
   // Filter out games that have already started, then sort by confidence
@@ -404,44 +362,19 @@ export default function SharpPicksBestOfBoth() {
     odds: -110,
     time: 'TBD',
     reasoning: 'No predictions available at this time.',
-    edge: 'Waiting for game data',
-    users: 0,
-    recentWinners: []
+    edge: 'Waiting for game data'
   };
 
   const premiumPicks = sortedPicks.slice(1);
 
-  // Dynamic recent results based on model's 79.4% accuracy
-  const generateDynamicResults = () => {
-    const teams = ['Lakers', 'Celtics', 'Heat', 'Nuggets', 'Warriors', 'Suns', 'Bucks', 'Nets', 'Sixers', 'Knicks'];
-    const opponents = ['Kings', 'Hornets', 'Thunder', 'Pistons', 'Jazz', 'Spurs', 'Rockets', 'Magic', 'Wizards', 'Pacers'];
-    const resultTimes = ['2h ago', '4h ago', '6h ago', '1d ago'];
-    
-    return [0, 1, 2, 3].map(i => {
-      const idx = (i + winnerSeed) % teams.length;
-      const oppIdx = (i + winnerSeed + 3) % opponents.length;
-      const isWin = i !== 2;
-      const spread = (3 + (idx % 5) + 0.5).toFixed(1);
-      const homeScore = 100 + ((idx * 7 + winnerSeed) % 20);
-      const awayScore = isWin ? homeScore - 4 - (idx % 8) : homeScore + 5 + (oppIdx % 6);
-      const winnerSeedVal = i * 5 + winnerSeed;
-      
-      return {
-        pick: `${teams[idx]} ${isWin ? '-' : '+'}${spread}`,
-        result: isWin ? 'W' : 'L',
-        profit: isWin ? '+$91' : '-$100',
-        time: resultTimes[i],
-        final: `${teams[idx]} ${homeScore}-${awayScore} vs ${opponents[oppIdx]}`,
-        winner: isWin ? { 
-          name: `${firstNames[(winnerSeedVal * 3) % firstNames.length]} ${firstNames[(winnerSeedVal * 5) % firstNames.length].charAt(0)}.`,
-          amount: 100 + ((winnerSeedVal * 23) % 400)
-        } : null,
-        wasPremium: i < 3
-      };
-    });
-  };
-  
-  const results = generateDynamicResults();
+  // Use real recent results from API
+  const results = recentResults.map(r => ({
+    pick: r.pick,
+    result: r.result,
+    profit: r.result === 'W' ? '+$91' : '-$100',
+    time: r.time ? new Date(r.time).toLocaleString() : 'Recently',
+    final: r.final
+  }));
 
   const missedProfit = premiumPicks.length * 91;
 
@@ -1101,7 +1034,6 @@ export default function SharpPicksBestOfBoth() {
             </div>
 
             <div className="text-center">
-              <p className="text-slate-400 text-xs">Join 1,247 profitable bettors</p>
             </div>
           </div>
         </div>
@@ -1392,7 +1324,6 @@ export default function SharpPicksBestOfBoth() {
               </div>
               <div className="flex-1">
                 <h3 className="text-white text-lg font-black mb-2">You Missed +${missedProfit} Yesterday</h3>
-                <p className="text-red-200 text-sm mb-4">Premium members got {premiumPicks.length} additional picks</p>
                 <button
                   onClick={() => setShowUpgrade(true)}
                   className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black py-3 rounded-xl hover:from-amber-400 hover:to-orange-500 transition-all"
@@ -1418,7 +1349,6 @@ export default function SharpPicksBestOfBoth() {
                   <div className="text-blue-200 text-xs font-bold uppercase tracking-wider">
                     {isPaidUser ? "Today's Top Pick" : "Today's Best Pick - Free"}
                   </div>
-                  <div className="text-white text-sm font-bold">{freePick.users} users already in</div>
                 </div>
               </div>
               <div className="text-right">
@@ -1441,21 +1371,6 @@ export default function SharpPicksBestOfBoth() {
                 <div className="bg-black/20 backdrop-blur px-4 py-1.5 rounded-full">
                   <span className="text-white text-sm font-bold">Odds: {freePick.odds}</span>
                 </div>
-              </div>
-            </div>
-
-            <div className="bg-black/20 backdrop-blur rounded-xl p-4 mb-5">
-              <div className="text-white/80 text-sm font-bold mb-3">Recent Winners:</div>
-              <div className="space-y-2">
-                {freePick.recentWinners.map((winner, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <div>
-                      <div className="text-white font-bold">{winner.name}</div>
-                      <div className="text-blue-200 text-xs">{winner.time}</div>
-                    </div>
-                    <div className="text-emerald-300 font-black">+${winner.amount}</div>
-                  </div>
-                ))}
               </div>
             </div>
 
@@ -1580,9 +1495,6 @@ export default function SharpPicksBestOfBoth() {
                       >
                         Unlock from $4.99
                       </button>
-                      <div className="mt-3 text-slate-400 text-xs">
-                        Join 1,247 winning members
-                      </div>
                     </div>
                   </div>
                 )}
@@ -1687,15 +1599,15 @@ export default function SharpPicksBestOfBoth() {
               <h3 className="text-lg font-bold text-white mb-3">Model Performance</h3>
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="text-center bg-slate-800/50 rounded-xl p-3">
-                  <div className="text-emerald-400 text-2xl font-black">79.4%</div>
+                  <div className="text-emerald-400 text-2xl font-black">{modelStats?.winRate || 79.4}%</div>
                   <div className="text-slate-400 text-xs">Backtest Accuracy</div>
                 </div>
                 <div className="text-center bg-slate-800/50 rounded-xl p-3">
-                  <div className="text-blue-400 text-2xl font-black">15,131</div>
+                  <div className="text-blue-400 text-2xl font-black">{modelStats?.totalGames?.toLocaleString() || '15,131'}</div>
                   <div className="text-slate-400 text-xs">Games Analyzed</div>
                 </div>
                 <div className="text-center bg-slate-800/50 rounded-xl p-3">
-                  <div className="text-amber-400 text-2xl font-black">0.139</div>
+                  <div className="text-amber-400 text-2xl font-black">{modelStats?.brier || 0.139}</div>
                   <div className="text-slate-400 text-xs">Brier Score</div>
                 </div>
               </div>
@@ -1720,8 +1632,7 @@ export default function SharpPicksBestOfBoth() {
         {!isPaidUser && (
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 text-center">
             <h3 className="text-white text-2xl font-black mb-2">Stop Leaving Money on the Table</h3>
-            <p className="text-purple-200 text-sm mb-2">You missed <span className="font-black">${missedProfit}</span> in profit yesterday</p>
-            <p className="text-purple-300 text-xs mb-6">Join 1,247 members who never miss a winning pick</p>
+            <p className="text-purple-200 text-sm mb-6">You missed <span className="font-black">${missedProfit}</span> in profit yesterday</p>
             <button
               onClick={() => setShowUpgrade(true)}
               className="bg-white text-purple-600 font-black px-8 py-4 rounded-xl hover:bg-purple-50 transition-all text-lg shadow-xl"

@@ -704,6 +704,47 @@ def get_stats():
         ]
     })
 
+@app.route('/api/recent-results')
+def get_recent_results():
+    """Get settled games from last 24 hours"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT home_team, away_team, spread_home, 
+               home_score, away_score, spread_result,
+               game_date, scores_updated_at
+        FROM games
+        WHERE scores_updated_at >= datetime('now', '-24 hours')
+        AND spread_result IS NOT NULL
+        ORDER BY scores_updated_at DESC
+        LIMIT 10
+    ''')
+    
+    games = cursor.fetchall()
+    results = []
+    
+    for g in games:
+        home_team = g['home_team'] if isinstance(g, dict) else g[0]
+        away_team = g['away_team'] if isinstance(g, dict) else g[1]
+        spread_home = g['spread_home'] if isinstance(g, dict) else g[2]
+        home_score = g['home_score'] if isinstance(g, dict) else g[3]
+        away_score = g['away_score'] if isinstance(g, dict) else g[4]
+        spread_result = g['spread_result'] if isinstance(g, dict) else g[5]
+        updated_at = g['scores_updated_at'] if isinstance(g, dict) else g[7]
+        
+        is_win = spread_result in ['HOME_COVER', 'AWAY_COVER']
+        results.append({
+            'pick': f"{home_team} {spread_home:+.1f}" if spread_home else home_team,
+            'result': 'W' if is_win else 'L',
+            'profit': 91 if is_win else -100,
+            'final': f"{home_team} {home_score}-{away_score} vs {away_team}" if home_score else "Pending",
+            'time': updated_at
+        })
+    
+    conn.close()
+    return jsonify({'results': results, 'count': len(results)})
+
 @app.route('/dashboard')
 def dashboard():
     return Response('''<!DOCTYPE html>
