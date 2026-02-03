@@ -1533,59 +1533,54 @@ export default function SharpPicksBestOfBoth() {
               <Activity className="w-5 h-5 text-green-400" />
               <span>Recent Results</span>
             </h3>
-            <span className="text-emerald-400 text-sm font-bold">3-1 Last 24hrs</span>
+            {results.length > 0 && (
+              <span className="text-emerald-400 text-sm font-bold">
+                {results.filter(r => r.result === 'W').length}-{results.filter(r => r.result === 'L').length} Last 24hrs
+              </span>
+            )}
           </div>
           <div className="space-y-2">
-            {results.map((result, i) => (
-              <div key={i} className={`rounded-lg p-4 ${
-                result.result === 'W' ? 'bg-emerald-950/30 border border-emerald-800/30' : 'bg-red-950/30 border border-red-800/30'
-              }`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-black text-xl ${
-                      result.result === 'W' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
-                    }`}>
-                      {result.result}
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <div className="text-white text-sm font-bold">{result.pick}</div>
-                        {result.wasPremium && !isPaidUser && (
-                          <span className="bg-amber-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">
-                            PRO
-                          </span>
-                        )}
+            {results.length > 0 ? (
+              results.map((result, i) => (
+                <div key={i} className={`rounded-lg p-4 ${
+                  result.result === 'W' ? 'bg-emerald-950/30 border border-emerald-800/30' : 'bg-red-950/30 border border-red-800/30'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-black text-xl ${
+                        result.result === 'W' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+                      }`}>
+                        {result.result}
                       </div>
-                      <div className="text-slate-400 text-xs">{result.final} • {result.time}</div>
+                      <div>
+                        <div className="text-white text-sm font-bold">{result.pick}</div>
+                        <div className="text-slate-400 text-xs">{result.final} • {result.time}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className={`text-xl font-black ${
-                      result.result === 'W' ? 'text-emerald-400' : 'text-red-400'
-                    }`}>
-                      {result.profit}
+                    <div className="flex items-center space-x-3">
+                      <div className={`text-xl font-black ${
+                        result.result === 'W' ? 'text-emerald-400' : 'text-red-400'
+                      }`}>
+                        {result.profit}
+                      </div>
+                      {result.result === 'W' && isPaidUser && (
+                        <button
+                          onClick={() => handleShareWin(result)}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1"
+                        >
+                          <Share2 className="w-3 h-3" />
+                          <span>Share</span>
+                        </button>
+                      )}
                     </div>
-                    {result.result === 'W' && isPaidUser && (
-                      <button
-                        onClick={() => handleShareWin(result)}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1"
-                      >
-                        <Share2 className="w-3 h-3" />
-                        <span>Share</span>
-                      </button>
-                    )}
                   </div>
                 </div>
-                {result.winner && (
-                  <div className="bg-emerald-900/30 rounded-lg p-2 flex items-center space-x-2 text-xs">
-                    <span className="text-xl">🎉</span>
-                    <div className="text-emerald-300">
-                      <span className="font-bold">{result.winner.name}</span> won <span className="font-bold">${result.winner.amount}</span> on this
-                    </div>
-                  </div>
-                )}
+              ))
+            ) : (
+              <div className="text-slate-400 text-sm text-center py-4">
+                No recent results in last 24 hours
               </div>
-            ))}
+            )}
           </div>
         </div>
 
