@@ -14,7 +14,8 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.String, primary_key=True, default=lambda: str(uuid.uuid4()))
     email = db.Column(db.String, unique=True, nullable=False)
-    password_hash = db.Column(db.String, nullable=False)
+    username = db.Column(db.String, nullable=True)
+    password_hash = db.Column(db.String, nullable=True)
     first_name = db.Column(db.String, nullable=True)
     last_name = db.Column(db.String, nullable=True)
     is_premium = db.Column(db.Boolean, default=False)
