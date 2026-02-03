@@ -284,25 +284,149 @@ def detailed_validation():
     })
 
 
+def parse_record(record_str):
+    """Parse record string like '25-15' into win percentage"""
+    if not record_str or record_str == 'N/A':
+        return 0.5
+    try:
+        parts = record_str.split('-')
+        wins = int(parts[0])
+        losses = int(parts[1])
+        total = wins + losses
+        return wins / total if total > 0 else 0.5
+    except:
+        return 0.5
+
+def parse_form(form_str):
+    """Parse last 5 form string like 'WWLWL' into score (0-5)"""
+    if not form_str:
+        return 2.5
+    try:
+        return form_str.count('W')
+    except:
+        return 2.5
+
+def calculate_all_features(game_dict):
+    """Calculate all 36 features the model expects from database fields"""
+    spread_home = game_dict.get('spread_home') or 0
+    spread_open = game_dict.get('spread_home_open') or spread_home
+    line_movement = game_dict.get('line_movement') or (spread_home - spread_open if spread_open else 0)
+    total = game_dict.get('total') or 220
+    total_open = game_dict.get('total_open') or total
+    total_movement = total - total_open if total_open else 0
+    home_ml = game_dict.get('home_ml') or -110
+    away_ml = game_dict.get('away_ml') or -110
+    ml_diff = home_ml - away_ml
+    
+    home_win_pct = parse_record(game_dict.get('home_record'))
+    away_win_pct = parse_record(game_dict.get('away_record'))
+    win_pct_diff = home_win_pct - away_win_pct
+    
+    home_home_pct = parse_record(game_dict.get('home_home_record'))
+    away_away_pct = parse_record(game_dict.get('away_away_record'))
+    split_advantage = home_home_pct - away_away_pct
+    
+    home_form = parse_form(game_dict.get('home_last5'))
+    away_form = parse_form(game_dict.get('away_last5'))
+    form_diff = home_form - away_form
+    
+    home_rest = game_dict.get('home_rest_days') if game_dict.get('home_rest_days') is not None else 1
+    away_rest = game_dict.get('away_rest_days') if game_dict.get('away_rest_days') is not None else 1
+    rest_advantage = home_rest - away_rest
+    
+    spread_abs = abs(spread_home)
+    is_favorite = 1 if spread_home < 0 else 0
+    
+    home_pace = 100 + (home_win_pct - 0.5) * 4
+    away_pace = 100 + (away_win_pct - 0.5) * 4
+    pace_diff = home_pace - away_pace
+    combined_pace = (home_pace + away_pace) / 2
+    
+    home_off_rtg = 110 + (home_win_pct - 0.5) * 10
+    home_def_rtg = 110 - (home_win_pct - 0.5) * 10
+    away_off_rtg = 110 + (away_win_pct - 0.5) * 10
+    away_def_rtg = 110 - (away_win_pct - 0.5) * 10
+    home_net_rtg = home_off_rtg - home_def_rtg
+    away_net_rtg = away_off_rtg - away_def_rtg
+    net_rtg_diff = home_net_rtg - away_net_rtg
+    off_matchup = home_off_rtg - away_def_rtg
+    def_matchup = away_off_rtg - home_def_rtg
+    
+    return {
+        'spread_home': spread_home,
+        'spread_open': spread_open,
+        'line_movement': line_movement,
+        'total': total,
+        'total_open': total_open,
+        'total_movement': total_movement,
+        'home_ml': home_ml,
+        'away_ml': away_ml,
+        'ml_diff': ml_diff,
+        'home_win_pct': home_win_pct,
+        'away_win_pct': away_win_pct,
+        'win_pct_diff': win_pct_diff,
+        'home_home_pct': home_home_pct,
+        'away_away_pct': away_away_pct,
+        'split_advantage': split_advantage,
+        'home_form': home_form,
+        'away_form': away_form,
+        'form_diff': form_diff,
+        'home_rest': home_rest,
+        'away_rest': away_rest,
+        'rest_advantage': rest_advantage,
+        'spread_abs': spread_abs,
+        'is_favorite': is_favorite,
+        'home_pace': home_pace,
+        'away_pace': away_pace,
+        'pace_diff': pace_diff,
+        'combined_pace': combined_pace,
+        'home_off_rtg': home_off_rtg,
+        'home_def_rtg': home_def_rtg,
+        'away_off_rtg': away_off_rtg,
+        'away_def_rtg': away_def_rtg,
+        'home_net_rtg': home_net_rtg,
+        'away_net_rtg': away_net_rtg,
+        'net_rtg_diff': net_rtg_diff,
+        'off_matchup': off_matchup,
+        'def_matchup': def_matchup
+    }
+
 @app.route('/api/predictions')
 def get_predictions():
-    """Get today's model predictions for upcoming games"""
+    """Get today's model predictions for upcoming games - with full 36-feature calculation"""
     import pickle
+    import json
+    import os
     from datetime import datetime
+    
+    json_path = 'todays_picks.json'
+    if os.path.exists(json_path):
+        try:
+            with open(json_path, 'r') as f:
+                picks = json.load(f)
+                return jsonify({
+                    'predictions': picks,
+                    'count': len(picks),
+                    'source': 'json_file'
+                })
+        except:
+            pass
     
     conn = get_db()
     cursor = conn.cursor()
     
     today = datetime.now().strftime('%Y-%m-%d')
     cursor.execute('''
-        SELECT id, home_team, away_team, game_date, 
-               spread_home, spread_home_open, total,
-               home_record, away_record, home_last5, away_last5,
+        SELECT id, home_team, away_team, game_date, game_time,
+               spread_home, spread_away, spread_home_open, 
+               total, total_open, home_ml, away_ml,
+               home_record, away_record, home_home_record, away_away_record,
+               home_last5, away_last5, home_rest_days, away_rest_days,
                line_movement
         FROM games 
         WHERE DATE(game_date) >= DATE(?)
         AND spread_result IS NULL
-        ORDER BY game_date
+        ORDER BY game_date, game_time
         LIMIT 20
     ''', (today,))
     
@@ -316,49 +440,53 @@ def get_predictions():
             model = models.get('gradient_boosting') or models.get('random_forest') or models.get('xgboost')
             if not model:
                 model = model_data.get('model')
-            features = model_data.get('feature_names', [])
+            feature_names = model_data.get('feature_names', [])
     except Exception as e:
         model = None
-        features = []
+        feature_names = []
     
     for game in games:
         game_dict = dict(game)
         
-        if model and features and hasattr(model, 'predict_proba'):
+        if model and feature_names and hasattr(model, 'predict_proba'):
             try:
                 import pandas as pd
-                feature_dict = {}
-                for feat in features:
-                    if feat in game_dict and game_dict[feat] is not None:
-                        feature_dict[feat] = game_dict[feat]
-                    else:
-                        feature_dict[feat] = 0
+                
+                feature_dict = calculate_all_features(game_dict)
                 
                 X = pd.DataFrame([feature_dict])
-                X = X.reindex(columns=features, fill_value=0)
+                X = X.reindex(columns=feature_names, fill_value=0)
                 
                 proba = model.predict_proba(X)[0]
                 home_cover_prob = proba[1] if len(proba) > 1 else 0.5
                 
                 spread = game_dict.get('spread_home') or 0
-                line_movement = game_dict.get('line_movement') or 0
+                line_movement = feature_dict.get('line_movement', 0)
                 
                 if home_cover_prob >= 0.5:
                     pick = game_dict['home_team']
                     confidence = home_cover_prob
+                    pick_spread = spread
                 else:
                     pick = game_dict['away_team']
                     confidence = 1 - home_cover_prob
+                    pick_spread = -spread if spread else 0
                 
                 predictions.append({
                     'home_team': game_dict['home_team'],
                     'away_team': game_dict['away_team'],
                     'game_date': game_dict['game_date'],
+                    'game_time': game_dict.get('game_time'),
                     'prediction': pick,
                     'spread': spread,
+                    'pick_spread': pick_spread,
                     'confidence': round(confidence, 3),
                     'edge': round((confidence - 0.52) * 10, 1) if confidence > 0.52 else 0,
-                    'line_movement': round(line_movement, 1)
+                    'line_movement': round(line_movement, 1),
+                    'home_record': game_dict.get('home_record'),
+                    'away_record': game_dict.get('away_record'),
+                    'home_form': game_dict.get('home_last5'),
+                    'away_form': game_dict.get('away_last5')
                 })
             except Exception as e:
                 pass
@@ -366,7 +494,8 @@ def get_predictions():
     conn.close()
     return jsonify({
         'predictions': sorted(predictions, key=lambda x: x['confidence'], reverse=True),
-        'count': len(predictions)
+        'count': len(predictions),
+        'source': 'database'
     })
 
 
