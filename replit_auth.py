@@ -71,7 +71,11 @@ def make_replit_blueprint():
     
     # Get the external Replit domain for OAuth callback
     replit_domain = os.environ.get('REPLIT_DEV_DOMAIN', '')
-    redirect_url = f"https://{replit_domain}/auth/replit_auth/authorized" if replit_domain else None
+    redirect_uri = f"https://{replit_domain}/auth/replit_auth/authorized" if replit_domain else None
+    
+    auth_params = {"prompt": "login consent"}
+    if redirect_uri:
+        auth_params["redirect_uri"] = redirect_uri
 
     replit_bp = OAuth2ConsumerBlueprint(
         "replit_auth",
@@ -79,7 +83,7 @@ def make_replit_blueprint():
         client_id=repl_id,
         client_secret=None,
         base_url=issuer_url,
-        authorization_url_params={"prompt": "login consent"},
+        authorization_url_params=auth_params,
         token_url=issuer_url + "/token",
         token_url_params={"auth": (), "include_client_id": True},
         auto_refresh_url=issuer_url + "/token",
@@ -89,7 +93,7 @@ def make_replit_blueprint():
         code_challenge_method="S256",
         scope=["openid", "profile", "email", "offline_access"],
         storage=UserSessionStorage(),
-        redirect_url=redirect_url,
+        redirect_url=redirect_uri,
     )
 
     @replit_bp.before_app_request
