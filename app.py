@@ -710,28 +710,27 @@ def get_recent_results():
     conn = get_db()
     cursor = conn.cursor()
     
-    # First get total wins/losses for last 24 hours
+    # Get predictions made in last 24 hours and count wins
     cursor.execute('''
         SELECT 
-            SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as total_wins,
-            SUM(CASE WHEN is_correct = 0 THEN 1 ELSE 0 END) as total_losses
+            COUNT(*) as total_predictions,
+            SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as total_wins
         FROM prediction_log
-        WHERE is_correct IS NOT NULL
-        AND resolved_at >= datetime('now', '-24 hours')
+        WHERE logged_at >= datetime('now', '-24 hours')
     ''')
     totals = cursor.fetchone()
-    total_wins = (totals[0] or 0) if totals else 0
-    total_losses = (totals[1] or 0) if totals else 0
+    total_predictions = (totals[0] or 0) if totals else 0
+    total_wins = (totals[1] or 0) if totals else 0
     
-    # Get top 5 results, prioritizing wins
+    # Get top 5 settled results from predictions made in last 24 hours, prioritizing wins
     cursor.execute('''
         SELECT p.prediction, p.is_correct, p.confidence,
                p.home_team, p.away_team, p.game_date,
                g.home_score, g.away_score
         FROM prediction_log p
         LEFT JOIN games g ON p.game_id = g.id
-        WHERE p.is_correct IS NOT NULL
-        AND p.resolved_at >= datetime('now', '-24 hours')
+        WHERE p.logged_at >= datetime('now', '-24 hours')
+        AND p.is_correct IS NOT NULL
         ORDER BY p.is_correct DESC, p.game_date DESC
         LIMIT 5
     ''')
@@ -763,9 +762,8 @@ def get_recent_results():
     conn.close()
     return jsonify({
         'results': results,
+        'totalPredictions': total_predictions,
         'totalWins': total_wins,
-        'totalLosses': total_losses,
-        'record': f"{total_wins}-{total_losses}",
         'count': len(results)
     })
 
