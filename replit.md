@@ -25,8 +25,10 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - Added retry logic with exponential backoff for NBA stats API
 
 ## Key Files
-- `src/` - React frontend (Vite)
-  - `App.jsx` - Main dashboard component
+- `src/` - React frontend (Vite + React Router)
+  - `App.jsx` - Router with 3 routes (/, /app, /analytics)
+  - `SharpPicksApp.jsx` - Consumer picks app
+  - `AnalyticsDashboard.jsx` - Analytics deep dive
   - `components/TrustBanner.jsx` - Model stats banner
   - `components/TodaysPicks.jsx` - Pick cards with confidence filters
   - `components/ModelTransparency.jsx` - Calibration and performance tracking
