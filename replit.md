@@ -16,6 +16,13 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - **Backtest ROI**: +47.26% simulated on historical data
 
 ## Recent Changes (Feb 2026)
+- **Fixed /api/predictions** - Now calculates all 36 features properly (was only using 11)
+- **Added Free Trial System** - 7-day trial via email (no credit card required)
+  - POST /api/auth/trial - Start trial with email
+  - GET /api/auth/check-trial - Check trial status
+  - Security: Email validation, UUID validation, trial expiration enforcement
+- **Updated Footer** - Removed donations line, added Terms/Privacy/Support links
+- **User Model** - Added trial_ends and trial_used fields
 - **Replaced OAuth with Email/Password auth** using Flask-Login
 - Added login/registration modal UI in frontend
 - Migrated database from SQLite to PostgreSQL
@@ -61,6 +68,8 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - `GET /api/auth/user` - Current authenticated user info
 - `POST /api/auth/upgrade` - Upgrade user to premium (auth required)
 - `POST /api/auth/unit-size` - Set user's betting unit size (auth required)
+- `POST /api/auth/trial` - Start 7-day free trial with email
+- `GET /api/auth/check-trial` - Check trial status (requires user_id)
 - `GET/POST /api/bets` - User's tracked bets (auth required)
 
 ## Configuration
