@@ -168,17 +168,42 @@ export default function SharpPicksBestOfBoth() {
     }
   };
   
-  // ============ CALCULATE STATS FROM REAL TRACKED BETS ============
+  // ============ FETCH USER STATS FROM API ============
+  const [userStats, setUserStats] = useState({
+    totalProfit: 0,
+    roi: 0,
+    winStreak: 0,
+    totalBets: 0,
+    wins: 0,
+    losses: 0,
+    winRate: 0,
+    projectedMonth: 0,
+    profitHistory: []
+  });
+
+  useEffect(() => {
+    if (isPaidUser) {
+      fetch('/api/user/stats')
+        .then(res => res.json())
+        .then(data => {
+          setUserStats(prev => ({
+            ...prev,
+            totalProfit: data.totalProfit || 0,
+            roi: data.roi || 0,
+            winStreak: data.winStreak || 0,
+            totalBets: data.totalBets || 0,
+            wins: data.wins || 0,
+            losses: data.losses || 0,
+            winRate: data.winRate || 0,
+            projectedMonth: data.projectedMonth || 0
+          }));
+        })
+        .catch(err => console.error('Failed to fetch user stats:', err));
+    }
+  }, [isPaidUser, trackedBets]);
+
+  // Build profit history for chart from local tracked bets
   const settledBets = trackedBets.filter(b => b.result);
-  const totalProfit = settledBets.reduce((sum, b) => sum + b.profit, 0);
-  const wins = settledBets.filter(b => b.result === 'W').length;
-  const losses = settledBets.filter(b => b.result === 'L').length;
-  const totalBets = settledBets.length;
-  const winRate = totalBets > 0 ? ((wins / totalBets) * 100) : 0;
-  const totalRisked = settledBets.reduce((sum, b) => sum + b.betAmount, 0);
-  const roi = totalRisked > 0 ? ((totalProfit / totalRisked) * 100) : 0;
-  
-  // Build profit history for last 8 bets
   const profitHistory = [];
   let runningTotal = 0;
   settledBets.slice(-8).forEach((bet) => {
@@ -190,19 +215,6 @@ export default function SharpPicksBestOfBoth() {
   });
   
   const maxProfit = profitHistory.length > 0 ? Math.max(...profitHistory.map(d => Math.abs(d.profit))) : 100;
-  
-  const userStats = {
-    totalProfit: Math.round(totalProfit),
-    percentChange: 153,
-    roi: roi.toFixed(1),
-    winStreak: 5,
-    totalBets,
-    wins,
-    losses,
-    userRank: totalProfit > 200 ? 23 : null,
-    projectedMonth: totalProfit > 0 ? Math.round(totalProfit * 2.2) : 0,
-    profitHistory
-  };
   
   // ============ HELPERS ============
   const calculateToWin = (betAmount, americanOdds) => {

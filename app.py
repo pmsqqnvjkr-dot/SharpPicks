@@ -252,6 +252,38 @@ def check_trial():
         'days_remaining': max(0, (user.trial_ends - datetime.now()).days) if user.trial_ends else 0
     })
 
+@app.route('/api/user/stats')
+def get_user_stats():
+    """Get user's betting stats from tracked bets"""
+    bets = TrackedBet.query.filter_by(user_id=str(test_user.id)).all()
+    
+    settled = [b for b in bets if b.result]
+    wins = sum(1 for b in settled if b.result == 'W')
+    losses = sum(1 for b in settled if b.result == 'L')
+    total_profit = sum(b.profit or 0 for b in settled)
+    total_risked = sum(b.bet_amount or 0 for b in settled)
+    
+    win_streak = 0
+    for b in sorted(settled, key=lambda x: x.created_at, reverse=True):
+        if b.result == 'W':
+            win_streak += 1
+        else:
+            break
+    
+    roi = (total_profit / total_risked * 100) if total_risked > 0 else 0
+    win_rate = (wins / len(settled) * 100) if settled else 0
+    
+    return jsonify({
+        'totalProfit': round(total_profit, 2),
+        'roi': round(roi, 1),
+        'winStreak': win_streak,
+        'totalBets': len(settled),
+        'wins': wins,
+        'losses': losses,
+        'winRate': round(win_rate, 1),
+        'projectedMonth': round(total_profit * 2.2, 2) if total_profit > 0 else 0
+    })
+
 @app.route('/api/bets', methods=['GET'])
 def get_user_bets():
     """Get user's tracked bets"""
@@ -311,27 +343,6 @@ def update_bet_result(bet_id):
     db.session.commit()
     
     return jsonify({'success': True})
-
-@app.route('/api/user/stats')
-def get_user_stats():
-    """Get user's betting stats"""
-    bets = TrackedBet.query.filter_by(user_id=test_user.id).all()
-    settled = [b for b in bets if b.result]
-    
-    wins = len([b for b in settled if b.result == 'W'])
-    losses = len([b for b in settled if b.result == 'L'])
-    total_profit = sum(b.profit for b in settled)
-    total_risked = sum(b.bet_amount for b in settled)
-    
-    return jsonify({
-        'total_bets': len(bets),
-        'settled': len(settled),
-        'wins': wins,
-        'losses': losses,
-        'win_rate': round(wins / len(settled) * 100, 1) if settled else 0,
-        'total_profit': round(total_profit, 2),
-        'roi': round(total_profit / total_risked * 100, 1) if total_risked else 0
-    })
 
 @app.route('/api/model/calibration')
 @app.route('/api/validation/detailed')
