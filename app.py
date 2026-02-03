@@ -722,7 +722,7 @@ def get_recent_results():
     total_predictions = (totals[0] or 0) if totals else 0
     total_wins = (totals[1] or 0) if totals else 0
     
-    # Get top 5 settled results from predictions made in last 24 hours, prioritizing wins
+    # Get top 5 WINNING results from predictions made in last 24 hours (hide losses)
     cursor.execute('''
         SELECT p.prediction, p.is_correct, p.confidence,
                p.home_team, p.away_team, p.game_date,
@@ -730,8 +730,8 @@ def get_recent_results():
         FROM prediction_log p
         LEFT JOIN games g ON p.game_id = g.id
         WHERE p.logged_at >= datetime('now', '-24 hours')
-        AND p.is_correct IS NOT NULL
-        ORDER BY p.is_correct DESC, p.game_date DESC
+        AND p.is_correct = 1
+        ORDER BY p.game_date DESC
         LIMIT 5
     ''')
     
