@@ -71,7 +71,11 @@ def make_replit_blueprint():
     
     # Get the external Replit domain for OAuth callback
     replit_domain = os.environ.get('REPLIT_DEV_DOMAIN', '')
-    external_redirect_uri = f"https://{replit_domain}/auth/replit_auth/authorized" if replit_domain else None
+    if replit_domain:
+        external_redirect_uri = f"https://{replit_domain}/auth/replit_auth/authorized"
+    else:
+        # Fallback to hardcoded domain if env var not available
+        external_redirect_uri = "https://d06f918e-b06a-4f6e-a2ce-1512287313e8-00-1y9hw0v01ex5y.worf.replit.dev/auth/replit_auth/authorized"
     
     replit_bp = OAuth2ConsumerBlueprint(
         "replit_auth",
