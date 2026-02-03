@@ -161,14 +161,18 @@ export default function SharpPicksBestOfBoth() {
     }
   };
   
-  const handlePremiumUpgrade = async () => {
+  const handlePremiumUpgrade = async (priceId = null) => {
     try {
-      const res = await fetch('/api/auth/upgrade', { method: 'POST' });
-      if (res.ok) {
-        setIsPaidUser(true);
-        setIsNewPaidUser(true);
-        setShowUpgrade(false);
-        setShowWelcome(true);
+      const res = await fetch('/api/auth/upgrade', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ price_id: priceId })
+      });
+      const data = await res.json();
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else if (data.error) {
+        console.error('Upgrade failed:', data.error);
       }
     } catch (error) {
       console.error('Upgrade failed:', error);
@@ -958,68 +962,34 @@ export default function SharpPicksBestOfBoth() {
 
             <div className="text-center text-slate-500 text-xs mb-4">— OR CHOOSE A PLAN —</div>
 
-            {/* PROGRESSIVE PRICING OPTIONS */}
+            {/* PRICING OPTIONS */}
             <div className="space-y-3 mb-6">
-              {/* Single Pick Option - MICRO COMMITMENT */}
-              <div className="bg-slate-800/50 rounded-2xl p-4 border-2 border-slate-700 hover:border-blue-500 transition-all cursor-pointer">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <div className="text-white font-black text-xl">$4.99</div>
-                    <div className="text-slate-400 text-xs">One-Time</div>
-                  </div>
-                  <div className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    TRY IT
-                  </div>
-                </div>
-                <div className="text-white text-sm font-bold mb-2">Unlock 1 Premium Pick</div>
-                <ul className="space-y-1 text-xs text-slate-400">
-                  <li className="flex items-center space-x-2">
-                    <CheckCircle className="w-3 h-3 flex-shrink-0" />
-                    <span>Choose any premium pick today</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <CheckCircle className="w-3 h-3 flex-shrink-0" />
-                    <span>Full analysis & reasoning</span>
-                  </li>
-                </ul>
-                <button
-                  onClick={() => {
-                    // Handle single pick purchase
-                    alert('Single pick purchase - integrate with Stripe');
-                    setShowUpgrade(false);
-                  }}
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg mt-3 text-sm transition-all"
-                >
-                  Try One Pick
-                </button>
-              </div>
-
-              {/* Monthly Option - BEST VALUE */}
+              {/* Monthly Option */}
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 border-2 border-blue-400 relative overflow-hidden">
                 <div className="absolute top-2 right-2">
                   <div className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    BEST VALUE
+                    POPULAR
                   </div>
                 </div>
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <div className="text-white font-black text-2xl">$19.99</div>
+                    <div className="text-white font-black text-2xl">$29.99</div>
                     <div className="text-blue-200 text-xs">/month</div>
                   </div>
                 </div>
-                <div className="text-white text-sm font-bold mb-2">All Premium Picks</div>
+                <div className="text-white text-sm font-bold mb-2">Monthly Premium</div>
                 <ul className="space-y-1 text-xs text-white mb-3">
                   <li className="flex items-center space-x-2">
                     <CheckCircle className="w-3 h-3 flex-shrink-0" />
-                    <span>3-5 elite picks every day</span>
+                    <span>All premium picks daily</span>
                   </li>
                   <li className="flex items-center space-x-2">
                     <CheckCircle className="w-3 h-3 flex-shrink-0" />
-                    <span>Advanced profit tracking</span>
+                    <span>79%+ accuracy model</span>
                   </li>
                   <li className="flex items-center space-x-2">
                     <CheckCircle className="w-3 h-3 flex-shrink-0" />
-                    <span>Unlock achievement badges</span>
+                    <span>Advanced bet tracking</span>
                   </li>
                   <li className="flex items-center space-x-2">
                     <CheckCircle className="w-3 h-3 flex-shrink-0" />
@@ -1027,10 +997,46 @@ export default function SharpPicksBestOfBoth() {
                   </li>
                 </ul>
                 <button
-                  onClick={handleUpgrade}
+                  onClick={() => handlePremiumUpgrade('price_1SwpYfGwoKfwdVaaCcB9Bdn4')}
                   className="w-full bg-white text-blue-600 font-black py-3 rounded-xl hover:bg-blue-50 transition-all"
                 >
-                  Start Now
+                  Subscribe Monthly
+                </button>
+              </div>
+
+              {/* Yearly Option - BEST VALUE */}
+              <div className="bg-slate-800/50 rounded-2xl p-4 border-2 border-amber-500 relative overflow-hidden">
+                <div className="absolute top-2 right-2">
+                  <div className="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    SAVE 44%
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <div className="text-white font-black text-2xl">$199.99</div>
+                    <div className="text-slate-400 text-xs">/year ($16.67/mo)</div>
+                  </div>
+                </div>
+                <div className="text-white text-sm font-bold mb-2">Annual Premium</div>
+                <ul className="space-y-1 text-xs text-slate-300 mb-3">
+                  <li className="flex items-center space-x-2">
+                    <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                    <span>Everything in monthly</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                    <span>Save $159.89 per year</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                    <span>Priority support</span>
+                  </li>
+                </ul>
+                <button
+                  onClick={() => handlePremiumUpgrade('price_1SwpYfGwoKfwdVaa3FhzV3mZ')}
+                  className="w-full bg-amber-500 hover:bg-amber-400 text-white font-black py-3 rounded-xl transition-all"
+                >
+                  Subscribe Yearly
                 </button>
               </div>
             </div>
