@@ -5,7 +5,6 @@ Flask server with API endpoints, dashboard, authentication, and scheduled tasks
 
 from flask import Flask, jsonify, Response, session
 from flask_cors import CORS
-from flask_login import current_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3
 import subprocess
@@ -32,13 +31,26 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 db.init_app(app)
 CORS(app, supports_credentials=True)
 
-from auth import auth_bp, login_manager, bcrypt, require_login
+TEST_USER_ID = 1
 
-bcrypt.init_app(app)
-login_manager.init_app(app)
-login_manager.login_view = 'auth.login'
+class TestUser:
+    """Mock user for testing without authentication"""
+    id = TEST_USER_ID
+    email = "test@example.com"
+    username = "TestUser"
+    first_name = "Test"
+    last_name = "User"
+    profile_image_url = None
+    is_premium = True
+    unit_size = 100
+    is_authenticated = True
+    is_active = True
+    is_anonymous = False
+    
+    def get_id(self):
+        return str(self.id)
 
-app.register_blueprint(auth_bp, url_prefix="/api/auth")
+test_user = TestUser()
 
 @app.before_request
 def make_session_permanent():
@@ -90,46 +102,59 @@ def index():
 
 @app.route('/api/auth/user')
 def get_current_user():
-    """Get current authenticated user info"""
-    if current_user.is_authenticated:
-        return jsonify({
-            'authenticated': True,
-            'user': {
-                'id': current_user.id,
-                'email': current_user.email,
-                'first_name': current_user.first_name,
-                'last_name': current_user.last_name,
-                'profile_image_url': current_user.profile_image_url,
-                'is_premium': current_user.is_premium,
-                'unit_size': current_user.unit_size
-            }
-        })
-    return jsonify({'authenticated': False, 'user': None})
+    """Get current authenticated user info - returns test user for testing"""
+    return jsonify({
+        'authenticated': True,
+        'user': {
+            'id': test_user.id,
+            'email': test_user.email,
+            'first_name': test_user.first_name,
+            'last_name': test_user.last_name,
+            'profile_image_url': test_user.profile_image_url,
+            'is_premium': test_user.is_premium,
+            'unit_size': test_user.unit_size
+        }
+    })
+
+@app.route('/api/auth/login', methods=['GET', 'POST'])
+def login():
+    """Mock login - always returns test user"""
+    return jsonify({
+        'authenticated': True,
+        'user': {
+            'id': test_user.id,
+            'email': test_user.email,
+            'first_name': test_user.first_name,
+            'last_name': test_user.last_name,
+            'is_premium': test_user.is_premium,
+            'unit_size': test_user.unit_size
+        }
+    })
+
+@app.route('/api/auth/logout', methods=['GET', 'POST'])
+def logout():
+    """Mock logout"""
+    return jsonify({'message': 'Logged out'})
 
 @app.route('/api/auth/upgrade', methods=['POST'])
-@require_login
 def upgrade_user():
     """Upgrade user to premium (demo - would integrate with Stripe)"""
-    current_user.is_premium = True
-    db.session.commit()
+    test_user.is_premium = True
     return jsonify({'success': True, 'is_premium': True})
 
 @app.route('/api/auth/unit-size', methods=['POST'])
-@require_login
 def set_unit_size():
     """Set user's unit size"""
     from flask import request
     data = request.get_json()
     unit_size = data.get('unit_size', 100)
-    current_user.unit_size = unit_size
-    db.session.commit()
+    test_user.unit_size = unit_size
     return jsonify({'success': True, 'unit_size': unit_size})
 
 @app.route('/api/bets', methods=['GET'])
-@require_login
 def get_user_bets():
     """Get user's tracked bets"""
-    bets = TrackedBet.query.filter_by(user_id=current_user.id).order_by(TrackedBet.created_at.desc()).all()
+    bets = TrackedBet.query.filter_by(user_id=test_user.id).order_by(TrackedBet.created_at.desc()).all()
     return jsonify({
         'bets': [{
             'id': b.id,
@@ -145,14 +170,13 @@ def get_user_bets():
     })
 
 @app.route('/api/bets', methods=['POST'])
-@require_login
 def track_bet():
     """Track a new bet"""
     from flask import request
     data = request.get_json()
     
     bet = TrackedBet()
-    bet.user_id = current_user.id
+    bet.user_id = test_user.id
     bet.pick = data.get('pick')
     bet.game = data.get('game')
     bet.bet_amount = data.get('bet_amount', 100)
@@ -172,13 +196,12 @@ def track_bet():
     })
 
 @app.route('/api/bets/<int:bet_id>/result', methods=['POST'])
-@require_login
 def update_bet_result(bet_id):
     """Update bet result"""
     from flask import request
     data = request.get_json()
     
-    bet = TrackedBet.query.filter_by(id=bet_id, user_id=current_user.id).first()
+    bet = TrackedBet.query.filter_by(id=bet_id, user_id=test_user.id).first()
     if not bet:
         return jsonify({'error': 'Bet not found'}), 404
     
@@ -189,10 +212,9 @@ def update_bet_result(bet_id):
     return jsonify({'success': True})
 
 @app.route('/api/user/stats')
-@require_login
 def get_user_stats():
     """Get user's betting stats"""
-    bets = TrackedBet.query.filter_by(user_id=current_user.id).all()
+    bets = TrackedBet.query.filter_by(user_id=test_user.id).all()
     settled = [b for b in bets if b.result]
     
     wins = len([b for b in settled if b.result == 'W'])
