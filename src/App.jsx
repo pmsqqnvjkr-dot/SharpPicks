@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import SharpPicksApp from './SharpPicksApp';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import SharpPicksBestOfBoth from './SharpPicksBestOfBoth';
 import './App.css';
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/app" element={<SharpPicksApp />} />
         <Route path="/analytics" element={<AnalyticsDashboard />} />
+        <Route path="/premium" element={<SharpPicksBestOfBoth />} />
       </Routes>
     </Router>
   );
@@ -73,6 +75,22 @@ function HomePage() {
             }}
           >
             📊 Analytics Dashboard
+          </Link>
+          <Link 
+            to="/premium" 
+            style={{ 
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)', 
+              color: '#fff', 
+              padding: '24px 48px', 
+              borderRadius: '16px', 
+              textDecoration: 'none', 
+              fontSize: '20px', 
+              fontWeight: 'bold',
+              transition: 'transform 0.2s',
+              display: 'block'
+            }}
+          >
+            👑 Premium Experience
           </Link>
         </div>
         <div style={{ marginTop: '64px', color: '#64748B', fontSize: '14px' }}>
