@@ -49,14 +49,29 @@ def signup():
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login_page():
     if request.method == 'POST':
-        email = request.form.get('email', '').lower().strip()
-        password = request.form.get('password', '')
+        if request.is_json:
+            data = request.get_json()
+            email = data.get('email', '').lower().strip()
+            password = data.get('password', '')
+        else:
+            email = request.form.get('email', '').lower().strip()
+            password = request.form.get('password', '')
         
         user = User.query.filter_by(email=email).first()
         if user and user.password_hash and bcrypt.check_password_hash(user.password_hash, password):
             login_user(user)
+            if request.is_json:
+                return jsonify({
+                    'id': user.id,
+                    'email': user.email,
+                    'username': getattr(user, 'username', ''),
+                    'is_premium': user.is_premium,
+                    'unit_size': user.unit_size
+                })
             return redirect('/premium')
         
+        if request.is_json:
+            return jsonify({'error': 'Invalid email or password'}), 401
         flash('Invalid credentials')
     
     return render_template('login.html')
