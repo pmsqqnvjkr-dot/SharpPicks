@@ -17,7 +17,7 @@ deploymentTarget = "cloudrun"
 
 [agent]
 expertMode = true
-integrations = ["python_log_in_with_replit:1.0.0"]
+integrations = ["python_log_in_with_replit:1.0.0", "stripe:2.0.0"]
 
 [workflows]
 runButton = "Project"

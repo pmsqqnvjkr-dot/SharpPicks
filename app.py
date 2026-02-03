@@ -138,9 +138,109 @@ def logout():
 
 @app.route('/api/auth/upgrade', methods=['POST'])
 def upgrade_user():
-    """Upgrade user to premium (demo - would integrate with Stripe)"""
-    test_user.is_premium = True
-    return jsonify({'success': True, 'is_premium': True})
+    """Upgrade user to premium via Stripe checkout"""
+    from flask import request
+    try:
+        from stripe_client import get_stripe_client, get_publishable_key
+        stripe = get_stripe_client()
+        
+        data = request.get_json() or {}
+        price_id = data.get('price_id')
+        
+        if not price_id:
+            prices = stripe.Price.list(active=True, limit=10)
+            if prices.data:
+                price_id = prices.data[0].id
+            else:
+                return jsonify({'error': 'No prices available'}), 400
+        
+        domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+        domain = domains.split(',')[0]
+        success_url = f'https://{domain}/app?payment=success'
+        cancel_url = f'https://{domain}/app?payment=cancelled'
+        
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{'price': price_id, 'quantity': 1}],
+            mode='subscription',
+            success_url=success_url,
+            cancel_url=cancel_url,
+        )
+        
+        return jsonify({'checkout_url': session.url, 'session_id': session.id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stripe/config')
+def stripe_config():
+    """Get Stripe publishable key for frontend"""
+    try:
+        from stripe_client import get_publishable_key
+        return jsonify({'publishable_key': get_publishable_key()})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stripe/products')
+def list_products():
+    """List available subscription products"""
+    try:
+        from stripe_client import get_stripe_client
+        stripe = get_stripe_client()
+        
+        products = stripe.Product.list(active=True, limit=10)
+        result = []
+        
+        for product in products.data:
+            prices = stripe.Price.list(product=product.id, active=True)
+            result.append({
+                'id': product.id,
+                'name': product.name,
+                'description': product.description,
+                'prices': [{
+                    'id': p.id,
+                    'unit_amount': p.unit_amount,
+                    'currency': p.currency,
+                    'interval': p.recurring.interval if p.recurring else None
+                } for p in prices.data]
+            })
+        
+        return jsonify({'products': result})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stripe/webhook', methods=['POST'])
+def stripe_webhook():
+    """Handle Stripe webhook events"""
+    from flask import request
+    try:
+        from stripe_client import get_stripe_client
+        stripe = get_stripe_client()
+        
+        payload = request.get_data()
+        sig_header = request.headers.get('Stripe-Signature')
+        
+        event = stripe.Event.construct_from(
+            stripe.util.convert_to_stripe_object(request.get_json()),
+            stripe.api_key
+        )
+        
+        if event.type == 'checkout.session.completed':
+            session = event.data.object
+            customer_email = session.get('customer_details', {}).get('email')
+            if customer_email:
+                user = User.query.filter_by(email=customer_email).first()
+                if user:
+                    user.is_premium = True
+                    db.session.commit()
+        
+        elif event.type == 'customer.subscription.deleted':
+            subscription = event.data.object
+            customer_id = subscription.customer
+            pass
+        
+        return jsonify({'received': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 @app.route('/api/auth/unit-size', methods=['POST'])
 def set_unit_size():
