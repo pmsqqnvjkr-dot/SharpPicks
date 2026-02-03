@@ -40,6 +40,7 @@ export default function SharpPicksBestOfBoth() {
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [selectedWin, setSelectedWin] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
+  const [winnerSeed, setWinnerSeed] = useState(0);
   const [viewedFOMO, setViewedFOMO] = useState(0);
   const fomoRef = useRef(null);
   
@@ -245,6 +246,14 @@ export default function SharpPicksBestOfBoth() {
     return () => clearInterval(timer);
   }, [apiPredictions]);
 
+  // ============ DYNAMIC WINNER ROTATION ============
+  useEffect(() => {
+    const winnerTimer = setInterval(() => {
+      setWinnerSeed(prev => prev + 1);
+    }, 8000);
+    return () => clearInterval(winnerTimer);
+  }, []);
+
   // Check if user needs to set unit size - but don't force it
   // Only prompt when they actually try to track a bet
   const needsUnitSize = isPaidUser && unitSize === null;
@@ -270,6 +279,24 @@ export default function SharpPicksBestOfBoth() {
     return `ML model edge: ${(pred.confidence * 100).toFixed(1)}% confidence`;
   };
 
+  // Dynamic winner name generation
+  const firstNames = ['Mike', 'Sarah', 'James', 'Maria', 'Chris', 'Alex', 'Jordan', 'Taylor', 'Ryan', 'Casey', 'Morgan', 'Drew', 'Pat', 'Sam', 'Tony', 'Nick', 'Dave', 'Eric', 'Brian', 'Kevin'];
+  const cities = ['Boston', 'NYC', 'LA', 'Chicago', 'Miami', 'Denver', 'Phoenix', 'Dallas', 'Atlanta', 'Seattle', 'Portland', 'Vegas', 'Detroit', 'Philly', 'Houston', 'Austin', 'Tampa', 'Orlando', 'San Diego', 'Charlotte'];
+  const recentTimes = ['just now', '1m ago', '3m ago', '5m ago', '12m ago', '18m ago', '25m ago', '32m ago', '45m ago', '1h ago', '2h ago', '3h ago'];
+  
+  const generateRandomWinner = (seed) => {
+    const combinedSeed = seed + winnerSeed;
+    const nameIdx = (combinedSeed * 7) % firstNames.length;
+    const cityIdx = (combinedSeed * 13) % cities.length;
+    const timeIdx = combinedSeed % recentTimes.length;
+    const amount = 75 + ((combinedSeed * 47) % 375);
+    return {
+      name: `${firstNames[nameIdx]} from ${cities[cityIdx]}`,
+      amount,
+      time: recentTimes[timeIdx]
+    };
+  };
+
   // Transform API predictions into UI-friendly format
   const transformedPicks = apiPredictions.map((pred, index) => ({
     id: `pick-${index}`,
@@ -283,8 +310,8 @@ export default function SharpPicksBestOfBoth() {
     lineMovement: pred.line_movement,
     users: Math.floor(Math.random() * 500) + 300,
     recentWinners: [
-      { name: 'Mike from Boston', amount: Math.floor(Math.random() * 200) + 100, time: '2h ago' },
-      { name: 'Sarah from NYC', amount: Math.floor(Math.random() * 150) + 80, time: '4h ago' }
+      generateRandomWinner(index * 2),
+      generateRandomWinner(index * 2 + 1)
     ]
   }));
 
@@ -307,13 +334,37 @@ export default function SharpPicksBestOfBoth() {
 
   const premiumPicks = sortedPicks.slice(1);
 
-  // Sample recent results based on model's 79.4% accuracy
-  const results = [
-    { pick: 'Lakers -3.5', result: 'W', profit: '+$91', time: '2h ago', final: 'Lakers 112-106 vs Kings', winner: { name: 'James T.', amount: 182 }, wasPremium: true },
-    { pick: 'Celtics -6.5', result: 'W', profit: '+$91', time: '4h ago', final: 'Celtics 118-108 vs Hornets', winner: { name: 'Maria S.', amount: 455 }, wasPremium: true },
-    { pick: 'Nuggets +2.5', result: 'L', profit: '-$100', time: '6h ago', final: 'Nuggets 98-105 vs Thunder', winner: null, wasPremium: true },
-    { pick: 'Heat -4.0', result: 'W', profit: '+$91', time: '1d ago', final: 'Heat 104-97 vs Pistons', winner: { name: 'Chris K.', amount: 273 }, wasPremium: false },
-  ];
+  // Dynamic recent results based on model's 79.4% accuracy
+  const generateDynamicResults = () => {
+    const teams = ['Lakers', 'Celtics', 'Heat', 'Nuggets', 'Warriors', 'Suns', 'Bucks', 'Nets', 'Sixers', 'Knicks'];
+    const opponents = ['Kings', 'Hornets', 'Thunder', 'Pistons', 'Jazz', 'Spurs', 'Rockets', 'Magic', 'Wizards', 'Pacers'];
+    const resultTimes = ['2h ago', '4h ago', '6h ago', '1d ago'];
+    
+    return [0, 1, 2, 3].map(i => {
+      const idx = (i + winnerSeed) % teams.length;
+      const oppIdx = (i + winnerSeed + 3) % opponents.length;
+      const isWin = i !== 2;
+      const spread = (3 + (idx % 5) + 0.5).toFixed(1);
+      const homeScore = 100 + ((idx * 7 + winnerSeed) % 20);
+      const awayScore = isWin ? homeScore - 4 - (idx % 8) : homeScore + 5 + (oppIdx % 6);
+      const winnerSeedVal = i * 5 + winnerSeed;
+      
+      return {
+        pick: `${teams[idx]} ${isWin ? '-' : '+'}${spread}`,
+        result: isWin ? 'W' : 'L',
+        profit: isWin ? '+$91' : '-$100',
+        time: resultTimes[i],
+        final: `${teams[idx]} ${homeScore}-${awayScore} vs ${opponents[oppIdx]}`,
+        winner: isWin ? { 
+          name: `${firstNames[(winnerSeedVal * 3) % firstNames.length]} ${firstNames[(winnerSeedVal * 5) % firstNames.length].charAt(0)}.`,
+          amount: 100 + ((winnerSeedVal * 23) % 400)
+        } : null,
+        wasPremium: i < 3
+      };
+    });
+  };
+  
+  const results = generateDynamicResults();
 
   const missedProfit = premiumPicks.length * 91;
 
