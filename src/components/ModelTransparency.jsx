@@ -60,7 +60,15 @@ export default function ModelTransparency() {
           {calibration && (
             <div className="calibration-summary">
               <span>Mean Absolute Error: <strong>{calibration.mean_absolute_error}%</strong></span>
-              <span className={`status-badge ${calibration.calibration_status}`}>
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${
+                calibration.calibration_status === 'excellent' 
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : calibration.calibration_status === 'good'
+                  ? 'bg-blue-50 border-blue-200 text-blue-900'
+                  : calibration.calibration_status === 'moderate'
+                  ? 'bg-amber-50 border-amber-200 text-amber-900'
+                  : 'bg-red-50 border-red-200 text-red-900'
+              }`}>
                 {calibration.calibration_status?.toUpperCase()}
               </span>
             </div>
