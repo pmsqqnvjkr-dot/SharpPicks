@@ -1254,25 +1254,38 @@ export default function SharpPicksBestOfBoth() {
         </div>
 
         {/* TRACK RECORD */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border-2 border-blue-100 mb-8">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700 mb-8">
           <div className="flex items-start space-x-4">
-            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-xl shadow-lg">
+            <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-3 rounded-xl shadow-lg">
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Our Track Record</h3>
-              <p className="text-slate-700 leading-relaxed mb-3">
-                Our algorithm maintains a <span className="font-bold text-blue-600">57.1% win rate</span> on high-confidence picks. 
-                We show you every result - wins AND losses. No fake records, no hidden picks.
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-white mb-3">Model Performance</h3>
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="text-center bg-slate-800/50 rounded-xl p-3">
+                  <div className="text-emerald-400 text-2xl font-black">79.4%</div>
+                  <div className="text-slate-400 text-xs">Backtest Accuracy</div>
+                </div>
+                <div className="text-center bg-slate-800/50 rounded-xl p-3">
+                  <div className="text-blue-400 text-2xl font-black">15,131</div>
+                  <div className="text-slate-400 text-xs">Games Analyzed</div>
+                </div>
+                <div className="text-center bg-slate-800/50 rounded-xl p-3">
+                  <div className="text-amber-400 text-2xl font-black">0.139</div>
+                  <div className="text-slate-400 text-xs">Brier Score</div>
+                </div>
+              </div>
+              <p className="text-slate-400 text-sm leading-relaxed mb-3">
+                36-feature ML model trained on 5 seasons of NBA data. Calibrated predictions mean when we say 70% confidence, historically ~70% hit.
               </p>
               <div className="flex items-center space-x-4 text-sm">
-                <div className="flex items-center space-x-1 text-slate-600">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  <span className="font-semibold">All picks tracked publicly</span>
+                <div className="flex items-center space-x-1 text-slate-300">
+                  <CheckCircle className="w-4 h-4 text-emerald-500" />
+                  <span className="font-semibold">All picks tracked</span>
                 </div>
-                <div className="flex items-center space-x-1 text-slate-600">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  <span className="font-semibold">Timestamped before games</span>
+                <div className="flex items-center space-x-1 text-slate-300">
+                  <CheckCircle className="w-4 h-4 text-emerald-500" />
+                  <span className="font-semibold">Timestamped pre-game</span>
                 </div>
               </div>
             </div>
