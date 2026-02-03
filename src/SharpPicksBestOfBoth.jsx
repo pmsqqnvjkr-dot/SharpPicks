@@ -41,6 +41,7 @@ export default function SharpPicksBestOfBoth() {
   const [selectedWin, setSelectedWin] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
   const [winnerSeed, setWinnerSeed] = useState(0);
+  const [userCounts, setUserCounts] = useState({});
   const [viewedFOMO, setViewedFOMO] = useState(0);
   const fomoRef = useRef(null);
   
@@ -254,6 +255,34 @@ export default function SharpPicksBestOfBoth() {
     return () => clearInterval(winnerTimer);
   }, []);
 
+  // ============ STABLE USER COUNTS WITH GRADUAL INCREASE ============
+  useEffect(() => {
+    // Initialize user counts for each prediction
+    if (apiPredictions.length > 0 && Object.keys(userCounts).length === 0) {
+      const initialCounts = {};
+      apiPredictions.forEach((pred, index) => {
+        initialCounts[`pick-${index}`] = 300 + (index * 50) + Math.floor(Math.random() * 200);
+      });
+      setUserCounts(initialCounts);
+    }
+  }, [apiPredictions]);
+
+  // Gradually increase user counts every 15-30 seconds
+  useEffect(() => {
+    const userTimer = setInterval(() => {
+      setUserCounts(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(key => {
+          if (Math.random() > 0.5) {
+            updated[key] = updated[key] + Math.floor(Math.random() * 3) + 1;
+          }
+        });
+        return updated;
+      });
+    }, 15000);
+    return () => clearInterval(userTimer);
+  }, []);
+
   // Check if user needs to set unit size - but don't force it
   // Only prompt when they actually try to track a bet
   const needsUnitSize = isPaidUser && unitSize === null;
@@ -335,7 +364,7 @@ export default function SharpPicksBestOfBoth() {
     reasoning: generateReasoning(pred),
     edge: generateEdge(pred),
     lineMovement: pred.line_movement,
-    users: Math.floor(Math.random() * 500) + 300,
+    users: userCounts[`pick-${index}`] || 400,
     recentWinners: [
       generateRandomWinner(index * 2),
       generateRandomWinner(index * 2 + 1)
