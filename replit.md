@@ -58,8 +58,8 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - `POST /api/auth/upgrade` - Upgrade user to premium (auth required)
 - `POST /api/auth/unit-size` - Set user's betting unit size (auth required)
 - `GET/POST /api/bets` - User's tracked bets (auth required)
-- `GET /auth/replit_auth/login` - OAuth login endpoint
-- `GET /auth/replit_auth/logout` - Logout endpoint
+- `GET /auth/replit_auth` - OAuth login endpoint
+- `GET /auth/logout` - Logout endpoint
 
 ## Configuration
 - Minimum confidence threshold: 55%
