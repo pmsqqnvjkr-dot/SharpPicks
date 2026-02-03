@@ -525,7 +525,7 @@ def get_predictions():
                home_last5, away_last5, home_rest_days, away_rest_days,
                line_movement
         FROM games 
-        WHERE DATE(game_date) >= DATE(?)
+        WHERE DATE(game_date) = DATE(?)
         AND spread_result IS NULL
         ORDER BY game_date, game_time
         LIMIT 20
