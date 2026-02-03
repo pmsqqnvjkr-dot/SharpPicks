@@ -147,14 +147,13 @@ def track_bet():
     from flask import request
     data = request.get_json()
     
-    bet = TrackedBet(
-        user_id=current_user.id,
-        pick=data.get('pick'),
-        game=data.get('game'),
-        bet_amount=data.get('bet_amount', 100),
-        odds=data.get('odds', -110),
-        to_win=data.get('to_win', 0)
-    )
+    bet = TrackedBet()
+    bet.user_id = current_user.id
+    bet.pick = data.get('pick')
+    bet.game = data.get('game')
+    bet.bet_amount = data.get('bet_amount', 100)
+    bet.odds = data.get('odds', -110)
+    bet.to_win = data.get('to_win', 0)
     db.session.add(bet)
     db.session.commit()
     

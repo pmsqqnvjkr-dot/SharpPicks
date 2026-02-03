@@ -50,7 +50,9 @@ def register():
         return jsonify({'error': 'Email already registered'}), 400
     
     hashed = bcrypt.generate_password_hash(password).decode('utf-8')
-    user = User(email=email, username=username)
+    user = User()
+    user.email = email
+    user.username = username
     user.password_hash = hashed
     db.session.add(user)
     db.session.commit()
