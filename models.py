@@ -20,6 +20,8 @@ class User(UserMixin, db.Model):
     last_name = db.Column(db.String, nullable=True)
     is_premium = db.Column(db.Boolean, default=False)
     unit_size = db.Column(db.Integer, default=100)
+    trial_ends = db.Column(db.DateTime, nullable=True)
+    trial_used = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 

@@ -936,8 +936,8 @@ export default function SharpPicksBestOfBoth() {
 
       {showUpgrade && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-8 max-w-md w-full border border-slate-700 shadow-2xl relative">
-            <button onClick={() => setShowUpgrade(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-8 max-w-md w-full border border-slate-700 shadow-2xl relative overflow-y-auto max-h-[90vh]">
+            <button onClick={() => setShowUpgrade(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white z-10">
               <X className="w-6 h-6" />
             </button>
             <div className="text-center mb-6">
@@ -945,8 +945,63 @@ export default function SharpPicksBestOfBoth() {
                 <Crown className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-white text-2xl font-black mb-2">Unlock Premium Picks</h2>
-              <p className="text-slate-400 text-sm">Choose your plan</p>
+              <p className="text-slate-400 text-sm">Start with a free trial or choose your plan</p>
             </div>
+
+            {/* FREE TRIAL OPTION */}
+            <div className="bg-gradient-to-r from-emerald-600 to-green-600 rounded-2xl p-4 mb-4 border-2 border-emerald-400">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="text-white font-black text-xl">FREE</div>
+                  <div className="text-emerald-200 text-xs">7-Day Trial</div>
+                </div>
+                <div className="bg-white text-emerald-600 text-xs font-bold px-3 py-1 rounded-full">
+                  NO CARD REQUIRED
+                </div>
+              </div>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const emailInput = e.target.elements.trialEmail.value;
+                if (!emailInput) return;
+                try {
+                  const res = await fetch('/api/auth/trial', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: emailInput })
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    localStorage.setItem('userId', data.user.id);
+                    localStorage.setItem('userEmail', data.user.email);
+                    localStorage.setItem('trialEnds', data.user.trial_ends);
+                    setIsPaidUser(true);
+                    setShowUpgrade(false);
+                    alert('Your 7-day free trial has started! Enjoy full access to all premium picks.');
+                  }
+                } catch (error) {
+                  alert('Error starting trial. Please try again.');
+                }
+              }} className="space-y-3">
+                <input
+                  type="email"
+                  name="trialEmail"
+                  placeholder="Enter your email"
+                  className="w-full bg-white/20 text-white placeholder-emerald-200 px-4 py-3 rounded-xl border border-emerald-400/50 focus:border-white outline-none"
+                  required
+                />
+                <button
+                  type="submit"
+                  className="w-full bg-white text-emerald-600 font-black py-3 rounded-xl hover:bg-emerald-50 transition-all"
+                >
+                  Start Free 7-Day Trial
+                </button>
+              </form>
+              <p className="text-emerald-200 text-xs text-center mt-2">
+                Full access to all picks • Cancel anytime
+              </p>
+            </div>
+
+            <div className="text-center text-slate-500 text-xs mb-4">— OR CHOOSE A PLAN —</div>
 
             {/* PROGRESSIVE PRICING OPTIONS */}
             <div className="space-y-3 mb-6">
@@ -1663,10 +1718,10 @@ export default function SharpPicksBestOfBoth() {
         <div className="max-w-5xl mx-auto px-6">
           <div className="flex items-center justify-between text-sm text-slate-400">
             <div>© 2026 Sharp Picks. All rights reserved.</div>
-            <div className="flex items-center space-x-1">
-              <span>5% of revenue donated to animal shelters</span>
-              <span className="text-slate-600">•</span>
-              <a href="#" className="hover:text-slate-300 transition-colors">Learn more</a>
+            <div className="flex items-center space-x-4">
+              <a href="#" className="hover:text-slate-300 transition-colors">Terms</a>
+              <a href="#" className="hover:text-slate-300 transition-colors">Privacy</a>
+              <a href="#" className="hover:text-slate-300 transition-colors">Support</a>
             </div>
           </div>
         </div>

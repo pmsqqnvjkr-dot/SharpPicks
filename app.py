@@ -151,6 +151,78 @@ def set_unit_size():
     test_user.unit_size = unit_size
     return jsonify({'success': True, 'unit_size': unit_size})
 
+@app.route('/api/auth/trial', methods=['POST'])
+def start_trial():
+    """Start free 7-day trial with just email"""
+    from flask import request
+    from datetime import timedelta
+    data = request.get_json()
+    email = data.get('email')
+    
+    if not email:
+        return jsonify({'error': 'Email required'}), 400
+    
+    user = User.query.filter_by(email=email).first()
+    
+    if user:
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'is_premium': user.is_premium,
+                'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None
+            }
+        })
+    
+    user = User()
+    user.email = email
+    user.first_name = email.split('@')[0]
+    user.is_premium = True
+    user.trial_ends = datetime.now() + timedelta(days=7)
+    user.trial_used = True
+    
+    db.session.add(user)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'is_premium': True,
+            'trial_ends': user.trial_ends.isoformat(),
+            'message': 'Welcome! Your 7-day free trial has started.'
+        }
+    })
+
+@app.route('/api/auth/check-trial')
+def check_trial():
+    """Check if trial is still active"""
+    from flask import request
+    user_id = request.args.get('user_id')
+    
+    if not user_id:
+        return jsonify({'error': 'No user'}), 400
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    trial_active = True
+    if user.trial_ends:
+        trial_active = datetime.now() < user.trial_ends
+        
+        if not trial_active and user.is_premium and user.trial_used:
+            user.is_premium = False
+            db.session.commit()
+    
+    return jsonify({
+        'is_premium': user.is_premium,
+        'trial_active': trial_active,
+        'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None
+    })
+
 @app.route('/api/bets', methods=['GET'])
 def get_user_bets():
     """Get user's tracked bets"""
