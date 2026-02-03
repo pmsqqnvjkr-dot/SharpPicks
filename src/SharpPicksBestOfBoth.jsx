@@ -39,7 +39,7 @@ export default function SharpPicksBestOfBoth() {
   const [email, setEmail] = useState('');
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [selectedWin, setSelectedWin] = useState(null);
-  const [timeLeft, setTimeLeft] = useState({ hours: 7, minutes: 22, seconds: 45 });
+  const [timeLeft, setTimeLeft] = useState(null);
   const [viewedFOMO, setViewedFOMO] = useState(0);
   const fomoRef = useRef(null);
   
@@ -219,16 +219,31 @@ export default function SharpPicksBestOfBoth() {
   
   // ============ COUNTDOWN TIMER ============
   useEffect(() => {
+    const calculateTimeLeft = () => {
+      // Get the first prediction's game time
+      if (apiPredictions.length > 0 && apiPredictions[0].game_date) {
+        const gameTime = new Date(apiPredictions[0].game_date);
+        const now = new Date();
+        const diff = gameTime - now;
+        
+        if (diff > 0) {
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          return { hours, minutes, seconds };
+        }
+      }
+      return { hours: 0, minutes: 0, seconds: 0 };
+    };
+    
+    setTimeLeft(calculateTimeLeft());
+    
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { hours: prev.hours, minutes: prev.minutes - 1, seconds: 59 };
-        if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        return prev;
-      });
+      setTimeLeft(calculateTimeLeft());
     }, 1000);
+    
     return () => clearInterval(timer);
-  }, []);
+  }, [apiPredictions]);
 
   // Check if user needs to set unit size - but don't force it
   // Only prompt when they actually try to track a bet
@@ -1219,7 +1234,7 @@ export default function SharpPicksBestOfBoth() {
                 <div className="text-blue-200 text-xs font-bold uppercase tracking-wider mb-1">Starts in</div>
                 <div className="bg-black/20 backdrop-blur px-4 py-2 rounded-lg">
                   <div className="text-white text-2xl font-black tabular-nums">
-                    {timeLeft.hours}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+                    {timeLeft ? `${timeLeft.hours}:${String(timeLeft.minutes).padStart(2, '0')}:${String(timeLeft.seconds).padStart(2, '0')}` : '--:--:--'}
                   </div>
                 </div>
               </div>
