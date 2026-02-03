@@ -156,15 +156,37 @@ def start_trial():
     """Start free 7-day trial with just email"""
     from flask import request
     from datetime import timedelta
+    import re
+    
     data = request.get_json()
-    email = data.get('email')
+    email = data.get('email', '').strip().lower()
     
     if not email:
         return jsonify({'error': 'Email required'}), 400
     
+    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+        return jsonify({'error': 'Invalid email format'}), 400
+    
     user = User.query.filter_by(email=email).first()
     
     if user:
+        if user.trial_used and user.trial_ends and datetime.now() > user.trial_ends:
+            return jsonify({
+                'success': False,
+                'error': 'Trial already used',
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'is_premium': user.is_premium,
+                    'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None,
+                    'trial_expired': True
+                }
+            }), 400
+        
+        if user.trial_ends and datetime.now() < user.trial_ends:
+            user.is_premium = True
+            db.session.commit()
+        
         return jsonify({
             'success': True,
             'user': {
@@ -198,18 +220,24 @@ def start_trial():
 
 @app.route('/api/auth/check-trial')
 def check_trial():
-    """Check if trial is still active"""
+    """Check if trial is still active - requires valid UUID user_id"""
     from flask import request
-    user_id = request.args.get('user_id')
+    import re
+    
+    user_id = request.args.get('user_id', '').strip()
     
     if not user_id:
-        return jsonify({'error': 'No user'}), 400
+        return jsonify({'error': 'No user ID provided'}), 400
+    
+    uuid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.I)
+    if not uuid_pattern.match(user_id):
+        return jsonify({'error': 'Invalid user ID format'}), 400
     
     user = User.query.get(user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
-    trial_active = True
+    trial_active = False
     if user.trial_ends:
         trial_active = datetime.now() < user.trial_ends
         
@@ -220,7 +248,8 @@ def check_trial():
     return jsonify({
         'is_premium': user.is_premium,
         'trial_active': trial_active,
-        'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None
+        'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None,
+        'days_remaining': max(0, (user.trial_ends - datetime.now()).days) if user.trial_ends else 0
     })
 
 @app.route('/api/bets', methods=['GET'])

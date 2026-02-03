@@ -974,9 +974,17 @@ export default function SharpPicksBestOfBoth() {
                     localStorage.setItem('userId', data.user.id);
                     localStorage.setItem('userEmail', data.user.email);
                     localStorage.setItem('trialEnds', data.user.trial_ends);
-                    setIsPaidUser(true);
+                    setIsPaidUser(data.user.is_premium);
                     setShowUpgrade(false);
-                    alert('Your 7-day free trial has started! Enjoy full access to all premium picks.');
+                    if (data.user.message) {
+                      alert(data.user.message);
+                    } else {
+                      alert('Welcome back! You have access to all premium picks.');
+                    }
+                  } else if (data.error === 'Trial already used') {
+                    alert('Your free trial has expired. Please upgrade to continue accessing premium picks.');
+                  } else {
+                    alert(data.error || 'Error starting trial');
                   }
                 } catch (error) {
                   alert('Error starting trial. Please try again.');
