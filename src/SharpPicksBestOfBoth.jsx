@@ -259,10 +259,37 @@ export default function SharpPicksBestOfBoth() {
   const needsUnitSize = isPaidUser && unitSize === null;
 
   // ============ TRANSFORM API DATA TO UI FORMAT ============
+  const formatGameDateTime = (dateStr) => {
+    if (!dateStr) return { date: 'TBD', time: 'TBD', full: 'TBD' };
+    const date = new Date(dateStr);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const isToday = date.toDateString() === today.toDateString();
+    const isTomorrow = date.toDateString() === tomorrow.toDateString();
+    
+    let dateLabel;
+    if (isToday) {
+      dateLabel = 'Today';
+    } else if (isTomorrow) {
+      dateLabel = 'Tomorrow';
+    } else {
+      dateLabel = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+    
+    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    
+    return {
+      date: dateLabel,
+      time: timeStr,
+      full: `${dateLabel} ${timeStr}`
+    };
+  };
+  
   const formatGameTime = (dateStr) => {
     if (!dateStr) return 'TBD';
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+    return formatGameDateTime(dateStr).full;
   };
 
   const generateReasoning = (pred) => {
