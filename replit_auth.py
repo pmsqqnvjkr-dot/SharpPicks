@@ -68,6 +68,13 @@ def make_replit_blueprint():
         raise SystemExit("the REPL_ID environment variable must be set")
 
     issuer_url = os.environ.get('ISSUER_URL', "https://replit.com/oidc")
+    
+    # Get the external Replit domain for proper OAuth redirects
+    replit_domain = os.environ.get('REPLIT_DEV_DOMAIN', '')
+    if replit_domain:
+        redirect_url = f"https://{replit_domain}/auth/replit_auth/authorized"
+    else:
+        redirect_url = None  # Let Flask-Dance auto-generate
 
     replit_bp = OAuth2ConsumerBlueprint(
         "replit_auth",
@@ -85,6 +92,7 @@ def make_replit_blueprint():
         code_challenge_method="S256",
         scope=["openid", "profile", "email", "offline_access"],
         storage=UserSessionStorage(),
+        redirect_url=redirect_url,
     )
 
     @replit_bp.before_app_request
