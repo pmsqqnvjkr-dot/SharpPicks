@@ -169,8 +169,11 @@ export default function SharpPicksBestOfBoth() {
     ]
   }));
 
+  // Sort by confidence and take top 5 total (1 free + 4 premium)
+  const sortedPicks = [...transformedPicks].sort((a, b) => parseFloat(b.confidence) - parseFloat(a.confidence)).slice(0, 5);
+  
   // First pick is free, rest are premium
-  const freePick = transformedPicks[0] || {
+  const freePick = sortedPicks[0] || {
     id: 'free-1',
     game: 'No games today',
     pick: 'Check back later',
@@ -183,7 +186,7 @@ export default function SharpPicksBestOfBoth() {
     recentWinners: []
   };
 
-  const premiumPicks = transformedPicks.slice(1);
+  const premiumPicks = sortedPicks.slice(1);
 
   // Generate results from performance data
   const modelWinRate = apiPerformance?.win_rate || 0.57;
