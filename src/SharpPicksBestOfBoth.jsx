@@ -965,7 +965,7 @@ export default function SharpPicksBestOfBoth() {
               </div>
               <div className="flex-1">
                 <h3 className="text-white text-lg font-black mb-2">You Missed +${missedProfit} Yesterday</h3>
-                <p className="text-red-200 text-sm mb-4">Premium members got {results.filter(r => r.wasPremium).length} additional picks</p>
+                <p className="text-red-200 text-sm mb-4">Premium members got {premiumPicks.length} additional picks</p>
                 <button
                   onClick={() => setShowUpgrade(true)}
                   className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black py-3 rounded-xl hover:from-amber-400 hover:to-orange-500 transition-all"

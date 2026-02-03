@@ -8,10 +8,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<SharpPicksBestOfBoth />} />
         <Route path="/app" element={<SharpPicksApp />} />
         <Route path="/analytics" element={<AnalyticsDashboard />} />
-        <Route path="/premium" element={<SharpPicksBestOfBoth />} />
+        <Route path="/legacy" element={<HomePage />} />
       </Routes>
     </Router>
   );
