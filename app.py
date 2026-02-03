@@ -20,11 +20,7 @@ from models import db, User, TrackedBet
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET")
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-# Set preferred URL scheme for OAuth redirects
-app.config['PREFERRED_URL_SCHEME'] = 'https'
+app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -34,11 +30,11 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 db.init_app(app)
-CORS(app)
+CORS(app, supports_credentials=True)
 
-from replit_auth import init_login_manager, make_replit_blueprint, require_login
+from auth import init_login_manager, auth_bp, require_login
 init_login_manager(app)
-app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
+app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
 @app.before_request
 def make_session_permanent():

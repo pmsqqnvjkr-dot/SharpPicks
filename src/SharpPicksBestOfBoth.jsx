@@ -20,6 +20,11 @@ export default function SharpPicksBestOfBoth() {
   const [showUnitSetup, setShowUnitSetup] = useState(false);
   const [showTrackModal, setShowTrackModal] = useState(false);
   const [selectedPickToTrack, setSelectedPickToTrack] = useState(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [authError, setAuthError] = useState('');
   
   // ============ API DATA STATE ============
   const [apiPredictions, setApiPredictions] = useState([]);
@@ -42,13 +47,13 @@ export default function SharpPicksBestOfBoth() {
   useEffect(() => {
     const fetchAuthUser = async () => {
       try {
-        const res = await fetch('/api/auth/user');
+        const res = await fetch('/api/auth/user', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          if (data.authenticated && data.user) {
-            setAuthUser(data.user);
-            setIsPaidUser(data.user.is_premium || false);
-            setUnitSize(data.user.unit_size || 100);
+          if (data && data.id) {
+            setAuthUser(data);
+            setIsPaidUser(data.is_premium || false);
+            setUnitSize(data.unit_size || 100);
           }
         }
       } catch (error) {
@@ -90,11 +95,49 @@ export default function SharpPicksBestOfBoth() {
   
   // ============ AUTH HELPERS ============
   const handleLogin = () => {
-    window.location.href = '/auth/replit_auth/login';
+    setShowLoginModal(true);
+    setIsRegistering(false);
+    setAuthError('');
   };
   
-  const handleLogout = () => {
-    window.location.href = '/auth/replit_auth/logout';
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      setAuthUser(null);
+      setIsPaidUser(false);
+      setUnitSize(100);
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+  
+  const submitAuth = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    
+    const endpoint = isRegistering ? '/api/auth/register' : '/api/auth/login';
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: loginEmail, password: loginPassword })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        setAuthUser(data);
+        setIsPaidUser(data.is_premium || false);
+        setUnitSize(data.unit_size || 100);
+        setShowLoginModal(false);
+        setLoginEmail('');
+        setLoginPassword('');
+      } else {
+        setAuthError(data.error || 'Authentication failed');
+      }
+    } catch (error) {
+      setAuthError('Network error. Please try again.');
+    }
   };
   
   const handlePremiumUpgrade = async () => {
@@ -684,6 +727,78 @@ export default function SharpPicksBestOfBoth() {
             >
               Start Tracking Picks
             </button>
+          </div>
+        </div>
+      )}
+
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-8 max-w-md w-full border border-slate-700 shadow-2xl relative">
+            <button onClick={() => setShowLoginModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">
+              <X className="w-6 h-6" />
+            </button>
+            <div className="text-center mb-6">
+              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <User className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-white text-2xl font-black mb-2">
+                {isRegistering ? 'Create Account' : 'Sign In'}
+              </h2>
+              <p className="text-slate-400 text-sm">
+                {isRegistering ? 'Join Sharp Picks today' : 'Welcome back'}
+              </p>
+            </div>
+            
+            <form onSubmit={submitAuth} className="space-y-4">
+              {authError && (
+                <div className="bg-red-500/20 border border-red-500/50 text-red-300 text-sm px-4 py-2 rounded-lg">
+                  {authError}
+                </div>
+              )}
+              
+              <div>
+                <label className="text-slate-400 text-sm block mb-1">Email</label>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="text-slate-400 text-sm block mb-1">Password</label>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  placeholder={isRegistering ? "Min 6 characters" : "Your password"}
+                  required
+                />
+              </div>
+              
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl transition-all"
+              >
+                {isRegistering ? 'Create Account' : 'Sign In'}
+              </button>
+            </form>
+            
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => {
+                  setIsRegistering(!isRegistering);
+                  setAuthError('');
+                }}
+                className="text-blue-400 hover:text-blue-300 text-sm"
+              >
+                {isRegistering ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
+              </button>
+            </div>
           </div>
         </div>
       )}
