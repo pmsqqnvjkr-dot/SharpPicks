@@ -10,11 +10,17 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
-        changeOrigin: true
+        changeOrigin: true,
+        headers: {
+          'X-Forwarded-Proto': 'https'
+        }
       },
       '/auth': {
         target: 'http://localhost:8000',
-        changeOrigin: true
+        changeOrigin: true,
+        headers: {
+          'X-Forwarded-Proto': 'https'
+        }
       }
     }
   }

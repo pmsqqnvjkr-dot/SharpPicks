@@ -69,12 +69,9 @@ def make_replit_blueprint():
 
     issuer_url = os.environ.get('ISSUER_URL', "https://replit.com/oidc")
     
-    # Get the external Replit domain for proper OAuth redirects
+    # Get the external Replit domain for OAuth callback
     replit_domain = os.environ.get('REPLIT_DEV_DOMAIN', '')
-    if replit_domain:
-        redirect_url = f"https://{replit_domain}/auth/replit_auth/authorized"
-    else:
-        redirect_url = None  # Let Flask-Dance auto-generate
+    redirect_url = f"https://{replit_domain}/auth/replit_auth/authorized" if replit_domain else None
 
     replit_bp = OAuth2ConsumerBlueprint(
         "replit_auth",
