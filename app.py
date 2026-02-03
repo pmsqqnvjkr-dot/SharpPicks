@@ -31,7 +31,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 db.init_app(app)
 CORS(app, supports_credentials=True)
 
-TEST_USER_ID = 1
+TEST_USER_ID = "646cbbb8-4962-4e9c-a9ed-e1eb4e380325"
 
 class TestUser:
     """Mock user for testing without authentication"""
