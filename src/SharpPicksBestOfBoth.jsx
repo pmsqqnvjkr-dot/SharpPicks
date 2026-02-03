@@ -222,10 +222,14 @@ export default function SharpPicksBestOfBoth() {
   // ============ COUNTDOWN TIMER ============
   useEffect(() => {
     const calculateTimeLeft = () => {
-      // Get the first prediction's game time
-      if (apiPredictions.length > 0 && apiPredictions[0].game_date) {
-        const gameTime = new Date(apiPredictions[0].game_date);
-        const now = new Date();
+      // Find the next upcoming game (not yet started)
+      const now = new Date();
+      const upcomingGames = apiPredictions
+        .filter(pred => new Date(pred.game_date) > now)
+        .sort((a, b) => parseFloat(b.confidence) - parseFloat(a.confidence));
+      
+      if (upcomingGames.length > 0) {
+        const gameTime = new Date(upcomingGames[0].game_date);
         const diff = gameTime - now;
         
         if (diff > 0) {
@@ -361,6 +365,7 @@ export default function SharpPicksBestOfBoth() {
     confidence: (pred.confidence * 100).toFixed(1),
     odds: -110,
     time: formatGameTime(pred.game_date),
+    gameDate: new Date(pred.game_date),
     reasoning: generateReasoning(pred),
     edge: generateEdge(pred),
     lineMovement: pred.line_movement,
@@ -371,8 +376,12 @@ export default function SharpPicksBestOfBoth() {
     ]
   }));
 
-  // Sort by confidence and take top 5 total (1 free + 4 premium)
-  const sortedPicks = [...transformedPicks].sort((a, b) => parseFloat(b.confidence) - parseFloat(a.confidence)).slice(0, 5);
+  // Filter out games that have already started, then sort by confidence
+  const now = new Date();
+  const upcomingPicks = transformedPicks.filter(pick => pick.gameDate > now);
+  const sortedPicks = (upcomingPicks.length > 0 ? upcomingPicks : transformedPicks)
+    .sort((a, b) => parseFloat(b.confidence) - parseFloat(a.confidence))
+    .slice(0, 5);
   
   // First pick is free, rest are premium
   const freePick = sortedPicks[0] || {
