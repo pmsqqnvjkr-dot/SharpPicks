@@ -718,8 +718,8 @@ def get_recent_results():
         LEFT JOIN games g ON p.game_id = g.id
         WHERE p.is_correct IS NOT NULL
         AND p.resolved_at >= datetime('now', '-24 hours')
-        ORDER BY p.resolved_at DESC
-        LIMIT 10
+        ORDER BY p.is_correct DESC, p.resolved_at DESC
+        LIMIT 5
     ''')
     
     rows = cursor.fetchall()
