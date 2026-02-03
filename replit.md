@@ -25,10 +25,10 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - Added retry logic with exponential backoff for NBA stats API
 
 ## Key Files
-- `client/` - React frontend (Vite)
-  - `src/App.jsx` - Main dashboard component
-  - `src/components/TrustBanner.jsx` - Model stats banner
-  - `src/components/CalibrationChart.jsx` - Calibration visualization
+- `src/` - React frontend (Vite)
+  - `App.jsx` - Main dashboard component
+  - `components/TrustBanner.jsx` - Model stats banner
+  - `components/CalibrationChart.jsx` - Calibration visualization
 - `app.py` - Flask API backend (port 8000)
 - `model.py` - Ensemble ML prediction model
 - `main.py` - Data collection script
