@@ -1,6 +1,7 @@
 from functools import wraps
 from flask import Blueprint, request, jsonify, session
 from flask_login import LoginManager, login_user, logout_user, current_user
+from email_validator import validate_email, EmailNotValidError
 from models import db, User
 
 def require_login(f):
@@ -30,6 +31,12 @@ def register():
     
     if not email or not password:
         return jsonify({'error': 'Email and password required'}), 400
+    
+    try:
+        valid = validate_email(email)
+        email = valid.normalized
+    except EmailNotValidError as e:
+        return jsonify({'error': 'Please enter a valid email address'}), 400
     
     if len(password) < 6:
         return jsonify({'error': 'Password must be at least 6 characters'}), 400
