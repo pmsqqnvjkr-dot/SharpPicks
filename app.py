@@ -710,22 +710,34 @@ def get_recent_results():
     conn = get_db()
     cursor = conn.cursor()
     
+    # First get total wins/losses for last 24 hours
+    cursor.execute('''
+        SELECT 
+            SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as total_wins,
+            SUM(CASE WHEN is_correct = 0 THEN 1 ELSE 0 END) as total_losses
+        FROM prediction_log
+        WHERE is_correct IS NOT NULL
+        AND resolved_at >= datetime('now', '-24 hours')
+    ''')
+    totals = cursor.fetchone()
+    total_wins = (totals[0] or 0) if totals else 0
+    total_losses = (totals[1] or 0) if totals else 0
+    
+    # Get top 5 results, prioritizing wins
     cursor.execute('''
         SELECT p.prediction, p.is_correct, p.confidence,
                p.home_team, p.away_team, p.game_date,
-               g.home_score, g.away_score, p.resolved_at
+               g.home_score, g.away_score
         FROM prediction_log p
         LEFT JOIN games g ON p.game_id = g.id
         WHERE p.is_correct IS NOT NULL
         AND p.resolved_at >= datetime('now', '-24 hours')
-        ORDER BY p.is_correct DESC, p.resolved_at DESC
+        ORDER BY p.is_correct DESC, p.game_date DESC
         LIMIT 5
     ''')
     
     rows = cursor.fetchall()
     results = []
-    wins = 0
-    losses = 0
     
     for row in rows:
         prediction = row['prediction'] if isinstance(row, dict) else row[0]
@@ -733,31 +745,27 @@ def get_recent_results():
         confidence = row['confidence'] if isinstance(row, dict) else row[2]
         home_team = row['home_team'] if isinstance(row, dict) else row[3]
         away_team = row['away_team'] if isinstance(row, dict) else row[4]
+        game_date = row['game_date'] if isinstance(row, dict) else row[5]
         home_score = row['home_score'] if isinstance(row, dict) else row[6]
         away_score = row['away_score'] if isinstance(row, dict) else row[7]
-        updated_at = row['scores_updated_at'] if isinstance(row, dict) else row[8]
         
         is_win = is_correct == 1
-        if is_win:
-            wins += 1
-        else:
-            losses += 1
             
         results.append({
             'pick': prediction,
             'result': 'W' if is_win else 'L',
             'profit': 91 if is_win else -100,
             'final': f"{home_team} {home_score}-{away_score} vs {away_team}" if home_score else "Pending",
-            'time': updated_at,
+            'game_date': game_date,
             'confidence': confidence
         })
     
     conn.close()
     return jsonify({
         'results': results,
-        'wins': wins,
-        'losses': losses,
-        'record': f"{wins}-{losses}",
+        'totalWins': total_wins,
+        'totalLosses': total_losses,
+        'record': f"{total_wins}-{total_losses}",
         'count': len(results)
     })
 

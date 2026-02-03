@@ -31,7 +31,7 @@ export default function SharpPicksBestOfBoth() {
   const [apiPerformance, setApiPerformance] = useState(null);
   const [modelStats, setModelStats] = useState(null);
   const [recentResults, setRecentResults] = useState([]);
-  const [recentRecord, setRecentRecord] = useState('0-0');
+  const [recentWins, setRecentWins] = useState(0);
   const [loading, setLoading] = useState(true);
   
   // ============ TRACKING STATE ============
@@ -102,7 +102,7 @@ export default function SharpPicksBestOfBoth() {
         if (resultsRes.ok) {
           const resultsData = await resultsRes.json();
           setRecentResults(resultsData.results || []);
-          setRecentRecord(resultsData.record || '0-0');
+          setRecentWins(resultsData.totalWins || 0);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -1535,9 +1535,9 @@ export default function SharpPicksBestOfBoth() {
               <Activity className="w-5 h-5 text-green-400" />
               <span>Recent Results</span>
             </h3>
-            {results.length > 0 && (
+            {recentWins > 0 && (
               <span className="text-emerald-400 text-sm font-bold">
-                {recentRecord} Last 24hrs
+                {recentWins} wins in past 24hrs
               </span>
             )}
           </div>
@@ -1556,7 +1556,7 @@ export default function SharpPicksBestOfBoth() {
                       </div>
                       <div>
                         <div className="text-white text-sm font-bold">{result.pick}</div>
-                        <div className="text-slate-400 text-xs">{result.final} • {result.time}</div>
+                        <div className="text-slate-400 text-xs">{result.final} • {result.game_date}</div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
