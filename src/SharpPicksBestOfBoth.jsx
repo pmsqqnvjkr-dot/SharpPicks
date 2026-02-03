@@ -260,7 +260,7 @@ export default function SharpPicksBestOfBoth() {
         .sort((a, b) => parseFloat(b.confidence) - parseFloat(a.confidence));
       
       if (upcomingGames.length > 0) {
-        const gameTime = new Date(upcomingGames[0].game_date);
+        const gameTime = new Date(upcomingGames[0].game_time || upcomingGames[0].game_date);
         const diff = gameTime - now;
         
         if (diff > 0) {
