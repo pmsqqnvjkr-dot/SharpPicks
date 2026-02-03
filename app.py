@@ -106,6 +106,125 @@ def detailed_validation():
     })
 
 
+@app.route('/api/predictions')
+def get_predictions():
+    """Get today's model predictions for upcoming games"""
+    import pickle
+    from datetime import datetime
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    today = datetime.now().strftime('%Y-%m-%d')
+    cursor.execute('''
+        SELECT id, home_team, away_team, game_date, 
+               spread_home, spread_home_open, total,
+               home_record, away_record, home_last5, away_last5,
+               line_movement
+        FROM games 
+        WHERE DATE(game_date) >= DATE(?)
+        AND spread_result IS NULL
+        ORDER BY game_date
+        LIMIT 20
+    ''', (today,))
+    
+    games = cursor.fetchall()
+    predictions = []
+    
+    try:
+        with open('sharp_picks_model.pkl', 'rb') as f:
+            model_data = pickle.load(f)
+            models = model_data.get('models', {})
+            model = models.get('gradient_boosting') or models.get('random_forest') or models.get('xgboost')
+            if not model:
+                model = model_data.get('model')
+            features = model_data.get('feature_names', [])
+    except Exception as e:
+        model = None
+        features = []
+    
+    for game in games:
+        game_dict = dict(game)
+        
+        if model and features and hasattr(model, 'predict_proba'):
+            try:
+                import pandas as pd
+                feature_dict = {}
+                for feat in features:
+                    if feat in game_dict and game_dict[feat] is not None:
+                        feature_dict[feat] = game_dict[feat]
+                    else:
+                        feature_dict[feat] = 0
+                
+                X = pd.DataFrame([feature_dict])
+                X = X.reindex(columns=features, fill_value=0)
+                
+                proba = model.predict_proba(X)[0]
+                home_cover_prob = proba[1] if len(proba) > 1 else 0.5
+                
+                spread = game_dict.get('spread_home') or 0
+                line_movement = game_dict.get('line_movement') or 0
+                
+                if home_cover_prob >= 0.5:
+                    pick = game_dict['home_team']
+                    confidence = home_cover_prob
+                else:
+                    pick = game_dict['away_team']
+                    confidence = 1 - home_cover_prob
+                
+                predictions.append({
+                    'home_team': game_dict['home_team'],
+                    'away_team': game_dict['away_team'],
+                    'game_date': game_dict['game_date'],
+                    'prediction': pick,
+                    'spread': spread,
+                    'confidence': round(confidence, 3),
+                    'edge': round((confidence - 0.52) * 10, 1) if confidence > 0.52 else 0,
+                    'line_movement': round(line_movement, 1)
+                })
+            except Exception as e:
+                pass
+    
+    conn.close()
+    return jsonify({
+        'predictions': sorted(predictions, key=lambda x: x['confidence'], reverse=True),
+        'count': len(predictions)
+    })
+
+
+@app.route('/api/performance')
+def get_performance():
+    """Get live performance tracking stats"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct,
+            SUM(CASE WHEN is_correct = 0 THEN 1 ELSE 0 END) as incorrect,
+            SUM(CASE WHEN actual_result IS NULL THEN 1 ELSE 0 END) as pending
+        FROM prediction_log
+    ''')
+    
+    result = cursor.fetchone()
+    total = result['total'] or 0
+    correct = result['correct'] or 0
+    incorrect = result['incorrect'] or 0
+    pending = result['pending'] or 0
+    
+    win_rate = correct / (correct + incorrect) if (correct + incorrect) > 0 else None
+    
+    conn.close()
+    return jsonify({
+        'total_predictions': total,
+        'correct': correct,
+        'incorrect': incorrect,
+        'pending': pending,
+        'win_rate': round(win_rate, 3) if win_rate else None
+    })
+
+
 @app.route('/api/admin/stats')
 def get_stats():
     conn = get_db()

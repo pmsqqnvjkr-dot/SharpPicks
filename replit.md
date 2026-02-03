@@ -28,7 +28,8 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - `src/` - React frontend (Vite)
   - `App.jsx` - Main dashboard component
   - `components/TrustBanner.jsx` - Model stats banner
-  - `components/CalibrationChart.jsx` - Calibration visualization
+  - `components/TodaysPicks.jsx` - Pick cards with confidence filters
+  - `components/ModelTransparency.jsx` - Calibration and performance tracking
 - `app.py` - Flask API backend (port 8000)
 - `model.py` - Ensemble ML prediction model
 - `main.py` - Data collection script
@@ -39,12 +40,10 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 
 ## API Endpoints
 - `GET /` - Web dashboard
-- `GET /api/games` - All games
-- `GET /api/predictions` - Model predictions
-- `GET /api/arbitrage` - Arbitrage opportunities
-- `GET /api/performance` - Model performance stats
+- `GET /api/predictions` - Today's model predictions with confidence
+- `GET /api/performance` - Live performance tracking stats
 - `GET /api/model/calibration` - Calibration check by confidence bucket
-- `GET /api/validation/detailed` - Alias for calibration endpoint
+- `GET /api/admin/stats` - Dashboard stats (games, spreads, etc.)
 
 ## Configuration
 - Minimum confidence threshold: 55%
