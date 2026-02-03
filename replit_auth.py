@@ -71,7 +71,7 @@ def make_replit_blueprint():
     
     # Get the external Replit domain for OAuth callback
     replit_domain = os.environ.get('REPLIT_DEV_DOMAIN', '')
-    redirect_uri = f"https://{replit_domain}/auth/replit_auth/authorized" if replit_domain else None
+    external_redirect_uri = f"https://{replit_domain}/auth/replit_auth/authorized" if replit_domain else None
     
     replit_bp = OAuth2ConsumerBlueprint(
         "replit_auth",
@@ -89,7 +89,6 @@ def make_replit_blueprint():
         code_challenge_method="S256",
         scope=["openid", "profile", "email", "offline_access"],
         storage=UserSessionStorage(),
-        redirect_url=redirect_uri,
     )
 
     @replit_bp.before_app_request
@@ -99,6 +98,9 @@ def make_replit_blueprint():
         session.modified = True
         g.browser_session_key = session['_browser_session_key']
         g.flask_dance_replit = replit_bp.session
+        # Override the redirect_uri in the session to use external domain
+        if external_redirect_uri:
+            replit_bp.session.redirect_uri = external_redirect_uri
 
     @replit_bp.route("/logout")
     def logout():
