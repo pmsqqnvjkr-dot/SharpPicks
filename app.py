@@ -525,11 +525,12 @@ def get_predictions():
                home_last5, away_last5, home_rest_days, away_rest_days,
                line_movement
         FROM games 
-        WHERE DATE(game_date) = DATE(?)
+        WHERE DATE(game_date) BETWEEN DATE(?) AND DATE(?, '+1 day')
         AND spread_result IS NULL
-        ORDER BY game_date, game_time
+        AND game_time IS NOT NULL
+        ORDER BY game_time
         LIMIT 20
-    ''', (today,))
+    ''', (today, today))
     
     games = cursor.fetchall()
     predictions = []
