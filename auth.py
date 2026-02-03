@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import Blueprint, request, jsonify, redirect, url_for
+from flask import Blueprint, request, jsonify, redirect, url_for, render_template, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 from email_validator import validate_email, EmailNotValidError
@@ -21,6 +21,45 @@ def require_login(f):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(user_id)
+
+@auth_bp.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        email = request.form.get('email', '').lower().strip()
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
+        
+        if User.query.filter_by(email=email).first():
+            flash('Email already exists')
+            return redirect(url_for('auth.signup'))
+        
+        hashed = bcrypt.generate_password_hash(password).decode('utf-8')
+        user = User()
+        user.email = email
+        user.username = username
+        user.password_hash = hashed
+        db.session.add(user)
+        db.session.commit()
+        
+        login_user(user)
+        return redirect('/premium')
+    
+    return render_template('signup.html')
+
+@auth_bp.route('/login', methods=['GET', 'POST'])
+def login_page():
+    if request.method == 'POST':
+        email = request.form.get('email', '').lower().strip()
+        password = request.form.get('password', '')
+        
+        user = User.query.filter_by(email=email).first()
+        if user and user.password_hash and bcrypt.check_password_hash(user.password_hash, password):
+            login_user(user)
+            return redirect('/premium')
+        
+        flash('Invalid credentials')
+    
+    return render_template('login.html')
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
