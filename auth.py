@@ -17,10 +17,6 @@ def require_login(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def init_login_manager(app):
-    login_manager.init_app(app)
-    bcrypt.init_app(app)
-    login_manager.login_view = None
 
 @login_manager.user_loader
 def load_user(user_id):

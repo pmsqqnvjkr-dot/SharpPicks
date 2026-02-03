@@ -32,8 +32,12 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 db.init_app(app)
 CORS(app, supports_credentials=True)
 
-from auth import init_login_manager, auth_bp, require_login
-init_login_manager(app)
+from auth import auth_bp, login_manager, bcrypt, require_login
+
+bcrypt.init_app(app)
+login_manager.init_app(app)
+login_manager.login_view = 'auth.login'
+
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
 @app.before_request
