@@ -1171,7 +1171,7 @@ export default function SharpPicksBestOfBoth() {
                 <div className="text-center">
                   <div className="text-slate-400 text-xs font-bold uppercase mb-1">Record</div>
                   <div className="text-white text-2xl font-black">{userStats.wins}-{userStats.losses}</div>
-                  <div className="text-slate-500 text-xs">{winRate.toFixed(1)}%</div>
+                  <div className="text-slate-500 text-xs">{userStats.wins + userStats.losses > 0 ? ((userStats.wins / (userStats.wins + userStats.losses)) * 100).toFixed(1) : 0}%</div>
                 </div>
                 <div className="text-center">
                   <div className="text-slate-400 text-xs font-bold uppercase mb-1">ROI</div>

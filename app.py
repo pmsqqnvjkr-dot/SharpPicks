@@ -712,13 +712,13 @@ def get_recent_results():
     
     cursor.execute('''
         SELECT p.prediction, p.is_correct, p.confidence,
-               g.home_team, g.away_team, g.spread_home, 
-               g.home_score, g.away_score, g.scores_updated_at
+               p.home_team, p.away_team, p.game_date,
+               g.home_score, g.away_score, p.resolved_at
         FROM prediction_log p
-        JOIN games g ON p.game_id = g.id
-        WHERE g.scores_updated_at >= datetime('now', '-24 hours')
-        AND p.is_correct IS NOT NULL
-        ORDER BY g.scores_updated_at DESC
+        LEFT JOIN games g ON p.game_id = g.id
+        WHERE p.is_correct IS NOT NULL
+        AND p.resolved_at >= datetime('now', '-24 hours')
+        ORDER BY p.resolved_at DESC
         LIMIT 10
     ''')
     
