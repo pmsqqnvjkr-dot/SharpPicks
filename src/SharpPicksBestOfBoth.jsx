@@ -90,11 +90,11 @@ export default function SharpPicksBestOfBoth() {
   
   // ============ AUTH HELPERS ============
   const handleLogin = () => {
-    window.location.href = '/auth/replit_auth';
+    window.location.href = '/auth/replit_auth/login';
   };
   
   const handleLogout = () => {
-    window.location.href = '/auth/logout';
+    window.location.href = '/auth/replit_auth/logout';
   };
   
   const handlePremiumUpgrade = async () => {

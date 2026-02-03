@@ -102,9 +102,42 @@ def make_replit_blueprint():
         session.modified = True
         g.browser_session_key = session['_browser_session_key']
         g.flask_dance_replit = replit_bp.session
-        # Override the redirect_uri in the session to use external domain
+        # Force the redirect_uri to use external domain
         if external_redirect_uri:
-            replit_bp.session.redirect_uri = external_redirect_uri
+            replit_bp.session._redirect_uri = external_redirect_uri
+
+    @replit_bp.route("/login")
+    def custom_login():
+        """Custom login that forces correct redirect_uri"""
+        from oauthlib.oauth2 import rfc6749
+        import secrets
+        import hashlib
+        import base64
+        
+        # Generate PKCE code verifier and challenge
+        code_verifier = secrets.token_urlsafe(32)
+        session['code_verifier'] = code_verifier
+        code_challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(code_verifier.encode()).digest()
+        ).rstrip(b'=').decode()
+        
+        # Generate state
+        state = secrets.token_urlsafe(16)
+        session['oauth_state'] = state
+        
+        # Build authorization URL with correct redirect_uri
+        auth_url = f"{issuer_url}/auth?" + urlencode({
+            "response_type": "code",
+            "client_id": repl_id,
+            "redirect_uri": external_redirect_uri,
+            "scope": "openid profile email offline_access",
+            "state": state,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+            "prompt": "login consent",
+        })
+        
+        return redirect(auth_url)
 
     @replit_bp.route("/logout")
     def logout():
