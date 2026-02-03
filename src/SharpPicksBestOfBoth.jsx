@@ -31,6 +31,7 @@ export default function SharpPicksBestOfBoth() {
   const [apiPerformance, setApiPerformance] = useState(null);
   const [modelStats, setModelStats] = useState(null);
   const [recentResults, setRecentResults] = useState([]);
+  const [recentRecord, setRecentRecord] = useState('0-0');
   const [loading, setLoading] = useState(true);
   
   // ============ TRACKING STATE ============
@@ -101,6 +102,7 @@ export default function SharpPicksBestOfBoth() {
         if (resultsRes.ok) {
           const resultsData = await resultsRes.json();
           setRecentResults(resultsData.results || []);
+          setRecentRecord(resultsData.record || '0-0');
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -1535,7 +1537,7 @@ export default function SharpPicksBestOfBoth() {
             </h3>
             {results.length > 0 && (
               <span className="text-emerald-400 text-sm font-bold">
-                {results.filter(r => r.result === 'W').length}-{results.filter(r => r.result === 'L').length} Last 24hrs
+                {recentRecord} Last 24hrs
               </span>
             )}
           </div>

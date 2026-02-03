@@ -706,44 +706,60 @@ def get_stats():
 
 @app.route('/api/recent-results')
 def get_recent_results():
-    """Get settled games from last 24 hours"""
+    """Get settled games from last 24 hours with prediction accuracy"""
     conn = get_db()
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT home_team, away_team, spread_home, 
-               home_score, away_score, spread_result,
-               game_date, scores_updated_at
-        FROM games
-        WHERE scores_updated_at >= datetime('now', '-24 hours')
-        AND spread_result IS NOT NULL
-        ORDER BY scores_updated_at DESC
+        SELECT p.prediction, p.is_correct, p.confidence,
+               g.home_team, g.away_team, g.spread_home, 
+               g.home_score, g.away_score, g.scores_updated_at
+        FROM prediction_log p
+        JOIN games g ON p.game_id = g.id
+        WHERE g.scores_updated_at >= datetime('now', '-24 hours')
+        AND p.is_correct IS NOT NULL
+        ORDER BY g.scores_updated_at DESC
         LIMIT 10
     ''')
     
-    games = cursor.fetchall()
+    rows = cursor.fetchall()
     results = []
+    wins = 0
+    losses = 0
     
-    for g in games:
-        home_team = g['home_team'] if isinstance(g, dict) else g[0]
-        away_team = g['away_team'] if isinstance(g, dict) else g[1]
-        spread_home = g['spread_home'] if isinstance(g, dict) else g[2]
-        home_score = g['home_score'] if isinstance(g, dict) else g[3]
-        away_score = g['away_score'] if isinstance(g, dict) else g[4]
-        spread_result = g['spread_result'] if isinstance(g, dict) else g[5]
-        updated_at = g['scores_updated_at'] if isinstance(g, dict) else g[7]
+    for row in rows:
+        prediction = row['prediction'] if isinstance(row, dict) else row[0]
+        is_correct = row['is_correct'] if isinstance(row, dict) else row[1]
+        confidence = row['confidence'] if isinstance(row, dict) else row[2]
+        home_team = row['home_team'] if isinstance(row, dict) else row[3]
+        away_team = row['away_team'] if isinstance(row, dict) else row[4]
+        home_score = row['home_score'] if isinstance(row, dict) else row[6]
+        away_score = row['away_score'] if isinstance(row, dict) else row[7]
+        updated_at = row['scores_updated_at'] if isinstance(row, dict) else row[8]
         
-        is_win = spread_result in ['HOME_COVER', 'AWAY_COVER']
+        is_win = is_correct == 1
+        if is_win:
+            wins += 1
+        else:
+            losses += 1
+            
         results.append({
-            'pick': f"{home_team} {spread_home:+.1f}" if spread_home else home_team,
+            'pick': prediction,
             'result': 'W' if is_win else 'L',
             'profit': 91 if is_win else -100,
             'final': f"{home_team} {home_score}-{away_score} vs {away_team}" if home_score else "Pending",
-            'time': updated_at
+            'time': updated_at,
+            'confidence': confidence
         })
     
     conn.close()
-    return jsonify({'results': results, 'count': len(results)})
+    return jsonify({
+        'results': results,
+        'wins': wins,
+        'losses': losses,
+        'record': f"{wins}-{losses}",
+        'count': len(results)
+    })
 
 @app.route('/dashboard')
 def dashboard():
