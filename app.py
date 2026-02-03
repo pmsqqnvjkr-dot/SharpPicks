@@ -31,26 +31,22 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 db.init_app(app)
 CORS(app, supports_credentials=True)
 
-TEST_USER_ID = "646cbbb8-4962-4e9c-a9ed-e1eb4e380325"
-
-class TestUser:
-    """Mock user for testing without authentication"""
-    id = TEST_USER_ID
-    email = "test@example.com"
-    username = "TestUser"
-    first_name = "Test"
-    last_name = "User"
-    profile_image_url = None
-    is_premium = True
-    unit_size = 100
-    is_authenticated = True
-    is_active = True
-    is_anonymous = False
-    
-    def get_id(self):
-        return str(self.id)
-
-test_user = TestUser()
+def get_current_user_from_session():
+    """Get current user from session or None if not authenticated"""
+    user_id = session.get('user_id')
+    if user_id:
+        user = User.query.get(user_id)
+        if user:
+            now = datetime.now()
+            is_premium = user.is_premium or (user.trial_ends and user.trial_ends > now)
+            return {
+                'id': user.id,
+                'email': user.email,
+                'is_premium': is_premium,
+                'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None,
+                'unit_size': user.unit_size
+            }
+    return None
 
 @app.before_request
 def make_session_permanent():
@@ -102,39 +98,96 @@ def index():
 
 @app.route('/api/auth/user')
 def get_current_user():
-    """Get current authenticated user info - returns test user for testing"""
+    """Get current authenticated user info"""
+    user = get_current_user_from_session()
+    if user:
+        return jsonify({'authenticated': True, 'user': user})
+    return jsonify({'authenticated': False, 'user': None})
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    """Register a new user with email and password"""
+    from flask import request
+    from werkzeug.security import generate_password_hash
+    import uuid
+    
+    data = request.get_json()
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    
+    if not email or not password:
+        return jsonify({'error': 'Email and password required'}), 400
+    
+    if len(password) < 6:
+        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    
+    existing = User.query.filter_by(email=email).first()
+    if existing:
+        return jsonify({'error': 'Email already registered'}), 400
+    
+    user = User(
+        id=str(uuid.uuid4()),
+        email=email,
+        password_hash=generate_password_hash(password),
+        is_premium=False,
+        trial_ends=datetime.now() + timedelta(days=7)
+    )
+    db.session.add(user)
+    db.session.commit()
+    
+    session['user_id'] = user.id
+    
     return jsonify({
-        'authenticated': True,
+        'success': True,
         'user': {
-            'id': test_user.id,
-            'email': test_user.email,
-            'first_name': test_user.first_name,
-            'last_name': test_user.last_name,
-            'profile_image_url': test_user.profile_image_url,
-            'is_premium': test_user.is_premium,
-            'unit_size': test_user.unit_size
+            'id': user.id,
+            'email': user.email,
+            'is_premium': False,
+            'trial_ends': user.trial_ends.isoformat()
         }
     })
 
-@app.route('/api/auth/login', methods=['GET', 'POST'])
+@app.route('/api/auth/login', methods=['POST'])
 def login():
-    """Mock login - always returns test user"""
+    """Login with email and password"""
+    from flask import request
+    from werkzeug.security import check_password_hash
+    
+    data = request.get_json()
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    
+    if not email or not password:
+        return jsonify({'error': 'Email and password required'}), 400
+    
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.password_hash:
+        return jsonify({'error': 'Invalid email or password'}), 401
+    
+    if not check_password_hash(user.password_hash, password):
+        return jsonify({'error': 'Invalid email or password'}), 401
+    
+    session['user_id'] = user.id
+    
+    now = datetime.now()
+    is_premium = user.is_premium or (user.trial_ends and user.trial_ends > now)
+    
     return jsonify({
-        'authenticated': True,
+        'success': True,
         'user': {
-            'id': test_user.id,
-            'email': test_user.email,
-            'first_name': test_user.first_name,
-            'last_name': test_user.last_name,
-            'is_premium': test_user.is_premium,
-            'unit_size': test_user.unit_size
+            'id': user.id,
+            'email': user.email,
+            'is_premium': is_premium,
+            'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None,
+            'unit_size': user.unit_size
         }
     })
 
-@app.route('/api/auth/logout', methods=['GET', 'POST'])
+@app.route('/api/auth/logout', methods=['POST'])
 def logout():
-    """Mock logout"""
-    return jsonify({'message': 'Logged out'})
+    """Logout current user"""
+    session.pop('user_id', None)
+    return jsonify({'success': True, 'message': 'Logged out'})
 
 @app.route('/api/auth/upgrade', methods=['POST'])
 def upgrade_user():
