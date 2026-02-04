@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from models import db, User, TrackedBet
+from sqlalchemy import func
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -140,13 +141,13 @@ def register():
     if len(password) < 6:
         return jsonify({'error': 'Password must be at least 6 characters'}), 400
     
-    existing = User.query.filter_by(email=email).first()
+    existing = User.query.filter(func.lower(User.email) == email.lower()).first()
     if existing:
         return jsonify({'error': 'Email already registered'}), 400
     
     user = User(
         id=str(uuid.uuid4()),
-        email=email,
+        email=email.lower(),
         password_hash=generate_password_hash(password),
         is_premium=False,
         trial_ends=datetime.now() + timedelta(days=7)
@@ -181,7 +182,7 @@ def login():
     if not email or not password:
         return jsonify({'error': 'Email and password required'}), 400
     
-    user = User.query.filter_by(email=email).first()
+    user = User.query.filter(func.lower(User.email) == email.lower()).first()
     if not user or not user.password_hash:
         return jsonify({'error': 'Invalid email or password'}), 401
     
@@ -352,7 +353,7 @@ def start_trial():
     if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
         return jsonify({'error': 'Invalid email format'}), 400
     
-    user = User.query.filter_by(email=email).first()
+    user = User.query.filter(func.lower(User.email) == email.lower()).first()
     
     if user:
         if user.trial_used and user.trial_ends and datetime.now() > user.trial_ends:
