@@ -16,6 +16,11 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - **Backtest ROI**: +47.26% simulated on historical data
 
 ## Recent Changes (Feb 2026)
+- **Added Elite Model Features** (per betting best practices):
+  - Schedule/fatigue factors: B2Bs, rest days, travel distance, altitude effects
+  - Coin-flip spread filtering: Option to hide -1.5 to +1.5 spreads (low-edge games)
+  - Closing line tracking: Track if picks beat the closing line (pro benchmark)
+  - Injury impact scoring: Player-weighted injury reports with status
 - **Fixed /api/predictions** - Now calculates all 36 features properly (was only using 11)
 - **Added Free Trial System** - 7-day trial via email (no credit card required)
   - POST /api/auth/trial - Start trial with email
@@ -52,7 +57,9 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - `model.py` - Ensemble ML prediction model
 - `main.py` - Data collection script
 - `nba_ratings.py` - Team pace/ratings fetcher (with retry logic)
-- `performance_tracker.py` - Prediction logging/tracking
+- `nba_injuries.py` - Injury data fetcher with player impact scoring
+- `nba_schedule.py` - Schedule/fatigue analysis (B2Bs, travel, altitude)
+- `performance_tracker.py` - Prediction logging/tracking with closing line
 - `rundown_api.py` - The Rundown API integration
 - `arbitrage.py` - Arbitrage opportunity detector
 
