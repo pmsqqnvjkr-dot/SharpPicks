@@ -739,6 +739,12 @@ def get_predictions():
     import os
     from datetime import datetime
     
+    try:
+        from nba_injuries import get_injury_differential, TEAM_ABBREV_MAP
+        injuries_available = True
+    except:
+        injuries_available = False
+    
     json_path = 'todays_picks.json'
     if os.path.exists(json_path):
         try:
@@ -813,6 +819,29 @@ def get_predictions():
                     confidence = 1 - home_cover_prob
                     pick_spread = -spread if spread else 0
                 
+                injury_info = None
+                if injuries_available:
+                    try:
+                        home_abbr = None
+                        away_abbr = None
+                        for name, abbr in TEAM_ABBREV_MAP.items():
+                            if game_dict['home_team'] in name or name in game_dict['home_team']:
+                                home_abbr = abbr
+                            if game_dict['away_team'] in name or name in game_dict['away_team']:
+                                away_abbr = abbr
+                        
+                        if home_abbr and away_abbr:
+                            injury_diff = get_injury_differential(home_abbr, away_abbr)
+                            injury_info = {
+                                'home_impact': round(injury_diff['home_impact'], 1),
+                                'away_impact': round(injury_diff['away_impact'], 1),
+                                'advantage': injury_diff['advantage'],
+                                'home_injuries': injury_diff['home_injuries'][:3],
+                                'away_injuries': injury_diff['away_injuries'][:3]
+                            }
+                    except:
+                        pass
+                
                 predictions.append({
                     'home_team': game_dict['home_team'],
                     'away_team': game_dict['away_team'],
@@ -827,7 +856,8 @@ def get_predictions():
                     'home_record': game_dict.get('home_record'),
                     'away_record': game_dict.get('away_record'),
                     'home_form': game_dict.get('home_last5'),
-                    'away_form': game_dict.get('away_last5')
+                    'away_form': game_dict.get('away_last5'),
+                    'injuries': injury_info
                 })
             except Exception as e:
                 pass

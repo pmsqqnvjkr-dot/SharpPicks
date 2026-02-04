@@ -1478,6 +1478,23 @@ export default function SharpPicksBestOfBoth() {
               <div className="text-blue-200 text-sm font-bold">
                 📊 {freePick.edge}
               </div>
+              {freePick.injuries && (freePick.injuries.home_injuries?.length > 0 || freePick.injuries.away_injuries?.length > 0) && (
+                <div className="mt-3 pt-3 border-t border-white/20">
+                  <div className="text-amber-300 text-xs font-bold mb-2">🏥 INJURY REPORT:</div>
+                  <div className="space-y-1 text-xs">
+                    {freePick.injuries.home_injuries?.map((inj, i) => (
+                      <div key={`h-${i}`} className="text-white/80">
+                        <span className="text-red-300">{inj.status}</span>: {inj.player}
+                      </div>
+                    ))}
+                    {freePick.injuries.away_injuries?.map((inj, i) => (
+                      <div key={`a-${i}`} className="text-white/80">
+                        <span className="text-red-300">{inj.status}</span>: {inj.player}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button
@@ -1610,6 +1627,23 @@ export default function SharpPicksBestOfBoth() {
                         <div className="text-slate-400 text-sm font-bold mb-2">ANALYSIS:</div>
                         <div className="text-white text-sm leading-relaxed mb-2">{pick.reasoning}</div>
                         <div className="text-emerald-400 text-xs font-bold">📊 {pick.edge}</div>
+                        {pick.injuries && (pick.injuries.home_injuries?.length > 0 || pick.injuries.away_injuries?.length > 0) && (
+                          <div className="mt-3 pt-3 border-t border-slate-700/50">
+                            <div className="text-amber-400 text-xs font-bold mb-2">🏥 INJURY REPORT:</div>
+                            <div className="space-y-1 text-xs">
+                              {pick.injuries.home_injuries?.map((inj, i) => (
+                                <div key={`h-${i}`} className="text-slate-300">
+                                  <span className="text-red-400">{inj.status}</span>: {inj.player}
+                                </div>
+                              ))}
+                              {pick.injuries.away_injuries?.map((inj, i) => (
+                                <div key={`a-${i}`} className="text-slate-300">
+                                  <span className="text-red-400">{inj.status}</span>: {inj.player}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={() => isPickTracked(pick) ? handleUntrackBet(pick) : handleOpenTrackModal(pick)}

@@ -1,0 +1,120 @@
+1. It predicts closing-line value, not vibes
+
+The gold standard isn’t win rate alone — it’s beating the closing line consistently.
+
+Elite models:
+	•	Output a fair line (spread & total)
+	•	Compare vs current market
+	•	Only fire when edge > noise (ex: 1.5–2 pts spread, 3–4% total)
+
+If your picks move the market after release, you’re doing it right.
+
+⸻
+
+2. It understands NBA is a schedule league
+
+This is where 80% of public money dies.
+
+Top models weight:
+	•	Rest days / B2Bs / 3-in-4s
+	•	Travel distance + time zone changes
+	•	Altitude effects (Denver / Utah sneaky real)
+	•	Home stand vs road trip fatigue
+
+These effects don’t show up in box scores — but books price them imperfectly.
+
+⸻
+
+3. Pace + efficiency > raw stats
+
+Elite models don’t care about PPG.
+
+They care about:
+	•	Possessions
+	•	Offensive & defensive rating
+	•	Shot quality (rim + corner 3 rate)
+	•	Opponent-adjusted efficiency
+
+A 110–105 team and a 120–115 team can be identical once pace-normalized.
+
+⸻
+
+4. Player availability is modeled, not reacted to
+
+The public reacts to injury news. Elite models simulate it.
+
+That means:
+	•	Player on/off impact
+	•	Rotation elasticity (who actually absorbs minutes)
+	•	Star absence ≠ linear downgrade
+
+Example:
+	•	One team collapses without their PG
+	•	Another barely moves because usage redistributes cleanly
+
+If your model treats “out” as a flat number, it’s mid.
+
+⸻
+
+5. Recent form matters — but only weighted, never raw
+
+Sharp models:
+	•	Weight recent games (1.25–1.5x)
+	•	Cap recency bias
+	•	Regress hot shooting back to baseline
+
+Public models chase streaks. Elite models fade unsustainable variance.
+
+⸻
+
+6. Market awareness is baked in
+
+Books are good. You don’t “beat” them — you find blind spots.
+
+Elite models:
+	•	Know which books lead vs follow
+	•	Track opener → close movement
+	•	Adjust confidence when market disagrees sharply
+
+Sometimes the smartest play is no bet.
+
+⸻
+
+7. It filters aggressively
+
+This is where pros separate from hobbyists.
+
+An elite model:
+	•	Bets 20–30% of games, max
+	•	Has strict edge thresholds
+	•	Avoids coin-flip spreads (-1.5 to +1.5 hell zone)
+
+More picks = less edge. Period.
+
+⸻
+
+8. It tracks itself mercilessly
+
+No vibes. No excuses.
+
+Elite setups track:
+	•	ROI by bet type (spread / total / side)
+	•	ROI by confidence bucket
+	•	Performance vs closing line
+	•	When the model shouldn’t have fired
+
+If you’re not cutting losing angles fast, the books will.
+
+⸻
+
+9. Simple > fancy (after the fancy work is done)
+
+Behind the scenes: ensemble models, feature engineering, weighting, simulations.
+
+Output to bettor:
+	•	Fair line
+	•	Edge %
+	•	Confidence tier
+	•	Pass / play
+
+If you can’t explain why a pick exists in one sentence, it’s not elite.
