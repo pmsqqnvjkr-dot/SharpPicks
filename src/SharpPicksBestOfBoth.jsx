@@ -1494,15 +1494,22 @@ export default function SharpPicksBestOfBoth() {
                 {trackedBets.filter(b => !b.result).map(bet => (
                   <div key={bet.id} className="bg-orange-950/20 border border-orange-800/30 rounded-xl p-4 mb-2">
                     <div className="flex justify-between items-center">
-                      <div>
+                      <div className="flex-1">
                         <div className="text-white font-bold text-lg">{bet.pick}</div>
                         <div className="text-slate-400 text-sm">{bet.game}</div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right mr-3">
                         <div className="text-slate-400 text-xs">Risking</div>
                         <div className="text-white font-bold">${bet.bet_amount}</div>
                         <div className="text-emerald-400 text-xs">To win: ${bet.to_win}</div>
                       </div>
+                      <button
+                        onClick={() => handleUntrackBet({ pick: bet.pick, game: bet.game })}
+                        className="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white p-2 rounded-lg transition-all"
+                        title="Untrack this bet"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -1583,11 +1590,24 @@ export default function SharpPicksBestOfBoth() {
                         <div className="text-emerald-400 text-xs font-bold">📊 {pick.edge}</div>
                       </div>
                       <button
-                        onClick={() => handleOpenTrackModal(pick)}
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center space-x-2"
+                        onClick={() => isPickTracked(pick) ? handleUntrackBet(pick) : handleOpenTrackModal(pick)}
+                        className={`w-full font-bold py-3 rounded-xl transition-all flex items-center justify-center space-x-2 ${
+                          isPickTracked(pick)
+                            ? 'bg-blue-600 hover:bg-red-600 text-white'
+                            : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                        }`}
                       >
-                        <Target className="w-5 h-5" />
-                        <span>Track This Pick</span>
+                        {isPickTracked(pick) ? (
+                          <>
+                            <CheckCircle className="w-5 h-5" />
+                            <span>Tracking (Click to Untrack)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Target className="w-5 h-5" />
+                            <span>Track This Pick</span>
+                          </>
+                        )}
                       </button>
                     </>
                   ) : (
