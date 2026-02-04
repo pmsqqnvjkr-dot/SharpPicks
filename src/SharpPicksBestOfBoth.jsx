@@ -46,7 +46,6 @@ export default function SharpPicksBestOfBoth() {
   const [timeLeft, setTimeLeft] = useState(null);
   const [viewedFOMO, setViewedFOMO] = useState(0);
   const fomoRef = useRef(null);
-  const [confidenceFilter, setConfidenceFilter] = useState('all'); // 'all', 'strong', 'medium'
   
   // ============ FETCH AUTH USER ============
   useEffect(() => {
@@ -402,19 +401,12 @@ export default function SharpPicksBestOfBoth() {
   // Filter out games that have already started, then sort by confidence
   const now = new Date();
   const upcomingPicks = transformedPicks.filter(pick => pick.gameDate > now);
-  const allSortedPicks = (upcomingPicks.length > 0 ? upcomingPicks : transformedPicks)
-    .sort((a, b) => parseFloat(b.confidence) - parseFloat(a.confidence));
-  
-  // Apply confidence filter
-  const filteredPicks = allSortedPicks.filter(pick => {
-    const conf = parseFloat(pick.confidence);
-    if (confidenceFilter === 'strong') return conf >= 60;
-    if (confidenceFilter === 'medium') return conf >= 55 && conf < 60;
-    return true; // 'all'
-  });
+  const sortedPicks = (upcomingPicks.length > 0 ? upcomingPicks : transformedPicks)
+    .sort((a, b) => parseFloat(b.confidence) - parseFloat(a.confidence))
+    .slice(0, 5);
   
   // First pick is free, rest are premium
-  const freePick = filteredPicks[0] || {
+  const freePick = sortedPicks[0] || {
     id: 'free-1',
     game: 'No games today',
     pick: 'Check back later',
@@ -425,7 +417,7 @@ export default function SharpPicksBestOfBoth() {
     edge: 'Waiting for game data'
   };
 
-  const premiumPicks = filteredPicks.slice(1);
+  const premiumPicks = sortedPicks.slice(1);
 
   // Use real recent results from API
   const results = recentResults.map(r => ({
@@ -1555,43 +1547,6 @@ export default function SharpPicksBestOfBoth() {
             )}
           </div>
         )}
-
-        {/* ============ CONFIDENCE FILTER ============ */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-2 overflow-x-auto pb-2">
-            <span className="text-slate-400 text-sm whitespace-nowrap">Filter:</span>
-            <button
-              onClick={() => setConfidenceFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                confidenceFilter === 'all'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              All ({allSortedPicks.length})
-            </button>
-            <button
-              onClick={() => setConfidenceFilter('strong')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                confidenceFilter === 'strong'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              Strong 60%+ ({allSortedPicks.filter(p => parseFloat(p.confidence) >= 60).length})
-            </button>
-            <button
-              onClick={() => setConfidenceFilter('medium')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                confidenceFilter === 'medium'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              Medium 55-60% ({allSortedPicks.filter(p => { const c = parseFloat(p.confidence); return c >= 55 && c < 60; }).length})
-            </button>
-          </div>
-        </div>
 
         {/* ============ PREMIUM PICKS ============ */}
         <div className="mb-8">

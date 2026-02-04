@@ -326,14 +326,12 @@ def list_products():
 
 
 @app.route('/api/auth/unit-size', methods=['POST'])
-@login_required
 def set_unit_size():
     """Set user's unit size"""
     from flask import request
     data = request.get_json()
     unit_size = data.get('unit_size', 100)
-    current_user.unit_size = unit_size
-    db.session.commit()
+    test_user.unit_size = unit_size
     return jsonify({'success': True, 'unit_size': unit_size})
 
 @app.route('/api/auth/trial', methods=['POST'])
