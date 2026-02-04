@@ -270,8 +270,8 @@ export default function SharpPicksBestOfBoth() {
     }
   };
   
-  const isPickTracked = (pickId) => {
-    return trackedBets.some(b => b.id === pickId);
+  const isPickTracked = (pick) => {
+    return trackedBets.some(b => b.pick === pick.pick && b.game === pick.game);
   };
   
   // ============ COUNTDOWN TIMER ============
@@ -1433,12 +1433,12 @@ export default function SharpPicksBestOfBoth() {
             <button
               onClick={() => handleOpenTrackModal(freePick)}
               className={`w-full font-bold py-4 rounded-xl transition-all flex items-center justify-center space-x-2 ${
-                isPickTracked(freePick.id)
+                isPickTracked(freePick)
                   ? 'bg-white text-blue-600'
                   : 'bg-white/20 backdrop-blur text-white hover:bg-white/30'
               }`}
             >
-              {isPickTracked(freePick.id) ? (
+              {isPickTracked(freePick) ? (
                 <>
                   <CheckCircle className="w-5 h-5" />
                   <span>Tracking This Pick</span>
