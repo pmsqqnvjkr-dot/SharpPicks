@@ -100,7 +100,7 @@ def update_closing_line(game_id, closing_line):
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT opening_line, prediction, spread_home FROM prediction_log WHERE game_id = ?
+        SELECT opening_line, prediction, spread_home, home_team FROM prediction_log WHERE game_id = ?
     ''', (game_id,))
     
     row = cursor.fetchone()
@@ -108,13 +108,14 @@ def update_closing_line(game_id, closing_line):
         conn.close()
         return False
     
-    opening_line, prediction, spread_at_pick = row
+    opening_line, prediction, spread_at_pick, home_team = row
     
     beat_close = 0
     if opening_line is not None and closing_line is not None:
         line_movement = closing_line - opening_line
         
-        if 'home' in prediction.lower() or prediction == row[0]:
+        picked_home = prediction == home_team if home_team else False
+        if picked_home:
             beat_close = 1 if line_movement < 0 else 0
         else:
             beat_close = 1 if line_movement > 0 else 0
