@@ -257,10 +257,12 @@ export default function SharpPicksBestOfBoth() {
   // ============ COUNTDOWN TIMER ============
   useEffect(() => {
     const calculateTimeLeft = () => {
-      // Find the next upcoming game (not yet started)
       const now = new Date();
       const upcomingGames = apiPredictions
-        .filter(pred => new Date(pred.game_date) > now)
+        .filter(pred => {
+          const gameTime = new Date(pred.game_time || pred.game_date);
+          return gameTime > now;
+        })
         .sort((a, b) => parseFloat(b.confidence) - parseFloat(a.confidence));
       
       if (upcomingGames.length > 0) {
@@ -345,8 +347,8 @@ export default function SharpPicksBestOfBoth() {
     pick: `${pred.prediction} ${pred.spread >= 0 ? '+' : ''}${pred.spread}`,
     confidence: (pred.confidence * 100).toFixed(1),
     odds: -110,
-    time: formatGameTime(pred.game_date),
-    gameDate: new Date(pred.game_date),
+    time: formatGameTime(pred.game_time || pred.game_date),
+    gameDate: new Date(pred.game_time || pred.game_date),
     reasoning: generateReasoning(pred),
     edge: generateEdge(pred),
     lineMovement: pred.line_movement
