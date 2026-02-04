@@ -16,6 +16,11 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 - **Backtest ROI**: +47.26% simulated on historical data
 
 ## Recent Changes (Feb 2026)
+- **Elite Model Improvements** (Feb 4):
+  - Fixed injuries API with BALLDONTLIE_API_KEY for real-time player injury data
+  - Added Closing Line Value (CLV) stats display showing beat-the-close rate (pro benchmark)
+  - Added Sharp Money indicator on picks showing if line moved toward/away from pick
+  - Added opening vs current spread display for market awareness
 - **Added Elite Model Features** (per betting best practices):
   - Schedule/fatigue factors: B2Bs, rest days, travel distance, altitude effects
   - Coin-flip spread filtering: Option to hide -1.5 to +1.5 spreads (low-edge games)

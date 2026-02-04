@@ -156,8 +156,22 @@ export default function TodaysPicks({ isPremium = false, onUpgradeClick }) {
                     )}
 
                     {pick.line_movement && pick.line_movement !== 0 && (
-                      <div className={`line-movement ${pick.line_movement > 0 ? 'up' : 'down'}`}>
-                        Line moved {pick.line_movement > 0 ? '+' : ''}{pick.line_movement}
+                      <div className={`line-movement ${pick.sharp_money ? 'sharp' : 'public'}`}>
+                        <span className="movement-icon">{pick.sharp_money ? '💰' : '📊'}</span>
+                        <span className="movement-text">
+                          {pick.sharp_money 
+                            ? `Sharp money: Line moved ${Math.abs(pick.line_movement).toFixed(1)} pts toward pick`
+                            : `Public action: Line moved ${Math.abs(pick.line_movement).toFixed(1)} pts away`
+                          }
+                        </span>
+                      </div>
+                    )}
+                    
+                    {pick.opening_spread && pick.spread && pick.opening_spread !== pick.spread && (
+                      <div className="line-open-close">
+                        <span className="oc-label">Open:</span> {pick.opening_spread > 0 ? '+' : ''}{pick.opening_spread}
+                        <span className="oc-arrow">→</span>
+                        <span className="oc-label">Now:</span> {pick.spread > 0 ? '+' : ''}{pick.spread}
                       </div>
                     )}
                   </>

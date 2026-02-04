@@ -607,6 +607,81 @@ footer .disclaimer {
   color: #34D399;
 }
 
+.line-movement.sharp {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34D399;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.line-movement.public {
+  background: rgba(239, 68, 68, 0.15);
+  color: #F87171;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.movement-icon {
+  font-size: 1rem;
+}
+
+.movement-text {
+  font-size: 0.75rem;
+}
+
+.line-open-close {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.oc-label {
+  color: #94A3B8;
+}
+
+.oc-arrow {
+  color: #3B82F6;
+  margin: 0 4px;
+}
+
+.closing-line-stats {
+  padding: 12px 0;
+}
+
+.clv-main {
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.clv-rate {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #10B981;
+}
+
+.clv-label {
+  font-size: 0.875rem;
+  color: #94A3B8;
+}
+
+.clv-note {
+  margin-top: 12px;
+  font-size: 0.75rem;
+  color: #64748B;
+  font-style: italic;
+  text-align: center;
+}
+
 .no-picks {
   text-align: center;
   padding: 48px;

@@ -113,6 +113,43 @@ export default function ModelTransparency() {
           )}
         </div>
 
+        <div className="transparency-card">
+          <h3>Closing Line Value</h3>
+          <p className="card-description">Pro benchmark: Do we beat the closing line?</p>
+          
+          {performance?.closing_line && (
+            <div className="closing-line-stats">
+              <div className="clv-main">
+                <span className="clv-rate">{performance.closing_line.beat_rate || 0}%</span>
+                <span className="clv-label">Beat the Close</span>
+              </div>
+              <div className="stat-row">
+                <span>Picks Tracked</span>
+                <span className="value">{performance.closing_line.total_tracked || 0}</span>
+              </div>
+              <div className="stat-row">
+                <span>Beat Closing Line</span>
+                <span className="value success">{performance.closing_line.beat_closing || 0}</span>
+              </div>
+              <div className="stat-row">
+                <span>Avg Line Movement</span>
+                <span className={`value ${performance.closing_line.avg_line_movement > 0 ? 'success' : performance.closing_line.avg_line_movement < 0 ? 'error' : ''}`}>
+                  {performance.closing_line.avg_line_movement > 0 ? '+' : ''}{performance.closing_line.avg_line_movement || 0} pts
+                </span>
+              </div>
+              <p className="clv-note">
+                Elite models beat the close {'>'}52% of the time. Lines moving toward your pick = sharp action.
+              </p>
+            </div>
+          )}
+          
+          {(!performance?.closing_line || performance.closing_line.total_tracked === 0) && (
+            <div className="no-data">
+              <p>Closing line tracking starts after picks are logged.</p>
+            </div>
+          )}
+        </div>
+
         <div className="transparency-card full-width">
           <h3>Model Methodology</h3>
           <div className="methodology-content">

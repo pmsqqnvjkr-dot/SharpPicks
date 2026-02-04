@@ -860,6 +860,15 @@ def get_predictions():
                 
                 is_coinflip = spread is not None and -1.5 <= spread <= 1.5
                 
+                opening_spread = game_dict.get('spread_home_open') or spread
+                
+                sharp_money = False
+                if line_movement != 0 and spread is not None and opening_spread is not None:
+                    if home_cover_prob >= 0.5:
+                        sharp_money = (spread < opening_spread)
+                    else:
+                        sharp_money = (spread > opening_spread)
+                
                 predictions.append({
                     'home_team': game_dict['home_team'],
                     'away_team': game_dict['away_team'],
@@ -868,9 +877,11 @@ def get_predictions():
                     'prediction': pick,
                     'spread': spread,
                     'pick_spread': pick_spread,
+                    'opening_spread': opening_spread,
                     'confidence': round(confidence, 3),
                     'edge': round((confidence - 0.52) * 10, 1) if confidence > 0.52 else 0,
                     'line_movement': round(line_movement, 1),
+                    'sharp_money': sharp_money,
                     'home_record': game_dict.get('home_record'),
                     'away_record': game_dict.get('away_record'),
                     'home_form': game_dict.get('home_last5'),
