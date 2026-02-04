@@ -40,7 +40,8 @@ export default function TodaysPicks({ isPremium = false, onUpgradeClick }) {
     .filter(p => {
       if (filter === 'all') return true;
       if (filter === 'strong') return p.confidence >= 0.90;
-      if (filter === 'medium') return p.confidence >= 0.60 && p.confidence < 0.90;
+      if (filter === 'high') return p.confidence >= 0.80 && p.confidence < 0.90;
+      if (filter === 'medium') return p.confidence >= 0.60 && p.confidence < 0.80;
       return true;
     })
     .sort((a, b) => b.confidence - a.confidence);
@@ -75,10 +76,16 @@ export default function TodaysPicks({ isPremium = false, onUpgradeClick }) {
             Strong (90%+)
           </button>
           <button 
+            className={filter === 'high' ? 'active' : ''} 
+            onClick={() => setFilter('high')}
+          >
+            High (80-90%)
+          </button>
+          <button 
             className={filter === 'medium' ? 'active' : ''} 
             onClick={() => setFilter('medium')}
           >
-            Medium (60-90%)
+            Medium (60-80%)
           </button>
           <button 
             className={filter === 'all' ? 'active' : ''} 
