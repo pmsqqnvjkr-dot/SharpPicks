@@ -1,9 +1,27 @@
 import { useState, useEffect } from 'react';
 
-export default function TodaysPicks() {
+export default function TodaysPicks({ isPremium = false, onUpgradeClick }) {
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('strong');
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatCountdown = (gameTime) => {
+    if (!gameTime) return null;
+    const game = new Date(gameTime);
+    const diff = game - now;
+    if (diff < 0) return 'Live';
+    const hours = Math.floor(diff / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    if (hours > 24) return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
+  };
 
   useEffect(() => {
     fetch('/api/predictions')
@@ -76,45 +94,76 @@ export default function TodaysPicks() {
         </div>
       ) : (
         <div className="picks-grid">
-          {filteredPicks.map((pick, idx) => (
-            <div key={idx} className={`pick-card ${getConfidenceClass(pick.confidence)}`}>
-              <div className="matchup">
-                <span className="away-team">{pick.away_team}</span>
-                <span className="at">@</span>
-                <span className="home-team">{pick.home_team}</span>
-              </div>
-              
-              <div className="prediction">
-                <div className="pick-label">Pick</div>
-                <div className="pick-value">{pick.prediction}</div>
-                <div className="spread">{pick.spread > 0 ? '+' : ''}{pick.spread}</div>
-              </div>
-
-              <div className="confidence-meter">
-                <div className="meter-label">Confidence</div>
-                <div className="meter-bar">
-                  <div 
-                    className="meter-fill" 
-                    style={{ width: `${pick.confidence * 100}%` }}
-                  />
+          {filteredPicks.map((pick, idx) => {
+            const isLocked = !isPremium && idx > 0;
+            
+            const countdown = formatCountdown(pick.game_time);
+            
+            return (
+              <div key={idx} className={`pick-card ${getConfidenceClass(pick.confidence)} ${isLocked ? 'locked' : ''}`}>
+                {countdown && (
+                  <div className="game-time">
+                    {countdown === 'Live' ? '🔴' : '⏱️'} {countdown === 'Live' ? 'Live Now' : `Starts in ${countdown}`}
+                  </div>
+                )}
+                <div className="matchup">
+                  <span className="away-team">{pick.away_team}</span>
+                  <span className="at">@</span>
+                  <span className="home-team">{pick.home_team}</span>
                 </div>
-                <div className="meter-value">{formatConfidence(pick.confidence)}</div>
+                
+                {isLocked ? (
+                  <div className="locked-overlay">
+                    <div className="lock-icon">🔒</div>
+                    <div className="lock-text">Premium Pick</div>
+                    <button className="unlock-btn" onClick={onUpgradeClick}>
+                      Unlock All Picks
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="prediction">
+                      <div className="pick-label">Pick</div>
+                      <div className="pick-value">{pick.prediction}</div>
+                      <div className="spread">{pick.spread > 0 ? '+' : ''}{pick.spread}</div>
+                    </div>
+
+                    <div className="confidence-meter">
+                      <div className="meter-label">Confidence</div>
+                      <div className="meter-bar">
+                        <div 
+                          className="meter-fill" 
+                          style={{ width: `${pick.confidence * 100}%` }}
+                        />
+                      </div>
+                      <div className="meter-value">{formatConfidence(pick.confidence)}</div>
+                    </div>
+
+                    {pick.edge && (
+                      <div className="edge-info">
+                        <span className="edge-label">Edge:</span>
+                        <span className="edge-value">{pick.edge.toFixed(1)} pts</span>
+                      </div>
+                    )}
+
+                    {pick.line_movement && pick.line_movement !== 0 && (
+                      <div className={`line-movement ${pick.line_movement > 0 ? 'up' : 'down'}`}>
+                        Line moved {pick.line_movement > 0 ? '+' : ''}{pick.line_movement}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
+            );
+          })}
+        </div>
+      )}
 
-              {pick.edge && (
-                <div className="edge-info">
-                  <span className="edge-label">Edge:</span>
-                  <span className="edge-value">{pick.edge.toFixed(1)} pts</span>
-                </div>
-              )}
-
-              {pick.line_movement && pick.line_movement !== 0 && (
-                <div className={`line-movement ${pick.line_movement > 0 ? 'up' : 'down'}`}>
-                  Line moved {pick.line_movement > 0 ? '+' : ''}{pick.line_movement}
-                </div>
-              )}
-            </div>
-          ))}
+      {!isPremium && filteredPicks.length > 1 && (
+        <div className="mobile-upgrade-bar">
+          <button onClick={onUpgradeClick}>
+            🔓 Unlock All Picks - Start Free Trial
+          </button>
         </div>
       )}
     </div>

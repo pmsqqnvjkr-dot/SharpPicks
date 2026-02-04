@@ -3,8 +3,10 @@ SHARP PICKS - ALL-IN-ONE APP
 Flask server with API endpoints, dashboard, authentication, and scheduled tasks
 """
 
-from flask import Flask, jsonify, Response, session
+from flask import Flask, jsonify, Response, session, request
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3
 import subprocess
@@ -30,6 +32,13 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 
 db.init_app(app)
 CORS(app, supports_credentials=True)
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
 
 def get_current_user_from_session():
     """Get current user from session or None if not authenticated"""
@@ -105,6 +114,7 @@ def get_current_user():
     return jsonify({'authenticated': False, 'user': None})
 
 @app.route('/api/auth/register', methods=['POST'])
+@limiter.limit("5 per minute")
 def register():
     """Register a new user with email and password"""
     from flask import request
@@ -148,6 +158,7 @@ def register():
     })
 
 @app.route('/api/auth/login', methods=['POST'])
+@limiter.limit("5 per minute")
 def login():
     """Login with email and password"""
     from flask import request

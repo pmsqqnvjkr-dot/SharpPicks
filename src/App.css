@@ -625,6 +625,134 @@ footer .disclaimer {
   color: #64748B;
 }
 
+/* Locked Picks */
+.pick-card.locked {
+  position: relative;
+  overflow: hidden;
+}
+
+.pick-card.locked .matchup {
+  filter: blur(2px);
+}
+
+.locked-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  backdrop-filter: blur(4px);
+}
+
+.lock-icon {
+  font-size: 2rem;
+}
+
+.lock-text {
+  color: #94A3B8;
+  font-size: 0.875rem;
+}
+
+.unlock-btn {
+  background: linear-gradient(135deg, #F59E0B, #EA580C);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.unlock-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+}
+
+/* Game Time Countdown */
+.game-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: #FBBF24;
+  margin-bottom: 12px;
+}
+
+/* Win Streak Badge */
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #EA580C, #DC2626);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ROI Tip Box */
+.roi-tip {
+  background: rgba(30, 58, 138, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.roi-tip-text {
+  color: #93C5FD;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Active Members */
+.active-members {
+  color: #64748B;
+  font-size: 0.75rem;
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* Mobile Upgrade Bar */
+.mobile-upgrade-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  background: linear-gradient(135deg, #F59E0B, #EA580C);
+  z-index: 100;
+}
+
+.mobile-upgrade-bar button {
+  width: 100%;
+  background: white;
+  color: #EA580C;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .mobile-upgrade-bar {
+    display: block;
+  }
+  
+  .picks-section {
+    padding-bottom: 80px;
+  }
+}
+
 .loading {
   text-align: center;
   padding: 48px;
