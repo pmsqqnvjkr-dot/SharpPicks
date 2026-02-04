@@ -1,7 +1,7 @@
 """
 🏀 SHARP PICKS - ENSEMBLE PREDICTION MODEL
 Uses multiple ML models to predict NBA spread outcomes
-Enhanced with pace/ratings features, sample weighting, schedule factors, and betting filters
+Enhanced with pace/ratings features, sample weighting, and betting filters
 """
 
 import sqlite3
@@ -11,10 +11,6 @@ from datetime import datetime, timedelta
 import pickle
 import os
 
-from nba_schedule import (
-    get_team_abbrev, get_altitude_factor, calculate_fatigue_score,
-    calculate_distance, get_timezone_change, TEAM_CITIES
-)
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier, AdaBoostClassifier
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler
@@ -201,33 +197,6 @@ class EnsemblePredictor:
         
         features['off_matchup'] = features['home_off_rtg'] - features['away_def_rtg']
         features['def_matchup'] = features['away_off_rtg'] - features['home_def_rtg']
-        
-        # Schedule/Fatigue Features (6 new features)
-        # Back-to-back indicator
-        features['home_b2b'] = (features['home_rest'] <= 1).astype(int)
-        features['away_b2b'] = (features['away_rest'] <= 1).astype(int)
-        features['b2b_advantage'] = features['away_b2b'] - features['home_b2b']  # Positive = home advantage
-        
-        # Altitude effect (Denver 5280ft, Utah 4226ft)
-        def get_altitude(team_name):
-            if pd.isna(team_name):
-                return 0
-            abbrev = get_team_abbrev(str(team_name))
-            return get_altitude_factor(abbrev) if abbrev else 0
-        
-        features['altitude_factor'] = df['home_team'].apply(get_altitude)
-        
-        # Calculate fatigue scores
-        def calc_fatigue(rest, is_b2b, is_away, altitude):
-            return calculate_fatigue_score(rest, is_b2b, 0, 0, altitude if is_away else 0, is_away)
-        
-        features['home_fatigue'] = features.apply(
-            lambda row: calc_fatigue(row['home_rest'], row['home_b2b'], False, row['altitude_factor']), axis=1
-        )
-        features['away_fatigue'] = features.apply(
-            lambda row: calc_fatigue(row['away_rest'], row['away_b2b'], True, row['altitude_factor']), axis=1
-        )
-        features['fatigue_edge'] = features['home_fatigue'] - features['away_fatigue']
         
         return features
     
