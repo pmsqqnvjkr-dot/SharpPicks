@@ -36,12 +36,14 @@ export default function TodaysPicks({ isPremium = false, onUpgradeClick }) {
       });
   }, []);
 
-  const filteredPicks = predictions.filter(p => {
-    if (filter === 'all') return true;
-    if (filter === 'strong') return p.confidence >= 0.60;
-    if (filter === 'medium') return p.confidence >= 0.55 && p.confidence < 0.60;
-    return true;
-  });
+  const filteredPicks = predictions
+    .filter(p => {
+      if (filter === 'all') return true;
+      if (filter === 'strong') return p.confidence >= 0.60;
+      if (filter === 'medium') return p.confidence >= 0.55 && p.confidence < 0.60;
+      return true;
+    })
+    .sort((a, b) => b.confidence - a.confidence);
 
   const formatConfidence = (conf) => `${(conf * 100).toFixed(1)}%`;
 

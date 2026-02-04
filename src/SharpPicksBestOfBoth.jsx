@@ -398,10 +398,8 @@ export default function SharpPicksBestOfBoth() {
     lineMovement: pred.line_movement
   }));
 
-  // Filter out games that have already started, then sort by confidence
-  const now = new Date();
-  const upcomingPicks = transformedPicks.filter(pick => pick.gameDate > now);
-  const sortedPicks = (upcomingPicks.length > 0 ? upcomingPicks : transformedPicks)
+  // Sort by confidence (highest first), then take top 5
+  const sortedPicks = transformedPicks
     .sort((a, b) => parseFloat(b.confidence) - parseFloat(a.confidence))
     .slice(0, 5);
   
