@@ -414,7 +414,7 @@ export default function SharpPicksBestOfBoth() {
     // Auto-save as unit size if not set yet
     if (!unitSize) {
       setUnitSize(betAmount);
-      fetch(`${API_URL}/api/auth/unit-size`, {
+      fetch('/api/auth/unit-size', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -423,7 +423,7 @@ export default function SharpPicksBestOfBoth() {
     }
     
     try {
-      const response = await fetch(`${API_URL}/api/bets`, {
+      const response = await fetch('/api/bets', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
