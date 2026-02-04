@@ -37,6 +37,7 @@ export default function SharpPicksBestOfBoth() {
   
   // ============ TRACKING STATE ============
   const [customBetAmount, setCustomBetAmount] = useState('');
+  const [customOdds, setCustomOdds] = useState('-110');
   const [trackedBets, setTrackedBets] = useState([]);
   
   // ============ INTERACTION STATE ============
@@ -450,6 +451,7 @@ export default function SharpPicksBestOfBoth() {
     // Just use default $100 if no unit size set
     setSelectedPickToTrack(pick);
     setCustomBetAmount((unitSize || 100).toString());
+    setCustomOdds(pick.odds?.toString() || '-110');
     setShowTrackModal(true);
   };
   
@@ -476,7 +478,7 @@ export default function SharpPicksBestOfBoth() {
           pick: selectedPickToTrack.pick,
           game: selectedPickToTrack.game,
           bet_amount: betAmount,
-          odds: selectedPickToTrack.odds
+          odds: parseInt(customOdds) || -110
         })
       });
       
@@ -652,10 +654,22 @@ export default function SharpPicksBestOfBoth() {
               )}
             </div>
 
+            <div className="mb-6">
+              <label className="text-white text-sm font-bold mb-2 block">Odds</label>
+              <input
+                type="number"
+                value={customOdds}
+                onChange={(e) => setCustomOdds(e.target.value)}
+                className="w-full bg-slate-900 text-white text-xl font-bold px-4 py-3 rounded-xl border border-slate-700 focus:border-blue-500 outline-none"
+                placeholder="-110"
+              />
+              <p className="text-slate-500 text-xs mt-1">Adjust if your book has different odds</p>
+            </div>
+
             <div className="bg-blue-950/30 rounded-2xl p-4 mb-6 border border-blue-800/30">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-blue-200 text-sm">Odds:</span>
-                <span className="text-white font-bold">{selectedPickToTrack.odds}</span>
+                <span className="text-white font-bold">{customOdds}</span>
               </div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-blue-200 text-sm">Risking:</span>
@@ -664,14 +678,14 @@ export default function SharpPicksBestOfBoth() {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-blue-200 text-sm">To Win:</span>
                 <span className="text-emerald-400 font-bold">
-                  ${calculateToWin(parseInt(customBetAmount) || unitSize, selectedPickToTrack.odds).toFixed(2)}
+                  ${calculateToWin(parseInt(customBetAmount) || unitSize, parseInt(customOdds) || -110).toFixed(2)}
                 </span>
               </div>
               <div className="pt-2 mt-2 border-t border-blue-800/30">
                 <div className="flex items-center justify-between">
                   <span className="text-blue-200 text-sm font-bold">Potential Profit:</span>
                   <span className="text-emerald-400 text-xl font-black">
-                    +${calculateToWin(parseInt(customBetAmount) || unitSize, selectedPickToTrack.odds).toFixed(2)}
+                    +${calculateToWin(parseInt(customBetAmount) || unitSize, parseInt(customOdds) || -110).toFixed(2)}
                   </span>
                 </div>
               </div>
