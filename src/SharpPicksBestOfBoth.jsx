@@ -418,14 +418,24 @@ export default function SharpPicksBestOfBoth() {
 
   const premiumPicks = sortedPicks.slice(1);
 
-  // Use real recent results from API
-  const results = recentResults.map(r => ({
-    pick: r.pick,
-    result: r.result,
-    profit: r.result === 'W' ? '+$91' : '-$100',
-    time: r.time ? new Date(r.time).toLocaleString() : 'Recently',
-    final: r.final
-  }));
+  // Show user's results if logged in, otherwise show overall model results
+  const results = isPaidUser && trackedBets.filter(b => b.result).length > 0
+    ? trackedBets.filter(b => b.result).slice(0, 5).map(b => ({
+        pick: b.pick,
+        result: b.result,
+        profit: b.result === 'W' ? `+$${b.to_win || 91}` : `-$${b.bet_amount || 100}`,
+        time: b.created_at ? new Date(b.created_at).toLocaleString() : 'Recently',
+        final: b.game,
+        game_date: b.created_at ? new Date(b.created_at).toLocaleDateString() : ''
+      }))
+    : recentResults.map(r => ({
+        pick: r.pick,
+        result: r.result,
+        profit: r.result === 'W' ? '+$91' : '-$100',
+        time: r.time ? new Date(r.time).toLocaleString() : 'Recently',
+        final: r.final,
+        game_date: r.game_date || ''
+      }));
 
   const missedProfit = premiumPicks.length * 91;
 
@@ -1697,13 +1707,18 @@ export default function SharpPicksBestOfBoth() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white text-lg font-bold flex items-center space-x-2">
               <Activity className="w-5 h-5 text-green-400" />
-              <span>Recent Results</span>
+              <span>{isPaidUser && trackedBets.filter(b => b.result).length > 0 ? 'Your Results' : 'Recent Results'}</span>
             </h3>
-            {recentWins > 0 && (
-              <span className="text-emerald-400 text-sm font-bold">
-                {recentWins} wins in past 24hrs
-              </span>
-            )}
+            {(() => {
+              const winsCount = isPaidUser && trackedBets.filter(b => b.result).length > 0
+                ? trackedBets.filter(b => b.result === 'W').length
+                : recentWins;
+              return winsCount > 0 && (
+                <span className="text-emerald-400 text-sm font-bold">
+                  {winsCount} {isPaidUser && trackedBets.filter(b => b.result).length > 0 ? 'total wins' : 'wins in past 24hrs'}
+                </span>
+              );
+            })()}
           </div>
           <div className="space-y-2">
             {results.length > 0 ? (
