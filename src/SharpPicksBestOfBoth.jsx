@@ -69,6 +69,25 @@ export default function SharpPicksBestOfBoth() {
     fetchAuthUser();
   }, []);
   
+  // ============ FETCH TRACKED BETS ============
+  const fetchTrackedBets = async () => {
+    try {
+      const response = await fetch('/api/bets', { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        setTrackedBets(data.bets || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch bets:', error);
+    }
+  };
+  
+  useEffect(() => {
+    if (isPaidUser && authUser) {
+      fetchTrackedBets();
+    }
+  }, [isPaidUser, authUser]);
+  
   // ============ FETCH REAL DATA FROM API ============
   useEffect(() => {
     const fetchData = async () => {
@@ -1433,6 +1452,66 @@ export default function SharpPicksBestOfBoth() {
             </button>
           </div>
         </div>
+
+        {/* ============ YOUR TRACKED BETS ============ */}
+        {isPaidUser && trackedBets.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-white text-xl font-bold mb-4">Your Tracked Bets</h3>
+            
+            {trackedBets.filter(b => !b.result).length > 0 && (
+              <div className="mb-6">
+                <div className="text-orange-400 text-sm font-bold mb-2">
+                  ⏱️ PENDING ({trackedBets.filter(b => !b.result).length})
+                </div>
+                {trackedBets.filter(b => !b.result).map(bet => (
+                  <div key={bet.id} className="bg-orange-950/20 border border-orange-800/30 rounded-xl p-4 mb-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-white font-bold text-lg">{bet.pick}</div>
+                        <div className="text-slate-400 text-sm">{bet.game}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-slate-400 text-xs">Risking</div>
+                        <div className="text-white font-bold">${bet.bet_amount}</div>
+                        <div className="text-emerald-400 text-xs">To win: ${bet.to_win}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {trackedBets.filter(b => b.result).length > 0 && (
+              <div>
+                <div className="text-slate-400 text-sm font-bold mb-2">SETTLED</div>
+                {trackedBets.filter(b => b.result).map(bet => (
+                  <div key={bet.id} className={`rounded-xl p-4 mb-2 ${
+                    bet.result === 'W' ? 'bg-emerald-950/30 border border-emerald-800/30' : 'bg-red-950/30 border border-red-800/30'
+                  }`}>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-xl font-black ${
+                          bet.result === 'W' ? 'bg-emerald-600' : 'bg-red-600'
+                        }`}>
+                          {bet.result}
+                        </div>
+                        <div>
+                          <div className="text-white font-bold">{bet.pick}</div>
+                          <div className="text-slate-400 text-sm">{bet.game}</div>
+                        </div>
+                      </div>
+                      <div className={`text-2xl font-black ${
+                        bet.result === 'W' ? 'text-emerald-400' : 'text-red-400'
+                      }`}>
+                        {bet.profit > 0 ? '+' : ''}${bet.profit}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ============ PREMIUM PICKS ============ */}
         <div className="mb-8">
