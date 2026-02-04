@@ -7,6 +7,7 @@ from flask import Flask, jsonify, Response, session, request
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_login import LoginManager, login_required, current_user, login_user, logout_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3
 import subprocess
@@ -32,6 +33,13 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 
 db.init_app(app)
 CORS(app, supports_credentials=True)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(user_id)
 
 limiter = Limiter(
     get_remote_address,
@@ -145,6 +153,7 @@ def register():
     db.session.add(user)
     db.session.commit()
     
+    login_user(user)
     session['user_id'] = user.id
     
     return jsonify({
@@ -178,6 +187,7 @@ def login():
     if not check_password_hash(user.password_hash, password):
         return jsonify({'error': 'Invalid email or password'}), 401
     
+    login_user(user)
     session['user_id'] = user.id
     
     now = datetime.now()
@@ -484,12 +494,9 @@ def get_user_bets():
     })
 
 @app.route('/api/bets', methods=['POST'])
+@login_required
 def track_bet():
     """Track a new bet"""
-    user = get_current_user_from_session()
-    if not user:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
     data = request.get_json()
     bet_amount = data.get('bet_amount', 100)
     odds = data.get('odds', -110)
@@ -500,7 +507,7 @@ def track_bet():
         to_win = bet_amount * (odds / 100)
     
     bet = TrackedBet(
-        user_id=user['id'],
+        user_id=current_user.id,
         pick=data.get('pick'),
         game=data.get('game'),
         bet_amount=bet_amount,
