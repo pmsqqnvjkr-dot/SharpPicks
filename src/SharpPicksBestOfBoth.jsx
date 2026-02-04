@@ -47,6 +47,7 @@ export default function SharpPicksBestOfBoth() {
   const [timeLeft, setTimeLeft] = useState(null);
   const [viewedFOMO, setViewedFOMO] = useState(0);
   const fomoRef = useRef(null);
+  const [hideCoinflips, setHideCoinflips] = useState(true);
   
   // ============ FETCH AUTH USER ============
   useEffect(() => {
@@ -376,6 +377,15 @@ export default function SharpPicksBestOfBoth() {
     if (pred.line_movement > 0.5) reasons.push(`Line moved ${pred.line_movement} points toward ${pred.prediction}`);
     if (pred.edge > 1) reasons.push(`Model sees ${pred.edge.toFixed(1)}% edge over market`);
     if (pred.confidence > 0.65) reasons.push(`High confidence pick based on 36 ML features`);
+    if (pred.schedule?.factors?.length > 0) {
+      reasons.push(pred.schedule.factors.join(', '));
+    }
+    if (pred.schedule?.fatigue_edge && Math.abs(pred.schedule.fatigue_edge) > 1) {
+      const fatigueNote = pred.schedule.fatigue_edge > 0 
+        ? 'Home team well-rested advantage' 
+        : 'Away team rest advantage';
+      reasons.push(fatigueNote);
+    }
     return reasons.join('. ') || `Model confidence: ${(pred.confidence * 100).toFixed(1)}%`;
   };
 
@@ -396,11 +406,15 @@ export default function SharpPicksBestOfBoth() {
     gameDate: new Date(pred.game_time || pred.game_date),
     reasoning: generateReasoning(pred),
     edge: generateEdge(pred),
-    lineMovement: pred.line_movement
+    lineMovement: pred.line_movement,
+    injuries: pred.injuries,
+    schedule: pred.schedule,
+    isCoinflip: pred.is_coinflip
   }));
 
-  // Sort by confidence (highest first), then take top 5
+  // Filter out coinflip spreads (-1.5 to +1.5) if enabled, sort by confidence
   const sortedPicks = transformedPicks
+    .filter(p => !hideCoinflips || !p.isCoinflip)
     .sort((a, b) => parseFloat(b.confidence) - parseFloat(a.confidence))
     .slice(0, 5);
   
@@ -1495,6 +1509,14 @@ export default function SharpPicksBestOfBoth() {
                   </div>
                 </div>
               )}
+              {freePick.schedule?.factors?.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-white/20">
+                  <div className="text-cyan-300 text-xs font-bold mb-2">📅 SCHEDULE FACTORS:</div>
+                  <div className="text-white/80 text-xs">
+                    {freePick.schedule.factors.join(' • ')}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button
@@ -1591,15 +1613,28 @@ export default function SharpPicksBestOfBoth() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white text-2xl font-bold">More Elite Picks Today</h2>
-            {!isPaidUser && (
-              <button
-                onClick={() => setShowUpgrade(true)}
-                className="text-amber-400 text-sm font-bold flex items-center space-x-1 hover:text-amber-300 transition-all"
-              >
-                <Crown className="w-4 h-4" />
-                <span>Unlock All</span>
-              </button>
-            )}
+            <div className="flex items-center space-x-4">
+              {isPaidUser && (
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hideCoinflips}
+                    onChange={(e) => setHideCoinflips(e.target.checked)}
+                    className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-emerald-500 focus:ring-emerald-500"
+                  />
+                  <span className="text-slate-400 text-xs">Hide coin-flip spreads</span>
+                </label>
+              )}
+              {!isPaidUser && (
+                <button
+                  onClick={() => setShowUpgrade(true)}
+                  className="text-amber-400 text-sm font-bold flex items-center space-x-1 hover:text-amber-300 transition-all"
+                >
+                  <Crown className="w-4 h-4" />
+                  <span>Unlock All</span>
+                </button>
+              )}
+            </div>
           </div>
           <div className="space-y-4">
             {premiumPicks.map((pick) => (
@@ -1641,6 +1676,14 @@ export default function SharpPicksBestOfBoth() {
                                   <span className="text-red-400">{inj.status}</span>: {inj.player}
                                 </div>
                               ))}
+                            </div>
+                          </div>
+                        )}
+                        {pick.schedule?.factors?.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-slate-700/50">
+                            <div className="text-cyan-400 text-xs font-bold mb-2">📅 SCHEDULE FACTORS:</div>
+                            <div className="text-slate-300 text-xs">
+                              {pick.schedule.factors.join(' • ')}
                             </div>
                           </div>
                         )}

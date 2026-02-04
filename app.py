@@ -745,6 +745,12 @@ def get_predictions():
     except:
         injuries_available = False
     
+    try:
+        from nba_schedule import get_simple_schedule_factors, get_team_abbrev
+        schedule_available = True
+    except:
+        schedule_available = False
+    
     json_path = 'todays_picks.json'
     if os.path.exists(json_path):
         try:
@@ -842,6 +848,18 @@ def get_predictions():
                     except:
                         pass
                 
+                schedule_info = None
+                if schedule_available:
+                    try:
+                        schedule_info = get_simple_schedule_factors(
+                            game_dict['home_team'], 
+                            game_dict['away_team']
+                        )
+                    except:
+                        pass
+                
+                is_coinflip = spread is not None and -1.5 <= spread <= 1.5
+                
                 predictions.append({
                     'home_team': game_dict['home_team'],
                     'away_team': game_dict['away_team'],
@@ -857,7 +875,9 @@ def get_predictions():
                     'away_record': game_dict.get('away_record'),
                     'home_form': game_dict.get('home_last5'),
                     'away_form': game_dict.get('away_last5'),
-                    'injuries': injury_info
+                    'injuries': injury_info,
+                    'schedule': schedule_info,
+                    'is_coinflip': is_coinflip
                 })
             except Exception as e:
                 pass
@@ -893,13 +913,21 @@ def get_performance():
     
     win_rate = correct / (correct + incorrect) if (correct + incorrect) > 0 else None
     
+    closing_line_stats = {'beat_rate': 0, 'total_tracked': 0}
+    try:
+        from performance_tracker import get_closing_line_stats
+        closing_line_stats = get_closing_line_stats()
+    except:
+        pass
+    
     conn.close()
     return jsonify({
         'total_predictions': total,
         'correct': correct,
         'incorrect': incorrect,
         'pending': pending,
-        'win_rate': round(win_rate, 3) if win_rate else None
+        'win_rate': round(win_rate, 3) if win_rate else None,
+        'closing_line': closing_line_stats
     })
 
 

@@ -29,9 +29,25 @@ def ensure_tracking_table():
             actual_result TEXT,
             is_correct INTEGER,
             logged_at TEXT,
-            resolved_at TEXT
+            resolved_at TEXT,
+            opening_line REAL,
+            closing_line REAL,
+            beat_close INTEGER
         )
     ''')
+    
+    try:
+        cursor.execute('ALTER TABLE prediction_log ADD COLUMN opening_line REAL')
+    except:
+        pass
+    try:
+        cursor.execute('ALTER TABLE prediction_log ADD COLUMN closing_line REAL')
+    except:
+        pass
+    try:
+        cursor.execute('ALTER TABLE prediction_log ADD COLUMN beat_close INTEGER')
+    except:
+        pass
     
     cursor.execute('''
         CREATE INDEX IF NOT EXISTS idx_pred_date ON prediction_log(game_date)
@@ -46,8 +62,8 @@ def ensure_tracking_table():
 
 
 def log_prediction(game_id, game_date, home_team, away_team, spread_home, 
-                   prediction, confidence, home_cover_prob):
-    """Log a new prediction"""
+                   prediction, confidence, home_cover_prob, opening_line=None):
+    """Log a new prediction with opening line"""
     ensure_tracking_table()
     conn = sqlite3.connect('sharp_picks.db')
     cursor = conn.cursor()
@@ -63,17 +79,89 @@ def log_prediction(game_id, game_date, home_team, away_team, spread_home,
     cursor.execute('''
         INSERT INTO prediction_log 
         (game_id, game_date, home_team, away_team, spread_home, prediction, 
-         confidence, home_cover_prob, logged_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         confidence, home_cover_prob, logged_at, opening_line)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         game_id, game_date, home_team, away_team, spread_home,
         prediction, confidence, home_cover_prob,
-        datetime.now().isoformat()
+        datetime.now().isoformat(),
+        opening_line if opening_line else spread_home
     ))
     
     conn.commit()
     conn.close()
     return True
+
+
+def update_closing_line(game_id, closing_line):
+    """Update closing line for a game and calculate if we beat it"""
+    ensure_tracking_table()
+    conn = sqlite3.connect('sharp_picks.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT opening_line, prediction, spread_home FROM prediction_log WHERE game_id = ?
+    ''', (game_id,))
+    
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return False
+    
+    opening_line, prediction, spread_at_pick = row
+    
+    beat_close = 0
+    if opening_line is not None and closing_line is not None:
+        line_movement = closing_line - opening_line
+        
+        if 'home' in prediction.lower() or prediction == row[0]:
+            beat_close = 1 if line_movement < 0 else 0
+        else:
+            beat_close = 1 if line_movement > 0 else 0
+    
+    cursor.execute('''
+        UPDATE prediction_log 
+        SET closing_line = ?, beat_close = ?
+        WHERE game_id = ?
+    ''', (closing_line, beat_close, game_id))
+    
+    conn.commit()
+    conn.close()
+    return True
+
+
+def get_closing_line_stats():
+    """Get stats on how often we beat the closing line"""
+    ensure_tracking_table()
+    conn = sqlite3.connect('sharp_picks.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT 
+            COUNT(*) as total_with_close,
+            SUM(beat_close) as beat_count,
+            AVG(closing_line - opening_line) as avg_line_movement
+        FROM prediction_log
+        WHERE closing_line IS NOT NULL AND opening_line IS NOT NULL
+    ''')
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row and row[0] > 0:
+        return {
+            'total_tracked': row[0],
+            'beat_closing': row[1] or 0,
+            'beat_rate': round((row[1] or 0) / row[0] * 100, 1),
+            'avg_line_movement': round(row[2] or 0, 2)
+        }
+    
+    return {
+        'total_tracked': 0,
+        'beat_closing': 0,
+        'beat_rate': 0,
+        'avg_line_movement': 0
+    }
 
 
 def update_results():
