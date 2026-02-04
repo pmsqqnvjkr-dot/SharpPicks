@@ -39,8 +39,8 @@ export default function TodaysPicks({ isPremium = false, onUpgradeClick }) {
   const filteredPicks = predictions
     .filter(p => {
       if (filter === 'all') return true;
-      if (filter === 'strong') return p.confidence >= 0.60;
-      if (filter === 'medium') return p.confidence >= 0.55 && p.confidence < 0.60;
+      if (filter === 'strong') return p.confidence >= 0.90;
+      if (filter === 'medium') return p.confidence >= 0.60 && p.confidence < 0.90;
       return true;
     })
     .sort((a, b) => b.confidence - a.confidence);
@@ -72,13 +72,13 @@ export default function TodaysPicks({ isPremium = false, onUpgradeClick }) {
             className={filter === 'strong' ? 'active' : ''} 
             onClick={() => setFilter('strong')}
           >
-            Strong (60%+)
+            Strong (90%+)
           </button>
           <button 
             className={filter === 'medium' ? 'active' : ''} 
             onClick={() => setFilter('medium')}
           >
-            Medium (55-60%)
+            Medium (60-90%)
           </button>
           <button 
             className={filter === 'all' ? 'active' : ''} 
