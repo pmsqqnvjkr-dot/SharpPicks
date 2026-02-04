@@ -55,10 +55,10 @@ export default function SharpPicksBestOfBoth() {
         const res = await fetch('/api/auth/user', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          if (data && data.id) {
-            setAuthUser(data);
-            setIsPaidUser(data.is_premium || false);
-            setUnitSize(data.unit_size || 100);
+          if (data && data.authenticated && data.user) {
+            setAuthUser(data.user);
+            setIsPaidUser(data.user.is_premium || false);
+            setUnitSize(data.user.unit_size || 100);
           }
         }
       } catch (error) {
@@ -167,10 +167,10 @@ export default function SharpPicksBestOfBoth() {
       });
       
       const data = await res.json();
-      if (res.ok) {
-        setAuthUser(data);
-        setIsPaidUser(data.is_premium || false);
-        setUnitSize(data.unit_size || 100);
+      if (res.ok && data.success && data.user) {
+        setAuthUser(data.user);
+        setIsPaidUser(data.user.is_premium || false);
+        setUnitSize(data.user.unit_size || 100);
         setShowLoginModal(false);
         setLoginEmail('');
         setLoginPassword('');
