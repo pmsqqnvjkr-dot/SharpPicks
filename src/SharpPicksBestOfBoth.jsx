@@ -33,6 +33,7 @@ export default function SharpPicksBestOfBoth() {
   const [recentResults, setRecentResults] = useState([]);
   const [recentWins, setRecentWins] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [toastMessage, setToastMessage] = useState(null);
   
   // ============ TRACKING STATE ============
   const [customBetAmount, setCustomBetAmount] = useState('');
@@ -407,52 +408,61 @@ export default function SharpPicksBestOfBoth() {
     setShowTrackModal(true);
   };
   
-  const handleConfirmTrack = () => {
+  const handleConfirmTrack = async () => {
     const betAmount = parseInt(customBetAmount) || 100;
-    const toWin = calculateToWin(betAmount, selectedPickToTrack.odds);
     
     // Auto-save as unit size if not set yet
     if (!unitSize) {
       setUnitSize(betAmount);
+      fetch(`${API_URL}/api/auth/unit-size`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unit_size: betAmount })
+      });
     }
     
-    const newBet = {
-      id: Date.now(),
-      pick: selectedPickToTrack.pick,
-      betAmount,
-      odds: selectedPickToTrack.odds,
-      toWin,
-      result: null,
-      profit: 0,
-      date: 'Feb 1'
-    };
-    
-    setTrackedBets([...trackedBets, newBet]);
-    setShowTrackModal(false);
-    setSelectedPickToTrack(null);
-    
-    // Simulate win for demo
-    setTimeout(() => {
-      const didWin = Math.random() > 0.43; // 57% win rate
-      
-      setTrackedBets(prev => prev.map(bet => 
-        bet.id === newBet.id 
-          ? { 
-              ...bet, 
-              result: didWin ? 'W' : 'L', 
-              profit: didWin ? bet.toWin : -bet.betAmount,
-              final: didWin ? `${selectedPickToTrack.game} COVERED!` : `${selectedPickToTrack.game} didn't cover`
-            }
-          : bet
-      ));
-      
-      setSelectedWin({ 
-        pick: newBet.pick, 
-        profit: didWin ? `+$${newBet.toWin.toFixed(2)}` : `-$${newBet.betAmount}`, 
-        final: didWin ? `${selectedPickToTrack.game} COVERED!` : `${selectedPickToTrack.game} didn't cover`
+    try {
+      const response = await fetch(`${API_URL}/api/bets`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pick: selectedPickToTrack.pick,
+          game: selectedPickToTrack.game,
+          bet_amount: betAmount,
+          odds: selectedPickToTrack.odds
+        })
       });
-      setShowWinCelebration(true);
-    }, 2000);
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Add to local state immediately
+        setTrackedBets(prev => [{
+          id: data.bet.id,
+          pick: data.bet.pick,
+          game: data.bet.game,
+          betAmount: data.bet.bet_amount,
+          odds: data.bet.odds,
+          toWin: data.bet.to_win,
+          result: null,
+          profit: 0,
+          created_at: data.bet.created_at
+        }, ...prev]);
+        
+        setShowTrackModal(false);
+        setSelectedPickToTrack(null);
+        
+        // Show success toast
+        setToastMessage(`✅ Tracking ${selectedPickToTrack.pick}`);
+        setTimeout(() => setToastMessage(null), 3000);
+      }
+    } catch (error) {
+      console.error('Failed to track bet:', error);
+      setToastMessage('❌ Failed to track bet');
+      setTimeout(() => setToastMessage(null), 3000);
+    }
   };
 
   const handleEmailSubmit = (e) => {
@@ -494,6 +504,13 @@ export default function SharpPicksBestOfBoth() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+      {/* ============ TOAST NOTIFICATION ============ */}
+      {toastMessage && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white px-6 py-3 rounded-xl shadow-lg border border-slate-700 animate-pulse">
+          {toastMessage}
+        </div>
+      )}
+
       {/* ============ UNIT SIZE SETUP MODAL ============ */}
       {showUnitSetup && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center p-6">

@@ -460,7 +460,11 @@ def get_user_stats():
 @app.route('/api/bets', methods=['GET'])
 def get_user_bets():
     """Get user's tracked bets"""
-    bets = TrackedBet.query.filter_by(user_id=test_user.id).order_by(TrackedBet.created_at.desc()).all()
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    bets = TrackedBet.query.filter_by(user_id=user['id']).order_by(TrackedBet.created_at.desc()).all()
     return jsonify({
         'bets': [{
             'id': b.id,
@@ -478,16 +482,29 @@ def get_user_bets():
 @app.route('/api/bets', methods=['POST'])
 def track_bet():
     """Track a new bet"""
-    from flask import request
-    data = request.get_json()
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
     
-    bet = TrackedBet()
-    bet.user_id = test_user.id
-    bet.pick = data.get('pick')
-    bet.game = data.get('game')
-    bet.bet_amount = data.get('bet_amount', 100)
-    bet.odds = data.get('odds', -110)
-    bet.to_win = data.get('to_win', 0)
+    data = request.get_json()
+    bet_amount = data.get('bet_amount', 100)
+    odds = data.get('odds', -110)
+    
+    if odds < 0:
+        to_win = bet_amount * (100 / abs(odds))
+    else:
+        to_win = bet_amount * (odds / 100)
+    
+    bet = TrackedBet(
+        user_id=user['id'],
+        pick=data.get('pick'),
+        game=data.get('game'),
+        bet_amount=bet_amount,
+        odds=odds,
+        to_win=round(to_win, 2),
+        result=None,
+        profit=0
+    )
     db.session.add(bet)
     db.session.commit()
     
@@ -497,7 +514,11 @@ def track_bet():
             'id': bet.id,
             'pick': bet.pick,
             'game': bet.game,
-            'bet_amount': bet.bet_amount
+            'bet_amount': bet.bet_amount,
+            'odds': bet.odds,
+            'to_win': bet.to_win,
+            'result': bet.result,
+            'created_at': bet.created_at.isoformat()
         }
     })
 

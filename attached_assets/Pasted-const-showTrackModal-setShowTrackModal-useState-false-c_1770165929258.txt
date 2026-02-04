@@ -1,0 +1,65 @@
+const [showTrackModal, setShowTrackModal] = useState(false);
+const [selectedPick, setSelectedPick] = useState(null);
+const [betAmount, setBetAmount] = useState(100);
+
+// When user clicks "Track This Pick"
+const handleTrackClick = (pick) => {
+  if (!isPremium) {
+    setShowUpgrade(true);
+    return;
+  }
+  setSelectedPick(pick);
+  setBetAmount(unitSize || 100);
+  setShowTrackModal(true);
+};
+
+// Modal JSX
+{showTrackModal && (
+  <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+    <div className="bg-slate-900 rounded-2xl p-6 max-w-md w-full">
+      <h3 className="text-white text-xl font-bold mb-4">Track This Bet</h3>
+      
+      <div className="bg-slate-800 rounded-xl p-4 mb-4">
+        <div className="text-slate-400 text-sm">YOUR PICK</div>
+        <div className="text-white text-2xl font-bold">{selectedPick.pick}</div>
+        <div className="text-slate-400">{selectedPick.game}</div>
+      </div>
+      
+      <div className="mb-4">
+        <label className="text-white text-sm font-bold">Bet Amount</label>
+        <input
+          type="number"
+          value={betAmount}
+          onChange={(e) => setBetAmount(e.target.value)}
+          className="w-full bg-slate-800 text-white px-4 py-3 rounded-xl mt-2"
+        />
+      </div>
+      
+      <div className="bg-blue-950/30 rounded-xl p-3 mb-4">
+        <div className="flex justify-between text-sm">
+          <span className="text-slate-400">Risking:</span>
+          <span className="text-white font-bold">${betAmount}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-slate-400">To Win:</span>
+          <span className="text-emerald-400 font-bold">
+            ${(betAmount * 0.91).toFixed(2)}
+          </span>
+        </div>
+      </div>
+      
+      <button
+        onClick={handleConfirmTrack}
+        className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl mb-2"
+      >
+        Confirm & Track
+      </button>
+      <button
+        onClick={() => setShowTrackModal(false)}
+        className="w-full bg-slate-800 text-white py-3 rounded-xl"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}

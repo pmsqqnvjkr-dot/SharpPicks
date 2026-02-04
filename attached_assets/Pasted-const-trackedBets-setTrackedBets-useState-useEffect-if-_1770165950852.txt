@@ -1,0 +1,77 @@
+const [trackedBets, setTrackedBets] = useState([]);
+
+useEffect(() => {
+  if (isPremium) {
+    fetchTrackedBets();
+  }
+}, [isPremium]);
+
+const fetchTrackedBets = async () => {
+  const response = await fetch(`${API_URL}/api/bets`, {
+    credentials: 'include'
+  });
+  const data = await response.json();
+  setTrackedBets(data.bets || []);
+};
+
+// JSX - Add above "Recent Results"
+<div className="mb-8">
+  <h3 className="text-white text-xl font-bold mb-4">
+    Your Tracked Bets
+  </h3>
+  
+  {trackedBets.filter(b => !b.result).length > 0 && (
+    <div className="mb-4">
+      <div className="text-slate-400 text-sm font-bold mb-2">
+        PENDING ({trackedBets.filter(b => !b.result).length})
+      </div>
+      {trackedBets.filter(b => !b.result).map(bet => (
+        <div key={bet.id} className="bg-slate-800/50 rounded-xl p-4 mb-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-white font-bold">{bet.pick}</div>
+              <div className="text-slate-400 text-sm">{bet.game}</div>
+              <div className="text-orange-400 text-xs mt-1">
+                ⏱️ Game in progress
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-slate-400 text-sm">Risking</div>
+              <div className="text-white font-bold">${bet.bet_amount}</div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+  
+  {trackedBets.filter(b => b.result).length > 0 && (
+    <div>
+      <div className="text-slate-400 text-sm font-bold mb-2">SETTLED</div>
+      {trackedBets.filter(b => b.result).slice(0, 5).map(bet => (
+        <div key={bet.id} className={`rounded-xl p-4 mb-2 ${
+          bet.result === 'W' ? 'bg-emerald-950/30' : 'bg-red-950/30'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${
+                bet.result === 'W' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+              }`}>
+                {bet.result}
+              </div>
+              <div>
+                <div className="text-white font-bold">{bet.pick}</div>
+                <div className="text-slate-400 text-sm">{bet.game}</div>
+              </div>
+            </div>
+            <div className={`text-xl font-bold ${
+              bet.result === 'W' ? 'text-emerald-400' : 'text-red-400'
+            }`}>
+              {bet.profit > 0 ? '+' : ''}${bet.profit}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
