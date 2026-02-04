@@ -445,6 +445,10 @@ export default function SharpPicksBestOfBoth() {
       setShowUpgrade(true);
       return;
     }
+    // Don't allow tracking if already tracked
+    if (isPickTracked(pick)) {
+      return;
+    }
     // Just use default $100 if no unit size set
     setSelectedPickToTrack(pick);
     setCustomBetAmount((unitSize || 100).toString());
@@ -481,14 +485,14 @@ export default function SharpPicksBestOfBoth() {
       const data = await response.json();
       
       if (data.success) {
-        // Add to local state immediately
+        // Add to local state immediately - use same field names as API
         setTrackedBets(prev => [{
           id: data.bet.id,
           pick: data.bet.pick,
           game: data.bet.game,
-          betAmount: data.bet.bet_amount,
+          bet_amount: data.bet.bet_amount,
           odds: data.bet.odds,
-          toWin: data.bet.to_win,
+          to_win: data.bet.to_win,
           result: null,
           profit: 0,
           created_at: data.bet.created_at

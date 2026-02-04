@@ -495,6 +495,17 @@ def get_user_bets():
 def track_bet():
     """Track a new bet"""
     data = request.get_json()
+    pick = data.get('pick')
+    game = data.get('game')
+    
+    existing = TrackedBet.query.filter_by(
+        user_id=current_user.id,
+        pick=pick,
+        game=game
+    ).first()
+    if existing:
+        return jsonify({'success': False, 'error': 'Already tracking this bet'}), 400
+    
     bet_amount = data.get('bet_amount', 100)
     odds = data.get('odds', -110)
     
@@ -505,8 +516,8 @@ def track_bet():
     
     bet = TrackedBet(
         user_id=current_user.id,
-        pick=data.get('pick'),
-        game=data.get('game'),
+        pick=pick,
+        game=game,
         bet_amount=bet_amount,
         odds=odds,
         to_win=round(to_win, 2),
