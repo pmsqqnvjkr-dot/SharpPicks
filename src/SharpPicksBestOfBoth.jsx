@@ -418,8 +418,8 @@ export default function SharpPicksBestOfBoth() {
 
   const premiumPicks = sortedPicks.slice(1);
 
-  // Show user's results if logged in, otherwise show overall model results
-  const results = isPaidUser && trackedBets.filter(b => b.result).length > 0
+  // Show user's results if logged in (empty if no settled bets), otherwise show overall model results for guests
+  const results = isPaidUser
     ? trackedBets.filter(b => b.result).slice(0, 5).map(b => ({
         pick: b.pick,
         result: b.result,
@@ -1707,15 +1707,15 @@ export default function SharpPicksBestOfBoth() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white text-lg font-bold flex items-center space-x-2">
               <Activity className="w-5 h-5 text-green-400" />
-              <span>{isPaidUser && trackedBets.filter(b => b.result).length > 0 ? 'Your Results' : 'Recent Results'}</span>
+              <span>{isPaidUser ? 'Your Results' : 'Recent Results'}</span>
             </h3>
             {(() => {
-              const winsCount = isPaidUser && trackedBets.filter(b => b.result).length > 0
+              const winsCount = isPaidUser
                 ? trackedBets.filter(b => b.result === 'W').length
                 : recentWins;
               return winsCount > 0 && (
                 <span className="text-emerald-400 text-sm font-bold">
-                  {winsCount} {isPaidUser && trackedBets.filter(b => b.result).length > 0 ? 'total wins' : 'wins in past 24hrs'}
+                  {winsCount} {isPaidUser ? 'total wins' : 'wins in past 24hrs'}
                 </span>
               );
             })()}
@@ -1759,7 +1759,9 @@ export default function SharpPicksBestOfBoth() {
               ))
             ) : (
               <div className="text-slate-400 text-sm text-center py-4">
-                No recent results in last 24 hours
+                {isPaidUser 
+                  ? "No settled bets yet. Track picks and check back after games finish!"
+                  : "No recent results in last 24 hours"}
               </div>
             )}
           </div>
