@@ -55,11 +55,12 @@ def get_current_user_from_session():
         user = User.query.get(user_id)
         if user:
             now = datetime.now()
-            is_premium = user.is_premium or (user.trial_ends and user.trial_ends > now)
+            is_premium = user.is_premium or user.is_superuser or (user.trial_ends and user.trial_ends > now)
             return {
                 'id': user.id,
                 'email': user.email,
                 'is_premium': is_premium,
+                'is_superuser': user.is_superuser,
                 'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None,
                 'unit_size': user.unit_size
             }
@@ -191,7 +192,7 @@ def login():
     session['user_id'] = user.id
     
     now = datetime.now()
-    is_premium = user.is_premium or (user.trial_ends and user.trial_ends > now)
+    is_premium = user.is_premium or user.is_superuser or (user.trial_ends and user.trial_ends > now)
     
     return jsonify({
         'success': True,
@@ -199,6 +200,7 @@ def login():
             'id': user.id,
             'email': user.email,
             'is_premium': is_premium,
+            'is_superuser': user.is_superuser,
             'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None,
             'unit_size': user.unit_size
         }
