@@ -212,13 +212,18 @@ def upgrade_user():
         success_url = f'https://{domain}/app?payment=success'
         cancel_url = f'https://{domain}/app?payment=cancelled'
         
-        session = stripe.checkout.Session.create(
+        user = get_current_user_from_session()
+        user_id = user['id'] if user else None
+        
+        checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{'price': price_id, 'quantity': 1}],
             mode='subscription',
             success_url=success_url,
             cancel_url=cancel_url,
+            client_reference_id=user_id,
         )
+        session = checkout_session
         
         return jsonify({'checkout_url': session.url, 'session_id': session.id})
     except Exception as e:
@@ -232,6 +237,43 @@ def stripe_config():
         return jsonify({'publishable_key': get_publishable_key()})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stripe/webhook', methods=['POST'])
+def stripe_webhook():
+    """Handle Stripe webhook events for payment completion"""
+    import stripe as stripe_lib
+    from stripe_client import get_stripe_client
+    get_stripe_client()
+    
+    payload = request.data
+    sig = request.headers.get('Stripe-Signature')
+    webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
+    
+    if not webhook_secret:
+        return jsonify({'error': 'Webhook secret not configured'}), 500
+    
+    try:
+        event = stripe_lib.Webhook.construct_event(
+            payload, sig, webhook_secret
+        )
+        
+        if event['type'] == 'checkout.session.completed':
+            checkout_session = event['data']['object']
+            user_id = checkout_session.get('client_reference_id')
+            
+            if user_id:
+                user = User.query.get(user_id)
+                if user:
+                    user.is_premium = True
+                    user.trial_ends = None
+                    db.session.commit()
+                    
+    except stripe_lib.error.SignatureVerificationError:
+        return jsonify({'error': 'Invalid signature'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+    
+    return jsonify({'success': True})
 
 @app.route('/api/stripe/products')
 def list_products():
@@ -261,39 +303,6 @@ def list_products():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/stripe/webhook', methods=['POST'])
-def stripe_webhook():
-    """Handle Stripe webhook events"""
-    from flask import request
-    try:
-        from stripe_client import get_stripe_client
-        stripe = get_stripe_client()
-        
-        payload = request.get_data()
-        sig_header = request.headers.get('Stripe-Signature')
-        
-        event = stripe.Event.construct_from(
-            stripe.util.convert_to_stripe_object(request.get_json()),
-            stripe.api_key
-        )
-        
-        if event.type == 'checkout.session.completed':
-            session = event.data.object
-            customer_email = session.get('customer_details', {}).get('email')
-            if customer_email:
-                user = User.query.filter_by(email=customer_email).first()
-                if user:
-                    user.is_premium = True
-                    db.session.commit()
-        
-        elif event.type == 'customer.subscription.deleted':
-            subscription = event.data.object
-            customer_id = subscription.customer
-            pass
-        
-        return jsonify({'received': True})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
 
 @app.route('/api/auth/unit-size', methods=['POST'])
 def set_unit_size():
