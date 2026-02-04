@@ -1469,7 +1469,7 @@ export default function SharpPicksBestOfBoth() {
               {isPickTracked(freePick) ? (
                 <>
                   <CheckCircle className="w-5 h-5" />
-                  <span>Tracking (Click to Untrack)</span>
+                  <span>Tracking</span>
                 </>
               ) : (
                 <>
@@ -1600,7 +1600,7 @@ export default function SharpPicksBestOfBoth() {
                         {isPickTracked(pick) ? (
                           <>
                             <CheckCircle className="w-5 h-5" />
-                            <span>Tracking (Click to Untrack)</span>
+                            <span>Tracking</span>
                           </>
                         ) : (
                           <>
