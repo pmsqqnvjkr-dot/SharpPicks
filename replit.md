@@ -17,7 +17,7 @@ Comprehensive NBA betting analysis system with automated data collection, calibr
 
 ## Recent Changes (Feb 2026)
 - **Elite Model Improvements** (Feb 4):
-  - Fixed injuries API with BALLDONTLIE_API_KEY for real-time player injury data
+  - Switched to ESPN's free injuries API for real-time player injury data (no API key needed)
   - Added Closing Line Value (CLV) stats display showing beat-the-close rate (pro benchmark)
   - Added Sharp Money indicator on picks showing if line moved toward/away from pick
   - Added opening vs current spread display for market awareness

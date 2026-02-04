@@ -1,12 +1,12 @@
 """
 NBA Injuries Fetcher
-Fetches current NBA injury reports and calculates team impact scores
+Fetches current NBA injury reports from ESPN (free, no API key required)
 """
 
 import os
 import json
+import requests
 from datetime import datetime, timedelta
-from balldontlie import BalldontlieAPI
 
 TEAM_ABBREV_MAP = {
     'Atlanta Hawks': 'ATL', 'Boston Celtics': 'BOS', 'Brooklyn Nets': 'BKN',
@@ -18,7 +18,15 @@ TEAM_ABBREV_MAP = {
     'New Orleans Pelicans': 'NOP', 'New York Knicks': 'NYK', 'Oklahoma City Thunder': 'OKC',
     'Orlando Magic': 'ORL', 'Philadelphia 76ers': 'PHI', 'Phoenix Suns': 'PHX',
     'Portland Trail Blazers': 'POR', 'Sacramento Kings': 'SAC', 'San Antonio Spurs': 'SAS',
-    'Toronto Raptors': 'TOR', 'Utah Jazz': 'UTA', 'Washington Wizards': 'WAS'
+    'Toronto Raptors': 'TOR', 'Utah Jazz': 'UTA', 'Washington Wizards': 'WAS',
+    'Atlanta': 'ATL', 'Boston': 'BOS', 'Brooklyn': 'BKN', 'Charlotte': 'CHA',
+    'Chicago': 'CHI', 'Cleveland': 'CLE', 'Dallas': 'DAL', 'Denver': 'DEN',
+    'Detroit': 'DET', 'Golden State': 'GSW', 'Houston': 'HOU', 'Indiana': 'IND',
+    'LA Clippers': 'LAC', 'LA Lakers': 'LAL', 'Los Angeles': 'LAL', 'Memphis': 'MEM',
+    'Miami': 'MIA', 'Milwaukee': 'MIL', 'Minnesota': 'MIN', 'New Orleans': 'NOP',
+    'New York': 'NYK', 'Oklahoma City': 'OKC', 'Orlando': 'ORL', 'Philadelphia': 'PHI',
+    'Phoenix': 'PHX', 'Portland': 'POR', 'Sacramento': 'SAC', 'San Antonio': 'SAS',
+    'Toronto': 'TOR', 'Utah': 'UTA', 'Washington': 'WAS'
 }
 
 STAR_PLAYERS = {
@@ -37,10 +45,15 @@ STAR_PLAYERS = {
 
 STATUS_IMPACT = {
     'Out': 1.0,
+    'O': 1.0,
     'Doubtful': 0.85,
+    'D': 0.85,
     'Questionable': 0.5,
+    'Q': 0.5,
     'Probable': 0.15,
+    'P': 0.15,
     'Day-To-Day': 0.4,
+    'DTD': 0.4,
     'GTD': 0.5,
 }
 
@@ -48,63 +61,72 @@ _injury_cache = {}
 _cache_time = None
 CACHE_DURATION = timedelta(hours=1)
 
+ESPN_TEAMS = {
+    'ATL': 1, 'BOS': 2, 'BKN': 17, 'CHA': 30, 'CHI': 4, 'CLE': 5,
+    'DAL': 6, 'DEN': 7, 'DET': 8, 'GSW': 9, 'HOU': 10, 'IND': 11,
+    'LAC': 12, 'LAL': 13, 'MEM': 29, 'MIA': 14, 'MIL': 15, 'MIN': 16,
+    'NOP': 3, 'NYK': 18, 'OKC': 25, 'ORL': 19, 'PHI': 20, 'PHX': 21,
+    'POR': 22, 'SAC': 23, 'SAS': 24, 'TOR': 28, 'UTA': 26, 'WAS': 27
+}
+
 
 def get_injuries():
-    """Fetch current NBA injuries from BALLDONTLIE API"""
+    """Fetch current NBA injuries from ESPN API (free, no key required)"""
     global _injury_cache, _cache_time
     
     if _cache_time and datetime.now() - _cache_time < CACHE_DURATION:
         return _injury_cache
     
-    api_key = os.environ.get('BALLDONTLIE_API_KEY')
-    if not api_key:
-        print("Warning: BALLDONTLIE_API_KEY not set, skipping injury data")
-        return {}
+    injuries_by_team = {}
     
     try:
-        api = BalldontlieAPI(api_key=api_key)
-        injuries_response = api.nba.injuries.list()
+        url = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
         
-        injuries_by_team = {}
+        response = requests.get(url, headers=headers, timeout=10)
         
-        for injury in injuries_response.data:
-            team_name = injury.team.full_name if hasattr(injury, 'team') else None
-            if not team_name:
-                continue
+        if response.status_code == 200:
+            data = response.json()
+            
+            for team_data in data.get('injuries', []):
+                team_name = team_data.get('displayName', '')
+                team_abbr = TEAM_ABBREV_MAP.get(team_name, team_name[:3].upper())
                 
-            team_abbr = TEAM_ABBREV_MAP.get(team_name, team_name[:3].upper())
+                if team_abbr not in injuries_by_team:
+                    injuries_by_team[team_abbr] = []
+                
+                for injury in team_data.get('injuries', []):
+                    athlete = injury.get('athlete', {})
+                    player_name = athlete.get('displayName', 'Unknown')
+                    status = injury.get('status', 'Unknown')
+                    reason = injury.get('shortComment', '') or injury.get('longComment', '')
+                    
+                    injuries_by_team[team_abbr].append({
+                        'player': player_name,
+                        'status': status,
+                        'reason': reason[:100] if reason else '',
+                        'impact': get_player_impact(player_name, status)
+                    })
             
-            if team_abbr not in injuries_by_team:
-                injuries_by_team[team_abbr] = []
+            _injury_cache = injuries_by_team
+            _cache_time = datetime.now()
+            print(f"Fetched injuries for {len(injuries_by_team)} teams from ESPN")
+            return injuries_by_team
+        else:
+            print(f"ESPN API returned status {response.status_code}")
             
-            player_name = f"{injury.player.first_name} {injury.player.last_name}" if hasattr(injury, 'player') else "Unknown"
-            status = injury.status if hasattr(injury, 'status') else 'Unknown'
-            reason = injury.comment if hasattr(injury, 'comment') else ''
-            
-            injuries_by_team[team_abbr].append({
-                'player': player_name,
-                'status': status,
-                'reason': reason,
-                'impact': get_player_impact(player_name, status)
-            })
-        
-        _injury_cache = injuries_by_team
-        _cache_time = datetime.now()
-        
-        print(f"Fetched injuries for {len(injuries_by_team)} teams")
-        return injuries_by_team
-        
     except Exception as e:
-        print(f"Error fetching injuries: {e}")
-        return _injury_cache if _injury_cache else {}
+        print(f"Error fetching injuries from ESPN: {e}")
+    
+    return _injury_cache if _injury_cache else {}
 
 
 def get_player_impact(player_name, status):
     """Calculate impact score for a player being out/questionable"""
     base_impact = STAR_PLAYERS.get(player_name, 3)
-    
     status_multiplier = STATUS_IMPACT.get(status, 0.5)
-    
     return base_impact * status_multiplier
 
 
@@ -117,7 +139,6 @@ def get_team_injury_score(team_abbr, injuries_data=None):
         injuries_data = get_injuries()
     
     team_injuries = injuries_data.get(team_abbr, [])
-    
     total_impact = sum(inj['impact'] for inj in team_injuries)
     
     return {
@@ -162,21 +183,22 @@ def format_injury_summary(team_abbr):
     key_outs = [inj['player'] for inj in score['key_players_out']]
     
     if key_outs:
-        return f"{team_abbr}: {', '.join(key_outs[:2])} {'OUT' if len(key_outs) == 1 else 'OUT'} (+{score['injured_count'] - len(key_outs)} more)"
+        return f"{team_abbr}: {', '.join(key_outs[:2])} OUT (+{score['injured_count'] - len(key_outs)} more)"
     else:
         return f"{team_abbr}: {score['injured_count']} player(s) injured (minor)"
 
 
 if __name__ == '__main__':
-    print("NBA Injury Report")
+    print("NBA Injury Report (via ESPN)")
     print("=" * 50)
     
     injuries = get_injuries()
     
     if not injuries:
-        print("No injury data available (API key may not be set)")
+        print("No injury data available")
     else:
         for team, players in sorted(injuries.items()):
-            print(f"\n{team}:")
-            for p in players:
-                print(f"  - {p['player']}: {p['status']} (impact: {p['impact']:.1f})")
+            if players:
+                print(f"\n{team}:")
+                for p in players:
+                    print(f"  - {p['player']}: {p['status']} (impact: {p['impact']:.1f})")
