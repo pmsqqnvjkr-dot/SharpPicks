@@ -472,13 +472,10 @@ def get_user_stats():
     })
 
 @app.route('/api/bets', methods=['GET'])
+@login_required
 def get_user_bets():
     """Get user's tracked bets"""
-    user = get_current_user_from_session()
-    if not user:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    bets = TrackedBet.query.filter_by(user_id=user['id']).order_by(TrackedBet.created_at.desc()).all()
+    bets = TrackedBet.query.filter_by(user_id=current_user.id).order_by(TrackedBet.created_at.desc()).all()
     return jsonify({
         'bets': [{
             'id': b.id,
@@ -489,7 +486,7 @@ def get_user_bets():
             'to_win': b.to_win,
             'result': b.result,
             'profit': b.profit,
-            'created_at': b.created_at.isoformat()
+            'created_at': b.created_at.isoformat() if b.created_at else None
         } for b in bets]
     })
 
