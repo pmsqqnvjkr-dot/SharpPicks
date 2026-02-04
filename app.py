@@ -531,19 +531,29 @@ def track_bet():
     })
 
 @app.route('/api/bets/<int:bet_id>/result', methods=['POST'])
+@login_required
 def update_bet_result(bet_id):
     """Update bet result"""
-    user = get_current_user_from_session()
-    if not user:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
     data = request.get_json()
-    bet = TrackedBet.query.filter_by(id=bet_id, user_id=user['id']).first()
+    bet = TrackedBet.query.filter_by(id=bet_id, user_id=current_user.id).first()
     if not bet:
         return jsonify({'error': 'Bet not found'}), 404
     
     bet.result = data.get('result')
     bet.profit = data.get('profit', 0)
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/bets/<int:bet_id>', methods=['DELETE'])
+@login_required
+def delete_bet(bet_id):
+    """Delete/untrack a bet"""
+    bet = TrackedBet.query.filter_by(id=bet_id, user_id=current_user.id).first()
+    if not bet:
+        return jsonify({'error': 'Bet not found'}), 404
+    
+    db.session.delete(bet)
     db.session.commit()
     
     return jsonify({'success': True})

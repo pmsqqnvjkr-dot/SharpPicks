@@ -274,6 +274,30 @@ export default function SharpPicksBestOfBoth() {
     return trackedBets.some(b => b.pick === pick.pick && b.game === pick.game);
   };
   
+  const getTrackedBet = (pick) => {
+    return trackedBets.find(b => b.pick === pick.pick && b.game === pick.game);
+  };
+  
+  const handleUntrackBet = async (pick) => {
+    const bet = getTrackedBet(pick);
+    if (!bet) return;
+    
+    try {
+      const response = await fetch(`/api/bets/${bet.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        setTrackedBets(prev => prev.filter(b => b.id !== bet.id));
+        setToastMessage(`🗑️ Untracked ${pick.pick}`);
+        setTimeout(() => setToastMessage(null), 3000);
+      }
+    } catch (error) {
+      console.error('Failed to untrack bet:', error);
+    }
+  };
+  
   // ============ COUNTDOWN TIMER ============
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -1431,17 +1455,17 @@ export default function SharpPicksBestOfBoth() {
             </div>
 
             <button
-              onClick={() => handleOpenTrackModal(freePick)}
+              onClick={() => isPickTracked(freePick) ? handleUntrackBet(freePick) : handleOpenTrackModal(freePick)}
               className={`w-full font-bold py-4 rounded-xl transition-all flex items-center justify-center space-x-2 ${
                 isPickTracked(freePick)
-                  ? 'bg-white text-blue-600'
+                  ? 'bg-white text-blue-600 hover:bg-red-100 hover:text-red-600'
                   : 'bg-white/20 backdrop-blur text-white hover:bg-white/30'
               }`}
             >
               {isPickTracked(freePick) ? (
                 <>
                   <CheckCircle className="w-5 h-5" />
-                  <span>Tracking This Pick</span>
+                  <span>Tracking (Click to Untrack)</span>
                 </>
               ) : (
                 <>
