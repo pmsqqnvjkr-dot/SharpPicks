@@ -428,7 +428,11 @@ def check_trial():
 @app.route('/api/user/stats')
 def get_user_stats():
     """Get user's betting stats from tracked bets"""
-    bets = TrackedBet.query.filter_by(user_id=str(test_user.id)).all()
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    bets = TrackedBet.query.filter_by(user_id=user['id']).all()
     
     settled = [b for b in bets if b.result]
     wins = sum(1 for b in settled if b.result == 'W')
@@ -525,10 +529,12 @@ def track_bet():
 @app.route('/api/bets/<int:bet_id>/result', methods=['POST'])
 def update_bet_result(bet_id):
     """Update bet result"""
-    from flask import request
-    data = request.get_json()
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
     
-    bet = TrackedBet.query.filter_by(id=bet_id, user_id=test_user.id).first()
+    data = request.get_json()
+    bet = TrackedBet.query.filter_by(id=bet_id, user_id=user['id']).first()
     if not bet:
         return jsonify({'error': 'Bet not found'}), 404
     
