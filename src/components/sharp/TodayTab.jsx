@@ -5,7 +5,7 @@ import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
 import AuthModal from './AuthModal';
 
-export default function TodayTab() {
+export default function TodayTab({ onNavigate }) {
   const { user, loading: authLoading } = useAuth();
   const { data: todayData, loading, error } = useApi('/picks/today');
   const { data: stats } = useApi('/public/stats');
@@ -23,7 +23,9 @@ export default function TodayTab() {
 
       <div style={{ padding: '0 20px' }}>
         {todayData?.type === 'pick' && (
-          <PickCard pick={todayData} isPro={isPro} onUpgrade={() => setShowAuth(true)} />
+          <PickCard pick={todayData} isPro={isPro} onUpgrade={() => setShowAuth(true)} onTrack={() => {
+            if (onNavigate) onNavigate('profile', 'bets');
+          }} />
         )}
 
         {todayData?.type === 'pass' && (
@@ -162,7 +164,14 @@ function DailyBrief({ stats }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         margin: '0 auto 24px',
       }}>
-        <img src="/logo-1024.png" alt="" style={{ width: '36px', height: '36px', borderRadius: '8px' }} />
+        <svg viewBox="0 0 40 40" width="36" height="36" fill="none">
+          <path d="M20 4L6 10v10c0 9.2 6 17.4 14 20 8-2.6 14-10.8 14-20V10L20 4z" stroke="white" strokeWidth="1.8" fill="none"/>
+          <rect x="12" y="24" width="3" height="6" rx="1" fill="rgba(255,255,255,0.3)"/>
+          <rect x="17" y="20" width="3" height="10" rx="1" fill="rgba(255,255,255,0.4)"/>
+          <rect x="22" y="22" width="3" height="8" rx="1" fill="rgba(255,255,255,0.35)"/>
+          <path d="M11 22L17 16L22 19L30 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M26 11h4v4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </div>
       <h2 style={{
         fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,

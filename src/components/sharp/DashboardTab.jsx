@@ -297,7 +297,7 @@ function SelectivityBar({ selectivity }) {
   return (
     <div style={{ position: 'relative', height: '28px' }}>
       <div style={{
-        position: 'absolute', top: '0', left: '0', right: '0',
+        position: 'absolute', left: '0', right: '0',
         height: '8px', top: '10px',
         backgroundColor: 'var(--surface-2)', borderRadius: '4px',
       }} />

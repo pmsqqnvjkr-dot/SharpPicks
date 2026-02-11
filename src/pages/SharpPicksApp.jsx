@@ -10,6 +10,12 @@ function AppContent() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('today');
   const [hasEnteredApp, setHasEnteredApp] = useState(false);
+  const [profileScreen, setProfileScreen] = useState(null);
+
+  const navigateTo = (tab, screen) => {
+    setActiveTab(tab);
+    if (screen) setProfileScreen(screen);
+  };
 
   useEffect(() => {
     if (user) setHasEnteredApp(true);
@@ -62,9 +68,9 @@ function AppContent() {
       position: 'relative',
     }}>
       <div style={{ flex: 1, paddingBottom: '80px', overflowY: 'auto' }}>
-        {activeTab === 'today' && <TodayTab />}
+        {activeTab === 'today' && <TodayTab onNavigate={navigateTo} />}
         {activeTab === 'dashboard' && <DashboardTab />}
-        {activeTab === 'profile' && <ProfileTab />}
+        {activeTab === 'profile' && <ProfileTab initialScreen={profileScreen} onScreenChange={setProfileScreen} />}
       </div>
       <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>

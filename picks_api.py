@@ -44,11 +44,25 @@ def today():
 
     pass_entry = Pass.query.filter_by(date=today_str).first()
     if pass_entry:
+        from datetime import timedelta
+        week_start = (datetime.now() - timedelta(days=datetime.now().weekday())).strftime('%Y-%m-%d')
+        picks_this_week = Pick.query.filter(Pick.game_date >= week_start).count()
+        passes_this_week = Pass.query.filter(Pass.date >= week_start).count()
+        total_picks = Pick.query.count()
+        total_passes = Pass.query.count()
+        total_days = total_picks + total_passes
+        selectivity = round((total_picks / total_days) * 100) if total_days > 0 else 0
+        days_per_bet = round(total_days / total_picks, 1) if total_picks > 0 else 0
+
         return jsonify({
             'type': 'pass',
             'date': pass_entry.date,
             'games_analyzed': pass_entry.games_analyzed,
             'closest_edge_pct': pass_entry.closest_edge_pct,
+            'picks_this_week': picks_this_week,
+            'passes_this_week': passes_this_week,
+            'selectivity': selectivity,
+            'days_per_bet': days_per_bet,
             'message': 'No qualifying edge found today. The model analyzed all available games and none met the threshold. Discipline preserved.'
         })
 

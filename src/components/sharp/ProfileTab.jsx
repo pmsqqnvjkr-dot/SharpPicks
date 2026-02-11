@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi, apiPost } from '../../hooks/useApi';
 import AuthModal from './AuthModal';
@@ -8,18 +8,27 @@ import BetTrackingScreen from './BetTrackingScreen';
 import ReferralScreen from './ReferralScreen';
 import NotificationsScreen from './NotificationsScreen';
 
-export default function ProfileTab() {
+export default function ProfileTab({ initialScreen, onScreenChange }) {
   const { user, logout } = useAuth();
   const { data: foundingData } = useApi('/public/founding-count');
   const [showAuth, setShowAuth] = useState(false);
-  const [screen, setScreen] = useState(null);
+  const [screen, setScreen] = useState(initialScreen || null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-  if (screen === 'history') return <PickHistoryScreen onBack={() => setScreen(null)} />;
-  if (screen === 'how') return <HowItWorksScreen onBack={() => setScreen(null)} />;
-  if (screen === 'bets') return <BetTrackingScreen onBack={() => setScreen(null)} />;
-  if (screen === 'referral') return <ReferralScreen onBack={() => setScreen(null)} />;
-  if (screen === 'notifications') return <NotificationsScreen onBack={() => setScreen(null)} />;
+  useEffect(() => {
+    if (initialScreen) setScreen(initialScreen);
+  }, [initialScreen]);
+
+  const navigate = (s) => {
+    setScreen(s);
+    if (onScreenChange) onScreenChange(s);
+  };
+
+  if (screen === 'history') return <PickHistoryScreen onBack={() => navigate(null)} />;
+  if (screen === 'how') return <HowItWorksScreen onBack={() => navigate(null)} />;
+  if (screen === 'bets') return <BetTrackingScreen onBack={() => navigate(null)} />;
+  if (screen === 'referral') return <ReferralScreen onBack={() => navigate(null)} />;
+  if (screen === 'notifications') return <NotificationsScreen onBack={() => navigate(null)} />;
 
   const handleSubscribe = async (plan) => {
     if (!user) {
@@ -86,7 +95,7 @@ export default function ProfileTab() {
             }}>Sign In or Create Account</button>
           </div>
 
-          <SettingsSection user={null} onNavigate={setScreen} />
+          <SettingsSection user={null} onNavigate={navigate} />
           <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />
         </div>
 
@@ -170,7 +179,7 @@ export default function ProfileTab() {
           )}
         </div>
 
-        <SettingsSection user={user} onNavigate={setScreen} />
+        <SettingsSection user={user} onNavigate={navigate} />
         <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />
 
         <div style={{ marginTop: '12px', marginBottom: '20px' }}>
