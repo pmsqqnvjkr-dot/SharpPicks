@@ -1,6 +1,18 @@
 import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
 
+function SectionLabel({ children }) {
+  return (
+    <div style={{
+      fontFamily: 'var(--font-mono)',
+      fontSize: '10px', fontWeight: 600,
+      letterSpacing: '2px', textTransform: 'uppercase',
+      color: 'var(--text-tertiary)',
+      marginBottom: '10px',
+    }}>{children}</div>
+  );
+}
+
 export default function DashboardTab() {
   const { user } = useAuth();
   const { data: stats, loading } = useApi('/public/stats');
@@ -44,10 +56,17 @@ export default function DashboardTab() {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/logo-1024.png" alt="" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
+          <svg viewBox="0 0 40 40" width="24" height="24" fill="none">
+            <path d="M20 4L6 10v10c0 9.2 6 17.4 14 20 8-2.6 14-10.8 14-20V10L20 4z" stroke="white" strokeWidth="1.8" fill="none"/>
+            <rect x="12" y="24" width="3" height="6" rx="1" fill="rgba(255,255,255,0.3)"/>
+            <rect x="17" y="20" width="3" height="10" rx="1" fill="rgba(255,255,255,0.4)"/>
+            <rect x="22" y="22" width="3" height="8" rx="1" fill="rgba(255,255,255,0.35)"/>
+            <path d="M11 22L17 16L22 19L30 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M26 11h4v4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
           <span style={{
             fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 700,
-            color: 'var(--text-primary)', letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: 'var(--text-primary)', letterSpacing: '2px', textTransform: 'uppercase',
           }}>Sharp Picks</span>
         </div>
         {user && (
@@ -63,21 +82,18 @@ export default function DashboardTab() {
       </div>
 
       <div style={{ padding: '0 20px' }}>
-        <div style={{
-          fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
-          textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px',
-        }}>Performance</div>
+        <SectionLabel>Performance</SectionLabel>
 
         <div style={{
-          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-          border: '1px solid var(--stroke-subtle)', padding: '24px 20px 16px',
-          marginBottom: '12px',
+          backgroundColor: 'var(--surface-1)', borderRadius: '20px',
+          border: '1px solid var(--stroke-subtle)', padding: '24px',
+          marginBottom: '16px',
         }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '48px', fontWeight: 700,
+            fontFamily: 'var(--font-mono)', fontSize: '48px', fontWeight: 800,
             color: stats?.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
             lineHeight: '1',
-            marginBottom: '12px',
+            marginBottom: '4px',
           }}>
             {stats?.pnl >= 0 ? '+' : ''}${Math.abs(stats?.pnl || 0)}
           </div>
@@ -85,15 +101,11 @@ export default function DashboardTab() {
           <div style={{
             display: 'flex', gap: '16px', marginBottom: '20px',
           }}>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-secondary)',
-            }}>
-              {stats?.roi >= 0 ? '+' : ''}{stats?.roi || 0}% ROI
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-secondary)' }}>
+              <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{stats?.roi >= 0 ? '+' : ''}{stats?.roi || 0}%</strong> ROI
             </span>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-secondary)',
-            }}>
-              {stats?.record || '0-0'} Record
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-secondary)' }}>
+              <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{stats?.record || '0-0'}</strong> Record
             </span>
           </div>
 
@@ -125,11 +137,7 @@ export default function DashboardTab() {
 
         {todayData && (todayIsPass || todayIsPick) && (
           <>
-            <div style={{
-              fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              marginBottom: '10px', marginTop: '8px',
-            }}>Expected Edge</div>
+            <div style={{ marginTop: '8px' }}><SectionLabel>Expected Edge</SectionLabel></div>
 
             <div style={{
               backgroundColor: 'var(--surface-1)', borderRadius: '16px',
@@ -218,10 +226,7 @@ export default function DashboardTab() {
           border: '1px solid var(--stroke-subtle)', padding: '20px',
           marginBottom: '12px',
         }}>
-          <div style={{
-            fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)',
-            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px',
-          }}>Capital Preserved</div>
+          <SectionLabel>Capital Preserved</SectionLabel>
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: '32px', fontWeight: 700,
             color: 'var(--green-profit)', marginBottom: '10px',
@@ -236,10 +241,7 @@ export default function DashboardTab() {
           border: '1px solid var(--stroke-subtle)', padding: '20px',
           marginBottom: '12px',
         }}>
-          <div style={{
-            fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)',
-            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px',
-          }}>Selectivity Spectrum</div>
+          <SectionLabel>Selectivity Spectrum</SectionLabel>
           <SelectivityBar selectivity={selectivity} />
           <div style={{
             display: 'flex', justifyContent: 'space-between', marginTop: '8px',
@@ -267,8 +269,10 @@ export default function DashboardTab() {
           marginBottom: '12px',
         }}>
           <div style={{
+            fontFamily: 'var(--font-mono)',
             fontSize: '10px', fontWeight: 600, color: 'var(--green-profit)',
-            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px',
+            letterSpacing: '2px', textTransform: 'uppercase',
+            marginBottom: '10px',
           }}>Behavioral Edge</div>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
             Your selectivity rate is <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectivity}%</span> — industry average is 78%. This restraint compounds over time.
@@ -396,20 +400,29 @@ function EquityChart({ data }) {
       <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', display: 'block' }}>
         <defs>
           <linearGradient id="dashEquityGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={isPositive ? 'var(--green-profit)' : 'var(--red-loss)'} stopOpacity="0.2" />
+            <stop offset="0%" stopColor={isPositive ? 'var(--green-profit)' : 'var(--red-loss)'} stopOpacity="0.25" />
             <stop offset="100%" stopColor={isPositive ? 'var(--green-profit)' : 'var(--red-loss)'} stopOpacity="0" />
           </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
         <polygon points={areaPoints} fill="url(#dashEquityGrad)" />
 
         <polyline points={linePoints} fill="none"
           stroke={isPositive ? 'var(--green-profit)' : 'var(--red-loss)'}
-          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          filter="url(#glow)" />
 
         <circle
-          cx={getX(data.length - 1)} cy={getY(lastValue)} r="3"
+          cx={getX(data.length - 1)} cy={getY(lastValue)} r="4"
           fill={isPositive ? 'var(--green-profit)' : 'var(--red-loss)'}
+          filter="url(#glow)"
         />
 
         {Object.values(months).map((m, i) => (
