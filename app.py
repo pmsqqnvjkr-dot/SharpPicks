@@ -1003,30 +1003,28 @@ def get_stats():
 
 @app.route('/api/recent-results')
 def get_recent_results():
-    """Get settled games from last 24 hours with prediction accuracy"""
+    """Get recent settled predictions with accuracy stats"""
     conn = get_db()
     cursor = conn.cursor()
     
-    # Get predictions made in last 24 hours and count wins
     cursor.execute('''
         SELECT 
             COUNT(*) as total_predictions,
             SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as total_wins
         FROM prediction_log
-        WHERE logged_at >= datetime('now', '-24 hours')
+        WHERE actual_result IS NOT NULL
     ''')
     totals = cursor.fetchone()
     total_predictions = (totals[0] or 0) if totals else 0
     total_wins = (totals[1] or 0) if totals else 0
     
-    # Get top 5 WINNING results from predictions made in last 24 hours (hide losses)
     cursor.execute('''
         SELECT p.prediction, p.is_correct, p.confidence,
                p.home_team, p.away_team, p.game_date,
                g.home_score, g.away_score
         FROM prediction_log p
         LEFT JOIN games g ON p.game_id = g.id
-        WHERE p.logged_at >= datetime('now', '-24 hours')
+        WHERE p.actual_result IS NOT NULL
         AND p.is_correct = 1
         ORDER BY p.game_date DESC
         LIMIT 5

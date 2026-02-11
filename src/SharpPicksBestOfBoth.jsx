@@ -1170,7 +1170,7 @@ export default function SharpPicksBestOfBoth() {
                     </>
                   )}
                   <span className="text-emerald-400">
-                    {isPaidUser ? `+$${userStats.totalProfit} this month` : '3-1 Last 24hrs'}
+                    {isPaidUser ? `+$${userStats.totalProfit} this month` : `${recentWins}-${(apiPerformance?.total_predictions || 0) - recentWins} All-Time`}
                   </span>
                 </p>
               </div>
@@ -1792,7 +1792,7 @@ export default function SharpPicksBestOfBoth() {
                 : recentWins;
               return winsCount > 0 && (
                 <span className="text-emerald-400 text-sm font-bold">
-                  {winsCount} {isPaidUser ? 'total wins' : 'wins in past 24hrs'}
+                  {winsCount} {isPaidUser ? 'total wins' : 'recent wins'}
                 </span>
               );
             })()}
