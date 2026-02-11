@@ -29,6 +29,7 @@ def today():
             'edge_pct': pick.edge_pct,
             'model_confidence': pick.model_confidence,
             'result': pick.result,
+            'pnl': pick.pnl,
             'published_at': pick.published_at.isoformat() if pick.published_at else None,
         }
         is_pro = current_user.is_authenticated and current_user.is_pro

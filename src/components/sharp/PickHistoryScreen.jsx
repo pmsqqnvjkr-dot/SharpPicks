@@ -120,8 +120,8 @@ export default function PickHistoryScreen({ onBack }) {
                     color: pick.result === 'win' ? 'var(--green-profit)'
                       : pick.result === 'loss' ? 'var(--red-loss)' : 'var(--text-tertiary)',
                   }}>
-                    {pick.result === 'win' ? `+${pick.pnl || 91}u`
-                      : pick.result === 'loss' ? `${pick.pnl || -100}u`
+                    {pick.result === 'win' ? `+${pick.pnl != null ? pick.pnl : 91}u`
+                      : pick.result === 'loss' ? `${pick.pnl != null ? pick.pnl : -100}u`
                       : 'Pending'}
                   </div>
                   {isPro && pick.edge_pct && (

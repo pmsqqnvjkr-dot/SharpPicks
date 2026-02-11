@@ -66,27 +66,44 @@ export default function NotificationsScreen({ onBack }) {
       </div>
 
       <div style={{ padding: '0 20px' }}>
+        {!user && (
+          <div style={{
+            borderRadius: '12px',
+            padding: '12px 16px', marginBottom: '12px',
+            border: '1px solid rgba(79, 134, 247, 0.2)',
+            backgroundColor: 'rgba(79, 134, 247, 0.06)',
+          }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+              Sign in to save your notification preferences.
+            </p>
+          </div>
+        )}
+
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '16px',
           overflow: 'hidden', border: '1px solid var(--stroke-subtle)',
+          opacity: user ? 1 : 0.6,
         }}>
           <ToggleRow
             label="Pick alerts"
             subtitle="Notified when a qualifying pick is published"
             active={prefs.pick_alert}
             onToggle={() => togglePref('pick_alert')}
+            disabled={!user}
           />
           <ToggleRow
             label="No-action days"
             subtitle="Notified when the model passes on all games"
             active={prefs.no_action}
             onToggle={() => togglePref('no_action')}
+            disabled={!user}
           />
           <ToggleRow
             label="Outcome results"
             subtitle="Notified when a pick is graded win or loss"
             active={prefs.outcome}
             onToggle={() => togglePref('outcome')}
+            disabled={!user}
           />
           <ToggleRow
             label="Weekly summary"
@@ -94,23 +111,24 @@ export default function NotificationsScreen({ onBack }) {
             active={prefs.weekly_summary}
             onToggle={() => togglePref('weekly_summary')}
             last
+            disabled={!user}
           />
         </div>
 
-        <p style={{
-          fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '16px',
-          lineHeight: '1.5', textAlign: 'center',
-        }}>
-          {user
-            ? 'Preferences are saved automatically to your account.'
-            : 'Sign in to save your notification preferences.'}
-        </p>
+        {user && (
+          <p style={{
+            fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '16px',
+            lineHeight: '1.5', textAlign: 'center',
+          }}>
+            Preferences are saved automatically to your account.
+          </p>
+        )}
       </div>
     </div>
   );
 }
 
-function ToggleRow({ label, subtitle, active, onToggle, last }) {
+function ToggleRow({ label, subtitle, active, onToggle, last, disabled }) {
   return (
     <div style={{
       padding: '16px 20px',
@@ -125,7 +143,7 @@ function ToggleRow({ label, subtitle, active, onToggle, last }) {
           fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
         }}>{subtitle}</div>
       </div>
-      <button onClick={onToggle} style={{
+      <button onClick={disabled ? undefined : onToggle} disabled={disabled} style={{
         width: '44px', height: '24px', borderRadius: '12px', border: 'none',
         backgroundColor: active ? 'var(--blue-primary)' : 'var(--surface-2)',
         cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s',

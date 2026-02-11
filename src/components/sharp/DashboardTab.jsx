@@ -217,7 +217,7 @@ export default function DashboardTab() {
                     : p.result === 'loss' ? 'var(--red-loss)'
                     : 'var(--text-tertiary)',
                 }}>
-                  {p.result === 'win' ? `+${p.pnl || 91}u` : p.result === 'loss' ? `${p.pnl || -110}u` : 'Pending'}
+                  {p.result === 'win' ? `+${p.pnl != null ? p.pnl : 91}u` : p.result === 'loss' ? `${p.pnl != null ? p.pnl : -110}u` : 'Pending'}
                 </div>
               </div>
             ))}

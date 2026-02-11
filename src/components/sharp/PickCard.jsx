@@ -140,7 +140,7 @@ export default function PickCard({ pick, isPro, onUpgrade }) {
                   fontWeight: 600,
                   color: pick.result === 'win' ? 'var(--green-profit)' : 'var(--red-loss)',
                 }}>
-                  {pick.result === 'win' ? 'Win +91u' : 'Loss -110u'}
+                  {pick.result === 'win' ? `Win +${pick.pnl != null ? pick.pnl : 91}u` : `Loss ${pick.pnl != null ? pick.pnl : -110}u`}
                 </span>
               </div>
             )}
