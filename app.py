@@ -17,7 +17,10 @@ import logging
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from models import db, User, TrackedBet
+from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter
+from picks_api import picks_bp
+from public_api import public_bp
+from model_service import run_model_and_log
 from sqlalchemy import func
 
 logging.basicConfig(level=logging.DEBUG)
@@ -53,26 +56,42 @@ def get_current_user_from_session():
     """Get current user from session or None if not authenticated"""
     user_id = session.get('user_id')
     if user_id:
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if user:
-            now = datetime.now()
-            is_premium = user.is_premium or user.is_superuser or (user.trial_ends and user.trial_ends > now)
-            return {
-                'id': user.id,
-                'email': user.email,
-                'is_premium': is_premium,
-                'is_superuser': user.is_superuser,
-                'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None,
-                'unit_size': user.unit_size
-            }
+            return serialize_user(user)
     return None
+
+def serialize_user(user):
+    return {
+        'id': user.id,
+        'email': user.email,
+        'display_name': user.display_name or user.username or user.email.split('@')[0],
+        'username': user.username,
+        'is_premium': user.is_pro,
+        'is_superuser': user.is_superuser,
+        'subscription_status': user.subscription_status,
+        'subscription_plan': user.subscription_plan,
+        'founding_member': user.founding_member,
+        'founding_number': user.founding_number,
+        'referral_code': user.referral_code,
+        'unit_size': user.unit_size,
+        'trial_end_date': user.trial_end_date.isoformat() if user.trial_end_date else None,
+    }
 
 @app.before_request
 def make_session_permanent():
     session.permanent = True
 
+app.register_blueprint(picks_bp, url_prefix='/api/picks')
+app.register_blueprint(public_bp, url_prefix='/api/public')
+
 with app.app_context():
     db.create_all()
+    counter = FoundingCounter.query.first()
+    if not counter:
+        counter = FoundingCounter(current_count=0, closed=False)
+        db.session.add(counter)
+        db.session.commit()
     logging.info("Database tables created")
 
 def collect_todays_games():
@@ -150,7 +169,10 @@ def register():
         email=email.lower(),
         password_hash=generate_password_hash(password),
         is_premium=False,
-        trial_ends=datetime.now() + timedelta(days=7)
+        subscription_status='trial',
+        trial_start_date=datetime.now(),
+        trial_end_date=datetime.now() + timedelta(days=14),
+        trial_ends=datetime.now() + timedelta(days=14)
     )
     db.session.add(user)
     db.session.commit()
@@ -160,12 +182,7 @@ def register():
     
     return jsonify({
         'success': True,
-        'user': {
-            'id': user.id,
-            'email': user.email,
-            'is_premium': False,
-            'trial_ends': user.trial_ends.isoformat()
-        }
+        'user': serialize_user(user)
     })
 
 @app.route('/api/auth/login', methods=['POST'])
@@ -192,19 +209,9 @@ def login():
     login_user(user)
     session['user_id'] = user.id
     
-    now = datetime.now()
-    is_premium = user.is_premium or user.is_superuser or (user.trial_ends and user.trial_ends > now)
-    
     return jsonify({
         'success': True,
-        'user': {
-            'id': user.id,
-            'email': user.email,
-            'is_premium': is_premium,
-            'is_superuser': user.is_superuser,
-            'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None,
-            'unit_size': user.unit_size
-        }
+        'user': serialize_user(user)
     })
 
 @app.route('/api/auth/logout', methods=['POST'])
