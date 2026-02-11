@@ -83,7 +83,7 @@ class Pick(db.Model):
     home_team = db.Column(db.String, nullable=False)
     game_date = db.Column(db.String, nullable=False)
     side = db.Column(db.String, nullable=False)
-    line = db.Column(db.Integer, default=-110)
+    line = db.Column(db.Float, default=-110)
     edge_pct = db.Column(db.Float, nullable=False)
     model_confidence = db.Column(db.Float, nullable=False)
     result = db.Column(db.String, default='pending')

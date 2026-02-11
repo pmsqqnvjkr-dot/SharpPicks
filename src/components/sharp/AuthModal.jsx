@@ -1,18 +1,42 @@
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 
-export default function AuthModal({ onClose }) {
-  const [mode, setMode] = useState('login');
+const API_BASE = '/api';
+
+export default function AuthModal({ onClose, initialMode }) {
+  const [mode, setMode] = useState(initialMode || 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { login, register } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setSubmitting(true);
+
+    if (mode === 'forgot') {
+      try {
+        const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSuccess('If that email exists, a password reset link has been sent.');
+        } else {
+          setError(data.error || 'Something went wrong.');
+        }
+      } catch {
+        setError('Network error. Please try again.');
+      }
+      setSubmitting(false);
+      return;
+    }
 
     const result = mode === 'login'
       ? await login(email, password)
@@ -24,6 +48,18 @@ export default function AuthModal({ onClose }) {
       setError(result.error);
     }
     setSubmitting(false);
+  };
+
+  const titles = {
+    login: 'Welcome back',
+    register: 'Create account',
+    forgot: 'Reset password',
+  };
+
+  const subtitles = {
+    login: 'Sign in to access your picks',
+    register: 'Start your 14-day free trial',
+    forgot: 'Enter your email to receive a reset link',
   };
 
   return (
@@ -59,7 +95,7 @@ export default function AuthModal({ onClose }) {
           marginBottom: '8px',
           textAlign: 'center',
         }}>
-          {mode === 'login' ? 'Welcome back' : 'Create account'}
+          {titles[mode]}
         </h2>
         <p style={{
           fontSize: '14px',
@@ -67,9 +103,7 @@ export default function AuthModal({ onClose }) {
           textAlign: 'center',
           marginBottom: '24px',
         }}>
-          {mode === 'login'
-            ? 'Sign in to access your picks'
-            : 'Start your 14-day free trial'}
+          {subtitles[mode]}
         </p>
 
         {error && (
@@ -83,6 +117,20 @@ export default function AuthModal({ onClose }) {
             color: 'var(--red-loss)',
           }}>
             {error}
+          </div>
+        )}
+
+        {success && (
+          <div style={{
+            backgroundColor: 'rgba(52, 211, 153, 0.1)',
+            border: '1px solid rgba(52, 211, 153, 0.2)',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            fontSize: '13px',
+            color: 'var(--green-profit)',
+          }}>
+            {success}
           </div>
         )}
 
@@ -113,40 +161,63 @@ export default function AuthModal({ onClose }) {
                 color: 'var(--text-primary)',
                 fontSize: '15px',
                 outline: 'none',
+                boxSizing: 'border-box',
               }}
             />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--text-secondary)',
-              marginBottom: '6px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}>
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              minLength={6}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: 'var(--surface-2)',
-                border: '1px solid var(--stroke-muted)',
-                borderRadius: '10px',
-                color: 'var(--text-primary)',
-                fontSize: '15px',
-                outline: 'none',
-              }}
-            />
-          </div>
+          {mode !== 'forgot' && (
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                marginBottom: '6px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                minLength={6}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: 'var(--surface-2)',
+                  border: '1px solid var(--stroke-muted)',
+                  borderRadius: '10px',
+                  color: 'var(--text-primary)',
+                  fontSize: '15px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          )}
+
+          {mode === 'login' && (
+            <div style={{ textAlign: 'right', marginBottom: '16px' }}>
+              <button
+                type="button"
+                onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-tertiary)',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -163,9 +234,13 @@ export default function AuthModal({ onClose }) {
               cursor: 'pointer',
               opacity: submitting ? 0.7 : 1,
               fontFamily: 'var(--font-sans)',
+              marginTop: mode === 'forgot' ? '8px' : '0',
             }}
           >
-            {submitting ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+            {submitting ? 'Please wait...'
+              : mode === 'login' ? 'Sign In'
+              : mode === 'register' ? 'Create Account'
+              : 'Send Reset Link'}
           </button>
         </form>
 
@@ -173,22 +248,39 @@ export default function AuthModal({ onClose }) {
           textAlign: 'center',
           marginTop: '16px',
         }}>
-          <button
-            onClick={() => {
-              setMode(mode === 'login' ? 'register' : 'login');
-              setError('');
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--blue-primary)',
-              fontSize: '13px',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-sans)',
-            }}
-          >
-            {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
-          </button>
+          {mode === 'forgot' ? (
+            <button
+              onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--blue-primary)',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+              }}
+            >
+              Back to sign in
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setMode(mode === 'login' ? 'register' : 'login');
+                setError('');
+                setSuccess('');
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--blue-primary)',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+              }}
+            >
+              {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
+            </button>
+          )}
         </div>
       </div>
     </div>

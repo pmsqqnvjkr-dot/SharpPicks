@@ -25,7 +25,7 @@ from sqlalchemy import func
 
 logging.basicConfig(level=logging.DEBUG)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='dist', static_url_path='')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
@@ -130,10 +130,6 @@ def calculate_streak(dates):
             break
     return streak
 
-@app.route('/')
-def index():
-    return "Sharp Picks API is running!"
-
 @app.route('/api/auth/user')
 def get_current_user():
     """Get current authenticated user info"""
@@ -219,6 +215,66 @@ def logout():
     """Logout current user"""
     session.pop('user_id', None)
     return jsonify({'success': True, 'message': 'Logged out'})
+
+
+@app.route('/api/auth/forgot-password', methods=['POST'])
+@limiter.limit("3 per minute")
+def forgot_password():
+    from itsdangerous import URLSafeTimedSerializer
+    data = request.get_json()
+    email = data.get('email', '').strip().lower()
+    if not email:
+        return jsonify({'error': 'Email required'}), 400
+
+    user = User.query.filter(func.lower(User.email) == email).first()
+    if not user:
+        return jsonify({'success': True, 'message': 'If that email exists, a reset link has been generated.'})
+
+    s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    token = s.dumps(user.id, salt='password-reset')
+    reset_url = f"{request.host_url}reset-password?token={token}"
+
+    logging.info(f"Password reset requested for {email}. Reset URL: {reset_url}")
+
+    return jsonify({
+        'success': True,
+        'message': 'If that email exists, a reset link has been generated.',
+        'reset_url': reset_url if os.environ.get('REPLIT_DEPLOYMENT') != '1' else None,
+    })
+
+
+@app.route('/api/auth/reset-password', methods=['POST'])
+@limiter.limit("5 per minute")
+def reset_password():
+    from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+    from werkzeug.security import generate_password_hash
+
+    data = request.get_json()
+    token = data.get('token', '')
+    new_password = data.get('password', '')
+
+    if not token or not new_password:
+        return jsonify({'error': 'Token and new password required'}), 400
+    if len(new_password) < 6:
+        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+
+    s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    try:
+        user_id = s.loads(token, salt='password-reset', max_age=3600)
+    except SignatureExpired:
+        return jsonify({'error': 'Reset link has expired. Please request a new one.'}), 400
+    except BadSignature:
+        return jsonify({'error': 'Invalid reset link.'}), 400
+
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({'error': 'User not found.'}), 400
+
+    user.password_hash = generate_password_hash(new_password)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'Password updated successfully.'})
+
 
 @app.route('/api/subscriptions/create-checkout', methods=['POST'])
 def create_checkout():
@@ -1200,18 +1256,19 @@ def get_recent_results():
         'count': len(results)
     })
 
-@app.route('/dashboard')
-def dashboard():
-    return Response('''<!DOCTYPE html>
-<html><head><title>Sharp Picks Dashboard</title></head>
-<body style="background:#0F172A;color:#fff;font-family:system-ui;text-align:center;padding:50px;">
-<h1>Sharp Picks Dashboard</h1>
-<p>API is running. Use the React frontend for the full experience.</p>
-</body></html>''', mimetype='text/html')
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_spa(path):
+    if path and os.path.exists(os.path.join(app.static_folder, path)):
+        return app.send_static_file(path)
+    return app.send_static_file('index.html')
+
 
 if __name__ == '__main__':
-    print("Starting Sharp Picks API on http://0.0.0.0:8000")
+    is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
+    port = 5000 if is_production else 8000
+    print(f"Starting Sharp Picks API on http://0.0.0.0:{port}")
     print("API endpoints available at /api/*")
     print("Auth endpoints available at /auth/*")
     print("Scheduled: Daily collection at 9:00 AM and 9:00 PM")
-    app.run(host='0.0.0.0', port=8000, debug=False, use_reloader=False)
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)

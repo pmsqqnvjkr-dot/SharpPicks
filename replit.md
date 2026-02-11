@@ -8,35 +8,38 @@ Sharp Picks is a sports betting discipline system. One pick per day maximum, onl
 - **Brier Score**: 0.139 (excellent calibration)
 - **Features**: 36 features including pace, ratings, line movement
 - **Backtest ROI**: +47.26% simulated on historical data
-- **Live Record**: 20-30 (migrated to PostgreSQL picks table)
+- **Live Record**: 6-1 (7 picks, 23 passes, 85.7% win rate, +436u)
 
 ## Tech Stack
-- **Frontend**: React + Vite (port 5000), inline CSS with design tokens
-- **Backend**: Python/Flask (port 8000)
+- **Frontend**: React + Vite (port 5000 dev), inline CSS with design tokens
+- **Backend**: Python/Flask (port 8000 dev, port 5000 production via gunicorn)
 - **Databases**: 
   - PostgreSQL (via DATABASE_URL) - Users, picks, passes, model runs, bets, referrals
   - SQLite (sharp_picks.db) - Legacy games/predictions, ML model training data
-- **Auth**: Email/Password (Flask-Login with session management)
+- **Auth**: Email/Password (Flask-Login with session management, password reset via tokens)
 - **Payments**: Stripe integration (via Replit connector)
 - **Design**: Dark theme (#0A0D14), IBM Plex Serif + Inter + JetBrains Mono
+- **Deployment**: Autoscale via gunicorn, Vite build → Flask serves static files
 
 ## App Architecture
 
 ### Frontend (React + Vite)
-- `src/App.jsx` - Router entry point
-- `src/pages/SharpPicksApp.jsx` - Main 3-tab shell (Today, Dashboard, Profile)
+- `src/App.jsx` - Router entry point (main app + password reset route)
+- `src/pages/SharpPicksApp.jsx` - Main 3-tab shell with landing page for new visitors
+- `src/pages/ResetPassword.jsx` - Password reset page (token-based)
 - `src/hooks/useApi.js` - API fetch hooks
 - `src/hooks/useAuth.jsx` - Auth context provider
 - `src/index.css` - Design tokens (CSS variables, fonts)
 
 ### Components (`src/components/sharp/`)
+- `LandingPage.jsx` - Marketing landing page for non-authenticated visitors
 - `TabNav.jsx` - Bottom tab navigation (Today, Dashboard, Profile)
 - `TodayTab.jsx` - Today's pick/pass/waiting state display
 - `PickCard.jsx` - Pick detail card (locked for free users)
 - `NoPickCard.jsx` - "Discipline preserved" pass day card
-- `DashboardTab.jsx` - Performance stats, equity curve, pick history
+- `DashboardTab.jsx` - Performance stats, equity curve, streaks, monthly breakdown
 - `ProfileTab.jsx` - User profile, settings menu, pricing plans
-- `AuthModal.jsx` - Login/register modal
+- `AuthModal.jsx` - Login/register/forgot-password modal
 - `PickHistoryScreen.jsx` - Full pick history with filtering
 - `HowItWorksScreen.jsx` - Model methodology and stats
 - `BetTrackingScreen.jsx` - User bet tracking
@@ -44,7 +47,7 @@ Sharp Picks is a sports betting discipline system. One pick per day maximum, onl
 - `NotificationsScreen.jsx` - Notification preferences
 
 ### Backend (Flask)
-- `app.py` - Main Flask app with auth, Stripe, scheduled tasks
+- `app.py` - Main Flask app with auth, Stripe, scheduled tasks, SPA serving
 - `models.py` - SQLAlchemy models (User, Pick, Pass, ModelRun, UserBet, Referral, FoundingCounter, TrackedBet)
 - `picks_api.py` - /api/picks/* endpoints (today, history, detail)
 - `public_api.py` - /api/public/* endpoints (record, stats, founding-count)
@@ -70,6 +73,7 @@ Sharp Picks is a sports betting discipline system. One pick per day maximum, onl
 
 ### API Endpoints
 - Auth: /api/auth/register, /api/auth/login, /api/auth/logout, /api/auth/user
+- Auth: /api/auth/forgot-password, /api/auth/reset-password
 - Picks: /api/picks/today, /api/picks/history, /api/picks/:id
 - Public: /api/public/record, /api/public/stats, /api/public/founding-count
 - Subscriptions: /api/subscriptions/create-checkout, /api/subscriptions/cancel, /api/subscriptions/status
@@ -85,15 +89,21 @@ Sharp Picks is a sports betting discipline system. One pick per day maximum, onl
 - Founding member system: first 500 paid subscribers get $99/yr rate
 - Pricing: Free / $29 monthly / $99 annual (founding) / $149 annual (standard)
 - Calm, institutional tone - no FOMO, no exclamation marks
+- Landing page for new visitors, app shell for returning users
+- Password reset via secure time-limited tokens (1 hour expiry)
+- Webhook signature verification required in production
 
 ## Recent Changes
+- **Feb 11**: Fixed data integrity - deduplicated picks to 1/day, backfilled 23 pass records
+- **Feb 11**: Improved Dashboard with streak tracking, monthly breakdown, gradient equity curve
+- **Feb 11**: Built landing page with live stats, value props, and founding member CTA
+- **Feb 11**: Added password reset flow (forgot password + token-based reset page)
+- **Feb 11**: Production deployment config (gunicorn, Vite build, SPA serving)
+- **Feb 11**: Fixed webhook to properly track trial status and enforce signature in production
 - **Feb 11**: Complete frontend redesign with new design system (dark theme, 3 fonts)
 - **Feb 11**: Built 3-tab layout: Today, Dashboard, Profile
 - **Feb 11**: Added Pick History, How It Works, Bet Tracking, Referral, Notifications screens
 - **Feb 11**: Stripe subscription checkout with founding member logic
-- **Feb 11**: Migrated 50 historical predictions from SQLite to PostgreSQL picks table
-- **Feb 11**: Updated webhook to handle subscription lifecycle events
-- **Feb 11**: Cleaned up old unused frontend files
 
 ## User Preferences
 - Focus on spread predictions (not moneylines)
