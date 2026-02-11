@@ -42,7 +42,7 @@ Sharp Picks is a sports betting discipline system. One pick per day maximum, onl
 - `AuthModal.jsx` - Login/register/forgot-password modal
 - `PickHistoryScreen.jsx` - Full pick history with filtering
 - `HowItWorksScreen.jsx` - Model methodology and stats
-- `BetTrackingScreen.jsx` - User bet tracking
+- `BetTrackingScreen.jsx` - Personal bet tracking with dashboard (equity curve, streaks, monthly breakdown)
 - `ReferralScreen.jsx` - Referral code and link sharing
 - `NotificationsScreen.jsx` - Notification preferences
 
@@ -94,6 +94,7 @@ Sharp Picks is a sports betting discipline system. One pick per day maximum, onl
 - Webhook signature verification required in production
 
 ## Recent Changes
+- **Feb 11**: Built personalized bet tracking dashboard with equity curve, streaks, monthly breakdown, and detailed stats
 - **Feb 11**: Enhanced bet tracking with add-bet form, result marking (W/L), deletion, and personal P&L stats
 - **Feb 11**: Auto-grading system: scheduled job checks game results and grades pending picks at 11:30 PM
 - **Feb 11**: Pro gating on pick history: free users see teams/dates/results but side/edge are locked

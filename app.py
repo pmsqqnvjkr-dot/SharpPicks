@@ -696,7 +696,7 @@ def check_trial():
 
 @app.route('/api/user/stats')
 def get_user_stats():
-    """Get user's betting stats from tracked bets"""
+    """Get user's betting stats from tracked bets with equity curve and streak data"""
     user = get_current_user_from_session()
     if not user:
         return jsonify({'error': 'Not authenticated'}), 401
@@ -704,17 +704,87 @@ def get_user_stats():
     bets = TrackedBet.query.filter_by(user_id=user['id']).all()
     
     settled = [b for b in bets if b.result]
+    settled_sorted = sorted(settled, key=lambda x: x.created_at)
     wins = sum(1 for b in settled if b.result == 'W')
     losses = sum(1 for b in settled if b.result == 'L')
+    pushes = sum(1 for b in settled if b.result == 'P')
     total_profit = sum(b.profit or 0 for b in settled)
     total_risked = sum(b.bet_amount or 0 for b in settled)
     
-    win_streak = 0
-    for b in sorted(settled, key=lambda x: x.created_at, reverse=True):
+    current_streak = 0
+    current_streak_type = ''
+    best_win_streak = 0
+    worst_loss_streak = 0
+    ws = 0
+    ls = 0
+    for b in settled_sorted:
         if b.result == 'W':
-            win_streak += 1
+            ws += 1
+            ls = 0
+            best_win_streak = max(best_win_streak, ws)
+        elif b.result == 'L':
+            ls += 1
+            ws = 0
+            worst_loss_streak = max(worst_loss_streak, ls)
+        else:
+            ws = 0
+            ls = 0
+    
+    for b in reversed(settled_sorted):
+        if not current_streak_type:
+            current_streak_type = b.result
+            current_streak = 1
+        elif b.result == current_streak_type:
+            current_streak += 1
         else:
             break
+    
+    equity_curve = []
+    running = 0
+    for b in settled_sorted:
+        running += (b.profit or 0)
+        equity_curve.append({
+            'date': b.created_at.strftime('%Y-%m-%d') if b.created_at else None,
+            'value': round(running, 2),
+            'label': b.pick,
+            'result': b.result,
+        })
+    
+    monthly = {}
+    for b in settled_sorted:
+        key = b.created_at.strftime('%Y-%m') if b.created_at else 'unknown'
+        if key not in monthly:
+            monthly[key] = {'wins': 0, 'losses': 0, 'pnl': 0, 'bets': 0, 'risked': 0}
+        monthly[key]['bets'] += 1
+        monthly[key]['risked'] += (b.bet_amount or 0)
+        monthly[key]['pnl'] += (b.profit or 0)
+        if b.result == 'W':
+            monthly[key]['wins'] += 1
+        elif b.result == 'L':
+            monthly[key]['losses'] += 1
+    
+    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    monthly_breakdown = []
+    for key in sorted(monthly.keys(), reverse=True):
+        parts = key.split('-')
+        if len(parts) == 2:
+            label = f"{month_names[int(parts[1])-1]} {parts[0]}"
+        else:
+            label = key
+        m = monthly[key]
+        monthly_breakdown.append({
+            'label': label,
+            'wins': m['wins'],
+            'losses': m['losses'],
+            'bets': m['bets'],
+            'pnl': round(m['pnl'], 2),
+            'roi': round(m['pnl'] / m['risked'] * 100, 1) if m['risked'] > 0 else 0,
+        })
+    
+    avg_bet = round(total_risked / len(settled), 2) if settled else 0
+    avg_odds = round(sum(b.odds or 0 for b in settled) / len(settled)) if settled else 0
+    biggest_win = max((b.profit or 0 for b in settled), default=0)
+    biggest_loss = min((b.profit or 0 for b in settled), default=0)
     
     roi = (total_profit / total_risked * 100) if total_risked > 0 else 0
     win_rate = (wins / len(settled) * 100) if settled else 0
@@ -722,12 +792,25 @@ def get_user_stats():
     return jsonify({
         'totalProfit': round(total_profit, 2),
         'roi': round(roi, 1),
-        'winStreak': win_streak,
         'totalBets': len(settled),
+        'pendingBets': len(bets) - len(settled),
         'wins': wins,
         'losses': losses,
+        'pushes': pushes,
         'winRate': round(win_rate, 1),
-        'projectedMonth': round(total_profit * 2.2, 2) if total_profit > 0 else 0
+        'totalRisked': round(total_risked, 2),
+        'avgBet': avg_bet,
+        'avgOdds': avg_odds,
+        'biggestWin': round(biggest_win, 2),
+        'biggestLoss': round(biggest_loss, 2),
+        'streak': {
+            'current': current_streak,
+            'currentType': current_streak_type,
+            'bestWin': best_win_streak,
+            'worstLoss': worst_loss_streak,
+        },
+        'equityCurve': equity_curve,
+        'monthlyBreakdown': monthly_breakdown,
     })
 
 @app.route('/api/bets', methods=['GET'])
