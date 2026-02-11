@@ -1,0 +1,350 @@
+# Sharp Picks — Project Specification
+
+## What This Is
+
+Sharp Picks is a sports betting discipline system. One pick per day maximum, only when the model detects a statistical edge above threshold. Most days, the app says nothing. Silence is the product working.
+
+**This document is the master reference for building Sharp Picks.** It covers the full deliverable inventory, screen map, data architecture, API requirements, and launch checklist.
+
+-----
+
+## Deliverable Inventory
+
+|File                       |What It Is                                                       |Status                 |
+|---------------------------|-----------------------------------------------------------------|-----------------------|
+|`sharp-picks-flows.html`   |27-screen app prototype (open in browser, arrow keys to navigate)|✅ Final                |
+|`sharppicks-landing.html`  |.com landing page                                                |✅ Final                |
+|`sharppicks-record.html`   |Public transparency / record page                                |✅ Final                |
+|`sharppicks-legal.html`    |Legal policies (web version)                                     |⚠️ Needs attorney review|
+|`sharppicks-legal.pdf`     |Legal policies (PDF for attorney)                                |⚠️ Needs attorney review|
+|`sharp-picks-app-icons.zip`|All icon sizes (iOS, Android, web)                               |✅ Final                |
+|`sharp-picks-appstore.md`  |App Store listing copy                                           |✅ Final                |
+|This file                  |Developer specification                                          |✅ Final                |
+
+**Ignore old versions:** `sharp-picks-flows-v2.html` and `sharp-picks-v3.html` are superseded. `sharp-picks-flows.html` is canonical.
+
+-----
+
+## Screen Map (27 Screens)
+
+### Active Screens (25) — Implement These
+
+|# |Screen            |Tab      |Trigger                                    |
+|--|------------------|---------|-------------------------------------------|
+|01|Landing           |—        |First launch (not logged in)               |
+|02|Signup            |—        |Tap “Start Free”                           |
+|04|Pick Card         |Today    |Model found a qualifying edge              |
+|05|No Pick           |Today    |No qualifying edge today                   |
+|06|Track Outcome     |Today    |Tap “Track Bet” on Pick Card               |
+|07|Dashboard         |Dashboard|Always available for Pro users             |
+|08|Free Tier         |Today    |Free user, pick available but locked       |
+|09|Upgrade           |—        |Tap upgrade CTA                            |
+|10|Cancel            |—        |Tap cancel in Settings                     |
+|11|Empty States      |Today    |First day, no data yet                     |
+|12|Error States      |—        |Network failure, model error               |
+|13|Settings          |Profile  |Always available                           |
+|15|Notifications     |Profile  |From Settings                              |
+|16|How It Works      |Profile  |From Settings                              |
+|17|Pick History      |Profile  |From Settings or Dashboard                 |
+|18|Daily Model Brief |Today    |No-pick days, model ran but passed         |
+|19|Loss Resolution   |Today    |Pick resolved as loss                      |
+|20|Weekly Summary    |Dashboard|Mondays, or from Dashboard                 |
+|21|Onboarding v2     |—        |After signup + email verification (4 steps)|
+|22|Win Resolution    |Today    |Pick resolved as win                       |
+|23|Loading State     |Today    |App opening, checking model output         |
+|24|Push Notification |—        |Lock screen notifications                  |
+|25|Email Verification|—        |After signup, before onboarding            |
+|26|Referral          |Profile  |From Settings                              |
+|27|Monthly→Annual    |—        |Triggered at 60 days for monthly users     |
+
+### Deprecated Screens (2) — Do NOT Implement
+
+|# |Screen                     |Replaced By                                  |
+|--|---------------------------|---------------------------------------------|
+|03|Onboarding (old)           |Screen 21 (Onboarding v2)                    |
+|14|Founder’s Note (standalone)|Lives inside Screen 21 Step 4 + Settings link|
+
+### Tab Navigation
+
+Three tabs at bottom of app:
+
+|Tab      |Icon  |Default Screen                         |Contains                                                                          |
+|---------|------|---------------------------------------|----------------------------------------------------------------------------------|
+|Today    |Clock |Pick Card / No Pick / Daily Model Brief|Context-dependent on model output                                                 |
+|Dashboard|Chart |Dashboard                              |Equity curve, stats, Weekly Summary                                               |
+|Profile  |Person|Settings                               |Settings, Notifications, How It Works, Pick History, Referral, Founder’s Note link|
+
+-----
+
+## Data Architecture
+
+### Core Tables
+
+```
+users
+├── id (uuid, primary key)
+├── email (unique)
+├── password_hash
+├── display_name
+├── created_at
+├── email_verified (boolean)
+├── founding_member (boolean)
+├── founding_number (integer, 1-500, nullable)
+├── subscription_status (free | trial | active | paused | cancelled)
+├── subscription_plan (monthly | annual_founding | annual_standard)
+├── trial_start_date
+├── trial_end_date
+├── subscription_start_date
+├── current_period_end
+├── stripe_customer_id
+├── referral_code (unique, e.g. "SHARP-AX7K")
+├── referred_by (user_id, nullable)
+├── notification_prefs (jsonb)
+└── updated_at
+
+picks (APPEND-ONLY — no deletes, no updates to side/line/edge after publish)
+├── id (uuid, primary key)
+├── published_at (timestamp)
+├── sport (e.g. "nba")
+├── away_team
+├── home_team
+├── game_date
+├── side (e.g. "Knicks -3.5")
+├── line (e.g. -110)
+├── edge_pct (e.g. 4.1)
+├── model_confidence
+├── result (pending | win | loss)
+├── result_resolved_at (timestamp, nullable)
+├── pnl (decimal, nullable, e.g. +91 or -110)
+└── notes (nullable, internal)
+
+passes (APPEND-ONLY)
+├── id (uuid, primary key)
+├── date
+├── sport
+├── games_analyzed (integer)
+├── closest_edge_pct (decimal)
+├── model_run_id
+└── created_at
+
+model_runs
+├── id (uuid, primary key)
+├── date
+├── sport
+├── games_analyzed (integer)
+├── pick_generated (boolean)
+├── pick_id (nullable, references picks)
+├── pass_id (nullable, references passes)
+├── run_duration_ms
+├── model_version
+└── created_at
+
+user_bets (optional — user-entered tracking)
+├── id (uuid, primary key)
+├── user_id (references users)
+├── pick_id (references picks)
+├── wager_amount (decimal)
+├── tracked_at
+└── user_notes (nullable)
+
+referrals
+├── id (uuid, primary key)
+├── referrer_id (references users)
+├── referred_id (references users)
+├── code_used
+├── days_credited (integer, default 14)
+├── created_at
+└── status (pending | active | expired)
+
+founding_counter
+├── current_count (integer, starts at 0, max 500)
+├── last_updated_at
+└── closed (boolean, false until count = 500)
+```
+
+### Key Constraints
+
+- `picks` and `passes` tables are APPEND-ONLY. No UPDATE or DELETE operations. This is a brand promise.
+- `founding_member` is set to `true` on first successful payment, never retroactively.
+- `founding_number` is assigned sequentially from `founding_counter`.
+- `referral_code` is auto-generated on account creation (format: SHARP-XXXX).
+- One pick per day maximum (enforced at model level, not database level).
+- `edge_pct` must be >= 3.5 to generate a pick (threshold configurable per model version).
+
+-----
+
+## API Endpoints
+
+### Auth
+
+```
+POST /auth/signup          { email, password }
+POST /auth/verify-email    { token }
+POST /auth/login           { email, password }
+POST /auth/forgot-password { email }
+POST /auth/reset-password  { token, new_password }
+DELETE /auth/account        (requires confirmation)
+```
+
+### Picks & Passes
+
+```
+GET /picks/today           → Pick or Pass for today
+GET /picks/history         → All picks (paginated)
+GET /picks/:id             → Single pick with full detail
+GET /passes/history        → All passes (paginated)
+```
+
+### Public Record (no auth required)
+
+```
+GET /public/record         → All picks + passes + aggregate stats
+GET /public/stats          → ROI, record, selectivity, capital preserved
+GET /public/founding-count → { current: 127, total: 500, open: true }
+```
+
+### Subscriptions
+
+```
+POST /subscriptions/create    { plan, payment_method }
+POST /subscriptions/cancel
+POST /subscriptions/pause     { duration_days: 30 }
+POST /subscriptions/resume
+POST /subscriptions/switch    { new_plan }
+GET  /subscriptions/current   → Plan, status, founding member, next billing
+```
+
+### User
+
+```
+GET  /user/profile
+PUT  /user/notifications     { pick_alert, no_action, outcome, weekly_summary }
+GET  /user/referral          → Code, referral count, days earned
+POST /user/bet-tracking      { pick_id, wager_amount }
+```
+
+### Webhooks (Stripe)
+
+```
+POST /webhooks/stripe    → payment_succeeded, subscription_cancelled, payment_failed
+```
+
+-----
+
+## Push Notification Rules
+
+|Type                 |Trigger                    |Max Frequency|Default|
+|---------------------|---------------------------|-------------|-------|
+|Qualified opportunity|Pick published             |1/day        |On     |
+|No action today      |All games analyzed, no edge|1/day        |Off    |
+|Outcome resolved     |Pick result final          |1/day        |On     |
+|Weekly summary       |Monday 9:00 AM EST         |1/week       |On     |
+
+**Language rules:** No urgency. No FOMO. No exclamation marks. Factual, calm, institutional.
+
+-----
+
+## Pricing Logic
+
+|Plan             |Price  |Billing  |Availability              |
+|-----------------|-------|---------|--------------------------|
+|Free             |$0     |—        |Always                    |
+|Monthly          |$29/mo |Recurring|Always                    |
+|Annual (Founding)|$99/yr |Recurring|First 500 paid subscribers|
+|Annual (Standard)|$149/yr|Recurring|After 500 founding members|
+
+- **14-day free trial** on all paid plans
+- Trial starts on signup, converts on day 15
+- Founding rate locked while subscription is active and continuous
+- Founding rate lost permanently on cancellation
+- Monthly-to-annual conversion prompt at day 60
+- Pause option: 30 days, retains plan and founding status
+
+-----
+
+## Design System Tokens
+
+```css
+--bg-primary: #0A0D14;
+--surface-1: #121725;
+--surface-2: #161C2E;
+--text-primary: #EEF2FF;
+--text-secondary: #9AA3B2;
+--text-tertiary: #6B7280;
+--blue-primary: #4F86F7;
+--blue-deep: #2F5FD6;
+--green-profit: #34D399;
+--green-dark: #10B981;
+--red-loss: #EF4444;
+--gold-pro: #F59E0B;
+--stroke-subtle: rgba(255,255,255,0.08);
+--stroke-muted: rgba(255,255,255,0.12);
+
+--font-serif: 'IBM Plex Serif'
+--font-sans: 'Inter'
+--font-mono: 'JetBrains Mono'
+```
+
+-----
+
+## Recommended Tech Stack
+
+|Layer      |Tool                  |Why                                           |
+|-----------|----------------------|----------------------------------------------|
+|Mobile     |SwiftUI (iOS first)   |Native performance, App Store submission      |
+|Backend    |Python (FastAPI)      |Model is likely Python, fast API dev          |
+|Database   |PostgreSQL            |Relational, audit trail, append-only tables   |
+|Auth       |Supabase Auth         |Simple, handles email verification            |
+|Payments   |RevenueCat            |Handles Apple IAP + Stripe, subscription logic|
+|Push       |OneSignal or FCM      |Cross-platform push                           |
+|Hosting    |Railway or Fly.io     |Easy Python deploys                           |
+|Web        |Cloudflare Pages      |Landing, record, legal pages                  |
+|Sports Data|The Odds API          |Lines, scores, affordable                     |
+|Cron       |Built-in (Railway/Fly)|Daily model run, weekly summary               |
+
+-----
+
+## Launch Checklist
+
+### Before Launch
+
+- [ ] Attorney reviews legal policies (5 docs)
+- [ ] Model backtested with out-of-sample validation
+- [ ] 30-day paper trading on Twitter (build record + audience)
+- [ ] Stripe / RevenueCat configured with all plan tiers
+- [ ] Push notification system tested
+- [ ] App Store listing submitted (icon, screenshots, copy)
+- [ ] Landing page, record page, legal page deployed
+- [ ] Email verification flow working
+- [ ] Founding counter initialized at 0
+
+### Launch Day
+
+- [ ] Open signups to Twitter followers first (soft launch)
+- [ ] Founding counter live on landing page and record page
+- [ ] First model run and daily brief published
+- [ ] Monitor trial starts and conversion funnel
+
+### Day 30
+
+- [ ] Review trial-to-paid conversion rate
+- [ ] Review churn rate
+- [ ] First cohort of monthly users approaching conversion prompt (day 60)
+- [ ] Assess if founding counter needs visibility on pricing page
+
+### Day 90
+
+- [ ] 200 paying users target
+- [ ] Open to public
+- [ ] Add referral program if not yet active
+- [ ] Evaluate monthly vs annual mix
+- [ ] Consider adding MLB/NHL if demand exists
+
+-----
+
+## Brand Voice Rules
+
+**Do:** Factual. Calm. Institutional. Transparent. Short sentences.
+**Don’t:** Urgency. FOMO. Exclamation marks. “Lock” or “guarantee.” Hype.
+
+The copy should read like a Bloomberg terminal, not a sports betting ad.
