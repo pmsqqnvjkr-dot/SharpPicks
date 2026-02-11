@@ -20,21 +20,17 @@ export default function LandingPage({ onEnterApp }) {
     }}>
       <div style={{ padding: '40px 24px 0' }}>
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <div style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '14px',
-            backgroundColor: 'var(--surface-1)',
-            border: '1px solid var(--stroke-subtle)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 20px',
-          }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-          </div>
+          <img
+            src="/logo-1024.png"
+            alt="Sharp Picks"
+            style={{
+              width: '72px',
+              height: '72px',
+              borderRadius: '16px',
+              margin: '0 auto 20px',
+              display: 'block',
+            }}
+          />
           <h1 style={{
             fontFamily: 'var(--font-serif)',
             fontSize: '32px',
