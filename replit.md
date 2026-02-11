@@ -94,15 +94,18 @@ Sharp Picks is a sports betting discipline system. One pick per day maximum, onl
 - Webhook signature verification required in production
 
 ## Recent Changes
+- **Feb 11**: Enhanced bet tracking with add-bet form, result marking (W/L), deletion, and personal P&L stats
+- **Feb 11**: Auto-grading system: scheduled job checks game results and grades pending picks at 11:30 PM
+- **Feb 11**: Pro gating on pick history: free users see teams/dates/results but side/edge are locked
+- **Feb 11**: Notification preferences now persist to backend (saved to user.notification_prefs)
+- **Feb 11**: Fixed SPA catch-all route conflict (removed duplicate root route)
 - **Feb 11**: Fixed data integrity - deduplicated picks to 1/day, backfilled 23 pass records
 - **Feb 11**: Improved Dashboard with streak tracking, monthly breakdown, gradient equity curve
 - **Feb 11**: Built landing page with live stats, value props, and founding member CTA
 - **Feb 11**: Added password reset flow (forgot password + token-based reset page)
 - **Feb 11**: Production deployment config (gunicorn, Vite build, SPA serving)
-- **Feb 11**: Fixed webhook to properly track trial status and enforce signature in production
 - **Feb 11**: Complete frontend redesign with new design system (dark theme, 3 fonts)
 - **Feb 11**: Built 3-tab layout: Today, Dashboard, Profile
-- **Feb 11**: Added Pick History, How It Works, Bet Tracking, Referral, Notifications screens
 - **Feb 11**: Stripe subscription checkout with founding member logic
 
 ## User Preferences

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { apiGet, apiPost } from '../../hooks/useApi';
 
 export default function NotificationsScreen({ onBack }) {
   const { user } = useAuth();
@@ -9,9 +10,32 @@ export default function NotificationsScreen({ onBack }) {
     outcome: true,
     weekly_summary: true,
   });
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
-  const togglePref = (key) => {
-    setPrefs(prev => ({ ...prev, [key]: !prev[key] }));
+  useEffect(() => {
+    if (user) {
+      apiGet('/user/notifications').then(data => {
+        if (data.prefs) setPrefs(data.prefs);
+        setLoaded(true);
+      }).catch(() => setLoaded(true));
+    }
+  }, [user]);
+
+  const togglePref = async (key) => {
+    const updated = { ...prefs, [key]: !prefs[key] };
+    setPrefs(updated);
+
+    if (user) {
+      setSaving(true);
+      try {
+        await apiPost('/user/notifications', { prefs: updated });
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setSaving(false);
+      }
+    }
   };
 
   return (
@@ -27,10 +51,18 @@ export default function NotificationsScreen({ onBack }) {
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
-        <h1 style={{
-          fontFamily: 'var(--font-serif)', fontSize: '22px',
-          fontWeight: 600, color: 'var(--text-primary)',
-        }}>Notifications</h1>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1 style={{
+            fontFamily: 'var(--font-serif)', fontSize: '22px',
+            fontWeight: 600, color: 'var(--text-primary)',
+          }}>Notifications</h1>
+          {saving && (
+            <span style={{
+              fontSize: '11px', color: 'var(--blue-primary)',
+              fontFamily: 'var(--font-mono)',
+            }}>Saving...</span>
+          )}
+        </div>
       </div>
 
       <div style={{ padding: '0 20px' }}>
@@ -69,7 +101,9 @@ export default function NotificationsScreen({ onBack }) {
           fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '16px',
           lineHeight: '1.5', textAlign: 'center',
         }}>
-          Notification delivery requires a paid subscription. Preferences are saved automatically.
+          {user
+            ? 'Preferences are saved automatically to your account.'
+            : 'Sign in to save your notification preferences.'}
         </p>
       </div>
     </div>

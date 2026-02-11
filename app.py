@@ -103,9 +103,71 @@ def collect_todays_games():
     except Exception as e:
         print(f"[{datetime.now()}] Collection error: {e}")
 
+def grade_pending_picks():
+    """Check game results and grade pending picks as win/loss"""
+    with app.app_context():
+        pending_picks = Pick.query.filter_by(result='pending').all()
+        if not pending_picks:
+            return
+
+        try:
+            conn = sqlite3.connect('sharp_picks.db')
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            for pick in pending_picks:
+                cursor.execute('''
+                    SELECT home_score, away_score, home_team, away_team
+                    FROM games
+                    WHERE home_team = ? AND away_team = ? AND game_date LIKE ?
+                    AND home_score IS NOT NULL AND away_score IS NOT NULL
+                ''', (pick.home_team, pick.away_team, f'{pick.game_date[:10]}%'))
+
+                game = cursor.fetchone()
+                if not game:
+                    continue
+
+                home_score = game['home_score']
+                away_score = game['away_score']
+                if home_score is None or away_score is None:
+                    continue
+
+                spread_result = home_score - away_score
+                line_value = pick.line if pick.line and abs(pick.line) < 50 else 0
+
+                side_lower = pick.side.lower()
+                home_lower = pick.home_team.lower()
+                away_lower = pick.away_team.lower()
+                is_home_pick = home_lower in side_lower or any(
+                    word in side_lower for word in home_lower.split() if len(word) > 3
+                )
+                is_away_pick = away_lower in side_lower or any(
+                    word in side_lower for word in away_lower.split() if len(word) > 3
+                )
+                if not is_home_pick and not is_away_pick:
+                    print(f"[Auto-grade] Cannot determine side for: {pick.side} ({pick.home_team} vs {pick.away_team})")
+                    continue
+
+                if is_home_pick and not is_away_pick:
+                    covered = (spread_result + line_value) > 0
+                else:
+                    covered = (-spread_result + line_value) > 0
+
+                pick.result = 'win' if covered else 'loss'
+                pick.pnl = 91 if covered else -100
+                pick.result_resolved_at = datetime.now()
+
+                print(f"[Auto-grade] {pick.game_date}: {pick.side} -> {pick.result} (score: {home_score}-{away_score})")
+
+            conn.close()
+            db.session.commit()
+        except Exception as e:
+            print(f"[Auto-grade] Error: {e}")
+
 scheduler = BackgroundScheduler()
 scheduler.add_job(collect_todays_games, 'cron', hour=9, minute=0, id='daily_collection')
 scheduler.add_job(collect_todays_games, 'cron', hour=21, minute=0, id='evening_collection')
+scheduler.add_job(grade_pending_picks, 'cron', hour=23, minute=30, id='grade_picks')
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
@@ -765,6 +827,27 @@ def delete_bet(bet_id):
     db.session.commit()
     
     return jsonify({'success': True})
+
+@app.route('/api/user/notifications', methods=['GET'])
+def get_notification_prefs():
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
+    u = User.query.get(user['id'])
+    return jsonify({'prefs': u.notification_prefs or {
+        'pick_alert': True, 'no_action': False, 'outcome': True, 'weekly_summary': True
+    }})
+
+@app.route('/api/user/notifications', methods=['POST'])
+def update_notification_prefs():
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
+    data = request.get_json()
+    u = User.query.get(user['id'])
+    u.notification_prefs = data.get('prefs', u.notification_prefs)
+    db.session.commit()
+    return jsonify({'success': True, 'prefs': u.notification_prefs})
 
 @app.route('/api/model/calibration')
 @app.route('/api/validation/detailed')

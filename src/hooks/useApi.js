@@ -48,3 +48,11 @@ export async function apiGet(endpoint) {
   });
   return res.json();
 }
+
+export async function apiDelete(endpoint) {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  return res.json();
+}

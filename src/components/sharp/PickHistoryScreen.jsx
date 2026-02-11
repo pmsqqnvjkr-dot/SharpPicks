@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useApi } from '../../hooks/useApi';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function PickHistoryScreen({ onBack }) {
   const { data, loading } = useApi('/public/record');
+  const { user } = useAuth();
   const [filter, setFilter] = useState('all');
 
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
   const picks = data?.picks || [];
   const filtered = filter === 'all' ? picks
     : filter === 'wins' ? picks.filter(p => p.result === 'win')
@@ -38,6 +41,23 @@ export default function PickHistoryScreen({ onBack }) {
           }}>{picks.length} total picks</p>
         </div>
       </div>
+
+      {data?.stats && (
+        <div style={{ padding: '0 20px 12px' }}>
+          <div style={{
+            backgroundColor: 'var(--surface-1)', borderRadius: '12px',
+            padding: '16px 20px', border: '1px solid var(--stroke-subtle)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <div style={{ display: 'flex', gap: '20px' }}>
+              <SmallStat label="Record" value={`${data.stats.wins}-${data.stats.losses}`} />
+              <SmallStat label="Win Rate" value={`${data.stats.win_rate}%`} />
+              <SmallStat label="P&L" value={`${data.stats.pnl >= 0 ? '+' : ''}${data.stats.pnl}u`}
+                color={data.stats.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'} />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{
         padding: '0 20px 12px', display: 'flex', gap: '8px',
@@ -76,7 +96,16 @@ export default function PickHistoryScreen({ onBack }) {
                 <div>
                   <div style={{
                     fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
-                  }}>{pick.side}</div>
+                  }}>
+                    {isPro ? pick.side : (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        <span style={{ color: 'var(--text-tertiary)' }}>Upgrade to view</span>
+                      </span>
+                    )}
+                  </div>
                   <div style={{
                     fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
                   }}>{pick.away_team} @ {pick.home_team}</div>
@@ -92,10 +121,10 @@ export default function PickHistoryScreen({ onBack }) {
                       : pick.result === 'loss' ? 'var(--red-loss)' : 'var(--text-tertiary)',
                   }}>
                     {pick.result === 'win' ? `+${pick.pnl || 91}u`
-                      : pick.result === 'loss' ? `${pick.pnl || -110}u`
+                      : pick.result === 'loss' ? `${pick.pnl || -100}u`
                       : 'Pending'}
                   </div>
-                  {pick.edge_pct && (
+                  {isPro && pick.edge_pct && (
                     <div style={{
                       fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
                       fontFamily: 'var(--font-mono)',
@@ -107,6 +136,21 @@ export default function PickHistoryScreen({ onBack }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function SmallStat({ label, value, color }) {
+  return (
+    <div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '14px',
+        fontWeight: 600, color: color || 'var(--text-primary)',
+      }}>{value}</div>
+      <div style={{
+        fontSize: '10px', color: 'var(--text-tertiary)',
+        textTransform: 'uppercase', letterSpacing: '0.05em',
+      }}>{label}</div>
     </div>
   );
 }
