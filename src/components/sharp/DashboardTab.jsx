@@ -30,6 +30,13 @@ export default function DashboardTab() {
   const todayIsPass = todayData?.type === 'pass';
   const todayIsPick = todayData?.type === 'pick';
 
+  const totalPicks = stats?.total_picks || 0;
+  const passDays = stats?.capital_preserved_days || 0;
+  const totalDays = totalPicks + passDays || 1;
+  const selectivity = stats?.selectivity || Math.round((totalPicks / totalDays) * 100);
+  const daysPerBet = totalPicks > 0 ? (totalDays / totalPicks).toFixed(1) : '—';
+  const capitalPreserved = passDays * 100;
+
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
       <div style={{
@@ -173,87 +180,147 @@ export default function DashboardTab() {
         )}
 
         <div style={{
-          fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
-          textTransform: 'uppercase', letterSpacing: '0.06em',
-          marginBottom: '10px', marginTop: '8px',
-        }}>Behavioral Edge</div>
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px',
+          marginBottom: '12px',
+        }}>
+          <div style={{
+            backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+            border: '1px solid var(--stroke-subtle)', padding: '20px',
+            textAlign: 'center',
+          }}>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 700,
+              color: 'var(--text-primary)', marginBottom: '6px',
+            }}>{selectivity}%</div>
+            <div style={{
+              fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)',
+              textTransform: 'uppercase', letterSpacing: '0.08em',
+            }}>Selectivity</div>
+          </div>
+          <div style={{
+            backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+            border: '1px solid var(--stroke-subtle)', padding: '20px',
+            textAlign: 'center',
+          }}>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 700,
+              color: 'var(--text-primary)', marginBottom: '6px',
+            }}>{daysPerBet}</div>
+            <div style={{
+              fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)',
+              textTransform: 'uppercase', letterSpacing: '0.08em',
+            }}>Days / Bet</div>
+          </div>
+        </div>
 
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '16px',
           border: '1px solid var(--stroke-subtle)', padding: '20px',
           marginBottom: '12px',
         }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <EdgeStat label="Selectivity" value={`${stats?.selectivity || 0}%`} context="vs 78% industry" />
-            <EdgeStat label="Pass Days" value={stats?.capital_preserved_days || 0} context="capital preserved" />
-            <EdgeStat label="Win Rate" value={`${stats?.win_rate || 0}%`} context="on picks taken" />
-            <EdgeStat label="Avg Edge" value={`${stats?.avg_edge || 0}%`} context="when firing" />
-          </div>
+          <div style={{
+            fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)',
+            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px',
+          }}>Capital Preserved</div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '32px', fontWeight: 700,
+            color: 'var(--green-profit)', marginBottom: '10px',
+          }}>+${capitalPreserved.toLocaleString()}</div>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            Estimated bankroll saved by passing on {passDays} low-edge opportunities this season.
+          </p>
         </div>
 
-        {monthlyData.length > 0 && (
-          <>
-            <div style={{
-              fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
+        <div style={{
+          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+          border: '1px solid var(--stroke-subtle)', padding: '20px',
+          marginBottom: '12px',
+        }}>
+          <div style={{
+            fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)',
+            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px',
+          }}>Selectivity Spectrum</div>
+          <SelectivityBar selectivity={selectivity} />
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', marginTop: '8px',
+          }}>
+            <span style={{
+              fontSize: '9px', fontWeight: 600, color: 'var(--text-tertiary)',
               textTransform: 'uppercase', letterSpacing: '0.06em',
-              marginBottom: '10px', marginTop: '8px',
-            }}>Monthly Breakdown</div>
+            }}>Sharp (Selective)</span>
+            <span style={{
+              fontSize: '9px', fontWeight: 600, color: 'var(--text-tertiary)',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+            }}>Square (Volume)</span>
+          </div>
+          <p style={{
+            fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6',
+            marginTop: '14px',
+          }}>
+            You bet on <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectivity}%</span> of opportunities. The industry average is 78%. Fewer decisions, better decisions.
+          </p>
+        </div>
 
-            <div style={{
-              backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-              border: '1px solid var(--stroke-subtle)', overflow: 'hidden',
-              marginBottom: '12px',
-            }}>
-              {monthlyData.map((m, i) => (
-                <div key={i} style={{
-                  padding: '14px 20px',
-                  borderBottom: i < monthlyData.length - 1 ? '1px solid var(--stroke-subtle)' : 'none',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                }}>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                      {m.label}
-                    </div>
-                    <div style={{
-                      fontFamily: 'var(--font-mono)', fontSize: '12px',
-                      color: 'var(--text-tertiary)', marginTop: '2px',
-                    }}>
-                      {m.wins}W-{m.losses}L ({m.picks} picks)
-                    </div>
-                  </div>
-                  <div style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
-                    color: m.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
-                  }}>
-                    {m.pnl >= 0 ? '+' : ''}{m.pnl}u
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+        <div style={{
+          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+          border: '1px solid var(--stroke-subtle)', padding: '20px',
+          marginBottom: '12px',
+        }}>
+          <div style={{
+            fontSize: '10px', fontWeight: 600, color: 'var(--green-profit)',
+            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px',
+          }}>Behavioral Edge</div>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            Your selectivity rate is <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectivity}%</span> — industry average is 78%. This restraint compounds over time.
+          </p>
+        </div>
+
+        <p style={{
+          fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
+          textAlign: 'center', padding: '8px 20px 16px',
+        }}>
+          Past performance does not guarantee future results. This analysis reflects probabilities, not certainty.
+        </p>
       </div>
     </div>
   );
 }
 
-function EdgeStat({ label, value, context }) {
+function SelectivityBar({ selectivity }) {
+  const industryAvg = 78;
+  const userPos = Math.min(Math.max(selectivity, 0), 100);
+
   return (
-    <div>
+    <div style={{ position: 'relative', height: '28px' }}>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 700,
-        color: 'var(--text-primary)', marginBottom: '2px',
-      }}>{value}</div>
+        position: 'absolute', top: '0', left: '0', right: '0',
+        height: '8px', top: '10px',
+        backgroundColor: 'var(--surface-2)', borderRadius: '4px',
+      }} />
       <div style={{
-        fontSize: '11px', color: 'var(--text-tertiary)',
-        textTransform: 'uppercase', letterSpacing: '0.05em',
-      }}>{label}</div>
-      {context && (
-        <div style={{
-          fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
-          fontStyle: 'italic',
-        }}>{context}</div>
-      )}
+        position: 'absolute', left: '0', top: '10px',
+        width: `${userPos}%`, height: '8px',
+        background: 'linear-gradient(90deg, #4A90D9, #2563EB)',
+        borderRadius: '4px',
+      }} />
+      <div style={{
+        position: 'absolute', left: `${userPos}%`, top: '4px',
+        width: '4px', height: '20px',
+        backgroundColor: 'var(--text-primary)', borderRadius: '2px',
+        transform: 'translateX(-50%)',
+      }} />
+      <div style={{
+        position: 'absolute', left: `${industryAvg}%`, top: '0',
+        transform: 'translateX(-50%)',
+        fontSize: '8px', color: 'var(--text-tertiary)',
+        whiteSpace: 'nowrap',
+      }}>Industry avg ({industryAvg}%)</div>
+      <div style={{
+        position: 'absolute', left: `${industryAvg}%`, top: '10px',
+        width: '1px', height: '8px',
+        backgroundColor: 'var(--text-tertiary)',
+        opacity: 0.5,
+      }} />
     </div>
   );
 }
