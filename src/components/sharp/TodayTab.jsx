@@ -19,7 +19,7 @@ export default function TodayTab() {
 
   return (
     <div style={{ padding: '0' }}>
-      <Header stats={stats} user={user} onAuthClick={() => setShowAuth(true)} />
+      <Header user={user} onAuthClick={() => setShowAuth(true)} />
 
       <div style={{ padding: '0 20px' }}>
         {todayData?.type === 'pick' && (
@@ -46,67 +46,49 @@ export default function TodayTab() {
   );
 }
 
-function Header({ stats, user, onAuthClick }) {
-  const { logout } = useAuth();
-
+function Header({ user, onAuthClick }) {
   return (
     <div style={{
-      padding: '20px 20px 16px',
+      padding: '16px 20px',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
     }}>
-      <div>
-        <h1 style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '22px',
-          fontWeight: 600,
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <img src="/logo-1024.png" alt="" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
+        <span style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: '13px',
+          fontWeight: 700,
           color: 'var(--text-primary)',
-          letterSpacing: '-0.02em',
-        }}>
-          Sharp Picks
-        </h1>
-        <p style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '12px',
-          color: 'var(--text-tertiary)',
-          marginTop: '2px',
-        }}>
-          {stats ? `${stats.record} record` : 'Loading...'}
-        </p>
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+        }}>Sharp Picks</span>
       </div>
-      {user ? (
-        <button
-          onClick={logout}
-          style={{
-            background: 'none',
-            border: '1px solid var(--stroke-muted)',
-            borderRadius: '8px',
-            color: 'var(--text-secondary)',
-            padding: '8px 14px',
-            fontSize: '13px',
-            cursor: 'pointer',
-            fontFamily: 'var(--font-sans)',
-          }}
-        >
-          Sign Out
-        </button>
-      ) : (
+      {!user && (
         <button
           onClick={onAuthClick}
           style={{
-            background: 'none',
-            border: '1px solid var(--stroke-muted)',
-            borderRadius: '8px',
-            color: 'var(--text-primary)',
-            padding: '8px 14px',
-            fontSize: '13px',
-            cursor: 'pointer',
-            fontFamily: 'var(--font-sans)',
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-tertiary)', padding: '4px',
           }}
         >
-          Sign In
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
         </button>
+      )}
+      {user && (
+        <div style={{
+          width: '32px', height: '32px', borderRadius: '50%',
+          backgroundColor: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
+          fontFamily: 'var(--font-sans)',
+        }}>
+          {user.email ? user.email[0].toUpperCase() : 'U'}
+        </div>
       )}
     </div>
   );
@@ -123,20 +105,14 @@ function LoadingState() {
       gap: '16px',
     }}>
       <div style={{
-        width: '40px',
-        height: '40px',
-        borderRadius: '50%',
+        width: '40px', height: '40px', borderRadius: '50%',
         border: '3px solid var(--stroke-subtle)',
         borderTopColor: 'var(--blue-primary)',
         animation: 'spin 1s linear infinite',
       }} />
       <p style={{
-        fontFamily: 'var(--font-sans)',
-        fontSize: '14px',
-        color: 'var(--text-secondary)',
-      }}>
-        Checking model output...
-      </p>
+        fontFamily: 'var(--font-sans)', fontSize: '14px', color: 'var(--text-secondary)',
+      }}>Checking model output...</p>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -144,42 +120,25 @@ function LoadingState() {
 
 function WaitingCard() {
   return (
-    <div style={{
-      backgroundColor: 'var(--surface-1)',
-      borderRadius: '16px',
-      padding: '32px 24px',
-      textAlign: 'center',
-      border: '1px solid var(--stroke-subtle)',
-      marginTop: '8px',
-    }}>
+    <div style={{ textAlign: 'center', padding: '40px 0 24px' }}>
       <div style={{
-        width: '48px',
-        height: '48px',
-        borderRadius: '12px',
-        backgroundColor: 'var(--surface-2)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        margin: '0 auto 16px',
+        width: '64px', height: '64px', borderRadius: '16px',
+        backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        margin: '0 auto 24px',
       }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5">
           <circle cx="12" cy="12" r="10"/>
           <polyline points="12 6 12 12 16 14"/>
         </svg>
       </div>
       <h2 style={{
-        fontFamily: 'var(--font-serif)',
-        fontSize: '20px',
-        fontWeight: 600,
-        color: 'var(--text-primary)',
-        marginBottom: '8px',
-      }}>
-        Waiting for model
-      </h2>
+        fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
+        color: 'var(--text-primary)', marginBottom: '12px',
+      }}>Waiting for model</h2>
       <p style={{
-        fontSize: '14px',
-        color: 'var(--text-secondary)',
-        lineHeight: '1.6',
+        fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
+        maxWidth: '300px', margin: '0 auto',
       }}>
         The model has not run yet today. Games will be analyzed as data becomes available.
       </p>
@@ -189,52 +148,28 @@ function WaitingCard() {
 
 function DailyBrief({ stats }) {
   return (
-    <div style={{
-      backgroundColor: 'var(--surface-1)',
-      borderRadius: '16px',
-      padding: '32px 24px',
-      textAlign: 'center',
-      border: '1px solid var(--stroke-subtle)',
-      marginTop: '8px',
-    }}>
+    <div style={{ textAlign: 'center', padding: '40px 0 24px' }}>
       <div style={{
-        width: '48px',
-        height: '48px',
-        borderRadius: '12px',
-        backgroundColor: 'var(--surface-2)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        margin: '0 auto 16px',
+        width: '64px', height: '64px', borderRadius: '16px',
+        backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        margin: '0 auto 24px',
       }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary)" strokeWidth="2">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
+        <img src="/logo-1024.png" alt="" style={{ width: '36px', height: '36px', borderRadius: '8px' }} />
       </div>
       <h2 style={{
-        fontFamily: 'var(--font-serif)',
-        fontSize: '20px',
-        fontWeight: 600,
-        color: 'var(--text-primary)',
-        marginBottom: '8px',
-      }}>
-        Standing by
-      </h2>
+        fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
+        color: 'var(--text-primary)', marginBottom: '8px',
+      }}>Standing by</h2>
       <p style={{
-        fontSize: '14px',
-        color: 'var(--text-secondary)',
-        lineHeight: '1.6',
-        maxWidth: '300px',
-        margin: '0 auto',
+        fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
+        maxWidth: '300px', margin: '0 auto',
       }}>
         The model is waiting for today's game data. When games are available, it will analyze all matchups and publish a pick only if the edge exceeds the threshold.
       </p>
       {stats && (
         <div style={{
-          marginTop: '24px',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '24px',
+          marginTop: '24px', display: 'flex', justifyContent: 'center', gap: '24px',
         }}>
           <Stat label="Record" value={stats.record || '0-0'} />
           <Stat label="Win Rate" value={stats.win_rate ? `${stats.win_rate}%` : '--'} />
@@ -249,22 +184,13 @@ function Stat({ label, value }) {
   return (
     <div>
       <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '18px',
-        fontWeight: 600,
+        fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 600,
         color: 'var(--text-primary)',
-      }}>
-        {value}
-      </div>
+      }}>{value}</div>
       <div style={{
-        fontSize: '11px',
-        color: 'var(--text-tertiary)',
-        marginTop: '2px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-      }}>
-        {label}
-      </div>
+        fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
+        textTransform: 'uppercase', letterSpacing: '0.05em',
+      }}>{label}</div>
     </div>
   );
 }
@@ -272,14 +198,10 @@ function Stat({ label, value }) {
 function RecordStrip({ stats }) {
   return (
     <div style={{
-      backgroundColor: 'var(--surface-1)',
-      borderRadius: '12px',
-      padding: '16px 20px',
-      marginTop: '16px',
+      backgroundColor: 'var(--surface-1)', borderRadius: '12px',
+      padding: '16px 20px', marginTop: '16px',
       border: '1px solid var(--stroke-subtle)',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     }}>
       <div style={{ display: 'flex', gap: '20px' }}>
         <MiniStat label="Picks" value={stats.total_picks} />
@@ -287,8 +209,7 @@ function RecordStrip({ stats }) {
         <MiniStat label="Select." value={`${stats.selectivity}%`} />
       </div>
       <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '13px',
+        fontFamily: 'var(--font-mono)', fontSize: '13px',
         color: stats.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
       }}>
         {stats.pnl >= 0 ? '+' : ''}{stats.pnl}u
@@ -301,21 +222,13 @@ function MiniStat({ label, value }) {
   return (
     <div>
       <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '14px',
-        fontWeight: 600,
+        fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
         color: 'var(--text-primary)',
-      }}>
-        {value}
-      </div>
+      }}>{value}</div>
       <div style={{
-        fontSize: '10px',
-        color: 'var(--text-tertiary)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-      }}>
-        {label}
-      </div>
+        fontSize: '10px', color: 'var(--text-tertiary)',
+        textTransform: 'uppercase', letterSpacing: '0.05em',
+      }}>{label}</div>
     </div>
   );
 }

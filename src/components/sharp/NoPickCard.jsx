@@ -1,140 +1,88 @@
 export default function NoPickCard({ data }) {
   return (
-    <div style={{
-      backgroundColor: 'var(--surface-1)',
-      borderRadius: '16px',
-      overflow: 'hidden',
-      border: '1px solid var(--stroke-subtle)',
-      marginTop: '8px',
-    }}>
-      <div style={{
-        padding: '16px 20px',
-        borderBottom: '1px solid var(--stroke-subtle)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-      }}>
+    <div>
+      <div style={{ textAlign: 'center', padding: '40px 0 32px' }}>
         <div style={{
-          width: '8px',
-          height: '8px',
-          borderRadius: '50%',
-          backgroundColor: 'var(--text-tertiary)',
-        }} />
-        <span style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: 'var(--text-secondary)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
+          width: '64px', height: '64px', borderRadius: '16px',
+          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 24px',
         }}>
-          No Pick Today
-        </span>
-      </div>
-
-      <div style={{ padding: '32px 24px', textAlign: 'center' }}>
-        <div style={{
-          width: '56px',
-          height: '56px',
-          borderRadius: '14px',
-          backgroundColor: 'var(--surface-2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 20px',
-        }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
+          <span style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '22px',
+            fontWeight: 700,
+            color: 'var(--text-secondary)',
+            letterSpacing: '0.05em',
+          }}>00</span>
         </div>
 
         <h2 style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '22px',
-          fontWeight: 600,
+          fontFamily: 'var(--font-sans)',
+          fontSize: '24px',
+          fontWeight: 700,
           color: 'var(--text-primary)',
-          marginBottom: '12px',
+          marginBottom: '14px',
+          fontStyle: 'italic',
         }}>
-          Discipline preserved
+          No qualifying pick
         </h2>
 
         <p style={{
           fontSize: '14px',
           color: 'var(--text-secondary)',
           lineHeight: '1.7',
-          maxWidth: '320px',
-          margin: '0 auto 24px',
+          maxWidth: '300px',
+          margin: '0 auto',
         }}>
-          {data.message}
+          Model analyzed {data.games_analyzed} games.
         </p>
-
-        <div style={{
-          backgroundColor: 'var(--surface-2)',
-          borderRadius: '12px',
-          padding: '16px',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '32px',
+        <p style={{
+          fontSize: '14px',
+          color: 'var(--text-secondary)',
+          lineHeight: '1.7',
+          maxWidth: '300px',
+          margin: '4px auto 0',
         }}>
-          <div>
-            <div style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '18px',
-              fontWeight: 600,
-              color: 'var(--text-primary)',
-            }}>
-              {data.games_analyzed}
-            </div>
-            <div style={{
-              fontSize: '11px',
-              color: 'var(--text-tertiary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginTop: '2px',
-            }}>
-              Analyzed
-            </div>
-          </div>
-          <div>
-            <div style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '18px',
-              fontWeight: 600,
-              color: 'var(--text-primary)',
-            }}>
-              {data.closest_edge_pct ? `${data.closest_edge_pct}%` : '--'}
-            </div>
-            <div style={{
-              fontSize: '11px',
-              color: 'var(--text-tertiary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginTop: '2px',
-            }}>
-              Best Edge
-            </div>
-          </div>
-          <div>
-            <div style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '18px',
-              fontWeight: 600,
-              color: 'var(--blue-primary)',
-            }}>
-              3.5%
-            </div>
-            <div style={{
-              fontSize: '11px',
-              color: 'var(--text-tertiary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginTop: '2px',
-            }}>
-              Threshold
-            </div>
-          </div>
-        </div>
+          No edge above threshold — it means the market is efficient.
+        </p>
       </div>
+
+      <InsightCard
+        title="Restraint is a feature"
+        desc="Quiet days are intentional. No pick today doesn't mean something's broken — it means the market is efficient."
+      />
+
+      <InsightCard
+        title="Selectivity beats volume"
+        desc="Industry average: 78% of slates get action. Sharp Picks users: ~30%. That difference is your edge."
+      />
+    </div>
+  );
+}
+
+function InsightCard({ title, desc }) {
+  return (
+    <div style={{
+      backgroundColor: 'var(--surface-1)',
+      borderRadius: '16px',
+      border: '1px solid var(--stroke-subtle)',
+      padding: '20px',
+      marginBottom: '12px',
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-sans)',
+        fontSize: '16px',
+        fontWeight: 700,
+        color: 'var(--text-primary)',
+        marginBottom: '6px',
+        fontStyle: 'italic',
+      }}>{title}</div>
+      <p style={{
+        fontSize: '14px',
+        color: 'var(--text-secondary)',
+        lineHeight: '1.6',
+      }}>{desc}</p>
     </div>
   );
 }
