@@ -220,45 +220,106 @@ def logout():
     session.pop('user_id', None)
     return jsonify({'success': True, 'message': 'Logged out'})
 
-@app.route('/api/auth/upgrade', methods=['POST'])
-def upgrade_user():
-    """Upgrade user to premium via Stripe checkout"""
-    from flask import request
+@app.route('/api/subscriptions/create-checkout', methods=['POST'])
+def create_checkout():
+    """Create Stripe checkout session for subscription"""
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
     try:
-        from stripe_client import get_stripe_client, get_publishable_key
+        from stripe_client import get_stripe_client
         stripe = get_stripe_client()
-        
+
         data = request.get_json() or {}
+        plan = data.get('plan', 'monthly')
         price_id = data.get('price_id')
-        
+
         if not price_id:
-            prices = stripe.Price.list(active=True, limit=10)
-            if prices.data:
+            prices = stripe.Price.list(active=True, limit=20)
+            for p in prices.data:
+                if plan == 'monthly' and p.recurring and p.recurring.interval == 'month':
+                    price_id = p.id
+                    break
+                elif plan in ('annual', 'founding') and p.recurring and p.recurring.interval == 'year':
+                    price_id = p.id
+                    break
+            if not price_id and prices.data:
                 price_id = prices.data[0].id
-            else:
-                return jsonify({'error': 'No prices available'}), 400
-        
+
+        if not price_id:
+            return jsonify({'error': 'No prices configured in Stripe'}), 400
+
         domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
         domain = domains.split(',')[0]
-        success_url = f'https://{domain}/app?payment=success'
-        cancel_url = f'https://{domain}/app?payment=cancelled'
-        
-        user = get_current_user_from_session()
-        user_id = user['id'] if user else None
-        
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{'price': price_id, 'quantity': 1}],
-            mode='subscription',
-            success_url=success_url,
-            cancel_url=cancel_url,
-            client_reference_id=user_id,
-        )
-        session = checkout_session
-        
-        return jsonify({'checkout_url': session.url, 'session_id': session.id})
+
+        db_user = db.session.get(User, user['id'])
+        customer_id = db_user.stripe_customer_id if db_user else None
+        if not customer_id and db_user:
+            customer = stripe.Customer.create(email=db_user.email)
+            db_user.stripe_customer_id = customer.id
+            db.session.commit()
+            customer_id = customer.id
+
+        checkout_params = {
+            'payment_method_types': ['card'],
+            'line_items': [{'price': price_id, 'quantity': 1}],
+            'mode': 'subscription',
+            'success_url': f'https://{domain}/?payment=success',
+            'cancel_url': f'https://{domain}/?payment=cancelled',
+            'client_reference_id': user['id'],
+            'subscription_data': {
+                'trial_period_days': 14,
+                'metadata': {'plan': plan, 'user_id': user['id']},
+            },
+            'metadata': {'plan': plan},
+        }
+        if customer_id:
+            checkout_params['customer'] = customer_id
+
+        checkout_session = stripe.checkout.Session.create(**checkout_params)
+        return jsonify({'checkout_url': checkout_session.url, 'session_id': checkout_session.id})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/subscriptions/cancel', methods=['POST'])
+def cancel_subscription():
+    """Cancel user subscription"""
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    try:
+        from stripe_client import get_stripe_client
+        stripe = get_stripe_client()
+        db_user = db.session.get(User, user['id'])
+        if not db_user or not db_user.stripe_customer_id:
+            return jsonify({'error': 'No active subscription'}), 400
+        subs = stripe.Subscription.list(customer=db_user.stripe_customer_id, status='active', limit=1)
+        if subs.data:
+            stripe.Subscription.modify(subs.data[0].id, cancel_at_period_end=True)
+            db_user.subscription_status = 'cancelling'
+            db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/subscriptions/status')
+def subscription_status():
+    """Get current subscription status"""
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    db_user = db.session.get(User, user['id'])
+    if not db_user:
+        return jsonify({'error': 'User not found'}), 404
+    return jsonify({
+        'status': db_user.subscription_status,
+        'plan': db_user.subscription_plan,
+        'founding_member': db_user.founding_member,
+        'founding_number': db_user.founding_number,
+        'is_pro': db_user.is_pro,
+        'trial_end_date': db_user.trial_end_date.isoformat() if db_user.trial_end_date else None,
+        'current_period_end': db_user.current_period_end.isoformat() if db_user.current_period_end else None,
+    })
 
 @app.route('/api/stripe/config')
 def stripe_config():
@@ -271,39 +332,109 @@ def stripe_config():
 
 @app.route('/api/stripe/webhook', methods=['POST'])
 def stripe_webhook():
-    """Handle Stripe webhook events for payment completion"""
+    """Handle Stripe webhook events"""
     import stripe as stripe_lib
     from stripe_client import get_stripe_client
     get_stripe_client()
-    
+
     payload = request.data
     sig = request.headers.get('Stripe-Signature')
     webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
-    
-    if not webhook_secret:
-        return jsonify({'error': 'Webhook secret not configured'}), 500
-    
+
+    is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
+
     try:
-        event = stripe_lib.Webhook.construct_event(
-            payload, sig, webhook_secret
-        )
-        
-        if event['type'] == 'checkout.session.completed':
-            checkout_session = event['data']['object']
-            user_id = checkout_session.get('client_reference_id')
-            
+        if webhook_secret and sig:
+            event = stripe_lib.Webhook.construct_event(payload, sig, webhook_secret)
+        elif not is_production:
+            import json
+            event = json.loads(payload)
+        else:
+            return jsonify({'error': 'Webhook signature required in production'}), 400
+
+        event_type = event.get('type', '')
+        data_obj = event.get('data', {}).get('object', {})
+
+        if event_type == 'checkout.session.completed':
+            user_id = data_obj.get('client_reference_id')
+            plan = data_obj.get('metadata', {}).get('plan', 'monthly')
             if user_id:
-                user = User.query.get(user_id)
+                user = db.session.get(User, user_id)
                 if user:
-                    user.is_premium = True
-                    user.trial_ends = None
+                    user.subscription_plan = plan
+                    user.subscription_start_date = datetime.now()
+                    user.stripe_customer_id = data_obj.get('customer')
+                    sub_id = data_obj.get('subscription')
+                    if sub_id:
+                        stripe_obj = get_stripe_client()
+                        sub = stripe_obj.Subscription.retrieve(sub_id)
+                        sub_status = sub.get('status', 'active')
+                        if sub_status == 'trialing':
+                            user.subscription_status = 'trial'
+                            user.is_premium = True
+                            trial_end = sub.get('trial_end')
+                            if trial_end:
+                                user.trial_end_date = datetime.fromtimestamp(trial_end)
+                        else:
+                            user.subscription_status = 'active'
+                            user.is_premium = True
+                        period_end = sub.get('current_period_end')
+                        if period_end:
+                            user.current_period_end = datetime.fromtimestamp(period_end)
+                    else:
+                        user.subscription_status = 'active'
+                        user.is_premium = True
+                    if plan in ('annual', 'founding'):
+                        counter = FoundingCounter.query.first()
+                        if counter and not counter.closed and not user.founding_member:
+                            counter.current_count += 1
+                            user.founding_member = True
+                            user.founding_number = counter.current_count
+                            if counter.current_count >= 500:
+                                counter.closed = True
                     db.session.commit()
-                    
-    except stripe_lib.error.SignatureVerificationError:
-        return jsonify({'error': 'Invalid signature'}), 400
+
+        elif event_type == 'customer.subscription.updated':
+            cust_id = data_obj.get('customer')
+            status = data_obj.get('status')
+            if cust_id:
+                user = User.query.filter_by(stripe_customer_id=cust_id).first()
+                if user:
+                    plan_meta = data_obj.get('metadata', {}).get('plan')
+                    if plan_meta:
+                        user.subscription_plan = plan_meta
+                    if status == 'active':
+                        user.subscription_status = 'active'
+                        user.is_premium = True
+                    elif status == 'trialing':
+                        user.subscription_status = 'trial'
+                        user.is_premium = True
+                        trial_end = data_obj.get('trial_end')
+                        if trial_end:
+                            user.trial_end_date = datetime.fromtimestamp(trial_end)
+                    elif status == 'canceled':
+                        user.subscription_status = 'cancelled'
+                        user.is_premium = False
+                    elif status == 'past_due':
+                        user.subscription_status = 'past_due'
+                    period_end = data_obj.get('current_period_end')
+                    if period_end:
+                        user.current_period_end = datetime.fromtimestamp(period_end)
+                    db.session.commit()
+
+        elif event_type == 'customer.subscription.deleted':
+            cust_id = data_obj.get('customer')
+            if cust_id:
+                user = User.query.filter_by(stripe_customer_id=cust_id).first()
+                if user:
+                    user.subscription_status = 'cancelled'
+                    user.is_premium = False
+                    db.session.commit()
+
     except Exception as e:
+        logging.error(f'Webhook error: {e}')
         return jsonify({'error': str(e)}), 400
-    
+
     return jsonify({'success': True})
 
 @app.route('/api/stripe/products')
