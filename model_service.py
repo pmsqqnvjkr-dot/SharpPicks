@@ -6,7 +6,7 @@ This service only: runs the model, reads outputs, stores to DB.
 """
 
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from models import db, Pick, Pass, ModelRun
 
 
@@ -24,14 +24,24 @@ def _to_python(val):
     return val
 
 
+def _get_et_date():
+    """Get current Eastern Time date string (NBA schedule runs on ET)."""
+    try:
+        from zoneinfo import ZoneInfo
+        now_et = datetime.now(ZoneInfo('America/New_York'))
+    except ImportError:
+        now_et = datetime.utcnow() - timedelta(hours=5)
+    return now_et.strftime('%Y-%m-%d')
+
+
 def run_model_and_log(app):
     """Run the model for today and log either a pick or pass."""
     start_time = time.time()
-    today_str = datetime.now().strftime('%Y-%m-%d')
+    today_str = _get_et_date()
 
     with app.app_context():
         existing_pick = Pick.query.filter(
-            Pick.game_date.like(f'{today_str}%')
+            Pick.game_date == today_str
         ).first()
         existing_pass = Pass.query.filter_by(date=today_str).first()
 
@@ -88,7 +98,7 @@ def run_model_and_log(app):
                     sport='nba',
                     away_team=best['away_team'],
                     home_team=best['home_team'],
-                    game_date=best.get('game_date'),
+                    game_date=today_str,
                     side=best.get('pick'),
                     line=_to_python(round(pick_spread, 1)),
                     line_open=_to_python(best.get('spread_home_open')) if 'spread_home_open' in best else None,

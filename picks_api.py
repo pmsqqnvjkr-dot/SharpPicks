@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
 from models import db, Pick, Pass, ModelRun, UserBet, TrackedBet
-from datetime import datetime
+from datetime import datetime, timedelta
 
 picks_bp = Blueprint('picks', __name__)
 
@@ -49,12 +49,22 @@ def calculate_stake_guidance(edge_pct, confidence, market_odds=-110):
     }
 
 
+def _get_et_date():
+    """Get current Eastern Time date string."""
+    try:
+        from zoneinfo import ZoneInfo
+        now_et = datetime.now(ZoneInfo('America/New_York'))
+    except ImportError:
+        now_et = datetime.utcnow() - timedelta(hours=5)
+    return now_et.strftime('%Y-%m-%d')
+
+
 @picks_bp.route('/today')
 def today():
-    today_str = datetime.now().strftime('%Y-%m-%d')
+    today_str = _get_et_date()
 
     pick = Pick.query.filter(
-        Pick.game_date.like(f'{today_str}%')
+        Pick.game_date == today_str
     ).order_by(Pick.published_at.desc()).first()
 
     if pick:

@@ -466,15 +466,19 @@ def collect_yesterdays_scores():
                 continue
             
             game_date = yesterday.strftime('%Y-%m-%d')
+            next_date = (yesterday + timedelta(days=1)).strftime('%Y-%m-%d')
             
-            cursor.execute('''
-                SELECT id, spread_home, total FROM games 
-                WHERE game_date = ? 
-                AND (home_team LIKE ? OR home_team LIKE ?)
-                AND home_score IS NULL
-            ''', (game_date, f'%{home_team.split()[-1]}%', f'%{home_team}%'))
-            
-            game = cursor.fetchone()
+            game = None
+            for try_date in [game_date, next_date]:
+                cursor.execute('''
+                    SELECT id, spread_home, total FROM games 
+                    WHERE game_date = ? 
+                    AND (home_team LIKE ? OR home_team LIKE ?)
+                    AND home_score IS NULL
+                ''', (try_date, f'%{home_team.split()[-1]}%', f'%{home_team}%'))
+                game = cursor.fetchone()
+                if game:
+                    break
             
             if game:
                 game_id, spread_home, total = game

@@ -537,6 +537,7 @@ class EnsemblePredictor:
             LEFT JOIN team_ratings ar ON g.away_team = ar.team_abbr
             WHERE g.home_score IS NULL
             AND g.spread_home IS NOT NULL
+            AND (g.game_time IS NULL OR g.game_time > datetime('now'))
         '''
         
         df = pd.read_sql_query(query, conn)

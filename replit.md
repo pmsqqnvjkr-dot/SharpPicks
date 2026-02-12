@@ -114,6 +114,10 @@ Historical spread data (2006-2018) had inverted sign convention. The data source
 - Landing page for new visitors, app shell for returning users
 - Password reset via secure time-limited tokens (1 hour expiry)
 - Webhook signature verification required in production
+- All date logic uses Eastern Time (America/New_York) since NBA schedule runs on ET
+- Game dates in SQLite are UTC-based; picks/passes use ET date for consistency
+- Score collection tries both ESPN date and next day to handle UTC/ET mismatch
+- Model only predicts games that haven't tipped off yet (game_time > now)
 
 ## Recent Changes
 - **Feb 12**: Full algorithm rewrite per end-to-end NBA spread spec
