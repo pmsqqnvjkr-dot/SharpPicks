@@ -4,11 +4,21 @@
 Sharp Picks is a sports betting discipline system. One pick per day maximum, only when the model detects a statistical edge above threshold. Most days, the app says nothing. Silence is the product working.
 
 ## Current Status (Feb 2026)
-- **Model Accuracy**: 79.4% on test data (15,131 games)
+- **Model Accuracy**: 79.4% on test data (15,131 games) — INFLATED, see Data Leakage note
 - **Brier Score**: 0.139 (excellent calibration)
 - **Features**: 36 features including pace, ratings, line movement
-- **Backtest ROI**: +47.26% simulated on historical data
+- **Backtest ROI**: INVALID — walk-forward shows 55% ROI due to data leakage
 - **Live Record**: 6-1 (7 picks, 23 passes, 85.7% win rate, +436u)
+- **Audit Fields**: sigma, z_score, raw_edge, closing_spread, clv tracked per pick
+
+## CRITICAL: Data Leakage (Identified Feb 12)
+Walk-forward validation shows 80%+ ATS accuracy, 1000+ bets/season, 55% ROI — impossible without leakage.
+**Root causes:**
+1. `team_ratings` table is a single current-season snapshot joined to ALL historical games (2008 games get 2026 ratings)
+2. `bdl_*` columns (win_pct, scoring_margin, avg_pts) likely represent end-of-season stats, not pre-game snapshots
+3. `home_record`, `away_record`, `home_last5` may also be end-of-season values
+**Impact**: All backtest metrics are unreliable. Live predictions may still work (using current data for current games) but historical validation is meaningless.
+**Fix required**: Replace team_ratings with per-game rolling ratings, verify bdl_*/record fields are true pre-game snapshots, or remove contaminated features
 
 ## Tech Stack
 - **Frontend**: React + Vite (port 5000 dev), inline CSS with design tokens
