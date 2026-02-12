@@ -6,12 +6,13 @@ function formatPostedTime(isoStr) {
   try {
     const d = new Date(isoStr);
     if (isNaN(d.getTime())) return null;
-    let hours = d.getHours();
-    const mins = d.getMinutes().toString().padStart(2, '0');
+    const et = new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    let hours = et.getHours();
+    const mins = et.getMinutes().toString().padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12 || 12;
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return `${months[d.getMonth()]} ${d.getDate()} · ${hours}:${mins} ${ampm}`;
+    return `${months[et.getMonth()]} ${et.getDate()} · ${hours}:${mins} ${ampm} ET`;
   } catch { return null; }
 }
 

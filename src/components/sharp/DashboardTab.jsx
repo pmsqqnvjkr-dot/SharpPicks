@@ -377,11 +377,12 @@ function formatPickTimestamp(gameDate, publishedAt) {
     try {
       const d = new Date(publishedAt);
       if (!isNaN(d.getTime())) {
-        let hours = d.getHours();
-        const mins = d.getMinutes().toString().padStart(2, '0');
+        const et = new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+        let hours = et.getHours();
+        const mins = et.getMinutes().toString().padStart(2, '0');
         const ampm = hours >= 12 ? 'PM' : 'AM';
         hours = hours % 12 || 12;
-        postedPart = `Posted ${months[d.getMonth()]} ${d.getDate()} · ${hours}:${mins} ${ampm}`;
+        postedPart = `Posted ${months[et.getMonth()]} ${et.getDate()} · ${hours}:${mins} ${ampm} ET`;
       }
     } catch {}
   }
