@@ -579,7 +579,7 @@ class EnsemblePredictor:
                 confidence = 1 - home_cover_prob
             
             implied_prob = odds_to_implied_prob(market_odds)
-            edge_vs_market = round((confidence - implied_prob) * 100, 2)
+            edge_vs_market = (confidence - implied_prob) * 100
             ev = calculate_ev(confidence, market_odds)
             
             open_spread = row.get('spread_home_open', None)
@@ -639,7 +639,7 @@ class EnsemblePredictor:
                 'predicted_margin': round(pred_margin, 1) if pred_margin is not None else None,
                 'cover_prob': round(confidence, 4),
                 'confidence': confidence,
-                'edge': edge_vs_market,
+                'edge': round(edge_vs_market, 2),
                 'adjusted_edge': round(adjusted_edge, 2),
                 'ev': ev,
                 'implied_prob': round(implied_prob, 4),
