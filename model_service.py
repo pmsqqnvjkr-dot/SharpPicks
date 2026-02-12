@@ -10,6 +10,20 @@ from datetime import datetime
 from models import db, Pick, Pass, ModelRun
 
 
+def _to_python(val):
+    if val is None:
+        return None
+    try:
+        import numpy as np
+        if isinstance(val, (np.floating, np.float64, np.float32)):
+            return float(val)
+        if isinstance(val, (np.integer, np.int64, np.int32)):
+            return int(val)
+    except ImportError:
+        pass
+    return val
+
+
 def run_model_and_log(app):
     """Run the model for today and log either a pick or pass."""
     start_time = time.time()
@@ -28,7 +42,7 @@ def run_model_and_log(app):
             from model import EnsemblePredictor
 
             model = EnsemblePredictor()
-            if not model.load():
+            if not model.load_model():
                 return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
 
             predictions = model.predict_games(log_predictions=True)
@@ -76,18 +90,18 @@ def run_model_and_log(app):
                     home_team=best['home_team'],
                     game_date=best.get('game_date'),
                     side=best.get('pick'),
-                    line=round(pick_spread, 1),
-                    line_open=best.get('spread_home_open') if 'spread_home_open' in best else None,
+                    line=_to_python(round(pick_spread, 1)),
+                    line_open=_to_python(best.get('spread_home_open')) if 'spread_home_open' in best else None,
                     start_time=best.get('game_date'),
-                    edge_pct=round(best.get('adjusted_edge', 0), 1),
-                    model_confidence=round(best.get('confidence', 0.5), 4),
-                    predicted_margin=round(best['predicted_margin'], 1) if best.get('predicted_margin') is not None else None,
-                    sigma=round(best['sigma'], 2) if best.get('sigma') is not None else None,
-                    z_score=round(best['z_score'], 3) if best.get('z_score') is not None else None,
-                    raw_edge=round(best['raw_edge'], 2) if best.get('raw_edge') is not None else None,
-                    cover_prob=round(home_cover_prob, 4),
-                    implied_prob=round(best.get('implied_prob', 0.5238), 4),
-                    market_odds=best.get('market_odds', -110),
+                    edge_pct=_to_python(round(best.get('adjusted_edge', 0), 1)),
+                    model_confidence=_to_python(round(best.get('confidence', 0.5), 4)),
+                    predicted_margin=_to_python(round(best['predicted_margin'], 1)) if best.get('predicted_margin') is not None else None,
+                    sigma=_to_python(round(best['sigma'], 2)) if best.get('sigma') is not None else None,
+                    z_score=_to_python(round(best['z_score'], 3)) if best.get('z_score') is not None else None,
+                    raw_edge=_to_python(round(best['raw_edge'], 2)) if best.get('raw_edge') is not None else None,
+                    cover_prob=_to_python(round(home_cover_prob, 4)),
+                    implied_prob=_to_python(round(best.get('implied_prob', 0.5238), 4)),
+                    market_odds=_to_python(best.get('market_odds', -110)),
                     sportsbook='DraftKings',
                     notes=' | '.join(best.get('explanation', [])) if isinstance(best.get('explanation'), list) else (best.get('explanation') or ''),
                 )
