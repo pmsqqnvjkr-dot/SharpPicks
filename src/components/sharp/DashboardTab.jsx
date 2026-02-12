@@ -365,26 +365,43 @@ function RecentPickLog({ picks }) {
   );
 }
 
-function formatPickTimestamp(gameDate, publishedAt) {
+function toET(isoStr) {
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return null;
+    return new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  } catch { return null; }
+}
+
+function formatPickTimestamp(gameDate, startTime, publishedAt) {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
   let gamePart = '';
-  if (gameDate && typeof gameDate === 'string' && gameDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+  if (startTime && startTime.includes('T')) {
+    const et = toET(startTime);
+    if (et) {
+      let hours = et.getHours();
+      const mins = et.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      gamePart = `${months[et.getMonth()]} ${et.getDate()} · ${hours}:${mins} ${ampm} ET`;
+    }
+  }
+  if (!gamePart && gameDate && typeof gameDate === 'string' && gameDate.match(/^\d{4}-\d{2}-\d{2}/)) {
     const [y, m, day] = gameDate.split('-');
     gamePart = `${months[parseInt(m)-1]} ${parseInt(day)}`;
   }
+
   let postedPart = '';
   if (publishedAt) {
-    try {
-      const d = new Date(publishedAt);
-      if (!isNaN(d.getTime())) {
-        const et = new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-        let hours = et.getHours();
-        const mins = et.getMinutes().toString().padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12 || 12;
-        postedPart = `Posted ${months[et.getMonth()]} ${et.getDate()} · ${hours}:${mins} ${ampm} ET`;
-      }
-    } catch {}
+    const et = toET(publishedAt);
+    if (et) {
+      let hours = et.getHours();
+      const mins = et.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      postedPart = `Posted ${hours}:${mins} ${ampm} ET`;
+    }
   }
   if (gamePart && postedPart) return `${gamePart} · ${postedPart}`;
   if (gamePart) return gamePart;
@@ -396,7 +413,7 @@ function PickLogRow({ pick, isLast }) {
   const isWin = pick.result === 'win';
   const isLoss = pick.result === 'loss';
   const isPending = pick.result === 'pending';
-  const timestamp = formatPickTimestamp(pick.game_date, pick.published_at);
+  const timestamp = formatPickTimestamp(pick.game_date, pick.start_time, pick.published_at);
 
   return (
     <div style={{

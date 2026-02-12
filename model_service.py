@@ -92,7 +92,7 @@ def run_model_and_log(app):
                     side=best.get('pick'),
                     line=_to_python(round(pick_spread, 1)),
                     line_open=_to_python(best.get('spread_home_open')) if 'spread_home_open' in best else None,
-                    start_time=best.get('game_date'),
+                    start_time=best.get('game_time') or best.get('game_date'),
                     edge_pct=_to_python(round(best.get('adjusted_edge', 0), 1)),
                     model_confidence=_to_python(round(best.get('confidence', 0.5), 4)),
                     predicted_margin=_to_python(round(best['predicted_margin'], 1)) if best.get('predicted_margin') is not None else None,

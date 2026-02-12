@@ -686,6 +686,7 @@ class EnsemblePredictor:
             picks.append({
                 'game_id': row['id'],
                 'game_date': row['game_date'],
+                'game_time': row.get('game_time', None) if hasattr(row, 'get') else None,
                 'game': f"{away} @ {home}",
                 'home_team': home,
                 'away_team': away,

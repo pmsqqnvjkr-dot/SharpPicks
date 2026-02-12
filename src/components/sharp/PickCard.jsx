@@ -26,10 +26,28 @@ function formatGameDateShort(dateStr) {
   return null;
 }
 
-function PickTimestamp({ gameDate, publishedAt, light }) {
-  const gameDateFmt = formatGameDateShort(gameDate);
+function formatGameTime(startTime, gameDate) {
+  if (startTime && startTime.includes('T')) {
+    try {
+      const d = new Date(startTime);
+      if (!isNaN(d.getTime())) {
+        const et = new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        let hours = et.getHours();
+        const mins = et.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        return `${months[et.getMonth()]} ${et.getDate()} · ${hours}:${mins} ${ampm} ET`;
+      }
+    } catch {}
+  }
+  return formatGameDateShort(gameDate);
+}
+
+function PickTimestamp({ gameDate, startTime, publishedAt, light }) {
+  const gameTimeFmt = formatGameTime(startTime, gameDate);
   const postedFmt = formatPostedTime(publishedAt);
-  if (!gameDateFmt && !postedFmt) return null;
+  if (!gameTimeFmt && !postedFmt) return null;
 
   const color = light ? 'rgba(169,180,207,0.6)' : 'var(--text-tertiary)';
 
@@ -39,10 +57,9 @@ function PickTimestamp({ gameDate, publishedAt, light }) {
       fontSize: '10px', fontWeight: 500,
       color,
       marginBottom: '12px',
-      display: 'flex', gap: '6px', flexWrap: 'wrap',
+      display: 'flex', flexDirection: 'column', gap: '3px',
     }}>
-      {gameDateFmt && <span>Game: {gameDateFmt}</span>}
-      {gameDateFmt && postedFmt && <span style={{ opacity: 0.4 }}>·</span>}
+      {gameTimeFmt && <span>Tip-off: {gameTimeFmt}</span>}
       {postedFmt && <span>Posted: {postedFmt}</span>}
     </div>
   );
@@ -157,7 +174,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           {pick.away_team} @ {pick.home_team}
         </div>
 
-        <PickTimestamp gameDate={pick.game_date} publishedAt={pick.published_at} />
+        <PickTimestamp gameDate={pick.game_date} startTime={pick.start_time} publishedAt={pick.published_at} />
 
         <div style={{
           background: 'rgba(255,255,255,0.02)',
@@ -227,7 +244,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           {pick.away_team} @ {pick.home_team}
         </div>
 
-        <PickTimestamp gameDate={pick.game_date} publishedAt={pick.published_at} light />
+        <PickTimestamp gameDate={pick.game_date} startTime={pick.start_time} publishedAt={pick.published_at} light />
 
         <div style={{
           fontSize: '34px', fontWeight: 800, lineHeight: '1.0',
