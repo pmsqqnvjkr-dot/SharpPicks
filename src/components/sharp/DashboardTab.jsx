@@ -95,7 +95,7 @@ function PerformanceCore({ perf, equityCurve }) {
 
   return (
     <>
-      <SectionLabel>Cumulative Performance</SectionLabel>
+      <SectionLabel>Sharp Picks Performance</SectionLabel>
       <div style={{
         backgroundColor: 'var(--surface-1)', borderRadius: '20px',
         border: '1px solid var(--stroke-subtle)', padding: '24px',
@@ -136,6 +136,12 @@ function PerformanceCore({ perf, equityCurve }) {
           <MetaTag label={`${perf.total_passes || 0} Passes`} />
           <MetaTag label={`${perf.selectivity || 0}% Selectivity`} />
         </div>
+        <p style={{
+          fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
+          marginTop: '10px',
+        }}>
+          Based on published picks only. Standardized 1u per pick at -110. Not influenced by user bets.
+        </p>
       </div>
     </>
   );

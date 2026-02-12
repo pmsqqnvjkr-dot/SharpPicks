@@ -1,0 +1,84 @@
+1) Model health and performance
+
+This is about whether the engine is working and whether it is still calibrated.
+
+What it should measure:
+	•	Coverage: did we have spreads, odds, injuries, open line, closing line
+	•	Pipeline health: jobs ran, data freshness, latency, error rates
+	•	Prediction health: calibration, edge distribution, confidence distribution, drift
+	•	Betting performance on a clean baseline:
+	•	“1 unit per published pick”
+	•	fixed odds assumption (or actual market odds at publish time)
+	•	grading rules defined once
+	•	no user inputs involved
+
+Key rule:
+Model performance is computed from published picks only, graded with your rules.
+It is not “what people did with it.”
+
+Where it shows up:
+	•	Admin dashboard
+	•	Optional public “transparency page” but still based on published picks, not users
+
+2) User tracked bets
+
+This is about the customer’s behavior and results.
+
+What it should measure:
+	•	Bets placed (pick or manual)
+	•	Stake sizing (their units)
+	•	Odds they actually got
+	•	Their ROI, win rate, profit
+	•	Optional tags: “followed Sharp Pick”, “custom bet”, “parlay”, “live bet”
+
+Key rule:
+User performance is their execution.
+If they change stake, shop lines poorly, parlay, or skip days, that is on the user side, not the model side.
+
+Where it shows up:
+	•	User dashboard only
+	•	Never mixed into model marketing stats
+
+⸻
+
+The clean split you want in product language
+
+“Sharp Picks Performance”
+	•	Your official track record
+	•	Based on published picks
+	•	Standardized unit sizing
+	•	Auditable pick log
+
+“Your Performance”
+	•	What you actually bet
+	•	Your odds, your stake, your timing
+	•	Shows how closely you followed the system
+
+⸻
+
+How to connect them without blending them
+
+For each user bet, store:
+	•	source = sharp_pick | manual
+	•	if sharp_pick:
+	•	pick_id
+	•	follow_type = exact | partial | late_line | parlayed
+	•	odds_at_bet vs odds_at_publish
+	•	line_at_bet vs line_at_publish
+
+Then you can show:
+	•	Adherence score: “You followed 7 of 10 picks exactly”
+	•	Execution delta: “Your average line was 0.6 points worse than publish”
+	•	Outcome split:
+	•	“Model: +3.2u”
+	•	“You: +1.4u”
+	•	“Difference: line quality + stake variance”
+
+That way you are honest, and it actually teaches discipline, which is your brand.
+
+⸻
+
+What not to do
+	•	Do not let user tracked bets change the headline model ROI
+	•	Do not show model health warnings to users in raw form
+	•	Do not compute “accuracy” on user-entered bets because they can enter anything

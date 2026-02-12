@@ -95,7 +95,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
   if (!user) {
     return (
       <div style={{ padding: '0' }}>
-        <ScreenHeader onBack={onBack} title="My Bets" />
+        <ScreenHeader onBack={onBack} title="Your Performance" />
         <div style={{ padding: '40px 20px', textAlign: 'center' }}>
           <div style={{
             width: '56px', height: '56px', borderRadius: '14px',
@@ -122,7 +122,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
-      <ScreenHeader onBack={onBack} title="My Bets" />
+      <ScreenHeader onBack={onBack} title="Your Performance" />
 
       <div style={{ padding: '0 20px 12px', display: 'flex', gap: '8px' }}>
         <ViewToggle label="Dashboard" active={activeView === 'dashboard'} onClick={() => setActiveView('dashboard')} />
@@ -197,6 +197,79 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                   <StatCard label="Win Rate" value={`${stats.winRate}%`} />
                 </div>
               </SectionCard>
+
+              {stats.adherence && stats.adherence.picks_followed > 0 && (
+                <SectionCard title="System Adherence">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                    <MiniCard
+                      label="Picks Followed"
+                      value={`${stats.adherence.picks_followed} of ${stats.adherence.total_published}`}
+                    />
+                    <MiniCard
+                      label="Exact Follows"
+                      value={stats.adherence.adherence_score !== null ? `${stats.adherence.adherence_score}%` : '—'}
+                      color={stats.adherence.adherence_score >= 80 ? 'var(--green-profit)' : 'var(--text-primary)'}
+                    />
+                  </div>
+                  {stats.adherence.avg_line_delta !== null && (
+                    <div style={{
+                      padding: '10px 14px', backgroundColor: 'var(--surface-2)',
+                      borderRadius: '10px', marginBottom: '8px',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          Avg line delta vs publish
+                        </span>
+                        <span style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
+                          color: stats.adherence.avg_line_delta > 1 ? 'var(--gold-pro)' : 'var(--text-primary)',
+                        }}>
+                          {stats.adherence.avg_line_delta} pts
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {stats.outcome_split && (
+                    <div style={{
+                      padding: '12px 14px', backgroundColor: 'var(--surface-2)',
+                      borderRadius: '10px',
+                    }}>
+                      <div style={{
+                        fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                        letterSpacing: '1.5px', textTransform: 'uppercase',
+                        color: 'var(--text-tertiary)', marginBottom: '10px',
+                      }}>Outcome Split</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Model (1u flat)</span>
+                          <span style={{
+                            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
+                            color: stats.outcome_split.model_pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
+                          }}>{stats.outcome_split.model_pnl >= 0 ? '+' : ''}${stats.outcome_split.model_pnl}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>You (actual stakes)</span>
+                          <span style={{
+                            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
+                            color: stats.outcome_split.user_pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
+                          }}>{stats.outcome_split.user_pnl >= 0 ? '+' : ''}${stats.outcome_split.user_pnl}</span>
+                        </div>
+                        <div style={{
+                          marginTop: '4px', paddingTop: '6px',
+                          borderTop: '1px solid var(--stroke-subtle)',
+                          display: 'flex', justifyContent: 'space-between',
+                        }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Execution delta</span>
+                          <span style={{
+                            fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
+                            color: stats.outcome_split.difference >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
+                          }}>{stats.outcome_split.difference >= 0 ? '+' : ''}${stats.outcome_split.difference}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </SectionCard>
+              )}
 
               <SectionCard title="Your Equity Curve">
                 {stats.equityCurve && stats.equityCurve.length > 1 ? (
@@ -403,6 +476,7 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
   const [selected, setSelected] = useState(initialPick || null);
   const [amount, setAmount] = useState('100');
   const [odds, setOdds] = useState('-110');
+  const [followType, setFollowType] = useState('exact');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -432,10 +506,14 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
     e.preventDefault();
     if (!selected) return;
     setSubmitting(true);
+    const userOdds = parseInt(odds) || -110;
+    const publishLine = selected.line;
     await onSubmit({
       pick_id: selected.id,
       bet_amount: parseInt(amount) || 100,
-      odds: parseInt(odds) || -110,
+      odds: userOdds,
+      follow_type: followType,
+      line_at_bet: publishLine,
     });
     setSubmitting(false);
   };
@@ -586,6 +664,38 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <FormField label="Wager ($)" placeholder="100" value={amount} onChange={setAmount} type="number" />
                 <FormField label="Odds" placeholder="-110" value={odds} onChange={setOdds} type="number" />
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                  letterSpacing: '1.2px', textTransform: 'uppercase',
+                  color: 'var(--text-tertiary)', marginBottom: '6px',
+                }}>How did you follow this pick?</div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {[
+                    { value: 'exact', label: 'Exact' },
+                    { value: 'partial', label: 'Partial' },
+                    { value: 'late_line', label: 'Late Line' },
+                    { value: 'parlayed', label: 'Parlayed' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setFollowType(opt.value)}
+                      style={{
+                        padding: '6px 12px', borderRadius: '8px',
+                        fontSize: '12px', fontWeight: 600,
+                        fontFamily: 'var(--font-mono)',
+                        cursor: 'pointer',
+                        backgroundColor: followType === opt.value ? 'var(--blue-primary)' : 'var(--surface-1)',
+                        color: followType === opt.value ? '#fff' : 'var(--text-secondary)',
+                        border: `1px solid ${followType === opt.value ? 'var(--blue-primary)' : 'var(--stroke-subtle)'}`,
+                        transition: 'all 0.15s',
+                      }}
+                    >{opt.label}</button>
+                  ))}
+                </div>
               </div>
 
               <div style={{

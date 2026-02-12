@@ -927,6 +927,27 @@ def get_user_stats():
     roi = (total_profit / total_risked * 100) if total_risked > 0 else 0
     win_rate = (wins / len(settled) * 100) if settled else 0
     
+    sharp_bets = [b for b in bets if b.source == 'sharp_pick' or (b.source is None and b.pick_id)]
+    total_sharp_picks_available = Pick.query.count()
+    exact_follows = sum(1 for b in sharp_bets if (b.follow_type or 'exact') == 'exact')
+    adherence_score = round(exact_follows / len(sharp_bets) * 100, 1) if sharp_bets else None
+    picks_followed = len(sharp_bets)
+
+    line_deltas = []
+    for b in sharp_bets:
+        if b.linked_pick and b.line_at_bet is not None and b.linked_pick.line is not None:
+            delta = abs(b.line_at_bet - b.linked_pick.line)
+            line_deltas.append(delta)
+    avg_line_delta = round(sum(line_deltas) / len(line_deltas), 1) if line_deltas else None
+
+    model_pnl = 0
+    user_pnl_on_sharp = 0
+    for b in sharp_bets:
+        if b.linked_pick and b.linked_pick.result in ('win', 'loss'):
+            model_pnl += (b.linked_pick.pnl or 0) / max(1, len([x for x in sharp_bets if x.pick_id == b.pick_id]))
+        if b.result:
+            user_pnl_on_sharp += (b.profit or 0)
+
     return jsonify({
         'totalProfit': round(total_profit, 2),
         'roi': round(roi, 1),
@@ -949,6 +970,18 @@ def get_user_stats():
         },
         'equityCurve': equity_curve,
         'monthlyBreakdown': monthly_breakdown,
+        'adherence': {
+            'picks_followed': picks_followed,
+            'total_published': total_sharp_picks_available,
+            'exact_follows': exact_follows,
+            'adherence_score': adherence_score,
+            'avg_line_delta': avg_line_delta,
+        },
+        'outcome_split': {
+            'model_pnl': round(model_pnl, 2),
+            'user_pnl': round(user_pnl_on_sharp, 2),
+            'difference': round(user_pnl_on_sharp - model_pnl, 2),
+        },
     })
 
 @app.route('/api/bets', methods=['GET'])
@@ -983,6 +1016,10 @@ def get_user_bets():
             'result': b.result,
             'profit': b.profit,
             'pick_result': pick_result,
+            'source': b.source or 'sharp_pick',
+            'follow_type': b.follow_type or 'exact',
+            'line_at_bet': b.line_at_bet,
+            'odds_at_publish': b.odds_at_publish,
             'created_at': b.created_at.isoformat() if b.created_at else None
         })
     return jsonify({'bets': bet_list, 'tracked_pick_ids': list(tracked_pick_ids)})
@@ -1049,6 +1086,16 @@ def track_bet():
     else:
         to_win = bet_amount * (odds / 100)
 
+    source = 'sharp_pick' if pick_id else 'manual'
+    follow_type = data.get('follow_type', 'exact')
+    line_at_bet = data.get('line_at_bet')
+    odds_at_publish_val = None
+
+    if pick_id and sp_pick:
+        odds_at_publish_val = sp_pick.market_odds
+        if line_at_bet is None:
+            line_at_bet = sp_pick.line
+
     bet = TrackedBet(
         user_id=current_user.id,
         pick_id=pick_id,
@@ -1058,7 +1105,11 @@ def track_bet():
         odds=odds,
         to_win=round(to_win, 2),
         result=None,
-        profit=0
+        profit=0,
+        source=source,
+        follow_type=follow_type,
+        line_at_bet=line_at_bet,
+        odds_at_publish=odds_at_publish_val,
     )
     db.session.add(bet)
     db.session.commit()
