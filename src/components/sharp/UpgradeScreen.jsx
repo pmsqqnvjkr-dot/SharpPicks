@@ -10,19 +10,7 @@ export default function UpgradeScreen({ onBack }) {
       window.open('https://buy.stripe.com/14A14oaGg0kI8ZV4BQd7q00', '_blank');
       return;
     }
-    setCheckoutLoading(true);
-    try {
-      const data = await apiPost('/subscriptions/create-checkout', { plan });
-      if (data.checkout_url) {
-        window.open(data.checkout_url, '_blank');
-      } else if (data.error) {
-        alert(data.error);
-      }
-    } catch (e) {
-      alert('Unable to start checkout. Please try again.');
-    } finally {
-      setCheckoutLoading(false);
-    }
+    window.open('https://buy.stripe.com/14AeVeeWwgjGekfc4id7q01', '_blank');
   };
 
   const isFoundingOpen = foundingData?.open;
