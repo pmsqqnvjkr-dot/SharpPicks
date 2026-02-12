@@ -41,14 +41,24 @@ export default function PicksTab({ onNavigate }) {
       <Header user={user} onAuthClick={() => setShowAuth(true)} />
 
       <div style={{ padding: '0 20px' }}>
-        {todayData?.type === 'pick' && isResolved && (
+        {todayData?.type === 'pick' && isResolved && isPro && (
           <ResolvedPickBanner
             pick={todayData}
             onViewDetails={() => { setResolutionPick(todayData); setShowResolution(true); }}
           />
         )}
 
-        {todayData?.type === 'pick' && !isResolved && (
+        {todayData?.type === 'pick' && isResolved && !isPro && (
+          <FreePickNotice resolved onUpgrade={() => {
+            if (user) {
+              if (onNavigate) onNavigate('profile', 'upgrade');
+            } else {
+              setShowAuth(true);
+            }
+          }} />
+        )}
+
+        {todayData?.type === 'pick' && !isResolved && isPro && (
           <PickCard pick={todayData} isPro={isPro} onUpgrade={() => setShowAuth(true)} onTrack={() => {
             if (onNavigate) onNavigate('profile', 'bets', {
               pickToTrack: {
@@ -61,6 +71,16 @@ export default function PicksTab({ onNavigate }) {
                 edge_pct: todayData.edge_pct,
               }
             });
+          }} />
+        )}
+
+        {todayData?.type === 'pick' && !isResolved && !isPro && (
+          <FreePickNotice onUpgrade={() => {
+            if (user) {
+              if (onNavigate) onNavigate('profile', 'upgrade');
+            } else {
+              setShowAuth(true);
+            }
           }} />
         )}
 
@@ -474,6 +494,67 @@ function ResolvedPickBanner({ pick, onViewDetails }) {
           <path d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
       </div>
+    </div>
+  );
+}
+
+function FreePickNotice({ onUpgrade, resolved }) {
+  return (
+    <div style={{
+      backgroundColor: 'var(--surface-1)',
+      border: '1px solid var(--stroke-subtle)',
+      borderRadius: '16px',
+      padding: '32px 24px',
+      textAlign: 'center',
+    }}>
+      <div style={{
+        width: '56px', height: '56px', borderRadius: '14px',
+        backgroundColor: 'rgba(52,211,153,0.08)',
+        border: '1px solid rgba(52,211,153,0.15)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        margin: '0 auto 20px',
+      }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green-profit)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+
+      <div style={{
+        fontFamily: 'var(--font-mono)',
+        fontSize: '11px', fontWeight: 700,
+        letterSpacing: '1.5px', textTransform: 'uppercase',
+        color: 'var(--green-profit)',
+        marginBottom: '12px',
+      }}>Pick Published Today</div>
+
+      <p style={{
+        fontSize: '14px', color: 'var(--text-secondary)',
+        lineHeight: '1.6', marginBottom: '24px',
+        maxWidth: '280px', margin: '0 auto 24px',
+      }}>
+        {resolved
+          ? "Today's pick has been resolved. Upgrade to see the result, side, and full analysis."
+          : "The model found a qualifying edge today. Upgrade to see the full pick, side, and analysis."
+        }
+      </p>
+
+      <button
+        onClick={onUpgrade}
+        style={{
+          width: '100%', height: '48px', borderRadius: '14px',
+          border: 'none',
+          background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
+          color: 'white', fontFamily: 'var(--font-sans)',
+          fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+        }}
+      >
+        Upgrade to See Pick
+      </button>
+
+      <p style={{
+        fontSize: '12px', color: 'var(--text-tertiary)',
+        marginTop: '12px',
+      }}>14-day free trial · Cancel anytime</p>
     </div>
   );
 }
