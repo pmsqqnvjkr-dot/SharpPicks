@@ -32,22 +32,25 @@ def ensure_tracking_table():
             resolved_at TEXT,
             opening_line REAL,
             closing_line REAL,
-            beat_close INTEGER
+            beat_close INTEGER,
+            implied_prob REAL,
+            edge_vs_market REAL,
+            expected_value REAL,
+            recommended_book TEXT,
+            market_odds INTEGER,
+            explanation TEXT
         )
     ''')
     
-    try:
-        cursor.execute('ALTER TABLE prediction_log ADD COLUMN opening_line REAL')
-    except:
-        pass
-    try:
-        cursor.execute('ALTER TABLE prediction_log ADD COLUMN closing_line REAL')
-    except:
-        pass
-    try:
-        cursor.execute('ALTER TABLE prediction_log ADD COLUMN beat_close INTEGER')
-    except:
-        pass
+    for col, coltype in [
+        ('opening_line', 'REAL'), ('closing_line', 'REAL'), ('beat_close', 'INTEGER'),
+        ('implied_prob', 'REAL'), ('edge_vs_market', 'REAL'), ('expected_value', 'REAL'),
+        ('recommended_book', 'TEXT'), ('market_odds', 'INTEGER'), ('explanation', 'TEXT'),
+    ]:
+        try:
+            cursor.execute(f'ALTER TABLE prediction_log ADD COLUMN {col} {coltype}')
+        except:
+            pass
     
     cursor.execute('''
         CREATE INDEX IF NOT EXISTS idx_pred_date ON prediction_log(game_date)
@@ -61,9 +64,28 @@ def ensure_tracking_table():
     conn.close()
 
 
+def odds_to_implied_prob(odds=-110):
+    """Convert American odds to implied probability"""
+    if odds < 0:
+        return abs(odds) / (abs(odds) + 100)
+    else:
+        return 100 / (odds + 100)
+
+
+def calculate_ev(model_prob, odds=-110):
+    """Calculate expected value: EV = (prob * payout) - ((1-prob) * stake)"""
+    if odds < 0:
+        payout = 100 / abs(odds)
+    else:
+        payout = odds / 100
+    ev = (model_prob * payout) - ((1 - model_prob) * 1)
+    return round(ev * 100, 2)
+
+
 def log_prediction(game_id, game_date, home_team, away_team, spread_home, 
-                   prediction, confidence, home_cover_prob, opening_line=None):
-    """Log a new prediction with opening line"""
+                   prediction, confidence, home_cover_prob, opening_line=None,
+                   market_odds=-110, recommended_book=None, explanation=None):
+    """Log a new prediction with EV, implied prob, and audit trail"""
     ensure_tracking_table()
     conn = sqlite3.connect('sharp_picks.db')
     cursor = conn.cursor()
@@ -76,16 +98,22 @@ def log_prediction(game_id, game_date, home_team, away_team, spread_home,
         conn.close()
         return False
     
+    implied = odds_to_implied_prob(market_odds)
+    edge = round((confidence - implied) * 100, 2)
+    ev = calculate_ev(confidence, market_odds)
+    
     cursor.execute('''
         INSERT INTO prediction_log 
         (game_id, game_date, home_team, away_team, spread_home, prediction, 
-         confidence, home_cover_prob, logged_at, opening_line)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         confidence, home_cover_prob, logged_at, opening_line,
+         implied_prob, edge_vs_market, expected_value, recommended_book, market_odds, explanation)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         game_id, game_date, home_team, away_team, spread_home,
         prediction, confidence, home_cover_prob,
         datetime.now().isoformat(),
-        opening_line if opening_line else spread_home
+        opening_line if opening_line else spread_home,
+        round(implied, 4), edge, ev, recommended_book, market_odds, explanation
     ))
     
     conn.commit()
@@ -111,13 +139,15 @@ def update_closing_line(game_id, closing_line):
     opening_line, prediction, spread_at_pick = row
     
     beat_close = 0
-    if opening_line is not None and closing_line is not None:
-        line_movement = closing_line - opening_line
+    if spread_at_pick is not None and closing_line is not None:
+        clv = closing_line - spread_at_pick
         
-        if 'home' in prediction.lower() or prediction == row[0]:
-            beat_close = 1 if line_movement < 0 else 0
+        is_home_pick = prediction and ('home' in prediction.lower() or 'cover' in prediction.lower())
+        
+        if is_home_pick:
+            beat_close = 1 if clv < 0 else 0
         else:
-            beat_close = 1 if line_movement > 0 else 0
+            beat_close = 1 if clv > 0 else 0
     
     cursor.execute('''
         UPDATE prediction_log 

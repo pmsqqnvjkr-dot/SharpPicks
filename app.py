@@ -177,10 +177,118 @@ def grade_pending_picks():
         except Exception as e:
             print(f"[Auto-grade] Error: {e}")
 
+def collect_closing_lines():
+    """Collect closing lines right before games start.
+    First refreshes data from APIs, then snapshots current lines as closing lines."""
+    print(f"[{datetime.now()}] Refreshing lines for closing snapshot...")
+    try:
+        subprocess.run(['python', 'main.py'], timeout=300)
+    except Exception as e:
+        print(f"[{datetime.now()}] Line refresh error (continuing): {e}")
+    
+    print(f"[{datetime.now()}] Capturing closing lines...")
+    try:
+        conn = sqlite3.connect('sharp_picks.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        cursor.execute('''
+            SELECT id, home_team, away_team, spread_home, total,
+                   home_ml, away_ml
+            FROM games
+            WHERE game_date LIKE ?
+            AND home_score IS NULL
+            AND spread_home IS NOT NULL
+        ''', (f'{today_str}%',))
+        
+        games = cursor.fetchall()
+        updated = 0
+        
+        for game in games:
+            cursor.execute('''
+                UPDATE games SET
+                    spread_home_close = ?,
+                    total_close = ?,
+                    home_ml_close = ?,
+                    away_ml_close = ?,
+                    close_collected_at = ?
+                WHERE id = ?
+            ''', (game['spread_home'], game['total'],
+                  game['home_ml'], game['away_ml'],
+                  datetime.now().isoformat(), game['id']))
+            
+            from performance_tracker import update_closing_line
+            update_closing_line(game['id'], game['spread_home'])
+            updated += 1
+        
+        conn.commit()
+        conn.close()
+        print(f"[{datetime.now()}] Captured closing lines for {updated} games")
+    except Exception as e:
+        print(f"[{datetime.now()}] Closing line error: {e}")
+
+
+def check_data_quality():
+    """Run data quality checks — stale lines, duplicates, API health"""
+    print(f"[{datetime.now()}] Running data quality checks...")
+    issues = []
+    
+    try:
+        conn = sqlite3.connect('sharp_picks.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        
+        cursor.execute('''
+            SELECT COUNT(*) as cnt FROM games
+            WHERE game_date LIKE ? AND spread_home IS NULL
+        ''', (f'{today_str}%',))
+        missing_spreads = cursor.fetchone()['cnt']
+        if missing_spreads > 0:
+            issues.append(f"WARN: {missing_spreads} games today missing spread data")
+        
+        cursor.execute('''
+            SELECT home_team, away_team, COUNT(*) as cnt
+            FROM games WHERE game_date LIKE ?
+            GROUP BY home_team, away_team HAVING cnt > 1
+        ''', (f'{today_str}%',))
+        dupes = cursor.fetchall()
+        if dupes:
+            for d in dupes:
+                issues.append(f"WARN: Duplicate game {d['away_team']}@{d['home_team']} ({d['cnt']}x)")
+        
+        cursor.execute('''
+            SELECT collected_at FROM games
+            WHERE game_date LIKE ?
+            ORDER BY collected_at DESC LIMIT 1
+        ''', (f'{today_str}%',))
+        latest = cursor.fetchone()
+        if latest and latest['collected_at']:
+            from datetime import datetime as dt
+            collected = dt.fromisoformat(latest['collected_at'])
+            hours_old = (datetime.now() - collected).total_seconds() / 3600
+            if hours_old > 6:
+                issues.append(f"WARN: Lines are {hours_old:.1f}h old — may be stale")
+        
+        conn.close()
+        
+        if issues:
+            for issue in issues:
+                print(f"[Data Quality] {issue}")
+        else:
+            print(f"[{datetime.now()}] Data quality OK")
+            
+    except Exception as e:
+        print(f"[Data Quality] Check failed: {e}")
+
+
 scheduler = BackgroundScheduler()
 scheduler.add_job(collect_todays_games, 'cron', hour=9, minute=0, id='daily_collection')
 scheduler.add_job(collect_todays_games, 'cron', hour=21, minute=0, id='evening_collection')
+scheduler.add_job(collect_closing_lines, 'cron', hour=18, minute=30, id='closing_lines')
 scheduler.add_job(grade_pending_picks, 'cron', hour=23, minute=30, id='grade_picks')
+scheduler.add_job(check_data_quality, 'cron', hour=10, minute=0, id='data_quality')
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 

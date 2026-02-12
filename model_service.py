@@ -2,6 +2,7 @@
 Model Run Service
 Bridges the existing ML prediction pipeline with the new picks/passes tables.
 Called after the model generates predictions to log picks or passes.
+Uses proper EV calculation: edge = model_prob - implied_prob (not confidence - 0.5)
 """
 
 import sqlite3
@@ -10,6 +11,8 @@ from datetime import datetime
 from models import db, Pick, Pass, ModelRun
 
 EDGE_THRESHOLD = 3.5
+STANDARD_ODDS = -110
+IMPLIED_PROB = abs(STANDARD_ODDS) / (abs(STANDARD_ODDS) + 100)
 
 
 def run_model_and_log(app):
@@ -33,12 +36,14 @@ def run_model_and_log(app):
 
             cursor.execute('''
                 SELECT g.id, g.home_team, g.away_team, g.game_date, g.spread_home,
-                       p.home_cover_prob, p.confidence, p.prediction
+                       g.spread_home_open,
+                       p.home_cover_prob, p.confidence, p.prediction,
+                       p.edge_vs_market, p.expected_value, p.explanation
                 FROM games g
                 LEFT JOIN prediction_log p ON g.id = p.game_id
                 WHERE g.game_date LIKE ?
                 AND p.id IS NOT NULL
-                ORDER BY p.confidence DESC
+                ORDER BY p.edge_vs_market DESC NULLS LAST
             ''', (f'{today_str}%',))
 
             predictions = cursor.fetchall()
@@ -72,25 +77,46 @@ def run_model_and_log(app):
 
             for pred in predictions:
                 confidence = pred['confidence'] or 0.5
-                edge = abs(confidence - 0.5) * 100 * 2
+                edge = pred['edge_vs_market'] if pred['edge_vs_market'] is not None else round((confidence - IMPLIED_PROB) * 100, 2)
+                
                 if edge > closest_edge:
                     closest_edge = edge
-                if edge >= EDGE_THRESHOLD and (best_pred is None or edge > best_edge):
+
+                open_spread = pred['spread_home_open']
+                current_spread = pred['spread_home']
+                line_moved_against = False
+                if open_spread is not None and current_spread is not None:
+                    move = current_spread - open_spread
+                    home_pick = pred['home_cover_prob'] and pred['home_cover_prob'] >= 0.5
+                    if home_pick and move > 2:
+                        line_moved_against = True
+                    elif not home_pick and move < -2:
+                        line_moved_against = True
+
+                if edge >= EDGE_THRESHOLD and not line_moved_against and (best_pred is None or edge > best_edge):
                     best_pred = pred
                     best_edge = edge
 
             duration_ms = int((time.time() - start_time) * 1000)
 
             if best_pred:
+                explanation = best_pred['explanation'] or ''
+                
+                actual_spread = best_pred['spread_home'] or 0
+                home_cover_prob = best_pred['home_cover_prob'] or 0.5
+                is_home_pick = home_cover_prob >= 0.5
+                pick_spread = actual_spread if is_home_pick else -actual_spread
+
                 pick = Pick(
                     sport='nba',
                     away_team=best_pred['away_team'],
                     home_team=best_pred['home_team'],
                     game_date=best_pred['game_date'],
                     side=best_pred['prediction'],
-                    line=-110,
+                    line=pick_spread,
                     edge_pct=round(best_edge, 1),
                     model_confidence=round(best_pred['confidence'], 4),
+                    notes=explanation,
                 )
                 db.session.add(pick)
 

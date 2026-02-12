@@ -20,6 +20,8 @@ import xgboost as xgb
 
 MIN_CONFIDENCE_THRESHOLD = 0.55
 STRONG_CONFIDENCE_THRESHOLD = 0.60
+EDGE_THRESHOLD_PCT = 3.5
+STANDARD_ODDS = -110
 
 
 class EnsemblePredictor:
@@ -489,6 +491,9 @@ class EnsemblePredictor:
         
         picks = []
         
+        from performance_tracker import odds_to_implied_prob, calculate_ev
+        implied_prob = odds_to_implied_prob(STANDARD_ODDS)
+        
         for i, row in df.iterrows():
             idx = df.index.get_loc(i)
             
@@ -504,7 +509,20 @@ class EnsemblePredictor:
                 pick = f"{away} {-spread:+.1f}"
                 confidence = 1 - proba
             
-            edge = abs(proba - 0.5) * 2
+            edge_vs_market = round((confidence - implied_prob) * 100, 2)
+            ev = calculate_ev(confidence, STANDARD_ODDS)
+            
+            line_move = row.get('line_movement', 0) or 0
+            open_spread = row.get('spread_home_open', None)
+            line_moved_against = False
+            if open_spread is not None and spread is not None:
+                move = spread - open_spread
+                if proba >= 0.5 and move > 2:
+                    line_moved_against = True
+                elif proba < 0.5 and move < -2:
+                    line_moved_against = True
+
+            explanation = self._generate_explanation(row, proba, confidence, edge_vs_market)
             
             if confidence >= STRONG_CONFIDENCE_THRESHOLD:
                 rating = "STRONG"
@@ -522,27 +540,35 @@ class EnsemblePredictor:
                 'spread': spread,
                 'pick': pick,
                 'confidence': confidence,
-                'edge': edge,
+                'edge': edge_vs_market,
+                'ev': ev,
+                'implied_prob': implied_prob,
                 'rating': rating,
                 'home_proba': proba,
-                'passes_filter': confidence >= min_confidence
+                'line_moved_against': line_moved_against,
+                'explanation': explanation,
+                'passes_filter': confidence >= min_confidence and edge_vs_market >= EDGE_THRESHOLD_PCT and not line_moved_against
             })
         
         filtered_picks = [p for p in picks if p['passes_filter']]
         excluded_count = len(picks) - len(filtered_picks)
         
-        print("-" * 75)
-        print(f"{'Game':<30} {'Pick':<18} {'Conf':>8} {'Edge':>7} {'Rating':>10}")
-        print("-" * 75)
+        print("-" * 90)
+        print(f"{'Game':<30} {'Pick':<18} {'Conf':>8} {'Edge':>7} {'EV':>8} {'Rating':>10}")
+        print("-" * 90)
         
-        for pick in sorted(filtered_picks, key=lambda x: x['confidence'], reverse=True):
+        for pick in sorted(filtered_picks, key=lambda x: x['edge'], reverse=True):
             game_str = pick['game'][:29]
-            print(f"{game_str:<30} {pick['pick']:<18} {pick['confidence']:>7.1%} {pick['edge']:>6.1%} {pick['rating']:>10}")
+            flag = " !" if pick['line_moved_against'] else ""
+            print(f"{game_str:<30} {pick['pick']:<18} {pick['confidence']:>7.1%} {pick['edge']:>+6.1f}% {pick['ev']:>+7.1f}% {pick['rating']:>10}{flag}")
         
-        print("-" * 75)
+        print("-" * 90)
         
+        moved_count = sum(1 for p in picks if p['line_moved_against'])
         if excluded_count > 0:
-            print(f"\n⚠️  {excluded_count} games below {min_confidence*100:.0f}% confidence (filtered out)")
+            print(f"\n   {excluded_count} games excluded (below {EDGE_THRESHOLD_PCT}% edge or line moved against)")
+        if moved_count > 0:
+            print(f"   {moved_count} games flagged: line moved against position >2pts")
         
         if log_predictions:
             try:
@@ -551,23 +577,176 @@ class EnsemblePredictor:
                 for pick in picks:
                     if log_prediction(
                         pick['game_id'], pick['game_date'], pick['home_team'], pick['away_team'],
-                        pick['spread'], pick['pick'], pick['confidence'], pick['home_proba']
+                        pick['spread'], pick['pick'], pick['confidence'], pick['home_proba'],
+                        market_odds=STANDARD_ODDS,
+                        recommended_book='DraftKings',
+                        explanation='|'.join(pick['explanation']) if pick['explanation'] else None
                     ):
                         logged += 1
                 if logged > 0:
-                    print(f"📊 Logged {logged} new predictions for tracking")
+                    print(f"   Logged {logged} predictions with EV and audit trail")
             except Exception as e:
                 pass
         
-        strong_picks = [p for p in filtered_picks if p['confidence'] >= STRONG_CONFIDENCE_THRESHOLD]
-        if strong_picks:
-            print(f"\n🔥 TOP PICKS ({STRONG_CONFIDENCE_THRESHOLD*100:.0f}%+ confidence):")
-            for pick in sorted(strong_picks, key=lambda x: x['confidence'], reverse=True):
-                print(f"   {pick['rating']}: {pick['pick']} ({pick['confidence']:.1%})")
+        qualified = [p for p in filtered_picks if p['edge'] >= EDGE_THRESHOLD_PCT]
+        if qualified:
+            print(f"\n   QUALIFIED OPPORTUNITIES ({EDGE_THRESHOLD_PCT}%+ edge):")
+            for pick in sorted(qualified, key=lambda x: x['edge'], reverse=True):
+                print(f"   {pick['rating']}: {pick['pick']} (edge: +{pick['edge']:.1f}%, EV: {pick['ev']:+.1f}%)")
+                if pick['explanation']:
+                    for reason in pick['explanation']:
+                        print(f"      - {reason}")
         
         print()
         return filtered_picks
     
+    def _generate_explanation(self, row, proba, confidence, edge):
+        """Generate 2-4 human-readable reasons for why this pick qualifies"""
+        reasons = []
+        
+        spread = row.get('spread_home', 0) or 0
+        open_spread = row.get('spread_home_open', None)
+        home = row['home_team']
+        away = row['away_team']
+        
+        pick_home = proba >= 0.5
+        pick_team = home if pick_home else away
+        
+        if open_spread is not None and spread is not None:
+            move = abs(spread - open_spread)
+            if move >= 1.0:
+                if (pick_home and spread < open_spread) or (not pick_home and spread > open_spread):
+                    reasons.append(f"Line moved {move:.1f}pts in our favor since open")
+                elif move >= 2.0:
+                    reasons.append(f"Line moved {move:.1f}pts against — monitor closely")
+        
+        consensus = row.get('rundown_spread_consensus', None)
+        if consensus is not None and spread is not None:
+            diff = abs(spread - consensus)
+            if diff >= 1.5:
+                reasons.append(f"Model line differs from {len(str(row.get('rundown_num_books',0)))} book consensus by {diff:.1f}pts")
+        
+        home_margin = row.get('bdl_home_scoring_margin', None)
+        away_margin = row.get('bdl_away_scoring_margin', None)
+        if home_margin is not None and away_margin is not None:
+            margin_diff = home_margin - away_margin
+            if pick_home and margin_diff > 5:
+                reasons.append(f"Scoring margin advantage: {home} {margin_diff:+.1f}pts better recently")
+            elif not pick_home and margin_diff < -5:
+                reasons.append(f"Scoring margin advantage: {away} {abs(margin_diff):.1f}pts better recently")
+        
+        home_rest = row.get('home_rest_days', None)
+        away_rest = row.get('away_rest_days', None)
+        if home_rest is not None and away_rest is not None:
+            try:
+                h_rest = int(home_rest) if home_rest else 1
+                a_rest = int(away_rest) if away_rest else 1
+                if pick_home and h_rest > a_rest + 1:
+                    reasons.append(f"Rest advantage: {home} {h_rest}d rest vs {away} {a_rest}d")
+                elif not pick_home and a_rest > h_rest + 1:
+                    reasons.append(f"Rest advantage: {away} {a_rest}d rest vs {home} {h_rest}d")
+            except (ValueError, TypeError):
+                pass
+        
+        home_net = row.get('home_net_rtg', None)
+        away_net = row.get('away_net_rtg', None)
+        if home_net is not None and away_net is not None:
+            try:
+                net_diff = float(home_net) - float(away_net)
+                if pick_home and net_diff > 3:
+                    reasons.append(f"Net rating edge: {home} {net_diff:+.1f} better")
+                elif not pick_home and net_diff < -3:
+                    reasons.append(f"Net rating edge: {away} {abs(net_diff):.1f} better")
+            except (ValueError, TypeError):
+                pass
+        
+        if edge >= EDGE_THRESHOLD_PCT and not reasons:
+            implied = abs(STANDARD_ODDS) / (abs(STANDARD_ODDS) + 100) if STANDARD_ODDS < 0 else 100 / (STANDARD_ODDS + 100)
+            reasons.append(f"Model probability ({confidence:.0%}) exceeds market implied ({implied:.0%})")
+        
+        return reasons[:4]
+    
+    def walk_forward_validate(self):
+        """Walk-forward validation: train on past seasons, test on next season. No future leakage."""
+        print("\n" + "="*60)
+        print("WALK-FORWARD VALIDATION (by season)")
+        print("="*60 + "\n")
+        
+        df = self.load_data()
+        if len(df) < 100:
+            print("Not enough data for walk-forward validation")
+            return None
+        
+        df = df[df['spread_result'] != 'PUSH'].copy()
+        df['game_date_parsed'] = pd.to_datetime(df['game_date'].str[:10], errors='coerce')
+        df = df.dropna(subset=['game_date_parsed'])
+        df['season'] = df['game_date_parsed'].apply(
+            lambda d: d.year if d.month >= 10 else d.year - 1
+        )
+        
+        seasons = sorted(df['season'].unique())
+        if len(seasons) < 2:
+            print("Need at least 2 seasons for walk-forward validation")
+            return None
+        
+        results = []
+        
+        for i in range(1, len(seasons)):
+            train_seasons = seasons[:i]
+            test_season = seasons[i]
+            
+            train_df = df[df['season'].isin(train_seasons)]
+            test_df = df[df['season'] == test_season]
+            
+            if len(train_df) < 50 or len(test_df) < 20:
+                continue
+            
+            X_train = self.engineer_features(train_df)
+            y_train = self.prepare_target(train_df)
+            X_test = self.engineer_features(test_df)
+            y_test = self.prepare_target(test_df)
+            
+            all_features = list(set(X_train.columns) | set(X_test.columns))
+            for f in all_features:
+                if f not in X_train.columns:
+                    X_train[f] = 0
+                if f not in X_test.columns:
+                    X_test[f] = 0
+            X_train = X_train[all_features]
+            X_test = X_test[all_features]
+            
+            scaler = StandardScaler()
+            X_train_s = scaler.fit_transform(X_train)
+            X_test_s = scaler.transform(X_test)
+            
+            from sklearn.ensemble import GradientBoostingClassifier
+            model = GradientBoostingClassifier(n_estimators=200, max_depth=4, random_state=42)
+            model.fit(X_train_s, y_train)
+            
+            preds = model.predict(X_test_s)
+            proba = model.predict_proba(X_test_s)[:, 1]
+            acc = accuracy_score(y_test, preds)
+            brier = brier_score_loss(y_test, proba)
+            
+            season_label = f"{test_season}-{test_season+1}"
+            results.append({
+                'season': season_label,
+                'train_games': len(train_df),
+                'test_games': len(test_df),
+                'accuracy': acc,
+                'brier': brier,
+            })
+            
+            print(f"   {season_label}: {acc:.1%} accuracy, {brier:.3f} brier ({len(test_df)} games, trained on {len(train_df)})")
+        
+        if results:
+            avg_acc = np.mean([r['accuracy'] for r in results])
+            avg_brier = np.mean([r['brier'] for r in results])
+            print(f"\n   Walk-forward average: {avg_acc:.1%} accuracy, {avg_brier:.3f} brier")
+            print(f"   Seasons tested: {len(results)}")
+        
+        return results
+
     def save(self, filepath='sharp_picks_model.pkl'):
         """Save the trained model"""
         model_data = {

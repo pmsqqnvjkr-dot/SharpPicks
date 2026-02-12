@@ -104,6 +104,18 @@ Sharp Picks is a sports betting discipline system. One pick per day maximum, onl
 - Webhook signature verification required in production
 
 ## Recent Changes
+- **Feb 12**: Production-grade model improvements (10 gaps addressed)
+- **Feb 12**: Proper EV calculation: edge = model_prob - implied_prob (not confidence - 0.5)
+- **Feb 12**: Closing line collection: 6:30pm daily job refreshes lines, snapshots as closing, calculates CLV
+- **Feb 12**: Data quality checks: 10am daily job detects stale lines, duplicates, missing spreads
+- **Feb 12**: Walk-forward validation: season-by-season backtesting with no future leakage
+- **Feb 12**: Bankroll guidance: flat staking (1-2u by edge tier) + quarter-Kelly calculation
+- **Feb 12**: Line movement guards: auto-excludes picks where market moved >2pts against position
+- **Feb 12**: Compliance disclaimers in picks API and PickCard UI
+- **Feb 12**: Explanation layer: 2-4 human-readable reasons per pick (line moves, consensus, margins, rest)
+- **Feb 12**: Pick.line now stores actual spread (not odds) for correct grading and CLV
+- **Feb 12**: Fixed CLV beat_close logic to compare spread-at-pick vs closing (not opening vs closing)
+- **Feb 12**: Scheduled jobs: 9am/9pm collection, 6:30pm closing lines, 10am data quality, 11:30pm grading
 - **Feb 12**: Implemented 10 new screens from 27-screen design spec (Phase 1-3 complete)
 - **Feb 12**: Loading State (Screen 23) - Skeleton shimmer loading with calm messaging
 - **Feb 12**: Empty States (Screen 11) - Designed empty states for no picks, no bets, no chart data

@@ -168,6 +168,47 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           <PickStat label="Edge" value={`${pick.edge_pct}%`} profit />
         </div>
 
+        {pick.stake_guidance && (
+          <>
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.10)', margin: '14px 0' }} />
+            <div style={{
+              padding: '14px',
+              borderRadius: '16px',
+              border: '1px solid rgba(255,255,255,0.10)',
+              background: 'rgba(0,0,0,0.18)',
+            }}>
+              <div style={{
+                fontSize: '10px', letterSpacing: '1.25px', textTransform: 'uppercase',
+                fontWeight: 800, color: 'rgba(169,180,207,0.9)',
+                marginBottom: '10px',
+              }}>Suggested Position Size</div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 800,
+                    color: 'rgba(255,255,255,0.95)',
+                  }}>{pick.stake_guidance.flat_stake}u</div>
+                  <div style={{
+                    fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
+                    color: 'rgba(169,180,207,0.7)', marginTop: '4px',
+                  }}>Flat</div>
+                </div>
+                <div style={{ width: '1px', background: 'rgba(255,255,255,0.10)' }} />
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 800,
+                    color: 'rgba(255,255,255,0.95)',
+                  }}>{pick.stake_guidance.kelly_stake}u</div>
+                  <div style={{
+                    fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
+                    color: 'rgba(169,180,207,0.7)', marginTop: '4px',
+                  }}>Quarter-Kelly</div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
         {pick.result && pick.result !== 'pending' ? (
           <div style={{
             marginTop: '16px', padding: '14px',
@@ -210,6 +251,17 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         }}>
           Posted {pick.posted_time || '2h before tip'} · Best at {pick.best_book || 'DraftKings'}
         </div>
+
+        {pick.disclaimer && (
+          <div style={{
+            marginTop: '10px',
+            fontSize: '10px', lineHeight: '1.5',
+            color: 'rgba(138,148,166,0.6)',
+            textAlign: 'center',
+          }}>
+            {pick.disclaimer}
+          </div>
+        )}
       </article>
     </div>
   );

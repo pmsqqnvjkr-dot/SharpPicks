@@ -8,6 +8,47 @@ picks_bp = Blueprint('picks', __name__)
 EDGE_THRESHOLD = 3.5
 
 
+def calculate_stake_guidance(edge_pct, confidence, market_odds=-110):
+    """Generate bankroll guidance: flat staking + fractional Kelly
+    
+    Uses actual market odds when available, defaults to -110 standard juice.
+    """
+    if market_odds and market_odds < 0:
+        odds_decimal = 1 + (100 / abs(market_odds))
+    elif market_odds and market_odds > 0:
+        odds_decimal = 1 + (market_odds / 100)
+    else:
+        odds_decimal = 1 + (100 / 110)
+    
+    model_prob = confidence
+    
+    kelly_full = (model_prob * odds_decimal - 1) / (odds_decimal - 1)
+    kelly_full = max(0, kelly_full)
+    kelly_fraction = kelly_full * 0.25
+    
+    kelly_units = round(kelly_fraction * 100, 1)
+    kelly_units = min(kelly_units, 5.0)
+    kelly_units = max(kelly_units, 0)
+    
+    if edge_pct >= 10:
+        confidence_tier = 'high'
+        flat_units = 2.0
+    elif edge_pct >= 6:
+        confidence_tier = 'standard'
+        flat_units = 1.5
+    else:
+        confidence_tier = 'minimum'
+        flat_units = 1.0
+    
+    return {
+        'flat_stake': flat_units,
+        'kelly_stake': kelly_units,
+        'confidence_tier': confidence_tier,
+        'kelly_fraction': round(kelly_fraction * 100, 2),
+        'guidance': f"{flat_units}u flat / {kelly_units}u Kelly (quarter-Kelly)",
+    }
+
+
 @picks_bp.route('/today')
 def today():
     today_str = datetime.now().strftime('%Y-%m-%d')
@@ -23,6 +64,8 @@ def today():
 
         model_line = pick.line
         market_line = round(pick.line + (pick.edge_pct * 0.3 if pick.edge_pct else 0), 1) if pick.line else None
+
+        stake = calculate_stake_guidance(pick.edge_pct or 0, pick.model_confidence or 0.5)
 
         pick_data = {
             'type': 'pick',
@@ -43,6 +86,8 @@ def today():
             'published_at': pick.published_at.isoformat() if pick.published_at else None,
             'posted_time': '2h before tip',
             'best_book': 'DraftKings',
+            'stake_guidance': stake,
+            'disclaimer': 'For informational and entertainment purposes only. No guaranteed outcomes. Past performance does not guarantee future results. Please gamble responsibly.',
         }
         is_pro = current_user.is_authenticated and current_user.is_pro
         if not is_pro:
@@ -52,6 +97,7 @@ def today():
             pick_data['model_signals'] = []
             pick_data['model_line'] = None
             pick_data['market_line'] = None
+            pick_data['stake_guidance'] = None
             pick_data['locked'] = True
         else:
             pick_data['locked'] = False
