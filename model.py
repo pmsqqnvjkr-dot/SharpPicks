@@ -26,7 +26,9 @@ STANDARD_ODDS = -110
 MARGIN_STD_DEV = 12.0
 MARGIN_STD_FLOOR = 8.0
 MARGIN_STD_CEILING = 15.0
-LINE_MOVE_PENALTY_PER_PT = 1.5
+LINE_MOVE_PENALTY_PER_PT = 1.0
+LINE_MOVE_HARD_STOP = 2.5
+LINE_MOVE_HARD_STOP_MIN_EDGE = 10.0
 
 SPREAD_EDGE_CURVE = [
     (0, 7, 3.5),
@@ -633,8 +635,12 @@ class EnsemblePredictor:
                 fail_reasons.append('missing_spread')
             if pred_margin is None and proba is None:
                 fail_reasons.append('missing_prediction')
-            if used_fallback:
-                fail_reasons.append('no_margin_sigma_for_ats')
+            if using_fallback:
+                fail_reasons.append('fallback_sigma')
+                pass_reason = "Model calibration in progress — no picks until margin sigma is trained"
+            if line_move_against >= LINE_MOVE_HARD_STOP and adjusted_edge < LINE_MOVE_HARD_STOP_MIN_EDGE:
+                fail_reasons.append('extreme_line_move')
+                pass_reason = f"Extreme line movement ({line_move_against:+.1f}pts against) — auto-pass unless edge >= {LINE_MOVE_HARD_STOP_MIN_EDGE}%"
             
             spread_abs = abs(spread) if spread is not None else 0
             required_edge = get_edge_threshold_for_spread(spread_abs)
@@ -684,6 +690,7 @@ class EnsemblePredictor:
                 'home_team': home,
                 'away_team': away,
                 'spread': spread,
+                'spread_home_open': open_spread,
                 'pick': pick_label,
                 'pick_side': pick_side,
                 'predicted_margin': round(pred_margin, 1) if pred_margin is not None else None,
@@ -763,7 +770,7 @@ class EnsemblePredictor:
                         print(f"      - {reason}")
         
         print()
-        return filtered_picks
+        return picks
     
     def _generate_explanation(self, row, proba, confidence, edge, pred_margin=None):
         """Generate exactly 3 structured reasoning bullets from data.
@@ -974,14 +981,19 @@ class EnsemblePredictor:
                 raw_edge = (confidence - implied_prob) * 100
 
                 line_move_penalty = 0.0
+                line_move_against = 0.0
                 open_spread = open_spreads[j] if j < len(open_spreads) else None
                 if open_spread is not None and not pd.isna(open_spread):
                     move = spread - open_spread
                     if move > 0 and move >= 1.0:
+                        line_move_against = move
                         line_move_penalty = move * LINE_MOVE_PENALTY_PER_PT
 
                 adjusted_edge = raw_edge - line_move_penalty
                 all_edges.append(adjusted_edge)
+
+                if line_move_against >= LINE_MOVE_HARD_STOP and adjusted_edge < LINE_MOVE_HARD_STOP_MIN_EDGE:
+                    continue
 
                 spread_abs = abs(spread)
                 required_edge = get_edge_threshold_for_spread(spread_abs)
@@ -1275,6 +1287,10 @@ class EnsemblePredictor:
 
                     for g in all_game_data:
                         adj_edge = g['raw_edge'] - (g['line_move'] * penalty)
+
+                        if g['line_move'] >= LINE_MOVE_HARD_STOP and adj_edge < LINE_MOVE_HARD_STOP_MIN_EDGE:
+                            continue
+
                         req_edge = get_edge_threshold_for_spread(g['spread_abs'])
                         actual_req = max(edge_thresh, req_edge) if g['spread_abs'] >= 7 else edge_thresh
 

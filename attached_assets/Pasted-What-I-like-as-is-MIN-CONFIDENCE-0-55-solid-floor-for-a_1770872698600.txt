@@ -1,0 +1,94 @@
+What I like as-is
+	•	MIN_CONFIDENCE 0.55: solid floor for a “selective” brand.
+	•	Graduated spread edge curve: this is exactly what serious systems do.
+	•	Sigma clamps: necessary, especially early while margin_std is still stabilizing.
+	•	Walk-forward result: 59.1% ATS over a huge sample is strong, but only if it is truly out-of-sample and not leaking.
+
+The two places I would change right now
+
+1) Lower the line move penalty a bit
+
+Current: 1.5% edge per point
+That’s aggressive. A one point move wipes almost half your minimum edge (3.5% becomes 2.0% instantly). You will filter too much and you may filter the wrong stuff, because some moves are noise, some are injury, some are steam you want to respect.
+
+Recommendation:
+	•	LINE_MOVE_PENALTY_PER_PT = 1.0% as default
+	•	Add a “hard stop” rule only for extreme moves:
+	•	If line moves against you 2.5+ points, auto-pass unless edge is very high (like 10%+)
+
+This keeps restraint but avoids over-penalizing normal drift.
+
+2) Unify final decision logic in one place
+
+Right now you have:
+	•	model.py doing the logic
+	•	model_service.py also doing logic with its own EDGE_THRESHOLD and then importing graduated logic
+
+That is how bugs happen.
+
+Recommendation:
+	•	Make model.py the single source of truth for:
+	•	min confidence
+	•	edge curve
+	•	line move penalty
+	•	final pass/fail reasons
+	•	model_service.py should only:
+	•	read outputs
+	•	store to DB
+	•	never re-decide
+
+If you want, keep a safety assert in service: “if model says PASS but service says FAIL, log error.” But do not duplicate the business logic.
+
+How I would set your default gates today (pre-sweep)
+
+If your goal is 1 to 3 picks per week and a trustworthy brand:
+	•	MIN_CONFIDENCE_THRESHOLD: 0.55 (keep)
+	•	STRONG_CONFIDENCE_THRESHOLD: 0.60 (keep)
+	•	EDGE curve: keep as you wrote it
+	•	LINE_MOVE_PENALTY_PER_PT: 1.0% (change)
+	•	Sigma: keep floor/ceiling, but change default behavior:
+	•	If margin_std is missing and you are using fallback, do not publish picks. Only publish “No pick today” with reason: “Model calibration in progress.”
+
+That last one protects you from accidentally shipping a broken sigma again.
+
+What I would test first in your sweep (simple but high impact)
+
+You do not need a huge grid at first. Start with this:
+
+Sweep A: line move penalty
+
+Keep everything else constant and test:
+	•	0.0%, 0.5%, 1.0%, 1.5%, 2.0%
+
+Track:
+	•	ROI
+	•	pick rate
+	•	max drawdown
+	•	ROI by spread bucket (0-7, 7-11, 11+)
+
+Sweep B: confidence floor
+
+With best penalty, test:
+	•	MIN_CONFIDENCE: 0.54, 0.55, 0.56, 0.57
+
+If your edge math is real and calibrated, raising confidence should reduce volume and usually increase ROI, but it can also reduce ROI if your model is underconfident. This tells you a lot.
+
+One big claim check
+
+Your backtest says 12.8% ROI. That’s high. Before you market it, validate these three things:
+	•	Are you using closing lines or open lines when grading? Closing lines are safer for fairness.
+	•	Is there any data leakage in features (anything that uses post-game info or reveals the result indirectly)?
+	•	Are you accidentally evaluating on games that influenced the model fit (even indirectly)?
+
+If those are clean, the system is a monster.
+
+My recommended “ship it” defaults
+
+If you want my concrete answer:
+	•	Keep your curve and confidence tiers exactly as written
+	•	Set:
+	•	LINE_MOVE_PENALTY_PER_PT = 1.0%
+	•	Add: auto-pass if line_move_against >= 2.5 and adjusted_edge < 10
+	•	Enforce: no picks if fallback sigma is used
+
+If you tell me whether your picks are usually coming from the 0-7 bucket or the 7-11 bucket, I’ll tune the curve slightly to match where your edge actually lives.

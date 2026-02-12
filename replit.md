@@ -117,7 +117,9 @@ Historical spread data (2006-2018) had inverted sign convention. The data source
 ## Recent Changes
 - **Feb 12**: Full algorithm rewrite per end-to-end NBA spread spec
 - **Feb 12**: Margin-first prediction: GBR predicts expected margin, converts to cover prob via Normal CDF (σ=residual std)
-- **Feb 12**: Graduated line movement: +1.5% extra edge required per 1pt moved against (not binary cutoff)
+- **Feb 12**: Line move penalty reduced to 1.0%/pt (from 1.5%); hard stop at 2.5+ pts unless edge >= 10%
+- **Feb 12**: No picks published when fallback sigma is used (model calibration safety gate)
+- **Feb 12**: Unified decision logic: model.py is single source of truth, model_service.py only reads outputs and stores to DB
 - **Feb 12**: Risk filters: spread >11 auto-excluded unless edge ≥8%, missing spread = hard pass
 - **Feb 12**: Fail-safe: no pick published if spread/prediction missing, stale data >12h, or <30min to tip without injury data
 - **Feb 12**: Pick schema upgraded: predicted_margin, cover_prob, implied_prob, market_odds, sportsbook, line_open, line_close, start_time, result_ats, profit_units
