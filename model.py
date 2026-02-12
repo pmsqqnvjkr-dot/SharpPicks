@@ -28,7 +28,9 @@ MARGIN_STD_FLOOR = 8.0
 MARGIN_STD_CEILING = 15.0
 LINE_MOVE_PENALTY_PER_PT = 1.0
 LINE_MOVE_HARD_STOP = 2.5
-LINE_MOVE_HARD_STOP_MIN_EDGE = 10.0
+LINE_MOVE_HARD_STOP_MIN_EDGE = 8.0
+MODEL_WEIGHT = 0.3
+MAX_EDGE_PCT = 10.0
 
 SPREAD_EDGE_CURVE = [
     (0, 7, 3.5),
@@ -598,13 +600,16 @@ class EnsemblePredictor:
             home_ml = row.get('home_ml', None)
             away_ml = row.get('away_ml', None)
             
-            pred_margin = predicted_margins[idx] if predicted_margins is not None else None
+            pred_margin_raw = predicted_margins[idx] if predicted_margins is not None else None
             
             used_fallback = False
-            if pred_margin is not None and spread is not None:
+            if pred_margin_raw is not None and spread is not None:
+                market_margin = -spread
+                pred_margin = MODEL_WEIGHT * pred_margin_raw + (1 - MODEL_WEIGHT) * market_margin
                 home_cover_prob = float(norm.cdf((pred_margin + spread) / sigma))
             else:
                 used_fallback = True
+                pred_margin = pred_margin_raw
                 home_cover_prob = proba
             
             if home_cover_prob >= 0.5:
@@ -643,6 +648,7 @@ class EnsemblePredictor:
                     line_move_penalty = line_move_against * LINE_MOVE_PENALTY_PER_PT
             
             adjusted_edge = edge_vs_market - line_move_penalty
+            adjusted_edge = min(adjusted_edge, MAX_EDGE_PCT)
             
             fail_reasons = []
             pass_reason = None
@@ -710,12 +716,13 @@ class EnsemblePredictor:
                 'pick': pick_label,
                 'pick_side': pick_side,
                 'predicted_margin': round(pred_margin, 1) if pred_margin is not None else None,
+                'predicted_margin_raw': round(pred_margin_raw, 1) if pred_margin_raw is not None else None,
                 'sigma': round(sigma, 2),
                 'z_score': round(z_score_val, 3) if z_score_val is not None else None,
-                'raw_edge': round(edge_vs_market, 2),
+                'raw_edge': round(min(edge_vs_market, MAX_EDGE_PCT), 2),
                 'cover_prob': round(confidence, 4),
                 'confidence': confidence,
-                'edge': round(edge_vs_market, 2),
+                'edge': round(min(edge_vs_market, MAX_EDGE_PCT), 2),
                 'adjusted_edge': round(adjusted_edge, 2),
                 'ev': ev,
                 'implied_prob': round(implied_prob, 4),
@@ -1022,11 +1029,13 @@ class EnsemblePredictor:
 
             for j in range(len(test_df)):
                 spread = spreads[j]
-                pred_margin = margin_preds[j]
+                pred_margin_raw = margin_preds[j]
 
                 if spread is None or pd.isna(spread):
                     continue
 
+                market_margin = -spread
+                pred_margin = MODEL_WEIGHT * pred_margin_raw + (1 - MODEL_WEIGHT) * market_margin
                 z_score = (pred_margin + spread) / sigma
                 home_cover_prob = float(norm.cdf(z_score))
 
@@ -1037,7 +1046,7 @@ class EnsemblePredictor:
                     pick_side = 'away'
                     confidence = 1 - home_cover_prob
 
-                raw_edge = (confidence - implied_prob) * 100
+                raw_edge = min((confidence - implied_prob) * 100, MAX_EDGE_PCT)
 
                 line_move_penalty = 0.0
                 line_move_against = 0.0
@@ -1049,6 +1058,7 @@ class EnsemblePredictor:
                         line_move_penalty = move * LINE_MOVE_PENALTY_PER_PT
 
                 adjusted_edge = raw_edge - line_move_penalty
+                adjusted_edge = min(adjusted_edge, MAX_EDGE_PCT)
                 all_edges.append(adjusted_edge)
 
                 if line_move_against >= LINE_MOVE_HARD_STOP and adjusted_edge < LINE_MOVE_HARD_STOP_MIN_EDGE:
@@ -1292,7 +1302,9 @@ class EnsemblePredictor:
                 spread = spreads[j]
                 if pd.isna(spread):
                     continue
-                pred_margin = margin_preds[j]
+                pred_margin_raw = margin_preds[j]
+                market_margin = -spread
+                pred_margin = MODEL_WEIGHT * pred_margin_raw + (1 - MODEL_WEIGHT) * market_margin
                 z_score = (pred_margin + spread) / sigma
                 home_cover_prob = float(norm.cdf(z_score))
 
@@ -1303,7 +1315,7 @@ class EnsemblePredictor:
                     pick_side = 'away'
                     confidence = 1 - home_cover_prob
 
-                raw_edge = (confidence - implied_prob) * 100
+                raw_edge = min((confidence - implied_prob) * 100, MAX_EDGE_PCT)
 
                 open_spread = open_spreads[j]
                 line_move = 0.0
