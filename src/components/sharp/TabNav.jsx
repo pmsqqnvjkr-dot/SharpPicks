@@ -8,19 +8,18 @@ export default function TabNav({ activeTab, onTabChange }) {
   return (
     <nav aria-label="Main navigation" role="tablist" style={{
       position: 'fixed',
-      bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+      bottom: 'env(safe-area-inset-bottom, 0px)',
       left: '50%',
       transform: 'translateX(-50%)',
       display: 'flex',
       alignItems: 'center',
-      gap: '4px',
-      padding: '6px',
-      borderRadius: '28px',
-      background: 'rgba(13, 16, 23, 0.72)',
-      backdropFilter: 'blur(24px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-      border: '1px solid rgba(255, 255, 255, 0.08)',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(255, 255, 255, 0.05) inset',
+      gap: '2px',
+      padding: '4px 6px',
+      borderRadius: '20px',
+      background: 'rgba(10, 13, 20, 0.85)',
+      backdropFilter: 'blur(20px) saturate(150%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(150%)',
+      border: '1px solid rgba(255, 255, 255, 0.06)',
       zIndex: 100,
     }}>
       {tabs.map(tab => {
@@ -34,22 +33,17 @@ export default function TabNav({ activeTab, onTabChange }) {
             aria-selected={isActive}
             aria-current={isActive ? 'page' : undefined}
             style={{
-              position: 'relative',
-              background: isActive
-                ? 'radial-gradient(ellipse at center, rgba(52, 211, 153, 0.15) 0%, rgba(52, 211, 153, 0.04) 70%, transparent 100%)'
-                : 'transparent',
+              background: 'none',
               border: 'none',
-              borderRadius: '22px',
-              width: '48px',
-              height: '48px',
+              borderRadius: '16px',
+              width: '40px',
+              height: '36px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              boxShadow: isActive
-                ? '0 0 16px rgba(52, 211, 153, 0.12), 0 0 4px rgba(52, 211, 153, 0.08)'
-                : 'none',
+              transition: 'opacity 0.2s',
+              opacity: isActive ? 1 : 0.4,
             }}
           >
             <tab.icon active={isActive} />
@@ -61,9 +55,8 @@ export default function TabNav({ activeTab, onTabChange }) {
 }
 
 function TargetIcon({ active }) {
-  const color = active ? '#34D399' : 'rgba(156, 163, 175, 0.5)';
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'stroke 0.3s', filter: active ? 'drop-shadow(0 0 4px rgba(52, 211, 153, 0.3))' : 'none' }}>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--text-primary)' : 'var(--text-secondary)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10"/>
       <circle cx="12" cy="12" r="6"/>
       <circle cx="12" cy="12" r="2"/>
@@ -72,9 +65,8 @@ function TargetIcon({ active }) {
 }
 
 function ChartIcon({ active }) {
-  const color = active ? '#34D399' : 'rgba(156, 163, 175, 0.5)';
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'stroke 0.3s', filter: active ? 'drop-shadow(0 0 4px rgba(52, 211, 153, 0.3))' : 'none' }}>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--text-primary)' : 'var(--text-secondary)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3v18h18"/>
       <path d="M7 16l4-8 4 4 5-9"/>
     </svg>
@@ -82,9 +74,8 @@ function ChartIcon({ active }) {
 }
 
 function PersonIcon({ active }) {
-  const color = active ? '#34D399' : 'rgba(156, 163, 175, 0.5)';
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'stroke 0.3s', filter: active ? 'drop-shadow(0 0 4px rgba(52, 211, 153, 0.3))' : 'none' }}>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--text-primary)' : 'var(--text-secondary)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
       <circle cx="12" cy="7" r="4"/>
     </svg>
