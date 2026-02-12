@@ -86,7 +86,7 @@ Historical spread data (2006-2018) had inverted sign convention. The data source
 
 ### Data Architecture (PostgreSQL)
 - `users` - UUID PK, founding_member, subscription tiers, referral codes
-- `picks` - APPEND-ONLY, one per day max, edge_pct >= 3.5 threshold
+- `picks` - APPEND-ONLY, one per day max, edge_pct >= 3.5 threshold, home_score/away_score stored on grading
 - `passes` - APPEND-ONLY, logged when model finds no qualifying edge
 - `model_runs` - Audit trail of every model execution
 - `user_bets` / `tracked_bets` - User-entered bet tracking

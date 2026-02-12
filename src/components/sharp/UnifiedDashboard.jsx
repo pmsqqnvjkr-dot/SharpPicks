@@ -12,14 +12,15 @@ export default function UnifiedDashboard() {
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const loadData = async () => {
-    if (!user) { setLoading(false); return; }
     try {
-      const [statsData, betsData] = await Promise.all([
-        apiGet('/user/stats'),
-        apiGet('/bets'),
-      ]);
-      setStats(statsData);
-      setBets(betsData.bets || []);
+      if (user) {
+        const [statsData, betsData] = await Promise.all([
+          apiGet('/user/stats'),
+          apiGet('/bets'),
+        ]);
+        setStats(statsData);
+        setBets(betsData.bets || []);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -75,23 +76,32 @@ export default function UnifiedDashboard() {
 
   if (!user) {
     return (
-      <div style={{ padding: '0' }}>
+      <div style={{ padding: '0', paddingBottom: '100px' }}>
         <DashHeader />
-        <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <div style={{ padding: '0 20px' }}>
           <div style={{
-            width: '56px', height: '56px', borderRadius: '14px',
             backgroundColor: 'var(--surface-1)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px',
+            borderRadius: '16px',
+            border: '1px solid var(--stroke-subtle)',
+            padding: '40px 24px',
+            textAlign: 'center',
           }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-              <path d="M12 6v6l4 2"/>
-            </svg>
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '12px',
+              backgroundColor: 'var(--surface-2)', margin: '0 auto 16px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5">
+                <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/>
+              </svg>
+            </div>
+            <p style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-serif)', margin: '0 0 8px' }}>
+              Your Performance Dashboard
+            </p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
+              Sign in to track your bets and build your personal equity curve, win rate, and discipline metrics.
+            </p>
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6' }}>
-            Sign in to track your bets and build your personal performance dashboard.
-          </p>
         </div>
       </div>
     );
@@ -139,6 +149,8 @@ export default function UnifiedDashboard() {
       <DashHeader />
 
       <div style={{ padding: '0 20px' }}>
+        <SectionLabel text="YOUR PERFORMANCE" />
+
         {hasBets ? (
           <PerformanceCard
             totalPnl={totalPnl}
