@@ -574,8 +574,8 @@ class EnsemblePredictor:
                 move = spread - open_spread
                 if pick_side == 'home' and move > 0:
                     line_move_against = move
-                elif pick_side == 'away' and move < 0:
-                    line_move_against = abs(move)
+                elif pick_side == 'away' and move > 0:
+                    line_move_against = move
                 
                 if line_move_against >= 1.0:
                     line_move_penalty = line_move_against * LINE_MOVE_PENALTY_PER_PT

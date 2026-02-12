@@ -98,8 +98,8 @@ def run_model_and_log(app):
                     move_against = 0.0
                     if home_pick and move > 0:
                         move_against = move
-                    elif not home_pick and move < 0:
-                        move_against = abs(move)
+                    elif not home_pick and move > 0:
+                        move_against = move
                     if move_against >= 1.0:
                         line_penalty = move_against * LINE_MOVE_PENALTY
                 
