@@ -1,5 +1,6 @@
 import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
+import FreeTierDashboard from './FreeTierDashboard';
 
 function SectionLabel({ children }) {
   return (
@@ -13,11 +14,13 @@ function SectionLabel({ children }) {
   );
 }
 
-export default function DashboardTab() {
+export default function DashboardTab({ onNavigate }) {
   const { user } = useAuth();
   const { data: stats, loading } = useApi('/public/stats');
   const { data: record } = useApi('/public/record');
   const { data: todayData } = useApi('/picks/today');
+
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
 
   if (loading) {
     return (
@@ -25,6 +28,10 @@ export default function DashboardTab() {
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Loading dashboard...</p>
       </div>
     );
+  }
+
+  if (!isPro) {
+    return <FreeTierDashboard onUpgrade={() => onNavigate && onNavigate('profile', 'upgrade')} />;
   }
 
   const picks = record?.picks || [];

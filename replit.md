@@ -34,17 +34,27 @@ Sharp Picks is a sports betting discipline system. One pick per day maximum, onl
 ### Components (`src/components/sharp/`)
 - `LandingPage.jsx` - Marketing landing page for non-authenticated visitors
 - `TabNav.jsx` - Bottom tab navigation (Today, Dashboard, Profile)
-- `TodayTab.jsx` - Today's pick/pass/waiting state display
+- `TodayTab.jsx` - Today's pick/pass/waiting state display (with skeleton loading, inline errors)
 - `PickCard.jsx` - Pick detail card (locked for free users)
 - `NoPickCard.jsx` - "Discipline preserved" pass day card
-- `DashboardTab.jsx` - Performance stats, equity curve, streaks, monthly breakdown
-- `ProfileTab.jsx` - User profile, settings menu, pricing plans
+- `DashboardTab.jsx` - Performance stats, equity curve, streaks (routes free users to FreeTierDashboard)
+- `ProfileTab.jsx` - User profile, settings menu, pricing, routes to all sub-screens
 - `AuthModal.jsx` - Login/register/forgot-password modal
-- `PickHistoryScreen.jsx` - Full pick history with filtering
+- `PickHistoryScreen.jsx` - Full pick history with filtering, tap-to-view resolution
 - `HowItWorksScreen.jsx` - Model methodology and stats
 - `BetTrackingScreen.jsx` - Pick-linked bet tracking with dashboard (equity curve, streaks, monthly breakdown)
 - `ReferralScreen.jsx` - Referral code and link sharing
 - `NotificationsScreen.jsx` - Notification preferences
+- `LoadingState.jsx` - Skeleton loading with shimmer animation ("Checking today's model output...")
+- `EmptyState.jsx` - Designed empty states (no picks, no tracked bets, no chart data)
+- `FreeTierDashboard.jsx` - Abstract blurred charts, discipline messaging, no quantified metrics
+- `UpgradeScreen.jsx` - Full upgrade page with pricing cards, what changes/doesn't change
+- `CancelScreen.jsx` - Respectful cancellation flow with reason selection
+- `OnboardingFlow.jsx` - 4-step onboarding (one pick max, silence, tracking, founder's note)
+- `ResolutionScreen.jsx` - Post-win/loss coaching with process review and discipline reminders
+- `WeeklySummary.jsx` - Weekly performance recap with daily log
+- `AnnualConversion.jsx` - Monthly to annual upgrade with savings math
+- `ErrorStates.jsx` - System status notices (data delay, model recalculation, line moved)
 
 ### Backend (Flask)
 - `app.py` - Main Flask app with auth, Stripe, scheduled tasks, SPA serving
@@ -94,6 +104,19 @@ Sharp Picks is a sports betting discipline system. One pick per day maximum, onl
 - Webhook signature verification required in production
 
 ## Recent Changes
+- **Feb 12**: Implemented 10 new screens from 27-screen design spec (Phase 1-3 complete)
+- **Feb 12**: Loading State (Screen 23) - Skeleton shimmer loading with calm messaging
+- **Feb 12**: Empty States (Screen 11) - Designed empty states for no picks, no bets, no chart data
+- **Feb 12**: Free Tier Dashboard (Screen 8) - Abstract blurred charts, discipline messaging, no quantified metrics
+- **Feb 12**: Upgrade to Pro (Screen 9) - Full upgrade page with what changes/doesn't change
+- **Feb 12**: Cancel Subscription (Screen 10) - Respectful exit with reason selection
+- **Feb 12**: Onboarding v2 (Screen 21) - 4-step flow (one pick max, silence, tracking, founder's note)
+- **Feb 12**: Win/Loss Resolution (Screens 19/22) - Post-outcome coaching with process review
+- **Feb 12**: Weekly Summary (Screen 20) - Weekly performance recap with daily log
+- **Feb 12**: Monthly to Annual Conversion (Screen 27) - Savings math for monthly subscribers
+- **Feb 12**: Error States (Screen 12) - Data delay, model recalculation notices
+- **Feb 12**: Pick History now links to resolution screens for resolved picks
+- **Feb 12**: Dashboard shows Free Tier view for non-Pro users
 - **Feb 12**: Bet tracking now tied to picks - users select from published picks instead of free-form entry
 - **Feb 12**: TrackedBet model linked to picks via pick_id, auto-grades when picks are graded
 - **Feb 12**: New /api/bets/trackable endpoint returns recent picks available for tracking

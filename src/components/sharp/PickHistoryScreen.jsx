@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
 
-export default function PickHistoryScreen({ onBack }) {
+export default function PickHistoryScreen({ onBack, onViewResolution }) {
   const { data, loading } = useApi('/public/record');
   const { user } = useAuth();
   const [filter, setFilter] = useState('all');
@@ -87,52 +87,64 @@ export default function PickHistoryScreen({ onBack }) {
             backgroundColor: 'var(--surface-1)', borderRadius: '16px',
             overflow: 'hidden', border: '1px solid var(--stroke-subtle)',
           }}>
-            {filtered.map((pick, i) => (
-              <div key={pick.id} style={{
-                padding: '14px 20px',
-                borderBottom: i < filtered.length - 1 ? '1px solid var(--stroke-subtle)' : 'none',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
-                <div>
-                  <div style={{
-                    fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
-                  }}>
-                    {isPro ? pick.side : (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                        </svg>
-                        <span style={{ color: 'var(--text-tertiary)' }}>Upgrade to view</span>
-                      </span>
-                    )}
-                  </div>
-                  <div style={{
-                    fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
-                  }}>{pick.away_team} @ {pick.home_team}</div>
-                  <div style={{
-                    fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
-                    fontFamily: 'var(--font-mono)',
-                  }}>{pick.game_date}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
-                    color: pick.result === 'win' ? 'var(--green-profit)'
-                      : pick.result === 'loss' ? 'var(--red-loss)' : 'var(--text-tertiary)',
-                  }}>
-                    {pick.result === 'win' ? `+${pick.pnl != null ? pick.pnl : 91}u`
-                      : pick.result === 'loss' ? `${pick.pnl != null ? pick.pnl : -100}u`
-                      : 'Pending'}
-                  </div>
-                  {isPro && pick.edge_pct && (
+            {filtered.map((pick, i) => {
+              const isResolved = pick.result === 'win' || pick.result === 'loss';
+              const canViewResolution = isPro && isResolved && onViewResolution;
+              return (
+                <div key={pick.id} onClick={() => canViewResolution && onViewResolution(pick)} style={{
+                  padding: '14px 20px',
+                  borderBottom: i < filtered.length - 1 ? '1px solid var(--stroke-subtle)' : 'none',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  cursor: canViewResolution ? 'pointer' : 'default',
+                }}>
+                  <div>
+                    <div style={{
+                      fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
+                    }}>
+                      {isPro ? pick.side : (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                          </svg>
+                          <span style={{ color: 'var(--text-tertiary)' }}>Upgrade to view</span>
+                        </span>
+                      )}
+                    </div>
+                    <div style={{
+                      fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
+                    }}>{pick.away_team} @ {pick.home_team}</div>
                     <div style={{
                       fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
                       fontFamily: 'var(--font-mono)',
-                    }}>{pick.edge_pct}% edge</div>
-                  )}
+                    }}>{pick.game_date}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{
+                        fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
+                        color: pick.result === 'win' ? 'var(--green-profit)'
+                          : pick.result === 'loss' ? 'var(--red-loss)' : 'var(--text-tertiary)',
+                      }}>
+                        {pick.result === 'win' ? `+${pick.pnl != null ? pick.pnl : 91}u`
+                          : pick.result === 'loss' ? `${pick.pnl != null ? pick.pnl : -100}u`
+                          : 'Pending'}
+                      </div>
+                      {isPro && pick.edge_pct && (
+                        <div style={{
+                          fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
+                          fontFamily: 'var(--font-mono)',
+                        }}>{pick.edge_pct}% edge</div>
+                      )}
+                    </div>
+                    {canViewResolution && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
+                        <polyline points="9 18 15 12 9 6"/>
+                      </svg>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

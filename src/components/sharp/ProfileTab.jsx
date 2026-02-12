@@ -7,13 +7,21 @@ import HowItWorksScreen from './HowItWorksScreen';
 import BetTrackingScreen from './BetTrackingScreen';
 import ReferralScreen from './ReferralScreen';
 import NotificationsScreen from './NotificationsScreen';
+import UpgradeScreen from './UpgradeScreen';
+import CancelScreen from './CancelScreen';
+import AnnualConversion from './AnnualConversion';
+import WeeklySummary from './WeeklySummary';
+import ResolutionScreen from './ResolutionScreen';
 
-export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack, onPickTracked }) {
+export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack, onPickTracked, screenData }) {
   const { user, logout } = useAuth();
   const { data: foundingData } = useApi('/public/founding-count');
   const [showAuth, setShowAuth] = useState(false);
   const [screen, setScreen] = useState(initialScreen || null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [localScreenData, setLocalScreenData] = useState(null);
+
+  const activeScreenData = localScreenData || screenData;
 
   useEffect(() => {
     if (initialScreen) setScreen(initialScreen);
@@ -24,11 +32,16 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
     if (onScreenChange) onScreenChange(s);
   };
 
-  if (screen === 'history') return <PickHistoryScreen onBack={() => navigate(null)} />;
+  if (screen === 'history') return <PickHistoryScreen onBack={() => navigate(null)} onViewResolution={(pick) => { setLocalScreenData(pick); navigate('resolution'); }} />;
   if (screen === 'how') return <HowItWorksScreen onBack={() => navigate(null)} />;
   if (screen === 'bets') return <BetTrackingScreen onBack={() => { navigate(null); if (onPickTracked) onPickTracked(); }} pickToTrack={pickToTrack} />;
   if (screen === 'referral') return <ReferralScreen onBack={() => navigate(null)} />;
   if (screen === 'notifications') return <NotificationsScreen onBack={() => navigate(null)} />;
+  if (screen === 'upgrade') return <UpgradeScreen onBack={() => navigate(null)} />;
+  if (screen === 'cancel') return <CancelScreen onBack={() => navigate(null)} user={user} />;
+  if (screen === 'annual') return <AnnualConversion onBack={() => navigate(null)} user={user} />;
+  if (screen === 'weekly') return <WeeklySummary onBack={() => navigate(null)} stats={null} weekData={activeScreenData} />;
+  if (screen === 'resolution') return <ResolutionScreen onBack={() => navigate(null)} pick={activeScreenData} />;
 
   const handleSubscribe = async (plan) => {
     if (!user) {
@@ -199,12 +212,18 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
 }
 
 function SettingsSection({ user, onNavigate }) {
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
+  const isMonthly = user?.subscription_plan === 'monthly';
+
   const menuItems = [
     { id: 'how', label: 'How It Works', subtitle: 'Our model and methodology' },
     { id: 'history', label: 'Pick History', subtitle: 'All published picks' },
     { id: 'bets', label: 'Bet Tracking', subtitle: 'Track your wagers', requiresAuth: true },
     { id: 'notifications', label: 'Notifications', subtitle: 'Alert preferences' },
     { id: 'referral', label: 'Referral Program', subtitle: 'Earn 14 days free', requiresAuth: true },
+    ...(!isPro && user ? [{ id: 'upgrade', label: 'Upgrade to Pro', subtitle: 'Full pick details and analytics', badge: 'Pro' }] : []),
+    ...(isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
+    ...(isPro ? [{ id: 'cancel', label: 'Cancel Subscription', subtitle: 'Manage your plan', requiresAuth: true }] : []),
   ];
 
   const visibleItems = user
@@ -233,9 +252,18 @@ function SettingsSection({ user, onNavigate }) {
               fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
             }}>{item.subtitle}</div>
           </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {item.badge && (
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                color: 'var(--blue-primary)', backgroundColor: 'rgba(79, 134, 247, 0.1)',
+                padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.05em',
+              }}>{item.badge}</span>
+            )}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
         </button>
       ))}
     </div>

@@ -4,6 +4,8 @@ import { useApi } from '../../hooks/useApi';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
 import AuthModal from './AuthModal';
+import LoadingState from './LoadingState';
+import { InlineError } from './ErrorStates';
 
 export default function TodayTab({ onNavigate }) {
   const { user, loading: authLoading } = useAuth();
@@ -44,6 +46,10 @@ export default function TodayTab({ onNavigate }) {
 
         {todayData?.type === 'waiting' && (
           <WaitingCard />
+        )}
+
+        {error && (
+          <InlineError title="Data delay" message="Unable to load today's analysis. This typically resolves within a few minutes." />
         )}
 
         {!todayData && !error && (
@@ -109,30 +115,6 @@ function Header({ user, onAuthClick }) {
           {user.email ? user.email[0].toUpperCase() : 'U'}
         </div>
       )}
-    </div>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '16px',
-    }}>
-      <div style={{
-        width: '40px', height: '40px', borderRadius: '50%',
-        border: '3px solid var(--stroke-subtle)',
-        borderTopColor: 'var(--blue-primary)',
-        animation: 'spin 1s linear infinite',
-      }} />
-      <p style={{
-        fontFamily: 'var(--font-sans)', fontSize: '14px', color: 'var(--text-secondary)',
-      }}>Checking model output...</p>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
