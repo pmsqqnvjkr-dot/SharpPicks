@@ -4,21 +4,22 @@
 Sharp Picks is a sports betting discipline system. One pick per day maximum, only when the model detects a statistical edge above threshold. Most days, the app says nothing. Silence is the product working.
 
 ## Current Status (Feb 2026)
-- **Model Accuracy**: 79.4% on test data (15,131 games) — INFLATED, see Data Leakage note
-- **Brier Score**: 0.139 (excellent calibration)
-- **Features**: 36 features including pace, ratings, line movement
-- **Backtest ROI**: INVALID — walk-forward shows 55% ROI due to data leakage
+- **Model Accuracy**: 57.3% test, 59.1% walk-forward ATS (15,145 games)
+- **Brier Score**: 0.239
+- **Features**: 56 features including pace, ratings, line movement
+- **Walk-Forward ROI**: +12.8% over 12 seasons (7,576 filtered bets, 4,478-3,098 record)
+- **Sigma**: 11.7 pts (margin prediction uncertainty)
+- **MAE**: 9.1 pts (margin prediction error)
 - **Live Record**: 6-1 (7 picks, 23 passes, 85.7% win rate, +436u)
 - **Audit Fields**: sigma, z_score, raw_edge, closing_spread, clv tracked per pick
 
-## CRITICAL: Data Leakage (Identified Feb 12)
-Walk-forward validation shows 80%+ ATS accuracy, 1000+ bets/season, 55% ROI — impossible without leakage.
-**Root causes:**
-1. `team_ratings` table is a single current-season snapshot joined to ALL historical games (2008 games get 2026 ratings)
-2. `bdl_*` columns (win_pct, scoring_margin, avg_pts) likely represent end-of-season stats, not pre-game snapshots
-3. `home_record`, `away_record`, `home_last5` may also be end-of-season values
-**Impact**: All backtest metrics are unreliable. Live predictions may still work (using current data for current games) but historical validation is meaningless.
-**Fix required**: Replace team_ratings with per-game rolling ratings, verify bdl_*/record fields are true pre-game snapshots, or remove contaminated features
+## Data Leakage Fix (Feb 12)
+Historical spread data (2006-2018) had inverted sign convention. The data source used positive spread = home favorite (opposite of US standard where negative = favorite). This caused:
+- 64% home cover rate (should be ~50%)
+- Positive margin-spread correlation (+0.46, should be negative)
+- Inflated backtest: 80%+ ATS, 55% ROI (fake)
+**Fix applied**: Negated spread_home, spread_away for all pre-2025 games; recalculated spread_result and line_movement. Post-fix: 48.9% home cover rate, -0.46 correlation, 59.1% ATS / 12.8% ROI walk-forward (realistic).
+**Note**: team_ratings table has 0 rows, bdl_* data exists only for current games (17 records). home_record progresses game-by-game (verified: pre-game snapshots, not end-of-season).
 
 ## Tech Stack
 - **Frontend**: React + Vite (port 5000 dev), inline CSS with design tokens

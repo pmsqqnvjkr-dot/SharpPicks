@@ -1,0 +1,131 @@
+1) First, lock the ground truth
+
+Before we tune thresholds, you need one clean run where you know sigma is real.
+
+Do this after retrain:
+	•	Log margin_mae and margin_std
+	•	Save margin_std into your model artifact
+	•	Add a banner in logs: USING_FALLBACK_SIGMA = True/False
+
+If fallback is true, nothing else matters.
+
+2) The threshold you actually have right now
+
+You are effectively gating picks with:
+	•	confidence >= min_confidence
+	•	adjusted_edge >= EDGE_THRESHOLD_PCT
+	•	Line move penalty
+	•	If abs(spread) > MAX_SPREAD_DEFAULT then require adjusted_edge >= 8.0
+
+That’s good. But it is not complete until you validate two things:
+	•	Are your confidence scores calibrated
+	•	Is your edge correlated with outcomes
+
+3) What “should” EDGE_THRESHOLD be
+
+The clean way is: pick the threshold that maximizes expected utility, not hit rate.
+
+You should evaluate thresholds on:
+	•	ROI
+	•	Expected value (EV) summed
+	•	Max drawdown
+	•	Pick frequency (picks per week)
+	•	Stability over time (month to month variance)
+
+Run a backtest sweep:
+	•	EDGE_THRESHOLD from 2.0% to 10.0% in 0.5% steps
+	•	min_confidence from 0.52 to 0.60 in 0.01 steps
+
+Pick the combo that gives you:
+	•	ROI positive
+	•	Drawdown tolerable
+	•	Pick rate matches the brand promise (like 1 to 3 per week)
+
+If your brand is “restraint,” then you are allowed to sacrifice volume.
+
+4) Calibration check that matters
+
+If your confidence is not calibrated, your edge is fake.
+
+Do this simple test:
+Bucket predictions by confidence:
+	•	0.50 to 0.55
+	•	0.55 to 0.60
+	•	0.60 to 0.65
+	•	0.65 to 0.70
+
+For each bucket compute:
+	•	Actual win rate
+	•	Average implied probability
+	•	Average edge
+	•	Brier score
+
+What you want:
+	•	Actual win rate roughly tracks confidence
+	•	Buckets above 0.57 outperform market more often
+
+If your 0.60 bucket only wins 52%, your model is overconfident and you need to tighten or recalibrate.
+
+5) Fix a subtle issue in edge math
+
+You are using:
+edge = (confidence - implied_prob) * 100
+
+That’s fine, but you also should confirm your odds assumption.
+
+I saw odds: -110 hardcoded in the frontend. If that is also used in edge, you are not using true market pricing.
+
+Minimum requirement:
+	•	Use real odds from the sportsbook feed per game
+	•	Or force the product to be “spread only at -110 assumption” and say that clearly
+
+If you can pull market odds, do it. Edge becomes real.
+
+6) The line movement penalty should be tuned, not guessed
+
+Right now you penalize when line moves against you by 1+ point:
+line_move_penalty = line_move_against * LINE_MOVE_PENALTY_PER_PT
+
+Pressure test it like this:
+	•	Try penalty per point: 0, 0.5, 1.0, 1.5, 2.0
+	•	Measure ROI and pick count
+
+If penalty is too strong, you will filter good picks.
+If too weak, you chase steam and lose value.
+
+7) Your “spread too large” rule is good, but make it coherent
+
+This rule:
+	•	big spreads need bigger edge
+
+That is smart, but define it explicitly as a curve instead of a hard cutoff.
+
+Example:
+	•	Spread 0 to 7: threshold 3.5%
+	•	Spread 7 to 11: threshold 5.0%
+	•	Spread 11+: threshold 8.0%
+
+That makes the system explainable and consistent.
+
+8) What I would set as your default MVP gates
+
+If you want 1 to 3 picks per week:
+	•	min_confidence: 0.56
+	•	EDGE_THRESHOLD_PCT: 4.0
+	•	spread 11+: require 8.0
+	•	line move penalty: 1.0 per point (then tune)
+
+Then adjust based on backtest sweep.
+
+9) The output you should publish to users
+
+To align with your brand:
+	•	“No pick today” is a feature
+	•	You should publish pass reasons
+
+Users trust a system that says:
+	•	“Edge below threshold”
+	•	“Line moved against us”
+	•	“Spread too large for available edge”
+
+That is how you build belief.
