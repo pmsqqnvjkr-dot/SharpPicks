@@ -274,101 +274,114 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
 
         <section style={{
           margin: '14px 0 12px',
-          padding: '14px',
+          padding: '16px',
           borderRadius: '16px',
           border: '1px solid rgba(255,255,255,0.10)',
           background: 'rgba(0,0,0,0.18)',
         }}>
           <div style={{
-            fontSize: '12px', letterSpacing: '1.2px', textTransform: 'uppercase',
+            fontSize: '11px', letterSpacing: '1.2px', textTransform: 'uppercase',
             fontWeight: 800, color: 'rgba(169,180,207,0.9)',
-            marginBottom: '14px',
-          }}>Model vs Market</div>
+            marginBottom: '16px',
+          }}>Edge Analysis</div>
+
           <div style={{
-            display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-            gap: '10px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: '16px',
           }}>
-            <div style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 800,
-                color: 'rgba(255,255,255,0.95)',
-              }}>
-                {pick.cover_prob ? `${(pick.cover_prob * 100).toFixed(0)}%` : (pick.model_confidence ? `${(pick.model_confidence * 100).toFixed(0)}%` : '--')}
-              </div>
-              <div style={{
-                fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
-                color: 'rgba(169,180,207,0.6)', marginTop: '4px',
-              }}>Model</div>
-            </div>
             <div style={{
-              flex: 1, textAlign: 'center',
-              padding: '8px 0',
-              borderRadius: '10px',
+              padding: '10px 24px',
+              borderRadius: '12px',
               background: 'rgba(52, 211, 153, 0.08)',
-              border: '1px solid rgba(52, 211, 153, 0.15)',
+              border: '1px solid rgba(52, 211, 153, 0.18)',
+              textAlign: 'center',
             }}>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '26px', fontWeight: 800,
-                color: 'var(--green-profit)',
-                letterSpacing: '-0.5px',
-              }}>+{pick.edge_pct}%</div>
+                fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 800,
+                color: 'var(--green-profit)', letterSpacing: '-0.5px',
+              }}>{pick.edge_pct != null ? `+${pick.edge_pct}%` : '--'}</div>
               <div style={{
                 fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
                 color: 'var(--green-profit)', marginTop: '2px', opacity: 0.7,
-              }}>Edge</div>
+              }}>Calibrated Edge</div>
             </div>
-            <div style={{ flex: 1, textAlign: 'center' }}>
+          </div>
+
+          <div style={{
+            display: 'flex', justifyContent: 'space-between',
+            padding: '10px 0',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            <div style={{ textAlign: 'center', flex: 1 }}>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 800,
-                color: 'rgba(255,255,255,0.5)',
+                fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 800,
+                color: 'rgba(255,255,255,0.95)',
               }}>
-                {pick.implied_prob ? `${(pick.implied_prob * 100).toFixed(0)}%` : '--'}
+                {pick.cover_prob ? `${(pick.cover_prob * 100).toFixed(1)}%` : (pick.model_confidence ? `${(pick.model_confidence * 100).toFixed(1)}%` : '--')}
               </div>
               <div style={{
                 fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
-                color: 'rgba(169,180,207,0.6)', marginTop: '4px',
-              }}>Market</div>
+                color: 'rgba(169,180,207,0.55)', marginTop: '3px',
+              }}>Cover Prob</div>
+            </div>
+            <div style={{ width: '1px', background: 'rgba(255,255,255,0.08)' }} />
+            <div style={{ textAlign: 'center', flex: 1 }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 800,
+                color: 'rgba(255,255,255,0.5)',
+              }}>
+                {pick.implied_prob ? `${(pick.implied_prob * 100).toFixed(1)}%` : '--'}
+              </div>
+              <div style={{
+                fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
+                color: 'rgba(169,180,207,0.55)', marginTop: '3px',
+              }}>Market Implied</div>
             </div>
           </div>
         </section>
 
-        <div style={{ height: '1px', background: 'rgba(255,255,255,0.10)', margin: '14px 0' }} />
-
         {pick.model_signals && pick.model_signals.length > 0 && (
-          <>
+          <section style={{
+            margin: '0 0 12px',
+            padding: '14px 16px',
+            borderRadius: '16px',
+            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(0,0,0,0.12)',
+          }}>
             <div style={{
               fontSize: '11px', letterSpacing: '1.3px', textTransform: 'uppercase',
               fontWeight: 800, color: 'rgba(169,180,207,0.9)',
-              margin: '10px 0',
-            }}>Model Signal</div>
+              marginBottom: '10px',
+            }}>Why This Game</div>
             <ul style={{
-              margin: 0, paddingLeft: '18px',
-              color: 'rgba(234,240,255,0.88)',
-              lineHeight: '1.65', fontSize: '14px',
-              listStyle: 'disc',
+              margin: 0, paddingLeft: '16px',
+              color: 'rgba(234,240,255,0.85)',
+              lineHeight: '1.65', fontSize: '13px',
+              listStyle: 'none',
             }}>
               {pick.model_signals.map((s, i) => (
-                <li key={i} style={{ margin: '6px 0' }}>{s}</li>
+                <li key={i} style={{ margin: '5px 0', position: 'relative', paddingLeft: '2px' }}>
+                  <span style={{ position: 'absolute', left: '-14px', color: 'rgba(52,211,153,0.6)' }}>›</span>
+                  {s}
+                </li>
               ))}
             </ul>
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.10)', margin: '14px 0' }} />
-          </>
+          </section>
         )}
 
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
-          gap: '12px', marginTop: '12px',
+          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          gap: '8px',
         }}>
-          <PickStat label="Pred. margin" value={pick.predicted_margin != null ? `${pick.predicted_margin > 0 ? '+' : ''}${pick.predicted_margin}` : '--'} />
-          <PickStat label="Cover prob" value={`${pick.cover_prob ? (pick.cover_prob * 100).toFixed(0) : (pick.model_confidence ? (pick.model_confidence * 100).toFixed(0) : '--')}%`} />
-          <PickStat label="Edge" value={`${pick.edge_pct}%`} profit />
+          <PickStat label="Blended Margin" value={pick.predicted_margin != null ? `${pick.predicted_margin > 0 ? '+' : ''}${pick.predicted_margin}` : '--'} />
+          <PickStat label="Spread" value={pick.line != null ? (pick.line > 0 ? `+${pick.line}` : pick.line) : '--'} />
         </div>
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 1fr',
-          gap: '12px', marginTop: '8px',
+          gap: '8px', marginTop: '8px',
         }}>
-          <PickStat label="Spread" value={pick.line != null ? (pick.line > 0 ? `+${pick.line}` : pick.line) : '--'} />
-          <PickStat label={`Odds${pick.best_book ? ` · ${pick.best_book}` : ''}`} value={pick.market_odds || '-110'} />
+          <PickStat label={`Best Price${pick.best_book ? ` · ${pick.best_book}` : ''}`} value={pick.market_odds || '-110'} />
+          <PickStat label="Edge" value={pick.edge_pct != null ? `+${pick.edge_pct}%` : '--'} profit />
         </div>
 
         {pick.stake_guidance && (
