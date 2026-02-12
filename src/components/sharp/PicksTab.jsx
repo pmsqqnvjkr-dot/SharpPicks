@@ -147,6 +147,8 @@ export default function PicksTab({ onNavigate }) {
           }}>
             {filtered.map((pick, i) => {
               const pickResolved = pick.result === 'win' || pick.result === 'loss';
+              const isPending = pick.result === 'pending';
+              const hideLine = !isPro && isPending;
               const canView = isPro && pickResolved;
               return (
                 <div key={pick.id} onClick={() => canView && (() => { setResolutionPick(pick); setShowResolution(true); })()} style={{
@@ -159,11 +161,13 @@ export default function PicksTab({ onNavigate }) {
                     <div style={{
                       fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
                     }}>
-                      {pick.side || `${pick.away_team} @ ${pick.home_team}`}
+                      {hideLine ? `${pick.away_team} @ ${pick.home_team}` : (pick.side || `${pick.away_team} @ ${pick.home_team}`)}
                     </div>
-                    <div style={{
-                      fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
-                    }}>{pick.away_team} @ {pick.home_team}</div>
+                    {!hideLine && (
+                      <div style={{
+                        fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
+                      }}>{pick.away_team} @ {pick.home_team}</div>
+                    )}
                     <div style={{
                       fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
                       fontFamily: 'var(--font-mono)',
@@ -171,15 +175,22 @@ export default function PicksTab({ onNavigate }) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{
-                        fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
-                        color: pick.result === 'win' ? 'var(--green-profit)'
-                          : pick.result === 'loss' ? 'var(--red-loss)' : 'var(--text-tertiary)',
-                      }}>
-                        {pick.result === 'win' ? `+${pick.pnl != null ? pick.pnl : 91}u`
-                          : pick.result === 'loss' ? `${pick.pnl != null ? pick.pnl : -100}u`
-                          : 'Pending'}
-                      </div>
+                      {hideLine ? (
+                        <div style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
+                          color: 'var(--text-tertiary)',
+                        }}>Pending</div>
+                      ) : (
+                        <div style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
+                          color: pick.result === 'win' ? 'var(--green-profit)'
+                            : pick.result === 'loss' ? 'var(--red-loss)' : 'var(--text-tertiary)',
+                        }}>
+                          {pick.result === 'win' ? `+${pick.pnl != null ? pick.pnl : 91}u`
+                            : pick.result === 'loss' ? `${pick.pnl != null ? pick.pnl : -100}u`
+                            : 'Pending'}
+                        </div>
+                      )}
                       {isPro && pick.edge_pct && (
                         <div style={{
                           fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
