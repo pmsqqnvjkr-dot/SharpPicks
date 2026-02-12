@@ -597,11 +597,17 @@ function EmptyDashboard({ onTrack }) {
       <h3 style={{
         fontFamily: 'var(--font-serif)', fontSize: '18px',
         fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px',
-      }}>Your personal dashboard</h3>
+      }}>No bets tracked yet</h3>
       <p style={{
-        fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '20px',
+        fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '8px',
       }}>
-        Track your wagers on Sharp Picks and watch your personal equity curve, win streaks, and ROI build over time.
+        When a pick is published, tap "Track outcome" to log your wager. Your equity curve, streaks, and ROI will build here over time.
+      </p>
+      <p style={{
+        fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5', marginBottom: '20px',
+        fontStyle: 'italic', fontFamily: 'var(--font-serif)',
+      }}>
+        Bets are graded automatically when picks settle.
       </p>
       <button onClick={onTrack} style={{
         padding: '12px 24px',
