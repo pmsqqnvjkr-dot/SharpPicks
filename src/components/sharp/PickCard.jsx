@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { apiPost } from '../../hooks/useApi';
+import { apiPost, apiDelete } from '../../hooks/useApi';
 
 function formatPostedTime(isoStr) {
   if (!isoStr) return null;
@@ -111,6 +111,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
   const isLocked = pick.locked && !isPro;
   const [tracking, setTracking] = useState(false);
   const [tracked, setTracked] = useState(pick.already_tracked || false);
+  const [trackedBetId, setTrackedBetId] = useState(pick.tracked_bet_id || null);
   const [trackError, setTrackError] = useState(null);
 
   const handleTrackPick = async () => {
@@ -124,6 +125,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
       });
       if (res.success) {
         setTracked(true);
+        if (res.bet?.id) setTrackedBetId(res.bet.id);
       } else {
         if (res.error && res.error.includes('Already tracking')) {
           setTracked(true);
@@ -138,6 +140,20 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
       } else {
         setTrackError('Failed to track');
       }
+    } finally {
+      setTracking(false);
+    }
+  };
+
+  const handleUntrack = async () => {
+    if (!trackedBetId) return;
+    setTracking(true);
+    try {
+      await apiDelete(`/bets/${trackedBetId}`);
+      setTracked(false);
+      setTrackedBetId(null);
+    } catch (e) {
+      setTrackError('Failed to untrack');
     } finally {
       setTracking(false);
     }
@@ -381,17 +397,20 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
             </div>
           </div>
         ) : tracked ? (
-          <div style={{
-            width: '100%', marginTop: '16px',
-            borderRadius: '16px', padding: '15px 14px',
-            fontWeight: 800, fontSize: '15px', letterSpacing: '0.3px',
-            color: 'rgba(52,211,153,0.92)',
-            background: 'rgba(52,211,153,0.08)',
-            border: '1px solid rgba(52,211,153,0.22)',
-            textAlign: 'center',
-          }}>
-            Tracked
-          </div>
+          <button
+            onClick={handleUntrack}
+            disabled={tracking}
+            style={{
+              width: '100%', marginTop: '16px',
+              borderRadius: '16px', padding: '15px 14px',
+              fontWeight: 800, fontSize: '15px', letterSpacing: '0.3px',
+              color: 'rgba(52,211,153,0.92)',
+              background: 'rgba(52,211,153,0.08)',
+              border: '1px solid rgba(52,211,153,0.22)',
+              textAlign: 'center', cursor: 'pointer',
+            }}>
+            {tracking ? 'Removing...' : 'Tracked'}
+          </button>
         ) : (
           <>
             <button

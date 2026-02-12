@@ -138,6 +138,8 @@ def today():
                     pick_id=pick.id
                 ).first()
                 pick_data['already_tracked'] = existing_bet is not None
+                if existing_bet:
+                    pick_data['tracked_bet_id'] = existing_bet.id
         return jsonify(pick_data)
 
     pass_entry = Pass.query.filter_by(date=today_str).first()
