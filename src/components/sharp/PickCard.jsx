@@ -1,5 +1,41 @@
+import { useState } from 'react';
+import { apiPost } from '../../hooks/useApi';
+
 export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
   const isLocked = pick.locked && !isPro;
+  const [tracking, setTracking] = useState(false);
+  const [tracked, setTracked] = useState(pick.already_tracked || false);
+  const [trackError, setTrackError] = useState(null);
+
+  const handleTrackPick = async () => {
+    setTracking(true);
+    setTrackError(null);
+    try {
+      const res = await apiPost('/bets', {
+        pick_id: pick.id,
+        bet_amount: 100,
+        odds: pick.market_odds || -110,
+      });
+      if (res.success) {
+        setTracked(true);
+      } else {
+        if (res.error && res.error.includes('Already tracking')) {
+          setTracked(true);
+        } else {
+          setTrackError(res.error || 'Failed to track');
+        }
+      }
+    } catch (e) {
+      const msg = e?.message || '';
+      if (msg.includes('Already tracking')) {
+        setTracked(true);
+      } else {
+        setTrackError('Failed to track');
+      }
+    } finally {
+      setTracking(false);
+    }
+  };
 
   if (isLocked) {
     return (
@@ -230,22 +266,44 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
               {pick.result === 'win' ? `Win +${pick.pnl ?? 91}u` : `Loss ${pick.pnl ?? -110}u`}
             </div>
           </div>
+        ) : tracked ? (
+          <div style={{
+            width: '100%', marginTop: '16px',
+            borderRadius: '16px', padding: '15px 14px',
+            fontWeight: 800, fontSize: '15px', letterSpacing: '0.3px',
+            color: 'rgba(52,211,153,0.92)',
+            background: 'rgba(52,211,153,0.08)',
+            border: '1px solid rgba(52,211,153,0.22)',
+            textAlign: 'center',
+          }}>
+            Tracking — Pending
+          </div>
         ) : (
-          <button
-            onClick={() => onTrack && onTrack(pick)}
-            style={{
-              width: '100%', marginTop: '16px',
-              borderRadius: '16px', padding: '15px 14px',
-              fontWeight: 800, fontSize: '15px', letterSpacing: '0.3px',
-              color: 'rgba(255,255,255,0.92)',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.14)',
-              boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
-              cursor: 'pointer',
-            }}
-          >
-            Track outcome
-          </button>
+          <>
+            <button
+              onClick={handleTrackPick}
+              disabled={tracking}
+              style={{
+                width: '100%', marginTop: '16px',
+                borderRadius: '16px', padding: '15px 14px',
+                fontWeight: 800, fontSize: '15px', letterSpacing: '0.3px',
+                color: tracking ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.92)',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.14)',
+                boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
+                cursor: tracking ? 'default' : 'pointer',
+                opacity: tracking ? 0.7 : 1,
+              }}
+            >
+              {tracking ? 'Tracking...' : 'Track outcome'}
+            </button>
+            {trackError && (
+              <div style={{
+                marginTop: '8px', fontSize: '13px',
+                color: 'var(--red-loss)', textAlign: 'center',
+              }}>{trackError}</div>
+            )}
+          </>
         )}
 
         <div style={{

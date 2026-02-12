@@ -135,10 +135,50 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
             <div style={{ padding: '40px 0', textAlign: 'center' }}>
               <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Loading your dashboard...</p>
             </div>
-          ) : !hasBets ? (
+          ) : !hasBets && pendingBets.length === 0 ? (
             <EmptyDashboard onTrack={() => setShowTrackModal(true)} />
           ) : (
             <>
+              {pendingBets.length > 0 && (
+                <SectionCard title={`Active (${pendingBets.length})`}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {pendingBets.map(bet => (
+                      <div key={bet.id} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '12px 14px', backgroundColor: 'var(--surface-2)', borderRadius: '10px',
+                        border: '1px solid rgba(79, 134, 247, 0.15)',
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                            {bet.pick}
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                            {bet.game}
+                          </div>
+                          <div style={{
+                            fontFamily: 'var(--font-mono)', fontSize: '11px',
+                            color: 'var(--text-tertiary)', marginTop: '4px',
+                          }}>
+                            ${bet.bet_amount} at {bet.odds > 0 ? `+${bet.odds}` : bet.odds} · to win ${bet.to_win}
+                          </div>
+                        </div>
+                        <div style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+                          padding: '4px 10px', borderRadius: '6px',
+                          backgroundColor: 'rgba(79, 134, 247, 0.12)',
+                          color: 'var(--blue-primary)',
+                          textTransform: 'uppercase', letterSpacing: '0.5px',
+                        }}>
+                          Pending
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
+
+              {hasBets && stats && (
+              <>
               <SectionCard>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <StatCard
@@ -237,6 +277,8 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                     ))}
                   </div>
                 </SectionCard>
+              )}
+              </>
               )}
 
               <div style={{ padding: '4px 0 12px' }}>

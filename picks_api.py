@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
-from models import db, Pick, Pass, ModelRun, UserBet
+from models import db, Pick, Pass, ModelRun, UserBet, TrackedBet
 from datetime import datetime
 
 picks_bp = Blueprint('picks', __name__)
@@ -109,6 +109,12 @@ def today():
             pick_data['locked'] = True
         else:
             pick_data['locked'] = False
+            if current_user.is_authenticated:
+                existing_bet = TrackedBet.query.filter_by(
+                    user_id=current_user.id,
+                    pick_id=pick.id
+                ).first()
+                pick_data['already_tracked'] = existing_bet is not None
         return jsonify(pick_data)
 
     pass_entry = Pass.query.filter_by(date=today_str).first()
