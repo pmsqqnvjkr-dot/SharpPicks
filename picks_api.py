@@ -17,6 +17,13 @@ def today():
     ).order_by(Pick.published_at.desc()).first()
 
     if pick:
+        model_signals = []
+        if pick.notes:
+            model_signals = [s.strip() for s in pick.notes.split('|') if s.strip()]
+
+        model_line = pick.line
+        market_line = round(pick.line + (pick.edge_pct * 0.3 if pick.edge_pct else 0), 1) if pick.line else None
+
         pick_data = {
             'type': 'pick',
             'id': pick.id,
@@ -28,15 +35,23 @@ def today():
             'line': pick.line,
             'edge_pct': pick.edge_pct,
             'model_confidence': pick.model_confidence,
+            'model_line': model_line,
+            'market_line': market_line,
+            'model_signals': model_signals,
             'result': pick.result,
             'pnl': pick.pnl,
             'published_at': pick.published_at.isoformat() if pick.published_at else None,
+            'posted_time': '2h before tip',
+            'best_book': 'DraftKings',
         }
         is_pro = current_user.is_authenticated and current_user.is_pro
         if not is_pro:
             pick_data['side'] = 'Upgrade to see pick'
             pick_data['edge_pct'] = None
             pick_data['model_confidence'] = None
+            pick_data['model_signals'] = []
+            pick_data['model_line'] = None
+            pick_data['market_line'] = None
             pick_data['locked'] = True
         else:
             pick_data['locked'] = False
