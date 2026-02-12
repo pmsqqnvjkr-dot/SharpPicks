@@ -897,7 +897,9 @@ class EnsemblePredictor:
             'scaler': self.scaler,
             'feature_names': self.feature_names,
             'trained': self.trained,
-            'calibration_stats': self.calibration_stats
+            'calibration_stats': self.calibration_stats,
+            'margin_model': self.margin_model,
+            'margin_std': getattr(self, 'margin_std', None),
         }
         
         with open(filepath, 'wb') as f:
@@ -918,6 +920,9 @@ class EnsemblePredictor:
             self.feature_names = model_data['feature_names']
             self.trained = model_data['trained']
             self.calibration_stats = model_data.get('calibration_stats', {})
+            self.margin_model = model_data.get('margin_model', None)
+            saved_std = model_data.get('margin_std', None)
+            self.margin_std = max(saved_std, MARGIN_STD_FLOOR) if saved_std is not None else None
             
             return True
         except:
