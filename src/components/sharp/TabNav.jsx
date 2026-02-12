@@ -18,7 +18,9 @@ export default function TabNav({ activeTab, onTabChange }) {
       alignItems: 'center',
       gap: '32px',
       padding: '10px 0 calc(6px + env(safe-area-inset-bottom, 0px))',
-      background: 'var(--bg-primary)',
+      background: 'rgba(10, 13, 20, 0.88)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
       borderTop: '1px solid rgba(255, 255, 255, 0.04)',
       zIndex: 100,
     }}>
@@ -34,32 +36,19 @@ export default function TabNav({ activeTab, onTabChange }) {
             aria-current={isActive ? 'page' : undefined}
             style={{
               position: 'relative',
-              background: 'none',
+              background: isActive ? 'rgba(52, 211, 153, 0.06)' : 'none',
               border: 'none',
-              padding: '0',
-              width: '24px',
-              height: '24px',
+              borderRadius: '8px',
+              padding: '6px 10px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              opacity: isActive ? 1 : 0.35,
-              transition: 'opacity 0.2s',
+              color: isActive ? 'var(--green-profit)' : 'var(--text-tertiary)',
+              transition: 'color 0.2s, background 0.2s',
             }}
           >
             <tab.icon />
-            {isActive && (
-              <span style={{
-                position: 'absolute',
-                bottom: '-6px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '3px',
-                height: '3px',
-                borderRadius: '50%',
-                background: 'var(--green-profit)',
-              }} />
-            )}
           </button>
         );
       })}
