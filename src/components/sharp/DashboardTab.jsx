@@ -95,7 +95,7 @@ function PerformanceCore({ perf, equityCurve }) {
 
   return (
     <>
-      <SectionLabel>Sharp Picks Performance</SectionLabel>
+      <SectionLabel>Model Performance</SectionLabel>
       <div style={{
         backgroundColor: 'var(--surface-1)', borderRadius: '20px',
         border: '1px solid var(--stroke-subtle)', padding: '24px',
@@ -109,6 +109,13 @@ function PerformanceCore({ perf, equityCurve }) {
               lineHeight: '1', marginBottom: '8px',
             }}>
               {isPositive ? '+' : '-'}${Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </div>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px',
+              color: 'var(--text-tertiary)', letterSpacing: '0.5px',
+              marginBottom: '10px',
+            }}>
+              Model Only · 1u Standardized · -110 Baseline
             </div>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
               <StatChip
@@ -132,16 +139,10 @@ function PerformanceCore({ perf, equityCurve }) {
           display: 'flex', gap: '6px', flexWrap: 'wrap',
         }}>
           <MetaTag label="Season" />
-          <MetaTag label={`${perf.total_picks || 0} Bets`} />
+          <MetaTag label={`${perf.total_picks || 0} Picks`} />
           <MetaTag label={`${perf.total_passes || 0} Passes`} />
           <MetaTag label={`${perf.selectivity || 0}% Selectivity`} />
         </div>
-        <p style={{
-          fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
-          marginTop: '10px',
-        }}>
-          Based on published picks only. Standardized 1u per pick at -110. Not influenced by user bets.
-        </p>
       </div>
     </>
   );
@@ -238,7 +239,7 @@ function CalibrationBar({ bucket }) {
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '10px',
           color: 'var(--text-tertiary)', marginTop: '4px', display: 'block',
-        }}>Awaiting data</span>
+        }}>Minimum 10 picks per bucket required</span>
       )}
     </div>
   );

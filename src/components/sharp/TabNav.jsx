@@ -2,7 +2,7 @@ export default function TabNav({ activeTab, onTabChange }) {
   const tabs = [
     { id: 'today', label: 'Today', icon: ClockIcon },
     { id: 'dashboard', label: 'Dashboard', icon: ChartIcon },
-    { id: 'model', label: 'Model', icon: BarChartIcon },
+    { id: 'model', label: 'Model Health', icon: BarChartIcon },
     { id: 'profile', label: 'Profile', icon: PersonIcon },
   ];
 

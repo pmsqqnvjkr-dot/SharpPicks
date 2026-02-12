@@ -2,28 +2,45 @@ import { useState } from 'react';
 import { apiPost } from '../../hooks/useApi';
 
 function formatGameDateTime(gameDate, startTime) {
-  const dateStr = startTime || gameDate;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const parseDateOnly = (str) => {
+    if (typeof str === 'string' && str.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [y, m, day] = str.split('-');
+      return { date: `${months[parseInt(m)-1]} ${parseInt(day)}, ${y}`, time: null };
+    }
+    return null;
+  };
+
+  const hasActualTime = (str) => str && (str.includes('T') && !str.endsWith('T00:00:00') && !str.match(/T\d{2}:\d{2}:\d{2}$/));
+
+  if (startTime && hasActualTime(startTime)) {
+    try {
+      const d = new Date(startTime);
+      if (!isNaN(d.getTime())) {
+        const datePart = parseDateOnly(gameDate) || { date: `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}` };
+        let hours = d.getHours();
+        const mins = d.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        return { date: datePart.date, time: `${hours}:${mins} ${ampm}` };
+      }
+    } catch {}
+  }
+
+  const dateStr = gameDate || startTime;
   if (!dateStr) return null;
+
+  const dateOnly = parseDateOnly(dateStr);
+  if (dateOnly) return dateOnly;
+
   try {
     const d = new Date(dateStr);
-    if (isNaN(d.getTime())) {
-      if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        const [y, m, day] = dateStr.split('-');
-        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        return { date: `${months[parseInt(m)-1]} ${parseInt(day)}, ${y}`, time: null };
-      }
-      return null;
+    if (!isNaN(d.getTime())) {
+      return { date: `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`, time: null };
     }
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const date = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-    const hasTime = dateStr.includes('T') || dateStr.includes(':');
-    if (!hasTime) return { date, time: null };
-    let hours = d.getHours();
-    const mins = d.getMinutes().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-    return { date, time: `${hours}:${mins} ${ampm}` };
-  } catch { return null; }
+  } catch {}
+  return null;
 }
 
 export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
