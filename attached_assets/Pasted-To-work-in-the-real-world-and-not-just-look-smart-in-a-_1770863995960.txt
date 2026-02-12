@@ -1,0 +1,101 @@
+To “work” in the real world (and not just look smart in a dashboard), your Sharp Picks algorithm needs a few non negotiables. This is the backbone.
+
+1) A clear target
+
+Pick one and measure it cleanly:
+	•	Spread cover probability
+	•	Moneyline win probability
+	•	Total over or under probability
+
+If you try to predict everything at once, you end up with mush.
+
+2) A real edge calculation
+
+Your model must output a probability, then convert it to expected value.
+	•	Convert odds to implied probability (for -110, it’s ~52.38%)
+	•	Your edge = model_prob - implied_prob
+	•	Only publish when edge clears your bar (your spec said 3.5%+)
+
+If you are not doing probability and EV, you are basically picking vibes.
+
+3) Line integrity and timing
+
+You need to know exactly what line you are grading against:
+	•	The line you recommend
+	•	The time you recommended it
+	•	The closing line (for CLV tracking)
+
+Without this, you cannot prove skill or separate signal from luck.
+
+4) A disciplined selection layer
+
+The “model” is not the product. The filter is.
+You need rules like:
+	•	Max 1 pick/day
+	•	No pick if confidence is high but market moved against you
+	•	No pick if the best available line is gone
+	•	No pick if injury news makes inputs stale
+
+This is where Sharp Picks becomes Sharp Picks.
+
+5) Backtesting that matches reality
+
+Most models “win” because the test is fake. You need:
+	•	No future info leakage (injuries, closing lines, end of day stats)
+	•	Walk forward validation (train on past, test on future)
+	•	Performance tracked by season, not one big average
+
+6) Risk and bankroll guidance
+
+If you do not give users a stake framework, they blow themselves up even with a positive edge.
+You need at least one:
+	•	Flat staking (simple)
+	•	Fractional Kelly (advanced)
+	•	Unit system tied to confidence bands
+
+7) A pick log with outcomes and audit trail
+
+Every pick should store:
+	•	game_id, market, side
+	•	recommended odds and sportsbook
+	•	model probability, edge, confidence
+	•	timestamp
+	•	result, profit, closing line
+
+No log means no trust.
+
+8) Guardrails and compliance language
+
+To be shippable long term:
+	•	“For entertainment and informational purposes”
+	•	“No guaranteed outcomes”
+	•	Responsible gambling language
+	•	State by state disclaimers if you expand
+
+9) Data quality defenses
+
+You need checks for:
+	•	missing player status
+	•	API outages
+	•	duplicated games
+	•	stale lines
+	•	timezone issues
+
+One bad ingest can ruin a week and your credibility.
+
+10) A simple explanation layer
+
+Users do not need your features list.
+They need 2 to 4 consistent reasons like:
+	•	line moved in our favor
+	•	matchup advantage
+	•	pace and efficiency mismatch
+	•	rest and travel edge
+
+Same format every time.
+
+⸻
+
+If you want the shortest possible definition of “works”:
+
+It predicts probabilities, converts them to EV, only publishes above a threshold, logs everything for audit, and survives bad data days without breaking.
