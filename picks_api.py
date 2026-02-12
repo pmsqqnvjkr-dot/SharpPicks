@@ -142,6 +142,7 @@ def today():
             'date': pass_entry.date,
             'games_analyzed': pass_entry.games_analyzed,
             'closest_edge_pct': pass_entry.closest_edge_pct,
+            'pass_reason': pass_entry.pass_reason,
             'picks_this_week': picks_this_week,
             'passes_this_week': passes_this_week,
             'selectivity': selectivity,

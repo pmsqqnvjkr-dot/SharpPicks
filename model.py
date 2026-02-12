@@ -26,8 +26,20 @@ STANDARD_ODDS = -110
 MARGIN_STD_DEV = 12.0
 MARGIN_STD_FLOOR = 8.0
 MARGIN_STD_CEILING = 15.0
-MAX_SPREAD_DEFAULT = 11.0
 LINE_MOVE_PENALTY_PER_PT = 1.5
+
+SPREAD_EDGE_CURVE = [
+    (0, 7, 3.5),
+    (7, 11, 5.0),
+    (11, float('inf'), 8.0),
+]
+
+
+def get_edge_threshold_for_spread(spread_abs):
+    for low, high, threshold in SPREAD_EDGE_CURVE:
+        if low <= spread_abs < high:
+            return threshold
+    return 8.0
 
 
 class EnsemblePredictor:
@@ -391,6 +403,7 @@ class EnsemblePredictor:
         
         margin_preds = self.margin_model.predict(X_test_scaled)
         margin_mae = np.mean(np.abs(margin_preds - margin_test))
+        self.margin_mae = margin_mae
 
         from sklearn.model_selection import KFold
         X_all_scaled = self.scaler.transform(X)
@@ -405,8 +418,12 @@ class EnsemblePredictor:
             cv_residuals.extend(cv_preds - margin_target.iloc[cv_test].values)
         cv_std_raw = np.std(cv_residuals)
         self.margin_std = min(max(cv_std_raw, MARGIN_STD_FLOOR), MARGIN_STD_CEILING)
+        self.using_fallback_sigma = (self.margin_std != cv_std_raw)
+
         print(f"   Margin MAE: {margin_mae:.1f} pts")
-        print(f"   CV residual std: {cv_std_raw:.1f} pts (clamped [{MARGIN_STD_FLOOR}, {MARGIN_STD_CEILING}], using {self.margin_std:.1f})")
+        print(f"   Margin STD (raw): {cv_std_raw:.1f} pts")
+        print(f"   Margin STD (used): {self.margin_std:.1f} pts (clamped [{MARGIN_STD_FLOOR}, {MARGIN_STD_CEILING}])")
+        print(f"   USING_FALLBACK_SIGMA = {self.using_fallback_sigma}")
         
         self.trained = True
         
@@ -415,6 +432,7 @@ class EnsemblePredictor:
         print(f"\n   Calibrated model trained and saved!")
         print(f"   Ensemble Test Accuracy: {ensemble_acc:.1%}")
         print(f"   Brier Score: {ensemble_brier:.3f} (lower is better)")
+        print(f"   Margin MAE: {self.margin_mae:.1f} pts")
         print(f"   Margin Std Dev: {self.margin_std:.1f} pts\n")
         
         return True
@@ -542,9 +560,19 @@ class EnsemblePredictor:
         
         predicted_margins = None
         sigma = MARGIN_STD_DEV
+        using_fallback = True
         if self.margin_model is not None:
             predicted_margins = self.margin_model.predict(X_scaled)
-            sigma = getattr(self, 'margin_std', MARGIN_STD_DEV) or MARGIN_STD_DEV
+            saved_sigma = getattr(self, 'margin_std', None)
+            if saved_sigma is not None:
+                sigma = saved_sigma
+                using_fallback = False
+            else:
+                sigma = MARGIN_STD_DEV
+        
+        print(f"   USING_FALLBACK_SIGMA = {using_fallback} (sigma={sigma:.1f})")
+        if getattr(self, 'margin_mae', None):
+            print(f"   Margin MAE: {self.margin_mae:.1f} pts")
         
         picks = []
         
@@ -600,6 +628,7 @@ class EnsemblePredictor:
             adjusted_edge = edge_vs_market - line_move_penalty
             
             fail_reasons = []
+            pass_reason = None
             if spread is None:
                 fail_reasons.append('missing_spread')
             if pred_margin is None and proba is None:
@@ -608,8 +637,14 @@ class EnsemblePredictor:
                 fail_reasons.append('no_margin_sigma_for_ats')
             
             spread_abs = abs(spread) if spread is not None else 0
-            if spread_abs > MAX_SPREAD_DEFAULT and adjusted_edge < 8.0:
-                fail_reasons.append(f'spread_too_large ({spread_abs:.1f})')
+            required_edge = get_edge_threshold_for_spread(spread_abs)
+            if adjusted_edge < required_edge:
+                if spread_abs >= 11:
+                    fail_reasons.append(f'spread_too_large ({spread_abs:.1f}, need {required_edge}% edge)')
+                    pass_reason = f"Spread too large ({spread_abs:.1f}pts) for available edge ({adjusted_edge:+.1f}%)"
+                elif spread_abs >= 7:
+                    fail_reasons.append(f'mid_spread_insufficient_edge ({spread_abs:.1f}, need {required_edge}%)')
+                    pass_reason = f"Mid-range spread ({spread_abs:.1f}pts) requires {required_edge}% edge, have {adjusted_edge:+.1f}%"
             
             home_injuries = row.get('home_injuries', None) if hasattr(row, 'get') else None
             away_injuries = row.get('away_injuries', None) if hasattr(row, 'get') else None
@@ -623,10 +658,17 @@ class EnsemblePredictor:
             else:
                 rating = "SLIGHT"
             
+            if len(fail_reasons) == 0 and adjusted_edge < EDGE_THRESHOLD_PCT:
+                pass_reason = f"Edge below threshold ({adjusted_edge:+.1f}% < {EDGE_THRESHOLD_PCT}%)"
+            if len(fail_reasons) == 0 and confidence < min_confidence:
+                pass_reason = f"Confidence below minimum ({confidence:.1%} < {min_confidence:.0%})"
+            if line_move_penalty > 0 and adjusted_edge < EDGE_THRESHOLD_PCT and edge_vs_market >= EDGE_THRESHOLD_PCT:
+                pass_reason = f"Line moved against us ({line_move_against:+.1f}pts), reduced edge from {edge_vs_market:+.1f}% to {adjusted_edge:+.1f}%"
+
             passes = (
                 len(fail_reasons) == 0
                 and confidence >= min_confidence
-                and adjusted_edge >= EDGE_THRESHOLD_PCT
+                and adjusted_edge >= required_edge
             )
             
             z_score_val = None
@@ -660,6 +702,8 @@ class EnsemblePredictor:
                 'line_move_against': round(line_move_against, 1),
                 'line_move_penalty': round(line_move_penalty, 1),
                 'fail_reasons': fail_reasons,
+                'pass_reason': pass_reason,
+                'required_edge': required_edge,
                 'explanation': explanation,
                 'passes_filter': passes,
             })
@@ -940,9 +984,8 @@ class EnsemblePredictor:
                 all_edges.append(adjusted_edge)
 
                 spread_abs = abs(spread)
-                if spread_abs > MAX_SPREAD_DEFAULT and adjusted_edge < 8.0:
-                    continue
-                if adjusted_edge < EDGE_THRESHOLD_PCT:
+                required_edge = get_edge_threshold_for_spread(spread_abs)
+                if adjusted_edge < required_edge:
                     continue
                 if confidence < MIN_CONFIDENCE_THRESHOLD:
                     continue
@@ -1028,6 +1071,300 @@ class EnsemblePredictor:
 
         return {'seasons': results, 'all_bets': all_bets}
 
+    def calibration_check(self, bets=None):
+        """Bucket predictions by confidence and check actual win rates.
+        Uses walk-forward bets if available, otherwise runs walk-forward first."""
+        if bets is None:
+            print("Running walk-forward to collect bets for calibration...")
+            result = self.walk_forward_validate()
+            if result is None:
+                return None
+            bets = result['all_bets']
+
+        print("\n" + "="*60)
+        print("CALIBRATION CHECK — confidence vs actual win rate")
+        print("="*60)
+
+        from performance_tracker import odds_to_implied_prob
+        implied = odds_to_implied_prob(STANDARD_ODDS)
+
+        buckets = [
+            (0.50, 0.55),
+            (0.55, 0.60),
+            (0.60, 0.65),
+            (0.65, 0.70),
+            (0.70, 1.00),
+        ]
+
+        print(f"\n{'Confidence':<14} {'N':>6} {'Win%':>7} {'AvgConf':>8} {'AvgEdge':>8} {'Brier':>7} {'Status':>10}")
+        print("-" * 70)
+
+        results = []
+        for lo, hi in buckets:
+            bucket_bets = [b for b in bets if lo <= b['confidence'] < hi]
+            if not bucket_bets:
+                print(f"  {lo:.0%}-{hi:.0%}      {'(no bets)':>6}")
+                continue
+
+            n = len(bucket_bets)
+            wins = sum(1 for b in bucket_bets if b['won'])
+            actual_wr = wins / n
+            avg_conf = np.mean([b['confidence'] for b in bucket_bets])
+            avg_edge = np.mean([b['edge'] for b in bucket_bets])
+            brier = np.mean([(b['confidence'] - (1.0 if b['won'] else 0.0))**2 for b in bucket_bets])
+
+            cal_diff = abs(actual_wr - avg_conf)
+            if cal_diff < 0.03:
+                status = "CALIBRATED"
+            elif actual_wr > avg_conf:
+                status = "UNDERCONF"
+            else:
+                status = "OVERCONF"
+
+            results.append({
+                'range': f"{lo:.0%}-{hi:.0%}",
+                'n': n, 'win_rate': actual_wr, 'avg_conf': avg_conf,
+                'avg_edge': avg_edge, 'brier': brier, 'status': status,
+            })
+
+            print(f"  {lo:.0%}-{hi:.0%}     {n:>6} {actual_wr:>6.1%} {avg_conf:>7.1%} {avg_edge:>+7.1f}% {brier:>6.3f} {status:>10}")
+
+        print("-" * 70)
+
+        overall_brier = np.mean([(b['confidence'] - (1.0 if b['won'] else 0.0))**2 for b in bets])
+        print(f"  Overall Brier: {overall_brier:.3f}")
+
+        overconf_buckets = [r for r in results if r['status'] == 'OVERCONF']
+        if overconf_buckets:
+            print(f"\n  WARNING: {len(overconf_buckets)} bucket(s) overconfident — model may need recalibration")
+        else:
+            print(f"\n  OK: No overconfident buckets detected")
+
+        return results
+
+    def backtest_sweep(self, edge_range=None, conf_range=None, penalty_range=None):
+        """Sweep edge threshold, min_confidence, and line move penalty.
+        Returns optimal combo for ROI with acceptable pick frequency."""
+
+        print("\n" + "="*60)
+        print("BACKTEST PARAMETER SWEEP")
+        print("="*60)
+
+        from performance_tracker import odds_to_implied_prob
+
+        if edge_range is None:
+            edge_range = np.arange(2.0, 10.5, 0.5)
+        if conf_range is None:
+            conf_range = np.arange(0.52, 0.61, 0.01)
+        if penalty_range is None:
+            penalty_range = [0.0, 0.5, 1.0, 1.5, 2.0]
+
+        df = self.load_data()
+        df = df[df['spread_result'] != 'PUSH'].copy()
+        df['game_date_parsed'] = pd.to_datetime(df['game_date'].str[:10], errors='coerce')
+        df = df.dropna(subset=['game_date_parsed'])
+        df['season'] = df['game_date_parsed'].apply(lambda d: d.year if d.month >= 10 else d.year - 1)
+
+        margin_target = (df['home_score'] - df['away_score']).astype(float)
+        seasons = sorted(df['season'].unique())
+
+        print(f"  Building walk-forward predictions for {len(seasons)-1} test seasons...")
+
+        all_game_data = []
+
+        for i in range(1, len(seasons)):
+            train_seasons = seasons[:i]
+            test_season = seasons[i]
+            train_mask = df['season'].isin(train_seasons)
+            test_mask = df['season'] == test_season
+            train_df = df[train_mask]
+            test_df = df[test_mask]
+
+            if len(train_df) < 50 or len(test_df) < 20:
+                continue
+
+            X_train = self.engineer_features(train_df).fillna(0)
+            X_test = self.engineer_features(test_df).fillna(0)
+            y_test = self.prepare_target(test_df)
+            margin_train = margin_target[train_mask]
+            margin_test = margin_target[test_mask]
+
+            all_features = sorted(set(X_train.columns) | set(X_test.columns))
+            for f in all_features:
+                if f not in X_train.columns:
+                    X_train[f] = 0
+                if f not in X_test.columns:
+                    X_test[f] = 0
+            X_train = X_train[all_features]
+            X_test = X_test[all_features]
+
+            scaler = StandardScaler()
+            X_train_s = scaler.fit_transform(X_train)
+            X_test_s = scaler.transform(X_test)
+
+            margin_gbr = GradientBoostingRegressor(
+                n_estimators=200, max_depth=4, learning_rate=0.1, random_state=42
+            )
+            margin_gbr.fit(X_train_s, margin_train)
+            margin_preds = margin_gbr.predict(X_test_s)
+            residuals = margin_preds - margin_test.values
+            sigma = min(max(np.std(residuals), MARGIN_STD_FLOOR), MARGIN_STD_CEILING)
+
+            spreads = pd.to_numeric(test_df['spread_home'], errors='coerce').values
+            open_spreads = pd.to_numeric(test_df['spread_home_open'], errors='coerce').values if 'spread_home_open' in test_df.columns else np.full(len(test_df), np.nan)
+            actual_covers = y_test.values
+            dates = test_df['game_date_parsed'].values
+
+            implied_prob = odds_to_implied_prob(STANDARD_ODDS)
+
+            for j in range(len(test_df)):
+                spread = spreads[j]
+                if pd.isna(spread):
+                    continue
+                pred_margin = margin_preds[j]
+                z_score = (pred_margin + spread) / sigma
+                home_cover_prob = float(norm.cdf(z_score))
+
+                if home_cover_prob >= 0.5:
+                    pick_side = 'home'
+                    confidence = home_cover_prob
+                else:
+                    pick_side = 'away'
+                    confidence = 1 - home_cover_prob
+
+                raw_edge = (confidence - implied_prob) * 100
+
+                open_spread = open_spreads[j]
+                line_move = 0.0
+                if not pd.isna(open_spread):
+                    move = spread - open_spread
+                    if move > 0 and move >= 1.0:
+                        line_move = move
+
+                covered = actual_covers[j]
+                if pick_side == 'away':
+                    covered = 1 - covered
+                won = bool(covered)
+
+                all_game_data.append({
+                    'confidence': confidence,
+                    'raw_edge': raw_edge,
+                    'line_move': line_move,
+                    'spread_abs': abs(spread),
+                    'won': won,
+                    'season': test_season,
+                    'date': dates[j],
+                })
+
+        print(f"  Total game predictions: {len(all_game_data)}")
+
+        print(f"\n  Sweeping {len(penalty_range)} penalties x {len(edge_range)} edges x {len(conf_range)} confs...")
+
+        best = None
+        sweep_results = []
+        weeks_per_season = 26
+
+        for penalty in penalty_range:
+            for edge_thresh in edge_range:
+                for min_conf in conf_range:
+                    wins = 0
+                    losses = 0
+                    total_profit = 0
+                    season_profits = {}
+                    cumulative = [0]
+
+                    for g in all_game_data:
+                        adj_edge = g['raw_edge'] - (g['line_move'] * penalty)
+                        req_edge = get_edge_threshold_for_spread(g['spread_abs'])
+                        actual_req = max(edge_thresh, req_edge) if g['spread_abs'] >= 7 else edge_thresh
+
+                        if g['confidence'] < min_conf:
+                            continue
+                        if adj_edge < actual_req:
+                            continue
+
+                        profit = 0.9091 if g['won'] else -1.0
+                        total_profit += profit
+                        cumulative.append(cumulative[-1] + profit)
+
+                        if g['won']:
+                            wins += 1
+                        else:
+                            losses += 1
+
+                        s = g['season']
+                        if s not in season_profits:
+                            season_profits[s] = 0
+                        season_profits[s] += profit
+
+                    total_bets = wins + losses
+                    if total_bets < 50:
+                        continue
+
+                    roi = total_profit / total_bets * 100
+                    win_rate = wins / total_bets * 100
+                    picks_per_week = total_bets / (len(season_profits) * weeks_per_season)
+                    max_dd = min(cumulative) - max(cumulative[:cumulative.index(min(cumulative))+1]) if len(cumulative) > 1 else 0
+                    peak = 0
+                    dd = 0
+                    for v in cumulative:
+                        if v > peak:
+                            peak = v
+                        if v - peak < dd:
+                            dd = v - peak
+                    max_dd = dd
+
+                    season_rois = [v / max(1, total_bets // len(season_profits)) * 100 for v in season_profits.values()]
+                    stability = np.std(season_rois) if len(season_rois) > 1 else 0
+
+                    result = {
+                        'edge': edge_thresh, 'conf': min_conf, 'penalty': penalty,
+                        'bets': total_bets, 'wins': wins, 'win_rate': win_rate,
+                        'roi': roi, 'profit': total_profit, 'picks_per_week': picks_per_week,
+                        'max_drawdown': max_dd, 'stability': stability,
+                        'profitable_seasons': sum(1 for v in season_profits.values() if v > 0),
+                        'total_seasons': len(season_profits),
+                    }
+                    sweep_results.append(result)
+
+                    if best is None or (roi > best['roi'] and picks_per_week <= 4):
+                        best = result
+
+        sweep_results.sort(key=lambda x: x['roi'], reverse=True)
+
+        print(f"\n  Total valid combos: {len(sweep_results)}")
+
+        brand_matches = [r for r in sweep_results if 0.5 <= r['picks_per_week'] <= 3.0 and r['roi'] > 0]
+        brand_matches.sort(key=lambda x: x['roi'], reverse=True)
+
+        print(f"\n{'='*90}")
+        print(f"TOP 10 COMBOS (ROI-optimized)")
+        print(f"{'='*90}")
+        print(f"{'Edge':>6} {'Conf':>6} {'Pen':>5} {'Bets':>6} {'Win%':>6} {'ROI':>7} {'P/wk':>5} {'MaxDD':>7} {'ProfSzn':>8}")
+        print("-" * 90)
+        for r in sweep_results[:10]:
+            print(f"{r['edge']:>5.1f}% {r['conf']:>5.0%} {r['penalty']:>5.1f} {r['bets']:>6} {r['win_rate']:>5.1f}% {r['roi']:>+6.1f}% {r['picks_per_week']:>4.1f} {r['max_drawdown']:>+6.1f}u {r['profitable_seasons']:>3}/{r['total_seasons']}")
+
+        if brand_matches:
+            print(f"\n{'='*90}")
+            print(f"TOP 10 BRAND-FIT COMBOS (1-3 picks/week, ROI > 0)")
+            print(f"{'='*90}")
+            print(f"{'Edge':>6} {'Conf':>6} {'Pen':>5} {'Bets':>6} {'Win%':>6} {'ROI':>7} {'P/wk':>5} {'MaxDD':>7} {'ProfSzn':>8}")
+            print("-" * 90)
+            for r in brand_matches[:10]:
+                print(f"{r['edge']:>5.1f}% {r['conf']:>5.0%} {r['penalty']:>5.1f} {r['bets']:>6} {r['win_rate']:>5.1f}% {r['roi']:>+6.1f}% {r['picks_per_week']:>4.1f} {r['max_drawdown']:>+6.1f}u {r['profitable_seasons']:>3}/{r['total_seasons']}")
+
+        print(f"\nLine move penalty sweep (at best edge/conf):")
+        if best:
+            be, bc = best['edge'], best['conf']
+            for pen in penalty_range:
+                pen_results = [r for r in sweep_results if r['edge'] == be and r['conf'] == bc and r['penalty'] == pen]
+                if pen_results:
+                    r = pen_results[0]
+                    print(f"  penalty={pen:.1f}: bets={r['bets']}, ROI={r['roi']:+.1f}%, picks/wk={r['picks_per_week']:.1f}")
+
+        return {'all_results': sweep_results, 'brand_matches': brand_matches, 'best': best}
+
     def save(self, filepath='sharp_picks_model.pkl'):
         """Save the trained model"""
         model_data = {
@@ -1039,6 +1376,8 @@ class EnsemblePredictor:
             'calibration_stats': self.calibration_stats,
             'margin_model': self.margin_model,
             'margin_std': getattr(self, 'margin_std', None),
+            'margin_mae': getattr(self, 'margin_mae', None),
+            'using_fallback_sigma': getattr(self, 'using_fallback_sigma', None),
         }
         
         with open(filepath, 'wb') as f:
@@ -1062,6 +1401,8 @@ class EnsemblePredictor:
             self.margin_model = model_data.get('margin_model', None)
             saved_std = model_data.get('margin_std', None)
             self.margin_std = min(max(saved_std, MARGIN_STD_FLOOR), MARGIN_STD_CEILING) if saved_std is not None else None
+            self.margin_mae = model_data.get('margin_mae', None)
+            self.using_fallback_sigma = model_data.get('using_fallback_sigma', None)
             
             return True
         except:
@@ -1143,12 +1484,17 @@ def main():
             predictor.train()
         elif cmd == 'predict':
             predictor.predict_games()
+        elif cmd == 'validate':
+            result = predictor.walk_forward_validate()
+            if result:
+                predictor.calibration_check(result['all_bets'])
+        elif cmd == 'sweep':
+            predictor.backtest_sweep()
+        elif cmd == 'calibration':
+            predictor.calibration_check()
         elif cmd == 'importance':
             predictor.load_model()
             predictor.show_feature_importance()
-        elif cmd == 'calibration':
-            predictor.load_model()
-            predictor.show_calibration()
         else:
             print(f"Unknown command: {cmd}")
             print_usage()
@@ -1162,11 +1508,10 @@ def print_usage():
     print("\nCommands:")
     print("   python model.py train       - Train the calibrated ensemble")
     print("   python model.py predict     - Get predictions for today")
+    print("   python model.py validate    - Walk-forward + calibration check")
+    print("   python model.py sweep       - Backtest parameter sweep")
+    print("   python model.py calibration - Confidence calibration check")
     print("   python model.py importance  - Show feature importance")
-    print("   python model.py calibration - Show probability calibration")
-    print()
-    print("Calibration ensures that when the model says")
-    print("60% confidence, it actually wins ~60% of the time.")
     print()
 
 

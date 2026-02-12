@@ -75,12 +75,12 @@ def run_model_and_log(app):
 
                 return {'status': 'pass', 'reason': 'no_games', 'date': today_str}
 
-            LINE_MOVE_PENALTY = 1.5
-            MAX_SPREAD = 11.0
+            from model import LINE_MOVE_PENALTY_PER_PT, get_edge_threshold_for_spread
             
             best_pred = None
             best_adjusted_edge = 0
             closest_edge = 0
+            top_pass_reason = None
 
             for pred in predictions:
                 confidence = pred['confidence'] or 0.5
@@ -102,13 +102,23 @@ def run_model_and_log(app):
                     elif not home_pick and move > 0:
                         move_against = move
                     if move_against >= 1.0:
-                        line_penalty = move_against * LINE_MOVE_PENALTY
+                        line_penalty = move_against * LINE_MOVE_PENALTY_PER_PT
                 
                 adjusted_edge = edge - line_penalty
                 
                 if current_spread is None:
                     continue
-                if abs(current_spread) > MAX_SPREAD and adjusted_edge < 8.0:
+                spread_abs = abs(current_spread)
+                required_edge = get_edge_threshold_for_spread(spread_abs)
+                if adjusted_edge < required_edge:
+                    if spread_abs >= 11:
+                        reason = f"Spread too large ({spread_abs:.1f}pts) for available edge ({adjusted_edge:+.1f}%)"
+                    elif spread_abs >= 7:
+                        reason = f"Mid-range spread needs {required_edge}% edge, have {adjusted_edge:+.1f}%"
+                    else:
+                        reason = f"Edge below threshold ({adjusted_edge:+.1f}% < {required_edge}%)"
+                    if top_pass_reason is None or adjusted_edge > closest_edge - 5:
+                        top_pass_reason = reason
                     continue
                 
                 collected_at = pred['collected_at']
@@ -210,6 +220,7 @@ def run_model_and_log(app):
                     sport='nba',
                     games_analyzed=len(predictions),
                     closest_edge_pct=round(closest_edge, 1),
+                    pass_reason=top_pass_reason,
                 )
                 db.session.add(pass_entry)
 
@@ -224,10 +235,17 @@ def run_model_and_log(app):
                 db.session.add(model_run)
                 db.session.commit()
 
+                if not top_pass_reason:
+                    if closest_edge > 0:
+                        top_pass_reason = f"Edge below threshold ({closest_edge:+.1f}% < {EDGE_THRESHOLD}%)"
+                    else:
+                        top_pass_reason = "No statistical edge detected"
+
                 return {
                     'status': 'pass',
                     'closest_edge': round(closest_edge, 1),
                     'games_analyzed': len(predictions),
+                    'pass_reason': top_pass_reason,
                     'date': today_str,
                 }
 
