@@ -8,6 +8,7 @@ import sqlite3
 import os
 import time
 import random
+import statistics
 from datetime import datetime, timedelta
 
 # Get API key from Replit Secrets
@@ -216,6 +217,21 @@ def setup_database():
         ('away_ml_close', 'INTEGER'),
         ('close_collected_at', 'TEXT'),
         ('line_movement', 'REAL'),
+        ('rundown_spread_consensus', 'REAL'),
+        ('rundown_spread_std', 'REAL'),
+        ('rundown_spread_range', 'REAL'),
+        ('rundown_best_book', 'TEXT'),
+        ('rundown_num_books', 'INTEGER'),
+        ('bdl_home_win_pct', 'REAL'),
+        ('bdl_away_win_pct', 'REAL'),
+        ('bdl_home_conf_rank', 'INTEGER'),
+        ('bdl_away_conf_rank', 'INTEGER'),
+        ('bdl_home_scoring_margin', 'REAL'),
+        ('bdl_away_scoring_margin', 'REAL'),
+        ('bdl_home_avg_pts', 'REAL'),
+        ('bdl_away_avg_pts', 'REAL'),
+        ('bdl_home_avg_pts_against', 'REAL'),
+        ('bdl_away_avg_pts_against', 'REAL'),
     ]
     
     for col_name, col_type in new_columns:
@@ -571,7 +587,32 @@ def collect_todays_games():
     # Fetch supplementary data
     team_data = get_team_data()
     injuries = get_injuries()
-    
+
+    rundown_games = {}
+    try:
+        from rundown_api import fetch_rundown_data
+        rd_data = fetch_rundown_data()
+        if rd_data:
+            for g in rd_data:
+                key = f"{g['away_team']}@{g['home_team']}"
+                if g.get('consensus_spread') is not None:
+                    g['consensus'] = g['consensus_spread']
+                    g['spread_range'] = 0
+                    g['best_book'] = None
+                rundown_games[key] = g
+            with_consensus = sum(1 for g in rundown_games.values() if g.get('consensus') is not None)
+            print(f"   ✅ Rundown: {len(rundown_games)} games, {with_consensus} with multi-book consensus")
+    except Exception as e:
+        print(f"   ⚠️ Rundown API skipped: {e}")
+
+    # Fetch BallDontLie team stats
+    bdl_stats = {}
+    try:
+        from balldontlie_api import get_team_season_stats
+        bdl_stats = get_team_season_stats()
+    except Exception as e:
+        print(f"   ⚠️ BallDontLie skipped: {e}")
+
     print("\n📡 Connecting to The Odds API...")
     
     url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
@@ -672,7 +713,36 @@ def collect_todays_games():
             
             # Get game time
             game_time = game.get('commence_time', '')
-            
+
+            rd_game = {}
+            rd_key_full = f"{away}@{home}"
+            rd_game = rundown_games.get(rd_key_full, {})
+            if not rd_game:
+                for rk, rv in rundown_games.items():
+                    rk_away, rk_home = rk.split('@', 1) if '@' in rk else ('', '')
+                    if (rk_away in away or away.startswith(rk_away)) and (rk_home in home or home.startswith(rk_home)):
+                        rd_game = rv
+                        break
+            rd_consensus = rd_game.get('consensus')
+            rd_std = rd_game.get('spread_std')
+            rd_range = rd_game.get('spread_range')
+            rd_best_book = rd_game.get('best_book')
+            rd_num_books = rd_game.get('num_books')
+
+            # Get BallDontLie team stats
+            bdl_home = bdl_stats.get(home, {})
+            bdl_away = bdl_stats.get(away, {})
+            bdl_home_win_pct = bdl_home.get('win_pct')
+            bdl_away_win_pct = bdl_away.get('win_pct')
+            bdl_home_conf_rank = bdl_home.get('conference_rank')
+            bdl_away_conf_rank = bdl_away.get('conference_rank')
+            bdl_home_scoring_margin = bdl_home.get('bdl_scoring_margin_l14')
+            bdl_away_scoring_margin = bdl_away.get('bdl_scoring_margin_l14')
+            bdl_home_avg_pts = bdl_home.get('bdl_avg_pts_l14')
+            bdl_away_avg_pts = bdl_away.get('bdl_avg_pts_l14')
+            bdl_home_avg_pts_against = bdl_home.get('bdl_avg_pts_against_l14')
+            bdl_away_avg_pts_against = bdl_away.get('bdl_avg_pts_against_l14')
+
             # Check if game already exists (to preserve opening line)
             cursor.execute('SELECT id, spread_home_open FROM games WHERE id = ?', (game_id,))
             existing = cursor.fetchone()
@@ -681,7 +751,6 @@ def collect_todays_games():
             has_opening = existing and existing[1] is not None
             
             if is_new_game:
-                # New game - save as opening line
                 cursor.execute('''
                     INSERT INTO games 
                     (id, game_date, game_time, home_team, away_team, 
@@ -689,8 +758,16 @@ def collect_todays_games():
                      spread_home_open, total_open, home_ml_open, away_ml_open, open_collected_at,
                      home_record, away_record, home_home_record, away_away_record,
                      home_last5, away_last5, home_rest_days, away_rest_days,
-                     home_injuries, away_injuries)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     home_injuries, away_injuries,
+                     rundown_spread_consensus, rundown_spread_std, rundown_spread_range,
+                     rundown_best_book, rundown_num_books,
+                     bdl_home_win_pct, bdl_away_win_pct,
+                     bdl_home_conf_rank, bdl_away_conf_rank,
+                     bdl_home_scoring_margin, bdl_away_scoring_margin,
+                     bdl_home_avg_pts, bdl_away_avg_pts,
+                     bdl_home_avg_pts_against, bdl_away_avg_pts_against)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     game_id, commence_time, game_time, home, away,
                     spread_home, spread_away, total, home_ml, away_ml,
@@ -698,11 +775,16 @@ def collect_todays_games():
                     spread_home, total, home_ml, away_ml, datetime.now().isoformat(),
                     home_record, away_record, home_home_record, away_away_record,
                     home_last5, away_last5, home_rest, away_rest,
-                    home_injuries, away_injuries
+                    home_injuries, away_injuries,
+                    rd_consensus, rd_std, rd_range, rd_best_book, rd_num_books,
+                    bdl_home_win_pct, bdl_away_win_pct,
+                    bdl_home_conf_rank, bdl_away_conf_rank,
+                    bdl_home_scoring_margin, bdl_away_scoring_margin,
+                    bdl_home_avg_pts, bdl_away_avg_pts,
+                    bdl_home_avg_pts_against, bdl_away_avg_pts_against,
                 ))
                 line_status = "📌 OPENING"
             else:
-                # Existing game - update current line only
                 cursor.execute('''
                     UPDATE games SET
                         spread_home = ?, spread_away = ?, total = ?, 
@@ -712,7 +794,14 @@ def collect_todays_games():
                         home_home_record = ?, away_away_record = ?,
                         home_last5 = ?, away_last5 = ?, 
                         home_rest_days = ?, away_rest_days = ?,
-                        home_injuries = ?, away_injuries = ?
+                        home_injuries = ?, away_injuries = ?,
+                        rundown_spread_consensus = ?, rundown_spread_std = ?,
+                        rundown_spread_range = ?, rundown_best_book = ?, rundown_num_books = ?,
+                        bdl_home_win_pct = ?, bdl_away_win_pct = ?,
+                        bdl_home_conf_rank = ?, bdl_away_conf_rank = ?,
+                        bdl_home_scoring_margin = ?, bdl_away_scoring_margin = ?,
+                        bdl_home_avg_pts = ?, bdl_away_avg_pts = ?,
+                        bdl_home_avg_pts_against = ?, bdl_away_avg_pts_against = ?
                     WHERE id = ?
                 ''', (
                     spread_home, spread_away, total, home_ml, away_ml,
@@ -720,6 +809,12 @@ def collect_todays_games():
                     home_record, away_record, home_home_record, away_away_record,
                     home_last5, away_last5, home_rest, away_rest,
                     home_injuries, away_injuries,
+                    rd_consensus, rd_std, rd_range, rd_best_book, rd_num_books,
+                    bdl_home_win_pct, bdl_away_win_pct,
+                    bdl_home_conf_rank, bdl_away_conf_rank,
+                    bdl_home_scoring_margin, bdl_away_scoring_margin,
+                    bdl_home_avg_pts, bdl_away_avg_pts,
+                    bdl_home_avg_pts_against, bdl_away_avg_pts_against,
                     game_id
                 ))
                 

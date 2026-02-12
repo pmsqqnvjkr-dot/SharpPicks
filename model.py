@@ -76,7 +76,14 @@ class EnsemblePredictor:
                 hr.pace as home_pace, hr.off_rating as home_off_rtg, 
                 hr.def_rating as home_def_rtg, hr.net_rating as home_net_rtg,
                 ar.pace as away_pace, ar.off_rating as away_off_rtg,
-                ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg
+                ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg,
+                g.rundown_spread_consensus, g.rundown_spread_std,
+                g.rundown_spread_range, g.rundown_num_books,
+                g.bdl_home_win_pct, g.bdl_away_win_pct,
+                g.bdl_home_conf_rank, g.bdl_away_conf_rank,
+                g.bdl_home_scoring_margin, g.bdl_away_scoring_margin,
+                g.bdl_home_avg_pts, g.bdl_away_avg_pts,
+                g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against
             FROM games g
             LEFT JOIN team_ratings hr ON g.home_team = hr.team_abbr
             LEFT JOIN team_ratings ar ON g.away_team = ar.team_abbr
@@ -197,7 +204,26 @@ class EnsemblePredictor:
         
         features['off_matchup'] = features['home_off_rtg'] - features['away_def_rtg']
         features['def_matchup'] = features['away_off_rtg'] - features['home_def_rtg']
-        
+
+        features['rundown_consensus'] = pd.to_numeric(df.get('rundown_spread_consensus', pd.Series([0]*len(df))), errors='coerce').fillna(features['spread_home'])
+        features['spread_vs_consensus'] = features['spread_home'] - features['rundown_consensus']
+        features['rundown_spread_std'] = pd.to_numeric(df.get('rundown_spread_std', pd.Series([0]*len(df))), errors='coerce').fillna(0)
+        features['rundown_spread_range'] = pd.to_numeric(df.get('rundown_spread_range', pd.Series([0]*len(df))), errors='coerce').fillna(0)
+        features['rundown_num_books'] = pd.to_numeric(df.get('rundown_num_books', pd.Series([0]*len(df))), errors='coerce').fillna(0)
+
+        features['bdl_home_win_pct'] = pd.to_numeric(df.get('bdl_home_win_pct', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
+        features['bdl_away_win_pct'] = pd.to_numeric(df.get('bdl_away_win_pct', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
+        features['bdl_win_pct_diff'] = features['bdl_home_win_pct'] - features['bdl_away_win_pct']
+        features['bdl_home_conf_rank'] = pd.to_numeric(df.get('bdl_home_conf_rank', pd.Series([15]*len(df))), errors='coerce').fillna(15)
+        features['bdl_away_conf_rank'] = pd.to_numeric(df.get('bdl_away_conf_rank', pd.Series([15]*len(df))), errors='coerce').fillna(15)
+        features['bdl_conf_rank_diff'] = features['bdl_away_conf_rank'] - features['bdl_home_conf_rank']
+        features['bdl_home_scoring_margin'] = pd.to_numeric(df.get('bdl_home_scoring_margin', pd.Series([0]*len(df))), errors='coerce').fillna(0)
+        features['bdl_away_scoring_margin'] = pd.to_numeric(df.get('bdl_away_scoring_margin', pd.Series([0]*len(df))), errors='coerce').fillna(0)
+        features['bdl_scoring_margin_diff'] = features['bdl_home_scoring_margin'] - features['bdl_away_scoring_margin']
+        features['bdl_home_avg_pts'] = pd.to_numeric(df.get('bdl_home_avg_pts', pd.Series([110]*len(df))), errors='coerce').fillna(110)
+        features['bdl_away_avg_pts'] = pd.to_numeric(df.get('bdl_away_avg_pts', pd.Series([110]*len(df))), errors='coerce').fillna(110)
+        features['bdl_projected_total'] = features['bdl_home_avg_pts'] + features['bdl_away_avg_pts']
+
         return features
     
     def prepare_target(self, df):
@@ -425,7 +451,14 @@ class EnsemblePredictor:
                 hr.pace as home_pace, hr.off_rating as home_off_rtg,
                 hr.def_rating as home_def_rtg, hr.net_rating as home_net_rtg,
                 ar.pace as away_pace, ar.off_rating as away_off_rtg,
-                ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg
+                ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg,
+                g.rundown_spread_consensus, g.rundown_spread_std,
+                g.rundown_spread_range, g.rundown_num_books,
+                g.bdl_home_win_pct, g.bdl_away_win_pct,
+                g.bdl_home_conf_rank, g.bdl_away_conf_rank,
+                g.bdl_home_scoring_margin, g.bdl_away_scoring_margin,
+                g.bdl_home_avg_pts, g.bdl_away_avg_pts,
+                g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against
             FROM games g
             LEFT JOIN team_ratings hr ON g.home_team = hr.team_abbr
             LEFT JOIN team_ratings ar ON g.away_team = ar.team_abbr

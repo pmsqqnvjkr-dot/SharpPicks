@@ -108,9 +108,11 @@ def get_nba_odds():
 
 
 def parse_rundown_games(data):
-    """Parse Rundown API response into standardized format"""
+    """Parse Rundown API response into standardized format with multi-book consensus"""
     if not data:
         return []
+    
+    import statistics
     
     games = []
     events = data.get('events', [])
@@ -132,38 +134,64 @@ def parse_rundown_games(data):
             
             lines = event.get('lines', {})
             
+            all_spreads = []
+            all_totals = []
             spread_home = None
             total = None
             home_ml = None
             away_ml = None
             
             for book_id, book_lines in lines.items():
-                if book_lines:
-                    spread_data = book_lines.get('spread', {})
-                    if spread_data:
-                        spread_home = spread_data.get('point_spread_home')
+                if not book_lines:
+                    continue
                     
-                    total_data = book_lines.get('total', {})
-                    if total_data:
-                        total = total_data.get('total_over')
-                    
-                    ml_data = book_lines.get('moneyline', {})
-                    if ml_data:
-                        home_ml = ml_data.get('moneyline_home')
-                        away_ml = ml_data.get('moneyline_away')
-                    
-                    if spread_home is not None:
-                        break
+                spread_data = book_lines.get('spread', {})
+                if spread_data:
+                    s = spread_data.get('point_spread_home')
+                    if s is not None and abs(s) > 0.01 and abs(s) < 50:
+                        all_spreads.append(s)
+                        if spread_home is None:
+                            spread_home = s
+                
+                total_data = book_lines.get('total', {})
+                if total_data:
+                    t = total_data.get('total_over')
+                    if t is not None and t > 100 and t < 300:
+                        all_totals.append(t)
+                        if total is None:
+                            total = t
+                
+                ml_data = book_lines.get('moneyline', {})
+                if ml_data:
+                    hm = ml_data.get('moneyline_home')
+                    am = ml_data.get('moneyline_away')
+                    if hm and abs(hm) > 1:
+                        home_ml = hm
+                        away_ml = am
+            
+            consensus_spread = None
+            spread_std = None
+            num_books = len(all_spreads)
+            
+            if all_spreads:
+                consensus_spread = round(statistics.mean(all_spreads), 1)
+                if len(all_spreads) >= 2:
+                    spread_std = round(statistics.stdev(all_spreads), 2)
+                else:
+                    spread_std = 0.0
             
             games.append({
                 'id': event_id,
                 'game_date': event_date,
                 'home_team': home_team,
                 'away_team': away_team,
-                'spread_home': spread_home,
+                'spread_home': spread_home or consensus_spread,
                 'total': total,
                 'home_ml': home_ml,
                 'away_ml': away_ml,
+                'consensus_spread': consensus_spread,
+                'spread_std': spread_std,
+                'num_books': num_books,
                 'source': 'rundown'
             })
             
