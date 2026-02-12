@@ -238,6 +238,8 @@ def setup_database():
         ('away_spread_odds_open', 'INTEGER'),
         ('home_spread_odds_close', 'INTEGER'),
         ('away_spread_odds_close', 'INTEGER'),
+        ('home_spread_book', 'TEXT'),
+        ('away_spread_book', 'TEXT'),
     ]
     
     for col_name, col_type in new_columns:
@@ -625,13 +627,23 @@ def collect_todays_games():
 
     print("\n📡 Connecting to The Odds API...")
     
+    PREFERRED_BOOKS = ['draftkings', 'fanduel', 'betmgm', 'caesars_sportsbook', 'pointsbetus', 'betrivers']
+    BOOK_DISPLAY = {
+        'draftkings': 'DraftKings',
+        'fanduel': 'FanDuel', 
+        'betmgm': 'BetMGM',
+        'caesars_sportsbook': 'Caesars',
+        'pointsbetus': 'PointsBet',
+        'betrivers': 'BetRivers',
+    }
+
     url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
     params = {
         'apiKey': API_KEY,
         'regions': 'us',
         'markets': 'spreads,totals,h2h',
         'oddsFormat': 'american',
-        'bookmakers': 'draftkings'
+        'bookmakers': ','.join(PREFERRED_BOOKS)
     }
     
     try:
@@ -653,7 +665,6 @@ def collect_todays_games():
         print(f"   Games found: {len(games)}")
         print(f"   API calls left: {API_USAGE['remaining']}/500\n")
         
-        # Check API usage and warn if needed
         check_api_usage()
         
         if len(games) == 0:
@@ -670,7 +681,6 @@ def collect_todays_games():
             away = game['away_team']
             commence_time = game['commence_time'][:10]
             
-            # Extract odds
             spread_home = None
             spread_away = None
             total = None
@@ -678,29 +688,47 @@ def collect_todays_games():
             away_ml = None
             home_spread_odds = None
             away_spread_odds = None
-            
-            if game.get('bookmakers'):
-                bookmaker = game['bookmakers'][0]
+            home_spread_book = None
+            away_spread_book = None
+
+            def is_better_odds(new_odds, current_odds):
+                if current_odds is None:
+                    return True
+                return new_odds > current_odds
+
+            for bookmaker in game.get('bookmakers', []):
+                book_key = bookmaker.get('key', '')
+                book_name = BOOK_DISPLAY.get(book_key, book_key)
                 
                 for market in bookmaker.get('markets', []):
                     if market['key'] == 'spreads':
                         for outcome in market['outcomes']:
                             if outcome['name'] == home:
-                                spread_home = outcome['point']
-                                home_spread_odds = outcome.get('price')
+                                if spread_home is None:
+                                    spread_home = outcome['point']
+                                price = outcome.get('price')
+                                if price is not None and is_better_odds(price, home_spread_odds):
+                                    home_spread_odds = price
+                                    home_spread_book = book_name
                             else:
-                                spread_away = outcome['point']
-                                away_spread_odds = outcome.get('price')
+                                if spread_away is None:
+                                    spread_away = outcome['point']
+                                price = outcome.get('price')
+                                if price is not None and is_better_odds(price, away_spread_odds):
+                                    away_spread_odds = price
+                                    away_spread_book = book_name
                     
-                    elif market['key'] == 'totals':
+                    elif market['key'] == 'totals' and total is None:
                         total = market['outcomes'][0]['point']
                     
                     elif market['key'] == 'h2h':
                         for outcome in market['outcomes']:
                             if outcome['name'] == home:
-                                home_ml = outcome['price']
+                                if home_ml is None or outcome['price'] > home_ml:
+                                    home_ml = outcome['price']
                             else:
-                                away_ml = outcome['price']
+                                if away_ml is None or outcome['price'] > away_ml:
+                                    away_ml = outcome['price']
             
             # Get enhanced data
             home_info = team_data.get(home, {})
@@ -781,9 +809,10 @@ def collect_todays_games():
                      bdl_home_avg_pts, bdl_away_avg_pts,
                      bdl_home_avg_pts_against, bdl_away_avg_pts_against,
                      home_spread_odds, away_spread_odds,
-                     home_spread_odds_open, away_spread_odds_open)
+                     home_spread_odds_open, away_spread_odds_open,
+                     home_spread_book, away_spread_book)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     game_id, commence_time, game_time, home, away,
                     spread_home, spread_away, total, home_ml, away_ml,
@@ -800,6 +829,7 @@ def collect_todays_games():
                     bdl_home_avg_pts_against, bdl_away_avg_pts_against,
                     home_spread_odds, away_spread_odds,
                     home_spread_odds, away_spread_odds,
+                    home_spread_book, away_spread_book,
                 ))
                 line_status = "📌 OPENING"
             else:
@@ -820,7 +850,8 @@ def collect_todays_games():
                         bdl_home_scoring_margin = ?, bdl_away_scoring_margin = ?,
                         bdl_home_avg_pts = ?, bdl_away_avg_pts = ?,
                         bdl_home_avg_pts_against = ?, bdl_away_avg_pts_against = ?,
-                        home_spread_odds = ?, away_spread_odds = ?
+                        home_spread_odds = ?, away_spread_odds = ?,
+                        home_spread_book = ?, away_spread_book = ?
                     WHERE id = ?
                 ''', (
                     spread_home, spread_away, total, home_ml, away_ml,
@@ -835,6 +866,7 @@ def collect_todays_games():
                     bdl_home_avg_pts, bdl_away_avg_pts,
                     bdl_home_avg_pts_against, bdl_away_avg_pts_against,
                     home_spread_odds, away_spread_odds,
+                    home_spread_book, away_spread_book,
                     game_id
                 ))
                 
@@ -856,7 +888,10 @@ def collect_todays_games():
             print(f"{line_status} {away} @ {home}")
             print(f"   📈 Records: {away} ({away_record}) vs {home} ({home_record})")
             if spread_home:
-                print(f"   📉 Spread: {home} {spread_home:+.1f}")
+                odds_info = ""
+                if home_spread_odds:
+                    odds_info = f" ({home_spread_odds:+d} @ {home_spread_book})"
+                print(f"   📉 Spread: {home} {spread_home:+.1f}{odds_info}")
             if total:
                 print(f"   📉 Total: {total}")
             if home_last5 or away_last5:
@@ -924,13 +959,19 @@ def collect_closing_lines():
         print("❌ ERROR: No API key found!")
         return
     
+    PREFERRED_BOOKS = ['draftkings', 'fanduel', 'betmgm', 'caesars_sportsbook', 'pointsbetus', 'betrivers']
+    BOOK_DISPLAY = {
+        'draftkings': 'DraftKings', 'fanduel': 'FanDuel', 'betmgm': 'BetMGM',
+        'caesars_sportsbook': 'Caesars', 'pointsbetus': 'PointsBet', 'betrivers': 'BetRivers',
+    }
+
     url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
     params = {
         'apiKey': API_KEY,
         'regions': 'us',
         'markets': 'spreads,totals,h2h',
         'oddsFormat': 'american',
-        'bookmakers': 'draftkings'
+        'bookmakers': ','.join(PREFERRED_BOOKS)
     }
     
     try:
@@ -949,7 +990,6 @@ def collect_closing_lines():
         
         print(f"✅ Connected! API calls left: {API_USAGE['remaining']}/500\n")
         
-        # Check API usage and warn if needed
         check_api_usage()
         
         conn = sqlite3.connect('sharp_picks.db')
@@ -962,14 +1002,12 @@ def collect_closing_lines():
             home = game['home_team']
             away = game['away_team']
             
-            # Check if game exists and hasn't started
             cursor.execute('SELECT id, spread_home_open FROM games WHERE id = ? AND home_score IS NULL', (game_id,))
             existing = cursor.fetchone()
             
             if not existing:
                 continue
             
-            # Extract odds
             spread_home = None
             total = None
             home_ml = None
@@ -977,25 +1015,35 @@ def collect_closing_lines():
             home_spread_odds = None
             away_spread_odds = None
             
-            if game.get('bookmakers'):
-                bookmaker = game['bookmakers'][0]
-                
+            def is_better_odds(new_odds, current_odds):
+                if current_odds is None:
+                    return True
+                return new_odds > current_odds
+
+            for bookmaker in game.get('bookmakers', []):
                 for market in bookmaker.get('markets', []):
                     if market['key'] == 'spreads':
                         for outcome in market['outcomes']:
                             if outcome['name'] == home:
-                                spread_home = outcome['point']
-                                home_spread_odds = outcome.get('price')
+                                if spread_home is None:
+                                    spread_home = outcome['point']
+                                price = outcome.get('price')
+                                if price is not None and is_better_odds(price, home_spread_odds):
+                                    home_spread_odds = price
                             else:
-                                away_spread_odds = outcome.get('price')
-                    elif market['key'] == 'totals':
+                                price = outcome.get('price')
+                                if price is not None and is_better_odds(price, away_spread_odds):
+                                    away_spread_odds = price
+                    elif market['key'] == 'totals' and total is None:
                         total = market['outcomes'][0]['point']
                     elif market['key'] == 'h2h':
                         for outcome in market['outcomes']:
                             if outcome['name'] == home:
-                                home_ml = outcome['price']
+                                if home_ml is None or outcome['price'] > home_ml:
+                                    home_ml = outcome['price']
                             else:
-                                away_ml = outcome['price']
+                                if away_ml is None or outcome['price'] > away_ml:
+                                    away_ml = outcome['price']
             
             # Update closing line
             cursor.execute('''

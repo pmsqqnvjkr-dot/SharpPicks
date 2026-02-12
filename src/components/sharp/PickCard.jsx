@@ -321,7 +321,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           gap: '12px', marginTop: '8px',
         }}>
           <PickStat label="Spread" value={pick.line != null ? (pick.line > 0 ? `+${pick.line}` : pick.line) : '--'} />
-          <PickStat label="Odds" value={pick.market_odds || '-110'} />
+          <PickStat label={`Odds${pick.best_book ? ` · ${pick.best_book}` : ''}`} value={pick.market_odds || '-110'} />
         </div>
 
         {pick.stake_guidance && (

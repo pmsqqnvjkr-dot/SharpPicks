@@ -107,7 +107,8 @@ class EnsemblePredictor:
                 g.bdl_home_scoring_margin, g.bdl_away_scoring_margin,
                 g.bdl_home_avg_pts, g.bdl_away_avg_pts,
                 g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against,
-                g.home_spread_odds, g.away_spread_odds
+                g.home_spread_odds, g.away_spread_odds,
+                g.home_spread_book, g.away_spread_book
             FROM games g
             LEFT JOIN team_ratings hr ON g.home_team = hr.team_abbr
             LEFT JOIN team_ratings ar ON g.away_team = ar.team_abbr
@@ -533,7 +534,8 @@ class EnsemblePredictor:
                 g.bdl_home_scoring_margin, g.bdl_away_scoring_margin,
                 g.bdl_home_avg_pts, g.bdl_away_avg_pts,
                 g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against,
-                g.home_spread_odds, g.away_spread_odds
+                g.home_spread_odds, g.away_spread_odds,
+                g.home_spread_book, g.away_spread_book
             FROM games g
             LEFT JOIN team_ratings hr ON g.home_team = hr.team_abbr
             LEFT JOIN team_ratings ar ON g.away_team = ar.team_abbr
@@ -614,10 +616,14 @@ class EnsemblePredictor:
                 pick_label = f"{away} {-spread:+.1f}"
                 confidence = 1 - home_cover_prob
             
+            home_spread_book = row.get('home_spread_book', None)
+            away_spread_book = row.get('away_spread_book', None)
             if pick_side == 'home':
                 market_odds = int(home_spread_odds) if home_spread_odds is not None and not pd.isna(home_spread_odds) else STANDARD_ODDS
+                best_book = home_spread_book if home_spread_book is not None and not (isinstance(home_spread_book, float) and pd.isna(home_spread_book)) else 'DraftKings'
             else:
                 market_odds = int(away_spread_odds) if away_spread_odds is not None and not pd.isna(away_spread_odds) else STANDARD_ODDS
+                best_book = away_spread_book if away_spread_book is not None and not (isinstance(away_spread_book, float) and pd.isna(away_spread_book)) else 'DraftKings'
             
             implied_prob = odds_to_implied_prob(market_odds)
             edge_vs_market = (confidence - implied_prob) * 100
@@ -714,6 +720,7 @@ class EnsemblePredictor:
                 'ev': ev,
                 'implied_prob': round(implied_prob, 4),
                 'market_odds': market_odds,
+                'best_book': best_book,
                 'home_spread_odds': int(home_spread_odds) if home_spread_odds is not None and not pd.isna(home_spread_odds) else None,
                 'away_spread_odds': int(away_spread_odds) if away_spread_odds is not None and not pd.isna(away_spread_odds) else None,
                 'rating': rating,

@@ -112,7 +112,7 @@ def run_model_and_log(app):
                     cover_prob=_to_python(round(home_cover_prob, 4)),
                     implied_prob=_to_python(round(best.get('implied_prob', 0.5238), 4)),
                     market_odds=_to_python(best.get('market_odds', -110)),
-                    sportsbook='DraftKings',
+                    sportsbook=best.get('best_book', 'DraftKings'),
                     notes=' | '.join(best.get('explanation', [])) if isinstance(best.get('explanation'), list) else (best.get('explanation') or ''),
                 )
                 db.session.add(pick)

@@ -120,9 +120,11 @@ Historical spread data (2006-2018) had inverted sign convention. The data source
 - Model only predicts games that haven't tipped off yet (game_time > now)
 
 ## Recent Changes
+- **Feb 12**: Multi-book odds shopping: compares DraftKings, FanDuel, BetMGM, Caesars, PointsBet, BetRivers for best spread price
 - **Feb 12**: Real spread odds: model now uses actual sportsbook juice (-102, -115, etc.) instead of hardcoded -110
-- **Feb 12**: Spread odds collected from the-odds-api for current, opening, and closing lines (6 new DB columns)
+- **Feb 12**: Spread odds collected from the-odds-api for current, opening, and closing lines (6 new DB columns + 2 book name columns)
 - **Feb 12**: Edge calculations use per-game implied probability from real odds for more accurate EV
+- **Feb 12**: PickCard shows which sportsbook has the best odds for each pick
 - **Feb 12**: Full algorithm rewrite per end-to-end NBA spread spec
 - **Feb 12**: Margin-first prediction: GBR predicts expected margin, converts to cover prob via Normal CDF (σ=residual std)
 - **Feb 12**: Line move penalty reduced to 1.0%/pt (from 1.5%); hard stop at 2.5+ pts unless edge >= 10%
