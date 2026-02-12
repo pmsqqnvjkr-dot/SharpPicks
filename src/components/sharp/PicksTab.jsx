@@ -159,14 +159,7 @@ export default function PicksTab({ onNavigate }) {
                     <div style={{
                       fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
                     }}>
-                      {isPro ? pick.side : (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                          </svg>
-                          <span style={{ color: 'var(--text-tertiary)' }}>Upgrade to view</span>
-                        </span>
-                      )}
+                      {pick.side || `${pick.away_team} @ ${pick.home_team}`}
                     </div>
                     <div style={{
                       fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
