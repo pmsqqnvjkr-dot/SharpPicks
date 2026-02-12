@@ -1,6 +1,52 @@
 import { useState } from 'react';
 import { apiPost } from '../../hooks/useApi';
 
+function formatPostedTime(isoStr) {
+  if (!isoStr) return null;
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return null;
+    let hours = d.getHours();
+    const mins = d.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[d.getMonth()]} ${d.getDate()} · ${hours}:${mins} ${ampm}`;
+  } catch { return null; }
+}
+
+function formatGameDateShort(dateStr) {
+  if (!dateStr) return null;
+  if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const [y, m, day] = dateStr.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[parseInt(m)-1]} ${parseInt(day)}`;
+  }
+  return null;
+}
+
+function PickTimestamp({ gameDate, publishedAt, light }) {
+  const gameDateFmt = formatGameDateShort(gameDate);
+  const postedFmt = formatPostedTime(publishedAt);
+  if (!gameDateFmt && !postedFmt) return null;
+
+  const color = light ? 'rgba(169,180,207,0.6)' : 'var(--text-tertiary)';
+
+  return (
+    <div style={{
+      fontFamily: 'var(--font-mono)',
+      fontSize: '10px', fontWeight: 500,
+      color,
+      marginBottom: '12px',
+      display: 'flex', gap: '6px', flexWrap: 'wrap',
+    }}>
+      {gameDateFmt && <span>Game: {gameDateFmt}</span>}
+      {gameDateFmt && postedFmt && <span style={{ opacity: 0.4 }}>·</span>}
+      {postedFmt && <span>Posted: {postedFmt}</span>}
+    </div>
+  );
+}
+
 function formatGameDateTime(gameDate, startTime) {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -90,25 +136,14 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
       }}>
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          marginBottom: '16px',
+          marginBottom: '8px',
         }}>
           <span style={{
             fontFamily: 'var(--font-mono)',
             fontSize: '10px', fontWeight: 600,
             letterSpacing: '1.5px', textTransform: 'uppercase',
             color: 'var(--green-profit)',
-          }}>Pick Published Today</span>
-          {(() => {
-            const dt = formatGameDateTime(pick.game_date, pick.start_time);
-            if (!dt) return null;
-            return (
-              <span style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '10px', fontWeight: 500,
-                color: 'var(--text-tertiary)',
-              }}>{dt.date}{dt.time ? ` \u00B7 ${dt.time}` : ''}</span>
-            );
-          })()}
+          }}>Pick Published</span>
         </div>
 
         <div style={{
@@ -116,10 +151,12 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           fontSize: '11px', fontWeight: 500,
           letterSpacing: '1.2px', textTransform: 'uppercase',
           color: 'var(--text-secondary)',
-          marginBottom: '20px',
+          marginBottom: '6px',
         }}>
           {pick.away_team} @ {pick.home_team}
         </div>
+
+        <PickTimestamp gameDate={pick.game_date} publishedAt={pick.published_at} />
 
         <div style={{
           background: 'rgba(255,255,255,0.02)',
@@ -179,29 +216,17 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           }}>
             Qualified (A)
           </span>
-          {(() => {
-            const dt = formatGameDateTime(pick.game_date, pick.start_time);
-            if (!dt) return null;
-            return (
-              <span style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '10px', fontWeight: 600,
-                color: 'rgba(169,180,207,0.7)',
-                letterSpacing: '0.5px',
-              }}>
-                {dt.date}{dt.time ? ` \u00B7 ${dt.time}` : ''}
-              </span>
-            );
-          })()}
         </div>
 
         <div style={{
           fontSize: '11px', letterSpacing: '1.6px', textTransform: 'uppercase',
           color: 'rgba(169,180,207,0.85)', fontWeight: 700,
-          marginBottom: '6px',
+          marginBottom: '4px',
         }}>
           {pick.away_team} @ {pick.home_team}
         </div>
+
+        <PickTimestamp gameDate={pick.game_date} publishedAt={pick.published_at} light />
 
         <div style={{
           fontSize: '34px', fontWeight: 800, lineHeight: '1.0',

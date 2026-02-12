@@ -271,6 +271,9 @@ def dashboard_stats():
             'line_close': p.line_close,
             'line_movement': line_move,
             'game_date': p.game_date,
+            'published_at': p.published_at.isoformat() if p.published_at else None,
+            'away_team': p.away_team,
+            'home_team': p.home_team,
             'pnl': p.pnl,
         })
 

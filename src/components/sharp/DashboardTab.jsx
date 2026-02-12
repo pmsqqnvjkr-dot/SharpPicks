@@ -365,10 +365,37 @@ function RecentPickLog({ picks }) {
   );
 }
 
+function formatPickTimestamp(gameDate, publishedAt) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let gamePart = '';
+  if (gameDate && typeof gameDate === 'string' && gameDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const [y, m, day] = gameDate.split('-');
+    gamePart = `${months[parseInt(m)-1]} ${parseInt(day)}`;
+  }
+  let postedPart = '';
+  if (publishedAt) {
+    try {
+      const d = new Date(publishedAt);
+      if (!isNaN(d.getTime())) {
+        let hours = d.getHours();
+        const mins = d.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        postedPart = `Posted ${months[d.getMonth()]} ${d.getDate()} · ${hours}:${mins} ${ampm}`;
+      }
+    } catch {}
+  }
+  if (gamePart && postedPart) return `${gamePart} · ${postedPart}`;
+  if (gamePart) return gamePart;
+  if (postedPart) return postedPart;
+  return null;
+}
+
 function PickLogRow({ pick, isLast }) {
   const isWin = pick.result === 'win';
   const isLoss = pick.result === 'loss';
   const isPending = pick.result === 'pending';
+  const timestamp = formatPickTimestamp(pick.game_date, pick.published_at);
 
   return (
     <div style={{
@@ -377,7 +404,7 @@ function PickLogRow({ pick, isLast }) {
     }}>
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: '8px',
+        marginBottom: '4px',
       }}>
         <span style={{
           fontFamily: 'var(--font-sans)', fontSize: '14px',
@@ -392,6 +419,22 @@ function PickLogRow({ pick, isLast }) {
           {isWin ? 'WIN' : isLoss ? 'LOSS' : 'PENDING'}
         </span>
       </div>
+      {(pick.away_team || pick.home_team) && (
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: '11px',
+          color: 'var(--text-secondary)', marginBottom: '4px',
+        }}>
+          {pick.away_team} @ {pick.home_team}
+        </div>
+      )}
+      {timestamp && (
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: '10px',
+          color: 'var(--text-tertiary)', marginBottom: '8px',
+        }}>
+          {timestamp}
+        </div>
+      )}
       <div style={{
         display: 'flex', gap: '10px', flexWrap: 'wrap',
       }}>
