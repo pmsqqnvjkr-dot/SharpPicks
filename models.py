@@ -71,7 +71,7 @@ class User(UserMixin, db.Model):
             return True
         if self.trial_end_date and self.trial_end_date > datetime.now():
             return True
-        return self.is_premium
+        return False
 
 
 class Pick(db.Model):
