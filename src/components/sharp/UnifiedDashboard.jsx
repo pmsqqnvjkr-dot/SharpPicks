@@ -162,6 +162,10 @@ export default function UnifiedDashboard({ embedded = false }) {
           <EmptyPerformance />
         )}
 
+        {equityCurve.length > 1 && (
+          <UnitGrowthCard equityCurve={equityCurve} />
+        )}
+
         <div style={{ marginBottom: '16px' }}>
           <button onClick={() => setShowTrackModal(true)} style={{
             width: '100%', padding: '14px',
@@ -524,6 +528,160 @@ function BloombergChart({ data, color, isPositive }) {
 }
 
 
+function UnitGrowthCard({ equityCurve }) {
+  const resolved = equityCurve.filter(p => p.result === 'W' || p.result === 'L');
+  if (resolved.length < 2) return null;
+
+  let runningUnits = 0;
+  const curveData = resolved.map(p => {
+    const unitPnl = p.result === 'W' ? 0.91 : -1;
+    runningUnits += unitPnl;
+    return { ...p, unitPnl, units: parseFloat(runningUnits.toFixed(2)) };
+  });
+
+  const currentUnits = curveData[curveData.length - 1]?.units || 0;
+  const isPositive = currentUnits >= 0;
+  const color = isPositive ? '#34D399' : '#EF4444';
+
+  const height = 160;
+  const width = 400;
+  const padL = 48;
+  const padR = 8;
+  const padT = 8;
+  const padB = 24;
+
+  const values = curveData.map(d => d.units);
+  const allValues = [0, ...values];
+  const minVal = Math.min(...allValues);
+  const maxVal = Math.max(...allValues);
+  const range = maxVal - minVal || 1;
+  const buffer = range * 0.1;
+
+  const chartW = width - padL - padR;
+  const chartH = height - padT - padB;
+
+  const getX = (i) => padL + (i / (curveData.length - 1)) * chartW;
+  const getY = (v) => padT + chartH - ((v - (minVal - buffer)) / (range + buffer * 2)) * chartH;
+
+  const zeroY = getY(0);
+
+  const pathD = curveData.map((d, i) => {
+    const x = getX(i);
+    const y = getY(d.units);
+    return i === 0 ? `M${x},${y}` : `L${x},${y}`;
+  }).join(' ');
+
+  const areaD = pathD +
+    ` L${getX(curveData.length - 1)},${zeroY} L${getX(0)},${zeroY} Z`;
+
+  const ticks = [];
+  const nTicks = 4;
+  const step = range / (nTicks - 1);
+  for (let i = 0; i < nTicks; i++) {
+    const v = minVal + step * i;
+    const rounded = parseFloat(v.toFixed(1));
+    ticks.push({ value: rounded, y: getY(rounded) });
+  }
+
+  const lastX = getX(curveData.length - 1);
+  const lastY = getY(currentUnits);
+
+  return (
+    <div style={{
+      backgroundColor: 'var(--surface-1)',
+      borderRadius: '20px',
+      border: '1px solid var(--stroke-subtle)',
+      marginBottom: '16px',
+      overflow: 'hidden',
+    }}>
+      <div style={{ padding: '20px 20px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10px', fontWeight: 600,
+              letterSpacing: '2px', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)', marginBottom: '8px',
+            }}>Unit Growth</div>
+            <div style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '28px', fontWeight: 800,
+              color,
+              lineHeight: 1,
+            }}>
+              {isPositive ? '+' : ''}{currentUnits.toFixed(1)}u
+            </div>
+            <div style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px', fontWeight: 600,
+              color: 'var(--text-tertiary)',
+              marginTop: '4px',
+            }}>
+              {curveData.length} bets · 1u flat
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {curveData.slice(-10).map((d, i) => (
+              <div key={i} style={{
+                width: '6px', height: '16px',
+                borderRadius: '2px',
+                backgroundColor: d.result === 'W' ? 'rgba(52,211,153,0.4)' : 'rgba(239,68,68,0.4)',
+              }} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ margin: '12px 0 0' }}>
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', display: 'block' }}>
+          <defs>
+            <linearGradient id="unitGrowthGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity="0.15" />
+              <stop offset="80%" stopColor={color} stopOpacity="0.02" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {ticks.map((t, i) => (
+            <g key={i}>
+              <line x1={padL} y1={t.y} x2={width - padR} y2={t.y}
+                stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+              <text x={padL - 6} y={t.y + 3}
+                textAnchor="end" fill="var(--text-tertiary)"
+                fontSize="9" fontFamily="JetBrains Mono, monospace" fontWeight="500">
+                {t.value >= 0 ? '+' : ''}{t.value}u
+              </text>
+            </g>
+          ))}
+
+          <line x1={padL} y1={zeroY} x2={width - padR} y2={zeroY}
+            stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+
+          <path d={areaD} fill="url(#unitGrowthGrad)" />
+
+          <path d={pathD} fill="none"
+            stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+
+          <circle cx={lastX} cy={lastY} r="3" fill={color} />
+          <circle cx={lastX} cy={lastY} r="6" fill={color} fillOpacity="0.15" />
+
+          {curveData.length <= 20 && curveData.map((d, i) => {
+            const label = d.date ? d.date.substring(5) : '';
+            if (curveData.length > 10 && i % 2 !== 0 && i !== curveData.length - 1) return null;
+            return (
+              <text key={i} x={getX(i)} y={height - 4}
+                textAnchor="middle" fill="var(--text-tertiary)"
+                fontSize="8" fontFamily="JetBrains Mono, monospace">
+                {label}
+              </text>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 function BetsSection({ title, children }) {
   return (
     <div style={{ marginBottom: '16px' }}>
@@ -561,12 +719,12 @@ function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete }
             {bet.pick}
           </div>
           {bet.game && (
-            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-tertiary)', marginTop: '2px' }}>
               {bet.game}
             </div>
           )}
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '11px',
+            fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
             color: 'var(--text-tertiary)', marginTop: '4px',
           }}>
             ${bet.bet_amount} at {bet.odds > 0 ? `+${bet.odds}` : bet.odds}
@@ -584,22 +742,26 @@ function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete }
               </span>
             </div>
           ) : (
-            <div style={{ display: 'flex', gap: '6px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => onMarkResult(bet.id, 'W')} style={{
-                padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                minWidth: '44px', minHeight: '44px',
+                padding: '8px 14px', fontSize: '13px', fontWeight: 700,
                 fontFamily: 'var(--font-mono)',
                 backgroundColor: 'rgba(52, 211, 153, 0.1)',
                 color: 'var(--green-profit)',
                 border: '1px solid rgba(52, 211, 153, 0.3)',
-                borderRadius: '6px', cursor: 'pointer',
+                borderRadius: '10px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>W</button>
               <button onClick={() => onMarkResult(bet.id, 'L')} style={{
-                padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                minWidth: '44px', minHeight: '44px',
+                padding: '8px 14px', fontSize: '13px', fontWeight: 700,
                 fontFamily: 'var(--font-mono)',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
                 color: 'var(--red-loss)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
-                borderRadius: '6px', cursor: 'pointer',
+                borderRadius: '10px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>L</button>
             </div>
           )}
@@ -610,27 +772,30 @@ function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete }
         <div style={{
           marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center',
         }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Delete this bet?</span>
+          <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Delete this bet?</span>
           <button onClick={() => onDelete(bet.id)} style={{
-            padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+            padding: '8px 14px', fontSize: '13px', fontWeight: 600,
+            minHeight: '36px',
             backgroundColor: 'rgba(239, 68, 68, 0.15)',
             color: 'var(--red-loss)',
             border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '6px', cursor: 'pointer',
+            borderRadius: '8px', cursor: 'pointer',
           }}>Yes</button>
           <button onClick={() => setConfirmDelete(null)} style={{
-            padding: '4px 10px', fontSize: '11px',
+            padding: '8px 14px', fontSize: '13px',
+            minHeight: '36px',
             backgroundColor: 'var(--surface-2)',
             color: 'var(--text-secondary)',
             border: '1px solid var(--stroke-subtle)',
-            borderRadius: '6px', cursor: 'pointer',
+            borderRadius: '8px', cursor: 'pointer',
           }}>No</button>
         </div>
       ) : (
         <button onClick={() => setConfirmDelete(bet.id)} style={{
           marginTop: '6px', background: 'none', border: 'none',
-          color: 'var(--text-tertiary)', fontSize: '11px',
-          cursor: 'pointer', padding: 0,
+          color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 500,
+          cursor: 'pointer', padding: '4px 0',
+          minHeight: '32px',
         }}>
           Delete
         </button>

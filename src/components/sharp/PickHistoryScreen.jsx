@@ -64,7 +64,7 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
       }}>
         {['all', 'wins', 'losses', 'pending'].map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
-            padding: '6px 14px', borderRadius: '8px', fontSize: '12px',
+            padding: '8px 16px', borderRadius: '8px', fontSize: '13px',
             fontWeight: 600, border: 'none', cursor: 'pointer',
             textTransform: 'capitalize', fontFamily: 'var(--font-sans)',
             backgroundColor: filter === f ? 'var(--blue-primary)' : 'var(--surface-2)',
@@ -111,17 +111,17 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                       )}
                     </div>
                     <div style={{
-                      fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
+                      fontSize: '13px', fontWeight: 500, color: 'var(--text-tertiary)', marginTop: '2px',
                     }}>{pick.away_team} @ {pick.home_team}</div>
                     <div style={{
-                      fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
+                      fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', marginTop: '2px',
                       fontFamily: 'var(--font-mono)',
                     }}>{pick.game_date}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{
-                        fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
+                        fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700,
                         color: pick.result === 'win' ? 'var(--green-profit)'
                           : pick.result === 'loss' ? 'var(--red-loss)' : 'var(--text-tertiary)',
                       }}>
@@ -131,7 +131,7 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                       </div>
                       {isPro && pick.edge_pct && (
                         <div style={{
-                          fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
+                          fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', marginTop: '2px',
                           fontFamily: 'var(--font-mono)',
                         }}>{pick.edge_pct}% edge</div>
                       )}
@@ -156,11 +156,11 @@ function SmallStat({ label, value, color }) {
   return (
     <div>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '14px',
-        fontWeight: 600, color: color || 'var(--text-primary)',
+        fontFamily: 'var(--font-mono)', fontSize: '15px',
+        fontWeight: 700, color: color || 'var(--text-primary)',
       }}>{value}</div>
       <div style={{
-        fontSize: '10px', color: 'var(--text-tertiary)',
+        fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
         textTransform: 'uppercase', letterSpacing: '0.05em',
       }}>{label}</div>
     </div>

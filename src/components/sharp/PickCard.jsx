@@ -54,7 +54,7 @@ function PickTimestamp({ gameDate, startTime, publishedAt, light }) {
   return (
     <div style={{
       fontFamily: 'var(--font-mono)',
-      fontSize: '10px', fontWeight: 500,
+      fontSize: '11px', fontWeight: 600,
       color,
       marginBottom: '12px',
       display: 'flex', flexDirection: 'column', gap: '3px',
@@ -240,9 +240,9 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '8px',
-            padding: '8px 12px', borderRadius: '999px',
+            padding: '8px 14px', borderRadius: '999px',
             fontFamily: 'var(--font-sans)',
-            fontSize: '11px', fontWeight: 800,
+            fontSize: '12px', fontWeight: 800,
             letterSpacing: '1.2px', textTransform: 'uppercase',
             border: '1px solid rgba(52,211,153,0.22)',
             background: 'rgba(52,211,153,0.10)',
@@ -253,7 +253,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         </div>
 
         <div style={{
-          fontSize: '11px', letterSpacing: '1.6px', textTransform: 'uppercase',
+          fontSize: '12px', letterSpacing: '1.6px', textTransform: 'uppercase',
           color: 'rgba(169,180,207,0.85)', fontWeight: 700,
           marginBottom: '4px',
         }}>
@@ -280,7 +280,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           background: 'rgba(0,0,0,0.18)',
         }}>
           <div style={{
-            fontSize: '11px', letterSpacing: '1.2px', textTransform: 'uppercase',
+            fontSize: '12px', letterSpacing: '1.2px', textTransform: 'uppercase',
             fontWeight: 800, color: 'rgba(169,180,207,0.9)',
             marginBottom: '14px',
           }}>Model vs Market</div>
@@ -473,7 +473,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         <div style={{
           marginTop: '14px', paddingTop: '14px',
           borderTop: '1px solid rgba(255,255,255,0.10)',
-          fontSize: '12px', lineHeight: '1.55',
+          fontSize: '13px', fontWeight: 500, lineHeight: '1.55',
           color: 'rgba(169,180,207,0.78)',
           textAlign: 'center',
         }}>
@@ -483,7 +483,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         {pick.disclaimer && (
           <div style={{
             marginTop: '10px',
-            fontSize: '10px', lineHeight: '1.5',
+            fontSize: '11px', lineHeight: '1.5',
             color: 'rgba(138,148,166,0.6)',
             textAlign: 'center',
           }}>
@@ -503,7 +503,7 @@ function PickStat({ label, value, profit }) {
       background: 'rgba(0,0,0,0.16)',
     }}>
       <div style={{
-        fontSize: '10px', letterSpacing: '1.25px', textTransform: 'uppercase',
+        fontSize: '11px', letterSpacing: '1.25px', textTransform: 'uppercase',
         fontWeight: 800, color: 'rgba(169,180,207,0.9)',
         marginBottom: '8px',
       }}>{label}</div>
