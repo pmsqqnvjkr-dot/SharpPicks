@@ -6,6 +6,10 @@ export default function UpgradeScreen({ onBack }) {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const handleSubscribe = async (plan) => {
+    if (plan === 'annual' || plan === 'founding') {
+      window.open('https://buy.stripe.com/14A14oaGg0kI8ZV4BQd7q00', '_blank');
+      return;
+    }
     setCheckoutLoading(true);
     try {
       const data = await apiPost('/subscriptions/create-checkout', { plan });

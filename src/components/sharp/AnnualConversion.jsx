@@ -15,6 +15,8 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
   const userProfit = user?.net_profit || '+$134';
 
   const handleSwitch = async () => {
+    window.open('https://buy.stripe.com/14A14oaGg0kI8ZV4BQd7q00', '_blank');
+    return;
     setLoading(true);
     try {
       const data = await apiPost('/subscriptions/create-checkout', {

@@ -47,6 +47,10 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
       setShowAuth(true);
       return;
     }
+    if (plan === 'annual' || plan === 'founding') {
+      window.open('https://buy.stripe.com/14A14oaGg0kI8ZV4BQd7q00', '_blank');
+      return;
+    }
     setCheckoutLoading(true);
     try {
       const data = await apiPost('/subscriptions/create-checkout', { plan });
