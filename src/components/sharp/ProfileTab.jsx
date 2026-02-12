@@ -11,6 +11,7 @@ import CancelScreen from './CancelScreen';
 import AnnualConversion from './AnnualConversion';
 import WeeklySummary from './WeeklySummary';
 import ResolutionScreen from './ResolutionScreen';
+import UnifiedDashboard from './UnifiedDashboard';
 
 export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack, onPickTracked, screenData }) {
   const { user, logout } = useAuth();
@@ -194,6 +195,8 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
             </div>
           )}
         </div>
+
+        <UnifiedDashboard embedded />
 
         <SettingsSection user={user} onNavigate={navigate} />
         {!isPro && <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />}

@@ -1,13 +1,10 @@
-import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import UnifiedDashboard from './UnifiedDashboard';
 import DashboardTab from './DashboardTab';
 import FreeTierDashboard from './FreeTierDashboard';
 
 export default function PerformanceTab({ onNavigate }) {
   const { user } = useAuth();
-  const [view, setView] = useState('yours');
-  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
 
   if (!user) {
     return (
@@ -31,10 +28,10 @@ export default function PerformanceTab({ onNavigate }) {
               </svg>
             </div>
             <p style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-serif)', margin: '0 0 8px' }}>
-              Performance
+              Model Performance
             </p>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-              Sign in to track your results and see model performance.
+              Sign in to see model accuracy, calibration, and pick history.
             </p>
           </div>
         </div>
@@ -45,36 +42,10 @@ export default function PerformanceTab({ onNavigate }) {
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
       <PerfHeader />
-
-      <div style={{ padding: '0 20px', marginBottom: '16px' }}>
-        <div style={{
-          display: 'flex',
-          backgroundColor: 'var(--surface-1)',
-          borderRadius: '10px',
-          padding: '3px',
-          border: '1px solid var(--stroke-subtle)',
-        }}>
-          <ToggleButton
-            active={view === 'yours'}
-            onClick={() => setView('yours')}
-            label="Your Results"
-          />
-          <ToggleButton
-            active={view === 'model'}
-            onClick={() => setView('model')}
-            label="Model"
-          />
-        </div>
-      </div>
-
-      {view === 'yours' ? (
-        <UnifiedDashboard embedded />
+      {isPro ? (
+        <DashboardTab onNavigate={onNavigate} embedded />
       ) : (
-        isPro ? (
-          <DashboardTab onNavigate={onNavigate} embedded />
-        ) : (
-          <FreeTierDashboard onUpgrade={() => onNavigate && onNavigate('profile', 'upgrade')} />
-        )
+        <FreeTierDashboard onUpgrade={() => onNavigate && onNavigate('profile', 'upgrade')} />
       )}
     </div>
   );
@@ -100,25 +71,5 @@ function PerfHeader() {
         color: 'var(--text-primary)',
       }}>Performance</span>
     </div>
-  );
-}
-
-function ToggleButton({ active, onClick, label }) {
-  return (
-    <button onClick={onClick} style={{
-      flex: 1,
-      padding: '8px 0',
-      fontSize: '13px',
-      fontWeight: 600,
-      fontFamily: 'var(--font-sans)',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      backgroundColor: active ? 'var(--blue-primary)' : 'transparent',
-      color: active ? '#fff' : 'var(--text-tertiary)',
-      transition: 'all 0.2s',
-    }}>
-      {label}
-    </button>
   );
 }
