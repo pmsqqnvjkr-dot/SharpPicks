@@ -57,6 +57,15 @@ export default function TodayTab({ onNavigate }) {
         )}
 
         {stats && <RecordStrip stats={stats} />}
+
+        {stats && (
+          <div style={{
+            textAlign: 'center', marginTop: '8px',
+            fontSize: '10px', color: 'var(--text-tertiary)',
+            fontFamily: 'var(--font-mono)', letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+          }}>Algorithm Record</div>
+        )}
       </div>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}

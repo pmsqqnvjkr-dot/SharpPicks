@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { useApi } from '../../hooks/useApi';
+import { useApi, apiGet } from '../../hooks/useApi';
 import FreeTierDashboard from './FreeTierDashboard';
 
 function SectionLabel({ children }) {
@@ -19,8 +20,17 @@ export default function DashboardTab({ onNavigate }) {
   const { data: stats, loading } = useApi('/public/stats');
   const { data: record } = useApi('/public/record');
   const { data: todayData } = useApi('/picks/today');
+  const [userStats, setUserStats] = useState(null);
 
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
+
+  useEffect(() => {
+    if (isPro && user) {
+      apiGet('/user/stats').then(data => {
+        if (data && !data.error) setUserStats(data);
+      }).catch(() => {});
+    }
+  }, [isPro, user]);
 
   if (loading) {
     return (
@@ -45,7 +55,6 @@ export default function DashboardTab({ onNavigate }) {
     equityData.push({ date: p.game_date, value: running });
   });
 
-  const monthlyData = computeMonthly(resolvedPicks);
   const todayIsPass = todayData?.type === 'pass';
   const todayIsPick = todayData?.type === 'pick';
 
@@ -54,7 +63,8 @@ export default function DashboardTab({ onNavigate }) {
   const totalDays = totalPicks + passDays || 1;
   const selectivity = stats?.selectivity || Math.round((totalPicks / totalDays) * 100);
   const daysPerBet = totalPicks > 0 ? (totalDays / totalPicks).toFixed(1) : '—';
-  const capitalPreserved = passDays * 100;
+
+  const hasUserBets = userStats && userStats.totalBets > 0;
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
@@ -89,7 +99,8 @@ export default function DashboardTab({ onNavigate }) {
       </div>
 
       <div style={{ padding: '0 20px' }}>
-        <SectionLabel>Performance</SectionLabel>
+
+        <SectionLabel>Algorithm Record</SectionLabel>
 
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '20px',
@@ -102,7 +113,7 @@ export default function DashboardTab({ onNavigate }) {
             lineHeight: '1',
             marginBottom: '4px',
           }}>
-            {stats?.pnl >= 0 ? '+' : ''}${Math.abs(stats?.pnl || 0)}
+            {stats?.pnl >= 0 ? '+' : ''}{stats?.pnl || 0}u
           </div>
 
           <div style={{
@@ -114,6 +125,9 @@ export default function DashboardTab({ onNavigate }) {
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-secondary)' }}>
               <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{stats?.record || '0-0'}</strong> Record
             </span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-secondary)' }}>
+              <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{stats?.win_rate || 0}%</strong> Win Rate
+            </span>
           </div>
 
           {equityData.length > 1 && (
@@ -121,6 +135,13 @@ export default function DashboardTab({ onNavigate }) {
               <EquityChart data={equityData} />
             </div>
           )}
+
+          <p style={{
+            fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '12px',
+            lineHeight: '1.5',
+          }}>
+            All {totalPicks} picks tracked publicly. No deletes. No hindsight editing.
+          </p>
         </div>
 
         <div style={{
@@ -135,112 +156,23 @@ export default function DashboardTab({ onNavigate }) {
           }} />
           <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
             {todayIsPass
-              ? `Analyzing ${todayData.games_analyzed} games · Market efficient today`
+              ? `Analyzed ${todayData.games_analyzed} games · Market efficient today`
               : todayIsPick
                 ? 'Pick published today'
                 : 'Waiting for game data'}
           </span>
         </div>
 
-        {todayData && (todayIsPass || todayIsPick) && (
-          <>
-            <div style={{ marginTop: '8px' }}><SectionLabel>Expected Edge</SectionLabel></div>
-
-            <div style={{
-              backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-              border: '1px solid var(--stroke-subtle)', padding: '20px',
-              marginBottom: '12px',
-            }}>
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '32px', fontWeight: 700,
-                color: todayIsPick ? 'var(--green-profit)' : 'var(--text-primary)',
-                marginBottom: '12px',
-              }}>
-                {todayIsPick
-                  ? `+${todayData.edge_pct || 0}%`
-                  : todayData.closest_edge_pct
-                    ? `+${todayData.closest_edge_pct}%`
-                    : '--'}
-              </div>
-              {todayIsPick ? (
-                <div style={{ display: 'flex', gap: '24px' }}>
-                  <div>
-                    <div style={{
-                      fontSize: '10px', color: 'var(--text-tertiary)',
-                      textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px',
-                    }}>Model Line</div>
-                    <div style={{
-                      fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 600,
-                      color: 'var(--text-primary)',
-                    }}>{todayData.line || '--'}</div>
-                  </div>
-                  <div>
-                    <div style={{
-                      fontSize: '10px', color: 'var(--text-tertiary)',
-                      textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px',
-                    }}>Market</div>
-                    <div style={{
-                      fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 600,
-                      color: 'var(--text-primary)',
-                    }}>{todayData.market_line || '--'}</div>
-                  </div>
-                </div>
-              ) : (
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                  Best edge found was {todayData.closest_edge_pct || 0}% — below the 3.5% threshold. No action.
-                </p>
-              )}
-            </div>
-          </>
-        )}
+        <SectionLabel>Discipline Metrics</SectionLabel>
 
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px',
           marginBottom: '12px',
         }}>
-          <div style={{
-            backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-            border: '1px solid var(--stroke-subtle)', padding: '20px',
-            textAlign: 'center',
-          }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 700,
-              color: 'var(--text-primary)', marginBottom: '6px',
-            }}>{selectivity}%</div>
-            <div style={{
-              fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)',
-              textTransform: 'uppercase', letterSpacing: '0.08em',
-            }}>Selectivity</div>
-          </div>
-          <div style={{
-            backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-            border: '1px solid var(--stroke-subtle)', padding: '20px',
-            textAlign: 'center',
-          }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 700,
-              color: 'var(--text-primary)', marginBottom: '6px',
-            }}>{daysPerBet}</div>
-            <div style={{
-              fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)',
-              textTransform: 'uppercase', letterSpacing: '0.08em',
-            }}>Days / Bet</div>
-          </div>
-        </div>
-
-        <div style={{
-          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-          border: '1px solid var(--stroke-subtle)', padding: '20px',
-          marginBottom: '12px',
-        }}>
-          <SectionLabel>Capital Preserved</SectionLabel>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '32px', fontWeight: 700,
-            color: 'var(--green-profit)', marginBottom: '10px',
-          }}>+${capitalPreserved.toLocaleString()}</div>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-            Estimated bankroll saved by passing on {passDays} low-edge opportunities this season.
-          </p>
+          <MetricCard value={`${selectivity}%`} label="Selectivity" />
+          <MetricCard value={daysPerBet} label="Days / Bet" />
+          <MetricCard value={totalPicks} label="Picks" />
+          <MetricCard value={passDays} label="Passes" />
         </div>
 
         <div style={{
@@ -266,25 +198,121 @@ export default function DashboardTab({ onNavigate }) {
             fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6',
             marginTop: '14px',
           }}>
-            You bet on <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectivity}%</span> of opportunities. The industry average is 78%. Fewer decisions, better decisions.
+            The algorithm acts on <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectivity}%</span> of opportunities. Industry average is 78%.
           </p>
         </div>
 
-        <div style={{
-          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-          border: '1px solid var(--stroke-subtle)', padding: '20px',
-          marginBottom: '12px',
-        }}>
-          <div style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '10px', fontWeight: 600, color: 'var(--green-profit)',
-            letterSpacing: '2px', textTransform: 'uppercase',
-            marginBottom: '10px',
-          }}>Behavioral Edge</div>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-            Your selectivity rate is <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectivity}%</span> — industry average is 78%. This restraint compounds over time.
-          </p>
-        </div>
+        {hasUserBets && (
+          <>
+            <div style={{
+              height: '1px', backgroundColor: 'var(--stroke-subtle)',
+              margin: '20px 0',
+            }} />
+
+            <SectionLabel>Your Betting Record</SectionLabel>
+
+            <div style={{
+              backgroundColor: 'var(--surface-1)', borderRadius: '20px',
+              border: '1px solid var(--stroke-subtle)', padding: '24px',
+              marginBottom: '16px',
+            }}>
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px',
+                marginBottom: '16px',
+              }}>
+                <div>
+                  <div style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '32px', fontWeight: 800,
+                    color: userStats.totalProfit >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
+                    lineHeight: '1',
+                  }}>
+                    {userStats.totalProfit >= 0 ? '+' : ''}${Math.abs(userStats.totalProfit).toFixed(0)}
+                  </div>
+                  <div style={{
+                    fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)',
+                    textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '6px',
+                  }}>Your P&L</div>
+                </div>
+                <div>
+                  <div style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '32px', fontWeight: 800,
+                    color: 'var(--text-primary)', lineHeight: '1',
+                  }}>
+                    {userStats.wins}-{userStats.losses}
+                  </div>
+                  <div style={{
+                    fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)',
+                    textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '6px',
+                  }}>Your Record</div>
+                </div>
+              </div>
+
+              {userStats.equityCurve && userStats.equityCurve.length > 1 && (
+                <UserEquityChart data={userStats.equityCurve} />
+              )}
+
+              <button
+                onClick={() => onNavigate && onNavigate('profile', 'bets')}
+                style={{
+                  width: '100%', padding: '12px', marginTop: '16px',
+                  backgroundColor: 'transparent',
+                  border: '1px solid var(--stroke-muted)', borderRadius: '10px',
+                  color: 'var(--text-secondary)', fontSize: '13px',
+                  fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                }}
+              >View Full Bet Log</button>
+            </div>
+          </>
+        )}
+
+        {!hasUserBets && (
+          <>
+            <div style={{
+              height: '1px', backgroundColor: 'var(--stroke-subtle)',
+              margin: '20px 0',
+            }} />
+
+            <SectionLabel>Your Betting Record</SectionLabel>
+
+            <div style={{
+              backgroundColor: 'var(--surface-1)', borderRadius: '20px',
+              border: '1px solid var(--stroke-subtle)', padding: '24px',
+              marginBottom: '16px', textAlign: 'center',
+            }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '14px',
+                backgroundColor: 'var(--surface-2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 16px',
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 11l3 3L22 4"/>
+                  <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                </svg>
+              </div>
+              <div style={{
+                fontFamily: 'var(--font-serif)', fontSize: '18px', fontWeight: 600,
+                color: 'var(--text-primary)', marginBottom: '8px',
+              }}>No tracked bets yet</div>
+              <p style={{
+                fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6',
+                marginBottom: '16px',
+              }}>
+                Track your wagers against the algorithm's picks to build your personal performance record.
+              </p>
+              <button
+                onClick={() => onNavigate && onNavigate('profile', 'bets')}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: 'transparent',
+                  border: '1px solid var(--stroke-muted)', borderRadius: '10px',
+                  color: 'var(--text-secondary)', fontSize: '13px',
+                  fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                }}
+              >Start Tracking</button>
+            </div>
+          </>
+        )}
 
         <p style={{
           fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
@@ -293,6 +321,25 @@ export default function DashboardTab({ onNavigate }) {
           Past performance does not guarantee future results. This analysis reflects probabilities, not certainty.
         </p>
       </div>
+    </div>
+  );
+}
+
+function MetricCard({ value, label }) {
+  return (
+    <div style={{
+      backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+      border: '1px solid var(--stroke-subtle)', padding: '20px',
+      textAlign: 'center',
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 700,
+        color: 'var(--text-primary)', marginBottom: '6px',
+      }}>{value}</div>
+      <div style={{
+        fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)',
+        textTransform: 'uppercase', letterSpacing: '0.08em',
+      }}>{label}</div>
     </div>
   );
 }
@@ -336,37 +383,9 @@ function SelectivityBar({ selectivity }) {
   );
 }
 
-function computeMonthly(picks) {
-  const months = {};
-  for (const p of picks) {
-    const date = p.game_date || '';
-    const key = date.substring(0, 7);
-    if (!key) continue;
-    if (!months[key]) months[key] = { wins: 0, losses: 0, pnl: 0, picks: 0 };
-    months[key].picks++;
-    if (p.result === 'win') months[key].wins++;
-    else months[key].losses++;
-    months[key].pnl += (p.pnl || 0);
-  }
-
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return Object.entries(months)
-    .sort(([a], [b]) => b.localeCompare(a))
-    .map(([key, data]) => {
-      const [year, month] = key.split('-');
-      return {
-        label: `${monthNames[parseInt(month) - 1]} ${year}`,
-        ...data,
-        pnl: Math.round(data.pnl),
-      };
-    });
-}
-
 function EquityChart({ data }) {
   const height = 120;
   const width = 300;
-  const padL = 0;
-  const padR = 0;
   const padT = 5;
   const padB = 24;
 
@@ -375,14 +394,12 @@ function EquityChart({ data }) {
   const maxVal = Math.max(0, ...values);
   const range = maxVal - minVal || 1;
 
-  const chartW = width - padL - padR;
   const chartH = height - padT - padB;
 
-  const getX = (i) => padL + (i / (data.length - 1)) * chartW;
+  const getX = (i) => (i / (data.length - 1)) * width;
   const getY = (v) => padT + chartH - ((v - minVal) / range) * chartH;
 
   const linePoints = data.map((d, i) => `${getX(i)},${getY(d.value)}`).join(' ');
-
   const areaPoints = [
     `${getX(0)},${height - padB}`,
     ...data.map((d, i) => `${getX(i)},${getY(d.value)}`),
@@ -406,11 +423,11 @@ function EquityChart({ data }) {
     <div style={{ position: 'relative' }}>
       <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', display: 'block' }}>
         <defs>
-          <linearGradient id="dashEquityGrad" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="algoEquityGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={isPositive ? 'var(--green-profit)' : 'var(--red-loss)'} stopOpacity="0.25" />
             <stop offset="100%" stopColor={isPositive ? 'var(--green-profit)' : 'var(--red-loss)'} stopOpacity="0" />
           </linearGradient>
-          <filter id="glow">
+          <filter id="algoGlow">
             <feGaussianBlur stdDeviation="3" result="coloredBlur" />
             <feMerge>
               <feMergeNode in="coloredBlur" />
@@ -418,20 +435,16 @@ function EquityChart({ data }) {
             </feMerge>
           </filter>
         </defs>
-
-        <polygon points={areaPoints} fill="url(#dashEquityGrad)" />
-
+        <polygon points={areaPoints} fill="url(#algoEquityGrad)" />
         <polyline points={linePoints} fill="none"
           stroke={isPositive ? 'var(--green-profit)' : 'var(--red-loss)'}
           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          filter="url(#glow)" />
-
+          filter="url(#algoGlow)" />
         <circle
           cx={getX(data.length - 1)} cy={getY(lastValue)} r="4"
           fill={isPositive ? 'var(--green-profit)' : 'var(--red-loss)'}
-          filter="url(#glow)"
+          filter="url(#algoGlow)"
         />
-
         {Object.values(months).map((m, i) => (
           <text key={i} x={m.x} y={height - 4}
             textAnchor="middle" fill="var(--text-tertiary)"
@@ -441,5 +454,39 @@ function EquityChart({ data }) {
         ))}
       </svg>
     </div>
+  );
+}
+
+function UserEquityChart({ data }) {
+  const height = 80;
+  const width = 280;
+  const padT = 5;
+  const padB = 5;
+
+  const values = data.map(d => d.cumProfit || 0);
+  const minVal = Math.min(0, ...values);
+  const maxVal = Math.max(0, ...values);
+  const range = maxVal - minVal || 1;
+
+  const chartH = height - padT - padB;
+
+  const getX = (i) => (i / (data.length - 1)) * width;
+  const getY = (v) => padT + chartH - ((v - minVal) / range) * chartH;
+
+  const linePoints = data.map((d, i) => `${getX(i)},${getY(d.cumProfit || 0)}`).join(' ');
+
+  const lastValue = values[values.length - 1];
+  const isPositive = lastValue >= 0;
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', display: 'block' }}>
+      <polyline points={linePoints} fill="none"
+        stroke={isPositive ? 'var(--blue-primary)' : 'var(--red-loss)'}
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle
+        cx={getX(data.length - 1)} cy={getY(lastValue)} r="3"
+        fill={isPositive ? 'var(--blue-primary)' : 'var(--red-loss)'}
+      />
+    </svg>
   );
 }
