@@ -121,6 +121,8 @@ Historical spread data (2006-2018) had inverted sign convention. The data source
 - **Feb 12**: No picks published when fallback sigma is used (model calibration safety gate)
 - **Feb 12**: Unified decision logic: model.py is single source of truth, model_service.py only reads outputs and stores to DB
 - **Feb 12**: Production calibration tracking: /api/public/calibration endpoint buckets picks by confidence tier (55-57%, 57-60%, 60%+) and reports actual cover rates vs expected
+- **Feb 12**: Pro Dashboard rewrite: 6-section layout (Performance Core, Model Integrity calibration bars, Risk Profile, Discipline Score, Recent Pick Log, Model Health badge)
+- **Feb 12**: New /api/public/dashboard-stats endpoint: max drawdown, avg days between picks, avg line movement, avg edge, discipline grade, model health, equity curve, recent picks
 - **Feb 12**: Risk filters: spread >11 auto-excluded unless edge ≥8%, missing spread = hard pass
 - **Feb 12**: Fail-safe: no pick published if spread/prediction missing, stale data >12h, or <30min to tip without injury data
 - **Feb 12**: Pick schema upgraded: predicted_margin, cover_prob, implied_prob, market_odds, sportsbook, line_open, line_close, start_time, result_ats, profit_units
