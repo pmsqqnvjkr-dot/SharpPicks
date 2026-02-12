@@ -47,6 +47,7 @@ def ensure_tracking_table():
         ('implied_prob', 'REAL'), ('edge_vs_market', 'REAL'), ('expected_value', 'REAL'),
         ('recommended_book', 'TEXT'), ('market_odds', 'INTEGER'), ('explanation', 'TEXT'),
         ('predicted_margin', 'REAL'),
+        ('sigma', 'REAL'), ('z_score', 'REAL'), ('raw_edge', 'REAL'), ('adjusted_edge', 'REAL'),
     ]:
         try:
             cursor.execute(f'ALTER TABLE prediction_log ADD COLUMN {col} {coltype}')
@@ -86,8 +87,9 @@ def calculate_ev(model_prob, odds=-110):
 def log_prediction(game_id, game_date, home_team, away_team, spread_home, 
                    prediction, confidence, home_cover_prob, opening_line=None,
                    market_odds=-110, recommended_book=None, explanation=None,
-                   predicted_margin=None):
-    """Log a new prediction with margin, EV, implied prob, and audit trail"""
+                   predicted_margin=None, sigma=None, z_score=None, raw_edge=None,
+                   adjusted_edge=None):
+    """Log a new prediction with margin, sigma, z_score, EV, and audit trail"""
     ensure_tracking_table()
     conn = sqlite3.connect('sharp_picks.db')
     cursor = conn.cursor()
@@ -109,15 +111,15 @@ def log_prediction(game_id, game_date, home_team, away_team, spread_home,
         (game_id, game_date, home_team, away_team, spread_home, prediction, 
          confidence, home_cover_prob, logged_at, opening_line,
          implied_prob, edge_vs_market, expected_value, recommended_book, market_odds, explanation,
-         predicted_margin)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         predicted_margin, sigma, z_score, raw_edge, adjusted_edge)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         game_id, game_date, home_team, away_team, spread_home,
         prediction, confidence, home_cover_prob,
         datetime.now().isoformat(),
         opening_line if opening_line else spread_home,
         round(implied, 4), edge, ev, recommended_book, market_odds, explanation,
-        predicted_margin
+        predicted_margin, sigma, z_score, raw_edge, adjusted_edge
     ))
     
     conn.commit()

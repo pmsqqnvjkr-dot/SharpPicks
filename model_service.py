@@ -41,7 +41,8 @@ def run_model_and_log(app):
                        p.home_cover_prob, p.confidence, p.prediction,
                        p.edge_vs_market, p.expected_value, p.explanation,
                        p.predicted_margin, p.implied_prob, p.market_odds,
-                       p.recommended_book
+                       p.recommended_book,
+                       p.sigma, p.z_score, p.raw_edge, p.adjusted_edge
                 FROM games g
                 LEFT JOIN prediction_log p ON g.id = p.game_id
                 WHERE g.game_date LIKE ?
@@ -158,6 +159,10 @@ def run_model_and_log(app):
                 open_spread = best_pred['spread_home_open']
                 game_start = best_pred['game_date']
 
+                pred_sigma = best_pred['sigma'] if best_pred['sigma'] is not None else None
+                pred_z_score = best_pred['z_score'] if best_pred['z_score'] is not None else None
+                pred_raw_edge = best_pred['raw_edge'] if best_pred['raw_edge'] is not None else None
+
                 pick = Pick(
                     sport='nba',
                     away_team=best_pred['away_team'],
@@ -170,6 +175,9 @@ def run_model_and_log(app):
                     edge_pct=round(best_adjusted_edge, 1),
                     model_confidence=round(best_pred['confidence'], 4),
                     predicted_margin=round(pred_margin, 1) if pred_margin is not None else None,
+                    sigma=round(pred_sigma, 2) if pred_sigma is not None else None,
+                    z_score=round(pred_z_score, 3) if pred_z_score is not None else None,
+                    raw_edge=round(pred_raw_edge, 2) if pred_raw_edge is not None else None,
                     cover_prob=round(home_cover_prob, 4),
                     implied_prob=round(pred_implied, 4),
                     market_odds=pred_odds,

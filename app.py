@@ -230,8 +230,13 @@ def collect_closing_lines():
                     Pick.away_team == game['away_team'],
                     Pick.game_date.like(f'{today_str}%')
                 ).first()
-                if today_pick and today_pick.line_close is None:
-                    today_pick.line_close = game['spread_home']
+                if today_pick:
+                    closing = game['spread_home']
+                    if today_pick.line_close is None:
+                        today_pick.line_close = closing
+                    today_pick.closing_spread = closing
+                    if today_pick.line is not None and closing is not None:
+                        today_pick.clv = closing - today_pick.line
             
             conn.commit()
             conn.close()

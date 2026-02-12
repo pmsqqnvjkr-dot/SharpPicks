@@ -80,9 +80,14 @@ def today():
             'edge_pct': pick.edge_pct,
             'model_confidence': pick.model_confidence,
             'predicted_margin': pick.predicted_margin,
+            'sigma': pick.sigma,
+            'z_score': pick.z_score,
+            'raw_edge': pick.raw_edge,
             'cover_prob': pick.cover_prob,
             'implied_prob': pick.implied_prob,
             'market_odds': pick.market_odds,
+            'closing_spread': pick.closing_spread,
+            'clv': pick.clv,
             'model_line': model_line,
             'market_line': market_line,
             'model_signals': model_signals,
@@ -100,6 +105,9 @@ def today():
             pick_data['edge_pct'] = None
             pick_data['model_confidence'] = None
             pick_data['predicted_margin'] = None
+            pick_data['sigma'] = None
+            pick_data['z_score'] = None
+            pick_data['raw_edge'] = None
             pick_data['cover_prob'] = None
             pick_data['implied_prob'] = None
             pick_data['model_signals'] = []

@@ -291,6 +291,7 @@ class EnsemblePredictor:
         else:
             sample_weights = np.ones(len(df))
         
+        X = X.fillna(0)
         self.feature_names = X.columns.tolist()
         print(f"   📋 Using {len(self.feature_names)} features\n")
         
@@ -301,7 +302,6 @@ class EnsemblePredictor:
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
         weights_train = sample_weights[train_idx]
         
-        # Scale features
         X_train_scaled = self.scaler.fit_transform(X_train)
         X_test_scaled = self.scaler.transform(X_test)
         
@@ -393,14 +393,15 @@ class EnsemblePredictor:
         margin_mae = np.mean(np.abs(margin_preds - margin_test))
 
         from sklearn.model_selection import KFold
+        X_all_scaled = self.scaler.transform(X)
         kf = KFold(n_splits=5, shuffle=True, random_state=42)
         cv_residuals = []
-        for cv_train, cv_test in kf.split(X_scaled, margin_target):
+        for cv_train, cv_test in kf.split(X_all_scaled, margin_target):
             cv_model = GradientBoostingRegressor(
                 n_estimators=200, max_depth=4, learning_rate=0.1, random_state=42
             )
-            cv_model.fit(X_scaled[cv_train], margin_target.iloc[cv_train])
-            cv_preds = cv_model.predict(X_scaled[cv_test])
+            cv_model.fit(X_all_scaled[cv_train], margin_target.iloc[cv_train])
+            cv_preds = cv_model.predict(X_all_scaled[cv_test])
             cv_residuals.extend(cv_preds - margin_target.iloc[cv_test].values)
         cv_std_raw = np.std(cv_residuals)
         self.margin_std = min(max(cv_std_raw, MARGIN_STD_FLOOR), MARGIN_STD_CEILING)
@@ -628,6 +629,12 @@ class EnsemblePredictor:
                 and adjusted_edge >= EDGE_THRESHOLD_PCT
             )
             
+            z_score_val = None
+            if pred_margin is not None and spread is not None:
+                z_score_val = (pred_margin + spread) / sigma
+                if pick_side == 'away':
+                    z_score_val = -z_score_val
+
             picks.append({
                 'game_id': row['id'],
                 'game_date': row['game_date'],
@@ -638,6 +645,9 @@ class EnsemblePredictor:
                 'pick': pick_label,
                 'pick_side': pick_side,
                 'predicted_margin': round(pred_margin, 1) if pred_margin is not None else None,
+                'sigma': round(sigma, 2),
+                'z_score': round(z_score_val, 3) if z_score_val is not None else None,
+                'raw_edge': round(edge_vs_market, 2),
                 'cover_prob': round(confidence, 4),
                 'confidence': confidence,
                 'edge': round(edge_vs_market, 2),
@@ -686,7 +696,11 @@ class EnsemblePredictor:
                         market_odds=pick['market_odds'],
                         recommended_book='DraftKings',
                         explanation='|'.join(pick['explanation']) if pick['explanation'] else None,
-                        predicted_margin=pick.get('predicted_margin')
+                        predicted_margin=pick.get('predicted_margin'),
+                        sigma=pick.get('sigma'),
+                        z_score=pick.get('z_score'),
+                        raw_edge=pick.get('raw_edge'),
+                        adjusted_edge=pick.get('adjusted_edge'),
                     ):
                         logged += 1
                 if logged > 0:
@@ -810,46 +824,59 @@ class EnsemblePredictor:
         return result[:3]
     
     def walk_forward_validate(self):
-        """Walk-forward validation: train on past seasons, test on next season. No future leakage."""
+        """Walk-forward validation using margin GBR model with production filters.
+        Train on past seasons, test on next. No future leakage.
+        Reports: sigma, MAE, Brier, calibration buckets, filtered ROI."""
         print("\n" + "="*60)
-        print("WALK-FORWARD VALIDATION (by season)")
+        print("WALK-FORWARD VALIDATION (margin model + production filters)")
         print("="*60 + "\n")
-        
+
+        from performance_tracker import odds_to_implied_prob
+
         df = self.load_data()
         if len(df) < 100:
             print("Not enough data for walk-forward validation")
             return None
-        
+
         df = df[df['spread_result'] != 'PUSH'].copy()
         df['game_date_parsed'] = pd.to_datetime(df['game_date'].str[:10], errors='coerce')
         df = df.dropna(subset=['game_date_parsed'])
         df['season'] = df['game_date_parsed'].apply(
             lambda d: d.year if d.month >= 10 else d.year - 1
         )
-        
+
+        margin_target = (df['home_score'] - df['away_score']).astype(float)
+
         seasons = sorted(df['season'].unique())
         if len(seasons) < 2:
             print("Need at least 2 seasons for walk-forward validation")
             return None
-        
+
         results = []
-        
+        all_bets = []
+
         for i in range(1, len(seasons)):
             train_seasons = seasons[:i]
             test_season = seasons[i]
-            
-            train_df = df[df['season'].isin(train_seasons)]
-            test_df = df[df['season'] == test_season]
-            
+
+            train_mask = df['season'].isin(train_seasons)
+            test_mask = df['season'] == test_season
+
+            train_df = df[train_mask]
+            test_df = df[test_mask]
+
             if len(train_df) < 50 or len(test_df) < 20:
                 continue
-            
-            X_train = self.engineer_features(train_df)
+
+            X_train = self.engineer_features(train_df).fillna(0)
+            X_test = self.engineer_features(test_df).fillna(0)
             y_train = self.prepare_target(train_df)
-            X_test = self.engineer_features(test_df)
             y_test = self.prepare_target(test_df)
-            
-            all_features = list(set(X_train.columns) | set(X_test.columns))
+
+            margin_train = margin_target[train_mask]
+            margin_test = margin_target[test_mask]
+
+            all_features = sorted(set(X_train.columns) | set(X_test.columns))
             for f in all_features:
                 if f not in X_train.columns:
                     X_train[f] = 0
@@ -857,38 +884,149 @@ class EnsemblePredictor:
                     X_test[f] = 0
             X_train = X_train[all_features]
             X_test = X_test[all_features]
-            
+
             scaler = StandardScaler()
             X_train_s = scaler.fit_transform(X_train)
             X_test_s = scaler.transform(X_test)
-            
-            from sklearn.ensemble import GradientBoostingClassifier
-            model = GradientBoostingClassifier(n_estimators=200, max_depth=4, random_state=42)
-            model.fit(X_train_s, y_train)
-            
-            preds = model.predict(X_test_s)
-            proba = model.predict_proba(X_test_s)[:, 1]
-            acc = accuracy_score(y_test, preds)
-            brier = brier_score_loss(y_test, proba)
-            
+
+            margin_gbr = GradientBoostingRegressor(
+                n_estimators=200, max_depth=4, learning_rate=0.1, random_state=42
+            )
+            margin_gbr.fit(X_train_s, margin_train)
+
+            margin_preds = margin_gbr.predict(X_test_s)
+            residuals = margin_preds - margin_test.values
+            sigma_raw = np.std(residuals)
+            sigma = min(max(sigma_raw, MARGIN_STD_FLOOR), MARGIN_STD_CEILING)
+            mae = np.mean(np.abs(residuals))
+
+            spreads = test_df['spread_home'].values
+            open_spreads = test_df['spread_home_open'].values if 'spread_home_open' in test_df.columns else [None] * len(test_df)
+            actual_margins = margin_test.values
+            actual_covers = y_test.values
+
+            implied_prob = odds_to_implied_prob(STANDARD_ODDS)
+
+            season_bets = []
+            all_edges = []
+
+            for j in range(len(test_df)):
+                spread = spreads[j]
+                pred_margin = margin_preds[j]
+
+                if spread is None or pd.isna(spread):
+                    continue
+
+                z_score = (pred_margin + spread) / sigma
+                home_cover_prob = float(norm.cdf(z_score))
+
+                if home_cover_prob >= 0.5:
+                    pick_side = 'home'
+                    confidence = home_cover_prob
+                else:
+                    pick_side = 'away'
+                    confidence = 1 - home_cover_prob
+
+                raw_edge = (confidence - implied_prob) * 100
+
+                line_move_penalty = 0.0
+                open_spread = open_spreads[j] if j < len(open_spreads) else None
+                if open_spread is not None and not pd.isna(open_spread):
+                    move = spread - open_spread
+                    if move > 0 and move >= 1.0:
+                        line_move_penalty = move * LINE_MOVE_PENALTY_PER_PT
+
+                adjusted_edge = raw_edge - line_move_penalty
+                all_edges.append(adjusted_edge)
+
+                spread_abs = abs(spread)
+                if spread_abs > MAX_SPREAD_DEFAULT and adjusted_edge < 8.0:
+                    continue
+                if adjusted_edge < EDGE_THRESHOLD_PCT:
+                    continue
+                if confidence < MIN_CONFIDENCE_THRESHOLD:
+                    continue
+
+                actual_margin = actual_margins[j]
+                covered = actual_covers[j]
+                if pick_side == 'away':
+                    covered = 1 - covered
+
+                won = bool(covered)
+                profit = 0.9091 if won else -1.0
+
+                season_bets.append({
+                    'won': won,
+                    'profit': profit,
+                    'edge': adjusted_edge,
+                    'confidence': confidence,
+                    'sigma': sigma,
+                    'z_score': z_score if pick_side == 'home' else -z_score,
+                    'pred_margin': pred_margin,
+                    'spread': spread,
+                })
+
+            all_bets.extend(season_bets)
+
+            n_bets = len(season_bets)
+            wins = sum(1 for b in season_bets if b['won'])
+            total_profit = sum(b['profit'] for b in season_bets)
+            roi = (total_profit / n_bets * 100) if n_bets > 0 else 0
+            win_rate = (wins / n_bets * 100) if n_bets > 0 else 0
+
+            edge_arr = np.array(all_edges)
+            cal_buckets = []
+            for low, high in [(3.5, 5.0), (5.0, 7.0), (7.0, 10.0), (10.0, 100.0)]:
+                mask = (edge_arr >= low) & (edge_arr < high)
+                cal_buckets.append(f"{low:.0f}-{high:.0f}%: {mask.sum()}")
+
             season_label = f"{test_season}-{test_season+1}"
             results.append({
                 'season': season_label,
                 'train_games': len(train_df),
                 'test_games': len(test_df),
-                'accuracy': acc,
-                'brier': brier,
+                'sigma': sigma,
+                'sigma_raw': sigma_raw,
+                'mae': mae,
+                'n_bets': n_bets,
+                'wins': wins,
+                'win_rate': win_rate,
+                'roi': roi,
+                'total_profit': total_profit,
+                'edge_distribution': cal_buckets,
             })
-            
-            print(f"   {season_label}: {acc:.1%} accuracy, {brier:.3f} brier ({len(test_df)} games, trained on {len(train_df)})")
-        
+
+            print(f"   {season_label}:")
+            print(f"     Games: {len(test_df)} | Sigma: {sigma:.1f} (raw {sigma_raw:.1f}) | MAE: {mae:.1f} pts")
+            print(f"     Filtered bets: {n_bets} | W-L: {wins}-{n_bets-wins} | Win%: {win_rate:.1f}% | ROI: {roi:+.1f}%")
+            print(f"     Edge dist: {', '.join(cal_buckets)}")
+            print()
+
         if results:
-            avg_acc = np.mean([r['accuracy'] for r in results])
-            avg_brier = np.mean([r['brier'] for r in results])
-            print(f"\n   Walk-forward average: {avg_acc:.1%} accuracy, {avg_brier:.3f} brier")
-            print(f"   Seasons tested: {len(results)}")
-        
-        return results
+            total_bets = sum(r['n_bets'] for r in results)
+            total_wins = sum(r['wins'] for r in results)
+            total_profit = sum(r['total_profit'] for r in results)
+            overall_roi = (total_profit / total_bets * 100) if total_bets > 0 else 0
+            overall_wr = (total_wins / total_bets * 100) if total_bets > 0 else 0
+            avg_sigma = np.mean([r['sigma'] for r in results])
+            avg_mae = np.mean([r['mae'] for r in results])
+
+            print("=" * 60)
+            print(f"   OVERALL WALK-FORWARD RESULTS")
+            print(f"   Seasons: {len(results)} | Total bets: {total_bets}")
+            print(f"   Record: {total_wins}-{total_bets-total_wins} ({overall_wr:.1f}%)")
+            print(f"   Total profit: {total_profit:+.1f}u | ROI: {overall_roi:+.1f}%")
+            print(f"   Avg sigma: {avg_sigma:.1f} | Avg MAE: {avg_mae:.1f}")
+            print("=" * 60)
+
+            if overall_roi > 14:
+                print("\n   WARNING: ROI > 14% — check for leakage")
+            elif overall_roi > 8:
+                print(f"\n   NOTE: ROI {overall_roi:+.1f}% is strong — monitor for regression")
+            elif overall_roi > 0:
+                print(f"\n   OK: ROI {overall_roi:+.1f}% is realistic for filtered ATS")
+
+        return {'seasons': results, 'all_bets': all_bets}
 
     def save(self, filepath='sharp_picks_model.pkl'):
         """Save the trained model"""
