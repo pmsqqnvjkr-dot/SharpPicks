@@ -218,6 +218,7 @@ function SettingsSection({ user, onNavigate }) {
   const menuItems = [
     { id: 'how', label: 'How It Works', subtitle: 'Our model and methodology' },
     { id: 'history', label: 'Pick History', subtitle: 'All published picks' },
+    { id: 'bets', label: 'Track Bets', subtitle: 'Log your wagers', requiresAuth: true },
     { id: 'notifications', label: 'Notifications', subtitle: 'Alert preferences' },
     { id: 'referral', label: 'Referral Program', subtitle: 'Earn 14 days free', requiresAuth: true },
     ...(!isPro && user ? [{ id: 'upgrade', label: 'Upgrade to Pro', subtitle: 'Full pick details and analytics', badge: 'Pro' }] : []),

@@ -1,8 +1,8 @@
 export default function TabNav({ activeTab, onTabChange }) {
   const tabs = [
     { id: 'today', label: 'Today', icon: ClockIcon },
-    { id: 'dashboard', label: 'Dashboard', icon: WalletIcon },
-    { id: 'model', label: 'Model', icon: ChartIcon },
+    { id: 'dashboard', label: 'Dashboard', icon: ChartIcon },
+    { id: 'model', label: 'Model', icon: BarChartIcon },
     { id: 'profile', label: 'Profile', icon: PersonIcon },
   ];
 
@@ -77,6 +77,15 @@ function WalletIcon({ active }) {
       <rect x="2" y="5" width="20" height="14" rx="2"/>
       <path d="M16 14h.01"/>
       <path d="M2 10h20"/>
+    </svg>
+  );
+}
+
+function BarChartIcon({ active }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--blue-primary)' : 'var(--text-tertiary)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v18h18"/>
+      <path d="M7 16l4-8 4 4 4-8"/>
     </svg>
   );
 }

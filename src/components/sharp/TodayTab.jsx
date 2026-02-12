@@ -26,7 +26,7 @@ export default function TodayTab({ onNavigate }) {
       <div style={{ padding: '0 20px' }}>
         {todayData?.type === 'pick' && (
           <PickCard pick={todayData} isPro={isPro} onUpgrade={() => setShowAuth(true)} onTrack={() => {
-            if (onNavigate) onNavigate('dashboard', null, {
+            if (onNavigate) onNavigate('profile', 'bets', {
               pickToTrack: {
                 id: todayData.id,
                 away_team: todayData.away_team,

@@ -948,6 +948,23 @@ def get_user_stats():
         if b.result:
             user_pnl_on_sharp += (b.profit or 0)
 
+    total_passes_count = Pass.query.count()
+    user_selectivity = round((picks_followed / total_sharp_picks_available) * 100, 1) if total_sharp_picks_available > 0 else 0
+    picks_passed = total_sharp_picks_available - picks_followed
+    capital_preserved = round(picks_passed * 110 * 0.04, 0)
+
+    bet_dates = sorted([b.created_at for b in bets if b.created_at])
+    if len(bet_dates) >= 2:
+        from datetime import timedelta
+        gaps = []
+        for i in range(1, len(bet_dates)):
+            gap = (bet_dates[i] - bet_dates[i-1]).days
+            if gap > 0:
+                gaps.append(gap)
+        avg_days_between = round(sum(gaps) / len(gaps), 1) if gaps else 0
+    else:
+        avg_days_between = 0
+
     return jsonify({
         'totalProfit': round(total_profit, 2),
         'roi': round(roi, 1),
@@ -981,6 +998,16 @@ def get_user_stats():
             'model_pnl': round(model_pnl, 2),
             'user_pnl': round(user_pnl_on_sharp, 2),
             'difference': round(user_pnl_on_sharp - model_pnl, 2),
+        },
+        'behavioral': {
+            'selectivity': user_selectivity,
+            'industry_avg': 78,
+            'picks_followed': picks_followed,
+            'picks_passed': picks_passed,
+            'total_published': total_sharp_picks_available,
+            'total_passes': total_passes_count,
+            'avg_days_between': avg_days_between,
+            'capital_preserved': capital_preserved,
         },
     })
 

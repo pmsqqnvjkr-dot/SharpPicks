@@ -1,0 +1,176 @@
+A. Model Dashboard (Institutional)
+
+This is what you’re showing.
+
+Purpose:
+	•	Prove integrity
+	•	Prove calibration
+	•	Show discipline
+	•	Show edge sustainability
+
+Sections should be:
+
+• Model PnL (standardized)
+
++436
+56.6% ROI
+6–1 record
+
+Label it clearly:
+
+Based on 1 unit per pick at -110. Not influenced by user wagers.
+
+Good — you already did this.
+
+⸻
+
+• Calibration (Model Integrity)
+
+The bucket breakdown is elite.
+
+Keep:
+	•	55–57%
+	•	57–60%
+	•	60%+
+
+But when data builds, show:
+
+Actual vs Expected side by side.
+
+Right now it says “Awaiting data” which is fine early.
+
+⸻
+
+• Risk Profile
+
+This is excellent:
+	•	Max drawdown
+	•	Avg days between picks
+	•	Avg line movement
+	•	Avg edge published
+
+This makes you look institutional.
+
+⸻
+
+• Discipline Score
+
+This is your moat.
+
+Selectivity rate vs industry average is powerful.
+
+You are not selling picks.
+You are selling restraint.
+
+⸻
+
+B. User Dashboard (Completely Separate)
+
+This must NOT show model stats.
+
+It should show:
+
+• Your Bankroll
+
+Starting balance
+Current balance
+Net PnL
+
+• Your ROI
+
+Based on:
+	•	Their stake sizes
+	•	Their edited line value
+	•	Their odds
+
+• Discipline Score (User version)
+
+How many picks they skipped
+How many they bet
+How often they overrode the model
+
+• Variance vs Model
+
+This is powerful:
+“Your results vs standardized model results”
+
+If they size properly, they’ll match.
+If they tilt, it will show.
+
+That reinforces your philosophy.
+
+⸻
+
+3️⃣ What I Would Change On Your Current Model Screen
+
+🔹 Rename the Tab
+
+Instead of:
+Model
+
+Make it:
+Model Health
+
+More institutional.
+
+⸻
+
+🔹 Add a Badge Under the PnL
+
+Right under +$436 add:
+
+“Model Only · 1u Standardized · -110 Baseline”
+
+Small text. Institutional.
+
+⸻
+
+🔹 Clarify Calibration
+
+Instead of:
+Awaiting data
+
+Say:
+“Minimum 10 picks per bucket required”
+
+Feels more scientific.
+
+⸻
+
+4️⃣ One Important Structural Decision
+
+Do NOT ever combine:
+	•	User tracked bets
+	•	Model standardized results
+
+In the same visual hierarchy.
+
+If you do, credibility dies.
+
+You must keep:
+
+Model = objective performance engine
+User = behavioral overlay
+
+⸻
+
+5️⃣ The Big Picture
+
+What you are building is not a picks app.
+
+You are building:
+
+• A probabilistic margin engine
+• A risk discipline framework
+• A behavioral correction layer
+
+The separation between model and user is what makes it real.
+
+Most pick sellers:
+Blend everything.
+Hide variance.
+Hide calibration.
+Hide drawdown.
+
+You are showing drawdown.
+That’s mature.
