@@ -637,7 +637,7 @@ class EnsemblePredictor:
                 fail_reasons.append('missing_prediction')
             if using_fallback:
                 fail_reasons.append('fallback_sigma')
-                pass_reason = "Model calibration in progress — no picks until margin sigma is trained"
+                pass_reason = "Model calibration in progress. No qualifying pick today."
             if line_move_against >= LINE_MOVE_HARD_STOP and adjusted_edge < LINE_MOVE_HARD_STOP_MIN_EDGE:
                 fail_reasons.append('extreme_line_move')
                 pass_reason = f"Extreme line movement ({line_move_against:+.1f}pts against) — auto-pass unless edge >= {LINE_MOVE_HARD_STOP_MIN_EDGE}%"

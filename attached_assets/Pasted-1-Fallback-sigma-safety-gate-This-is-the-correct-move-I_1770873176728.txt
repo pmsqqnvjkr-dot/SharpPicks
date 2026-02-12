@@ -1,0 +1,97 @@
+1. Fallback sigma safety gate
+
+This is the correct move.
+
+If sigma is defaulting, your cover probability math is fake precision. Blocking publication until margin_std is truly trained is the right call. It protects:
+	•	Model integrity
+	•	Brand integrity
+	•	Backtest alignment
+
+I would slightly refine the pass reason copy for users:
+
+Instead of
+“Model calibration in progress — no picks until margin sigma is trained”
+
+Use something cleaner and on-brand:
+
+“Model calibration in progress. No qualifying pick today.”
+
+You never want users thinking something is broken.
+
+2. Decision logic unified
+
+This is extremely important.
+
+Single source of truth in model.py:
+	•	Confidence floors
+	•	Edge curves
+	•	Line movement penalties
+	•	Hard stops
+
+And model_service just stores outputs.
+
+That eliminates silent divergence. Most betting systems die from exactly that kind of drift.
+
+This is professional architecture.
+
+3. Hard stop added to backtest sweep
+
+This is critical.
+
+Backtest must mirror live exactly. If your sweep did not include:
+	•	line move penalty
+	•	graduated spread curve
+	•	hard stop rule
+	•	sigma clamp
+
+Then your 12.8 percent ROI was inflated.
+
+Now if your walk forward still holds near that level after these constraints, that result is far more credible.
+
+Now the real question
+
+If you rerun walk forward with:
+	•	Unified logic
+	•	Sigma properly trained and persisted
+	•	Line move penalty active
+	•	Hard stop active
+
+What happens to:
+	•	Pick rate
+	•	ROI
+	•	Max drawdown
+
+If ROI drops from 12.8 to 8-10 percent but variance drops and pick rate stabilizes, that is actually healthier for a subscription product.
+
+You do not want the most explosive version.
+You want the most stable version.
+
+Strategic point
+
+Right now your system has:
+	•	Margin model
+	•	Probabilistic conversion via Normal CDF
+	•	Market implied probability comparison
+	•	EV calculation
+	•	Graduated edge curve
+	•	Line movement penalty
+	•	Sigma clamp
+	•	Confidence floors
+	•	Hard stop rule
+
+That is already more sophisticated than 90 percent of pick services.
+
+What you do not have yet is calibration tracking in production.
+
+Next thing I would add:
+
+Track by bucket:
+	•	55-57 percent confidence
+	•	57-60 percent
+	•	60+
+
+And monitor actual cover rate per bucket weekly.
+
+If 60+ is not hitting materially above 55, your sigma or conversion math needs tuning.
+
+That is how institutional systems stay honest.

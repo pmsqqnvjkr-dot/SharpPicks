@@ -75,6 +75,88 @@ def stats():
     })
 
 
+@public_bp.route('/calibration')
+def calibration():
+    """Production calibration tracking.
+    Buckets resolved picks by confidence tier and reports actual cover rates.
+    Institutional honesty: does 60% confidence actually win ~60%?"""
+    resolved = Pick.query.filter(Pick.result_ats.in_(['W', 'L'])).all()
+
+    buckets = [
+        {'label': '55-57%', 'low': 0.55, 'high': 0.57},
+        {'label': '57-60%', 'low': 0.57, 'high': 0.60},
+        {'label': '60%+', 'low': 0.60, 'high': 1.01},
+    ]
+
+    results = []
+    for bucket in buckets:
+        in_bucket = [p for p in resolved if p.model_confidence is not None
+                     and bucket['low'] <= p.model_confidence < bucket['high']]
+        wins = sum(1 for p in in_bucket if p.result_ats == 'W')
+        total = len(in_bucket)
+        actual_rate = round(wins / total * 100, 1) if total > 0 else None
+
+        if total > 0 and bucket['high'] > 1.0:
+            empirical_mean = sum(p.model_confidence for p in in_bucket) / total
+            expected_mid = round(empirical_mean * 100, 1)
+        elif bucket['high'] > 1.0:
+            expected_mid = 62.5
+        else:
+            expected_mid = round((bucket['low'] + bucket['high']) / 2 * 100, 1)
+
+        gap = round(actual_rate - expected_mid, 1) if actual_rate is not None else None
+
+        results.append({
+            'bucket': bucket['label'],
+            'picks': total,
+            'wins': wins,
+            'losses': total - wins,
+            'actual_cover_rate': actual_rate,
+            'expected_midpoint': expected_mid,
+            'gap': gap,
+            'status': 'insufficient_data' if total < 10 else (
+                'overconfident' if gap is not None and gap < -3.0 else (
+                'underconfident' if gap is not None and gap > 3.0 else 'calibrated'
+                )
+            ),
+        })
+
+    total_resolved = len(resolved)
+    total_wins = sum(1 for p in resolved if p.result_ats == 'W')
+
+    from datetime import timedelta
+    from datetime import datetime as dt
+    week_ago = dt.now() - timedelta(days=7)
+    recent = [p for p in resolved if p.result_resolved_at and p.result_resolved_at >= week_ago]
+    recent_wins = sum(1 for p in recent if p.result_ats == 'W')
+    recent_total = len(recent)
+
+    has_data = any(b['status'] != 'insufficient_data' for b in results)
+    has_problem = any(b['status'] in ('overconfident', 'underconfident') for b in results)
+    if not has_data:
+        health = 'insufficient_data'
+    elif has_problem:
+        health = 'needs_review'
+    else:
+        health = 'calibrated'
+
+    return jsonify({
+        'buckets': results,
+        'overall': {
+            'total_graded': total_resolved,
+            'wins': total_wins,
+            'losses': total_resolved - total_wins,
+            'cover_rate': round(total_wins / total_resolved * 100, 1) if total_resolved > 0 else None,
+        },
+        'last_7_days': {
+            'graded': recent_total,
+            'wins': recent_wins,
+            'cover_rate': round(recent_wins / recent_total * 100, 1) if recent_total > 0 else None,
+        },
+        'health': health,
+    })
+
+
 @public_bp.route('/founding-count')
 def founding_count():
     counter = FoundingCounter.query.first()
