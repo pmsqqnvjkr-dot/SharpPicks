@@ -42,7 +42,8 @@ export default function TabNav({ activeTab, onTabChange }) {
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: isActive ? 'var(--green-profit)' : 'var(--text-tertiary)',
+              color: isActive ? 'var(--green-profit)' : 'rgba(255,255,255,0.5)',
+              opacity: isActive ? 1 : 0.6,
               transition: 'color 0.2s, background 0.2s',
             }}
           >

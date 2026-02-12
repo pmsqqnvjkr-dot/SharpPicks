@@ -136,8 +136,20 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
             <div>
               <div style={{
                 fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)',
+                display: 'flex', alignItems: 'center', gap: '6px',
               }}>
                 {user.display_name || user.username || user.email.split('@')[0]}
+                {isPro && (
+                  <svg width="16" height="16" viewBox="0 0 32 32" fill="none" style={{ flexShrink: 0 }}>
+                    <path d="M16 4L6 8v8c0 5.5 4.3 10.7 10 12 5.7-1.3 10-6.5 10-12V8l-10-4z"
+                      fill={user.founding_member ? 'rgba(245,158,11,0.15)' : 'rgba(79,134,247,0.15)'}
+                      stroke={user.founding_member ? 'var(--gold-pro)' : 'var(--blue-primary)'}
+                      strokeWidth="1.5"/>
+                    <path d="M11 16l3 3 7-7"
+                      stroke={user.founding_member ? 'var(--gold-pro)' : 'var(--blue-primary)'}
+                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
               </div>
               <div style={{
                 fontSize: '13px', color: 'var(--text-tertiary)',

@@ -326,7 +326,7 @@ function EmptyPerformance() {
       </div>
       <div style={{
         fontFamily: 'var(--font-mono)',
-        fontSize: '10px',
+        fontSize: '11px',
         fontWeight: 600,
         letterSpacing: '2px',
         textTransform: 'uppercase',
@@ -349,7 +349,7 @@ function SectionLabel({ text }) {
   return (
     <div style={{
       fontFamily: 'var(--font-mono)',
-      fontSize: '10px',
+      fontSize: '11px',
       fontWeight: 600,
       letterSpacing: '2px',
       textTransform: 'uppercase',
@@ -398,7 +398,7 @@ function PerformanceCard({ totalPnl, roi, record, equityCurve }) {
             </div>
             <div style={{
               fontFamily: 'var(--font-mono)',
-              fontSize: '10px', color: 'var(--text-tertiary)',
+              fontSize: '12px', color: 'var(--text-tertiary)',
               letterSpacing: '0.5px',
               marginBottom: '10px',
             }}>
@@ -599,7 +599,7 @@ function UnitGrowthCard({ equityCurve }) {
           <div>
             <div style={{
               fontFamily: 'var(--font-mono)',
-              fontSize: '10px', fontWeight: 600,
+              fontSize: '11px', fontWeight: 600,
               letterSpacing: '2px', textTransform: 'uppercase',
               color: 'var(--text-tertiary)', marginBottom: '8px',
             }}>Unit Growth</div>
@@ -687,7 +687,7 @@ function BetsSection({ title, children }) {
     <div style={{ marginBottom: '16px' }}>
       <div style={{
         fontFamily: 'var(--font-mono)',
-        fontSize: '10px', fontWeight: 600,
+        fontSize: '11px', fontWeight: 600,
         letterSpacing: '2px', textTransform: 'uppercase',
         color: 'var(--text-tertiary)', marginBottom: '8px',
       }}>
