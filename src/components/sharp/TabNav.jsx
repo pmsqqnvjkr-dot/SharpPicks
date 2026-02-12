@@ -18,9 +18,7 @@ export default function TabNav({ activeTab, onTabChange }) {
       alignItems: 'center',
       gap: '32px',
       padding: '10px 0 calc(6px + env(safe-area-inset-bottom, 0px))',
-      background: 'rgba(10, 13, 20, 0.88)',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
+      background: 'var(--bg-primary)',
       borderTop: '1px solid rgba(255, 255, 255, 0.04)',
       zIndex: 100,
     }}>

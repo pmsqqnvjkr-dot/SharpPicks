@@ -88,7 +88,7 @@ function AppContent() {
       margin: '0 auto',
       position: 'relative',
     }}>
-      <div style={{ flex: 1, paddingBottom: '80px', overflowY: 'auto' }}>
+      <div style={{ flex: 1, paddingBottom: '60px', overflowY: 'auto' }}>
         {activeTab === 'picks' && <PicksTab onNavigate={navigateTo} />}
         {activeTab === 'performance' && <PerformanceTab onNavigate={navigateTo} />}
         {activeTab === 'profile' && <ProfileTab initialScreen={profileScreen} onScreenChange={setProfileScreen} pickToTrack={pickToTrack} onPickTracked={() => setPickToTrack(null)} screenData={profileScreenData} />}
