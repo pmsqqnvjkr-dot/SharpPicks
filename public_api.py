@@ -18,7 +18,7 @@ def record():
     return jsonify({
         'picks': [{
             'id': p.id,
-            'published_at': p.published_at.isoformat() if p.published_at else None,
+            'published_at': (p.published_at.isoformat() + 'Z') if p.published_at else None,
             'game_date': p.game_date,
             'side': p.side,
             'edge_pct': p.edge_pct,
@@ -272,7 +272,7 @@ def dashboard_stats():
             'line_movement': line_move,
             'game_date': p.game_date,
             'start_time': p.start_time,
-            'published_at': p.published_at.isoformat() if p.published_at else None,
+            'published_at': (p.published_at.isoformat() + 'Z') if p.published_at else None,
             'away_team': p.away_team,
             'home_team': p.home_team,
             'pnl': p.pnl,

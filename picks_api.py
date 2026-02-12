@@ -104,7 +104,7 @@ def today():
             'start_time': pick.start_time,
             'result': pick.result,
             'pnl': pick.pnl,
-            'published_at': pick.published_at.isoformat() if pick.published_at else None,
+            'published_at': (pick.published_at.isoformat() + 'Z') if pick.published_at else None,
             'posted_time': '2h before tip',
             'best_book': pick.sportsbook or 'DraftKings',
             'stake_guidance': stake,
@@ -179,7 +179,7 @@ def history():
     return jsonify({
         'picks': [{
             'id': p.id,
-            'published_at': p.published_at.isoformat() if p.published_at else None,
+            'published_at': (p.published_at.isoformat() + 'Z') if p.published_at else None,
             'sport': p.sport,
             'away_team': p.away_team,
             'home_team': p.home_team,
@@ -220,7 +220,7 @@ def get_pick(pick_id):
 
     return jsonify({
         'id': pick.id,
-        'published_at': pick.published_at.isoformat() if pick.published_at else None,
+        'published_at': (pick.published_at.isoformat() + 'Z') if pick.published_at else None,
         'sport': pick.sport,
         'away_team': pick.away_team,
         'home_team': pick.home_team,
