@@ -1,10 +1,12 @@
 export default function ResolutionScreen({ pick, onBack }) {
   const isWin = pick?.result === 'win';
-  const accentColor = isWin ? 'var(--green-profit)' : 'var(--red-loss)';
-  const resultLabel = isWin ? 'Win' : 'Loss';
-  const pnlDisplay = pick?.pnl != null
-    ? `${pick.pnl >= 0 ? '+' : ''}$${Math.abs(pick.pnl)}`
+  const isPush = pick?.result === 'push';
+  const accentColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--green-profit)' : 'var(--red-loss)';
+  const resultLabel = isPush ? 'Push' : isWin ? 'Win' : 'Loss';
+  const profitDisplay = pick?.profit_units != null
+    ? `${pick.profit_units >= 0 ? '+' : ''}${pick.profit_units}u`
     : '--';
+  const hasScore = pick?.home_score != null && pick?.away_score != null;
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
@@ -34,12 +36,16 @@ export default function ResolutionScreen({ pick, onBack }) {
         }}>
           <div style={{
             width: '56px', height: '56px', borderRadius: '50%',
-            backgroundColor: isWin ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+            backgroundColor: isPush ? 'rgba(255,255,255,0.05)' : isWin ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
             border: `2px solid ${accentColor}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 16px',
           }}>
-            {isWin ? (
+            {isPush ? (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round">
+                <line x1="6" y1="12" x2="18" y2="12"/>
+              </svg>
+            ) : isWin ? (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
@@ -61,20 +67,30 @@ export default function ResolutionScreen({ pick, onBack }) {
             fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 600,
             color: 'var(--text-primary)', marginBottom: '6px',
           }}>
-            {pick?.away_team} {pick?.side === pick?.away_team ? '' : 'vs'} {pick?.home_team}
+            {pick?.away_team} @ {pick?.home_team}
           </div>
+
+          {hasScore && (
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 600,
+              color: 'var(--text-primary)', marginBottom: '8px',
+            }}>
+              {pick.away_score} – {pick.home_score}
+            </div>
+          )}
 
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: '14px',
             color: 'var(--text-secondary)', marginBottom: '16px',
           }}>
             {pick?.side} {pick?.line > 0 ? `+${pick.line}` : pick?.line}
+            {pick?.market_odds ? ` (${pick.market_odds > 0 ? '+' : ''}${pick.market_odds})` : ''}
           </div>
 
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: '36px', fontWeight: 700,
             color: accentColor,
-          }}>{pnlDisplay}</div>
+          }}>{profitDisplay}</div>
         </div>
 
         <div style={{
@@ -90,7 +106,9 @@ export default function ResolutionScreen({ pick, onBack }) {
             fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7',
             marginBottom: '16px',
           }}>
-            {isWin
+            {isPush
+              ? `The spread landed exactly on the number. Your wager is returned — no win, no loss. The edge was ${pick?.edge_pct || '--'}% at entry. A push is variance doing what variance does.`
+              : isWin
               ? `This outcome was within the model's expected range. The edge was ${pick?.edge_pct || '--'}% — meaning a win was expected roughly ${Math.round(50 + (pick?.edge_pct || 0))}% of the time. This result confirms the process, but one win does not validate a model.`
               : `This outcome was within the model's expected range. The edge was ${pick?.edge_pct || '--'}% — meaning a loss was expected roughly ${Math.round(50 - (pick?.edge_pct || 0))}% of the time. A single loss does not invalidate the model.`
             }
@@ -118,7 +136,9 @@ export default function ResolutionScreen({ pick, onBack }) {
           <p style={{
             fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7',
           }}>
-            {isWin
+            {isPush
+              ? 'A push changes nothing. No adjustment needed. The process identified an edge, the game landed on the number. The next pick comes when the edge is there.'
+              : isWin
               ? 'The correct response to a win is the same as a loss: nothing. No expanding your criteria. No overconfidence. The next pick comes when the edge is there.'
               : 'The correct response to a loss is the same as a win: nothing. No revenge bets. No doubling down. No changing your unit size. The next pick comes when the edge is there.'
             }
@@ -130,7 +150,9 @@ export default function ResolutionScreen({ pick, onBack }) {
           color: 'var(--text-secondary)', textAlign: 'center',
           padding: '16px 0 8px', lineHeight: '1.5',
         }}>
-          {isWin
+          {isPush
+            ? "A push is neither validation nor failure. The number landed exactly where the market set it."
+            : isWin
             ? "A win doesn't mean you were right. It means the probability played out."
             : "A loss doesn't mean the model failed. It means variance occurred within expected parameters."
           }

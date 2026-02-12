@@ -99,6 +99,8 @@ class Pick(db.Model):
     sportsbook = db.Column(db.String, default='DraftKings')
     closing_spread = db.Column(db.Float, nullable=True)
     clv = db.Column(db.Float, nullable=True)
+    home_score = db.Column(db.Integer, nullable=True)
+    away_score = db.Column(db.Integer, nullable=True)
     result = db.Column(db.String, default='pending')
     result_ats = db.Column(db.String, nullable=True)
     result_resolved_at = db.Column(db.DateTime, nullable=True)

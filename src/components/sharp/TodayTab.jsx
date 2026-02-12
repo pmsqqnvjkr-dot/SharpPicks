@@ -5,6 +5,7 @@ import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
 import AuthModal from './AuthModal';
 import LoadingState from './LoadingState';
+import ResolutionScreen from './ResolutionScreen';
 import { InlineError } from './ErrorStates';
 
 export default function TodayTab({ onNavigate }) {
@@ -12,19 +13,32 @@ export default function TodayTab({ onNavigate }) {
   const { data: todayData, loading, error } = useApi('/picks/today');
   const { data: stats } = useApi('/public/stats');
   const [showAuth, setShowAuth] = useState(false);
+  const [showResolution, setShowResolution] = useState(false);
 
   if (loading || authLoading) {
     return <LoadingState />;
   }
 
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
+  const isResolved = todayData?.type === 'pick' && todayData?.result && todayData.result !== 'pending';
+
+  if (showResolution && isResolved) {
+    return <ResolutionScreen pick={todayData} onBack={() => setShowResolution(false)} />;
+  }
 
   return (
     <div style={{ padding: '0' }}>
       <Header user={user} onAuthClick={() => setShowAuth(true)} />
 
       <div style={{ padding: '0 20px' }}>
-        {todayData?.type === 'pick' && (
+        {todayData?.type === 'pick' && isResolved && (
+          <ResolvedPickBanner
+            pick={todayData}
+            onViewDetails={() => setShowResolution(true)}
+          />
+        )}
+
+        {todayData?.type === 'pick' && !isResolved && (
           <PickCard pick={todayData} isPro={isPro} onUpgrade={() => setShowAuth(true)} onTrack={() => {
             if (onNavigate) onNavigate('profile', 'bets', {
               pickToTrack: {
@@ -246,6 +260,115 @@ function MiniStat({ label, value }) {
         fontSize: '10px', color: 'var(--text-tertiary)',
         textTransform: 'uppercase', letterSpacing: '0.05em',
       }}>{label}</div>
+    </div>
+  );
+}
+
+function ResolvedPickBanner({ pick, onViewDetails }) {
+  const isWin = pick.result === 'win';
+  const isPush = pick.result === 'push';
+  const accentColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--green-profit)' : 'var(--red-loss)';
+  const accentBg = isPush ? 'rgba(255,255,255,0.04)' : isWin ? 'rgba(52,211,153,0.06)' : 'rgba(239,68,68,0.06)';
+  const accentBorder = isPush ? 'rgba(255,255,255,0.1)' : isWin ? 'rgba(52,211,153,0.18)' : 'rgba(239,68,68,0.18)';
+  const profitDisplay = pick.profit_units != null
+    ? `${pick.profit_units >= 0 ? '+' : ''}${pick.profit_units}u`
+    : isPush ? '0u' : isWin ? '+0.91u' : '-1.0u';
+
+  const scoreDisplay = (pick.home_score != null && pick.away_score != null)
+    ? `${pick.away_team} ${pick.away_score}, ${pick.home_team} ${pick.home_score}`
+    : null;
+
+  return (
+    <div
+      onClick={onViewDetails}
+      style={{
+        backgroundColor: accentBg,
+        borderRadius: '20px',
+        border: `1px solid ${accentBorder}`,
+        padding: '24px',
+        marginBottom: '16px',
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+        <div style={{
+          width: '44px', height: '44px', borderRadius: '50%',
+          backgroundColor: isWin ? 'rgba(52,211,153,0.12)' : 'rgba(239,68,68,0.12)',
+          border: `2px solid ${accentColor}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          {isPush ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round">
+              <line x1="6" y1="12" x2="18" y2="12"/>
+            </svg>
+          ) : isWin ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          )}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+            letterSpacing: '1.5px', textTransform: 'uppercase',
+            color: accentColor, marginBottom: '4px',
+          }}>
+            {isPush ? 'Outcome: Push' : isWin ? 'Outcome: Win' : 'Outcome: Loss'}
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-serif)', fontSize: '18px', fontWeight: 600,
+            color: 'var(--text-primary)',
+          }}>
+            {pick.side} {pick.line > 0 ? `+${pick.line}` : pick.line}
+          </div>
+        </div>
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700,
+          color: accentColor,
+        }}>
+          {profitDisplay}
+        </div>
+      </div>
+
+      {scoreDisplay && (
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: '13px',
+          color: 'var(--text-secondary)',
+          marginBottom: '12px',
+        }}>
+          Final: {scoreDisplay}
+        </div>
+      )}
+
+      <div style={{
+        fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: '13px',
+        color: 'var(--text-secondary)', lineHeight: '1.6',
+        marginBottom: '16px',
+      }}>
+        {isPush
+          ? "A push changes nothing. The spread landed on the number. The next pick comes when the edge is there."
+          : isWin
+          ? "A win doesn't change the process. The next pick comes when the edge is there."
+          : "A loss doesn't change the process. No revenge bets. The next pick comes when the edge is there."
+        }
+      </div>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+        fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 500,
+        color: accentColor,
+      }}>
+        View full outcome review
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </div>
     </div>
   );
 }

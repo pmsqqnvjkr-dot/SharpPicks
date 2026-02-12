@@ -149,30 +149,50 @@ def grade_pending_picks():
                     continue
 
                 if is_home_pick and not is_away_pick:
-                    covered = (spread_result + line_value) > 0
+                    ats_margin = spread_result + line_value
                 else:
-                    covered = (-spread_result + line_value) > 0
+                    ats_margin = -spread_result + line_value
 
-                pick.result = 'win' if covered else 'loss'
-                pick.result_ats = 'W' if covered else 'L'
-                pick.pnl = 91 if covered else -100
-                pick.profit_units = 0.91 if covered else -1.0
+                pick.home_score = home_score
+                pick.away_score = away_score
+
+                if ats_margin == 0:
+                    pick.result = 'push'
+                    pick.result_ats = 'P'
+                    pick.profit_units = 0.0
+                    pick.pnl = 0
+                elif ats_margin > 0:
+                    pick.result = 'win'
+                    pick.result_ats = 'W'
+                    actual_odds = pick.market_odds or -110
+                    if actual_odds < 0:
+                        pick.profit_units = round(100 / abs(actual_odds), 2)
+                    else:
+                        pick.profit_units = round(actual_odds / 100, 2)
+                    pick.pnl = round(pick.profit_units * 100, 0)
+                else:
+                    pick.result = 'loss'
+                    pick.result_ats = 'L'
+                    pick.profit_units = -1.0
+                    pick.pnl = -100
+
                 pick.result_resolved_at = datetime.now()
 
                 print(f"[Auto-grade] {pick.game_date}: {pick.side} -> {pick.result} (score: {home_score}-{away_score})")
 
-                bet_result = 'W' if covered else 'L'
                 linked_bets = TrackedBet.query.filter_by(pick_id=pick.id, result=None).all()
                 for tb in linked_bets:
-                    tb.result = bet_result
-                    if bet_result == 'W':
+                    tb.result = pick.result_ats
+                    if pick.result_ats == 'W':
                         if tb.odds < 0:
                             tb.profit = round(tb.bet_amount * (100 / abs(tb.odds)), 2)
                         else:
                             tb.profit = round(tb.bet_amount * (tb.odds / 100), 2)
+                    elif pick.result_ats == 'P':
+                        tb.profit = 0.0
                     else:
                         tb.profit = -tb.bet_amount
-                    print(f"[Auto-grade] Tracked bet #{tb.id} for user {tb.user_id} -> {bet_result}")
+                    print(f"[Auto-grade] Tracked bet #{tb.id} for user {tb.user_id} -> {pick.result_ats}")
 
             conn.close()
             db.session.commit()
