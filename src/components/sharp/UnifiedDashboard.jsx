@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
 
@@ -358,149 +358,171 @@ function SectionLabel({ text }) {
   );
 }
 
+function StatChip({ value, label, color }) {
+  return (
+    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: 'var(--text-secondary)' }}>
+      <strong style={{ color: color || 'var(--text-primary)', fontWeight: 700 }}>{value}</strong>{' '}
+      <span style={{ fontSize: '12px' }}>{label}</span>
+    </span>
+  );
+}
+
 function PerformanceCard({ totalPnl, roi, record, equityCurve }) {
+  const isPositive = totalPnl >= 0;
+  const color = isPositive ? '#34D399' : '#EF4444';
+
   return (
     <div style={{
       backgroundColor: 'var(--surface-1)',
-      borderRadius: '16px',
+      borderRadius: '20px',
       border: '1px solid var(--stroke-subtle)',
-      padding: '20px',
+      padding: '24px',
       marginBottom: '16px',
+      overflow: 'hidden',
     }}>
-      <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '10px', fontWeight: 600,
-        letterSpacing: '2px', textTransform: 'uppercase',
-        color: 'var(--text-tertiary)', marginBottom: '12px',
-      }}>
-        PERFORMANCE
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '42px', fontWeight: 800,
+              color,
+              lineHeight: 1,
+              marginBottom: '8px',
+            }}>
+              {isPositive ? '+' : '-'}${Math.abs(totalPnl).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </div>
+            <div style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10px', color: 'var(--text-tertiary)',
+              letterSpacing: '0.5px',
+              marginBottom: '10px',
+            }}>
+              Your Tracked Bets · Actual Stakes
+            </div>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <StatChip
+                value={`${roi >= 0 ? '+' : ''}${roi}%`}
+                label="ROI"
+                color={roi >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'}
+              />
+              <StatChip value={record} label="Record" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '42px', fontWeight: 700,
-        color: totalPnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
-        lineHeight: 1.1, marginBottom: '8px',
-      }}>
-        {totalPnl >= 0 ? '+' : '-'}${Math.abs(totalPnl).toFixed(0)}
-      </div>
-
-      <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '13px', color: 'var(--text-secondary)',
-        marginBottom: '20px',
-        display: 'flex', gap: '16px',
-      }}>
-        <span>{roi >= 0 ? '+' : ''}{roi}% ROI</span>
-        <span>{record} Record</span>
-      </div>
-
-      {equityCurve.length > 1 && (
-        <EquityChart data={equityCurve} roi={roi} />
+      {equityCurve.length > 1 ? (
+        <div style={{ margin: '16px -24px -24px' }}>
+          <BloombergChart data={equityCurve} color={color} isPositive={isPositive} />
+        </div>
+      ) : (
+        <div style={{
+          height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: '11px',
+        }}>
+          Need 2+ settled bets for chart
+        </div>
       )}
     </div>
   );
 }
 
-function EquityChart({ data, roi }) {
-  const canvasRef = useRef(null);
+function BloombergChart({ data, color, isPositive }) {
+  const height = 200;
+  const width = 400;
+  const padL = 48;
+  const padR = 8;
+  const padT = 8;
+  const padB = 24;
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || data.length < 2) return;
+  const values = data.map(d => d.pnl);
+  const allValues = [0, ...values];
+  const minVal = Math.min(...allValues);
+  const maxVal = Math.max(...allValues);
+  const range = maxVal - minVal || 1;
+  const buffer = range * 0.08;
 
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-    const w = rect.width;
-    const h = rect.height;
-    ctx.clearRect(0, 0, w, h);
+  const chartW = width - padL - padR;
+  const chartH = height - padT - padB;
 
-    const values = data.map(d => d.pnl);
-    const minVal = Math.min(0, ...values);
-    const maxVal = Math.max(0, ...values);
-    const range = maxVal - minVal || 1;
-    const padTop = 30;
-    const padBottom = 30;
-    const chartH = h - padTop - padBottom;
+  const getX = (i) => padL + (i / (data.length - 1)) * chartW;
+  const getY = (v) => padT + chartH - ((v - (minVal - buffer)) / (range + buffer * 2)) * chartH;
 
-    const getY = (val) => padTop + chartH - ((val - minVal) / range) * chartH;
-    const getX = (i) => (i / (data.length - 1)) * w;
+  const zeroY = getY(0);
 
-    const gradient = ctx.createLinearGradient(0, padTop, 0, h - padBottom);
-    gradient.addColorStop(0, 'rgba(52, 211, 153, 0.25)');
-    gradient.addColorStop(1, 'rgba(52, 211, 153, 0.02)');
+  const pathD = data.map((d, i) => {
+    const x = getX(i);
+    const y = getY(d.pnl);
+    return i === 0 ? `M${x},${y}` : `L${x},${y}`;
+  }).join(' ');
 
-    ctx.beginPath();
-    ctx.moveTo(getX(0), h - padBottom);
-    data.forEach((d, i) => { ctx.lineTo(getX(i), getY(d.pnl)); });
-    ctx.lineTo(getX(data.length - 1), h - padBottom);
-    ctx.closePath();
-    ctx.fillStyle = gradient;
-    ctx.fill();
+  const areaD = pathD +
+    ` L${getX(data.length - 1)},${zeroY} L${getX(0)},${zeroY} Z`;
 
-    ctx.beginPath();
-    data.forEach((d, i) => {
-      if (i === 0) ctx.moveTo(getX(i), getY(d.pnl));
-      else ctx.lineTo(getX(i), getY(d.pnl));
-    });
-    ctx.strokeStyle = '#34D399';
-    ctx.lineWidth = 2;
-    ctx.lineJoin = 'round';
-    ctx.stroke();
+  const ticks = [];
+  const nTicks = 5;
+  const step = range / (nTicks - 1);
+  for (let i = 0; i < nTicks; i++) {
+    const v = minVal + step * i;
+    const rounded = Math.round(v);
+    if (!ticks.find(t => t.value === rounded)) {
+      ticks.push({ value: rounded, y: getY(rounded) });
+    }
+  }
 
-    const lastVal = values[values.length - 1];
-    const lastX = getX(data.length - 1);
-    const lastY = getY(lastVal);
-    const labelText = `${roi >= 0 ? '+' : ''}${roi}%`;
-    ctx.font = '600 11px JetBrains Mono, monospace';
-    const labelW = ctx.measureText(labelText).width + 12;
-    const labelH = 22;
-    const lx = Math.min(lastX - labelW / 2, w - labelW - 4);
-    const ly = lastY - labelH - 8;
-
-    ctx.fillStyle = 'rgba(52, 211, 153, 0.15)';
-    ctx.beginPath();
-    ctx.roundRect(Math.max(4, lx), ly, labelW, labelH, 6);
-    ctx.fill();
-
-    ctx.fillStyle = '#34D399';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(labelText, Math.max(4, lx) + labelW / 2, ly + labelH / 2);
-
-    const months = {};
-    data.forEach((d, i) => {
-      if (d.date) {
-        const parts = d.date.split('-');
-        if (parts.length >= 2) {
-          const monthKey = parts[0] + '-' + parts[1];
-          if (!months[monthKey]) months[monthKey] = i;
-        }
-      }
-    });
-
-    ctx.fillStyle = 'var(--text-tertiary)';
-    ctx.font = '11px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    Object.entries(months).forEach(([key, idx]) => {
-      const m = parseInt(key.split('-')[1]) - 1;
-      ctx.fillText(monthNames[m], getX(idx), h - padBottom + 8);
-    });
-  }, [data, roi]);
+  const lastVal = values[values.length - 1];
+  const lastX = getX(data.length - 1);
+  const lastY = getY(lastVal);
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: '100%', height: '140px', display: 'block' }}
-    />
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', display: 'block' }}>
+      <defs>
+        <linearGradient id="bbgGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
+          <stop offset="80%" stopColor={color} stopOpacity="0.02" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      {ticks.map((t, i) => (
+        <g key={i}>
+          <line x1={padL} y1={t.y} x2={width - padR} y2={t.y}
+            stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+          <text x={padL - 6} y={t.y + 3}
+            textAnchor="end" fill="var(--text-tertiary)"
+            fontSize="9" fontFamily="JetBrains Mono, monospace" fontWeight="500">
+            {t.value >= 0 ? '' : '-'}${Math.abs(t.value)}
+          </text>
+        </g>
+      ))}
+
+      <line x1={padL} y1={zeroY} x2={width - padR} y2={zeroY}
+        stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+
+      <path d={areaD} fill="url(#bbgGrad)" />
+
+      <path d={pathD} fill="none"
+        stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+
+      <circle cx={lastX} cy={lastY} r="3" fill={color} />
+      <circle cx={lastX} cy={lastY} r="6" fill={color} fillOpacity="0.15" />
+
+      {data.length <= 20 && data.map((d, i) => {
+        const label = d.date ? d.date.substring(5) : '';
+        if (data.length > 10 && i % 2 !== 0 && i !== data.length - 1) return null;
+        return (
+          <text key={i} x={getX(i)} y={height - 4}
+            textAnchor="middle" fill="var(--text-tertiary)"
+            fontSize="8" fontFamily="JetBrains Mono, monospace">
+            {label}
+          </text>
+        );
+      })}
+    </svg>
   );
 }
+
 
 function BetsSection({ title, children }) {
   return (
