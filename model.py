@@ -24,7 +24,8 @@ STRONG_CONFIDENCE_THRESHOLD = 0.60
 EDGE_THRESHOLD_PCT = 3.5
 STANDARD_ODDS = -110
 MARGIN_STD_DEV = 12.0
-MARGIN_STD_FLOOR = 6.0
+MARGIN_STD_FLOOR = 8.0
+MARGIN_STD_CEILING = 15.0
 MAX_SPREAD_DEFAULT = 11.0
 LINE_MOVE_PENALTY_PER_PT = 1.5
 
@@ -402,9 +403,9 @@ class EnsemblePredictor:
             cv_preds = cv_model.predict(X_scaled[cv_test])
             cv_residuals.extend(cv_preds - margin_target.iloc[cv_test].values)
         cv_std_raw = np.std(cv_residuals)
-        self.margin_std = max(cv_std_raw, MARGIN_STD_FLOOR)
+        self.margin_std = min(max(cv_std_raw, MARGIN_STD_FLOOR), MARGIN_STD_CEILING)
         print(f"   Margin MAE: {margin_mae:.1f} pts")
-        print(f"   CV residual std: {cv_std_raw:.1f} pts (floored at {MARGIN_STD_FLOOR}, using {self.margin_std:.1f})")
+        print(f"   CV residual std: {cv_std_raw:.1f} pts (clamped [{MARGIN_STD_FLOOR}, {MARGIN_STD_CEILING}], using {self.margin_std:.1f})")
         
         self.trained = True
         
@@ -922,7 +923,7 @@ class EnsemblePredictor:
             self.calibration_stats = model_data.get('calibration_stats', {})
             self.margin_model = model_data.get('margin_model', None)
             saved_std = model_data.get('margin_std', None)
-            self.margin_std = max(saved_std, MARGIN_STD_FLOOR) if saved_std is not None else None
+            self.margin_std = min(max(saved_std, MARGIN_STD_FLOOR), MARGIN_STD_CEILING) if saved_std is not None else None
             
             return True
         except:
