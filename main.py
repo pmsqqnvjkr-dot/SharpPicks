@@ -232,6 +232,12 @@ def setup_database():
         ('bdl_away_avg_pts', 'REAL'),
         ('bdl_home_avg_pts_against', 'REAL'),
         ('bdl_away_avg_pts_against', 'REAL'),
+        ('home_spread_odds', 'INTEGER'),
+        ('away_spread_odds', 'INTEGER'),
+        ('home_spread_odds_open', 'INTEGER'),
+        ('away_spread_odds_open', 'INTEGER'),
+        ('home_spread_odds_close', 'INTEGER'),
+        ('away_spread_odds_close', 'INTEGER'),
     ]
     
     for col_name, col_type in new_columns:
@@ -670,6 +676,8 @@ def collect_todays_games():
             total = None
             home_ml = None
             away_ml = None
+            home_spread_odds = None
+            away_spread_odds = None
             
             if game.get('bookmakers'):
                 bookmaker = game['bookmakers'][0]
@@ -679,8 +687,10 @@ def collect_todays_games():
                         for outcome in market['outcomes']:
                             if outcome['name'] == home:
                                 spread_home = outcome['point']
+                                home_spread_odds = outcome.get('price')
                             else:
                                 spread_away = outcome['point']
+                                away_spread_odds = outcome.get('price')
                     
                     elif market['key'] == 'totals':
                         total = market['outcomes'][0]['point']
@@ -769,9 +779,11 @@ def collect_todays_games():
                      bdl_home_conf_rank, bdl_away_conf_rank,
                      bdl_home_scoring_margin, bdl_away_scoring_margin,
                      bdl_home_avg_pts, bdl_away_avg_pts,
-                     bdl_home_avg_pts_against, bdl_away_avg_pts_against)
+                     bdl_home_avg_pts_against, bdl_away_avg_pts_against,
+                     home_spread_odds, away_spread_odds,
+                     home_spread_odds_open, away_spread_odds_open)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     game_id, commence_time, game_time, home, away,
                     spread_home, spread_away, total, home_ml, away_ml,
@@ -786,6 +798,8 @@ def collect_todays_games():
                     bdl_home_scoring_margin, bdl_away_scoring_margin,
                     bdl_home_avg_pts, bdl_away_avg_pts,
                     bdl_home_avg_pts_against, bdl_away_avg_pts_against,
+                    home_spread_odds, away_spread_odds,
+                    home_spread_odds, away_spread_odds,
                 ))
                 line_status = "📌 OPENING"
             else:
@@ -805,7 +819,8 @@ def collect_todays_games():
                         bdl_home_conf_rank = ?, bdl_away_conf_rank = ?,
                         bdl_home_scoring_margin = ?, bdl_away_scoring_margin = ?,
                         bdl_home_avg_pts = ?, bdl_away_avg_pts = ?,
-                        bdl_home_avg_pts_against = ?, bdl_away_avg_pts_against = ?
+                        bdl_home_avg_pts_against = ?, bdl_away_avg_pts_against = ?,
+                        home_spread_odds = ?, away_spread_odds = ?
                     WHERE id = ?
                 ''', (
                     spread_home, spread_away, total, home_ml, away_ml,
@@ -819,6 +834,7 @@ def collect_todays_games():
                     bdl_home_scoring_margin, bdl_away_scoring_margin,
                     bdl_home_avg_pts, bdl_away_avg_pts,
                     bdl_home_avg_pts_against, bdl_away_avg_pts_against,
+                    home_spread_odds, away_spread_odds,
                     game_id
                 ))
                 
@@ -958,6 +974,8 @@ def collect_closing_lines():
             total = None
             home_ml = None
             away_ml = None
+            home_spread_odds = None
+            away_spread_odds = None
             
             if game.get('bookmakers'):
                 bookmaker = game['bookmakers'][0]
@@ -967,6 +985,9 @@ def collect_closing_lines():
                         for outcome in market['outcomes']:
                             if outcome['name'] == home:
                                 spread_home = outcome['point']
+                                home_spread_odds = outcome.get('price')
+                            else:
+                                away_spread_odds = outcome.get('price')
                     elif market['key'] == 'totals':
                         total = market['outcomes'][0]['point']
                     elif market['key'] == 'h2h':
@@ -981,9 +1002,11 @@ def collect_closing_lines():
                 UPDATE games SET
                     spread_home_close = ?, total_close = ?,
                     home_ml_close = ?, away_ml_close = ?,
+                    home_spread_odds_close = ?, away_spread_odds_close = ?,
                     close_collected_at = ?
                 WHERE id = ?
-            ''', (spread_home, total, home_ml, away_ml, 
+            ''', (spread_home, total, home_ml, away_ml,
+                  home_spread_odds, away_spread_odds,
                   datetime.now().isoformat(), game_id))
             
             # Calculate total line movement

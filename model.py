@@ -106,7 +106,8 @@ class EnsemblePredictor:
                 g.bdl_home_conf_rank, g.bdl_away_conf_rank,
                 g.bdl_home_scoring_margin, g.bdl_away_scoring_margin,
                 g.bdl_home_avg_pts, g.bdl_away_avg_pts,
-                g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against
+                g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against,
+                g.home_spread_odds, g.away_spread_odds
             FROM games g
             LEFT JOIN team_ratings hr ON g.home_team = hr.team_abbr
             LEFT JOIN team_ratings ar ON g.away_team = ar.team_abbr
@@ -531,7 +532,8 @@ class EnsemblePredictor:
                 g.bdl_home_conf_rank, g.bdl_away_conf_rank,
                 g.bdl_home_scoring_margin, g.bdl_away_scoring_margin,
                 g.bdl_home_avg_pts, g.bdl_away_avg_pts,
-                g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against
+                g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against,
+                g.home_spread_odds, g.away_spread_odds
             FROM games g
             LEFT JOIN team_ratings hr ON g.home_team = hr.team_abbr
             LEFT JOIN team_ratings ar ON g.away_team = ar.team_abbr
@@ -589,7 +591,8 @@ class EnsemblePredictor:
             spread = row['spread_home']
             proba = ensemble_proba[idx]
             
-            market_odds = STANDARD_ODDS
+            home_spread_odds = row.get('home_spread_odds', None)
+            away_spread_odds = row.get('away_spread_odds', None)
             home_ml = row.get('home_ml', None)
             away_ml = row.get('away_ml', None)
             
@@ -610,6 +613,11 @@ class EnsemblePredictor:
                 pick_side = 'away'
                 pick_label = f"{away} {-spread:+.1f}"
                 confidence = 1 - home_cover_prob
+            
+            if pick_side == 'home':
+                market_odds = int(home_spread_odds) if home_spread_odds is not None and not pd.isna(home_spread_odds) else STANDARD_ODDS
+            else:
+                market_odds = int(away_spread_odds) if away_spread_odds is not None and not pd.isna(away_spread_odds) else STANDARD_ODDS
             
             implied_prob = odds_to_implied_prob(market_odds)
             edge_vs_market = (confidence - implied_prob) * 100
@@ -706,6 +714,8 @@ class EnsemblePredictor:
                 'ev': ev,
                 'implied_prob': round(implied_prob, 4),
                 'market_odds': market_odds,
+                'home_spread_odds': int(home_spread_odds) if home_spread_odds is not None and not pd.isna(home_spread_odds) else None,
+                'away_spread_odds': int(away_spread_odds) if away_spread_odds is not None and not pd.isna(away_spread_odds) else None,
                 'rating': rating,
                 'home_proba': proba,
                 'line_move_against': round(line_move_against, 1),
