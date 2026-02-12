@@ -42,6 +42,24 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
         </div>
       </div>
 
+      {data?.calibration_note && data.picks?.some(p => p.pre_calibration) && (
+        <div style={{ padding: '0 20px 8px' }}>
+          <div style={{
+            backgroundColor: 'rgba(255, 183, 77, 0.08)', borderRadius: '10px',
+            padding: '12px 16px', border: '1px solid rgba(255, 183, 77, 0.15)',
+            display: 'flex', alignItems: 'flex-start', gap: '10px',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255, 183, 77, 0.7)" strokeWidth="2" style={{ flexShrink: 0, marginTop: '1px' }}>
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <p style={{
+              fontFamily: 'var(--font-sans)', fontSize: '12px', lineHeight: '1.5',
+              color: 'rgba(255, 183, 77, 0.85)', margin: 0,
+            }}>{data.calibration_note}</p>
+          </div>
+        </div>
+      )}
+
       {data?.stats && (
         <div style={{ padding: '0 20px 12px' }}>
           <div style={{
@@ -115,8 +133,18 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                     }}>{pick.away_team} @ {pick.home_team}</div>
                     <div style={{
                       fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', marginTop: '2px',
-                      fontFamily: 'var(--font-mono)',
-                    }}>{pick.game_date}</div>
+                      fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '6px',
+                    }}>
+                      {pick.game_date}
+                      {pick.pre_calibration && (
+                        <span style={{
+                          fontSize: '9px', fontWeight: 700, textTransform: 'uppercase',
+                          letterSpacing: '0.05em', color: 'rgba(255, 183, 77, 0.7)',
+                          backgroundColor: 'rgba(255, 183, 77, 0.1)',
+                          padding: '1px 5px', borderRadius: '3px',
+                        }}>Pre-Cal</span>
+                      )}
+                    </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ textAlign: 'right' }}>

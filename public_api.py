@@ -15,7 +15,12 @@ def record():
     pending = sum(1 for p in picks if p.result == 'pending')
     total_pnl = sum(p.pnl or 0 for p in picks if p.result in ('win', 'loss'))
 
+    from datetime import datetime
+    CALIBRATION_DATE = datetime(2026, 2, 12)
+
     return jsonify({
+        'calibration_note': 'Model calibrated Feb 12, 2026. Prior picks used raw predictions without market-aware shrinkage.',
+        'calibration_date': '2026-02-12',
         'picks': [{
             'id': p.id,
             'published_at': (p.published_at.isoformat() + 'Z') if p.published_at else None,
@@ -26,6 +31,7 @@ def record():
             'pnl': p.pnl,
             'away_team': p.away_team,
             'home_team': p.home_team,
+            'pre_calibration': p.published_at < CALIBRATION_DATE if p.published_at else False,
         } for p in picks],
         'passes': [{
             'id': p.id,
