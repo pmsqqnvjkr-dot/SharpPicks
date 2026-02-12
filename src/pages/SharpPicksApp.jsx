@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 import TabNav from '../components/sharp/TabNav';
-import TodayTab from '../components/sharp/TodayTab';
-import UnifiedDashboard from '../components/sharp/UnifiedDashboard';
-import DashboardTab from '../components/sharp/DashboardTab';
+import PicksTab from '../components/sharp/PicksTab';
+import PerformanceTab from '../components/sharp/PerformanceTab';
 import ProfileTab from '../components/sharp/ProfileTab';
 import LandingPage from '../components/sharp/LandingPage';
 import OnboardingFlow from '../components/sharp/OnboardingFlow';
 
 function AppContent() {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('today');
+  const [activeTab, setActiveTab] = useState('picks');
   const [hasEnteredApp, setHasEnteredApp] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [profileScreen, setProfileScreen] = useState(null);
@@ -90,9 +89,8 @@ function AppContent() {
       position: 'relative',
     }}>
       <div style={{ flex: 1, paddingBottom: '80px', overflowY: 'auto' }}>
-        {activeTab === 'today' && <TodayTab onNavigate={navigateTo} />}
-        {activeTab === 'dashboard' && <UnifiedDashboard />}
-        {activeTab === 'model' && <DashboardTab onNavigate={navigateTo} />}
+        {activeTab === 'picks' && <PicksTab onNavigate={navigateTo} />}
+        {activeTab === 'performance' && <PerformanceTab onNavigate={navigateTo} />}
         {activeTab === 'profile' && <ProfileTab initialScreen={profileScreen} onScreenChange={setProfileScreen} pickToTrack={pickToTrack} onPickTracked={() => setPickToTrack(null)} screenData={profileScreenData} />}
       </div>
       <TabNav activeTab={activeTab} onTabChange={setActiveTab} />

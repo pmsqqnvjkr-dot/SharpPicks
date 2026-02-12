@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi, apiPost } from '../../hooks/useApi';
 import AuthModal from './AuthModal';
-import PickHistoryScreen from './PickHistoryScreen';
 import HowItWorksScreen from './HowItWorksScreen';
 import BetTrackingScreen from './BetTrackingScreen';
 import ReferralScreen from './ReferralScreen';
@@ -32,7 +31,6 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
     if (onScreenChange) onScreenChange(s);
   };
 
-  if (screen === 'history') return <PickHistoryScreen onBack={() => navigate(null)} onViewResolution={(pick) => { setLocalScreenData(pick); navigate('resolution'); }} />;
   if (screen === 'how') return <HowItWorksScreen onBack={() => navigate(null)} />;
   if (screen === 'bets') return <BetTrackingScreen onBack={() => { navigate(null); if (onPickTracked) onPickTracked(); }} pickToTrack={pickToTrack} />;
   if (screen === 'referral') return <ReferralScreen onBack={() => navigate(null)} />;
@@ -217,8 +215,6 @@ function SettingsSection({ user, onNavigate }) {
 
   const menuItems = [
     { id: 'how', label: 'How It Works', subtitle: 'Our model and methodology' },
-    { id: 'history', label: 'Pick History', subtitle: 'All published picks' },
-    { id: 'bets', label: 'Track Bets', subtitle: 'Log your wagers', requiresAuth: true },
     { id: 'notifications', label: 'Notifications', subtitle: 'Alert preferences' },
     { id: 'referral', label: 'Referral Program', subtitle: 'Earn 14 days free', requiresAuth: true },
     ...(!isPro && user ? [{ id: 'upgrade', label: 'Upgrade to Pro', subtitle: 'Full pick details and analytics', badge: 'Pro' }] : []),

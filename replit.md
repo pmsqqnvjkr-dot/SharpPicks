@@ -36,7 +36,7 @@ Historical spread data (2006-2018) had inverted sign convention. The data source
 
 ### Frontend (React + Vite)
 - `src/App.jsx` - Router entry point (main app + password reset route)
-- `src/pages/SharpPicksApp.jsx` - Main 3-tab shell (Today, Dashboard, Profile) with landing page for new visitors
+- `src/pages/SharpPicksApp.jsx` - Main 3-tab shell (Picks, Performance, Profile) with landing page for new visitors
 - `src/pages/ResetPassword.jsx` - Password reset page (token-based)
 - `src/hooks/useApi.js` - API fetch hooks
 - `src/hooks/useAuth.jsx` - Auth context provider

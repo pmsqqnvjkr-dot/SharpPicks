@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
 
-export default function UnifiedDashboard() {
+export default function UnifiedDashboard({ embedded = false }) {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [bets, setBets] = useState([]);
@@ -76,8 +76,8 @@ export default function UnifiedDashboard() {
 
   if (!user) {
     return (
-      <div style={{ padding: '0', paddingBottom: '100px' }}>
-        <DashHeader />
+      <div style={{ padding: '0', paddingBottom: embedded ? '0' : '100px' }}>
+        {!embedded && <DashHeader />}
         <div style={{ padding: '0 20px' }}>
           <div style={{
             backgroundColor: 'var(--surface-1)',
@@ -96,7 +96,7 @@ export default function UnifiedDashboard() {
               </svg>
             </div>
             <p style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-serif)', margin: '0 0 8px' }}>
-              Your Performance Dashboard
+              Your Performance
             </p>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
               Sign in to track your bets and build your personal equity curve, win rate, and discipline metrics.
@@ -110,7 +110,7 @@ export default function UnifiedDashboard() {
   if (loading) {
     return (
       <div style={{ padding: '0' }}>
-        <DashHeader />
+        {!embedded && <DashHeader />}
         <div style={{ padding: '20px' }}>
           {[1, 2, 3].map(i => (
             <div key={i} style={{
@@ -145,11 +145,11 @@ export default function UnifiedDashboard() {
   const settledBets = bets.filter(b => b.result);
 
   return (
-    <div style={{ padding: '0', paddingBottom: '100px' }}>
-      <DashHeader />
+    <div style={{ padding: '0', paddingBottom: embedded ? '0' : '100px' }}>
+      {!embedded && <DashHeader />}
 
       <div style={{ padding: '0 20px' }}>
-        <SectionLabel text="YOUR PERFORMANCE" />
+        <SectionLabel text="YOUR RESULTS" />
 
         {hasBets ? (
           <PerformanceCard
