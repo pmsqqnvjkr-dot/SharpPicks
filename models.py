@@ -154,6 +154,7 @@ class TrackedBet(db.Model):
     __tablename__ = 'tracked_bets'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    pick_id = db.Column(db.String, db.ForeignKey('picks.id'), nullable=True)
     pick = db.Column(db.String, nullable=False)
     game = db.Column(db.String, nullable=False)
     bet_amount = db.Column(db.Integer, nullable=False)
@@ -163,3 +164,4 @@ class TrackedBet(db.Model):
     profit = db.Column(db.Float, default=0)
     created_at = db.Column(db.DateTime, default=datetime.now)
     user = db.relationship('User', backref='tracked_bets', overlaps="user_bets")
+    linked_pick = db.relationship('Pick', backref='tracked_bets')

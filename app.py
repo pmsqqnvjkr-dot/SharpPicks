@@ -159,6 +159,19 @@ def grade_pending_picks():
 
                 print(f"[Auto-grade] {pick.game_date}: {pick.side} -> {pick.result} (score: {home_score}-{away_score})")
 
+                bet_result = 'W' if covered else 'L'
+                linked_bets = TrackedBet.query.filter_by(pick_id=pick.id, result=None).all()
+                for tb in linked_bets:
+                    tb.result = bet_result
+                    if bet_result == 'W':
+                        if tb.odds < 0:
+                            tb.profit = round(tb.bet_amount * (100 / abs(tb.odds)), 2)
+                        else:
+                            tb.profit = round(tb.bet_amount * (tb.odds / 100), 2)
+                    else:
+                        tb.profit = -tb.bet_amount
+                    print(f"[Auto-grade] Tracked bet #{tb.id} for user {tb.user_id} -> {bet_result}")
+
             conn.close()
             db.session.commit()
         except Exception as e:
@@ -818,9 +831,25 @@ def get_user_stats():
 def get_user_bets():
     """Get user's tracked bets"""
     bets = TrackedBet.query.filter_by(user_id=current_user.id).order_by(TrackedBet.created_at.desc()).all()
-    return jsonify({
-        'bets': [{
+    tracked_pick_ids = set()
+    bet_list = []
+    for b in bets:
+        if b.pick_id:
+            tracked_pick_ids.add(b.pick_id)
+        pick_result = None
+        if b.linked_pick and b.linked_pick.result:
+            pr = b.linked_pick.result.lower()
+            if pr == 'win':
+                pick_result = 'W'
+            elif pr == 'loss':
+                pick_result = 'L'
+            elif pr == 'pending':
+                pick_result = 'pending'
+            else:
+                pick_result = b.linked_pick.result
+        bet_list.append({
             'id': b.id,
+            'pick_id': b.pick_id,
             'pick': b.pick,
             'game': b.game,
             'bet_amount': b.bet_amount,
@@ -828,38 +857,78 @@ def get_user_bets():
             'to_win': b.to_win,
             'result': b.result,
             'profit': b.profit,
+            'pick_result': pick_result,
             'created_at': b.created_at.isoformat() if b.created_at else None
-        } for b in bets]
-    })
+        })
+    return jsonify({'bets': bet_list, 'tracked_pick_ids': list(tracked_pick_ids)})
+
+@app.route('/api/bets/trackable', methods=['GET'])
+@login_required
+def get_trackable_picks():
+    """Get recent picks the user hasn't tracked yet"""
+    already_tracked = db.session.query(TrackedBet.pick_id).filter(
+        TrackedBet.user_id == current_user.id,
+        TrackedBet.pick_id.isnot(None)
+    ).all()
+    tracked_ids = {t[0] for t in already_tracked}
+
+    recent_picks = Pick.query.order_by(Pick.published_at.desc()).limit(30).all()
+    trackable = []
+    for p in recent_picks:
+        trackable.append({
+            'id': p.id,
+            'away_team': p.away_team,
+            'home_team': p.home_team,
+            'game_date': p.game_date,
+            'side': p.side,
+            'line': p.line,
+            'edge_pct': p.edge_pct,
+            'result': 'W' if p.result == 'win' else ('L' if p.result == 'loss' else p.result),
+            'published_at': p.published_at.isoformat() if p.published_at else None,
+            'already_tracked': p.id in tracked_ids,
+        })
+    return jsonify({'picks': trackable})
 
 @app.route('/api/bets', methods=['POST'])
 @login_required
 def track_bet():
-    """Track a new bet"""
+    """Track a bet linked to a pick"""
     data = request.get_json()
-    pick = data.get('pick')
-    game = data.get('game')
-    
-    existing = TrackedBet.query.filter_by(
-        user_id=current_user.id,
-        pick=pick,
-        game=game
-    ).first()
-    if existing:
-        return jsonify({'success': False, 'error': 'Already tracking this bet'}), 400
-    
+    pick_id = data.get('pick_id')
+
+    if pick_id:
+        existing = TrackedBet.query.filter_by(
+            user_id=current_user.id,
+            pick_id=pick_id
+        ).first()
+        if existing:
+            return jsonify({'success': False, 'error': 'Already tracking this pick'}), 400
+
+        sp_pick = Pick.query.get(pick_id)
+        if not sp_pick:
+            return jsonify({'success': False, 'error': 'Pick not found'}), 404
+
+        pick_label = f"{sp_pick.side} {sp_pick.line:+g}" if sp_pick.line else sp_pick.side
+        game_label = f"{sp_pick.away_team} @ {sp_pick.home_team}"
+    else:
+        pick_label = data.get('pick', '')
+        game_label = data.get('game', '')
+        if not pick_label or not game_label:
+            return jsonify({'success': False, 'error': 'Pick and game required'}), 400
+
     bet_amount = data.get('bet_amount', 100)
     odds = data.get('odds', -110)
-    
+
     if odds < 0:
         to_win = bet_amount * (100 / abs(odds))
     else:
         to_win = bet_amount * (odds / 100)
-    
+
     bet = TrackedBet(
         user_id=current_user.id,
-        pick=pick,
-        game=game,
+        pick_id=pick_id,
+        pick=pick_label,
+        game=game_label,
         bet_amount=bet_amount,
         odds=odds,
         to_win=round(to_win, 2),
@@ -868,11 +937,12 @@ def track_bet():
     )
     db.session.add(bet)
     db.session.commit()
-    
+
     return jsonify({
         'success': True,
         'bet': {
             'id': bet.id,
+            'pick_id': bet.pick_id,
             'pick': bet.pick,
             'game': bet.game,
             'bet_amount': bet.bet_amount,

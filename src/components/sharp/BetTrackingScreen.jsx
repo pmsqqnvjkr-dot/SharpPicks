@@ -2,19 +2,27 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
 
-export default function BetTrackingScreen({ onBack }) {
+export default function BetTrackingScreen({ onBack, pickToTrack }) {
   const { user } = useAuth();
   const [bets, setBets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [activeView, setActiveView] = useState('dashboard');
+  const [showTrackModal, setShowTrackModal] = useState(false);
+  const [selectedPick, setSelectedPick] = useState(null);
 
   useEffect(() => {
     if (user) loadBets();
     else setLoading(false);
   }, [user]);
+
+  useEffect(() => {
+    if (pickToTrack && user) {
+      setSelectedPick(pickToTrack);
+      setShowTrackModal(true);
+    }
+  }, [pickToTrack, user]);
 
   const loadBets = async () => {
     try {
@@ -31,17 +39,23 @@ export default function BetTrackingScreen({ onBack }) {
     }
   };
 
-  const handleAddBet = async (betData) => {
+  const handleTrackPick = (pick) => {
+    setSelectedPick(pick);
+    setShowTrackModal(true);
+  };
+
+  const handleSubmitBet = async (betData) => {
     try {
       const res = await apiPost('/bets', betData);
       if (res.success) {
-        setShowAddForm(false);
+        setShowTrackModal(false);
+        setSelectedPick(null);
         loadBets();
       } else {
-        alert(res.error || 'Failed to add bet');
+        alert(res.error || 'Failed to track bet');
       }
     } catch (e) {
-      alert('Failed to add bet');
+      alert('Failed to track bet');
     }
   };
 
@@ -122,7 +136,7 @@ export default function BetTrackingScreen({ onBack }) {
               <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Loading your dashboard...</p>
             </div>
           ) : !hasBets ? (
-            <EmptyDashboard onAddBet={() => setShowAddForm(true)} />
+            <EmptyDashboard onTrack={() => setShowTrackModal(true)} />
           ) : (
             <>
               <SectionCard>
@@ -226,7 +240,7 @@ export default function BetTrackingScreen({ onBack }) {
               )}
 
               <div style={{ padding: '4px 0 12px' }}>
-                <button onClick={() => setShowAddForm(true)} style={{
+                <button onClick={() => setShowTrackModal(true)} style={{
                   width: '100%', padding: '14px',
                   backgroundColor: 'var(--blue-primary)', color: '#fff',
                   border: 'none', borderRadius: '12px',
@@ -246,7 +260,7 @@ export default function BetTrackingScreen({ onBack }) {
       ) : (
         <div style={{ padding: '0 20px' }}>
           <div style={{ marginBottom: '12px' }}>
-            <button onClick={() => setShowAddForm(true)} style={{
+            <button onClick={() => setShowTrackModal(true)} style={{
               width: '100%', padding: '14px',
               backgroundColor: 'var(--blue-primary)', color: '#fff',
               border: 'none', borderRadius: '12px',
@@ -329,12 +343,240 @@ export default function BetTrackingScreen({ onBack }) {
         </div>
       )}
 
-      {showAddForm && <AddBetModal onClose={() => setShowAddForm(false)} onSubmit={handleAddBet} />}
+      {showTrackModal && (
+        <TrackBetModal
+          initialPick={selectedPick}
+          onClose={() => { setShowTrackModal(false); setSelectedPick(null); }}
+          onSubmit={handleSubmitBet}
+        />
+      )}
     </div>
   );
 }
 
-function EmptyDashboard({ onAddBet }) {
+function TrackBetModal({ initialPick, onClose, onSubmit }) {
+  const [step, setStep] = useState(initialPick ? 'wager' : 'picks');
+  const [picks, setPicks] = useState([]);
+  const [loadingPicks, setLoadingPicks] = useState(!initialPick);
+  const [selected, setSelected] = useState(initialPick || null);
+  const [amount, setAmount] = useState('100');
+  const [odds, setOdds] = useState('-110');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!initialPick) {
+      loadTrackablePicks();
+    }
+  }, []);
+
+  const loadTrackablePicks = async () => {
+    try {
+      const data = await apiGet('/bets/trackable');
+      setPicks(data.picks || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingPicks(false);
+    }
+  };
+
+  const handleSelectPick = (pick) => {
+    if (pick.already_tracked) return;
+    setSelected(pick);
+    setStep('wager');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selected) return;
+    setSubmitting(true);
+    await onSubmit({
+      pick_id: selected.id,
+      bet_amount: parseInt(amount) || 100,
+      odds: parseInt(odds) || -110,
+    });
+    setSubmitting(false);
+  };
+
+  const toWin = (() => {
+    const amt = parseInt(amount) || 100;
+    const o = parseInt(odds) || -110;
+    if (o < 0) return (amt * (100 / Math.abs(o))).toFixed(2);
+    return (amt * (o / 100)).toFixed(2);
+  })();
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        backgroundColor: 'var(--surface-0)', borderRadius: '20px 20px 0 0',
+        padding: '24px 20px 32px', width: '100%', maxWidth: '480px',
+        maxHeight: '80vh', overflowY: 'auto',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {step === 'wager' && !initialPick && (
+              <button onClick={() => { setStep('picks'); setSelected(null); }} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--text-tertiary)', padding: '4px',
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </button>
+            )}
+            <h2 style={{
+              fontFamily: 'var(--font-serif)', fontSize: '20px',
+              fontWeight: 600, color: 'var(--text-primary)',
+            }}>{step === 'picks' ? 'Select a Pick' : 'Enter Your Wager'}</h2>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-tertiary)', padding: '4px',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        {step === 'picks' ? (
+          <div>
+            {loadingPicks ? (
+              <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Loading picks...</p>
+              </div>
+            ) : picks.length === 0 ? (
+              <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6' }}>
+                  No picks available to track yet. Picks appear here when the model publishes them.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {picks.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleSelectPick(p)}
+                    disabled={p.already_tracked}
+                    style={{
+                      width: '100%', textAlign: 'left',
+                      padding: '14px 16px',
+                      backgroundColor: p.already_tracked ? 'var(--surface-2)' : 'var(--surface-1)',
+                      border: '1px solid var(--stroke-subtle)',
+                      borderRadius: '12px', cursor: p.already_tracked ? 'default' : 'pointer',
+                      opacity: p.already_tracked ? 0.5 : 1,
+                      transition: 'background-color 0.15s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                          letterSpacing: '1.2px', textTransform: 'uppercase',
+                          color: 'var(--text-tertiary)', marginBottom: '4px',
+                        }}>
+                          {p.game_date}
+                        </div>
+                        <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                          {p.away_team} @ {p.home_team}
+                        </div>
+                        <div style={{
+                          fontSize: '13px', color: 'var(--blue-primary)', fontWeight: 600, marginTop: '4px',
+                        }}>
+                          {p.side} {p.line > 0 ? `+${p.line}` : p.line}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        {p.already_tracked ? (
+                          <span style={{
+                            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                            color: 'var(--text-tertiary)', textTransform: 'uppercase',
+                          }}>Tracked</span>
+                        ) : p.result && p.result !== 'pending' ? (
+                          <span style={{
+                            fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700,
+                            color: p.result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
+                          }}>{p.result}</span>
+                        ) : (
+                          <span style={{
+                            fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
+                            color: 'var(--text-tertiary)',
+                          }}>
+                            {p.edge_pct.toFixed(1)}% edge
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <div style={{
+              backgroundColor: 'var(--surface-1)', borderRadius: '12px',
+              padding: '14px 16px', marginBottom: '16px',
+              border: '1px solid var(--stroke-subtle)',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                letterSpacing: '1.2px', textTransform: 'uppercase',
+                color: 'var(--text-tertiary)', marginBottom: '4px',
+              }}>{selected?.game_date}</div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                {selected?.away_team} @ {selected?.home_team}
+              </div>
+              <div style={{
+                fontSize: '15px', color: 'var(--blue-primary)', fontWeight: 700, marginTop: '6px',
+              }}>
+                {selected?.side} {selected?.line > 0 ? `+${selected.line}` : selected?.line}
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <FormField label="Wager ($)" placeholder="100" value={amount} onChange={setAmount} type="number" />
+                <FormField label="Odds" placeholder="-110" value={odds} onChange={setOdds} type="number" />
+              </div>
+
+              <div style={{
+                backgroundColor: 'var(--surface-1)', borderRadius: '10px',
+                padding: '12px 16px', marginBottom: '16px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>To win</span>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '16px',
+                  fontWeight: 600, color: 'var(--green-profit)',
+                }}>${toWin}</span>
+              </div>
+
+              <button type="submit" disabled={submitting} style={{
+                width: '100%', padding: '14px',
+                backgroundColor: 'var(--blue-primary)', color: '#fff',
+                border: 'none', borderRadius: '12px',
+                fontSize: '15px', fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+                opacity: submitting ? 0.5 : 1,
+              }}>
+                {submitting ? 'Tracking...' : 'Track This Bet'}
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EmptyDashboard({ onTrack }) {
   return (
     <div style={{
       backgroundColor: 'var(--surface-1)', borderRadius: '16px',
@@ -359,9 +601,9 @@ function EmptyDashboard({ onAddBet }) {
       <p style={{
         fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '20px',
       }}>
-        Track your bets here and watch your personal equity curve, win streaks, and ROI build over time.
+        Track your wagers on Sharp Picks and watch your personal equity curve, win streaks, and ROI build over time.
       </p>
-      <button onClick={onAddBet} style={{
+      <button onClick={onTrack} style={{
         padding: '12px 24px',
         backgroundColor: 'var(--blue-primary)', color: '#fff',
         border: 'none', borderRadius: '10px',
@@ -379,6 +621,9 @@ function EmptyDashboard({ onAddBet }) {
 }
 
 function BetRow({ bet, isLast, onMarkResult, confirmDelete, setConfirmDelete, onDelete }) {
+  const pickResultLabel = bet.pick_result && bet.pick_result !== 'pending'
+    ? bet.pick_result : null;
+
   return (
     <div style={{
       padding: '14px 20px',
@@ -386,13 +631,32 @@ function BetRow({ bet, isLast, onMarkResult, confirmDelete, setConfirmDelete, on
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>{bet.pick}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>{bet.pick}</div>
+            {bet.pick_id && (
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                padding: '2px 6px', borderRadius: '4px',
+                backgroundColor: 'rgba(79, 134, 247, 0.15)', color: 'var(--blue-primary)',
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+              }}>SP</span>
+            )}
+          </div>
           <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{bet.game}</div>
           <div style={{
             fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px',
             fontFamily: 'var(--font-mono)',
           }}>
             ${bet.bet_amount} at {bet.odds > 0 ? `+${bet.odds}` : bet.odds}
+            {pickResultLabel && (
+              <span style={{
+                marginLeft: '8px',
+                color: pickResultLabel === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
+                fontWeight: 600,
+              }}>
+                Pick: {pickResultLabel}
+              </span>
+            )}
           </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -543,104 +807,6 @@ function PersonalEquityChart({ data }) {
           );
         })}
       </svg>
-
-      <div style={{
-        textAlign: 'center', marginTop: '8px',
-        fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 600,
-        color: isPositive ? 'var(--green-profit)' : 'var(--red-loss)',
-      }}>
-        {isPositive ? '+' : '-'}${Math.abs(lastValue).toFixed(0)} total
-      </div>
-    </div>
-  );
-}
-
-function AddBetModal({ onClose, onSubmit }) {
-  const [pick, setPick] = useState('');
-  const [game, setGame] = useState('');
-  const [amount, setAmount] = useState('100');
-  const [odds, setOdds] = useState('-110');
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!pick.trim() || !game.trim()) return;
-    setSubmitting(true);
-    await onSubmit({
-      pick: pick.trim(),
-      game: game.trim(),
-      bet_amount: parseInt(amount) || 100,
-      odds: parseInt(odds) || -110,
-    });
-    setSubmitting(false);
-  };
-
-  const toWin = (() => {
-    const amt = parseInt(amount) || 100;
-    const o = parseInt(odds) || -110;
-    if (o < 0) return (amt * (100 / Math.abs(o))).toFixed(2);
-    return (amt * (o / 100)).toFixed(2);
-  })();
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)',
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-      zIndex: 1000,
-    }} onClick={onClose}>
-      <div style={{
-        backgroundColor: 'var(--surface-0)', borderRadius: '20px 20px 0 0',
-        padding: '24px 20px 32px', width: '100%', maxWidth: '480px',
-      }} onClick={e => e.stopPropagation()}>
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px',
-        }}>
-          <h2 style={{
-            fontFamily: 'var(--font-serif)', fontSize: '20px',
-            fontWeight: 600, color: 'var(--text-primary)',
-          }}>Track a Bet</h2>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-tertiary)', padding: '4px',
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <FormField label="Pick" placeholder="e.g. Lakers -4.5" value={pick} onChange={setPick} />
-          <FormField label="Game" placeholder="e.g. Lakers vs Celtics" value={game} onChange={setGame} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <FormField label="Wager ($)" placeholder="100" value={amount} onChange={setAmount} type="number" />
-            <FormField label="Odds" placeholder="-110" value={odds} onChange={setOdds} type="number" />
-          </div>
-
-          <div style={{
-            backgroundColor: 'var(--surface-1)', borderRadius: '10px',
-            padding: '12px 16px', marginBottom: '16px',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>To win</span>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '16px',
-              fontWeight: 600, color: 'var(--green-profit)',
-            }}>${toWin}</span>
-          </div>
-
-          <button type="submit" disabled={submitting || !pick.trim() || !game.trim()} style={{
-            width: '100%', padding: '14px',
-            backgroundColor: 'var(--blue-primary)', color: '#fff',
-            border: 'none', borderRadius: '12px',
-            fontSize: '15px', fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'var(--font-sans)',
-            opacity: submitting || !pick.trim() || !game.trim() ? 0.5 : 1,
-          }}>
-            {submitting ? 'Adding...' : 'Track This Bet'}
-          </button>
-        </form>
-      </div>
     </div>
   );
 }

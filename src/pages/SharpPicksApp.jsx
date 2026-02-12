@@ -11,10 +11,12 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('today');
   const [hasEnteredApp, setHasEnteredApp] = useState(false);
   const [profileScreen, setProfileScreen] = useState(null);
+  const [pickToTrack, setPickToTrack] = useState(null);
 
-  const navigateTo = (tab, screen) => {
+  const navigateTo = (tab, screen, data) => {
     setActiveTab(tab);
     if (screen) setProfileScreen(screen);
+    if (data?.pickToTrack) setPickToTrack(data.pickToTrack);
   };
 
   useEffect(() => {
@@ -70,7 +72,7 @@ function AppContent() {
       <div style={{ flex: 1, paddingBottom: '80px', overflowY: 'auto' }}>
         {activeTab === 'today' && <TodayTab onNavigate={navigateTo} />}
         {activeTab === 'dashboard' && <DashboardTab />}
-        {activeTab === 'profile' && <ProfileTab initialScreen={profileScreen} onScreenChange={setProfileScreen} />}
+        {activeTab === 'profile' && <ProfileTab initialScreen={profileScreen} onScreenChange={setProfileScreen} pickToTrack={pickToTrack} onPickTracked={() => setPickToTrack(null)} />}
       </div>
       <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>

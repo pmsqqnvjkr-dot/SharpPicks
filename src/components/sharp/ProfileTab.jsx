@@ -8,7 +8,7 @@ import BetTrackingScreen from './BetTrackingScreen';
 import ReferralScreen from './ReferralScreen';
 import NotificationsScreen from './NotificationsScreen';
 
-export default function ProfileTab({ initialScreen, onScreenChange }) {
+export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack, onPickTracked }) {
   const { user, logout } = useAuth();
   const { data: foundingData } = useApi('/public/founding-count');
   const [showAuth, setShowAuth] = useState(false);
@@ -26,7 +26,7 @@ export default function ProfileTab({ initialScreen, onScreenChange }) {
 
   if (screen === 'history') return <PickHistoryScreen onBack={() => navigate(null)} />;
   if (screen === 'how') return <HowItWorksScreen onBack={() => navigate(null)} />;
-  if (screen === 'bets') return <BetTrackingScreen onBack={() => navigate(null)} />;
+  if (screen === 'bets') return <BetTrackingScreen onBack={() => { navigate(null); if (onPickTracked) onPickTracked(); }} pickToTrack={pickToTrack} />;
   if (screen === 'referral') return <ReferralScreen onBack={() => navigate(null)} />;
   if (screen === 'notifications') return <NotificationsScreen onBack={() => navigate(null)} />;
 
