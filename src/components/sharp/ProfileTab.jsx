@@ -21,6 +21,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
   const [localScreenData, setLocalScreenData] = useState(null);
 
   const activeScreenData = localScreenData || screenData;
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
 
   useEffect(() => {
     if (initialScreen) setScreen(initialScreen);
@@ -191,7 +192,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
         </div>
 
         <SettingsSection user={user} onNavigate={navigate} />
-        <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />
+        {!isPro && <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />}
 
         <div style={{ marginTop: '12px', marginBottom: '20px' }}>
           <button onClick={logout} style={{
