@@ -280,25 +280,56 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           background: 'rgba(0,0,0,0.18)',
         }}>
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            gap: '10px', marginBottom: '10px',
-          }}>
-            <span style={{
-              fontSize: '11px', letterSpacing: '1.2px', textTransform: 'uppercase',
-              fontWeight: 800, color: 'rgba(169,180,207,0.9)',
-            }}>Expected Edge</span>
-            <span style={{
-              color: 'rgba(255,255,255,0.55)',
-              fontSize: '10px', fontWeight: 800,
-              letterSpacing: '1.1px', textTransform: 'uppercase',
-            }}>Model vs Market</span>
-          </div>
+            fontSize: '11px', letterSpacing: '1.2px', textTransform: 'uppercase',
+            fontWeight: 800, color: 'rgba(169,180,207,0.9)',
+            marginBottom: '14px',
+          }}>Model vs Market</div>
           <div style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '30px', fontWeight: 800,
-            color: 'var(--green-profit)',
-            letterSpacing: '-0.6px',
-          }}>+{pick.edge_pct}%</div>
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
+            gap: '10px',
+          }}>
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 800,
+                color: 'rgba(255,255,255,0.95)',
+              }}>
+                {pick.cover_prob ? `${(pick.cover_prob * 100).toFixed(0)}%` : (pick.model_confidence ? `${(pick.model_confidence * 100).toFixed(0)}%` : '--')}
+              </div>
+              <div style={{
+                fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
+                color: 'rgba(169,180,207,0.6)', marginTop: '4px',
+              }}>Model</div>
+            </div>
+            <div style={{
+              flex: 1, textAlign: 'center',
+              padding: '8px 0',
+              borderRadius: '10px',
+              background: 'rgba(52, 211, 153, 0.08)',
+              border: '1px solid rgba(52, 211, 153, 0.15)',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '26px', fontWeight: 800,
+                color: 'var(--green-profit)',
+                letterSpacing: '-0.5px',
+              }}>+{pick.edge_pct}%</div>
+              <div style={{
+                fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
+                color: 'var(--green-profit)', marginTop: '2px', opacity: 0.7,
+              }}>Edge</div>
+            </div>
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 800,
+                color: 'rgba(255,255,255,0.5)',
+              }}>
+                {pick.implied_prob ? `${(pick.implied_prob * 100).toFixed(0)}%` : '--'}
+              </div>
+              <div style={{
+                fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
+                color: 'rgba(169,180,207,0.6)', marginTop: '4px',
+              }}>Market</div>
+            </div>
+          </div>
         </section>
 
         <div style={{ height: '1px', background: 'rgba(255,255,255,0.10)', margin: '14px 0' }} />
