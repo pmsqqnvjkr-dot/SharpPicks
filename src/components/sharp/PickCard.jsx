@@ -390,7 +390,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
             border: '1px solid rgba(52,211,153,0.22)',
             textAlign: 'center',
           }}>
-            Tracking — Pending
+            Tracked
           </div>
         ) : (
           <>

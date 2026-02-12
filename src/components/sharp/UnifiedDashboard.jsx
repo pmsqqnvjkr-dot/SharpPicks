@@ -939,7 +939,7 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
                         <div style={{
                           fontSize: '13px', color: 'var(--blue-primary)', fontWeight: 600, marginTop: '4px',
                         }}>
-                          {p.side} {p.line > 0 ? `+${p.line}` : p.line}
+                          {p.side}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -981,7 +981,7 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
               <div style={{
                 fontSize: '15px', color: 'var(--blue-primary)', fontWeight: 700, marginTop: '6px',
               }}>
-                {selected?.side} {selected?.line > 0 ? `+${selected.line}` : selected?.line}
+                {selected?.side}
               </div>
             </div>
 
