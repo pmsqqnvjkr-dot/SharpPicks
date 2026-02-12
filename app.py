@@ -1117,7 +1117,7 @@ def track_bet():
         if not sp_pick:
             return jsonify({'success': False, 'error': 'Pick not found'}), 404
 
-        pick_label = f"{sp_pick.side} {sp_pick.line:+g}" if sp_pick.line else sp_pick.side
+        pick_label = sp_pick.side
         game_label = f"{sp_pick.away_team} @ {sp_pick.home_team}"
     else:
         pick_label = data.get('pick', '')
