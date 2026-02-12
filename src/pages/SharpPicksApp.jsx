@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from '../hooks/useAuth';
 import TabNav from '../components/sharp/TabNav';
 import TodayTab from '../components/sharp/TodayTab';
 import DashboardTab from '../components/sharp/DashboardTab';
+import BetTrackingScreen from '../components/sharp/BetTrackingScreen';
 import ProfileTab from '../components/sharp/ProfileTab';
 import LandingPage from '../components/sharp/LandingPage';
 import OnboardingFlow from '../components/sharp/OnboardingFlow';
@@ -90,7 +91,8 @@ function AppContent() {
     }}>
       <div style={{ flex: 1, paddingBottom: '80px', overflowY: 'auto' }}>
         {activeTab === 'today' && <TodayTab onNavigate={navigateTo} />}
-        {activeTab === 'dashboard' && <DashboardTab onNavigate={navigateTo} />}
+        {activeTab === 'dashboard' && <BetTrackingScreen pickToTrack={pickToTrack} />}
+        {activeTab === 'model' && <DashboardTab onNavigate={navigateTo} />}
         {activeTab === 'profile' && <ProfileTab initialScreen={profileScreen} onScreenChange={setProfileScreen} pickToTrack={pickToTrack} onPickTracked={() => setPickToTrack(null)} screenData={profileScreenData} />}
       </div>
       <TabNav activeTab={activeTab} onTabChange={setActiveTab} />

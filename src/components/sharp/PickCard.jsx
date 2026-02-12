@@ -1,6 +1,31 @@
 import { useState } from 'react';
 import { apiPost } from '../../hooks/useApi';
 
+function formatGameDateTime(gameDate, startTime) {
+  const dateStr = startTime || gameDate;
+  if (!dateStr) return null;
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) {
+      if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [y, m, day] = dateStr.split('-');
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return { date: `${months[parseInt(m)-1]} ${parseInt(day)}, ${y}`, time: null };
+      }
+      return null;
+    }
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const date = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    const hasTime = dateStr.includes('T') || dateStr.includes(':');
+    if (!hasTime) return { date, time: null };
+    let hours = d.getHours();
+    const mins = d.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return { date, time: `${hours}:${mins} ${ampm}` };
+  } catch { return null; }
+}
+
 export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
   const isLocked = pick.locked && !isPro;
   const [tracking, setTracking] = useState(false);
@@ -47,12 +72,27 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         marginTop: '8px',
       }}>
         <div style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '10px', fontWeight: 600,
-          letterSpacing: '1.5px', textTransform: 'uppercase',
-          color: 'var(--green-profit)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           marginBottom: '16px',
-        }}>Pick Published Today</div>
+        }}>
+          <span style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '10px', fontWeight: 600,
+            letterSpacing: '1.5px', textTransform: 'uppercase',
+            color: 'var(--green-profit)',
+          }}>Pick Published Today</span>
+          {(() => {
+            const dt = formatGameDateTime(pick.game_date, pick.start_time);
+            if (!dt) return null;
+            return (
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px', fontWeight: 500,
+                color: 'var(--text-tertiary)',
+              }}>{dt.date}{dt.time ? ` \u00B7 ${dt.time}` : ''}</span>
+            );
+          })()}
+        </div>
 
         <div style={{
           fontFamily: 'var(--font-mono)',
@@ -107,7 +147,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
       }}>
         <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginBottom: '14px',
         }}>
           <span style={{
@@ -122,6 +162,20 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           }}>
             Qualified (A)
           </span>
+          {(() => {
+            const dt = formatGameDateTime(pick.game_date, pick.start_time);
+            if (!dt) return null;
+            return (
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px', fontWeight: 600,
+                color: 'rgba(169,180,207,0.7)',
+                letterSpacing: '0.5px',
+              }}>
+                {dt.date}{dt.time ? ` \u00B7 ${dt.time}` : ''}
+              </span>
+            );
+          })()}
         </div>
 
         <div style={{

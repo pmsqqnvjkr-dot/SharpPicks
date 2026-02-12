@@ -91,6 +91,7 @@ def today():
             'model_line': model_line,
             'market_line': market_line,
             'model_signals': model_signals,
+            'start_time': pick.start_time,
             'result': pick.result,
             'pnl': pick.pnl,
             'published_at': pick.published_at.isoformat() if pick.published_at else None,

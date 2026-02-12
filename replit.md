@@ -36,7 +36,7 @@ Historical spread data (2006-2018) had inverted sign convention. The data source
 
 ### Frontend (React + Vite)
 - `src/App.jsx` - Router entry point (main app + password reset route)
-- `src/pages/SharpPicksApp.jsx` - Main 3-tab shell with landing page for new visitors
+- `src/pages/SharpPicksApp.jsx` - Main 4-tab shell (Today, Dashboard, Model, Profile) with landing page for new visitors
 - `src/pages/ResetPassword.jsx` - Password reset page (token-based)
 - `src/hooks/useApi.js` - API fetch hooks
 - `src/hooks/useAuth.jsx` - Auth context provider
@@ -44,11 +44,11 @@ Historical spread data (2006-2018) had inverted sign convention. The data source
 
 ### Components (`src/components/sharp/`)
 - `LandingPage.jsx` - Marketing landing page for non-authenticated visitors
-- `TabNav.jsx` - Bottom tab navigation (Today, Dashboard, Profile)
+- `TabNav.jsx` - Bottom tab navigation (Today, Dashboard, Model, Profile)
 - `TodayTab.jsx` - Today's pick/pass/waiting state display (with skeleton loading, inline errors)
 - `PickCard.jsx` - Pick detail card (locked for free users)
 - `NoPickCard.jsx` - "Discipline preserved" pass day card
-- `DashboardTab.jsx` - Performance stats, equity curve, streaks (routes free users to FreeTierDashboard)
+- `DashboardTab.jsx` - Model performance stats, equity curve, streaks (accessed via "Model" tab, routes free users to FreeTierDashboard)
 - `ProfileTab.jsx` - User profile, settings menu, pricing, routes to all sub-screens
 - `AuthModal.jsx` - Login/register/forgot-password modal
 - `PickHistoryScreen.jsx` - Full pick history with filtering, tap-to-view resolution

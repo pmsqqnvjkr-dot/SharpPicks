@@ -92,10 +92,12 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
     }
   };
 
+  const isTab = !onBack;
+
   if (!user) {
     return (
       <div style={{ padding: '0' }}>
-        <ScreenHeader onBack={onBack} title="Your Performance" />
+        {isTab ? <TabHeader title="Dashboard" /> : <ScreenHeader onBack={onBack} title="Your Performance" />}
         <div style={{ padding: '40px 20px', textAlign: 'center' }}>
           <div style={{
             width: '56px', height: '56px', borderRadius: '14px',
@@ -122,7 +124,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
-      <ScreenHeader onBack={onBack} title="Your Performance" />
+      {isTab ? <TabHeader title="Dashboard" /> : <ScreenHeader onBack={onBack} title="Your Performance" />}
 
       <div style={{ padding: '0 20px 12px', display: 'flex', gap: '8px' }}>
         <ViewToggle label="Dashboard" active={activeView === 'dashboard'} onClick={() => setActiveView('dashboard')} />
@@ -990,6 +992,17 @@ function FormField({ label, placeholder, value, onChange, type = 'text' }) {
           outline: 'none', boxSizing: 'border-box',
         }}
       />
+    </div>
+  );
+}
+
+function TabHeader({ title }) {
+  return (
+    <div style={{ padding: '20px 20px 16px' }}>
+      <h1 style={{
+        fontFamily: 'var(--font-serif)', fontSize: '22px',
+        fontWeight: 600, color: 'var(--text-primary)',
+      }}>{title}</h1>
     </div>
   );
 }
