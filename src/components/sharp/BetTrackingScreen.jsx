@@ -827,7 +827,7 @@ function BetRow({ bet, isLast, onMarkResult, confirmDelete, setConfirmDelete, on
             }}>
               {bet.result === 'W' ? `+$${Math.abs(bet.profit).toFixed(0)}` : `-$${Math.abs(bet.profit).toFixed(0)}`}
             </div>
-          ) : (
+          ) : pickResultLabel ? (
             <div style={{ display: 'flex', gap: '6px' }}>
               <button onClick={() => onMarkResult(bet.id, 'W')} style={{
                 padding: '4px 10px', fontSize: '11px', fontWeight: 600,
@@ -842,6 +842,11 @@ function BetRow({ bet, isLast, onMarkResult, confirmDelete, setConfirmDelete, on
                 cursor: 'pointer', fontFamily: 'var(--font-mono)',
               }}>L</button>
             </div>
+          ) : (
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
+              color: 'var(--text-tertiary)',
+            }}>Pending</div>
           )}
         </div>
       </div>
