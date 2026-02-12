@@ -1,0 +1,123 @@
+Output
+
+For every game you must produce:
+	•	Predicted margin (Team A by X)
+	•	Cover probability for the spread you are grading against
+	•	Edge vs the market line
+	•	Decision: pick or no pick
+
+1) Data you must have (minimum viable)
+
+Market
+	•	Current spread (and ideally best available spread across books)
+	•	Odds for spread (-110 etc.)
+	•	Open line + timestamp
+	•	Current line + timestamp
+	•	Closing line (for tracking)
+
+Teams
+	•	Net rating (or offense and defense ratings)
+	•	Pace
+	•	Recent form (last 5 to 10 games, but not over weighted)
+	•	Rest days
+	•	Travel distance or back to back flag
+
+Players
+	•	Injury status for key players
+	•	Starter availability indicator
+	•	Minutes or on off impact proxy if you have it
+
+If any of those are missing, your pick should default to no pick.
+
+2) Model core (two clean options)
+
+Option A: Predict margin directly
+	•	Model predicts expected margin (home minus away).
+	•	Then compare to spread to compute cover probability.
+
+Option B: Predict cover probability directly
+	•	Model outputs P(cover) given the spread.
+
+Margin first is usually easier to debug and explain.
+
+3) Convert predicted margin to cover probability
+
+You need an error distribution. Keep it simple:
+	•	Assume prediction error ~ normal with std dev around 11 to 13 points (NBA spreads are noisy).
+	•	P(cover) = P(predicted_margin - spread > 0) under that distribution.
+
+This is what turns “we think they win by 4.2” into “we think they cover at 56%”.
+
+4) Edge calculation
+	•	Convert odds to implied probability.
+	•	At -110, implied is ~52.38%
+	•	Edge = cover_prob - implied_prob
+	•	Your publish rule:
+	•	Edge >= 3.5%
+	•	AND best line still available
+	•	AND line movement is not flashing danger
+
+5) Line movement logic
+
+This is a huge differentiator. Simple rules:
+	•	If the line moved against your side by 1 point or more since your last refresh, require a higher edge (example: +1.5% extra).
+	•	If the line moved in your favor, that is supportive, but do not chase late steam.
+
+You also need a hard cutoff:
+	•	Do not publish within X minutes of tip if your injury feed is laggy.
+
+6) Selection discipline
+
+Because your product is “restraint”:
+	•	Max one pick per day
+	•	If no game clears the bar, publish “No pick today”
+	•	If multiple games clear, choose the highest edge after applying risk filters
+
+Risk filters to avoid traps:
+	•	Avoid huge spreads (example: > 11) unless edge is exceptional
+	•	Avoid uncertain injury games unless you have confirmed statuses
+	•	Avoid games with missing market data
+
+7) What to store per pick (this matters)
+
+Create a picks table with:
+	•	game_id, home, away, start_time
+	•	market_spread, market_odds, sportsbook
+	•	predicted_margin
+	•	cover_prob
+	•	implied_prob
+	•	edge
+	•	confidence score (if you keep it, define it as a function of edge and data quality)
+	•	line_open, line_now, line_close
+	•	published_at timestamp
+	•	result ATS, profit_units
+	•	notes fields for reasoning text
+
+This becomes your Pro pick log and your proof.
+
+8) “Reasoning” generation
+
+Do not let it ramble. Always 3 bullets pulled from data:
+	•	rest advantage
+	•	net rating gap
+	•	pace or matchup
+	•	line value and why it is still playable
+
+Same structure every time.
+
+9) Performance tracking that actually proves it
+
+Track both:
+	•	ATS record and units
+	•	CLV (closing line value) on every pick
+
+CLV is how you win arguments with skeptics.
+
+10) Fail safe behavior
+
+If any of these break, you publish no pick:
+	•	odds API down
+	•	injuries stale
+	•	predicted margin missing
+	•	line missing
+	•	game start time ambiguous

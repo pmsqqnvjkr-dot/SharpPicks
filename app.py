@@ -154,7 +154,9 @@ def grade_pending_picks():
                     covered = (-spread_result + line_value) > 0
 
                 pick.result = 'win' if covered else 'loss'
+                pick.result_ats = 'W' if covered else 'L'
                 pick.pnl = 91 if covered else -100
+                pick.profit_units = 0.91 if covered else -1.0
                 pick.result_resolved_at = datetime.now()
 
                 print(f"[Auto-grade] {pick.game_date}: {pick.side} -> {pick.result} (score: {home_score}-{away_score})")
@@ -187,46 +189,56 @@ def collect_closing_lines():
         print(f"[{datetime.now()}] Line refresh error (continuing): {e}")
     
     print(f"[{datetime.now()}] Capturing closing lines...")
-    try:
-        conn = sqlite3.connect('sharp_picks.db')
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        today_str = datetime.now().strftime('%Y-%m-%d')
-        cursor.execute('''
-            SELECT id, home_team, away_team, spread_home, total,
-                   home_ml, away_ml
-            FROM games
-            WHERE game_date LIKE ?
-            AND home_score IS NULL
-            AND spread_home IS NOT NULL
-        ''', (f'{today_str}%',))
-        
-        games = cursor.fetchall()
-        updated = 0
-        
-        for game in games:
-            cursor.execute('''
-                UPDATE games SET
-                    spread_home_close = ?,
-                    total_close = ?,
-                    home_ml_close = ?,
-                    away_ml_close = ?,
-                    close_collected_at = ?
-                WHERE id = ?
-            ''', (game['spread_home'], game['total'],
-                  game['home_ml'], game['away_ml'],
-                  datetime.now().isoformat(), game['id']))
+    with app.app_context():
+        try:
+            conn = sqlite3.connect('sharp_picks.db')
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
             
-            from performance_tracker import update_closing_line
-            update_closing_line(game['id'], game['spread_home'])
-            updated += 1
-        
-        conn.commit()
-        conn.close()
-        print(f"[{datetime.now()}] Captured closing lines for {updated} games")
-    except Exception as e:
-        print(f"[{datetime.now()}] Closing line error: {e}")
+            today_str = datetime.now().strftime('%Y-%m-%d')
+            cursor.execute('''
+                SELECT id, home_team, away_team, spread_home, total,
+                       home_ml, away_ml
+                FROM games
+                WHERE game_date LIKE ?
+                AND home_score IS NULL
+                AND spread_home IS NOT NULL
+            ''', (f'{today_str}%',))
+            
+            games = cursor.fetchall()
+            updated = 0
+            
+            for game in games:
+                cursor.execute('''
+                    UPDATE games SET
+                        spread_home_close = ?,
+                        total_close = ?,
+                        home_ml_close = ?,
+                        away_ml_close = ?,
+                        close_collected_at = ?
+                    WHERE id = ?
+                ''', (game['spread_home'], game['total'],
+                      game['home_ml'], game['away_ml'],
+                      datetime.now().isoformat(), game['id']))
+                
+                from performance_tracker import update_closing_line
+                update_closing_line(game['id'], game['spread_home'])
+                updated += 1
+
+                today_pick = Pick.query.filter(
+                    Pick.home_team == game['home_team'],
+                    Pick.away_team == game['away_team'],
+                    Pick.game_date.like(f'{today_str}%')
+                ).first()
+                if today_pick and today_pick.line_close is None:
+                    today_pick.line_close = game['spread_home']
+            
+            conn.commit()
+            conn.close()
+            db.session.commit()
+            print(f"[{datetime.now()}] Captured closing lines for {updated} games")
+        except Exception as e:
+            print(f"[{datetime.now()}] Closing line error: {e}")
 
 
 def check_data_quality():

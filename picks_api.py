@@ -160,10 +160,20 @@ def history():
             'game_date': p.game_date,
             'side': p.side,
             'line': p.line,
+            'line_open': p.line_open,
+            'line_close': p.line_close,
+            'start_time': p.start_time,
             'edge_pct': p.edge_pct,
             'model_confidence': p.model_confidence,
+            'predicted_margin': p.predicted_margin,
+            'cover_prob': p.cover_prob,
+            'implied_prob': p.implied_prob,
+            'market_odds': p.market_odds,
+            'sportsbook': p.sportsbook,
             'result': p.result,
+            'result_ats': p.result_ats,
             'pnl': p.pnl,
+            'profit_units': p.profit_units,
         } for p in picks.items],
         'total': picks.total,
         'page': picks.page,
@@ -174,6 +184,14 @@ def history():
 @picks_bp.route('/<pick_id>')
 def get_pick(pick_id):
     pick = Pick.query.get_or_404(pick_id)
+
+    model_signals = []
+    if pick.notes:
+        model_signals = [s.strip() for s in pick.notes.split('|') if s.strip()]
+
+    actual_odds = pick.market_odds or -110
+    stake = calculate_stake_guidance(pick.edge_pct or 0, pick.model_confidence or 0.5, actual_odds)
+
     return jsonify({
         'id': pick.id,
         'published_at': pick.published_at.isoformat() if pick.published_at else None,
@@ -181,11 +199,24 @@ def get_pick(pick_id):
         'away_team': pick.away_team,
         'home_team': pick.home_team,
         'game_date': pick.game_date,
+        'start_time': pick.start_time,
         'side': pick.side,
         'line': pick.line,
+        'line_open': pick.line_open,
+        'line_close': pick.line_close,
         'edge_pct': pick.edge_pct,
         'model_confidence': pick.model_confidence,
+        'predicted_margin': pick.predicted_margin,
+        'cover_prob': pick.cover_prob,
+        'implied_prob': pick.implied_prob,
+        'market_odds': pick.market_odds,
+        'sportsbook': pick.sportsbook,
+        'model_signals': model_signals,
+        'stake_guidance': stake,
         'result': pick.result,
+        'result_ats': pick.result_ats,
         'pnl': pick.pnl,
+        'profit_units': pick.profit_units,
         'notes': pick.notes,
+        'disclaimer': 'For informational and entertainment purposes only. No guaranteed outcomes. Past performance does not guarantee future results. Please gamble responsibly.',
     })

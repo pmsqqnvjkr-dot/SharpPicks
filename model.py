@@ -231,6 +231,18 @@ class EnsemblePredictor:
         features['bdl_away_avg_pts'] = pd.to_numeric(df.get('bdl_away_avg_pts', pd.Series([110]*len(df))), errors='coerce').fillna(110)
         features['bdl_projected_total'] = features['bdl_home_avg_pts'] + features['bdl_away_avg_pts']
 
+        def parse_injury_impact(injury_text):
+            if pd.isna(injury_text) or not injury_text or injury_text == '':
+                return 0.0
+            text = str(injury_text)
+            out_count = text.lower().count('out')
+            questionable_count = text.lower().count('questionable') + text.lower().count('doubtful')
+            return float(out_count * 5.0 + questionable_count * 2.0)
+
+        features['home_injury_impact'] = df.get('home_injuries', pd.Series(['']*len(df))).apply(parse_injury_impact)
+        features['away_injury_impact'] = df.get('away_injuries', pd.Series(['']*len(df))).apply(parse_injury_impact)
+        features['injury_diff'] = features['away_injury_impact'] - features['home_injury_impact']
+
         return features
     
     def prepare_target(self, df):

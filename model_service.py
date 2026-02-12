@@ -121,6 +121,21 @@ def run_model_and_log(app):
                     except (ValueError, TypeError):
                         pass
                 
+                game_date_str = pred['game_date'] or ''
+                try:
+                    if 'T' in game_date_str:
+                        game_time = datetime.fromisoformat(game_date_str.replace('Z', '+00:00'))
+                    else:
+                        game_time = datetime.strptime(game_date_str[:10], '%Y-%m-%d').replace(hour=19, minute=0)
+                    minutes_to_tip = (game_time - datetime.now()).total_seconds() / 60
+                    if minutes_to_tip < 30:
+                        home_inj = pred['home_injuries'] or ''
+                        away_inj = pred['away_injuries'] or ''
+                        if not home_inj and not away_inj:
+                            continue
+                except (ValueError, TypeError):
+                    pass
+                
                 if adjusted_edge >= EDGE_THRESHOLD and (best_pred is None or adjusted_edge > best_adjusted_edge):
                     best_pred = pred
                     best_adjusted_edge = adjusted_edge
@@ -140,6 +155,9 @@ def run_model_and_log(app):
                 pred_odds = best_pred['market_odds'] if best_pred['market_odds'] is not None else STANDARD_ODDS
                 pred_book = best_pred['recommended_book'] if best_pred['recommended_book'] else 'DraftKings'
 
+                open_spread = best_pred['spread_home_open']
+                game_start = best_pred['game_date']
+
                 pick = Pick(
                     sport='nba',
                     away_team=best_pred['away_team'],
@@ -147,6 +165,8 @@ def run_model_and_log(app):
                     game_date=best_pred['game_date'],
                     side=best_pred['prediction'],
                     line=pick_spread,
+                    line_open=open_spread,
+                    start_time=game_start,
                     edge_pct=round(best_adjusted_edge, 1),
                     model_confidence=round(best_pred['confidence'], 4),
                     predicted_margin=round(pred_margin, 1) if pred_margin is not None else None,

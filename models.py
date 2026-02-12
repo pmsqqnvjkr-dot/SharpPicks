@@ -84,6 +84,9 @@ class Pick(db.Model):
     game_date = db.Column(db.String, nullable=False)
     side = db.Column(db.String, nullable=False)
     line = db.Column(db.Float, default=0)
+    line_open = db.Column(db.Float, nullable=True)
+    line_close = db.Column(db.Float, nullable=True)
+    start_time = db.Column(db.String, nullable=True)
     edge_pct = db.Column(db.Float, nullable=False)
     model_confidence = db.Column(db.Float, nullable=False)
     predicted_margin = db.Column(db.Float, nullable=True)
@@ -92,8 +95,10 @@ class Pick(db.Model):
     market_odds = db.Column(db.Integer, default=-110)
     sportsbook = db.Column(db.String, default='DraftKings')
     result = db.Column(db.String, default='pending')
+    result_ats = db.Column(db.String, nullable=True)
     result_resolved_at = db.Column(db.DateTime, nullable=True)
     pnl = db.Column(db.Float, nullable=True)
+    profit_units = db.Column(db.Float, nullable=True)
     notes = db.Column(db.String, nullable=True)
 
 

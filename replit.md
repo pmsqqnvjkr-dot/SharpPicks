@@ -108,8 +108,8 @@ Sharp Picks is a sports betting discipline system. One pick per day maximum, onl
 - **Feb 12**: Margin-first prediction: GBR predicts expected margin, converts to cover prob via Normal CDF (σ=residual std)
 - **Feb 12**: Graduated line movement: +1.5% extra edge required per 1pt moved against (not binary cutoff)
 - **Feb 12**: Risk filters: spread >11 auto-excluded unless edge ≥8%, missing spread = hard pass
-- **Feb 12**: Fail-safe: no pick published if spread/prediction missing
-- **Feb 12**: Pick schema upgraded: predicted_margin, cover_prob, implied_prob, market_odds, sportsbook columns
+- **Feb 12**: Fail-safe: no pick published if spread/prediction missing, stale data >12h, or <30min to tip without injury data
+- **Feb 12**: Pick schema upgraded: predicted_margin, cover_prob, implied_prob, market_odds, sportsbook, line_open, line_close, start_time, result_ats, profit_units
 - **Feb 12**: prediction_log upgraded with predicted_margin, implied_prob, edge_vs_market, EV, explanation audit fields
 - **Feb 12**: Exactly 3 structured reasoning bullets per pick: rest, net rating, pace/matchup, line value
 - **Feb 12**: PickCard shows predicted margin, cover probability, spread, and odds
