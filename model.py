@@ -562,9 +562,11 @@ class EnsemblePredictor:
             
             pred_margin = predicted_margins[idx] if predicted_margins is not None else None
             
+            used_fallback = False
             if pred_margin is not None and spread is not None:
                 home_cover_prob = float(norm.cdf((pred_margin + spread) / sigma))
             else:
+                used_fallback = True
                 home_cover_prob = proba
             
             if home_cover_prob >= 0.5:
@@ -600,6 +602,8 @@ class EnsemblePredictor:
                 fail_reasons.append('missing_spread')
             if pred_margin is None and proba is None:
                 fail_reasons.append('missing_prediction')
+            if used_fallback:
+                fail_reasons.append('no_margin_sigma_for_ats')
             
             spread_abs = abs(spread) if spread is not None else 0
             if spread_abs > MAX_SPREAD_DEFAULT and adjusted_edge < 8.0:
