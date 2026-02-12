@@ -24,6 +24,7 @@ STRONG_CONFIDENCE_THRESHOLD = 0.60
 EDGE_THRESHOLD_PCT = 3.5
 STANDARD_ODDS = -110
 MARGIN_STD_DEV = 12.0
+MARGIN_STD_FLOOR = 9.0
 MAX_SPREAD_DEFAULT = 11.0
 LINE_MOVE_PENALTY_PER_PT = 1.5
 
@@ -389,9 +390,21 @@ class EnsemblePredictor:
         
         margin_preds = self.margin_model.predict(X_test_scaled)
         margin_mae = np.mean(np.abs(margin_preds - margin_test))
-        margin_residuals = margin_preds - margin_test
-        self.margin_std = np.std(margin_residuals)
-        print(f"   Margin MAE: {margin_mae:.1f} pts, residual std: {self.margin_std:.1f} pts")
+
+        from sklearn.model_selection import KFold
+        kf = KFold(n_splits=5, shuffle=True, random_state=42)
+        cv_residuals = []
+        for cv_train, cv_test in kf.split(X_scaled, margin_target):
+            cv_model = GradientBoostingRegressor(
+                n_estimators=200, max_depth=4, learning_rate=0.1, random_state=42
+            )
+            cv_model.fit(X_scaled[cv_train], margin_target.iloc[cv_train])
+            cv_preds = cv_model.predict(X_scaled[cv_test])
+            cv_residuals.extend(cv_preds - margin_target.iloc[cv_test].values)
+        cv_std_raw = np.std(cv_residuals)
+        self.margin_std = max(cv_std_raw, MARGIN_STD_FLOOR)
+        print(f"   Margin MAE: {margin_mae:.1f} pts")
+        print(f"   CV residual std: {cv_std_raw:.1f} pts (floored at {MARGIN_STD_FLOOR}, using {self.margin_std:.1f})")
         
         self.trained = True
         
