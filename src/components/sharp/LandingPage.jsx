@@ -8,7 +8,7 @@ export default function LandingPage({ onEnterApp }) {
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('register');
 
-  const spotsLeft = founding ? Math.max(0, 500 - (founding.current_count || 0)) : null;
+  const spotsLeft = founding ? (founding.remaining != null ? founding.remaining : Math.max(0, 500 - (founding.current || 0))) : null;
 
   const ShieldLogo = ({ size = 24 }) => (
     <svg viewBox="0 0 40 40" width={size} height={size} fill="none">
