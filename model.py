@@ -809,37 +809,62 @@ class EnsemblePredictor:
         home_rest = row.get('home_rest_days', None)
         away_rest = row.get('away_rest_days', None)
         try:
-            h_rest = int(home_rest) if home_rest else 1
-            a_rest = int(away_rest) if away_rest else 1
-            rest_diff = (h_rest - a_rest) if pick_home else (a_rest - h_rest)
-            if rest_diff > 0:
-                candidates.append(('rest', 3, f"Rest advantage: {pick_team} on {max(h_rest,a_rest)}d rest vs {opp_team} {min(h_rest,a_rest)}d"))
-            elif h_rest == 1 and a_rest == 1:
-                candidates.append(('rest', 1, f"Both teams on 1 day rest — no rest edge"))
+            h_rest = int(home_rest) if home_rest is not None else None
+            a_rest = int(away_rest) if away_rest is not None else None
+            if h_rest is not None and a_rest is not None:
+                rest_diff = (h_rest - a_rest) if pick_home else (a_rest - h_rest)
+                if rest_diff > 0:
+                    candidates.append(('rest', 3, f"Rest advantage: {pick_team} on {max(h_rest,a_rest)}d rest vs {opp_team} {min(h_rest,a_rest)}d"))
+                elif h_rest == a_rest:
+                    if h_rest == 0:
+                        candidates.append(('rest', 1, f"Back-to-back for both teams — no rest edge"))
+                    else:
+                        candidates.append(('rest', 1, f"Both teams on {h_rest}d rest — no rest edge"))
+                elif rest_diff < 0:
+                    candidates.append(('rest', 1, f"Rest disadvantage: {pick_team} {h_rest if pick_home else a_rest}d vs {opp_team} {a_rest if pick_home else h_rest}d — edge overcomes this"))
+                else:
+                    candidates.append(('rest', 1, f"Rest neutral: {home} {h_rest}d, {away} {a_rest}d"))
             else:
-                candidates.append(('rest', 1, f"Rest neutral: {home} {h_rest}d, {away} {a_rest}d"))
+                candidates.append(('rest', 0, f"Rest data unavailable"))
         except (ValueError, TypeError):
             candidates.append(('rest', 0, f"Rest data unavailable"))
         
+        home_margin = row.get('bdl_home_scoring_margin', None)
+        away_margin = row.get('bdl_away_scoring_margin', None)
         home_net = row.get('home_net_rtg', None)
         away_net = row.get('away_net_rtg', None)
         try:
-            h_net = float(home_net) if home_net is not None else 0
-            a_net = float(away_net) if away_net is not None else 0
-            net_diff = (h_net - a_net) if pick_home else (a_net - h_net)
-            if net_diff > 3:
-                candidates.append(('net_rating', 3, f"Net rating edge: {pick_team} {abs(net_diff):.1f}pts better per 100 possessions"))
-            elif net_diff > 0:
-                candidates.append(('net_rating', 2, f"Net rating slightly favors {pick_team} ({abs(net_diff):.1f}pts)"))
+            if home_net is not None and away_net is not None:
+                h_net = float(home_net)
+                a_net = float(away_net)
+                net_diff = (h_net - a_net) if pick_home else (a_net - h_net)
+                if net_diff > 3:
+                    candidates.append(('net_rating', 3, f"Net rating edge: {pick_team} {abs(net_diff):.1f}pts better per 100 possessions"))
+                elif net_diff > 0:
+                    candidates.append(('net_rating', 2, f"Net rating slightly favors {pick_team} ({abs(net_diff):.1f}pts)"))
+                else:
+                    candidates.append(('net_rating', 1, f"Net rating favors {opp_team} by {abs(net_diff):.1f}pts — spread accounts for this"))
+            elif home_margin is not None and away_margin is not None:
+                h_margin = float(home_margin)
+                a_margin = float(away_margin)
+                margin_diff = (h_margin - a_margin) if pick_home else (a_margin - h_margin)
+                if margin_diff > 3:
+                    candidates.append(('net_rating', 3, f"Scoring margin edge: {pick_team} outscores opponents by {abs(margin_diff):.1f}pts more per game"))
+                elif margin_diff > 0:
+                    candidates.append(('net_rating', 2, f"Scoring margin slightly favors {pick_team} ({abs(margin_diff):.1f}pts better)"))
+                else:
+                    candidates.append(('net_rating', 1, f"Scoring margin favors {opp_team} by {abs(margin_diff):.1f}pts — spread accounts for this"))
             else:
-                candidates.append(('net_rating', 1, f"Net rating favors {opp_team} by {abs(net_diff):.1f}pts — spread accounts for this"))
+                candidates.append(('net_rating', 0, f"Rating data unavailable"))
         except (ValueError, TypeError):
-            candidates.append(('net_rating', 0, f"Net rating data unavailable"))
+            candidates.append(('net_rating', 0, f"Rating data unavailable"))
         
         home_pace = row.get('home_pace', None)
         away_pace = row.get('away_pace', None)
-        home_margin = row.get('bdl_home_scoring_margin', None)
-        away_margin = row.get('bdl_away_scoring_margin', None)
+        home_avg_pts = row.get('bdl_home_avg_pts', None)
+        away_avg_pts = row.get('bdl_away_avg_pts', None)
+        home_avg_against = row.get('bdl_home_avg_pts_against', None)
+        away_avg_against = row.get('bdl_away_avg_pts_against', None)
         try:
             if home_pace is not None and away_pace is not None:
                 h_pace = float(home_pace)
@@ -857,20 +882,35 @@ class EnsemblePredictor:
                     candidates.append(('matchup', 2, f"Pace mismatch: {h_pace:.1f} vs {a_pace:.1f} possessions per game"))
                 else:
                     candidates.append(('matchup', 1, f"Pace similar ({(h_pace+a_pace)/2:.1f}), neutral matchup factor"))
+            elif home_avg_against is not None and away_avg_against is not None:
+                h_against = float(home_avg_against)
+                a_against = float(away_avg_against)
+                if pick_home:
+                    def_diff = a_against - h_against
+                else:
+                    def_diff = h_against - a_against
+                if def_diff > 3:
+                    opp_against = a_against if pick_home else h_against
+                    candidates.append(('matchup', 3, f"Defensive mismatch: {opp_team} allows {opp_against:.1f}pts/game"))
+                elif home_avg_pts is not None and away_avg_pts is not None:
+                    h_pts = float(home_avg_pts)
+                    a_pts = float(away_avg_pts)
+                    pick_pts = h_pts if pick_home else a_pts
+                    candidates.append(('matchup', 2, f"{pick_team} averaging {pick_pts:.1f}pts vs defense allowing {(a_against if pick_home else h_against):.1f}"))
+                else:
+                    candidates.append(('matchup', 1, f"Matchup data limited"))
             else:
-                candidates.append(('matchup', 0, f"Pace/matchup data unavailable"))
+                candidates.append(('matchup', 0, f"Matchup data unavailable"))
         except (ValueError, TypeError):
-            candidates.append(('matchup', 0, f"Pace/matchup data unavailable"))
+            candidates.append(('matchup', 0, f"Matchup data unavailable"))
         
         if open_spread is not None and spread is not None:
             move = spread - open_spread
             move_abs = abs(move)
-            if pick_home and move < -0.5:
-                candidates.append(('line_value', 3, f"Line value: getting {move_abs:.1f}pts better number than open ({open_spread:+.1f} → {spread:+.1f})"))
-            elif not pick_home and move > 0.5:
-                candidates.append(('line_value', 3, f"Line value: getting {move_abs:.1f}pts better number than open ({open_spread:+.1f} → {spread:+.1f})"))
-            elif move_abs < 0.5:
+            if move_abs < 0.5:
                 candidates.append(('line_value', 2, f"Line stable since open ({spread:+.1f}), market agrees with number"))
+            elif (pick_home and move < -0.5) or (not pick_home and move > 0.5):
+                candidates.append(('line_value', 3, f"Line value: getting {move_abs:.1f}pts better number than open ({open_spread:+.1f} → {spread:+.1f})"))
             else:
                 candidates.append(('line_value', 1, f"Line moved {move_abs:.1f}pts against since open — still playable at current edge"))
         else:
