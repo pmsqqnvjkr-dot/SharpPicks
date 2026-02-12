@@ -11,7 +11,8 @@ from datetime import datetime, timedelta
 import pickle
 import os
 
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier, AdaBoostClassifier
+from scipy.stats import norm
+from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier, AdaBoostClassifier
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.calibration import CalibratedClassifierCV, calibration_curve
@@ -22,6 +23,9 @@ MIN_CONFIDENCE_THRESHOLD = 0.55
 STRONG_CONFIDENCE_THRESHOLD = 0.60
 EDGE_THRESHOLD_PCT = 3.5
 STANDARD_ODDS = -110
+MARGIN_STD_DEV = 12.0
+MAX_SPREAD_DEFAULT = 11.0
+LINE_MOVE_PENALTY_PER_PT = 1.5
 
 
 class EnsemblePredictor:
@@ -54,6 +58,7 @@ class EnsemblePredictor:
             )
         }
         self.models = {}
+        self.margin_model = None
         self.scaler = StandardScaler()
         self.trained = False
         self.feature_names = []
@@ -357,14 +362,33 @@ class EnsemblePredictor:
         # Calculate calibration curve for ensemble
         self._analyze_calibration(y_test, ensemble_proba)
         
+        print("\n   Training margin regression model...")
+        margin_target = (df['home_score'] - df['away_score']).astype(float)
+        margin_train = margin_target.iloc[train_idx]
+        margin_test = margin_target.iloc[test_idx]
+        
+        self.margin_model = GradientBoostingRegressor(
+            n_estimators=200, max_depth=4, learning_rate=0.1, random_state=42
+        )
+        try:
+            self.margin_model.fit(X_train_scaled, margin_train, sample_weight=weights_train)
+        except TypeError:
+            self.margin_model.fit(X_train_scaled, margin_train)
+        
+        margin_preds = self.margin_model.predict(X_test_scaled)
+        margin_mae = np.mean(np.abs(margin_preds - margin_test))
+        margin_residuals = margin_preds - margin_test
+        self.margin_std = np.std(margin_residuals)
+        print(f"   Margin MAE: {margin_mae:.1f} pts, residual std: {self.margin_std:.1f} pts")
+        
         self.trained = True
         
-        # Save model
         self.save()
         
-        print(f"\n✅ Calibrated model trained and saved!")
+        print(f"\n   Calibrated model trained and saved!")
         print(f"   Ensemble Test Accuracy: {ensemble_acc:.1%}")
-        print(f"   Brier Score: {ensemble_brier:.3f} (lower is better)\n")
+        print(f"   Brier Score: {ensemble_brier:.3f} (lower is better)")
+        print(f"   Margin Std Dev: {self.margin_std:.1f} pts\n")
         
         return True
     
@@ -489,10 +513,15 @@ class EnsemblePredictor:
         
         ensemble_proba = self.predict_proba(X_scaled)
         
+        predicted_margins = None
+        sigma = MARGIN_STD_DEV
+        if self.margin_model is not None:
+            predicted_margins = self.margin_model.predict(X_scaled)
+            sigma = getattr(self, 'margin_std', MARGIN_STD_DEV) or MARGIN_STD_DEV
+        
         picks = []
         
         from performance_tracker import odds_to_implied_prob, calculate_ev
-        implied_prob = odds_to_implied_prob(STANDARD_ODDS)
         
         for i, row in df.iterrows():
             idx = df.index.get_loc(i)
@@ -502,27 +531,59 @@ class EnsemblePredictor:
             spread = row['spread_home']
             proba = ensemble_proba[idx]
             
-            if proba >= 0.5:
-                pick = f"{home} {spread:+.1f}"
-                confidence = proba
+            market_odds = STANDARD_ODDS
+            home_ml = row.get('home_ml', None)
+            away_ml = row.get('away_ml', None)
+            
+            pred_margin = predicted_margins[idx] if predicted_margins is not None else None
+            
+            if pred_margin is not None and spread is not None:
+                home_cover_prob = float(norm.cdf((pred_margin + spread) / sigma))
             else:
-                pick = f"{away} {-spread:+.1f}"
-                confidence = 1 - proba
+                home_cover_prob = proba
             
+            if home_cover_prob >= 0.5:
+                pick_side = 'home'
+                pick_label = f"{home} {spread:+.1f}"
+                confidence = home_cover_prob
+            else:
+                pick_side = 'away'
+                pick_label = f"{away} {-spread:+.1f}"
+                confidence = 1 - home_cover_prob
+            
+            implied_prob = odds_to_implied_prob(market_odds)
             edge_vs_market = round((confidence - implied_prob) * 100, 2)
-            ev = calculate_ev(confidence, STANDARD_ODDS)
+            ev = calculate_ev(confidence, market_odds)
             
-            line_move = row.get('line_movement', 0) or 0
             open_spread = row.get('spread_home_open', None)
-            line_moved_against = False
+            line_move_against = 0.0
+            line_move_penalty = 0.0
             if open_spread is not None and spread is not None:
                 move = spread - open_spread
-                if proba >= 0.5 and move > 2:
-                    line_moved_against = True
-                elif proba < 0.5 and move < -2:
-                    line_moved_against = True
+                if pick_side == 'home' and move > 0:
+                    line_move_against = move
+                elif pick_side == 'away' and move < 0:
+                    line_move_against = abs(move)
+                
+                if line_move_against >= 1.0:
+                    line_move_penalty = line_move_against * LINE_MOVE_PENALTY_PER_PT
+            
+            adjusted_edge = edge_vs_market - line_move_penalty
+            
+            fail_reasons = []
+            if spread is None:
+                fail_reasons.append('missing_spread')
+            if pred_margin is None and proba is None:
+                fail_reasons.append('missing_prediction')
+            
+            spread_abs = abs(spread) if spread is not None else 0
+            if spread_abs > MAX_SPREAD_DEFAULT and adjusted_edge < 8.0:
+                fail_reasons.append(f'spread_too_large ({spread_abs:.1f})')
+            
+            home_injuries = row.get('home_injuries', None) if hasattr(row, 'get') else None
+            away_injuries = row.get('away_injuries', None) if hasattr(row, 'get') else None
 
-            explanation = self._generate_explanation(row, proba, confidence, edge_vs_market)
+            explanation = self._generate_explanation(row, proba, confidence, adjusted_edge, pred_margin)
             
             if confidence >= STRONG_CONFIDENCE_THRESHOLD:
                 rating = "STRONG"
@@ -531,6 +592,12 @@ class EnsemblePredictor:
             else:
                 rating = "SLIGHT"
             
+            passes = (
+                len(fail_reasons) == 0
+                and confidence >= min_confidence
+                and adjusted_edge >= EDGE_THRESHOLD_PCT
+            )
+            
             picks.append({
                 'game_id': row['id'],
                 'game_date': row['game_date'],
@@ -538,37 +605,45 @@ class EnsemblePredictor:
                 'home_team': home,
                 'away_team': away,
                 'spread': spread,
-                'pick': pick,
+                'pick': pick_label,
+                'pick_side': pick_side,
+                'predicted_margin': round(pred_margin, 1) if pred_margin is not None else None,
+                'cover_prob': round(confidence, 4),
                 'confidence': confidence,
                 'edge': edge_vs_market,
+                'adjusted_edge': round(adjusted_edge, 2),
                 'ev': ev,
-                'implied_prob': implied_prob,
+                'implied_prob': round(implied_prob, 4),
+                'market_odds': market_odds,
                 'rating': rating,
                 'home_proba': proba,
-                'line_moved_against': line_moved_against,
+                'line_move_against': round(line_move_against, 1),
+                'line_move_penalty': round(line_move_penalty, 1),
+                'fail_reasons': fail_reasons,
                 'explanation': explanation,
-                'passes_filter': confidence >= min_confidence and edge_vs_market >= EDGE_THRESHOLD_PCT and not line_moved_against
+                'passes_filter': passes,
             })
         
         filtered_picks = [p for p in picks if p['passes_filter']]
         excluded_count = len(picks) - len(filtered_picks)
         
-        print("-" * 90)
-        print(f"{'Game':<30} {'Pick':<18} {'Conf':>8} {'Edge':>7} {'EV':>8} {'Rating':>10}")
-        print("-" * 90)
+        print("-" * 100)
+        print(f"{'Game':<28} {'Pick':<16} {'Margin':>7} {'Cover':>7} {'Edge':>6} {'Adj':>6} {'EV':>7} {'Rating':>8}")
+        print("-" * 100)
         
-        for pick in sorted(filtered_picks, key=lambda x: x['edge'], reverse=True):
-            game_str = pick['game'][:29]
-            flag = " !" if pick['line_moved_against'] else ""
-            print(f"{game_str:<30} {pick['pick']:<18} {pick['confidence']:>7.1%} {pick['edge']:>+6.1f}% {pick['ev']:>+7.1f}% {pick['rating']:>10}{flag}")
+        for pick in sorted(filtered_picks, key=lambda x: x['adjusted_edge'], reverse=True):
+            game_str = pick['game'][:27]
+            margin_str = f"{pick['predicted_margin']:+.1f}" if pick['predicted_margin'] is not None else "  --"
+            penalty_str = f" (-{pick['line_move_penalty']:.0f}%)" if pick['line_move_penalty'] > 0 else ""
+            print(f"{game_str:<28} {pick['pick']:<16} {margin_str:>7} {pick['cover_prob']:>6.1%} {pick['edge']:>+5.1f}% {pick['adjusted_edge']:>+5.1f}% {pick['ev']:>+6.1f}% {pick['rating']:>8}{penalty_str}")
         
-        print("-" * 90)
+        print("-" * 100)
         
-        moved_count = sum(1 for p in picks if p['line_moved_against'])
+        failed = [p for p in picks if p['fail_reasons']]
+        if failed:
+            print(f"\n   {len(failed)} games hard-passed: {', '.join(set(r for p in failed for r in p['fail_reasons']))}")
         if excluded_count > 0:
-            print(f"\n   {excluded_count} games excluded (below {EDGE_THRESHOLD_PCT}% edge or line moved against)")
-        if moved_count > 0:
-            print(f"   {moved_count} games flagged: line moved against position >2pts")
+            print(f"   {excluded_count} games excluded (below {EDGE_THRESHOLD_PCT}% adjusted edge)")
         
         if log_predictions:
             try:
@@ -578,21 +653,23 @@ class EnsemblePredictor:
                     if log_prediction(
                         pick['game_id'], pick['game_date'], pick['home_team'], pick['away_team'],
                         pick['spread'], pick['pick'], pick['confidence'], pick['home_proba'],
-                        market_odds=STANDARD_ODDS,
+                        market_odds=pick['market_odds'],
                         recommended_book='DraftKings',
-                        explanation='|'.join(pick['explanation']) if pick['explanation'] else None
+                        explanation='|'.join(pick['explanation']) if pick['explanation'] else None,
+                        predicted_margin=pick.get('predicted_margin')
                     ):
                         logged += 1
                 if logged > 0:
-                    print(f"   Logged {logged} predictions with EV and audit trail")
+                    print(f"   Logged {logged} predictions with margin + EV audit trail")
             except Exception as e:
                 pass
         
-        qualified = [p for p in filtered_picks if p['edge'] >= EDGE_THRESHOLD_PCT]
+        qualified = [p for p in filtered_picks if p['adjusted_edge'] >= EDGE_THRESHOLD_PCT]
         if qualified:
-            print(f"\n   QUALIFIED OPPORTUNITIES ({EDGE_THRESHOLD_PCT}%+ edge):")
-            for pick in sorted(qualified, key=lambda x: x['edge'], reverse=True):
-                print(f"   {pick['rating']}: {pick['pick']} (edge: +{pick['edge']:.1f}%, EV: {pick['ev']:+.1f}%)")
+            print(f"\n   QUALIFIED OPPORTUNITIES ({EDGE_THRESHOLD_PCT}%+ adjusted edge):")
+            for pick in sorted(qualified, key=lambda x: x['adjusted_edge'], reverse=True):
+                margin_str = f", margin: {pick['predicted_margin']:+.1f}" if pick['predicted_margin'] is not None else ""
+                print(f"   {pick['rating']}: {pick['pick']} (edge: +{pick['adjusted_edge']:.1f}%{margin_str})")
                 if pick['explanation']:
                     for reason in pick['explanation']:
                         print(f"      - {reason}")
@@ -600,71 +677,107 @@ class EnsemblePredictor:
         print()
         return filtered_picks
     
-    def _generate_explanation(self, row, proba, confidence, edge):
-        """Generate 2-4 human-readable reasons for why this pick qualifies"""
-        reasons = []
+    def _generate_explanation(self, row, proba, confidence, edge, pred_margin=None):
+        """Generate exactly 3 structured reasoning bullets from data.
+        Always picks from: rest advantage, net rating gap, pace/matchup, line value.
+        Same structure every time."""
         
         spread = row.get('spread_home', 0) or 0
         open_spread = row.get('spread_home_open', None)
         home = row['home_team']
         away = row['away_team']
-        
         pick_home = proba >= 0.5
         pick_team = home if pick_home else away
+        opp_team = away if pick_home else home
         
-        if open_spread is not None and spread is not None:
-            move = abs(spread - open_spread)
-            if move >= 1.0:
-                if (pick_home and spread < open_spread) or (not pick_home and spread > open_spread):
-                    reasons.append(f"Line moved {move:.1f}pts in our favor since open")
-                elif move >= 2.0:
-                    reasons.append(f"Line moved {move:.1f}pts against — monitor closely")
-        
-        consensus = row.get('rundown_spread_consensus', None)
-        if consensus is not None and spread is not None:
-            diff = abs(spread - consensus)
-            if diff >= 1.5:
-                reasons.append(f"Model line differs from {len(str(row.get('rundown_num_books',0)))} book consensus by {diff:.1f}pts")
-        
-        home_margin = row.get('bdl_home_scoring_margin', None)
-        away_margin = row.get('bdl_away_scoring_margin', None)
-        if home_margin is not None and away_margin is not None:
-            margin_diff = home_margin - away_margin
-            if pick_home and margin_diff > 5:
-                reasons.append(f"Scoring margin advantage: {home} {margin_diff:+.1f}pts better recently")
-            elif not pick_home and margin_diff < -5:
-                reasons.append(f"Scoring margin advantage: {away} {abs(margin_diff):.1f}pts better recently")
+        candidates = []
         
         home_rest = row.get('home_rest_days', None)
         away_rest = row.get('away_rest_days', None)
-        if home_rest is not None and away_rest is not None:
-            try:
-                h_rest = int(home_rest) if home_rest else 1
-                a_rest = int(away_rest) if away_rest else 1
-                if pick_home and h_rest > a_rest + 1:
-                    reasons.append(f"Rest advantage: {home} {h_rest}d rest vs {away} {a_rest}d")
-                elif not pick_home and a_rest > h_rest + 1:
-                    reasons.append(f"Rest advantage: {away} {a_rest}d rest vs {home} {h_rest}d")
-            except (ValueError, TypeError):
-                pass
+        try:
+            h_rest = int(home_rest) if home_rest else 1
+            a_rest = int(away_rest) if away_rest else 1
+            rest_diff = (h_rest - a_rest) if pick_home else (a_rest - h_rest)
+            if rest_diff > 0:
+                candidates.append(('rest', 3, f"Rest advantage: {pick_team} on {max(h_rest,a_rest)}d rest vs {opp_team} {min(h_rest,a_rest)}d"))
+            elif h_rest == 1 and a_rest == 1:
+                candidates.append(('rest', 1, f"Both teams on 1 day rest — no rest edge"))
+            else:
+                candidates.append(('rest', 1, f"Rest neutral: {home} {h_rest}d, {away} {a_rest}d"))
+        except (ValueError, TypeError):
+            candidates.append(('rest', 0, f"Rest data unavailable"))
         
         home_net = row.get('home_net_rtg', None)
         away_net = row.get('away_net_rtg', None)
-        if home_net is not None and away_net is not None:
-            try:
-                net_diff = float(home_net) - float(away_net)
-                if pick_home and net_diff > 3:
-                    reasons.append(f"Net rating edge: {home} {net_diff:+.1f} better")
-                elif not pick_home and net_diff < -3:
-                    reasons.append(f"Net rating edge: {away} {abs(net_diff):.1f} better")
-            except (ValueError, TypeError):
-                pass
+        try:
+            h_net = float(home_net) if home_net is not None else 0
+            a_net = float(away_net) if away_net is not None else 0
+            net_diff = (h_net - a_net) if pick_home else (a_net - h_net)
+            if net_diff > 3:
+                candidates.append(('net_rating', 3, f"Net rating edge: {pick_team} {abs(net_diff):.1f}pts better per 100 possessions"))
+            elif net_diff > 0:
+                candidates.append(('net_rating', 2, f"Net rating slightly favors {pick_team} ({abs(net_diff):.1f}pts)"))
+            else:
+                candidates.append(('net_rating', 1, f"Net rating favors {opp_team} by {abs(net_diff):.1f}pts — spread accounts for this"))
+        except (ValueError, TypeError):
+            candidates.append(('net_rating', 0, f"Net rating data unavailable"))
         
-        if edge >= EDGE_THRESHOLD_PCT and not reasons:
+        home_pace = row.get('home_pace', None)
+        away_pace = row.get('away_pace', None)
+        home_margin = row.get('bdl_home_scoring_margin', None)
+        away_margin = row.get('bdl_away_scoring_margin', None)
+        try:
+            if home_pace is not None and away_pace is not None:
+                h_pace = float(home_pace)
+                a_pace = float(away_pace)
+                pace_diff = abs(h_pace - a_pace)
+                if home_margin is not None and away_margin is not None:
+                    h_margin = float(home_margin)
+                    a_margin = float(away_margin)
+                    margin_diff = (h_margin - a_margin) if pick_home else (a_margin - h_margin)
+                    if margin_diff > 3:
+                        candidates.append(('matchup', 3, f"Scoring margin: {pick_team} {abs(margin_diff):.1f}pts better, combined pace {(h_pace+a_pace)/2:.1f}"))
+                    else:
+                        candidates.append(('matchup', 1, f"Combined pace {(h_pace+a_pace)/2:.1f}, scoring margins close"))
+                elif pace_diff > 3:
+                    candidates.append(('matchup', 2, f"Pace mismatch: {h_pace:.1f} vs {a_pace:.1f} possessions per game"))
+                else:
+                    candidates.append(('matchup', 1, f"Pace similar ({(h_pace+a_pace)/2:.1f}), neutral matchup factor"))
+            else:
+                candidates.append(('matchup', 0, f"Pace/matchup data unavailable"))
+        except (ValueError, TypeError):
+            candidates.append(('matchup', 0, f"Pace/matchup data unavailable"))
+        
+        if open_spread is not None and spread is not None:
+            move = spread - open_spread
+            move_abs = abs(move)
+            if pick_home and move < -0.5:
+                candidates.append(('line_value', 3, f"Line value: getting {move_abs:.1f}pts better number than open ({open_spread:+.1f} → {spread:+.1f})"))
+            elif not pick_home and move > 0.5:
+                candidates.append(('line_value', 3, f"Line value: getting {move_abs:.1f}pts better number than open ({open_spread:+.1f} → {spread:+.1f})"))
+            elif move_abs < 0.5:
+                candidates.append(('line_value', 2, f"Line stable since open ({spread:+.1f}), market agrees with number"))
+            else:
+                candidates.append(('line_value', 1, f"Line moved {move_abs:.1f}pts against since open — still playable at current edge"))
+        else:
             implied = abs(STANDARD_ODDS) / (abs(STANDARD_ODDS) + 100) if STANDARD_ODDS < 0 else 100 / (STANDARD_ODDS + 100)
-            reasons.append(f"Model probability ({confidence:.0%}) exceeds market implied ({implied:.0%})")
+            candidates.append(('line_value', 2, f"Model confidence ({confidence:.0%}) exceeds market implied ({implied:.0%})"))
         
-        return reasons[:4]
+        candidates.sort(key=lambda x: x[1], reverse=True)
+        
+        seen_types = set()
+        result = []
+        for cat, score, text in candidates:
+            if cat not in seen_types:
+                seen_types.add(cat)
+                result.append(text)
+            if len(result) == 3:
+                break
+        
+        while len(result) < 3:
+            result.append(f"Edge {edge:+.1f}% exceeds {EDGE_THRESHOLD_PCT}% threshold")
+        
+        return result[:3]
     
     def walk_forward_validate(self):
         """Walk-forward validation: train on past seasons, test on next season. No future leakage."""

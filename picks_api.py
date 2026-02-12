@@ -65,7 +65,8 @@ def today():
         model_line = pick.line
         market_line = round(pick.line + (pick.edge_pct * 0.3 if pick.edge_pct else 0), 1) if pick.line else None
 
-        stake = calculate_stake_guidance(pick.edge_pct or 0, pick.model_confidence or 0.5)
+        actual_odds = pick.market_odds or -110
+        stake = calculate_stake_guidance(pick.edge_pct or 0, pick.model_confidence or 0.5, actual_odds)
 
         pick_data = {
             'type': 'pick',
@@ -78,6 +79,10 @@ def today():
             'line': pick.line,
             'edge_pct': pick.edge_pct,
             'model_confidence': pick.model_confidence,
+            'predicted_margin': pick.predicted_margin,
+            'cover_prob': pick.cover_prob,
+            'implied_prob': pick.implied_prob,
+            'market_odds': pick.market_odds,
             'model_line': model_line,
             'market_line': market_line,
             'model_signals': model_signals,
@@ -85,7 +90,7 @@ def today():
             'pnl': pick.pnl,
             'published_at': pick.published_at.isoformat() if pick.published_at else None,
             'posted_time': '2h before tip',
-            'best_book': 'DraftKings',
+            'best_book': pick.sportsbook or 'DraftKings',
             'stake_guidance': stake,
             'disclaimer': 'For informational and entertainment purposes only. No guaranteed outcomes. Past performance does not guarantee future results. Please gamble responsibly.',
         }
@@ -94,6 +99,9 @@ def today():
             pick_data['side'] = 'Upgrade to see pick'
             pick_data['edge_pct'] = None
             pick_data['model_confidence'] = None
+            pick_data['predicted_margin'] = None
+            pick_data['cover_prob'] = None
+            pick_data['implied_prob'] = None
             pick_data['model_signals'] = []
             pick_data['model_line'] = None
             pick_data['market_line'] = None

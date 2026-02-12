@@ -36,9 +36,12 @@ def run_model_and_log(app):
 
             cursor.execute('''
                 SELECT g.id, g.home_team, g.away_team, g.game_date, g.spread_home,
-                       g.spread_home_open,
+                       g.spread_home_open, g.home_ml, g.away_ml,
+                       g.home_injuries, g.away_injuries, g.collected_at,
                        p.home_cover_prob, p.confidence, p.prediction,
-                       p.edge_vs_market, p.expected_value, p.explanation
+                       p.edge_vs_market, p.expected_value, p.explanation,
+                       p.predicted_margin, p.implied_prob, p.market_odds,
+                       p.recommended_book
                 FROM games g
                 LEFT JOIN prediction_log p ON g.id = p.game_id
                 WHERE g.game_date LIKE ?
@@ -71,8 +74,11 @@ def run_model_and_log(app):
 
                 return {'status': 'pass', 'reason': 'no_games', 'date': today_str}
 
+            LINE_MOVE_PENALTY = 1.5
+            MAX_SPREAD = 11.0
+            
             best_pred = None
-            best_edge = 0
+            best_adjusted_edge = 0
             closest_edge = 0
 
             for pred in predictions:
@@ -84,18 +90,40 @@ def run_model_and_log(app):
 
                 open_spread = pred['spread_home_open']
                 current_spread = pred['spread_home']
-                line_moved_against = False
+                home_pick = pred['home_cover_prob'] and pred['home_cover_prob'] >= 0.5
+                
+                line_penalty = 0.0
                 if open_spread is not None and current_spread is not None:
                     move = current_spread - open_spread
-                    home_pick = pred['home_cover_prob'] and pred['home_cover_prob'] >= 0.5
-                    if home_pick and move > 2:
-                        line_moved_against = True
-                    elif not home_pick and move < -2:
-                        line_moved_against = True
-
-                if edge >= EDGE_THRESHOLD and not line_moved_against and (best_pred is None or edge > best_edge):
+                    move_against = 0.0
+                    if home_pick and move > 0:
+                        move_against = move
+                    elif not home_pick and move < 0:
+                        move_against = abs(move)
+                    if move_against >= 1.0:
+                        line_penalty = move_against * LINE_MOVE_PENALTY
+                
+                adjusted_edge = edge - line_penalty
+                
+                if current_spread is None:
+                    continue
+                if abs(current_spread) > MAX_SPREAD and adjusted_edge < 8.0:
+                    continue
+                
+                collected_at = pred['collected_at']
+                if collected_at:
+                    try:
+                        from datetime import datetime as dt
+                        collected_time = dt.fromisoformat(collected_at)
+                        hours_old = (datetime.now() - collected_time).total_seconds() / 3600
+                        if hours_old > 12:
+                            continue
+                    except (ValueError, TypeError):
+                        pass
+                
+                if adjusted_edge >= EDGE_THRESHOLD and (best_pred is None or adjusted_edge > best_adjusted_edge):
                     best_pred = pred
-                    best_edge = edge
+                    best_adjusted_edge = adjusted_edge
 
             duration_ms = int((time.time() - start_time) * 1000)
 
@@ -106,6 +134,11 @@ def run_model_and_log(app):
                 home_cover_prob = best_pred['home_cover_prob'] or 0.5
                 is_home_pick = home_cover_prob >= 0.5
                 pick_spread = actual_spread if is_home_pick else -actual_spread
+                
+                pred_margin = best_pred['predicted_margin'] if best_pred['predicted_margin'] is not None else None
+                pred_implied = best_pred['implied_prob'] if best_pred['implied_prob'] is not None else IMPLIED_PROB
+                pred_odds = best_pred['market_odds'] if best_pred['market_odds'] is not None else STANDARD_ODDS
+                pred_book = best_pred['recommended_book'] if best_pred['recommended_book'] else 'DraftKings'
 
                 pick = Pick(
                     sport='nba',
@@ -114,8 +147,13 @@ def run_model_and_log(app):
                     game_date=best_pred['game_date'],
                     side=best_pred['prediction'],
                     line=pick_spread,
-                    edge_pct=round(best_edge, 1),
+                    edge_pct=round(best_adjusted_edge, 1),
                     model_confidence=round(best_pred['confidence'], 4),
+                    predicted_margin=round(pred_margin, 1) if pred_margin is not None else None,
+                    cover_prob=round(home_cover_prob, 4),
+                    implied_prob=round(pred_implied, 4),
+                    market_odds=pred_odds,
+                    sportsbook=pred_book,
                     notes=explanation,
                 )
                 db.session.add(pick)

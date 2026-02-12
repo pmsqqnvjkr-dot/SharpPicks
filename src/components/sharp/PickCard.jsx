@@ -159,13 +159,19 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         )}
 
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
           gap: '12px', marginTop: '12px',
         }}>
-          <PickStat label="Model line" value={pick.model_line || pick.line || '--'} />
-          <PickStat label="Market" value={pick.market_line || '--'} />
-          <PickStat label="Confidence" value={`${pick.model_confidence ? (pick.model_confidence * 100).toFixed(0) : '--'}%`} />
+          <PickStat label="Pred. margin" value={pick.predicted_margin != null ? `${pick.predicted_margin > 0 ? '+' : ''}${pick.predicted_margin}` : '--'} />
+          <PickStat label="Cover prob" value={`${pick.cover_prob ? (pick.cover_prob * 100).toFixed(0) : (pick.model_confidence ? (pick.model_confidence * 100).toFixed(0) : '--')}%`} />
           <PickStat label="Edge" value={`${pick.edge_pct}%`} profit />
+        </div>
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          gap: '12px', marginTop: '8px',
+        }}>
+          <PickStat label="Spread" value={pick.line != null ? (pick.line > 0 ? `+${pick.line}` : pick.line) : '--'} />
+          <PickStat label="Odds" value={pick.market_odds || '-110'} />
         </div>
 
         {pick.stake_guidance && (
