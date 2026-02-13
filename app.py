@@ -29,6 +29,19 @@ logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__, static_folder='dist', static_url_path='')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 
+is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
+if is_production:
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+app.config['SESSION_COOKIE_SECURE'] = is_production
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+app.config['REMEMBER_COOKIE_SECURE'] = is_production
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
+
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
@@ -531,7 +544,7 @@ def register():
     db.session.add(user)
     db.session.commit()
     
-    login_user(user)
+    login_user(user, remember=True)
     session['user_id'] = user.id
 
     try:
@@ -566,7 +579,7 @@ def login():
     if not check_password_hash(user.password_hash, password):
         return jsonify({'error': 'Invalid email or password'}), 401
     
-    login_user(user)
+    login_user(user, remember=True)
     session['user_id'] = user.id
     
     return jsonify({
@@ -578,6 +591,7 @@ def login():
 def logout():
     """Logout current user"""
     session.pop('user_id', None)
+    logout_user()
     return jsonify({'success': True, 'message': 'Logged out'})
 
 
@@ -928,7 +942,7 @@ def start_trial():
             user.subscription_status = 'trial'
             user.trial_end_date = user.trial_ends
             db.session.commit()
-            login_user(user)
+            login_user(user, remember=True)
         
         return jsonify({
             'success': True,
@@ -956,7 +970,7 @@ def start_trial():
     
     db.session.add(user)
     db.session.commit()
-    login_user(user)
+    login_user(user, remember=True)
     
     return jsonify({
         'success': True,
