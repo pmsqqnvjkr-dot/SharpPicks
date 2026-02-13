@@ -58,10 +58,12 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
     return (
       <div style={{ padding: '0' }}>
         <div style={{ padding: '20px 20px 16px' }}>
-          <h1 style={{
-            fontFamily: 'var(--font-serif)', fontSize: '22px',
-            fontWeight: 600, color: 'var(--text-primary)',
-          }}>Profile</h1>
+          <div style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '10px', fontWeight: 600,
+            letterSpacing: '2px', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)',
+          }}>Account</div>
         </div>
 
         <div style={{ padding: '0 20px' }}>
@@ -82,7 +84,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
               </svg>
             </div>
             <h2 style={{
-              fontFamily: 'var(--font-serif)', fontSize: '20px',
+              fontFamily: 'var(--font-sans)', fontSize: '18px',
               fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px',
             }}>Sign in to get started</h2>
             <p style={{
@@ -111,10 +113,12 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
   return (
     <div style={{ padding: '0' }}>
       <div style={{ padding: '20px 20px 16px' }}>
-        <h1 style={{
-          fontFamily: 'var(--font-serif)', fontSize: '22px',
-          fontWeight: 600, color: 'var(--text-primary)',
-        }}>Profile</h1>
+        <div style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: '10px', fontWeight: 600,
+          letterSpacing: '2px', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)',
+        }}>Account</div>
       </div>
 
       <div style={{ padding: '0 20px' }}>
