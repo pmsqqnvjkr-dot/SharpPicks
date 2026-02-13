@@ -133,7 +133,7 @@ export default function CancelScreen({ onBack, user }) {
             backgroundColor: 'rgba(239, 68, 68, 0.1)',
             border: '1px solid rgba(239, 68, 68, 0.3)',
             borderRadius: '14px',
-            color: '#EF4444', fontSize: '15px', fontWeight: 600,
+            color: 'var(--red-loss)', fontSize: '15px', fontWeight: 600,
             cursor: 'pointer', fontFamily: 'var(--font-sans)',
             marginBottom: '10px',
             opacity: cancelling ? 0.6 : 1,

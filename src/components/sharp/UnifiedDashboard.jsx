@@ -278,14 +278,14 @@ function DashHeader() {
           <path d="M11 16l3 3 7-7" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
         <span style={{
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-sans)',
           fontSize: '13px',
           fontWeight: 700,
           letterSpacing: '2px',
           textTransform: 'uppercase',
           color: 'var(--text-primary)',
         }}>
-          SHARP PICKS
+          Sharp Picks
         </span>
       </div>
       <div style={{
@@ -373,7 +373,7 @@ function StatChip({ value, label, color }) {
 
 function PerformanceCard({ totalPnl, roi, record, equityCurve }) {
   const isPositive = totalPnl >= 0;
-  const color = isPositive ? '#34D399' : '#EF4444';
+  const color = isPositive ? 'var(--green-profit)' : 'var(--red-loss)';
 
   return (
     <div style={{
@@ -495,7 +495,7 @@ function BloombergChart({ data, color, isPositive }) {
             stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
           <text x={padL - 6} y={t.y + 3}
             textAnchor="end" fill="var(--text-tertiary)"
-            fontSize="9" fontFamily="JetBrains Mono, monospace" fontWeight="500">
+            fontSize="9" fontFamily="var(--font-mono)" fontWeight="500">
             {t.value >= 0 ? '' : '-'}${Math.abs(t.value)}
           </text>
         </g>
@@ -518,7 +518,7 @@ function BloombergChart({ data, color, isPositive }) {
         return (
           <text key={i} x={getX(i)} y={height - 4}
             textAnchor="middle" fill="var(--text-tertiary)"
-            fontSize="8" fontFamily="JetBrains Mono, monospace">
+            fontSize="8" fontFamily="var(--font-mono)">
             {label}
           </text>
         );
@@ -541,7 +541,7 @@ function UnitGrowthCard({ equityCurve }) {
 
   const currentUnits = curveData[curveData.length - 1]?.units || 0;
   const isPositive = currentUnits >= 0;
-  const color = isPositive ? '#34D399' : '#EF4444';
+  const color = isPositive ? 'var(--green-profit)' : 'var(--red-loss)';
 
   const height = 160;
   const width = 400;
@@ -648,7 +648,7 @@ function UnitGrowthCard({ equityCurve }) {
                 stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
               <text x={padL - 6} y={t.y + 3}
                 textAnchor="end" fill="var(--text-tertiary)"
-                fontSize="9" fontFamily="JetBrains Mono, monospace" fontWeight="500">
+                fontSize="9" fontFamily="var(--font-mono)" fontWeight="500">
                 {t.value >= 0 ? '+' : ''}{t.value}u
               </text>
             </g>
@@ -671,7 +671,7 @@ function UnitGrowthCard({ equityCurve }) {
             return (
               <text key={i} x={getX(i)} y={height - 4}
                 textAnchor="middle" fill="var(--text-tertiary)"
-                fontSize="8" fontFamily="JetBrains Mono, monospace">
+                fontSize="8" fontFamily="var(--font-mono)">
                 {label}
               </text>
             );

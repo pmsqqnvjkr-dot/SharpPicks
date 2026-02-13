@@ -87,7 +87,7 @@ export function InlineError({ title, message }) {
       }}>
         <div style={{
           width: '8px', height: '8px', borderRadius: '50%',
-          backgroundColor: '#F59E0B',
+          backgroundColor: 'var(--gold-pro)',
         }} />
         <span style={{
           fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)',
@@ -125,7 +125,7 @@ function ErrorCard({ error, resolved }) {
       }}>
         <div style={{
           width: '8px', height: '8px', borderRadius: '50%',
-          backgroundColor: resolved ? 'var(--green-profit)' : '#F59E0B',
+          backgroundColor: resolved ? 'var(--green-profit)' : 'var(--gold-pro)',
         }} />
         <span style={{
           fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)',
