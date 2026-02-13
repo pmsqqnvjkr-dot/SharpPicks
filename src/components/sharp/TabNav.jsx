@@ -1,7 +1,7 @@
 export default function TabNav({ activeTab, onTabChange }) {
   const tabs = [
     { id: 'picks', label: 'Picks', icon: TargetIcon },
-    { id: 'insights', label: 'Insights', icon: BookIcon },
+    { id: 'insights', label: 'Journal', icon: BookIcon },
     { id: 'performance', label: 'Performance', icon: ChartIcon },
     { id: 'profile', label: 'Profile', icon: PersonIcon },
   ];

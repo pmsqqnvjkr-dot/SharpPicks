@@ -1,0 +1,210 @@
+Here are upgraded versions of the other pieces so they match the stronger founder voice we just set.
+
+⸻
+
+1️⃣ Why Volume Kills ROI
+
+Category: Discipline
+Read time: 2 min
+Tagline: More bets rarely mean more profit.
+
+⸻
+
+Most bettors believe more action means more opportunity.
+
+It feels logical. More shots. More chances to win.
+
+But betting is not a volume game. It is a pricing game.
+
+Every wager carries friction. Juice. Variance. Emotional tilt. Capital exposure.
+
+When you increase volume without increasing edge, you are not scaling profit. You are scaling variance.
+
+That is how solid edges quietly get diluted.
+
+Sharp Picks was designed with one core constraint:
+We only publish when edge exceeds structural risk.
+
+That means most days we pass.
+
+Passing is not inactivity. Passing is capital preservation.
+
+The goal is not to win the most bets.
+The goal is to deploy capital only when pricing is wrong.
+
+If your system fires constantly, it is probably optimizing for engagement, not ROI.
+
+Discipline compounds. Volume usually does not.
+
+– Erin
+
+⸻
+
+Add this pull-quote block inside:
+
+Sharp Principle
+If edge does not scale, volume should not scale.
+
+⸻
+
+2️⃣ Why We Pass More Than We Play
+
+Category: Philosophy
+Read time: 2 min
+Tagline: Selectivity is a feature, not a flaw.
+
+⸻
+
+The most important metric in betting is not win rate.
+
+It is selectivity.
+
+Every game on the board has a number.
+Very few have mispricing.
+
+Sharp Picks filters thousands of inputs, but the final decision often comes down to one question:
+
+Is the edge real, and is it large enough relative to risk?
+
+If the answer is unclear, we pass.
+
+Most betting products are built to publish daily.
+This one is built to protect capital.
+
+A high pass rate is not hesitation.
+It is evidence that the filter is working.
+
+You do not need action every night.
+
+You need pricing mistakes.
+
+– Erin
+
+Pull-quote block:
+
+Sharp Principle
+The absence of a pick is often the strongest signal.
+
+⸻
+
+3️⃣ How We Think About Risk
+
+Category: Philosophy
+Read time: 3 min
+Tagline: Edge without risk context is noise.
+
+⸻
+
+Edge alone is incomplete.
+
+A projected advantage only matters relative to variance.
+
+Large spreads introduce wider distribution outcomes.
+Line movement can signal information shifts.
+Market pricing embeds public bias and sharp money influence.
+
+Sharp Picks does not treat these as background variables. They directly shape thresholds.
+
+For example:
+
+A small edge on a large spread is filtered out.
+Line movement against our position reduces adjusted edge.
+Minimum confidence floors must be cleared before publication.
+
+This is not conservatism. It is structure.
+
+Risk scales. Filters must scale with it.
+
+The model is designed to fire less when uncertainty rises.
+
+That is how you survive long enough for edge to compound.
+
+– Erin
+
+Pull-quote block:
+
+Sharp Principle
+Edge must exceed uncertainty.
+
+⸻
+
+4️⃣ What “Calibrated” Actually Means
+
+Category: Market Notes
+Read time: 2 min
+Tagline: Confidence is measured, not guessed.
+
+⸻
+
+When Sharp Picks shows a 60 percent cover probability, that number is not decoration.
+
+Calibration means that over time, games predicted at 60 percent win approximately 60 percent of the time.
+
+This is tracked across confidence buckets.
+
+55–57 percent
+57–60 percent
+60 percent and above
+
+If performance drifts from expectation, thresholds adjust.
+
+Most models show confidence.
+Few verify it.
+
+Calibration is the difference between prediction and accountability.
+
+You should never trust a model that does not audit itself.
+
+– Erin
+
+Pull-quote block:
+
+Sharp Principle
+Prediction without calibration is storytelling.
+
+⸻
+
+5️⃣ On Down Days
+
+Category: Discipline
+Read time: 2 min
+Tagline: Process over outcomes.
+
+⸻
+
+Losses do not invalidate edge.
+
+Variance does not mean the filter failed.
+
+If the model published a pick, it met confidence thresholds, edge thresholds, and risk-adjusted filters.
+
+Individual outcomes are noisy.
+Process is not.
+
+Sharp Picks is not designed to eliminate losing days.
+It is designed to eliminate unnecessary ones.
+
+If you are evaluating performance game by game, you are trading emotion.
+
+If you are evaluating performance over calibrated buckets and long-term ROI, you are thinking like an operator.
+
+Trust the filter.
+
+– Erin
+
+Pull-quote block:
+
+Sharp Principle
+Short-term variance. Long-term edge.
+
+⸻
+
+Structural Notes for Dev (To Support This Content)
+
+Tell your dev:
+	•	Support pull-quote blocks styled as “Sharp Principle”
+	•	Add founder signature block automatically to each post
+	•	Allow category tag display at top
+	•	Support optional CTA footer:
+“See live model performance →”
+	•	Add subtle divider before signature

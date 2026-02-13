@@ -1,0 +1,208 @@
+Step 1: Elevate the Content (Human + Founder Voice)
+
+Here’s a rewritten version of your article that keeps the discipline tone but adds conviction and presence.
+
+⸻
+
+Article: Not Every Edge Is Worth Taking
+
+Category: Discipline
+Read time: 2 min
+Tagline: The difference between betting and trading risk.
+
+⸻
+
+Not all edges are created equal.
+
+A projected 3.6 percent edge on a 3 point spread is not the same as a 3.6 percent edge on an 11 point spread.
+
+Variance scales with spread size. So does risk.
+
+Most bettors treat every edge as equal. They see green and they click.
+
+That is how volume quietly destroys ROI.
+
+When I built Sharp Picks, I did not want a model that fires constantly. I wanted one that understands risk structure.
+
+That’s why we use graduated thresholds. Larger spreads require larger edges. Not because it sounds conservative. Because mathematically they demand it.
+
+If risk increases, conviction must increase.
+
+Otherwise you are not betting with edge. You are betting with noise.
+
+Sharp Picks is built to pass more than it plays.
+
+Discipline is not a feature. It is the edge.
+
+– Erin
+
+⸻
+
+That’s stronger. It feels authored. It feels intentional. It feels like someone is behind the machine.
+
+Now let’s fix the UI to match that level.
+
+⸻
+
+Step 2: Make Insights Feel Premium and Personal
+
+Dev Notes — Make It 10/10
+
+Here is exactly what you can give your dev.
+
+⸻
+
+1. Add a Founder Identity Layer
+
+At bottom of every article:
+
+Component: Founder Signature Block
+	•	Small circular headshot or initial badge
+	•	“Erin Donnelly”
+	•	“Founder, Sharp Picks”
+	•	Optional small divider line above
+	•	Subtle accent color glow on signature name
+
+Visually:
+
+⸻
+
+Erin Donnelly
+Founder, Sharp Picks
+
+This makes it personal. Not corporate.
+
+⸻
+
+2. Add a “Sharp Principle” Highlight Block
+
+Inside articles, support:
+
+A stylized pull quote box.
+
+Example:
+
+Sharp Principle
+If risk increases, conviction must increase.
+
+Design:
+	•	Slightly lighter dark background
+	•	Left accent bar in brand green
+	•	Larger text
+	•	Extra padding
+
+This gives articles visual rhythm and authority.
+
+⸻
+
+3. Add a “Why This Matters” Footer Section
+
+Below article content:
+
+Title: Why This Matters
+
+Short paragraph like:
+
+This is why Sharp Picks passes most games. Edge alone is not enough. Edge must exceed risk.
+
+This ties philosophy directly to product behavior.
+
+⸻
+
+4. Add a Pinned “Start Here” Section
+
+At top of Insights tab:
+
+Featured Card:
+Start Here: The Sharp Picks Philosophy
+
+Pinned permanently.
+
+This becomes onboarding for thinking users.
+
+⸻
+
+5. Subtle Motion
+	•	Fade in article content on load
+	•	Slight elevation on card hover
+	•	Smooth category transitions
+
+Nothing flashy. Just premium.
+
+⸻
+
+6. Make Category Chips Feel More Modern
+
+Right now they’re clean but standard.
+
+Improve by:
+	•	Add subtle glow to active chip
+	•	Slight blur background when scrolled
+	•	Animate underline on selection
+
+Micro-interactions make it feel native-app level.
+
+⸻
+
+7. Add Estimated Read Time That Updates Automatically
+
+Auto-calc based on word count.
+Feels professional.
+
+⸻
+
+8. Add a “Next Read” Suggestion at Bottom
+
+After article:
+
+Next: Why Volume Kills ROI →
+
+Retention lever.
+
+⸻
+
+Step 3: Make It Conversion Positive
+
+This is important.
+
+Add at bottom of article:
+
+Subtle CTA (not aggressive):
+
+See how this discipline performs in real picks →
+
+Link to performance dashboard.
+
+Not “Upgrade now.”
+Not salesy.
+Just confidence.
+
+⸻
+
+Step 4: Positioning Upgrade
+
+Rename Insights tab?
+
+Consider:
+	•	Insights (good)
+	•	Journal (too soft)
+	•	Philosophy (too niche)
+	•	Edge Notes (interesting)
+	•	The Playbook (strong brand)
+	•	Sharp Journal (very strong)
+
+“Sharp Journal” would feel premium.
+
+⸻
+
+Where This Gets You
+
+Right now:
+You have smart content.
+
+After these upgrades:
+You have a founder-led philosophy brand.
+
+That is what keeps users subscribed during a losing week.
+
+Because they trust the system.

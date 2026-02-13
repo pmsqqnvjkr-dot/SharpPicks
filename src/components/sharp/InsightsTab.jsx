@@ -24,15 +24,22 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function InsightsTab() {
+export default function InsightsTab({ onNavigate }) {
   const [insights, setInsights] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedInsight, setSelectedInsight] = useState(null);
+  const [animateIn, setAnimateIn] = useState(false);
 
   useEffect(() => {
     loadInsights();
   }, [activeCategory]);
+
+  useEffect(() => {
+    setAnimateIn(false);
+    const t = setTimeout(() => setAnimateIn(true), 50);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   const loadInsights = async () => {
     setLoading(true);
@@ -48,7 +55,15 @@ export default function InsightsTab() {
   };
 
   if (selectedInsight) {
-    return <InsightDetail insight={selectedInsight} onBack={() => setSelectedInsight(null)} />;
+    return (
+      <InsightDetail
+        insight={selectedInsight}
+        allInsights={insights}
+        onBack={() => setSelectedInsight(null)}
+        onSelectInsight={setSelectedInsight}
+        onNavigate={onNavigate}
+      />
+    );
   }
 
   return (
@@ -60,43 +75,57 @@ export default function InsightsTab() {
           letterSpacing: '2px', textTransform: 'uppercase',
           color: 'var(--text-tertiary)',
           marginBottom: '16px',
-        }}>Insights</div>
+        }}>Sharp Journal</div>
 
         <div style={{
           display: 'flex', gap: '8px', overflowX: 'auto',
           paddingBottom: '16px',
           scrollbarWidth: 'none',
         }}>
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
-                border: activeCategory === cat.id ? '1px solid var(--blue-primary)' : '1px solid var(--stroke-subtle)',
-                backgroundColor: activeCategory === cat.id ? 'rgba(79, 134, 247, 0.1)' : 'transparent',
-                color: activeCategory === cat.id ? 'var(--blue-primary)' : 'var(--text-secondary)',
-                fontSize: '12px', fontWeight: 500,
-                fontFamily: 'var(--font-sans)',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}
-            >
-              {cat.label}
-            </button>
-          ))}
+          {CATEGORIES.map(cat => {
+            const isActive = activeCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  border: isActive ? '1px solid var(--blue-primary)' : '1px solid var(--stroke-subtle)',
+                  backgroundColor: isActive ? 'rgba(79, 134, 247, 0.12)' : 'transparent',
+                  color: isActive ? 'var(--blue-primary)' : 'var(--text-secondary)',
+                  fontSize: '12px', fontWeight: 500,
+                  fontFamily: 'var(--font-sans)',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  transition: 'all 0.25s ease',
+                  boxShadow: isActive ? '0 0 12px rgba(79, 134, 247, 0.15)' : 'none',
+                }}
+              >
+                {cat.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div style={{ padding: '0 20px 100px' }}>
+      <div style={{
+        padding: '0 20px 100px',
+        opacity: animateIn ? 1 : 0,
+        transform: animateIn ? 'translateY(0)' : 'translateY(8px)',
+        transition: 'opacity 0.35s ease, transform 0.35s ease',
+      }}>
         {loading ? (
           <InsightsSkeleton />
         ) : insights.length === 0 ? (
           <EmptyInsights />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {activeCategory === 'all' && <StartHereCard onTap={() => {
+              const philosophy = insights.find(i => i.slug === 'not-every-edge-is-worth-taking') || insights[0];
+              if (philosophy) setSelectedInsight(philosophy);
+            }} />}
             {insights.map(insight => (
               <InsightCard
                 key={insight.id}
@@ -108,6 +137,65 @@ export default function InsightsTab() {
         )}
       </div>
     </div>
+  );
+}
+
+function StartHereCard({ onTap }) {
+  return (
+    <button
+      onClick={onTap}
+      style={{
+        width: '100%',
+        textAlign: 'left',
+        background: 'linear-gradient(135deg, rgba(79, 134, 247, 0.08) 0%, rgba(52, 211, 153, 0.06) 100%)',
+        border: '1px solid rgba(79, 134, 247, 0.2)',
+        borderRadius: '14px',
+        padding: '20px 18px',
+        cursor: 'pointer',
+        display: 'block',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 134, 247, 0.1)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{
+          width: '40px', height: '40px', borderRadius: '10px',
+          backgroundColor: 'rgba(79, 134, 247, 0.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary)" strokeWidth="1.5">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '9px', fontWeight: 700,
+            letterSpacing: '2px', textTransform: 'uppercase',
+            color: 'var(--blue-primary)',
+            marginBottom: '4px',
+          }}>Start Here</div>
+          <div style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: '16px', fontWeight: 600,
+            color: 'var(--text-primary)',
+            lineHeight: '1.3',
+          }}>The Sharp Picks Philosophy</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
+    </button>
   );
 }
 
@@ -124,6 +212,15 @@ function InsightCard({ insight, onTap }) {
         padding: '18px 16px',
         cursor: 'pointer',
         display: 'block',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-1px)';
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
@@ -139,6 +236,7 @@ function InsightCard({ insight, onTap }) {
         </span>
         <span style={{
           fontSize: '11px', color: 'var(--text-tertiary)',
+          fontFamily: 'var(--font-mono)',
         }}>
           {insight.reading_time_minutes} min
         </span>
@@ -177,10 +275,23 @@ function InsightCard({ insight, onTap }) {
   );
 }
 
-function InsightDetail({ insight, onBack }) {
+function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNavigate }) {
   const contentRef = useRef(null);
+  const [fadeIn, setFadeIn] = useState(false);
+
+  useEffect(() => {
+    setFadeIn(false);
+    const t = setTimeout(() => setFadeIn(true), 50);
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+    return () => clearTimeout(t);
+  }, [insight.id]);
 
   const paragraphs = (insight.content || '').split('\n\n').filter(p => p.trim());
+
+  const currentIndex = allInsights.findIndex(i => i.id === insight.id);
+  const nextInsight = currentIndex >= 0 && currentIndex < allInsights.length - 1
+    ? allInsights[currentIndex + 1]
+    : null;
 
   return (
     <div style={{ padding: '0', minHeight: '100vh' }}>
@@ -206,10 +317,16 @@ function InsightDetail({ insight, onBack }) {
           fontSize: '10px', fontWeight: 600,
           letterSpacing: '2px', textTransform: 'uppercase',
           color: 'var(--text-tertiary)',
-        }}>Insights</span>
+        }}>Sharp Journal</span>
       </div>
 
-      <div ref={contentRef} style={{ padding: '24px 20px 100px', maxWidth: '600px', margin: '0 auto' }}>
+      <div ref={contentRef} style={{
+        padding: '24px 20px 100px',
+        maxWidth: '600px', margin: '0 auto',
+        opacity: fadeIn ? 1 : 0,
+        transform: fadeIn ? 'translateY(0)' : 'translateY(12px)',
+        transition: 'opacity 0.4s ease, transform 0.4s ease',
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <span style={{
             fontFamily: 'var(--font-mono)',
@@ -221,7 +338,7 @@ function InsightDetail({ insight, onBack }) {
           }}>
             {CATEGORY_LABELS[insight.category] || insight.category}
           </span>
-          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
             {insight.reading_time_minutes} min read
           </span>
         </div>
@@ -266,20 +383,202 @@ function InsightDetail({ insight, onBack }) {
             }
             if (p.startsWith('> ')) {
               return (
-                <blockquote key={i} style={{
-                  borderLeft: '2px solid var(--blue-primary)',
-                  paddingLeft: '16px',
-                  margin: '20px 0',
-                  fontStyle: 'italic',
-                  color: 'var(--text-primary)',
+                <div key={i} style={{
+                  margin: '24px 0',
+                  padding: '18px 20px',
+                  background: 'rgba(52, 211, 153, 0.04)',
+                  borderLeft: '3px solid var(--green-profit)',
+                  borderRadius: '0 10px 10px 0',
                 }}>
-                  {p.replace('> ', '')}
-                </blockquote>
+                  <div style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '9px', fontWeight: 700,
+                    letterSpacing: '2px', textTransform: 'uppercase',
+                    color: 'var(--green-profit)',
+                    marginBottom: '8px',
+                  }}>Sharp Principle</div>
+                  <div style={{
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: '17px',
+                    fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    lineHeight: '1.5',
+                    fontStyle: 'italic',
+                  }}>
+                    {p.replace('> ', '')}
+                  </div>
+                </div>
+              );
+            }
+            if (p.startsWith('– ') || p.startsWith('— ')) {
+              return (
+                <p key={i} style={{
+                  margin: '20px 0 0',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  fontFamily: 'var(--font-serif)',
+                  fontStyle: 'italic',
+                }}>
+                  {p}
+                </p>
               );
             }
             return <p key={i} style={{ margin: '0 0 16px' }}>{p}</p>;
           })}
         </div>
+
+        <WhyThisMatters insight={insight} />
+
+        <FounderSignature />
+
+        <div style={{
+          margin: '32px 0',
+          padding: '16px 18px',
+          background: 'var(--surface-1)',
+          border: '1px solid var(--stroke-subtle)',
+          borderRadius: '12px',
+          textAlign: 'center',
+          cursor: 'pointer',
+          transition: 'border-color 0.2s ease',
+        }}
+          onClick={() => onNavigate && onNavigate('performance')}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(79, 134, 247, 0.3)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--stroke-subtle)'}
+        >
+          <p style={{
+            fontSize: '13px',
+            color: 'var(--text-secondary)',
+            margin: 0,
+            lineHeight: '1.5',
+          }}>
+            See how this discipline performs in real picks{' '}
+            <span style={{ color: 'var(--blue-primary)', fontWeight: 500 }}>&rarr;</span>
+          </p>
+        </div>
+
+        {nextInsight && (
+          <button
+            onClick={() => onSelectInsight(nextInsight)}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              background: 'var(--surface-1)',
+              border: '1px solid var(--stroke-subtle)',
+              borderRadius: '12px',
+              padding: '16px 18px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              transition: 'transform 0.2s ease, border-color 0.2s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.borderColor = 'rgba(79, 134, 247, 0.3)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.borderColor = 'var(--stroke-subtle)';
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '9px', fontWeight: 700,
+                letterSpacing: '2px', textTransform: 'uppercase',
+                color: 'var(--text-tertiary)',
+                marginBottom: '6px',
+              }}>Next Read</div>
+              <div style={{
+                fontSize: '14px', fontWeight: 600,
+                color: 'var(--text-primary)',
+                lineHeight: '1.4',
+              }}>
+                {nextInsight.title}
+              </div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary)" strokeWidth="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function WhyThisMatters({ insight }) {
+  const mattersMap = {
+    'discipline': 'This is why Sharp Picks passes most games. Edge alone is not enough. Edge must exceed risk.',
+    'philosophy': 'This principle shapes every decision the model makes. It is not strategy — it is structure.',
+    'how_it_works': 'Understanding how the system works builds the trust needed to follow it through variance.',
+    'market_notes': 'The market is your competition. Understanding it is the first step toward finding real edge.',
+    'founder_note': 'These are the convictions behind the code. The model is a reflection of these beliefs.',
+  };
+
+  const text = mattersMap[insight.category] || mattersMap['philosophy'];
+
+  return (
+    <div style={{
+      margin: '32px 0 0',
+      padding: '20px',
+      borderTop: '1px solid var(--stroke-subtle)',
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)',
+        fontSize: '9px', fontWeight: 700,
+        letterSpacing: '2px', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)',
+        marginBottom: '10px',
+      }}>Why This Matters</div>
+      <p style={{
+        fontSize: '14px',
+        color: 'var(--text-secondary)',
+        lineHeight: '1.65',
+        margin: 0,
+        fontFamily: 'var(--font-sans)',
+      }}>
+        {text}
+      </p>
+    </div>
+  );
+}
+
+function FounderSignature() {
+  return (
+    <div style={{
+      margin: '28px 0 0',
+      padding: '20px 0 0',
+      borderTop: '1px solid var(--stroke-subtle)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '14px',
+    }}>
+      <div style={{
+        width: '38px', height: '38px',
+        borderRadius: '50%',
+        background: 'linear-gradient(135deg, rgba(79, 134, 247, 0.15) 0%, rgba(52, 211, 153, 0.1) 100%)',
+        border: '1px solid rgba(79, 134, 247, 0.2)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--font-serif)',
+        fontSize: '15px', fontWeight: 600,
+        color: 'var(--blue-primary)',
+        flexShrink: 0,
+      }}>E</div>
+      <div>
+        <div style={{
+          fontSize: '14px', fontWeight: 600,
+          color: 'var(--text-primary)',
+          fontFamily: 'var(--font-sans)',
+          marginBottom: '1px',
+        }}>Erin Donnelly</div>
+        <div style={{
+          fontSize: '12px',
+          color: 'var(--text-tertiary)',
+          fontFamily: 'var(--font-mono)',
+          letterSpacing: '0.03em',
+        }}>Founder, Sharp Picks</div>
       </div>
     </div>
   );
