@@ -30,6 +30,7 @@ def insight_to_dict(insight):
     }
 
 
+@insights_bp.route('', methods=['GET'])
 @insights_bp.route('/', methods=['GET'])
 def get_insights():
     category = request.args.get('category')
