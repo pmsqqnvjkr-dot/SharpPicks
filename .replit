@@ -12,7 +12,7 @@ language = "python3"
 requiredFiles = [".replit", "replit.nix"]
 
 [deployment]
-run = ["gunicorn", "--bind=0.0.0.0:5000", "--workers=1", "--timeout=120", "app:app"]
+run = ["gunicorn", "--bind=0.0.0.0:5000", "--workers=1", "--timeout=120", "wsgi:application"]
 deploymentTarget = "vm"
 build = ["echo", "no-op"]
 
@@ -83,3 +83,11 @@ externalPort = 3001
 [[ports]]
 localPort = 8000
 externalPort = 8000
+
+[[ports]]
+localPort = 9998
+externalPort = 3003
+
+[[ports]]
+localPort = 9999
+externalPort = 4200
