@@ -21,6 +21,13 @@ export default defineConfig({
         headers: {
           'X-Forwarded-Proto': 'https'
         }
+      },
+      '/legal': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        headers: {
+          'X-Forwarded-Proto': 'https'
+        }
       }
     }
   }

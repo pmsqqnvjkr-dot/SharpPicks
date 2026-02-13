@@ -421,8 +421,9 @@ function LegalSection() {
   const legalItems = [
     { label: 'Terms of Service', url: '/legal/terms' },
     { label: 'Privacy Policy', url: '/legal/privacy' },
+    { label: 'Refund Policy', url: '/legal/refund' },
     { label: 'Responsible Gaming', url: '/legal/responsible-gaming' },
-    { label: 'Disclaimer', url: '/legal/disclaimer' },
+    { label: 'Founding Members Program', url: '/legal/founding-members' },
   ];
 
   return (

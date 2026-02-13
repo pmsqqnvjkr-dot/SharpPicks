@@ -87,6 +87,9 @@ app.register_blueprint(picks_bp, url_prefix='/api/picks')
 app.register_blueprint(public_bp, url_prefix='/api/public')
 app.register_blueprint(insights_bp, url_prefix='/api/insights')
 
+from legal_pages import legal_bp
+app.register_blueprint(legal_bp)
+
 with app.app_context():
     db.create_all()
     counter = FoundingCounter.query.first()
