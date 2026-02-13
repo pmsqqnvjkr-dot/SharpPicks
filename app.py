@@ -106,6 +106,31 @@ app.register_blueprint(legal_bp)
 
 with app.app_context():
     db.create_all()
+
+    from werkzeug.security import generate_password_hash
+    admin_accounts = [
+        {'email': 'erin@sharppicks.ai', 'first_name': 'Erin', 'password': 'H@rp2019*'},
+        {'email': 'erin.m.donnelly@gmail.com', 'first_name': 'Erin', 'password': 'H@rp2019*'},
+    ]
+    for acct in admin_accounts:
+        existing = User.query.filter_by(email=acct['email']).first()
+        if not existing:
+            u = User(
+                email=acct['email'],
+                first_name=acct['first_name'],
+                password_hash=generate_password_hash(acct['password']),
+                is_superuser=True,
+                is_premium=True,
+                subscription_status='active',
+                subscription_plan='lifetime',
+                founding_member=True,
+                trial_used=True,
+                email_verified=True,
+            )
+            db.session.add(u)
+            logging.info(f"Created admin account: {acct['email']}")
+    db.session.commit()
+
     counter = FoundingCounter.query.first()
     if not counter:
         counter = FoundingCounter(current_count=0, closed=False)
