@@ -125,11 +125,11 @@ export default function LandingPage() {
         />
         <ValueProp
           title="Process over outcomes"
-          desc="All picks tracked publicly. No deletes. No hindsight editing. This week: 2 picks · 4 passes"
+          desc={`All picks tracked publicly. No deletes. No hindsight editing.${stats ? ` ${stats.total_picks} picks · ${stats.total_passes} passes to date` : ''}`}
         />
         <ValueProp
           title="Selectivity beats volume"
-          desc="Most bettors lose by betting too much. Your 30% selectivity rate is your edge."
+          desc={`Most bettors lose by betting too much.${stats ? ` Our ${stats.selectivity}% selectivity rate is the edge.` : ' Selectivity is the edge.'}`}
         />
       </div>
 
