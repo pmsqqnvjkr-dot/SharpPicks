@@ -1,9 +1,20 @@
 from flask import Blueprint, jsonify, request, session
 from models import db, Insight, User
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import re
 
 insights_bp = Blueprint('insights', __name__)
+
+ET = ZoneInfo('America/New_York')
+
+
+def _visible_filter():
+    now_et = datetime.now(ET).replace(tzinfo=None)
+    return db.or_(
+        Insight.status == 'published',
+        db.and_(Insight.status == 'scheduled', Insight.publish_date <= now_et)
+    )
 
 
 def get_current_user():
@@ -37,7 +48,7 @@ def get_insights():
     limit = request.args.get('limit', 20, type=int)
     offset = request.args.get('offset', 0, type=int)
 
-    query = Insight.query.filter_by(status='published')
+    query = Insight.query.filter(_visible_filter())
 
     if category and category != 'all':
         query = query.filter_by(category=category)
@@ -58,14 +69,14 @@ def get_latest():
     pass_day_param = request.args.get('pass_day')
 
     if pass_day_param == 'true':
-        insight = Insight.query.filter_by(
-            status='published', pass_day=True
+        insight = Insight.query.filter(
+            _visible_filter(), Insight.pass_day == True
         ).order_by(Insight.publish_date.desc()).first()
         if insight:
             return jsonify(insight_to_dict(insight))
 
-    insight = Insight.query.filter_by(
-        status='published'
+    insight = Insight.query.filter(
+        _visible_filter()
     ).order_by(Insight.publish_date.desc()).first()
 
     if not insight:
@@ -76,9 +87,13 @@ def get_latest():
 
 @insights_bp.route('/<insight_id>', methods=['GET'])
 def get_insight(insight_id):
-    insight = Insight.query.filter_by(id=insight_id, status='published').first()
+    insight = Insight.query.filter(
+        _visible_filter(), Insight.id == insight_id
+    ).first()
     if not insight:
-        insight = Insight.query.filter_by(slug=insight_id, status='published').first()
+        insight = Insight.query.filter(
+            _visible_filter(), Insight.slug == insight_id
+        ).first()
     if not insight:
         return jsonify({'error': 'Insight not found'}), 404
     return jsonify(insight_to_dict(insight))
@@ -86,7 +101,9 @@ def get_insight(insight_id):
 
 @insights_bp.route('/slug/<slug>', methods=['GET'])
 def get_insight_by_slug(slug):
-    insight = Insight.query.filter_by(slug=slug, status='published').first()
+    insight = Insight.query.filter(
+        _visible_filter(), Insight.slug == slug
+    ).first()
     if not insight:
         return jsonify({'error': 'Insight not found'}), 404
     return jsonify(insight_to_dict(insight))
@@ -120,7 +137,7 @@ def create_insight():
         excerpt=data.get('excerpt', ''),
         content=content_text,
         status=data.get('status', 'draft'),
-        publish_date=datetime.now() if data.get('status') == 'published' else None,
+        publish_date=datetime.now(ET).replace(tzinfo=None) if data.get('status') == 'published' else None,
         featured=data.get('featured', False),
         pass_day=data.get('pass_day', False),
         reading_time_minutes=data.get('reading_time_minutes', reading_time),
@@ -149,7 +166,7 @@ def update_insight(insight_id):
             setattr(insight, field, data[field])
 
     if data.get('status') == 'published' and not insight.publish_date:
-        insight.publish_date = datetime.now()
+        insight.publish_date = datetime.now(ET).replace(tzinfo=None)
 
     db.session.commit()
     return jsonify({'success': True, 'insight': insight_to_dict(insight)})

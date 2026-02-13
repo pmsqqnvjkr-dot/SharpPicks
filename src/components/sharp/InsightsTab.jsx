@@ -7,6 +7,7 @@ const CATEGORIES = [
   { id: 'discipline', label: 'Discipline' },
   { id: 'market_notes', label: 'Market Notes' },
   { id: 'how_it_works', label: 'How It Works' },
+  { id: 'founder_note', label: 'Founder Notes' },
 ];
 
 const CATEGORY_LABELS = {
@@ -14,6 +15,7 @@ const CATEGORY_LABELS = {
   discipline: 'Discipline',
   market_notes: 'Market Notes',
   how_it_works: 'How It Works',
+  founder_note: 'Founder Notes',
 };
 
 function formatDate(dateStr) {
