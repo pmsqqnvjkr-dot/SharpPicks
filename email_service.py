@@ -58,17 +58,23 @@ def send_welcome(to, first_name=None):
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Hi &#8212;</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">I'm Erin, founder of Sharp Picks.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">I'm Erin, founder of Sharp Picks. I'm glad you're here.</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">I built this because I was tired of volume disguised as edge.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Sharp Picks was not built to chase action. It was built to protect capital.</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Most picks services measure activity. I care about discipline.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Most bettors do not lose because they lack insight. They lose because they treat every edge the same.</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Sharp Picks is not designed to fire ten plays a night. Most days, we pass. When the model publishes, it is because a game cleared strict confidence and risk thresholds.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">A small edge on a tight spread is not the same as a small edge on a wide one. The variance is different. The risk is different. The margin for error is different.</p>
+
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Most models ignore that.</p>
+
+      <p style="font-size: 15px; line-height: 1.9; color: #ffffff; font-weight: 600; margin-bottom: 24px;">This one does not.</p>
+
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Sharp Picks only publishes when a game clears strict confidence and edge thresholds. Most days, that means we pass.</p>
 
       <div style="margin: 32px 0; padding: 20px 0; border-top: 1px solid #1a1d28; border-bottom: 1px solid #1a1d28;">
-        <p style="font-size: 16px; line-height: 1.9; color: #ffffff; font-weight: 600; margin-bottom: 4px;">You are not here for noise.</p>
-        <p style="font-size: 16px; line-height: 1.9; color: #ffffff; font-weight: 600; margin: 0;">You are here for edge.</p>
+        <p style="font-size: 16px; line-height: 1.9; color: #b8b8b8; margin-bottom: 4px;">You will not see ten plays a night.</p>
+        <p style="font-size: 16px; line-height: 1.9; color: #ffffff; font-weight: 600; margin: 0;">You will see discipline.</p>
       </div>
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 14px;">Every published pick includes:</p>
@@ -80,9 +86,7 @@ def send_welcome(to, first_name=None):
         <li>Clear reasoning behind the signal</li>
       </ul>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Everything is standardized. Everything is tracked. Nothing is hidden.</p>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">I believe most bettors do not lose because they lack edge. They lose because they treat every edge the same.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Everything is tracked. Results are transparent. Nothing is hidden behind marketing language.</p>
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 12px;">Sharp Picks is built on one principle:</p>
 
@@ -101,7 +105,8 @@ def send_welcome(to, first_name=None):
       <p style="font-size: 13px; line-height: 1.6; color: #777; margin-bottom: 0;">Founder, Sharp Picks</p>
 
       <hr style="border: none; border-top: 1px solid #1a1d24; margin: 36px 0;">
-      <p style="font-size: 12px; color: #555; text-align: center; letter-spacing: 0.3px;">Sharp Picks &#8212; Discipline is the product.</p>
+      <p style="font-size: 12px; color: #555; text-align: center; letter-spacing: 0.5px;">Sharp Picks</p>
+      <p style="font-size: 11px; color: #444; text-align: center; letter-spacing: 0.3px; margin-top: 4px;">Discipline is the product.</p>
     </div>
     """
     return send_email(
