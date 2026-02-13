@@ -23,7 +23,10 @@ def health():
 
 @app.route('/')
 def root_health():
-    return '<!DOCTYPE html><html><body>ok</body></html>', 200, {'Content-Type': 'text/html'}
+    try:
+        return app.send_static_file('index.html')
+    except Exception:
+        return 'ok', 200
 
 is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
 
