@@ -104,94 +104,107 @@ app.register_blueprint(insights_bp, url_prefix='/api/insights')
 from legal_pages import legal_bp
 app.register_blueprint(legal_bp)
 
+@app.route('/health')
+def health_check():
+    return jsonify({'status': 'ok'}), 200
+
 with app.app_context():
     db.create_all()
+    logging.info("Database tables created")
 
-    from werkzeug.security import generate_password_hash
-    admin_accounts = [
-        {'email': 'erin@sharppicks.ai', 'first_name': 'Erin', 'password': 'H@rp2019*'},
-        {'email': 'erin.m.donnelly@gmail.com', 'first_name': 'Erin', 'password': 'H@rp2019*'},
-    ]
-    for acct in admin_accounts:
-        existing = User.query.filter_by(email=acct['email']).first()
-        if not existing:
-            u = User(
-                email=acct['email'],
-                first_name=acct['first_name'],
-                password_hash=generate_password_hash(acct['password']),
-                is_superuser=True,
-                is_premium=True,
-                subscription_status='active',
-                subscription_plan='lifetime',
-                founding_member=True,
-                trial_used=True,
-                email_verified=True,
-            )
-            db.session.add(u)
-            logging.info(f"Created admin account: {acct['email']}")
-    db.session.commit()
+_startup_done = False
 
-    if Pick.query.count() == 0:
-        from datetime import datetime
-        seed_picks = [
-            Pick(id='9cc4946d-37f2-46cc-acb9-50a4c5be16c1', game_date='2026-01-27', away_team='Detroit Pistons', home_team='Denver Nuggets', side='Detroit Pistons +2.0', line=2, edge_pct=4.5, result='win', sport='nba', model_confidence=0.78, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=91, notes='Pre-Cal'),
-            Pick(id='dab82bf3-4dee-4d3e-a15e-9c3287aa7ff7', game_date='2026-01-28', away_team='San Antonio Spurs', home_team='Houston Rockets', side='San Antonio Spurs -2.5', line=-2.5, edge_pct=8.2, result='win', sport='nba', model_confidence=0.59, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=91, notes='Pre-Cal'),
-            Pick(id='e4647da5-b1e9-4d49-8f39-3e11de343ce0', game_date='2026-01-29', away_team='Houston Rockets', home_team='Atlanta Hawks', side='Houston Rockets +4.5', line=4.5, edge_pct=5.1, result='win', sport='nba', model_confidence=0.63, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=91, notes='Pre-Cal'),
-            Pick(id='f1843352-a18a-49f9-a2cf-5bc6abe50bfe', game_date='2026-01-30', away_team='Los Angeles Lakers', home_team='Washington Wizards', side='Los Angeles Lakers +5.0', line=5, edge_pct=7.7, result='win', sport='nba', model_confidence=0.64, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=91, notes='Pre-Cal'),
-            Pick(id='1520a539-73db-4f3c-aabf-086927ee9b10', game_date='2026-01-31', away_team='Chicago Bulls', home_team='Miami Heat', side='Chicago Bulls +5.0', line=5, edge_pct=5.8, result='win', sport='nba', model_confidence=0.72, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=91, notes='Pre-Cal'),
-            Pick(id='d4d15c8b-9dd2-49c0-b48b-bf8ab868a5fc', game_date='2026-02-01', away_team='LA Clippers', home_team='Phoenix Suns', side='LA Clippers +0.5', line=0.5, edge_pct=6.4, result='win', sport='nba', model_confidence=0.55, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=91, notes='Pre-Cal'),
-            Pick(id='46f93629-6df1-4644-9c9c-d3f945434ad7', game_date='2026-02-02', away_team='New Orleans Pelicans', home_team='Charlotte Hornets', side='Charlotte Hornets -8.5', line=-8.5, edge_pct=4.1, result='loss', sport='nba', model_confidence=0.7, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=-110, notes='Pre-Cal'),
-            Pick(id='efd99ce8-b2a5-4867-92c5-0a3e16837aa2', game_date='2026-02-11', away_team='New York Knicks', home_team='Philadelphia 76ers', side='Philadelphia 76ers +24.5', line=24.5, edge_pct=10, result='loss', result_ats='loss', profit_units=-1, sport='nba', model_confidence=0.9993, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,12,5,40,10), predicted_margin=-13.3, cover_prob=0.8312, implied_prob=0.5238, line_open=25.5, sigma=11.71, z_score=3.192, raw_edge=47.55, pnl=-100, notes='Line value: getting 1.0pts better number than open (+25.5 → +24.5) | Both teams on 1 day rest — no rest edge | Net rating favors New York Knicks by 0.0pts — spread accounts for this', result_resolved_at=datetime(2026,2,12,5,40,10)),
-            Pick(id='01a485ef-ab1a-4ecc-af10-9803b41c1f0f', game_date='2026-02-12', away_team='Dallas Mavericks', home_team='Los Angeles Lakers', side='Los Angeles Lakers -7.5', line=-7.5, edge_pct=10, result='win', result_ats='W', profit_units=0.88, sport='nba', model_confidence=0.8537, market_odds=-114, sportsbook='FanDuel', published_at=datetime(2026,2,12,6,22,59), predicted_margin=11.2, cover_prob=0.6238, implied_prob=0.5238, line_open=-6.5, sigma=11.71, z_score=1.053, raw_edge=32.99, home_score=124, away_score=104, pnl=88, notes='Back-to-back for both teams — no rest edge|Scoring margin edge: Los Angeles Lakers outscores opponents by 9.4pts more per game|Defensive mismatch: Dallas Mavericks allows 122.8pts/game', result_resolved_at=datetime(2026,2,13,8,28,18)),
-        ]
-        for p in seed_picks:
-            db.session.add(p)
-        logging.info("Seeded historical picks")
+def deferred_startup():
+    global _startup_done
+    if _startup_done:
+        return
+    _startup_done = True
+    with app.app_context():
+        try:
+            from werkzeug.security import generate_password_hash
+            admin_accounts = [
+                {'email': 'erin@sharppicks.ai', 'first_name': 'Erin', 'password': 'H@rp2019*'},
+                {'email': 'erin.m.donnelly@gmail.com', 'first_name': 'Erin', 'password': 'H@rp2019*'},
+            ]
+            for acct in admin_accounts:
+                existing = User.query.filter_by(email=acct['email']).first()
+                if not existing:
+                    u = User(
+                        email=acct['email'],
+                        first_name=acct['first_name'],
+                        password_hash=generate_password_hash(acct['password']),
+                        is_superuser=True,
+                        is_premium=True,
+                        subscription_status='active',
+                        subscription_plan='lifetime',
+                        founding_member=True,
+                        trial_used=True,
+                        email_verified=True,
+                    )
+                    db.session.add(u)
+                    logging.info(f"Created admin account: {acct['email']}")
+            db.session.commit()
 
-    if Pass.query.count() == 0:
-        seed_passes = [
-            Pass(id='83a0e6e0-e0f4-4a6f-a871-3f2e356b96af', date='2026-01-13', sport='nba', games_analyzed=8, closest_edge_pct=1.2),
-            Pass(id='c0088299-dfc8-4f02-b9ae-d4701af35673', date='2026-01-14', sport='nba', games_analyzed=12, closest_edge_pct=1.4),
-            Pass(id='9be86b12-2672-4649-a313-ab26769a6312', date='2026-01-15', sport='nba', games_analyzed=6, closest_edge_pct=1.2),
-            Pass(id='da849ee8-129c-4833-ac2c-c283ac853d69', date='2026-01-16', sport='nba', games_analyzed=8, closest_edge_pct=1.1),
-            Pass(id='802a7c74-c96c-4b23-a3f5-dc5b8e59291a', date='2026-01-17', sport='nba', games_analyzed=9, closest_edge_pct=1.3),
-            Pass(id='7360d4ec-8abb-47d1-9382-01f834699139', date='2026-01-18', sport='nba', games_analyzed=9, closest_edge_pct=3.0),
-            Pass(id='43f3d02b-d468-4561-8ed5-105d13be6f57', date='2026-01-19', sport='nba', games_analyzed=10, closest_edge_pct=2.3),
-            Pass(id='73ed3b01-0ecd-44e8-a94e-d75b7aadb5a5', date='2026-01-20', sport='nba', games_analyzed=9, closest_edge_pct=1.2),
-            Pass(id='b54ef4a0-ec7b-4dd9-b7e0-fb1fcf7a8c65', date='2026-01-21', sport='nba', games_analyzed=14, closest_edge_pct=3.2),
-            Pass(id='5bd51e86-a9dd-48b9-a42d-a59d5b193281', date='2026-01-22', sport='nba', games_analyzed=8, closest_edge_pct=1.4),
-            Pass(id='c94592cd-a89c-4ba9-8246-a2ddaae3d63d', date='2026-01-23', sport='nba', games_analyzed=14, closest_edge_pct=3.1),
-            Pass(id='f45ea327-be03-4376-be7a-044415d3278b', date='2026-01-24', sport='nba', games_analyzed=13, closest_edge_pct=3.3),
-            Pass(id='897e4311-1c04-423a-bb61-015e64d28228', date='2026-01-25', sport='nba', games_analyzed=9, closest_edge_pct=3.4),
-            Pass(id='0c4a45f0-f1d0-45b2-b4db-84d3d22b38f3', date='2026-01-26', sport='nba', games_analyzed=14, closest_edge_pct=3.1),
-            Pass(id='e7e4ad18-716b-4caf-a370-f9501e05931a', date='2026-02-03', sport='nba', games_analyzed=10, closest_edge_pct=3.1),
-            Pass(id='fb6aaf8f-3f83-44ac-8396-1ece90a25600', date='2026-02-04', sport='nba', games_analyzed=7, closest_edge_pct=2.0),
-            Pass(id='0ce580a2-2a84-42d8-902c-53aa1c89bba2', date='2026-02-05', sport='nba', games_analyzed=9, closest_edge_pct=1.1),
-            Pass(id='8a5d6845-a830-4950-b6de-bed7e9e0977d', date='2026-02-06', sport='nba', games_analyzed=11, closest_edge_pct=1.7),
-            Pass(id='ad56c370-6846-4a8d-b381-3ed30bd5b28e', date='2026-02-07', sport='nba', games_analyzed=10, closest_edge_pct=1.8),
-            Pass(id='419ec2b6-4bd4-4e01-a21d-afdaae73bbbb', date='2026-02-08', sport='nba', games_analyzed=6, closest_edge_pct=2.8),
-            Pass(id='8f65db6b-d784-46eb-8a67-dd522ef585f2', date='2026-02-09', sport='nba', games_analyzed=9, closest_edge_pct=1.7),
-            Pass(id='afb6703a-1cbd-45b1-9acd-e1f3885c252b', date='2026-02-10', sport='nba', games_analyzed=10, closest_edge_pct=1.6),
-            Pass(id='2e210a25-2f55-4c89-8737-208f81230212', date='2026-02-11', sport='nba', games_analyzed=12, closest_edge_pct=1.7),
-        ]
-        for p in seed_passes:
-            db.session.add(p)
-        logging.info("Seeded historical passes")
-    db.session.commit()
+            if Pick.query.count() == 0:
+                seed_picks = [
+                    Pick(id='9cc4946d-37f2-46cc-acb9-50a4c5be16c1', game_date='2026-01-27', away_team='Detroit Pistons', home_team='Denver Nuggets', side='Detroit Pistons +2.0', line=2, edge_pct=4.5, result='win', sport='nba', model_confidence=0.78, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=91, notes='Pre-Cal'),
+                    Pick(id='dab82bf3-4dee-4d3e-a15e-9c3287aa7ff7', game_date='2026-01-28', away_team='San Antonio Spurs', home_team='Houston Rockets', side='San Antonio Spurs -2.5', line=-2.5, edge_pct=8.2, result='win', sport='nba', model_confidence=0.59, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=91, notes='Pre-Cal'),
+                    Pick(id='e4647da5-b1e9-4d49-8f39-3e11de343ce0', game_date='2026-01-29', away_team='Houston Rockets', home_team='Atlanta Hawks', side='Houston Rockets +4.5', line=4.5, edge_pct=5.1, result='win', sport='nba', model_confidence=0.63, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=91, notes='Pre-Cal'),
+                    Pick(id='f1843352-a18a-49f9-a2cf-5bc6abe50bfe', game_date='2026-01-30', away_team='Los Angeles Lakers', home_team='Washington Wizards', side='Los Angeles Lakers +5.0', line=5, edge_pct=7.7, result='win', sport='nba', model_confidence=0.64, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=91, notes='Pre-Cal'),
+                    Pick(id='1520a539-73db-4f3c-aabf-086927ee9b10', game_date='2026-01-31', away_team='Chicago Bulls', home_team='Miami Heat', side='Chicago Bulls +5.0', line=5, edge_pct=5.8, result='win', sport='nba', model_confidence=0.72, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=91, notes='Pre-Cal'),
+                    Pick(id='d4d15c8b-9dd2-49c0-b48b-bf8ab868a5fc', game_date='2026-02-01', away_team='LA Clippers', home_team='Phoenix Suns', side='LA Clippers +0.5', line=0.5, edge_pct=6.4, result='win', sport='nba', model_confidence=0.55, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=91, notes='Pre-Cal'),
+                    Pick(id='46f93629-6df1-4644-9c9c-d3f945434ad7', game_date='2026-02-02', away_team='New Orleans Pelicans', home_team='Charlotte Hornets', side='Charlotte Hornets -8.5', line=-8.5, edge_pct=4.1, result='loss', sport='nba', model_confidence=0.7, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,11,18,3,52), pnl=-110, notes='Pre-Cal'),
+                    Pick(id='efd99ce8-b2a5-4867-92c5-0a3e16837aa2', game_date='2026-02-11', away_team='New York Knicks', home_team='Philadelphia 76ers', side='Philadelphia 76ers +24.5', line=24.5, edge_pct=10, result='loss', result_ats='loss', profit_units=-1, sport='nba', model_confidence=0.9993, market_odds=-110, sportsbook='DraftKings', published_at=datetime(2026,2,12,5,40,10), predicted_margin=-13.3, cover_prob=0.8312, implied_prob=0.5238, line_open=25.5, sigma=11.71, z_score=3.192, raw_edge=47.55, pnl=-100, notes='Line value: getting 1.0pts better number than open (+25.5 → +24.5) | Both teams on 1 day rest — no rest edge | Net rating favors New York Knicks by 0.0pts — spread accounts for this', result_resolved_at=datetime(2026,2,12,5,40,10)),
+                    Pick(id='01a485ef-ab1a-4ecc-af10-9803b41c1f0f', game_date='2026-02-12', away_team='Dallas Mavericks', home_team='Los Angeles Lakers', side='Los Angeles Lakers -7.5', line=-7.5, edge_pct=10, result='win', result_ats='W', profit_units=0.88, sport='nba', model_confidence=0.8537, market_odds=-114, sportsbook='FanDuel', published_at=datetime(2026,2,12,6,22,59), predicted_margin=11.2, cover_prob=0.6238, implied_prob=0.5238, line_open=-6.5, sigma=11.71, z_score=1.053, raw_edge=32.99, home_score=124, away_score=104, pnl=88, notes='Back-to-back for both teams — no rest edge|Scoring margin edge: Los Angeles Lakers outscores opponents by 9.4pts more per game|Defensive mismatch: Dallas Mavericks allows 122.8pts/game', result_resolved_at=datetime(2026,2,13,8,28,18)),
+                ]
+                for p in seed_picks:
+                    db.session.add(p)
+                logging.info("Seeded historical picks")
 
-    counter = FoundingCounter.query.first()
-    if not counter:
-        counter = FoundingCounter(current_count=0, closed=False)
-        db.session.add(counter)
-        db.session.commit()
-    if Insight.query.count() == 0:
-        seed_insights = [
-            Insight(
-                title="Why One Pick Beats Five",
-                slug="why-one-pick-beats-five",
-                category="philosophy",
-                excerpt="Most bettors lose not because they pick wrong, but because they pick too often. Volume is the enemy of edge.",
-                content="""Most bettors lose not because they pick wrong, but because they pick too often. Volume is the enemy of edge.
+            if Pass.query.count() == 0:
+                seed_passes = [
+                    Pass(id='83a0e6e0-e0f4-4a6f-a871-3f2e356b96af', date='2026-01-13', sport='nba', games_analyzed=8, closest_edge_pct=1.2),
+                    Pass(id='c0088299-dfc8-4f02-b9ae-d4701af35673', date='2026-01-14', sport='nba', games_analyzed=12, closest_edge_pct=1.4),
+                    Pass(id='9be86b12-2672-4649-a313-ab26769a6312', date='2026-01-15', sport='nba', games_analyzed=6, closest_edge_pct=1.2),
+                    Pass(id='da849ee8-129c-4833-ac2c-c283ac853d69', date='2026-01-16', sport='nba', games_analyzed=8, closest_edge_pct=1.1),
+                    Pass(id='802a7c74-c96c-4b23-a3f5-dc5b8e59291a', date='2026-01-17', sport='nba', games_analyzed=9, closest_edge_pct=1.3),
+                    Pass(id='7360d4ec-8abb-47d1-9382-01f834699139', date='2026-01-18', sport='nba', games_analyzed=9, closest_edge_pct=3.0),
+                    Pass(id='43f3d02b-d468-4561-8ed5-105d13be6f57', date='2026-01-19', sport='nba', games_analyzed=10, closest_edge_pct=2.3),
+                    Pass(id='73ed3b01-0ecd-44e8-a94e-d75b7aadb5a5', date='2026-01-20', sport='nba', games_analyzed=9, closest_edge_pct=1.2),
+                    Pass(id='b54ef4a0-ec7b-4dd9-b7e0-fb1fcf7a8c65', date='2026-01-21', sport='nba', games_analyzed=14, closest_edge_pct=3.2),
+                    Pass(id='5bd51e86-a9dd-48b9-a42d-a59d5b193281', date='2026-01-22', sport='nba', games_analyzed=8, closest_edge_pct=1.4),
+                    Pass(id='c94592cd-a89c-4ba9-8246-a2ddaae3d63d', date='2026-01-23', sport='nba', games_analyzed=14, closest_edge_pct=3.1),
+                    Pass(id='f45ea327-be03-4376-be7a-044415d3278b', date='2026-01-24', sport='nba', games_analyzed=13, closest_edge_pct=3.3),
+                    Pass(id='897e4311-1c04-423a-bb61-015e64d28228', date='2026-01-25', sport='nba', games_analyzed=9, closest_edge_pct=3.4),
+                    Pass(id='0c4a45f0-f1d0-45b2-b4db-84d3d22b38f3', date='2026-01-26', sport='nba', games_analyzed=14, closest_edge_pct=3.1),
+                    Pass(id='e7e4ad18-716b-4caf-a370-f9501e05931a', date='2026-02-03', sport='nba', games_analyzed=10, closest_edge_pct=3.1),
+                    Pass(id='fb6aaf8f-3f83-44ac-8396-1ece90a25600', date='2026-02-04', sport='nba', games_analyzed=7, closest_edge_pct=2.0),
+                    Pass(id='0ce580a2-2a84-42d8-902c-53aa1c89bba2', date='2026-02-05', sport='nba', games_analyzed=9, closest_edge_pct=1.1),
+                    Pass(id='8a5d6845-a830-4950-b6de-bed7e9e0977d', date='2026-02-06', sport='nba', games_analyzed=11, closest_edge_pct=1.7),
+                    Pass(id='ad56c370-6846-4a8d-b381-3ed30bd5b28e', date='2026-02-07', sport='nba', games_analyzed=10, closest_edge_pct=1.8),
+                    Pass(id='419ec2b6-4bd4-4e01-a21d-afdaae73bbbb', date='2026-02-08', sport='nba', games_analyzed=6, closest_edge_pct=2.8),
+                    Pass(id='8f65db6b-d784-46eb-8a67-dd522ef585f2', date='2026-02-09', sport='nba', games_analyzed=9, closest_edge_pct=1.7),
+                    Pass(id='afb6703a-1cbd-45b1-9acd-e1f3885c252b', date='2026-02-10', sport='nba', games_analyzed=10, closest_edge_pct=1.6),
+                    Pass(id='2e210a25-2f55-4c89-8737-208f81230212', date='2026-02-11', sport='nba', games_analyzed=12, closest_edge_pct=1.7),
+                ]
+                for p in seed_passes:
+                    db.session.add(p)
+                logging.info("Seeded historical passes")
+            db.session.commit()
+
+            counter = FoundingCounter.query.first()
+            if not counter:
+                counter = FoundingCounter(current_count=0, closed=False)
+                db.session.add(counter)
+                db.session.commit()
+            if Insight.query.count() == 0:
+                seed_insights = [
+                    Insight(
+                        title="Why One Pick Beats Five",
+                        slug="why-one-pick-beats-five",
+                        category="philosophy",
+                        excerpt="Most bettors lose not because they pick wrong, but because they pick too often. Volume is the enemy of edge.",
+                        content="""Most bettors lose not because they pick wrong, but because they pick too often. Volume is the enemy of edge.
 
 ## The Math of Selectivity
 
@@ -210,18 +223,18 @@ On days we publish no pick, the system is working exactly as designed. We analyz
 Over 12 seasons of backtesting, our model achieved a 68.6% win rate against the spread with a +30.9% ROI. That performance is inseparable from the discipline of only acting when the edge is clear.
 
 Adding more picks to chase action would dilute that edge to the point of disappearance. One quality pick, backed by genuine statistical advantage, is the foundation of long-term profitability.""",
-                status="published",
-                publish_date=datetime(2026, 2, 10),
-                featured=True,
-                pass_day=True,
-                reading_time_minutes=3,
-            ),
-            Insight(
-                title="Understanding the Spread",
-                slug="understanding-the-spread",
-                category="how_it_works",
-                excerpt="Point spreads aren't predictions. They're prices. Understanding this distinction is the first step toward thinking like a sharp.",
-                content="""Point spreads aren't predictions. They're prices. Understanding this distinction is the first step toward thinking like a sharp.
+                        status="published",
+                        publish_date=datetime(2026, 2, 10),
+                        featured=True,
+                        pass_day=True,
+                        reading_time_minutes=3,
+                    ),
+                    Insight(
+                        title="Understanding the Spread",
+                        slug="understanding-the-spread",
+                        category="how_it_works",
+                        excerpt="Point spreads aren't predictions. They're prices. Understanding this distinction is the first step toward thinking like a sharp.",
+                        content="""Point spreads aren't predictions. They're prices. Understanding this distinction is the first step toward thinking like a sharp.
 
 ## Spreads as Market Prices
 
@@ -240,16 +253,16 @@ Our edge doesn't come from being smarter than the entire market. It comes from i
 > We don't need to be right more often than the market. We need to be right more often than the spread price implies.
 
 When our blended prediction diverges from the market spread by 3.5% or more, that's a signal worth acting on. Anything less, and we pass.""",
-                status="published",
-                publish_date=datetime(2026, 2, 11),
-                reading_time_minutes=3,
-            ),
-            Insight(
-                title="The Discipline of Pass Days",
-                slug="the-discipline-of-pass-days",
-                category="discipline",
-                excerpt="Every pass day is a decision to protect your bankroll. The model analyzed every game and found nothing worth your risk.",
-                content="""Every pass day is a decision to protect your bankroll. The model analyzed every game and found nothing worth your risk.
+                        status="published",
+                        publish_date=datetime(2026, 2, 11),
+                        reading_time_minutes=3,
+                    ),
+                    Insight(
+                        title="The Discipline of Pass Days",
+                        slug="the-discipline-of-pass-days",
+                        category="discipline",
+                        excerpt="Every pass day is a decision to protect your bankroll. The model analyzed every game and found nothing worth your risk.",
+                        content="""Every pass day is a decision to protect your bankroll. The model analyzed every game and found nothing worth your risk.
 
 ## What Happens on a Pass Day
 
@@ -270,18 +283,18 @@ Think of pass days as deposits into your discipline account. Every day you don't
 Over the course of a season, the number of pass days will far exceed pick days. That ratio isn't a bug. It's the entire product.
 
 > Restraint isn't passive. It's the most active decision you can make.""",
-                status="published",
-                publish_date=datetime(2026, 2, 12),
-                featured=False,
-                pass_day=True,
-                reading_time_minutes=2,
-            ),
-            Insight(
-                title="How We Shop for the Best Line",
-                slug="how-we-shop-best-line",
-                category="market_notes",
-                excerpt="A half-point difference in the spread can mean the difference between a win and a loss. Here's how multi-book shopping works.",
-                content="""A half-point difference in the spread can mean the difference between a win and a loss. Here's how multi-book shopping works.
+                        status="published",
+                        publish_date=datetime(2026, 2, 12),
+                        featured=False,
+                        pass_day=True,
+                        reading_time_minutes=2,
+                    ),
+                    Insight(
+                        title="How We Shop for the Best Line",
+                        slug="how-we-shop-best-line",
+                        category="market_notes",
+                        excerpt="A half-point difference in the spread can mean the difference between a win and a loss. Here's how multi-book shopping works.",
+                        content="""A half-point difference in the spread can mean the difference between a win and a loss. Here's how multi-book shopping works.
 
 ## Why Line Shopping Matters
 
@@ -300,17 +313,22 @@ Over a full season of bets, the cumulative effect of consistently getting the be
 We also track where the line closes compared to where we published. If we recommend Celtics -3 and the line closes at -4, that closing line value (CLV) confirms the market moved in the direction we predicted. Consistent positive CLV is one of the strongest indicators of a sharp bettor.
 
 > The best number available today might not be the best number tomorrow. Act when the edge is there.""",
-                status="published",
-                publish_date=datetime(2026, 2, 13),
-                reading_time_minutes=3,
-            ),
-        ]
-        for ins in seed_insights:
-            db.session.add(ins)
-        db.session.commit()
-        logging.info("Seeded 4 initial insights")
+                        status="published",
+                        publish_date=datetime(2026, 2, 13),
+                        reading_time_minutes=3,
+                    ),
+                ]
+                for ins in seed_insights:
+                    db.session.add(ins)
+                db.session.commit()
+                logging.info("Seeded 4 initial insights")
 
-    logging.info("Database tables created")
+            logging.info("Deferred startup completed")
+        except Exception as e:
+            logging.error(f"Deferred startup error: {e}")
+
+import threading
+threading.Timer(2.0, deferred_startup).start()
 
 def collect_todays_games():
     """Run the main.py data collector"""
@@ -563,7 +581,13 @@ def start_scheduler():
     atexit.register(lambda: sched.shutdown())
     return sched
 
-scheduler = start_scheduler()
+def _deferred_scheduler_start():
+    global scheduler
+    scheduler = start_scheduler()
+    logging.info("Scheduler started (deferred)")
+
+scheduler = None
+threading.Timer(3.0, _deferred_scheduler_start).start()
 
 def get_db():
     conn = sqlite3.connect('sharp_picks.db')
