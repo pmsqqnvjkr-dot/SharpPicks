@@ -50,12 +50,21 @@ def calculate_stake_guidance(edge_pct, confidence, market_odds=-110):
 
 
 def _get_et_date():
-    """Get current Eastern Time date string."""
+    """Get current 'betting day' date string in Eastern Time.
+    
+    The betting day runs until 2:30 AM ET the following morning.
+    Before 2:30 AM, we still show the previous day's pick/pass.
+    After 2:30 AM, the slate resets to the new day.
+    """
     try:
         from zoneinfo import ZoneInfo
         now_et = datetime.now(ZoneInfo('America/New_York'))
     except ImportError:
         now_et = datetime.utcnow() - timedelta(hours=5)
+    
+    if now_et.hour < 2 or (now_et.hour == 2 and now_et.minute < 30):
+        now_et = now_et - timedelta(days=1)
+    
     return now_et.strftime('%Y-%m-%d')
 
 
