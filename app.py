@@ -2072,7 +2072,7 @@ def serve_spa(path):
 
 
 if __name__ == '__main__':
-    port = 5000 if is_production else 8000
+    port = int(os.environ.get('PORT', 5000))
     print(f"Starting Sharp Picks API on http://0.0.0.0:{port}")
     threading.Thread(target=start_background_services, daemon=True).start()
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
