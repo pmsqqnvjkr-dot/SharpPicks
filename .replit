@@ -14,7 +14,7 @@ requiredFiles = [".replit", "replit.nix"]
 [deployment]
 run = ["gunicorn", "--bind=0.0.0.0:5000", "--workers=1", "--timeout=120", "wsgi:application"]
 deploymentTarget = "vm"
-build = ["echo", "no-op"]
+build = ["bash", "-c", "pip install -r <(pip freeze) 2>/dev/null; echo 'Build complete'"]
 
 [agent]
 expertMode = true
@@ -83,10 +83,6 @@ externalPort = 3001
 [[ports]]
 localPort = 8000
 externalPort = 8000
-
-[[ports]]
-localPort = 9997
-externalPort = 5000
 
 [[ports]]
 localPort = 9998

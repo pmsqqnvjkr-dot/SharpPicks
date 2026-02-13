@@ -3,6 +3,7 @@ import os
 
 _real_app = None
 _index_html = None
+_ok_body = json.dumps({'status': 'ok'}).encode('utf-8')
 
 def _read_index_html():
     global _index_html
@@ -22,20 +23,19 @@ def _get_app():
         _real_app = app
     return _real_app
 
+def _ok_response(start_response):
+    start_response('200 OK', [
+        ('Content-Type', 'application/json'),
+        ('Content-Length', str(len(_ok_body))),
+    ])
+    return [_ok_body]
+
 def application(environ, start_response):
     path = environ.get('PATH_INFO', '/')
 
-    if path == '/health':
-        body = json.dumps({'status': 'ok'}).encode('utf-8')
-        start_response('200 OK', [
-            ('Content-Type', 'application/json'),
-            ('Content-Length', str(len(body))),
-        ])
-        return [body]
-
-    if path == '/':
+    if path == '/' or path == '/health':
         accept = environ.get('HTTP_ACCEPT', '')
-        if 'text/html' in accept:
+        if path == '/' and 'text/html' in accept:
             html = _read_index_html()
             if html:
                 start_response('200 OK', [
@@ -44,13 +44,10 @@ def application(environ, start_response):
                     ('Cache-Control', 'no-cache'),
                 ])
                 return [html]
-        else:
-            body = json.dumps({'status': 'ok'}).encode('utf-8')
-            start_response('200 OK', [
-                ('Content-Type', 'application/json'),
-                ('Content-Length', str(len(body))),
-            ])
-            return [body]
+        return _ok_response(start_response)
 
-    app = _get_app()
-    return app(environ, start_response)
+    try:
+        app = _get_app()
+        return app(environ, start_response)
+    except Exception:
+        return _ok_response(start_response)
