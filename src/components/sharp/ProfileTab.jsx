@@ -47,7 +47,11 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
       setShowAuth(true);
       return;
     }
-    if (plan === 'annual' || plan === 'founding') {
+    if (plan === 'founding') {
+      window.open('https://buy.stripe.com/aFa6oI5lWeby1xtd8md7q02', '_blank');
+      return;
+    }
+    if (plan === 'annual') {
       window.open('https://buy.stripe.com/14A14oaGg0kI8ZV4BQd7q00', '_blank');
       return;
     }
