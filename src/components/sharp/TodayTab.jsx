@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { useApi } from '../../hooks/useApi';
+import { useApi, apiPost } from '../../hooks/useApi';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
 import AuthModal from './AuthModal';
@@ -10,20 +10,27 @@ import { InlineError } from './ErrorStates';
 
 export default function TodayTab({ onNavigate }) {
   const { user, loading: authLoading } = useAuth();
-  const { data: todayData, loading, error } = useApi('/picks/today');
-  const { data: stats } = useApi('/public/stats');
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
+  const { data: todayData, loading, error } = useApi('/picks/today', { pollInterval: 60000 });
+  const { data: stats } = useApi('/public/stats', { pollInterval: 60000 });
+  const { data: lastResolved, refetch: refetchResolved } = useApi('/picks/last-resolved', { skip: !isPro });
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
+  const [resolutionPick, setResolutionPick] = useState(null);
 
   if (loading || authLoading) {
     return <LoadingState />;
   }
 
-  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
   const isResolved = todayData?.type === 'pick' && todayData?.result && todayData.result !== 'pending';
 
-  if (showResolution && isResolved) {
-    return <ResolutionScreen pick={todayData} onBack={() => setShowResolution(false)} />;
+  const handleDismissResolution = async (pickId) => {
+    await apiPost('/picks/dismiss-resolution', { pick_id: pickId });
+    refetchResolved();
+  };
+
+  if (showResolution && resolutionPick) {
+    return <ResolutionScreen pick={resolutionPick} onBack={() => { setShowResolution(false); setResolutionPick(null); }} />;
   }
 
   return (
@@ -31,10 +38,18 @@ export default function TodayTab({ onNavigate }) {
       <Header user={user} onAuthClick={() => setShowAuth(true)} />
 
       <div style={{ padding: '0 20px' }}>
+        {lastResolved && lastResolved.id && !isResolved && (
+          <ResolvedPickBanner
+            pick={lastResolved}
+            onViewDetails={() => { setResolutionPick(lastResolved); setShowResolution(true); }}
+            onDismiss={() => handleDismissResolution(lastResolved.id)}
+          />
+        )}
+
         {todayData?.type === 'pick' && isResolved && isPro && (
           <ResolvedPickBanner
             pick={todayData}
-            onViewDetails={() => setShowResolution(true)}
+            onViewDetails={() => { setResolutionPick(todayData); setShowResolution(true); }}
           />
         )}
 
@@ -284,7 +299,7 @@ function MiniStat({ label, value }) {
   );
 }
 
-function ResolvedPickBanner({ pick, onViewDetails }) {
+function ResolvedPickBanner({ pick, onViewDetails, onDismiss }) {
   const isWin = pick.result === 'win';
   const isPush = pick.result === 'push';
   const accentColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--green-profit)' : 'var(--red-loss)';
@@ -389,6 +404,20 @@ function ResolvedPickBanner({ pick, onViewDetails }) {
           <path d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
       </div>
+
+      {onDismiss && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+          style={{
+            display: 'block', margin: '12px auto 0', background: 'none',
+            border: 'none', cursor: 'pointer',
+            fontFamily: 'var(--font-sans)', fontSize: '12px',
+            color: 'var(--text-tertiary)',
+          }}
+        >
+          Dismiss
+        </button>
+      )}
     </div>
   );
 }

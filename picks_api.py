@@ -182,6 +182,57 @@ def today():
     })
 
 
+@picks_bp.route('/last-resolved')
+def last_resolved():
+    """Return the most recently graded pick (win/loss/push) for resolution banner"""
+    today_str = _get_et_date()
+    pick = Pick.query.filter(
+        Pick.result.in_(['win', 'loss', 'push']),
+        Pick.game_date != today_str
+    ).order_by(Pick.published_at.desc()).first()
+
+    if not pick:
+        return jsonify(None)
+
+    is_pro = current_user.is_authenticated and current_user.is_pro
+    if not is_pro:
+        return jsonify(None)
+
+    from flask import session
+    dismissed_key = f'dismissed_resolution_{pick.id}'
+    if session.get(dismissed_key):
+        return jsonify(None)
+
+    return jsonify({
+        'id': pick.id,
+        'type': 'resolved',
+        'away_team': pick.away_team,
+        'home_team': pick.home_team,
+        'game_date': pick.game_date,
+        'side': pick.side,
+        'line': pick.line,
+        'edge_pct': pick.edge_pct,
+        'result': pick.result,
+        'pnl': pick.pnl,
+        'profit_units': pick.profit_units,
+        'home_score': pick.home_score,
+        'away_score': pick.away_score,
+        'market_odds': pick.market_odds,
+        'published_at': (pick.published_at.isoformat() + 'Z') if pick.published_at else None,
+    })
+
+
+@picks_bp.route('/dismiss-resolution', methods=['POST'])
+def dismiss_resolution():
+    """Dismiss the resolution banner for a specific pick"""
+    data = request.get_json()
+    pick_id = data.get('pick_id')
+    if pick_id:
+        from flask import session
+        session[f'dismissed_resolution_{pick_id}'] = True
+    return jsonify({'success': True})
+
+
 @picks_bp.route('/history')
 def history():
     page = request.args.get('page', 1, type=int)

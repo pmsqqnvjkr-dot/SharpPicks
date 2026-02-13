@@ -1,33 +1,44 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const API_BASE = '/api';
 
 export function useApi(endpoint, options = {}) {
+  const { pollInterval, skip } = options;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const mountedRef = useRef(true);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (silent) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await fetch(`${API_BASE}${endpoint}`, {
         credentials: 'include',
-        ...options,
       });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const json = await res.json();
-      setData(json);
-      setError(null);
+      if (mountedRef.current) {
+        setData(json);
+        setError(null);
+      }
     } catch (err) {
-      setError(err.message);
+      if (mountedRef.current) setError(err.message);
     } finally {
-      setLoading(false);
+      if (mountedRef.current && !silent) setLoading(false);
     }
   }, [endpoint]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    mountedRef.current = true;
+    if (!skip) fetchData();
+    return () => { mountedRef.current = false; };
+  }, [fetchData, skip]);
+
+  useEffect(() => {
+    if (!pollInterval || skip) return;
+    const id = setInterval(() => fetchData(true), pollInterval);
+    return () => clearInterval(id);
+  }, [pollInterval, fetchData, skip]);
 
   return { data, loading, error, refetch: fetchData };
 }

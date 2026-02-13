@@ -15,8 +15,8 @@ function SectionLabel({ children }) {
 
 export default function DashboardTab({ onNavigate, embedded = false }) {
   const { user } = useAuth();
-  const { data: dashData, loading } = useApi('/public/dashboard-stats');
-  const { data: calibrationData } = useApi('/public/calibration');
+  const { data: dashData, loading } = useApi('/public/dashboard-stats', { pollInterval: 60000 });
+  const { data: calibrationData } = useApi('/public/calibration', { pollInterval: 60000 });
 
   if (loading) {
     return (
