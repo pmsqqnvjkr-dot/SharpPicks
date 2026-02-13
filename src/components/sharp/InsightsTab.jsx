@@ -404,20 +404,39 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
             }
             if (p.startsWith('– ') || p.startsWith('— ')) {
               return (
-                <p key={i} style={{
-                  margin: '20px 0 0',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-serif)',
-                  fontStyle: 'italic',
-                }}>
-                  {p}
-                </p>
+                <div key={i}>
+                  <div style={{
+                    margin: '28px 0 16px',
+                    borderTop: '1px solid var(--stroke-subtle)',
+                  }} />
+                  <p style={{
+                    margin: '0',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-serif)',
+                    fontStyle: 'italic',
+                  }}>
+                    {p}
+                  </p>
+                </div>
               );
             }
             const extraBreath = (i > 0 && i % 3 === 0);
-            return <p key={i} style={{ margin: extraBreath ? '0 0 24px' : '0 0 16px' }}>{p}</p>;
+            const isClosingPunch = p === 'Discipline compounds. Impulse erodes.' ||
+              p === 'Fewer bets. Higher quality.\nThat is how ROI survives.' ||
+              p === 'Short term streaks are noise.\nLong term expectancy is signal.' ||
+              p === 'Survival is step one.\nCompounding is step two.';
+            if (isClosingPunch) {
+              return <p key={i} style={{
+                margin: '4px 0 20px',
+                fontSize: '16px',
+                fontWeight: 600,
+                color: 'var(--text-primary)',
+                lineHeight: '1.7',
+              }}>{p}</p>;
+            }
+            return <p key={i} style={{ margin: extraBreath ? '0 0 26px' : '0 0 18px' }}>{p}</p>;
           })}
         </div>
 
@@ -502,70 +521,28 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
 }
 
 function SharpPrincipleBlock({ text }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = (e) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
   return (
     <div style={{
-      margin: '24px 0',
-      padding: '18px 20px',
+      margin: '32px 0',
+      padding: '24px 24px',
       background: 'rgba(52, 211, 153, 0.04)',
       borderLeft: '3px solid var(--green-profit)',
-      borderRadius: '0 10px 10px 0',
-      position: 'relative',
+      borderRadius: '0 12px 12px 0',
+      textAlign: 'center',
     }}>
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: '8px',
-      }}>
-        <div style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '9px', fontWeight: 700,
-          letterSpacing: '2px', textTransform: 'uppercase',
-          color: 'var(--green-profit)',
-        }}>Sharp Principle</div>
-        <button
-          onClick={handleCopy}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '4px',
-            padding: '2px 6px', borderRadius: '4px',
-            color: copied ? 'var(--green-profit)' : 'var(--text-tertiary)',
-            fontSize: '10px', fontFamily: 'var(--font-mono)',
-            transition: 'color 0.2s ease',
-          }}
-        >
-          {copied ? (
-            <>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              Copied
-            </>
-          ) : (
-            <>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-              Copy
-            </>
-          )}
-        </button>
-      </div>
+        fontFamily: 'var(--font-mono)',
+        fontSize: '9px', fontWeight: 700,
+        letterSpacing: '2.5px', textTransform: 'uppercase',
+        color: 'var(--green-profit)',
+        marginBottom: '12px',
+      }}>Sharp Principle</div>
       <div style={{
         fontFamily: 'var(--font-serif)',
-        fontSize: '17px',
+        fontSize: '19px',
         fontWeight: 500,
         color: 'var(--text-primary)',
-        lineHeight: '1.5',
+        lineHeight: '1.55',
         fontStyle: 'italic',
       }}>
         {text}
