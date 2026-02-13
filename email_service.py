@@ -4,7 +4,7 @@ import resend
 
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
 
-FROM_EMAIL = "Sharp Picks <picks@sharppicks.ai>"
+FROM_EMAIL = "Sharp Picks <support@sharppicks.ai>"
 
 def send_email(to, subject, html):
     if not resend.api_key:
