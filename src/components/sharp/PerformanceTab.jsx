@@ -11,7 +11,6 @@ export default function PerformanceTab({ onNavigate }) {
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
-      <PerfHeader />
 
       <div style={{ padding: '0 20px', marginBottom: '16px' }}>
         <div style={{
@@ -47,28 +46,6 @@ export default function PerformanceTab({ onNavigate }) {
   );
 }
 
-function PerfHeader() {
-  return (
-    <div style={{
-      padding: '16px 20px 8px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-    }}>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5">
-        <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/>
-      </svg>
-      <span style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '13px',
-        fontWeight: 700,
-        letterSpacing: '2px',
-        textTransform: 'uppercase',
-        color: 'var(--text-primary)',
-      }}>Performance</span>
-    </div>
-  );
-}
 
 function ToggleButton({ active, onClick, label }) {
   return (

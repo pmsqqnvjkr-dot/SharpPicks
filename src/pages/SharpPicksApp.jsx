@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 import TabNav from '../components/sharp/TabNav';
+import AppHeader from '../components/sharp/AppHeader';
 import PicksTab from '../components/sharp/PicksTab';
 import InsightsTab from '../components/sharp/InsightsTab';
 import PerformanceTab from '../components/sharp/PerformanceTab';
@@ -77,6 +78,7 @@ function AppContent() {
       margin: '0 auto',
       position: 'relative',
     }}>
+      <AppHeader onNavigate={(tab) => setActiveTab(tab)} />
       <div style={{ flex: 1, paddingBottom: '60px', overflowY: 'auto' }}>
         {activeTab === 'picks' && <PicksTab onNavigate={navigateTo} />}
         {activeTab === 'insights' && <InsightsTab onNavigate={navigateTo} />}
