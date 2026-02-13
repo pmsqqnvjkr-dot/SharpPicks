@@ -112,6 +112,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
 
           <SettingsSection user={null} onNavigate={navigate} />
           <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />
+          <LegalSection />
         </div>
 
         {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
@@ -210,6 +211,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
 
         <SettingsSection user={user} onNavigate={navigate} />
         {!isPro && <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />}
+        <LegalSection />
 
         <div style={{ marginTop: '12px', marginBottom: '20px' }}>
           <button onClick={logout} style={{
@@ -410,6 +412,55 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
             )}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function LegalSection() {
+  const legalItems = [
+    { label: 'Terms of Service', url: '/legal/terms' },
+    { label: 'Privacy Policy', url: '/legal/privacy' },
+    { label: 'Responsible Gaming', url: '/legal/responsible-gaming' },
+    { label: 'Disclaimer', url: '/legal/disclaimer' },
+  ];
+
+  return (
+    <div style={{
+      backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+      overflow: 'hidden', border: '1px solid var(--stroke-subtle)',
+      marginTop: '12px',
+    }}>
+      <div style={{
+        padding: '12px 20px 8px',
+        fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
+        textTransform: 'uppercase', letterSpacing: '0.5px',
+      }}>Legal</div>
+      {legalItems.map((item, i) => (
+        <a key={item.label} href={item.url} target="_blank" rel="noopener noreferrer" style={{
+          width: '100%', display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', padding: '14px 20px', background: 'none',
+          textDecoration: 'none',
+          borderTop: '1px solid var(--stroke-subtle)',
+          cursor: 'pointer', textAlign: 'left',
+        }}>
+          <span style={{
+            fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
+          }}>{item.label}</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </a>
+      ))}
+      <div style={{
+        padding: '12px 20px 14px', borderTop: '1px solid var(--stroke-subtle)',
+      }}>
+        <p style={{
+          fontSize: '11px', color: 'var(--text-tertiary)', margin: 0,
+          lineHeight: '1.6',
+        }}>
+          Sharp Picks provides informational content only. We do not accept bets or facilitate gambling. Past performance does not guarantee future results. Please gamble responsibly.
+        </p>
       </div>
     </div>
   );
