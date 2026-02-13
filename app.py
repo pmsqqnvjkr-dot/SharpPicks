@@ -23,7 +23,7 @@ def health():
 
 @app.route('/')
 def root_health():
-    return Response('ok', status=200, content_type='text/plain')
+    return '<!DOCTYPE html><html><body>ok</body></html>', 200, {'Content-Type': 'text/html'}
 
 is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
 
