@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
 import PickCard from './PickCard';
@@ -38,7 +38,7 @@ export default function PicksTab({ onNavigate }) {
 
   return (
     <div style={{ padding: '0' }}>
-      <Header user={user} onAuthClick={() => setShowAuth(true)} />
+      <Header user={user} onAuthClick={() => setShowAuth(true)} onNavigate={onNavigate} />
 
       <div style={{ padding: '0 20px' }}>
         {todayData?.type === 'pick' && isResolved && isPro && (
@@ -216,7 +216,36 @@ export default function PicksTab({ onNavigate }) {
   );
 }
 
-function Header({ user, onAuthClick }) {
+function Header({ user, onAuthClick, onNavigate }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  const { logout } = useAuth();
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [menuOpen]);
+
+  const greeting = (() => {
+    if (!user?.first_name) return null;
+    const h = new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' });
+    const hr = parseInt(h);
+    const period = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+    return `${period}, ${user.first_name}`;
+  })();
+
+  const menuItems = [
+    { label: 'Performance', icon: 'M3 3v18h18M7 16l4-4 4 4 5-5', action: () => { onNavigate('performance'); setMenuOpen(false); } },
+    { label: 'Journal', icon: 'M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5V5a2 2 0 012-2h14v14H6.5A2.5 2.5 0 004 19.5z', action: () => { onNavigate('insights'); setMenuOpen(false); } },
+    { label: 'Profile', icon: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 3a4 4 0 100 8 4 4 0 000-8z', action: () => { onNavigate('profile'); setMenuOpen(false); } },
+    { type: 'divider' },
+    { label: 'Sign Out', icon: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9', action: () => { logout(); setMenuOpen(false); }, danger: true },
+  ];
+
   return (
     <div style={{
       padding: '16px 20px',
@@ -242,6 +271,7 @@ function Header({ user, onAuthClick }) {
           textTransform: 'uppercase',
         }}>Sharp Picks</span>
       </div>
+
       {!user && (
         <button
           onClick={onAuthClick}
@@ -256,29 +286,76 @@ function Header({ user, onAuthClick }) {
           </svg>
         </button>
       )}
+
       {user && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {user.first_name && (
-            <span style={{
-              fontSize: '13px', color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-sans)',
-            }}>
-              {(() => {
-                const h = new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' });
-                const hr = parseInt(h);
-                return hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
-              })()}, {user.first_name}
-            </span>
-          )}
-          <div style={{
-            width: '32px', height: '32px', borderRadius: '50%',
-            backgroundColor: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
-            fontFamily: 'var(--font-sans)',
-          }}>
-            {(user.first_name || user.email || 'U')[0].toUpperCase()}
+        <div style={{ position: 'relative' }} ref={menuRef}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {greeting && (
+              <span style={{
+                fontSize: '13px', color: 'var(--text-secondary)',
+                fontFamily: 'var(--font-sans)',
+              }}>
+                {greeting}
+              </span>
+            )}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '6px', display: 'flex', alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
           </div>
+
+          {menuOpen && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: '8px',
+              backgroundColor: 'var(--surface-1)',
+              border: '1px solid var(--stroke-subtle)',
+              borderRadius: '12px',
+              padding: '6px',
+              minWidth: '180px',
+              zIndex: 50,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            }}>
+              {menuItems.map((item, i) =>
+                item.type === 'divider' ? (
+                  <div key={i} style={{ height: '1px', backgroundColor: 'var(--stroke-muted)', margin: '4px 8px' }} />
+                ) : (
+                  <button
+                    key={i}
+                    onClick={item.action}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      width: '100%', padding: '10px 12px',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      borderRadius: '8px',
+                      color: item.danger ? 'var(--red-loss)' : 'var(--text-secondary)',
+                      fontSize: '14px', fontFamily: 'var(--font-sans)',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-2)'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d={item.icon}/>
+                    </svg>
+                    {item.label}
+                  </button>
+                )
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
