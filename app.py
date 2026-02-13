@@ -588,12 +588,15 @@ scheduler = None
 
 def start_background_services():
     import time
-    time.sleep(5)
-    logging.info("Starting background services...")
-    seed_database()
-    global scheduler
-    scheduler = start_scheduler()
-    logging.info("All background services started")
+    time.sleep(10)
+    try:
+        logging.info("Starting background services...")
+        seed_database()
+        global scheduler
+        scheduler = start_scheduler()
+        logging.info("All background services started")
+    except Exception as e:
+        logging.error(f"Background services failed (non-fatal): {e}")
 
 def get_db():
     conn = sqlite3.connect('sharp_picks.db')
