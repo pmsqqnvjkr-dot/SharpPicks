@@ -567,7 +567,7 @@ function TrialSignup({ onBack }) {
               fontSize: '12px', color: 'var(--text-tertiary)', margin: 0,
               textAlign: 'center', lineHeight: '1.6',
             }}>
-              After 14 days, subscribe at $29/mo or $99/yr to continue. Cancel anytime. No auto-charge.
+              After 14 days, subscribe at $29/mo or $99/yr (founding rate). Cancel anytime. No auto-charge.
             </p>
           </div>
         </div>
