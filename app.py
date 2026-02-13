@@ -1860,6 +1860,68 @@ def get_recent_results():
         'count': len(results)
     })
 
+@app.route('/api/admin/users/export')
+def export_users():
+    """Export user list as CSV - superusers only"""
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    db_user = db.session.get(User, user['id'])
+    if not db_user or not db_user.is_superuser:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    import csv
+    import io
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Email', 'First Name', 'Subscription Status', 'Plan', 'Founding Member', 'Trial End', 'Signed Up', 'Referral Code'])
+
+    users = User.query.order_by(User.created_at.asc()).all()
+    for u in users:
+        writer.writerow([
+            u.email,
+            u.first_name or '',
+            u.subscription_status or 'free',
+            u.subscription_plan or '',
+            'Yes' if u.founding_member else 'No',
+            u.trial_end_date.strftime('%Y-%m-%d') if u.trial_end_date else '',
+            u.created_at.strftime('%Y-%m-%d') if u.created_at else '',
+            u.referral_code or '',
+        ])
+
+    from flask import Response
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=sharppicks_users.csv'}
+    )
+
+@app.route('/api/admin/users')
+def admin_users():
+    """List all users - superusers only"""
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    db_user = db.session.get(User, user['id'])
+    if not db_user or not db_user.is_superuser:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    users = User.query.order_by(User.created_at.asc()).all()
+    return jsonify({
+        'total': len(users),
+        'users': [{
+            'email': u.email,
+            'first_name': u.first_name or '',
+            'subscription_status': u.subscription_status or 'free',
+            'subscription_plan': u.subscription_plan or '',
+            'founding_member': u.founding_member,
+            'founding_number': u.founding_number,
+            'trial_end_date': u.trial_end_date.isoformat() if u.trial_end_date else None,
+            'created_at': u.created_at.isoformat() if u.created_at else None,
+            'referral_code': u.referral_code or '',
+        } for u in users]
+    })
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_spa(path):
