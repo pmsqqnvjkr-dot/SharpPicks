@@ -102,7 +102,7 @@ def serialize_user(user):
 
 @app.before_request
 def make_session_permanent():
-    if request.path == '/health':
+    if request.path in ('/', '/health'):
         return
     session.permanent = True
 
