@@ -6,6 +6,7 @@ resend.api_key = os.environ.get('RESEND_API_KEY', '')
 
 FROM_EMAIL = "Sharp Picks <no-reply@sharppicks.ai>"
 ERIN_EMAIL = "Erin Donnelly <erin@sharppicks.ai>"
+LOGO_URL = "https://sharppicks.ai/logo-horizontal.png"
 
 def send_email(to, subject, html, reply_to=None, from_email=None):
     if not resend.api_key:
@@ -33,7 +34,7 @@ def send_password_reset(to, reset_url, first_name=None):
     html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #e0e0e0; background-color: #0A0D14;">
       <div style="text-align: center; margin-bottom: 32px;">
-        <span style="font-size: 14px; font-weight: 700; letter-spacing: 2px; color: #ffffff; text-transform: uppercase;">Sharp Picks</span>
+        <img src="{LOGO_URL}" alt="Sharp Picks" style="height: 48px; width: auto;" />
       </div>
       <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Reset your password</h2>
       <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">Hi {name}, we received a request to reset your password. Click the button below to choose a new one.</p>
@@ -49,10 +50,10 @@ def send_password_reset(to, reset_url, first_name=None):
 
 
 def send_welcome(to, first_name=None):
-    html = """
+    html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 40px 20px; color: #e0e0e0; background-color: #0A0D14;">
       <div style="text-align: center; margin-bottom: 32px;">
-        <span style="font-size: 14px; font-weight: 700; letter-spacing: 2px; color: #ffffff; text-transform: uppercase;">Sharp Picks</span>
+        <img src="{LOGO_URL}" alt="Sharp Picks" style="height: 48px; width: auto;" />
       </div>
 
       <p style="font-size: 15px; line-height: 1.8; color: #c0c0c0; margin-bottom: 20px;">Hi &mdash;</p>
