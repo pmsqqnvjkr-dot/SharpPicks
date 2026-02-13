@@ -91,6 +91,10 @@ export default function PicksTab({ onNavigate }) {
           <WaitingCard />
         )}
 
+        {(todayData?.type === 'allstar_break' || todayData?.type === 'off_day') && (
+          <BreakCard data={todayData} />
+        )}
+
         {error && (
           <InlineError title="Data delay" message="Unable to load today's analysis. This typically resolves within a few minutes." />
         )}
@@ -215,6 +219,74 @@ export default function PicksTab({ onNavigate }) {
   );
 }
 
+
+function BreakCard({ data }) {
+  const isAllStar = data?.type === 'allstar_break';
+  const title = isAllStar ? 'All-Star Break' : 'No Games Today';
+  const subtitle = isAllStar
+    ? 'The NBA All-Star break is underway. No regular season games are scheduled.'
+    : data?.message || 'No NBA games scheduled today. The model will resume when games return.';
+  const resumeDate = data?.resume_date;
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, var(--surface-1) 0%, rgba(30,35,50,1) 100%)',
+      borderRadius: '16px', border: '1px solid var(--stroke-subtle)',
+      padding: '36px 24px', textAlign: 'center', marginBottom: '16px',
+    }}>
+      <div style={{
+        width: '72px', height: '72px', borderRadius: '50%',
+        background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))',
+        border: '1px solid rgba(99,102,241,0.2)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        margin: '0 auto 20px',
+      }}>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+        </svg>
+      </div>
+      <h2 style={{
+        fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
+        color: 'var(--text-primary)', marginBottom: '10px',
+      }}>{title}</h2>
+      <p style={{
+        fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7',
+        maxWidth: '320px', margin: '0 auto 20px',
+      }}>{subtitle}</p>
+      {resumeDate && (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '8px',
+          padding: '8px 16px', borderRadius: '10px',
+          backgroundColor: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,0.6)" strokeWidth="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
+            color: 'rgba(99,102,241,0.8)', letterSpacing: '0.5px',
+          }}>Resumes {new Date(resumeDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+        </div>
+      )}
+      <div style={{
+        marginTop: '24px', padding: '16px', borderRadius: '12px',
+        backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--stroke-subtle)',
+      }}>
+        <p style={{
+          fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.6',
+          fontFamily: 'var(--font-sans)', margin: 0,
+        }}>
+          {isAllStar
+            ? 'Discipline means knowing when not to play. Enjoy the break — the model will be ready when regular season action resumes.'
+            : 'No action required. The model automatically resumes analysis when games are scheduled.'}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 function WaitingCard() {
   return (

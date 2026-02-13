@@ -170,13 +170,13 @@ export default function FreeTierDashboard({ onUpgrade }) {
               fontFamily: 'var(--font-mono)',
               fontSize: '10px', fontWeight: 700,
               letterSpacing: '2px', textTransform: 'uppercase',
-              color: 'var(--gold-pro)',
+              color: todayData?.type === 'allstar_break' ? 'rgba(99,102,241,0.8)' : 'var(--gold-pro)',
               marginBottom: '10px',
-            }}>Waiting</div>
+            }}>{todayData?.type === 'allstar_break' ? 'All-Star Break' : todayData?.type === 'off_day' ? 'No Games' : 'Waiting'}</div>
             <p style={{
               fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
             }}>
-              The model has not run yet today. Check back when games are available.
+              {todayData?.message || 'The model has not run yet today. Check back when games are available.'}
             </p>
           </div>
         )}

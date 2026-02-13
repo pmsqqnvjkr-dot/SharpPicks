@@ -183,6 +183,20 @@ def today():
             'message': 'No qualifying edge found today. The model analyzed all available games and none met the threshold. Discipline preserved.'
         })
 
+    allstar_ranges = [
+        ('2025-02-14', '2025-02-18', '2025-02-20'),
+        ('2026-02-13', '2026-02-18', '2026-02-19'),
+        ('2027-02-12', '2027-02-17', '2027-02-18'),
+    ]
+    for break_start, break_end, resume in allstar_ranges:
+        if break_start <= today_str <= break_end:
+            return jsonify({
+                'type': 'allstar_break',
+                'date': today_str,
+                'resume_date': resume,
+                'message': 'The NBA All-Star break is underway. No regular season games are scheduled. The model will resume when the regular season continues.'
+            })
+
     return jsonify({
         'type': 'waiting',
         'message': 'Model has not run yet today. Check back later.'
