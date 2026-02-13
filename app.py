@@ -557,6 +557,7 @@ def start_scheduler():
     sched.add_job(collect_todays_games, 'cron', hour=21, minute=0, id='evening_collection')
     sched.add_job(collect_closing_lines, 'cron', hour=18, minute=30, id='closing_lines')
     sched.add_job(grade_pending_picks, 'cron', hour=23, minute=30, id='grade_picks')
+    sched.add_job(grade_pending_picks, 'cron', hour=2, minute=0, id='late_game_grading')
     sched.add_job(check_data_quality, 'cron', hour=10, minute=0, id='data_quality')
     sched.start()
     atexit.register(lambda: sched.shutdown())
