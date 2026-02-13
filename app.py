@@ -17,6 +17,16 @@ app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-prod
 def health():
     return {'status': 'ok'}, 200
 
+@app.route('/')
+def root_health():
+    accept = request.headers.get('Accept', '')
+    if 'text/html' in accept:
+        try:
+            return app.send_static_file('index.html')
+        except Exception:
+            pass
+    return {'status': 'ok'}, 200
+
 is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
 
 from flask_cors import CORS
@@ -2056,15 +2066,10 @@ def admin_users():
         } for u in users]
     })
 
-@app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_spa(path):
-    if not path:
-        user_agent = request.headers.get('User-Agent', '')
-        if 'GoogleHC' in user_agent or 'kube-probe' in user_agent or request.args.get('health') == '1':
-            return jsonify({'status': 'ok'}), 200
     try:
-        if path and os.path.exists(os.path.join(app.static_folder, path)):
+        if os.path.exists(os.path.join(app.static_folder, path)):
             return app.send_static_file(path)
         return app.send_static_file('index.html')
     except Exception:
