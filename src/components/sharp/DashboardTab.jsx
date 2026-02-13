@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi, apiGet } from '../../hooks/useApi';
-import FreeTierDashboard from './FreeTierDashboard';
-
 function SectionLabel({ children }) {
   return (
     <div style={{
@@ -20,18 +18,12 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
   const { data: dashData, loading } = useApi('/public/dashboard-stats');
   const { data: calibrationData } = useApi('/public/calibration');
 
-  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
-
   if (loading) {
     return (
       <div style={{ padding: '20px' }}>
         <DashboardSkeleton />
       </div>
     );
-  }
-
-  if (!isPro) {
-    return <FreeTierDashboard onUpgrade={() => onNavigate && onNavigate('profile', 'upgrade')} />;
   }
 
   const perf = dashData?.performance || {};

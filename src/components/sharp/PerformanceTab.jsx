@@ -68,13 +68,13 @@ export default function PerformanceTab({ onNavigate }) {
       </div>
 
       {view === 'yours' ? (
-        <UnifiedDashboard embedded />
-      ) : (
         isPro ? (
-          <DashboardTab onNavigate={onNavigate} embedded />
+          <UnifiedDashboard embedded />
         ) : (
           <FreeTierDashboard onUpgrade={() => onNavigate && onNavigate('profile', 'upgrade')} />
         )
+      ) : (
+        <DashboardTab onNavigate={onNavigate} embedded />
       )}
     </div>
   );
