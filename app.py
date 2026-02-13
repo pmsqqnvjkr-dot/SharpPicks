@@ -533,6 +533,12 @@ def register():
     
     login_user(user)
     session['user_id'] = user.id
+
+    try:
+        from email_service import send_welcome
+        send_welcome(user.email, user.first_name)
+    except Exception as e:
+        logging.error(f"Welcome email failed: {e}")
     
     return jsonify({
         'success': True,
@@ -592,12 +598,13 @@ def forgot_password():
     token = s.dumps(user.id, salt='password-reset')
     reset_url = f"{request.host_url}reset-password?token={token}"
 
-    logging.info(f"Password reset requested for {email}. Reset URL: {reset_url}")
+    from email_service import send_password_reset
+    sent = send_password_reset(user.email, reset_url, user.first_name)
+    logging.info(f"Password reset for {email}: email_sent={sent}")
 
     return jsonify({
         'success': True,
-        'message': 'If that email exists, a reset link has been generated.',
-        'reset_url': reset_url if os.environ.get('REPLIT_DEPLOYMENT') != '1' else None,
+        'message': 'If that email exists, a password reset link has been sent.',
     })
 
 
