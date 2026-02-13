@@ -11,7 +11,6 @@ import OnboardingFlow from '../components/sharp/OnboardingFlow';
 function AppContent() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('picks');
-  const [hasEnteredApp, setHasEnteredApp] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [profileScreen, setProfileScreen] = useState(null);
   const [profileScreenData, setProfileScreenData] = useState(null);
@@ -26,23 +25,12 @@ function AppContent() {
 
   useEffect(() => {
     if (user) {
-      setHasEnteredApp(true);
       const onboarded = localStorage.getItem('sp_onboarded');
       if (!onboarded && user.is_new) {
         setShowOnboarding(true);
       }
     }
   }, [user]);
-
-  useEffect(() => {
-    const visited = sessionStorage.getItem('sp_visited');
-    if (visited) setHasEnteredApp(true);
-  }, []);
-
-  const handleEnterApp = () => {
-    setHasEnteredApp(true);
-    sessionStorage.setItem('sp_visited', '1');
-  };
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
@@ -71,8 +59,8 @@ function AppContent() {
     );
   }
 
-  if (!user && !hasEnteredApp) {
-    return <LandingPage onEnterApp={handleEnterApp} />;
+  if (!user) {
+    return <LandingPage />;
   }
 
   if (showOnboarding) {

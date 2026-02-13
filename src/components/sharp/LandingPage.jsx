@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import AuthModal from './AuthModal';
 
-export default function LandingPage({ onEnterApp }) {
+export default function LandingPage() {
   const { data: stats } = useApi('/public/stats');
   const { data: founding } = useApi('/public/founding-count');
   const [showAuth, setShowAuth] = useState(false);
@@ -187,22 +187,9 @@ export default function LandingPage({ onEnterApp }) {
             fontSize: '15px', fontWeight: 500,
             cursor: 'pointer',
             fontFamily: 'var(--font-sans)',
-            marginBottom: '12px',
           }}
         >
           Sign in
-        </button>
-        <button
-          onClick={onEnterApp}
-          style={{
-            width: '100%', padding: '12px',
-            backgroundColor: 'transparent',
-            color: 'var(--text-tertiary)',
-            border: 'none', fontSize: '13px',
-            cursor: 'pointer', fontFamily: 'var(--font-sans)',
-          }}
-        >
-          Continue as guest
         </button>
       </div>
 
