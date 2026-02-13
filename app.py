@@ -3,12 +3,16 @@ SHARP PICKS - ALL-IN-ONE APP
 Flask server with API endpoints, dashboard, authentication, and scheduled tasks
 """
 
-from flask import Flask, jsonify, Response, session, request
 import os
+import sys
 import logging
 import threading
 
+print(f"BOOT: pid={os.getpid()} python={sys.version_info[:2]} PORT={os.environ.get('PORT','not set')} DEPLOYMENT={os.environ.get('REPLIT_DEPLOYMENT','0')}", flush=True)
+
 logging.basicConfig(level=logging.DEBUG)
+
+from flask import Flask, jsonify, Response, session, request
 
 app = Flask(__name__, static_folder='dist', static_url_path='')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")

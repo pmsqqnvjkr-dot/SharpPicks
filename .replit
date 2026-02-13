@@ -32,10 +32,6 @@ author = "agent"
 task = "workflow.run"
 args = "Dashboard API"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "React Frontend"
-
 [[workflows.workflow]]
 name = "Dashboard API"
 author = "agent"
@@ -47,18 +43,6 @@ outputType = "console"
 task = "shell.exec"
 args = "PORT=8000 python app.py"
 waitForPort = 8000
-
-[[workflows.workflow]]
-name = "React Frontend"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
 
 [[ports]]
 localPort = 5000
