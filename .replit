@@ -12,7 +12,7 @@ language = "python3"
 requiredFiles = [".replit", "replit.nix"]
 
 [deployment]
-run = ["gunicorn", "--bind=0.0.0.0:5000", "--workers=1", "--timeout=120", "wsgi:application"]
+run = ["python", "wsgi.py"]
 deploymentTarget = "vm"
 build = ["bash", "-c", "pip install -r <(pip freeze) 2>/dev/null; echo 'Build complete'"]
 
@@ -83,6 +83,10 @@ externalPort = 3001
 [[ports]]
 localPort = 8000
 externalPort = 8000
+
+[[ports]]
+localPort = 9994
+externalPort = 6000
 
 [[ports]]
 localPort = 9998
