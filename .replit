@@ -12,7 +12,7 @@ language = "python3"
 requiredFiles = [".replit", "replit.nix"]
 
 [deployment]
-run = ["python", "wsgi.py"]
+run = ["python", "app.py"]
 deploymentTarget = "vm"
 build = ["echo", "build complete"]
 
@@ -83,10 +83,6 @@ externalPort = 3001
 [[ports]]
 localPort = 8000
 externalPort = 8000
-
-[[ports]]
-localPort = 9993
-externalPort = 5000
 
 [[ports]]
 localPort = 9994

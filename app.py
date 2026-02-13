@@ -4,6 +4,21 @@ Flask server with API endpoints, dashboard, authentication, and scheduled tasks
 """
 
 from flask import Flask, jsonify, Response, session, request
+import os
+import logging
+import threading
+
+logging.basicConfig(level=logging.DEBUG)
+
+app = Flask(__name__, static_folder='dist', static_url_path='')
+app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
+
+@app.route('/health')
+def health():
+    return {'status': 'ok'}, 200
+
+is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
+
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -12,8 +27,6 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3
 import subprocess
 import atexit
-import os
-import logging
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -24,12 +37,6 @@ from insights_api import insights_bp
 from model_service import run_model_and_log
 from sqlalchemy import func
 
-logging.basicConfig(level=logging.DEBUG)
-
-app = Flask(__name__, static_folder='dist', static_url_path='')
-app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
-
-is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
 if is_production:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
@@ -106,17 +113,7 @@ app.register_blueprint(insights_bp, url_prefix='/api/insights')
 from legal_pages import legal_bp
 app.register_blueprint(legal_bp)
 
-@app.route('/health')
-def health_check():
-    return jsonify({'status': 'ok'}), 200
-
-_startup_done = False
-
-def deferred_startup():
-    global _startup_done
-    if _startup_done:
-        return
-    _startup_done = True
+def seed_database():
     with app.app_context():
         try:
             db.create_all()
@@ -324,16 +321,9 @@ We also track where the line closes compared to where we published. If we recomm
                 db.session.commit()
                 logging.info("Seeded 4 initial insights")
 
-            logging.info("Deferred startup completed")
+            logging.info("Database seed completed")
         except Exception as e:
-            logging.error(f"Deferred startup error: {e}")
-
-import threading
-
-def _maybe_start_deferred():
-    if os.environ.get('SKIP_DEFERRED_STARTUP') != '1':
-        threading.Timer(2.0, deferred_startup).start()
-_maybe_start_deferred()
+            logging.error(f"Database seed error: {e}")
 
 def collect_todays_games():
     """Run the main.py data collector"""
@@ -586,14 +576,16 @@ def start_scheduler():
     atexit.register(lambda: sched.shutdown())
     return sched
 
-def _deferred_scheduler_start():
+scheduler = None
+
+def start_background_services():
+    import time
+    time.sleep(5)
+    logging.info("Starting background services...")
+    seed_database()
     global scheduler
     scheduler = start_scheduler()
-    logging.info("Scheduler started (deferred)")
-
-scheduler = None
-if os.environ.get('SKIP_DEFERRED_STARTUP') != '1':
-    threading.Timer(3.0, _deferred_scheduler_start).start()
+    logging.info("All background services started")
 
 def get_db():
     conn = sqlite3.connect('sharp_picks.db')
@@ -2080,10 +2072,7 @@ def serve_spa(path):
 
 
 if __name__ == '__main__':
-    is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
     port = 5000 if is_production else 8000
     print(f"Starting Sharp Picks API on http://0.0.0.0:{port}")
-    print("API endpoints available at /api/*")
-    print("Auth endpoints available at /auth/*")
-    print("Scheduled: Daily collection at 9:00 AM and 9:00 PM")
+    threading.Thread(target=start_background_services, daemon=True).start()
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
