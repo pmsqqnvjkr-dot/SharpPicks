@@ -14,7 +14,7 @@ requiredFiles = [".replit", "replit.nix"]
 [deployment]
 run = ["python", "wsgi.py"]
 deploymentTarget = "vm"
-build = ["bash", "-c", "pip install -r <(pip freeze) 2>/dev/null; echo 'Build complete'"]
+build = ["echo", "build complete"]
 
 [agent]
 expertMode = true
