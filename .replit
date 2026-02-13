@@ -14,7 +14,7 @@ requiredFiles = [".replit", "replit.nix"]
 [deployment]
 run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "--workers=2", "app:app"]
 deploymentTarget = "autoscale"
-build = ["bash", "-c", "npm install && npm run build"]
+build = ["echo", "no-op"]
 
 [agent]
 expertMode = true
