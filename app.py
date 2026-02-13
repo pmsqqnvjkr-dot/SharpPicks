@@ -95,6 +95,8 @@ def serialize_user(user):
 
 @app.before_request
 def make_session_permanent():
+    if request.path == '/health':
+        return
     session.permanent = True
 
 app.register_blueprint(picks_bp, url_prefix='/api/picks')
@@ -2061,9 +2063,16 @@ def admin_users():
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_spa(path):
-    if path and os.path.exists(os.path.join(app.static_folder, path)):
-        return app.send_static_file(path)
-    return app.send_static_file('index.html')
+    if not path:
+        user_agent = request.headers.get('User-Agent', '')
+        if 'GoogleHC' in user_agent or 'kube-probe' in user_agent or request.args.get('health') == '1':
+            return jsonify({'status': 'ok'}), 200
+    try:
+        if path and os.path.exists(os.path.join(app.static_folder, path)):
+            return app.send_static_file(path)
+        return app.send_static_file('index.html')
+    except Exception:
+        return jsonify({'status': 'ok'}), 200
 
 
 if __name__ == '__main__':
