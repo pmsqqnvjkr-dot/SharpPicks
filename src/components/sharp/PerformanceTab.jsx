@@ -6,41 +6,8 @@ import FreeTierDashboard from './FreeTierDashboard';
 
 export default function PerformanceTab({ onNavigate }) {
   const { user } = useAuth();
-  const [view, setView] = useState('yours');
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
-
-  if (!user) {
-    return (
-      <div style={{ padding: '0', paddingBottom: '100px' }}>
-        <PerfHeader />
-        <div style={{ padding: '0 20px' }}>
-          <div style={{
-            backgroundColor: 'var(--surface-1)',
-            borderRadius: '16px',
-            border: '1px solid var(--stroke-subtle)',
-            padding: '40px 24px',
-            textAlign: 'center',
-          }}>
-            <div style={{
-              width: '48px', height: '48px', borderRadius: '12px',
-              backgroundColor: 'var(--surface-2)', margin: '0 auto 16px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5">
-                <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/>
-              </svg>
-            </div>
-            <p style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-serif)', margin: '0 0 8px' }}>
-              Performance
-            </p>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-              Sign in to track your results and see model performance.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const [view, setView] = useState(user ? 'yours' : 'model');
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
