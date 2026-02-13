@@ -321,6 +321,44 @@ def dashboard_stats():
     })
 
 
+@public_bp.route('/model-info')
+def model_info():
+    total_picks = Pick.query.count()
+    total_passes = Pass.query.count()
+    last_run = ModelRun.query.order_by(ModelRun.created_at.desc()).first()
+
+    model_accuracy = 79.4
+    model_brier = 0.139
+    num_features = 36
+    training_size = 15131
+    try:
+        import pickle, os
+        model_path = os.path.join(os.path.dirname(__file__), 'calibrated_model.pkl')
+        with open(model_path, 'rb') as f:
+            model_data = pickle.load(f)
+        if 'ensemble_accuracy' in model_data:
+            model_accuracy = round(model_data['ensemble_accuracy'] * 100, 1)
+        if 'ensemble_brier' in model_data:
+            model_brier = round(model_data['ensemble_brier'], 3)
+        if 'feature_names' in model_data:
+            num_features = len(model_data['feature_names'])
+        if 'training_size' in model_data:
+            training_size = model_data['training_size']
+    except Exception:
+        pass
+
+    return jsonify({
+        'accuracy': model_accuracy,
+        'brier_score': model_brier,
+        'num_features': num_features,
+        'training_size': training_size,
+        'total_picks': total_picks,
+        'total_passes': total_passes,
+        'last_retrain': last_run.date if last_run else None,
+        'model_version': last_run.model_version if last_run else 'v1.0',
+    })
+
+
 @public_bp.route('/founding-count')
 def founding_count():
     counter = FoundingCounter.query.first()

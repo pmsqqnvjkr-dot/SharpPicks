@@ -1,9 +1,18 @@
+import { useApi } from '../../hooks/useApi';
+
 export default function HowItWorksScreen({ onBack }) {
+  const { data: modelInfo } = useApi('/public/model-info');
+
+  const accuracy = modelInfo?.accuracy ?? '--';
+  const brier = modelInfo?.brier_score ?? '--';
+  const numFeatures = modelInfo?.num_features ?? '--';
+  const trainingSize = modelInfo?.training_size?.toLocaleString() ?? '--';
+
   const sections = [
     {
       title: 'The model',
       icon: '&#9881;',
-      content: 'Our ensemble machine learning model analyzes 36 features per NBA game including pace ratings, team strength metrics, injury impact scores, schedule fatigue, travel distance, altitude adjustments, and line movement patterns. It was trained on 15,131 historical games and achieves 79.4% accuracy with a 0.139 Brier score.',
+      content: `Our ensemble machine learning model analyzes ${modelInfo ? modelInfo.num_features : 'dozens of'} features per NBA game including pace ratings, team strength metrics, injury impact scores, schedule fatigue, travel distance, altitude adjustments, and line movement patterns. It was trained on ${modelInfo ? trainingSize : 'thousands of'} historical games and achieves ${modelInfo ? accuracy + '%' : 'high'} accuracy with a ${modelInfo ? brier : 'low'} Brier score.`,
     },
     {
       title: 'Edge detection',
@@ -101,10 +110,10 @@ export default function HowItWorksScreen({ onBack }) {
             fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px',
           }}>Model performance</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <StatBlock label="Accuracy" value="79.4%" />
-            <StatBlock label="Brier Score" value="0.139" />
-            <StatBlock label="Features" value="36" />
-            <StatBlock label="Training Set" value="15,131" />
+            <StatBlock label="Accuracy" value={modelInfo ? `${accuracy}%` : '--'} />
+            <StatBlock label="Brier Score" value={modelInfo ? String(brier) : '--'} />
+            <StatBlock label="Features" value={modelInfo ? String(numFeatures) : '--'} />
+            <StatBlock label="Training Set" value={modelInfo ? trainingSize : '--'} />
           </div>
         </div>
       </div>
