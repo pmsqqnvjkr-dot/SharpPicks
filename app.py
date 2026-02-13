@@ -2077,9 +2077,14 @@ def serve_spa(path):
         return jsonify({'status': 'ok'}), 200
 
 
-threading.Thread(target=start_background_services, daemon=True).start()
+def start_background_services_later():
+    threading.Timer(10.0, start_background_services).start()
+
+if os.environ.get("REPLIT_DEPLOYMENT") == "1":
+    start_background_services_later()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print(f"Starting Sharp Picks API on http://0.0.0.0:{port}")
+    start_background_services_later()
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
