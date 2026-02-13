@@ -261,14 +261,27 @@ def grade_pending_picks():
             cursor = conn.cursor()
 
             for pick in pending_picks:
-                cursor.execute('''
-                    SELECT home_score, away_score, home_team, away_team
-                    FROM games
-                    WHERE home_team = ? AND away_team = ? AND game_date LIKE ?
-                    AND home_score IS NOT NULL AND away_score IS NOT NULL
-                ''', (pick.home_team, pick.away_team, f'{pick.game_date[:10]}%'))
+                game = None
+                pick_date = pick.game_date[:10]
+                try:
+                    from datetime import date as date_type
+                    pd = datetime.strptime(pick_date, '%Y-%m-%d').date()
+                    next_day = (pd + timedelta(days=1)).strftime('%Y-%m-%d')
+                    check_dates = [pick_date, next_day]
+                except:
+                    check_dates = [pick_date]
 
-                game = cursor.fetchone()
+                for check_date in check_dates:
+                    cursor.execute('''
+                        SELECT home_score, away_score, home_team, away_team
+                        FROM games
+                        WHERE home_team = ? AND away_team = ? AND game_date LIKE ?
+                        AND home_score IS NOT NULL AND away_score IS NOT NULL
+                    ''', (pick.home_team, pick.away_team, f'{check_date}%'))
+                    game = cursor.fetchone()
+                    if game:
+                        break
+
                 if not game:
                     continue
 
