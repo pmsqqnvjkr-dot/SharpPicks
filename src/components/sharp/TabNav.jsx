@@ -1,6 +1,7 @@
 export default function TabNav({ activeTab, onTabChange }) {
   const tabs = [
     { id: 'picks', label: 'Picks', icon: TargetIcon },
+    { id: 'insights', label: 'Insights', icon: BookIcon },
     { id: 'performance', label: 'Performance', icon: ChartIcon },
     { id: 'profile', label: 'Profile', icon: PersonIcon },
   ];
@@ -70,6 +71,15 @@ function ChartIcon() {
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3v18h18"/>
       <path d="M7 16l4-8 4 4 5-9"/>
+    </svg>
+  );
+}
+
+function BookIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
     </svg>
   );
 }

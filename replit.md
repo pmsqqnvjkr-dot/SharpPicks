@@ -16,7 +16,7 @@ The project boasts a robust machine learning model with a 57.3% test accuracy an
 ## System Architecture
 
 ### Frontend
-The frontend is built with React and Vite, utilizing inline CSS with design tokens for a consistent dark theme (`#0A0D14`) using IBM Plex Serif, Inter, and JetBrains Mono fonts. The application features a 3-tab shell (Picks, Performance, Profile), a marketing landing page for non-authenticated users, and a comprehensive suite of components for displaying picks, performance metrics, user profiles, and subscription management. Key features include skeleton loading states, designed empty states, and abstract blurred charts for free-tier users.
+The frontend is built with React and Vite, utilizing inline CSS with design tokens for a consistent dark theme (`#0A0D14`) using IBM Plex Serif, Inter, and JetBrains Mono fonts. The application features a 4-tab shell (Picks, Insights, Performance, Profile), a marketing landing page for non-authenticated users, and a comprehensive suite of components for displaying picks, performance metrics, user profiles, and subscription management. Key features include skeleton loading states, designed empty states, and abstract blurred charts for free-tier users. The Insights tab provides educational content on betting discipline, market dynamics, and model methodology with category filters and a pass-day CTA integration.
 
 ### Backend
 The backend is developed with Python/Flask, serving as the API layer and static file server for the React frontend. It manages user authentication, Stripe integrations, scheduled tasks, and acts as the bridge between the ML model and the database.
@@ -25,10 +25,10 @@ The backend is developed with Python/Flask, serving as the API layer and static 
 The core of Sharp Picks is an ensemble ML prediction model. It uses 56 features, including pace, ratings, and line movement, to predict game outcomes. The algorithm employs a margin-first prediction approach, converting expected margins to cover probabilities via Normal CDF. It integrates real-time odds from multiple sportsbooks, calculates implied probabilities, and applies a market shrinkage factor and edge caps to ensure realistic and disciplined predictions. Data collection scripts fetch scores, odds, team ratings, injury data, and schedules.
 
 ### Data Architecture
-The system primarily uses PostgreSQL for user data, picks, passes, model runs, bets, and referrals. SQLite is used for legacy game data and ML model training data. Key tables are designed for append-only operations to maintain complete transparency and auditability of picks and passes. Data is meticulously collected, with daily jobs for refreshing lines, quality checks, and game grading. All date logic uses Eastern Time (America/New_York) to align with NBA schedules.
+The system primarily uses PostgreSQL for user data, picks, passes, model runs, bets, referrals, and insights. SQLite is used for legacy game data and ML model training data. Key tables are designed for append-only operations to maintain complete transparency and auditability of picks and passes. Data is meticulously collected, with daily jobs for refreshing lines, quality checks, and game grading. All date logic uses Eastern Time (America/New_York) to align with NBA schedules.
 
 ### API Endpoints
-The API is structured around authentication, pick delivery, public statistics, subscription management, and bet tracking. Endpoints handle user registration, login, password resets, fetching daily picks and historical data, managing subscriptions with Stripe, and allowing users to track their bets against published picks.
+The API is structured around authentication, pick delivery, public statistics, subscription management, bet tracking, and insights content management. Endpoints handle user registration, login, password resets, fetching daily picks and historical data, managing subscriptions with Stripe, and allowing users to track their bets against published picks.
 
 ### Key Design Decisions
 - **Prediction Logic**: One pick per day maximum with an edge threshold of >= 3.5%. "No Pick" days are a fundamental feature, indicating the model found no sufficient edge.

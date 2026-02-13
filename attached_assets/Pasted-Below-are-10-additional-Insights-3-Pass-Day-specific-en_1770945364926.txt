@@ -1,0 +1,258 @@
+Below are:
+
+• 10 additional Insights
+• 3 Pass Day specific entries
+• 1 cornerstone long-form piece for website / SEO
+• 1 calibration explainer in simple language
+
+All aligned with Sharp Picks philosophy. Clean. Disciplined. No advice tone.
+
+⸻
+
+10 Additional Insights
+
+⸻
+
+9. Not Every Edge Is Worth Taking
+
+Category: Discipline
+Excerpt: Small edges are not equal.
+
+Not all edges are created equal.
+
+A projected 3.6 percent edge on a 3 point spread is not the same as a 3.6 percent edge on an 11 point spread.
+
+Sharp Picks uses graduated thresholds based on spread size. Larger spreads require larger edge.
+
+Risk scales with variance. So do our filters.
+
+⸻
+
+10. Why Line Movement Matters
+
+Category: How It Works
+Excerpt: Price matters as much as side.
+
+The same team at -3 is not the same bet at -5.
+
+Line movement against a position reduces value. Sharp Picks applies a penalty when market movement erodes projected edge.
+
+We do not ignore price deterioration.
+
+Edge is dynamic.
+
+⸻
+
+11. Passing Is a Position
+
+Category: Philosophy
+Excerpt: Not betting is still a decision.
+
+Choosing not to act is still an action.
+
+On efficient boards, forcing exposure increases variance without increasing expectation.
+
+Passing is capital management.
+
+⸻
+
+12. Confidence Is Calibrated
+
+Category: How It Works
+Excerpt: Probability is not certainty.
+
+When you see 58 percent confidence, that does not mean the pick will win.
+
+It means that over a large sample, outcomes should approximate that probability.
+
+Sharp Picks measures calibration over time. If projections drift from results, adjustments are made.
+
+Integrity requires calibration.
+
+⸻
+
+13. Why Volume Kills ROI
+
+Category: Discipline
+Excerpt: More bets rarely mean more profit.
+
+Most bettors believe more opportunities increase expected return.
+
+In reality, marginal bets dilute edge.
+
+Sharp Picks selectivity rate remains significantly below industry action rates.
+
+Restraint protects return.
+
+⸻
+
+14. The Role of Variance
+
+Category: Philosophy
+Excerpt: Variance is not failure.
+
+Even with positive expected value, sequences of losses occur.
+
+The model does not adapt thresholds based on short term swings.
+
+Stability comes from consistency, not reaction.
+
+⸻
+
+15. Closing Line Value
+
+Category: How It Works
+Excerpt: Beating the close signals edge.
+
+If a published pick closes at a worse price than where it was posted, it suggests the market moved toward the model’s projection.
+
+Closing line value does not guarantee profit, but over time it correlates with positive expectation.
+
+Sharp Picks monitors this internally.
+
+⸻
+
+16. Edge Thresholds Are Fixed
+
+Category: Discipline
+Excerpt: We do not lower the bar.
+
+If no games meet minimum edge requirements, none are published.
+
+Thresholds do not relax on slow days.
+
+Consistency builds credibility.
+
+⸻
+
+17. The Market Is Efficient
+
+Category: Market Notes
+Excerpt: Not every slate offers opportunity.
+
+Many NBA boards are priced efficiently.
+
+The absence of a pick often reflects market strength, not model weakness.
+
+Efficiency is expected. Edge is selective.
+
+⸻
+
+18. Protecting Capital First
+
+Category: Philosophy
+Excerpt: Preservation precedes growth.
+
+The primary goal is not maximizing picks.
+
+It is minimizing exposure to negative expectation.
+
+Capital preserved is optionality retained.
+
+⸻
+
+3 Pass Day Specific Entries
+
+These can auto-display when no pick exists.
+
+⸻
+
+Pass Day 1: The System Working
+
+Category: Discipline
+Excerpt: No pick is intentional.
+
+The model evaluated today’s slate. None met required thresholds.
+
+This is not inactivity. It is filtering.
+
+No exposure. No forced action.
+
+The system is functioning as designed.
+
+⸻
+
+Pass Day 2: Efficient Board
+
+Category: Market Notes
+Excerpt: Efficiency is expected.
+
+Today’s spreads closely aligned with model projections after line movement adjustments.
+
+When projection and price converge, edge disappears.
+
+We wait for divergence.
+
+⸻
+
+Pass Day 3: Capital Is a Position
+
+Category: Philosophy
+Excerpt: Cash is optionality.
+
+Every bet introduces risk.
+
+Days without exposure preserve optionality for future edges.
+
+Patience compounds.
+
+⸻
+
+Cornerstone Insight (Long Form)
+
+Why Sharp Picks Publishes Less
+
+Most betting platforms optimize for engagement. Engagement means activity. Activity means more bets.
+
+Sharp Picks is structured differently.
+
+The model evaluates every NBA spread using predicted scoring margin, calibrated probability, and market implied odds. It accounts for line movement and spread-dependent risk.
+
+If the projected edge does not clear required thresholds, the game is passed.
+
+On many slates, this eliminates the majority of available games.
+
+Selectivity is not accidental. It is structural.
+
+The average bettor wagers a large percentage of available games. Sharp Picks publishes a fraction.
+
+The difference between entertainment and edge is filtering.
+
+Small advantages applied consistently create measurable outcomes over time.
+
+Without edge, there is no bet.
+
+This philosophy underpins every published pick.
+
+⸻
+
+Calibration Explained Simply
+
+What Calibration Means
+
+When the model shows 60 percent confidence, that does not mean certainty.
+
+It means that across many similar predictions, approximately 60 percent should succeed.
+
+Sharp Picks monitors performance across confidence buckets. If results drift materially from projected probabilities, recalibration occurs.
+
+Calibration is the difference between optimism and statistical integrity.
+
+Probability without calibration is guesswork.
+
+⸻
+
+You now have:
+
+• 21 short Insights
+• 3 Pass Day entries
+• 1 long form cornerstone
+• 1 calibration explainer
+
+This is enough to:
+
+• Populate the app at launch
+• Rotate content on pass days
+• Publish weekly on website
+• Fuel email sequences
+• Turn into social pos

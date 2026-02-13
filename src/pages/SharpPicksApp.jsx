@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 import TabNav from '../components/sharp/TabNav';
 import PicksTab from '../components/sharp/PicksTab';
+import InsightsTab from '../components/sharp/InsightsTab';
 import PerformanceTab from '../components/sharp/PerformanceTab';
 import ProfileTab from '../components/sharp/ProfileTab';
 import LandingPage from '../components/sharp/LandingPage';
@@ -90,6 +91,7 @@ function AppContent() {
     }}>
       <div style={{ flex: 1, paddingBottom: '60px', overflowY: 'auto' }}>
         {activeTab === 'picks' && <PicksTab onNavigate={navigateTo} />}
+        {activeTab === 'insights' && <InsightsTab onNavigate={navigateTo} />}
         {activeTab === 'performance' && <PerformanceTab onNavigate={navigateTo} />}
         {activeTab === 'profile' && <ProfileTab initialScreen={profileScreen} onScreenChange={setProfileScreen} pickToTrack={pickToTrack} onPickTracked={() => setPickToTrack(null)} screenData={profileScreenData} />}
       </div>

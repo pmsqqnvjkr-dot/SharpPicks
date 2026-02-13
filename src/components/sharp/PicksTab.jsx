@@ -85,7 +85,7 @@ export default function PicksTab({ onNavigate }) {
         )}
 
         {todayData?.type === 'pass' && (
-          <NoPickCard data={todayData} />
+          <NoPickCard data={todayData} onInsightTap={() => onNavigate('insights')} />
         )}
 
         {todayData?.type === 'waiting' && (

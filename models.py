@@ -187,3 +187,20 @@ class TrackedBet(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     user = db.relationship('User', backref='tracked_bets', overlaps="user_bets")
     linked_pick = db.relationship('Pick', backref='tracked_bets')
+
+
+class Insight(db.Model):
+    __tablename__ = 'insights'
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = db.Column(db.String, nullable=False)
+    slug = db.Column(db.String, unique=True, nullable=False)
+    category = db.Column(db.String, nullable=False)
+    excerpt = db.Column(db.String, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String, default='draft')
+    publish_date = db.Column(db.DateTime, nullable=True)
+    featured = db.Column(db.Boolean, default=False)
+    pass_day = db.Column(db.Boolean, default=False)
+    reading_time_minutes = db.Column(db.Integer, default=2)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)

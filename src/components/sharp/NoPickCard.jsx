@@ -1,4 +1,6 @@
-export default function NoPickCard({ data }) {
+import { InsightPassDayCTA } from './InsightsTab';
+
+export default function NoPickCard({ data, onInsightTap }) {
   return (
     <div style={{ padding: '0 4px' }}>
       <div style={{ textAlign: 'center', padding: '24px 0 32px' }}>
@@ -66,12 +68,15 @@ export default function NoPickCard({ data }) {
         <NopickStat value={data.days_per_bet ?? '3.2'} label="Days per bet" />
       </div>
 
+      {onInsightTap && <InsightPassDayCTA onTap={onInsightTap} />}
+
       <p style={{
         fontFamily: 'var(--font-serif)',
         fontStyle: 'italic',
         fontSize: '15px',
         color: 'var(--text-secondary)',
         textAlign: 'center',
+        marginTop: '24px',
       }}>Discipline is the product.</p>
     </div>
   );

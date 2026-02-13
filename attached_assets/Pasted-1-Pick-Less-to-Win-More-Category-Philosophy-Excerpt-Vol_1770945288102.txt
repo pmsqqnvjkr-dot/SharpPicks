@@ -1,0 +1,132 @@
+1. Pick Less to Win More
+
+Category: Philosophy
+Excerpt: Volume feels productive. It rarely is.
+
+Most bettors lose money for the same reason.
+
+They bet too often.
+
+Sharp Picks does not try to maximize action. It tries to maximize asymmetry. If the model’s predicted probability does not meaningfully exceed the market’s implied probability, the game is passed.
+
+Passing protects capital.
+Edge compounds slowly.
+Volume compounds mistakes faster.
+
+Restraint is not inactivity. It is discipline.
+
+⸻
+
+2. Why We Pass Most Games
+
+Category: Discipline
+Excerpt: Passing is part of the strategy.
+
+On a typical NBA slate, the model evaluates every spread.
+
+Most fail.
+
+Some miss the minimum confidence threshold.
+Some miss the edge requirement after accounting for line movement.
+Some fail both.
+
+The public sees opportunity everywhere.
+We see filters.
+
+No pick today is not a flaw. It is the system working.
+
+⸻
+
+3. What Edge Actually Means
+
+Category: How It Works
+Excerpt: Edge is math, not optimism.
+
+Edge is the difference between the model’s calibrated cover probability and the market’s implied probability.
+
+If the market implies 52.4 percent at standard odds and the model projects 58 percent, that gap is measurable advantage.
+
+Sharp Picks publishes only when that advantage clears strict thresholds.
+
+Without edge, there is no bet.
+
+⸻
+
+4. Discipline Beats Streaks
+
+Category: Philosophy
+Excerpt: Streaks are noise. Process is signal.
+
+A win does not validate the model.
+A loss does not invalidate it.
+
+Short term variance is inevitable. The thresholds remain fixed regardless of outcome.
+
+Sharp Picks is designed to measure process over streaks.
+
+The goal is long term edge, not emotional swings.
+
+⸻
+
+5. Market Psychology
+
+Category: Market Notes
+Excerpt: The market reacts. The model filters.
+
+Markets move on narratives, injury headlines, public sentiment, and recency bias.
+
+The model measures predicted margin, probability, and market price.
+
+If narrative inflates a line beyond projection, opportunity can exist. If it does not, we pass.
+
+Emotion moves markets.
+Discipline evaluates them.
+
+⸻
+
+6. Why Standardized Units Matter
+
+Category: How It Works
+Excerpt: Consistency protects integrity.
+
+All Sharp Picks performance is tracked at one unit per play at standard pricing.
+
+No scaling after wins.
+No doubling after losses.
+No retroactive adjustments.
+
+Standardization keeps reporting honest and comparable over time.
+
+Users may size differently. The reporting remains fixed.
+
+⸻
+
+7. On Down Days
+
+Category: Discipline
+Excerpt: No action is still action.
+
+Some days produce no qualifying edge.
+
+The industry trains bettors to believe that daily action equals opportunity. It does not.
+
+Capital that is not exposed is capital preserved.
+
+The model does not chase.
+It waits.
+
+⸻
+
+8. The Long Game
+
+Category: Philosophy
+Excerpt: This is a probability engine, not a prediction game.
+
+Sharp Picks does not aim to be perfect.
+
+It aims to be probabilistically correct more often than the market expects.
+
+Small edges, applied consistently, produce measurable outcomes over time.
+
+The advantage is not excitement.
+It is repetition.

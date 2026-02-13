@@ -17,9 +17,10 @@ import logging
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter
+from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight
 from picks_api import picks_bp
 from public_api import public_bp
+from insights_api import insights_bp
 from model_service import run_model_and_log
 from sqlalchemy import func
 
@@ -84,6 +85,7 @@ def make_session_permanent():
 
 app.register_blueprint(picks_bp, url_prefix='/api/picks')
 app.register_blueprint(public_bp, url_prefix='/api/public')
+app.register_blueprint(insights_bp, url_prefix='/api/insights')
 
 with app.app_context():
     db.create_all()
@@ -92,6 +94,132 @@ with app.app_context():
         counter = FoundingCounter(current_count=0, closed=False)
         db.session.add(counter)
         db.session.commit()
+    if Insight.query.count() == 0:
+        seed_insights = [
+            Insight(
+                title="Why One Pick Beats Five",
+                slug="why-one-pick-beats-five",
+                category="philosophy",
+                excerpt="Most bettors lose not because they pick wrong, but because they pick too often. Volume is the enemy of edge.",
+                content="""Most bettors lose not because they pick wrong, but because they pick too often. Volume is the enemy of edge.
+
+## The Math of Selectivity
+
+A bettor who wagers on five games per day needs to hit at a rate that overcomes the vig on every single bet. At standard -110 odds, you need 52.4% accuracy just to break even. Across five daily bets, the compounding effect of juice makes profitability nearly impossible.
+
+A single, carefully selected wager changes the equation entirely. When our model identifies a genuine 3.5% or greater edge, the expected value calculation shifts dramatically in your favor.
+
+## Why Silence Is the Product
+
+On days we publish no pick, the system is working exactly as designed. We analyzed every game on the board and found no edge worth risking your bankroll on. That restraint is what separates professional-grade analysis from entertainment content.
+
+> The best trade is often the one you don't make.
+
+## What the Data Shows
+
+Over 12 seasons of backtesting, our model achieved a 68.6% win rate against the spread with a +30.9% ROI. That performance is inseparable from the discipline of only acting when the edge is clear.
+
+Adding more picks to chase action would dilute that edge to the point of disappearance. One quality pick, backed by genuine statistical advantage, is the foundation of long-term profitability.""",
+                status="published",
+                publish_date=datetime(2026, 2, 10),
+                featured=True,
+                pass_day=True,
+                reading_time_minutes=3,
+            ),
+            Insight(
+                title="Understanding the Spread",
+                slug="understanding-the-spread",
+                category="how_it_works",
+                excerpt="Point spreads aren't predictions. They're prices. Understanding this distinction is the first step toward thinking like a sharp.",
+                content="""Point spreads aren't predictions. They're prices. Understanding this distinction is the first step toward thinking like a sharp.
+
+## Spreads as Market Prices
+
+When you see Lakers -4.5, the sportsbook isn't saying the Lakers will win by 4.5 points. They're setting a price that balances action on both sides. The spread reflects the collective opinion of the betting market, weighted heavily by the sharpest money.
+
+## Why We Compare to the Market
+
+Our model generates an independent prediction of the expected margin. But we don't blindly trust our model. We blend our prediction with the market spread using a 30/70 ratio, giving 70% weight to the market and 30% to our model.
+
+Why? Because the market aggregates the opinions of thousands of sharp bettors and sophisticated models. Our out-of-sample testing shows the market spread is more accurate than our model about 60% of the time.
+
+## Where Our Edge Lives
+
+Our edge doesn't come from being smarter than the entire market. It comes from identifying the specific games where our model disagrees with the market enough to suggest a genuine mispricing.
+
+> We don't need to be right more often than the market. We need to be right more often than the spread price implies.
+
+When our blended prediction diverges from the market spread by 3.5% or more, that's a signal worth acting on. Anything less, and we pass.""",
+                status="published",
+                publish_date=datetime(2026, 2, 11),
+                reading_time_minutes=3,
+            ),
+            Insight(
+                title="The Discipline of Pass Days",
+                slug="the-discipline-of-pass-days",
+                category="discipline",
+                excerpt="Every pass day is a decision to protect your bankroll. The model analyzed every game and found nothing worth your risk.",
+                content="""Every pass day is a decision to protect your bankroll. The model analyzed every game and found nothing worth your risk.
+
+## What Happens on a Pass Day
+
+Our system runs the same rigorous analysis every single day during the season. It evaluates every game on the board, calculates expected margins, compares them to market spreads, and hunts for edges.
+
+Most days, it finds nothing. And that's the correct outcome.
+
+## The Psychology of Waiting
+
+Human nature pushes us toward action. Watching games without a stake feels like wasted opportunity. But this instinct is exactly what sportsbooks exploit. They know most bettors can't sit still.
+
+The ability to do nothing when there's nothing to do is the rarest skill in sports betting.
+
+## Building the Habit
+
+Think of pass days as deposits into your discipline account. Every day you don't bet without an edge, you're preserving capital for the day when a genuine opportunity appears.
+
+Over the course of a season, the number of pass days will far exceed pick days. That ratio isn't a bug. It's the entire product.
+
+> Restraint isn't passive. It's the most active decision you can make.""",
+                status="published",
+                publish_date=datetime(2026, 2, 12),
+                featured=False,
+                pass_day=True,
+                reading_time_minutes=2,
+            ),
+            Insight(
+                title="How We Shop for the Best Line",
+                slug="how-we-shop-best-line",
+                category="market_notes",
+                excerpt="A half-point difference in the spread can mean the difference between a win and a loss. Here's how multi-book shopping works.",
+                content="""A half-point difference in the spread can mean the difference between a win and a loss. Here's how multi-book shopping works.
+
+## Why Line Shopping Matters
+
+Not all sportsbooks post the same number. On any given game, you might find the Celtics at -3 on DraftKings, -3.5 on FanDuel, and -2.5 on BetMGM. That difference is everything.
+
+Our system monitors odds from six major books: DraftKings, FanDuel, BetMGM, Caesars, PointsBet, and BetRivers. When we publish a pick, we tell you where the best available line is.
+
+## The Half-Point Edge
+
+Historical data shows that roughly 5-7% of NBA games land exactly on the spread number. Getting an extra half-point in your favor can meaningfully improve your long-term results.
+
+Over a full season of bets, the cumulative effect of consistently getting the best number adds up to several percentage points of ROI.
+
+## Closing Line Value
+
+We also track where the line closes compared to where we published. If we recommend Celtics -3 and the line closes at -4, that closing line value (CLV) confirms the market moved in the direction we predicted. Consistent positive CLV is one of the strongest indicators of a sharp bettor.
+
+> The best number available today might not be the best number tomorrow. Act when the edge is there.""",
+                status="published",
+                publish_date=datetime(2026, 2, 13),
+                reading_time_minutes=3,
+            ),
+        ]
+        for ins in seed_insights:
+            db.session.add(ins)
+        db.session.commit()
+        logging.info("Seeded 4 initial insights")
+
     logging.info("Database tables created")
 
 def collect_todays_games():

@@ -1,0 +1,132 @@
+Insights Tab Requirements
+
+Goal
+
+Add an Insights tab that delivers Sharp Picks philosophy, education, and “pass day” value. It should reinforce discipline and keep users engaged when no pick is published.
+
+Placement and Navigation
+	•	Add a new bottom nav item labeled: Insights
+	•	Icon: simple book, note, or lightbulb style icon that matches the existing set
+	•	Order suggestion: Picks, Insights, Performance, Profile
+	•	Insights opens to a feed view by default
+
+Core Screens
+
+1. Insights Feed
+	•	Layout: vertical list of Insight cards
+	•	Each card includes:
+	•	Title
+	•	Category tag (Philosophy, Market Notes, Discipline, How It Works)
+	•	Read time (example: 2 min)
+	•	Published date
+	•	Short excerpt (1 to 2 lines)
+	•	Tapping a card opens Insight Detail
+
+Feed behavior
+	•	Default sort: newest first
+	•	Filter chips at top: All, Philosophy, Discipline, Market Notes, How It Works
+	•	Search icon optional (phase 2)
+
+Empty state
+	•	If no insights exist: show a branded empty message and a button for admin only to create one (if admin logged in)
+
+2. Insight Detail
+	•	Full page reading experience
+	•	Components:
+	•	Title
+	•	Category tag
+	•	Published date
+	•	Body content (rich text)
+	•	Optional footer:
+	•	“Save” bookmark icon (phase 2)
+	•	Share button (phase 2)
+	•	Style:
+	•	Same typography system as app
+	•	Comfortable line spacing
+	•	Max width constraints for readability
+
+Pass Day Integration
+
+When no pick is published for today:
+	•	The Picks screen should show a card above the fold:
+	•	Header: “No pick today”
+	•	Subtext: “Discipline is the edge”
+	•	CTA button: “Read today’s Insight”
+	•	Tapping goes to the latest Insight or a specifically tagged “Pass Day” Insight if one exists
+
+When a pick is published:
+	•	Optional small module below the pick card:
+	•	“Insight of the day” with title and CTA
+
+Content Rules
+	•	Must not provide gambling advice or alternate picks
+	•	No “lean” language
+	•	Education and philosophy only
+	•	Tone: calm, confident, institutional
+
+Data Model
+
+Create an Insights table (or collection) with:
+	•	id (uuid)
+	•	title (string)
+	•	slug (string, unique)
+	•	category (enum: philosophy, discipline, market_notes, how_it_works)
+	•	excerpt (string, 160 to 220 chars)
+	•	content (text or markdown)
+	•	status (enum: draft, published)
+	•	publish_date (datetime)
+	•	created_at, updated_at
+	•	featured (boolean, optional)
+	•	pass_day (boolean, optional)
+	•	reading_time_minutes (int, optional, can be derived)
+
+API Endpoints
+	•	GET /api/insights?category=&limit=&offset=
+	•	returns published insights only
+	•	GET /api/insights/:id or /api/insights/slug/:slug
+	•	GET /api/insights/latest
+	•	Admin only:
+	•	POST /api/admin/insights
+	•	PATCH /api/admin/insights/:id
+	•	DELETE /api/admin/insights/:id
+
+Admin Workflow
+
+If you already have an admin area:
+	•	Add “Insights” section:
+	•	Create new insight
+	•	Save draft
+	•	Publish
+	•	Edit published
+	•	Toggle featured
+	•	Toggle pass_day
+
+If no admin exists:
+	•	Minimal option: create insights directly in the database for beta
+	•	Next step: simple password protected admin route
+
+Analytics and Tracking
+
+Track:
+	•	insight_feed_view
+	•	insight_open (id, category)
+	•	insight_read_25, insight_read_50, insight_read_90 (scroll depth)
+	•	pass_day_cta_click
+	•	time_on_page (seconds)
+
+Non Functional Requirements
+	•	Fast load. Feed should render within 1 second on normal connection after first load
+	•	Cache insights list for 10 to 30 minutes
+	•	Offline friendly if possible (phase 2)
+
+Phase 1 Deliverable
+	•	Insights tab with feed and detail
+	•	Category filters
+	•	Latest Insight CTA on pass days
+	•	Admin create and publish support or database seed approach
+
+Phase 2 Optional Enhancements
+	•	Bookmarks
+	•	Share card generator (social ready image)
+	•	Search
+	•	Push notifications for new Insights (only if user opts in)
