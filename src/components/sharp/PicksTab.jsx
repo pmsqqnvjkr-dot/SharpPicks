@@ -257,14 +257,28 @@ function Header({ user, onAuthClick }) {
         </button>
       )}
       {user && (
-        <div style={{
-          width: '32px', height: '32px', borderRadius: '50%',
-          backgroundColor: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
-          fontFamily: 'var(--font-sans)',
-        }}>
-          {user.email ? user.email[0].toUpperCase() : 'U'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {user.first_name && (
+            <span style={{
+              fontSize: '13px', color: 'var(--text-secondary)',
+              fontFamily: 'var(--font-sans)',
+            }}>
+              {(() => {
+                const h = new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' });
+                const hr = parseInt(h);
+                return hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+              })()}, {user.first_name}
+            </span>
+          )}
+          <div style={{
+            width: '32px', height: '32px', borderRadius: '50%',
+            backgroundColor: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
+            fontFamily: 'var(--font-sans)',
+          }}>
+            {(user.first_name || user.email || 'U')[0].toUpperCase()}
+          </div>
         </div>
       )}
     </div>

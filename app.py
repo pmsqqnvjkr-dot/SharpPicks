@@ -66,7 +66,8 @@ def serialize_user(user):
     return {
         'id': user.id,
         'email': user.email,
-        'display_name': user.display_name or user.username or user.email.split('@')[0],
+        'first_name': user.first_name or '',
+        'display_name': user.first_name or user.display_name or user.username or user.email.split('@')[0],
         'username': user.username,
         'is_premium': user.is_pro,
         'is_superuser': user.is_superuser,
@@ -500,12 +501,16 @@ def register():
     data = request.get_json()
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
+    first_name = data.get('first_name', '').strip()
     
     if not email or not password:
         return jsonify({'error': 'Email and password required'}), 400
     
     if len(password) < 6:
         return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    
+    if not first_name:
+        return jsonify({'error': 'First name is required'}), 400
     
     existing = User.query.filter(func.lower(User.email) == email.lower()).first()
     if existing:
@@ -514,6 +519,8 @@ def register():
     user = User(
         id=str(uuid.uuid4()),
         email=email.lower(),
+        first_name=first_name,
+        display_name=first_name,
         password_hash=generate_password_hash(password),
         is_premium=False,
         subscription_status='trial',

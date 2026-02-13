@@ -40,8 +40,8 @@ export function AuthProvider({ children }) {
     return { success: false, error: data.error || 'Login failed' };
   };
 
-  const register = async (email, password) => {
-    const data = await apiPost('/auth/register', { email, password });
+  const register = async (email, password, firstName) => {
+    const data = await apiPost('/auth/register', { email, password, first_name: firstName });
     if (data.success && data.user) {
       setUser(data.user);
       return { success: true };

@@ -5,6 +5,7 @@ const API_BASE = '/api';
 
 export default function AuthModal({ onClose, initialMode }) {
   const [mode, setMode] = useState(initialMode || 'login');
+  const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -40,7 +41,7 @@ export default function AuthModal({ onClose, initialMode }) {
 
     const result = mode === 'login'
       ? await login(email, password)
-      : await register(email, password);
+      : await register(email, password, firstName.trim());
 
     if (result.success) {
       onClose();
@@ -135,6 +136,40 @@ export default function AuthModal({ onClose, initialMode }) {
         )}
 
         <form onSubmit={handleSubmit}>
+          {mode === 'register' && (
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                marginBottom: '6px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>
+                First Name
+              </label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                placeholder="What should we call you?"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: 'var(--surface-2)',
+                  border: '1px solid var(--stroke-muted)',
+                  borderRadius: '10px',
+                  color: 'var(--text-primary)',
+                  fontSize: '15px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          )}
+
           <div style={{ marginBottom: '12px' }}>
             <label style={{
               display: 'block',
