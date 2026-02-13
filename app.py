@@ -881,13 +881,14 @@ def set_unit_size():
 
 @app.route('/api/auth/trial', methods=['POST'])
 def start_trial():
-    """Start free 7-day trial with just email"""
+    """Start free 14-day trial with just email - no card required"""
     from flask import request
     from datetime import timedelta
     import re
     
     data = request.get_json()
     email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
     
     if not email:
         return jsonify({'error': 'Email required'}), 400
@@ -901,19 +902,16 @@ def start_trial():
         if user.trial_used and user.trial_ends and datetime.now() > user.trial_ends:
             return jsonify({
                 'success': False,
-                'error': 'Trial already used',
-                'user': {
-                    'id': user.id,
-                    'email': user.email,
-                    'is_premium': user.is_premium,
-                    'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None,
-                    'trial_expired': True
-                }
+                'error': 'Trial already used for this email. Subscribe to continue.',
+                'trial_expired': True
             }), 400
         
         if user.trial_ends and datetime.now() < user.trial_ends:
             user.is_premium = True
+            user.subscription_status = 'trial'
+            user.trial_end_date = user.trial_ends
             db.session.commit()
+            login_user(user)
         
         return jsonify({
             'success': True,
@@ -921,19 +919,27 @@ def start_trial():
                 'id': user.id,
                 'email': user.email,
                 'is_premium': user.is_premium,
+                'subscription_status': 'trial',
                 'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None
             }
         })
     
+    if not password or len(password) < 6:
+        return jsonify({'error': 'Password required (6+ characters)'}), 400
+    
     user = User()
     user.email = email
     user.first_name = email.split('@')[0]
+    user.set_password(password)
     user.is_premium = True
-    user.trial_ends = datetime.now() + timedelta(days=7)
+    user.subscription_status = 'trial'
+    user.trial_ends = datetime.now() + timedelta(days=14)
+    user.trial_end_date = user.trial_ends
     user.trial_used = True
     
     db.session.add(user)
     db.session.commit()
+    login_user(user)
     
     return jsonify({
         'success': True,
@@ -941,8 +947,9 @@ def start_trial():
             'id': user.id,
             'email': user.email,
             'is_premium': True,
+            'subscription_status': 'trial',
             'trial_ends': user.trial_ends.isoformat(),
-            'message': 'Welcome! Your 7-day free trial has started.'
+            'message': 'Welcome! Your 14-day free trial has started. No card required.'
         }
     })
 

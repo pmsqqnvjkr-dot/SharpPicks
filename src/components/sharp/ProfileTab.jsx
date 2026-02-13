@@ -32,6 +32,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
     if (onScreenChange) onScreenChange(s);
   };
 
+  if (screen === 'trial') return <TrialSignup onBack={() => navigate(null)} />;
   if (screen === 'how') return <HowItWorksScreen onBack={() => navigate(null)} />;
   if (screen === 'bets') return <BetTrackingScreen onBack={() => { navigate(null); if (onPickTracked) onPickTracked(); }} pickToTrack={pickToTrack} />;
   if (screen === 'referral') return <ReferralScreen onBack={() => navigate(null)} />;
@@ -43,6 +44,10 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
   if (screen === 'resolution') return <ResolutionScreen onBack={() => navigate(null)} pick={activeScreenData} />;
 
   const handleSubscribe = async (plan) => {
+    if (plan === 'trial') {
+      setScreen('trial');
+      return;
+    }
     if (!user) {
       setShowAuth(true);
       return;
@@ -294,8 +299,9 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
       price: '$29',
       period: '/mo',
       features: ['Full pick details', 'Real-time alerts', 'Pick history', 'Bet tracking'],
-      cta: 'Start 14-Day Trial',
-      plan: 'monthly',
+      cta: 'Start 14-Day Free Trial',
+      subtitle: 'No credit card required',
+      plan: 'trial',
     },
     {
       name: 'Annual',
@@ -377,25 +383,194 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
               ))}
             </ul>
             {plan.cta && (
-              <button
-                onClick={() => onSubscribe(plan.plan)}
-                disabled={loading}
-                style={{
-                  width: '100%', padding: '10px',
-                  backgroundColor: plan.highlight ? 'var(--blue-primary)' : 'transparent',
-                  border: plan.highlight ? 'none' : '1px solid var(--stroke-muted)',
-                  borderRadius: '8px',
-                  color: plan.highlight ? '#fff' : 'var(--text-primary)',
-                  fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-                  fontFamily: 'var(--font-sans)',
-                  opacity: loading ? 0.6 : 1,
-                }}
-              >
-                {loading ? 'Opening checkout...' : plan.cta}
-              </button>
+              <div>
+                <button
+                  onClick={() => onSubscribe(plan.plan)}
+                  disabled={loading}
+                  style={{
+                    width: '100%', padding: '10px',
+                    backgroundColor: plan.highlight ? 'var(--blue-primary)' : 'transparent',
+                    border: plan.highlight ? 'none' : '1px solid var(--stroke-muted)',
+                    borderRadius: '8px',
+                    color: plan.highlight ? '#fff' : 'var(--text-primary)',
+                    fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    opacity: loading ? 0.6 : 1,
+                  }}
+                >
+                  {loading ? 'Opening checkout...' : plan.cta}
+                </button>
+                {plan.subtitle && (
+                  <p style={{
+                    fontSize: '11px', color: 'var(--green-profit)',
+                    textAlign: 'center', margin: '6px 0 0', fontWeight: 500,
+                  }}>{plan.subtitle}</p>
+                )}
+              </div>
             )}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function TrialSignup({ onBack }) {
+  const { checkAuth } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const handleStart = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await apiPost('/auth/trial', { email, password });
+      if (res.success) {
+        setSuccess(true);
+        await checkAuth();
+        setTimeout(() => onBack(), 1500);
+      } else {
+        setError(res.error || 'Something went wrong');
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.message || 'Something went wrong';
+      setError(msg);
+    }
+    setLoading(false);
+  };
+
+  if (success) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center', paddingTop: '80px' }}>
+        <div style={{
+          width: '64px', height: '64px', borderRadius: '50%',
+          backgroundColor: 'rgba(52, 211, 153, 0.1)', margin: '0 auto 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green-profit)" strokeWidth="2">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+        </div>
+        <h2 style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-serif)', fontSize: '22px', margin: '0 0 8px' }}>
+          Trial Started
+        </h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+          14 days of full access. No card needed.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '0', paddingBottom: '100px' }}>
+      <div style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <button onClick={onBack} style={{
+          background: 'none', border: 'none', color: 'var(--text-secondary)',
+          cursor: 'pointer', padding: '4px', display: 'flex',
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+          letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-primary)',
+        }}>Free Trial</span>
+      </div>
+
+      <div style={{ padding: '0 20px' }}>
+        <div style={{
+          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+          border: '1px solid var(--stroke-subtle)', padding: '28px 24px',
+        }}>
+          <h2 style={{
+            fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 700,
+            color: 'var(--text-primary)', margin: '0 0 6px', textAlign: 'center',
+          }}>14 Days Free</h2>
+          <p style={{
+            color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center',
+            margin: '0 0 24px', lineHeight: '1.5',
+          }}>Full access to all picks and features. No credit card required.</p>
+
+          <form onSubmit={handleStart}>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{
+                display: 'block', fontSize: '12px', fontWeight: 600,
+                color: 'var(--text-tertiary)', marginBottom: '6px',
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+              }}>Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+                style={{
+                  width: '100%', padding: '12px 14px', fontSize: '15px',
+                  backgroundColor: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
+                  borderRadius: '10px', color: 'var(--text-primary)',
+                  outline: 'none', boxSizing: 'border-box',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block', fontSize: '12px', fontWeight: 600,
+                color: 'var(--text-tertiary)', marginBottom: '6px',
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+              }}>Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                placeholder="6+ characters"
+                style={{
+                  width: '100%', padding: '12px 14px', fontSize: '15px',
+                  backgroundColor: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
+                  borderRadius: '10px', color: 'var(--text-primary)',
+                  outline: 'none', boxSizing: 'border-box',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              />
+            </div>
+
+            {error && (
+              <p style={{
+                color: '#ef4444', fontSize: '13px', margin: '0 0 12px',
+                padding: '10px 12px', backgroundColor: 'rgba(239,68,68,0.08)',
+                borderRadius: '8px',
+              }}>{error}</p>
+            )}
+
+            <button type="submit" disabled={loading} style={{
+              width: '100%', padding: '14px', fontSize: '15px', fontWeight: 700,
+              backgroundColor: 'var(--blue-primary)', border: 'none',
+              borderRadius: '10px', color: '#fff', cursor: 'pointer',
+              fontFamily: 'var(--font-sans)', opacity: loading ? 0.6 : 1,
+            }}>
+              {loading ? 'Starting trial...' : 'Start Free Trial'}
+            </button>
+          </form>
+
+          <div style={{
+            marginTop: '20px', padding: '14px', backgroundColor: 'var(--surface-2)',
+            borderRadius: '10px',
+          }}>
+            <p style={{
+              fontSize: '12px', color: 'var(--text-tertiary)', margin: 0,
+              textAlign: 'center', lineHeight: '1.6',
+            }}>
+              After 14 days, subscribe at $29/mo to continue. Cancel anytime. No auto-charge.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
