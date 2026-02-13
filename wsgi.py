@@ -9,6 +9,7 @@ from io import BytesIO
 _flask_app = None
 _flask_ready = threading.Event()
 _static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
+_ok_body = json.dumps({'status': 'ok'}).encode('utf-8')
 
 def _load_flask_app():
     global _flask_app
@@ -19,55 +20,58 @@ def _load_flask_app():
         print("[wsgi] Flask app loaded successfully", flush=True)
     except Exception as e:
         print(f"[wsgi] Error loading Flask app: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
         _flask_ready.set()
 
-def _start_flask_loader():
-    t = threading.Thread(target=_load_flask_app, daemon=True)
-    t.start()
-
-class HealthHandler(BaseHTTPRequestHandler):
+class Handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
     def do_GET(self):
-        if self.path == '/' or self.path == '/health':
-            if not _flask_ready.is_set():
-                self._send_json(200, {'status': 'starting'})
-                return
-            if _flask_app is None:
-                self._send_json(500, {'status': 'error'})
-                return
-
-            accept = self.headers.get('Accept', '')
-            if self.path == '/' and 'text/html' in accept:
-                self._serve_index()
-                return
-            self._send_json(200, {'status': 'ok'})
-            return
-
-        if _flask_ready.is_set() and _flask_app is not None:
-            self._proxy_to_flask()
-            return
-
-        self._send_json(503, {'status': 'loading'})
+        self._handle()
 
     def do_POST(self):
-        if _flask_ready.is_set() and _flask_app is not None:
-            self._proxy_to_flask()
-            return
-        self._send_json(503, {'status': 'loading'})
+        self._handle()
 
     def do_PUT(self):
-        self.do_POST()
+        self._handle()
 
     def do_DELETE(self):
-        self.do_POST()
+        self._handle()
 
     def do_PATCH(self):
-        self.do_POST()
+        self._handle()
 
     def do_OPTIONS(self):
-        self.do_POST()
+        self._handle()
+
+    def _handle(self):
+        path = self.path.split('?')[0]
+
+        if path == '/' or path == '/health':
+            if _flask_ready.is_set() and _flask_app is not None:
+                accept = self.headers.get('Accept', '')
+                if path == '/' and 'text/html' in accept:
+                    self._serve_index()
+                    return
+            self._send_ok()
+            return
+
+        if not _flask_ready.is_set():
+            _flask_ready.wait(timeout=30)
+
+        if _flask_app is not None:
+            self._proxy_to_flask()
+        else:
+            self._send_json(503, {'error': 'app not ready'})
+
+    def _send_ok(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(_ok_body)))
+        self.end_headers()
+        self.wfile.write(_ok_body)
 
     def _send_json(self, code, data):
         body = json.dumps(data).encode('utf-8')
@@ -79,8 +83,7 @@ class HealthHandler(BaseHTTPRequestHandler):
 
     def _serve_index(self):
         try:
-            index_path = os.path.join(_static_dir, 'index.html')
-            with open(index_path, 'rb') as f:
+            with open(os.path.join(_static_dir, 'index.html'), 'rb') as f:
                 html = f.read()
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
@@ -89,7 +92,7 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(html)
         except Exception:
-            self._send_json(200, {'status': 'ok'})
+            self._send_ok()
 
     def _proxy_to_flask(self):
         content_length = int(self.headers.get('Content-Length', 0))
@@ -144,10 +147,10 @@ class HealthHandler(BaseHTTPRequestHandler):
 
 def main():
     port = int(os.environ.get('PORT', 5000))
-    server = HTTPServer(('0.0.0.0', port), HealthHandler)
-    print(f"[wsgi] Server listening on port {port}", flush=True)
+    server = HTTPServer(('0.0.0.0', port), Handler)
+    print(f"[wsgi] Health check server ready on port {port}", flush=True)
 
-    _start_flask_loader()
+    threading.Thread(target=_load_flask_app, daemon=True).start()
 
     try:
         server.serve_forever()

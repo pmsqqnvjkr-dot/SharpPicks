@@ -329,7 +329,11 @@ We also track where the line closes compared to where we published. If we recomm
             logging.error(f"Deferred startup error: {e}")
 
 import threading
-threading.Timer(2.0, deferred_startup).start()
+
+def _maybe_start_deferred():
+    if os.environ.get('SKIP_DEFERRED_STARTUP') != '1':
+        threading.Timer(2.0, deferred_startup).start()
+_maybe_start_deferred()
 
 def collect_todays_games():
     """Run the main.py data collector"""
@@ -588,7 +592,8 @@ def _deferred_scheduler_start():
     logging.info("Scheduler started (deferred)")
 
 scheduler = None
-threading.Timer(3.0, _deferred_scheduler_start).start()
+if os.environ.get('SKIP_DEFERRED_STARTUP') != '1':
+    threading.Timer(3.0, _deferred_scheduler_start).start()
 
 def get_db():
     conn = sqlite3.connect('sharp_picks.db')
