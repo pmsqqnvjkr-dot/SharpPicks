@@ -110,10 +110,6 @@ app.register_blueprint(legal_bp)
 def health_check():
     return jsonify({'status': 'ok'}), 200
 
-with app.app_context():
-    db.create_all()
-    logging.info("Database tables created")
-
 _startup_done = False
 
 def deferred_startup():
@@ -123,6 +119,9 @@ def deferred_startup():
     _startup_done = True
     with app.app_context():
         try:
+            db.create_all()
+            logging.info("Database tables created")
+
             from werkzeug.security import generate_password_hash
             admin_accounts = [
                 {'email': 'erin@sharppicks.ai', 'first_name': 'Erin', 'password': 'H@rp2019*'},
