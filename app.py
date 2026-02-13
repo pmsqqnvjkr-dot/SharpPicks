@@ -23,13 +23,7 @@ def health():
 
 @app.route('/')
 def root_health():
-    accept = request.headers.get('Accept', '')
-    if 'text/html' in accept:
-        try:
-            return app.send_static_file('index.html')
-        except Exception:
-            pass
-    return {'status': 'ok'}, 200
+    return Response('ok', status=200, content_type='text/plain')
 
 is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
 
