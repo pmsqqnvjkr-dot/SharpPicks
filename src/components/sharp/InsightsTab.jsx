@@ -223,7 +223,7 @@ function InsightCard({ insight, onTap }) {
         e.currentTarget.style.boxShadow = 'none';
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
         <span style={{
           fontFamily: 'var(--font-mono)',
           fontSize: '10px', fontWeight: 600,
@@ -234,8 +234,16 @@ function InsightCard({ insight, onTap }) {
         }}>
           {CATEGORY_LABELS[insight.category] || insight.category}
         </span>
+        <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>·</span>
         <span style={{
-          fontSize: '11px', color: 'var(--text-tertiary)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '10px', fontWeight: 500,
+          letterSpacing: '0.03em', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)',
+        }}>Founder Journal</span>
+        <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>·</span>
+        <span style={{
+          fontSize: '10px', color: 'var(--text-tertiary)',
           fontFamily: 'var(--font-mono)',
         }}>
           {insight.reading_time_minutes} min
@@ -338,6 +346,16 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
           }}>
             {CATEGORY_LABELS[insight.category] || insight.category}
           </span>
+          <span style={{
+            fontSize: '10px', color: 'var(--text-tertiary)',
+            fontFamily: 'var(--font-mono)', letterSpacing: '0.05em',
+          }}>·</span>
+          <span style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '10px', fontWeight: 500,
+            letterSpacing: '0.05em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)',
+          }}>Founder Journal</span>
           <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
             {insight.reading_time_minutes} min read
           </span>
@@ -366,7 +384,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
           fontFamily: 'var(--font-sans)',
           fontSize: '15px',
           color: 'var(--text-secondary)',
-          lineHeight: '1.75',
+          lineHeight: '1.9',
         }}>
           {paragraphs.map((p, i) => {
             if (p.startsWith('## ')) {
@@ -382,33 +400,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
               );
             }
             if (p.startsWith('> ')) {
-              return (
-                <div key={i} style={{
-                  margin: '24px 0',
-                  padding: '18px 20px',
-                  background: 'rgba(52, 211, 153, 0.04)',
-                  borderLeft: '3px solid var(--green-profit)',
-                  borderRadius: '0 10px 10px 0',
-                }}>
-                  <div style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '9px', fontWeight: 700,
-                    letterSpacing: '2px', textTransform: 'uppercase',
-                    color: 'var(--green-profit)',
-                    marginBottom: '8px',
-                  }}>Sharp Principle</div>
-                  <div style={{
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: '17px',
-                    fontWeight: 500,
-                    color: 'var(--text-primary)',
-                    lineHeight: '1.5',
-                    fontStyle: 'italic',
-                  }}>
-                    {p.replace('> ', '')}
-                  </div>
-                </div>
-              );
+              return <SharpPrincipleBlock key={i} text={p.replace('> ', '')} />;
             }
             if (p.startsWith('– ') || p.startsWith('— ')) {
               return (
@@ -424,7 +416,8 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                 </p>
               );
             }
-            return <p key={i} style={{ margin: '0 0 16px' }}>{p}</p>;
+            const extraBreath = (i > 0 && i % 3 === 0);
+            return <p key={i} style={{ margin: extraBreath ? '0 0 24px' : '0 0 16px' }}>{p}</p>;
           })}
         </div>
 
@@ -508,9 +501,82 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
   );
 }
 
+function SharpPrincipleBlock({ text }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div style={{
+      margin: '24px 0',
+      padding: '18px 20px',
+      background: 'rgba(52, 211, 153, 0.04)',
+      borderLeft: '3px solid var(--green-profit)',
+      borderRadius: '0 10px 10px 0',
+      position: 'relative',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: '8px',
+      }}>
+        <div style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: '9px', fontWeight: 700,
+          letterSpacing: '2px', textTransform: 'uppercase',
+          color: 'var(--green-profit)',
+        }}>Sharp Principle</div>
+        <button
+          onClick={handleCopy}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '4px',
+            padding: '2px 6px', borderRadius: '4px',
+            color: copied ? 'var(--green-profit)' : 'var(--text-tertiary)',
+            fontSize: '10px', fontFamily: 'var(--font-mono)',
+            transition: 'color 0.2s ease',
+          }}
+        >
+          {copied ? (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Copied
+            </>
+          ) : (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              Copy
+            </>
+          )}
+        </button>
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-serif)',
+        fontSize: '17px',
+        fontWeight: 500,
+        color: 'var(--text-primary)',
+        lineHeight: '1.5',
+        fontStyle: 'italic',
+      }}>
+        {text}
+      </div>
+    </div>
+  );
+}
+
 function WhyThisMatters({ insight }) {
   const mattersMap = {
-    'discipline': 'This is why Sharp Picks passes most games. Edge alone is not enough. Edge must exceed risk.',
+    'discipline': 'This is why Sharp Picks passes most games. The goal is not activity. The goal is capital preservation. Discipline compounds. Impulse erodes.',
     'philosophy': 'This principle shapes every decision the model makes. It is not strategy — it is structure.',
     'how_it_works': 'Understanding how the system works builds the trust needed to follow it through variance.',
     'market_notes': 'The market is your competition. Understanding it is the first step toward finding real edge.',

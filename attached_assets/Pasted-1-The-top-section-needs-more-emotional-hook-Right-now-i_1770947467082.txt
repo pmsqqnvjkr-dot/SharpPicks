@@ -1,0 +1,119 @@
+1. The top section needs more emotional hook
+
+Right now it opens:
+
+Not all edges are created equal.
+
+Good.
+But predictable.
+
+Make the first paragraph feel like you’re talking directly to them.
+
+Instead of:
+
+Not all edges are created equal.
+
+Consider:
+
+Most people do not lose because they lack an edge.
+They lose because they treat every edge the same.
+
+That is sharper.
+More personal.
+More confrontational.
+
+It pulls the reader in.
+
+⸻
+
+2. Add one short personal founder line
+
+You mention building Sharp Picks — good.
+
+But this can be more human.
+
+Right now:
+
+When I built Sharp Picks, I did not want a model that fires constantly.
+
+Better version:
+
+When I started building Sharp Picks, I was frustrated with models that fired constantly. They looked impressive. They were not disciplined.
+
+That adds personality and origin story.
+
+People subscribe to founders, not models.
+
+⸻
+
+3. Tighten repetition slightly
+
+You say:
+	•	Larger spreads require larger edges
+	•	Larger spreads require larger edges
+	•	Because mathematically they demand it
+
+It’s correct — but slightly repetitive.
+
+Condense it to feel intentional, not verbose.
+
+Example:
+
+Larger spreads demand larger edges. Not because it sounds conservative. Because variance demands it.
+
+Cleaner. More punch.
+
+⸻
+
+4. The “Why This Matters” section is underpowered
+
+Right now:
+
+Edge alone is not enough. Edge must exceed risk.
+
+That’s good. But this is where you can land the emotional punch.
+
+Upgrade it to something like:
+
+This is why Sharp Picks passes most games.
+The goal is not activity. The goal is capital preservation.
+Discipline compounds. Impulse erodes.
+
+That closes strong.
+
+⸻
+
+5. Micro UX Improvements for Dev
+
+Give this to your dev:
+
+A. Increase body text line spacing slightly
+
+Right now it’s a bit dense.
++8% line height would improve readability.
+
+B. Add subtle paragraph spacing rhythm
+
+Every 2–3 paragraphs, slightly larger spacing break.
+Makes it feel premium.
+
+C. Make “Sharp Principle” shareable
+
+Add:
+	•	A small share icon on the principle card
+	•	Or long-press copy
+	•	Or “Copy principle” micro button
+
+This becomes social distribution fuel.
+
+⸻
+
+6. Add a subtle “Founder Journal” badge
+
+Instead of just DISCIPLINE tag, consider:
+
+DISCIPLINE · Founder Journal
+
+It reinforces:
+This is not content marketing.
+This is the philosophy behind the system.
