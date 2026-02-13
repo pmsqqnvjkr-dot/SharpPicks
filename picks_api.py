@@ -153,6 +153,13 @@ def today():
 
     pass_entry = Pass.query.filter_by(date=today_str).first()
     if pass_entry:
+        if pass_entry.games_analyzed == 0:
+            return jsonify({
+                'type': 'off_day',
+                'date': today_str,
+                'message': 'No NBA games scheduled today. The model will resume when games return.'
+            })
+
         from datetime import timedelta
         week_start = (datetime.now() - timedelta(days=datetime.now().weekday())).strftime('%Y-%m-%d')
         picks_this_week = Pick.query.filter(Pick.game_date >= week_start).count()

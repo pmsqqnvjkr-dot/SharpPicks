@@ -93,6 +93,10 @@ export default function TodayTab({ onNavigate }) {
           <NoPickCard data={todayData} />
         )}
 
+        {todayData?.type === 'off_day' && (
+          <OffDayCard />
+        )}
+
         {todayData?.type === 'waiting' && (
           <WaitingCard />
         )}
@@ -173,6 +177,43 @@ function Header({ user, onAuthClick }) {
           {user.email ? user.email[0].toUpperCase() : 'U'}
         </div>
       )}
+    </div>
+  );
+}
+
+function OffDayCard() {
+  return (
+    <div style={{ textAlign: 'center', padding: '40px 0 24px' }}>
+      <div style={{
+        width: '64px', height: '64px', borderRadius: '16px',
+        backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        margin: '0 auto 24px',
+      }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <h2 style={{
+        fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
+        color: 'var(--text-primary)', marginBottom: '12px',
+      }}>No games today</h2>
+      <p style={{
+        fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
+        maxWidth: '320px', margin: '0 auto 16px',
+      }}>
+        No NBA games are scheduled today. The model will resume analysis when games return to the schedule.
+      </p>
+      <div style={{
+        display: 'inline-block', padding: '8px 16px', borderRadius: '8px',
+        backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid var(--stroke-subtle)',
+        fontSize: '13px', color: 'var(--text-tertiary)',
+      }}>
+        Rest days are part of the discipline
+      </div>
     </div>
   );
 }
