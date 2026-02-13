@@ -93,6 +93,14 @@ export default function LandingPage() {
         >
           Start Free
         </button>
+        <p style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: '12px', fontWeight: 500,
+          color: 'var(--text-tertiary)',
+          marginTop: '-28px', marginBottom: '28px',
+        }}>
+          14-day trial — no card required
+        </p>
 
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
