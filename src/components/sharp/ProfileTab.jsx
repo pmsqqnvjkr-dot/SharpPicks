@@ -55,7 +55,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
       window.open('https://buy.stripe.com/14A14oaGg0kI8ZV4BQd7q00', '_blank');
       return;
     }
-    window.open('https://buy.stripe.com/14AeVeeWwgjGekfc4id7q01', '_blank');
+    window.open('https://buy.stripe.com/14A28s4hS9Vigsngkyd7q04', '_blank');
   };
 
   if (!user) {
