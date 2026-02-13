@@ -52,7 +52,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
       return;
     }
     if (plan === 'annual') {
-      window.open('https://buy.stripe.com/14A14oaGg0kI8ZV4BQd7q00', '_blank');
+      window.open('https://buy.stripe.com/cNieVe8y81oM8ZV0lAd7q05', '_blank');
       return;
     }
     window.open('https://buy.stripe.com/14A28s4hS9Vigsngkyd7q04', '_blank');
