@@ -363,10 +363,11 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
 
         <h1 style={{
           fontFamily: 'var(--font-serif)',
-          fontSize: '24px', fontWeight: 600,
+          fontSize: '27px', fontWeight: 700,
           color: 'var(--text-primary)',
-          lineHeight: '1.35',
+          lineHeight: '1.3',
           marginBottom: '12px',
+          letterSpacing: '-0.01em',
         }}>
           {insight.title}
         </h1>
@@ -384,7 +385,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
           fontFamily: 'var(--font-sans)',
           fontSize: '15px',
           color: 'var(--text-secondary)',
-          lineHeight: '1.9',
+          lineHeight: '2.0',
         }}>
           {paragraphs.map((p, i) => {
             if (p.startsWith('## ')) {
@@ -436,7 +437,8 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                 lineHeight: '1.7',
               }}>{p}</p>;
             }
-            return <p key={i} style={{ margin: extraBreath ? '0 0 26px' : '0 0 18px' }}>{p}</p>;
+            const isShort = p.length < 60;
+            return <p key={i} style={{ margin: isShort ? '0 0 22px' : (extraBreath ? '0 0 28px' : '0 0 18px') }}>{p}</p>;
           })}
         </div>
 
@@ -523,19 +525,20 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
 function SharpPrincipleBlock({ text }) {
   return (
     <div style={{
-      margin: '32px 0',
-      padding: '24px 24px',
-      background: 'rgba(52, 211, 153, 0.04)',
+      margin: '36px 0',
+      padding: '28px 24px',
+      background: 'rgba(52, 211, 153, 0.05)',
       borderLeft: '3px solid var(--green-profit)',
       borderRadius: '0 12px 12px 0',
       textAlign: 'center',
+      boxShadow: '-3px 0 12px rgba(52, 211, 153, 0.08)',
     }}>
       <div style={{
         fontFamily: 'var(--font-mono)',
         fontSize: '9px', fontWeight: 700,
         letterSpacing: '2.5px', textTransform: 'uppercase',
         color: 'var(--green-profit)',
-        marginBottom: '12px',
+        marginBottom: '14px',
       }}>Sharp Principle</div>
       <div style={{
         fontFamily: 'var(--font-serif)',
@@ -592,37 +595,51 @@ function FounderSignature() {
   return (
     <div style={{
       margin: '28px 0 0',
-      padding: '20px 0 0',
+      padding: '24px 0 0',
       borderTop: '1px solid var(--stroke-subtle)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '14px',
     }}>
       <div style={{
-        width: '38px', height: '38px',
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, rgba(79, 134, 247, 0.15) 0%, rgba(52, 211, 153, 0.1) 100%)',
-        border: '1px solid rgba(79, 134, 247, 0.2)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'var(--font-serif)',
-        fontSize: '15px', fontWeight: 600,
-        color: 'var(--blue-primary)',
-        flexShrink: 0,
-      }}>E</div>
-      <div>
+        display: 'flex',
+        alignItems: 'center',
+        gap: '14px',
+        marginBottom: '14px',
+      }}>
         <div style={{
-          fontSize: '14px', fontWeight: 600,
-          color: 'var(--text-primary)',
-          fontFamily: 'var(--font-sans)',
-          marginBottom: '1px',
-        }}>Erin Donnelly</div>
-        <div style={{
-          fontSize: '12px',
-          color: 'var(--text-tertiary)',
-          fontFamily: 'var(--font-mono)',
-          letterSpacing: '0.03em',
-        }}>Founder, Sharp Picks</div>
+          width: '40px', height: '40px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, rgba(79, 134, 247, 0.15) 0%, rgba(52, 211, 153, 0.1) 100%)',
+          border: '1px solid rgba(79, 134, 247, 0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'var(--font-serif)',
+          fontSize: '16px', fontWeight: 600,
+          color: 'var(--blue-primary)',
+          flexShrink: 0,
+        }}>E</div>
+        <div>
+          <div style={{
+            fontSize: '14px', fontWeight: 600,
+            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-sans)',
+            marginBottom: '2px',
+          }}>Erin Donnelly</div>
+          <div style={{
+            fontSize: '12px',
+            color: 'var(--text-tertiary)',
+            fontFamily: 'var(--font-mono)',
+            letterSpacing: '0.03em',
+          }}>Founder, Sharp Picks</div>
+        </div>
       </div>
+      <p style={{
+        fontSize: '13px',
+        color: 'var(--text-tertiary)',
+        fontFamily: 'var(--font-serif)',
+        fontStyle: 'italic',
+        margin: 0,
+        lineHeight: '1.6',
+      }}>
+        I built this model because discipline is the only scalable edge.
+      </p>
     </div>
   );
 }
