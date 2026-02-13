@@ -40,6 +40,46 @@ export default function PicksTab({ onNavigate }) {
     <div style={{ padding: '0' }}>
 
       <div style={{ padding: '0 20px' }}>
+        {user && user.subscription_status === 'trial' && user.trial_end_date && (() => {
+          const daysLeft = Math.max(0, Math.ceil((new Date(user.trial_end_date) - new Date()) / (1000 * 60 * 60 * 24)));
+          return daysLeft > 0 ? (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(79,134,247,0.12) 0%, rgba(52,211,153,0.08) 100%)',
+              border: '1px solid rgba(79,134,247,0.25)',
+              borderRadius: '12px',
+              padding: '14px 18px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+            }}>
+              <div>
+                <div style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#fff',
+                  marginBottom: '3px',
+                }}>Pro Trial Active</div>
+                <div style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '12px',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.4,
+                }}>Full Pro access for {daysLeft} {daysLeft === 1 ? 'day' : 'days'}. Subscribe to keep your edge.</div>
+              </div>
+              <div style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '20px',
+                fontWeight: 700,
+                color: 'var(--blue-primary)',
+                whiteSpace: 'nowrap',
+              }}>{daysLeft}d</div>
+            </div>
+          ) : null;
+        })()}
+
         {todayData?.type === 'pick' && isResolved && isPro && (
           <ResolvedPickBanner
             pick={todayData}

@@ -6,7 +6,13 @@ resend.api_key = os.environ.get('RESEND_API_KEY', '')
 
 FROM_EMAIL = "Sharp Picks <no-reply@sharppicks.ai>"
 ERIN_EMAIL = "Erin Donnelly <erin@sharppicks.ai>"
-LOGO_URL = "https://sharppicks.ai/logo-horizontal.png"
+
+def get_logo_url():
+    domain = os.environ.get('REPLIT_DOMAINS', os.environ.get('REPLIT_DEV_DOMAIN', ''))
+    if domain:
+        domain = domain.split(',')[0].strip()
+        return f"https://{domain}/logo-email.png"
+    return "https://sharppicks.ai/logo-email.png"
 
 def send_email(to, subject, html, reply_to=None, from_email=None):
     if not resend.api_key:
@@ -34,7 +40,7 @@ def send_password_reset(to, reset_url, first_name=None):
     html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #e0e0e0; background-color: #0A0D14;">
       <div style="text-align: center; margin-bottom: 32px;">
-        <img src="{LOGO_URL}" alt="Sharp Picks" style="height: 48px; width: auto;" />
+        <img src="{get_logo_url()}" alt="Sharp Picks" style="height: 48px; width: auto;" />
       </div>
       <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Reset your password</h2>
       <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">Hi {name}, we received a request to reset your password. Click the button below to choose a new one.</p>
@@ -53,7 +59,7 @@ def send_welcome(to, first_name=None):
     html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 48px 24px; color: #e0e0e0; background-color: #0A0D14;">
       <div style="text-align: center; margin-bottom: 40px;">
-        <img src="{LOGO_URL}" alt="Sharp Picks" style="height: 48px; width: auto;" />
+        <img src="{get_logo_url()}" alt="Sharp Picks" style="height: 48px; width: auto;" />
       </div>
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Hi &#8212;</p>
