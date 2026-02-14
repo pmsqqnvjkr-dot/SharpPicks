@@ -8,6 +8,7 @@ This service only: runs the model, reads outputs, stores to DB.
 import time
 from datetime import datetime, timedelta
 from models import db, Pick, Pass, ModelRun
+from sport_config import get_sport_config, get_live_sports
 
 
 def _to_python(val):
@@ -25,7 +26,7 @@ def _to_python(val):
 
 
 def _get_et_date():
-    """Get current Eastern Time date string (NBA schedule runs on ET)."""
+    """Get current Eastern Time date string."""
     try:
         from zoneinfo import ZoneInfo
         now_et = datetime.now(ZoneInfo('America/New_York'))
@@ -34,19 +35,25 @@ def _get_et_date():
     return now_et.strftime('%Y-%m-%d')
 
 
-def run_model_and_log(app):
+def run_model_and_log(app, sport='nba'):
     """Run the model for today and log either a pick or pass."""
+    cfg = get_sport_config(sport)
+
+    if not cfg.get('live', False):
+        return {'status': 'not_live', 'sport': sport, 'message': f'{cfg["name"]} is in paper-trade mode. Not generating live picks.'}
+
     start_time = time.time()
     today_str = _get_et_date()
 
     with app.app_context():
         existing_pick = Pick.query.filter(
-            Pick.game_date == today_str
+            Pick.game_date == today_str,
+            Pick.sport == sport,
         ).first()
-        existing_pass = Pass.query.filter_by(date=today_str).first()
+        existing_pass = Pass.query.filter_by(date=today_str, sport=sport).first()
 
         if existing_pick or existing_pass:
-            return {'status': 'already_run', 'date': today_str}
+            return {'status': 'already_run', 'date': today_str, 'sport': sport}
 
         try:
             from model import EnsemblePredictor
@@ -60,7 +67,7 @@ def run_model_and_log(app):
             if not predictions:
                 pass_entry = Pass(
                     date=today_str,
-                    sport='nba',
+                    sport=sport,
                     games_analyzed=0,
                     closest_edge_pct=0,
                     pass_reason='No games available today',
@@ -69,7 +76,7 @@ def run_model_and_log(app):
 
                 model_run = ModelRun(
                     date=today_str,
-                    sport='nba',
+                    sport=sport,
                     games_analyzed=0,
                     pick_generated=False,
                     pass_id=pass_entry.id,
@@ -78,7 +85,7 @@ def run_model_and_log(app):
                 db.session.add(model_run)
                 db.session.commit()
 
-                return {'status': 'pass', 'reason': 'no_games', 'date': today_str}
+                return {'status': 'pass', 'reason': 'no_games', 'date': today_str, 'sport': sport}
 
             qualified = [p for p in predictions if p.get('passes_filter')]
             all_edges = [p.get('adjusted_edge', 0) for p in predictions]
@@ -95,7 +102,7 @@ def run_model_and_log(app):
                 pick_spread = spread if is_home_pick else -spread
 
                 pick = Pick(
-                    sport='nba',
+                    sport=sport,
                     away_team=best['away_team'],
                     home_team=best['home_team'],
                     game_date=today_str,
@@ -119,7 +126,7 @@ def run_model_and_log(app):
 
                 model_run = ModelRun(
                     date=today_str,
-                    sport='nba',
+                    sport=sport,
                     games_analyzed=len(predictions),
                     pick_generated=True,
                     pick_id=pick.id,
@@ -134,6 +141,7 @@ def run_model_and_log(app):
                     'side': pick.side,
                     'edge': pick.edge_pct,
                     'date': today_str,
+                    'sport': sport,
                 }
             else:
                 top_pass_reason = None
@@ -150,7 +158,7 @@ def run_model_and_log(app):
 
                 pass_entry = Pass(
                     date=today_str,
-                    sport='nba',
+                    sport=sport,
                     games_analyzed=len(predictions),
                     closest_edge_pct=round(closest_edge, 1),
                     pass_reason=top_pass_reason,
@@ -159,7 +167,7 @@ def run_model_and_log(app):
 
                 model_run = ModelRun(
                     date=today_str,
-                    sport='nba',
+                    sport=sport,
                     games_analyzed=len(predictions),
                     pick_generated=False,
                     pass_id=pass_entry.id,
@@ -174,6 +182,7 @@ def run_model_and_log(app):
                     'games_analyzed': len(predictions),
                     'pass_reason': top_pass_reason,
                     'date': today_str,
+                    'sport': sport,
                 }
 
         except Exception as e:

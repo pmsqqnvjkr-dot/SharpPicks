@@ -71,9 +71,11 @@ def _get_et_date():
 @picks_bp.route('/today')
 def today():
     today_str = _get_et_date()
+    sport = request.args.get('sport', 'nba')
 
     pick = Pick.query.filter(
-        Pick.game_date == today_str
+        Pick.game_date == today_str,
+        Pick.sport == sport,
     ).order_by(Pick.published_at.desc()).first()
 
     if pick:
@@ -151,13 +153,14 @@ def today():
                     pick_data['tracked_bet_id'] = existing_bet.id
         return jsonify(pick_data)
 
-    pass_entry = Pass.query.filter_by(date=today_str).first()
+    pass_entry = Pass.query.filter_by(date=today_str, sport=sport).first()
     if pass_entry:
         if pass_entry.games_analyzed == 0:
+            sport_name = 'WNBA' if sport == 'wnba' else 'NBA'
             return jsonify({
                 'type': 'off_day',
                 'date': today_str,
-                'message': 'No NBA games scheduled today. The model will resume when games return.'
+                'message': f'No {sport_name} games scheduled today. The model will resume when games return.'
             })
 
         from datetime import timedelta
@@ -258,8 +261,12 @@ def dismiss_resolution():
 def history():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
+    sport = request.args.get('sport')
 
-    picks = Pick.query.order_by(Pick.published_at.desc()).paginate(
+    q = Pick.query
+    if sport:
+        q = q.filter(Pick.sport == sport)
+    picks = q.order_by(Pick.published_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
 

@@ -487,10 +487,12 @@ def grade_pending_picks():
                 except:
                     check_dates = [pick_date]
 
+                table_name = 'wnba_games' if pick.sport == 'wnba' else 'games'
+
                 for check_date in check_dates:
-                    cursor.execute('''
+                    cursor.execute(f'''
                         SELECT home_score, away_score, home_team, away_team
-                        FROM games
+                        FROM {table_name}
                         WHERE home_team = ? AND away_team = ? AND game_date LIKE ?
                         AND home_score IS NOT NULL AND away_score IS NOT NULL
                     ''', (pick.home_team, pick.away_team, f'{check_date}%'))

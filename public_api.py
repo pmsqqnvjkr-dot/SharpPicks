@@ -1,14 +1,30 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from models import db, Pick, Pass, ModelRun, FoundingCounter
 from sqlalchemy import func
+from sport_config import get_active_sports
 
 public_bp = Blueprint('public', __name__)
 
 
+def _get_sport_filter():
+    sport = request.args.get('sport', 'all')
+    if sport == 'all':
+        return None
+    if sport in get_active_sports():
+        return sport
+    return 'nba'
+
+
 @public_bp.route('/record')
 def record():
-    picks = Pick.query.order_by(Pick.published_at.desc()).all()
-    passes = Pass.query.order_by(Pass.created_at.desc()).all()
+    sport = _get_sport_filter()
+    pick_q = Pick.query
+    pass_q = Pass.query
+    if sport:
+        pick_q = pick_q.filter(Pick.sport == sport)
+        pass_q = pass_q.filter(Pass.sport == sport)
+    picks = pick_q.order_by(Pick.published_at.desc()).all()
+    passes = pass_q.order_by(Pass.created_at.desc()).all()
 
     wins = sum(1 for p in picks if p.result == 'win')
     losses = sum(1 for p in picks if p.result == 'loss')
@@ -54,14 +70,21 @@ def record():
 
 @public_bp.route('/stats')
 def stats():
-    wins = Pick.query.filter_by(result='win').count()
-    losses = Pick.query.filter_by(result='loss').count()
-    pending = Pick.query.filter_by(result='pending').count()
-    total_picks = Pick.query.count()
-    total_passes = Pass.query.count()
-    total_pnl = db.session.query(func.sum(Pick.pnl)).filter(
-        Pick.result.in_(['win', 'loss'])
-    ).scalar() or 0
+    sport = _get_sport_filter()
+    pick_q = Pick.query
+    pass_q = Pass.query
+    if sport:
+        pick_q = pick_q.filter(Pick.sport == sport)
+        pass_q = pass_q.filter(Pass.sport == sport)
+    wins = pick_q.filter(Pick.result == 'win').count()
+    losses = pick_q.filter(Pick.result == 'loss').count()
+    pending = pick_q.filter(Pick.result == 'pending').count()
+    total_picks = pick_q.count()
+    total_passes = pass_q.count()
+    pnl_q = db.session.query(func.sum(Pick.pnl)).filter(Pick.result.in_(['win', 'loss']))
+    if sport:
+        pnl_q = pnl_q.filter(Pick.sport == sport)
+    total_pnl = pnl_q.scalar() or 0
 
     total_decided = wins + losses
     roi = round((total_pnl / (total_decided * 110)) * 100, 1) if total_decided > 0 else 0
@@ -86,7 +109,11 @@ def calibration():
     """Production calibration tracking.
     Buckets resolved picks by confidence tier and reports actual cover rates.
     Institutional honesty: does 60% confidence actually win ~60%?"""
-    resolved = Pick.query.filter(Pick.result_ats.in_(['W', 'L'])).all()
+    sport = _get_sport_filter()
+    q = Pick.query.filter(Pick.result_ats.in_(['W', 'L']))
+    if sport:
+        q = q.filter(Pick.sport == sport)
+    resolved = q.all()
 
     buckets = [
         {'label': '55-57%', 'low': 0.55, 'high': 0.57},
@@ -168,8 +195,14 @@ def dashboard_stats():
     from datetime import timedelta
     from datetime import datetime as dt
 
-    picks = Pick.query.order_by(Pick.game_date.asc()).all()
-    passes = Pass.query.all()
+    sport = _get_sport_filter()
+    pick_q = Pick.query
+    pass_q = Pass.query
+    if sport:
+        pick_q = pick_q.filter(Pick.sport == sport)
+        pass_q = pass_q.filter(Pass.sport == sport)
+    picks = pick_q.order_by(Pick.game_date.asc()).all()
+    passes = pass_q.all()
     resolved = [p for p in picks if p.result in ('win', 'loss')]
     resolved.sort(key=lambda p: p.game_date or '')
 
@@ -323,9 +356,15 @@ def dashboard_stats():
 
 @public_bp.route('/model-info')
 def model_info():
-    total_picks = Pick.query.count()
-    total_passes = Pass.query.count()
-    last_run = ModelRun.query.order_by(ModelRun.created_at.desc()).first()
+    sport = _get_sport_filter()
+    if sport:
+        total_picks = Pick.query.filter(Pick.sport == sport).count()
+        total_passes = Pass.query.filter(Pass.sport == sport).count()
+        last_run = ModelRun.query.filter(ModelRun.sport == sport).order_by(ModelRun.created_at.desc()).first()
+    else:
+        total_picks = Pick.query.count()
+        total_passes = Pass.query.count()
+        last_run = ModelRun.query.order_by(ModelRun.created_at.desc()).first()
 
     model_accuracy = 79.4
     model_brier = 0.139
