@@ -5,7 +5,7 @@ import resend
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
 
 FROM_EMAIL = "Sharp Picks <no-reply@sharppicks.ai>"
-ERIN_EMAIL = "Erin Donnelly <erin@sharppicks.ai>"
+FOUNDER_EMAIL = "Evan Cole <evan@sharppicks.ai>"
 
 def get_logo_url():
     domain = os.environ.get('REPLIT_DOMAINS', os.environ.get('REPLIT_DEV_DOMAIN', ''))
@@ -64,7 +64,7 @@ def send_welcome(to, first_name=None):
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Hi &#8212;</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">I'm Erin, founder of Sharp Picks. I'm glad you're here.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">I'm Evan, founder of Sharp Picks. I'm glad you're here.</p>
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Sharp Picks was not built to chase action. It was built to protect capital.</p>
 
@@ -107,7 +107,7 @@ def send_welcome(to, first_name=None):
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">Let's stay sharp.</p>
 
-      <p style="font-size: 15px; line-height: 1.6; color: #ffffff; font-weight: 600; margin-bottom: 2px;">Erin Donnelly</p>
+      <p style="font-size: 15px; line-height: 1.6; color: #ffffff; font-weight: 600; margin-bottom: 2px;">Evan Cole</p>
       <p style="font-size: 13px; line-height: 1.6; color: #777; margin-bottom: 0;">Founder, Sharp Picks</p>
 
       <hr style="border: none; border-top: 1px solid #1a1d24; margin: 36px 0;">
@@ -119,6 +119,6 @@ def send_welcome(to, first_name=None):
         to,
         "Welcome to Sharp Picks",
         html,
-        reply_to="erin@sharppicks.ai",
-        from_email=ERIN_EMAIL
+        reply_to="evan@sharppicks.ai",
+        from_email=FOUNDER_EMAIL
     )

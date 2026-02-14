@@ -621,7 +621,7 @@ function FounderSignature() {
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-sans)',
             marginBottom: '2px',
-          }}>Erin Donnelly</div>
+          }}>Evan Cole</div>
           <div style={{
             fontSize: '12px',
             color: 'var(--text-tertiary)',

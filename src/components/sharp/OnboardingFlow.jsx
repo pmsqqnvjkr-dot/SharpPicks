@@ -173,7 +173,7 @@ function FounderNote() {
       <div style={{
         fontFamily: 'var(--font-serif)', fontSize: '14px', fontStyle: 'italic',
         color: 'var(--text-tertiary)',
-      }}>— Erin Donnelly, Founder</div>
+      }}>— Evan Cole, Founder</div>
     </div>
   );
 }
