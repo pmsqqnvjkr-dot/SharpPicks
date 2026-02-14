@@ -220,7 +220,7 @@ export default function UnifiedDashboard({ embedded = false }) {
                 label="SELECTIVITY"
               />
               <MetricTile
-                value={avgDays > 0 ? avgDays.toFixed(1) : '—'}
+                value={bets.length >= 2 ? (avgDays > 0 ? avgDays.toFixed(1) : '< 1') : bets.length === 1 ? '—' : '—'}
                 label="DAYS / BET"
               />
             </div>

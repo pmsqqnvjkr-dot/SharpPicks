@@ -1278,13 +1278,10 @@ def get_user_stats():
 
     bet_dates = sorted([b.created_at for b in bets if b.created_at])
     if len(bet_dates) >= 2:
-        from datetime import timedelta
-        gaps = []
-        for i in range(1, len(bet_dates)):
-            gap = (bet_dates[i] - bet_dates[i-1]).days
-            if gap > 0:
-                gaps.append(gap)
-        avg_days_between = round(sum(gaps) / len(gaps), 1) if gaps else 0
+        total_span = (bet_dates[-1] - bet_dates[0]).days
+        avg_days_between = round(total_span / (len(bet_dates) - 1), 1) if len(bet_dates) > 1 else 0
+    elif len(bet_dates) == 1:
+        avg_days_between = 0
     else:
         avg_days_between = 0
 
