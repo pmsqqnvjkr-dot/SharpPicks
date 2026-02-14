@@ -781,9 +781,22 @@ function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete, 
                 {bet.result === 'W' ? `+$${Math.abs(bet.profit || 0).toFixed(0)}` : bet.result === 'L' ? `-$${Math.abs(bet.profit || 0).toFixed(0)}` : 'Push'}
               </span>
             </div>
+          ) : bet.pick_result === 'W' || bet.pick_result === 'L' ? (
+            <button onClick={(e) => { e.stopPropagation(); onMarkResult(bet.id, bet.pick_result); }} style={{
+              padding: '8px 14px', fontSize: '13px', fontWeight: 700,
+              fontFamily: 'var(--font-mono)',
+              backgroundColor: bet.pick_result === 'W' ? 'rgba(52, 211, 153, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+              color: bet.pick_result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
+              border: `1px solid ${bet.pick_result === 'W' ? 'rgba(52, 211, 153, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+              borderRadius: '10px', cursor: 'pointer',
+              minHeight: '44px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            }}>
+              {bet.pick_result === 'W' ? 'Mark Win' : 'Mark Loss'}
+            </button>
           ) : (
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => onMarkResult(bet.id, 'W')} style={{
+              <button onClick={(e) => { e.stopPropagation(); onMarkResult(bet.id, 'W'); }} style={{
                 minWidth: '44px', minHeight: '44px',
                 padding: '8px 14px', fontSize: '13px', fontWeight: 700,
                 fontFamily: 'var(--font-mono)',
@@ -793,7 +806,7 @@ function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete, 
                 borderRadius: '10px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>W</button>
-              <button onClick={() => onMarkResult(bet.id, 'L')} style={{
+              <button onClick={(e) => { e.stopPropagation(); onMarkResult(bet.id, 'L'); }} style={{
                 minWidth: '44px', minHeight: '44px',
                 padding: '8px 14px', fontSize: '13px', fontWeight: 700,
                 fontFamily: 'var(--font-mono)',
@@ -1169,19 +1182,30 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
                           {p.side}
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                         {p.already_tracked ? (
                           <span style={{
                             fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
                             color: 'var(--text-tertiary)', textTransform: 'uppercase',
                           }}>Tracked</span>
                         ) : (
-                          <span style={{
-                            fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
-                            color: 'var(--text-tertiary)',
-                          }}>
-                            {p.edge_pct?.toFixed(1)}% edge
-                          </span>
+                          <>
+                            {p.result === 'W' || p.result === 'L' ? (
+                              <span style={{
+                                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+                                color: p.result === 'W' ? 'var(--green-primary, #22c55e)' : 'var(--red-primary, #ef4444)',
+                                textTransform: 'uppercase',
+                                padding: '2px 6px', borderRadius: '4px',
+                                backgroundColor: p.result === 'W' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+                              }}>{p.result === 'W' ? 'Won' : 'Lost'}</span>
+                            ) : null}
+                            <span style={{
+                              fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
+                              color: 'var(--text-tertiary)',
+                            }}>
+                              {p.edge_pct?.toFixed(1)}% edge
+                            </span>
+                          </>
                         )}
                       </div>
                     </div>

@@ -1462,6 +1462,16 @@ def track_bet():
         if line_at_bet is None:
             line_at_bet = sp_pick.line
 
+    auto_result = None
+    auto_profit = 0
+    if pick_id and sp_pick and sp_pick.result in ('win', 'loss'):
+        if sp_pick.result == 'win':
+            auto_result = 'W'
+            auto_profit = round(to_win, 2)
+        elif sp_pick.result == 'loss':
+            auto_result = 'L'
+            auto_profit = -bet_amount
+
     bet = TrackedBet(
         user_id=current_user.id,
         pick_id=pick_id,
@@ -1470,8 +1480,8 @@ def track_bet():
         bet_amount=bet_amount,
         odds=odds,
         to_win=round(to_win, 2),
-        result=None,
-        profit=0,
+        result=auto_result,
+        profit=auto_profit,
         source=source,
         follow_type=follow_type,
         line_at_bet=line_at_bet,
