@@ -542,7 +542,7 @@ scheduler = None
 
 def start_background_services():
     import time
-    time.sleep(10)
+    time.sleep(5)
     try:
         logging.info("Starting background services...")
         seed_database()
