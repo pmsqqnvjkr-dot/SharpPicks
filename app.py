@@ -1366,7 +1366,7 @@ def get_user_bets():
                 'game_date': linked.game_date,
                 'home_score': linked.home_score,
                 'away_score': linked.away_score,
-                'actual_margin': linked.actual_margin,
+                'actual_margin': (linked.home_score - linked.away_score) if linked.home_score is not None and linked.away_score is not None else None,
                 'profit_units': linked.pnl,
                 'published_at': linked.published_at.isoformat() if linked.published_at else None,
             }
