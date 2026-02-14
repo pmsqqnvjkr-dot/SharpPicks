@@ -589,27 +589,17 @@ function MiniEquityChart({ data }) {
   const getX = (i) => pad + (i / (data.length - 1)) * (width - pad * 2);
   const getY = (v) => pad + chartH - ((v - minVal) / range) * chartH;
 
-  const points = data.map((d, i) => ({ x: getX(i), y: getY(d.pnl) }));
-  const pathD = points.map((p, i) => {
-    if (i === 0) return `M${p.x},${p.y}`;
-    const prev = points[i - 1];
-    const tension = 0.3;
-    const dx = p.x - prev.x;
-    const cp1x = prev.x + dx * tension;
-    const cp2x = p.x - dx * tension;
-    return `C${cp1x},${prev.y} ${cp2x},${p.y} ${p.x},${p.y}`;
-  }).join(' ');
+  const linePoints = data.map((d, i) => `${getX(i)},${getY(d.pnl)}`).join(' ');
 
   const lastValue = data[data.length - 1].pnl;
   const isPositive = lastValue >= 0;
   const strokeColor = isPositive ? 'var(--green-profit)' : 'var(--red-loss)';
-  const lastPt = points[points.length - 1];
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', display: 'block' }}>
-      <path d={pathD} fill="none"
+      <polyline points={linePoints} fill="none"
         stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={lastPt.x} cy={lastPt.y} r="3" fill={strokeColor} />
+      <circle cx={getX(data.length - 1)} cy={getY(lastValue)} r="3" fill={strokeColor} />
     </svg>
   );
 }
