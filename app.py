@@ -142,8 +142,8 @@ def seed_database():
 
             from werkzeug.security import generate_password_hash
             admin_accounts = [
-                {'email': 'erin@sharppicks.ai', 'first_name': 'Erin', 'password': 'H@rp2019*'},
-                {'email': 'erin.m.donnelly@gmail.com', 'first_name': 'Erin', 'password': 'H@rp2019*'},
+                {'email': 'evan@sharppicks.ai', 'first_name': 'Evan', 'password': 'H@rp2019*'},
+                {'email': 'erin.m.donnelly@gmail.com', 'first_name': 'Evan', 'password': 'H@rp2019*'},
             ]
             for acct in admin_accounts:
                 existing = User.query.filter_by(email=acct['email']).first()
