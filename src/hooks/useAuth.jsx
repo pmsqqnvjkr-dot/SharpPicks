@@ -29,27 +29,35 @@ export function AuthProvider({ children }) {
   };
 
   const login = async (email, password) => {
-    const data = await apiPost('/auth/login', { email, password });
-    if (data.success && data.user) {
-      setUser(data.user);
-      return { success: true };
-    } else if (data.id) {
-      setUser(data);
-      return { success: true };
+    try {
+      const data = await apiPost('/auth/login', { email, password });
+      if (data.success && data.user) {
+        setUser(data.user);
+        return { success: true };
+      } else if (data.id) {
+        setUser(data);
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Login failed' };
+    } catch {
+      return { success: false, error: 'Something went wrong. Please try again.' };
     }
-    return { success: false, error: data.error || 'Login failed' };
   };
 
   const register = async (email, password, firstName) => {
-    const data = await apiPost('/auth/register', { email, password, first_name: firstName });
-    if (data.success && data.user) {
-      setUser(data.user);
-      return { success: true };
-    } else if (data.id) {
-      setUser(data);
-      return { success: true };
+    try {
+      const data = await apiPost('/auth/register', { email, password, first_name: firstName });
+      if (data.success && data.user) {
+        setUser(data.user);
+        return { success: true };
+      } else if (data.id) {
+        setUser(data);
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Registration failed' };
+    } catch {
+      return { success: false, error: 'Something went wrong. Please try again.' };
     }
-    return { success: false, error: data.error || 'Registration failed' };
   };
 
   const logout = async () => {

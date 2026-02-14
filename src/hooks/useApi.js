@@ -44,26 +44,62 @@ export function useApi(endpoint, options = {}) {
 }
 
 export async function apiPost(endpoint, body) {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(body),
-  });
-  return res.json();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    return res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return { error: 'Request timed out. Please try again.' };
+    }
+    return { error: 'Network error. Please check your connection.' };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function apiGet(endpoint) {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    credentials: 'include',
-  });
-  return res.json();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      credentials: 'include',
+      signal: controller.signal,
+    });
+    return res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return { error: 'Request timed out. Please try again.' };
+    }
+    return { error: 'Network error. Please check your connection.' };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function apiDelete(endpoint) {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
-  return res.json();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      signal: controller.signal,
+    });
+    return res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return { error: 'Request timed out. Please try again.' };
+    }
+    return { error: 'Network error. Please check your connection.' };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
