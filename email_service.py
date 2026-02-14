@@ -66,20 +66,16 @@ def send_welcome(to, first_name=None):
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">I'm Evan, founder of Sharp Picks. I'm glad you're here.</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Sharp Picks was not built to chase action. It was built to protect capital.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Sharp Picks was not built to flood you with plays. It was built around discipline.</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Most bettors do not lose because they lack insight. They lose because they treat every edge the same.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Most days, we pass.</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">A small edge on a tight spread is not the same as a small edge on a wide one. The variance is different. The risk is different. The margin for error is different.</p>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Most models ignore that.</p>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #ffffff; font-weight: 600; margin-bottom: 24px;">This one does not.</p>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Sharp Picks only publishes when a game clears strict confidence and edge thresholds. Most days, that means we pass.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">When the model publishes a pick, it is because a game cleared strict confidence and edge thresholds. Risk has been measured. Variance has been accounted for. Conviction is earned, not assumed.</p>
 
       <div style="margin: 32px 0; padding: 20px 0; border-top: 1px solid #1a1d28; border-bottom: 1px solid #1a1d28;">
         <p style="font-size: 16px; line-height: 1.9; color: #b8b8b8; margin-bottom: 4px;">You will not see ten plays a night.</p>
+        <p style="font-size: 16px; line-height: 1.9; color: #b8b8b8; margin-bottom: 4px;">You will see structure.</p>
+        <p style="font-size: 16px; line-height: 1.9; color: #b8b8b8; margin-bottom: 4px;">You will see transparency.</p>
         <p style="font-size: 16px; line-height: 1.9; color: #ffffff; font-weight: 600; margin: 0;">You will see discipline.</p>
       </div>
 
@@ -92,7 +88,7 @@ def send_welcome(to, first_name=None):
         <li>Clear reasoning behind the signal</li>
       </ul>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Everything is tracked. Results are transparent. Nothing is hidden behind marketing language.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Everything is standardized. Everything is tracked. Nothing is hidden.</p>
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 12px;">Sharp Picks is built on one principle:</p>
 
@@ -105,7 +101,7 @@ def send_welcome(to, first_name=None):
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">If you ever want to understand the thinking deeper, just reply to this email. I read every message.</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">Let's stay sharp.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">Let's stay sharp,</p>
 
       <p style="font-size: 15px; line-height: 1.6; color: #ffffff; font-weight: 600; margin-bottom: 2px;">Evan Cole</p>
       <p style="font-size: 13px; line-height: 1.6; color: #777; margin-bottom: 0;">Founder, Sharp Picks</p>
