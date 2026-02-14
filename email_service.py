@@ -8,11 +8,14 @@ FROM_EMAIL = "Sharp Picks <no-reply@sharppicks.ai>"
 FOUNDER_EMAIL = "Evan Cole <evan@sharppicks.ai>"
 
 def get_base_url():
-    domain = os.environ.get('REPLIT_DOMAINS', os.environ.get('REPLIT_DEV_DOMAIN', ''))
-    if domain:
-        domain = domain.split(',')[0].strip()
-        return f"https://{domain}"
-    return "https://sharppicks.ai"
+    custom = os.environ.get('APP_BASE_URL', '')
+    if custom:
+        return custom.rstrip('/')
+    if os.environ.get('REPLIT_DEPLOYMENT') == '1':
+        domain = os.environ.get('REPLIT_DOMAINS', '')
+        if domain:
+            return f"https://{domain.split(',')[0].strip()}"
+    return "https://sharp-picks-erindonnelly4.replit.app"
 
 def get_logo_url():
     return f"{get_base_url()}/logo-email.png"
