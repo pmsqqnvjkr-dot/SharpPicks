@@ -605,7 +605,7 @@ function FounderSignature() {
         src="/evan-signature.png"
         alt="Evan"
         style={{
-          height: '72px',
+          height: '576px',
           width: 'auto',
           display: 'block',
           marginBottom: '16px',
