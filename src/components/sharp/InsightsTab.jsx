@@ -385,7 +385,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
           fontFamily: 'var(--font-sans)',
           fontSize: '15px',
           color: 'var(--text-secondary)',
-          lineHeight: '2.0',
+          lineHeight: '1.7',
         }}>
           {paragraphs.map((p, i) => {
             if (p.trim() === '---') {
@@ -426,22 +426,20 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                 </div>
               );
             }
-            const extraBreath = (i > 0 && i % 3 === 0);
             const isClosingPunch = p === 'Discipline compounds. Impulse erodes.' ||
               p === 'Fewer bets. Higher quality.\nThat is how ROI survives.' ||
               p === 'Short term streaks are noise.\nLong term expectancy is signal.' ||
               p === 'Survival is step one.\nCompounding is step two.';
             if (isClosingPunch) {
               return <p key={i} style={{
-                margin: '4px 0 20px',
+                margin: '4px 0 16px',
                 fontSize: '16px',
                 fontWeight: 600,
                 color: 'var(--text-primary)',
                 lineHeight: '1.7',
               }}>{p}</p>;
             }
-            const isShort = p.length < 60;
-            return <p key={i} style={{ margin: isShort ? '0 0 22px' : (extraBreath ? '0 0 28px' : '0 0 18px') }}>{p}</p>;
+            return <p key={i} style={{ margin: '0 0 16px' }}>{p}</p>;
           })}
         </div>
 
