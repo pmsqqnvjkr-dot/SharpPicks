@@ -598,33 +598,48 @@ function FounderSignature() {
       padding: '24px 0 0',
       borderTop: '1px solid var(--stroke-subtle)',
     }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '14px',
+        marginBottom: '14px',
+      }}>
+        <div style={{
+          width: '40px', height: '40px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, rgba(79, 134, 247, 0.15) 0%, rgba(52, 211, 153, 0.1) 100%)',
+          border: '1px solid rgba(79, 134, 247, 0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'var(--font-serif)',
+          fontSize: '16px', fontWeight: 600,
+          color: 'var(--blue-primary)',
+          flexShrink: 0,
+        }}>E</div>
+        <div>
+          <div style={{
+            fontSize: '14px', fontWeight: 600,
+            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-sans)',
+            marginBottom: '2px',
+          }}>Evan Cole</div>
+          <div style={{
+            fontSize: '12px',
+            color: 'var(--text-tertiary)',
+            fontFamily: 'var(--font-mono)',
+            letterSpacing: '0.03em',
+          }}>Founder, Sharp Picks</div>
+        </div>
+      </div>
       <p style={{
         fontSize: '13px',
         color: 'var(--text-tertiary)',
         fontFamily: 'var(--font-serif)',
         fontStyle: 'italic',
-        margin: '0 0 16px',
+        margin: 0,
         lineHeight: '1.6',
       }}>
         I built this model because discipline is the only scalable edge.
       </p>
-      <img
-        src="/signature-black.jpeg"
-        alt="Evan Cole"
-        style={{
-          height: '48px',
-          width: 'auto',
-          borderRadius: '6px',
-          display: 'block',
-          marginBottom: '6px',
-        }}
-      />
-      <div style={{
-        fontSize: '11px',
-        color: 'var(--text-tertiary)',
-        fontFamily: 'var(--font-mono)',
-        letterSpacing: '0.05em',
-      }}>Founder, Sharp Picks</div>
     </div>
   );
 }
