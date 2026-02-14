@@ -226,17 +226,23 @@ def seed_database():
                         excerpt="Most bettors lose not because they pick wrong, but because they pick too often. Volume is the enemy of edge.",
                         content="""Most bettors lose not because they pick wrong, but because they pick too often. Volume is the enemy of edge.
 
+---
+
 ## The Math of Selectivity
 
 A bettor who wagers on five games per day needs to hit at a rate that overcomes the vig on every single bet. At standard -110 odds, you need 52.4% accuracy just to break even. Across five daily bets, the compounding effect of juice makes profitability nearly impossible.
 
 A single, carefully selected wager changes the equation entirely. When our model identifies a genuine 3.5% or greater edge, the expected value calculation shifts dramatically in your favor.
 
+---
+
 ## Why Silence Is the Product
 
 On days we publish no pick, the system is working exactly as designed. We analyzed every game on the board and found no edge worth risking your bankroll on. That restraint is what separates professional-grade analysis from entertainment content.
 
 > The best trade is often the one you don't make.
+
+---
 
 ## What the Data Shows
 
@@ -253,36 +259,197 @@ Adding more picks to chase action would dilute that edge to the point of disappe
                         title="Understanding the Spread",
                         slug="understanding-the-spread",
                         category="how_it_works",
-                        excerpt="Point spreads aren't predictions. They're prices. Understanding this distinction is the first step toward thinking like a sharp.",
-                        content="""Point spreads aren't predictions. They're prices. Understanding this distinction is the first step toward thinking like a sharp.
+                        excerpt="Point spreads are not predictions. They are prices. Understanding this distinction is the first step toward thinking like a sharp.",
+                        content="""Point spreads are not predictions. They are prices. Understanding this distinction is the first step toward thinking like a sharp.
+
+---
 
 ## Spreads as Market Prices
 
-When you see Lakers -4.5, the sportsbook isn't saying the Lakers will win by 4.5 points. They're setting a price that balances action on both sides. The spread reflects the collective opinion of the betting market, weighted heavily by the sharpest money.
+When you see Lakers -4.5, the sportsbook is not saying the Lakers will win by 4.5 points. They are setting a price that balances action on both sides. The spread reflects the collective opinion of the betting market, weighted heavily by the sharpest money.
+
+---
 
 ## Why We Compare to the Market
 
-Our model generates an independent prediction of the expected margin. But we don't blindly trust our model. We blend our prediction with the market spread using a 30/70 ratio, giving 70% weight to the market and 30% to our model.
+Our model generates an independent prediction of the expected margin. But we do not blindly trust our model. We blend our prediction with the market spread using a 30/70 ratio, giving 70% weight to the market and 30% to our model.
 
 Why? Because the market aggregates the opinions of thousands of sharp bettors and sophisticated models. Our out-of-sample testing shows the market spread is more accurate than our model about 60% of the time.
 
+---
+
 ## Where Our Edge Lives
 
-Our edge doesn't come from being smarter than the entire market. It comes from identifying the specific games where our model disagrees with the market enough to suggest a genuine mispricing.
+Our edge does not come from being smarter than the entire market. It comes from identifying the specific games where our model disagrees with the market enough to suggest a genuine mispricing.
 
-> We don't need to be right more often than the market. We need to be right more often than the spread price implies.
+> We do not need to be right more often than the market. We need to be right more often than the spread price implies.
 
-When our blended prediction diverges from the market spread by 3.5% or more, that's a signal worth acting on. Anything less, and we pass.""",
+When our blended prediction diverges from the market spread by 3.5% or more, that is a signal worth acting on. Anything less, and we pass.""",
                         status="published",
                         publish_date=datetime(2026, 2, 11),
                         reading_time_minutes=3,
                     ),
-                    
+                    Insight(
+                        title="How to Read the Model Dashboard",
+                        slug="how-to-read-the-model-dashboard",
+                        category="founder_note",
+                        excerpt="The right question is not whether performance is up. The right question is whether the model is behaving the way it is supposed to.",
+                        content="""Most people look at performance and ask one question:
+
+"Is it up?"
+
+That is the wrong question.
+
+The right question is: Is it behaving the way it is supposed to?
+
+Sharp Picks is built on probability, not streaks. So here is how to read the model dashboard the right way.
+
+---
+
+## ROI and Record
+
+ROI tells you efficiency. Record tells you direction.
+
+A 7-2 record looks great. But what matters is whether the wins came from edges the model expected to win.
+
+Short samples are noisy. Edge quality is signal.
+
+Focus on process over streak.
+
+---
+
+## Calibration Buckets
+
+This is the most important section on the entire dashboard.
+
+Each bucket represents games grouped by projected win probability.
+
+If the model says a play wins 58% of the time, over the long run it should win roughly 58%.
+
+Calibration tells us if reality matches expectation. If it does, the model is honest. If it does not, we adjust.
+
+> One hot streak does not prove a model. Accurate calibration does.
+
+---
+
+## Selectivity
+
+You will see total picks vs passes.
+
+Passing is not inactivity. Passing is filtration.
+
+The average betting product pushes volume. We push restraint.
+
+Selectivity protects capital.
+
+---
+
+## Risk Profile
+
+Max drawdown. Average days between picks. Average edge published.
+
+These are not vanity metrics. They tell you what kind of volatility to expect.
+
+If risk increases, conviction must increase. That principle shows up here.
+
+---
+
+## What This Dashboard Is Not
+
+It is not a highlight reel. It is not marketing.
+
+It is a transparency tool.
+
+The goal is not to look impressive. The goal is to behave consistently.
+
+That is how models compound.""",
+                        status="published",
+                        publish_date=datetime(2026, 2, 14),
+                        reading_time_minutes=4,
+                    ),
+                    Insight(
+                        title="Understanding Your Results vs The Model",
+                        slug="understanding-your-results-vs-the-model",
+                        category="founder_note",
+                        excerpt="There are two dashboards for a reason. The model has a job. You have a job. The difference is where long term edge is built.",
+                        content="""There are two dashboards for a reason.
+
+The model has a job. You have a job.
+
+The difference between the two is where long term edge is built.
+
+---
+
+## Model Results
+
+This shows standardized 1u performance.
+
+Every pick graded the same. No emotion. No stake sizing.
+
+This is pure signal.
+
+It answers one question: Does the edge exist?
+
+---
+
+## Your Results
+
+This is your real capital.
+
+Your actual stakes. Your timing. Your restraint.
+
+This dashboard answers a different question: Are you executing correctly?
+
+You can beat the model. You can underperform the model.
+
+> Execution is not optional. It is the edge.
+
+---
+
+## Behavioral Edge
+
+This is the section most bettors ignore.
+
+Selectivity rate. Days per bet. Capital preserved from passes.
+
+Most bettors lose because they overextend.
+
+If you bet on 56% of opportunities and the industry average is 78%, you are already gaining edge before the game tips.
+
+Discipline compounds. Impulse erodes.
+
+---
+
+## Capital Preserved
+
+This is one of my favorite metrics.
+
+Money saved by not betting low conviction plays.
+
+Winning is not just about what you bet. It is about what you do not.
+
+---
+
+## The Real Goal
+
+The goal is not to copy the model blindly.
+
+The goal is alignment.
+
+When your behavior matches the edge structure, variance becomes tolerable.
+
+That is how professionals think.
+
+Fewer decisions. Better decisions.""",
+                        status="published",
+                        publish_date=datetime(2026, 2, 14),
+                        reading_time_minutes=4,
+                    ),
                 ]
                 for ins in seed_insights:
                     db.session.add(ins)
                 db.session.commit()
-                logging.info("Seeded 2 initial insights")
+                logging.info("Seeded 4 initial insights")
 
             logging.info("Database seed completed")
         except Exception as e:

@@ -388,6 +388,9 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
           lineHeight: '2.0',
         }}>
           {paragraphs.map((p, i) => {
+            if (p.trim() === '---') {
+              return <div key={i} style={{ margin: '24px 0', borderTop: '1px solid var(--stroke-subtle)' }} />;
+            }
             if (p.startsWith('## ')) {
               return (
                 <h2 key={i} style={{
@@ -598,48 +601,49 @@ function FounderSignature() {
       padding: '24px 0 0',
       borderTop: '1px solid var(--stroke-subtle)',
     }}>
+      <img
+        src="/evan-signature.png"
+        alt="Evan"
+        style={{
+          height: '44px',
+          width: 'auto',
+          display: 'block',
+          marginBottom: '12px',
+          filter: 'brightness(1.1)',
+        }}
+      />
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '14px',
+        gap: '10px',
         marginBottom: '14px',
       }}>
         <div style={{
-          width: '40px', height: '40px',
+          width: '32px', height: '32px',
           borderRadius: '50%',
           background: 'linear-gradient(135deg, rgba(79, 134, 247, 0.15) 0%, rgba(52, 211, 153, 0.1) 100%)',
           border: '1px solid rgba(79, 134, 247, 0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: 'var(--font-serif)',
-          fontSize: '16px', fontWeight: 600,
+          fontSize: '13px', fontWeight: 600,
           color: 'var(--blue-primary)',
           flexShrink: 0,
-        }}>E</div>
+        }}>EC</div>
         <div>
           <div style={{
             fontSize: '14px', fontWeight: 600,
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-sans)',
-            marginBottom: '2px',
+            marginBottom: '1px',
           }}>Evan Cole</div>
           <div style={{
-            fontSize: '12px',
+            fontSize: '11px',
             color: 'var(--text-tertiary)',
             fontFamily: 'var(--font-mono)',
             letterSpacing: '0.03em',
           }}>Founder, Sharp Picks</div>
         </div>
       </div>
-      <p style={{
-        fontSize: '13px',
-        color: 'var(--text-tertiary)',
-        fontFamily: 'var(--font-serif)',
-        fontStyle: 'italic',
-        margin: 0,
-        lineHeight: '1.6',
-      }}>
-        I built this model because discipline is the only scalable edge.
-      </p>
     </div>
   );
 }
