@@ -1,5 +1,6 @@
 import os
 import logging
+import base64
 import resend
 
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
@@ -19,6 +20,15 @@ def get_logo_url():
 
 def get_signature_url(variant='black'):
     return f"{get_base_url()}/signature-{variant}.jpeg"
+
+def get_signature_base64(variant='black'):
+    path = os.path.join(os.path.dirname(__file__), 'public', f'signature-{variant}.jpeg')
+    try:
+        with open(path, 'rb') as f:
+            encoded = base64.b64encode(f.read()).decode()
+        return f"data:image/jpeg;base64,{encoded}"
+    except Exception:
+        return get_signature_url(variant)
 
 def send_email(to, subject, html, reply_to=None, from_email=None):
     if not resend.api_key:
@@ -117,7 +127,7 @@ def send_welcome(to, first_name=None):
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">To the edge,</p>
 
       <div style="margin-bottom: 4px;">
-        <img src="{get_signature_url('black')}" alt="Evan Cole" style="height: 60px; width: auto;" />
+        <img src="{get_signature_base64('black')}" alt="Evan Cole" style="height: 60px; width: auto;" />
       </div>
       <p style="font-size: 13px; line-height: 1.6; color: #777; margin-bottom: 0;">Founder, Sharp Picks</p>
 
