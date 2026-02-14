@@ -1352,6 +1352,24 @@ def get_user_bets():
                 pick_result = 'pending'
             else:
                 pick_result = b.linked_pick.result
+        linked = b.linked_pick
+        pick_detail = None
+        if linked:
+            pick_detail = {
+                'id': linked.id,
+                'away_team': linked.away_team,
+                'home_team': linked.home_team,
+                'side': linked.side,
+                'line': linked.line,
+                'edge_pct': linked.edge_pct,
+                'result': linked.result,
+                'game_date': linked.game_date,
+                'home_score': linked.home_score,
+                'away_score': linked.away_score,
+                'actual_margin': linked.actual_margin,
+                'profit_units': linked.pnl,
+                'published_at': linked.published_at.isoformat() if linked.published_at else None,
+            }
         bet_list.append({
             'id': b.id,
             'pick_id': b.pick_id,
@@ -1367,7 +1385,8 @@ def get_user_bets():
             'follow_type': b.follow_type or 'exact',
             'line_at_bet': b.line_at_bet,
             'odds_at_publish': b.odds_at_publish,
-            'created_at': b.created_at.isoformat() if b.created_at else None
+            'created_at': b.created_at.isoformat() if b.created_at else None,
+            'linked_pick': pick_detail,
         })
     return jsonify({'bets': bet_list, 'tracked_pick_ids': list(tracked_pick_ids)})
 

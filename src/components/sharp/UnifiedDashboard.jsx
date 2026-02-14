@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
+import ResolutionScreen from './ResolutionScreen';
 
 export default function UnifiedDashboard({ embedded = false }) {
   const { user } = useAuth();
@@ -10,6 +11,7 @@ export default function UnifiedDashboard({ embedded = false }) {
   const [showTrackModal, setShowTrackModal] = useState(false);
   const [selectedPick, setSelectedPick] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [resolutionPick, setResolutionPick] = useState(null);
 
   const loadData = async () => {
     try {
@@ -133,6 +135,10 @@ export default function UnifiedDashboard({ embedded = false }) {
     );
   }
 
+  if (resolutionPick) {
+    return <ResolutionScreen pick={resolutionPick} onBack={() => setResolutionPick(null)} />;
+  }
+
   const behavioral = stats?.behavioral || {};
   const totalPnl = stats?.totalProfit || 0;
   const roi = stats?.roi || 0;
@@ -205,6 +211,7 @@ export default function UnifiedDashboard({ embedded = false }) {
                 confirmDelete={confirmDelete}
                 setConfirmDelete={setConfirmDelete}
                 onDelete={handleDelete}
+                onViewPick={setResolutionPick}
               />
             ))}
           </BetsSection>
@@ -729,18 +736,27 @@ function BetsSection({ title, children }) {
   );
 }
 
-function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete }) {
+function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete, onViewPick }) {
   const isConfirming = confirmDelete === bet.id;
+  const isClickable = bet.result && bet.linked_pick;
 
   return (
     <div style={{
       padding: '14px 16px',
       borderBottom: '1px solid var(--stroke-subtle)',
-    }}>
+      cursor: isClickable ? 'pointer' : 'default',
+    }}
+      onClick={() => { if (isClickable && onViewPick) onViewPick(bet.linked_pick); }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
             {bet.pick}
+            {isClickable && (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            )}
           </div>
           {bet.game && (
             <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-tertiary)', marginTop: '2px' }}>
