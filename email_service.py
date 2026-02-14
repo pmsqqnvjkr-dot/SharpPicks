@@ -1,6 +1,5 @@
 import os
 import logging
-import base64
 import resend
 
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
@@ -17,18 +16,6 @@ def get_base_url():
 
 def get_logo_url():
     return f"{get_base_url()}/logo-email.png"
-
-def get_signature_url(variant='black'):
-    return f"{get_base_url()}/signature-{variant}.jpeg"
-
-def get_signature_base64(variant='black'):
-    path = os.path.join(os.path.dirname(__file__), 'public', f'signature-{variant}.jpeg')
-    try:
-        with open(path, 'rb') as f:
-            encoded = base64.b64encode(f.read()).decode()
-        return f"data:image/jpeg;base64,{encoded}"
-    except Exception:
-        return get_signature_url(variant)
 
 def send_email(to, subject, html, reply_to=None, from_email=None):
     if not resend.api_key:
@@ -126,9 +113,7 @@ def send_welcome(to, first_name=None):
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">To the edge,</p>
 
-      <div style="margin-bottom: 8px; background-color: #000000; border-radius: 4px; display: inline-block;">
-        <img src="{get_signature_base64('black')}" alt="Evan Cole" style="height: 120px; width: auto; display: block;" />
-      </div>
+      <p style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 28px; font-style: italic; color: #ffffff; margin: 0 0 4px 0; letter-spacing: 1px;">Evan Cole</p>
       <p style="font-size: 13px; line-height: 1.6; color: #777; margin-bottom: 0;">Founder, Sharp Picks</p>
 
       <hr style="border: none; border-top: 1px solid #1a1d24; margin: 36px 0;">
