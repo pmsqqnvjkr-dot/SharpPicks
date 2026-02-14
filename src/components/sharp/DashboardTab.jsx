@@ -73,8 +73,16 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
         <RecentPickLog picks={recentPicks} />
 
         <p style={{
+          fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+          fontSize: '13px', color: 'var(--text-secondary)',
+          textAlign: 'center', padding: '8px 20px 4px',
+          lineHeight: '1.5',
+        }}>
+          This dashboard measures discipline, not excitement.
+        </p>
+        <p style={{
           fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
-          textAlign: 'center', padding: '8px 20px 16px',
+          textAlign: 'center', padding: '0 20px 16px',
         }}>
           Past performance does not guarantee future results. This analysis reflects probabilities, not certainty.
         </p>
@@ -118,6 +126,7 @@ function PerformanceCore({ perf, equityCurve }) {
                 label="ROI"
                 color={perf.roi >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'}
               />
+              <InfoTooltip text="ROI measures efficiency, not streaks. Short samples swing. Long samples tell the truth." />
               <StatChip value={perf.record || '0-0'} label="Record" />
             </div>
           </div>
@@ -150,6 +159,10 @@ function CalibrationPanel({ buckets, health }) {
   return (
     <>
       <SectionLabel>Model Integrity</SectionLabel>
+      <InfoCallout
+        header="Why Calibration Matters"
+        text="If a pick is labeled 58%, it should win roughly 58% over time. Calibration is how we verify honesty in the model. Hot streaks impress. Calibration sustains."
+      />
       <div style={{
         backgroundColor: 'var(--surface-1)', borderRadius: '20px',
         border: '1px solid var(--stroke-subtle)', padding: '24px',
@@ -251,17 +264,17 @@ function RiskProfile({ risk }) {
         marginBottom: '16px',
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <RiskRow label="Max Drawdown" value={`-${risk.max_drawdown_pct || 0}%`} />
+          <RiskRow label="Max Drawdown" value={`-${risk.max_drawdown_pct || 0}%`} tooltip="This shows the largest historical drop from peak equity. Every profitable system has drawdowns. The question is whether they are within expectation." />
           <RiskRow label="Avg Days Between Picks" value={risk.avg_days_between_picks || '—'} />
           <RiskRow label="Avg Line Movement" value={`${risk.avg_line_move_against || 0} pts`} />
-          <RiskRow label="Avg Edge Published" value={`${risk.avg_edge_published || 0}%`} />
+          <RiskRow label="Avg Edge Published" value={`${risk.avg_edge_published || 0}%`} tooltip="Higher average edge means fewer but stronger plays. Conviction scales with risk." />
         </div>
       </div>
     </>
   );
 }
 
-function RiskRow({ label, value }) {
+function RiskRow({ label, value, tooltip }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -269,7 +282,11 @@ function RiskRow({ label, value }) {
     }}>
       <span style={{
         fontSize: '13px', color: 'var(--text-secondary)',
-      }}>{label}</span>
+        display: 'inline-flex', alignItems: 'center',
+      }}>
+        {label}
+        {tooltip && <InfoTooltip text={tooltip} />}
+      </span>
       <span style={{
         fontFamily: 'var(--font-mono)', fontSize: '14px',
         color: 'var(--text-primary)', fontWeight: 600,
@@ -283,6 +300,10 @@ function DisciplineScore({ discipline }) {
   return (
     <>
       <SectionLabel>Discipline Score</SectionLabel>
+      <InfoCallout
+        header="Passing Is a Position"
+        text="Volume increases variance. Filtration preserves capital. Edge only matters when it exceeds risk."
+      />
       <div style={{
         backgroundColor: 'var(--surface-1)', borderRadius: '20px',
         border: '1px solid var(--stroke-subtle)', padding: '24px',
@@ -522,6 +543,88 @@ function StatChip({ value, label, color }) {
       <strong style={{ color: color || 'var(--text-primary)', fontWeight: 700 }}>{value}</strong>{' '}
       <span style={{ fontSize: '12px' }}>{label}</span>
     </span>
+  );
+}
+
+function InfoTooltip({ text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          width: '18px', height: '18px', borderRadius: '50%',
+          backgroundColor: open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
+          border: '1px solid var(--stroke-subtle)',
+          color: 'var(--text-tertiary)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 0, fontSize: '11px', fontFamily: 'var(--font-sans)', fontWeight: 600,
+          lineHeight: 1, transition: 'background-color 0.15s ease',
+        }}
+        aria-label="More info"
+      >i</button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '24px', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+          borderRadius: '10px', padding: '10px 12px',
+          width: '220px', zIndex: 10,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        }}>
+          <p style={{
+            fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+            fontSize: '12px', color: 'var(--text-secondary)',
+            lineHeight: '1.5', margin: 0,
+          }}>{text}</p>
+        </div>
+      )}
+    </span>
+  );
+}
+
+function InfoCallout({ header, text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ marginBottom: '12px' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
+          color: 'var(--text-tertiary)', fontFamily: 'var(--font-sans)', fontSize: '12px',
+          fontWeight: 500, transition: 'color 0.15s ease',
+        }}
+      >
+        <span style={{
+          width: '16px', height: '16px', borderRadius: '50%',
+          backgroundColor: 'rgba(255,255,255,0.06)',
+          border: '1px solid var(--stroke-subtle)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '10px', fontWeight: 600, lineHeight: 1, flexShrink: 0,
+        }}>?</span>
+        <span>{header}</span>
+        <span style={{
+          fontSize: '10px', transition: 'transform 0.2s ease',
+          transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+        }}>▾</span>
+      </button>
+      <div style={{
+        maxHeight: open ? '200px' : '0px',
+        overflow: 'hidden',
+        transition: 'max-height 0.25s ease',
+      }}>
+        <div style={{
+          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+          borderRadius: '10px', padding: '12px 14px', marginTop: '6px',
+        }}>
+          <p style={{
+            fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+            fontSize: '12px', color: 'var(--text-secondary)',
+            lineHeight: '1.6', margin: 0,
+          }}>{text}</p>
+        </div>
+      </div>
+    </div>
   );
 }
 

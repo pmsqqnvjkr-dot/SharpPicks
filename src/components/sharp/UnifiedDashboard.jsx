@@ -229,6 +229,7 @@ export default function UnifiedDashboard({ embedded = false }) {
               <MetricTile
                 value={bets.length >= 2 ? (avgDays > 0 ? avgDays.toFixed(1) : '< 1') : bets.length === 1 ? '—' : '—'}
                 label="DAYS / BET"
+                tooltip="Time between bets is a feature, not inactivity. Patience is part of the edge structure."
               />
             </div>
 
@@ -251,10 +252,18 @@ export default function UnifiedDashboard({ embedded = false }) {
 
         <div style={{ padding: '20px 0', textAlign: 'center' }}>
           <p style={{
+            fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+            fontSize: '13px', color: 'var(--text-secondary)',
+            lineHeight: '1.5', marginBottom: '4px',
+          }}>
+            This dashboard measures discipline, not excitement.
+          </p>
+          <p style={{
             fontSize: '11px',
             color: 'var(--text-tertiary)',
             lineHeight: '1.5',
             fontFamily: 'var(--font-sans)',
+            margin: 0,
           }}>
             Past performance does not guarantee future results.
             {'\n'}This analysis reflects probabilities, not certainty.
@@ -380,6 +389,88 @@ function StatChip({ value, label, color }) {
   );
 }
 
+function InfoTooltip({ text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          width: '18px', height: '18px', borderRadius: '50%',
+          backgroundColor: open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
+          border: '1px solid var(--stroke-subtle)',
+          color: 'var(--text-tertiary)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 0, fontSize: '11px', fontFamily: 'var(--font-sans)', fontWeight: 600,
+          lineHeight: 1, transition: 'background-color 0.15s ease',
+        }}
+        aria-label="More info"
+      >i</button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '24px', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+          borderRadius: '10px', padding: '10px 12px',
+          width: '220px', zIndex: 10,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        }}>
+          <p style={{
+            fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+            fontSize: '12px', color: 'var(--text-secondary)',
+            lineHeight: '1.5', margin: 0,
+          }}>{text}</p>
+        </div>
+      )}
+    </span>
+  );
+}
+
+function InfoCallout({ header, text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ marginBottom: '12px' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
+          color: 'var(--text-tertiary)', fontFamily: 'var(--font-sans)', fontSize: '12px',
+          fontWeight: 500, transition: 'color 0.15s ease',
+        }}
+      >
+        <span style={{
+          width: '16px', height: '16px', borderRadius: '50%',
+          backgroundColor: 'rgba(255,255,255,0.06)',
+          border: '1px solid var(--stroke-subtle)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '10px', fontWeight: 600, lineHeight: 1, flexShrink: 0,
+        }}>?</span>
+        <span>{header}</span>
+        <span style={{
+          fontSize: '10px', transition: 'transform 0.2s ease',
+          transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+        }}>▾</span>
+      </button>
+      <div style={{
+        maxHeight: open ? '200px' : '0px',
+        overflow: 'hidden',
+        transition: 'max-height 0.25s ease',
+      }}>
+        <div style={{
+          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+          borderRadius: '10px', padding: '12px 14px', marginTop: '6px',
+        }}>
+          <p style={{
+            fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+            fontSize: '12px', color: 'var(--text-secondary)',
+            lineHeight: '1.6', margin: 0,
+          }}>{text}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PerformanceCard({ totalPnl, roi, record, equityCurve }) {
   const isPositive = totalPnl >= 0;
   const color = isPositive ? 'var(--green-profit)' : 'var(--red-loss)';
@@ -425,6 +516,7 @@ function PerformanceCard({ totalPnl, roi, record, equityCurve }) {
                 label="ROI"
                 color={roi >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'}
               />
+              <InfoTooltip text="This reflects your actual execution, not the model's standardized stakes. Stake sizing discipline affects long term performance." />
               <StatChip value={record} label="Record" />
               {resolved.length >= 1 && (
                 <StatChip
@@ -857,7 +949,7 @@ function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete, 
   );
 }
 
-function MetricTile({ value, label }) {
+function MetricTile({ value, label, tooltip }) {
   return (
     <div style={{
       backgroundColor: 'var(--surface-1)',
@@ -879,8 +971,10 @@ function MetricTile({ value, label }) {
         fontSize: '10px', fontWeight: 600,
         letterSpacing: '1.5px', textTransform: 'uppercase',
         color: 'var(--text-tertiary)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {label}
+        {tooltip && <InfoTooltip text={tooltip} />}
       </div>
     </div>
   );
@@ -918,10 +1012,15 @@ function CapitalPreservedCard({ amount, passes }) {
         fontSize: '14px',
         color: 'var(--text-secondary)',
         lineHeight: '1.5',
-        margin: 0,
+        margin: '0 0 12px 0',
       }}>
         Estimated bankroll saved by passing on {passes} picks you didn't follow this season.
       </p>
+
+      <InfoCallout
+        header="Why This Matters"
+        text="Money saved by passing low conviction plays compounds just like wins do. Discipline protects downside before upside appears."
+      />
     </div>
   );
 }
@@ -1033,10 +1132,15 @@ function BehavioralEdgeCard({ selectivity, industryAvg }) {
       <p style={{
         fontFamily: 'var(--font-sans)',
         fontSize: '14px', color: 'var(--text-secondary)',
-        lineHeight: '1.5', margin: 0,
+        lineHeight: '1.5', margin: '0 0 12px 0',
       }}>
         Your selectivity rate is <strong style={{ color: 'var(--text-primary)' }}>{Math.round(selectivity)}%</strong> — industry average is {industryAvg}%. This restraint compounds over time.
       </p>
+
+      <InfoCallout
+        header="Behavioral Edge"
+        text="The average bettor plays 78% of opportunities. You play fewer. Fewer decisions reduce error exposure."
+      />
     </div>
   );
 }
