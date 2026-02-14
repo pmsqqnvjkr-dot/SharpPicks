@@ -117,7 +117,7 @@ def send_welcome(to, first_name=None):
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">To the edge,</p>
 
       <div style="margin-bottom: 4px;">
-        <img src="{get_signature_url('black')}" alt="Evan Cole" style="height: 48px; width: auto;" />
+        <img src="{get_signature_url('black')}" alt="Evan Cole" style="height: 60px; width: auto;" />
       </div>
       <p style="font-size: 13px; line-height: 1.6; color: #777; margin-bottom: 0;">Founder, Sharp Picks</p>
 
