@@ -70,6 +70,8 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
 
         <DisciplineScore discipline={discipline} />
 
+        <LatestResultCard picks={recentPicks} />
+
         <RecentPickLog picks={recentPicks} />
 
         <p style={{
@@ -361,6 +363,87 @@ function DisciplineScore({ discipline }) {
   );
 }
 
+
+function LatestResultCard({ picks }) {
+  if (!picks || picks.length === 0) return null;
+  const latest = picks[0];
+  if (!latest || (latest.result !== 'win' && latest.result !== 'loss' && latest.result !== 'push')) return null;
+
+  const isWin = latest.result === 'win';
+  const isPush = latest.result === 'push';
+  const accentColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--green-profit)' : 'var(--red-loss)';
+  const accentBg = isPush ? 'rgba(255,255,255,0.04)' : isWin ? 'rgba(52,211,153,0.06)' : 'rgba(239,68,68,0.06)';
+  const accentBorder = isPush ? 'rgba(255,255,255,0.1)' : isWin ? 'rgba(52,211,153,0.18)' : 'rgba(239,68,68,0.18)';
+  const resultLabel = isPush ? 'Push' : isWin ? 'Win' : 'Loss';
+  const profitDisplay = latest.profit_units != null
+    ? `${latest.profit_units >= 0 ? '+' : ''}${latest.profit_units}u`
+    : isPush ? '0u' : isWin ? '+0.91u' : '-1.0u';
+
+  return (
+    <>
+      <SectionLabel>Latest Result</SectionLabel>
+      <div style={{
+        backgroundColor: accentBg,
+        borderRadius: '20px',
+        border: `1px solid ${accentBorder}`,
+        padding: '20px 24px',
+        marginBottom: '16px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '40px', height: '40px', borderRadius: '50%',
+            backgroundColor: isPush ? 'rgba(255,255,255,0.05)' : isWin ? 'rgba(52,211,153,0.12)' : 'rgba(239,68,68,0.12)',
+            border: `2px solid ${accentColor}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            {isPush ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round">
+                <line x1="6" y1="12" x2="18" y2="12"/>
+              </svg>
+            ) : isWin ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            )}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+              letterSpacing: '1.5px', textTransform: 'uppercase',
+              color: accentColor, marginBottom: '3px',
+            }}>{resultLabel}</div>
+            <div style={{
+              fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
+              color: 'var(--text-primary)',
+            }}>
+              {latest.side} {latest.line > 0 ? `+${latest.line}` : latest.line}
+            </div>
+            {(latest.away_team || latest.home_team) && (
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '11px',
+                color: 'var(--text-secondary)', marginTop: '2px',
+              }}>
+                {latest.away_team} @ {latest.home_team}
+              </div>
+            )}
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 700,
+            color: accentColor,
+          }}>
+            {profitDisplay}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
 
 function RecentPickLog({ picks }) {
   if (!picks || picks.length === 0) return null;
