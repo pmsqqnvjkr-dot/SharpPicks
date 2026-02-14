@@ -568,8 +568,8 @@ function WhyThisMatters({ insight }) {
 
   return (
     <div style={{
-      margin: '32px 0 0',
-      padding: '20px',
+      margin: '20px 0 0',
+      padding: '16px',
       borderTop: '1px solid var(--stroke-subtle)',
     }}>
       <div style={{
@@ -595,8 +595,8 @@ function WhyThisMatters({ insight }) {
 function FounderSignature() {
   return (
     <div style={{
-      margin: '28px 0 0',
-      padding: '24px 0 0',
+      margin: '12px 0 0',
+      padding: '16px 0 0',
       borderTop: '1px solid var(--stroke-subtle)',
     }}>
       <img
