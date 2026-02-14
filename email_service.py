@@ -56,64 +56,79 @@ def send_password_reset(to, reset_url, first_name=None):
 
 
 def send_welcome(to, first_name=None):
+    name = first_name or "there"
+    dashboard_url = get_logo_url().rsplit('/', 1)[0]
     html = f"""
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 48px 24px; color: #e0e0e0; background-color: #0A0D14;">
+    <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 48px 24px; color: #e0e0e0; background-color: #0A0D14;">
       <div style="text-align: center; margin-bottom: 40px;">
         <img src="{get_logo_url()}" alt="Sharp Picks" style="height: 48px; width: auto;" />
       </div>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Hi &#8212;</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Hi {name},</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">I'm Evan, founder of Sharp Picks. I'm glad you're here.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Welcome to Sharp Picks.</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Sharp Picks was not built to flood you with plays. It was built around discipline.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Most people treat sports betting like a game of luck. We treat it like a market. By joining this community, you've chosen to move away from the noise and toward a data-driven, disciplined approach.</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Most days, we pass.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Evan Cole here. I built this platform because I was tired of the "hype" culture. I wanted a tool that prioritized institutional-grade tracking and transparency over flashy promos.</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">When the model publishes a pick, it is because a game cleared strict confidence and edge thresholds. Risk has been measured. Variance has been accounted for. Conviction is earned, not assumed.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #ffffff; font-weight: 600; margin-bottom: 16px;">Here is how to get the most out of your first 24 hours:</p>
 
-      <div style="margin: 32px 0; padding: 20px 0; border-top: 1px solid #1a1d28; border-bottom: 1px solid #1a1d28;">
-        <p style="font-size: 16px; line-height: 1.9; color: #b8b8b8; margin-bottom: 4px;">You will not see ten plays a night.</p>
-        <p style="font-size: 16px; line-height: 1.9; color: #b8b8b8; margin-bottom: 4px;">You will see structure.</p>
-        <p style="font-size: 16px; line-height: 1.9; color: #b8b8b8; margin-bottom: 4px;">You will see transparency.</p>
-        <p style="font-size: 16px; line-height: 1.9; color: #ffffff; font-weight: 600; margin: 0;">You will see discipline.</p>
-      </div>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 14px;">Every published pick includes:</p>
-      <ul style="font-size: 15px; line-height: 2.2; color: #b8b8b8; padding-left: 20px; margin-bottom: 24px;">
-        <li>Projected margin</li>
-        <li>Cover probability</li>
-        <li>Market implied probability</li>
-        <li>Calibrated edge</li>
-        <li>Clear reasoning behind the signal</li>
-      </ul>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Everything is standardized. Everything is tracked. Nothing is hidden.</p>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 12px;">Sharp Picks is built on one principle:</p>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
+        <tr>
+          <td style="padding: 14px 16px; border-bottom: 1px solid #1a1d28;">
+            <span style="font-size: 14px; font-weight: 700; color: #34D399; margin-right: 10px;">1.</span>
+            <span style="font-size: 15px; color: #ffffff; font-weight: 600;">Set Your Unit Size</span>
+            <p style="font-size: 13px; color: #888; margin: 4px 0 0 22px; line-height: 1.6;">Discipline starts with bankroll management.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 14px 16px; border-bottom: 1px solid #1a1d28;">
+            <span style="font-size: 14px; font-weight: 700; color: #34D399; margin-right: 10px;">2.</span>
+            <span style="font-size: 15px; color: #ffffff; font-weight: 600;">Explore Today's Analysis</span>
+            <p style="font-size: 13px; color: #888; margin: 4px 0 0 22px; line-height: 1.6;">See what the model found &#8212; or why it passed.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 14px 16px;">
+            <span style="font-size: 14px; font-weight: 700; color: #34D399; margin-right: 10px;">3.</span>
+            <span style="font-size: 15px; color: #ffffff; font-weight: 600;">Review the Public Record</span>
+            <p style="font-size: 13px; color: #888; margin: 4px 0 0 22px; line-height: 1.6;">Every pick and pass tracked transparently &#8212; verified by data, not talk.</p>
+          </td>
+        </tr>
+      </table>
 
       <div style="margin: 28px 0 28px 0; padding: 20px 24px; border-left: 3px solid #34D399;">
-        <p style="font-size: 17px; line-height: 1.8; color: #34D399; font-weight: 600; font-style: italic; margin: 0;">If risk increases, conviction must increase.</p>
+        <p style="font-size: 17px; line-height: 1.8; color: #34D399; font-weight: 600; font-style: italic; margin: 0;">The goal isn't just to win a bet; it's to build a sustainable edge.</p>
       </div>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 6px;">That is why we pass more than we play.</p>
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">That is why discipline compounds.</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="{dashboard_url}" style="display: inline-block; padding: 14px 36px; background-color: #4F86F7; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; font-family: 'Inter', sans-serif; letter-spacing: 0.3px;">ACCESS YOUR DASHBOARD</a>
+      </div>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">If you ever want to understand the thinking deeper, just reply to this email. I read every message.</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">If you have questions or feedback on the interface, reply directly to this email. I'm personally looking for ways to make our tools sharper for you.</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">Let's stay sharp,</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">To the edge,</p>
 
       <p style="font-size: 15px; line-height: 1.6; color: #ffffff; font-weight: 600; margin-bottom: 2px;">Evan Cole</p>
       <p style="font-size: 13px; line-height: 1.6; color: #777; margin-bottom: 0;">Founder, Sharp Picks</p>
 
       <hr style="border: none; border-top: 1px solid #1a1d24; margin: 36px 0;">
+      <div style="text-align: center; margin-bottom: 16px;">
+        <a href="https://x.com/sharppicks" style="display: inline-block; margin: 0 8px; text-decoration: none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#555" xmlns="http://www.w3.org/2000/svg"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://instagram.com/sharppicks" style="display: inline-block; margin: 0 8px; text-decoration: none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#555" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+        </a>
+      </div>
       <p style="font-size: 12px; color: #555; text-align: center; letter-spacing: 0.5px;">Sharp Picks</p>
-      <p style="font-size: 11px; color: #444; text-align: center; letter-spacing: 0.3px; margin-top: 4px;">Discipline is the product.</p>
+      <p style="font-size: 11px; color: #444; text-align: center; letter-spacing: 0.3px; margin-top: 4px;">Discipline is the edge.</p>
     </div>
     """
     return send_email(
         to,
-        "Welcome to Sharp Picks",
+        "Welcome to Sharp Picks | The Edge is Discipline",
         html,
         reply_to="evan@sharppicks.ai",
         from_email=FOUNDER_EMAIL
