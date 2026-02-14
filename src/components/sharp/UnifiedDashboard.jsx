@@ -162,10 +162,6 @@ export default function UnifiedDashboard({ embedded = false }) {
           <EmptyPerformance />
         )}
 
-        {equityCurve.length > 1 && (
-          <UnitGrowthCard equityCurve={equityCurve} />
-        )}
-
         <div style={{ marginBottom: '16px' }}>
           <button onClick={() => setShowTrackModal(true)} style={{
             width: '100%', padding: '14px',
@@ -375,6 +371,12 @@ function PerformanceCard({ totalPnl, roi, record, equityCurve }) {
   const isPositive = totalPnl >= 0;
   const color = isPositive ? 'var(--green-profit)' : 'var(--red-loss)';
 
+  const resolved = equityCurve.filter(p => p.result === 'W' || p.result === 'L');
+  let unitTotal = 0;
+  resolved.forEach(p => { unitTotal += p.result === 'W' ? 0.91 : -1; });
+  unitTotal = parseFloat(unitTotal.toFixed(1));
+  const unitColor = unitTotal >= 0 ? 'var(--green-profit)' : 'var(--red-loss)';
+
   return (
     <div style={{
       backgroundColor: 'var(--surface-1)',
@@ -404,13 +406,20 @@ function PerformanceCard({ totalPnl, roi, record, equityCurve }) {
             }}>
               Your Tracked Bets · Actual Stakes
             </div>
-            <div style={{ display: 'flex', gap: '16px' }}>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
               <StatChip
                 value={`${roi >= 0 ? '+' : ''}${roi}%`}
                 label="ROI"
                 color={roi >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'}
               />
               <StatChip value={record} label="Record" />
+              {resolved.length >= 1 && (
+                <StatChip
+                  value={`${unitTotal >= 0 ? '+' : ''}${unitTotal}u`}
+                  label={`${resolved.length} bets · 1u flat`}
+                  color={unitColor}
+                />
+              )}
             </div>
           </div>
         </div>
