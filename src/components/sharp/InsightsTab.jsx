@@ -60,7 +60,7 @@ export default function InsightsTab({ onNavigate }) {
         insight={selectedInsight}
         allInsights={insights}
         onBack={() => setSelectedInsight(null)}
-        onSelectInsight={setSelectedInsight}
+        onSelectInsight={(insight) => { setSelectedInsight(insight); window.scrollTo(0, 0); }}
         onNavigate={onNavigate}
       />
     );
