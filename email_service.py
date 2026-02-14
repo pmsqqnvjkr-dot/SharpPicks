@@ -178,7 +178,7 @@ def send_welcome(to, first_name=None):
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">To the edge,</p>
 
       <div style="margin-bottom: 4px;">
-        <img src="{sig_src}" alt="Evan" style="height: 140px; width: auto; display: block; margin-left: 0;" />
+        <img src="{sig_src}" alt="Evan" style="height: 140px; width: auto; display: block; margin-left: -20px;" />
       </div>
       <table cellpadding="0" cellspacing="0" border="0"><tr>
         <td style="vertical-align: middle; padding-right: 12px;">

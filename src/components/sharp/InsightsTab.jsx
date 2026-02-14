@@ -609,6 +609,7 @@ function FounderSignature() {
           width: 'auto',
           display: 'block',
           marginBottom: '4px',
+          marginLeft: '-20px',
           filter: 'brightness(1.1)',
         }}
       />
