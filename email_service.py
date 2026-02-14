@@ -7,12 +7,18 @@ resend.api_key = os.environ.get('RESEND_API_KEY', '')
 FROM_EMAIL = "Sharp Picks <no-reply@sharppicks.ai>"
 FOUNDER_EMAIL = "Evan Cole <evan@sharppicks.ai>"
 
-def get_logo_url():
+def get_base_url():
     domain = os.environ.get('REPLIT_DOMAINS', os.environ.get('REPLIT_DEV_DOMAIN', ''))
     if domain:
         domain = domain.split(',')[0].strip()
-        return f"https://{domain}/logo-email.png"
-    return "https://sharppicks.ai/logo-email.png"
+        return f"https://{domain}"
+    return "https://sharppicks.ai"
+
+def get_logo_url():
+    return f"{get_base_url()}/logo-email.png"
+
+def get_signature_url(variant='black'):
+    return f"{get_base_url()}/signature-{variant}.jpeg"
 
 def send_email(to, subject, html, reply_to=None, from_email=None):
     if not resend.api_key:
@@ -110,7 +116,9 @@ def send_welcome(to, first_name=None):
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">To the edge,</p>
 
-      <p style="font-size: 15px; line-height: 1.6; color: #ffffff; font-weight: 600; margin-bottom: 2px;">Evan Cole</p>
+      <div style="margin-bottom: 4px;">
+        <img src="{get_signature_url('black')}" alt="Evan Cole" style="height: 48px; width: auto;" />
+      </div>
       <p style="font-size: 13px; line-height: 1.6; color: #777; margin-bottom: 0;">Founder, Sharp Picks</p>
 
       <hr style="border: none; border-top: 1px solid #1a1d24; margin: 36px 0;">
