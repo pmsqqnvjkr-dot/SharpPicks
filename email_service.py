@@ -17,8 +17,13 @@ def get_base_url():
             return f"https://{domain.split(',')[0].strip()}"
     return "https://sharp-picks-erindonnelly4.replit.app"
 
-def get_logo_url():
-    return f"{get_base_url()}/logo-email.png"
+def email_logo_header():
+    return """<div style="text-align: center; margin-bottom: 40px;">
+        <div style="display: inline-block; width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, #1a2332 0%, #0f1520 100%); border: 1px solid #2a3444; text-align: center; line-height: 56px; margin-bottom: 12px;">
+          <span style="font-size: 22px; color: #ffffff; font-weight: 700;">SP</span>
+        </div>
+        <div style="font-family: 'Inter', -apple-system, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: #ffffff;">Sharp Picks</div>
+      </div>"""
 
 def send_email(to, subject, html, reply_to=None, from_email=None):
     if not resend.api_key:
@@ -45,9 +50,7 @@ def send_password_reset(to, reset_url, first_name=None):
     name = first_name or "there"
     html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #e0e0e0; background-color: #0A0D14;">
-      <div style="text-align: center; margin-bottom: 32px;">
-        <img src="{get_logo_url()}" alt="Sharp Picks" style="height: 120px; width: auto;" />
-      </div>
+      {email_logo_header()}
       <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Reset your password</h2>
       <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">Hi {name}, we received a request to reset your password. Click the button below to choose a new one.</p>
       <div style="text-align: center; margin: 32px 0;">
@@ -63,12 +66,10 @@ def send_password_reset(to, reset_url, first_name=None):
 
 def send_welcome(to, first_name=None):
     name = first_name or "there"
-    dashboard_url = get_logo_url().rsplit('/', 1)[0]
+    dashboard_url = get_base_url()
     html = f"""
     <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 48px 24px; color: #e0e0e0; background-color: #0A0D14;">
-      <div style="text-align: center; margin-bottom: 40px;">
-        <img src="{get_logo_url()}" alt="Sharp Picks" style="height: 120px; width: auto;" />
-      </div>
+      {email_logo_header()}
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Hi {name},</p>
 
@@ -116,16 +117,18 @@ def send_welcome(to, first_name=None):
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">To the edge,</p>
 
-      <div style="margin-bottom: 8px;">
-        <img src="{get_base_url()}/evan-signature.png" alt="Evan" style="height: 52px; width: auto; display: block;" />
-      </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <div style="width: 28px; height: 28px; border-radius: 50%; background-color: #1a1d28; border: 1px solid #2a2d38; display: inline-block; vertical-align: middle; text-align: center; line-height: 26px;">
-          <span style="font-size: 12px; color: #888;">EC</span>
-        </div>
-        <span style="font-size: 14px; color: #ffffff; font-weight: 600; font-family: 'Inter', -apple-system, sans-serif; vertical-align: middle;">Evan Cole</span>
-      </div>
-      <p style="font-size: 13px; line-height: 1.6; color: #777; margin: 4px 0 0 36px;">Founder, Sharp Picks</p>
+      <p style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 42px; font-style: italic; color: #ffffff; margin: 0 0 12px 0; letter-spacing: 1px; line-height: 1;">Evan</p>
+      <table cellpadding="0" cellspacing="0" border="0"><tr>
+        <td style="vertical-align: middle; padding-right: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, rgba(79,134,247,0.2), rgba(52,211,153,0.15)); border: 1px solid rgba(79,134,247,0.3); text-align: center; line-height: 34px;">
+            <span style="font-size: 14px; font-weight: 600; color: #4F86F7;">EC</span>
+          </div>
+        </td>
+        <td style="vertical-align: middle;">
+          <div style="font-size: 16px; color: #ffffff; font-weight: 600; font-family: 'Inter', -apple-system, sans-serif;">Evan Cole</div>
+          <div style="font-size: 13px; color: #777; font-family: 'Inter', -apple-system, sans-serif; margin-top: 2px;">Founder, Sharp Picks</div>
+        </td>
+      </tr></table>
 
       <hr style="border: none; border-top: 1px solid #1a1d24; margin: 36px 0;">
       <div style="text-align: center; margin-bottom: 16px;">

@@ -605,39 +605,39 @@ function FounderSignature() {
         src="/evan-signature.png"
         alt="Evan"
         style={{
-          height: '44px',
+          height: '72px',
           width: 'auto',
           display: 'block',
-          marginBottom: '12px',
+          marginBottom: '16px',
           filter: 'brightness(1.1)',
         }}
       />
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '10px',
+        gap: '14px',
         marginBottom: '14px',
       }}>
         <div style={{
-          width: '32px', height: '32px',
+          width: '44px', height: '44px',
           borderRadius: '50%',
           background: 'linear-gradient(135deg, rgba(79, 134, 247, 0.15) 0%, rgba(52, 211, 153, 0.1) 100%)',
           border: '1px solid rgba(79, 134, 247, 0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: 'var(--font-serif)',
-          fontSize: '13px', fontWeight: 600,
+          fontSize: '16px', fontWeight: 600,
           color: 'var(--blue-primary)',
           flexShrink: 0,
         }}>EC</div>
         <div>
           <div style={{
-            fontSize: '14px', fontWeight: 600,
+            fontSize: '17px', fontWeight: 600,
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-sans)',
-            marginBottom: '1px',
+            marginBottom: '2px',
           }}>Evan Cole</div>
           <div style={{
-            fontSize: '11px',
+            fontSize: '13px',
             color: 'var(--text-tertiary)',
             fontFamily: 'var(--font-mono)',
             letterSpacing: '0.03em',
