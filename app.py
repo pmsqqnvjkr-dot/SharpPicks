@@ -10,7 +10,8 @@ import threading
 
 print(f"BOOT: pid={os.getpid()} python={sys.version_info[:2]} PORT={os.environ.get('PORT','not set')} DEPLOYMENT={os.environ.get('REPLIT_DEPLOYMENT','0')}", flush=True)
 
-logging.basicConfig(level=logging.DEBUG)
+log_level = logging.INFO if os.environ.get("REPLIT_DEPLOYMENT") == "1" else logging.DEBUG
+logging.basicConfig(level=log_level)
 
 from flask import Flask, jsonify, Response, session, request
 
