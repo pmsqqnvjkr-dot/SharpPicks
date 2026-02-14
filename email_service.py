@@ -175,7 +175,7 @@ def send_welcome(to, first_name=None):
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">If you have questions or feedback on the interface, reply directly to this email. I'm personally looking for ways to make our tools sharper for you.</p>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">To the edge,</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 12px;">To the edge,</p>
 
       <div style="margin-bottom: 4px;">
         <img src="{sig_src}" alt="Evan" style="height: 140px; width: auto; display: block; margin-left: -20px;" />
