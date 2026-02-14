@@ -36,7 +36,7 @@ export default function UnifiedDashboard({ embedded = false }) {
       if (res.success) {
         setShowTrackModal(false);
         setSelectedPick(null);
-        loadData();
+        await loadData();
       } else {
         alert(res.error || 'Failed to track bet');
       }
@@ -57,8 +57,12 @@ export default function UnifiedDashboard({ embedded = false }) {
       profit = -bet.bet_amount;
     }
     try {
-      await apiPost(`/bets/${betId}/result`, { result, profit: Math.round(profit * 100) / 100 });
-      loadData();
+      const res = await apiPost(`/bets/${betId}/result`, { result, profit: Math.round(profit * 100) / 100 });
+      if (res.success) {
+        await loadData();
+      } else {
+        alert(res.error || 'Failed to update result');
+      }
     } catch (e) {
       alert('Failed to update result');
     }
@@ -66,9 +70,11 @@ export default function UnifiedDashboard({ embedded = false }) {
 
   const handleDelete = async (betId) => {
     try {
-      await apiDelete(`/bets/${betId}`);
-      setConfirmDelete(null);
-      loadData();
+      const res = await apiDelete(`/bets/${betId}`);
+      if (res.success) {
+        setConfirmDelete(null);
+        await loadData();
+      }
     } catch (e) {
       alert('Failed to delete bet');
     }

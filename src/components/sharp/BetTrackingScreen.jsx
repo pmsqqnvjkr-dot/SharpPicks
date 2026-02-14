@@ -50,7 +50,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
       if (res.success) {
         setShowTrackModal(false);
         setSelectedPick(null);
-        loadBets();
+        await loadBets();
       } else {
         alert(res.error || 'Failed to track bet');
       }
@@ -75,8 +75,12 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
     }
 
     try {
-      await apiPost(`/bets/${betId}/result`, { result, profit: Math.round(profit * 100) / 100 });
-      loadBets();
+      const res = await apiPost(`/bets/${betId}/result`, { result, profit: Math.round(profit * 100) / 100 });
+      if (res.success) {
+        await loadBets();
+      } else {
+        alert(res.error || 'Failed to update result');
+      }
     } catch (e) {
       alert('Failed to update result');
     }
@@ -84,9 +88,11 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
 
   const handleDelete = async (betId) => {
     try {
-      await apiDelete(`/bets/${betId}`);
-      setConfirmDelete(null);
-      loadBets();
+      const res = await apiDelete(`/bets/${betId}`);
+      if (res.success) {
+        setConfirmDelete(null);
+        await loadBets();
+      }
     } catch (e) {
       alert('Failed to delete bet');
     }
