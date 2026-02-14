@@ -464,14 +464,22 @@ function BloombergChart({ data, color, isPositive }) {
 
   const zeroY = getY(0);
 
-  const pathD = data.map((d, i) => {
-    const x = getX(i);
-    const y = getY(d.pnl);
-    return i === 0 ? `M${x},${y}` : `L${x},${y}`;
+  const points = data.map((d, i) => ({ x: getX(i), y: getY(d.pnl) }));
+
+  const pathD = points.map((p, i) => {
+    if (i === 0) return `M${p.x},${p.y}`;
+    const prev = points[i - 1];
+    const tension = 0.3;
+    const dx = p.x - prev.x;
+    const cp1x = prev.x + dx * tension;
+    const cp2x = p.x - dx * tension;
+    return `C${cp1x},${prev.y} ${cp2x},${p.y} ${p.x},${p.y}`;
   }).join(' ');
 
+  const lastPt = points[points.length - 1];
+  const firstPt = points[0];
   const areaD = pathD +
-    ` L${getX(data.length - 1)},${zeroY} L${getX(0)},${zeroY} Z`;
+    ` L${lastPt.x},${zeroY} L${firstPt.x},${zeroY} Z`;
 
   const ticks = [];
   const nTicks = 5;
@@ -483,10 +491,6 @@ function BloombergChart({ data, color, isPositive }) {
       ticks.push({ value: rounded, y: getY(rounded) });
     }
   }
-
-  const lastVal = values[values.length - 1];
-  const lastX = getX(data.length - 1);
-  const lastY = getY(lastVal);
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', display: 'block' }}>
@@ -518,8 +522,8 @@ function BloombergChart({ data, color, isPositive }) {
       <path d={pathD} fill="none"
         stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 
-      <circle cx={lastX} cy={lastY} r="3" fill={color} />
-      <circle cx={lastX} cy={lastY} r="6" fill={color} fillOpacity="0.15" />
+      <circle cx={lastPt.x} cy={lastPt.y} r="3" fill={color} />
+      <circle cx={lastPt.x} cy={lastPt.y} r="6" fill={color} fillOpacity="0.15" />
 
       {data.length <= 20 && data.map((d, i) => {
         const label = d.date ? d.date.substring(5) : '';
