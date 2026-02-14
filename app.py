@@ -276,71 +276,12 @@ When our blended prediction diverges from the market spread by 3.5% or more, tha
                         publish_date=datetime(2026, 2, 11),
                         reading_time_minutes=3,
                     ),
-                    Insight(
-                        title="The Discipline of Pass Days",
-                        slug="the-discipline-of-pass-days",
-                        category="discipline",
-                        excerpt="Every pass day is a decision to protect your bankroll. The model analyzed every game and found nothing worth your risk.",
-                        content="""Every pass day is a decision to protect your bankroll. The model analyzed every game and found nothing worth your risk.
-
-## What Happens on a Pass Day
-
-Our system runs the same rigorous analysis every single day during the season. It evaluates every game on the board, calculates expected margins, compares them to market spreads, and hunts for edges.
-
-Most days, it finds nothing. And that's the correct outcome.
-
-## The Psychology of Waiting
-
-Human nature pushes us toward action. Watching games without a stake feels like wasted opportunity. But this instinct is exactly what sportsbooks exploit. They know most bettors can't sit still.
-
-The ability to do nothing when there's nothing to do is the rarest skill in sports betting.
-
-## Building the Habit
-
-Think of pass days as deposits into your discipline account. Every day you don't bet without an edge, you're preserving capital for the day when a genuine opportunity appears.
-
-Over the course of a season, the number of pass days will far exceed pick days. That ratio isn't a bug. It's the entire product.
-
-> Restraint isn't passive. It's the most active decision you can make.""",
-                        status="published",
-                        publish_date=datetime(2026, 2, 12),
-                        featured=False,
-                        pass_day=True,
-                        reading_time_minutes=2,
-                    ),
-                    Insight(
-                        title="How We Shop for the Best Line",
-                        slug="how-we-shop-best-line",
-                        category="market_notes",
-                        excerpt="A half-point difference in the spread can mean the difference between a win and a loss. Here's how multi-book shopping works.",
-                        content="""A half-point difference in the spread can mean the difference between a win and a loss. Here's how multi-book shopping works.
-
-## Why Line Shopping Matters
-
-Not all sportsbooks post the same number. On any given game, you might find the Celtics at -3 on DraftKings, -3.5 on FanDuel, and -2.5 on BetMGM. That difference is everything.
-
-Our system monitors odds from six major books: DraftKings, FanDuel, BetMGM, Caesars, PointsBet, and BetRivers. When we publish a pick, we tell you where the best available line is.
-
-## The Half-Point Edge
-
-Historical data shows that roughly 5-7% of NBA games land exactly on the spread number. Getting an extra half-point in your favor can meaningfully improve your long-term results.
-
-Over a full season of bets, the cumulative effect of consistently getting the best number adds up to several percentage points of ROI.
-
-## Closing Line Value
-
-We also track where the line closes compared to where we published. If we recommend Celtics -3 and the line closes at -4, that closing line value (CLV) confirms the market moved in the direction we predicted. Consistent positive CLV is one of the strongest indicators of a sharp bettor.
-
-> The best number available today might not be the best number tomorrow. Act when the edge is there.""",
-                        status="published",
-                        publish_date=datetime(2026, 2, 13),
-                        reading_time_minutes=3,
-                    ),
+                    
                 ]
                 for ins in seed_insights:
                     db.session.add(ins)
                 db.session.commit()
-                logging.info("Seeded 4 initial insights")
+                logging.info("Seeded 2 initial insights")
 
             logging.info("Database seed completed")
         except Exception as e:
