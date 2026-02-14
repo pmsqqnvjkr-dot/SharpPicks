@@ -165,8 +165,9 @@ def send_welcome(to, first_name=None):
         </tr>
       </table>
 
-      <div style="margin: 28px 0 28px 0; padding: 20px 24px; border-left: 3px solid #34D399;">
-        <p style="font-size: 17px; line-height: 1.8; color: #34D399; font-weight: 600; font-style: italic; margin: 0;">The goal isn't just to win a bet; it's to build a sustainable edge.</p>
+      <div style="margin: 28px 0 28px 0; padding: 20px 24px; border-left: 3px solid #34D399; background-color: rgba(52, 211, 153, 0.04);">
+        <div style="font-family: 'Courier New', monospace; font-size: 9px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #34D399; margin-bottom: 14px;">Sharp Principle</div>
+        <p style="font-family: Georgia, 'Times New Roman', serif; font-size: 19px; line-height: 1.55; color: #ffffff; font-weight: 500; font-style: italic; margin: 0;">The goal isn't just to win a bet; it's to build a sustainable edge.</p>
       </div>
 
       <div style="text-align: center; margin: 32px 0;">
