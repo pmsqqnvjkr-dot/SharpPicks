@@ -113,8 +113,16 @@ def send_welcome(to, first_name=None):
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">To the edge,</p>
 
-      <p style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 28px; font-style: italic; color: #ffffff; margin: 0 0 4px 0; letter-spacing: 1px;">Evan Cole</p>
-      <p style="font-size: 13px; line-height: 1.6; color: #777; margin-bottom: 0;">Founder, Sharp Picks</p>
+      <div style="margin-bottom: 8px;">
+        <img src="{get_base_url()}/evan-signature.png" alt="Evan" style="height: 52px; width: auto; display: block;" />
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 28px; height: 28px; border-radius: 50%; background-color: #1a1d28; border: 1px solid #2a2d38; display: inline-block; vertical-align: middle; text-align: center; line-height: 26px;">
+          <span style="font-size: 12px; color: #888;">EC</span>
+        </div>
+        <span style="font-size: 14px; color: #ffffff; font-weight: 600; font-family: 'Inter', -apple-system, sans-serif; vertical-align: middle;">Evan Cole</span>
+      </div>
+      <p style="font-size: 13px; line-height: 1.6; color: #777; margin: 4px 0 0 36px;">Founder, Sharp Picks</p>
 
       <hr style="border: none; border-top: 1px solid #1a1d24; margin: 36px 0;">
       <div style="text-align: center; margin-bottom: 16px;">
