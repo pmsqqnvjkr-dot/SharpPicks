@@ -456,7 +456,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
           cursor: 'pointer',
           transition: 'border-color 0.2s ease',
         }}
-          onClick={() => onNavigate && onNavigate('performance')}
+          onClick={() => onNavigate && onNavigate('performance', 'model')}
           onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(79, 134, 247, 0.3)'}
           onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--stroke-subtle)'}
         >

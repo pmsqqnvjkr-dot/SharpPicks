@@ -16,10 +16,15 @@ function AppContent() {
   const [profileScreen, setProfileScreen] = useState(null);
   const [profileScreenData, setProfileScreenData] = useState(null);
   const [pickToTrack, setPickToTrack] = useState(null);
+  const [perfView, setPerfView] = useState(null);
 
   const navigateTo = (tab, screen, data) => {
     setActiveTab(tab);
-    if (screen) setProfileScreen(screen);
+    if (tab === 'performance' && screen) {
+      setPerfView(screen);
+    } else {
+      if (screen) setProfileScreen(screen);
+    }
     if (data?.pickToTrack) setPickToTrack(data.pickToTrack);
     if (data?.screenData) setProfileScreenData(data.screenData);
   };
@@ -82,7 +87,7 @@ function AppContent() {
       <div style={{ flex: 1, paddingBottom: '60px', overflowY: 'auto' }}>
         {activeTab === 'picks' && <PicksTab onNavigate={navigateTo} />}
         {activeTab === 'insights' && <InsightsTab onNavigate={navigateTo} />}
-        {activeTab === 'performance' && <PerformanceTab onNavigate={navigateTo} />}
+        {activeTab === 'performance' && <PerformanceTab onNavigate={navigateTo} initialView={perfView} onViewConsumed={() => setPerfView(null)} />}
         {activeTab === 'profile' && <ProfileTab initialScreen={profileScreen} onScreenChange={setProfileScreen} pickToTrack={pickToTrack} onPickTracked={() => setPickToTrack(null)} screenData={profileScreenData} />}
       </div>
       <TabNav activeTab={activeTab} onTabChange={setActiveTab} />

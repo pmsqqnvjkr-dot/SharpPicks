@@ -1,13 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import UnifiedDashboard from './UnifiedDashboard';
 import DashboardTab from './DashboardTab';
 import FreeTierDashboard from './FreeTierDashboard';
 
-export default function PerformanceTab({ onNavigate }) {
+export default function PerformanceTab({ onNavigate, initialView, onViewConsumed }) {
   const { user } = useAuth();
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
-  const [view, setView] = useState(user ? 'yours' : 'model');
+  const [view, setView] = useState(initialView || (user ? 'yours' : 'model'));
+
+  useEffect(() => {
+    if (initialView) {
+      setView(initialView);
+      if (onViewConsumed) onViewConsumed();
+    }
+  }, [initialView]);
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
