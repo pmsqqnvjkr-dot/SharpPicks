@@ -18,7 +18,7 @@ export default function TabNav({ activeTab, onTabChange }) {
       justifyContent: 'center',
       alignItems: 'center',
       gap: '32px',
-      padding: '10px 0 calc(6px + env(safe-area-inset-bottom, 0px))',
+      padding: '12px 0 calc(10px + env(safe-area-inset-bottom, 0px))',
       background: 'var(--bg-primary)',
       borderTop: '1px solid rgba(255, 255, 255, 0.04)',
       zIndex: 100,
@@ -38,7 +38,7 @@ export default function TabNav({ activeTab, onTabChange }) {
               background: isActive ? 'rgba(52, 211, 153, 0.06)' : 'none',
               border: 'none',
               borderRadius: '8px',
-              padding: '6px 10px',
+              padding: '8px 14px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -58,7 +58,7 @@ export default function TabNav({ activeTab, onTabChange }) {
 
 function TargetIcon() {
   return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10"/>
       <circle cx="12" cy="12" r="6"/>
       <circle cx="12" cy="12" r="2"/>
@@ -68,7 +68,7 @@ function TargetIcon() {
 
 function ChartIcon() {
   return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3v18h18"/>
       <path d="M7 16l4-8 4 4 5-9"/>
     </svg>
@@ -77,7 +77,7 @@ function ChartIcon() {
 
 function BookIcon() {
   return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
     </svg>
@@ -86,7 +86,7 @@ function BookIcon() {
 
 function PersonIcon() {
   return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
       <circle cx="12" cy="7" r="4"/>
     </svg>
