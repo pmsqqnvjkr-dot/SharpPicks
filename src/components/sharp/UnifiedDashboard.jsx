@@ -578,14 +578,22 @@ function UnitGrowthCard({ equityCurve }) {
 
   const zeroY = getY(0);
 
-  const pathD = curveData.map((d, i) => {
-    const x = getX(i);
-    const y = getY(d.units);
-    return i === 0 ? `M${x},${y}` : `L${x},${y}`;
+  const points = curveData.map((d, i) => ({ x: getX(i), y: getY(d.units) }));
+
+  const pathD = points.map((p, i) => {
+    if (i === 0) return `M${p.x},${p.y}`;
+    const prev = points[i - 1];
+    const tension = 0.3;
+    const dx = p.x - prev.x;
+    const cp1x = prev.x + dx * tension;
+    const cp2x = p.x - dx * tension;
+    return `C${cp1x},${prev.y} ${cp2x},${p.y} ${p.x},${p.y}`;
   }).join(' ');
 
+  const lastPt = points[points.length - 1];
+  const firstPt = points[0];
   const areaD = pathD +
-    ` L${getX(curveData.length - 1)},${zeroY} L${getX(0)},${zeroY} Z`;
+    ` L${lastPt.x},${zeroY} L${firstPt.x},${zeroY} Z`;
 
   const ticks = [];
   const nTicks = 4;
@@ -595,9 +603,6 @@ function UnitGrowthCard({ equityCurve }) {
     const rounded = parseFloat(v.toFixed(1));
     ticks.push({ value: rounded, y: getY(rounded) });
   }
-
-  const lastX = getX(curveData.length - 1);
-  const lastY = getY(currentUnits);
 
   return (
     <div style={{
