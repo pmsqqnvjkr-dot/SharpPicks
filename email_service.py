@@ -1,4 +1,5 @@
 import os
+import base64
 import logging
 import resend
 
@@ -6,6 +7,8 @@ resend.api_key = os.environ.get('RESEND_API_KEY', '')
 
 FROM_EMAIL = "Sharp Picks <no-reply@sharppicks.ai>"
 FOUNDER_EMAIL = "Evan Cole <evan@sharppicks.ai>"
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_base_url():
     custom = os.environ.get('APP_BASE_URL', '')
@@ -17,15 +20,30 @@ def get_base_url():
             return f"https://{domain.split(',')[0].strip()}"
     return "https://sharp-picks-erindonnelly4.replit.app"
 
-def email_logo_header():
-    return """<div style="text-align: center; margin-bottom: 40px;">
-        <div style="display: inline-block; width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, #1a2332 0%, #0f1520 100%); border: 1px solid #2a3444; text-align: center; line-height: 56px; margin-bottom: 12px;">
-          <span style="font-size: 22px; color: #ffffff; font-weight: 700;">SP</span>
-        </div>
-        <div style="font-family: 'Inter', -apple-system, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: #ffffff;">Sharp Picks</div>
-      </div>"""
+def _load_image_b64(filename):
+    for d in [os.path.join(SCRIPT_DIR, 'public'), os.path.join(SCRIPT_DIR, 'dist')]:
+        path = os.path.join(d, filename)
+        if os.path.exists(path):
+            with open(path, 'rb') as f:
+                return base64.b64encode(f.read()).decode('utf-8')
+    return None
 
-def send_email(to, subject, html, reply_to=None, from_email=None):
+_logo_b64 = None
+_sig_b64 = None
+
+def _get_logo_b64():
+    global _logo_b64
+    if _logo_b64 is None:
+        _logo_b64 = _load_image_b64('logo-email.png')
+    return _logo_b64
+
+def _get_sig_b64():
+    global _sig_b64
+    if _sig_b64 is None:
+        _sig_b64 = _load_image_b64('evan-signature.png')
+    return _sig_b64
+
+def send_email(to, subject, html, reply_to=None, from_email=None, attachments=None):
     if not resend.api_key:
         logging.warning(f"RESEND_API_KEY not set. Email to {to} not sent.")
         return False
@@ -38,6 +56,8 @@ def send_email(to, subject, html, reply_to=None, from_email=None):
         }
         if reply_to:
             params["reply_to"] = reply_to
+        if attachments:
+            params["attachments"] = attachments
         r = resend.Emails.send(params)
         logging.info(f"Email sent to {to}: {r}")
         return True
@@ -48,9 +68,24 @@ def send_email(to, subject, html, reply_to=None, from_email=None):
 
 def send_password_reset(to, reset_url, first_name=None):
     name = first_name or "there"
+
+    attachments = []
+    logo_b64 = _get_logo_b64()
+    if logo_b64:
+        attachments.append({
+            "content": logo_b64,
+            "filename": "logo.png",
+            "content_id": "sp-logo",
+            "content_type": "image/png",
+        })
+
+    logo_src = 'cid:sp-logo' if logo_b64 else f'{get_base_url()}/logo-email.png'
+
     html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #e0e0e0; background-color: #0A0D14;">
-      {email_logo_header()}
+      <div style="text-align: center; margin-bottom: 32px;">
+        <img src="{logo_src}" alt="Sharp Picks" style="height: 120px; width: auto;" />
+      </div>
       <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Reset your password</h2>
       <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">Hi {name}, we received a request to reset your password. Click the button below to choose a new one.</p>
       <div style="text-align: center; margin: 32px 0;">
@@ -61,15 +96,40 @@ def send_password_reset(to, reset_url, first_name=None):
       <p style="font-size: 12px; color: #555; text-align: center;">Sharp Picks &mdash; Discipline is the product.</p>
     </div>
     """
-    return send_email(to, "Reset your password — Sharp Picks", html)
+    return send_email(to, "Reset your password — Sharp Picks", html, attachments=attachments or None)
 
 
 def send_welcome(to, first_name=None):
     name = first_name or "there"
     dashboard_url = get_base_url()
+
+    attachments = []
+    logo_b64 = _get_logo_b64()
+    sig_b64 = _get_sig_b64()
+
+    if logo_b64:
+        attachments.append({
+            "content": logo_b64,
+            "filename": "logo.png",
+            "content_id": "sp-logo",
+            "content_type": "image/png",
+        })
+    if sig_b64:
+        attachments.append({
+            "content": sig_b64,
+            "filename": "evan-signature.png",
+            "content_id": "evan-sig",
+            "content_type": "image/png",
+        })
+
+    logo_src = 'cid:sp-logo' if logo_b64 else f'{get_base_url()}/logo-email.png'
+    sig_src = 'cid:evan-sig' if sig_b64 else f'{get_base_url()}/evan-signature.png'
+
     html = f"""
     <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 48px 24px; color: #e0e0e0; background-color: #0A0D14;">
-      {email_logo_header()}
+      <div style="text-align: center; margin-bottom: 40px;">
+        <img src="{logo_src}" alt="Sharp Picks" style="height: 120px; width: auto;" />
+      </div>
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Hi {name},</p>
 
@@ -117,15 +177,17 @@ def send_welcome(to, first_name=None):
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">To the edge,</p>
 
-      <p style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 42px; font-style: italic; color: #ffffff; margin: 0 0 12px 0; letter-spacing: 1px; line-height: 1;">Evan</p>
+      <div style="margin-bottom: 12px;">
+        <img src="{sig_src}" alt="Evan" style="height: 80px; width: auto; display: block;" />
+      </div>
       <table cellpadding="0" cellspacing="0" border="0"><tr>
-        <td style="vertical-align: middle; padding-right: 10px;">
-          <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, rgba(79,134,247,0.2), rgba(52,211,153,0.15)); border: 1px solid rgba(79,134,247,0.3); text-align: center; line-height: 34px;">
-            <span style="font-size: 14px; font-weight: 600; color: #4F86F7;">EC</span>
+        <td style="vertical-align: middle; padding-right: 12px;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, rgba(79,134,247,0.2), rgba(52,211,153,0.15)); border: 1px solid rgba(79,134,247,0.3); text-align: center; line-height: 38px;">
+            <span style="font-size: 15px; font-weight: 600; color: #4F86F7;">EC</span>
           </div>
         </td>
         <td style="vertical-align: middle;">
-          <div style="font-size: 16px; color: #ffffff; font-weight: 600; font-family: 'Inter', -apple-system, sans-serif;">Evan Cole</div>
+          <div style="font-size: 17px; color: #ffffff; font-weight: 600; font-family: 'Inter', -apple-system, sans-serif;">Evan Cole</div>
           <div style="font-size: 13px; color: #777; font-family: 'Inter', -apple-system, sans-serif; margin-top: 2px;">Founder, Sharp Picks</div>
         </td>
       </tr></table>
@@ -148,5 +210,6 @@ def send_welcome(to, first_name=None):
         "Welcome to Sharp Picks | The Edge is Discipline",
         html,
         reply_to="evan@sharppicks.ai",
-        from_email=FOUNDER_EMAIL
+        from_email=FOUNDER_EMAIL,
+        attachments=attachments or None,
     )
