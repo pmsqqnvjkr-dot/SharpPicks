@@ -127,11 +127,11 @@ def send_welcome(to, first_name=None):
 
     html = f"""
     <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 48px 24px; color: #e0e0e0; background-color: #0A0D14;">
-      <div style="text-align: center; margin-bottom: 40px;">
+      <div style="text-align: center; margin-bottom: 20px;">
         <img src="{logo_src}" alt="Sharp Picks" style="height: 160px; width: auto;" />
       </div>
 
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Hi {name},</p>
+      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px; margin-top: 0;">Hi {name},</p>
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Welcome to Sharp Picks.</p>
 
