@@ -15,23 +15,7 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
   const userProfit = user?.net_profit || '+$134';
 
   const handleSwitch = async () => {
-    window.open('https://buy.stripe.com/14A14oaGg0kI8ZV4BQd7q00', '_blank');
-    return;
-    setLoading(true);
-    try {
-      const data = await apiPost('/subscriptions/create-checkout', {
-        plan: user?.founding_member ? 'founding' : 'annual'
-      });
-      if (data.checkout_url) {
-        window.open(data.checkout_url, '_blank');
-      } else if (data.error) {
-        alert(data.error);
-      }
-    } catch (e) {
-      alert('Unable to start checkout. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    window.open('https://sharppicks.ai/subscribe', '_blank');
   };
 
   return (

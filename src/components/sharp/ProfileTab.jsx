@@ -50,15 +50,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
       setShowAuth(true);
       return;
     }
-    if (plan === 'founding') {
-      window.open('https://buy.stripe.com/aFa6oI5lWeby1xtd8md7q02', '_blank');
-      return;
-    }
-    if (plan === 'annual') {
-      window.open('https://buy.stripe.com/cNieVe8y81oM8ZV0lAd7q05', '_blank');
-      return;
-    }
-    window.open('https://buy.stripe.com/14A28s4hS9Vigsngkyd7q04', '_blank');
+    window.open('https://sharppicks.ai/subscribe', '_blank');
   };
 
   if (!user) {

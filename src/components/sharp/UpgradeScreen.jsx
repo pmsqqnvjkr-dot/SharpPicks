@@ -6,11 +6,7 @@ export default function UpgradeScreen({ onBack }) {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const handleSubscribe = async (plan) => {
-    if (plan === 'annual' || plan === 'founding') {
-      window.open('https://buy.stripe.com/14A14oaGg0kI8ZV4BQd7q00', '_blank');
-      return;
-    }
-    window.open('https://buy.stripe.com/14AeVeeWwgjGekfc4id7q01', '_blank');
+    window.open('https://sharppicks.ai/subscribe', '_blank');
   };
 
   const isFoundingOpen = foundingData?.open;
