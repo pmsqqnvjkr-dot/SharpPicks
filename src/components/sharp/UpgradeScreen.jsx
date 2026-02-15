@@ -104,7 +104,7 @@ export default function UpgradeScreen({ onBack }) {
             price="$29"
             period="/mo"
             description="Full access, cancel anytime"
-            cta="Start 14-Day Free Trial"
+            cta="Subscribe Monthly"
             onSelect={() => handleSubscribe('monthly')}
             loading={checkoutLoading}
           />
@@ -113,7 +113,7 @@ export default function UpgradeScreen({ onBack }) {
             price={annualPrice}
             period="/yr"
             description={isFoundingOpen ? 'Founding rate locked forever' : 'Save vs monthly'}
-            cta={isFoundingOpen ? 'Claim Founding Rate — 14 Days Free' : 'Start 14-Day Free Trial'}
+            cta={isFoundingOpen ? 'Claim Founding Rate' : 'Subscribe Annually'}
             onSelect={() => handleSubscribe(isFoundingOpen ? 'founding' : 'annual')}
             loading={checkoutLoading}
             highlight
@@ -150,7 +150,7 @@ export default function UpgradeScreen({ onBack }) {
         }}>
           <p style={{
             fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6',
-          }}>All plans include a 14-day free trial. Cancel anytime — no fees, no questions.</p>
+          }}>Cancel anytime — no fees, no questions.</p>
         </div>
 
         <p style={{
