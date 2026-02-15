@@ -1,0 +1,20 @@
+{
+  "appId": "ai.sharppicks.app",
+  "appName": "Sharp Picks",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#0A0D14",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "Dark",
+      "backgroundColor": "#0A0D14"
+    }
+  }
+}
