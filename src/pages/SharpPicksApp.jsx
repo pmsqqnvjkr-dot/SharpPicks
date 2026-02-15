@@ -23,16 +23,14 @@ function WelcomeScreen({ onContinue }) {
       padding: '40px 24px',
       textAlign: 'center',
     }}>
-      <div style={{
-        width: '80px', height: '80px', borderRadius: '20px',
-        background: 'linear-gradient(135deg, var(--green-profit), #00b377)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginBottom: '28px',
-      }}>
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 6L9 17l-5-5"/>
-        </svg>
-      </div>
+      <img
+        src="/logo.png"
+        alt="Sharp Picks"
+        style={{
+          width: '80px', height: '80px', borderRadius: '20px',
+          marginBottom: '28px',
+        }}
+      />
       <h1 style={{
         fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 600,
         color: 'var(--text-primary)', marginBottom: '12px',
