@@ -10,7 +10,7 @@ import { InlineError } from './ErrorStates';
 
 export default function TodayTab({ onNavigate }) {
   const { user, loading: authLoading } = useAuth();
-  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const { data: todayData, loading, error } = useApi('/picks/today', { pollInterval: 60000 });
   const { data: stats } = useApi('/public/stats', { pollInterval: 60000 });
   const { data: lastResolved, refetch: refetchResolved } = useApi('/picks/last-resolved', { skip: !isPro });

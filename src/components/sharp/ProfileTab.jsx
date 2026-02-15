@@ -154,7 +154,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
 }
 
 function SettingsSection({ user, onNavigate }) {
-  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const isMonthly = user?.subscription_plan === 'monthly';
 
   const menuItems = [

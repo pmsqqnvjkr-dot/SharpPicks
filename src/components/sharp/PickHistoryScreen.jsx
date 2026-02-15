@@ -7,7 +7,7 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
   const { user } = useAuth();
   const [filter, setFilter] = useState('all');
 
-  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const picks = data?.picks || [];
   const filtered = filter === 'all' ? picks
     : filter === 'wins' ? picks.filter(p => p.result === 'win')

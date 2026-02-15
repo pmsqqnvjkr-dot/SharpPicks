@@ -7,26 +7,6 @@ export default function FreeTierDashboard({ onUpgrade }) {
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
-      <div style={{
-        padding: '16px 20px',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <svg viewBox="0 0 40 40" width="24" height="24" fill="none">
-            <path d="M20 4L6 10v10c0 9.2 6 17.4 14 20 8-2.6 14-10.8 14-20V10L20 4z" stroke="white" strokeWidth="1.8" fill="none"/>
-            <rect x="12" y="24" width="3" height="6" rx="1" fill="rgba(255,255,255,0.3)"/>
-            <rect x="17" y="20" width="3" height="10" rx="1" fill="rgba(255,255,255,0.4)"/>
-            <rect x="22" y="22" width="3" height="8" rx="1" fill="rgba(255,255,255,0.35)"/>
-            <path d="M11 22L17 16L22 19L30 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M26 11h4v4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <span style={{
-            fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 700,
-            color: 'var(--text-primary)', letterSpacing: '2px', textTransform: 'uppercase',
-          }}>Sharp Picks</span>
-        </div>
-      </div>
-
       <div style={{ padding: '0 20px' }}>
         <SectionLabel>Performance</SectionLabel>
 

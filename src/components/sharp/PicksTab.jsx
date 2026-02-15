@@ -20,7 +20,7 @@ export default function PicksTab({ onNavigate }) {
   const [resolutionPick, setResolutionPick] = useState(null);
   const [filter, setFilter] = useState('all');
 
-  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
 
   if (loading || authLoading) {
     return <LoadingState />;
