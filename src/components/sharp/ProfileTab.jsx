@@ -749,14 +749,21 @@ function MembershipCard({ user, isPro }) {
             }}>Since {memberSince}</span>
           )}
 
-          {user.trial_end_date && user.subscription_status === 'trial' && (
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px',
-              color: 'var(--text-tertiary)',
-            }}>
-              Access ends {new Date(user.trial_end_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-            </span>
-          )}
+          {user.trial_end_date && user.subscription_status === 'trial' && (() => {
+            const trialDaysLeft = Math.max(0, Math.ceil((new Date(user.trial_end_date) - new Date()) / (1000 * 60 * 60 * 24)));
+            return (
+              <div style={{ textAlign: 'right' }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '11px',
+                  color: 'var(--text-secondary)', fontWeight: 600,
+                }}>{trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'} remaining</div>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '9px',
+                  color: 'var(--text-tertiary)', marginTop: '2px',
+                }}>Access ends {new Date(user.trial_end_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+              </div>
+            );
+          })()}
         </div>
 
         {user.subscription_status === 'trial' && (
@@ -767,8 +774,12 @@ function MembershipCard({ user, isPro }) {
           }}>
             <div style={{
               fontFamily: 'var(--font-sans)', fontSize: '12px',
-              color: 'var(--text-tertiary)', marginBottom: '6px',
+              color: 'var(--text-tertiary)', marginBottom: '4px',
             }}>Full model visibility enabled</div>
+            <div style={{
+              fontFamily: 'var(--font-sans)', fontSize: '11px',
+              color: 'var(--text-tertiary)', opacity: 0.7,
+            }}>Model updated daily. Decision engine active.</div>
           </div>
         )}
 
@@ -804,7 +815,7 @@ function StatRibbon({ user }) {
   if (isTrial && !hasBetData) {
     items = [
       { value: 'Full', label: 'Model Access', green: true },
-      { value: 'On', label: 'Edge Visibility', green: true },
+      { value: 'Enabled', label: 'Edge Visibility', green: true },
       { value: modelStats?.roi != null ? modelStats.roi + '%' : '—', label: 'Model ROI', green: true },
     ];
   } else {
