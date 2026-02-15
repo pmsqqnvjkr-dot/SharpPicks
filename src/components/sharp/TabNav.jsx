@@ -3,7 +3,7 @@ export default function TabNav({ activeTab, onTabChange }) {
     { id: 'picks', label: 'Picks', icon: TargetIcon },
     { id: 'insights', label: 'Journal', icon: BookIcon },
     { id: 'performance', label: 'Performance', icon: ChartIcon },
-    { id: 'profile', label: 'Profile', icon: PersonIcon },
+    { id: 'profile', label: 'Membership', icon: PersonIcon },
   ];
 
   return (

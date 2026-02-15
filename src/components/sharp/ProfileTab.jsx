@@ -74,7 +74,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
             fontSize: '10px', fontWeight: 600,
             letterSpacing: '2px', textTransform: 'uppercase',
             color: 'var(--text-tertiary)',
-          }}>Account</div>
+          }}>Membership</div>
         </div>
 
         <div style={{ padding: '0 20px' }}>
@@ -130,14 +130,14 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
           fontSize: '10px', fontWeight: 600,
           letterSpacing: '2px', textTransform: 'uppercase',
           color: 'var(--text-tertiary)',
-        }}>Account</div>
+        }}>Membership</div>
       </div>
 
       <div style={{ padding: '0 20px' }}>
-        <MembershipCard user={user} isPro={isPro} />
-        {isPro && <StatRibbon user={user} />}
+        <AccessStatusCard user={user} isPro={isPro} />
 
-        <SettingsSection user={user} onNavigate={navigate} />
+        <ControlsSection user={user} onNavigate={navigate} isPro={isPro} foundingData={foundingData} onSubscribe={handleSubscribe} checkoutLoading={checkoutLoading} />
+
         {!isPro && <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />}
         <LegalSection />
 
@@ -577,22 +577,28 @@ function useCardAnimations() {
   }, []);
 }
 
-function MembershipCard({ user, isPro }) {
+function AccessStatusCard({ user, isPro }) {
   useCardAnimations();
   const isFounder = user.founding_member;
-  const initial = (user.display_name || user.username || user.email || '?')[0].toUpperCase();
+  const isTrial = user.subscription_status === 'trial';
   const displayName = user.display_name || user.username || user.email?.split('@')[0] || '';
-  const memberSince = user.created_at
-    ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-    : '';
 
-  const planLabel = user.subscription_status === 'trial'
-    ? 'PRO TRIAL ACTIVE'
+  const trialDaysLeft = (isTrial && user.trial_end_date)
+    ? Math.max(0, Math.ceil((new Date(user.trial_end_date) - new Date()) / (1000 * 60 * 60 * 24)))
+    : null;
+  const trialTotalDays = 14;
+  const trialProgress = trialDaysLeft != null ? trialDaysLeft / trialTotalDays : 1;
+  const isUrgent = trialDaysLeft != null && trialDaysLeft <= 3;
+
+  const tierLabel = isTrial
+    ? 'PRO TRIAL'
     : isFounder
-      ? 'Lifetime'
-      : user.subscription_plan
-        ? user.subscription_plan.charAt(0).toUpperCase() + user.subscription_plan.slice(1)
-        : user.subscription_status || 'Free';
+      ? 'FOUNDING MEMBER'
+      : isPro
+        ? 'PRO'
+        : 'FREE';
+
+  const accessLabel = isPro ? 'FULL ACCESS' : 'LIMITED';
 
   const borderBg = isFounder
     ? 'linear-gradient(135deg, rgba(245,166,35,0.6) 0%, rgba(255,215,0,0.3) 25%, rgba(184,134,11,0.5) 50%, rgba(255,215,0,0.3) 75%, rgba(245,166,35,0.6) 100%)'
@@ -600,13 +606,14 @@ function MembershipCard({ user, isPro }) {
       ? 'linear-gradient(135deg, rgba(79,134,247,0.5) 0%, rgba(47,95,214,0.3) 50%, rgba(79,134,247,0.5) 100%)'
       : 'var(--stroke-subtle)';
 
-  const ringBg = isFounder
-    ? 'linear-gradient(135deg, #F5A623, #FFD700, #B8860B, #FFD700, #F5A623)'
-    : isPro
-      ? 'linear-gradient(135deg, #4F86F7, #6B8BF5, #2F5FD6)'
-      : 'var(--stroke-muted)';
-
-  const crestColor = isFounder ? 'rgba(245,166,35,0.06)' : 'rgba(255,255,255,0.03)';
+  const progressColor = isUrgent
+    ? '#ef4444'
+    : trialDaysLeft != null && trialDaysLeft <= 7
+      ? '#f59e0b'
+      : 'var(--green-profit, #34D399)';
+  const progressGlow = isUrgent
+    ? '0 0 8px rgba(239,68,68,0.5)'
+    : '0 0 6px rgba(52,211,153,0.3)';
 
   return (
     <div style={{
@@ -620,7 +627,7 @@ function MembershipCard({ user, isPro }) {
       <div style={{
         position: 'relative',
         borderRadius: '19px',
-        padding: '24px 22px 20px',
+        padding: '20px 22px',
         backgroundColor: 'var(--surface-1)',
         overflow: 'hidden',
       }}>
@@ -629,96 +636,99 @@ function MembershipCard({ user, isPro }) {
           backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'0.04\'/%3E%3C/svg%3E")',
         }} />
 
-        <svg viewBox="0 0 40 40" width="180" height="180" fill="none" style={{
-          position: 'absolute', right: '-20px', top: '-20px',
-          opacity: 0.8, pointerEvents: 'none',
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginBottom: '20px', position: 'relative', zIndex: 1,
         }}>
-          <path d="M20 4L6 10v10c0 9.2 6 17.4 14 20 8-2.6 14-10.8 14-20V10L20 4z" stroke={crestColor} strokeWidth="1.5" fill="none"/>
-          <rect x="12" y="24" width="3" height="6" rx="1" fill={isFounder ? 'rgba(245,166,35,0.03)' : 'rgba(255,255,255,0.02)'}/>
-          <rect x="17" y="20" width="3" height="10" rx="1" fill={isFounder ? 'rgba(245,166,35,0.03)' : 'rgba(255,255,255,0.02)'}/>
-          <rect x="22" y="22" width="3" height="8" rx="1" fill={isFounder ? 'rgba(245,166,35,0.03)' : 'rgba(255,255,255,0.02)'}/>
-          <path d="M11 22L17 16L22 19L30 11" stroke={crestColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M26 11h4v4" stroke={crestColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              fontFamily: 'var(--font-serif)', fontSize: '18px',
+              fontWeight: 700, color: 'var(--text-primary)',
+            }}>{displayName}</span>
+            {isPro && (
+              <div style={{
+                width: '18px', height: '18px', borderRadius: '50%',
+                background: 'var(--green-profit, #34D399)',
+                display: 'grid', placeItems: 'center', flexShrink: 0,
+              }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--bg, #0A0D14)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </div>
+            )}
+          </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px', position: 'relative', zIndex: 1 }}>
+          {trialDaysLeft != null && (
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '12px',
+              fontWeight: 700, color: isUrgent ? '#ef4444' : 'var(--text-secondary)',
+            }}>
+              {trialDaysLeft} {trialDaysLeft === 1 ? 'Day' : 'Days'} Remaining
+            </span>
+          )}
+          {!isTrial && isPro && user.current_period_end && (
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '11px',
+              fontWeight: 500, color: 'var(--text-tertiary)',
+            }}>
+              Renews {new Date(user.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
+          )}
+        </div>
+
+        {trialDaysLeft != null && (
           <div style={{
-            width: '52px', height: '52px', borderRadius: '16px',
-            display: 'grid', placeItems: 'center',
-            position: 'relative',
+            marginBottom: '20px', position: 'relative', zIndex: 1,
           }}>
             <div style={{
-              position: 'absolute', inset: '-3px', borderRadius: '19px',
-              background: ringBg,
-              backgroundSize: '300% 300%',
-              animation: isFounder ? 'spGoldRing 4s ease infinite' : 'none',
-              zIndex: 0,
-            }} />
-            <div style={{
-              position: 'relative', width: '100%', height: '100%', borderRadius: '15px',
-              background: 'linear-gradient(135deg, #4F86F7, #2F5FD6)',
-              display: 'grid', placeItems: 'center',
-              fontFamily: 'var(--font-serif)', fontSize: '22px',
-              fontWeight: 700, color: 'var(--bg)',
-              zIndex: 1,
+              width: '100%', height: '4px', borderRadius: '2px',
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              overflow: 'hidden',
             }}>
-              {initial}
+              <div style={{
+                width: `${Math.max(trialProgress * 100, 2)}%`,
+                height: '100%', borderRadius: '2px',
+                backgroundColor: progressColor,
+                boxShadow: progressGlow,
+                transition: 'width 0.6s ease, background-color 0.4s ease',
+              }} />
             </div>
           </div>
+        )}
 
-          <div style={{ flex: 1 }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px',
-            }}>
-              <span style={{
-                fontFamily: 'var(--font-serif)', fontSize: '20px',
-                fontWeight: 700, color: 'var(--text-primary)',
-              }}>{displayName}</span>
-              {isPro && (
-                <div style={{
-                  width: '20px', height: '20px', borderRadius: '50%',
-                  background: 'var(--green, #34D399)',
-                  display: 'grid', placeItems: 'center', flexShrink: 0,
-                }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--bg, #0A0D14)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 6L9 17l-5-5"/>
-                  </svg>
-                </div>
-              )}
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '11px',
-              color: 'var(--text-tertiary)', fontWeight: 400,
-            }}>{user.email}</div>
-          </div>
+        <div style={{
+          textAlign: 'center',
+          padding: '16px 0',
+          marginBottom: '16px',
+          position: 'relative', zIndex: 1,
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '11px',
+            fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase',
+            color: isFounder ? 'var(--gold-pro, #F5A623)' : isPro ? 'var(--blue-primary)' : 'var(--text-tertiary)',
+            marginBottom: '4px',
+          }}>{tierLabel}</div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '20px',
+            fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase',
+            color: isPro ? 'var(--text-primary)' : 'var(--text-tertiary)',
+          }}>{accessLabel}</div>
         </div>
 
         {isFounder && (
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            marginBottom: '16px', position: 'relative', zIndex: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: '10px', marginBottom: '16px', position: 'relative', zIndex: 1,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '28px', height: '28px', display: 'grid', placeItems: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="#F5A623" style={{ filter: 'drop-shadow(0 0 6px rgba(245,166,35,0.4))' }}>
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
-              </div>
-              <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: '10px',
-                fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase',
-                background: 'linear-gradient(135deg, #FFD700, #F5A623, #B8860B)',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>Founding Member</span>
-            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F5A623" style={{ filter: 'drop-shadow(0 0 4px rgba(245,166,35,0.4))' }}>
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
             <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '32px',
+              fontFamily: 'var(--font-mono)', fontSize: '22px',
               fontWeight: 800, lineHeight: 1,
               background: 'linear-gradient(135deg, #FFD700, #F5A623)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              filter: 'drop-shadow(0 0 8px rgba(245,166,35,0.2))',
             }}>
               #{String(user.founding_number || '').padStart(3, '0')}
             </span>
@@ -726,134 +736,90 @@ function MembershipCard({ user, isPro }) {
         )}
 
         <div style={{
-          borderTop: `1px solid ${isFounder ? 'rgba(245,166,35,0.1)' : 'var(--stroke-subtle)'}`,
-          paddingTop: '16px',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          borderTop: `1px solid ${isFounder ? 'rgba(245,166,35,0.08)' : 'rgba(255,255,255,0.05)'}`,
+          paddingTop: '14px',
+          display: 'flex', justifyContent: 'space-around',
           position: 'relative', zIndex: 1,
         }}>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px',
-            fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
-            padding: '5px 14px', borderRadius: '6px',
-            background: isPro
-              ? 'linear-gradient(135deg, rgba(79,134,247,0.2), rgba(47,95,214,0.15))'
-              : 'rgba(255,255,255,0.05)',
-            color: isPro ? 'var(--blue-primary)' : 'var(--text-tertiary)',
-            border: `1px solid ${isPro ? 'rgba(79,134,247,0.2)' : 'var(--stroke-subtle)'}`,
-          }}>{planLabel}</div>
-
-          {memberSince && (
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px',
-              color: 'var(--text-tertiary)', fontWeight: 500,
-            }}>Since {memberSince}</span>
-          )}
-
-          {user.trial_end_date && user.subscription_status === 'trial' && (() => {
-            const trialDaysLeft = Math.max(0, Math.ceil((new Date(user.trial_end_date) - new Date()) / (1000 * 60 * 60 * 24)));
-            return (
-              <div style={{ textAlign: 'right' }}>
-                <div style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '11px',
-                  color: 'var(--text-secondary)', fontWeight: 600,
-                }}>{trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'} remaining</div>
-                <div style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '9px',
-                  color: 'var(--text-tertiary)', marginTop: '2px',
-                }}>Access ends {new Date(user.trial_end_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
-              </div>
-            );
-          })()}
+          <StatusIndicator label="Model Visibility" value={isPro ? 'FULL' : 'LIMITED'} active={isPro} />
+          <StatusIndicator label="Edge Data" value={isPro ? 'ENABLED' : 'HIDDEN'} active={isPro} />
+          <StatusIndicator label="Tracking" value={isPro ? 'ACTIVE' : 'OFF'} active={isPro} />
         </div>
-
-        {user.subscription_status === 'trial' && (
-          <div style={{
-            marginTop: '14px', paddingTop: '12px',
-            borderTop: `1px solid ${isFounder ? 'rgba(245,166,35,0.1)' : 'var(--stroke-subtle)'}`,
-            position: 'relative', zIndex: 1,
-          }}>
-            <div style={{
-              fontFamily: 'var(--font-sans)', fontSize: '12px',
-              color: 'var(--text-tertiary)', marginBottom: '4px',
-            }}>Full model visibility enabled</div>
-            <div style={{
-              fontFamily: 'var(--font-sans)', fontSize: '11px',
-              color: 'var(--text-tertiary)', opacity: 0.7,
-            }}>Model updated daily. Decision engine active.</div>
-          </div>
-        )}
-
-        {memberSince && !user.trial_end_date && (
-          <div style={{
-            marginTop: '10px', position: 'relative', zIndex: 1,
-          }}>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px',
-              color: 'var(--text-tertiary)', fontWeight: 500,
-            }}>Member since {new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-function StatRibbon({ user }) {
-  const [stats, setStats] = useState(null);
-  const [modelStats, setModelStats] = useState(null);
-  useEffect(() => {
-    apiGet('/bets/stats').then(d => { if (d && !d.error) setStats(d); }).catch(() => {});
-    apiGet('/public/stats').then(d => { if (d && !d.error) setModelStats(d); }).catch(() => {});
-  }, []);
+function StatusIndicator({ label, value, active }) {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '11px',
+        fontWeight: 700, letterSpacing: '0.5px',
+        color: active ? 'var(--green-profit, #34D399)' : 'var(--text-tertiary)',
+        marginBottom: '3px',
+      }}>{value}</div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '8px',
+        fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', opacity: 0.7,
+      }}>{label}</div>
+    </div>
+  );
+}
 
-  const isTrial = user?.subscription_status === 'trial';
-  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
+function ControlsSection({ user, onNavigate, isPro, foundingData, onSubscribe, checkoutLoading }) {
+  const isMonthly = user?.subscription_plan === 'monthly';
 
-  const hasBetData = stats?.totalBets > 0 || stats?.adherence?.picks_followed > 0;
-
-  let items;
-  if (isTrial && !hasBetData) {
-    items = [
-      { value: 'Full', label: 'Model Access', green: true },
-      { value: 'Enabled', label: 'Edge Visibility', green: true },
-      { value: modelStats?.roi != null ? modelStats.roi + '%' : '—', label: 'Model ROI', green: true },
-    ];
-  } else {
-    const followed = stats?.adherence?.picks_followed ?? stats?.totalBets ?? 0;
-    const discipline = stats?.winRate != null ? stats.winRate + '%' : '—';
-    const profit = stats?.totalProfit != null ? (stats.totalProfit >= 0 ? '+' : '') + '$' + Math.abs(stats.totalProfit).toLocaleString() : '—';
-    const profitPositive = stats?.totalProfit != null && stats.totalProfit >= 0;
-    items = [
-      { value: followed, label: 'Followed', green: false },
-      { value: discipline, label: 'Discipline', green: false },
-      { value: profit, label: 'Tracked', green: profitPositive },
-    ];
-  }
+  const menuItems = [
+    ...(isPro ? [{ id: 'notifications', label: 'Notifications', subtitle: 'Alert preferences' }] : []),
+    { id: 'how', label: 'How It Works', subtitle: 'Model methodology and edge logic' },
+    ...(!isPro && user ? [{ id: 'upgrade', label: 'Upgrade to Pro', subtitle: 'Unlock full decision visibility', badge: 'Pro' }] : []),
+    ...(isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
+    ...(isPro ? [{ id: 'cancel', label: 'Manage Membership', subtitle: 'Billing, plan, and access' }] : []),
+  ];
 
   return (
     <div style={{
-      display: 'flex', gap: '1px',
-      background: 'var(--stroke-subtle)',
-      borderRadius: '14px', overflow: 'hidden',
-      marginBottom: '20px',
+      backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+      overflow: 'hidden', border: '1px solid var(--stroke-subtle)',
+      marginBottom: '12px',
     }}>
-      {items.map((item, i) => (
-        <div key={i} style={{
-          flex: 1, background: 'var(--surface-1)',
-          padding: '14px 8px', textAlign: 'center',
-          borderRadius: i === 0 ? '14px 0 0 14px' : i === 2 ? '0 14px 14px 0' : '0',
+      <div style={{
+        padding: '12px 20px 8px',
+        fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+        letterSpacing: '1.5px', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)',
+      }}>Controls</div>
+      {menuItems.map((item, i) => (
+        <button key={item.id} onClick={() => onNavigate(item.id)} style={{
+          width: '100%', display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', padding: '14px 20px', background: 'none',
+          border: 'none',
+          borderTop: '1px solid var(--stroke-subtle)',
+          cursor: 'pointer', textAlign: 'left',
         }}>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '18px',
-            fontWeight: 800, lineHeight: 1, marginBottom: '4px',
-            color: item.green ? 'var(--green, #34D399)' : 'var(--text-primary)',
-          }}>{item.value}</div>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '8px',
-            fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)',
-          }}>{item.label}</div>
-        </div>
+          <div>
+            <div style={{
+              fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
+            }}>{item.label}</div>
+            <div style={{
+              fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
+            }}>{item.subtitle}</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {item.badge && (
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                color: 'var(--blue-primary)', backgroundColor: 'rgba(79, 134, 247, 0.1)',
+                padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.05em',
+              }}>{item.badge}</span>
+            )}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </button>
       ))}
     </div>
   );
