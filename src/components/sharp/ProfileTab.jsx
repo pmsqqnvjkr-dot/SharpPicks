@@ -135,7 +135,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
 
       <div style={{ padding: '0 20px' }}>
         <MembershipCard user={user} isPro={isPro} />
-        {isPro && <StatRibbon />}
+        {isPro && <StatRibbon user={user} />}
 
         <SettingsSection user={user} onNavigate={navigate} />
         {!isPro && <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />}
@@ -166,7 +166,7 @@ function SettingsSection({ user, onNavigate }) {
     { id: 'notifications', label: 'Notifications', subtitle: 'Alert preferences' },
     ...(!isPro && user ? [{ id: 'upgrade', label: 'Upgrade to Pro', subtitle: 'Full pick details and analytics', badge: 'Pro' }] : []),
     ...(isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
-    ...(isPro ? [{ id: 'cancel', label: 'Cancel Subscription', subtitle: 'Manage your plan', requiresAuth: true }] : []),
+    ...(isPro ? [{ id: 'cancel', label: 'Manage Membership', subtitle: 'Billing & access', requiresAuth: true }] : []),
   ];
 
   const visibleItems = user
@@ -587,7 +587,7 @@ function MembershipCard({ user, isPro }) {
     : '';
 
   const planLabel = user.subscription_status === 'trial'
-    ? '14-Day Trial'
+    ? 'PRO TRIAL ACTIVE'
     : isFounder
       ? 'Lifetime'
       : user.subscription_plan
@@ -754,31 +754,70 @@ function MembershipCard({ user, isPro }) {
               fontFamily: 'var(--font-mono)', fontSize: '10px',
               color: 'var(--text-tertiary)',
             }}>
-              Ends {new Date(user.trial_end_date).toLocaleDateString()}
+              Access ends {new Date(user.trial_end_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </span>
           )}
         </div>
+
+        {user.subscription_status === 'trial' && (
+          <div style={{
+            marginTop: '14px', paddingTop: '12px',
+            borderTop: `1px solid ${isFounder ? 'rgba(245,166,35,0.1)' : 'var(--stroke-subtle)'}`,
+            position: 'relative', zIndex: 1,
+          }}>
+            <div style={{
+              fontFamily: 'var(--font-sans)', fontSize: '12px',
+              color: 'var(--text-tertiary)', marginBottom: '6px',
+            }}>Full model visibility enabled</div>
+          </div>
+        )}
+
+        {memberSince && !user.trial_end_date && (
+          <div style={{
+            marginTop: '10px', position: 'relative', zIndex: 1,
+          }}>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px',
+              color: 'var(--text-tertiary)', fontWeight: 500,
+            }}>Member since {new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function StatRibbon() {
+function StatRibbon({ user }) {
   const [stats, setStats] = useState(null);
+  const [modelStats, setModelStats] = useState(null);
   useEffect(() => {
     apiGet('/bets/stats').then(d => { if (d && !d.error) setStats(d); }).catch(() => {});
+    apiGet('/public/stats').then(d => { if (d && !d.error) setModelStats(d); }).catch(() => {});
   }, []);
 
-  const followed = stats?.adherence?.picks_followed ?? stats?.totalBets ?? 0;
-  const discipline = stats?.winRate != null ? stats.winRate + '%' : '—';
-  const profit = stats?.totalProfit != null ? (stats.totalProfit >= 0 ? '+' : '') + '$' + Math.abs(stats.totalProfit).toLocaleString() : '—';
-  const profitPositive = stats?.totalProfit != null && stats.totalProfit >= 0;
+  const isTrial = user?.subscription_status === 'trial';
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
 
-  const items = [
-    { value: followed, label: 'Followed', green: false },
-    { value: discipline, label: 'Discipline', green: false },
-    { value: profit, label: 'Tracked', green: profitPositive },
-  ];
+  const hasBetData = stats?.totalBets > 0 || stats?.adherence?.picks_followed > 0;
+
+  let items;
+  if (isTrial && !hasBetData) {
+    items = [
+      { value: 'Full', label: 'Model Access', green: true },
+      { value: 'On', label: 'Edge Visibility', green: true },
+      { value: modelStats?.roi != null ? modelStats.roi + '%' : '—', label: 'Model ROI', green: true },
+    ];
+  } else {
+    const followed = stats?.adherence?.picks_followed ?? stats?.totalBets ?? 0;
+    const discipline = stats?.winRate != null ? stats.winRate + '%' : '—';
+    const profit = stats?.totalProfit != null ? (stats.totalProfit >= 0 ? '+' : '') + '$' + Math.abs(stats.totalProfit).toLocaleString() : '—';
+    const profitPositive = stats?.totalProfit != null && stats.totalProfit >= 0;
+    items = [
+      { value: followed, label: 'Followed', green: false },
+      { value: discipline, label: 'Discipline', green: false },
+      { value: profit, label: 'Tracked', green: profitPositive },
+    ];
+  }
 
   return (
     <div style={{
