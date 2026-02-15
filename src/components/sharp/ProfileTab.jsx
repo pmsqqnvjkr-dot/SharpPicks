@@ -35,7 +35,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
   if (screen === 'how') return <HowItWorksScreen onBack={() => navigate(null)} />;
   if (screen === 'bets') return <BetTrackingScreen onBack={() => { navigate(null); if (onPickTracked) onPickTracked(); }} pickToTrack={pickToTrack} />;
   if (screen === 'notifications') return <NotificationsScreen onBack={() => navigate(null)} />;
-  if (screen === 'upgrade') return <UpgradeScreen onBack={() => navigate(null)} />;
+  if (screen === 'upgrade') return <UpgradeScreen onBack={() => navigate(null)} user={user} />;
   if (screen === 'cancel') return <CancelScreen onBack={() => navigate(null)} user={user} />;
   if (screen === 'annual') return <AnnualConversion onBack={() => navigate(null)} user={user} />;
   if (screen === 'weekly') return <WeeklySummary onBack={() => navigate(null)} stats={null} weekData={activeScreenData} />;

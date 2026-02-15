@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useApi, apiPost } from '../../hooks/useApi';
 
-export default function UpgradeScreen({ onBack }) {
+export default function UpgradeScreen({ onBack, user }) {
   const { data: foundingData } = useApi('/public/founding-count');
+  const { data: statsData } = useApi('/public/stats');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const handleSubscribe = async (plan) => {
@@ -22,8 +23,11 @@ export default function UpgradeScreen({ onBack }) {
   };
 
   const isFoundingOpen = foundingData?.open;
+  const spotsRemaining = foundingData?.remaining || 0;
   const annualPrice = isFoundingOpen ? '$99' : '$149';
   const annualLabel = isFoundingOpen ? 'Founding Rate' : 'Standard';
+
+  const isTrial = user?.subscription_status === 'trial';
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
@@ -47,7 +51,7 @@ export default function UpgradeScreen({ onBack }) {
 
       <div style={{ padding: '0 20px' }}>
         <div style={{
-          textAlign: 'center', padding: '20px 0 30px',
+          textAlign: 'center', padding: '20px 0 24px',
         }}>
           <div style={{
             width: '72px', height: '72px', borderRadius: '18px',
@@ -76,17 +80,88 @@ export default function UpgradeScreen({ onBack }) {
           </p>
         </div>
 
+        {isTrial && (
+          <div style={{
+            textAlign: 'center',
+            padding: '10px 16px 14px',
+            marginBottom: '16px',
+            borderRadius: '10px',
+            background: 'rgba(10,13,20,0.6)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            <span style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: '13px',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.5,
+            }}>When your trial ends, picks lock.</span>
+          </div>
+        )}
+
+        {(statsData?.pnl != null || statsData?.roi != null || statsData?.selectivity != null) && (
+          <div style={{
+            display: 'flex', justifyContent: 'center', gap: '24px',
+            padding: '14px 0', marginBottom: '16px',
+            borderRadius: '12px',
+            background: 'rgba(10,13,20,0.5)',
+            border: '1px solid rgba(255,255,255,0.05)',
+          }}>
+            {statsData?.pnl != null && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 700,
+                  color: 'var(--green-profit)',
+                }}>{statsData.pnl > 0 ? '+' : ''}{statsData.pnl}u</div>
+                <div style={{
+                  fontFamily: 'var(--font-sans)', fontSize: '10px',
+                  color: 'var(--text-tertiary)', textTransform: 'uppercase',
+                  letterSpacing: '0.08em', marginTop: '2px',
+                }}>Model-Only</div>
+              </div>
+            )}
+            {statsData?.roi != null && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 700,
+                  color: 'var(--green-profit)',
+                }}>{statsData.roi}%</div>
+                <div style={{
+                  fontFamily: 'var(--font-sans)', fontSize: '10px',
+                  color: 'var(--text-tertiary)', textTransform: 'uppercase',
+                  letterSpacing: '0.08em', marginTop: '2px',
+                }}>ROI</div>
+              </div>
+            )}
+            {statsData?.selectivity != null && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 700,
+                  color: 'var(--text-primary)',
+                }}>{statsData.selectivity}%</div>
+                <div style={{
+                  fontFamily: 'var(--font-sans)', fontSize: '10px',
+                  color: 'var(--text-tertiary)', textTransform: 'uppercase',
+                  letterSpacing: '0.08em', marginTop: '2px',
+                }}>Selectivity</div>
+              </div>
+            )}
+          </div>
+        )}
+
         {isFoundingOpen && (
           <div style={{
-            backgroundColor: 'rgba(245, 158, 11, 0.08)',
-            border: '1px solid rgba(245, 158, 11, 0.2)',
+            backgroundColor: 'rgba(245, 158, 11, 0.06)',
+            border: '1px solid rgba(245, 158, 11, 0.18)',
             borderRadius: '12px', padding: '14px 18px', marginBottom: '16px',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
             <div>
               <div style={{
                 fontSize: '13px', color: 'var(--gold-pro)', fontWeight: 600,
-              }}>Founding member spots</div>
+              }}>{spotsRemaining <= 10
+                ? `Only ${spotsRemaining} founding ${spotsRemaining === 1 ? 'spot' : 'spots'} remain at $99/yr.`
+                : 'Founding member spots'
+              }</div>
               <div style={{
                 fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
               }}>Lock in $99/yr — rate preserved forever</div>
@@ -94,11 +169,25 @@ export default function UpgradeScreen({ onBack }) {
             <span style={{
               fontFamily: 'var(--font-mono)', fontSize: '16px',
               color: 'var(--gold-pro)', fontWeight: 700,
-            }}>{foundingData?.remaining}/500</span>
+            }}>{spotsRemaining}/{foundingData?.total || 500}</span>
           </div>
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+          {isFoundingOpen && (
+            <PricingCard
+              name={annualLabel}
+              price={annualPrice}
+              period="/yr"
+              description="Founding rate locked forever"
+              cta="Claim Founding Rate"
+              onSelect={() => handleSubscribe('founding')}
+              loading={checkoutLoading}
+              highlight
+              badge="Best Value"
+              savings="Save $249 vs monthly"
+            />
+          )}
           <PricingCard
             name="Monthly"
             price="$29"
@@ -108,16 +197,19 @@ export default function UpgradeScreen({ onBack }) {
             onSelect={() => handleSubscribe('monthly')}
             loading={checkoutLoading}
           />
-          <PricingCard
-            name={annualLabel}
-            price={annualPrice}
-            period="/yr"
-            description={isFoundingOpen ? 'Founding rate locked forever' : 'Save vs monthly'}
-            cta={isFoundingOpen ? 'Claim Founding Rate' : 'Subscribe Annually'}
-            onSelect={() => handleSubscribe(isFoundingOpen ? 'founding' : 'annual')}
-            loading={checkoutLoading}
-            highlight
-          />
+          {!isFoundingOpen && (
+            <PricingCard
+              name={annualLabel}
+              price={annualPrice}
+              period="/yr"
+              description="Save vs monthly"
+              cta="Subscribe Annually"
+              onSelect={() => handleSubscribe('annual')}
+              loading={checkoutLoading}
+              highlight
+              savings="Save $199 vs monthly"
+            />
+          )}
         </div>
 
         <div style={{
@@ -176,13 +268,26 @@ function SectionLabel({ children }) {
   );
 }
 
-function PricingCard({ name, price, period, description, cta, onSelect, loading, highlight }) {
+function PricingCard({ name, price, period, description, cta, onSelect, loading, highlight, badge, savings }) {
   return (
     <div style={{
       padding: '20px', borderRadius: '16px',
-      backgroundColor: 'var(--surface-1)',
+      backgroundColor: highlight ? 'rgba(79,134,247,0.04)' : 'var(--surface-1)',
       border: highlight ? '2px solid var(--blue-primary)' : '1px solid var(--stroke-subtle)',
+      position: 'relative',
+      ...(highlight ? { boxShadow: '0 0 20px rgba(79,134,247,0.08)' } : {}),
     }}>
+      {badge && (
+        <div style={{
+          position: 'absolute', top: '-10px', right: '16px',
+          background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
+          color: '#fff', fontSize: '10px', fontWeight: 700,
+          padding: '3px 10px', borderRadius: '6px',
+          fontFamily: 'var(--font-sans)',
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+        }}>{badge}</div>
+      )}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
         marginBottom: '4px',
@@ -199,8 +304,14 @@ function PricingCard({ name, price, period, description, cta, onSelect, loading,
         </span>
       </div>
       <p style={{
-        fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px',
+        fontSize: '13px', color: 'var(--text-secondary)', marginBottom: savings ? '4px' : '16px',
       }}>{description}</p>
+      {savings && (
+        <p style={{
+          fontSize: '11px', color: 'var(--green-profit)', marginBottom: '14px',
+          fontFamily: 'var(--font-mono)',
+        }}>{savings}</p>
+      )}
       <button
         onClick={onSelect}
         disabled={loading}
@@ -213,6 +324,7 @@ function PricingCard({ name, price, period, description, cta, onSelect, loading,
           fontSize: '14px', fontWeight: 600, cursor: 'pointer',
           fontFamily: 'var(--font-sans)',
           opacity: loading ? 0.6 : 1,
+          ...(highlight ? { boxShadow: '0 0 16px rgba(79,134,247,0.2)' } : {}),
         }}
       >
         {loading ? 'Opening checkout...' : cta}
