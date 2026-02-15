@@ -366,9 +366,9 @@ def model_info():
         total_passes = Pass.query.count()
         last_run = ModelRun.query.order_by(ModelRun.created_at.desc()).first()
 
-    model_accuracy = 79.4
+    model_accuracy = 57.3
     model_brier = 0.139
-    num_features = 36
+    num_features = 56
     training_size = 15131
     try:
         import pickle, os
