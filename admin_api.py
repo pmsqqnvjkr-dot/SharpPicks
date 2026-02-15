@@ -358,3 +358,67 @@ def health_checks():
     }
 
     return jsonify(results)
+
+
+@admin_bp.route('/api/admin/export')
+def export_model_data():
+    admin = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    picks = Pick.query.order_by(Pick.game_date).all()
+    passes = Pass.query.order_by(Pass.date).all()
+    runs = ModelRun.query.order_by(ModelRun.date).all()
+
+    return jsonify({
+        'picks': [{
+            'game_date': p.game_date,
+            'sport': p.sport,
+            'away_team': p.away_team,
+            'home_team': p.home_team,
+            'side': p.side,
+            'line': p.line,
+            'line_open': p.line_open,
+            'line_close': p.line_close,
+            'edge_pct': p.edge_pct,
+            'model_confidence': p.model_confidence,
+            'predicted_margin': p.predicted_margin,
+            'cover_prob': p.cover_prob,
+            'implied_prob': p.implied_prob,
+            'sigma': p.sigma,
+            'z_score': p.z_score,
+            'raw_edge': p.raw_edge,
+            'market_odds': p.market_odds,
+            'sportsbook': p.sportsbook,
+            'closing_spread': p.closing_spread,
+            'clv': p.clv,
+            'home_score': p.home_score,
+            'away_score': p.away_score,
+            'result': p.result,
+            'result_ats': p.result_ats,
+            'pnl': p.pnl,
+            'published_at': p.published_at.isoformat() if p.published_at else None,
+        } for p in picks],
+        'passes': [{
+            'date': p.date,
+            'sport': p.sport,
+            'games_analyzed': p.games_analyzed,
+            'closest_edge_pct': p.closest_edge_pct,
+            'pass_reason': p.pass_reason,
+            'notes': p.notes,
+        } for p in passes],
+        'model_runs': [{
+            'date': r.date,
+            'sport': r.sport,
+            'games_analyzed': r.games_analyzed,
+            'pick_generated': r.pick_generated,
+            'model_version': r.model_version,
+            'run_duration_ms': r.run_duration_ms,
+        } for r in runs],
+        '_meta': {
+            'total_picks': len(picks),
+            'total_passes': len(passes),
+            'total_runs': len(runs),
+            'exported_at': datetime.now(ET).strftime('%Y-%m-%d %H:%M:%S ET'),
+        }
+    })
