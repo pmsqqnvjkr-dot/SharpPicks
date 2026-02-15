@@ -417,9 +417,10 @@ function InfoTooltip({ text }) {
           boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
         }}>
           <p style={{
-            fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+            fontFamily: 'var(--font-sans)',
             fontSize: '12px', color: 'var(--text-secondary)',
             lineHeight: '1.5', margin: 0,
+            textTransform: 'none', letterSpacing: 'normal', fontWeight: 400,
           }}>{text}</p>
         </div>
       )}
