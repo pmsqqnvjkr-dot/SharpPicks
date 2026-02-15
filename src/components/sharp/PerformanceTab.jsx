@@ -16,6 +16,14 @@ export default function PerformanceTab({ onNavigate, initialView, onViewConsumed
     }
   }, [initialView]);
 
+  if (!isPro) {
+    return (
+      <div style={{ padding: '0', paddingBottom: '100px' }}>
+        <FreeTierDashboard onUpgrade={() => onNavigate && onNavigate('profile', 'upgrade')} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
 
@@ -41,11 +49,7 @@ export default function PerformanceTab({ onNavigate, initialView, onViewConsumed
       </div>
 
       {view === 'yours' ? (
-        isPro ? (
-          <UnifiedDashboard embedded />
-        ) : (
-          <FreeTierDashboard onUpgrade={() => onNavigate && onNavigate('profile', 'upgrade')} />
-        )
+        <UnifiedDashboard embedded />
       ) : (
         <DashboardTab onNavigate={onNavigate} embedded />
       )}
