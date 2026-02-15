@@ -61,7 +61,7 @@ export default function ReferralScreen({ onBack }) {
             lineHeight: '1.6', marginBottom: '24px', maxWidth: '300px',
             margin: '0 auto 24px',
           }}>
-            Share your referral link. When someone subscribes, you both get 14 days of free access.
+            Share your referral link. When someone subscribes, you both get a month of free access.
           </p>
 
           <div style={{
@@ -102,7 +102,7 @@ export default function ReferralScreen({ onBack }) {
           {[
             { step: '1', text: 'Share your unique referral link with friends' },
             { step: '2', text: 'They sign up and start a paid subscription' },
-            { step: '3', text: 'You both receive 14 days of free access' },
+            { step: '3', text: 'You both receive a month of free access' },
           ].map(item => (
             <div key={item.step} style={{
               display: 'flex', alignItems: 'center', gap: '14px',

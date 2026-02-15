@@ -99,7 +99,7 @@ export default function LandingPage() {
           color: 'var(--text-tertiary)',
           marginTop: '-28px', marginBottom: '28px',
         }}>
-          14-day trial — no card required
+          Sign up free — no card required
         </p>
 
         <div style={{

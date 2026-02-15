@@ -438,7 +438,7 @@ function TrialSignup({ onBack }) {
           Trial Started
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-          14 days of full access. No card needed.
+          Full access activated. Explore your dashboard.
         </p>
       </div>
     );
@@ -546,7 +546,7 @@ function TrialSignup({ onBack }) {
               fontSize: '12px', color: 'var(--text-tertiary)', margin: 0,
               textAlign: 'center', lineHeight: '1.6',
             }}>
-              After 14 days, subscribe at $29/mo or $99/yr (founding rate). Cancel anytime. No auto-charge.
+              Subscribe at $29/mo or $99/yr (founding rate). Cancel anytime. No auto-charge.
             </p>
           </div>
         </div>

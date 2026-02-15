@@ -1190,7 +1190,6 @@ def create_checkout():
             'cancel_url': f'https://{subscribe_domain}/subscribe',
             'client_reference_id': user['id'],
             'subscription_data': {
-                'trial_period_days': 14,
                 'metadata': {'plan': plan, 'user_id': user['id']},
             },
             'metadata': {'plan': plan, 'user_id': user['id']},
@@ -1520,7 +1519,7 @@ def start_trial():
             'is_premium': True,
             'subscription_status': 'trial',
             'trial_ends': user.trial_ends.isoformat(),
-            'message': 'Welcome! Your 14-day free trial has started. No card required.'
+            'message': 'Welcome! Your account is active. Explore Sharp Picks Pro.'
         }
     })
 

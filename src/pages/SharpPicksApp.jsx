@@ -41,7 +41,7 @@ function WelcomeScreen({ onContinue }) {
         fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.6',
         maxWidth: '340px', marginBottom: '8px',
       }}>
-        Your 14-day free trial has started. You now have full access to every qualified pick, edge analysis, and performance tracking.
+        Your subscription is active. You now have full access to every qualified pick, edge analysis, and performance tracking.
       </p>
       <p style={{
         fontSize: '13px', color: 'var(--text-tertiary)', lineHeight: '1.5',

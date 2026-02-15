@@ -59,7 +59,7 @@ export default function AuthModal({ onClose, initialMode }) {
 
   const subtitles = {
     login: 'Sign in to access your picks',
-    register: 'Start your 14-day free trial',
+    register: 'Create your free account',
     forgot: 'Enter your email to receive a reset link',
   };
 

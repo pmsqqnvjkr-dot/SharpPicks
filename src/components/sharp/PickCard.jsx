@@ -215,11 +215,11 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
           >
-            Start Free Trial
+            Upgrade Now
           </button>
         </div>
         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: '1.5' }}>
-          14-day free trial · Cancel anytime
+          Full access · Cancel anytime
         </p>
       </div>
     );

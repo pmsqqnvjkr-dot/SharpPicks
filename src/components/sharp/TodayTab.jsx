@@ -519,7 +519,7 @@ function FreePickNotice({ onUpgrade, resolved }) {
       <p style={{
         fontSize: '12px', color: 'var(--text-tertiary)',
         marginTop: '12px',
-      }}>14-day free trial · Cancel anytime</p>
+      }}>Full access · Cancel anytime</p>
     </div>
   );
 }
