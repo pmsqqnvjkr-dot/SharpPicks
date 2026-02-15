@@ -7,7 +7,7 @@ import FreeTierDashboard from './FreeTierDashboard';
 export default function PerformanceTab({ onNavigate, initialView, onViewConsumed }) {
   const { user } = useAuth();
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial');
-  const [view, setView] = useState(initialView || (user ? 'yours' : 'model'));
+  const [view, setView] = useState(initialView || (isPro ? 'yours' : 'model'));
 
   useEffect(() => {
     if (initialView) {
