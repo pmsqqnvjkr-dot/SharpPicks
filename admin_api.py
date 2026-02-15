@@ -52,69 +52,95 @@ def command_center_data():
     converted_referrals = [r for r in referrals if r.status == 'completed']
     total_days_credited = sum(r.days_credited for r in referrals)
 
-    picks = Pick.query.filter_by(sport='nba').order_by(Pick.game_date.desc()).all()
-    passes = Pass.query.filter_by(sport='nba').all()
+    def compute_sport_stats(sport_key):
+        picks = Pick.query.filter_by(sport=sport_key).order_by(Pick.game_date.desc()).all()
+        passes = Pass.query.filter_by(sport=sport_key).all()
 
-    resolved = [p for p in picks if p.result in ('win', 'loss')]
-    wins = len([p for p in resolved if p.result == 'win'])
-    losses = len([p for p in resolved if p.result == 'loss'])
-    total_pnl = sum(p.pnl or 0 for p in resolved)
-    total_picks = len(picks)
-    total_passes = len(passes)
-    selectivity = round(total_picks / (total_picks + total_passes) * 100, 1) if (total_picks + total_passes) > 0 else 0
+        resolved = [p for p in picks if p.result in ('win', 'loss')]
+        wins = len([p for p in resolved if p.result == 'win'])
+        losses = len([p for p in resolved if p.result == 'loss'])
+        total_pnl = sum(p.pnl or 0 for p in resolved)
+        total_picks = len(picks)
+        total_passes = len(passes)
+        selectivity = round(total_picks / (total_picks + total_passes) * 100, 1) if (total_picks + total_passes) > 0 else 0
 
-    pre_cal = [p for p in resolved if p.notes and 'Pre-Cal' in p.notes]
-    post_cal = [p for p in resolved if not (p.notes and 'Pre-Cal' in p.notes)]
+        pre_cal = [p for p in resolved if p.notes and 'Pre-Cal' in p.notes]
+        post_cal = [p for p in resolved if not (p.notes and 'Pre-Cal' in p.notes)]
 
-    buckets = {'3.5-5%': {'w': 0, 'l': 0}, '5-7.5%': {'w': 0, 'l': 0}, '7.5-10%': {'w': 0, 'l': 0}}
-    for p in resolved:
-        e = p.edge_pct or 0
-        if e >= 7.5:
-            k = '7.5-10%'
-        elif e >= 5:
-            k = '5-7.5%'
-        else:
-            k = '3.5-5%'
-        if p.result == 'win':
-            buckets[k]['w'] += 1
-        else:
-            buckets[k]['l'] += 1
+        buckets = {'3.5-5%': {'w': 0, 'l': 0}, '5-7.5%': {'w': 0, 'l': 0}, '7.5-10%': {'w': 0, 'l': 0}}
+        for p in resolved:
+            e = p.edge_pct or 0
+            if e >= 7.5:
+                k = '7.5-10%'
+            elif e >= 5:
+                k = '5-7.5%'
+            else:
+                k = '3.5-5%'
+            if p.result == 'win':
+                buckets[k]['w'] += 1
+            else:
+                buckets[k]['l'] += 1
 
-    clv_positive = len([p for p in resolved if (p.clv or 0) > 0])
-    clv_total = len([p for p in resolved if p.clv is not None])
-    clv_pct = round(clv_positive / clv_total * 100) if clv_total > 0 else 0
+        clv_positive = len([p for p in resolved if (p.clv or 0) > 0])
+        clv_total = len([p for p in resolved if p.clv is not None])
+        clv_pct = round(clv_positive / clv_total * 100) if clv_total > 0 else 0
 
-    avg_edge = round(sum(p.edge_pct or 0 for p in picks) / len(picks), 1) if picks else 0
+        avg_edge = round(sum(p.edge_pct or 0 for p in picks) / len(picks), 1) if picks else 0
 
-    equity_curve = []
-    running = 0
-    for p in sorted(resolved, key=lambda x: x.game_date):
-        running += (p.pnl or 0)
-        equity_curve.append({'date': p.game_date, 'value': running})
+        equity_curve = []
+        running = 0
+        for p in sorted(resolved, key=lambda x: x.game_date):
+            running += (p.pnl or 0)
+            equity_curve.append({'date': p.game_date, 'value': running})
 
-    recent_picks = []
-    for p in picks[:10]:
-        recent_picks.append({
-            'date': p.game_date,
-            'side': p.side,
-            'line': p.line,
-            'edge': p.edge_pct,
-            'result': p.result,
-            'pnl': p.pnl,
-            'sportsbook': p.sportsbook,
-            'notes': p.notes,
-        })
+        recent_picks = []
+        for p in picks[:10]:
+            recent_picks.append({
+                'date': p.game_date,
+                'side': p.side,
+                'line': p.line,
+                'edge': p.edge_pct,
+                'result': p.result,
+                'pnl': p.pnl,
+                'sportsbook': p.sportsbook,
+                'notes': p.notes,
+                'sport': sport_key,
+            })
 
-    model_runs = ModelRun.query.order_by(ModelRun.created_at.desc()).limit(10).all()
-    runs_data = []
-    for r in model_runs:
-        runs_data.append({
-            'date': r.date,
-            'games_analyzed': r.games_analyzed,
-            'pick_generated': r.pick_generated,
-            'duration_ms': r.run_duration_ms,
-            'version': r.model_version,
-        })
+        model_runs = ModelRun.query.filter_by(sport=sport_key).order_by(ModelRun.created_at.desc()).limit(10).all()
+        runs_data = []
+        for r in model_runs:
+            runs_data.append({
+                'date': r.date,
+                'games_analyzed': r.games_analyzed,
+                'pick_generated': r.pick_generated,
+                'duration_ms': r.run_duration_ms,
+                'version': r.model_version,
+            })
+
+        return {
+            'record': f'{wins}-{losses}',
+            'wins': wins,
+            'losses': losses,
+            'win_rate': round(wins / len(resolved) * 100, 1) if resolved else 0,
+            'total_pnl': total_pnl,
+            'roi': round(total_pnl / (len(resolved) * 100) * 100, 1) if resolved else 0,
+            'total_picks': total_picks,
+            'total_passes': total_passes,
+            'selectivity': selectivity,
+            'avg_edge': avg_edge,
+            'pre_cal_count': len(pre_cal),
+            'post_cal_count': len(post_cal),
+            'clv_pct': clv_pct,
+            'buckets': {k: f"{v['w']}-{v['l']}" for k, v in buckets.items()},
+            'bucket_rates': {k: round(v['w'] / (v['w'] + v['l']) * 100, 1) if (v['w'] + v['l']) > 0 else 0 for k, v in buckets.items()},
+            'equity_curve': equity_curve,
+            'recent_picks': recent_picks,
+            'model_runs': runs_data,
+        }
+
+    nba_stats = compute_sport_stats('nba')
+    wnba_stats = compute_sport_stats('wnba')
 
     recent_users = sorted(users, key=lambda u: u.created_at or datetime.min, reverse=True)[:15]
     users_data = []
@@ -159,26 +185,12 @@ def command_center_data():
             'conv_rate': round(len(converted_referrals) / len(referrals) * 100, 1) if referrals else 0,
             'days_credited': total_days_credited,
         },
-        'model': {
-            'record': f'{wins}-{losses}',
-            'wins': wins,
-            'losses': losses,
-            'win_rate': round(wins / len(resolved) * 100, 1) if resolved else 0,
-            'total_pnl': total_pnl,
-            'roi': round(total_pnl / (len(resolved) * 100) * 100, 1) if resolved else 0,
-            'total_picks': total_picks,
-            'total_passes': total_passes,
-            'selectivity': selectivity,
-            'avg_edge': avg_edge,
-            'pre_cal_count': len(pre_cal),
-            'post_cal_count': len(post_cal),
-            'clv_pct': clv_pct,
-            'buckets': {k: f"{v['w']}-{v['l']}" for k, v in buckets.items()},
-            'bucket_rates': {k: round(v['w'] / (v['w'] + v['l']) * 100, 1) if (v['w'] + v['l']) > 0 else 0 for k, v in buckets.items()},
-            'equity_curve': equity_curve,
-        },
-        'recent_picks': recent_picks,
-        'model_runs': runs_data,
+        'model': nba_stats,
+        'wnba_model': wnba_stats,
+        'recent_picks': nba_stats['recent_picks'],
+        'wnba_recent_picks': wnba_stats['recent_picks'],
+        'model_runs': nba_stats['model_runs'],
+        'wnba_model_runs': wnba_stats['model_runs'],
         'users': {
             'total': total_users,
             'list': users_data,

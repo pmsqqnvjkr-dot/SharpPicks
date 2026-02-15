@@ -471,13 +471,37 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div class="stat-row"><span class="label">Founding Members</span><span class="value amber" id="founding-users">--</span></div>
   </div>
 
-  <!-- MODEL PERFORMANCE -->
-  <div class="section-label">Model Performance</div>
+  <!-- NBA MODEL PERFORMANCE -->
+  <div class="section-label">NBA Model Performance</div>
 
   <div class="panel">
-    <div class="panel-label">Season Record</div>
-    <div class="metric-val green" id="record">--</div>
-    <div class="metric-sub" id="record-sub">--</div>
+    <div class="panel-label">NBA Season Record</div>
+    <div class="metric-val green" id="nba-record">--</div>
+    <div class="metric-sub" id="nba-record-sub">--</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">NBA Selectivity</div>
+    <div class="metric-val blue" id="nba-selectivity">--</div>
+    <div class="metric-sub">vs 78% industry avg</div>
+    <div class="progress-bar" style="margin-top:12px"><div class="fill blue" id="nba-selectivity-bar" style="width:0%"></div></div>
+    <div style="margin-top:8px">
+      <div class="stat-row"><span class="label">Total Picks</span><span class="value" id="nba-total-picks">--</span></div>
+      <div class="stat-row"><span class="label">Total Passes</span><span class="value" id="nba-total-passes">--</span></div>
+      <div class="stat-row"><span class="label">Avg Edge</span><span class="value" id="nba-avg-edge">--</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">NBA Confidence Buckets</div>
+    <div class="stat-row"><span class="label">3.5-5% edge</span><span class="value" id="nba-bucket-low">--</span></div>
+    <div class="stat-row"><span class="label">5-7.5% edge</span><span class="value" id="nba-bucket-mid">--</span></div>
+    <div class="stat-row"><span class="label">7.5-10% edge</span><span class="value" id="nba-bucket-high">--</span></div>
+    <div style="margin-top:10px">
+      <div class="stat-row"><span class="label">Pre-Cal</span><span class="value amber" id="nba-pre-cal">--</span></div>
+      <div class="stat-row"><span class="label">Post-Cal</span><span class="value green" id="nba-post-cal">--</span></div>
+      <div class="stat-row"><span class="label">CLV+</span><span class="value green" id="nba-clv-pct">--</span></div>
+    </div>
   </div>
 
   <div class="panel">
@@ -492,53 +516,73 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div class="stat-row"><span class="label">Calibration Date</span><span class="value">Feb 12, 2026</span></div>
   </div>
 
-  <div class="panel">
-    <div class="panel-label">Selectivity</div>
-    <div class="metric-val blue" id="selectivity">--</div>
-    <div class="metric-sub">vs 78% industry avg</div>
-    <div class="progress-bar" style="margin-top:12px"><div class="fill blue" id="selectivity-bar" style="width:0%"></div></div>
-    <div style="margin-top:8px">
-      <div class="stat-row"><span class="label">Total Picks</span><span class="value" id="total-picks">--</span></div>
-      <div class="stat-row"><span class="label">Total Passes</span><span class="value" id="total-passes">--</span></div>
-      <div class="stat-row"><span class="label">Avg Edge Published</span><span class="value" id="avg-edge">--</span></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Confidence Buckets</div>
-    <div id="buckets-container">
-      <div class="stat-row"><span class="label">3.5-5% edge</span><span class="value" id="bucket-low">--</span></div>
-      <div class="stat-row"><span class="label">5-7.5% edge</span><span class="value" id="bucket-mid">--</span></div>
-      <div class="stat-row"><span class="label">7.5-10% edge</span><span class="value" id="bucket-high">--</span></div>
-    </div>
-    <div style="margin-top:10px">
-      <div class="stat-row"><span class="label">Pre-Cal Picks</span><span class="value amber" id="pre-cal">--</span></div>
-      <div class="stat-row"><span class="label">Post-Cal Picks</span><span class="value green" id="post-cal">--</span></div>
-      <div class="stat-row"><span class="label">CLV+</span><span class="value green" id="clv-pct">--</span></div>
-    </div>
-  </div>
-
   <div class="panel wide-2">
-    <div class="panel-label">Equity Curve (1u Standardized)</div>
-    <div class="sparkline-wrap" id="equity-chart">
+    <div class="panel-label">NBA Equity Curve (1u Standardized)</div>
+    <div class="sparkline-wrap" id="nba-equity-chart">
       <svg viewBox="0 0 400 60" preserveAspectRatio="none">
         <defs>
-          <linearGradient id="eq-fill" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="nba-eq-fill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="rgba(0,214,143,0.3)"/>
             <stop offset="100%" stop-color="rgba(0,214,143,0)"/>
           </linearGradient>
         </defs>
-        <path id="eq-line" d="" fill="none" stroke="var(--green)" stroke-width="2"/>
-        <path id="eq-area" d="" fill="url(#eq-fill)" opacity="0.5"/>
+        <path id="nba-eq-line" d="" fill="none" stroke="var(--green)" stroke-width="2"/>
+        <path id="nba-eq-area" d="" fill="url(#nba-eq-fill)" opacity="0.5"/>
       </svg>
     </div>
-    <div class="metric-sub" id="equity-sub">--</div>
+    <div class="metric-sub" id="nba-equity-sub">--</div>
   </div>
 
   <div class="panel wide-2">
-    <div class="panel-label">Recent Picks</div>
-    <div id="recent-picks-list" style="max-height:200px;overflow-y:auto">
+    <div class="panel-label">NBA Recent Picks</div>
+    <div id="nba-recent-picks-list" style="max-height:200px;overflow-y:auto"></div>
+  </div>
+
+  <!-- WNBA MODEL PERFORMANCE -->
+  <div class="section-label">WNBA Model Performance <span style="font-size:8px;letter-spacing:1px;color:var(--amber);margin-left:8px">PAPER TRADE</span></div>
+
+  <div class="panel">
+    <div class="panel-label">WNBA Season Record</div>
+    <div class="metric-val" id="wnba-record">--</div>
+    <div class="metric-sub" id="wnba-record-sub">--</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">WNBA Selectivity</div>
+    <div class="metric-val blue" id="wnba-selectivity">--</div>
+    <div class="progress-bar" style="margin-top:12px"><div class="fill blue" id="wnba-selectivity-bar" style="width:0%"></div></div>
+    <div style="margin-top:8px">
+      <div class="stat-row"><span class="label">Total Picks</span><span class="value" id="wnba-total-picks">--</span></div>
+      <div class="stat-row"><span class="label">Total Passes</span><span class="value" id="wnba-total-passes">--</span></div>
+      <div class="stat-row"><span class="label">Avg Edge</span><span class="value" id="wnba-avg-edge">--</span></div>
     </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">WNBA Confidence Buckets</div>
+    <div class="stat-row"><span class="label">3.5-5% edge</span><span class="value" id="wnba-bucket-low">--</span></div>
+    <div class="stat-row"><span class="label">5-7.5% edge</span><span class="value" id="wnba-bucket-mid">--</span></div>
+    <div class="stat-row"><span class="label">7.5-10% edge</span><span class="value" id="wnba-bucket-high">--</span></div>
+    <div style="margin-top:10px">
+      <div class="stat-row"><span class="label">CLV+</span><span class="value green" id="wnba-clv-pct">--</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">WNBA Equity Curve</div>
+    <div class="sparkline-wrap" id="wnba-equity-chart">
+      <svg viewBox="0 0 400 60" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="wnba-eq-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(79,134,247,0.3)"/>
+            <stop offset="100%" stop-color="rgba(79,134,247,0)"/>
+          </linearGradient>
+        </defs>
+        <path id="wnba-eq-line" d="" fill="none" stroke="var(--blue)" stroke-width="2"/>
+        <path id="wnba-eq-area" d="" fill="url(#wnba-eq-fill)" opacity="0.5"/>
+      </svg>
+    </div>
+    <div class="metric-sub" id="wnba-equity-sub">--</div>
   </div>
 
   <!-- INFRASTRUCTURE -->
@@ -587,9 +631,13 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
   </div>
 
   <div class="panel">
-    <div class="panel-label">Model Runs (Recent)</div>
-    <div id="model-runs-list" style="max-height:200px;overflow-y:auto">
-    </div>
+    <div class="panel-label">NBA Model Runs</div>
+    <div id="nba-model-runs-list" style="max-height:200px;overflow-y:auto"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">WNBA Model Runs</div>
+    <div id="wnba-model-runs-list" style="max-height:200px;overflow-y:auto"></div>
   </div>
 
   <div class="panel">
@@ -639,8 +687,11 @@ function pnlClass(v) {
   return v > 0 ? 'green' : v < 0 ? 'red' : '';
 }
 
-function buildEquityCurve(curve) {
-  if (!curve || curve.length < 2) return;
+function buildEquityCurve(curve, prefix) {
+  const lineEl = document.getElementById(prefix + '-eq-line');
+  const areaEl = document.getElementById(prefix + '-eq-area');
+  if (!lineEl || !areaEl) return;
+  if (!curve || curve.length < 2) { lineEl.setAttribute('d', ''); areaEl.setAttribute('d', ''); return; }
   const vals = curve.map(c => c.value);
   const minV = Math.min(...vals, 0);
   const maxV = Math.max(...vals);
@@ -656,13 +707,18 @@ function buildEquityCurve(curve) {
   const line = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
   const area = line + ' L' + w + ',' + h + ' L0,' + h + ' Z';
 
-  document.getElementById('eq-line').setAttribute('d', line);
-  document.getElementById('eq-area').setAttribute('d', area);
+  lineEl.setAttribute('d', line);
+  areaEl.setAttribute('d', area);
 }
 
-function buildRecentPicks(picks) {
-  const container = document.getElementById('recent-picks-list');
+function buildRecentPicks(picks, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
   container.innerHTML = '';
+  if (!picks || picks.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-dim);font-size:10px;padding:12px 0;text-align:center">No picks yet</div>';
+    return;
+  }
   picks.forEach(p => {
     const resultClass = p.result === 'win' ? 'W' : p.result === 'loss' ? 'L' : 'pending';
     const resultLabel = p.result === 'win' ? 'W' : p.result === 'loss' ? 'L' : '—';
@@ -680,9 +736,14 @@ function buildRecentPicks(picks) {
   });
 }
 
-function buildModelRuns(runs) {
-  const container = document.getElementById('model-runs-list');
+function buildModelRuns(runs, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
   container.innerHTML = '';
+  if (!runs || runs.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-dim);font-size:10px;padding:12px 0;text-align:center">No runs yet</div>';
+    return;
+  }
   runs.forEach(r => {
     const row = document.createElement('div');
     row.className = 'status-bar-row';
@@ -693,6 +754,37 @@ function buildModelRuns(runs) {
     `;
     container.appendChild(row);
   });
+}
+
+function populateSportStats(m, prefix) {
+  const el = id => document.getElementById(prefix + '-' + id);
+  if (!el('record')) return;
+
+  el('record').textContent = m.record;
+  const winClass = m.win_rate >= 55 ? 'green' : m.win_rate >= 50 ? '' : 'red';
+  el('record').className = 'metric-val ' + winClass;
+  el('record-sub').textContent =
+    `${m.win_rate}% · ${m.total_pnl >= 0 ? '+' : ''}${fmt$(m.total_pnl)} · ${m.roi >= 0 ? '+' : ''}${m.roi}% ROI`;
+
+  el('selectivity').textContent = m.selectivity + '%';
+  el('selectivity-bar').style.width = m.selectivity + '%';
+  el('total-picks').textContent = m.total_picks;
+  el('total-passes').textContent = m.total_passes;
+  el('avg-edge').textContent = m.avg_edge + '%';
+
+  const bk = m.buckets;
+  const br = m.bucket_rates;
+  el('bucket-low').textContent = `${bk['3.5-5%']} (${br['3.5-5%']}%)`;
+  el('bucket-mid').textContent = `${bk['5-7.5%']} (${br['5-7.5%']}%)`;
+  el('bucket-high').textContent = `${bk['7.5-10%']} (${br['7.5-10%']}%)`;
+
+  if (el('pre-cal')) el('pre-cal').textContent = m.pre_cal_count;
+  if (el('post-cal')) el('post-cal').textContent = m.post_cal_count;
+  el('clv-pct').textContent = m.clv_pct + '%';
+
+  buildEquityCurve(m.equity_curve, prefix);
+  el('equity-sub').textContent =
+    `${m.equity_curve.length} resolved picks · Current: ${m.total_pnl >= 0 ? '+' : ''}${fmt$(m.total_pnl)}`;
 }
 
 function buildUsersTable(users) {
@@ -747,35 +839,12 @@ async function loadDashboard() {
     document.getElementById('free-users').textContent = d.revenue.free_count;
     document.getElementById('founding-users').textContent = d.revenue.founding_count;
 
-    const m = d.model;
-    document.getElementById('record').textContent = m.record;
-    const winClass = m.win_rate >= 55 ? 'green' : m.win_rate >= 50 ? '' : 'red';
-    document.getElementById('record').className = 'metric-val ' + winClass;
-    document.getElementById('record-sub').textContent =
-      `${m.win_rate}% · ${m.total_pnl >= 0 ? '+' : ''}${fmt$(m.total_pnl)} · ${m.roi >= 0 ? '+' : ''}${m.roi}% ROI`;
+    populateSportStats(d.model, 'nba');
+    populateSportStats(d.wnba_model, 'wnba');
 
-    document.getElementById('selectivity').textContent = m.selectivity + '%';
-    document.getElementById('selectivity-bar').style.width = m.selectivity + '%';
-    document.getElementById('total-picks').textContent = m.total_picks;
-    document.getElementById('total-passes').textContent = m.total_passes;
-    document.getElementById('avg-edge').textContent = m.avg_edge + '%';
-
-    const bk = m.buckets;
-    const br = m.bucket_rates;
-    document.getElementById('bucket-low').textContent = `${bk['3.5-5%']} (${br['3.5-5%']}%)`;
-    document.getElementById('bucket-mid').textContent = `${bk['5-7.5%']} (${br['5-7.5%']}%)`;
-    document.getElementById('bucket-high').textContent = `${bk['7.5-10%']} (${br['7.5-10%']}%)`;
-
-    document.getElementById('pre-cal').textContent = m.pre_cal_count;
-    document.getElementById('post-cal').textContent = m.post_cal_count;
-    document.getElementById('clv-pct').textContent = m.clv_pct + '%';
-
-    buildEquityCurve(m.equity_curve);
-    document.getElementById('equity-sub').textContent =
-      `${m.equity_curve.length} resolved picks · Current: ${m.total_pnl >= 0 ? '+' : ''}${fmt$(m.total_pnl)}`;
-
-    buildRecentPicks(d.recent_picks);
-    buildModelRuns(d.model_runs);
+    buildRecentPicks(d.recent_picks, 'nba-recent-picks-list');
+    buildModelRuns(d.model_runs, 'nba-model-runs-list');
+    buildModelRuns(d.wnba_model_runs, 'wnba-model-runs-list');
     buildUsersTable(d.users.list);
     document.getElementById('user-count-label').textContent = `(${d.users.total} total)`;
 
