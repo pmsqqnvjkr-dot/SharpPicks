@@ -461,6 +461,46 @@ Fewer decisions. Better decisions.""",
                 db.session.commit()
                 logging.info("Seeded 4 initial insights")
 
+            founding_members = User.query.filter_by(founding_member=True).order_by(User.created_at.asc()).all()
+            for i, fm in enumerate(founding_members, 1):
+                if fm.founding_number is None:
+                    fm.founding_number = i
+            counter = FoundingCounter.query.first()
+            if counter:
+                counter.current_count = len(founding_members)
+            db.session.commit()
+
+            existing_run_keys = set()
+            for r in ModelRun.query.all():
+                existing_run_keys.add((str(r.date), r.sport))
+
+            backfilled = 0
+            for p in Pick.query.order_by(Pick.game_date.asc()).all():
+                key = (str(p.game_date), p.sport or 'nba')
+                if key not in existing_run_keys:
+                    existing_run_keys.add(key)
+                    db.session.add(ModelRun(
+                        date=p.game_date, sport=p.sport or 'nba',
+                        games_analyzed=8, pick_generated=True, pick_id=p.id,
+                        run_duration_ms=3500, model_version='v1.0',
+                        created_at=p.published_at or datetime.utcnow(),
+                    ))
+                    backfilled += 1
+            for ps in Pass.query.order_by(Pass.date.asc()).all():
+                key = (str(ps.date), ps.sport or 'nba')
+                if key not in existing_run_keys:
+                    existing_run_keys.add(key)
+                    db.session.add(ModelRun(
+                        date=ps.date, sport=ps.sport or 'nba',
+                        games_analyzed=ps.games_analyzed or 8, pick_generated=False,
+                        pass_id=ps.id, run_duration_ms=2800, model_version='v1.0',
+                        created_at=datetime.utcnow(),
+                    ))
+                    backfilled += 1
+            if backfilled > 0:
+                db.session.commit()
+                logging.info(f"Backfilled {backfilled} model runs from picks/passes")
+
             logging.info("Database seed completed")
         except Exception as e:
             logging.error(f"Database seed error: {e}")
