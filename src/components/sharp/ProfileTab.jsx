@@ -4,7 +4,6 @@ import { useApi, apiPost } from '../../hooks/useApi';
 import AuthModal from './AuthModal';
 import HowItWorksScreen from './HowItWorksScreen';
 import BetTrackingScreen from './BetTrackingScreen';
-import ReferralScreen from './ReferralScreen';
 import NotificationsScreen from './NotificationsScreen';
 import UpgradeScreen from './UpgradeScreen';
 import CancelScreen from './CancelScreen';
@@ -35,7 +34,6 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
   if (screen === 'trial') return <TrialSignup onBack={() => navigate(null)} />;
   if (screen === 'how') return <HowItWorksScreen onBack={() => navigate(null)} />;
   if (screen === 'bets') return <BetTrackingScreen onBack={() => { navigate(null); if (onPickTracked) onPickTracked(); }} pickToTrack={pickToTrack} />;
-  if (screen === 'referral') return <ReferralScreen onBack={() => navigate(null)} />;
   if (screen === 'notifications') return <NotificationsScreen onBack={() => navigate(null)} />;
   if (screen === 'upgrade') return <UpgradeScreen onBack={() => navigate(null)} />;
   if (screen === 'cancel') return <CancelScreen onBack={() => navigate(null)} user={user} />;
@@ -236,7 +234,6 @@ function SettingsSection({ user, onNavigate }) {
   const menuItems = [
     { id: 'how', label: 'How It Works', subtitle: 'Our model and methodology' },
     { id: 'notifications', label: 'Notifications', subtitle: 'Alert preferences' },
-    { id: 'referral', label: 'Referral Program', subtitle: 'Earn 14 days free', requiresAuth: true },
     ...(!isPro && user ? [{ id: 'upgrade', label: 'Upgrade to Pro', subtitle: 'Full pick details and analytics', badge: 'Pro' }] : []),
     ...(isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
     ...(isPro ? [{ id: 'cancel', label: 'Cancel Subscription', subtitle: 'Manage your plan', requiresAuth: true }] : []),

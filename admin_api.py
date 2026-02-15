@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, User, Pick, Pass, ModelRun, Referral, FoundingCounter, TrackedBet, Insight
+from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight
 from datetime import datetime, timedelta
 from sqlalchemy import func, text
 from zoneinfo import ZoneInfo
@@ -47,10 +47,6 @@ def command_center_data():
     counter = FoundingCounter.query.first()
     founding_count = counter.current_count if counter else len(founding_members)
     founding_cap = 500
-
-    referrals = Referral.query.all()
-    converted_referrals = [r for r in referrals if r.status == 'completed']
-    total_days_credited = sum(r.days_credited for r in referrals)
 
     def compute_sport_stats(sport_key):
         picks = Pick.query.filter_by(sport=sport_key).order_by(Pick.game_date.desc()).all()
@@ -160,7 +156,6 @@ def command_center_data():
             'founding_number': u.founding_number,
             'created_at': u.created_at.isoformat() if u.created_at else None,
             'trial_end': u.trial_end_date.isoformat() if u.trial_end_date else None,
-            'referral_code': u.referral_code or '',
         })
 
     insights = Insight.query.all()
@@ -178,12 +173,6 @@ def command_center_data():
             'founding_count': founding_count,
             'founding_cap': founding_cap,
             'founding_pct': round(founding_count / founding_cap * 100, 1),
-        },
-        'referrals': {
-            'total': len(referrals),
-            'converted': len(converted_referrals),
-            'conv_rate': round(len(converted_referrals) / len(referrals) * 100, 1) if referrals else 0,
-            'days_credited': total_days_credited,
         },
         'model': nba_stats,
         'wnba_model': wnba_stats,

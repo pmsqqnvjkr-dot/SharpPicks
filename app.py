@@ -117,7 +117,6 @@ def serialize_user(user):
         'subscription_plan': user.subscription_plan,
         'founding_member': user.founding_member,
         'founding_number': user.founding_number,
-        'referral_code': user.referral_code,
         'unit_size': user.unit_size,
         'trial_end_date': user.trial_end_date.isoformat() if user.trial_end_date else None,
     }
@@ -2180,7 +2179,7 @@ def export_users():
     import io
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Email', 'First Name', 'Subscription Status', 'Plan', 'Founding Member', 'Trial End', 'Signed Up', 'Referral Code'])
+    writer.writerow(['Email', 'First Name', 'Subscription Status', 'Plan', 'Founding Member', 'Trial End', 'Signed Up'])
 
     users = User.query.order_by(User.created_at.asc()).all()
     for u in users:
@@ -2192,7 +2191,6 @@ def export_users():
             'Yes' if u.founding_member else 'No',
             u.trial_end_date.strftime('%Y-%m-%d') if u.trial_end_date else '',
             u.created_at.strftime('%Y-%m-%d') if u.created_at else '',
-            u.referral_code or '',
         ])
 
     from flask import Response
@@ -2224,7 +2222,6 @@ def admin_users():
             'founding_number': u.founding_number,
             'trial_end_date': u.trial_end_date.isoformat() if u.trial_end_date else None,
             'created_at': u.created_at.isoformat() if u.created_at else None,
-            'referral_code': u.referral_code or '',
         } for u in users]
     })
 

@@ -453,16 +453,6 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
   </div>
 
   <div class="panel wide-2">
-    <div class="panel-label">Referral Program</div>
-    <div class="stat-row"><span class="label">Total Referrals</span><span class="value" id="ref-total">--</span></div>
-    <div class="stat-row"><span class="label">Converted</span><span class="value green" id="ref-converted">--</span></div>
-    <div class="stat-row"><span class="label">Conv. Rate</span><span class="value green" id="ref-rate">--</span></div>
-    <div class="stat-row"><span class="label">Days Credited</span><span class="value" id="ref-days">--</span></div>
-    <div class="stat-row"><span class="label">CAC (Referral)</span><span class="value green">$0</span></div>
-    <div class="stat-row"><span class="label">CAC (Organic)</span><span class="value">$0</span></div>
-  </div>
-
-  <div class="panel wide-2">
     <div class="panel-label">User Distribution</div>
     <div class="stat-row"><span class="label">Total Users</span><span class="value" id="total-users">--</span></div>
     <div class="stat-row"><span class="label">Active (Paid)</span><span class="value green" id="paid-users">--</span></div>
@@ -659,7 +649,6 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
           <th>Tier</th>
           <th>Plan</th>
           <th>Signed Up</th>
-          <th>Referral</th>
         </tr>
       </thead>
       <tbody id="users-tbody">
@@ -799,7 +788,6 @@ function buildUsersTable(users) {
       <td><span class="badge ${u.tier}">${u.tier}${u.founding_number ? ' #' + u.founding_number : ''}</span></td>
       <td>${u.plan || '—'}</td>
       <td>${date}</td>
-      <td style="font-size:9px;color:var(--text-dim)">${u.referral_code}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -827,11 +815,6 @@ async function loadDashboard() {
     document.getElementById('founding-bar').style.width = d.revenue.founding_pct + '%';
     document.getElementById('founding-sub').textContent =
       `${d.revenue.founding_cap - d.revenue.founding_count} spots remaining · ${d.revenue.founding_pct}% filled`;
-
-    document.getElementById('ref-total').textContent = d.referrals.total;
-    document.getElementById('ref-converted').textContent = d.referrals.converted;
-    document.getElementById('ref-rate').textContent = d.referrals.conv_rate + '%';
-    document.getElementById('ref-days').textContent = d.referrals.days_credited.toLocaleString();
 
     document.getElementById('total-users').textContent = d.users.total;
     document.getElementById('paid-users').textContent = d.revenue.monthly_subs + d.revenue.annual_subs;
