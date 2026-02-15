@@ -15,7 +15,7 @@ logging.basicConfig(level=log_level)
 
 from flask import Flask, jsonify, Response, session, request
 
-app = Flask(__name__, static_folder='dist', static_url_path='')
+app = Flask(__name__, static_folder='dist', static_url_path='/static-disabled')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 
 @app.route('/health')
@@ -2511,9 +2511,11 @@ def admin_users():
 @app.route('/<path:path>')
 def serve_spa(path):
     try:
-        if os.path.exists(os.path.join(app.static_folder, path)):
-            return app.send_static_file(path)
-        return app.send_static_file('index.html')
+        full_path = os.path.join(app.static_folder, path)
+        if os.path.isfile(full_path):
+            from flask import send_from_directory
+            return send_from_directory(app.static_folder, path)
+        return send_from_directory(app.static_folder, 'index.html')
     except Exception:
         return jsonify({'status': 'ok'}), 200
 
