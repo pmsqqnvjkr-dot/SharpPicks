@@ -1,0 +1,26 @@
+Data Collection (Start Now — Don’t Wait for May)
+You need historical WNBA data going back at least 3 seasons (2023-2025). For each game: final score, spread, closing line, moneyline, over/under, home/away, date, and rest days for each team.
+Sources to check: The Odds API (confirm WNBA coverage — some tiers don’t include it), Basketball Reference (free, has scores and schedules), and WNBA stats at stats.wnba.com.
+Build a collect_wnba_games job that mirrors your NBA collector but with WNBA-specific endpoints. It should populate the same database schema — your picks and passes tables already have a sport field.
+2. Feature Engineering — What Transfers and What Doesn’t
+Features that transfer directly from your NBA model: scoring margin differential, defensive rating, pace, home/away splits, back-to-back detection, line movement.
+Features that need WNBA-specific tuning: rest impact is different because WNBA plays fewer games (40 vs 82) with more irregular scheduling. Travel fatigue may matter more — WNBA teams fly commercial, not charter. Roster depth is shallower — a single player absence has outsized impact compared to NBA.
+Features to add that are WNBA-specific: commissioner’s cup games (different motivation), Olympic break impact (mid-season break disrupts rhythm), expansion team effects (if applicable), and double-header scheduling patterns.
+3. Calibration Plan — Don’t Ship Without This
+Run the exact same calibration process you ran for NBA:
+Step 1: Train on 2023-2024 data, validate on 2025 data (walk-forward).
+Step 2: Measure model MAE vs market MAE. If the model is worse than the market (which it probably will be), you know shrinkage is needed.
+Step 3: Find the right shrinkage weight. It won’t be 30/70 — WNBA markets are thinner and less efficient than NBA. Could be 40/60 or 50/50. Let the data decide.
+Step 4: Measure sigma from cross-validation residuals. NBA sigma is 11.7. WNBA will be lower — games are lower-scoring with tighter variance. Expect 8-10.
+Step 5: Set the edge cap. Start at 10% like NBA. Adjust if calibration data suggests different.
+4. The Launch Sequence
+Phase 1 (Now through April): Collect historical data. Build and backtest the model. Run calibration. Determine shrinkage weight and sigma.
+Phase 2 (May — first 3 weeks of season): Paper trade. Run the model daily, publish nothing. Compare predictions against results. Verify calibration holds on live data.
+Phase 3 (June): If paper trading confirms the model is calibrated, turn it on. First WNBA picks go live. Tag them as a separate sport on the public record.
+5. Product Changes Needed
+The app needs a sport selector or filter. Users should see NBA and WNBA records separately. The daily model brief should cover both sports — “NBA: 8 games analyzed, 1 qualified. WNBA: 6 games analyzed, no edge.”
+The one-pick-per-day constraint needs a decision: is it one pick total across all sports, or one per sport? My recommendation: one per sport. This doubles your potential output during overlap months (the NBA playoffs and WNBA regular season overlap in May-June) without violating the discipline philosophy. Each sport’s model runs independently.
+The public record page needs sport tabs. The equity curve should show combined and per-sport views.
+6. The Honest Risk
+WNBA markets are thinner, which means two things: your model might find more genuine edges (less efficient market), but lines also move faster on less volume, so your published edge might evaporate between posting and tip-off. Track closing line value (CLV) obsessively. If your picks are consistently losing value between publish time and close, you’re either too slow or the edges aren’t real.
+Also — WNBA has a smaller audience, which means fewer potential subscribers care about it. Don’t build it because it’s cool. Build it because your NBA subscribers asked for it, or because the model actually performs well in backtesting. If the backtest shows the model can’t beat the WNBA market, don’t ship it. A bad WNBA product hurts the brand more than no WNBA product.
