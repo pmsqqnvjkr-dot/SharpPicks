@@ -1123,13 +1123,24 @@ def create_checkout():
         plan = data.get('plan', 'monthly')
         price_id = data.get('price_id')
 
+        price_map = {
+            'monthly': os.environ.get('STRIPE_PRICE_MONTHLY'),
+            'annual_founding': os.environ.get('STRIPE_PRICE_FOUNDING'),
+            'annual_standard': os.environ.get('STRIPE_PRICE_ANNUAL'),
+            'annual': os.environ.get('STRIPE_PRICE_ANNUAL'),
+            'founding': os.environ.get('STRIPE_PRICE_FOUNDING'),
+        }
+
+        if not price_id:
+            price_id = price_map.get(plan)
+
         if not price_id:
             prices = stripe.Price.list(active=True, limit=20)
             for p in prices.data:
                 if plan == 'monthly' and p.recurring and p.recurring.interval == 'month':
                     price_id = p.id
                     break
-                elif plan in ('annual', 'founding') and p.recurring and p.recurring.interval == 'year':
+                elif plan in ('annual', 'founding', 'annual_founding', 'annual_standard') and p.recurring and p.recurring.interval == 'year':
                     price_id = p.id
                     break
             if not price_id and prices.data:
@@ -1138,8 +1149,11 @@ def create_checkout():
         if not price_id:
             return jsonify({'error': 'No prices configured in Stripe'}), 400
 
-        domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
-        domain = domains.split(',')[0]
+        app_domain = os.environ.get('APP_DOMAIN', '')
+        if not app_domain:
+            domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+            app_domain = domains.split(',')[0]
+        subscribe_domain = os.environ.get('SUBSCRIBE_DOMAIN', app_domain)
 
         db_user = db.session.get(User, user['id'])
         customer_id = db_user.stripe_customer_id if db_user else None
@@ -1153,21 +1167,24 @@ def create_checkout():
             'payment_method_types': ['card'],
             'line_items': [{'price': price_id, 'quantity': 1}],
             'mode': 'subscription',
-            'success_url': f'https://{domain}/?payment=success',
-            'cancel_url': f'https://{domain}/?payment=cancelled',
+            'success_url': f'https://{app_domain}/welcome?session_id={{CHECKOUT_SESSION_ID}}',
+            'cancel_url': f'https://{subscribe_domain}/subscribe',
             'client_reference_id': user['id'],
             'subscription_data': {
                 'trial_period_days': 14,
                 'metadata': {'plan': plan, 'user_id': user['id']},
             },
-            'metadata': {'plan': plan},
+            'metadata': {'plan': plan, 'user_id': user['id']},
         }
         if customer_id:
             checkout_params['customer'] = customer_id
+        else:
+            checkout_params['customer_email'] = db_user.email if db_user else None
 
         checkout_session = stripe.checkout.Session.create(**checkout_params)
         return jsonify({'checkout_url': checkout_session.url, 'session_id': checkout_session.id})
     except Exception as e:
+        logging.error(f'Checkout error: {e}')
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/subscriptions/cancel', methods=['POST'])
@@ -1219,9 +1236,38 @@ def stripe_config():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+def maybe_assign_founding(user_id):
+    """Assign founding member status if spots remain"""
+    counter = FoundingCounter.query.first()
+    if not counter:
+        return
+    user = db.session.get(User, user_id)
+    if not user or user.founding_member:
+        return
+    if counter.current_count < 500 and not counter.closed:
+        counter.current_count += 1
+        user.founding_member = True
+        user.founding_number = counter.current_count
+        if counter.current_count >= 500:
+            counter.closed = True
+        db.session.commit()
+
+def _find_user_from_webhook(data_obj):
+    """Find user by client_reference_id, metadata user_id, or customer id"""
+    user_id = data_obj.get('client_reference_id') or data_obj.get('metadata', {}).get('user_id')
+    if user_id:
+        return db.session.get(User, user_id)
+    cust_id = data_obj.get('customer')
+    if cust_id:
+        return User.query.filter_by(stripe_customer_id=cust_id).first()
+    return None
+
+@app.route('/webhooks/stripe', methods=['POST'])
 @app.route('/api/stripe/webhook', methods=['POST'])
 def stripe_webhook():
-    """Handle Stripe webhook events"""
+    """Handle Stripe webhook events.
+    Listens for: checkout.session.completed, customer.subscription.updated,
+    customer.subscription.deleted, invoice.paid, invoice.payment_failed"""
     import stripe as stripe_lib
     from stripe_client import get_stripe_client
     get_stripe_client()
@@ -1243,9 +1289,10 @@ def stripe_webhook():
 
         event_type = event.get('type', '')
         data_obj = event.get('data', {}).get('object', {})
+        logging.info(f'Stripe webhook: {event_type}')
 
         if event_type == 'checkout.session.completed':
-            user_id = data_obj.get('client_reference_id')
+            user_id = data_obj.get('client_reference_id') or data_obj.get('metadata', {}).get('user_id')
             plan = data_obj.get('metadata', {}).get('plan', 'monthly')
             if user_id:
                 user = db.session.get(User, user_id)
@@ -1273,15 +1320,9 @@ def stripe_webhook():
                     else:
                         user.subscription_status = 'active'
                         user.is_premium = True
-                    if plan in ('annual', 'founding'):
-                        counter = FoundingCounter.query.first()
-                        if counter and not counter.closed and not user.founding_member:
-                            counter.current_count += 1
-                            user.founding_member = True
-                            user.founding_number = counter.current_count
-                            if counter.current_count >= 500:
-                                counter.closed = True
                     db.session.commit()
+                    if plan in ('annual', 'founding', 'annual_founding'):
+                        maybe_assign_founding(user_id)
 
         elif event_type == 'customer.subscription.updated':
             cust_id = data_obj.get('customer')
@@ -1319,6 +1360,32 @@ def stripe_webhook():
                     user.subscription_status = 'cancelled'
                     user.is_premium = False
                     db.session.commit()
+                    logging.info(f'Subscription cancelled for user {user.email}')
+
+        elif event_type == 'invoice.paid':
+            cust_id = data_obj.get('customer')
+            if cust_id:
+                user = User.query.filter_by(stripe_customer_id=cust_id).first()
+                if user:
+                    user.subscription_status = 'active'
+                    user.is_premium = True
+                    lines = data_obj.get('lines', {}).get('data', [])
+                    for line in lines:
+                        period_end = line.get('period', {}).get('end')
+                        if period_end:
+                            user.current_period_end = datetime.fromtimestamp(period_end)
+                            break
+                    db.session.commit()
+                    logging.info(f'Invoice paid for user {user.email}')
+
+        elif event_type == 'invoice.payment_failed':
+            cust_id = data_obj.get('customer')
+            if cust_id:
+                user = User.query.filter_by(stripe_customer_id=cust_id).first()
+                if user:
+                    user.subscription_status = 'past_due'
+                    db.session.commit()
+                    logging.warning(f'Payment failed for user {user.email}')
 
     except Exception as e:
         logging.error(f'Webhook error: {e}')

@@ -50,7 +50,19 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
       setShowAuth(true);
       return;
     }
-    window.open('https://sharppicks.ai/subscribe', '_blank');
+    setCheckoutLoading(true);
+    try {
+      const data = await apiPost('/subscriptions/create-checkout', { plan });
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else if (data.error) {
+        alert(data.error);
+      }
+    } catch (e) {
+      alert('Unable to start checkout. Please try again.');
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   if (!user) {

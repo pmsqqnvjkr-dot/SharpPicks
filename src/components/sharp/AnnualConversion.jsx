@@ -15,7 +15,20 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
   const userProfit = user?.net_profit || '+$134';
 
   const handleSwitch = async () => {
-    window.open('https://sharppicks.ai/subscribe', '_blank');
+    setLoading(true);
+    try {
+      const plan = user?.founding_member ? 'founding' : 'annual';
+      const data = await apiPost('/subscriptions/create-checkout', { plan });
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else if (data.error) {
+        alert(data.error);
+      }
+    } catch (e) {
+      alert('Unable to start checkout. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

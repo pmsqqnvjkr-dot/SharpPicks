@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 import { SportProvider } from '../hooks/useSport';
 import TabNav from '../components/sharp/TabNav';
@@ -10,10 +11,65 @@ import ProfileTab from '../components/sharp/ProfileTab';
 import LandingPage from '../components/sharp/LandingPage';
 import OnboardingFlow from '../components/sharp/OnboardingFlow';
 
+function WelcomeScreen({ onContinue }) {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: 'var(--bg-primary)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '40px 24px',
+      textAlign: 'center',
+    }}>
+      <div style={{
+        width: '80px', height: '80px', borderRadius: '20px',
+        background: 'linear-gradient(135deg, var(--green-profit), #00b377)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginBottom: '28px',
+      }}>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+      </div>
+      <h1 style={{
+        fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 600,
+        color: 'var(--text-primary)', marginBottom: '12px',
+      }}>Welcome to Sharp Picks Pro</h1>
+      <p style={{
+        fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.6',
+        maxWidth: '340px', marginBottom: '8px',
+      }}>
+        Your 14-day free trial has started. You now have full access to every qualified pick, edge analysis, and performance tracking.
+      </p>
+      <p style={{
+        fontSize: '13px', color: 'var(--text-tertiary)', lineHeight: '1.5',
+        maxWidth: '320px', marginBottom: '36px',
+      }}>
+        Most days, the model finds no edge. That silence is the product working. When it speaks, you'll see the full decision.
+      </p>
+      <button
+        onClick={onContinue}
+        style={{
+          padding: '16px 48px',
+          background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
+          border: 'none', borderRadius: '14px',
+          color: '#fff', fontSize: '16px', fontWeight: 700,
+          cursor: 'pointer', fontFamily: 'var(--font-sans)',
+        }}
+      >View Today's Analysis</button>
+    </div>
+  );
+}
+
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { user, loading, checkAuth } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('picks');
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [profileScreen, setProfileScreen] = useState(null);
   const [profileScreenData, setProfileScreenData] = useState(null);
   const [pickToTrack, setPickToTrack] = useState(null);
@@ -29,6 +85,18 @@ function AppContent() {
     if (data?.pickToTrack) setPickToTrack(data.pickToTrack);
     if (data?.screenData) setProfileScreenData(data.screenData);
   };
+
+  useEffect(() => {
+    if (location.pathname === '/welcome') {
+      if (checkAuth) checkAuth();
+      setShowWelcome(true);
+    }
+    if (location.pathname === '/subscribe' && user) {
+      setActiveTab('profile');
+      setProfileScreen('upgrade');
+      navigate('/', { replace: true });
+    }
+  }, [location.pathname, user]);
 
   useEffect(() => {
     if (user) {
@@ -68,6 +136,13 @@ function AppContent() {
 
   if (!user) {
     return <LandingPage />;
+  }
+
+  if (showWelcome) {
+    return <WelcomeScreen onContinue={() => {
+      setShowWelcome(false);
+      navigate('/', { replace: true });
+    }} />;
   }
 
   if (showOnboarding) {
