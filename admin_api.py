@@ -318,11 +318,16 @@ def health_checks():
             mode = 'live' if balance.get('livemode') else 'test'
             return {'status': 'ok', 'latency_ms': latency, 'balance': f'${available:.2f}', 'mode': mode}
         except Exception as e:
-            msg = str(e)[:80]
-            if 'not found' in msg.lower() or 'not set' in msg.lower():
-                return {'status': 'error', 'message': 'STRIPE key not configured'}
+            raw = str(e)
             logging.error(f"Stripe health check failed: {e}")
-            return {'status': 'error', 'message': msg}
+            if 'invalid api key' in raw.lower():
+                return {'status': 'error', 'message': 'Invalid API key'}
+            if 'not found' in raw.lower() or 'not set' in raw.lower():
+                return {'status': 'error', 'message': 'STRIPE key not configured'}
+            safe_msg = raw.split('\n')[0][:60]
+            import re
+            safe_msg = re.sub(r'(sk_live_|sk_test_|rk_live_|rk_test_)\S+', '***', safe_msg)
+            return {'status': 'error', 'message': safe_msg}
 
     results['postgresql'] = check_postgres()
 
