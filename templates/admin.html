@@ -573,32 +573,16 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     </div>
   </div>
 
-  <div class="panel">
-    <div class="panel-label">External Services <span class="status-dot green"></span></div>
-    <div class="status-bar-row">
-      <div class="status-indicator ok"></div>
-      <span class="status-name">The Odds API</span>
-      <span class="status-val">OK</span>
-    </div>
-    <div class="status-bar-row">
-      <div class="status-indicator ok"></div>
-      <span class="status-name">Stripe</span>
-      <span class="status-val">OK</span>
-    </div>
-    <div class="status-bar-row">
-      <div class="status-indicator ok"></div>
-      <span class="status-name">PostgreSQL</span>
-      <span class="status-val">OK</span>
-    </div>
-    <div class="status-bar-row">
-      <div class="status-indicator ok"></div>
-      <span class="status-name">Resend (Email)</span>
-      <span class="status-val">OK</span>
-    </div>
-    <div class="status-bar-row">
-      <div class="status-indicator ok"></div>
-      <span class="status-name">ESPN Data</span>
-      <span class="status-val">OK</span>
+  <div class="panel wide-2">
+    <div class="panel-label">External Services <span class="status-dot" id="health-overall-dot"></span></div>
+    <div class="metric-sub" style="margin-bottom:8px" id="health-checked-at">Checking...</div>
+    <div id="health-services-list">
+      <div class="status-bar-row"><div class="status-indicator" id="hc-postgresql-dot"></div><span class="status-name">PostgreSQL</span><span class="status-val" id="hc-postgresql-val">...</span></div>
+      <div class="status-bar-row"><div class="status-indicator" id="hc-odds_api-dot"></div><span class="status-name">The Odds API</span><span class="status-val" id="hc-odds_api-val">...</span></div>
+      <div class="status-bar-row"><div class="status-indicator" id="hc-balldontlie-dot"></div><span class="status-name">balldontlie</span><span class="status-val" id="hc-balldontlie-val">...</span></div>
+      <div class="status-bar-row"><div class="status-indicator" id="hc-espn-dot"></div><span class="status-name">ESPN</span><span class="status-val" id="hc-espn-val">...</span></div>
+      <div class="status-bar-row"><div class="status-indicator" id="hc-resend-dot"></div><span class="status-name">Resend (Email)</span><span class="status-val" id="hc-resend-val">...</span></div>
+      <div class="status-bar-row"><div class="status-indicator" id="hc-stripe-dot"></div><span class="status-name">Stripe</span><span class="status-val" id="hc-stripe-val">...</span></div>
     </div>
   </div>
 
@@ -808,6 +792,53 @@ async function loadDashboard() {
 
 loadDashboard();
 setInterval(loadDashboard, 30000);
+
+function hcStatusClass(s) { return s === 'ok' ? 'ok' : s === 'warn' ? 'warn' : 'err'; }
+function hcDotClass(s) { return s === 'ok' ? 'green' : s === 'warn' ? 'amber' : 'red'; }
+
+function hcFormatVal(svc) {
+  if (svc.status === 'ok') {
+    let val = svc.latency_ms + 'ms';
+    if (svc.requests_remaining) val += ' · ' + svc.requests_remaining + ' left';
+    if (svc.games_today !== undefined) val += ' · ' + svc.games_today + ' games';
+    if (svc.balance) val += ' · ' + svc.balance;
+    if (svc.domains !== undefined) val += ' · ' + svc.verified + '/' + svc.domains + ' domains';
+    if (svc.mode) val += ' · ' + svc.mode;
+    return val;
+  }
+  return svc.message || svc.status.toUpperCase();
+}
+
+async function loadHealthChecks() {
+  try {
+    const res = await fetch('/api/admin/health-checks', { credentials: 'include' });
+    if (!res.ok) return;
+    const d = await res.json();
+
+    const services = ['postgresql', 'odds_api', 'balldontlie', 'espn', 'resend', 'stripe'];
+    services.forEach(key => {
+      const svc = d[key];
+      if (!svc) return;
+      const dot = document.getElementById('hc-' + key + '-dot');
+      const val = document.getElementById('hc-' + key + '-val');
+      if (dot) { dot.className = 'status-indicator ' + hcStatusClass(svc.status); }
+      if (val) {
+        val.textContent = hcFormatVal(svc);
+        val.style.color = svc.status === 'ok' ? 'var(--green)' : svc.status === 'warn' ? 'var(--amber)' : 'var(--red)';
+      }
+    });
+
+    const overall = d._summary;
+    const overallDot = document.getElementById('health-overall-dot');
+    if (overallDot) overallDot.className = 'status-dot ' + hcDotClass(overall.overall);
+    document.getElementById('health-checked-at').textContent = 'Last checked: ' + overall.checked_at;
+  } catch (err) {
+    console.error('Health check error:', err);
+  }
+}
+
+loadHealthChecks();
+setInterval(loadHealthChecks, 60000);
 </script>
 
 </body>

@@ -1,8 +1,13 @@
 from flask import Blueprint, jsonify, request
 from models import db, User, Pick, Pass, ModelRun, Referral, FoundingCounter, TrackedBet, Insight
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, text
 from zoneinfo import ZoneInfo
+import os
+import requests
+import time
+import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 admin_bp = Blueprint('admin_api', __name__)
 ET = ZoneInfo('America/New_York')
@@ -184,3 +189,163 @@ def command_center_data():
         },
         'timestamp': now_et.strftime('%b %d, %Y · %-I:%M:%S %p EST'),
     })
+
+
+@admin_bp.route('/api/admin/health-checks')
+def health_checks():
+    admin = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    results = {}
+
+    def check_postgres():
+        try:
+            start = time.time()
+            db.session.execute(text('SELECT 1'))
+            db.session.rollback()
+            latency = round((time.time() - start) * 1000)
+            return {'status': 'ok', 'latency_ms': latency}
+        except Exception as e:
+            logging.error(f"PostgreSQL health check failed: {e}")
+            return {'status': 'error', 'message': str(e)[:80]}
+
+    def check_odds_api():
+        api_key = os.environ.get('ODDS_API_KEY')
+        if not api_key:
+            return {'status': 'error', 'message': 'ODDS_API_KEY not set'}
+        try:
+            start = time.time()
+            resp = requests.get(
+                'https://api.the-odds-api.com/v4/sports/',
+                params={'apiKey': api_key},
+                timeout=8
+            )
+            latency = round((time.time() - start) * 1000)
+            remaining = resp.headers.get('x-requests-remaining', '?')
+            used = resp.headers.get('x-requests-used', '?')
+            if resp.status_code == 200:
+                return {'status': 'ok', 'latency_ms': latency, 'requests_remaining': remaining, 'requests_used': used}
+            elif resp.status_code == 401:
+                return {'status': 'error', 'message': 'Invalid API key'}
+            else:
+                return {'status': 'warn', 'message': f'HTTP {resp.status_code}', 'latency_ms': latency}
+        except requests.Timeout:
+            return {'status': 'warn', 'message': 'Timeout (8s)'}
+        except Exception as e:
+            logging.error(f"Odds API health check failed: {e}")
+            return {'status': 'error', 'message': str(e)[:80]}
+
+    def check_balldontlie():
+        api_key = os.environ.get('BALLDONTLIE_API_KEY')
+        if not api_key:
+            return {'status': 'error', 'message': 'BALLDONTLIE_API_KEY not set'}
+        try:
+            start = time.time()
+            resp = requests.get(
+                'https://api.balldontlie.io/v1/teams',
+                headers={'Authorization': api_key},
+                timeout=8
+            )
+            latency = round((time.time() - start) * 1000)
+            if resp.status_code == 200:
+                return {'status': 'ok', 'latency_ms': latency}
+            elif resp.status_code == 401:
+                return {'status': 'error', 'message': 'Invalid API key'}
+            else:
+                return {'status': 'warn', 'message': f'HTTP {resp.status_code}', 'latency_ms': latency}
+        except requests.Timeout:
+            return {'status': 'warn', 'message': 'Timeout (8s)'}
+        except Exception as e:
+            logging.error(f"balldontlie health check failed: {e}")
+            return {'status': 'error', 'message': str(e)[:80]}
+
+    def check_espn():
+        try:
+            start = time.time()
+            resp = requests.get(
+                'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard',
+                timeout=8
+            )
+            latency = round((time.time() - start) * 1000)
+            if resp.status_code == 200:
+                data = resp.json()
+                game_count = len(data.get('events', []))
+                return {'status': 'ok', 'latency_ms': latency, 'games_today': game_count}
+            else:
+                return {'status': 'warn', 'message': f'HTTP {resp.status_code}', 'latency_ms': latency}
+        except requests.Timeout:
+            return {'status': 'warn', 'message': 'Timeout (8s)'}
+        except Exception as e:
+            logging.error(f"ESPN health check failed: {e}")
+            return {'status': 'error', 'message': str(e)[:80]}
+
+    def check_resend():
+        api_key = os.environ.get('RESEND_API_KEY')
+        if not api_key:
+            return {'status': 'error', 'message': 'RESEND_API_KEY not set'}
+        try:
+            start = time.time()
+            resp = requests.get(
+                'https://api.resend.com/domains',
+                headers={'Authorization': f'Bearer {api_key}'},
+                timeout=8
+            )
+            latency = round((time.time() - start) * 1000)
+            if resp.status_code == 200:
+                domains = resp.json().get('data', [])
+                verified = [d for d in domains if d.get('status') == 'verified']
+                return {'status': 'ok', 'latency_ms': latency, 'domains': len(domains), 'verified': len(verified)}
+            elif resp.status_code == 401:
+                return {'status': 'error', 'message': 'Invalid API key'}
+            else:
+                return {'status': 'warn', 'message': f'HTTP {resp.status_code}', 'latency_ms': latency}
+        except requests.Timeout:
+            return {'status': 'warn', 'message': 'Timeout (8s)'}
+        except Exception as e:
+            logging.error(f"Resend health check failed: {e}")
+            return {'status': 'error', 'message': str(e)[:80]}
+
+    def check_stripe():
+        try:
+            from stripe_client import get_stripe_client
+            start = time.time()
+            stripe_client = get_stripe_client()
+            balance = stripe_client.Balance.retrieve()
+            latency = round((time.time() - start) * 1000)
+            available = sum(a.get('amount', 0) for a in balance.get('available', [])) / 100
+            mode = 'live' if balance.get('livemode') else 'test'
+            return {'status': 'ok', 'latency_ms': latency, 'balance': f'${available:.2f}', 'mode': mode}
+        except Exception as e:
+            msg = str(e)[:80]
+            if 'not found' in msg.lower() or 'not set' in msg.lower():
+                return {'status': 'error', 'message': 'STRIPE key not configured'}
+            logging.error(f"Stripe health check failed: {e}")
+            return {'status': 'error', 'message': msg}
+
+    results['postgresql'] = check_postgres()
+
+    external_checks = {
+        'odds_api': check_odds_api,
+        'balldontlie': check_balldontlie,
+        'espn': check_espn,
+        'resend': check_resend,
+        'stripe': check_stripe,
+    }
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        futures = {pool.submit(fn): name for name, fn in external_checks.items()}
+        for future in as_completed(futures, timeout=12):
+            name = futures[future]
+            try:
+                results[name] = future.result()
+            except Exception as e:
+                results[name] = {'status': 'error', 'message': f'Check failed: {str(e)[:60]}'}
+
+    all_ok = all(r['status'] == 'ok' for r in results.values())
+    any_error = any(r['status'] == 'error' for r in results.values())
+    results['_summary'] = {
+        'overall': 'ok' if all_ok else ('error' if any_error else 'warn'),
+        'checked_at': datetime.now(ET).strftime('%b %d · %-I:%M:%S %p'),
+    }
+
+    return jsonify(results)
