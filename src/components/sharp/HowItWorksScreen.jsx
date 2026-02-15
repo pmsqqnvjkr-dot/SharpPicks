@@ -12,7 +12,7 @@ export default function HowItWorksScreen({ onBack }) {
     {
       title: 'The model',
       icon: '&#9881;',
-      content: `Our ensemble machine learning model analyzes ${modelInfo ? modelInfo.num_features : 'dozens of'} features per game including pace ratings, team strength metrics, injury impact scores, schedule fatigue, travel distance, altitude adjustments, and line movement patterns. It was trained on ${modelInfo ? trainingSize : 'thousands of'} historical games and achieves a 68.6% walk-forward ATS performance with a ${modelInfo ? brier : 'low'} Brier score.`,
+      content: `Our ensemble machine learning model analyzes ${modelInfo ? modelInfo.num_features : 'dozens of'} features per NBA game including pace ratings, team strength metrics, injury impact scores, schedule fatigue, travel distance, altitude adjustments, and line movement patterns. It was trained on ${modelInfo ? trainingSize : 'thousands of'} historical NBA games and achieves a 68.6% walk-forward ATS performance with a ${modelInfo ? brier : 'low'} Brier score.`,
     },
     {
       title: 'Edge detection',
@@ -71,7 +71,7 @@ export default function HowItWorksScreen({ onBack }) {
             fontSize: '15px', color: 'var(--text-secondary)',
             lineHeight: '1.7', fontFamily: 'var(--font-sans)',
           }}>
-            Sharp Picks is a discipline system, not a tips service. The model runs daily, analyzes every game, and publishes a pick only when the statistical edge exceeds a strict threshold. Most days, it says nothing. That restraint is the product.
+            Sharp Picks is a discipline system, not a tips service. The model runs daily, analyzes every NBA game, and publishes a pick only when the statistical edge exceeds a strict threshold. Most days, it says nothing. That restraint is the product.
           </p>
         </div>
 
