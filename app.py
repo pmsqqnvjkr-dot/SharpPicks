@@ -1134,16 +1134,33 @@ def create_checkout():
         if not price_id:
             price_id = price_map.get(plan)
 
+        if price_id:
+            try:
+                stripe.Price.retrieve(price_id)
+            except Exception:
+                logging.warning(f"Price {price_id} not found in connected Stripe account, auto-discovering...")
+                price_id = None
+
         if not price_id:
             prices = stripe.Price.list(active=True, limit=20)
+            monthly_prices = []
+            yearly_prices = []
             for p in prices.data:
-                if plan == 'monthly' and p.recurring and p.recurring.interval == 'month':
-                    price_id = p.id
-                    break
-                elif plan in ('annual', 'founding', 'annual_founding', 'annual_standard') and p.recurring and p.recurring.interval == 'year':
-                    price_id = p.id
-                    break
-            if not price_id and prices.data:
+                if p.recurring:
+                    if p.recurring.interval == 'month':
+                        monthly_prices.append(p)
+                    elif p.recurring.interval == 'year':
+                        yearly_prices.append(p)
+
+            if plan == 'monthly' and monthly_prices:
+                price_id = monthly_prices[0].id
+            elif plan in ('founding', 'annual_founding') and yearly_prices:
+                founding = [p for p in yearly_prices if p.unit_amount == 9900]
+                price_id = founding[0].id if founding else yearly_prices[0].id
+            elif plan in ('annual', 'annual_standard') and yearly_prices:
+                standard = [p for p in yearly_prices if p.unit_amount == 14900]
+                price_id = standard[0].id if standard else yearly_prices[-1].id
+            elif prices.data:
                 price_id = prices.data[0].id
 
         if not price_id:
