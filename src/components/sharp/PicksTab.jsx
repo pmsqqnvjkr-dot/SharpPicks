@@ -47,27 +47,29 @@ export default function PicksTab({ onNavigate }) {
           return daysLeft > 0 ? (
             <div style={{
               background: 'linear-gradient(135deg, rgba(10,13,20,0.95) 0%, rgba(15,20,30,0.95) 100%)',
-              border: '1px solid rgba(52,211,153,0.15)',
+              border: `1px solid ${daysLeft <= 2 ? 'rgba(251,191,36,0.25)' : daysLeft <= 5 ? 'rgba(251,191,36,0.15)' : 'rgba(52,211,153,0.12)'}`,
               borderRadius: '14px',
               padding: '16px 18px',
               marginBottom: '16px',
               position: 'relative',
               overflow: 'hidden',
+              ...(daysLeft <= 1 ? { animation: 'trialPulse 3s ease-in-out infinite' } : {}),
             }}>
+              <style>{`@keyframes trialPulse { 0%, 100% { box-shadow: 0 0 0 rgba(251,191,36,0); } 50% { box-shadow: 0 0 12px rgba(251,191,36,0.08); } }`}</style>
               <div style={{
-                position: 'absolute', top: 0, right: 0, bottom: 0, width: '80px',
-                background: 'radial-gradient(circle at right center, rgba(52,211,153,0.12) 0%, transparent 70%)',
+                position: 'absolute', top: 0, right: 0, bottom: 0, width: '60px',
+                background: 'radial-gradient(circle at right center, rgba(52,211,153,0.08) 0%, transparent 70%)',
                 pointerEvents: 'none',
               }} />
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                marginBottom: '12px',
+                marginBottom: '10px',
               }}>
                 <div style={{
                   fontFamily: 'var(--font-mono)',
                   fontSize: '11px',
                   fontWeight: 700,
-                  color: 'var(--green-profit)',
+                  color: daysLeft <= 2 ? '#FBBF24' : 'var(--green-profit)',
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                 }}>PRO TRIAL &bull; {daysLeft} {daysLeft === 1 ? 'DAY' : 'DAYS'} LEFT</div>
@@ -75,9 +77,9 @@ export default function PicksTab({ onNavigate }) {
                   fontFamily: 'var(--font-mono)',
                   fontSize: '22px',
                   fontWeight: 800,
-                  color: 'var(--green-profit)',
+                  color: daysLeft <= 2 ? '#FBBF24' : 'var(--green-profit)',
                   lineHeight: 1,
-                  textShadow: '0 0 12px rgba(52,211,153,0.3)',
+                  textShadow: `0 0 10px ${daysLeft <= 2 ? 'rgba(251,191,36,0.3)' : 'rgba(52,211,153,0.25)'}`,
                 }}>{daysLeft}d</div>
               </div>
               <div style={{
@@ -86,13 +88,15 @@ export default function PicksTab({ onNavigate }) {
                 color: 'var(--text-secondary)',
                 lineHeight: 1.5,
                 marginBottom: '14px',
-              }}>Your edge expires in {daysLeft} {daysLeft === 1 ? 'day' : 'days'}. You're seeing everything right now — don't lose it.</div>
+              }}>You're inside the full model. {daysLeft <= 1 ? 'Access locks tomorrow.' : `In ${daysLeft} days, access narrows.`}</div>
               <button
                 onClick={() => onNavigate && onNavigate('profile', 'upgrade')}
                 style={{
                   width: '100%',
                   padding: '12px 24px',
-                  background: 'linear-gradient(135deg, #4F86F7 0%, #3B6FE0 100%)',
+                  background: daysLeft <= 2
+                    ? 'linear-gradient(135deg, #5A93F8 0%, #4479E5 100%)'
+                    : 'linear-gradient(135deg, #4F86F7 0%, #3B6FE0 100%)',
                   border: 'none',
                   borderRadius: '10px',
                   color: '#fff',
@@ -101,11 +105,21 @@ export default function PicksTab({ onNavigate }) {
                   cursor: 'pointer',
                   fontFamily: 'var(--font-sans)',
                   letterSpacing: '0.02em',
-                  boxShadow: '0 0 20px rgba(79,134,247,0.25), 0 2px 8px rgba(0,0,0,0.3)',
+                  boxShadow: daysLeft <= 2
+                    ? '0 0 24px rgba(90,147,248,0.3), 0 2px 8px rgba(0,0,0,0.3)'
+                    : '0 0 16px rgba(79,134,247,0.2), 0 2px 8px rgba(0,0,0,0.3)',
                   position: 'relative',
                   zIndex: 1,
                 }}
               >Keep Pro Access</button>
+              <div style={{
+                textAlign: 'center',
+                marginTop: '8px',
+                fontFamily: 'var(--font-sans)',
+                fontSize: '11px',
+                color: 'rgba(255,255,255,0.3)',
+                letterSpacing: '0.02em',
+              }}>Cancel anytime.</div>
             </div>
           ) : null;
         })()}
