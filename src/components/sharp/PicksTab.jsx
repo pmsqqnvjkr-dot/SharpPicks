@@ -55,7 +55,10 @@ export default function PicksTab({ onNavigate }) {
               overflow: 'hidden',
               ...(daysLeft <= 1 ? { animation: 'trialPulse 3s ease-in-out infinite' } : {}),
             }}>
-              <style>{`@keyframes trialPulse { 0%, 100% { box-shadow: 0 0 0 rgba(251,191,36,0); } 50% { box-shadow: 0 0 12px rgba(251,191,36,0.08); } }`}</style>
+              <style>{`
+                @keyframes trialPulse { 0%, 100% { box-shadow: 0 0 0 rgba(251,191,36,0); } 50% { box-shadow: 0 0 12px rgba(251,191,36,0.08); } }
+                @keyframes ctaEdgeGlow { 0%, 100% { box-shadow: 0 0 16px rgba(79,134,247,0.2), 0 2px 8px rgba(0,0,0,0.3); } 50% { box-shadow: 0 0 24px rgba(79,134,247,0.35), 0 2px 8px rgba(0,0,0,0.3); } }
+              `}</style>
               <div style={{
                 position: 'absolute', top: 0, right: 0, bottom: 0, width: '60px',
                 background: 'radial-gradient(circle at right center, rgba(52,211,153,0.08) 0%, transparent 70%)',
@@ -88,7 +91,7 @@ export default function PicksTab({ onNavigate }) {
                 color: 'var(--text-secondary)',
                 lineHeight: 1.5,
                 marginBottom: '14px',
-              }}>You're inside the full model. {daysLeft <= 1 ? 'Access locks tomorrow.' : `In ${daysLeft} days, access narrows.`}</div>
+              }}>You're inside the full model. {daysLeft <= 1 ? 'Picks lock tomorrow.' : `In ${daysLeft} days, picks lock.`}</div>
               <button
                 onClick={() => onNavigate && onNavigate('profile', 'upgrade')}
                 style={{
@@ -110,6 +113,7 @@ export default function PicksTab({ onNavigate }) {
                     : '0 0 16px rgba(79,134,247,0.2), 0 2px 8px rgba(0,0,0,0.3)',
                   position: 'relative',
                   zIndex: 1,
+                  animation: 'ctaEdgeGlow 4s ease-in-out infinite',
                 }}
               >Keep Pro Access</button>
               <div style={{
@@ -117,9 +121,9 @@ export default function PicksTab({ onNavigate }) {
                 marginTop: '8px',
                 fontFamily: 'var(--font-sans)',
                 fontSize: '11px',
-                color: 'rgba(255,255,255,0.3)',
+                color: 'rgba(255,255,255,0.25)',
                 letterSpacing: '0.02em',
-              }}>Cancel anytime.</div>
+              }}>Don't lose full model transparency.</div>
             </div>
           ) : null;
         })()}
