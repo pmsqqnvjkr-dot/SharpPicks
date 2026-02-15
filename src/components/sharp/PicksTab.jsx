@@ -45,31 +45,35 @@ export default function PicksTab({ onNavigate }) {
         {user && user.subscription_status === 'trial' && user.trial_end_date && (() => {
           const daysLeft = Math.max(0, Math.ceil((new Date(user.trial_end_date) - new Date()) / (1000 * 60 * 60 * 24)));
           return daysLeft > 0 ? (
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(79,134,247,0.12) 0%, rgba(52,211,153,0.08) 100%)',
-              border: '1px solid rgba(79,134,247,0.25)',
-              borderRadius: '12px',
-              padding: '14px 18px',
-              marginBottom: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-            }}>
+            <div
+              onClick={() => onNavigate && onNavigate('profile', 'upgrade')}
+              style={{
+                background: 'linear-gradient(135deg, rgba(79,134,247,0.25) 0%, rgba(52,211,153,0.18) 100%)',
+                border: '1px solid rgba(79,134,247,0.4)',
+                borderRadius: '12px',
+                padding: '14px 18px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                cursor: 'pointer',
+              }}>
               <div>
                 <div style={{
                   fontFamily: 'var(--font-sans)',
                   fontSize: '13px',
-                  fontWeight: 600,
-                  color: '#fff',
+                  fontWeight: 700,
+                  color: 'var(--blue-primary)',
                   marginBottom: '3px',
+                  letterSpacing: '0.02em',
                 }}>Pro Trial Active</div>
                 <div style={{
                   fontFamily: 'var(--font-sans)',
                   fontSize: '12px',
                   color: 'var(--text-secondary)',
                   lineHeight: 1.4,
-                }}>Full Pro access for {daysLeft} {daysLeft === 1 ? 'day' : 'days'}. Subscribe to keep your edge.</div>
+                }}>Full Pro access for {daysLeft} {daysLeft === 1 ? 'day' : 'days'}. <span style={{ color: 'var(--blue-primary)', fontWeight: 600 }}>Subscribe to keep your edge &rarr;</span></div>
               </div>
               <div style={{
                 fontFamily: 'var(--font-mono)',
