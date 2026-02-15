@@ -74,9 +74,16 @@ export default function UpgradeScreen({ onBack, user }) {
           }}>Sharp Picks Pro</h1>
           <p style={{
             fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
-            maxWidth: '320px', margin: '0 auto',
+            maxWidth: '320px', margin: '0 auto 0',
           }}>
             Full access to every qualified pick. The model runs daily — Pro sees the complete decision.
+          </p>
+          <p style={{
+            fontSize: '13px', color: 'var(--text-tertiary)', lineHeight: '1.5',
+            maxWidth: '320px', margin: '10px auto 0',
+            fontStyle: 'italic',
+          }}>
+            This is not more picks. It's full transparency.
           </p>
         </div>
 
@@ -94,7 +101,7 @@ export default function UpgradeScreen({ onBack, user }) {
               fontSize: '13px',
               color: 'var(--text-secondary)',
               lineHeight: 1.5,
-            }}>When your trial ends, picks lock.</span>
+            }}>When your trial ends, edge visibility narrows.</span>
           </div>
         )}
 
@@ -158,18 +165,18 @@ export default function UpgradeScreen({ onBack, user }) {
             <div>
               <div style={{
                 fontSize: '13px', color: 'var(--gold-pro)', fontWeight: 600,
-              }}>{spotsRemaining <= 10
-                ? `Only ${spotsRemaining} founding ${spotsRemaining === 1 ? 'spot' : 'spots'} remain at $99/yr.`
-                : 'Founding member spots'
-              }</div>
+              }}>Founding Members: {spotsRemaining} / {foundingData?.total || 500} Remaining</div>
               <div style={{
-                fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
-              }}>Lock in $99/yr — rate preserved forever</div>
+                fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '3px',
+              }}>{spotsRemaining <= 20
+                ? `Only ${spotsRemaining} ${spotsRemaining === 1 ? 'spot' : 'spots'} left at this price.`
+                : 'Lock in $99/yr — rate preserved forever'
+              }</div>
             </div>
             <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '16px',
+              fontFamily: 'var(--font-mono)', fontSize: '18px',
               color: 'var(--gold-pro)', fontWeight: 700,
-            }}>{spotsRemaining}/{foundingData?.total || 500}</span>
+            }}>{spotsRemaining}</span>
           </div>
         )}
 
@@ -196,6 +203,7 @@ export default function UpgradeScreen({ onBack, user }) {
             cta="Subscribe Monthly"
             onSelect={() => handleSubscribe('monthly')}
             loading={checkoutLoading}
+            secondary
           />
           {!isFoundingOpen && (
             <PricingCard
@@ -242,7 +250,7 @@ export default function UpgradeScreen({ onBack, user }) {
         }}>
           <p style={{
             fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6',
-          }}>Cancel anytime — no fees, no questions.</p>
+          }}>Cancel anytime. No hidden fees. No auto price increases.</p>
         </div>
 
         <p style={{
@@ -268,14 +276,15 @@ function SectionLabel({ children }) {
   );
 }
 
-function PricingCard({ name, price, period, description, cta, onSelect, loading, highlight, badge, savings }) {
+function PricingCard({ name, price, period, description, cta, onSelect, loading, highlight, badge, savings, secondary }) {
   return (
     <div style={{
-      padding: '20px', borderRadius: '16px',
+      padding: secondary ? '16px 20px' : '20px', borderRadius: '16px',
       backgroundColor: highlight ? 'rgba(79,134,247,0.04)' : 'var(--surface-1)',
-      border: highlight ? '2px solid var(--blue-primary)' : '1px solid var(--stroke-subtle)',
+      border: highlight ? '2px solid var(--blue-primary)' : `1px solid ${secondary ? 'var(--stroke-subtle)' : 'var(--stroke-subtle)'}`,
       position: 'relative',
       ...(highlight ? { boxShadow: '0 0 20px rgba(79,134,247,0.08)' } : {}),
+      ...(secondary ? { opacity: 0.75 } : {}),
     }}>
       {badge && (
         <div style={{
@@ -292,19 +301,19 @@ function PricingCard({ name, price, period, description, cta, onSelect, loading,
         display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
         marginBottom: '4px',
       }}>
-        <span style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+        <span style={{ fontSize: secondary ? '14px' : '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
           {name}
         </span>
         <span>
           <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '24px',
+            fontFamily: 'var(--font-mono)', fontSize: secondary ? '20px' : '24px',
             fontWeight: 700, color: 'var(--text-primary)',
           }}>{price}</span>
           <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>{period}</span>
         </span>
       </div>
       <p style={{
-        fontSize: '13px', color: 'var(--text-secondary)', marginBottom: savings ? '4px' : '16px',
+        fontSize: '13px', color: 'var(--text-secondary)', marginBottom: savings ? '4px' : secondary ? '12px' : '16px',
       }}>{description}</p>
       {savings && (
         <p style={{
@@ -316,12 +325,12 @@ function PricingCard({ name, price, period, description, cta, onSelect, loading,
         onClick={onSelect}
         disabled={loading}
         style={{
-          width: '100%', padding: '14px',
+          width: '100%', padding: secondary ? '11px' : '14px',
           background: highlight ? 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))' : 'transparent',
           border: highlight ? 'none' : '1px solid var(--stroke-muted)',
           borderRadius: '12px',
-          color: highlight ? '#fff' : 'var(--text-primary)',
-          fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+          color: highlight ? '#fff' : 'var(--text-secondary)',
+          fontSize: secondary ? '13px' : '14px', fontWeight: 600, cursor: 'pointer',
           fontFamily: 'var(--font-sans)',
           opacity: loading ? 0.6 : 1,
           ...(highlight ? { boxShadow: '0 0 16px rgba(79,134,247,0.2)' } : {}),
