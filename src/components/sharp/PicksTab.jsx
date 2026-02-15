@@ -91,7 +91,7 @@ export default function PicksTab({ onNavigate }) {
                 color: 'var(--text-secondary)',
                 lineHeight: 1.5,
                 marginBottom: '14px',
-              }}>You're inside the full model. {daysLeft <= 1 ? 'Picks lock tomorrow.' : `In ${daysLeft} days, picks lock.`}</div>
+              }}>You're inside the full model. {daysLeft <= 1 ? 'Access narrows tomorrow.' : `In ${daysLeft} days, access narrows.`}</div>
               <button
                 onClick={() => onNavigate && onNavigate('profile', 'upgrade')}
                 style={{
@@ -123,7 +123,7 @@ export default function PicksTab({ onNavigate }) {
                 fontSize: '11px',
                 color: 'rgba(255,255,255,0.25)',
                 letterSpacing: '0.02em',
-              }}>Don't lose full model transparency.</div>
+              }}>Full decision visibility ends after trial.</div>
             </div>
           ) : null;
         })()}

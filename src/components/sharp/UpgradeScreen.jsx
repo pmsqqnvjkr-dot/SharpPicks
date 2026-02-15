@@ -74,20 +74,13 @@ export default function UpgradeScreen({ onBack, user }) {
           }}>Sharp Picks Pro</h1>
           <p style={{
             fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
-            maxWidth: '320px', margin: '0 auto 0',
+            maxWidth: '300px', margin: '0 auto',
           }}>
-            Full access to every qualified pick. The model runs daily — Pro sees the complete decision.
-          </p>
-          <p style={{
-            fontSize: '13px', color: 'var(--text-tertiary)', lineHeight: '1.5',
-            maxWidth: '320px', margin: '10px auto 0',
-            fontStyle: 'italic',
-          }}>
-            This is not more picks. It's full transparency.
+            Full access to every qualified decision. Not more picks. More transparency.
           </p>
           <p style={{
             fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5',
-            maxWidth: '320px', margin: '6px auto 0',
+            maxWidth: '300px', margin: '8px auto 0',
           }}>
             This is how disciplined bettors compound.
           </p>
@@ -129,7 +122,7 @@ export default function UpgradeScreen({ onBack, user }) {
                   fontFamily: 'var(--font-sans)', fontSize: '10px',
                   color: 'var(--text-tertiary)', textTransform: 'uppercase',
                   letterSpacing: '0.08em', marginTop: '2px',
-                }}>Model-Only</div>
+                }}>Model-Only Perf.</div>
               </div>
             )}
             {statsData?.roi != null && (
@@ -155,7 +148,7 @@ export default function UpgradeScreen({ onBack, user }) {
                   fontFamily: 'var(--font-sans)', fontSize: '10px',
                   color: 'var(--text-tertiary)', textTransform: 'uppercase',
                   letterSpacing: '0.08em', marginTop: '2px',
-                }}>Selectivity</div>
+                }}>Select. (vs 78% avg)</div>
               </div>
             )}
           </div>
@@ -171,25 +164,15 @@ export default function UpgradeScreen({ onBack, user }) {
             <div>
               <div style={{
                 fontSize: '13px', color: 'var(--gold-pro)', fontWeight: 600,
-              }}>{(foundingData?.total || 500) - spotsRemaining} of {foundingData?.total || 500} claimed</div>
+              }}>Founding rate closes at 500 members.</div>
               <div style={{
                 fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '3px',
-              }}>{spotsRemaining <= 20
-                ? `Only ${spotsRemaining} founding ${spotsRemaining === 1 ? 'spot' : 'spots'} left at this price.`
-                : 'Lock in $99/yr — rate preserved forever'
-              }</div>
+              }}>{spotsRemaining} remaining.</div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: '18px',
-                color: 'var(--gold-pro)', fontWeight: 700,
-              }}>{spotsRemaining}</span>
-              <div style={{
-                fontFamily: 'var(--font-sans)', fontSize: '9px',
-                color: 'var(--text-tertiary)', textTransform: 'uppercase',
-                letterSpacing: '0.06em', marginTop: '1px',
-              }}>left</div>
-            </div>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '18px',
+              color: 'var(--gold-pro)', fontWeight: 700,
+            }}>{spotsRemaining}</span>
           </div>
         )}
 
@@ -199,7 +182,7 @@ export default function UpgradeScreen({ onBack, user }) {
               name={annualLabel}
               price={annualPrice}
               period="/yr"
-              description="Founding rate locked forever"
+              description="Billed annually. Lock in rate permanently."
               cta="Claim Founding Rate"
               onSelect={() => handleSubscribe('founding')}
               loading={checkoutLoading}
@@ -212,7 +195,7 @@ export default function UpgradeScreen({ onBack, user }) {
             name="Monthly"
             price="$29"
             period="/mo"
-            description="Full access, cancel anytime"
+            description="Flexible access. Cancel anytime."
             cta="Start Monthly Access"
             onSelect={() => handleSubscribe('monthly')}
             loading={checkoutLoading}
@@ -259,11 +242,11 @@ export default function UpgradeScreen({ onBack, user }) {
           marginBottom: '16px',
         }}>
           <SectionLabel>What Changes</SectionLabel>
-          <FeatureRow icon="unlock" text="Full pick details — side, line, edge %" />
+          <FeatureRow icon="unlock" text="Full pick transparency — side, line, edge %" />
           <FeatureRow icon="chart" text="Quantified performance dashboard" />
-          <FeatureRow icon="bell" text="Real-time pick notifications" />
-          <FeatureRow icon="track" text="Pick-linked bet tracking" />
-          <FeatureRow icon="history" text="Complete pick history with analysis" />
+          <FeatureRow icon="bell" text="Real-time pick alerts" />
+          <FeatureRow icon="track" text="Pick-linked tracking" />
+          <FeatureRow icon="history" text="Complete historical analysis" />
         </div>
 
         <div style={{
@@ -272,10 +255,10 @@ export default function UpgradeScreen({ onBack, user }) {
           marginBottom: '16px',
         }}>
           <SectionLabel>What Doesn't Change</SectionLabel>
-          <FeatureRow icon="same" text="Same model, same edge threshold" />
-          <FeatureRow icon="same" text="Still max one pick per day" />
-          <FeatureRow icon="same" text="Quiet days are still the product" />
-          <FeatureRow icon="same" text="No hype, no FOMO, no volume plays" />
+          <FeatureRow icon="same" text="Same model. Same thresholds." />
+          <FeatureRow icon="same" text="Max one pick per day." />
+          <FeatureRow icon="same" text="Quiet days are intentional." />
+          <FeatureRow icon="same" text="No hype. No FOMO. No volume plays." />
         </div>
 
         <div style={{
