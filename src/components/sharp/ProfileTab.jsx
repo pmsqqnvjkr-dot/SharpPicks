@@ -551,15 +551,31 @@ function TrialSignup({ onBack }) {
   );
 }
 
+function useCardAnimations() {
+  const injected = useRef(false);
+  useEffect(() => {
+    if (injected.current) return;
+    injected.current = true;
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spBorderShimmer {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      @keyframes spGoldRing {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+}
+
 function MembershipCard({ user, isPro }) {
+  useCardAnimations();
   const isFounder = user.founding_member;
-  const tierColor = isFounder ? '#D4A017' : isPro ? 'var(--blue-primary)' : 'var(--text-tertiary)';
-  const tierGlow = isFounder ? 'rgba(212,160,23,0.25)' : isPro ? 'rgba(79,134,247,0.2)' : 'transparent';
-  const borderGrad = isFounder
-    ? 'linear-gradient(135deg, #D4A017, #B8860B, #F5C842, #D4A017)'
-    : isPro
-      ? 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep), var(--blue-primary))'
-      : 'none';
   const initial = (user.display_name || user.username || user.email || '?')[0].toUpperCase();
   const displayName = user.display_name || user.username || user.email?.split('@')[0] || '';
   const memberSince = user.created_at
@@ -574,61 +590,73 @@ function MembershipCard({ user, isPro }) {
         ? user.subscription_plan.charAt(0).toUpperCase() + user.subscription_plan.slice(1)
         : user.subscription_status || 'Free';
 
+  const borderBg = isFounder
+    ? 'linear-gradient(135deg, rgba(245,166,35,0.6) 0%, rgba(255,215,0,0.3) 25%, rgba(184,134,11,0.5) 50%, rgba(255,215,0,0.3) 75%, rgba(245,166,35,0.6) 100%)'
+    : isPro
+      ? 'linear-gradient(135deg, rgba(79,134,247,0.5) 0%, rgba(47,95,214,0.3) 50%, rgba(79,134,247,0.5) 100%)'
+      : 'var(--stroke-subtle)';
+
+  const ringBg = isFounder
+    ? 'linear-gradient(135deg, #F5A623, #FFD700, #B8860B, #FFD700, #F5A623)'
+    : isPro
+      ? 'linear-gradient(135deg, #4F86F7, #6B8BF5, #2F5FD6)'
+      : 'var(--stroke-muted)';
+
+  const crestColor = isFounder ? 'rgba(245,166,35,0.06)' : 'rgba(255,255,255,0.03)';
+
   return (
     <div style={{
-      position: 'relative',
-      borderRadius: '18px',
+      borderRadius: '20px',
       padding: '1.5px',
-      background: isFounder || isPro ? borderGrad : 'var(--stroke-subtle)',
-      marginBottom: '12px',
-      overflow: 'hidden',
+      background: borderBg,
+      backgroundSize: '200% 200%',
+      animation: isFounder || isPro ? 'spBorderShimmer 6s ease infinite' : 'none',
+      marginBottom: '16px',
     }}>
       <div style={{
         position: 'relative',
-        borderRadius: '17px',
-        padding: '22px 20px 20px',
-        background: 'linear-gradient(145deg, rgba(18,22,30,1) 0%, rgba(14,17,24,1) 50%, rgba(18,22,30,1) 100%)',
+        borderRadius: '19px',
+        padding: '24px 22px 20px',
+        backgroundColor: 'var(--surface-1)',
         overflow: 'hidden',
       }}>
-        <svg viewBox="0 0 40 40" width="120" height="120" fill="none" style={{
-          position: 'absolute', right: '-10px', top: '-10px',
-          opacity: 0.03, pointerEvents: 'none',
-        }}>
-          <path d="M20 4L6 10v10c0 9.2 6 17.4 14 20 8-2.6 14-10.8 14-20V10L20 4z" stroke="white" strokeWidth="1" fill="none"/>
-          <rect x="12" y="24" width="3" height="6" rx="1" fill="white"/>
-          <rect x="17" y="20" width="3" height="10" rx="1" fill="white"/>
-          <rect x="22" y="22" width="3" height="8" rx="1" fill="white"/>
-          <path d="M11 22L17 16L22 19L30 11" stroke="white" strokeWidth="1.5"/>
-        </svg>
-
         <div style={{
-          position: 'absolute', inset: 0, opacity: 0.04, pointerEvents: 'none',
-          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")',
-          backgroundSize: '150px',
+          position: 'absolute', inset: 0, pointerEvents: 'none', borderRadius: '19px',
+          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'0.04\'/%3E%3C/svg%3E")',
         }} />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px', position: 'relative' }}>
+        <svg viewBox="0 0 40 40" width="180" height="180" fill="none" style={{
+          position: 'absolute', right: '-20px', top: '-20px',
+          opacity: 0.8, pointerEvents: 'none',
+        }}>
+          <path d="M20 4L6 10v10c0 9.2 6 17.4 14 20 8-2.6 14-10.8 14-20V10L20 4z" stroke={crestColor} strokeWidth="1.5" fill="none"/>
+          <rect x="12" y="24" width="3" height="6" rx="1" fill={isFounder ? 'rgba(245,166,35,0.03)' : 'rgba(255,255,255,0.02)'}/>
+          <rect x="17" y="20" width="3" height="10" rx="1" fill={isFounder ? 'rgba(245,166,35,0.03)' : 'rgba(255,255,255,0.02)'}/>
+          <rect x="22" y="22" width="3" height="8" rx="1" fill={isFounder ? 'rgba(245,166,35,0.03)' : 'rgba(255,255,255,0.02)'}/>
+          <path d="M11 22L17 16L22 19L30 11" stroke={crestColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M26 11h4v4" stroke={crestColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px', position: 'relative', zIndex: 1 }}>
           <div style={{
-            width: '52px', height: '52px', borderRadius: '14px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '52px', height: '52px', borderRadius: '16px',
+            display: 'grid', placeItems: 'center',
             position: 'relative',
           }}>
             <div style={{
-              position: 'absolute', inset: '-2.5px', borderRadius: '16px',
-              background: isFounder
-                ? 'linear-gradient(135deg, #D4A017, #F5C842, #B8860B)'
-                : isPro
-                  ? 'linear-gradient(135deg, var(--blue-primary), #6B8BF5, var(--blue-deep))'
-                  : 'var(--stroke-muted)',
-              opacity: isFounder || isPro ? 1 : 0.5,
+              position: 'absolute', inset: '-3px', borderRadius: '19px',
+              background: ringBg,
+              backgroundSize: '300% 300%',
+              animation: isFounder ? 'spGoldRing 4s ease infinite' : 'none',
+              zIndex: 0,
             }} />
             <div style={{
-              position: 'relative', width: '100%', height: '100%', borderRadius: '13px',
-              backgroundColor: isFounder ? 'rgba(30,25,15,1)' : 'var(--blue-deep)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontWeight: 700, fontSize: '20px',
-              fontFamily: 'var(--font-sans)',
-              boxShadow: `0 0 20px ${tierGlow}`,
+              position: 'relative', width: '100%', height: '100%', borderRadius: '15px',
+              background: 'linear-gradient(135deg, #4F86F7, #2F5FD6)',
+              display: 'grid', placeItems: 'center',
+              fontFamily: 'var(--font-serif)', fontSize: '22px',
+              fontWeight: 700, color: 'var(--bg)',
+              zIndex: 1,
             }}>
               {initial}
             </div>
@@ -636,42 +664,57 @@ function MembershipCard({ user, isPro }) {
 
           <div style={{ flex: 1 }}>
             <div style={{
-              fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)',
-              display: 'flex', alignItems: 'center', gap: '8px',
+              display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px',
             }}>
-              {displayName}
+              <span style={{
+                fontFamily: 'var(--font-serif)', fontSize: '20px',
+                fontWeight: 700, color: 'var(--text-primary)',
+              }}>{displayName}</span>
               {isPro && (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                  <circle cx="12" cy="12" r="10" fill="#22C55E"/>
-                  <path d="M8 12l2.5 2.5L16 9" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <div style={{
+                  width: '20px', height: '20px', borderRadius: '50%',
+                  background: 'var(--green, #34D399)',
+                  display: 'grid', placeItems: 'center', flexShrink: 0,
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--bg, #0A0D14)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6L9 17l-5-5"/>
+                  </svg>
+                </div>
               )}
             </div>
             <div style={{
-              fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '2px',
+              fontFamily: 'var(--font-mono)', fontSize: '11px',
+              color: 'var(--text-tertiary)', fontWeight: 400,
             }}>{user.email}</div>
           </div>
         </div>
 
         {isFounder && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: '10px',
-            marginBottom: '16px', position: 'relative',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: '16px', position: 'relative', zIndex: 1,
           }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '28px', height: '28px', display: 'grid', placeItems: 'center' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#F5A623" style={{ filter: 'drop-shadow(0 0 6px rgba(245,166,35,0.4))' }}>
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+              </div>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px',
+                fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase',
+                background: 'linear-gradient(135deg, #FFD700, #F5A623, #B8860B)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>Founding Member</span>
+            </div>
             <span style={{
-              fontSize: '15px', filter: 'drop-shadow(0 0 4px rgba(212,160,23,0.5))',
-            }}>&#9733;</span>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '11px',
-              letterSpacing: '1.5px', textTransform: 'uppercase',
-              color: '#D4A017', fontWeight: 700,
-            }}>Founding Member</span>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '22px',
-              fontWeight: 800, color: '#D4A017',
-              marginLeft: 'auto',
-              textShadow: '0 0 12px rgba(212,160,23,0.3)',
-              letterSpacing: '-0.5px',
+              fontFamily: 'var(--font-mono)', fontSize: '32px',
+              fontWeight: 800, lineHeight: 1,
+              background: 'linear-gradient(135deg, #FFD700, #F5A623)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              filter: 'drop-shadow(0 0 8px rgba(245,166,35,0.2))',
             }}>
               #{String(user.founding_number || '').padStart(3, '0')}
             </span>
@@ -679,38 +722,26 @@ function MembershipCard({ user, isPro }) {
         )}
 
         <div style={{
-          borderTop: `1px solid ${isFounder ? 'rgba(212,160,23,0.15)' : 'var(--stroke-subtle)'}`,
-          paddingTop: '14px',
+          borderTop: `1px solid ${isFounder ? 'rgba(245,166,35,0.1)' : 'var(--stroke-subtle)'}`,
+          paddingTop: '16px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          position: 'relative',
+          position: 'relative', zIndex: 1,
         }}>
           <div style={{
-            display: 'inline-flex', alignItems: 'center',
-            padding: '5px 14px', borderRadius: '20px',
-            background: isFounder
-              ? 'linear-gradient(135deg, rgba(212,160,23,0.15), rgba(184,134,11,0.1))'
-              : user.subscription_status === 'trial'
-                ? 'rgba(79,134,247,0.1)'
-                : isPro
-                  ? 'linear-gradient(135deg, rgba(30,40,80,0.8), rgba(40,50,100,0.6))'
-                  : 'rgba(255,255,255,0.05)',
-            border: isFounder
-              ? '1px solid rgba(212,160,23,0.25)'
-              : isPro
-                ? '1px solid rgba(79,134,247,0.25)'
-                : '1px solid var(--stroke-subtle)',
-          }}>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '11px',
-              fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase',
-              color: isFounder ? '#D4A017' : isPro ? 'var(--blue-primary)' : 'var(--text-tertiary)',
-            }}>{planLabel}</span>
-          </div>
+            fontFamily: 'var(--font-mono)', fontSize: '10px',
+            fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
+            padding: '5px 14px', borderRadius: '6px',
+            background: isPro
+              ? 'linear-gradient(135deg, rgba(79,134,247,0.2), rgba(47,95,214,0.15))'
+              : 'rgba(255,255,255,0.05)',
+            color: isPro ? 'var(--blue-primary)' : 'var(--text-tertiary)',
+            border: `1px solid ${isPro ? 'rgba(79,134,247,0.2)' : 'var(--stroke-subtle)'}`,
+          }}>{planLabel}</div>
 
           {memberSince && (
             <span style={{
               fontFamily: 'var(--font-mono)', fontSize: '10px',
-              color: 'var(--text-tertiary)', letterSpacing: '0.5px',
+              color: 'var(--text-tertiary)', fontWeight: 500,
             }}>Since {memberSince}</span>
           )}
 
@@ -737,29 +768,38 @@ function StatRibbon() {
   const followed = stats?.adherence?.picks_followed ?? stats?.totalBets ?? 0;
   const discipline = stats?.winRate != null ? stats.winRate + '%' : '—';
   const profit = stats?.totalProfit != null ? (stats.totalProfit >= 0 ? '+' : '') + '$' + Math.abs(stats.totalProfit).toLocaleString() : '—';
+  const profitPositive = stats?.totalProfit != null && stats.totalProfit >= 0;
 
   const items = [
-    { value: followed, label: 'picks followed' },
-    { value: discipline, label: 'discipline' },
-    { value: profit, label: 'tracked' },
+    { value: followed, label: 'Followed', green: false },
+    { value: discipline, label: 'Discipline', green: false },
+    { value: profit, label: 'Tracked', green: profitPositive },
   ];
 
   return (
     <div style={{
-      display: 'flex', justifyContent: 'center', alignItems: 'center',
-      gap: '6px', padding: '10px 0', marginBottom: '8px',
+      display: 'flex', gap: '1px',
+      background: 'var(--stroke-subtle)',
+      borderRadius: '14px', overflow: 'hidden',
+      marginBottom: '20px',
     }}>
       {items.map((item, i) => (
-        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-          {i > 0 && <span style={{ color: 'var(--stroke-muted)', fontSize: '10px' }}>·</span>}
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '12px',
-            fontWeight: 700, color: 'var(--text-primary)',
-          }}>{item.value}</span>
-          <span style={{
-            fontSize: '11px', color: 'var(--text-tertiary)',
-          }}>{item.label}</span>
-        </span>
+        <div key={i} style={{
+          flex: 1, background: 'var(--surface-1)',
+          padding: '14px 8px', textAlign: 'center',
+          borderRadius: i === 0 ? '14px 0 0 14px' : i === 2 ? '0 14px 14px 0' : '0',
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '18px',
+            fontWeight: 800, lineHeight: 1, marginBottom: '4px',
+            color: item.green ? 'var(--green, #34D399)' : 'var(--text-primary)',
+          }}>{item.value}</div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '8px',
+            fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)',
+          }}>{item.label}</div>
+        </div>
       ))}
     </div>
   );
