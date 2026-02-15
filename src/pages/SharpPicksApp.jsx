@@ -27,8 +27,8 @@ function WelcomeScreen({ onContinue }) {
         src="/logo.png"
         alt="Sharp Picks"
         style={{
-          width: '80px', height: '80px', borderRadius: '20px',
-          marginBottom: '28px',
+          width: '160px', height: '160px', borderRadius: '28px',
+          marginBottom: '32px',
         }}
       />
       <h1 style={{
