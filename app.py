@@ -691,6 +691,82 @@ def collect_closing_lines():
         except Exception as e:
             print(f"[{datetime.now()}] Closing line error: {e}")
 
+def collect_wnba_games_job():
+    """Run the WNBA data collector"""
+    print(f"[{datetime.now()}] Running scheduled WNBA data collection...")
+    try:
+        subprocess.run(['python', 'main.py', '--wnba'], timeout=300)
+        print(f"[{datetime.now()}] WNBA data collection completed!")
+    except Exception as e:
+        print(f"[{datetime.now()}] WNBA collection error: {e}")
+
+def collect_wnba_closing_lines_job():
+    """Collect WNBA closing lines right before games start.
+    First refreshes WNBA data from APIs, then snapshots current lines as closing lines."""
+    print(f"[{datetime.now()}] Refreshing WNBA lines for closing snapshot...")
+    try:
+        subprocess.run(['python', 'main.py', '--wnba-close'], timeout=300)
+    except Exception as e:
+        print(f"[{datetime.now()}] WNBA line refresh error (continuing): {e}")
+    
+    print(f"[{datetime.now()}] Capturing WNBA closing lines...")
+    with app.app_context():
+        try:
+            conn = sqlite3.connect('sharp_picks.db')
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            today_str = datetime.now().strftime('%Y-%m-%d')
+            cursor.execute('''
+                SELECT id, home_team, away_team, spread_home, total,
+                       home_ml, away_ml
+                FROM wnba_games
+                WHERE game_date LIKE ?
+                AND home_score IS NULL
+                AND spread_home IS NOT NULL
+            ''', (f'{today_str}%',))
+            
+            games = cursor.fetchall()
+            updated = 0
+            
+            for game in games:
+                cursor.execute('''
+                    UPDATE wnba_games SET
+                        spread_home_close = ?,
+                        total_close = ?,
+                        home_ml_close = ?,
+                        away_ml_close = ?,
+                        close_collected_at = ?
+                    WHERE id = ?
+                ''', (game['spread_home'], game['total'],
+                      game['home_ml'], game['away_ml'],
+                      datetime.now().isoformat(), game['id']))
+                
+                from performance_tracker import update_closing_line
+                update_closing_line(game['id'], game['spread_home'])
+                updated += 1
+
+                today_pick = Pick.query.filter(
+                    Pick.home_team == game['home_team'],
+                    Pick.away_team == game['away_team'],
+                    Pick.sport == 'wnba',
+                    Pick.game_date.like(f'{today_str}%')
+                ).first()
+                if today_pick:
+                    closing = game['spread_home']
+                    if today_pick.line_close is None:
+                        today_pick.line_close = closing
+                    today_pick.closing_spread = closing
+                    if today_pick.line is not None and closing is not None:
+                        today_pick.clv = closing - today_pick.line
+            
+            conn.commit()
+            conn.close()
+            db.session.commit()
+            print(f"[{datetime.now()}] Captured WNBA closing lines for {updated} games")
+        except Exception as e:
+            print(f"[{datetime.now()}] WNBA closing line error: {e}")
+
 
 def check_data_quality():
     """Run data quality checks — stale lines, duplicates, API health"""
@@ -747,13 +823,23 @@ def check_data_quality():
 
 
 def start_scheduler():
+    from sport_config import get_sport_config
     sched = BackgroundScheduler(timezone='America/New_York')
+    
     sched.add_job(collect_todays_games, 'cron', hour=9, minute=0, id='daily_collection')
     sched.add_job(collect_todays_games, 'cron', hour=21, minute=0, id='evening_collection')
     sched.add_job(collect_closing_lines, 'cron', hour=18, minute=30, id='closing_lines')
     sched.add_job(grade_pending_picks, 'cron', hour=23, minute=30, id='grade_picks')
     sched.add_job(grade_pending_picks, 'cron', hour=2, minute=0, id='late_game_grading')
     sched.add_job(check_data_quality, 'cron', hour=10, minute=0, id='data_quality')
+    
+    wnba_cfg = get_sport_config('wnba')
+    now_month = datetime.now().month
+    if now_month in wnba_cfg.get('season_months', []):
+        sched.add_job(collect_wnba_games_job, 'cron', hour=10, minute=0, id='wnba_daily_collection')
+        sched.add_job(collect_wnba_games_job, 'cron', hour=18, minute=0, id='wnba_evening_collection')
+        sched.add_job(collect_wnba_closing_lines_job, 'cron', hour=18, minute=30, id='wnba_closing_lines')
+    
     sched.start()
     atexit.register(lambda: sched.shutdown())
     return sched

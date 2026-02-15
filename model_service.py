@@ -39,8 +39,11 @@ def run_model_and_log(app, sport='nba'):
     """Run the model for today and log either a pick or pass."""
     cfg = get_sport_config(sport)
 
-    if not cfg.get('live', False):
-        return {'status': 'not_live', 'sport': sport, 'message': f'{cfg["name"]} is in paper-trade mode. Not generating live picks.'}
+    is_live = cfg.get('live', False)
+    is_active = cfg.get('active', True)
+
+    if not is_active:
+        return {'status': 'inactive', 'sport': sport, 'message': f'{cfg["name"]} is inactive.'}
 
     start_time = time.time()
     today_str = _get_et_date()
@@ -58,7 +61,7 @@ def run_model_and_log(app, sport='nba'):
         try:
             from model import EnsemblePredictor
 
-            model = EnsemblePredictor()
+            model = EnsemblePredictor(sport=sport)
             if not model.load_model():
                 return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
 
@@ -101,48 +104,86 @@ def run_model_and_log(app, sport='nba'):
                 spread = best.get('spread', 0) or 0
                 pick_spread = spread if is_home_pick else -spread
 
-                pick = Pick(
-                    sport=sport,
-                    away_team=best['away_team'],
-                    home_team=best['home_team'],
-                    game_date=today_str,
-                    side=best.get('pick'),
-                    line=_to_python(round(pick_spread, 1)),
-                    line_open=_to_python(best.get('spread_home_open')) if 'spread_home_open' in best else None,
-                    start_time=best.get('game_time') or best.get('game_date'),
-                    edge_pct=_to_python(round(best.get('adjusted_edge', 0), 1)),
-                    model_confidence=_to_python(round(best.get('confidence', 0.5), 4)),
-                    predicted_margin=_to_python(round(best['predicted_margin'], 1)) if best.get('predicted_margin') is not None else None,
-                    sigma=_to_python(round(best['sigma'], 2)) if best.get('sigma') is not None else None,
-                    z_score=_to_python(round(best['z_score'], 3)) if best.get('z_score') is not None else None,
-                    raw_edge=_to_python(round(best['raw_edge'], 2)) if best.get('raw_edge') is not None else None,
-                    cover_prob=_to_python(round(home_cover_prob, 4)),
-                    implied_prob=_to_python(round(best.get('implied_prob', 0.5238), 4)),
-                    market_odds=_to_python(best.get('market_odds', -110)),
-                    sportsbook=best.get('best_book', 'DraftKings'),
-                    notes=' | '.join(best.get('explanation', [])) if isinstance(best.get('explanation'), list) else (best.get('explanation') or ''),
-                )
-                db.session.add(pick)
+                if is_live:
+                    pick = Pick(
+                        sport=sport,
+                        away_team=best['away_team'],
+                        home_team=best['home_team'],
+                        game_date=today_str,
+                        side=best.get('pick'),
+                        line=_to_python(round(pick_spread, 1)),
+                        line_open=_to_python(best.get('spread_home_open')) if 'spread_home_open' in best else None,
+                        start_time=best.get('game_time') or best.get('game_date'),
+                        edge_pct=_to_python(round(best.get('adjusted_edge', 0), 1)),
+                        model_confidence=_to_python(round(best.get('confidence', 0.5), 4)),
+                        predicted_margin=_to_python(round(best['predicted_margin'], 1)) if best.get('predicted_margin') is not None else None,
+                        sigma=_to_python(round(best['sigma'], 2)) if best.get('sigma') is not None else None,
+                        z_score=_to_python(round(best['z_score'], 3)) if best.get('z_score') is not None else None,
+                        raw_edge=_to_python(round(best['raw_edge'], 2)) if best.get('raw_edge') is not None else None,
+                        cover_prob=_to_python(round(home_cover_prob, 4)),
+                        implied_prob=_to_python(round(best.get('implied_prob', 0.5238), 4)),
+                        market_odds=_to_python(best.get('market_odds', -110)),
+                        sportsbook=best.get('best_book', 'DraftKings'),
+                        notes=' | '.join(best.get('explanation', [])) if isinstance(best.get('explanation'), list) else (best.get('explanation') or ''),
+                    )
+                    db.session.add(pick)
 
-                model_run = ModelRun(
-                    date=today_str,
-                    sport=sport,
-                    games_analyzed=len(predictions),
-                    pick_generated=True,
-                    pick_id=pick.id,
-                    run_duration_ms=duration_ms,
-                )
-                db.session.add(model_run)
-                db.session.commit()
+                    model_run = ModelRun(
+                        date=today_str,
+                        sport=sport,
+                        games_analyzed=len(predictions),
+                        pick_generated=True,
+                        pick_id=pick.id,
+                        run_duration_ms=duration_ms,
+                    )
+                    db.session.add(model_run)
+                    db.session.commit()
 
-                return {
-                    'status': 'pick',
-                    'pick_id': pick.id,
-                    'side': pick.side,
-                    'edge': pick.edge_pct,
-                    'date': today_str,
-                    'sport': sport,
-                }
+                    return {
+                        'status': 'pick',
+                        'pick_id': pick.id,
+                        'side': pick.side,
+                        'edge': pick.edge_pct,
+                        'date': today_str,
+                        'sport': sport,
+                    }
+                else:
+                    paper_trade_notes = f"Paper trade - not live | {best['away_team']} @ {best['home_team']} | {best.get('pick')} {pick_spread:+.1f} | Edge: {best.get('adjusted_edge', 0):+.1f}% | Confidence: {best.get('confidence', 0.5):.1%}"
+                    if isinstance(best.get('explanation'), list):
+                        paper_trade_notes += ' | ' + ' | '.join(best.get('explanation', []))
+                    
+                    pass_entry = Pass(
+                        date=today_str,
+                        sport=sport,
+                        games_analyzed=len(predictions),
+                        closest_edge_pct=round(best.get('adjusted_edge', 0), 1),
+                        pass_reason='Paper trade - not live',
+                        notes=paper_trade_notes,
+                    )
+                    db.session.add(pass_entry)
+
+                    model_run = ModelRun(
+                        date=today_str,
+                        sport=sport,
+                        games_analyzed=len(predictions),
+                        pick_generated=False,
+                        pass_id=pass_entry.id,
+                        run_duration_ms=duration_ms,
+                    )
+                    db.session.add(model_run)
+                    db.session.commit()
+
+                    return {
+                        'status': 'paper_trade',
+                        'side': best.get('pick'),
+                        'edge': round(best.get('adjusted_edge', 0), 1),
+                        'away_team': best['away_team'],
+                        'home_team': best['home_team'],
+                        'line': _to_python(round(pick_spread, 1)),
+                        'confidence': _to_python(round(best.get('confidence', 0.5), 4)),
+                        'date': today_str,
+                        'sport': sport,
+                    }
             else:
                 top_pass_reason = None
                 for p in sorted(predictions, key=lambda x: x.get('adjusted_edge', 0), reverse=True):

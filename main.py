@@ -141,6 +141,22 @@ TEAM_ABBR_MAP = {
     'Washington Wizards': 'WAS',
 }
 
+WNBA_TEAM_ABBR_MAP = {
+    'Atlanta Dream': 'ATL',
+    'Chicago Sky': 'CHI',
+    'Connecticut Sun': 'CON',
+    'Dallas Wings': 'DAL',
+    'Indiana Fever': 'IND',
+    'Las Vegas Aces': 'LVA',
+    'Los Angeles Sparks': 'LAS',
+    'Minnesota Lynx': 'MIN',
+    'New York Liberty': 'NYL',
+    'Phoenix Mercury': 'PHO',
+    'Seattle Storm': 'SEA',
+    'Washington Mystics': 'WAS',
+    'Golden State Valkyries': 'GSV',
+}
+
 def setup_database():
     """Create database if it doesn't exist"""
     conn = sqlite3.connect('sharp_picks.db')
@@ -299,6 +315,105 @@ def get_team_data():
     return team_data
 
 
+def get_wnba_team_data():
+    """Fetch WNBA team records, home/away splits from ESPN team endpoints"""
+    from sport_config import get_sport_config
+    cfg = get_sport_config('wnba')
+    print("📊 Fetching WNBA team records...")
+
+    team_data = {}
+
+    for team_name, abbr in WNBA_TEAM_ABBR_MAP.items():
+        try:
+            url = f"{cfg['espn_teams']}/{abbr.lower()}"
+            response = requests.get(url, timeout=5)
+
+            if response.status_code != 200:
+                continue
+
+            data = response.json()
+            team = data.get('team', {})
+            records = team.get('record', {}).get('items', [])
+
+            record = 'N/A'
+            home_record = 'N/A'
+            away_record = 'N/A'
+
+            for item in records:
+                rec_type = item.get('type', '')
+                summary = item.get('summary', '')
+
+                if rec_type == 'total':
+                    record = summary
+                elif rec_type == 'home':
+                    home_record = summary
+                elif rec_type == 'road':
+                    away_record = summary
+
+            team_data[team_name] = {
+                'record': record,
+                'home_record': home_record,
+                'away_record': away_record,
+            }
+
+        except Exception:
+            continue
+
+    print(f"   ✅ Loaded records for {len(team_data)} WNBA teams")
+
+    return team_data
+
+
+def get_wnba_team_schedule(team_abbr):
+    """Get WNBA team's recent games for form and rest days calculation"""
+    from sport_config import get_sport_config
+    cfg = get_sport_config('wnba')
+    try:
+        url = f"{cfg['espn_teams']}/{team_abbr}/schedule"
+        response = requests.get(url, timeout=10)
+
+        if response.status_code != 200:
+            return None, None
+
+        data = response.json()
+        events = data.get('events', [])
+
+        completed_games = []
+
+        for event in events:
+            status = event.get('competitions', [{}])[0].get('status', {}).get('type', {}).get('name', '')
+            if status == 'STATUS_FINAL':
+                game_date = event.get('date', '')[:10]
+
+                competitions = event.get('competitions', [{}])[0]
+                competitors = competitions.get('competitors', [])
+
+                won = False
+                for comp in competitors:
+                    if comp.get('team', {}).get('abbreviation', '').upper() == team_abbr.upper():
+                        won = comp.get('winner', False)
+                        break
+
+                completed_games.append({
+                    'date': game_date,
+                    'won': won
+                })
+
+        completed_games.sort(key=lambda x: x['date'], reverse=True)
+
+        last5 = ""
+        last_game_date = None
+        if completed_games:
+            for game in completed_games[:5]:
+                last5 += "W" if game['won'] else "L"
+            last_game_date = completed_games[0]['date']
+
+        return last5, last_game_date
+
+    except Exception:
+        return None, None
+
+
 def get_team_schedule(team_abbr):
     """Get team's recent games for form and rest days calculation"""
     try:
@@ -404,6 +519,47 @@ def get_injuries():
     except Exception as e:
         print(f"   ⚠️ Injuries error: {e}")
     
+    return injuries
+
+
+def get_wnba_injuries():
+    """Fetch WNBA injury reports from ESPN"""
+    from sport_config import get_sport_config
+    cfg = get_sport_config('wnba')
+    print("🏥 Fetching WNBA injury reports...")
+
+    injuries = {}
+
+    try:
+        url = cfg['espn_injuries']
+        response = requests.get(url, timeout=15)
+
+        if response.status_code != 200:
+            print(f"   ⚠️ WNBA Injuries API error: {response.status_code}")
+            return injuries
+
+        data = response.json()
+
+        for team_data in data.get('injuries', []):
+            team_name = team_data.get('team', {}).get('displayName', '')
+
+            team_injuries = []
+            for injury in team_data.get('injuries', []):
+                player = injury.get('athlete', {}).get('displayName', 'Unknown')
+                status = injury.get('status', 'Unknown')
+                injury_type = injury.get('type', {}).get('description', '')
+
+                if status.lower() in ['out', 'doubtful', 'questionable', 'day-to-day']:
+                    team_injuries.append(f"{player} ({status})")
+
+            if team_injuries:
+                injuries[team_name] = "; ".join(team_injuries[:5])
+
+        print(f"   ✅ Loaded WNBA injuries for {len(injuries)} teams")
+
+    except Exception as e:
+        print(f"   ⚠️ WNBA Injuries error: {e}")
+
     return injuries
 
 
@@ -1079,6 +1235,131 @@ def collect_closing_lines():
         print(f"❌ Error: {e}\n")
 
 
+def collect_wnba_closing_lines():
+    """Collect closing lines for WNBA games starting soon"""
+    from sport_config import get_odds_api_url
+    print("\n" + "="*60)
+    print("⏰ COLLECTING WNBA CLOSING LINES")
+    print("="*60 + "\n")
+
+    if not API_KEY:
+        print("❌ ERROR: No API key found!")
+        return
+
+    PREFERRED_BOOKS = ['draftkings', 'fanduel', 'betmgm', 'caesars_sportsbook', 'pointsbetus', 'betrivers']
+
+    url = get_odds_api_url('wnba')
+    params = {
+        'apiKey': API_KEY,
+        'regions': 'us',
+        'markets': 'spreads,totals,h2h',
+        'oddsFormat': 'american',
+        'bookmakers': ','.join(PREFERRED_BOOKS)
+    }
+
+    try:
+        response = api_request_with_retry(url, params)
+
+        if response is None:
+            print("\n❌ Failed to connect after 3 attempts.")
+            return
+
+        if response.status_code != 200:
+            print(f"❌ API Error: {response.status_code}")
+            return
+
+        games = response.json()
+
+        print(f"✅ Connected! API calls left: {API_USAGE['remaining']}/500\n")
+
+        check_api_usage()
+
+        conn = sqlite3.connect('sharp_picks.db')
+        cursor = conn.cursor()
+
+        updated = 0
+
+        for game in games:
+            game_id = game['id']
+            home = game['home_team']
+            away = game['away_team']
+
+            cursor.execute('SELECT id, spread_home_open FROM wnba_games WHERE id = ? AND home_score IS NULL', (game_id,))
+            existing = cursor.fetchone()
+
+            if not existing:
+                continue
+
+            spread_home = None
+            total = None
+            home_ml = None
+            away_ml = None
+            home_spread_odds = None
+            away_spread_odds = None
+
+            def is_better_odds(new_odds, current_odds):
+                if current_odds is None:
+                    return True
+                return new_odds > current_odds
+
+            for bookmaker in game.get('bookmakers', []):
+                for market in bookmaker.get('markets', []):
+                    if market['key'] == 'spreads':
+                        for outcome in market['outcomes']:
+                            if outcome['name'] == home:
+                                if spread_home is None:
+                                    spread_home = outcome['point']
+                                price = outcome.get('price')
+                                if price is not None and is_better_odds(price, home_spread_odds):
+                                    home_spread_odds = price
+                            else:
+                                price = outcome.get('price')
+                                if price is not None and is_better_odds(price, away_spread_odds):
+                                    away_spread_odds = price
+                    elif market['key'] == 'totals' and total is None:
+                        total = market['outcomes'][0]['point']
+                    elif market['key'] == 'h2h':
+                        for outcome in market['outcomes']:
+                            if outcome['name'] == home:
+                                if home_ml is None or outcome['price'] > home_ml:
+                                    home_ml = outcome['price']
+                            else:
+                                if away_ml is None or outcome['price'] > away_ml:
+                                    away_ml = outcome['price']
+
+            cursor.execute('''
+                UPDATE wnba_games SET
+                    spread_home_close = ?, total_close = ?,
+                    home_ml_close = ?, away_ml_close = ?,
+                    home_spread_odds_close = ?, away_spread_odds_close = ?,
+                    close_collected_at = ?
+                WHERE id = ?
+            ''', (spread_home, total, home_ml, away_ml,
+                  home_spread_odds, away_spread_odds,
+                  datetime.now().isoformat(), game_id))
+
+            open_spread = existing[1]
+            if open_spread and spread_home:
+                movement = spread_home - open_spread
+                cursor.execute('UPDATE wnba_games SET line_movement = ? WHERE id = ?',
+                              (movement, game_id))
+                move_str = f" (moved {movement:+.1f})" if movement != 0 else ""
+            else:
+                move_str = ""
+
+            updated += 1
+            spread_display = f"{spread_home:+.1f}" if spread_home else "N/A"
+            print(f"🔒 {away} @ {home}: Close {spread_display}{move_str}")
+
+        conn.commit()
+        conn.close()
+
+        print(f"\n✅ Captured WNBA closing lines for {updated} games\n")
+
+    except Exception as e:
+        print(f"❌ Error: {e}\n")
+
+
 def show_visualization():
     """Display ASCII charts of collection progress"""
     print("\n" + "="*60)
@@ -1445,6 +1726,95 @@ def show_welcome():
     print("\n" + "-"*50 + "\n")
 
 
+def setup_wnba_table(cursor):
+    """Create wnba_games table with full schema matching NBA games table"""
+    cursor.execute('''CREATE TABLE IF NOT EXISTS wnba_games (
+        id TEXT PRIMARY KEY,
+        game_date TEXT,
+        game_time TEXT,
+        home_team TEXT,
+        away_team TEXT,
+        spread_home REAL,
+        spread_away REAL,
+        total REAL,
+        home_ml INTEGER,
+        away_ml INTEGER,
+        collected_at TEXT,
+        home_score INTEGER,
+        away_score INTEGER,
+        spread_result TEXT,
+        total_result TEXT,
+        scores_updated_at TEXT,
+        home_record TEXT,
+        away_record TEXT,
+        home_home_record TEXT,
+        away_away_record TEXT,
+        home_last5 TEXT,
+        away_last5 TEXT,
+        home_rest_days INTEGER,
+        away_rest_days INTEGER,
+        home_injuries TEXT,
+        away_injuries TEXT,
+        spread_home_open REAL,
+        total_open REAL,
+        home_ml_open INTEGER,
+        away_ml_open INTEGER,
+        open_collected_at TEXT,
+        spread_home_close REAL,
+        total_close REAL,
+        home_ml_close INTEGER,
+        away_ml_close INTEGER,
+        close_collected_at TEXT,
+        line_movement REAL,
+        home_spread_odds INTEGER,
+        away_spread_odds INTEGER,
+        home_spread_odds_open INTEGER,
+        away_spread_odds_open INTEGER,
+        home_spread_odds_close INTEGER,
+        away_spread_odds_close INTEGER,
+        home_spread_book TEXT,
+        away_spread_book TEXT,
+        commence_time TEXT
+    )''')
+
+    new_columns = [
+        ('game_time', 'TEXT'),
+        ('spread_result', 'TEXT'),
+        ('total_result', 'TEXT'),
+        ('scores_updated_at', 'TEXT'),
+        ('home_record', 'TEXT'),
+        ('away_record', 'TEXT'),
+        ('home_home_record', 'TEXT'),
+        ('away_away_record', 'TEXT'),
+        ('home_last5', 'TEXT'),
+        ('away_last5', 'TEXT'),
+        ('home_rest_days', 'INTEGER'),
+        ('away_rest_days', 'INTEGER'),
+        ('home_injuries', 'TEXT'),
+        ('away_injuries', 'TEXT'),
+        ('total_open', 'REAL'),
+        ('total_close', 'REAL'),
+        ('home_ml_open', 'INTEGER'),
+        ('away_ml_open', 'INTEGER'),
+        ('home_ml_close', 'INTEGER'),
+        ('away_ml_close', 'INTEGER'),
+        ('spread_home_close', 'REAL'),
+        ('open_collected_at', 'TEXT'),
+        ('close_collected_at', 'TEXT'),
+        ('line_movement', 'REAL'),
+        ('home_spread_odds_open', 'INTEGER'),
+        ('away_spread_odds_open', 'INTEGER'),
+        ('home_spread_odds_close', 'INTEGER'),
+        ('away_spread_odds_close', 'INTEGER'),
+    ]
+
+    for col_name, col_type in new_columns:
+        try:
+            cursor.execute(f'ALTER TABLE wnba_games ADD COLUMN {col_name} {col_type}')
+        except:
+            pass
+
+
 def collect_wnba_scores(date_offset=1):
     """Fetch WNBA final scores from ESPN API for a given date offset (1=yesterday)"""
     from sport_config import get_sport_config
@@ -1478,26 +1848,7 @@ def collect_wnba_scores(date_offset=1):
         conn = sqlite3.connect('sharp_picks.db')
         cursor = conn.cursor()
 
-        cursor.execute('''CREATE TABLE IF NOT EXISTS wnba_games (
-            id TEXT PRIMARY KEY,
-            game_date TEXT,
-            home_team TEXT,
-            away_team TEXT,
-            spread_home REAL,
-            spread_away REAL,
-            spread_home_open REAL,
-            total REAL,
-            home_ml INTEGER,
-            away_ml INTEGER,
-            home_score INTEGER,
-            away_score INTEGER,
-            home_spread_odds INTEGER,
-            away_spread_odds INTEGER,
-            home_spread_book TEXT,
-            away_spread_book TEXT,
-            commence_time TEXT,
-            collected_at TEXT
-        )''')
+        setup_wnba_table(cursor)
 
         updated = 0
         for event in events:
@@ -1523,28 +1874,81 @@ def collect_wnba_scores(date_offset=1):
                     away_team = team_name
                     away_score = score
 
-            if not all([home_team, away_team, home_score, away_score]):
+            if not all([home_team, away_team, home_score is not None, away_score is not None]):
                 continue
 
             game_date = target.strftime('%Y-%m-%d')
+            next_date = (target + timedelta(days=1)).strftime('%Y-%m-%d')
             game_id = event.get('id', f"wnba_{game_date}_{away_team}_{home_team}")
 
-            cursor.execute('SELECT id FROM wnba_games WHERE id = ?', (game_id,))
-            if cursor.fetchone():
-                cursor.execute('''UPDATE wnba_games
-                    SET home_score = ?, away_score = ?
-                    WHERE id = ? AND home_score IS NULL''',
-                    (home_score, away_score, game_id))
+            game = None
+            for try_date in [game_date, next_date]:
+                cursor.execute('''
+                    SELECT id, spread_home, total FROM wnba_games
+                    WHERE game_date = ?
+                    AND (home_team LIKE ? OR home_team LIKE ?)
+                    AND home_score IS NULL
+                ''', (try_date, f'%{home_team.split()[-1]}%', f'%{home_team}%'))
+                game = cursor.fetchone()
+                if game:
+                    break
+
+            if not game:
+                cursor.execute('SELECT id, spread_home, total FROM wnba_games WHERE id = ?', (game_id,))
+                game = cursor.fetchone()
+
+            if game:
+                found_id, spread_home, total = game
+
+                margin = home_score - away_score
+                spread_result = None
+                if spread_home is not None:
+                    adjusted_margin = margin + spread_home
+                    if adjusted_margin > 0:
+                        spread_result = 'HOME_COVER'
+                    elif adjusted_margin < 0:
+                        spread_result = 'AWAY_COVER'
+                    else:
+                        spread_result = 'PUSH'
+
+                total_result = None
+                actual_total = home_score + away_score
+                if total is not None:
+                    if actual_total > total:
+                        total_result = 'OVER'
+                    elif actual_total < total:
+                        total_result = 'UNDER'
+                    else:
+                        total_result = 'PUSH'
+
+                cursor.execute('''
+                    UPDATE wnba_games
+                    SET home_score = ?, away_score = ?,
+                        spread_result = ?, total_result = ?,
+                        scores_updated_at = ?
+                    WHERE id = ?
+                ''', (home_score, away_score, spread_result, total_result,
+                      datetime.now().isoformat(), found_id))
+
+                updated += 1
+
+                print(f"🏀 {away_team} {away_score} @ {home_team} {home_score}")
+                if spread_result:
+                    emoji = "✅" if spread_result != 'PUSH' else "➖"
+                    print(f"   {emoji} Spread: {spread_result} (line was {spread_home:+.1f})")
+                if total_result:
+                    emoji = "✅" if total_result != 'PUSH' else "➖"
+                    print(f"   {emoji} Total: {total_result} (line was {total}, actual {actual_total})")
+                print()
             else:
                 cursor.execute('''INSERT OR IGNORE INTO wnba_games
                     (id, game_date, home_team, away_team, home_score, away_score, collected_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?)''',
                     (game_id, game_date, home_team, away_team, home_score, away_score,
                      datetime.now().isoformat()))
-
-            if cursor.rowcount > 0:
-                updated += 1
-                print(f"   {away_team} {away_score} @ {home_team} {home_score}")
+                if cursor.rowcount > 0:
+                    updated += 1
+                    print(f"   {away_team} {away_score} @ {home_team} {home_score}")
 
         conn.commit()
         conn.close()
@@ -1555,7 +1959,7 @@ def collect_wnba_scores(date_offset=1):
 
 
 def collect_wnba_odds():
-    """Fetch today's WNBA odds from The Odds API"""
+    """Fetch today's WNBA odds from The Odds API with enriched data"""
     from sport_config import get_odds_api_url
 
     print(f"\n{'='*60}")
@@ -1566,7 +1970,14 @@ def collect_wnba_odds():
         print("❌ No API key found")
         return
 
+    team_data = get_wnba_team_data()
+    injuries = get_wnba_injuries()
+
     PREFERRED_BOOKS = ['draftkings', 'fanduel', 'betmgm', 'caesars_sportsbook', 'pointsbetus', 'betrivers']
+    BOOK_DISPLAY = {
+        'draftkings': 'DraftKings', 'fanduel': 'FanDuel', 'betmgm': 'BetMGM',
+        'caesars_sportsbook': 'Caesars', 'pointsbetus': 'PointsBet', 'betrivers': 'BetRivers',
+    }
 
     url = get_odds_api_url('wnba')
     params = {
@@ -1594,26 +2005,7 @@ def collect_wnba_odds():
         conn = sqlite3.connect('sharp_picks.db')
         cursor = conn.cursor()
 
-        cursor.execute('''CREATE TABLE IF NOT EXISTS wnba_games (
-            id TEXT PRIMARY KEY,
-            game_date TEXT,
-            home_team TEXT,
-            away_team TEXT,
-            spread_home REAL,
-            spread_away REAL,
-            spread_home_open REAL,
-            total REAL,
-            home_ml INTEGER,
-            away_ml INTEGER,
-            home_score INTEGER,
-            away_score INTEGER,
-            home_spread_odds INTEGER,
-            away_spread_odds INTEGER,
-            home_spread_book TEXT,
-            away_spread_book TEXT,
-            commence_time TEXT,
-            collected_at TEXT
-        )''')
+        setup_wnba_table(cursor)
 
         stored = 0
         for game in games:
@@ -1621,6 +2013,7 @@ def collect_wnba_odds():
             home = game['home_team']
             away = game['away_team']
             commence_time = game.get('commence_time', '')[:10]
+            game_time = game.get('commence_time', '')
 
             spread_home = None
             spread_away = None
@@ -1632,71 +2025,151 @@ def collect_wnba_odds():
             best_home_book = None
             best_away_book = None
 
+            def is_better_odds(new_odds, current_odds):
+                if current_odds is None:
+                    return True
+                return new_odds > current_odds
+
             for bookmaker in game.get('bookmakers', []):
                 book_key = bookmaker.get('key', '')
+                book_name = BOOK_DISPLAY.get(book_key, book_key)
                 for market in bookmaker.get('markets', []):
                     if market['key'] == 'spreads':
                         for outcome in market.get('outcomes', []):
                             if outcome['name'] == home:
-                                pts = outcome.get('point', 0)
-                                odds = outcome.get('price', -110)
-                                if best_home_odds is None or odds > best_home_odds:
-                                    spread_home = pts
-                                    best_home_odds = odds
-                                    best_home_book = book_key
-                            elif outcome['name'] == away:
-                                pts = outcome.get('point', 0)
-                                odds = outcome.get('price', -110)
-                                if best_away_odds is None or odds > best_away_odds:
-                                    spread_away = pts
-                                    best_away_odds = odds
-                                    best_away_book = book_key
-                    elif market['key'] == 'totals':
-                        for outcome in market.get('outcomes', []):
-                            if outcome['name'] == 'Over':
-                                total = outcome.get('point')
+                                if spread_home is None:
+                                    spread_home = outcome.get('point')
+                                price = outcome.get('price')
+                                if price is not None and is_better_odds(price, best_home_odds):
+                                    best_home_odds = price
+                                    best_home_book = book_name
+                            else:
+                                if spread_away is None:
+                                    spread_away = outcome.get('point')
+                                price = outcome.get('price')
+                                if price is not None and is_better_odds(price, best_away_odds):
+                                    best_away_odds = price
+                                    best_away_book = book_name
+                    elif market['key'] == 'totals' and total is None:
+                        total = market['outcomes'][0].get('point')
                     elif market['key'] == 'h2h':
                         for outcome in market.get('outcomes', []):
                             if outcome['name'] == home:
-                                home_ml = outcome.get('price')
-                            elif outcome['name'] == away:
-                                away_ml = outcome.get('price')
+                                if home_ml is None or outcome['price'] > home_ml:
+                                    home_ml = outcome['price']
+                            else:
+                                if away_ml is None or outcome['price'] > away_ml:
+                                    away_ml = outcome['price']
+
+            home_info = team_data.get(home, {})
+            away_info = team_data.get(away, {})
+
+            home_record = home_info.get('record', 'N/A')
+            away_record = away_info.get('record', 'N/A')
+            home_home_record = home_info.get('home_record', 'N/A')
+            away_away_record = away_info.get('away_record', 'N/A')
+
+            home_abbr = WNBA_TEAM_ABBR_MAP.get(home, '')
+            away_abbr = WNBA_TEAM_ABBR_MAP.get(away, '')
+
+            home_last5, home_last_game = get_wnba_team_schedule(home_abbr) if home_abbr else (None, None)
+            away_last5, away_last_game = get_wnba_team_schedule(away_abbr) if away_abbr else (None, None)
+
+            home_rest = calculate_rest_days(home_last_game)
+            away_rest = calculate_rest_days(away_last_game)
+
+            home_injuries = injuries.get(home, '')
+            away_injuries = injuries.get(away, '')
 
             cursor.execute('SELECT id, spread_home_open FROM wnba_games WHERE id = ?', (game_id,))
             existing = cursor.fetchone()
 
-            if existing:
+            is_new_game = existing is None
+            has_opening = existing and existing[1] is not None
+
+            if is_new_game:
+                cursor.execute('''INSERT INTO wnba_games
+                    (id, game_date, game_time, home_team, away_team,
+                     spread_home, spread_away, total, home_ml, away_ml, collected_at,
+                     spread_home_open, total_open, home_ml_open, away_ml_open, open_collected_at,
+                     home_record, away_record, home_home_record, away_away_record,
+                     home_last5, away_last5, home_rest_days, away_rest_days,
+                     home_injuries, away_injuries,
+                     home_spread_odds, away_spread_odds,
+                     home_spread_odds_open, away_spread_odds_open,
+                     home_spread_book, away_spread_book,
+                     commence_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (game_id, commence_time, game_time, home, away,
+                     spread_home, spread_away, total, home_ml, away_ml,
+                     datetime.now().isoformat(),
+                     spread_home, total, home_ml, away_ml, datetime.now().isoformat(),
+                     home_record, away_record, home_home_record, away_away_record,
+                     home_last5, away_last5, home_rest, away_rest,
+                     home_injuries, away_injuries,
+                     best_home_odds, best_away_odds,
+                     best_home_odds, best_away_odds,
+                     best_home_book, best_away_book,
+                     game.get('commence_time', '')))
+                line_status = "📌 OPENING"
+            else:
                 cursor.execute('''UPDATE wnba_games SET
                     spread_home = ?, spread_away = ?, total = ?,
-                    home_ml = ?, away_ml = ?,
+                    home_ml = ?, away_ml = ?, collected_at = ?,
+                    game_time = ?,
+                    home_record = ?, away_record = ?,
+                    home_home_record = ?, away_away_record = ?,
+                    home_last5 = ?, away_last5 = ?,
+                    home_rest_days = ?, away_rest_days = ?,
+                    home_injuries = ?, away_injuries = ?,
                     home_spread_odds = ?, away_spread_odds = ?,
                     home_spread_book = ?, away_spread_book = ?
                     WHERE id = ?''',
                     (spread_home, spread_away, total,
-                     home_ml, away_ml,
+                     home_ml, away_ml, datetime.now().isoformat(),
+                     game_time,
+                     home_record, away_record, home_home_record, away_away_record,
+                     home_last5, away_last5, home_rest, away_rest,
+                     home_injuries, away_injuries,
                      best_home_odds, best_away_odds,
                      best_home_book, best_away_book,
                      game_id))
-            else:
-                cursor.execute('''INSERT INTO wnba_games
-                    (id, game_date, home_team, away_team,
-                     spread_home, spread_away, spread_home_open, total,
-                     home_ml, away_ml,
-                     home_spread_odds, away_spread_odds,
-                     home_spread_book, away_spread_book,
-                     commence_time, collected_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                    (game_id, commence_time, home, away,
-                     spread_home, spread_away, spread_home, total,
-                     home_ml, away_ml,
-                     best_home_odds, best_away_odds,
-                     best_home_book, best_away_book,
-                     game.get('commence_time', ''),
-                     datetime.now().isoformat()))
+
+                if has_opening:
+                    open_spread = existing[1]
+                    if open_spread and spread_home:
+                        movement = spread_home - open_spread
+                        cursor.execute('UPDATE wnba_games SET line_movement = ? WHERE id = ?',
+                                      (movement, game_id))
+                        line_status = f"📊 CURRENT (moved {movement:+.1f})" if movement != 0 else "📊 CURRENT"
+                    else:
+                        line_status = "📊 CURRENT"
+                else:
+                    line_status = "📊 CURRENT"
 
             stored += 1
             spread_display = f"{spread_home:+.1f}" if spread_home else "N/A"
-            print(f"   {away} @ {home} | Spread: {spread_display} | Total: {total or 'N/A'}")
+            print(f"{line_status} {away} @ {home}")
+            print(f"   📈 Records: {away} ({away_record}) vs {home} ({home_record})")
+            if spread_home:
+                odds_info = ""
+                if best_home_odds:
+                    odds_info = f" ({best_home_odds:+d} @ {best_home_book})"
+                print(f"   📉 Spread: {home} {spread_display}{odds_info}")
+            if total:
+                print(f"   📉 Total: {total}")
+            if home_last5 or away_last5:
+                print(f"   🔥 Form (L5): {away} [{away_last5 or 'N/A'}] vs {home} [{home_last5 or 'N/A'}]")
+            if home_home_record != 'N/A' or away_away_record != 'N/A':
+                print(f"   🏠 Splits: {home} home ({home_home_record}) | {away} away ({away_away_record})")
+            if home_rest is not None or away_rest is not None:
+                print(f"   😴 Rest: {home} ({home_rest or '?'} days) | {away} ({away_rest or '?'} days)")
+            if home_injuries or away_injuries:
+                if home_injuries:
+                    print(f"   🏥 {home}: {home_injuries[:60]}...")
+                if away_injuries:
+                    print(f"   🏥 {away}: {away_injuries[:60]}...")
+            print()
 
         conn.commit()
         conn.close()
@@ -1722,6 +2195,8 @@ if __name__ == "__main__":
         elif sys.argv[1] == '--wnba':
             collect_wnba_scores()
             collect_wnba_odds()
+        elif sys.argv[1] == '--wnba-close':
+            collect_wnba_closing_lines()
         else:
             print(f"Unknown command: {sys.argv[1]}")
     else:
@@ -1730,8 +2205,9 @@ if __name__ == "__main__":
         collect_todays_games()
 
     print("\n💡 Commands:")
-    print("   python main.py          - Daily NBA collection (scores + lines)")
-    print("   python main.py --close  - Capture closing lines before games")
-    print("   python main.py --wnba   - Collect WNBA scores + odds")
-    print("   python main.py --report - Show data collection report")
+    print("   python main.py              - Daily NBA collection (scores + lines)")
+    print("   python main.py --close      - Capture NBA closing lines before games")
+    print("   python main.py --wnba       - Collect WNBA scores + odds")
+    print("   python main.py --wnba-close - Capture WNBA closing lines before games")
+    print("   python main.py --report     - Show data collection report")
     print("   python main.py --viz    - Show progress visualization\n")

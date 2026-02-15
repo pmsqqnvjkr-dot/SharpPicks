@@ -117,6 +117,7 @@ class Pass(db.Model):
     games_analyzed = db.Column(db.Integer, default=0)
     closest_edge_pct = db.Column(db.Float, default=0)
     pass_reason = db.Column(db.String, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
     model_run_id = db.Column(db.String, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
 

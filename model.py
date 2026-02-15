@@ -12,6 +12,7 @@ import pickle
 import os
 
 from scipy.stats import norm
+from sport_config import get_sport_config
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier, AdaBoostClassifier
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler
@@ -49,7 +50,15 @@ def get_edge_threshold_for_spread(spread_abs):
 class EnsemblePredictor:
     """Ensemble model combining multiple ML algorithms with probability calibration"""
     
-    def __init__(self):
+    def __init__(self, sport='nba'):
+        self.sport = sport
+        self.cfg = get_sport_config(sport)
+        self.margin_std_dev = self.cfg.get('sigma', MARGIN_STD_DEV)
+        self.model_weight = self.cfg.get('model_weight', MODEL_WEIGHT)
+        self.max_edge_pct = self.cfg.get('max_edge_pct', MAX_EDGE_PCT)
+        self.margin_std_floor = self.cfg.get('margin_std_floor', MARGIN_STD_FLOOR)
+        self.margin_std_ceiling = self.cfg.get('margin_std_ceiling', MARGIN_STD_CEILING)
+        self.edge_threshold_pct = self.cfg.get('edge_threshold_pct', EDGE_THRESHOLD_PCT)
         self.base_models = {
             'gradient_boosting': GradientBoostingClassifier(
                 n_estimators=100,
@@ -82,11 +91,37 @@ class EnsemblePredictor:
         self.feature_names = []
         self.calibration_stats = {}
     
+    def _games_table(self):
+        return 'wnba_games' if self.sport == 'wnba' else 'games'
+
+    def _ratings_table(self):
+        return 'wnba_team_ratings' if self.sport == 'wnba' else 'team_ratings'
+
+    def _has_table(self, conn, table_name):
+        cur = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+        return cur.fetchone() is not None
+
     def load_data(self):
         """Load training data from database with team ratings"""
         conn = sqlite3.connect('sharp_picks.db')
-        
-        query = '''
+
+        games_tbl = self._games_table()
+        ratings_tbl = self._ratings_table()
+        has_ratings = self._has_table(conn, ratings_tbl)
+
+        ratings_cols = ""
+        ratings_join = ""
+        if has_ratings:
+            ratings_cols = """,
+                hr.pace as home_pace, hr.off_rating as home_off_rtg, 
+                hr.def_rating as home_def_rtg, hr.net_rating as home_net_rtg,
+                ar.pace as away_pace, ar.off_rating as away_off_rtg,
+                ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg"""
+            ratings_join = f"""
+            LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team_abbr
+            LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_abbr"""
+
+        query = f'''
             SELECT 
                 g.home_team, g.away_team, g.game_date,
                 g.spread_home, g.spread_home_open, g.spread_home_close,
@@ -97,11 +132,7 @@ class EnsemblePredictor:
                 g.home_last5, g.away_last5,
                 g.home_rest_days, g.away_rest_days,
                 g.line_movement,
-                g.spread_result, g.home_score, g.away_score,
-                hr.pace as home_pace, hr.off_rating as home_off_rtg, 
-                hr.def_rating as home_def_rtg, hr.net_rating as home_net_rtg,
-                ar.pace as away_pace, ar.off_rating as away_off_rtg,
-                ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg,
+                g.spread_result, g.home_score, g.away_score{ratings_cols},
                 g.rundown_spread_consensus, g.rundown_spread_std,
                 g.rundown_spread_range, g.rundown_num_books,
                 g.bdl_home_win_pct, g.bdl_away_win_pct,
@@ -111,9 +142,7 @@ class EnsemblePredictor:
                 g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against,
                 g.home_spread_odds, g.away_spread_odds,
                 g.home_spread_book, g.away_spread_book
-            FROM games g
-            LEFT JOIN team_ratings hr ON g.home_team = hr.team_abbr
-            LEFT JOIN team_ratings ar ON g.away_team = ar.team_abbr
+            FROM {games_tbl} g{ratings_join}
             WHERE g.home_score IS NOT NULL
             AND g.away_score IS NOT NULL
         '''
@@ -423,12 +452,12 @@ class EnsemblePredictor:
             cv_preds = cv_model.predict(X_all_scaled[cv_test])
             cv_residuals.extend(cv_preds - margin_target.iloc[cv_test].values)
         cv_std_raw = np.std(cv_residuals)
-        self.margin_std = min(max(cv_std_raw, MARGIN_STD_FLOOR), MARGIN_STD_CEILING)
+        self.margin_std = min(max(cv_std_raw, self.margin_std_floor), self.margin_std_ceiling)
         self.using_fallback_sigma = (self.margin_std != cv_std_raw)
 
         print(f"   Margin MAE: {margin_mae:.1f} pts")
         print(f"   Margin STD (raw): {cv_std_raw:.1f} pts")
-        print(f"   Margin STD (used): {self.margin_std:.1f} pts (clamped [{MARGIN_STD_FLOOR}, {MARGIN_STD_CEILING}])")
+        print(f"   Margin STD (used): {self.margin_std:.1f} pts (clamped [{self.margin_std_floor}, {self.margin_std_ceiling}])")
         print(f"   USING_FALLBACK_SIGMA = {self.using_fallback_sigma}")
         
         self.trained = True
@@ -513,8 +542,24 @@ class EnsemblePredictor:
                 return []
         
         conn = sqlite3.connect('sharp_picks.db')
-        
-        query = '''
+
+        games_tbl = self._games_table()
+        ratings_tbl = self._ratings_table()
+        has_ratings = self._has_table(conn, ratings_tbl)
+
+        ratings_cols = ""
+        ratings_join = ""
+        if has_ratings:
+            ratings_cols = """,
+                hr.pace as home_pace, hr.off_rating as home_off_rtg,
+                hr.def_rating as home_def_rtg, hr.net_rating as home_net_rtg,
+                ar.pace as away_pace, ar.off_rating as away_off_rtg,
+                ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg"""
+            ratings_join = f"""
+            LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team_abbr
+            LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_abbr"""
+
+        query = f'''
             SELECT 
                 g.id, g.home_team, g.away_team, g.game_date, g.game_time,
                 g.spread_home, g.spread_home_open, g.spread_home_close,
@@ -524,11 +569,7 @@ class EnsemblePredictor:
                 g.home_home_record, g.away_away_record,
                 g.home_last5, g.away_last5,
                 g.home_rest_days, g.away_rest_days,
-                g.line_movement,
-                hr.pace as home_pace, hr.off_rating as home_off_rtg,
-                hr.def_rating as home_def_rtg, hr.net_rating as home_net_rtg,
-                ar.pace as away_pace, ar.off_rating as away_off_rtg,
-                ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg,
+                g.line_movement{ratings_cols},
                 g.rundown_spread_consensus, g.rundown_spread_std,
                 g.rundown_spread_range, g.rundown_num_books,
                 g.bdl_home_win_pct, g.bdl_away_win_pct,
@@ -538,9 +579,7 @@ class EnsemblePredictor:
                 g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against,
                 g.home_spread_odds, g.away_spread_odds,
                 g.home_spread_book, g.away_spread_book
-            FROM games g
-            LEFT JOIN team_ratings hr ON g.home_team = hr.team_abbr
-            LEFT JOIN team_ratings ar ON g.away_team = ar.team_abbr
+            FROM {games_tbl} g{ratings_join}
             WHERE g.home_score IS NULL
             AND g.spread_home IS NOT NULL
             AND (g.game_time IS NULL OR g.game_time > datetime('now'))
@@ -568,7 +607,7 @@ class EnsemblePredictor:
         ensemble_proba = self.predict_proba(X_scaled)
         
         predicted_margins = None
-        sigma = MARGIN_STD_DEV
+        sigma = self.margin_std_dev
         using_fallback = True
         if self.margin_model is not None:
             predicted_margins = self.margin_model.predict(X_scaled)
@@ -577,7 +616,7 @@ class EnsemblePredictor:
                 sigma = saved_sigma
                 using_fallback = False
             else:
-                sigma = MARGIN_STD_DEV
+                sigma = self.margin_std_dev
         
         print(f"   USING_FALLBACK_SIGMA = {using_fallback} (sigma={sigma:.1f})")
         if getattr(self, 'margin_mae', None):
@@ -605,7 +644,7 @@ class EnsemblePredictor:
             used_fallback = False
             if pred_margin_raw is not None and spread is not None:
                 market_margin = -spread
-                pred_margin = MODEL_WEIGHT * pred_margin_raw + (1 - MODEL_WEIGHT) * market_margin
+                pred_margin = self.model_weight * pred_margin_raw + (1 - self.model_weight) * market_margin
                 home_cover_prob = float(norm.cdf((pred_margin + spread) / sigma))
             else:
                 used_fallback = True
@@ -648,7 +687,7 @@ class EnsemblePredictor:
                     line_move_penalty = line_move_against * LINE_MOVE_PENALTY_PER_PT
             
             adjusted_edge = edge_vs_market - line_move_penalty
-            adjusted_edge = min(adjusted_edge, MAX_EDGE_PCT)
+            adjusted_edge = min(adjusted_edge, self.max_edge_pct)
             
             fail_reasons = []
             pass_reason = None
@@ -685,11 +724,11 @@ class EnsemblePredictor:
             else:
                 rating = "SLIGHT"
             
-            if len(fail_reasons) == 0 and adjusted_edge < EDGE_THRESHOLD_PCT:
-                pass_reason = f"Edge below threshold ({adjusted_edge:+.1f}% < {EDGE_THRESHOLD_PCT}%)"
+            if len(fail_reasons) == 0 and adjusted_edge < self.edge_threshold_pct:
+                pass_reason = f"Edge below threshold ({adjusted_edge:+.1f}% < {self.edge_threshold_pct}%)"
             if len(fail_reasons) == 0 and confidence < min_confidence:
                 pass_reason = f"Confidence below minimum ({confidence:.1%} < {min_confidence:.0%})"
-            if line_move_penalty > 0 and adjusted_edge < EDGE_THRESHOLD_PCT and edge_vs_market >= EDGE_THRESHOLD_PCT:
+            if line_move_penalty > 0 and adjusted_edge < self.edge_threshold_pct and edge_vs_market >= self.edge_threshold_pct:
                 pass_reason = f"Line moved against us ({line_move_against:+.1f}pts), reduced edge from {edge_vs_market:+.1f}% to {adjusted_edge:+.1f}%"
 
             passes = (
@@ -719,10 +758,10 @@ class EnsemblePredictor:
                 'predicted_margin_raw': round(pred_margin_raw, 1) if pred_margin_raw is not None else None,
                 'sigma': round(sigma, 2),
                 'z_score': round(z_score_val, 3) if z_score_val is not None else None,
-                'raw_edge': round(min(edge_vs_market, MAX_EDGE_PCT), 2),
+                'raw_edge': round(min(edge_vs_market, self.max_edge_pct), 2),
                 'cover_prob': round(confidence, 4),
                 'confidence': confidence,
-                'edge': round(min(edge_vs_market, MAX_EDGE_PCT), 2),
+                'edge': round(min(edge_vs_market, self.max_edge_pct), 2),
                 'adjusted_edge': round(adjusted_edge, 2),
                 'ev': ev,
                 'implied_prob': round(implied_prob, 4),
@@ -760,7 +799,7 @@ class EnsemblePredictor:
         if failed:
             print(f"\n   {len(failed)} games hard-passed: {', '.join(set(r for p in failed for r in p['fail_reasons']))}")
         if excluded_count > 0:
-            print(f"   {excluded_count} games excluded (below {EDGE_THRESHOLD_PCT}% adjusted edge)")
+            print(f"   {excluded_count} games excluded (below {self.edge_threshold_pct}% adjusted edge)")
         
         if log_predictions:
             try:
@@ -785,9 +824,9 @@ class EnsemblePredictor:
             except Exception as e:
                 pass
         
-        qualified = [p for p in filtered_picks if p['adjusted_edge'] >= EDGE_THRESHOLD_PCT]
+        qualified = [p for p in filtered_picks if p['adjusted_edge'] >= self.edge_threshold_pct]
         if qualified:
-            print(f"\n   QUALIFIED OPPORTUNITIES ({EDGE_THRESHOLD_PCT}%+ adjusted edge):")
+            print(f"\n   QUALIFIED OPPORTUNITIES ({self.edge_threshold_pct}%+ adjusted edge):")
             for pick in sorted(qualified, key=lambda x: x['adjusted_edge'], reverse=True):
                 margin_str = f", margin: {pick['predicted_margin']:+.1f}" if pick['predicted_margin'] is not None else ""
                 print(f"   {pick['rating']}: {pick['pick']} (edge: +{pick['adjusted_edge']:.1f}%{margin_str})")
@@ -936,7 +975,7 @@ class EnsemblePredictor:
                 break
         
         while len(result) < 3:
-            result.append(f"Edge {edge:+.1f}% exceeds {EDGE_THRESHOLD_PCT}% threshold")
+            result.append(f"Edge {edge:+.1f}% exceeds {self.edge_threshold_pct}% threshold")
         
         return result[:3]
     
@@ -1014,7 +1053,7 @@ class EnsemblePredictor:
             margin_preds = margin_gbr.predict(X_test_s)
             residuals = margin_preds - margin_test.values
             sigma_raw = np.std(residuals)
-            sigma = min(max(sigma_raw, MARGIN_STD_FLOOR), MARGIN_STD_CEILING)
+            sigma = min(max(sigma_raw, self.margin_std_floor), self.margin_std_ceiling)
             mae = np.mean(np.abs(residuals))
 
             spreads = test_df['spread_home'].values
@@ -1035,7 +1074,7 @@ class EnsemblePredictor:
                     continue
 
                 market_margin = -spread
-                pred_margin = MODEL_WEIGHT * pred_margin_raw + (1 - MODEL_WEIGHT) * market_margin
+                pred_margin = self.model_weight * pred_margin_raw + (1 - self.model_weight) * market_margin
                 z_score = (pred_margin + spread) / sigma
                 home_cover_prob = float(norm.cdf(z_score))
 
@@ -1046,7 +1085,7 @@ class EnsemblePredictor:
                     pick_side = 'away'
                     confidence = 1 - home_cover_prob
 
-                raw_edge = min((confidence - implied_prob) * 100, MAX_EDGE_PCT)
+                raw_edge = min((confidence - implied_prob) * 100, self.max_edge_pct)
 
                 line_move_penalty = 0.0
                 line_move_against = 0.0
@@ -1058,7 +1097,7 @@ class EnsemblePredictor:
                         line_move_penalty = move * LINE_MOVE_PENALTY_PER_PT
 
                 adjusted_edge = raw_edge - line_move_penalty
-                adjusted_edge = min(adjusted_edge, MAX_EDGE_PCT)
+                adjusted_edge = min(adjusted_edge, self.max_edge_pct)
                 all_edges.append(adjusted_edge)
 
                 if line_move_against >= LINE_MOVE_HARD_STOP and adjusted_edge < LINE_MOVE_HARD_STOP_MIN_EDGE:
@@ -1289,7 +1328,7 @@ class EnsemblePredictor:
             margin_gbr.fit(X_train_s, margin_train)
             margin_preds = margin_gbr.predict(X_test_s)
             residuals = margin_preds - margin_test.values
-            sigma = min(max(np.std(residuals), MARGIN_STD_FLOOR), MARGIN_STD_CEILING)
+            sigma = min(max(np.std(residuals), self.margin_std_floor), self.margin_std_ceiling)
 
             spreads = pd.to_numeric(test_df['spread_home'], errors='coerce').values
             open_spreads = pd.to_numeric(test_df['spread_home_open'], errors='coerce').values if 'spread_home_open' in test_df.columns else np.full(len(test_df), np.nan)
@@ -1304,7 +1343,7 @@ class EnsemblePredictor:
                     continue
                 pred_margin_raw = margin_preds[j]
                 market_margin = -spread
-                pred_margin = MODEL_WEIGHT * pred_margin_raw + (1 - MODEL_WEIGHT) * market_margin
+                pred_margin = self.model_weight * pred_margin_raw + (1 - self.model_weight) * market_margin
                 z_score = (pred_margin + spread) / sigma
                 home_cover_prob = float(norm.cdf(z_score))
 
@@ -1315,7 +1354,7 @@ class EnsemblePredictor:
                     pick_side = 'away'
                     confidence = 1 - home_cover_prob
 
-                raw_edge = min((confidence - implied_prob) * 100, MAX_EDGE_PCT)
+                raw_edge = min((confidence - implied_prob) * 100, self.max_edge_pct)
 
                 open_spread = open_spreads[j]
                 line_move = 0.0
@@ -1452,8 +1491,13 @@ class EnsemblePredictor:
 
         return {'all_results': sweep_results, 'brand_matches': brand_matches, 'best': best}
 
-    def save(self, filepath='sharp_picks_model.pkl'):
+    def _default_filepath(self):
+        return f'sharp_picks_{"wnba_" if self.sport == "wnba" else ""}model.pkl'
+
+    def save(self, filepath=None):
         """Save the trained model"""
+        if filepath is None:
+            filepath = self._default_filepath()
         model_data = {
             'models': self.models,
             'base_models': self.base_models,
@@ -1470,8 +1514,10 @@ class EnsemblePredictor:
         with open(filepath, 'wb') as f:
             pickle.dump(model_data, f)
     
-    def load_model(self, filepath='sharp_picks_model.pkl'):
+    def load_model(self, filepath=None):
         """Load a saved model"""
+        if filepath is None:
+            filepath = self._default_filepath()
         if not os.path.exists(filepath):
             return False
         
@@ -1487,7 +1533,7 @@ class EnsemblePredictor:
             self.calibration_stats = model_data.get('calibration_stats', {})
             self.margin_model = model_data.get('margin_model', None)
             saved_std = model_data.get('margin_std', None)
-            self.margin_std = min(max(saved_std, MARGIN_STD_FLOOR), MARGIN_STD_CEILING) if saved_std is not None else None
+            self.margin_std = min(max(saved_std, self.margin_std_floor), self.margin_std_ceiling) if saved_std is not None else None
             self.margin_mae = model_data.get('margin_mae', None)
             self.using_fallback_sigma = model_data.get('using_fallback_sigma', None)
             
@@ -1562,10 +1608,22 @@ def main():
     """Main function for model operations"""
     import sys
     
-    predictor = EnsemblePredictor()
+    sport = 'nba'
+    args = list(sys.argv[1:])
+    if '--sport' in args:
+        idx = args.index('--sport')
+        if idx + 1 < len(args):
+            sport = args[idx + 1].lower()
+            args = args[:idx] + args[idx + 2:]
+        else:
+            print("Error: --sport requires a value (nba or wnba)")
+            return
+
+    predictor = EnsemblePredictor(sport=sport)
+    print(f"   Sport: {sport.upper()}")
     
-    if len(sys.argv) > 1:
-        cmd = sys.argv[1]
+    if len(args) > 0:
+        cmd = args[0]
         
         if cmd == 'train':
             predictor.train()
@@ -1599,6 +1657,11 @@ def print_usage():
     print("   python model.py sweep       - Backtest parameter sweep")
     print("   python model.py calibration - Confidence calibration check")
     print("   python model.py importance  - Show feature importance")
+    print("\nOptions:")
+    print("   --sport nba|wnba            - Select sport (default: nba)")
+    print("\nExamples:")
+    print("   python model.py train --sport wnba")
+    print("   python model.py predict --sport wnba")
     print()
 
 
