@@ -626,8 +626,9 @@ def grade_pending_picks():
             print(f"[Auto-grade] Error: {e}")
 
 def collect_closing_lines():
-    """Collect closing lines right before games start.
-    First refreshes data from APIs, then snapshots current lines as closing lines."""
+    """Collect closing lines for all today's games and pending picks.
+    Refreshes data from APIs, then snapshots current lines as closing lines.
+    Runs multiple times during game windows to catch lines close to tip-off."""
     print(f"[{datetime.now()}] Refreshing lines for closing snapshot...")
     try:
         subprocess.run(['python', 'main.py'], timeout=300)
@@ -644,7 +645,7 @@ def collect_closing_lines():
             today_str = datetime.now().strftime('%Y-%m-%d')
             cursor.execute('''
                 SELECT id, home_team, away_team, spread_home, total,
-                       home_ml, away_ml
+                       home_ml, away_ml, game_date
                 FROM games
                 WHERE game_date LIKE ?
                 AND home_score IS NULL
@@ -667,8 +668,11 @@ def collect_closing_lines():
                       game['home_ml'], game['away_ml'],
                       datetime.now().isoformat(), game['id']))
                 
-                from performance_tracker import update_closing_line
-                update_closing_line(game['id'], game['spread_home'])
+                try:
+                    from performance_tracker import update_closing_line
+                    update_closing_line(game['id'], game['spread_home'])
+                except Exception:
+                    pass
                 updated += 1
 
                 today_pick = Pick.query.filter(
@@ -678,11 +682,11 @@ def collect_closing_lines():
                 ).first()
                 if today_pick:
                     closing = game['spread_home']
-                    if today_pick.line_close is None:
-                        today_pick.line_close = closing
+                    today_pick.line_close = closing
                     today_pick.closing_spread = closing
                     if today_pick.line is not None and closing is not None:
-                        today_pick.clv = closing - today_pick.line
+                        pick_line = today_pick.line
+                        today_pick.clv = closing - pick_line
             
             conn.commit()
             conn.close()
@@ -822,15 +826,81 @@ def check_data_quality():
         print(f"[Data Quality] Check failed: {e}")
 
 
+def grade_whatif_passes():
+    """Grade what-if picks on passes by checking actual game results.
+    Uses stored home_team/away_team/pick_side to match the correct game."""
+    print(f"[{datetime.now()}] Grading what-if pass records...")
+    with app.app_context():
+        try:
+            ungraded = Pass.query.filter(
+                Pass.whatif_side.isnot(None),
+                Pass.whatif_home_team.isnot(None),
+                Pass.whatif_result.is_(None),
+            ).all()
+
+            if not ungraded:
+                print(f"[{datetime.now()}] No ungraded what-if passes")
+                return
+
+            conn = sqlite3.connect('sharp_picks.db')
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            graded = 0
+            for p in ungraded:
+                cursor.execute('''
+                    SELECT home_score, away_score, spread_home
+                    FROM games
+                    WHERE game_date LIKE ?
+                    AND home_team = ?
+                    AND away_team = ?
+                    AND home_score IS NOT NULL
+                ''', (f'{p.date}%', p.whatif_home_team, p.whatif_away_team))
+
+                game = cursor.fetchone()
+                if not game:
+                    continue
+
+                home_margin = game['home_score'] - game['away_score']
+                spread = p.whatif_line if p.whatif_line is not None else 0
+                is_home_pick = p.whatif_pick_side == 'home'
+
+                ats_margin = home_margin + spread if is_home_pick else -(home_margin + spread)
+                if ats_margin > 0:
+                    covered = True
+                elif ats_margin < 0:
+                    covered = False
+                else:
+                    covered = None
+
+                if covered is not None:
+                    p.whatif_result = 'win' if covered else 'loss'
+                    p.whatif_covered = covered
+                else:
+                    p.whatif_result = 'push'
+                    p.whatif_covered = None
+                graded += 1
+
+            conn.close()
+            db.session.commit()
+            print(f"[{datetime.now()}] Graded {graded} what-if passes")
+        except Exception as e:
+            print(f"[{datetime.now()}] What-if grading error: {e}")
+
+
 def start_scheduler():
     from sport_config import get_sport_config
     sched = BackgroundScheduler(timezone='America/New_York')
     
     sched.add_job(collect_todays_games, 'cron', hour=9, minute=0, id='daily_collection')
     sched.add_job(collect_todays_games, 'cron', hour=21, minute=0, id='evening_collection')
-    sched.add_job(collect_closing_lines, 'cron', hour=18, minute=30, id='closing_lines')
+    sched.add_job(collect_closing_lines, 'cron', hour=18, minute=30, id='closing_lines_1830')
+    sched.add_job(collect_closing_lines, 'cron', hour=19, minute=0, id='closing_lines_1900')
+    sched.add_job(collect_closing_lines, 'cron', hour=19, minute=30, id='closing_lines_1930')
+    sched.add_job(collect_closing_lines, 'cron', hour=22, minute=0, id='closing_lines_2200')
     sched.add_job(grade_pending_picks, 'cron', hour=23, minute=30, id='grade_picks')
     sched.add_job(grade_pending_picks, 'cron', hour=2, minute=0, id='late_game_grading')
+    sched.add_job(grade_whatif_passes, 'cron', hour=3, minute=0, id='grade_whatif')
     sched.add_job(check_data_quality, 'cron', hour=10, minute=0, id='data_quality')
     
     wnba_cfg = get_sport_config('wnba')

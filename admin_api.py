@@ -406,6 +406,16 @@ def export_model_data():
             'closest_edge_pct': p.closest_edge_pct,
             'pass_reason': p.pass_reason,
             'notes': p.notes,
+            'whatif_side': p.whatif_side,
+            'whatif_home_team': p.whatif_home_team,
+            'whatif_away_team': p.whatif_away_team,
+            'whatif_pick_side': p.whatif_pick_side,
+            'whatif_line': p.whatif_line,
+            'whatif_edge': p.whatif_edge,
+            'whatif_cover_prob': p.whatif_cover_prob,
+            'whatif_pred_margin': p.whatif_pred_margin,
+            'whatif_result': p.whatif_result,
+            'whatif_covered': p.whatif_covered,
         } for p in passes],
         'model_runs': [{
             'date': r.date,
@@ -415,10 +425,121 @@ def export_model_data():
             'model_version': r.model_version,
             'run_duration_ms': r.run_duration_ms,
         } for r in runs],
+        'spread_buckets': _compute_spread_buckets(picks),
+        'whatif_summary': _compute_whatif_summary(passes),
         '_meta': {
             'total_picks': len(picks),
             'total_passes': len(passes),
             'total_runs': len(runs),
             'exported_at': datetime.now(ET).strftime('%Y-%m-%d %H:%M:%S ET'),
+        }
+    })
+
+
+def _compute_spread_buckets(picks):
+    buckets = {
+        'under_5': {'label': '< 5 pts', 'wins': 0, 'losses': 0, 'pending': 0, 'picks': []},
+        '5_to_10': {'label': '5-10 pts', 'wins': 0, 'losses': 0, 'pending': 0, 'picks': []},
+        '10_to_15': {'label': '10-15 pts', 'wins': 0, 'losses': 0, 'pending': 0, 'picks': []},
+        'over_15': {'label': '15+ pts', 'wins': 0, 'losses': 0, 'pending': 0, 'picks': []},
+    }
+    for p in picks:
+        spread_abs = abs(p.line) if p.line is not None else 0
+        if spread_abs < 5:
+            bucket = 'under_5'
+        elif spread_abs < 10:
+            bucket = '5_to_10'
+        elif spread_abs < 15:
+            bucket = '10_to_15'
+        else:
+            bucket = 'over_15'
+
+        entry = {'date': p.game_date, 'side': p.side, 'line': p.line, 'result': p.result, 'edge': p.edge_pct}
+        buckets[bucket]['picks'].append(entry)
+        if p.result == 'win':
+            buckets[bucket]['wins'] += 1
+        elif p.result == 'loss':
+            buckets[bucket]['losses'] += 1
+        else:
+            buckets[bucket]['pending'] += 1
+
+    for b in buckets.values():
+        total = b['wins'] + b['losses']
+        b['win_rate'] = round(b['wins'] / total * 100, 1) if total > 0 else None
+        b['sample_size'] = total
+
+    return buckets
+
+
+def _compute_whatif_summary(passes):
+    graded = [p for p in passes if p.whatif_result is not None]
+    if not graded:
+        return {'total_graded': 0, 'message': 'No what-if data graded yet. Starts after next pass day + game results.'}
+
+    wins = sum(1 for p in graded if p.whatif_covered)
+    losses = len(graded) - wins
+    cover_rate = round(wins / len(graded) * 100, 1) if graded else 0
+
+    return {
+        'total_graded': len(graded),
+        'wins': wins,
+        'losses': losses,
+        'cover_rate_pct': cover_rate,
+        'threshold_assessment': 'Threshold may be too high — leaving money on the table' if cover_rate > 52 else 'Threshold is appropriate — passed games are near coin-flip',
+    }
+
+
+@admin_bp.route('/api/admin/retro-calibrate', methods=['POST'])
+def retro_calibrate():
+    admin = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    pre_cal_picks = Pick.query.filter(
+        Pick.predicted_margin.is_(None),
+        Pick.result != 'pending',
+    ).order_by(Pick.game_date).all()
+
+    if not pre_cal_picks:
+        return jsonify({'message': 'No pre-calibration picks found', 'updated': 0})
+
+    from sport_config import get_sport_config
+    from scipy.stats import norm
+    import math
+
+    results = []
+    for p in pre_cal_picks:
+        cfg = get_sport_config(p.sport or 'nba')
+        sigma = cfg.get('sigma', 11.7)
+        model_weight = cfg.get('model_weight', 0.3)
+        max_edge = cfg.get('max_edge_pct', 8.0)
+        implied_prob = 0.5238
+
+        spread = p.line if p.line is not None else 0
+        z = spread / sigma if sigma > 0 else 0
+        raw_cover_prob = 1 - norm.cdf(z)
+
+        blended_cover_prob = model_weight * raw_cover_prob + (1 - model_weight) * implied_prob
+        calibrated_edge = (blended_cover_prob - implied_prob) * 100
+        calibrated_edge = min(calibrated_edge, max_edge)
+
+        results.append({
+            'game_date': p.game_date,
+            'side': p.side,
+            'line': p.line,
+            'original_edge': p.edge_pct,
+            'calibrated_edge': round(calibrated_edge, 2),
+            'calibrated_cover_prob': round(blended_cover_prob, 4),
+            'would_qualify': calibrated_edge >= cfg.get('edge_threshold_pct', 3.5),
+            'result': p.result,
+        })
+
+    return jsonify({
+        'pre_cal_picks': results,
+        'summary': {
+            'total': len(results),
+            'would_qualify': sum(1 for r in results if r['would_qualify']),
+            'would_pass': sum(1 for r in results if not r['would_qualify']),
+            'qualified_record': f"{sum(1 for r in results if r['would_qualify'] and r['result'] == 'win')}-{sum(1 for r in results if r['would_qualify'] and r['result'] == 'loss')}",
         }
     })

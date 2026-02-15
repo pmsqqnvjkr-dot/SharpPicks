@@ -197,12 +197,30 @@ def run_model_and_log(app, sport='nba'):
                     else:
                         top_pass_reason = "No statistical edge detected"
 
+                whatif_best = max(predictions, key=lambda p: p.get('adjusted_edge', 0)) if predictions else None
+                whatif_kwargs = {}
+                if whatif_best:
+                    wh_spread = whatif_best.get('spread', 0) or 0
+                    wh_is_home = whatif_best.get('pick_side') == 'home'
+                    wh_line = wh_spread if wh_is_home else -wh_spread
+                    whatif_kwargs = {
+                        'whatif_side': whatif_best.get('pick'),
+                        'whatif_home_team': whatif_best.get('home_team'),
+                        'whatif_away_team': whatif_best.get('away_team'),
+                        'whatif_pick_side': whatif_best.get('pick_side'),
+                        'whatif_line': _to_python(round(wh_line, 1)),
+                        'whatif_edge': _to_python(round(whatif_best.get('adjusted_edge', 0), 1)),
+                        'whatif_cover_prob': _to_python(round(whatif_best.get('cover_prob', 0.5), 4)),
+                        'whatif_pred_margin': _to_python(round(whatif_best['predicted_margin'], 1)) if whatif_best.get('predicted_margin') is not None else None,
+                    }
+
                 pass_entry = Pass(
                     date=today_str,
                     sport=sport,
                     games_analyzed=len(predictions),
                     closest_edge_pct=round(closest_edge, 1),
                     pass_reason=top_pass_reason,
+                    **whatif_kwargs,
                 )
                 db.session.add(pass_entry)
 

@@ -119,6 +119,16 @@ class Pass(db.Model):
     pass_reason = db.Column(db.String, nullable=True)
     notes = db.Column(db.Text, nullable=True)
     model_run_id = db.Column(db.String, nullable=True)
+    whatif_side = db.Column(db.String, nullable=True)
+    whatif_home_team = db.Column(db.String, nullable=True)
+    whatif_away_team = db.Column(db.String, nullable=True)
+    whatif_pick_side = db.Column(db.String, nullable=True)
+    whatif_line = db.Column(db.Float, nullable=True)
+    whatif_edge = db.Column(db.Float, nullable=True)
+    whatif_cover_prob = db.Column(db.Float, nullable=True)
+    whatif_pred_margin = db.Column(db.Float, nullable=True)
+    whatif_result = db.Column(db.String, nullable=True)
+    whatif_covered = db.Column(db.Boolean, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
 
