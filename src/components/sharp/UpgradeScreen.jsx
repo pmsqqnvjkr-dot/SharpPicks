@@ -85,6 +85,12 @@ export default function UpgradeScreen({ onBack, user }) {
           }}>
             This is not more picks. It's full transparency.
           </p>
+          <p style={{
+            fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5',
+            maxWidth: '320px', margin: '6px auto 0',
+          }}>
+            This is how disciplined bettors compound.
+          </p>
         </div>
 
         {isTrial && (
@@ -101,7 +107,7 @@ export default function UpgradeScreen({ onBack, user }) {
               fontSize: '13px',
               color: 'var(--text-secondary)',
               lineHeight: 1.5,
-            }}>When your trial ends, edge visibility narrows.</span>
+            }}>When your trial ends, the full decision disappears.</span>
           </div>
         )}
 
@@ -165,18 +171,25 @@ export default function UpgradeScreen({ onBack, user }) {
             <div>
               <div style={{
                 fontSize: '13px', color: 'var(--gold-pro)', fontWeight: 600,
-              }}>Founding Members: {spotsRemaining} / {foundingData?.total || 500} Remaining</div>
+              }}>{(foundingData?.total || 500) - spotsRemaining} of {foundingData?.total || 500} claimed</div>
               <div style={{
                 fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '3px',
               }}>{spotsRemaining <= 20
-                ? `Only ${spotsRemaining} ${spotsRemaining === 1 ? 'spot' : 'spots'} left at this price.`
+                ? `Only ${spotsRemaining} founding ${spotsRemaining === 1 ? 'spot' : 'spots'} left at this price.`
                 : 'Lock in $99/yr — rate preserved forever'
               }</div>
             </div>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '18px',
-              color: 'var(--gold-pro)', fontWeight: 700,
-            }}>{spotsRemaining}</span>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '18px',
+                color: 'var(--gold-pro)', fontWeight: 700,
+              }}>{spotsRemaining}</span>
+              <div style={{
+                fontFamily: 'var(--font-sans)', fontSize: '9px',
+                color: 'var(--text-tertiary)', textTransform: 'uppercase',
+                letterSpacing: '0.06em', marginTop: '1px',
+              }}>left</div>
+            </div>
           </div>
         )}
 
@@ -200,7 +213,7 @@ export default function UpgradeScreen({ onBack, user }) {
             price="$29"
             period="/mo"
             description="Full access, cancel anytime"
-            cta="Subscribe Monthly"
+            cta="Start Monthly Access"
             onSelect={() => handleSubscribe('monthly')}
             loading={checkoutLoading}
             secondary
@@ -218,6 +231,26 @@ export default function UpgradeScreen({ onBack, user }) {
               savings="Save $199 vs monthly"
             />
           )}
+        </div>
+
+        <div style={{
+          textAlign: 'center', padding: '0 0 14px',
+        }}>
+          <p style={{
+            fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5',
+          }}>Cancel anytime. No lock-ins. No tricks.</p>
+        </div>
+
+        <div style={{
+          textAlign: 'center', padding: '4px 16px 16px',
+          marginBottom: '8px',
+        }}>
+          <span style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: '12px',
+            color: 'var(--text-tertiary)',
+            lineHeight: 1.5,
+          }}>Built for long-term bankroll growth — not daily action.</span>
         </div>
 
         <div style={{
