@@ -2086,7 +2086,10 @@ def get_performance():
 
 
 @app.route('/api/admin/stats')
+@login_required
 def get_stats():
+    if not current_user.is_superuser:
+        return jsonify({'error': 'Unauthorized'}), 403
     conn = get_db()
     cur = conn.cursor()
     
