@@ -24,10 +24,12 @@ def health():
 
 @app.route('/')
 def root_health():
-    try:
-        return app.send_static_file('index.html')
-    except Exception:
-        return 'ok', 200
+    dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
+    index_path = os.path.join(dist_dir, 'index.html')
+    if os.path.isfile(index_path):
+        from flask import send_from_directory
+        return send_from_directory(dist_dir, 'index.html')
+    return 'ok', 200
 
 is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
 
@@ -2510,14 +2512,16 @@ def admin_users():
 
 @app.route('/<path:path>')
 def serve_spa(path):
-    try:
-        full_path = os.path.join(app.static_folder, path)
-        if os.path.isfile(full_path):
-            from flask import send_from_directory
-            return send_from_directory(app.static_folder, path)
-        return send_from_directory(app.static_folder, 'index.html')
-    except Exception:
-        return jsonify({'status': 'ok'}), 200
+    dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
+    full_path = os.path.join(dist_dir, path)
+    if os.path.isfile(full_path):
+        from flask import send_from_directory
+        return send_from_directory(dist_dir, path)
+    index_path = os.path.join(dist_dir, 'index.html')
+    if os.path.isfile(index_path):
+        from flask import send_from_directory
+        return send_from_directory(dist_dir, 'index.html')
+    return jsonify({'status': 'ok'}), 200
 
 
 def start_background_services_later():
