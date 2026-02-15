@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi, apiGet } from '../../hooks/useApi';
+import { useSport, sportQuery } from '../../hooks/useSport';
 function SectionLabel({ children }) {
   return (
     <div style={{
@@ -15,8 +16,9 @@ function SectionLabel({ children }) {
 
 export default function DashboardTab({ onNavigate, embedded = false }) {
   const { user } = useAuth();
-  const { data: dashData, loading } = useApi('/public/dashboard-stats', { pollInterval: 60000 });
-  const { data: calibrationData } = useApi('/public/calibration', { pollInterval: 60000 });
+  const { sport } = useSport();
+  const { data: dashData, loading } = useApi(sportQuery('/public/dashboard-stats', sport), { pollInterval: 60000 });
+  const { data: calibrationData } = useApi(sportQuery('/public/calibration', sport), { pollInterval: 60000 });
 
   if (loading) {
     return (

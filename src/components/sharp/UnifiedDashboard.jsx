@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
+import { useSport, sportQuery } from '../../hooks/useSport';
 import ResolutionScreen from './ResolutionScreen';
 
 export default function UnifiedDashboard({ embedded = false }) {
   const { user } = useAuth();
+  const { sport } = useSport();
   const [stats, setStats] = useState(null);
   const [bets, setBets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,8 +19,8 @@ export default function UnifiedDashboard({ embedded = false }) {
     try {
       if (user) {
         const [statsData, betsData] = await Promise.all([
-          apiGet('/user/stats'),
-          apiGet('/bets'),
+          apiGet(sportQuery('/user/stats', sport)),
+          apiGet(sportQuery('/bets', sport)),
         ]);
         setStats(statsData);
         setBets(betsData.bets || []);
@@ -30,7 +32,7 @@ export default function UnifiedDashboard({ embedded = false }) {
     }
   };
 
-  useEffect(() => { loadData(); }, [user]);
+  useEffect(() => { loadData(); }, [user, sport]);
 
   const handleSubmitBet = async (betData) => {
     try {

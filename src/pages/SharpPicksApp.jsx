@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
+import { SportProvider } from '../hooks/useSport';
 import TabNav from '../components/sharp/TabNav';
 import AppHeader from '../components/sharp/AppHeader';
 import PicksTab from '../components/sharp/PicksTab';
@@ -98,7 +99,9 @@ function AppContent() {
 export default function SharpPicksApp() {
   return (
     <AuthProvider>
-      <AppContent />
+      <SportProvider>
+        <AppContent />
+      </SportProvider>
     </AuthProvider>
   );
 }

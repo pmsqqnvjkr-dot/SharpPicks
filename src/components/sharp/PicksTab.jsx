@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
+import { useSport, sportQuery } from '../../hooks/useSport';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
 import AuthModal from './AuthModal';
@@ -10,9 +11,10 @@ import { InlineError } from './ErrorStates';
 
 export default function PicksTab({ onNavigate }) {
   const { user, loading: authLoading } = useAuth();
-  const { data: todayData, loading, error } = useApi('/picks/today');
-  const { data: stats } = useApi('/public/stats');
-  const { data: historyData, loading: historyLoading } = useApi('/public/record');
+  const { sport } = useSport();
+  const { data: todayData, loading, error } = useApi(sportQuery('/picks/today', sport));
+  const { data: stats } = useApi(sportQuery('/public/stats', sport));
+  const { data: historyData, loading: historyLoading } = useApi(sportQuery('/public/record', sport));
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
   const [resolutionPick, setResolutionPick] = useState(null);

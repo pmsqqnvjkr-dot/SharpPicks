@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useSport } from '../../hooks/useSport';
 
-export default function AppHeader({ onNavigate }) {
+export default function AppHeader({ onNavigate, showSportToggle }) {
   const { user, logout } = useAuth();
+  const { sport, setSport } = useSport();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -129,6 +131,40 @@ export default function AppHeader({ onNavigate }) {
           </div>
         )}
       </div>
+
+      {showSportToggle && (
+        <div style={{
+          display: 'flex',
+          backgroundColor: 'var(--surface-1)',
+          borderRadius: '8px',
+          padding: '2px',
+          border: '1px solid var(--stroke-subtle)',
+          marginLeft: 'auto',
+        }}>
+          {['nba', 'wnba'].map(s => (
+            <button
+              key={s}
+              onClick={() => setSport(s)}
+              style={{
+                padding: '4px 12px',
+                fontSize: '11px',
+                fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                backgroundColor: sport === s ? 'var(--blue-primary)' : 'transparent',
+                color: sport === s ? '#fff' : 'var(--text-tertiary)',
+                transition: 'all 0.2s',
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
