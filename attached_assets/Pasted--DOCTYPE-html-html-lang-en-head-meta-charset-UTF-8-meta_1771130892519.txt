@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sharp Picks — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=IBM+Plex+Serif:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e17;
+  --panel: #0f1520;
+  --panel-hover: #141c2a;
+  --border: #1a2235;
+  --border-bright: #243050;
+  --text: #c8d6e5;
+  --text-dim: #5a6a7e;
+  --text-bright: #e8f0ff;
+  --green: #00d68f;
+  --green-dim: rgba(0,214,143,0.15);
+  --red: #ff4757;
+  --red-dim: rgba(255,71,87,0.15);
+  --amber: #ffa502;
+  --amber-dim: rgba(255,165,2,0.15);
+  --blue: #4f86f7;
+  --blue-dim: rgba(79,134,247,0.15);
+  --cyan: #45aaf2;
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'IBM Plex Serif', serif;
+}
+
+- { margin:0; padding:0; box-sizing:border-box; }
+  html { background: var(–bg); }
+  body { font-family: var(–mono); color: var(–text); background: var(–bg); min-height:100vh; }
+  ::selection { background: rgba(79,134,247,0.3); }
+
+/* ═══ GRID LAYOUT ═══ */
+.dashboard {
+display: grid;
+grid-template-columns: 1fr 1fr 1fr 1fr;
+grid-template-rows: auto auto auto auto;
+gap: 1px;
+background: var(–border);
+min-height: 100vh;
+}
+
+/* ═══ HEADER ═══ */
+.header {
+grid-column: 1 / -1;
+background: var(–bg);
+padding: 12px 20px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+border-bottom: 1px solid var(–border);
+}
+
+.header-left {
+display: flex;
+align-items: center;
+gap: 16px;
+}
+
+.header-logo {
+font-size: 11px;
+font-weight: 800;
+letter-spacing: 3px;
+color: var(–text-bright);
+text-transform: uppercase;
+}
+
+.header-badge {
+font-size: 9px;
+font-weight: 600;
+letter-spacing: 1px;
+padding: 3px 8px;
+border-radius: 3px;
+background: var(–green-dim);
+color: var(–green);
+text-transform: uppercase;
+}
+
+.header-right {
+display: flex;
+align-items: center;
+gap: 20px;
+}
+
+.header-time {
+font-size: 11px;
+color: var(–text-dim);
+font-weight: 400;
+}
+
+.header-pulse {
+width: 8px; height: 8px;
+border-radius: 50%;
+background: var(–green);
+animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,214,143,0.4); }
+50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(0,214,143,0); }
+}
+
+/* ═══ PANELS ═══ */
+.panel {
+background: var(–panel);
+padding: 16px 20px;
+position: relative;
+overflow: hidden;
+}
+
+.panel-label {
+font-size: 9px;
+font-weight: 700;
+letter-spacing: 2px;
+text-transform: uppercase;
+color: var(–text-dim);
+margin-bottom: 12px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+
+.panel-label .status-dot {
+width: 6px; height: 6px;
+border-radius: 50%;
+display: inline-block;
+}
+
+.status-dot.green { background: var(–green); }
+.status-dot.red { background: var(–red); }
+.status-dot.amber { background: var(–amber); }
+
+/* ═══ METRIC CELLS ═══ */
+.metric-val {
+font-size: 28px;
+font-weight: 800;
+color: var(–text-bright);
+line-height: 1;
+margin-bottom: 4px;
+font-variant-numeric: tabular-nums;
+}
+
+.metric-val.green { color: var(–green); }
+.metric-val.red { color: var(–red); }
+.metric-val.amber { color: var(–amber); }
+.metric-val.blue { color: var(–blue); }
+
+.metric-sub {
+font-size: 10px;
+color: var(–text-dim);
+font-weight: 400;
+}
+
+.metric-delta {
+font-size: 10px;
+font-weight: 600;
+margin-left: 6px;
+}
+
+.metric-delta.up { color: var(–green); }
+.metric-delta.down { color: var(–red); }
+
+/* ═══ STAT ROWS ═══ */
+.stat-row {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 8px 0;
+border-bottom: 1px solid var(–border);
+font-size: 11px;
+}
+
+.stat-row:last-child { border-bottom: none; }
+
+.stat-row .label { color: var(–text-dim); }
+.stat-row .value { color: var(–text-bright); font-weight: 600; }
+.stat-row .value.green { color: var(–green); }
+.stat-row .value.red { color: var(–red); }
+.stat-row .value.amber { color: var(–amber); }
+
+/* ═══ STATUS BARS ═══ */
+.status-bar-row {
+display: flex;
+align-items: center;
+gap: 10px;
+padding: 6px 0;
+font-size: 11px;
+}
+
+.status-indicator {
+width: 8px; height: 8px;
+border-radius: 2px;
+flex-shrink: 0;
+}
+
+.status-indicator.ok { background: var(–green); }
+.status-indicator.warn { background: var(–amber); }
+.status-indicator.err { background: var(–red); }
+
+.status-name { color: var(–text); flex: 1; }
+.status-val { color: var(–text-dim); font-weight: 500; text-align: right; }
+
+/* ═══ MINI CHART ═══ */
+.mini-chart {
+height: 60px;
+display: flex;
+align-items: flex-end;
+gap: 2px;
+margin: 12px 0;
+}
+
+.mini-chart .bar {
+flex: 1;
+background: var(–blue);
+border-radius: 2px 2px 0 0;
+min-height: 2px;
+opacity: 0.7;
+transition: opacity 0.2s, background 0.2s;
+}
+
+.mini-chart .bar:hover {
+opacity: 1;
+background: var(–cyan);
+}
+
+.mini-chart .bar.today {
+background: var(–green);
+opacity: 1;
+}
+
+/* ═══ SPARKLINE (SVG) ═══ */
+.sparkline-wrap {
+height: 50px;
+margin: 8px 0;
+}
+
+.sparkline-wrap svg {
+width: 100%;
+height: 100%;
+}
+
+/* ═══ USER TABLE ═══ */
+.user-table {
+width: 100%;
+font-size: 10px;
+border-collapse: collapse;
+}
+
+.user-table th {
+font-weight: 600;
+color: var(–text-dim);
+text-transform: uppercase;
+letter-spacing: 1px;
+font-size: 9px;
+text-align: left;
+padding: 6px 0;
+border-bottom: 1px solid var(–border-bright);
+}
+
+.user-table td {
+padding: 7px 0;
+border-bottom: 1px solid var(–border);
+color: var(–text);
+}
+
+.user-table tr:hover td { background: var(–panel-hover); }
+
+.badge {
+font-size: 8px;
+font-weight: 700;
+letter-spacing: 0.5px;
+padding: 2px 6px;
+border-radius: 3px;
+text-transform: uppercase;
+}
+
+.badge.pro { background: var(–green-dim); color: var(–green); }
+.badge.trial { background: var(–blue-dim); color: var(–blue); }
+.badge.free { background: rgba(255,255,255,0.06); color: var(–text-dim); }
+.badge.founding { background: var(–amber-dim); color: var(–amber); }
+
+/* ═══ LOG FEED ═══ */
+.log-feed {
+font-size: 10px;
+max-height: 200px;
+overflow-y: auto;
+}
+
+.log-entry {
+padding: 4px 0;
+border-bottom: 1px solid var(–border);
+display: flex;
+gap: 8px;
+}
+
+.log-entry:hover { background: var(–panel-hover); }
+
+.log-time { color: var(–text-dim); white-space: nowrap; flex-shrink: 0; }
+.log-msg { color: var(–text); }
+.log-msg.ok { color: var(–green); }
+.log-msg.err { color: var(–red); }
+.log-msg.warn { color: var(–amber); }
+
+/* ═══ WIDE PANELS ═══ */
+.panel.wide-2 { grid-column: span 2; }
+.panel.wide-3 { grid-column: span 3; }
+.panel.wide-4 { grid-column: span 4; }
+
+/* ═══ CALIBRATION BADGE ═══ */
+.cal-badge {
+display: inline-flex;
+align-items: center;
+gap: 4px;
+font-size: 9px;
+font-weight: 600;
+padding: 3px 8px;
+border-radius: 3px;
+background: var(–green-dim);
+color: var(–green);
+letter-spacing: 0.5px;
+}
+
+.cal-badge::before {
+content: ‘’;
+width: 5px; height: 5px;
+border-radius: 50%;
+background: var(–green);
+}
+
+/* ═══ PROGRESS BAR ═══ */
+.progress-bar {
+height: 4px;
+background: var(–border);
+border-radius: 2px;
+overflow: hidden;
+margin: 8px 0;
+}
+
+.progress-bar .fill {
+height: 100%;
+border-radius: 2px;
+transition: width 0.5s ease;
+}
+
+.progress-bar .fill.green { background: var(–green); }
+.progress-bar .fill.blue { background: var(–blue); }
+.progress-bar .fill.amber { background: var(–amber); }
+
+/* ═══ SECTION DIVIDERS ═══ */
+.section-label {
+grid-column: 1 / -1;
+background: var(–bg);
+padding: 8px 20px;
+font-size: 10px;
+font-weight: 700;
+letter-spacing: 3px;
+text-transform: uppercase;
+color: var(–text-dim);
+border-top: 1px solid var(–border-bright);
+}
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 1200px) {
+.dashboard { grid-template-columns: 1fr 1fr; }
+.panel.wide-3 { grid-column: span 2; }
+.panel.wide-4 { grid-column: span 2; }
+}
+
+@media (max-width: 768px) {
+.dashboard { grid-template-columns: 1fr; }
+.panel.wide-2, .panel.wide-3, .panel.wide-4 { grid-column: span 1; }
+}
+
+/* ═══ SCROLLBAR ═══ */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(–panel); }
+::-webkit-scrollbar-thumb { background: var(–border-bright); border-radius: 2px; }
+</style>
+
+</head>
+<body>
+
+<div class="dashboard">
+
+  <!-- ═══ HEADER ═══ -->
+
+  <div class="header">
+    <div class="header-left">
+      <div class="header-logo">Sharp Picks</div>
+      <div class="header-badge">Command Center</div>
+      <span class="cal-badge">Calibrated 11.7pt</span>
+    </div>
+    <div class="header-right">
+      <span class="header-time" id="clock">Feb 14, 2026 · 2:04:38 PM EST</span>
+      <div class="header-pulse"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SECTION 1: REVENUE & SALES
+       ═══════════════════════════════════════ -->
+
+  <div class="section-label">Revenue & Sales</div>
+
+  <!-- MRR -->
+
+  <div class="panel">
+    <div class="panel-label">Monthly Recurring Revenue</div>
+    <div class="metric-val green">$4,871</div>
+    <div class="metric-sub">MRR <span class="metric-delta up">↑ 12.3%</span></div>
+  </div>
+
+  <!-- ARR -->
+
+  <div class="panel">
+    <div class="panel-label">Annual Run Rate</div>
+    <div class="metric-val">$58,452</div>
+    <div class="metric-sub">ARR · Projected</div>
+  </div>
+
+  <!-- Subscribers -->
+
+  <div class="panel">
+    <div class="panel-label">Active Subscribers</div>
+    <div class="metric-val blue">127</div>
+    <div class="metric-sub">
+      42 annual · 61 monthly · 24 trial
+    </div>
+  </div>
+
+  <!-- Founding Counter -->
+
+  <div class="panel">
+    <div class="panel-label">Founding Members</div>
+    <div class="metric-val amber">42 / 500</div>
+    <div class="progress-bar"><div class="fill amber" style="width:8.4%"></div></div>
+    <div class="metric-sub">458 spots remaining · 8.4% filled</div>
+  </div>
+
+  <!-- Revenue Chart -->
+
+  <div class="panel wide-2">
+    <div class="panel-label">Daily Revenue (Last 30 Days)</div>
+    <div class="mini-chart">
+      <div class="bar" style="height:15%"></div>
+      <div class="bar" style="height:8%"></div>
+      <div class="bar" style="height:22%"></div>
+      <div class="bar" style="height:35%"></div>
+      <div class="bar" style="height:12%"></div>
+      <div class="bar" style="height:28%"></div>
+      <div class="bar" style="height:45%"></div>
+      <div class="bar" style="height:18%"></div>
+      <div class="bar" style="height:32%"></div>
+      <div class="bar" style="height:55%"></div>
+      <div class="bar" style="height:40%"></div>
+      <div class="bar" style="height:25%"></div>
+      <div class="bar" style="height:38%"></div>
+      <div class="bar" style="height:60%"></div>
+      <div class="bar" style="height:42%"></div>
+      <div class="bar" style="height:30%"></div>
+      <div class="bar" style="height:48%"></div>
+      <div class="bar" style="height:35%"></div>
+      <div class="bar" style="height:65%"></div>
+      <div class="bar" style="height:52%"></div>
+      <div class="bar" style="height:38%"></div>
+      <div class="bar" style="height:72%"></div>
+      <div class="bar" style="height:45%"></div>
+      <div class="bar" style="height:58%"></div>
+      <div class="bar" style="height:80%"></div>
+      <div class="bar" style="height:62%"></div>
+      <div class="bar" style="height:48%"></div>
+      <div class="bar" style="height:70%"></div>
+      <div class="bar" style="height:85%"></div>
+      <div class="bar today" style="height:90%"></div>
+    </div>
+    <div class="metric-sub">Trending up · $162 avg/day this week vs $98 last week</div>
+  </div>
+
+  <!-- Conversion Funnel -->
+
+  <div class="panel">
+    <div class="panel-label">Conversion Funnel</div>
+    <div class="stat-row"><span class="label">Trial → Paid</span><span class="value green">34.2%</span></div>
+    <div class="stat-row"><span class="label">Monthly → Annual</span><span class="value">18.7%</span></div>
+    <div class="stat-row"><span class="label">Monthly Churn</span><span class="value amber">6.8%</span></div>
+    <div class="stat-row"><span class="label">Annual Churn</span><span class="value green">1.2%</span></div>
+    <div class="stat-row"><span class="label">LTV (Monthly)</span><span class="value">$126</span></div>
+    <div class="stat-row"><span class="label">LTV (Annual)</span><span class="value green">$284</span></div>
+  </div>
+
+  <!-- Referrals -->
+
+  <div class="panel">
+    <div class="panel-label">Referral Program</div>
+    <div class="stat-row"><span class="label">Total Referrals</span><span class="value">89</span></div>
+    <div class="stat-row"><span class="label">Converted</span><span class="value green">31</span></div>
+    <div class="stat-row"><span class="label">Conv. Rate</span><span class="value green">34.8%</span></div>
+    <div class="stat-row"><span class="label">Days Credited</span><span class="value">1,246</span></div>
+    <div class="stat-row"><span class="label">CAC (Referral)</span><span class="value green">$0</span></div>
+    <div class="stat-row"><span class="label">CAC (Organic)</span><span class="value">$0</span></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SECTION 2: INFRASTRUCTURE
+       ═══════════════════════════════════════ -->
+
+  <div class="section-label">Infrastructure</div>
+
+  <!-- API Health -->
+
+  <div class="panel">
+    <div class="panel-label">API Endpoints <span class="status-dot green"></span></div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">/api/auth/user</span>
+      <span class="status-val">12ms</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">/api/predictions</span>
+      <span class="status-val">45ms</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">/api/bets</span>
+      <span class="status-val">18ms</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">/api/performance</span>
+      <span class="status-val">32ms</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">/api/user/stats</span>
+      <span class="status-val">22ms</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">/api/admin/stats</span>
+      <span class="status-val">28ms</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">/api/recent-results</span>
+      <span class="status-val">15ms</span>
+    </div>
+  </div>
+
+  <!-- External Services -->
+
+  <div class="panel">
+    <div class="panel-label">External Services <span class="status-dot green"></span></div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">The Odds API</span>
+      <span class="status-val">220ms</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">Stripe / RevenueCat</span>
+      <span class="status-val">180ms</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">PostgreSQL</span>
+      <span class="status-val">3ms</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">Push (OneSignal)</span>
+      <span class="status-val">95ms</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator warn"></div>
+      <span class="status-name">Email (Resend)</span>
+      <span class="status-val">410ms</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">Replit Cloud Run</span>
+      <span class="status-val">UP</span>
+    </div>
+  </div>
+
+  <!-- Server Stats -->
+
+  <div class="panel">
+    <div class="panel-label">Server Performance</div>
+    <div class="stat-row"><span class="label">Uptime</span><span class="value green">99.7%</span></div>
+    <div class="stat-row"><span class="label">Avg Response</span><span class="value">24ms</span></div>
+    <div class="stat-row"><span class="label">P99 Latency</span><span class="value amber">180ms</span></div>
+    <div class="stat-row"><span class="label">Requests Today</span><span class="value">4,218</span></div>
+    <div class="stat-row"><span class="label">Errors (24h)</span><span class="value green">3</span></div>
+    <div class="stat-row"><span class="label">Last Deploy</span><span class="value">2h ago</span></div>
+  </div>
+
+  <!-- Scheduler / Cron -->
+
+  <div class="panel">
+    <div class="panel-label">Scheduled Jobs <span class="status-dot green"></span></div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">collect_todays_games</span>
+      <span class="status-val">9 AM ✓</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">collect_closing_lines</span>
+      <span class="status-val">9 PM ✓</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">grade_pending_picks</span>
+      <span class="status-val">12 AM ✓</span>
+    </div>
+    <div class="status-bar-row">
+      <div class="status-indicator ok"></div>
+      <span class="status-name">weekly_summary</span>
+      <span class="status-val">Mon 9 AM ✓</span>
+    </div>
+    <div class="stat-row" style="margin-top:8px">
+      <span class="label">Next Run</span>
+      <span class="value">collect_closing_lines in 6h 56m</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SECTION 3: MODEL PERFORMANCE
+       ═══════════════════════════════════════ -->
+
+  <div class="section-label">Model Performance</div>
+
+  <!-- Record -->
+
+  <div class="panel">
+    <div class="panel-label">Season Record</div>
+    <div class="metric-val green">18-11</div>
+    <div class="metric-sub">62.1% · +$437 · +12.4% ROI</div>
+  </div>
+
+  <!-- Calibration -->
+
+  <div class="panel">
+    <div class="panel-label">Calibration Status</div>
+    <div class="metric-val" style="font-size:18px">
+      <span class="cal-badge" style="font-size:11px">30/70 Shrinkage · σ 11.7</span>
+    </div>
+    <div style="margin-top:10px">
+      <div class="stat-row"><span class="label">Model MAE</span><span class="value">12.03 pts</span></div>
+      <div class="stat-row"><span class="label">Market MAE</span><span class="value green">10.06 pts</span></div>
+      <div class="stat-row"><span class="label">Model Closer</span><span class="value amber">40%</span></div>
+      <div class="stat-row"><span class="label">Edge Cap</span><span class="value">10%</span></div>
+      <div class="stat-row"><span class="label">Calibration Date</span><span class="value">Feb 12, 2026</span></div>
+    </div>
+  </div>
+
+  <!-- Selectivity -->
+
+  <div class="panel">
+    <div class="panel-label">Selectivity</div>
+    <div class="metric-val blue">28.1%</div>
+    <div class="metric-sub">vs 78% industry avg</div>
+    <div class="progress-bar" style="margin-top:12px"><div class="fill blue" style="width:28.1%"></div></div>
+    <div style="margin-top:8px">
+      <div class="stat-row"><span class="label">Total Picks</span><span class="value">29</span></div>
+      <div class="stat-row"><span class="label">Total Passes</span><span class="value">74</span></div>
+      <div class="stat-row"><span class="label">Capital Preserved</span><span class="value green">+$1,012</span></div>
+      <div class="stat-row"><span class="label">Avg Edge Published</span><span class="value">5.8%</span></div>
+    </div>
+  </div>
+
+  <!-- Pick Buckets / Integrity -->
+
+  <div class="panel">
+    <div class="panel-label">Confidence Buckets</div>
+    <div class="stat-row"><span class="label">3.5-5% edge</span><span class="value">11-6 (64.7%)</span></div>
+    <div class="stat-row"><span class="label">5-7.5% edge</span><span class="value">5-3 (62.5%)</span></div>
+    <div class="stat-row"><span class="label">7.5-10% edge</span><span class="value">2-2 (50%)</span></div>
+    <div style="margin-top:10px">
+      <div class="stat-row"><span class="label">Pre-Cal Picks</span><span class="value amber">9</span></div>
+      <div class="stat-row"><span class="label">Post-Cal Picks</span><span class="value green">20</span></div>
+      <div class="stat-row"><span class="label">Avg Line Move</span><span class="value">1.2 pts</span></div>
+      <div class="stat-row"><span class="label">CLV+</span><span class="value green">58%</span></div>
+    </div>
+  </div>
+
+  <!-- Equity Curve -->
+
+  <div class="panel wide-2">
+    <div class="panel-label">Equity Curve (1u Standardized)</div>
+    <div class="sparkline-wrap">
+      <svg viewBox="0 0 400 60" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="eq-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(0,214,143,0.3)"/>
+            <stop offset="100%" stop-color="rgba(0,214,143,0)"/>
+          </linearGradient>
+        </defs>
+        <path d="M0,45 L14,42 L28,48 L42,44 L56,38 L70,35 L84,40 L98,32 L112,28 L126,35 L140,30 L154,25 L168,22 L182,28 L196,20 L210,18 L224,22 L238,15 L252,12 L266,18 L280,14 L294,10 L308,8 L322,12 L336,6 L350,8 L364,5 L378,3 L392,2 L400,1" fill="none" stroke="var(--green)" stroke-width="2"/>
+        <path d="M0,45 L14,42 L28,48 L42,44 L56,38 L70,35 L84,40 L98,32 L112,28 L126,35 L140,30 L154,25 L168,22 L182,28 L196,20 L210,18 L224,22 L238,15 L252,12 L266,18 L280,14 L294,10 L308,8 L322,12 L336,6 L350,8 L364,5 L378,3 L392,2 L400,1 L400,60 L0,60 Z" fill="url(#eq-fill)"/>
+        <!-- Calibration line -->
+        <line x1="124" y1="0" x2="124" y2="60" stroke="var(--amber)" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
+        <text x="128" y="8" fill="var(--amber)" font-size="6" font-family="JetBrains Mono">CAL</text>
+      </svg>
+    </div>
+    <div class="metric-sub">
+      +$437 season · Calibration point marked (Feb 12) · Post-cal: +$289 on 20 picks
+    </div>
+  </div>
+
+  <!-- Today's Model Run -->
+
+  <div class="panel wide-2">
+    <div class="panel-label">Today's Model Run — Feb 14, 2026</div>
+    <div class="stat-row"><span class="label">Games Analyzed</span><span class="value">8</span></div>
+    <div class="stat-row"><span class="label">Qualified</span><span class="value green">1</span></div>
+    <div class="stat-row"><span class="label">Highest Edge</span><span class="value green">6.2% · BOS -4.5</span></div>
+    <div class="stat-row"><span class="label">Closest Miss</span><span class="value">2.8% · MIA +2.5</span></div>
+    <div class="stat-row"><span class="label">Run Time</span><span class="value">1.8s</span></div>
+    <div class="stat-row"><span class="label">Model Version</span><span class="value">v2.1-cal</span></div>
+    <div class="stat-row"><span class="label">Status</span><span class="value green">Pick Published · 11:22 AM ET</span></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SECTION 4: USERS
+       ═══════════════════════════════════════ -->
+
+  <div class="section-label">Users</div>
+
+  <!-- User Stats -->
+
+  <div class="panel">
+    <div class="panel-label">User Breakdown</div>
+    <div class="stat-row"><span class="label">Total Accounts</span><span class="value">312</span></div>
+    <div class="stat-row"><span class="label">Verified Email</span><span class="value green">287</span></div>
+    <div class="stat-row"><span class="label">Active Pro</span><span class="value green">103</span></div>
+    <div class="stat-row"><span class="label">Active Trial</span><span class="value blue">24</span></div>
+    <div class="stat-row"><span class="label">Free Tier</span><span class="value">148</span></div>
+    <div class="stat-row"><span class="label">Cancelled</span><span class="value red">37</span></div>
+  </div>
+
+  <!-- Engagement -->
+
+  <div class="panel">
+    <div class="panel-label">Engagement (Today)</div>
+    <div class="stat-row"><span class="label">DAU</span><span class="value">84</span></div>
+    <div class="stat-row"><span class="label">DAU / MAU</span><span class="value green">38%</span></div>
+    <div class="stat-row"><span class="label">Pick Views</span><span class="value">142</span></div>
+    <div class="stat-row"><span class="label">Bets Tracked</span><span class="value">31</span></div>
+    <div class="stat-row"><span class="label">Pass-Day Opens</span><span class="value green">67</span></div>
+    <div class="stat-row"><span class="label">Dashboard Views</span><span class="value">89</span></div>
+  </div>
+
+  <!-- Recent Users Table -->
+
+  <div class="panel wide-2">
+    <div class="panel-label">Recent Signups</div>
+    <table class="user-table">
+      <tr>
+        <th>User</th>
+        <th>Plan</th>
+        <th>Status</th>
+        <th>Joined</th>
+        <th>Bets</th>
+      </tr>
+      <tr>
+        <td>jake.r***@gmail.com</td>
+        <td><span class="badge trial">Trial</span></td>
+        <td><span class="badge founding">F#42</span></td>
+        <td>2h ago</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td>mike.s***@yahoo.com</td>
+        <td><span class="badge pro">Annual</span></td>
+        <td><span class="badge founding">F#41</span></td>
+        <td>6h ago</td>
+        <td>2</td>
+      </tr>
+      <tr>
+        <td>sarah.k***@icloud.com</td>
+        <td><span class="badge trial">Trial</span></td>
+        <td>—</td>
+        <td>1d ago</td>
+        <td>1</td>
+      </tr>
+      <tr>
+        <td>chris.d***@gmail.com</td>
+        <td><span class="badge pro">Monthly</span></td>
+        <td>—</td>
+        <td>2d ago</td>
+        <td>5</td>
+      </tr>
+      <tr>
+        <td>tom.b***@outlook.com</td>
+        <td><span class="badge free">Free</span></td>
+        <td>—</td>
+        <td>3d ago</td>
+        <td>0</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SECTION 5: ACTIVITY LOG
+       ═══════════════════════════════════════ -->
+
+  <div class="section-label">Activity Log</div>
+
+  <div class="panel wide-4">
+    <div class="panel-label">Live Feed</div>
+    <div class="log-feed">
+      <div class="log-entry"><span class="log-time">14:04:38</span><span class="log-msg ok">Pick published: BOS -4.5 · 6.2% edge · Notified 103 Pro users</span></div>
+      <div class="log-entry"><span class="log-time">14:04:22</span><span class="log-msg">Model run complete: 8 games · 1 qualified · 1.8s</span></div>
+      <div class="log-entry"><span class="log-time">14:02:11</span><span class="log-msg">New signup: jake.r***@gmail.com (referral: SHARP-MK3R)</span></div>
+      <div class="log-entry"><span class="log-time">13:58:44</span><span class="log-msg ok">Payment: mike.s*** · Annual Founding ($99) · F#41</span></div>
+      <div class="log-entry"><span class="log-time">13:45:02</span><span class="log-msg">Bet tracked: chris.d*** · $50 on yesterday's pick</span></div>
+      <div class="log-entry"><span class="log-time">12:30:00</span><span class="log-msg ok">grade_pending_picks: LAL -7.5 → WIN (+$87.72)</span></div>
+      <div class="log-entry"><span class="log-time">12:00:01</span><span class="log-msg">Scheduled: grade_pending_picks started</span></div>
+      <div class="log-entry"><span class="log-time">09:00:04</span><span class="log-msg">Scheduled: collect_todays_games completed (8 games loaded)</span></div>
+      <div class="log-entry"><span class="log-time">09:00:01</span><span class="log-msg">Scheduled: collect_todays_games started</span></div>
+      <div class="log-entry"><span class="log-time">08:45:12</span><span class="log-msg warn">Email delivery slow: resend API 410ms (threshold 300ms)</span></div>
+      <div class="log-entry"><span class="log-time">08:22:00</span><span class="log-msg">Weekly summary generated: sent to 103 Pro users</span></div>
+      <div class="log-entry"><span class="log-time">01:15:33</span><span class="log-msg">Trial expired: anna.w*** · No conversion</span></div>
+      <div class="log-entry"><span class="log-time">00:12:08</span><span class="log-msg ok">Deployment successful: v2.1-cal · Health check passed</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Live clock
+function updateClock() {
+  const now = new Date();
+  const opts = { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'America/New_York' };
+  document.getElementById('clock').textContent = now.toLocaleDateString('en-US', opts) + ' EST';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Simulate bar hover tooltips
+document.querySelectorAll('.mini-chart .bar').forEach((bar, i) => {
+  bar.title = `Day ${i + 1}: $${Math.round(parseFloat(bar.style.height) * 3)}`;
+});
+</script>
+
+</body>
+</html>

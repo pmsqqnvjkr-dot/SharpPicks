@@ -135,6 +135,17 @@ app.register_blueprint(insights_bp, url_prefix='/api/insights')
 from legal_pages import legal_bp
 app.register_blueprint(legal_bp)
 
+from admin_api import admin_bp
+app.register_blueprint(admin_bp)
+
+@app.route('/admin')
+@login_required
+def admin_dashboard():
+    from flask import render_template
+    if not current_user.is_superuser:
+        return 'Unauthorized', 403
+    return render_template('admin.html')
+
 def seed_database():
     with app.app_context():
         try:
