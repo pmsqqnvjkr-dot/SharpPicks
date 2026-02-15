@@ -45,43 +45,67 @@ export default function PicksTab({ onNavigate }) {
         {user && user.subscription_status === 'trial' && user.trial_end_date && (() => {
           const daysLeft = Math.max(0, Math.ceil((new Date(user.trial_end_date) - new Date()) / (1000 * 60 * 60 * 24)));
           return daysLeft > 0 ? (
-            <div
-              onClick={() => onNavigate && onNavigate('profile', 'upgrade')}
-              style={{
-                background: 'linear-gradient(135deg, rgba(79,134,247,0.25) 0%, rgba(52,211,153,0.18) 100%)',
-                border: '1px solid rgba(79,134,247,0.4)',
-                borderRadius: '12px',
-                padding: '14px 18px',
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '12px',
-                cursor: 'pointer',
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(10,13,20,0.95) 0%, rgba(15,20,30,0.95) 100%)',
+              border: '1px solid rgba(52,211,153,0.15)',
+              borderRadius: '14px',
+              padding: '16px 18px',
+              marginBottom: '16px',
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', top: 0, right: 0, bottom: 0, width: '80px',
+                background: 'radial-gradient(circle at right center, rgba(52,211,153,0.12) 0%, transparent 70%)',
+                pointerEvents: 'none',
+              }} />
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                marginBottom: '12px',
               }}>
-              <div>
                 <div style={{
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: '13px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '11px',
                   fontWeight: 700,
-                  color: 'var(--blue-primary)',
-                  marginBottom: '3px',
-                  letterSpacing: '0.02em',
-                }}>Pro Trial Active</div>
+                  color: 'var(--green-profit)',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                }}>PRO TRIAL &bull; {daysLeft} {daysLeft === 1 ? 'DAY' : 'DAYS'} LEFT</div>
                 <div style={{
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: '12px',
-                  color: 'var(--text-secondary)',
-                  lineHeight: 1.4,
-                }}>Full Pro access for {daysLeft} {daysLeft === 1 ? 'day' : 'days'}. <span style={{ color: 'var(--blue-primary)', fontWeight: 600 }}>Subscribe to keep your edge &rarr;</span></div>
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '22px',
+                  fontWeight: 800,
+                  color: 'var(--green-profit)',
+                  lineHeight: 1,
+                  textShadow: '0 0 12px rgba(52,211,153,0.3)',
+                }}>{daysLeft}d</div>
               </div>
               <div style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '20px',
-                fontWeight: 700,
-                color: 'var(--blue-primary)',
-                whiteSpace: 'nowrap',
-              }}>{daysLeft}d</div>
+                fontFamily: 'var(--font-sans)',
+                fontSize: '13px',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.5,
+                marginBottom: '14px',
+              }}>Your edge expires in {daysLeft} {daysLeft === 1 ? 'day' : 'days'}. You're seeing everything right now — don't lose it.</div>
+              <button
+                onClick={() => onNavigate && onNavigate('profile', 'upgrade')}
+                style={{
+                  width: '100%',
+                  padding: '12px 24px',
+                  background: 'linear-gradient(135deg, #4F86F7 0%, #3B6FE0 100%)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                  letterSpacing: '0.02em',
+                  boxShadow: '0 0 20px rgba(79,134,247,0.25), 0 2px 8px rgba(0,0,0,0.3)',
+                  position: 'relative',
+                  zIndex: 1,
+                }}
+              >Keep Pro Access</button>
             </div>
           ) : null;
         })()}
