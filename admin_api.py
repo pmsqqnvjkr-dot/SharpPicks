@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight
+from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog
 from datetime import datetime, timedelta
 from sqlalchemy import func, text
 from zoneinfo import ZoneInfo
@@ -381,6 +381,82 @@ def health_checks():
     }
 
     return jsonify(results)
+
+
+@admin_bp.route('/api/admin/cron-health')
+def cron_health():
+    admin = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    now_et = datetime.now(ET)
+
+    job_configs = {
+        'collect_games':  {'schedule': 'Daily 9:00 AM', 'expected_h': 24},
+        'refresh_lines':  {'schedule': 'Daily 2:00 PM', 'expected_h': 24},
+        'closing_lines':  {'schedule': 'Daily 7:00 PM', 'expected_h': 24},
+        'grade_picks':    {'schedule': 'Daily 12:05 AM', 'expected_h': 24},
+        'grade_whatifs':   {'schedule': 'Daily 12:10 AM', 'expected_h': 24},
+        'expire_trials':  {'schedule': 'Daily 12:15 AM', 'expected_h': 24},
+        'weekly_summary': {'schedule': 'Mon 9:00 AM', 'expected_h': 168},
+        'backup':         {'schedule': 'Daily 3:00 AM', 'expected_h': 24},
+        'data_quality':   {'schedule': 'Daily 6:00 AM', 'expected_h': 24},
+    }
+
+    jobs = []
+    for job_name, config in job_configs.items():
+        last_log = CronLog.query.filter_by(job_name=job_name).order_by(CronLog.executed_at.desc()).first()
+        last_ok = CronLog.query.filter_by(job_name=job_name, status='ok').order_by(CronLog.executed_at.desc()).first()
+        last_err = CronLog.query.filter_by(job_name=job_name, status='error').order_by(CronLog.executed_at.desc()).first()
+
+        recent_logs = CronLog.query.filter_by(job_name=job_name).order_by(CronLog.executed_at.desc()).limit(10).all()
+        ok_count = sum(1 for l in recent_logs if l.status == 'ok')
+        err_count = sum(1 for l in recent_logs if l.status == 'error')
+
+        if last_log:
+            hours_ago = (now_et.replace(tzinfo=None) - last_log.executed_at).total_seconds() / 3600
+            overdue = hours_ago > config['expected_h'] * 1.5
+            health = 'error' if overdue or (last_log.status == 'error') else 'ok'
+            if not overdue and last_log.status == 'error' and last_ok:
+                health = 'warn'
+        else:
+            hours_ago = None
+            overdue = True
+            health = 'never'
+
+        jobs.append({
+            'name': job_name,
+            'schedule': config['schedule'],
+            'health': health,
+            'last_run': last_log.executed_at.isoformat() if last_log else None,
+            'last_status': last_log.status if last_log else None,
+            'last_duration_ms': last_log.duration_ms if last_log else None,
+            'last_message': last_log.message[:200] if last_log and last_log.message else None,
+            'last_error': last_err.executed_at.isoformat() if last_err else None,
+            'last_error_msg': last_err.message[:200] if last_err and last_err.message else None,
+            'hours_ago': round(hours_ago, 1) if hours_ago is not None else None,
+            'recent_ok': ok_count,
+            'recent_errors': err_count,
+        })
+
+    all_health = [j['health'] for j in jobs]
+    if all(h == 'ok' for h in all_health):
+        overall = 'ok'
+    elif any(h == 'error' for h in all_health):
+        overall = 'error'
+    elif any(h == 'never' for h in all_health):
+        overall = 'warn'
+    else:
+        overall = 'warn'
+
+    total_logs = CronLog.query.count()
+
+    return jsonify({
+        'jobs': jobs,
+        'overall': overall,
+        'total_executions': total_logs,
+        'checked_at': now_et.strftime('%b %d · %-I:%M:%S %p'),
+    })
 
 
 @admin_bp.route('/api/admin/export')

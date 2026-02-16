@@ -610,32 +610,12 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
   <!-- INFRASTRUCTURE -->
   <div class="section-label">Infrastructure</div>
 
-  <div class="panel">
-    <div class="panel-label">Scheduled Jobs <span class="status-dot green"></span></div>
-    <div class="status-bar-row">
-      <div class="status-indicator ok"></div>
-      <span class="status-name">collect_todays_games</span>
-      <span class="status-val">9 AM</span>
-    </div>
-    <div class="status-bar-row">
-      <div class="status-indicator ok"></div>
-      <span class="status-name">refresh_lines</span>
-      <span class="status-val">2 PM</span>
-    </div>
-    <div class="status-bar-row">
-      <div class="status-indicator ok"></div>
-      <span class="status-name">collect_closing_lines</span>
-      <span class="status-val">7 PM</span>
-    </div>
-    <div class="status-bar-row">
-      <div class="status-indicator ok"></div>
-      <span class="status-name">grade_pending_picks</span>
-      <span class="status-val">12 AM</span>
-    </div>
-    <div class="status-bar-row">
-      <div class="status-indicator ok"></div>
-      <span class="status-name">weekly_summary</span>
-      <span class="status-val">Mon 9 AM</span>
+  <div class="panel wide-2">
+    <div class="panel-label">Cron Job Health <span class="status-dot" id="cron-overall-dot"></span></div>
+    <div class="metric-sub" style="margin-bottom:8px" id="cron-checked-at">Loading...</div>
+    <div id="cron-jobs-list"></div>
+    <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
+      <div class="stat-row"><span class="label">Total Executions</span><span class="value" id="cron-total-exec">--</span></div>
     </div>
   </div>
 
@@ -956,6 +936,69 @@ async function loadHealthChecks() {
 
 loadHealthChecks();
 setInterval(loadHealthChecks, 60000);
+
+function cronHealthClass(h) { return h === 'ok' ? 'ok' : h === 'warn' ? 'warn' : h === 'never' ? 'warn' : 'err'; }
+function cronDotClass(h) { return h === 'ok' ? 'green' : h === 'warn' || h === 'never' ? 'amber' : 'red'; }
+
+function formatCronAge(hoursAgo) {
+  if (hoursAgo == null) return 'Never';
+  if (hoursAgo < 1) return Math.round(hoursAgo * 60) + 'm ago';
+  if (hoursAgo < 24) return Math.round(hoursAgo) + 'h ago';
+  return Math.round(hoursAgo / 24) + 'd ago';
+}
+
+function buildCronJobs(jobs) {
+  const container = document.getElementById('cron-jobs-list');
+  if (!container) return;
+  container.innerHTML = '';
+  jobs.forEach(j => {
+    const row = document.createElement('div');
+    row.className = 'status-bar-row';
+    row.style.cursor = 'default';
+    const durStr = j.last_duration_ms != null ? j.last_duration_ms + 'ms' : '';
+    const ageStr = formatCronAge(j.hours_ago);
+    const statusColor = j.last_status === 'ok' ? 'var(--green)' : j.last_status === 'error' ? 'var(--red)' : 'var(--text-dim)';
+    const successRate = j.recent_ok + j.recent_errors > 0 ? Math.round(j.recent_ok / (j.recent_ok + j.recent_errors) * 100) : null;
+    const rateStr = successRate != null ? successRate + '%' : '';
+    const rateColor = successRate === 100 ? 'var(--green)' : successRate >= 80 ? 'var(--amber)' : 'var(--red)';
+
+    row.innerHTML = `
+      <div class="status-indicator ${cronHealthClass(j.health)}"></div>
+      <span class="status-name">${j.name}</span>
+      <span style="color:var(--text-dim);font-size:10px;width:70px;text-align:right">${j.schedule.replace('Daily ', '')}</span>
+      <span style="color:${statusColor};font-size:10px;width:45px;text-align:right;font-weight:600">${ageStr}</span>
+      <span style="color:var(--text-dim);font-size:10px;width:40px;text-align:right">${durStr}</span>
+      <span style="color:${rateColor};font-size:10px;width:30px;text-align:right;font-weight:600">${rateStr}</span>
+    `;
+
+    if (j.last_status === 'error' && j.last_error_msg) {
+      row.title = 'Last error: ' + j.last_error_msg;
+    }
+
+    container.appendChild(row);
+  });
+}
+
+async function loadCronHealth() {
+  try {
+    const res = await fetch('/api/admin/cron-health', { credentials: 'include' });
+    if (!res.ok) return;
+    const d = await res.json();
+
+    const overallDot = document.getElementById('cron-overall-dot');
+    if (overallDot) overallDot.className = 'status-dot ' + cronDotClass(d.overall);
+
+    document.getElementById('cron-checked-at').textContent = 'Last checked: ' + d.checked_at;
+    document.getElementById('cron-total-exec').textContent = d.total_executions;
+
+    buildCronJobs(d.jobs);
+  } catch (err) {
+    console.error('Cron health error:', err);
+  }
+}
+
+loadCronHealth();
+setInterval(loadCronHealth, 30000);
 </script>
 
 </body>

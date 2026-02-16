@@ -247,3 +247,13 @@ class ProcessedEvent(db.Model):
     id = db.Column(db.String, primary_key=True)
     event_type = db.Column(db.String, nullable=False)
     processed_at = db.Column(db.DateTime, default=datetime.now)
+
+
+class CronLog(db.Model):
+    __tablename__ = 'cron_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    job_name = db.Column(db.String(100), nullable=False, index=True)
+    status = db.Column(db.String(20), nullable=False)
+    duration_ms = db.Column(db.Integer)
+    message = db.Column(db.Text)
+    executed_at = db.Column(db.DateTime, default=datetime.now, index=True)

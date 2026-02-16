@@ -65,7 +65,7 @@ import sqlite3
 import subprocess
 from datetime import datetime, timedelta
 
-from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent
+from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent, CronLog
 from picks_api import picks_bp
 from public_api import public_bp
 from insights_api import insights_bp
@@ -1086,85 +1086,82 @@ def expire_trials():
             logging.error(f"expire_trials error: {e}")
 
 
+import time as _time
+
+def log_cron(job_name, fn):
+    start = _time.time()
+    try:
+        result = fn()
+        dur = int((_time.time() - start) * 1000)
+        log = CronLog(job_name=job_name, status='ok', duration_ms=dur,
+                      message=str(result) if result else None)
+        db.session.add(log)
+        db.session.commit()
+        resp = {'status': 'done', 'job': job_name, 'duration_ms': dur}
+        if isinstance(result, dict):
+            resp.update(result)
+        return jsonify(resp)
+    except Exception as e:
+        dur = int((_time.time() - start) * 1000)
+        log = CronLog(job_name=job_name, status='error', duration_ms=dur,
+                      message=str(e)[:500])
+        try:
+            db.session.add(log)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        return jsonify({'status': 'error', 'job': job_name, 'message': str(e)}), 500
+
+
 @app.route('/api/cron/collect-games', methods=['POST'])
 @verify_cron
 def cron_collect_games():
-    try:
-        collect_todays_games()
-        return jsonify({'status': 'done', 'job': 'collect_games'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    return log_cron('collect_games', collect_todays_games)
 
 
 @app.route('/api/cron/refresh-lines', methods=['POST'])
 @verify_cron
 def cron_refresh_lines():
-    try:
-        collect_todays_games()
-        return jsonify({'status': 'done', 'job': 'refresh_lines'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    return log_cron('refresh_lines', collect_todays_games)
 
 
 @app.route('/api/cron/closing-lines', methods=['POST'])
 @verify_cron
 def cron_closing_lines():
-    try:
-        collect_closing_lines()
-        return jsonify({'status': 'done', 'job': 'closing_lines'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    return log_cron('closing_lines', collect_closing_lines)
 
 
 @app.route('/api/cron/grade-picks', methods=['POST'])
 @verify_cron
 def cron_grade_picks():
-    try:
-        grade_pending_picks()
-        return jsonify({'status': 'done', 'job': 'grade_picks'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    return log_cron('grade_picks', grade_pending_picks)
 
 
 @app.route('/api/cron/grade-whatifs', methods=['POST'])
 @verify_cron
 def cron_grade_whatifs():
-    try:
-        grade_whatif_passes()
-        return jsonify({'status': 'done', 'job': 'grade_whatifs'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    return log_cron('grade_whatifs', grade_whatif_passes)
 
 
 @app.route('/api/cron/expire-trials', methods=['POST'])
 @verify_cron
 def cron_expire_trials():
-    try:
+    def _expire():
         check_expiring_trials()
         expire_trials()
-        expired_count = User.query.filter_by(subscription_status='expired').count()
-        return jsonify({
-            'status': 'done',
-            'job': 'expire_trials',
-        })
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    return log_cron('expire_trials', _expire)
 
 
 @app.route('/api/cron/weekly-summary', methods=['POST'])
 @verify_cron
 def cron_weekly_summary():
-    try:
-        send_weekly_summary_job()
-        return jsonify({'status': 'done', 'job': 'weekly_summary'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    return log_cron('weekly_summary', send_weekly_summary_job)
 
 
 @app.route('/api/cron/backup', methods=['POST'])
 @verify_cron
 def cron_backup():
-    try:
+    def _backup():
         import json as json_mod
         from sqlalchemy import inspect as sa_inspect
 
@@ -1199,25 +1196,14 @@ def cron_backup():
             f.write(backup_data)
 
         backup_database()
-
-        return jsonify({
-            'status': 'done',
-            'job': 'backup',
-            'picks': len(picks),
-            'users': len(users)
-        })
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return {'picks': len(picks), 'users': len(users)}
+    return log_cron('backup', _backup)
 
 
 @app.route('/api/cron/check-data-quality', methods=['POST'])
 @verify_cron
 def cron_data_quality():
-    try:
-        check_data_quality()
-        return jsonify({'status': 'done', 'job': 'data_quality'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    return log_cron('data_quality', check_data_quality)
 
 
 def start_background_services():
