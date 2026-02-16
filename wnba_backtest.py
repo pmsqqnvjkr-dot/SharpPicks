@@ -337,7 +337,7 @@ def compute_rolling_stats(conn):
         SELECT id, game_date, home_team, away_team, home_score, away_score, season
         FROM wnba_games
         WHERE home_score IS NOT NULL
-        ORDER BY game_date
+        ORDER BY game_date, season
     ''', conn)
 
     if len(games) == 0:
@@ -348,6 +348,7 @@ def compute_rolling_stats(conn):
     team_away_records = {}
     team_last_game = {}
     team_last5 = {}
+    current_season = None
 
     updates = []
 
@@ -355,6 +356,14 @@ def compute_rolling_stats(conn):
         ht = game['home_team']
         at = game['away_team']
         gd = game['game_date']
+        season = game['season']
+
+        if season != current_season:
+            team_records = {}
+            team_home_records = {}
+            team_away_records = {}
+            team_last5 = {}
+            current_season = season
 
         if ht not in team_records:
             team_records[ht] = [0, 0]
@@ -428,17 +437,24 @@ def compute_team_metrics(conn):
         SELECT id, game_date, home_team, away_team, home_score, away_score, season
         FROM wnba_games
         WHERE home_score IS NOT NULL
-        ORDER BY game_date
+        ORDER BY game_date, season
     ''', conn)
 
     team_scores = {}
     team_against = {}
+    current_season = None
 
     for _, game in games.iterrows():
         ht = game['home_team']
         at = game['away_team']
         hs = game['home_score']
         as_ = game['away_score']
+        season = game['season']
+
+        if season != current_season:
+            team_scores = {}
+            team_against = {}
+            current_season = season
 
         team_scores.setdefault(ht, [])
         team_scores.setdefault(at, [])
@@ -1010,20 +1026,24 @@ def generate_report(report):
     print(f"    Market MAE:      {report['avg_market_mae']} pts")
     print(f"    Model closer:    {report['model_closer_pct']}%")
 
-    model_adds_value = report['avg_model_mae'] < report['avg_market_mae'] * 1.2
+    model_adds_value = report['avg_model_mae'] <= report['avg_market_mae'] * 1.15
 
     print(f"\n  MODEL vs MARKET")
     if report['avg_model_mae'] < report['avg_market_mae']:
         print(f"    Model is MORE accurate than market (MAE {report['avg_model_mae']} < {report['avg_market_mae']})")
         print(f"    Model is closer to reality {report['model_closer_pct']}% of the time")
+    elif model_adds_value:
+        gap = report['avg_model_mae'] - report['avg_market_mae']
+        print(f"    Market slightly more accurate (Market MAE {report['avg_market_mae']} vs Model MAE {report['avg_model_mae']})")
+        print(f"    Gap: {gap:.1f} pts — manageable with shrinkage (within 15% tolerance)")
     else:
         gap = report['avg_model_mae'] - report['avg_market_mae']
-        print(f"    Market is more accurate (Market MAE {report['avg_market_mae']} < Model MAE {report['avg_model_mae']})")
-        print(f"    Gap: {gap:.1f} pts — {'manageable with shrinkage' if gap < 3 else 'significant'}")
+        print(f"    Market is significantly more accurate (Market MAE {report['avg_market_mae']} vs Model MAE {report['avg_model_mae']})")
+        print(f"    Gap: {gap:.1f} pts — too large for shrinkage to compensate")
 
     best = report.get('best_brand') or report.get('best_overall')
 
-    if best and best['roi'] > 0 and best['win_rate'] > 52:
+    if best and best['roi'] > 0 and best['win_rate'] > 52 and model_adds_value:
         print(f"\n  RECOMMENDATION: PROCEED WITH WNBA")
         print(f"    Recommended shrinkage: {best['shrinkage']}")
         print(f"    Recommended edge threshold: {best['edge_thresh']}%")
