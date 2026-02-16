@@ -80,6 +80,26 @@ def command_center_data():
             else:
                 buckets[k]['l'] += 1
 
+        last_pick = picks[0] if picks else None
+        last_pick_date = last_pick.game_date if last_pick else None
+        if last_pick_date:
+            from datetime import date as date_type
+            try:
+                lpd = datetime.strptime(last_pick_date, '%Y-%m-%d').date() if isinstance(last_pick_date, str) else last_pick_date
+                days_since_pick = (datetime.now(ET).date() - lpd).days
+            except Exception:
+                days_since_pick = None
+        else:
+            days_since_pick = None
+
+        consecutive_passes = 0
+        if last_pick_date:
+            all_passes_sorted = sorted(passes, key=lambda p: p.date, reverse=True)
+            for p in all_passes_sorted:
+                if p.date <= last_pick_date:
+                    break
+                consecutive_passes += 1
+
         clv_positive = len([p for p in resolved if (p.clv or 0) > 0])
         clv_total = len([p for p in resolved if p.clv is not None])
         clv_pct = round(clv_positive / clv_total * 100) if clv_total > 0 else 0
@@ -136,6 +156,9 @@ def command_center_data():
             'equity_curve': equity_curve,
             'recent_picks': recent_picks,
             'model_runs': runs_data,
+            'last_pick_date': last_pick_date,
+            'days_since_pick': days_since_pick,
+            'consecutive_passes': consecutive_passes,
         }
 
     nba_stats = compute_sport_stats('nba')

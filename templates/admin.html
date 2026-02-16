@@ -527,8 +527,15 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div class="stat-row"><span class="label">Model MAE</span><span class="value">12.03 pts</span></div>
     <div class="stat-row"><span class="label">Market MAE</span><span class="value green">10.06 pts</span></div>
     <div class="stat-row"><span class="label">Model Closer</span><span class="value amber">40%</span></div>
-    <div class="stat-row"><span class="label">Edge Cap</span><span class="value">10%</span></div>
+    <div class="stat-row"><span class="label">Edge Cap</span><span class="value">8%</span></div>
     <div class="stat-row"><span class="label">Calibration Date</span><span class="value">Feb 12, 2026</span></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Pick Activity</div>
+    <div class="stat-row"><span class="label">Last Pick</span><span class="value" id="nba-last-pick">--</span></div>
+    <div class="stat-row"><span class="label">Days Since Pick</span><span class="value" id="nba-days-since">--</span></div>
+    <div class="stat-row"><span class="label">Consecutive Passes</span><span class="value" id="nba-pass-streak">--</span></div>
   </div>
 
   <div class="panel wide-2">
@@ -674,6 +681,7 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
           <th>Tier</th>
           <th>Plan</th>
           <th>Signed Up</th>
+          <th>Trial Ends</th>
         </tr>
       </thead>
       <tbody id="users-tbody">
@@ -796,6 +804,28 @@ function populateSportStats(m, prefix) {
   if (el('post-cal')) el('post-cal').textContent = m.post_cal_count;
   el('clv-pct').textContent = m.clv_pct + '%';
 
+  if (el('last-pick')) {
+    if (m.last_pick_date) {
+      const lpd = new Date(m.last_pick_date + 'T12:00:00');
+      el('last-pick').textContent = lpd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } else {
+      el('last-pick').textContent = 'None';
+    }
+  }
+  if (el('days-since')) {
+    const d = m.days_since_pick;
+    if (d != null) {
+      el('days-since').textContent = d;
+      el('days-since').className = 'value ' + (d >= 14 ? 'red' : d >= 7 ? 'amber' : 'green');
+    } else {
+      el('days-since').textContent = '—';
+    }
+  }
+  if (el('pass-streak')) {
+    el('pass-streak').textContent = m.consecutive_passes;
+    el('pass-streak').className = 'value ' + (m.consecutive_passes >= 14 ? 'red' : m.consecutive_passes >= 7 ? 'amber' : '');
+  }
+
   buildEquityCurve(m.equity_curve, prefix);
   el('equity-sub').textContent =
     `${m.equity_curve.length} resolved picks · Current: ${m.total_pnl >= 0 ? '+' : ''}${fmt$(m.total_pnl)}`;
@@ -807,12 +837,22 @@ function buildUsersTable(users) {
   users.forEach(u => {
     const tr = document.createElement('tr');
     const date = u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+    let trialEnd = '—';
+    if (u.trial_end) {
+      const te = new Date(u.trial_end);
+      const now = new Date();
+      const daysLeft = Math.max(0, Math.ceil((te - now) / (1000 * 60 * 60 * 24)));
+      const dateStr = te.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const urgencyClass = daysLeft <= 3 ? 'red' : daysLeft <= 7 ? 'amber' : 'green';
+      trialEnd = `<span class="${urgencyClass}">${dateStr}</span> <span style="color:var(--text-dim);font-size:11px">(${daysLeft}d)</span>`;
+    }
     tr.innerHTML = `
       <td>${u.email}</td>
       <td>${u.first_name}</td>
       <td><span class="badge ${u.tier}">${u.tier}${u.founding_number ? ' #' + u.founding_number : ''}</span></td>
       <td>${u.plan || '—'}</td>
       <td>${date}</td>
+      <td>${trialEnd}</td>
     `;
     tbody.appendChild(tr);
   });

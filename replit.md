@@ -32,7 +32,7 @@ The API is structured around authentication, pick delivery, public statistics, s
 
 ### Key Design Decisions
 - **Prediction Logic**: One pick per day maximum with an edge threshold of >= 3.5%. "No Pick" days are a fundamental feature, indicating the model found no sufficient edge.
-- **Market-Aware Shrinkage**: MODEL_WEIGHT=0.3 blends 30% model prediction with 70% market spread before computing cover probabilities. Validated by out-of-sample testing: Model MAE=12.03 pts vs Market MAE=10.06 pts (market is more accurate 60% of the time). MAX_EDGE_PCT=10.0 caps displayed edges. Calibrated Feb 12, 2026; prior picks used raw predictions without shrinkage and are tagged "Pre-Cal" in the public record.
+- **Market-Aware Shrinkage**: MODEL_WEIGHT=0.3 blends 30% model prediction with 70% market spread before computing cover probabilities. Validated by out-of-sample testing: Model MAE=12.03 pts vs Market MAE=10.06 pts (market is more accurate 60% of the time). MAX_EDGE_PCT=8.0 caps displayed edges. Calibrated Feb 12, 2026; prior picks used raw predictions without shrinkage and are tagged "Pre-Cal" in the public record.
 - **Transparency**: Append-only tables for picks and passes ensure an auditable and transparent record. Calibration changes are noted in the public record API and UI.
 - **User Engagement**: Features include a 14-day free trial, a "Founding Member" system for early adopters, and tiered pricing.
 - **Tone & UI**: Calm, institutional tone with no FOMO marketing. The UI provides detailed performance dashboards, coaching on win/loss resolutions, and comprehensive bet tracking.
