@@ -63,9 +63,7 @@ from flask_login import LoginManager, login_required, current_user, login_user, 
 from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3
 import subprocess
-import atexit
 from datetime import datetime, timedelta
-from apscheduler.schedulers.background import BackgroundScheduler
 
 from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent
 from picks_api import picks_bp
@@ -1208,48 +1206,13 @@ def cron_data_quality():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
-def start_scheduler():
-    from sport_config import get_sport_config
-    sched = BackgroundScheduler(timezone='America/New_York')
-    
-    sched.add_job(collect_todays_games, 'cron', hour=9, minute=0, id='daily_collection')
-    sched.add_job(collect_todays_games, 'cron', hour=21, minute=0, id='evening_collection')
-    sched.add_job(collect_closing_lines, 'cron', hour=18, minute=30, id='closing_lines_1830')
-    sched.add_job(collect_closing_lines, 'cron', hour=19, minute=0, id='closing_lines_1900')
-    sched.add_job(collect_closing_lines, 'cron', hour=19, minute=30, id='closing_lines_1930')
-    sched.add_job(collect_closing_lines, 'cron', hour=22, minute=0, id='closing_lines_2200')
-    sched.add_job(grade_pending_picks, 'cron', hour=23, minute=30, id='grade_picks')
-    sched.add_job(grade_pending_picks, 'cron', hour=2, minute=0, id='late_game_grading')
-    sched.add_job(grade_whatif_passes, 'cron', hour=3, minute=0, id='grade_whatif')
-    sched.add_job(check_data_quality, 'cron', hour=10, minute=0, id='data_quality')
-    
-    wnba_cfg = get_sport_config('wnba')
-    now_month = datetime.now().month
-    if now_month in wnba_cfg.get('season_months', []):
-        sched.add_job(collect_wnba_games_job, 'cron', hour=10, minute=0, id='wnba_daily_collection')
-        sched.add_job(collect_wnba_games_job, 'cron', hour=18, minute=0, id='wnba_evening_collection')
-        sched.add_job(collect_wnba_closing_lines_job, 'cron', hour=18, minute=30, id='wnba_closing_lines')
-    
-    sched.add_job(check_expiring_trials, 'cron', hour=9, minute=0, id='trial_expiring_check')
-    sched.add_job(expire_trials, 'cron', hour=0, minute=15, id='expire_trials')
-    sched.add_job(backup_database, 'cron', hour=3, minute=0, id='daily_backup')
-    sched.add_job(send_weekly_summary_job, 'cron', day_of_week='mon', hour=9, minute=0, id='weekly_summary')
-
-    sched.start()
-    atexit.register(lambda: sched.shutdown())
-    return sched
-
-scheduler = None
-
 def start_background_services():
     import time
     time.sleep(5)
     try:
         logging.info("Starting background services...")
         seed_database()
-        global scheduler
-        scheduler = start_scheduler()
-        logging.info("All background services started")
+        logging.info("All background services started (scheduled jobs via external cron)")
     except Exception as e:
         logging.error(f"Background services failed (non-fatal): {e}")
 
