@@ -32,15 +32,32 @@ export default function LandingPage() {
     }}>
       <div style={{
         padding: '8px 24px 16px',
-        display: 'flex', alignItems: 'center', gap: '10px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <ShieldLogo size={24} />
-        <span style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: '13px', fontWeight: 700,
-          color: 'var(--text-primary)',
-          letterSpacing: '2px', textTransform: 'uppercase',
-        }}>Sharp Picks</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <ShieldLogo size={24} />
+          <span style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: '13px', fontWeight: 700,
+            color: 'var(--text-primary)',
+            letterSpacing: '2px', textTransform: 'uppercase',
+          }}>Sharp Picks</span>
+        </div>
+        <button
+          onClick={() => { setAuthMode('login'); setShowAuth(true); }}
+          style={{
+            padding: '7px 16px',
+            backgroundColor: 'transparent',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--stroke-muted)',
+            borderRadius: '8px',
+            fontSize: '13px', fontWeight: 500,
+            cursor: 'pointer',
+            fontFamily: 'var(--font-sans)',
+          }}
+        >
+          Sign in
+        </button>
       </div>
 
       <div style={{ padding: '20px 28px 0', textAlign: 'center' }}>
