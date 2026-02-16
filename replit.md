@@ -30,6 +30,19 @@ The system primarily uses PostgreSQL for user data, picks, passes, model runs, b
 ### API Endpoints
 The API is structured around authentication, pick delivery, public statistics, subscription management, bet tracking, and insights content management. Endpoints handle user registration, login, password resets, fetching daily picks and historical data, managing subscriptions with Stripe, and allowing users to track their bets against published picks.
 
+### Cron Endpoints (added Feb 16, 2026)
+HTTP-triggered scheduled job endpoints secured by `X-Cron-Secret` header (CRON_SECRET env var). For use with external cron services (cron-job.org, Render cron, etc.) as a reliable alternative to in-process APScheduler. All endpoints are POST requests returning `{'status': 'done', 'job': '...'}`.
+- `/api/cron/collect-games` — Fetch today's NBA games from ESPN
+- `/api/cron/refresh-lines` — Refresh odds from all sportsbooks
+- `/api/cron/closing-lines` — Capture closing lines before games start
+- `/api/cron/grade-picks` — Grade pending picks with final scores
+- `/api/cron/grade-whatifs` — Grade what-if passes with final scores
+- `/api/cron/expire-trials` — Expire overdue trials + send 2-day warnings
+- `/api/cron/weekly-summary` — Generate and send weekly summary email
+- `/api/cron/backup` — JSON backup of critical tables + pg_dump
+- `/api/cron/check-data-quality` — Validate data freshness and integrity
+APScheduler remains active as a fallback for development; in production, use external cron triggers.
+
 ### Key Design Decisions
 - **Prediction Logic**: One pick per day maximum with an edge threshold of >= 3.5%. "No Pick" days are a fundamental feature, indicating the model found no sufficient edge.
 - **Market-Aware Shrinkage**: MODEL_WEIGHT=0.3 blends 30% model prediction with 70% market spread before computing cover probabilities. Validated by out-of-sample testing: Model MAE=12.03 pts vs Market MAE=10.06 pts (market is more accurate 60% of the time). MAX_EDGE_PCT=8.0 caps displayed edges. Calibrated Feb 12, 2026; prior picks used raw predictions without shrinkage and are tagged "Pre-Cal" in the public record.

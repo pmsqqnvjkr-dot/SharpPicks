@@ -35,6 +35,17 @@ def root_health():
 
 is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
 
+CRON_SECRET = os.environ.get('CRON_SECRET', '')
+
+def verify_cron(f):
+    from functools import wraps
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not CRON_SECRET or request.headers.get('X-Cron-Secret') != CRON_SECRET:
+            return jsonify({'error': 'unauthorized'}), 403
+        return f(*args, **kwargs)
+    return wrapper
+
 @app.after_request
 def set_cache_headers(response):
     if request.path.startswith('/assets/'):
@@ -1069,6 +1080,132 @@ def expire_trials():
                 logging.info(f"Expired {len(expired)} trials")
         except Exception as e:
             logging.error(f"expire_trials error: {e}")
+
+
+@app.route('/api/cron/collect-games', methods=['POST'])
+@verify_cron
+def cron_collect_games():
+    try:
+        collect_todays_games()
+        return jsonify({'status': 'done', 'job': 'collect_games'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/cron/refresh-lines', methods=['POST'])
+@verify_cron
+def cron_refresh_lines():
+    try:
+        collect_todays_games()
+        return jsonify({'status': 'done', 'job': 'refresh_lines'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/cron/closing-lines', methods=['POST'])
+@verify_cron
+def cron_closing_lines():
+    try:
+        collect_closing_lines()
+        return jsonify({'status': 'done', 'job': 'closing_lines'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/cron/grade-picks', methods=['POST'])
+@verify_cron
+def cron_grade_picks():
+    try:
+        grade_pending_picks()
+        return jsonify({'status': 'done', 'job': 'grade_picks'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/cron/grade-whatifs', methods=['POST'])
+@verify_cron
+def cron_grade_whatifs():
+    try:
+        grade_whatif_passes()
+        return jsonify({'status': 'done', 'job': 'grade_whatifs'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/cron/expire-trials', methods=['POST'])
+@verify_cron
+def cron_expire_trials():
+    try:
+        check_expiring_trials()
+        expire_trials()
+        expired_count = User.query.filter_by(subscription_status='expired').count()
+        return jsonify({
+            'status': 'done',
+            'job': 'expire_trials',
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/cron/weekly-summary', methods=['POST'])
+@verify_cron
+def cron_weekly_summary():
+    try:
+        send_weekly_summary_job()
+        return jsonify({'status': 'done', 'job': 'weekly_summary'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/cron/backup', methods=['POST'])
+@verify_cron
+def cron_backup():
+    try:
+        import json as json_mod
+        picks = [p.to_dict() for p in Pick.query.all()]
+        passes_list = [p.to_dict() for p in Pass.query.all()]
+        users = [{
+            'id': u.id,
+            'email': u.email,
+            'founding_member': u.founding_member,
+            'founding_number': u.founding_number,
+            'subscription_status': u.subscription_status,
+            'created_at': str(u.created_at)
+        } for u in User.query.all()]
+
+        backup_data = json_mod.dumps({
+            'timestamp': datetime.utcnow().isoformat(),
+            'picks': picks,
+            'passes': passes_list,
+            'users': users
+        }, indent=2)
+
+        backup_dir = '/tmp/backups'
+        os.makedirs(backup_dir, exist_ok=True)
+        backup_path = f'{backup_dir}/sharppicks_backup_{datetime.now().strftime("%Y%m%d_%H%M")}.json'
+        with open(backup_path, 'w') as f:
+            f.write(backup_data)
+
+        backup_database()
+
+        return jsonify({
+            'status': 'done',
+            'job': 'backup',
+            'picks': len(picks),
+            'users': len(users)
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/cron/check-data-quality', methods=['POST'])
+@verify_cron
+def cron_data_quality():
+    try:
+        check_data_quality()
+        return jsonify({'status': 'done', 'job': 'data_quality'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 def start_scheduler():
