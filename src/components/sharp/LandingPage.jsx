@@ -209,15 +209,11 @@ export default function LandingPage() {
             <div style={{
               fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
               textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '16px',
-            }}>Live Performance</div>
+            }}>Transparency</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-              <LandingStat label="Record" value={stats.record || '0-0'} />
-              <LandingStat label="Win Rate" value={`${stats.win_rate || 0}%`} />
-              <LandingStat
-                label="P&L"
-                value={`${stats.pnl >= 0 ? '+' : ''}${stats.pnl || 0}u`}
-                color={stats.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'}
-              />
+              <LandingStat label="Selectivity" value={`${stats.selectivity || 0}%`} />
+              <LandingStat label="Picks / Passes" value={`${stats.total_picks || 0} / ${stats.total_passes || 0}`} />
+              <LandingStat label="Deleted" value="0" />
             </div>
           </div>
         </div>
