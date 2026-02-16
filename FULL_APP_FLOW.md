@@ -1,5 +1,5 @@
 # Sharp Picks - Full Application Flow
-*Generated February 16, 2026 · Last updated February 16, 2026*
+*Generated February 16, 2026 · Last updated February 16, 2026 (cron schedules, dual signup, transparency metrics, admin auth)*
 
 ---
 
@@ -12,28 +12,41 @@ Dark institutional-grade design on `#0A0D14` background. Top-level brand mark: s
 ### Hero Section
 - Headline: **"One Pick Beats Five"**
 - Subtitle: *"Discipline is the product."*
-- CTA: Blue gradient "Start 14-Day Trial" button
+- Primary CTA: Blue gradient "Start 14-Day Trial" button (opens AuthModal with `initialAccountType='trial'`)
+- Secondary CTA: "Create Free Account" link (opens AuthModal with `initialAccountType='free'`)
 - Sub-CTA: "Card required to start trial. Cancel anytime."
+
+### Transparency Metrics (replaces volatile win-rate stats)
+Three stat cards showcasing long-term discipline signals:
+1. **Selectivity** — percentage of days a pick is published (lower = more disciplined)
+2. **Picks / Passes** — raw count of published picks vs pass days
+3. **Deleted** — always 0 (append-only transparency guarantee)
+
+*Design rationale:* These metrics only improve over time as the track record grows, unlike win rate which can fluctuate and look bad early on with a small sample.
 
 ### Trust Bar
 - `Active since Jan 2026 · All picks public · 0 deleted`
 
 ### Value Propositions (3 cards)
 1. **No edge, no pick** — "We publish only when the model identifies sufficient value. Quiet days are intentional."
-2. **Process over outcomes** — "All picks tracked publicly. No deletes. No hindsight editing. 9 picks · 23 passes to date"
+2. **Process over outcomes** — "All picks tracked publicly. No deletes. No hindsight editing."
 3. *[Third card below fold]*
 
+### Free vs Pro Comparison
+Landing page includes a tier comparison showing what free users get (model activity, public record, pass-day summaries) vs what Pro users unlock (pick details, bet tracking, performance dashboard).
+
 ### Bottom CTA
-- Links to registration with 14-day card-on-file trial
+- Dual CTA matching hero: "Start 14-Day Trial" (primary) + "Create Free Account" (secondary)
 
 ---
 
 ## 2. REGISTRATION / LOGIN
 
-### Registration
+### Registration (Dual Signup Flow)
 **Fields:** first_name, last_name, email, password
+**AuthModal:** Shows both paths with "Start Trial — Card Required" (primary) and "Create Free Account" (secondary) buttons. Neutral subtitle: no pressure language.
 
-**On registration:**
+#### Path A: Trial Account (`account_type='trial'`)
 1. Gmail alias normalization applied (strips dots and +suffixes for gmail.com/googlemail.com)
 2. `trial_used` flag checked — prevents repeat trials on same normalized email
 3. User created with `subscription_status: "free"`, `is_premium: false`, `email_verified: false`
@@ -51,6 +64,16 @@ Dark institutional-grade design on `#0A0D14` background. Top-level brand mark: s
 2. $0 charged upfront, card stored on file
 3. On successful checkout webhook: `subscription_status: "trial"`, `is_premium: true`, `trial_end_date` set to 14 days out, `trial_used: true`
 4. After 14 days, Stripe automatically charges the selected plan unless cancelled
+
+#### Path B: Free Account (`account_type='free'`)
+1. Gmail alias normalization applied
+2. User created with `subscription_status: "free"`, `is_premium: false`, `email_verified: true` (skips verification)
+3. Welcome email sent (not verification email) via `send_welcome_email()`
+4. User lands directly in the app — no email gate, no Stripe checkout
+5. Free users see limited dashboard: model activity, public record, pass-day summaries
+6. Pick details (side, spread, edge %), bet tracking, and performance dashboard hidden behind upgrade CTA
+
+*Design rationale:* Free tier reduces trial abuse by giving tire-kickers a home without burning a trial slot. Users who just want to browse don't need a 14-day trial.
 
 ### Login
 - Email + password authentication
@@ -453,17 +476,19 @@ Multi-step onboarding for new users including:
 ### Cron Endpoints (External Trigger)
 All secured by `X-Cron-Secret` header. All log execution to `cron_logs` table.
 
-| Method | Path | Schedule | Purpose |
-|--------|------|----------|---------|
-| POST | `/api/cron/collect-games` | Daily 9 AM ET | Fetch today's NBA games |
-| POST | `/api/cron/refresh-lines` | Daily 2 PM ET | Refresh odds from all sportsbooks |
-| POST | `/api/cron/closing-lines` | Daily 7 PM ET | Capture closing lines |
-| POST | `/api/cron/grade-picks` | Daily 12:05 AM ET | Grade pending picks |
-| POST | `/api/cron/grade-whatifs` | Daily 12:10 AM ET | Grade what-if passes |
-| POST | `/api/cron/expire-trials` | Daily 12:15 AM ET | Expire trials + 2-day warnings |
-| POST | `/api/cron/weekly-summary` | Mon 9 AM ET | Send weekly summary email |
-| POST | `/api/cron/backup` | Daily 3 AM ET | pg_dump + JSON backup |
-| POST | `/api/cron/check-data-quality` | Daily 6 AM ET | Validate data integrity |
+| Method | Path | Schedule (cron-job.org) | Purpose |
+|--------|------|------------------------|---------|
+| POST | `/api/cron/collect-games` | Daily 9:00 AM ET | Fetch today's NBA games |
+| POST | `/api/cron/refresh-lines` | Every 2 hours, 10 AM–6 PM ET | Refresh odds from all sportsbooks |
+| POST | `/api/cron/closing-lines` | Daily 6:30 PM ET | Capture closing lines before tipoff |
+| POST | `/api/cron/grade-picks` | Daily 12:00 AM ET | Grade pending picks |
+| POST | `/api/cron/grade-whatifs` | Daily 12:30 AM ET | Grade what-if passes |
+| POST | `/api/cron/expire-trials` | Daily 8:00 AM ET | Expire trials + 2-day warnings |
+| POST | `/api/cron/weekly-summary` | Mon 9:00 AM ET | Send weekly summary email |
+| POST | `/api/cron/backup` | Daily 3:00 AM ET | pg_dump + JSON backup |
+| POST | `/api/cron/check-data-quality` | Daily 7:00 AM ET | Validate data integrity |
+
+**External scheduler:** cron-job.org (all endpoints hit via HTTPS POST with `X-Cron-Secret` header)
 
 ### Admin (Superuser Only)
 | Method | Path | Purpose |
@@ -481,7 +506,9 @@ All secured by `X-Cron-Secret` header. All log execution to `cron_logs` table.
 
 ## 10. ADMIN COMMAND CENTER (`/admin`)
 
-Superuser-only dashboard with auto-refreshing panels:
+Superuser-only dashboard with auto-refreshing panels.
+
+**Auth approach (autoscale-compatible):** Flask `@login_required` removed from admin HTML route since Flask sessions don't persist across autoscale instances. Instead, the admin dashboard HTML loads for anyone, but all data is fetched client-side via `/api/admin/*` endpoints which validate auth via API calls. `require_superuser()` returns 401 (not logged in) or 403 (not authorized) as appropriate. This pattern works reliably in Replit's autoscale deployment.
 
 ### Revenue & Sales (refreshes every 30s)
 - MRR, ARR, active subscribers breakdown

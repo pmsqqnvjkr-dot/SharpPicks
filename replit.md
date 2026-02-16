@@ -3,6 +3,15 @@
 ## Overview
 Sharp Picks is a sports betting discipline system focused on providing highly selective, statistically advantageous sports betting predictions. The system aims to instill discipline by recommending a maximum of one pick per day, leveraging a machine learning model with a 57.3% test accuracy and a 68.6% walk-forward ATS performance, achieving a +30.9% ROI over 12 seasons. Key features include multi-book odds shopping, real-time spread odds integration, a margin-first prediction algorithm, user management, subscription services, and detailed performance tracking, all presented with a calm, institutional tone.
 
+## Recent Changes (February 16, 2026)
+- **Dual signup flow:** Landing page and AuthModal now support both "Start Trial" (card-on-file, email verification) and "Create Free Account" (instant access, no card) paths
+- **Transparency metrics on landing page:** Replaced volatile win-rate stats with selectivity %, picks/passes count, and deleted count (always 0) — metrics that only improve over time
+- **Free tier:** Free accounts skip email verification, get welcome email, land directly in app with limited dashboard (no pick details, no bet tracking, no performance tab)
+- **Admin dashboard autoscale fix:** Removed Flask `@login_required` from admin HTML route; auth enforced client-side via API calls to support autoscale deployment where Flask sessions don't persist
+- **Admin API auth:** `require_superuser()` returns 401 (not logged in) vs 403 (not authorized) with proper tuple return
+- **Cron jobs externalized:** All 9 cron endpoints triggered by cron-job.org with `X-Cron-Secret` header authentication
+- **Welcome email:** `send_welcome_email()` added for free account signups
+
 ## User Preferences
 - Focus on spread predictions (not moneylines)
 - Prefer high-confidence picks over volume
@@ -26,7 +35,7 @@ The core ML model uses 56 features to predict game outcomes with a margin-first 
 PostgreSQL is used for user data, picks, passes, model runs, bets, referrals, insights, and cron job logs. SQLite stores legacy game data and ML training data. Tables are append-only for transparency. Data collection includes daily line refreshes, quality checks, and game grading, with all date logic standardized to Eastern Time.
 
 ### API Endpoints
-The API provides endpoints for authentication, pick delivery, public statistics, subscription management, bet tracking, and insights content. It supports user registration, login, password resets, fetching data, Stripe integration, and user-tracked bets. Cron job endpoints are HTTP-triggered, secured by `X-Cron-Secret`, and log all executions for health monitoring. An admin dashboard provides superuser-only access to revenue, model stats, user management, health checks, cron job monitoring, and data exports.
+The API provides endpoints for authentication, pick delivery, public statistics, subscription management, bet tracking, and insights content. It supports user registration, login, password resets, fetching data, Stripe integration, and user-tracked bets. Cron job endpoints are HTTP-triggered via cron-job.org, secured by `X-Cron-Secret` header, and log all executions to `cron_logs` table for health monitoring. An admin dashboard provides superuser-only access to revenue, model stats, user management, health checks, cron job monitoring, and data exports. Admin dashboard uses client-side API auth (not Flask session) for autoscale compatibility.
 
 ### Freemium Tier Model
 Dual signup flow supports free accounts and trial accounts. Free accounts (subscription_status='free', is_premium=False) can see model activity, public record, and pass-day summaries but cannot see pick details (side, spread, edge %), bet tracking, or performance dashboard. Pro accounts (via 14-day card-on-file trial or paid subscription) get full access. Landing page has dual CTA: "Start 14-Day Trial" (primary) and "Create Free Account" (secondary). AuthModal registration shows both paths with "Start Trial — Card Required" and "Create Free Account" buttons. Free accounts skip email verification and land directly in the app. The free tier reduces trial abuse by giving tire-kickers a home without burning a trial slot.
@@ -45,3 +54,4 @@ The system enforces a "no pick" policy when no sufficient edge is found. Transpa
 - **Flask-Login**: User session management and authentication.
 - **SQLAlchemy**: ORM for database interactions.
 - **Gunicorn**: Production HTTP server.
+- **cron-job.org**: External cron scheduler for all 9 scheduled endpoints.
