@@ -1166,23 +1166,31 @@ def cron_weekly_summary():
 def cron_backup():
     try:
         import json as json_mod
-        picks = [p.to_dict() for p in Pick.query.all()]
-        passes_list = [p.to_dict() for p in Pass.query.all()]
-        users = [{
-            'id': u.id,
-            'email': u.email,
-            'founding_member': u.founding_member,
-            'founding_number': u.founding_number,
-            'subscription_status': u.subscription_status,
-            'created_at': str(u.created_at)
-        } for u in User.query.all()]
+        from sqlalchemy import inspect as sa_inspect
+
+        def row_to_dict(obj):
+            d = {}
+            for c in sa_inspect(obj.__class__).columns:
+                val = getattr(obj, c.key)
+                if isinstance(val, datetime):
+                    d[c.key] = val.isoformat()
+                else:
+                    d[c.key] = val
+            return d
+
+        picks = [row_to_dict(p) for p in Pick.query.all()]
+        passes_list = [row_to_dict(p) for p in Pass.query.all()]
+        users = [row_to_dict(u) for u in User.query.all()]
+        for u in users:
+            u.pop('password_hash', None)
+            u.pop('session_token', None)
 
         backup_data = json_mod.dumps({
             'timestamp': datetime.utcnow().isoformat(),
             'picks': picks,
             'passes': passes_list,
             'users': users
-        }, indent=2)
+        }, indent=2, default=str)
 
         backup_dir = '/tmp/backups'
         os.makedirs(backup_dir, exist_ok=True)
