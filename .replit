@@ -3,7 +3,7 @@ modules = ["python-3.11", "nodejs-20", "postgresql-16"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["gcc", "glibcLocales", "ocl-icd", "opencl-headers", "unzip"]
+packages = ["gcc", "glibcLocales", "libxcrypt", "ocl-icd", "opencl-headers", "pkg-config", "unzip", "xsimd"]
 
 [unitTest]
 language = "python3"
