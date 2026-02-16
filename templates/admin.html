@@ -843,11 +843,31 @@ if (_adminToken) {
   sessionStorage.setItem('admin_token', _adminToken);
   window.history.replaceState({}, '', '/admin');
 }
-const adminToken = sessionStorage.getItem('admin_token') || '';
+let adminToken = sessionStorage.getItem('admin_token') || '';
+const bearerToken = localStorage.getItem('sp_auth_token') || '';
+
+async function ensureAdminToken() {
+  if (adminToken) return;
+  if (!bearerToken) return;
+  try {
+    const res = await fetch('/api/admin/token', {
+      credentials: 'include',
+      headers: { 'Authorization': 'Bearer ' + bearerToken }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.token) {
+        adminToken = data.token;
+        sessionStorage.setItem('admin_token', adminToken);
+      }
+    }
+  } catch(e) {}
+}
 
 function adminFetch(url) {
   const headers = {};
   if (adminToken) headers['X-Admin-Token'] = adminToken;
+  if (bearerToken) headers['Authorization'] = 'Bearer ' + bearerToken;
   return fetch(url, { credentials: 'include', headers });
 }
 
@@ -904,8 +924,10 @@ async function loadDashboard() {
   }
 }
 
-loadDashboard();
-setInterval(loadDashboard, 30000);
+ensureAdminToken().then(() => {
+  loadDashboard();
+  setInterval(loadDashboard, 30000);
+});
 
 function hcStatusClass(s) { return s === 'ok' ? 'ok' : s === 'warn' ? 'warn' : 'err'; }
 function hcDotClass(s) { return s === 'ok' ? 'green' : s === 'warn' ? 'amber' : 'red'; }
@@ -951,8 +973,7 @@ async function loadHealthChecks() {
   }
 }
 
-loadHealthChecks();
-setInterval(loadHealthChecks, 60000);
+ensureAdminToken().then(() => { loadHealthChecks(); setInterval(loadHealthChecks, 60000); });
 
 function cronHealthClass(h) { return h === 'ok' ? 'ok' : h === 'warn' ? 'warn' : h === 'never' ? 'warn' : 'err'; }
 function cronDotClass(h) { return h === 'ok' ? 'green' : h === 'warn' || h === 'never' ? 'amber' : 'red'; }
@@ -1014,8 +1035,7 @@ async function loadCronHealth() {
   }
 }
 
-loadCronHealth();
-setInterval(loadCronHealth, 30000);
+ensureAdminToken().then(() => { loadCronHealth(); setInterval(loadCronHealth, 30000); });
 </script>
 
 </body>

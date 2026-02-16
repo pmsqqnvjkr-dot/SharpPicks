@@ -69,6 +69,18 @@ def get_admin_token():
                     user = u
 
     if not user:
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            try:
+                s = _get_admin_serializer()
+                data = s.loads(auth_header[7:], salt='auth-token', max_age=86400 * 30)
+                u = db.session.get(User, data.get('uid') if isinstance(data, dict) else data)
+                if u and (not isinstance(data, dict) or u.session_token == data.get('st')):
+                    user = u
+            except Exception:
+                pass
+
+    if not user:
         return jsonify({'error': 'Login required'}), 401
     if not user.is_superuser:
         return jsonify({'error': 'Unauthorized'}), 403
