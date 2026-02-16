@@ -18,10 +18,8 @@ def _visible_filter():
 
 
 def get_current_user():
-    user_id = session.get('user_id')
-    if user_id:
-        return db.session.get(User, user_id)
-    return None
+    from app import get_current_user_obj
+    return get_current_user_obj()
 
 
 def insight_to_dict(insight):

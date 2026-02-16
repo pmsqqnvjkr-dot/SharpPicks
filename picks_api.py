@@ -1,5 +1,4 @@
 from flask import Blueprint, jsonify, request
-from flask_login import current_user, login_required
 from models import db, Pick, Pass, ModelRun, UserBet, TrackedBet
 from datetime import datetime, timedelta
 
@@ -125,7 +124,9 @@ def today():
             'stake_guidance': stake,
             'disclaimer': 'For informational and entertainment purposes only. No guaranteed outcomes. Past performance does not guarantee future results. Please gamble responsibly.',
         }
-        is_pro = current_user.is_authenticated and current_user.is_pro
+        from app import get_current_user_obj
+        cu = get_current_user_obj()
+        is_pro = cu is not None and cu.is_pro
         if not is_pro:
             pick_data['side'] = 'Upgrade to see pick'
             pick_data['edge_pct'] = None
@@ -143,9 +144,9 @@ def today():
             pick_data['locked'] = True
         else:
             pick_data['locked'] = False
-            if current_user.is_authenticated:
+            if cu:
                 existing_bet = TrackedBet.query.filter_by(
-                    user_id=current_user.id,
+                    user_id=cu.id,
                     pick_id=pick.id
                 ).first()
                 pick_data['already_tracked'] = existing_bet is not None
@@ -218,7 +219,9 @@ def last_resolved():
     if not pick:
         return jsonify(None)
 
-    is_pro = current_user.is_authenticated and current_user.is_pro
+    from app import get_current_user_obj
+    cu = get_current_user_obj()
+    is_pro = cu is not None and cu.is_pro
     if not is_pro:
         return jsonify(None)
 

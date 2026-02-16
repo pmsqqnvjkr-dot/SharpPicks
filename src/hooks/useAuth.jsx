@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react';
-import { apiPost, apiGet } from './useApi';
+import { apiPost, apiGet, setAuthToken } from './useApi';
 
 const AuthContext = createContext(null);
 
@@ -15,6 +15,7 @@ export function AuthProvider({ children }) {
     try {
       const data = await apiGet('/auth/user');
       if (data && data.authenticated && data.user) {
+        if (data.token) setAuthToken(data.token);
         setUser(data.user);
       } else if (data && data.id) {
         setUser(data);
@@ -32,6 +33,7 @@ export function AuthProvider({ children }) {
     try {
       const data = await apiPost('/auth/login', { email, password });
       if (data.success && data.user) {
+        if (data.token) setAuthToken(data.token);
         setUser(data.user);
         return { success: true };
       } else if (data.id) {
@@ -48,6 +50,7 @@ export function AuthProvider({ children }) {
     try {
       const data = await apiPost('/auth/register', { email, password, first_name: firstName, account_type: accountType });
       if (data.success && data.user) {
+        if (data.token) setAuthToken(data.token);
         setUser(data.user);
         return { success: true, needs_verification: data.needs_verification };
       } else if (data.id) {
@@ -71,6 +74,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    setAuthToken(null);
     setUser(null);
   };
 

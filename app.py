@@ -133,8 +133,34 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
+def _get_auth_serializer():
+    from itsdangerous import URLSafeTimedSerializer
+    secret = os.environ.get('SESSION_SECRET', os.environ.get('SECRET_KEY', 'dev'))
+    return URLSafeTimedSerializer(secret)
+
+def generate_auth_token(user):
+    s = _get_auth_serializer()
+    return s.dumps({'uid': user.id, 'st': user.session_token}, salt='auth-token')
+
+def verify_auth_token():
+    auth_header = request.headers.get('Authorization', '')
+    token = None
+    if auth_header.startswith('Bearer '):
+        token = auth_header[7:]
+    if not token:
+        return None
+    try:
+        s = _get_auth_serializer()
+        data = s.loads(token, salt='auth-token', max_age=86400 * 30)
+        user = db.session.get(User, data['uid'])
+        if user and user.session_token == data['st']:
+            return user
+    except Exception:
+        pass
+    return None
+
 def get_current_user_from_session():
-    """Get current user from session or None if not authenticated"""
+    """Get current user from session, Bearer token, or flask-login"""
     user_id = session.get('user_id')
     if user_id:
         user = db.session.get(User, user_id)
@@ -143,9 +169,30 @@ def get_current_user_from_session():
             if not stored_token or stored_token != user.session_token:
                 session.pop('user_id', None)
                 session.pop('session_token', None)
-                return None
-            return serialize_user(user)
+            else:
+                return serialize_user(user)
+
+    token_user = verify_auth_token()
+    if token_user:
+        return serialize_user(token_user)
+
     return None
+
+def get_current_user_obj():
+    """Get current user as ORM object (not dict) from session or Bearer token"""
+    from flask_login import current_user as _cu
+    if _cu.is_authenticated:
+        return _cu
+
+    user_id = session.get('user_id')
+    if user_id:
+        user = db.session.get(User, user_id)
+        if user:
+            stored_token = session.get('session_token')
+            if stored_token and stored_token == user.session_token:
+                return user
+
+    return verify_auth_token()
 
 def serialize_user(user):
     return {
@@ -1237,9 +1284,11 @@ def calculate_streak(dates):
 @app.route('/api/auth/user')
 def get_current_user():
     """Get current authenticated user info"""
-    user = get_current_user_from_session()
-    if user:
-        return jsonify({'authenticated': True, 'user': user})
+    user_dict = get_current_user_from_session()
+    if user_dict:
+        user_obj = db.session.get(User, user_dict['id'])
+        token = generate_auth_token(user_obj) if user_obj else None
+        return jsonify({'authenticated': True, 'user': user_dict, 'token': token})
     return jsonify({'authenticated': False, 'user': None})
 
 @app.route('/api/auth/register', methods=['POST'])
@@ -1306,6 +1355,7 @@ def register():
             'success': True,
             'user': serialize_user(user),
             'needs_verification': False,
+            'token': generate_auth_token(user),
         })
 
     try:
@@ -1323,6 +1373,7 @@ def register():
         'success': True,
         'user': serialize_user(user),
         'needs_verification': True,
+        'token': generate_auth_token(user),
     })
 
 @app.route('/api/auth/verify-email')
@@ -1429,7 +1480,8 @@ def login():
     
     return jsonify({
         'success': True,
-        'user': serialize_user(user)
+        'user': serialize_user(user),
+        'token': generate_auth_token(user),
     })
 
 @app.route('/api/auth/logout', methods=['POST'])
@@ -2208,10 +2260,12 @@ def get_user_stats():
     })
 
 @app.route('/api/bets', methods=['GET'])
-@login_required
 def get_user_bets():
     """Get user's tracked bets"""
-    bets = TrackedBet.query.filter_by(user_id=current_user.id).order_by(TrackedBet.created_at.desc()).all()
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+    bets = TrackedBet.query.filter_by(user_id=user.id).order_by(TrackedBet.created_at.desc()).all()
     tracked_pick_ids = set()
     bet_list = []
     for b in bets:
@@ -2267,11 +2321,13 @@ def get_user_bets():
     return jsonify({'bets': bet_list, 'tracked_pick_ids': list(tracked_pick_ids)})
 
 @app.route('/api/bets/trackable', methods=['GET'])
-@login_required
 def get_trackable_picks():
     """Get recent picks the user hasn't tracked yet"""
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
     already_tracked = db.session.query(TrackedBet.pick_id).filter(
-        TrackedBet.user_id == current_user.id,
+        TrackedBet.user_id == user.id,
         TrackedBet.pick_id.isnot(None)
     ).all()
     tracked_ids = {t[0] for t in already_tracked}
@@ -2294,15 +2350,17 @@ def get_trackable_picks():
     return jsonify({'picks': trackable})
 
 @app.route('/api/bets', methods=['POST'])
-@login_required
 def track_bet():
     """Track a bet linked to a pick"""
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
     data = request.get_json()
     pick_id = data.get('pick_id')
 
     if pick_id:
         existing = TrackedBet.query.filter_by(
-            user_id=current_user.id,
+            user_id=user.id,
             pick_id=pick_id
         ).first()
         if existing:
@@ -2349,7 +2407,7 @@ def track_bet():
             auto_profit = -bet_amount
 
     bet = TrackedBet(
-        user_id=current_user.id,
+        user_id=user.id,
         pick_id=pick_id,
         pick=pick_label,
         game=game_label,
@@ -2382,11 +2440,13 @@ def track_bet():
     })
 
 @app.route('/api/bets/<int:bet_id>/result', methods=['POST'])
-@login_required
 def update_bet_result(bet_id):
     """Update bet result"""
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
     data = request.get_json()
-    bet = TrackedBet.query.filter_by(id=bet_id, user_id=current_user.id).first()
+    bet = TrackedBet.query.filter_by(id=bet_id, user_id=user.id).first()
     if not bet:
         return jsonify({'error': 'Bet not found'}), 404
     
@@ -2397,10 +2457,12 @@ def update_bet_result(bet_id):
     return jsonify({'success': True})
 
 @app.route('/api/bets/<int:bet_id>', methods=['DELETE'])
-@login_required
 def delete_bet(bet_id):
     """Delete/untrack a bet"""
-    bet = TrackedBet.query.filter_by(id=bet_id, user_id=current_user.id).first()
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+    bet = TrackedBet.query.filter_by(id=bet_id, user_id=user.id).first()
     if not bet:
         return jsonify({'error': 'Bet not found'}), 404
     
@@ -2432,10 +2494,12 @@ def update_notification_prefs():
 
 @app.route('/api/model/calibration')
 @app.route('/api/validation/detailed')
-@login_required
 def detailed_validation():
     """Check model calibration by confidence buckets - only forward predictions"""
-    if not current_user.is_pro:
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+    if not user.is_pro:
         return jsonify({'error': 'Pro subscription required', 'upgrade': True}), 403
     conn = get_db()
     cursor = conn.cursor()
@@ -2593,10 +2657,12 @@ def calculate_all_features(game_dict):
     }
 
 @app.route('/api/predictions')
-@login_required
 def get_predictions():
     """Get today's model predictions for upcoming games - with full 36-feature calculation"""
-    if not current_user.is_pro:
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+    if not user.is_pro:
         return jsonify({'error': 'Pro subscription required', 'upgrade': True}), 403
     import pickle
     import json
@@ -2881,10 +2947,12 @@ def get_stats():
     })
 
 @app.route('/api/recent-results')
-@login_required
 def get_recent_results():
     """Get recent settled predictions with accuracy stats"""
-    if not current_user.is_pro:
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+    if not user.is_pro:
         return jsonify({'error': 'Pro subscription required', 'upgrade': True}), 403
     conn = get_db()
     cursor = conn.cursor()

@@ -1,6 +1,26 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 const API_BASE = '/api';
+const TOKEN_KEY = 'sp_auth_token';
+
+export function setAuthToken(token) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+}
+
+export function getAuthToken() {
+  return localStorage.getItem(TOKEN_KEY) || '';
+}
+
+function authHeaders(extra = {}) {
+  const token = getAuthToken();
+  const headers = { ...extra };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
 
 export function useApi(endpoint, options = {}) {
   const { pollInterval, skip } = options;
@@ -14,9 +34,11 @@ export function useApi(endpoint, options = {}) {
       if (!silent) setLoading(true);
       const res = await fetch(`${API_BASE}${endpoint}`, {
         credentials: 'include',
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const json = await res.json();
+      if (json.token) setAuthToken(json.token);
       if (mountedRef.current) {
         setData(json);
         setError(null);
@@ -49,12 +71,14 @@ export async function apiPost(endpoint, body) {
   try {
     const res = await fetch(`${API_BASE}${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       credentials: 'include',
       body: JSON.stringify(body),
       signal: controller.signal,
     });
-    return res.json();
+    const json = await res.json();
+    if (json.token) setAuthToken(json.token);
+    return json;
   } catch (err) {
     if (err.name === 'AbortError') {
       return { error: 'Request timed out. Please try again.' };
@@ -71,9 +95,12 @@ export async function apiGet(endpoint) {
   try {
     const res = await fetch(`${API_BASE}${endpoint}`, {
       credentials: 'include',
+      headers: authHeaders(),
       signal: controller.signal,
     });
-    return res.json();
+    const json = await res.json();
+    if (json.token) setAuthToken(json.token);
+    return json;
   } catch (err) {
     if (err.name === 'AbortError') {
       return { error: 'Request timed out. Please try again.' };
@@ -91,6 +118,7 @@ export async function apiDelete(endpoint) {
     const res = await fetch(`${API_BASE}${endpoint}`, {
       method: 'DELETE',
       credentials: 'include',
+      headers: authHeaders(),
       signal: controller.signal,
     });
     return res.json();

@@ -36,6 +36,19 @@ def require_superuser():
         except (SignatureExpired, BadSignature):
             pass
 
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        try:
+            s = _get_admin_serializer()
+            data = s.loads(auth_header[7:], salt='auth-token', max_age=86400 * 30)
+            user = db.session.get(User, data.get('uid') if isinstance(data, dict) else data)
+            if user and user.is_superuser and (not isinstance(data, dict) or user.session_token == data.get('st')):
+                return user, None
+            if user and not user.is_superuser:
+                return None, 403
+        except Exception:
+            pass
+
     return None, 401
 
 
