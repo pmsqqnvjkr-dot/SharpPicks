@@ -286,6 +286,87 @@ def send_payment_failed_email(to, first_name=None):
     return send_email(to, "Payment issue — Sharp Picks", html, attachments=attachments or None)
 
 
+def send_weekly_summary(to, first_name=None, stats=None):
+    name = first_name or "there"
+    s = stats or {}
+    picks_made = s.get('picks_made', 0)
+    passes = s.get('passes', 0)
+    wins = s.get('wins', 0)
+    losses = s.get('losses', 0)
+    pending = s.get('pending', 0)
+    record_str = f"{wins}W-{losses}L" + (f" ({pending} pending)" if pending else "")
+    total_record = s.get('total_record', '')
+    next_week_games = s.get('next_week_games', 'Full slate')
+
+    base_url = get_base_url()
+    dashboard_url = f"{base_url}/"
+
+    attachments = []
+    logo_b64 = _get_logo_b64()
+    if logo_b64:
+        attachments.append({
+            "filename": "logo.png",
+            "content": logo_b64,
+            "content_type": "image/png",
+        })
+    logo_src = f"cid:logo.png" if logo_b64 else f"{base_url}/logo-email.png"
+
+    html = f"""
+    <div style="max-width: 600px; margin: 0 auto; background-color: #0A0D14; padding: 40px 32px; font-family: 'Inter', -apple-system, sans-serif; color: #e0e0e0;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <img src="{logo_src}" alt="Sharp Picks" style="height: 36px; width: auto;" />
+      </div>
+
+      <div style="font-family: 'Courier New', monospace; font-size: 9px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #4F86F7; margin-bottom: 20px;">Weekly Summary</div>
+
+      <p style="font-size: 16px; line-height: 1.7; color: #b8b8b8; margin-bottom: 24px;">Hey {name}, here's your week in review.</p>
+
+      <div style="background: rgba(79,134,247,0.06); border: 1px solid rgba(79,134,247,0.15); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0;">
+              <span style="font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 1px;">Picks Published</span><br/>
+              <span style="font-size: 28px; font-weight: 700; color: #ffffff; font-family: 'JetBrains Mono', monospace;">{picks_made}</span>
+            </td>
+            <td style="padding: 8px 0;">
+              <span style="font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 1px;">Pass Days</span><br/>
+              <span style="font-size: 28px; font-weight: 700; color: #ffffff; font-family: 'JetBrains Mono', monospace;">{passes}</span>
+            </td>
+            <td style="padding: 8px 0;">
+              <span style="font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 1px;">Week Record</span><br/>
+              <span style="font-size: 28px; font-weight: 700; color: {'#34D399' if wins > losses else '#F87171' if losses > wins else '#ffffff'}; font-family: 'JetBrains Mono', monospace;">{record_str}</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      {'<p style="font-size: 14px; color: #888; margin-bottom: 16px;">Season record: <span style="color: #ffffff; font-weight: 600;">' + total_record + '</span></p>' if total_record else ''}
+
+      <div style="margin: 24px 0; padding: 16px 20px; border-left: 3px solid #34D399; background-color: rgba(52, 211, 153, 0.04);">
+        <div style="font-family: 'Courier New', monospace; font-size: 9px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #34D399; margin-bottom: 8px;">This Week&rsquo;s Edge</div>
+        <p style="font-family: Georgia, serif; font-size: 16px; line-height: 1.5; color: #ffffff; font-style: italic; margin: 0;">Pass days aren't missed opportunities — they're proof the system is working. Discipline over volume.</p>
+      </div>
+
+      <p style="font-size: 14px; color: #888; margin-bottom: 24px;">Next week: {next_week_games}</p>
+
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="{dashboard_url}" style="display: inline-block; padding: 14px 36px; background-color: #4F86F7; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600;">VIEW DASHBOARD</a>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid #1a1d24; margin: 32px 0;">
+      <p style="font-size: 12px; color: #555; text-align: center;">Sharp Picks — Discipline is the edge.</p>
+      <p style="font-size: 11px; color: #444; text-align: center; margin-top: 4px;">This is entertainment only. Past results don't guarantee future performance.</p>
+    </div>
+    """
+    return send_email(
+        to,
+        f"Weekly Summary | {record_str}" if picks_made > 0 else "Weekly Summary | All Pass Week",
+        html,
+        reply_to="evan@sharppicks.ai",
+        attachments=attachments or None,
+    )
+
+
 def send_welcome(to, first_name=None):
     name = first_name or "there"
     dashboard_url = get_base_url()

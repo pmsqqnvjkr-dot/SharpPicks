@@ -534,6 +534,107 @@ Fewer decisions. Better decisions.""",
         except Exception as e:
             logging.error(f"Database seed error: {e}")
 
+def backup_database():
+    """Daily database backup via pg_dump.
+    NOTE: /tmp backups are ephemeral on Replit deploys. For production durability,
+    configure BACKUP_S3_BUCKET env var to upload to S3/GCS, or use Replit's
+    built-in PostgreSQL snapshot feature. Local backups serve as a safety net
+    during development and provide point-in-time recovery within a single deploy.
+    """
+    try:
+        db_url = os.environ.get('DATABASE_URL', '')
+        if not db_url:
+            logging.warning("DATABASE_URL not set, skipping backup")
+            return
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+        backup_dir = '/tmp/backups'
+        os.makedirs(backup_dir, exist_ok=True)
+
+        backup_path = f'{backup_dir}/sharppicks_backup_{timestamp}.sql'
+        result = subprocess.run(
+            ['pg_dump', '--no-owner', '--no-acl', '-f', backup_path],
+            env={**os.environ, 'DATABASE_URL': db_url},
+            capture_output=True, text=True, timeout=120
+        )
+        if result.returncode == 0:
+            file_size = os.path.getsize(backup_path) / 1024
+            logging.info(f"Database backup created: {backup_path} ({file_size:.0f} KB)")
+
+            old_backups = sorted([
+                f for f in os.listdir(backup_dir) if f.startswith('sharppicks_backup_')
+            ])
+            while len(old_backups) > 7:
+                os.remove(os.path.join(backup_dir, old_backups.pop(0)))
+        else:
+            logging.error(f"Backup failed: {result.stderr}")
+    except Exception as e:
+        logging.error(f"Backup error: {e}")
+
+
+def send_weekly_summary_job():
+    """Monday 9 AM ET: Send weekly summary email to all pro users"""
+    with app.app_context():
+        try:
+            from email_service import send_weekly_summary
+            from sqlalchemy import text as sql_text
+
+            week_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+            today_str = datetime.now().strftime('%Y-%m-%d')
+
+            picks_result = db.session.execute(sql_text("""
+                SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) as wins,
+                    SUM(CASE WHEN result = 'loss' THEN 1 ELSE 0 END) as losses,
+                    SUM(CASE WHEN result IS NULL OR result = 'pending' THEN 1 ELSE 0 END) as pending
+                FROM picks
+                WHERE game_date >= :week_ago AND game_date <= :today
+            """), {'week_ago': week_ago, 'today': today_str})
+            pr = picks_result.fetchone()
+
+            passes_result = db.session.execute(sql_text("""
+                SELECT COUNT(*) FROM passes WHERE date >= :week_ago AND date <= :today
+            """), {'week_ago': week_ago, 'today': today_str})
+            passes_count = passes_result.scalar() or 0
+
+            total_result = db.session.execute(sql_text("""
+                SELECT 
+                    SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) as wins,
+                    SUM(CASE WHEN result = 'loss' THEN 1 ELSE 0 END) as losses
+                FROM picks WHERE result IN ('win', 'loss')
+            """))
+            tr = total_result.fetchone()
+            total_wins = tr[0] or 0 if tr else 0
+            total_losses = tr[1] or 0 if tr else 0
+            total_record = f"{total_wins}W-{total_losses}L" if (total_wins + total_losses) > 0 else ''
+
+            stats = {
+                'picks_made': pr[0] or 0 if pr else 0,
+                'wins': pr[1] or 0 if pr else 0,
+                'losses': pr[2] or 0 if pr else 0,
+                'pending': pr[3] or 0 if pr else 0,
+                'passes': passes_count,
+                'total_record': total_record,
+                'next_week_games': 'Full NBA slate',
+            }
+
+            pro_users = User.query.filter(
+                User.subscription_status.in_(['active', 'trial', 'cancelling']),
+                User.email_verified == True,
+            ).all()
+
+            sent_count = 0
+            for user in pro_users:
+                prefs = user.notification_prefs or {}
+                if prefs.get('weekly_summary', True):
+                    if send_weekly_summary(user.email, user.first_name, stats):
+                        sent_count += 1
+
+            logging.info(f"Weekly summary sent to {sent_count}/{len(pro_users)} pro users")
+        except Exception as e:
+            logging.error(f"Weekly summary job error: {e}")
+
+
 def collect_todays_games():
     """Run the main.py data collector"""
     print(f"[{datetime.now()}] Running scheduled data collection...")
@@ -994,6 +1095,8 @@ def start_scheduler():
     
     sched.add_job(check_expiring_trials, 'cron', hour=9, minute=0, id='trial_expiring_check')
     sched.add_job(expire_trials, 'cron', hour=0, minute=15, id='expire_trials')
+    sched.add_job(backup_database, 'cron', hour=3, minute=0, id='daily_backup')
+    sched.add_job(send_weekly_summary_job, 'cron', day_of_week='mon', hour=9, minute=0, id='weekly_summary')
 
     sched.start()
     atexit.register(lambda: sched.shutdown())

@@ -55,9 +55,19 @@ The API is structured around authentication, pick delivery, public statistics, s
   - Subscription reactivation endpoint: /api/subscriptions/reactivate for cancel_at_period_end users
   - 'cancelling' status grants access until current_period_end expires
   - Secure, time-limited tokens for password resets and email verification, webhook signature verification for production
-- **Time Zones**: All date logic is standardized to Eastern Time (America/New_York).
+- **Notifications & Engagement** (added Feb 16, 2026):
+  - Push notifications via OneSignal REST API (requires ONESIGNAL_APP_ID + ONESIGNAL_API_KEY)
+  - Pick alerts: sent to "Pro Users" segment when a qualified pick is published
+  - Pass-day alerts: sent to "Pass Alerts" segment on all pass outcomes (no-games, paper-trade, below-threshold)
+  - Result notifications: sent on win/loss/push resolution
+  - Weekly summary email: Monday 9 AM ET via Resend to all pro users with weekly_summary pref enabled
+  - Pass-day onboarding: dedicated step in OnboardingFlow showing "Most days look like this" with mini no-pick preview
+- **Database Backups** (added Feb 16, 2026):
+  - Daily pg_dump at 3 AM ET to /tmp/backups/ (keeps last 7 days)
+  - NOTE: /tmp is ephemeral on Replit deploys; for production, configure external storage (S3/GCS) or rely on Replit's built-in PostgreSQL snapshots
+- **Time Zones**: All date logic is standardized to Eastern Time (America/New_York). APScheduler timezone set to America/New_York.
 - **Compliance**: Compliance disclaimers are integrated into the UI and API responses.
-- **Odds Integration**: Multi-book odds shopping, real sportsbook juice integration, and closing line value (CLV) tracking are central to the prediction and analysis.
+- **Odds Integration**: Multi-book odds shopping, real sportsbook juice integration, and closing line value (CLV) tracking are central to the prediction and analysis. Single API call to The-Odds-API with all 6 books in one request (not sequential calls per book).
 - **Risk Management**: Automated risk filters exclude games with high spreads or missing data, and a fail-safe mechanism prevents picks from being published under uncertain conditions (e.g., stale data, imminent tip-off without injury data).
 
 ## External Dependencies
@@ -66,6 +76,8 @@ The API is structured around authentication, pick delivery, public statistics, s
 - **Stripe**: Payment processing for subscriptions, integrated via Replit connector.
 - **ESPN**: Data source for game scores.
 - **The-Odds-API**: Provides real-time sports betting odds (current, opening, closing lines) from multiple sportsbooks (DraftKings, FanDuel, BetMGM, Caesars, PointsBet, BetRivers).
+- **OneSignal**: Push notification delivery (optional; requires ONESIGNAL_APP_ID + ONESIGNAL_API_KEY).
+- **Resend**: Transactional email delivery (lifecycle emails, weekly summaries).
 - **Flask-Login**: For user session management and authentication.
 - **SQLAlchemy**: ORM for database interactions.
 - **Gunicorn**: Production HTTP server for Flask application.

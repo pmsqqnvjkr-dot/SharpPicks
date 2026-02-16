@@ -20,15 +20,16 @@ export default function OnboardingFlow({ onComplete }) {
       ),
     },
     {
-      title: 'Silence is the system working.',
-      description: 'When there is no pick, it means the model analyzed every game and found no qualifying edge. That restraint is your edge over the market.',
-      detail: 'Most bettors lose because they bet too often. We solve that by design.',
+      title: 'Most days look like this.',
+      description: 'At ~28% selectivity, the majority of days are pass days. This is the screen you\'ll see most often. It means the model found no qualifying edge — and that\'s the system working exactly as designed.',
+      detail: 'If your first few days are all passes, the app isn\'t broken. It\'s protecting your bankroll.',
       icon: (
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 6v6l4 2"/>
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="white" fill="none" strokeWidth="2" strokeLinecap="round">
+          <rect x="6" y="5" width="4" height="14" rx="1" />
+          <rect x="14" y="5" width="4" height="14" rx="1" />
         </svg>
       ),
+      hasPreview: true,
     },
     {
       title: 'Track everything. Question nothing.',
@@ -97,6 +98,7 @@ export default function OnboardingFlow({ onComplete }) {
               fontSize: '16px', color: 'var(--text-secondary)', lineHeight: '1.7',
               marginBottom: '20px',
             }}>{current.description}</p>
+            {current.hasPreview && <PassDayPreview />}
             <p style={{
               fontFamily: 'var(--font-mono)', fontSize: '12px',
               color: 'var(--text-tertiary)', letterSpacing: '0.02em',
@@ -122,6 +124,41 @@ export default function OnboardingFlow({ onComplete }) {
         }}>
           {isLast ? 'Enter Sharp Picks' : 'Continue'}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function PassDayPreview() {
+  return (
+    <div style={{
+      backgroundColor: 'var(--surface-1)',
+      borderRadius: '16px',
+      border: '1px solid var(--stroke-subtle)',
+      padding: '20px',
+      marginBottom: '20px',
+      opacity: 0.85,
+      transform: 'scale(0.92)',
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{
+          width: '48px', height: '48px', borderRadius: '14px',
+          backgroundColor: 'var(--surface-2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 12px',
+        }}>
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="var(--text-tertiary)" fill="none" strokeWidth="2" strokeLinecap="round">
+            <rect x="6" y="5" width="4" height="14" rx="1" />
+            <rect x="14" y="5" width="4" height="14" rx="1" />
+          </svg>
+        </div>
+        <div style={{
+          fontFamily: 'var(--font-serif)', fontSize: '16px', fontWeight: 600,
+          color: 'var(--text-primary)', marginBottom: '6px',
+        }}>No qualifying pick</div>
+        <div style={{
+          fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5',
+        }}>Model analyzed 8 games. No edge above threshold.</div>
       </div>
     </div>
   );

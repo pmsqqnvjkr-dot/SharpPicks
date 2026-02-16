@@ -88,6 +88,13 @@ def run_model_and_log(app, sport='nba'):
                 db.session.add(model_run)
                 db.session.commit()
 
+                try:
+                    from notification_service import send_pass_notification
+                    send_pass_notification(pass_entry)
+                except Exception as notif_err:
+                    import logging
+                    logging.error(f"No-games pass notification failed: {notif_err}")
+
                 return {'status': 'pass', 'reason': 'no_games', 'date': today_str, 'sport': sport}
 
             qualified = [p for p in predictions if p.get('passes_filter')]
@@ -139,6 +146,13 @@ def run_model_and_log(app, sport='nba'):
                     db.session.add(model_run)
                     db.session.commit()
 
+                    try:
+                        from notification_service import send_pick_notification
+                        send_pick_notification(pick)
+                    except Exception as notif_err:
+                        import logging
+                        logging.error(f"Pick notification failed: {notif_err}")
+
                     return {
                         'status': 'pick',
                         'pick_id': pick.id,
@@ -172,6 +186,13 @@ def run_model_and_log(app, sport='nba'):
                     )
                     db.session.add(model_run)
                     db.session.commit()
+
+                    try:
+                        from notification_service import send_pass_notification
+                        send_pass_notification(pass_entry)
+                    except Exception as notif_err:
+                        import logging
+                        logging.error(f"Paper trade pass notification failed: {notif_err}")
 
                     return {
                         'status': 'paper_trade',
@@ -234,6 +255,13 @@ def run_model_and_log(app, sport='nba'):
                 )
                 db.session.add(model_run)
                 db.session.commit()
+
+                try:
+                    from notification_service import send_pass_notification
+                    send_pass_notification(pass_entry)
+                except Exception as notif_err:
+                    import logging
+                    logging.error(f"Pass notification failed: {notif_err}")
 
                 return {
                     'status': 'pass',
