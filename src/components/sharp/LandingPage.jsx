@@ -42,42 +42,45 @@ export default function LandingPage() {
         }}>Sharp Picks</span>
       </div>
 
-      <div style={{ padding: '40px 28px 0', textAlign: 'center' }}>
+      <div style={{ padding: '20px 28px 0', textAlign: 'center' }}>
+        <div style={{
+          position: 'relative',
+          marginBottom: '28px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            position: 'absolute',
+            width: '120px', height: '120px',
+            background: 'radial-gradient(circle, rgba(79,134,247,0.12) 0%, transparent 70%)',
+            borderRadius: '50%',
+          }} />
+          <ShieldLogo size={80} />
+        </div>
+
         <h1 style={{
           fontFamily: 'var(--font-serif)',
-          fontSize: '28px', fontWeight: 700,
-          lineHeight: '1.3',
+          fontSize: '32px', fontWeight: 700,
+          lineHeight: '1.15',
           color: 'var(--text-primary)',
-          marginBottom: '16px',
+          marginBottom: '12px',
         }}>
-          NBA Model Picks — One Per Day
+          One Pick Beats Five
         </h1>
 
         <p style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: '15px', fontWeight: 400,
+          fontFamily: 'var(--font-serif)',
+          fontSize: '16px', fontWeight: 400,
+          fontStyle: 'italic',
           color: 'var(--text-secondary)',
-          lineHeight: '1.6',
-          marginBottom: '8px',
-          maxWidth: '340px',
-          marginLeft: 'auto',
-          marginRight: 'auto',
+          marginBottom: '32px',
         }}>
-          We publish only when the model identifies real betting value.
-        </p>
-        <p style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: '14px', fontWeight: 400,
-          color: 'var(--text-tertiary)',
-          marginBottom: '36px',
-        }}>
-          No volume. No hype. No forced action.
+          Discipline is the product.
         </p>
 
         <button
           onClick={() => { setAuthMode('register'); setShowAuth(true); }}
           style={{
-            width: '100%', maxWidth: '280px',
+            width: '100%', maxWidth: '240px',
             height: '52px', borderRadius: '14px',
             border: 'none',
             background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
@@ -85,7 +88,7 @@ export default function LandingPage() {
             fontFamily: 'var(--font-sans)',
             fontSize: '16px', fontWeight: 700,
             cursor: 'pointer',
-            marginBottom: '12px',
+            marginBottom: '40px',
           }}
         >
           Start 14-Day Trial
@@ -94,68 +97,44 @@ export default function LandingPage() {
           fontFamily: 'var(--font-sans)',
           fontSize: '12px', fontWeight: 500,
           color: 'var(--text-tertiary)',
-          marginBottom: '0',
+          marginTop: '-28px', marginBottom: '28px',
         }}>
-          Card required. Cancel anytime.
+          Card required to start trial. Cancel anytime.
         </p>
-      </div>
 
-      <div style={{ padding: '48px 28px 0' }}>
         <div style={{
-          textAlign: 'center',
-          marginBottom: '20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: '16px', marginBottom: '16px',
+          backgroundColor: 'var(--surface-1)',
+          border: '1px solid var(--stroke-subtle)',
+          borderRadius: '12px',
+          padding: '14px 16px',
         }}>
-          <div style={{
-            width: '40px', height: '1px',
-            backgroundColor: 'var(--stroke-subtle)',
-            margin: '0 auto 24px',
-          }} />
-          <h2 style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: '20px', fontWeight: 600,
-            color: 'var(--text-primary)',
-            marginBottom: '24px',
-          }}>How It Works</h2>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <StepCard number="1" text="Model scans full slate" />
-          <StepCard number="2" text="Applies edge threshold" />
-          <StepCard number="3" text="Publishes one qualified pick (or none)" />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.5px', color: 'var(--text-tertiary)' }}>Active since Jan 2026</span>
+          <ProofDot />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.5px', color: 'var(--text-tertiary)' }}>All picks public</span>
+          <ProofDot />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.5px', color: 'var(--text-tertiary)' }}>0 deleted</span>
         </div>
       </div>
 
-      <div style={{ padding: '40px 28px 0', textAlign: 'center' }}>
-        <div style={{
-          width: '40px', height: '1px',
-          backgroundColor: 'var(--stroke-subtle)',
-          margin: '0 auto 28px',
-        }} />
-        <p style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '16px',
-          fontStyle: 'italic',
-          color: 'var(--text-secondary)',
-          lineHeight: '1.6',
-          marginBottom: '4px',
-        }}>
-          You don't need more hype.
-        </p>
-        <p style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '16px',
-          fontStyle: 'italic',
-          color: 'var(--text-primary)',
-          fontWeight: 600,
-          lineHeight: '1.6',
-          marginBottom: '0',
-        }}>
-          You need clarity + confidence.
-        </p>
+      <div style={{ padding: '0 28px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <ValueProp
+          title="No edge, no pick"
+          desc="We publish only when the model identifies sufficient value. Quiet days are intentional."
+        />
+        <ValueProp
+          title="Process over outcomes"
+          desc={`All picks tracked publicly. No deletes. No hindsight editing.${stats ? ` ${stats.total_picks} picks · ${stats.total_passes} passes to date` : ''}`}
+        />
+        <ValueProp
+          title="Selectivity beats volume"
+          desc={`Most bettors lose by betting too much.${stats ? ` Our ${stats.selectivity}% selectivity rate is the edge.` : ' Selectivity is the edge.'}`}
+        />
       </div>
 
       {stats && (
-        <div style={{ padding: '40px 28px 0' }}>
+        <div style={{ padding: '16px 28px 0' }}>
           <div style={{
             backgroundColor: 'var(--surface-1)',
             borderRadius: '16px',
@@ -204,7 +183,7 @@ export default function LandingPage() {
         </div>
       )}
 
-      <div style={{ padding: '24px 28px 40px' }}>
+      <div style={{ padding: '16px 28px 40px' }}>
         <button
           onClick={() => { setAuthMode('login'); setShowAuth(true); }}
           style={{
@@ -227,36 +206,29 @@ export default function LandingPage() {
   );
 }
 
-function StepCard({ number, text }) {
+function ProofDot() {
+  return <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'var(--text-tertiary)', opacity: 0.4 }} />;
+}
+
+function ValueProp({ title, desc }) {
   return (
     <div style={{
       backgroundColor: 'var(--surface-1)',
       border: '1px solid var(--stroke-subtle)',
-      borderRadius: '14px',
-      padding: '18px 20px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
+      borderRadius: '16px',
+      padding: '20px',
     }}>
-      <div style={{
-        width: '32px', height: '32px',
-        borderRadius: '50%',
-        backgroundColor: 'rgba(79, 134, 247, 0.1)',
-        border: '1px solid rgba(79, 134, 247, 0.2)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        <span style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '13px', fontWeight: 700,
-          color: 'var(--blue-primary)',
-        }}>{number}</span>
-      </div>
-      <span style={{
-        fontFamily: 'var(--font-sans)',
-        fontSize: '15px', fontWeight: 500,
+      <h3 style={{
+        fontFamily: 'var(--font-serif)',
+        fontSize: '15px', fontWeight: 600,
         color: 'var(--text-primary)',
-      }}>{text}</span>
+        marginBottom: '6px',
+      }}>{title}</h3>
+      <p style={{
+        fontSize: '13px',
+        color: 'var(--text-secondary)',
+        lineHeight: '1.55',
+      }}>{desc}</p>
     </div>
   );
 }
