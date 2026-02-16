@@ -1,5 +1,5 @@
 # Sharp Picks - Full Application Flow
-*Generated February 16, 2026*
+*Generated February 16, 2026 · Last updated February 16, 2026*
 
 ---
 
@@ -12,8 +12,8 @@ Dark institutional-grade design on `#0A0D14` background. Top-level brand mark: s
 ### Hero Section
 - Headline: **"One Pick Beats Five"**
 - Subtitle: *"Discipline is the product."*
-- CTA: Blue gradient "Start Free" button
-- Sub-CTA: "Sign up free — no card required"
+- CTA: Blue gradient "Start 14-Day Trial" button
+- Sub-CTA: "Card required to start trial. Cancel anytime."
 
 ### Trust Bar
 - `Active since Jan 2026 · All picks public · 0 deleted`
@@ -24,28 +24,56 @@ Dark institutional-grade design on `#0A0D14` background. Top-level brand mark: s
 3. *[Third card below fold]*
 
 ### Bottom CTA
-- Links to registration with 14-day free trial
+- Links to registration with 14-day card-on-file trial
 
 ---
 
 ## 2. REGISTRATION / LOGIN
 
-**Registration fields:** first_name, last_name, email, password
+### Registration
+**Fields:** first_name, last_name, email, password
 
 **On registration:**
-- User created with `subscription_status: "trial"`, `is_premium: true`
-- 14-day free trial begins immediately (no card required)
-- `trial_end_date` set to 14 days from registration
+1. Gmail alias normalization applied (strips dots and +suffixes for gmail.com/googlemail.com)
+2. `trial_used` flag checked — prevents repeat trials on same normalized email
+3. User created with `subscription_status: "free"`, `is_premium: false`, `email_verified: false`
+4. Verification email sent via Resend with signed, time-limited token (24h expiration)
+5. User sees verification prompt: "Check your email for a verification link"
 
-**Login:** email + password, Flask-Login session with remember_me cookie (30 days)
+**Email verification flow:**
+1. User clicks link in email → `/api/auth/verify-email?token=...`
+2. Token validated (signature + expiration)
+3. `email_verified` set to `true`
+4. User redirected to Stripe checkout for card-on-file trial setup
 
-**Password Reset:** Secure time-limited token flow via `/api/auth/forgot-password` and `/api/auth/reset-password`
+**Card-on-file trial (via Stripe):**
+1. Stripe checkout session created with `trial_period_days=14`, `payment_method_collection: 'always'`
+2. $0 charged upfront, card stored on file
+3. On successful checkout webhook: `subscription_status: "trial"`, `is_premium: true`, `trial_end_date` set to 14 days out, `trial_used: true`
+4. After 14 days, Stripe automatically charges the selected plan unless cancelled
+
+### Login
+- Email + password authentication
+- Flask-Login session with `remember_me` cookie (30 days)
+- Session token validated on every request (invalidated on password reset)
+- **Rate limiting:** 5 failed login attempts → 15-minute lockout per email
+
+### Password Reset
+- Secure time-limited token flow via `/api/auth/forgot-password` and `/api/auth/reset-password`
+- On reset: `session_token` regenerated → all existing sessions invalidated
 
 ---
 
 ## 3. AUTHENTICATED DASHBOARD (4-Tab Shell)
 
 After login, users see the main dashboard with 4 tabs:
+
+### First-Time Onboarding
+New users see an onboarding flow with steps including:
+- Welcome + product philosophy
+- How picks work
+- **Pass-day preview** — "Most days look like this" with a mini no-pick card showing what a typical pass day looks like
+- Notification preferences setup
 
 ### Tab Navigation
 | Tab | Icon | Content |
@@ -59,6 +87,8 @@ After login, users see the main dashboard with 4 tabs:
 
 ### 3A. PICKS TAB (Default)
 
+**Trial Banner:** Shows "PRO TRIAL · X DAYS LEFT" with countdown and urgency pulse animation for last day
+
 **Active Pick State (when model finds edge):**
 - Pick card showing: team, spread line, edge percentage, sportsbook
 - Detailed analysis notes (rest days, scoring margins, defensive matchups)
@@ -69,6 +99,11 @@ After login, users see the main dashboard with 4 tabs:
 - Calm "no pick today" messaging
 - What-if analysis: shows what the model's closest call was
 - Pass reason documented
+
+**Free-Tier Users:**
+- Can see whether a pick exists today
+- Pick details blurred/hidden behind upgrade CTA
+- "Full decision visibility ends after trial" notice
 
 **Current picks record:** 9 picks published, 23 passes
 
@@ -129,6 +164,8 @@ Educational content on:
 - Picks followed vs. picks passed
 - Industry average comparison (78% capital preservation)
 
+**Free-tier users:** See blurred/abstract performance charts with upgrade CTA
+
 ---
 
 ### 3D. PROFILE TAB
@@ -143,14 +180,29 @@ Educational content on:
   - No-action day alerts: ON/OFF
 
 **Subscription Management:**
-- Current plan display
-- Trial status with end date
+- Current plan display with tier badge (FREE / PRO TRIAL / PRO / FOUNDING)
+- Trial countdown with progress bar and days remaining
 - Upgrade/downgrade options
-- Cancel subscription flow
+- Cancel subscription flow (sets `cancel_at_period_end`, access continues until period end with "cancelling" status)
+- **Reactivation:** `/api/subscriptions/reactivate` reverses `cancel_at_period_end` for users who change their mind
+
+**Pricing Section:**
+| Plan | Price | Notes |
+|------|-------|-------|
+| Free | $0 | See if a pick exists today, public record access |
+| Monthly | $29/mo | Card required to start 14-day trial. Cancel anytime. |
+| Annual | $99/yr (founding) / $149/yr (standard) | Founding rate locked for first 500 members |
+
+**Trial Signup (within pricing):**
+- Heading: "14-Day Trial"
+- Description: "Full access to all picks and features. Card required to start — cancel anytime."
+- Button: "Start Trial"
+- Fine print: "$0 today — you won't be charged until your trial ends. $29/mo or $99/yr (founding rate). Cancel anytime."
 
 **Referral Program:**
-- Personal referral code
+- Personal referral code (format: SHARP-XXXX)
 - Referral tracking
+- Both referrer and referred get a month of free access
 
 ---
 
@@ -159,16 +211,35 @@ Educational content on:
 ### Plans (via Stripe)
 | Plan | Price | Stripe Price ID | Notes |
 |------|-------|-----------------|-------|
-| Monthly | $29/mo | `price_1T1E64PIYiKWXum1nyJsR3Dm` | Cancel anytime |
-| Founding Annual | $99/yr | `price_1T1E65PIYiKWXum1rjMfedcX` | Locked forever, 500-member cap |
-| Standard Annual | $149/yr | `price_1T1E65PIYiKWXum1bHp64sSp` | Standard annual rate |
+| Monthly | $29/mo | `STRIPE_PRICE_MONTHLY` | Cancel anytime |
+| Founding Annual | $99/yr | `STRIPE_PRICE_FOUNDING` | Locked forever, 500-member cap |
+| Standard Annual | $149/yr | `STRIPE_PRICE_ANNUAL` | Standard annual rate |
 
-### Flow
-1. New user registers -> 14-day free trial (full access, no card)
-2. Trial expiration -> prompted to subscribe
-3. Checkout via Stripe-hosted page
-4. Webhook confirms payment -> `subscription_status: "active"`
-5. Founding members get `founding_member: true` + sequential `founding_number`
+### Trial Flow (Card-on-File)
+1. New user registers → email verified → Stripe checkout with card collection
+2. $0 charged, `trial_period_days=14` on Stripe subscription
+3. Webhook sets `subscription_status: "trial"`, `is_premium: true`, `trial_used: true`
+4. 2-day warning email sent via `check_expiring_trials` cron job
+5. Trial expiration: `expire_trials` cron job sets status to "expired", sends expired email
+6. If user doesn't cancel, Stripe auto-charges after 14 days → webhook sets "active"
+
+### Subscription Lifecycle
+- **active**: Paid subscriber with full access
+- **trial**: Active trial with full access
+- **cancelling**: User cancelled but access continues until `current_period_end`
+- **expired**: Trial ended without payment
+- **free**: No active subscription
+
+### Anti-Abuse Measures
+- `trial_used` flag prevents repeat free trials per normalized email
+- Gmail alias normalization (removes dots, strips +suffixes)
+- Card-on-file requirement eliminates casual abuse
+- Email verification required before any trial access
+
+### Webhook Security
+- **ProcessedEvent table:** Every Stripe event ID stored on first processing
+- **Idempotency:** Insert-first pattern — if event ID already exists, skip processing
+- **Atomic founding assignment:** PostgreSQL `FOR UPDATE` row-level lock on FoundingCounter prevents race conditions
 
 ### Current Users
 | Status | Count |
@@ -181,7 +252,88 @@ Educational content on:
 
 ---
 
-## 5. POST-CALIBRATION MODEL (Feb 12, 2026)
+## 5. SECURITY & AUTHENTICATION
+
+### Session Management
+- Flask-Login with session-based auth
+- `session_token` stored per user, validated on every authenticated request
+- Password reset regenerates `session_token` → invalidates all existing sessions
+- `remember_me` cookie: 30-day persistence
+
+### Login Security
+- **Rate limiting:** 5 failed attempts per email → 15-minute lockout
+- Lockout tracked by email address with timestamp
+- Failed attempt counter resets on successful login
+
+### Email Verification
+- Required before trial access
+- Signed token with 24-hour expiration
+- Resend verification endpoint available
+
+### CORS Configuration
+- **Production:** Restricted to `sharppicks.ai` domains only
+- **Development:** Allows Replit dev domains + localhost
+
+### API Access Controls
+| Endpoint | Auth Required | Access Level |
+|----------|--------------|--------------|
+| `/api/predictions` | Yes | Pro users only (is_pro) |
+| `/api/recent-results` | Yes | Pro users only (is_pro) |
+| `/api/model/calibration` | Yes | Pro users only (is_pro) |
+| `/api/performance` | No | Public (aggregate record only) |
+| `/api/public/stats` | No | Public |
+| `/api/public/record` | No | Public |
+| `/admin` | Yes | Superuser only (is_superuser) |
+| `/api/admin/*` | Yes | Superuser only |
+| `/api/cron/*` | X-Cron-Secret header | Server-to-server only |
+
+### Stripe Webhook Security
+- Signature verification in production (via `STRIPE_WEBHOOK_SECRET`)
+- Event idempotency via ProcessedEvent table
+- Atomic operations for founding member assignment
+
+---
+
+## 6. NOTIFICATIONS & ENGAGEMENT
+
+### Push Notifications (OneSignal)
+Requires `ONESIGNAL_APP_ID` + `ONESIGNAL_API_KEY` environment variables.
+
+| Notification | Trigger | Segment |
+|-------------|---------|---------|
+| Pick alert | Qualified pick published | "Pro Users" |
+| Pass-day alert (no games) | No games scheduled today | "Pass Alerts" |
+| Pass-day alert (paper trade) | WNBA paper trade only | "Pass Alerts" |
+| Pass-day alert (below threshold) | No edge met threshold | "Pass Alerts" |
+| Win result | Pick graded as win | "Pro Users" |
+| Loss result | Pick graded as loss | "Pro Users" |
+| Push result | Pick graded as push | "Pro Users" |
+
+### Lifecycle Emails (Resend)
+| Email | Trigger | Content |
+|-------|---------|---------|
+| Verification | Registration | Verify email link (24h expiration) |
+| Trial expiring | 2 days before trial end | Reminder to subscribe |
+| Trial expired | Trial end date passed | Prompt to upgrade |
+| Cancellation | User cancels subscription | Confirmation + access end date |
+| Payment failed | Stripe payment_intent.failed | Prompt to update payment method |
+| Weekly summary | Monday 9 AM ET | Weekly stats for pro users with `weekly_summary` pref |
+
+### Weekly Summary Email
+- Sent Monday 9 AM ET to all pro users with `weekly_summary` notification preference enabled
+- Contains global model stats for the week (not per-user tracking)
+- Delivered via Resend API
+
+### Onboarding Flow
+Multi-step onboarding for new users including:
+- Welcome and philosophy
+- How picks work
+- **Pass-day step:** "Most days look like this" — shows mini no-pick preview to set expectations
+- Notification preferences setup
+
+---
+
+## 7. POST-CALIBRATION MODEL (Feb 12, 2026)
 
 ### Core Parameters
 - **MODEL_WEIGHT:** 0.3 (30% model, 70% market)
@@ -198,6 +350,7 @@ Educational content on:
 6. Compare to implied probability (-110 standard juice)
 7. If edge >= 3.5%, publish pick; otherwise pass with what-if analysis
 8. Maximum 1 pick per day
+9. Push notification sent (pick alert or pass-day alert)
 
 ### Risk Filters
 - High spread exclusion
@@ -207,16 +360,21 @@ Educational content on:
 
 ---
 
-## 6. DATA ARCHITECTURE
+## 8. DATA ARCHITECTURE
 
 ### PostgreSQL (Primary - Application Data)
-| Table | Records | Purpose |
-|-------|---------|---------|
-| `users` | 13 | User accounts, subscriptions, preferences |
-| `picks` | 9 | Published predictions (append-only) |
-| `passes` | 23 | No-pick days with what-if analysis (append-only) |
-| `model_runs` | 31 | Every model execution logged |
-| `referrals` | 0 | Referral tracking |
+| Table | Purpose |
+|-------|---------|
+| `users` | User accounts, subscriptions, preferences, trial tracking, founding status |
+| `picks` | Published predictions (append-only, one per day max) |
+| `passes` | No-pick days with what-if analysis (append-only) |
+| `model_runs` | Every model execution logged per sport |
+| `tracked_bets` | User bet tracking against published picks |
+| `founding_counter` | Atomic founding member slot counter (500 cap) |
+| `insights` | Educational content for Insights tab |
+| `processed_events` | Stripe webhook idempotency tracking |
+| `cron_logs` | Cron job execution history (job_name, status, duration_ms, message) |
+| `referrals` | Referral tracking |
 
 ### SQLite (Legacy - ML Training)
 - Historical NBA game data
@@ -228,19 +386,27 @@ Educational content on:
 - **Full transparency:** Complete audit trail of all predictions
 - **Eastern Time:** All date logic standardized to America/New_York
 
+### Database Backups
+- Daily pg_dump at 3 AM ET to `/tmp/backups/` (keeps last 7 days)
+- JSON backup of picks, passes, and users (sensitive fields stripped)
+- Generic SQLAlchemy serializer (no per-model `to_dict()` needed)
+- Note: `/tmp` is ephemeral on Replit deploys; production needs external storage or Replit PostgreSQL snapshots
+
 ---
 
-## 7. API ENDPOINTS
+## 9. API ENDPOINTS
 
 ### Authentication
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| POST | `/api/auth/register` | No | Create account + start trial |
-| POST | `/api/auth/login` | No | Login with email/password |
+| POST | `/api/auth/register` | No | Create account (triggers verification email) |
+| POST | `/api/auth/login` | No | Login with email/password (rate limited) |
 | POST | `/api/auth/logout` | Yes | End session |
 | GET | `/api/auth/user` | Yes | Get current user data |
+| GET | `/api/auth/verify-email` | No | Verify email via signed token |
+| POST | `/api/auth/resend-verification` | No | Resend verification email |
 | POST | `/api/auth/forgot-password` | No | Request password reset |
-| POST | `/api/auth/reset-password` | No | Complete password reset |
+| POST | `/api/auth/reset-password` | No | Complete password reset (invalidates sessions) |
 | POST | `/api/auth/unit-size` | Yes | Set bet unit size |
 | POST | `/api/auth/trial` | Yes | Trial management |
 | GET | `/api/auth/check-trial` | Yes | Check trial status |
@@ -248,10 +414,14 @@ Educational content on:
 ### Picks & Predictions
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| GET | `/api/predictions` | No | Today's published picks |
-| GET | `/api/recent-results` | No | Last 5 resolved picks |
-| GET | `/api/performance` | No | Overall win/loss record |
-| GET | `/api/model/calibration` | No | Model calibration data |
+| GET | `/api/predictions` | Pro | Today's published picks |
+| GET | `/api/recent-results` | Pro | Last 5 resolved picks |
+| GET | `/api/performance` | No | Overall win/loss record (public) |
+| GET | `/api/model/calibration` | Pro | Model calibration data |
+| GET | `/api/picks/today` | Yes | Today's pick for authenticated users |
+| GET | `/api/public/stats` | No | Public aggregate stats |
+| GET | `/api/public/record` | No | Public pick record |
+| GET | `/api/public/founding-count` | No | Founding member count |
 
 ### User Bet Tracking
 | Method | Path | Auth | Purpose |
@@ -266,12 +436,13 @@ Educational content on:
 ### Subscriptions
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| POST | `/api/subscriptions/create-checkout` | Yes | Start Stripe checkout |
-| POST | `/api/subscriptions/cancel` | Yes | Cancel subscription |
+| POST | `/api/subscriptions/create-checkout` | Yes | Start Stripe checkout (card-on-file trial) |
+| POST | `/api/subscriptions/cancel` | Yes | Cancel subscription (cancel_at_period_end) |
+| POST | `/api/subscriptions/reactivate` | Yes | Reverse cancellation |
 | GET | `/api/subscriptions/status` | Yes | Current subscription state |
 | GET | `/api/stripe/config` | No | Stripe publishable key |
 | GET | `/api/stripe/products` | No | Available plans + prices |
-| POST | `/webhooks/stripe` | No | Stripe webhook handler |
+| POST | `/webhooks/stripe` | No* | Stripe webhook handler (*signature verified) |
 
 ### Notifications & Profile
 | Method | Path | Auth | Purpose |
@@ -279,64 +450,102 @@ Educational content on:
 | GET | `/api/user/notifications` | Yes | Notification preferences |
 | POST | `/api/user/notifications` | Yes | Update notification prefs |
 
-### Admin
-| Path | Auth | Purpose |
-|------|------|---------|
-| `/admin` | Basic Auth | Admin dashboard (HTML) |
-| `/api/admin/stats` | Admin | System statistics |
-| `/api/admin/users/export` | Admin | Export user data |
+### Cron Endpoints (External Trigger)
+All secured by `X-Cron-Secret` header. All log execution to `cron_logs` table.
+
+| Method | Path | Schedule | Purpose |
+|--------|------|----------|---------|
+| POST | `/api/cron/collect-games` | Daily 9 AM ET | Fetch today's NBA games |
+| POST | `/api/cron/refresh-lines` | Daily 2 PM ET | Refresh odds from all sportsbooks |
+| POST | `/api/cron/closing-lines` | Daily 7 PM ET | Capture closing lines |
+| POST | `/api/cron/grade-picks` | Daily 12:05 AM ET | Grade pending picks |
+| POST | `/api/cron/grade-whatifs` | Daily 12:10 AM ET | Grade what-if passes |
+| POST | `/api/cron/expire-trials` | Daily 12:15 AM ET | Expire trials + 2-day warnings |
+| POST | `/api/cron/weekly-summary` | Mon 9 AM ET | Send weekly summary email |
+| POST | `/api/cron/backup` | Daily 3 AM ET | pg_dump + JSON backup |
+| POST | `/api/cron/check-data-quality` | Daily 6 AM ET | Validate data integrity |
+
+### Admin (Superuser Only)
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/admin` | Admin Command Center dashboard (HTML) |
+| GET | `/api/admin/command-center` | Revenue, model stats, users, picks, runs |
+| GET | `/api/admin/health-checks` | External service health (PG, APIs, Stripe) |
+| GET | `/api/admin/cron-health` | Cron job health monitoring |
+| GET | `/api/admin/users` | Full user list |
+| GET | `/api/admin/users/export` | CSV user export |
+| GET | `/api/admin/export` | Full model data export |
+| POST | `/api/admin/retro-calibrate` | Retroactive calibration analysis |
 
 ---
 
-## 8. SCHEDULED TASKS
+## 10. ADMIN COMMAND CENTER (`/admin`)
 
-| Job | Schedule | Purpose |
-|-----|----------|---------|
-| `collect_todays_games` | Multiple times daily | Fetch NBA schedule from ESPN |
-| `collect_closing_lines` | Multiple times daily | Fetch current odds from 6 books |
-| `grade_pending_picks` | Multiple times daily | Resolve picks with final scores |
-| `grade_whatif_passes` | Daily | Grade what-if analysis on pass days |
-| `check_data_quality` | Daily | Validate data freshness and integrity |
+Superuser-only dashboard with auto-refreshing panels:
+
+### Revenue & Sales (refreshes every 30s)
+- MRR, ARR, active subscribers breakdown
+- Founding member count with progress bar (X/500)
+- User distribution: paid, trial, free, founding
+
+### NBA/WNBA Model Performance
+- Season record, win rate, ROI
+- Selectivity (picks vs passes ratio)
+- Confidence buckets (3.5-5%, 5-7.5%, 7.5-10%)
+- Pre-cal vs post-cal breakdown
+- CLV positive rate
+- Equity curve visualization
+- Recent picks with results
+- Model run history
+
+### Infrastructure
+- **Cron Job Health** (refreshes every 30s): Per-job status with last run time, duration, success rate, overdue detection
+- **External Services** (refreshes every 60s): PostgreSQL, Odds API, balldontlie, ESPN, Resend, Stripe — with latency, remaining quota, connection status
+- Model runs log
+- Content/insights count
+
+### Users
+- Recent user table with email, name, tier badge, plan, signup date, trial end countdown
 
 ---
 
-## 9. FRONTEND COMPONENT ARCHITECTURE
+## 11. FRONTEND COMPONENT ARCHITECTURE
 
 ```
 src/
   App.jsx                          # Router: / -> SharpPicksApp, /reset-password -> ResetPassword
   pages/
-    SharpPicksApp.jsx              # Main app shell with auth routing
+    SharpPicksApp.jsx              # Main app shell with auth routing + email verification gate
   hooks/
     useAuth.jsx                    # Authentication context + provider
     useSport.jsx                   # Sport selection context (NBA/future WNBA)
   components/sharp/
-    LandingPage.jsx                # Marketing page for unauthenticated users
-    AuthModal.jsx                  # Login/Register modal
-    AppHeader.jsx                  # Top header bar
+    LandingPage.jsx                # Marketing page (card-on-file trial copy)
+    AuthModal.jsx                  # Login/Register/Verify modal
+    AppHeader.jsx                  # Top header bar (+ admin Command Center link for superusers)
     TabNav.jsx                     # 4-tab navigation (Picks, Insights, Performance, Profile)
-    OnboardingFlow.jsx             # First-time user onboarding
-    
+    OnboardingFlow.jsx             # First-time onboarding with pass-day step
+
     # Picks Tab
-    PicksTab.jsx                   # Main picks view
+    PicksTab.jsx                   # Main picks view with trial banner
     PickCard.jsx                   # Individual pick display
     NoPickCard.jsx                 # No-pick / pass day display
     TodayTab.jsx                   # Today's analysis view
     DashboardTab.jsx               # Dashboard overview
     FreeTierDashboard.jsx          # Blurred/limited view for free users
     UnifiedDashboard.jsx           # Combined dashboard view
-    
+
     # Insights Tab
     InsightsTab.jsx                # Educational content + articles
-    
+
     # Performance Tab
     PerformanceTab.jsx             # Model performance + user stats
     PickHistoryScreen.jsx          # Full pick history
     WeeklySummary.jsx              # Weekly performance summary
     ResolutionScreen.jsx           # Win/loss resolution coaching
-    
+
     # Profile Tab
-    ProfileTab.jsx                 # Account + subscription management
+    ProfileTab.jsx                 # Account + subscription + trial signup + pricing
     UpgradeScreen.jsx              # Plan upgrade flow
     CancelScreen.jsx               # Cancellation flow with retention
     BetTrackingScreen.jsx          # Personal bet tracker
@@ -344,7 +553,7 @@ src/
     ReferralScreen.jsx             # Referral program
     HowItWorksScreen.jsx           # Methodology explanation
     AnnualConversion.jsx           # Monthly -> annual upsell
-    
+
     # Shared
     LoadingState.jsx               # Skeleton loading states
     EmptyState.jsx                 # Designed empty states
@@ -353,7 +562,7 @@ src/
 
 ---
 
-## 10. DESIGN SYSTEM
+## 12. DESIGN SYSTEM
 
 - **Background:** `#0A0D14` (dark navy)
 - **Cards:** Subtle border with dark fill, no heavy shadows
@@ -362,25 +571,29 @@ src/
   - Serif: IBM Plex Serif (headlines)
   - Sans: Inter (body text)
   - Mono: JetBrains Mono (numbers, data)
-- **Tone:** Calm, institutional — no FOMO, no exclamation marks
+- **Tone:** Calm, institutional — no FOMO, no exclamation marks, no "free" language in trial copy
 - **Loading:** Skeleton states with pulse animation
 - **Empty states:** Designed messaging with next-action guidance
 
 ---
 
-## 11. COMPLIANCE & RISK
+## 13. COMPLIANCE & RISK
 
 - Betting disclaimers integrated into UI and API responses
 - No guarantee of results language
 - Append-only audit trail for complete transparency
 - Webhook signature verification for production Stripe events
-- Secure password hashing
-- Time-limited reset tokens
+- Secure password hashing (Werkzeug)
+- Time-limited, signed tokens for password resets and email verification
+- Session invalidation on password reset
 - HTTPS-only in production
+- CORS restricted to production domains
+- Rate limiting on login attempts
+- Sensitive fields (password_hash, session_token) stripped from backups
 
 ---
 
-## 12. WNBA EXPANSION (In Development)
+## 14. WNBA EXPANSION (In Development)
 
 **Status:** Data collection complete, awaiting spread data for backtest
 
@@ -390,3 +603,28 @@ src/
 - Edge threshold sweep: 3.0% to 5.0%
 - Go/no-go gate: requires positive ROI AND model adds value over market
 - Decision: "Don't ship until backtest proves the model adds value"
+- Paper-trade pass notifications active (via push)
+
+---
+
+## 15. ENVIRONMENT VARIABLES
+
+### Required Secrets
+| Key | Purpose |
+|-----|---------|
+| `STRIPE_LIVE_SECRET_KEY` | Stripe API (payments) |
+| `STRIPE_LIVE_PUBLISHABLE_KEY` | Stripe frontend key |
+| `STRIPE_PRICE_MONTHLY` | Monthly plan price ID |
+| `STRIPE_PRICE_ANNUAL` | Standard annual plan price ID |
+| `STRIPE_PRICE_FOUNDING` | Founding annual plan price ID |
+| `RESEND_API_KEY` | Transactional email delivery |
+| `BALLDONTLIE_API_KEY` | NBA stats API |
+| `CRON_SECRET` | Secures all `/api/cron/*` endpoints |
+
+### Optional Secrets
+| Key | Purpose |
+|-----|---------|
+| `ONESIGNAL_APP_ID` | Push notifications (app ID) |
+| `ONESIGNAL_API_KEY` | Push notifications (REST API key) |
+| `ODDS_API_KEY` | Real-time sportsbook odds |
+| `STRIPE_WEBHOOK_SECRET` | Webhook signature verification (production) |
