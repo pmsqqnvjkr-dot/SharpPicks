@@ -182,11 +182,8 @@ from admin_api import admin_bp
 app.register_blueprint(admin_bp)
 
 @app.route('/admin')
-@login_required
 def admin_dashboard():
     from flask import render_template
-    if not current_user.is_superuser:
-        return 'Unauthorized', 403
     return render_template('admin.html')
 
 def seed_database():
@@ -2816,9 +2813,12 @@ def get_performance():
 
 
 @app.route('/api/admin/stats')
-@login_required
 def get_stats():
-    if not current_user.is_superuser:
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    db_user = db.session.get(User, user['id'])
+    if not db_user or not db_user.is_superuser:
         return jsonify({'error': 'Unauthorized'}), 403
     conn = get_db()
     cur = conn.cursor()

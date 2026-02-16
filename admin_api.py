@@ -15,17 +15,17 @@ ET = ZoneInfo('America/New_York')
 def require_superuser():
     from flask_login import current_user
     if not current_user.is_authenticated:
-        return None
+        return None, 401
     if not current_user.is_superuser:
-        return None
-    return current_user
+        return None, 403
+    return current_user, None
 
 
 @admin_bp.route('/api/admin/command-center')
 def command_center_data():
-    admin = require_superuser()
+    admin, err_code = require_superuser()
     if not admin:
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
     now_et = datetime.now(ET)
     today_str = now_et.strftime('%Y-%m-%d')
@@ -220,9 +220,9 @@ def command_center_data():
 
 @admin_bp.route('/api/admin/health-checks')
 def health_checks():
-    admin = require_superuser()
+    admin, err_code = require_superuser()
     if not admin:
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
     results = {}
 
@@ -385,9 +385,9 @@ def health_checks():
 
 @admin_bp.route('/api/admin/cron-health')
 def cron_health():
-    admin = require_superuser()
+    admin, err_code = require_superuser()
     if not admin:
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
     now_et = datetime.now(ET)
 
@@ -461,9 +461,9 @@ def cron_health():
 
 @admin_bp.route('/api/admin/export')
 def export_model_data():
-    admin = require_superuser()
+    admin, err_code = require_superuser()
     if not admin:
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
     picks = Pick.query.order_by(Pick.game_date).all()
     passes = Pass.query.order_by(Pass.date).all()
@@ -590,9 +590,9 @@ def _compute_whatif_summary(passes):
 
 @admin_bp.route('/api/admin/retro-calibrate', methods=['POST'])
 def retro_calibrate():
-    admin = require_superuser()
+    admin, err_code = require_superuser()
     if not admin:
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
     pre_cal_picks = Pick.query.filter(
         Pick.predicted_margin.is_(None),
