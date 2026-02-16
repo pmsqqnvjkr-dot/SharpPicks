@@ -4,11 +4,13 @@
 Sharp Picks is a sports betting discipline system focused on providing highly selective, statistically advantageous sports betting predictions. The system aims to instill discipline by recommending a maximum of one pick per day, leveraging a machine learning model with a 57.3% test accuracy and a 68.6% walk-forward ATS performance, achieving a +30.9% ROI over 12 seasons. Key features include multi-book odds shopping, real-time spread odds integration, a margin-first prediction algorithm, user management, subscription services, and detailed performance tracking, all presented with a calm, institutional tone.
 
 ## Recent Changes (February 16, 2026)
+- **Token-based auth (autoscale fix):** Hybrid session + Bearer token auth system replaces Flask session-only auth. Signed JWT-style tokens (itsdangerous, 30-day TTL) stored in localStorage, sent as `Authorization: Bearer` headers. Server checks Flask session first, falls back to Bearer token. Required because Flask sessions don't persist across Replit autoscale instances.
+- **All blueprints updated for token auth:** `picks_api.py`, `insights_api.py`, and `admin_api.py` all use `get_current_user_obj()` which supports both session and Bearer token auth. Removed all direct `flask_login.current_user` usage from blueprint files.
+- **Frontend token flow:** `useApi.js` exports `setAuthToken()`/`getAuthToken()`, attaches Bearer header to all requests, auto-stores tokens from API responses. `useAuth.jsx` stores token on login/register, clears on logout.
+- **Admin dashboard triple auth:** `require_superuser()` checks Flask-Login session → X-Admin-Token → Authorization Bearer header, with session_token validation for Bearer tokens.
 - **Dual signup flow:** Landing page and AuthModal now support both "Start Trial" (card-on-file, email verification) and "Create Free Account" (instant access, no card) paths
 - **Transparency metrics on landing page:** Replaced volatile win-rate stats with selectivity %, picks/passes count, and deleted count (always 0) — metrics that only improve over time
 - **Free tier:** Free accounts skip email verification, get welcome email, land directly in app with limited dashboard (no pick details, no bet tracking, no performance tab)
-- **Admin dashboard autoscale fix:** Removed Flask `@login_required` from admin HTML route; auth enforced client-side via API calls to support autoscale deployment where Flask sessions don't persist
-- **Admin API auth:** `require_superuser()` returns 401 (not logged in) vs 403 (not authorized) with proper tuple return
 - **Cron jobs externalized:** All 9 cron endpoints triggered by cron-job.org with `X-Cron-Secret` header authentication
 - **Welcome email:** `send_welcome_email()` added for free account signups
 

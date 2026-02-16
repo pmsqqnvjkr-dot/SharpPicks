@@ -1,5 +1,5 @@
 # Sharp Picks - Full Application Flow
-*Generated February 16, 2026 · Last updated February 16, 2026 (cron schedules, dual signup, transparency metrics, admin auth)*
+*Generated February 16, 2026 · Last updated February 16, 2026 (token-based auth, cron schedules, dual signup, transparency metrics, admin auth)*
 
 ---
 
@@ -77,7 +77,9 @@ Landing page includes a tier comparison showing what free users get (model activ
 
 ### Login
 - Email + password authentication
-- Flask-Login session with `remember_me` cookie (30 days)
+- Hybrid auth: Flask-Login session + signed Bearer token (itsdangerous, 30-day TTL)
+- Token returned in login response, stored in localStorage, sent as `Authorization: Bearer` header
+- Server checks Flask session first, falls back to Bearer token (required for autoscale where sessions don't persist)
 - Session token validated on every request (invalidated on password reset)
 - **Rate limiting:** 5 failed login attempts → 15-minute lockout per email
 
@@ -277,11 +279,32 @@ Educational content on:
 
 ## 5. SECURITY & AUTHENTICATION
 
-### Session Management
-- Flask-Login with session-based auth
-- `session_token` stored per user, validated on every authenticated request
-- Password reset regenerates `session_token` → invalidates all existing sessions
-- `remember_me` cookie: 30-day persistence
+### Hybrid Auth System (Session + Bearer Token)
+Autoscale-compatible authentication using both Flask sessions and signed Bearer tokens. Required because Flask sessions don't persist across Replit autoscale instances — cookies are sent but session validation fails on different replicas.
+
+**Token implementation:**
+- Signed using `itsdangerous.URLSafeTimedSerializer` with `SESSION_SECRET`
+- Token payload: `{uid: user_id, st: session_token}` with salt `'auth-token'`
+- 30-day TTL, stored in localStorage as `sp_auth_token`
+- Sent as `Authorization: Bearer <token>` header on all API requests
+- Server-side invalidation via `session_token` rotation (on password reset, logout)
+
+**Auth resolution order (all protected endpoints):**
+1. Flask-Login session (if available)
+2. Flask session `user_id` + `session_token` validation
+3. Bearer token verification (itsdangerous signature + session_token match)
+
+**Token flow:**
+- Login/register/auth-user endpoints return `token` in JSON response
+- Frontend (`useApi.js`) auto-stores token from any API response containing `token` field
+- `useAuth.jsx` stores token on login/register, clears on logout
+- All `apiPost()`, `apiGet()`, `apiDelete()`, `useApi()` attach Bearer header automatically
+
+**Blueprint auth migration:**
+- `picks_api.py`: Replaced `flask_login.current_user` with `get_current_user_obj()` (supports token fallback)
+- `insights_api.py`: Local `get_current_user()` now delegates to `get_current_user_obj()`
+- `admin_api.py`: `require_superuser()` checks Flask-Login → X-Admin-Token → Bearer token (triple auth)
+- `app.py`: All `@login_required` decorators replaced with `get_current_user_obj()` calls
 
 ### Login Security
 - **Rate limiting:** 5 failed attempts per email → 15-minute lockout
@@ -508,7 +531,7 @@ All secured by `X-Cron-Secret` header. All log execution to `cron_logs` table.
 
 Superuser-only dashboard with auto-refreshing panels.
 
-**Auth approach (autoscale-compatible):** Flask `@login_required` removed from admin HTML route since Flask sessions don't persist across autoscale instances. Instead, the admin dashboard HTML loads for anyone, but all data is fetched client-side via `/api/admin/*` endpoints which validate auth via API calls. `require_superuser()` returns 401 (not logged in) or 403 (not authorized) as appropriate. This pattern works reliably in Replit's autoscale deployment.
+**Auth approach (autoscale-compatible):** Admin HTML route loads without server-side auth gate. All data fetched client-side via `/api/admin/*` endpoints. `require_superuser()` uses triple auth: Flask-Login session → X-Admin-Token header/query param → Authorization Bearer token (with session_token validation). Returns 401 (not logged in) or 403 (not authorized). This pattern works reliably in Replit's autoscale deployment where Flask sessions don't persist.
 
 ### Revenue & Sales (refreshes every 30s)
 - MRR, ARR, active subscribers breakdown
@@ -544,7 +567,8 @@ src/
   pages/
     SharpPicksApp.jsx              # Main app shell with auth routing + email verification gate
   hooks/
-    useAuth.jsx                    # Authentication context + provider
+    useApi.js                      # API helpers with Bearer token auth (setAuthToken, getAuthToken, authHeaders)
+    useAuth.jsx                    # Authentication context + provider (stores/clears token on login/logout)
     useSport.jsx                   # Sport selection context (NBA/future WNBA)
   components/sharp/
     LandingPage.jsx                # Marketing page (card-on-file trial copy)
