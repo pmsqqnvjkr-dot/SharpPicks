@@ -20,10 +20,25 @@ def generate_referral_code():
     return f"SHARP-{suffix}"
 
 
+def normalize_email(email):
+    email = email.lower().strip()
+    if '@' not in email or email.count('@') != 1:
+        return email
+    local, domain = email.split('@')
+    if not local or not domain:
+        return email
+    if domain in ('gmail.com', 'googlemail.com'):
+        local = local.split('+')[0].replace('.', '')
+    else:
+        local = local.split('+')[0]
+    return f'{local}@{domain}'
+
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.String, primary_key=True, default=lambda: str(uuid.uuid4()))
     email = db.Column(db.String, unique=True, nullable=False)
+    email_normalized = db.Column(db.String, nullable=True, index=True)
     username = db.Column(db.String, nullable=True)
     display_name = db.Column(db.String, nullable=True)
     password_hash = db.Column(db.String, nullable=True)
@@ -52,6 +67,9 @@ class User(UserMixin, db.Model):
     unit_size = db.Column(db.Integer, default=100)
     trial_ends = db.Column(db.DateTime, nullable=True)
     trial_used = db.Column(db.Boolean, default=False)
+    trial_warning_sent = db.Column(db.Boolean, default=False)
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
@@ -67,9 +85,11 @@ class User(UserMixin, db.Model):
     def is_pro(self):
         if self.is_superuser:
             return True
+        if self.subscription_status == 'pending_verification':
+            return False
         if self.subscription_status in ('active', 'trial'):
-            return True
-        if self.trial_end_date and self.trial_end_date > datetime.now():
+            if self.subscription_status == 'trial' and self.trial_end_date and self.trial_end_date < datetime.now():
+                return False
             return True
         return False
 

@@ -94,7 +94,13 @@ function AppContent() {
       setProfileScreen('upgrade');
       navigate('/', { replace: true });
     }
-  }, [location.pathname, user]);
+    const params = new URLSearchParams(location.search);
+    const verifyStatus = params.get('verify');
+    if (verifyStatus === 'success') {
+      if (checkAuth) checkAuth();
+      navigate('/', { replace: true });
+    }
+  }, [location.pathname, location.search, user]);
 
   useEffect(() => {
     if (user) {
@@ -134,6 +140,65 @@ function AppContent() {
 
   if (!user) {
     return <LandingPage />;
+  }
+
+  if (user && user.subscription_status === 'pending_verification') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: 'var(--bg-primary)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 24px',
+        textAlign: 'center',
+      }}>
+        <div style={{
+          width: '80px', height: '80px', borderRadius: '50%',
+          backgroundColor: 'rgba(79,134,247,0.1)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 24px', fontSize: '36px',
+        }}>&#9993;</div>
+        <h1 style={{
+          fontFamily: 'var(--font-serif)', fontSize: '24px', fontWeight: 600,
+          color: 'var(--text-primary)', marginBottom: '12px',
+        }}>Verify your email</h1>
+        <p style={{
+          fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.6',
+          maxWidth: '360px', marginBottom: '8px',
+        }}>
+          We sent a verification link to <strong style={{ color: 'var(--text-primary)' }}>{user.email}</strong>.
+          Click the link to activate your account and start your trial.
+        </p>
+        <p style={{
+          fontSize: '13px', color: 'var(--text-tertiary)', marginBottom: '28px',
+        }}>Check your spam folder if you don't see it.</p>
+        <button
+          onClick={async () => {
+            try {
+              await fetch('/api/auth/resend-verification', { method: 'POST', credentials: 'include' });
+            } catch {}
+          }}
+          style={{
+            padding: '12px 24px', backgroundColor: 'transparent',
+            border: '1px solid var(--stroke-subtle)', borderRadius: '10px',
+            color: 'var(--text-secondary)', fontSize: '14px', cursor: 'pointer',
+            fontFamily: 'var(--font-sans)', marginBottom: '16px',
+          }}
+        >Resend verification email</button>
+        <button
+          onClick={async () => {
+            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+            window.location.reload();
+          }}
+          style={{
+            background: 'none', border: 'none',
+            color: 'var(--text-tertiary)', fontSize: '13px', cursor: 'pointer',
+          }}
+        >Sign out</button>
+      </div>
+    );
   }
 
   if (showWelcome) {

@@ -99,6 +99,193 @@ def send_password_reset(to, reset_url, first_name=None):
     return send_email(to, "Reset your password — Sharp Picks", html, attachments=attachments or None)
 
 
+def send_verification_email(to, verify_url, first_name=None):
+    name = first_name or "there"
+
+    attachments = []
+    logo_b64 = _get_logo_b64()
+    if logo_b64:
+        attachments.append({
+            "content": logo_b64,
+            "filename": "logo.png",
+            "content_id": "sp-logo",
+            "content_type": "image/png",
+        })
+
+    logo_src = 'cid:sp-logo' if logo_b64 else f'{get_base_url()}/logo-email.png'
+
+    html = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #e0e0e0; background-color: #0A0D14;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <img src="{logo_src}" alt="Sharp Picks" style="height: 120px; width: auto;" />
+      </div>
+      <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Verify your email</h2>
+      <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">Hi {name}, thanks for signing up for Sharp Picks. Please verify your email to activate your account.</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="{verify_url}" style="display: inline-block; padding: 14px 32px; background-color: #4F86F7; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600;">Verify Email Address</a>
+      </div>
+      <p style="font-size: 13px; color: #666;">This link expires in 24 hours. If you didn't create this account, you can safely ignore this email.</p>
+      <hr style="border: none; border-top: 1px solid #1a1d24; margin: 32px 0;">
+      <p style="font-size: 12px; color: #555; text-align: center;">Sharp Picks &mdash; Discipline is the product.</p>
+    </div>
+    """
+    return send_email(to, "Verify your email — Sharp Picks", html, attachments=attachments or None)
+
+
+def send_trial_expiring_email(to, first_name=None, trial_end_date=None, picks_record=None, founding_spots=None):
+    name = first_name or "there"
+    end_str = trial_end_date.strftime('%B %d, %Y') if trial_end_date else "soon"
+    record_str = picks_record or "Check your dashboard for details"
+    founding_line = f"Founding rate: $99/year ({founding_spots} of 500 spots remaining)" if founding_spots else "Founding rate: $99/year (limited spots)"
+
+    attachments = []
+    logo_b64 = _get_logo_b64()
+    if logo_b64:
+        attachments.append({
+            "content": logo_b64,
+            "filename": "logo.png",
+            "content_id": "sp-logo",
+            "content_type": "image/png",
+        })
+
+    logo_src = 'cid:sp-logo' if logo_b64 else f'{get_base_url()}/logo-email.png'
+    subscribe_url = f"{get_base_url()}/subscribe"
+
+    html = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #e0e0e0; background-color: #0A0D14;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <img src="{logo_src}" alt="Sharp Picks" style="height: 120px; width: auto;" />
+      </div>
+      <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Your trial ends in 2 days</h2>
+      <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">Hi {name}, your 14-day Sharp Picks trial ends on {end_str}.</p>
+      <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">During your trial: {record_str}</p>
+      <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">Subscribe to keep full access:</p>
+      <div style="padding: 16px; background-color: rgba(79,134,247,0.08); border-radius: 10px; margin: 16px 0;">
+        <p style="font-size: 14px; color: #a0a0a0; margin: 4px 0;">&rarr; {founding_line}</p>
+        <p style="font-size: 14px; color: #a0a0a0; margin: 4px 0;">&rarr; Monthly: $29/month</p>
+      </div>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="{subscribe_url}" style="display: inline-block; padding: 14px 32px; background-color: #4F86F7; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600;">Subscribe Now</a>
+      </div>
+      <hr style="border: none; border-top: 1px solid #1a1d24; margin: 32px 0;">
+      <p style="font-size: 12px; color: #555; text-align: center;">Sharp Picks &mdash; Discipline is the product.</p>
+    </div>
+    """
+    return send_email(to, "Your trial ends in 2 days — Sharp Picks", html, attachments=attachments or None)
+
+
+def send_trial_expired_email(to, first_name=None):
+    name = first_name or "there"
+    subscribe_url = f"{get_base_url()}/subscribe"
+
+    attachments = []
+    logo_b64 = _get_logo_b64()
+    if logo_b64:
+        attachments.append({
+            "content": logo_b64,
+            "filename": "logo.png",
+            "content_id": "sp-logo",
+            "content_type": "image/png",
+        })
+
+    logo_src = 'cid:sp-logo' if logo_b64 else f'{get_base_url()}/logo-email.png'
+
+    html = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #e0e0e0; background-color: #0A0D14;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <img src="{logo_src}" alt="Sharp Picks" style="height: 120px; width: auto;" />
+      </div>
+      <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Your trial has ended</h2>
+      <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">Hi {name}, your Sharp Picks trial has expired. You've been moved to the free tier with limited access.</p>
+      <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">Subscribe to restore full access to every qualified pick, edge analysis, and performance tracking.</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="{subscribe_url}" style="display: inline-block; padding: 14px 32px; background-color: #4F86F7; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600;">Subscribe Now</a>
+      </div>
+      <hr style="border: none; border-top: 1px solid #1a1d24; margin: 32px 0;">
+      <p style="font-size: 12px; color: #555; text-align: center;">Sharp Picks &mdash; Discipline is the product.</p>
+    </div>
+    """
+    return send_email(to, "Your trial has ended — Sharp Picks", html, attachments=attachments or None)
+
+
+def send_cancellation_email(to, first_name=None, access_end_date=None, is_founding=False):
+    name = first_name or "there"
+    end_str = access_end_date.strftime('%B %d, %Y') if access_end_date else "the end of your billing period"
+    resubscribe_url = f"{get_base_url()}/subscribe"
+
+    founding_warning = ""
+    if is_founding:
+        founding_warning = """
+        <div style="padding: 16px; background-color: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.15); border-radius: 10px; margin: 16px 0;">
+          <p style="font-size: 14px; color: #f87171; margin: 0; font-weight: 600;">Your founding member rate ($99/year) cannot be restored if you resubscribe later.</p>
+        </div>
+        """
+
+    attachments = []
+    logo_b64 = _get_logo_b64()
+    if logo_b64:
+        attachments.append({
+            "content": logo_b64,
+            "filename": "logo.png",
+            "content_id": "sp-logo",
+            "content_type": "image/png",
+        })
+
+    logo_src = 'cid:sp-logo' if logo_b64 else f'{get_base_url()}/logo-email.png'
+
+    html = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #e0e0e0; background-color: #0A0D14;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <img src="{logo_src}" alt="Sharp Picks" style="height: 120px; width: auto;" />
+      </div>
+      <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Your subscription has been cancelled</h2>
+      <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">Hi {name}, your subscription has been cancelled. You'll continue to have full access through {end_str}.</p>
+      <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">After that date, you'll move to the free tier with limited access to model output.</p>
+      {founding_warning}
+      <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">If this was a mistake, you can resubscribe anytime before your access expires.</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="{resubscribe_url}" style="display: inline-block; padding: 14px 32px; background-color: #4F86F7; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600;">Resubscribe</a>
+      </div>
+      <hr style="border: none; border-top: 1px solid #1a1d24; margin: 32px 0;">
+      <p style="font-size: 12px; color: #555; text-align: center;">Sharp Picks &mdash; Discipline is the product.</p>
+    </div>
+    """
+    return send_email(to, "Your Sharp Picks subscription", html, attachments=attachments or None)
+
+
+def send_payment_failed_email(to, first_name=None):
+    name = first_name or "there"
+    profile_url = f"{get_base_url()}"
+
+    attachments = []
+    logo_b64 = _get_logo_b64()
+    if logo_b64:
+        attachments.append({
+            "content": logo_b64,
+            "filename": "logo.png",
+            "content_id": "sp-logo",
+            "content_type": "image/png",
+        })
+
+    logo_src = 'cid:sp-logo' if logo_b64 else f'{get_base_url()}/logo-email.png'
+
+    html = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #e0e0e0; background-color: #0A0D14;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <img src="{logo_src}" alt="Sharp Picks" style="height: 120px; width: auto;" />
+      </div>
+      <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Payment issue with your subscription</h2>
+      <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">Hi {name}, we weren't able to process your latest payment. Stripe will retry automatically, but please update your payment method to avoid any interruption.</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="{profile_url}" style="display: inline-block; padding: 14px 32px; background-color: #4F86F7; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600;">Update Payment Method</a>
+      </div>
+      <hr style="border: none; border-top: 1px solid #1a1d24; margin: 32px 0;">
+      <p style="font-size: 12px; color: #555; text-align: center;">Sharp Picks &mdash; Discipline is the product.</p>
+    </div>
+    """
+    return send_email(to, "Payment issue — Sharp Picks", html, attachments=attachments or None)
+
+
 def send_welcome(to, first_name=None):
     name = first_name or "there"
     dashboard_url = get_base_url()

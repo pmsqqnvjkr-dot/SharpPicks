@@ -36,7 +36,16 @@ The API is structured around authentication, pick delivery, public statistics, s
 - **Transparency**: Append-only tables for picks and passes ensure an auditable and transparent record. Calibration changes are noted in the public record API and UI.
 - **User Engagement**: Features include a 14-day free trial, a "Founding Member" system for early adopters, and tiered pricing.
 - **Tone & UI**: Calm, institutional tone with no FOMO marketing. The UI provides detailed performance dashboards, coaching on win/loss resolutions, and comprehensive bet tracking.
-- **Security**: Secure, time-limited tokens for password resets and webhook signature verification for production.
+- **Anti-Abuse Protection** (added Feb 16, 2026):
+  - Email verification required before trial access (24h expiration, signed tokens)
+  - Gmail alias normalization prevents duplicate trials (removes dots, strips +suffixes for gmail.com/googlemail.com)
+  - Card-on-file trial: Stripe checkout with trial_period_days=14 ($0 charged, card collected upfront)
+  - Login rate limiting: 5 failed attempts → 15 minute lockout
+  - trial_used flag prevents repeat free trials per normalized email
+  - Lifecycle emails: verification, trial expiring (2-day warning), trial expired, cancellation, payment failed
+  - Scheduled jobs: check_expiring_trials (9 AM ET), expire_trials (12:15 AM ET)
+  - Performance API shows only published picks record (not all model predictions)
+- **Security**: Secure, time-limited tokens for password resets and email verification, webhook signature verification for production.
 - **Time Zones**: All date logic is standardized to Eastern Time (America/New_York).
 - **Compliance**: Compliance disclaimers are integrated into the UI and API responses.
 - **Odds Integration**: Multi-book odds shopping, real sportsbook juice integration, and closing line value (CLV) tracking are central to the prediction and analysis.

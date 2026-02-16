@@ -13,10 +13,11 @@ print(f"BOOT: pid={os.getpid()} python={sys.version_info[:2]} PORT={os.environ.g
 log_level = logging.INFO if os.environ.get("REPLIT_DEPLOYMENT") == "1" else logging.DEBUG
 logging.basicConfig(level=log_level)
 
-from flask import Flask, jsonify, Response, session, request
+from flask import Flask, jsonify, Response, session, request, redirect
 
 app = Flask(__name__, static_folder='dist', static_url_path='/static-disabled')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
+app.config['SECRET_KEY'] = app.secret_key
 
 @app.route('/health')
 def health():
@@ -121,6 +122,7 @@ def serialize_user(user):
         'founding_number': user.founding_number,
         'unit_size': user.unit_size,
         'trial_end_date': user.trial_end_date.isoformat() if user.trial_end_date else None,
+        'email_verified': user.email_verified,
     }
 
 @app.before_request
@@ -890,6 +892,59 @@ def grade_whatif_passes():
             print(f"[{datetime.now()}] What-if grading error: {e}")
 
 
+def check_expiring_trials():
+    """Send warning email to users whose trial expires in 2 days"""
+    with app.app_context():
+        try:
+            two_days = datetime.now() + timedelta(days=2)
+            expiring = User.query.filter(
+                User.subscription_status == 'trial',
+                User.trial_end_date <= two_days,
+                User.trial_end_date > datetime.now(),
+                User.trial_warning_sent == False
+            ).all()
+            for user in expiring:
+                try:
+                    from email_service import send_trial_expiring_email
+                    picks = Pick.query.filter_by(result='win').count()
+                    losses = Pick.query.filter_by(result='loss').count()
+                    record = f"{picks}W-{losses}L published picks"
+                    founding_count = User.query.filter_by(founding_member=True).count()
+                    spots = 500 - founding_count
+                    send_trial_expiring_email(user.email, user.first_name, user.trial_end_date, record, spots)
+                    user.trial_warning_sent = True
+                except Exception as e:
+                    logging.error(f"Trial expiring email failed for {user.email}: {e}")
+            db.session.commit()
+            if expiring:
+                logging.info(f"Sent {len(expiring)} trial expiring warnings")
+        except Exception as e:
+            logging.error(f"check_expiring_trials error: {e}")
+
+
+def expire_trials():
+    """Flip is_premium to false for expired trials"""
+    with app.app_context():
+        try:
+            expired = User.query.filter(
+                User.subscription_status == 'trial',
+                User.trial_end_date <= datetime.now()
+            ).all()
+            for user in expired:
+                user.subscription_status = 'expired'
+                user.is_premium = False
+                try:
+                    from email_service import send_trial_expired_email
+                    send_trial_expired_email(user.email, user.first_name)
+                except Exception as e:
+                    logging.error(f"Trial expired email failed for {user.email}: {e}")
+            db.session.commit()
+            if expired:
+                logging.info(f"Expired {len(expired)} trials")
+        except Exception as e:
+            logging.error(f"expire_trials error: {e}")
+
+
 def start_scheduler():
     from sport_config import get_sport_config
     sched = BackgroundScheduler(timezone='America/New_York')
@@ -912,6 +967,9 @@ def start_scheduler():
         sched.add_job(collect_wnba_games_job, 'cron', hour=18, minute=0, id='wnba_evening_collection')
         sched.add_job(collect_wnba_closing_lines_job, 'cron', hour=18, minute=30, id='wnba_closing_lines')
     
+    sched.add_job(check_expiring_trials, 'cron', hour=9, minute=0, id='trial_expiring_check')
+    sched.add_job(expire_trials, 'cron', hour=0, minute=15, id='expire_trials')
+
     sched.start()
     atexit.register(lambda: sched.shutdown())
     return sched
@@ -962,79 +1020,163 @@ def get_current_user():
 @app.route('/api/auth/register', methods=['POST'])
 @limiter.limit("5 per minute")
 def register():
-    """Register a new user with email and password"""
+    """Register a new user with email and password — requires email verification"""
     from flask import request
     from werkzeug.security import generate_password_hash
+    from itsdangerous import URLSafeTimedSerializer
+    from models import normalize_email
     import uuid
-    
+
     data = request.get_json()
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
     first_name = data.get('first_name', '').strip()
-    
+
     if not email or not password:
         return jsonify({'error': 'Email and password required'}), 400
-    
     if len(password) < 6:
         return jsonify({'error': 'Password must be at least 6 characters'}), 400
-    
     if not first_name:
         return jsonify({'error': 'First name is required'}), 400
-    
+
     existing = User.query.filter(func.lower(User.email) == email.lower()).first()
     if existing:
         return jsonify({'error': 'Email already registered'}), 400
-    
+
+    norm = normalize_email(email)
+    existing_norm = User.query.filter_by(email_normalized=norm).first()
+    if existing_norm and existing_norm.trial_used:
+        return jsonify({'error': 'A free trial has already been used with this email address'}), 400
+
     user = User(
         id=str(uuid.uuid4()),
         email=email.lower(),
+        email_normalized=norm,
         first_name=first_name,
         display_name=first_name,
         password_hash=generate_password_hash(password),
         is_premium=False,
-        subscription_status='trial',
-        trial_start_date=datetime.now(),
-        trial_end_date=datetime.now() + timedelta(days=14),
-        trial_ends=datetime.now() + timedelta(days=14)
+        subscription_status='pending_verification',
+        email_verified=False,
     )
     db.session.add(user)
     db.session.commit()
-    
+
     login_user(user, remember=True)
     session['user_id'] = user.id
 
     try:
-        from email_service import send_welcome
-        send_welcome(user.email, user.first_name)
+        from email_service import send_verification_email
+        s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+        token = s.dumps(user.id, salt='email-verify')
+        domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+        base = f"https://{domains.split(',')[0]}"
+        verify_url = f"{base}/api/auth/verify-email?token={token}"
+        send_verification_email(user.email, verify_url, user.first_name)
     except Exception as e:
-        logging.error(f"Welcome email failed: {e}")
-    
+        logging.error(f"Verification email failed: {e}")
+
     return jsonify({
         'success': True,
-        'user': serialize_user(user)
+        'user': serialize_user(user),
+        'needs_verification': True,
     })
 
+@app.route('/api/auth/verify-email')
+def verify_email():
+    """Verify email from link click — activates trial via Stripe card-on-file checkout"""
+    from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+    token = request.args.get('token', '')
+    if not token:
+        return redirect('/?verify=invalid')
+
+    s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    try:
+        user_id = s.loads(token, salt='email-verify', max_age=86400)
+    except SignatureExpired:
+        return redirect('/?verify=expired')
+    except BadSignature:
+        return redirect('/?verify=invalid')
+
+    user = db.session.get(User, user_id)
+    if not user:
+        return redirect('/?verify=invalid')
+
+    user.email_verified = True
+    user.subscription_status = 'free'
+    db.session.commit()
+
+    login_user(user, remember=True)
+    session['user_id'] = user.id
+    return redirect('/?verify=success')
+
+
+@app.route('/api/auth/resend-verification', methods=['POST'])
+@limiter.limit("3 per minute")
+def resend_verification():
+    """Resend verification email for pending users"""
+    from itsdangerous import URLSafeTimedSerializer
+    user_dict = get_current_user_from_session()
+    if not user_dict:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    user = db.session.get(User, user_dict['id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if user.email_verified:
+        return jsonify({'success': True, 'message': 'Email already verified'})
+
+    try:
+        from email_service import send_verification_email
+        s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+        token = s.dumps(user.id, salt='email-verify')
+        domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+        base = f"https://{domains.split(',')[0]}"
+        verify_url = f"{base}/api/auth/verify-email?token={token}"
+        send_verification_email(user.email, verify_url, user.first_name)
+    except Exception as e:
+        logging.error(f"Resend verification failed: {e}")
+        return jsonify({'error': 'Failed to send email. Please try again.'}), 500
+
+    return jsonify({'success': True, 'message': 'Verification email sent'})
+
+
 @app.route('/api/auth/login', methods=['POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("10 per minute")
 def login():
-    """Login with email and password"""
+    """Login with email and password — includes brute force lockout"""
     from flask import request
     from werkzeug.security import check_password_hash
-    
+
     data = request.get_json()
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
-    
+
     if not email or not password:
         return jsonify({'error': 'Email and password required'}), 400
-    
+
     user = User.query.filter(func.lower(User.email) == email.lower()).first()
     if not user or not user.password_hash:
         return jsonify({'error': 'Invalid email or password'}), 401
-    
+
+    if user.locked_until and user.locked_until > datetime.now():
+        remaining = int((user.locked_until - datetime.now()).total_seconds() / 60) + 1
+        return jsonify({'error': f'Account locked. Try again in {remaining} minutes.'}), 429
+
     if not check_password_hash(user.password_hash, password):
+        user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+        if user.failed_login_attempts >= 5:
+            user.locked_until = datetime.now() + timedelta(minutes=15)
+            user.failed_login_attempts = 0
+            db.session.commit()
+            return jsonify({'error': 'Too many failed attempts. Account locked for 15 minutes.'}), 429
+        db.session.commit()
         return jsonify({'error': 'Invalid email or password'}), 401
-    
+
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    db.session.commit()
+
     login_user(user, remember=True)
     session['user_id'] = user.id
     
@@ -1182,6 +1324,13 @@ def create_checkout():
             db.session.commit()
             customer_id = customer.id
 
+        is_trial_eligible = (
+            db_user and
+            not db_user.trial_used and
+            db_user.subscription_status in ('free', 'pending_verification') and
+            db_user.email_verified
+        )
+
         checkout_params = {
             'payment_method_types': ['card'],
             'line_items': [{'price': price_id, 'quantity': 1}],
@@ -1194,6 +1343,10 @@ def create_checkout():
             },
             'metadata': {'plan': plan, 'user_id': user['id']},
         }
+
+        if is_trial_eligible:
+            checkout_params['subscription_data']['trial_period_days'] = 14
+
         if customer_id:
             checkout_params['customer'] = customer_id
         else:
@@ -1326,9 +1479,12 @@ def stripe_webhook():
                         if sub_status == 'trialing':
                             user.subscription_status = 'trial'
                             user.is_premium = True
+                            user.trial_used = True
+                            user.trial_start_date = datetime.now()
                             trial_end = sub.get('trial_end')
                             if trial_end:
                                 user.trial_end_date = datetime.fromtimestamp(trial_end)
+                                user.trial_ends = datetime.fromtimestamp(trial_end)
                         else:
                             user.subscription_status = 'active'
                             user.is_premium = True
@@ -1379,6 +1535,11 @@ def stripe_webhook():
                     user.is_premium = False
                     db.session.commit()
                     logging.info(f'Subscription cancelled for user {user.email}')
+                    try:
+                        from email_service import send_cancellation_email
+                        send_cancellation_email(user.email, user.first_name, user.current_period_end, user.founding_member)
+                    except Exception as e:
+                        logging.error(f"Cancellation email failed: {e}")
 
         elif event_type == 'invoice.paid':
             cust_id = data_obj.get('customer')
@@ -1404,6 +1565,11 @@ def stripe_webhook():
                     user.subscription_status = 'past_due'
                     db.session.commit()
                     logging.warning(f'Payment failed for user {user.email}')
+                    try:
+                        from email_service import send_payment_failed_email
+                        send_payment_failed_email(user.email, user.first_name)
+                    except Exception as e:
+                        logging.error(f"Payment failed email error: {e}")
 
     except Exception as e:
         logging.error(f'Webhook error: {e}')
@@ -2287,42 +2453,51 @@ def get_predictions():
 
 @app.route('/api/performance')
 def get_performance():
-    """Get live performance tracking stats"""
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    cursor.execute('''
-        SELECT 
-            COUNT(*) as total,
-            SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct,
-            SUM(CASE WHEN is_correct = 0 THEN 1 ELSE 0 END) as incorrect,
-            SUM(CASE WHEN actual_result IS NULL THEN 1 ELSE 0 END) as pending
-        FROM prediction_log
-    ''')
-    
-    result = cursor.fetchone()
-    total = result['total'] or 0
-    correct = result['correct'] or 0
-    incorrect = result['incorrect'] or 0
-    pending = result['pending'] or 0
-    
-    win_rate = correct / (correct + incorrect) if (correct + incorrect) > 0 else None
-    
+    """Get live performance tracking stats — ONLY published picks, not all model runs"""
+    from sqlalchemy import text as sql_text
+
+    picks_stats = {'total': 0, 'wins': 0, 'losses': 0, 'pending': 0, 'pushes': 0}
+    try:
+        result = db.session.execute(sql_text("""
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) as wins,
+                SUM(CASE WHEN result = 'loss' THEN 1 ELSE 0 END) as losses,
+                SUM(CASE WHEN result = 'push' THEN 1 ELSE 0 END) as pushes,
+                SUM(CASE WHEN result IS NULL OR result = 'pending' THEN 1 ELSE 0 END) as pending
+            FROM picks
+        """))
+        row = result.fetchone()
+        if row:
+            picks_stats = {
+                'total': row[0] or 0,
+                'wins': row[1] or 0,
+                'losses': row[2] or 0,
+                'pushes': row[3] or 0,
+                'pending': row[4] or 0,
+            }
+    except Exception as e:
+        logging.error(f"Performance picks query error: {e}")
+
+    decided = picks_stats['wins'] + picks_stats['losses']
+    win_rate = picks_stats['wins'] / decided if decided > 0 else None
+
     closing_line_stats = {'beat_rate': 0, 'total_tracked': 0}
     try:
         from performance_tracker import get_closing_line_stats
         closing_line_stats = get_closing_line_stats()
     except:
         pass
-    
-    conn.close()
+
     return jsonify({
-        'total_predictions': total,
-        'correct': correct,
-        'incorrect': incorrect,
-        'pending': pending,
+        'total_predictions': picks_stats['total'],
+        'correct': picks_stats['wins'],
+        'incorrect': picks_stats['losses'],
+        'pushes': picks_stats['pushes'],
+        'pending': picks_stats['pending'],
         'win_rate': round(win_rate, 3) if win_rate else None,
-        'closing_line': closing_line_stats
+        'closing_line': closing_line_stats,
+        'source': 'published_picks',
     })
 
 

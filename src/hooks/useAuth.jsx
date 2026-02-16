@@ -49,7 +49,7 @@ export function AuthProvider({ children }) {
       const data = await apiPost('/auth/register', { email, password, first_name: firstName });
       if (data.success && data.user) {
         setUser(data.user);
-        return { success: true };
+        return { success: true, needs_verification: data.needs_verification };
       } else if (data.id) {
         setUser(data);
         return { success: true };
@@ -60,13 +60,22 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const resendVerification = async () => {
+    try {
+      const data = await apiPost('/auth/resend-verification', {});
+      return data;
+    } catch {
+      return { error: 'Failed to resend. Please try again.' };
+    }
+  };
+
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth, resendVerification }}>
       {children}
     </AuthContext.Provider>
   );

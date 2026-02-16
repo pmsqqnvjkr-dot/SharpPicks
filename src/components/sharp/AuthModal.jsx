@@ -44,7 +44,13 @@ export default function AuthModal({ onClose, initialMode }) {
       : await register(email, password, firstName.trim());
 
     if (result.success) {
-      onClose();
+      if (result.needs_verification) {
+        setMode('verify');
+        setSuccess('Check your email for a verification link to activate your account.');
+        setError('');
+      } else {
+        onClose();
+      }
     } else {
       setError(result.error);
     }
@@ -55,12 +61,14 @@ export default function AuthModal({ onClose, initialMode }) {
     login: 'Welcome back',
     register: 'Create account',
     forgot: 'Reset password',
+    verify: 'Verify your email',
   };
 
   const subtitles = {
     login: 'Sign in to access your picks',
-    register: 'Create your free account',
+    register: 'Start your 14-day free trial',
     forgot: 'Enter your email to receive a reset link',
+    verify: 'We sent a verification link to your email',
   };
 
   return (
@@ -135,6 +143,50 @@ export default function AuthModal({ onClose, initialMode }) {
           </div>
         )}
 
+        {mode === 'verify' ? (
+          <div style={{ textAlign: 'center', padding: '16px 0' }}>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '50%',
+              backgroundColor: 'rgba(79,134,247,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 20px',
+              fontSize: '28px',
+            }}>
+              &#9993;
+            </div>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '24px' }}>
+              Check <strong style={{ color: 'var(--text-primary)' }}>{email}</strong> for a verification link.
+              Once verified, you can start your 14-day free trial.
+            </p>
+            <button
+              type="button"
+              onClick={async () => {
+                setSubmitting(true);
+                try {
+                  const res = await fetch('/api/auth/resend-verification', { method: 'POST', credentials: 'include' });
+                  const data = await res.json();
+                  if (data.success) setSuccess('Verification email resent!');
+                  else setError(data.error || 'Failed to resend');
+                } catch { setError('Network error'); }
+                setSubmitting(false);
+              }}
+              disabled={submitting}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: 'transparent',
+                border: '1px solid var(--stroke-subtle)',
+                borderRadius: '10px',
+                color: 'var(--text-secondary)',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+                opacity: submitting ? 0.5 : 1,
+              }}
+            >
+              {submitting ? 'Sending...' : 'Resend verification email'}
+            </button>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit}>
           {mode === 'register' && (
             <div style={{ marginBottom: '12px' }}>
@@ -278,6 +330,7 @@ export default function AuthModal({ onClose, initialMode }) {
               : 'Send Reset Link'}
           </button>
         </form>
+        )}
 
         <div style={{
           textAlign: 'center',
