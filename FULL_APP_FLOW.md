@@ -531,7 +531,15 @@ All secured by `X-Cron-Secret` header. All log execution to `cron_logs` table.
 
 Superuser-only dashboard with auto-refreshing panels.
 
-**Auth approach (autoscale-compatible):** Admin HTML route loads without server-side auth gate. All data fetched client-side via `/api/admin/*` endpoints. `require_superuser()` uses triple auth: Flask-Login session → X-Admin-Token header/query param → Authorization Bearer token (with session_token validation). Returns 401 (not logged in) or 403 (not authorized). This pattern works reliably in Replit's autoscale deployment where Flask sessions don't persist.
+**Auth approach (autoscale-compatible):** Admin HTML route loads without server-side auth gate. All data fetched client-side via `/api/admin/*` endpoints. `require_superuser()` uses triple auth: Flask-Login session → X-Admin-Token header/query param → Authorization Bearer token (with session_token validation). Returns 401 (not logged in) or 403 (not authorized).
+
+**Admin token exchange flow (autoscale loop fix):**
+1. Admin page loads → reads Bearer token from localStorage (`sp_auth_token`)
+2. `ensureAdminToken()` runs before any data loads — exchanges Bearer token for admin-specific token via `GET /api/admin/token` with `Authorization: Bearer` header
+3. Admin token stored in sessionStorage, used as `X-Admin-Token` header on subsequent requests
+4. `adminFetch()` sends both `X-Admin-Token` and `Authorization: Bearer` headers for redundant auth
+5. All periodic refreshes (dashboard every 30s, health checks every 60s, cron health every 30s) gated behind `ensureAdminToken()` to prevent 401 loops
+6. `/api/admin/token` endpoint accepts Flask session OR Bearer token to issue admin tokens — critical for autoscale where Flask sessions don't persist
 
 ### Revenue & Sales (refreshes every 30s)
 - MRR, ARR, active subscribers breakdown
