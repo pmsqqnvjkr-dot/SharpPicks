@@ -108,6 +108,12 @@ CORS(app, supports_credentials=True, origins=allowed_origins)
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+@login_manager.unauthorized_handler
+def handle_unauthorized():
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Login required'}), 401
+    return redirect('/?login=required')
+
 @login_manager.user_loader
 def load_user(user_id):
     user = User.query.get(user_id)
