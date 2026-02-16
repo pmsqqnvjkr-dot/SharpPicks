@@ -7,6 +7,7 @@ export default function LandingPage() {
   const { data: founding } = useApi('/public/founding-count');
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('register');
+  const [accountType, setAccountType] = useState(null);
 
   const spotsLeft = founding ? (founding.remaining != null ? founding.remaining : Math.max(0, 500 - (founding.current || 0))) : null;
 
@@ -78,9 +79,9 @@ export default function LandingPage() {
         </p>
 
         <button
-          onClick={() => { setAuthMode('register'); setShowAuth(true); }}
+          onClick={() => { setAuthMode('register'); setAccountType('trial'); setShowAuth(true); }}
           style={{
-            width: '100%', maxWidth: '240px',
+            width: '100%', maxWidth: '280px',
             height: '52px', borderRadius: '14px',
             border: 'none',
             background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
@@ -88,18 +89,42 @@ export default function LandingPage() {
             fontFamily: 'var(--font-sans)',
             fontSize: '16px', fontWeight: 700,
             cursor: 'pointer',
-            marginBottom: '40px',
+            marginBottom: '6px',
           }}
         >
           Start 14-Day Trial
         </button>
         <p style={{
           fontFamily: 'var(--font-sans)',
-          fontSize: '12px', fontWeight: 500,
+          fontSize: '11px', fontWeight: 500,
           color: 'var(--text-tertiary)',
-          marginTop: '-28px', marginBottom: '28px',
+          marginBottom: '12px',
         }}>
-          Card required to start trial. Cancel anytime.
+          Card required. Cancel anytime.
+        </p>
+        <button
+          onClick={() => { setAuthMode('register'); setAccountType('free'); setShowAuth(true); }}
+          style={{
+            width: '100%', maxWidth: '280px',
+            height: '44px', borderRadius: '12px',
+            border: '1px solid var(--stroke-muted)',
+            backgroundColor: 'transparent',
+            color: 'var(--text-secondary)',
+            fontFamily: 'var(--font-sans)',
+            fontSize: '14px', fontWeight: 500,
+            cursor: 'pointer',
+            marginBottom: '6px',
+          }}
+        >
+          Create Free Account
+        </button>
+        <p style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: '11px', fontWeight: 500,
+          color: 'var(--text-tertiary)',
+          marginBottom: '28px',
+        }}>
+          No card needed · Upgrade anytime
         </p>
 
         <div style={{
@@ -131,6 +156,46 @@ export default function LandingPage() {
           title="Selectivity beats volume"
           desc={`Most bettors lose by betting too much.${stats ? ` Our ${stats.selectivity}% selectivity rate is the edge.` : ' Selectivity is the edge.'}`}
         />
+      </div>
+
+      <div style={{ padding: '16px 28px 0' }}>
+        <div style={{
+          backgroundColor: 'var(--surface-1)',
+          borderRadius: '16px',
+          border: '1px solid var(--stroke-subtle)',
+          padding: '20px',
+        }}>
+          <div style={{
+            fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
+            textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '16px',
+            textAlign: 'center',
+          }}>What you get</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div>
+              <div style={{
+                fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)',
+                marginBottom: '12px', fontFamily: 'var(--font-sans)',
+              }}>FREE</div>
+              <TierItem included text="Model activity feed" />
+              <TierItem included text="Public record access" />
+              <TierItem included text="Pass-day summaries" />
+              <TierItem text="Pick details locked" />
+              <TierItem text="No bet tracking" />
+            </div>
+            <div>
+              <div style={{
+                fontSize: '13px', fontWeight: 700, color: 'var(--blue-primary)',
+                marginBottom: '12px', fontFamily: 'var(--font-sans)',
+              }}>PRO</div>
+              <TierItem included text="Full pick details" />
+              <TierItem included text="Side, line, edge %" />
+              <TierItem included text="Position sizing" />
+              <TierItem included text="Bet tracking" />
+              <TierItem included text="Performance dashboard" />
+              <TierItem included text="14-day free trial" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {stats && (
@@ -201,7 +266,7 @@ export default function LandingPage() {
         </button>
       </div>
 
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} initialMode={authMode} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} initialMode={authMode} initialAccountType={accountType} />}
     </div>
   );
 }
@@ -229,6 +294,33 @@ function ValueProp({ title, desc }) {
         color: 'var(--text-secondary)',
         lineHeight: '1.55',
       }}>{desc}</p>
+    </div>
+  );
+}
+
+function TierItem({ included, text }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '8px',
+      marginBottom: '8px',
+    }}>
+      <span style={{
+        fontSize: '13px',
+        color: included ? 'var(--green-profit)' : 'var(--text-tertiary)',
+        fontFamily: 'var(--font-mono)',
+        width: '16px', textAlign: 'center',
+        flexShrink: 0,
+      }}>
+        {included ? '\u2713' : '\u2717'}
+      </span>
+      <span style={{
+        fontSize: '12px',
+        color: included ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+        fontFamily: 'var(--font-sans)',
+        lineHeight: '1.4',
+      }}>
+        {text}
+      </span>
     </div>
   );
 }

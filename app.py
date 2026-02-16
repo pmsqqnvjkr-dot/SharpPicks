@@ -1259,6 +1259,7 @@ def register():
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
     first_name = data.get('first_name', '').strip()
+    account_type = data.get('account_type', 'trial')
 
     if not email or not password:
         return jsonify({'error': 'Email and password required'}), 400
@@ -1276,6 +1277,8 @@ def register():
     if existing_norm and existing_norm.trial_used:
         return jsonify({'error': 'A free trial has already been used with this email address'}), 400
 
+    is_free = account_type == 'free'
+
     user = User(
         id=str(uuid.uuid4()),
         email=email.lower(),
@@ -1284,8 +1287,8 @@ def register():
         display_name=first_name,
         password_hash=generate_password_hash(password),
         is_premium=False,
-        subscription_status='pending_verification',
-        email_verified=False,
+        subscription_status='free' if is_free else 'pending_verification',
+        email_verified=is_free,
     )
     db.session.add(user)
     db.session.commit()
@@ -1293,6 +1296,19 @@ def register():
     login_user(user, remember=True)
     session['user_id'] = user.id
     session['session_token'] = user.session_token
+
+    if is_free:
+        try:
+            from email_service import send_welcome_email
+            send_welcome_email(user.email, user.first_name)
+        except Exception as e:
+            logging.error(f"Welcome email failed: {e}")
+
+        return jsonify({
+            'success': True,
+            'user': serialize_user(user),
+            'needs_verification': False,
+        })
 
     try:
         from email_service import send_verification_email

@@ -44,9 +44,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (email, password, firstName) => {
+  const register = async (email, password, firstName, accountType = 'trial') => {
     try {
-      const data = await apiPost('/auth/register', { email, password, first_name: firstName });
+      const data = await apiPost('/auth/register', { email, password, first_name: firstName, account_type: accountType });
       if (data.success && data.user) {
         setUser(data.user);
         return { success: true, needs_verification: data.needs_verification };

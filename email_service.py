@@ -132,6 +132,40 @@ def send_verification_email(to, verify_url, first_name=None):
     return send_email(to, "Verify your email — Sharp Picks", html, attachments=attachments or None)
 
 
+def send_welcome_email(to, first_name=None):
+    name = first_name or "there"
+
+    attachments = []
+    logo_b64 = _get_logo_b64()
+    if logo_b64:
+        attachments.append({
+            "content": logo_b64,
+            "filename": "logo.png",
+            "content_id": "sp-logo",
+            "content_type": "image/png",
+        })
+
+    logo_src = 'cid:sp-logo' if logo_b64 else f'{get_base_url()}/logo-email.png'
+    upgrade_url = f"{get_base_url()}/"
+
+    html = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #e0e0e0; background-color: #0A0D14;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <img src="{logo_src}" alt="Sharp Picks" style="height: 120px; width: auto;" />
+      </div>
+      <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Welcome to Sharp Picks</h2>
+      <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">Hi {name}, your free account is ready.</p>
+      <p style="font-size: 15px; line-height: 1.6; color: #a0a0a0;">With your free account you can follow the model's daily activity, view the public record, and read pass-day summaries. When you're ready for full pick details, edge percentages, and bet tracking, upgrade to Pro with a 14-day free trial.</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="{upgrade_url}" style="display: inline-block; padding: 14px 32px; background-color: #4F86F7; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600;">Open Sharp Picks</a>
+      </div>
+      <hr style="border: none; border-top: 1px solid #1a1d24; margin: 32px 0;">
+      <p style="font-size: 12px; color: #555; text-align: center;">Sharp Picks &mdash; Discipline is the product.</p>
+    </div>
+    """
+    return send_email(to, "Welcome to Sharp Picks", html, attachments=attachments or None)
+
+
 def send_trial_expiring_email(to, first_name=None, trial_end_date=None, picks_record=None, founding_spots=None):
     name = first_name or "there"
     end_str = trial_end_date.strftime('%B %d, %Y') if trial_end_date else "soon"

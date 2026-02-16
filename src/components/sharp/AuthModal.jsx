@@ -3,7 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 const API_BASE = '/api';
 
-export default function AuthModal({ onClose, initialMode }) {
+export default function AuthModal({ onClose, initialMode, initialAccountType }) {
   const [mode, setMode] = useState(initialMode || 'login');
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
@@ -13,7 +13,7 @@ export default function AuthModal({ onClose, initialMode }) {
   const [submitting, setSubmitting] = useState(false);
   const { login, register } = useAuth();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, accountType) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -39,9 +39,19 @@ export default function AuthModal({ onClose, initialMode }) {
       return;
     }
 
-    const result = mode === 'login'
-      ? await login(email, password)
-      : await register(email, password, firstName.trim());
+    if (mode === 'login') {
+      const result = await login(email, password);
+      if (result.success) {
+        onClose();
+      } else {
+        setError(result.error);
+      }
+      setSubmitting(false);
+      return;
+    }
+
+    const type = accountType || 'trial';
+    const result = await register(email, password, firstName.trim(), type);
 
     if (result.success) {
       if (result.needs_verification) {
@@ -66,7 +76,7 @@ export default function AuthModal({ onClose, initialMode }) {
 
   const subtitles = {
     login: 'Sign in to access your picks',
-    register: 'Start your 14-day trial',
+    register: 'Choose how you want to get started',
     forgot: 'Enter your email to receive a reset link',
     verify: 'We sent a verification link to your email',
   };
@@ -306,29 +316,92 @@ export default function AuthModal({ onClose, initialMode }) {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{
-              width: '100%',
-              padding: '14px',
-              backgroundColor: 'var(--blue-primary)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '10px',
-              fontSize: '15px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              opacity: submitting ? 0.7 : 1,
-              fontFamily: 'var(--font-sans)',
-              marginTop: mode === 'forgot' ? '8px' : '0',
-            }}
-          >
-            {submitting ? 'Please wait...'
-              : mode === 'login' ? 'Sign In'
-              : mode === 'register' ? 'Create Account'
-              : 'Send Reset Link'}
-          </button>
+          {mode === 'register' ? (
+            <>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={(e) => handleSubmit(e, 'trial')}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  backgroundColor: 'var(--blue-primary)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  opacity: submitting ? 0.7 : 1,
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >
+                {submitting ? 'Please wait...' : 'Start Trial — Card Required'}
+              </button>
+
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                margin: '16px 0',
+              }}>
+                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--stroke-muted)' }} />
+                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-sans)' }}>or</span>
+                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--stroke-muted)' }} />
+              </div>
+
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={(e) => handleSubmit(e, 'free')}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-secondary)',
+                  border: '1px solid var(--stroke-muted)',
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  opacity: submitting ? 0.7 : 1,
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >
+                {submitting ? 'Please wait...' : 'Create Free Account'}
+              </button>
+              <p style={{
+                textAlign: 'center',
+                fontSize: '12px',
+                color: 'var(--text-tertiary)',
+                marginTop: '8px',
+                fontFamily: 'var(--font-sans)',
+              }}>
+                No card needed · Upgrade anytime
+              </p>
+            </>
+          ) : (
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{
+                width: '100%',
+                padding: '14px',
+                backgroundColor: 'var(--blue-primary)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '10px',
+                fontSize: '15px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                opacity: submitting ? 0.7 : 1,
+                fontFamily: 'var(--font-sans)',
+                marginTop: mode === 'forgot' ? '8px' : '0',
+              }}
+            >
+              {submitting ? 'Please wait...'
+                : mode === 'login' ? 'Sign In'
+                : 'Send Reset Link'}
+            </button>
+          )}
         </form>
         )}
 
