@@ -1291,6 +1291,7 @@ def register():
     db.session.commit()
 
     login_user(user, remember=True)
+    session.permanent = True
     session['user_id'] = user.id
     session['session_token'] = user.session_token
 
@@ -1349,6 +1350,7 @@ def verify_email():
     db.session.commit()
 
     login_user(user, remember=True)
+    session.permanent = True
     session['user_id'] = user.id
     session['session_token'] = user.session_token
     return redirect('/?verify=success')
@@ -1421,6 +1423,7 @@ def login():
     db.session.commit()
 
     login_user(user, remember=True)
+    session.permanent = True
     session['user_id'] = user.id
     session['session_token'] = user.session_token
     
