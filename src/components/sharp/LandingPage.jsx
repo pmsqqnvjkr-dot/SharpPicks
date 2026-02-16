@@ -91,7 +91,7 @@ export default function LandingPage() {
             marginBottom: '40px',
           }}
         >
-          Start Free
+          Start 14-Day Trial
         </button>
         <p style={{
           fontFamily: 'var(--font-sans)',
@@ -99,7 +99,7 @@ export default function LandingPage() {
           color: 'var(--text-tertiary)',
           marginTop: '-28px', marginBottom: '28px',
         }}>
-          Sign up free — no card required
+          Card required to start trial. Cancel anytime.
         </p>
 
         <div style={{

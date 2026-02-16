@@ -66,7 +66,7 @@ export default function AuthModal({ onClose, initialMode }) {
 
   const subtitles = {
     login: 'Sign in to access your picks',
-    register: 'Start your 14-day free trial',
+    register: 'Start your 14-day trial',
     forgot: 'Enter your email to receive a reset link',
     verify: 'We sent a verification link to your email',
   };
@@ -156,7 +156,7 @@ export default function AuthModal({ onClose, initialMode }) {
             </div>
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '24px' }}>
               Check <strong style={{ color: 'var(--text-primary)' }}>{email}</strong> for a verification link.
-              Once verified, you can start your 14-day free trial.
+              Once verified, you'll be taken to set up your 14-day trial.
             </p>
             <button
               type="button"

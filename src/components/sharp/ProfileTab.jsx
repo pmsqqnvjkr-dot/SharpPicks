@@ -228,8 +228,8 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
       price: '$29',
       period: '/mo',
       features: ['Full pick details', 'Real-time alerts', 'Pick history', 'Bet tracking'],
-      cta: 'Start 14-Day Free Trial',
-      subtitle: 'No credit card required',
+      cta: 'Start 14-Day Trial',
+      subtitle: 'Card required. Cancel anytime.',
       plan: 'trial',
     },
     {
@@ -469,11 +469,11 @@ function TrialSignup({ onBack }) {
           <h2 style={{
             fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 700,
             color: 'var(--text-primary)', margin: '0 0 6px', textAlign: 'center',
-          }}>14 Days Free</h2>
+          }}>14-Day Trial</h2>
           <p style={{
             color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center',
             margin: '0 0 24px', lineHeight: '1.5',
-          }}>Full access to all picks and features. No credit card required.</p>
+          }}>Full access to all picks and features. Card required to start — cancel anytime.</p>
 
           <form onSubmit={handleStart}>
             <div style={{ marginBottom: '12px' }}>
@@ -534,7 +534,7 @@ function TrialSignup({ onBack }) {
               borderRadius: '10px', color: '#fff', cursor: 'pointer',
               fontFamily: 'var(--font-sans)', opacity: loading ? 0.6 : 1,
             }}>
-              {loading ? 'Starting trial...' : 'Start Free Trial'}
+              {loading ? 'Starting trial...' : 'Start Trial'}
             </button>
           </form>
 
@@ -546,7 +546,7 @@ function TrialSignup({ onBack }) {
               fontSize: '12px', color: 'var(--text-tertiary)', margin: 0,
               textAlign: 'center', lineHeight: '1.6',
             }}>
-              Subscribe at $29/mo or $99/yr (founding rate). Cancel anytime. No auto-charge.
+              $0 today — you won't be charged until your trial ends. $29/mo or $99/yr (founding rate). Cancel anytime.
             </p>
           </div>
         </div>
