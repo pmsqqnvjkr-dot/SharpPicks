@@ -8,17 +8,61 @@ import requests
 import time
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 admin_bp = Blueprint('admin_api', __name__)
 ET = ZoneInfo('America/New_York')
 
+def _get_admin_serializer():
+    secret = os.environ.get('SESSION_SECRET', os.environ.get('SECRET_KEY', 'dev'))
+    return URLSafeTimedSerializer(secret)
+
 def require_superuser():
     from flask_login import current_user
-    if not current_user.is_authenticated:
-        return None, 401
-    if not current_user.is_superuser:
-        return None, 403
-    return current_user, None
+    if current_user.is_authenticated:
+        if not current_user.is_superuser:
+            return None, 403
+        return current_user, None
+
+    token = request.headers.get('X-Admin-Token') or request.args.get('admin_token')
+    if token:
+        try:
+            s = _get_admin_serializer()
+            data = s.loads(token, salt='admin-token', max_age=86400)
+            user = db.session.get(User, data)
+            if user and user.is_superuser:
+                return user, None
+            return None, 403
+        except (SignatureExpired, BadSignature):
+            pass
+
+    return None, 401
+
+
+@admin_bp.route('/api/admin/token')
+def get_admin_token():
+    from flask_login import current_user
+    from flask import session as flask_session
+    user = None
+    if current_user.is_authenticated:
+        user = current_user
+    else:
+        user_id = flask_session.get('user_id')
+        if user_id:
+            u = db.session.get(User, user_id)
+            if u:
+                stored = flask_session.get('session_token')
+                if stored and stored == u.session_token:
+                    user = u
+
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+    if not user.is_superuser:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    s = _get_admin_serializer()
+    token = s.dumps(user.id, salt='admin-token')
+    return jsonify({'token': token})
 
 
 @admin_bp.route('/api/admin/command-center')

@@ -838,9 +838,22 @@ function buildUsersTable(users) {
   });
 }
 
+const _adminToken = new URLSearchParams(window.location.search).get('t');
+if (_adminToken) {
+  sessionStorage.setItem('admin_token', _adminToken);
+  window.history.replaceState({}, '', '/admin');
+}
+const adminToken = sessionStorage.getItem('admin_token') || '';
+
+function adminFetch(url) {
+  const headers = {};
+  if (adminToken) headers['X-Admin-Token'] = adminToken;
+  return fetch(url, { credentials: 'include', headers });
+}
+
 async function loadDashboard() {
   try {
-    const res = await fetch('/api/admin/command-center', { credentials: 'include' });
+    const res = await adminFetch('/api/admin/command-center');
     if (!res.ok) {
       if (res.status === 401) {
         document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--text-dim);font-family:var(--mono);font-size:14px;flex-direction:column;gap:16px"><span>Not logged in</span><a href="/" style="color:var(--blue);text-decoration:none">Sign in &rarr;</a></div>';
@@ -912,7 +925,7 @@ function hcFormatVal(svc) {
 
 async function loadHealthChecks() {
   try {
-    const res = await fetch('/api/admin/health-checks', { credentials: 'include' });
+    const res = await adminFetch('/api/admin/health-checks');
     if (!res.ok) return;
     const d = await res.json();
 
@@ -985,7 +998,7 @@ function buildCronJobs(jobs) {
 
 async function loadCronHealth() {
   try {
-    const res = await fetch('/api/admin/cron-health', { credentials: 'include' });
+    const res = await adminFetch('/api/admin/cron-health');
     if (!res.ok) return;
     const d = await res.json();
 
