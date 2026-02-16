@@ -68,6 +68,7 @@ class User(UserMixin, db.Model):
     trial_ends = db.Column(db.DateTime, nullable=True)
     trial_used = db.Column(db.Boolean, default=False)
     trial_warning_sent = db.Column(db.Boolean, default=False)
+    session_token = db.Column(db.String, nullable=True, default=lambda: str(uuid.uuid4()))
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
@@ -91,6 +92,10 @@ class User(UserMixin, db.Model):
             if self.subscription_status == 'trial' and self.trial_end_date and self.trial_end_date < datetime.now():
                 return False
             return True
+        if self.subscription_status == 'cancelling':
+            if self.current_period_end and self.current_period_end > datetime.now():
+                return True
+            return False
         return False
 
 
@@ -235,3 +240,10 @@ class Insight(db.Model):
     reading_time_minutes = db.Column(db.Integer, default=2)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class ProcessedEvent(db.Model):
+    __tablename__ = 'processed_events'
+    id = db.Column(db.String, primary_key=True)
+    event_type = db.Column(db.String, nullable=False)
+    processed_at = db.Column(db.DateTime, default=datetime.now)

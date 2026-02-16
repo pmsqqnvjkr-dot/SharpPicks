@@ -7,6 +7,7 @@ import os
 import sys
 import logging
 import threading
+import uuid
 
 print(f"BOOT: pid={os.getpid()} python={sys.version_info[:2]} PORT={os.environ.get('PORT','not set')} DEPLOYMENT={os.environ.get('REPLIT_DEPLOYMENT','0')}", flush=True)
 
@@ -55,7 +56,7 @@ import atexit
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight
+from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent
 from picks_api import picks_bp
 from public_api import public_bp
 from insights_api import insights_bp
@@ -82,14 +83,33 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 db.init_app(app)
-CORS(app, supports_credentials=True)
+allowed_origins = [
+    'https://app.sharppicks.ai',
+    'https://sharppicks.ai',
+    'https://www.sharppicks.ai',
+]
+if not is_production:
+    allowed_origins.append('http://localhost:5000')
+    allowed_origins.append('http://0.0.0.0:5000')
+    replit_domain = os.environ.get('REPLIT_DEV_DOMAIN', '')
+    if replit_domain:
+        allowed_origins.append(f'https://{replit_domain}')
+CORS(app, supports_credentials=True, origins=allowed_origins)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(user_id)
+    user = User.query.get(user_id)
+    if not user:
+        return None
+    stored_token = session.get('session_token')
+    if not stored_token or stored_token != user.session_token:
+        session.pop('user_id', None)
+        session.pop('session_token', None)
+        return None
+    return user
 
 limiter = Limiter(
     get_remote_address,
@@ -104,6 +124,11 @@ def get_current_user_from_session():
     if user_id:
         user = db.session.get(User, user_id)
         if user:
+            stored_token = session.get('session_token')
+            if not stored_token or stored_token != user.session_token:
+                session.pop('user_id', None)
+                session.pop('session_token', None)
+                return None
             return serialize_user(user)
     return None
 
@@ -1064,6 +1089,7 @@ def register():
 
     login_user(user, remember=True)
     session['user_id'] = user.id
+    session['session_token'] = user.session_token
 
     try:
         from email_service import send_verification_email
@@ -1108,6 +1134,7 @@ def verify_email():
 
     login_user(user, remember=True)
     session['user_id'] = user.id
+    session['session_token'] = user.session_token
     return redirect('/?verify=success')
 
 
@@ -1179,6 +1206,7 @@ def login():
 
     login_user(user, remember=True)
     session['user_id'] = user.id
+    session['session_token'] = user.session_token
     
     return jsonify({
         'success': True,
@@ -1248,6 +1276,7 @@ def reset_password():
         return jsonify({'error': 'User not found.'}), 400
 
     user.password_hash = generate_password_hash(new_password)
+    user.session_token = str(uuid.uuid4())
     db.session.commit()
 
     return jsonify({'success': True, 'message': 'Password updated successfully.'})
@@ -1379,6 +1408,37 @@ def cancel_subscription():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/subscriptions/reactivate', methods=['POST'])
+def reactivate_subscription():
+    """Reactivate a subscription that is set to cancel at period end"""
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    try:
+        from stripe_client import get_stripe_client
+        stripe = get_stripe_client()
+        db_user = db.session.get(User, user['id'])
+        if not db_user or not db_user.stripe_customer_id:
+            return jsonify({'error': 'No subscription found'}), 400
+        if db_user.subscription_status != 'cancelling':
+            return jsonify({'error': 'Subscription is not in cancelling state'}), 400
+        subs = stripe.Subscription.list(customer=db_user.stripe_customer_id, limit=1)
+        reactivated = False
+        for sub in subs.data:
+            if sub.get('cancel_at_period_end'):
+                stripe.Subscription.modify(sub.id, cancel_at_period_end=False)
+                db_user.subscription_status = 'active'
+                db_user.is_premium = True
+                db.session.commit()
+                reactivated = True
+                break
+        if not reactivated:
+            return jsonify({'error': 'No cancelling subscription found in Stripe'}), 400
+        return jsonify({'success': True, 'message': 'Subscription reactivated'})
+    except Exception as e:
+        logging.error(f"Reactivate error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/subscriptions/status')
 def subscription_status():
     """Get current subscription status"""
@@ -1396,6 +1456,7 @@ def subscription_status():
         'is_pro': db_user.is_pro,
         'trial_end_date': db_user.trial_end_date.isoformat() if db_user.trial_end_date else None,
         'current_period_end': db_user.current_period_end.isoformat() if db_user.current_period_end else None,
+        'can_reactivate': db_user.subscription_status == 'cancelling' and db_user.current_period_end and db_user.current_period_end > datetime.now(),
     })
 
 @app.route('/api/stripe/config')
@@ -1408,20 +1469,35 @@ def stripe_config():
         return jsonify({'error': str(e)}), 500
 
 def maybe_assign_founding(user_id):
-    """Assign founding member status if spots remain"""
-    counter = FoundingCounter.query.first()
-    if not counter:
-        return
-    user = db.session.get(User, user_id)
-    if not user or user.founding_member:
-        return
-    if counter.current_count < 500 and not counter.closed:
-        counter.current_count += 1
+    """Assign founding member status if spots remain — atomic with row-level lock"""
+    from sqlalchemy import text as sql_text
+    try:
+        result = db.session.execute(
+            sql_text("SELECT id, current_count, closed FROM founding_counter WHERE id = 1 FOR UPDATE"),
+        )
+        row = result.fetchone()
+        if not row or row[2]:
+            return
+        current_count = row[1]
+        if current_count >= 500:
+            return
+
+        user = db.session.get(User, user_id)
+        if not user or user.founding_member:
+            return
+
+        new_count = current_count + 1
+        closed = new_count >= 500
+        db.session.execute(
+            sql_text("UPDATE founding_counter SET current_count = :cnt, closed = :closed, last_updated_at = NOW() WHERE id = 1"),
+            {'cnt': new_count, 'closed': closed}
+        )
         user.founding_member = True
-        user.founding_number = counter.current_count
-        if counter.current_count >= 500:
-            counter.closed = True
+        user.founding_number = new_count
         db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Founding assignment error: {e}")
 
 def _find_user_from_webhook(data_obj):
     """Find user by client_reference_id, metadata user_id, or customer id"""
@@ -1458,9 +1534,19 @@ def stripe_webhook():
         else:
             return jsonify({'error': 'Webhook signature required in production'}), 400
 
+        event_id = event.get('id', '')
         event_type = event.get('type', '')
         data_obj = event.get('data', {}).get('object', {})
-        logging.info(f'Stripe webhook: {event_type}')
+        logging.info(f'Stripe webhook: {event_type} (event_id={event_id})')
+
+        if event_id:
+            try:
+                db.session.add(ProcessedEvent(id=event_id, event_type=event_type))
+                db.session.flush()
+            except Exception:
+                db.session.rollback()
+                logging.info(f'Skipping duplicate webhook event: {event_id}')
+                return jsonify({'success': True, 'duplicate': True}), 200
 
         if event_type == 'checkout.session.completed':
             user_id = data_obj.get('client_reference_id') or data_obj.get('metadata', {}).get('user_id')
@@ -1571,7 +1657,10 @@ def stripe_webhook():
                     except Exception as e:
                         logging.error(f"Payment failed email error: {e}")
 
+        db.session.commit()
+
     except Exception as e:
+        db.session.rollback()
         logging.error(f'Webhook error: {e}')
         return jsonify({'error': str(e)}), 400
 
@@ -2124,8 +2213,11 @@ def update_notification_prefs():
 
 @app.route('/api/model/calibration')
 @app.route('/api/validation/detailed')
+@login_required
 def detailed_validation():
     """Check model calibration by confidence buckets - only forward predictions"""
+    if not current_user.is_pro:
+        return jsonify({'error': 'Pro subscription required', 'upgrade': True}), 403
     conn = get_db()
     cursor = conn.cursor()
     
@@ -2282,8 +2374,11 @@ def calculate_all_features(game_dict):
     }
 
 @app.route('/api/predictions')
+@login_required
 def get_predictions():
     """Get today's model predictions for upcoming games - with full 36-feature calculation"""
+    if not current_user.is_pro:
+        return jsonify({'error': 'Pro subscription required', 'upgrade': True}), 403
     import pickle
     import json
     import os
@@ -2564,8 +2659,11 @@ def get_stats():
     })
 
 @app.route('/api/recent-results')
+@login_required
 def get_recent_results():
     """Get recent settled predictions with accuracy stats"""
+    if not current_user.is_pro:
+        return jsonify({'error': 'Pro subscription required', 'upgrade': True}), 403
     conn = get_db()
     cursor = conn.cursor()
     

@@ -45,7 +45,16 @@ The API is structured around authentication, pick delivery, public statistics, s
   - Lifecycle emails: verification, trial expiring (2-day warning), trial expired, cancellation, payment failed
   - Scheduled jobs: check_expiring_trials (9 AM ET), expire_trials (12:15 AM ET)
   - Performance API shows only published picks record (not all model predictions)
-- **Security**: Secure, time-limited tokens for password resets and email verification, webhook signature verification for production.
+- **Security Hardening** (updated Feb 16, 2026):
+  - CORS restricted to sharppicks.ai domains only (+ dev domains in development)
+  - API endpoints /api/predictions, /api/recent-results, /api/model/calibration require @login_required + is_pro
+  - /api/performance stays public (aggregate published picks record only)
+  - Session invalidation on password reset via session_token (stored per-user, validated on every request)
+  - Webhook idempotency: ProcessedEvent table with insert-first pattern prevents duplicate Stripe event processing
+  - Atomic founding member assignment with PostgreSQL FOR UPDATE row-level lock
+  - Subscription reactivation endpoint: /api/subscriptions/reactivate for cancel_at_period_end users
+  - 'cancelling' status grants access until current_period_end expires
+  - Secure, time-limited tokens for password resets and email verification, webhook signature verification for production
 - **Time Zones**: All date logic is standardized to Eastern Time (America/New_York).
 - **Compliance**: Compliance disclaimers are integrated into the UI and API responses.
 - **Odds Integration**: Multi-book odds shopping, real sportsbook juice integration, and closing line value (CLV) tracking are central to the prediction and analysis.
