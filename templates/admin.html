@@ -941,10 +941,14 @@ async function sendTestPush() {
   btn.textContent = 'Sending...';
   result.textContent = '';
   try {
-    const res = await adminFetch('/api/admin/test-push', {
+    const hdrs = { 'Content-Type': 'application/json' };
+    if (adminToken) hdrs['X-Admin-Token'] = adminToken;
+    if (bearerToken) hdrs['Authorization'] = 'Bearer ' + bearerToken;
+    const res = await fetch('/api/admin/test-push', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, body })
+      credentials: 'include',
+      headers: hdrs,
+      body: JSON.stringify({ title: title, body: body })
     });
     const data = await res.json();
     if (res.ok) {
