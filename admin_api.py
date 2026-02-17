@@ -142,6 +142,43 @@ def update_user_role(user_id):
     })
 
 
+@admin_bp.route('/api/admin/upgrade-user', methods=['POST'])
+def upgrade_user_by_email():
+    secret = request.headers.get('X-Cron-Secret', '')
+    if secret != os.environ.get('CRON_SECRET', ''):
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json() or {}
+    email = data.get('email')
+    if not email:
+        return jsonify({'error': 'Email required'}), 400
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if 'is_premium' in data:
+        user.is_premium = bool(data['is_premium'])
+    if 'is_superuser' in data:
+        user.is_superuser = bool(data['is_superuser'])
+    if 'founding_member' in data:
+        user.founding_member = bool(data['founding_member'])
+    if 'founding_number' in data:
+        user.founding_number = data['founding_number']
+    if 'subscription_status' in data:
+        user.subscription_status = data['subscription_status']
+    db.session.commit()
+    return jsonify({
+        'success': True,
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'is_premium': user.is_premium,
+            'is_superuser': user.is_superuser,
+            'founding_member': user.founding_member,
+            'founding_number': user.founding_number,
+            'subscription_status': user.subscription_status
+        }
+    })
+
+
 @admin_bp.route('/api/admin/command-center')
 def command_center_data():
     admin, err_code = require_superuser()
