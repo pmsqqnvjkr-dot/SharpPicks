@@ -2492,6 +2492,113 @@ def update_notification_prefs():
     db.session.commit()
     return jsonify({'success': True, 'prefs': u.notification_prefs})
 
+@app.route('/api/user/fcm-token', methods=['POST'])
+def save_fcm_token():
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
+    data = request.get_json()
+    token = data.get('token', '').strip()
+    platform = data.get('platform', 'web')
+    if not token:
+        return jsonify({'error': 'Token required'}), 400
+    from models import FCMToken
+    existing = FCMToken.query.filter_by(fcm_token=token).first()
+    if existing:
+        existing.user_id = user.id
+        existing.last_seen_at = datetime.now()
+        existing.enabled = True
+    else:
+        new_token = FCMToken(user_id=user.id, fcm_token=token, platform=platform)
+        db.session.add(new_token)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/user/fcm-token', methods=['DELETE'])
+def delete_fcm_token():
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
+    data = request.get_json()
+    token = data.get('token', '').strip()
+    if not token:
+        return jsonify({'error': 'Token required'}), 400
+    from models import FCMToken
+    FCMToken.query.filter_by(user_id=user.id, fcm_token=token).delete()
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+def send_push_notification(user_id, title, body, data=None):
+    import json
+    import google.auth.transport.requests
+    from google.oauth2 import service_account
+    from models import FCMToken
+
+    tokens = FCMToken.query.filter_by(user_id=user_id, enabled=True).all()
+    if not tokens:
+        return 0
+
+    private_key = os.environ.get('FIREBASE_PRIVATE_KEY', '')
+    if not private_key:
+        logging.warning("FIREBASE_PRIVATE_KEY not set, cannot send push")
+        return 0
+
+    try:
+        service_info = json.loads(private_key)
+    except json.JSONDecodeError:
+        logging.error("Invalid FIREBASE_PRIVATE_KEY JSON")
+        return 0
+
+    credentials = service_account.Credentials.from_service_account_info(
+        service_info,
+        scopes=['https://www.googleapis.com/auth/firebase.messaging']
+    )
+    credentials.refresh(google.auth.transport.requests.Request())
+
+    project_id = service_info.get('project_id', 'sharp-picks')
+    url = f'https://fcm.googleapis.com/v1/projects/{project_id}/messages:send'
+    headers = {
+        'Authorization': f'Bearer {credentials.token}',
+        'Content-Type': 'application/json'
+    }
+
+    sent = 0
+    for t in tokens:
+        payload = {
+            'message': {
+                'token': t.fcm_token,
+                'notification': {'title': title, 'body': body}
+            }
+        }
+        if data:
+            payload['message']['data'] = {k: str(v) for k, v in data.items()}
+        try:
+            resp = requests.post(url, json=payload, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                sent += 1
+            elif resp.status_code == 404 or resp.status_code == 410:
+                t.enabled = False
+                db.session.commit()
+                logging.info(f"Disabled stale FCM token for user {user_id}")
+            else:
+                logging.warning(f"FCM send failed ({resp.status_code}): {resp.text[:200]}")
+        except Exception as e:
+            logging.error(f"FCM send error: {e}")
+    return sent
+
+
+def send_push_to_all(title, body, data=None, premium_only=False):
+    users = User.query.all()
+    if premium_only:
+        users = [u for u in users if u.is_premium or u.subscription_status in ('active', 'trial')]
+    total = 0
+    for u in users:
+        total += send_push_notification(u.id, title, body, data)
+    return total
+
+
 @app.route('/api/model/calibration')
 @app.route('/api/validation/detailed')
 def detailed_validation():
