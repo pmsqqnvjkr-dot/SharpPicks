@@ -5,7 +5,7 @@ import resend
 
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
 
-FROM_EMAIL = "Sharp Picks <no-reply@sharppicks.ai>"
+FROM_EMAIL = "Sharp Picks <info@sharppicks.ai>"
 FOUNDER_EMAIL = "Evan Cole <evan@sharppicks.ai>"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -398,6 +398,7 @@ def send_weekly_summary(to, first_name=None, stats=None):
         f"Weekly Summary | {record_str}" if picks_made > 0 else "Weekly Summary | All Pass Week",
         html,
         reply_to="evan@sharppicks.ai",
+        from_email=FOUNDER_EMAIL,
         attachments=attachments or None,
     )
 
