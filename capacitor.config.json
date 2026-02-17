@@ -1,20 +1,32 @@
 {
   "appId": "ai.sharppicks.app",
-  "appName": "Sharp Picks",
+  "appName": "SharpPicks",
   "webDir": "dist",
   "server": {
     "androidScheme": "https",
-    "iosScheme": "https"
+    "iosScheme": "https",
+    "url": "https://app.sharppicks.ai",
+    "cleartext": false
   },
   "plugins": {
     "SplashScreen": {
       "launchAutoHide": true,
       "backgroundColor": "#0A0D14",
-      "showSpinner": false
+      "showSpinner": false,
+      "launchShowDuration": 2000
     },
     "StatusBar": {
       "style": "Dark",
       "backgroundColor": "#0A0D14"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
     }
+  },
+  "ios": {
+    "contentInset": "always"
+  },
+  "android": {
+    "backgroundColor": "#0A0D14"
   }
 }

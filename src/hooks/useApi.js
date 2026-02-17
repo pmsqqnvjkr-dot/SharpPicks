@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 
-const API_BASE = '/api';
+const PROD_URL = 'https://app.sharppicks.ai';
+const API_BASE = Capacitor.isNativePlatform() ? PROD_URL + '/api' : '/api';
 const TOKEN_KEY = 'sp_auth_token';
 
 export function setAuthToken(token) {

@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { apiPost, apiGet, setAuthToken } from './useApi';
-import { requestNotificationPermission, getNotificationPermissionStatus } from '../firebase';
+import { requestNotificationPermission, getNotificationPermissionStatus, getNativePermissionStatus, isNative } from '../firebase';
 
 const AuthContext = createContext(null);
 
@@ -11,12 +11,16 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     checkAuth();
-    setPushStatus(getNotificationPermissionStatus());
+    (async () => {
+      const status = await getNativePermissionStatus();
+      setPushStatus(status);
+    })();
   }, []);
 
   const enablePush = async () => {
     const token = await requestNotificationPermission();
-    setPushStatus(getNotificationPermissionStatus());
+    const status = await getNativePermissionStatus();
+    setPushStatus(status);
     return !!token;
   };
 
@@ -82,7 +86,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    await apiPost('/auth/logout', {});
     setAuthToken(null);
     setUser(null);
   };
