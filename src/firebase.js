@@ -39,20 +39,27 @@ async function registerServiceWorker() {
 }
 
 async function requestNotificationPermission() {
-  if (!messaging) return null;
+  if (!messaging) {
+    console.warn("[Push] messaging not initialized");
+    return null;
+  }
   try {
     const permission = await Notification.requestPermission();
+    console.log("[Push] permission result:", permission);
     if (permission !== "granted") return null;
 
     const swReg = await registerServiceWorker();
+    console.log("[Push] SW registered:", !!swReg);
     const tokenOptions = { vapidKey: VAPID_KEY };
     if (swReg) tokenOptions.serviceWorkerRegistration = swReg;
 
     const fcmToken = await getToken(messaging, tokenOptions);
+    console.log("[Push] FCM token obtained:", !!fcmToken);
     if (fcmToken) {
       const authToken = getAuthToken();
+      console.log("[Push] auth token available:", !!authToken);
       if (authToken) {
-        await fetch('/api/user/fcm-token', {
+        const resp = await fetch('/api/user/fcm-token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -60,11 +67,12 @@ async function requestNotificationPermission() {
           },
           body: JSON.stringify({ token: fcmToken, platform: 'web' })
         });
+        console.log("[Push] token POST status:", resp.status);
       }
     }
     return fcmToken;
   } catch (err) {
-    console.error("FCM token error:", err);
+    console.error("[Push] FCM token error:", err);
     return null;
   }
 }
