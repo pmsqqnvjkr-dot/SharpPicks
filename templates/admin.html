@@ -636,6 +636,25 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     </div>
   </div>
 
+  <div class="panel">
+    <div class="panel-label">Push Notifications <span class="status-dot" id="push-health-dot"></span></div>
+    <div class="stat-row"><span class="label">Opt-in Rate</span><span class="value" id="push-opt-in">--</span></div>
+    <div class="stat-row"><span class="label">Enabled Tokens</span><span class="value" id="push-enabled">--</span></div>
+    <div class="stat-row"><span class="label">Unique Users</span><span class="value" id="push-unique-users">--</span></div>
+    <div class="stat-row"><span class="label">Active (24h)</span><span class="value" id="push-active-24h">--</span></div>
+    <div class="stat-row"><span class="label">Active (7d)</span><span class="value" id="push-active-7d">--</span></div>
+    <div class="stat-row"><span class="label">Stale (7d+)</span><span class="value" id="push-stale">--</span></div>
+    <div class="stat-row"><span class="label">Disabled</span><span class="value" id="push-disabled">--</span></div>
+    <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+      <div class="panel-label" style="font-size:10px;margin-bottom:4px">By Platform</div>
+      <div id="push-platforms"></div>
+    </div>
+    <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+      <div class="panel-label" style="font-size:10px;margin-bottom:4px">Registered Devices</div>
+      <div id="push-user-list" style="max-height:150px;overflow-y:auto"></div>
+    </div>
+  </div>
+
   <div class="panel wide-2">
     <div class="panel-label">External Services <span class="status-dot" id="health-overall-dot"></span></div>
     <div class="metric-sub" style="margin-bottom:8px" id="health-checked-at">Checking...</div>
@@ -950,6 +969,31 @@ async function loadDashboard() {
 
     document.getElementById('insights-total').textContent = d.insights.total;
     document.getElementById('insights-published').textContent = d.insights.published;
+
+    if (d.push) {
+      const p = d.push;
+      document.getElementById('push-opt-in').textContent = p.opt_in_pct + '%';
+      document.getElementById('push-enabled').textContent = p.enabled;
+      document.getElementById('push-unique-users').textContent = p.unique_users + ' / ' + p.total_users;
+      document.getElementById('push-active-24h').textContent = p.active_24h;
+      document.getElementById('push-active-7d').textContent = p.active_7d;
+      document.getElementById('push-stale').textContent = p.stale;
+      document.getElementById('push-disabled').textContent = p.disabled;
+
+      const dot = document.getElementById('push-health-dot');
+      if (p.enabled > 0) { dot.classList.add('ok'); }
+      else { dot.classList.add('warn'); }
+
+      const plat = document.getElementById('push-platforms');
+      plat.innerHTML = Object.entries(p.by_platform).map(([k, v]) =>
+        `<div class="stat-row"><span class="label">${k}</span><span class="value">${v}</span></div>`
+      ).join('') || '<div class="metric-sub">No tokens yet</div>';
+
+      const ul = document.getElementById('push-user-list');
+      ul.innerHTML = p.user_tokens.map(t =>
+        `<div class="stat-row" style="font-size:10px"><span class="label">${t.user_email}</span><span class="value" style="font-size:9px">${t.platform} · ${t.last_seen ? new Date(t.last_seen).toLocaleDateString() : 'new'}</span></div>`
+      ).join('') || '<div class="metric-sub">No devices registered</div>';
+    }
 
     document.getElementById('loader').classList.add('hidden');
   } catch (err) {

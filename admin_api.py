@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog
+from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog, FCMToken
 from datetime import datetime, timedelta
 from sqlalchemy import func, text
 from zoneinfo import ZoneInfo
@@ -303,8 +303,56 @@ def command_center_data():
             'total': len(insights),
             'published': len(published_insights),
         },
+        'push': get_push_token_stats(),
         'timestamp': now_et.strftime('%b %d, %Y · %-I:%M:%S %p EST'),
     })
+
+
+def get_push_token_stats():
+    all_tokens = FCMToken.query.all()
+    enabled = [t for t in all_tokens if t.enabled]
+    disabled = [t for t in all_tokens if not t.enabled]
+    unique_users = len(set(t.user_id for t in enabled))
+    total_users = User.query.count()
+
+    now = datetime.now()
+    active_24h = [t for t in enabled if t.last_seen_at and (now - t.last_seen_at).total_seconds() < 86400]
+    active_7d = [t for t in enabled if t.last_seen_at and (now - t.last_seen_at).total_seconds() < 604800]
+    stale = [t for t in enabled if not t.last_seen_at or (now - t.last_seen_at).total_seconds() >= 604800]
+
+    by_platform = {}
+    for t in enabled:
+        p = t.platform or 'web'
+        by_platform[p] = by_platform.get(p, 0) + 1
+
+    user_tokens = []
+    user_map = {}
+    for t in enabled:
+        if t.user_id not in user_map:
+            u = User.query.get(t.user_id)
+            user_map[t.user_id] = u
+        u = user_map[t.user_id]
+        user_tokens.append({
+            'user_email': u.email if u else 'unknown',
+            'user_name': u.first_name if u else '',
+            'platform': t.platform or 'web',
+            'last_seen': t.last_seen_at.isoformat() if t.last_seen_at else None,
+            'created_at': t.created_at.isoformat() if t.created_at else None,
+        })
+
+    return {
+        'total_tokens': len(all_tokens),
+        'enabled': len(enabled),
+        'disabled': len(disabled),
+        'unique_users': unique_users,
+        'total_users': total_users,
+        'opt_in_pct': round(unique_users / total_users * 100, 1) if total_users > 0 else 0,
+        'active_24h': len(active_24h),
+        'active_7d': len(active_7d),
+        'stale': len(stale),
+        'by_platform': by_platform,
+        'user_tokens': user_tokens,
+    }
 
 
 @admin_bp.route('/api/admin/health-checks')
