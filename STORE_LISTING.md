@@ -26,8 +26,7 @@ SharpPicks is not a sportsbook. We do not accept wagers or facilitate betting. A
 sports analytics, NBA, basketball, model picks, data-driven, discipline, selectivity, odds comparison, spread analysis, betting analytics
 
 ## Category
-Sports (Primary)
-Entertainment (Secondary)
+Sports
 
 ## Content Rating
 17+ (Simulated Gambling / Infrequent)
