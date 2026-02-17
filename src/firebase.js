@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
 import { getAuthToken } from "./hooks/useApi";
 
 const firebaseConfig = {
@@ -18,12 +18,33 @@ const VAPID_KEY = "BOLnIRohw31kaiPA9p9bvVLfepnNRJVP8An0SanQB8hZq9s0qInTTV9-LgVh7
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 
-let messaging = null;
-try {
-  messaging = getMessaging(app);
-} catch (e) {
-  console.warn("Firebase Messaging not supported in this browser");
+let messagingInstance = null;
+let messagingReady = false;
+
+async function initMessaging() {
+  try {
+    const supported = await isSupported();
+    console.log("[Push] isSupported:", supported);
+    if (supported) {
+      messagingInstance = getMessaging(app);
+      messagingReady = true;
+      onMessage(messagingInstance, (payload) => {
+        const { title, body } = payload.notification || {};
+        if (title) {
+          new Notification(title, {
+            body,
+            icon: "/icon-192x192.png",
+            badge: "/favicon-32x32.png"
+          });
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("[Push] messaging init failed:", e);
+  }
 }
+
+initMessaging();
 
 async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
@@ -31,7 +52,7 @@ async function registerServiceWorker() {
       const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       return reg;
     } catch (err) {
-      console.error("SW registration failed:", err);
+      console.error("[Push] SW registration failed:", err);
       return null;
     }
   }
@@ -39,9 +60,16 @@ async function registerServiceWorker() {
 }
 
 async function requestNotificationPermission() {
-  if (!messaging) {
-    console.warn("[Push] messaging not initialized");
-    return null;
+  if (!messagingReady || !messagingInstance) {
+    const supported = await isSupported();
+    if (!supported) {
+      console.warn("[Push] messaging not supported on this device/browser");
+      return null;
+    }
+    if (!messagingInstance) {
+      messagingInstance = getMessaging(app);
+      messagingReady = true;
+    }
   }
   try {
     const permission = await Notification.requestPermission();
@@ -53,7 +81,7 @@ async function requestNotificationPermission() {
     const tokenOptions = { vapidKey: VAPID_KEY };
     if (swReg) tokenOptions.serviceWorkerRegistration = swReg;
 
-    const fcmToken = await getToken(messaging, tokenOptions);
+    const fcmToken = await getToken(messagingInstance, tokenOptions);
     console.log("[Push] FCM token obtained:", !!fcmToken);
     if (fcmToken) {
       const authToken = getAuthToken();
@@ -65,7 +93,7 @@ async function requestNotificationPermission() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authToken}`
           },
-          body: JSON.stringify({ token: fcmToken, platform: 'web' })
+          body: JSON.stringify({ token: fcmToken, platform: navigator.userAgent.includes('iPhone') ? 'ios' : 'web' })
         });
         console.log("[Push] token POST status:", resp.status);
       }
@@ -77,17 +105,9 @@ async function requestNotificationPermission() {
   }
 }
 
-if (messaging) {
-  onMessage(messaging, (payload) => {
-    const { title, body } = payload.notification || {};
-    if (title) {
-      new Notification(title, {
-        body,
-        icon: "/icon-192x192.png",
-        badge: "/favicon-32x32.png"
-      });
-    }
-  });
+function getNotificationPermissionStatus() {
+  if (!('Notification' in window)) return 'unsupported';
+  return Notification.permission;
 }
 
-export { app, analytics, messaging, requestNotificationPermission };
+export { app, analytics, messagingInstance as messaging, requestNotificationPermission, getNotificationPermissionStatus };

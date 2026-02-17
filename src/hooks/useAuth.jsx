@@ -1,16 +1,24 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { apiPost, apiGet, setAuthToken } from './useApi';
-import { requestNotificationPermission } from '../firebase';
+import { requestNotificationPermission, getNotificationPermissionStatus } from '../firebase';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pushStatus, setPushStatus] = useState('default');
 
   useEffect(() => {
     checkAuth();
+    setPushStatus(getNotificationPermissionStatus());
   }, []);
+
+  const enablePush = async () => {
+    const token = await requestNotificationPermission();
+    setPushStatus(getNotificationPermissionStatus());
+    return !!token;
+  };
 
   const checkAuth = async () => {
     try {
@@ -18,10 +26,8 @@ export function AuthProvider({ children }) {
       if (data && data.authenticated && data.user) {
         if (data.token) setAuthToken(data.token);
         setUser(data.user);
-        setTimeout(() => requestNotificationPermission().catch(() => {}), 2000);
       } else if (data && data.id) {
         setUser(data);
-        setTimeout(() => requestNotificationPermission().catch(() => {}), 2000);
       } else {
         setUser(null);
       }
@@ -82,7 +88,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth, resendVerification }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth, resendVerification, enablePush, pushStatus }}>
       {children}
     </AuthContext.Provider>
   );

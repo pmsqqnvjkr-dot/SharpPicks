@@ -3,7 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { apiGet, apiPost } from '../../hooks/useApi';
 
 export default function NotificationsScreen({ onBack }) {
-  const { user } = useAuth();
+  const { user, enablePush, pushStatus } = useAuth();
   const [prefs, setPrefs] = useState({
     pick_alert: true,
     no_action: false,
@@ -12,6 +12,8 @@ export default function NotificationsScreen({ onBack }) {
   });
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushResult, setPushResult] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -76,6 +78,77 @@ export default function NotificationsScreen({ onBack }) {
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center' }}>
               Sign in to save your notification preferences.
             </p>
+          </div>
+        )}
+
+        {user && pushStatus !== 'granted' && (
+          <div style={{
+            borderRadius: '16px', padding: '20px',
+            marginBottom: '16px', border: '1px solid var(--stroke-subtle)',
+            backgroundColor: 'var(--surface-1)', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '28px', marginBottom: '8px' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary)" strokeWidth="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            </div>
+            <div style={{
+              fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)',
+              marginBottom: '4px',
+            }}>Enable Push Notifications</div>
+            <div style={{
+              fontSize: '12px', color: 'var(--text-tertiary)',
+              marginBottom: '16px', lineHeight: '1.5',
+            }}>
+              {pushStatus === 'denied'
+                ? 'Notifications are blocked. Please enable them in your device settings.'
+                : 'Get instant alerts when picks are published and results are graded.'}
+            </div>
+            {pushStatus !== 'denied' && (
+              <button
+                onClick={async () => {
+                  setPushLoading(true);
+                  setPushResult(null);
+                  const success = await enablePush();
+                  setPushLoading(false);
+                  setPushResult(success ? 'enabled' : 'failed');
+                }}
+                disabled={pushLoading}
+                style={{
+                  backgroundColor: 'var(--blue-primary)', color: '#fff',
+                  border: 'none', borderRadius: '10px', padding: '10px 24px',
+                  fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                  opacity: pushLoading ? 0.6 : 1,
+                }}
+              >
+                {pushLoading ? 'Enabling...' : 'Enable Notifications'}
+              </button>
+            )}
+            {pushResult === 'enabled' && (
+              <div style={{ fontSize: '12px', color: '#22C55E', marginTop: '8px' }}>
+                Notifications enabled successfully
+              </div>
+            )}
+            {pushResult === 'failed' && (
+              <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
+                Could not enable — your browser may not support push notifications
+              </div>
+            )}
+          </div>
+        )}
+
+        {user && pushStatus === 'granted' && (
+          <div style={{
+            borderRadius: '12px', padding: '12px 16px', marginBottom: '12px',
+            border: '1px solid rgba(34, 197, 94, 0.2)',
+            backgroundColor: 'rgba(34, 197, 94, 0.06)',
+            display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span style={{ fontSize: '13px', color: '#22C55E' }}>Push notifications enabled</span>
           </div>
         )}
 
