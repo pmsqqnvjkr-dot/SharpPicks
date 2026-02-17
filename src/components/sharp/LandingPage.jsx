@@ -279,6 +279,19 @@ export default function LandingPage() {
         </button>
       </div>
 
+      <div style={{
+        textAlign: 'center', padding: '24px 20px 32px',
+        borderTop: '1px solid var(--stroke-subtle)',
+        marginTop: '32px',
+      }}>
+        <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: '0 0 6px', lineHeight: '1.6' }}>
+          Sharp Picks provides informational content only. Not financial advice. Please gamble responsibly.
+        </p>
+        <a href="mailto:support@sharppicks.ai" style={{
+          fontSize: '12px', color: 'var(--text-secondary)', textDecoration: 'none',
+        }}>support@sharppicks.ai</a>
+      </div>
+
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} initialMode={authMode} initialAccountType={accountType} />}
     </div>
   );

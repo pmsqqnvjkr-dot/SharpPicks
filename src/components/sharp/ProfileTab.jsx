@@ -380,6 +380,18 @@ function LegalSection() {
           </svg>
         </a>
       ))}
+      <a href="mailto:support@sharppicks.ai" style={{
+        width: '100%', display: 'flex', justifyContent: 'space-between',
+        alignItems: 'center', padding: '14px 20px', background: 'none',
+        textDecoration: 'none',
+        borderTop: '1px solid var(--stroke-subtle)',
+        cursor: 'pointer', textAlign: 'left',
+      }}>
+        <span style={{
+          fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
+        }}>Contact Us</span>
+        <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>support@sharppicks.ai</span>
+      </a>
       <div style={{
         padding: '12px 20px 14px', borderTop: '1px solid var(--stroke-subtle)',
       }}>
