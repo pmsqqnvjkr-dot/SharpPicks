@@ -1363,8 +1363,10 @@ def register():
         from email_service import send_verification_email
         s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
         token = s.dumps(user.id, salt='email-verify')
-        domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
-        base = f"https://{domains.split(',')[0]}"
+        base = os.environ.get('APP_BASE_URL', '').rstrip('/')
+        if not base:
+            domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+            base = f"https://{domains.split(',')[0]}"
         verify_url = f"{base}/api/auth/verify-email?token={token}"
         send_verification_email(user.email, verify_url, user.first_name)
     except Exception as e:
@@ -1427,8 +1429,10 @@ def resend_verification():
         from email_service import send_verification_email
         s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
         token = s.dumps(user.id, salt='email-verify')
-        domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
-        base = f"https://{domains.split(',')[0]}"
+        base = os.environ.get('APP_BASE_URL', '').rstrip('/')
+        if not base:
+            domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+            base = f"https://{domains.split(',')[0]}"
         verify_url = f"{base}/api/auth/verify-email?token={token}"
         send_verification_email(user.email, verify_url, user.first_name)
     except Exception as e:
