@@ -14,7 +14,7 @@ print(f"BOOT: pid={os.getpid()} python={sys.version_info[:2]} PORT={os.environ.g
 log_level = logging.INFO if os.environ.get("REPLIT_DEPLOYMENT") == "1" else logging.DEBUG
 logging.basicConfig(level=log_level)
 
-from flask import Flask, jsonify, Response, session, request, redirect
+from flask import Flask, jsonify, Response, session, request, redirect, send_from_directory
 
 app = Flask(__name__, static_folder='dist', static_url_path='/static-disabled')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
@@ -3177,6 +3177,11 @@ def admin_users():
             'created_at': u.created_at.isoformat() if u.created_at else None,
         } for u in users]
     })
+
+@app.route('/firebase-messaging-sw.js')
+def firebase_sw():
+    dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
+    return send_from_directory(dist_dir, 'firebase-messaging-sw.js')
 
 @app.route('/<path:path>')
 def serve_spa(path):
