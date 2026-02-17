@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { getAuthToken } from "./hooks/useApi";
 
 const firebaseConfig = {
@@ -16,40 +16,50 @@ const firebaseConfig = {
 const VAPID_KEY = "BOLnIRohw31kaiPA9p9bvVLfepnNRJVP8An0SanQB8hZq9s0qInTTV9-LgVh77iyRr0HGtAe09luMvibSNVa0pQ";
 
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+let analytics = null;
+try { analytics = getAnalytics(app); } catch (e) {}
+
+function canUseMessaging() {
+  if (typeof window === 'undefined') return false;
+  const hasNotification = 'Notification' in window;
+  const hasSW = 'serviceWorker' in navigator;
+  const hasIDB = 'indexedDB' in window;
+  console.log("[Push] capabilities:", { hasNotification, hasSW, hasIDB });
+  return hasNotification && hasSW && hasIDB;
+}
 
 let messagingInstance = null;
-let messagingReady = false;
 
-async function initMessaging() {
+function getOrInitMessaging() {
+  if (messagingInstance) return messagingInstance;
+  if (!canUseMessaging()) return null;
   try {
-    const supported = await isSupported();
-    console.log("[Push] isSupported:", supported);
-    if (supported) {
-      messagingInstance = getMessaging(app);
-      messagingReady = true;
-      onMessage(messagingInstance, (payload) => {
-        const { title, body } = payload.notification || {};
-        if (title) {
-          new Notification(title, {
-            body,
-            icon: "/icon-192x192.png",
-            badge: "/favicon-32x32.png"
-          });
-        }
-      });
-    }
+    messagingInstance = getMessaging(app);
+    console.log("[Push] messaging initialized");
+    onMessage(messagingInstance, (payload) => {
+      const { title, body } = payload.notification || {};
+      if (title) {
+        new Notification(title, {
+          body,
+          icon: "/icon-192x192.png",
+          badge: "/favicon-32x32.png"
+        });
+      }
+    });
+    return messagingInstance;
   } catch (e) {
-    console.warn("[Push] messaging init failed:", e);
+    console.warn("[Push] messaging init failed:", e.message);
+    return null;
   }
 }
 
-initMessaging();
+getOrInitMessaging();
 
 async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     try {
       const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      console.log("[Push] SW registered, scope:", reg.scope);
       return reg;
     } catch (err) {
       console.error("[Push] SW registration failed:", err);
@@ -60,16 +70,10 @@ async function registerServiceWorker() {
 }
 
 async function requestNotificationPermission() {
-  if (!messagingReady || !messagingInstance) {
-    const supported = await isSupported();
-    if (!supported) {
-      console.warn("[Push] messaging not supported on this device/browser");
-      return null;
-    }
-    if (!messagingInstance) {
-      messagingInstance = getMessaging(app);
-      messagingReady = true;
-    }
+  const msg = getOrInitMessaging();
+  if (!msg) {
+    console.warn("[Push] messaging not available on this device");
+    return null;
   }
   try {
     const permission = await Notification.requestPermission();
@@ -77,30 +81,39 @@ async function requestNotificationPermission() {
     if (permission !== "granted") return null;
 
     const swReg = await registerServiceWorker();
-    console.log("[Push] SW registered:", !!swReg);
-    const tokenOptions = { vapidKey: VAPID_KEY };
-    if (swReg) tokenOptions.serviceWorkerRegistration = swReg;
+    console.log("[Push] SW ready:", !!swReg);
+    if (!swReg) {
+      console.error("[Push] no service worker registration — cannot get token");
+      return null;
+    }
 
-    const fcmToken = await getToken(messagingInstance, tokenOptions);
-    console.log("[Push] FCM token obtained:", !!fcmToken);
+    const fcmToken = await getToken(msg, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: swReg
+    });
+    console.log("[Push] FCM token obtained:", fcmToken ? fcmToken.substring(0, 20) + "..." : "null");
+
     if (fcmToken) {
       const authToken = getAuthToken();
       console.log("[Push] auth token available:", !!authToken);
       if (authToken) {
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
         const resp = await fetch('/api/user/fcm-token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authToken}`
           },
-          body: JSON.stringify({ token: fcmToken, platform: navigator.userAgent.includes('iPhone') ? 'ios' : 'web' })
+          body: JSON.stringify({ token: fcmToken, platform: isIOS ? 'ios' : 'web' })
         });
         console.log("[Push] token POST status:", resp.status);
+        const result = await resp.json();
+        console.log("[Push] token POST result:", result);
       }
     }
     return fcmToken;
   } catch (err) {
-    console.error("[Push] FCM token error:", err);
+    console.error("[Push] error:", err.message || err);
     return null;
   }
 }
