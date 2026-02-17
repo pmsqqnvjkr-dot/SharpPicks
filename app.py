@@ -2569,22 +2569,31 @@ def send_push_notification(user_id, title, body, data=None):
     if not tokens:
         return 0
 
-    private_key = os.environ.get('FIREBASE_PRIVATE_KEY', '')
-    if not private_key:
-        logging.warning("FIREBASE_PRIVATE_KEY not set, cannot send push")
-        return 0
+    service_info = None
+    sa_file = os.path.join(os.path.dirname(__file__), 'firebase-service-account.json')
+    if os.path.exists(sa_file):
+        try:
+            with open(sa_file) as f:
+                service_info = json.load(f)
+            logging.debug("Loaded Firebase credentials from file")
+        except Exception as e:
+            logging.error(f"Failed to load firebase-service-account.json: {e}")
 
-    try:
-        pk = private_key.strip()
-        if pk.startswith("'") and pk.endswith("'"):
-            pk = pk[1:-1]
-        elif pk.startswith('"') and pk.endswith('"'):
-            pk = pk[1:-1]
-        pk = pk.replace('\n', '\\n') if '\\n' not in pk and '\n' in pk else pk
-        service_info = json.loads(pk)
-    except json.JSONDecodeError as e:
-        logging.error(f"Invalid FIREBASE_PRIVATE_KEY JSON: {e} (first 80 chars: {private_key[:80]})")
-        return 0
+    if not service_info:
+        private_key = os.environ.get('FIREBASE_PRIVATE_KEY', '')
+        if not private_key:
+            logging.warning("FIREBASE_PRIVATE_KEY not set and no service account file found")
+            return 0
+        try:
+            pk = private_key.strip()
+            if pk.startswith("'") and pk.endswith("'"):
+                pk = pk[1:-1]
+            elif pk.startswith('"') and pk.endswith('"'):
+                pk = pk[1:-1]
+            service_info = json.loads(pk)
+        except json.JSONDecodeError as e:
+            logging.error(f"Invalid FIREBASE_PRIVATE_KEY JSON: {e}")
+            return 0
 
     credentials = service_account.Credentials.from_service_account_info(
         service_info,
