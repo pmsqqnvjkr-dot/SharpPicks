@@ -779,3 +779,16 @@ def retro_calibrate():
             'qualified_record': f"{sum(1 for r in results if r['would_qualify'] and r['result'] == 'win')}-{sum(1 for r in results if r['would_qualify'] and r['result'] == 'loss')}",
         }
     })
+
+
+@admin_bp.route('/test-push', methods=['POST'])
+def test_push():
+    user, err = require_superuser()
+    if err:
+        return jsonify({'error': 'Unauthorized'}), err
+    from app import send_push_notification
+    data = request.get_json(silent=True) or {}
+    title = data.get('title', 'SharpPicks Test')
+    body = data.get('body', 'Push notifications are working.')
+    sent = send_push_notification(user.id, title, body)
+    return jsonify({'sent': sent})
