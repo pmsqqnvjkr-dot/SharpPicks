@@ -1155,6 +1155,14 @@ def log_cron(job_name, fn):
             db.session.commit()
         except Exception:
             db.session.rollback()
+        try:
+            send_admin_alert(
+                f"Cron Failed: {job_name}",
+                f"{job_name} failed after {dur}ms: {str(e)[:200]}",
+                {'job': job_name, 'error': str(e)[:200]}
+            )
+        except Exception:
+            logging.error(f"Failed to send admin alert for cron error: {job_name}")
         return jsonify({'status': 'error', 'job': job_name, 'message': str(e)}), 500
 
 
@@ -1936,12 +1944,26 @@ def stripe_webhook():
                         send_payment_failed_email(user.email, user.first_name)
                     except Exception as e:
                         logging.error(f"Payment failed email error: {e}")
+                    try:
+                        send_admin_alert(
+                            "Payment Failed",
+                            f"Payment failed for {user.email} ({user.subscription_plan})",
+                        )
+                    except Exception:
+                        pass
 
         db.session.commit()
 
     except Exception as e:
         db.session.rollback()
         logging.error(f'Webhook error: {e}')
+        try:
+            send_admin_alert(
+                "Stripe Webhook Error",
+                f"Webhook processing failed: {str(e)[:200]}",
+            )
+        except Exception:
+            pass
         return jsonify({'error': str(e)}), 400
 
     return jsonify({'success': True})
@@ -2603,6 +2625,20 @@ def send_push_to_all(title, body, data=None, premium_only=False):
     total = 0
     for u in users:
         total += send_push_notification(u.id, title, body, data)
+    return total
+
+
+def send_admin_alert(title, body, data=None):
+    admins = User.query.filter_by(is_superuser=True).all()
+    total = 0
+    alert_data = data or {}
+    alert_data['type'] = 'admin_alert'
+    for admin in admins:
+        total += send_push_notification(admin.id, f"[Admin] {title}", body, alert_data)
+    if total > 0:
+        logging.info(f"Admin alert sent to {total} device(s): {title}")
+    else:
+        logging.warning(f"Admin alert could not be delivered (no admin tokens): {title}")
     return total
 
 
