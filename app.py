@@ -63,6 +63,7 @@ from flask_login import LoginManager, login_required, current_user, login_user, 
 from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3
 import subprocess
+import requests as http_requests
 from datetime import datetime, timedelta
 
 from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent, CronLog
@@ -2473,24 +2474,22 @@ def delete_bet(bet_id):
 
 @app.route('/api/user/notifications', methods=['GET'])
 def get_notification_prefs():
-    user = get_current_user_from_session()
+    user = get_current_user_obj()
     if not user:
         return jsonify({'error': 'Not authenticated'}), 401
-    u = User.query.get(user['id'])
-    return jsonify({'prefs': u.notification_prefs or {
+    return jsonify({'prefs': user.notification_prefs or {
         'pick_alert': True, 'no_action': False, 'outcome': True, 'weekly_summary': True
     }})
 
 @app.route('/api/user/notifications', methods=['POST'])
 def update_notification_prefs():
-    user = get_current_user_from_session()
+    user = get_current_user_obj()
     if not user:
         return jsonify({'error': 'Not authenticated'}), 401
     data = request.get_json()
-    u = User.query.get(user['id'])
-    u.notification_prefs = data.get('prefs', u.notification_prefs)
+    user.notification_prefs = data.get('prefs', user.notification_prefs)
     db.session.commit()
-    return jsonify({'success': True, 'prefs': u.notification_prefs})
+    return jsonify({'success': True, 'prefs': user.notification_prefs})
 
 @app.route('/api/user/fcm-token', methods=['POST'])
 def save_fcm_token():
@@ -2575,7 +2574,7 @@ def send_push_notification(user_id, title, body, data=None):
         if data:
             payload['message']['data'] = {k: str(v) for k, v in data.items()}
         try:
-            resp = requests.post(url, json=payload, headers=headers, timeout=10)
+            resp = http_requests.post(url, json=payload, headers=headers, timeout=10)
             if resp.status_code == 200:
                 sent += 1
             elif resp.status_code == 404 or resp.status_code == 410:
