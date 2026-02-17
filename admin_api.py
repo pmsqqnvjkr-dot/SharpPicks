@@ -786,9 +786,29 @@ def test_push():
     user, err = require_superuser()
     if err:
         return jsonify({'error': 'Unauthorized'}), err
-    from app import send_push_notification
+    import json as _json
+    from models import FCMToken
     data = request.get_json(silent=True) or {}
     title = data.get('title', 'SharpPicks Test')
     body = data.get('body', 'Push notifications are working.')
+
+    tokens = FCMToken.query.filter_by(user_id=user.id, enabled=True).all()
+    if not tokens:
+        return jsonify({'error': f'No enabled FCM tokens for your account ({user.email})', 'sent': 0}), 400
+
+    pk = os.environ.get('FIREBASE_PRIVATE_KEY', '')
+    if not pk:
+        return jsonify({'error': 'FIREBASE_PRIVATE_KEY not set', 'sent': 0}), 500
+    try:
+        test_pk = pk.strip()
+        if test_pk.startswith("'") and test_pk.endswith("'"):
+            test_pk = test_pk[1:-1]
+        elif test_pk.startswith('"') and test_pk.endswith('"'):
+            test_pk = test_pk[1:-1]
+        _json.loads(test_pk)
+    except _json.JSONDecodeError as e:
+        return jsonify({'error': f'FIREBASE_PRIVATE_KEY invalid JSON: {str(e)[:100]}', 'sent': 0}), 500
+
+    from app import send_push_notification
     sent = send_push_notification(user.id, title, body)
     return jsonify({'sent': sent})

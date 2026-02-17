@@ -2575,9 +2575,15 @@ def send_push_notification(user_id, title, body, data=None):
         return 0
 
     try:
-        service_info = json.loads(private_key)
-    except json.JSONDecodeError:
-        logging.error("Invalid FIREBASE_PRIVATE_KEY JSON")
+        pk = private_key.strip()
+        if pk.startswith("'") and pk.endswith("'"):
+            pk = pk[1:-1]
+        elif pk.startswith('"') and pk.endswith('"'):
+            pk = pk[1:-1]
+        pk = pk.replace('\n', '\\n') if '\\n' not in pk and '\n' in pk else pk
+        service_info = json.loads(pk)
+    except json.JSONDecodeError as e:
+        logging.error(f"Invalid FIREBASE_PRIVATE_KEY JSON: {e} (first 80 chars: {private_key[:80]})")
         return 0
 
     credentials = service_account.Credentials.from_service_account_info(
