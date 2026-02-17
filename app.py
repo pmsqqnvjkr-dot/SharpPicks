@@ -2580,20 +2580,37 @@ def send_push_notification(user_id, title, body, data=None):
             logging.error(f"Failed to load firebase-service-account.json: {e}")
 
     if not service_info:
-        private_key = os.environ.get('FIREBASE_PRIVATE_KEY', '')
-        if not private_key:
+        raw_key = os.environ.get('FIREBASE_PRIVATE_KEY', '')
+        if not raw_key:
             logging.warning("FIREBASE_PRIVATE_KEY not set and no service account file found")
             return 0
+        pk = raw_key.strip()
+        if pk.startswith("'") and pk.endswith("'"):
+            pk = pk[1:-1]
+        elif pk.startswith('"') and pk.endswith('"'):
+            pk = pk[1:-1]
         try:
-            pk = private_key.strip()
-            if pk.startswith("'") and pk.endswith("'"):
-                pk = pk[1:-1]
-            elif pk.startswith('"') and pk.endswith('"'):
-                pk = pk[1:-1]
             service_info = json.loads(pk)
-        except json.JSONDecodeError as e:
-            logging.error(f"Invalid FIREBASE_PRIVATE_KEY JSON: {e}")
-            return 0
+        except json.JSONDecodeError:
+            pk_pem = pk.replace('\\n', '\n')
+            if not pk_pem.startswith('-----BEGIN'):
+                pk_pem = '-----BEGIN PRIVATE KEY-----\n' + pk_pem
+            if not pk_pem.strip().endswith('-----END PRIVATE KEY-----'):
+                pk_pem = pk_pem.rstrip('\n') + '\n-----END PRIVATE KEY-----\n'
+            service_info = {
+                "type": "service_account",
+                "project_id": "sharp-picks",
+                "private_key_id": "e6289e4f161c78502bdddd57031094b7cf0f123e",
+                "private_key": pk_pem,
+                "client_email": "firebase-adminsdk-fbsvc@sharp-picks.iam.gserviceaccount.com",
+                "client_id": "116349919118145525435",
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40sharp-picks.iam.gserviceaccount.com",
+                "universe_domain": "googleapis.com"
+            }
+            logging.info("Reconstructed Firebase service account from FIREBASE_PRIVATE_KEY")
 
     credentials = service_account.Credentials.from_service_account_info(
         service_info,
