@@ -1,0 +1,120 @@
+What Needs To Be True For iOS + Android
+
+1. You Need A Native Shell (Wrapper)
+
+Your site must be wrapped in:
+	•	React Native
+	•	OR Flutter
+	•	OR simplest: Capacitor (Ionic)
+
+For you?
+
+👉 Capacitor wrapper around your existing app
+Fastest path. Keeps everything web-based.
+
+It turns:
+https://app.sharppicks.ai
+into a real .ipa (iOS) and .aab (Android) file.
+
+⸻
+
+2. Apple Requirements
+
+To ship on iOS:
+
+You must have:
+	•	Apple Developer Account ($99/year)
+	•	Privacy Policy page
+	•	Terms of Service
+	•	Proper push notification setup (APNs via Firebase)
+	•	No gambling language in store listing
+
+Critical:
+
+Apple is very sensitive to:
+	•	Sports betting
+	•	Gambling monetization
+	•	Performance claims
+
+You are fine if:
+	•	You position as sports analytics
+	•	No sportsbook links
+	•	No “bet now”
+	•	No affiliate tracking
+	•	Clear disclaimer
+
+Your positioning is already smart:
+“Model picks”
+“Selective by design”
+“Process over hype”
+
+Keep it that way.
+
+⸻
+
+3. Google Play Requirements
+
+Google is slightly more forgiving.
+
+You’ll need:
+	•	Google Play Developer account ($25 one-time)
+	•	Content rating form
+	•	Data safety form
+	•	Privacy policy
+	•	Proper push setup (Firebase already good)
+
+Android is easier approval-wise.
+
+⸻
+
+4. Compliance Layer (Very Important)
+
+You must add:
+
+In-app disclaimer page:
+
+SharpPicks provides sports analytics and model-based insights. Not financial advice. Not a sportsbook.
+
+No emojis.
+No hype.
+No “guaranteed.”
+
+You’re already positioned correctly.
+
+⸻
+
+5. Technical Checklist
+
+Before submission:
+
+Must be true:
+	•	HTTPS everywhere
+	•	No console errors
+	•	No broken routes
+	•	Push works on:
+	•	iOS (native)
+	•	Android
+	•	App icon sizes correct
+	•	Splash screen
+	•	Offline fallback page
+	•	Version number system
+
+⸻
+
+6. Store Listing Assets You’ll Need
+
+For both stores:
+	•	1024x1024 App Icon
+	•	6–8 screenshots
+	•	Short description (80 char)
+	•	Long description
+	•	Support email
+	•	Privacy policy URL
+	•	Marketing URL
+
+You already have:
+	•	Clean branding
+	•	Strong tagline
+	•	Professional tone
+
+That’s huge.
