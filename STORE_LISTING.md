@@ -1,35 +1,49 @@
-# SharpPicks — App Store Listing Copy
+# SharpPicks — Final Store Listing (App Store + Play Ready)
 
-## Short Description (80 characters)
-Disciplined NBA analytics. One pick per day, maximum. Process over hype.
+## Short Description (72 characters)
+Disciplined NBA analytics. One pick per day. Process over hype.
 
 ## Long Description
 
-SharpPicks is a sports analytics platform built on discipline and selectivity.
+SharpPicks is a disciplined NBA analytics platform built on selectivity and transparency.
 
-Our proprietary model analyzes NBA games using 56 statistical features, real-time odds from multiple sportsbooks, and margin-based cover probability calculations. When the model finds sufficient edge, it publishes one pick. When it doesn't, it passes. Most days are pass days — and that's by design.
+Our proprietary model analyzes 50+ statistical inputs, real-time market data, and cover probability calculations to identify measurable edge. When sufficient edge exists, one pick is published. When it does not, the model passes.
 
-What you get:
+Most days are pass days. That is by design.
+
+What You Get
+
 - Model-driven NBA analysis with full transparency
 - Maximum one pick per day — selectivity is the edge
-- Real-time odds from DraftKings, FanDuel, BetMGM, Caesars, and more
-- Complete public record — every pick tracked, nothing deleted
-- Pass-day reports explaining why the model sat out
-- Personal bet tracking and performance dashboard
-- Push notifications for picks and results
+- Real-time odds comparison across major sportsbooks
+- Complete public performance record — nothing deleted
+- Pass-day reports explaining why no position was taken
+- Personal performance tracking dashboard
+- Push notifications for model activity and results
 
-Free tier includes model activity feed, public record access, and pass-day summaries. Pro subscribers get full pick details, edge percentages, position sizing guidance, and bet tracking tools.
+Free Tier Includes
 
-SharpPicks is not a sportsbook. We do not accept wagers or facilitate betting. All content is for informational and entertainment purposes only. Past performance does not guarantee future results. Must be 18+ to use.
+- Public record access
+- Model activity feed
+- Pass-day summaries
+
+Pro Subscribers Get
+
+- Full pick breakdowns
+- Edge percentage estimates
+- Position sizing guidance
+- Advanced tracking tools
+
+SharpPicks is not a sportsbook. We do not accept wagers or facilitate betting. All content is provided for informational and entertainment purposes only. Past performance does not guarantee future results. Must be 18+ to use.
 
 ## Keywords
-sports analytics, NBA, basketball, model picks, data-driven, discipline, selectivity, odds comparison, spread analysis, betting analytics
+sports analytics,NBA,basketball,data driven,model picks,odds comparison,spread analysis,bet tracking,cover probability,discipline
 
 ## Category
 Sports
 
 ## Content Rating
-17+
+17+ (Simulated Gambling / Infrequent)
 
 ## Support Email
 support@sharppicks.ai
