@@ -1512,7 +1512,11 @@ def forgot_password():
 
     s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
     token = s.dumps(user.id, salt='password-reset')
-    reset_url = f"{request.host_url}reset-password?token={token}"
+    base = os.environ.get('APP_BASE_URL', '').rstrip('/')
+    if not base:
+        domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+        base = f"https://{domains.split(',')[0]}"
+    reset_url = f"{base}/reset-password?token={token}"
 
     from email_service import send_password_reset
     sent = send_password_reset(user.email, reset_url, user.first_name)

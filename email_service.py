@@ -339,16 +339,17 @@ def send_weekly_summary(to, first_name=None, stats=None):
     logo_b64 = _get_logo_b64()
     if logo_b64:
         attachments.append({
-            "filename": "logo.png",
             "content": logo_b64,
+            "filename": "logo.png",
+            "content_id": "sp-logo",
             "content_type": "image/png",
         })
-    logo_src = f"cid:logo.png" if logo_b64 else f"{base_url}/logo-email.png"
+    logo_src = 'cid:sp-logo' if logo_b64 else f"{base_url}/logo-email.png"
 
     html = f"""
     <div style="max-width: 600px; margin: 0 auto; background-color: #0A0D14; padding: 40px 32px; font-family: 'Inter', -apple-system, sans-serif; color: #e0e0e0;">
       <div style="text-align: center; margin-bottom: 32px;">
-        <img src="{logo_src}" alt="Sharp Picks" style="height: 36px; width: auto;" />
+        <img src="{logo_src}" alt="Sharp Picks" style="height: 80px; width: auto;" />
       </div>
 
       <div style="font-family: 'Courier New', monospace; font-size: 9px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #4F86F7; margin-bottom: 20px;">Weekly Summary</div>
