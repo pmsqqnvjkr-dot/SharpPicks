@@ -29,7 +29,7 @@ sports analytics, NBA, basketball, model picks, data-driven, discipline, selecti
 Sports
 
 ## Content Rating
-17+ (Simulated Gambling / Infrequent)
+12+ (Infrequent / Mild Mature Themes)
 
 ## Support Email
 support@sharppicks.ai
