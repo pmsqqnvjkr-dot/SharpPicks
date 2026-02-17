@@ -249,6 +249,17 @@ class ProcessedEvent(db.Model):
     processed_at = db.Column(db.DateTime, default=datetime.now)
 
 
+class FCMToken(db.Model):
+    __tablename__ = 'fcm_tokens'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False, index=True)
+    fcm_token = db.Column(db.String, nullable=False, unique=True)
+    platform = db.Column(db.String(20), default='web')
+    enabled = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    last_seen_at = db.Column(db.DateTime, default=datetime.now)
+
+
 class CronLog(db.Model):
     __tablename__ = 'cron_logs'
     id = db.Column(db.Integer, primary_key=True)

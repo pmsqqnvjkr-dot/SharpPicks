@@ -1,0 +1,77 @@
+1) Add Firebase to your web app (client)
+
+Include config + register a service worker
+	•	Put firebase-messaging-sw.js at your site root (important)
+	•	Register it in your app
+
+Get permission + get an FCM token (this is what you store)
+
+You’ll do something like:
+	•	Notification.requestPermission()
+	•	getToken(messaging, { vapidKey })
+	•	POST that token to your backend to save under the user
+
+Key point: you’re done with “keys” only when you can see an FCM token being generated.
+
+⸻
+
+2) Store tokens (server)
+
+Create a table/collection like:
+	•	user_id
+	•	fcm_token
+	•	platform (web)
+	•	created_at
+	•	last_seen_at
+	•	enabled (bool)
+
+Also: allow multiple tokens per user (phone + laptop).
+
+⸻
+
+3) Send push from backend using FCM HTTP v1
+
+You’ll need:
+	•	Firebase service account JSON
+	•	Use Google auth to call:
+https://fcm.googleapis.com/v1/projects/<project-id>/messages:send
+
+Payload includes:
+	•	token
+	•	notification: { title, body }
+	•	optional data: { ... }
+
+⸻
+
+4) Common “why isn’t it working” gotchas
+
+Web requirements
+	•	Must be on HTTPS (or localhost)
+	•	Service worker must be reachable at:
+/firebase-messaging-sw.js
+	•	You need to allow notifications in the browser
+
+iPhone reality check
+	•	iOS Safari supports web push only if the site is added to Home Screen (PWA-style) and user enables notifications there.
+	•	If you’re testing in normal Safari tab, pushes may not behave like you expect.
+
+⸻
+
+5) Fastest way to confirm you’re truly set
+
+Do these 3 checks:
+	1.	In browser devtools console: you successfully get a token (long string)
+	2.	That token is saved in your DB for that user
+	3.	You send a test message from backend and get 200 OK with a message name
+
+⸻
+
+Tell me 2 things and I’ll give you the exact code blocks
+	1.	Is Sharp Picks pure web (Flask templates) or do you have a separate React/Vite frontend too?
+	2.	Where do you want to send pushes from: Flask backend (Python) or Node?
+
+If you say “Flask backend + web frontend,” I’ll drop you the exact minimal files:
+	•	firebase-messaging-sw.js
+	•	client init + token capture
+	•	Flask endpoint to save token
+	•	Flask function to send push via FCM v1
