@@ -781,7 +781,7 @@ def retro_calibrate():
     })
 
 
-@admin_bp.route('/test-push', methods=['POST'])
+@admin_bp.route('/api/admin/test-push', methods=['POST'])
 def test_push():
     user, err = require_superuser()
     if err:
