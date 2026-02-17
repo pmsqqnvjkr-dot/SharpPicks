@@ -5,7 +5,7 @@
 ## Brand Identity
 
 **Brand Name:** Sharp Picks
-**Tagline:** Discipline is the edge.
+**Tagline:** One pick beats five.
 **Subject Line Format:** "Welcome to Sharp Picks | The Edge is Discipline"
 **Tone:** Calm, institutional, data-driven. No hype, no FOMO, no flashy promos.
 
