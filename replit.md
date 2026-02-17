@@ -3,7 +3,13 @@
 ## Overview
 Sharp Picks is a sports betting discipline system focused on providing highly selective, statistically advantageous sports betting predictions. The system aims to instill discipline by recommending a maximum of one pick per day, leveraging a machine learning model with a 57.3% test accuracy and a 68.6% walk-forward ATS performance, achieving a +30.9% ROI over 12 seasons. Key features include multi-book odds shopping, real-time spread odds integration, a margin-first prediction algorithm, user management, subscription services, and detailed performance tracking, all presented with a calm, institutional tone.
 
-## Recent Changes (February 16, 2026)
+## Recent Changes (February 17, 2026)
+- **Push notification health in admin dashboard:** Admin command center now includes a "Push Notifications" panel in the Infrastructure section showing opt-in rate, enabled/disabled token counts, unique users, active (24h/7d) vs. stale tokens, platform breakdown, and registered devices list. Data served via `get_push_token_stats()` in `admin_api.py`, rendered client-side in `loadDashboard()`.
+- **Firebase service worker route:** Explicit Flask route `@app.route('/firebase-messaging-sw.js')` added above the SPA catch-all to guarantee the service worker is served at the root scope. File lives in `public/` (copied to `dist/` on build).
+- **FCM push notification pipeline:** Firebase Cloud Messaging integrated for push notifications. `FCMToken` model stores per-device tokens. Backend sends via FCM HTTP v1 API with Google OAuth2. Service worker (`public/firebase-messaging-sw.js`) handles background messages. Frontend auto-requests notification permission 2 seconds after login and POSTs token to `/api/user/fcm-token`. Note: Push notifications require a real browser (not Replit iframe preview) due to service worker restrictions.
+- **Admin user management:** DELETE `/api/admin/users/<user_id>` endpoint with frontend delete buttons, confirmation dialogs, and auto-refresh.
+
+## Previous Changes (February 16, 2026)
 - **Token-based auth (autoscale fix):** Hybrid session + Bearer token auth system replaces Flask session-only auth. Signed JWT-style tokens (itsdangerous, 30-day TTL) stored in localStorage, sent as `Authorization: Bearer` headers. Server checks Flask session first, falls back to Bearer token. Required because Flask sessions don't persist across Replit autoscale instances.
 - **All blueprints updated for token auth:** `picks_api.py`, `insights_api.py`, and `admin_api.py` all use `get_current_user_obj()` which supports both session and Bearer token auth. Removed all direct `flask_login.current_user` usage from blueprint files.
 - **Frontend token flow:** `useApi.js` exports `setAuthToken()`/`getAuthToken()`, attaches Bearer header to all requests, auto-stores tokens from API responses. `useAuth.jsx` stores token on login/register, clears on logout.
@@ -52,7 +58,7 @@ The system enforces a "no pick" policy when no sufficient edge is found. Transpa
 - **Stripe**: Payment processing for subscriptions.
 - **ESPN**: Game scores data.
 - **The-Odds-API**: Real-time sports betting odds from multiple sportsbooks (DraftKings, FanDuel, BetMGM, Caesars, PointsBet, BetRivers).
-- **OneSignal**: Push notification delivery.
+- **Firebase Cloud Messaging (FCM)**: Push notification delivery via HTTP v1 API.
 - **Resend**: Transactional email delivery.
 - **Flask-Login**: User session management and authentication.
 - **SQLAlchemy**: ORM for database interactions.
