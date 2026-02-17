@@ -1,13 +1,21 @@
-# Sharp Picks Brand Guidelines
+# SharpPicks Brand Guidelines
 
 ---
 
 ## Brand Identity
 
-**Brand Name:** Sharp Picks
+**Brand Name (product):** SharpPicks
+**Wordmark (visual, optional):** SHARP PICKS (all caps, tracked out — for hero sections, banners, headlines)
 **Tagline:** One pick beats five.
-**Subject Line Format:** "Welcome to Sharp Picks | The Edge is Discipline"
+**Subject Line Format:** "Welcome to SharpPicks | The Edge is Discipline"
 **Tone:** Calm, institutional, data-driven. No hype, no FOMO, no flashy promos.
+
+### Naming Convention
+- **Default everywhere:** SharpPicks (one word, camelCase caps)
+- **URLs / handles:** sharppicks.ai / @SharpPicksApp
+- **App Store listing:** SharpPicks
+- **Wordmark treatment:** SHARP PICKS (all caps, letter-spaced) — use only in hero sections, banners, and premium typographic layouts where spacing looks elevated
+- **Never:** Sharp picks, sharp picks, SHARPPICKS (no all-caps without spacing)
 
 ### Brand Voice
 - Measured and confident, never loud
