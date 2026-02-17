@@ -90,6 +90,24 @@ def get_admin_token():
     return jsonify({'token': token})
 
 
+@admin_bp.route('/api/admin/users/<user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if user.is_superuser:
+        return jsonify({'error': 'Cannot delete superuser'}), 403
+    TrackedBet.query.filter_by(user_id=user_id).delete()
+    from models import Referral
+    Referral.query.filter((Referral.referrer_id == user_id) | (Referral.referred_id == user_id)).delete()
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 @admin_bp.route('/api/admin/command-center')
 def command_center_data():
     admin, err_code = require_superuser()
@@ -244,11 +262,13 @@ def command_center_data():
         elif u.subscription_status == 'trial':
             tier = 'trial'
         users_data.append({
+            'id': u.id,
             'email': u.email,
             'first_name': u.first_name or '',
             'tier': tier,
             'plan': u.subscription_plan or '',
             'founding_number': u.founding_number,
+            'is_superuser': u.is_superuser,
             'created_at': u.created_at.isoformat() if u.created_at else None,
             'trial_end': u.trial_end_date.isoformat() if u.trial_end_date else None,
         })

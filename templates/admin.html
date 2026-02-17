@@ -289,6 +289,17 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
 }
 
 .badge.pro { background: var(--green-dim); color: var(--green); }
+.btn-delete {
+  background: transparent;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: Inter, sans-serif;
+}
+.btn-delete:hover { background: #ef4444; color: #fff; }
 .badge.trial { background: var(--blue-dim); color: var(--blue); }
 .badge.free { background: rgba(255,255,255,0.06); color: var(--text-dim); }
 .badge.founding { background: var(--amber-dim); color: var(--amber); }
@@ -668,6 +679,7 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
           <th>Plan</th>
           <th>Signed Up</th>
           <th>Trial Ends</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody id="users-tbody">
@@ -832,6 +844,7 @@ function buildUsersTable(users) {
       const urgencyClass = daysLeft <= 3 ? 'red' : daysLeft <= 7 ? 'amber' : 'green';
       trialEnd = `<span class="${urgencyClass}">${dateStr}</span> <span style="color:var(--text-dim);font-size:11px">(${daysLeft}d)</span>`;
     }
+    const isSuperuser = u.is_superuser;
     tr.innerHTML = `
       <td>${u.email}</td>
       <td>${u.first_name}</td>
@@ -839,6 +852,7 @@ function buildUsersTable(users) {
       <td>${u.plan || '—'}</td>
       <td>${date}</td>
       <td>${trialEnd}</td>
+      <td>${isSuperuser ? '' : '<button class="btn-delete" onclick="deleteUser(\'' + u.id + '\', \'' + u.email.replace(/'/g, "\\'") + '\')">Delete</button>'}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -870,11 +884,26 @@ async function ensureAdminToken() {
   } catch(e) {}
 }
 
-function adminFetch(url) {
-  const headers = {};
+function adminFetch(url, opts = {}) {
+  const headers = opts.headers || {};
   if (adminToken) headers['X-Admin-Token'] = adminToken;
   if (bearerToken) headers['Authorization'] = 'Bearer ' + bearerToken;
-  return fetch(url, { credentials: 'include', headers });
+  return fetch(url, { credentials: 'include', ...opts, headers });
+}
+
+async function deleteUser(userId, email) {
+  if (!confirm('Delete user ' + email + '? This cannot be undone.')) return;
+  try {
+    const res = await adminFetch('/api/admin/users/' + userId, { method: 'DELETE' });
+    if (res.ok) {
+      loadDashboard();
+    } else {
+      const data = await res.json();
+      alert('Delete failed: ' + (data.error || 'Unknown error'));
+    }
+  } catch(e) {
+    alert('Delete failed: ' + e.message);
+  }
 }
 
 async function loadDashboard() {
