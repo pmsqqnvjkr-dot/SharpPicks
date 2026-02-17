@@ -3178,6 +3178,11 @@ def admin_users():
         } for u in users]
     })
 
+@app.route('/manifest.webmanifest')
+def serve_manifest():
+    dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
+    return send_from_directory(dist_dir, 'manifest.webmanifest', mimetype='application/manifest+json')
+
 @app.route('/firebase-messaging-sw.js')
 def firebase_sw():
     dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
