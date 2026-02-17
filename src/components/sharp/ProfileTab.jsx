@@ -346,11 +346,9 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
 
 function LegalSection() {
   const legalItems = [
-    { label: 'Terms of Service', url: '/legal/terms' },
-    { label: 'Privacy Policy', url: '/legal/privacy' },
-    { label: 'Refund Policy', url: '/legal/refund' },
-    { label: 'Responsible Gaming', url: '/legal/responsible-gaming' },
-    { label: 'Founding Members Program', url: '/legal/founding-members' },
+    { label: 'Terms of Service', url: '/terms' },
+    { label: 'Privacy Policy', url: '/privacy' },
+    { label: 'Disclaimer', url: '/disclaimer' },
   ];
 
   return (
@@ -399,7 +397,13 @@ function LegalSection() {
           fontSize: '11px', color: 'var(--text-tertiary)', margin: 0,
           lineHeight: '1.6',
         }}>
-          Sharp Picks provides informational content only. We do not accept bets or facilitate gambling. Past performance does not guarantee future results. Please gamble responsibly.
+          SharpPicks provides sports analytics and model-based insights only. Not financial advice. Not a sportsbook. Past performance does not guarantee future results.
+        </p>
+        <p style={{
+          fontSize: '10px', color: 'var(--text-tertiary)', margin: '8px 0 0', opacity: 0.6,
+          fontFamily: 'var(--font-mono)',
+        }}>
+          v1.0.0
         </p>
       </div>
     </div>

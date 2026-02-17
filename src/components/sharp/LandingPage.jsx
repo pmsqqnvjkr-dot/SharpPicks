@@ -284,9 +284,14 @@ export default function LandingPage() {
         borderTop: '1px solid var(--stroke-subtle)',
         marginTop: '32px',
       }}>
-        <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: '0 0 6px', lineHeight: '1.6' }}>
-          Sharp Picks provides informational content only. Not financial advice. Please gamble responsibly.
+        <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: '0 0 10px', lineHeight: '1.6' }}>
+          SharpPicks provides sports analytics and model-based insights only. Not financial advice. Not a sportsbook.
         </p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '10px' }}>
+          <a href="/privacy" style={{ fontSize: '11px', color: 'var(--text-tertiary)', textDecoration: 'none' }}>Privacy</a>
+          <a href="/terms" style={{ fontSize: '11px', color: 'var(--text-tertiary)', textDecoration: 'none' }}>Terms</a>
+          <a href="/disclaimer" style={{ fontSize: '11px', color: 'var(--text-tertiary)', textDecoration: 'none' }}>Disclaimer</a>
+        </div>
         <a href="mailto:support@sharppicks.ai" style={{
           fontSize: '12px', color: 'var(--text-secondary)', textDecoration: 'none',
         }}>support@sharppicks.ai</a>
