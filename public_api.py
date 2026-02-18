@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, KillSwitch, UserBet, User
+from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, KillSwitch, TrackedBet, User
 from sqlalchemy import func
 from sport_config import get_active_sports
 
@@ -262,9 +262,9 @@ def dashboard_stats():
     bankroll_units = 100
     if current_user_obj:
         bankroll_units = getattr(current_user_obj, 'unit_size', None) or 100
-        user_bets = UserBet.query.filter_by(user_id=current_user_obj.id).all()
-        if user_bets:
-            user_avg_bet = sum(b.wager_amount for b in user_bets) / len(user_bets)
+        tracked_bets = TrackedBet.query.filter_by(user_id=current_user_obj.id).all()
+        if tracked_bets:
+            user_avg_bet = sum(b.bet_amount for b in tracked_bets) / len(tracked_bets)
 
     avg_bet_size = user_avg_bet or 110.0
 
