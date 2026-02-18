@@ -9,7 +9,25 @@ import os
 import time
 import random
 import statistics
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+def utc_to_eastern_date(utc_str):
+    """Convert UTC ISO timestamp to Eastern Time date string (YYYY-MM-DD)."""
+    try:
+        utc_str = utc_str.replace('Z', '+00:00')
+        utc_dt = datetime.fromisoformat(utc_str)
+        if utc_dt.tzinfo is None:
+            utc_dt = utc_dt.replace(tzinfo=timezone.utc)
+        eastern_offset = timedelta(hours=-5)
+        try:
+            import zoneinfo
+            eastern = zoneinfo.ZoneInfo("America/New_York")
+            et_dt = utc_dt.astimezone(eastern)
+        except ImportError:
+            et_dt = utc_dt + eastern_offset
+        return et_dt.strftime('%Y-%m-%d')
+    except Exception:
+        return utc_str[:10]
 
 # Get API key from Replit Secrets
 API_KEY = os.environ.get('ODDS_API_KEY')
@@ -835,7 +853,7 @@ def collect_todays_games():
             game_id = game['id']
             home = game['home_team']
             away = game['away_team']
-            commence_time = game['commence_time'][:10]
+            commence_time = utc_to_eastern_date(game['commence_time'])
             
             spread_home = None
             spread_away = None
@@ -2012,7 +2030,7 @@ def collect_wnba_odds():
             game_id = game['id']
             home = game['home_team']
             away = game['away_team']
-            commence_time = game.get('commence_time', '')[:10]
+            commence_time = utc_to_eastern_date(game.get('commence_time', ''))
             game_time = game.get('commence_time', '')
 
             spread_home = None
