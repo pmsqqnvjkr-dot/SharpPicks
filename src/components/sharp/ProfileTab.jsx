@@ -238,7 +238,7 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
       period: '/yr',
       features: [
         'Everything in Monthly',
-        foundingData?.open ? `Founding rate (${foundingData?.remaining || 0} of 500 left)` : 'Standard annual rate',
+        foundingData?.open ? `Founding rate (${foundingData?.remaining || 0} of 50 left)` : 'Standard annual rate',
         'Priority support',
         'Founding member badge',
       ],
@@ -272,7 +272,7 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
           <span style={{
             fontFamily: 'var(--font-mono)', fontSize: '14px',
             color: 'var(--gold-pro)', fontWeight: 700,
-          }}>{foundingData.remaining}/500</span>
+          }}>{foundingData.remaining}/50</span>
         </div>
       )}
 
