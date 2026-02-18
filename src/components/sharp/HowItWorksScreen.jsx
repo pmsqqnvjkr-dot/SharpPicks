@@ -7,17 +7,19 @@ export default function HowItWorksScreen({ onBack }) {
   const brier = modelInfo?.brier_score ?? '--';
   const numFeatures = modelInfo?.num_features ?? '--';
   const trainingSize = modelInfo?.training_size?.toLocaleString() ?? '--';
+  const walkForwardAts = modelInfo?.walk_forward_ats ?? '--';
+  const edgeThreshold = modelInfo?.edge_threshold_base ?? 3.0;
 
   const sections = [
     {
       title: 'The model',
       icon: '&#9881;',
-      content: `Our ensemble machine learning model analyzes ${modelInfo ? modelInfo.num_features : 'dozens of'} features per NBA game including pace ratings, team strength metrics, injury impact scores, schedule fatigue, travel distance, altitude adjustments, and line movement patterns. It was trained on ${modelInfo ? trainingSize : 'thousands of'} historical NBA games and achieves a 68.6% walk-forward ATS performance with a ${modelInfo ? brier : 'low'} Brier score.`,
+      content: `Our ensemble machine learning model analyzes ${modelInfo ? modelInfo.num_features : 'dozens of'} features per NBA game including pace ratings, team strength metrics, injury impact scores, schedule fatigue, travel distance, altitude adjustments, and line movement patterns. It was trained on ${modelInfo ? trainingSize : 'thousands of'} historical NBA games and achieves a ${modelInfo ? walkForwardAts + '%' : 'strong'} walk-forward ATS performance with a ${modelInfo ? brier : 'low'} Brier score.`,
     },
     {
       title: 'Edge detection',
       icon: '&#9670;',
-      content: 'For each game, the model calculates its own probability and compares it against the market line. If the difference (the "edge") exceeds 3.5%, that game qualifies as a pick. Most days, no game clears this threshold. That silence is the product working.',
+      content: `For each game, the model calculates its own probability and compares it against the market line. If the difference (the "edge") exceeds ${edgeThreshold}%, that game qualifies as a pick. Most days, no game clears this threshold. That silence is the product working.`,
     },
     {
       title: 'One pick per day',
@@ -110,7 +112,7 @@ export default function HowItWorksScreen({ onBack }) {
             fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px',
           }}>Model performance</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <StatBlock label="Walk-Fwd ATS" value={modelInfo ? '68.6%' : '--'} />
+            <StatBlock label="Walk-Fwd ATS" value={modelInfo ? walkForwardAts + '%' : '--'} />
             <StatBlock label="Brier Score" value={modelInfo ? String(brier) : '--'} />
             <StatBlock label="Features" value={modelInfo ? String(numFeatures) : '--'} />
             <StatBlock label="Training Set" value={modelInfo ? trainingSize : '--'} />
