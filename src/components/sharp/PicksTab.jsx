@@ -239,6 +239,7 @@ export default function PicksTab({ onNavigate }) {
             {filtered.map((pick, i) => {
               const pickResolved = pick.result === 'win' || pick.result === 'loss';
               const isPending = pick.result === 'pending';
+              const isRevoked = pick.result === 'revoked';
               const hideLine = !isPro && isPending;
               const canView = isPro && pickResolved;
               return (
@@ -275,10 +276,13 @@ export default function PicksTab({ onNavigate }) {
                         <div style={{
                           fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
                           color: pick.result === 'win' ? 'var(--green-profit)'
-                            : pick.result === 'loss' ? 'var(--red-loss)' : 'var(--text-tertiary)',
+                            : pick.result === 'loss' ? 'var(--red-loss)'
+                            : isRevoked ? 'var(--text-tertiary)' : 'var(--text-tertiary)',
+                          textDecoration: isRevoked ? 'line-through' : 'none',
                         }}>
                           {pick.result === 'win' ? `+${pick.pnl != null ? pick.pnl : 91}u`
                             : pick.result === 'loss' ? `${pick.pnl != null ? pick.pnl : -100}u`
+                            : isRevoked ? 'Revoked'
                             : 'Pending'}
                         </div>
                       )}

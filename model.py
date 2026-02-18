@@ -39,12 +39,42 @@ SPREAD_EDGE_CURVE = [
     (11, float('inf'), 8.0),
 ]
 
+SPREAD_RISK_SCALE_BASE = 7.0
+SPREAD_RISK_SCALE_RATE = 0.25
+STAR_QUESTIONABLE_EDGE_PENALTY = 2.0
+STAR_QUESTIONABLE_SPREAD_THRESHOLD = 10.0
+
 
 def get_edge_threshold_for_spread(spread_abs):
     for low, high, threshold in SPREAD_EDGE_CURVE:
         if low <= spread_abs < high:
             return threshold
     return 8.0
+
+
+def spread_risk_adjusted_edge(adjusted_edge, spread_abs):
+    if spread_abs <= SPREAD_RISK_SCALE_BASE:
+        return adjusted_edge
+    excess = spread_abs - SPREAD_RISK_SCALE_BASE
+    discount = 1.0 - (excess * SPREAD_RISK_SCALE_RATE / 10.0)
+    discount = max(discount, 0.4)
+    return adjusted_edge * discount
+
+
+def check_star_injury_risk(home_injuries, away_injuries, pick_side, spread_abs):
+    star_keywords = ['questionable', 'doubtful', 'game-time decision']
+    penalty = 0.0
+    reason = None
+
+    fav_injuries = home_injuries if pick_side == 'home' else away_injuries
+    if fav_injuries and isinstance(fav_injuries, str):
+        injury_lower = fav_injuries.lower()
+        star_flags = sum(1 for kw in star_keywords if kw in injury_lower)
+        if star_flags > 0 and spread_abs >= STAR_QUESTIONABLE_SPREAD_THRESHOLD:
+            penalty = STAR_QUESTIONABLE_EDGE_PENALTY * star_flags
+            reason = f"Star questionable on {spread_abs:.0f}pt spread — edge penalized {penalty:+.1f}%"
+
+    return penalty, reason
 
 
 class EnsemblePredictor:
@@ -715,6 +745,17 @@ class EnsemblePredictor:
             home_injuries = row.get('home_injuries', None) if hasattr(row, 'get') else None
             away_injuries = row.get('away_injuries', None) if hasattr(row, 'get') else None
 
+            injury_penalty, injury_reason = check_star_injury_risk(
+                home_injuries, away_injuries, pick_side, spread_abs
+            )
+            if injury_penalty > 0:
+                adjusted_edge -= injury_penalty
+                if injury_reason:
+                    fail_reasons.append('star_questionable')
+                    pass_reason = injury_reason
+
+            risk_weighted_edge = spread_risk_adjusted_edge(adjusted_edge, spread_abs)
+
             explanation = self._generate_explanation(row, proba, confidence, adjusted_edge, pred_margin)
             
             if confidence >= STRONG_CONFIDENCE_THRESHOLD:
@@ -724,17 +765,20 @@ class EnsemblePredictor:
             else:
                 rating = "SLIGHT"
             
-            if len(fail_reasons) == 0 and adjusted_edge < self.edge_threshold_pct:
-                pass_reason = f"Edge below threshold ({adjusted_edge:+.1f}% < {self.edge_threshold_pct}%)"
+            if len(fail_reasons) == 0 and risk_weighted_edge < self.edge_threshold_pct:
+                if spread_abs > SPREAD_RISK_SCALE_BASE and adjusted_edge >= self.edge_threshold_pct:
+                    pass_reason = f"Edge {adjusted_edge:+.1f}% discounted to {risk_weighted_edge:+.1f}% for {spread_abs:.0f}pt spread risk"
+                else:
+                    pass_reason = f"Edge below threshold ({risk_weighted_edge:+.1f}% < {self.edge_threshold_pct}%)"
             if len(fail_reasons) == 0 and confidence < min_confidence:
                 pass_reason = f"Confidence below minimum ({confidence:.1%} < {min_confidence:.0%})"
-            if line_move_penalty > 0 and adjusted_edge < self.edge_threshold_pct and edge_vs_market >= self.edge_threshold_pct:
+            if line_move_penalty > 0 and risk_weighted_edge < self.edge_threshold_pct and edge_vs_market >= self.edge_threshold_pct:
                 pass_reason = f"Line moved against us ({line_move_against:+.1f}pts), reduced edge from {edge_vs_market:+.1f}% to {adjusted_edge:+.1f}%"
 
             passes = (
                 len(fail_reasons) == 0
                 and confidence >= min_confidence
-                and adjusted_edge >= required_edge
+                and risk_weighted_edge >= required_edge
             )
             
             z_score_val = None
@@ -773,6 +817,8 @@ class EnsemblePredictor:
                 'home_proba': proba,
                 'line_move_against': round(line_move_against, 1),
                 'line_move_penalty': round(line_move_penalty, 1),
+                'injury_penalty': round(injury_penalty, 1),
+                'risk_weighted_edge': round(risk_weighted_edge, 2),
                 'fail_reasons': fail_reasons,
                 'pass_reason': pass_reason,
                 'required_edge': required_edge,
@@ -1098,14 +1144,16 @@ class EnsemblePredictor:
 
                 adjusted_edge = raw_edge - line_move_penalty
                 adjusted_edge = min(adjusted_edge, self.max_edge_pct)
-                all_edges.append(adjusted_edge)
+
+                spread_abs = abs(spread)
+                risk_weighted = spread_risk_adjusted_edge(adjusted_edge, spread_abs)
+                all_edges.append(risk_weighted)
 
                 if line_move_against >= LINE_MOVE_HARD_STOP and adjusted_edge < LINE_MOVE_HARD_STOP_MIN_EDGE:
                     continue
 
-                spread_abs = abs(spread)
                 required_edge = get_edge_threshold_for_spread(spread_abs)
-                if adjusted_edge < required_edge:
+                if risk_weighted < required_edge:
                     continue
                 if confidence < MIN_CONFIDENCE_THRESHOLD:
                     continue

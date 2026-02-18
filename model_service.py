@@ -35,6 +35,124 @@ def _get_et_date():
     return now_et.strftime('%Y-%m-%d')
 
 
+def _get_et_now():
+    """Get current Eastern Time datetime."""
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo('America/New_York'))
+    except ImportError:
+        return datetime.utcnow() - timedelta(hours=5)
+
+
+def pretip_revalidate(app, sport='nba'):
+    """
+    Pre-tip re-validation: runs 2-3 hours before first tip-off.
+    Re-fetches odds/injuries, re-runs model on today's pick,
+    and revokes if the edge has evaporated or injury status changed.
+    """
+    today_str = _get_et_date()
+
+    with app.app_context():
+        pick = Pick.query.filter(
+            Pick.game_date == today_str,
+            Pick.sport == sport,
+            Pick.result == 'pending',
+        ).first()
+
+        if not pick:
+            return {'status': 'no_pick', 'date': today_str, 'sport': sport}
+
+        try:
+            import subprocess
+            subprocess.run(['python', 'main.py'], timeout=300)
+        except Exception as e:
+            import logging
+            logging.error(f"Pre-tip data refresh failed: {e}")
+
+        try:
+            from model import EnsemblePredictor
+            model = EnsemblePredictor(sport=sport)
+            if not model.load_model():
+                return {'status': 'error', 'error': 'Model not trained'}
+
+            predictions = model.predict_games(log_predictions=False)
+            if not predictions:
+                return {'status': 'no_games', 'date': today_str}
+
+            matching = None
+            for p in predictions:
+                if p.get('home_team') == pick.home_team and p.get('away_team') == pick.away_team:
+                    matching = p
+                    break
+
+            if not matching:
+                return {'status': 'game_not_found', 'pick_id': pick.id}
+
+            still_passes = matching.get('passes_filter', False)
+            new_edge = matching.get('risk_weighted_edge', matching.get('adjusted_edge', 0))
+            old_edge = pick.edge_pct or 0
+            new_line = matching.get('spread')
+            old_line = pick.line
+
+            line_drift = abs((new_line or 0) - (old_line or 0)) if new_line is not None and old_line is not None else 0
+
+            revoke = False
+            revoke_reason = None
+
+            if not still_passes:
+                revoke = True
+                revoke_reason = f"Pre-tip re-check: no longer passes filters — {matching.get('pass_reason', 'edge evaporated')}"
+            elif new_edge < 1.5:
+                revoke = True
+                revoke_reason = f"Pre-tip re-check: edge dropped to {new_edge:+.1f}% (was {old_edge:+.1f}%)"
+            elif line_drift >= 2.0:
+                revoke = True
+                revoke_reason = f"Pre-tip re-check: line moved {line_drift:.1f}pts since publication ({old_line:+.1f} → {new_line:+.1f})"
+
+            if revoke:
+                pick.result = 'revoked'
+                pick.notes = (pick.notes or '') + f' | REVOKED: {revoke_reason}'
+                db.session.commit()
+
+                try:
+                    from notification_service import send_revoke_notification
+                    send_revoke_notification(pick, revoke_reason)
+                except Exception as notif_err:
+                    import logging
+                    logging.error(f"Revoke notification failed: {notif_err}")
+
+                pass_entry = Pass(
+                    date=today_str,
+                    sport=sport,
+                    games_analyzed=len(predictions),
+                    closest_edge_pct=round(new_edge, 1),
+                    pass_reason=revoke_reason,
+                )
+                db.session.add(pass_entry)
+                db.session.commit()
+
+                return {
+                    'status': 'revoked',
+                    'pick_id': pick.id,
+                    'reason': revoke_reason,
+                    'old_edge': old_edge,
+                    'new_edge': round(new_edge, 1),
+                    'line_drift': round(line_drift, 1),
+                }
+
+            return {
+                'status': 'confirmed',
+                'pick_id': pick.id,
+                'edge': round(new_edge, 1),
+                'line_drift': round(line_drift, 1),
+            }
+
+        except Exception as e:
+            import logging
+            logging.error(f"Pre-tip revalidation error: {e}")
+            return {'status': 'error', 'error': str(e)}
+
+
 def run_model_and_log(app, sport='nba'):
     """Run the model for today and log either a pick or pass."""
     cfg = get_sport_config(sport)

@@ -514,12 +514,14 @@ function PickLogRow({ pick, isLast }) {
   const isWin = pick.result === 'win';
   const isLoss = pick.result === 'loss';
   const isPending = pick.result === 'pending';
+  const isRevoked = pick.result === 'revoked';
   const timestamp = formatPickTimestamp(pick.game_date, pick.start_time, pick.published_at);
 
   return (
     <div style={{
       padding: '16px 20px',
       borderBottom: isLast ? 'none' : '1px solid var(--stroke-subtle)',
+      opacity: isRevoked ? 0.6 : 1,
     }}>
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -528,14 +530,15 @@ function PickLogRow({ pick, isLast }) {
         <span style={{
           fontFamily: 'var(--font-sans)', fontSize: '14px',
           color: 'var(--text-primary)', fontWeight: 600,
+          textDecoration: isRevoked ? 'line-through' : 'none',
         }}>{pick.side}</span>
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700,
-          color: isWin ? 'var(--green-profit)' : isLoss ? 'var(--red-loss)' : 'var(--gold-pro)',
-          backgroundColor: isWin ? 'rgba(52,211,153,0.1)' : isLoss ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+          color: isWin ? 'var(--green-profit)' : isLoss ? 'var(--red-loss)' : isRevoked ? 'var(--text-tertiary)' : 'var(--gold-pro)',
+          backgroundColor: isWin ? 'rgba(52,211,153,0.1)' : isLoss ? 'rgba(239,68,68,0.1)' : isRevoked ? 'rgba(128,128,128,0.1)' : 'rgba(245,158,11,0.1)',
           padding: '3px 8px', borderRadius: '4px',
         }}>
-          {isWin ? 'WIN' : isLoss ? 'LOSS' : 'PENDING'}
+          {isWin ? 'WIN' : isLoss ? 'LOSS' : isRevoked ? 'REVOKED' : 'PENDING'}
         </span>
       </div>
       {(pick.away_team || pick.home_team) && (

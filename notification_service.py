@@ -82,6 +82,22 @@ def send_weekly_summary_notification(stats):
         return False
 
 
+def send_revoke_notification(pick, reason):
+    send_push_to_all, _, _ = _get_push_functions()
+    if not send_push_to_all:
+        return False
+    try:
+        title = 'Sharp Picks — Pick Revoked'
+        body = f'{pick.away_team} @ {pick.home_team} pick revoked. {reason}'
+        data = {'type': 'revoke', 'pick_id': str(pick.id)}
+        sent = send_push_to_all(title, body, data=data, premium_only=True)
+        logging.info(f"Revoke notification sent to {sent} device(s)")
+        return sent > 0
+    except Exception as e:
+        logging.error(f"Revoke notification failed: {e}")
+        return False
+
+
 def send_admin_health_alert(title, details):
     _, _, send_admin_alert = _get_push_functions()
     if not send_admin_alert:

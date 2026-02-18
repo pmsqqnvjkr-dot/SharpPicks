@@ -425,7 +425,24 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           </>
         )}
 
-        {pick.result && pick.result !== 'pending' ? (
+        {pick.result === 'revoked' ? (
+          <div style={{
+            marginTop: '16px', padding: '14px',
+            borderRadius: '16px',
+            border: '1px solid rgba(128,128,128,0.22)',
+            background: 'rgba(128,128,128,0.08)',
+            textAlign: 'center',
+          }}>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 800,
+              color: 'var(--text-tertiary)',
+            }}>REVOKED</div>
+            <div style={{
+              fontFamily: 'var(--font-sans)', fontSize: '12px',
+              color: 'var(--text-tertiary)', marginTop: '4px',
+            }}>Pre-tip conditions changed. No action.</div>
+          </div>
+        ) : pick.result && pick.result !== 'pending' ? (
           <div style={{
             marginTop: '16px', padding: '14px',
             borderRadius: '16px',

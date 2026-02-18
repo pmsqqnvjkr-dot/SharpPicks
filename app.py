@@ -1278,6 +1278,18 @@ def cron_backup():
     return log_cron('backup', _backup)
 
 
+@app.route('/api/cron/pretip-validate', methods=['POST'])
+@verify_cron
+def cron_pretip_validate():
+    from model_service import pretip_revalidate
+    def _validate():
+        results = {}
+        for sport in get_live_sports():
+            results[sport] = pretip_revalidate(app, sport=sport)
+        return results
+    return log_cron('pretip_validate', _validate)
+
+
 @app.route('/api/cron/check-data-quality', methods=['POST'])
 @verify_cron
 def cron_data_quality():

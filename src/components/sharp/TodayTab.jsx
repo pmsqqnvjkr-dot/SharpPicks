@@ -343,9 +343,10 @@ function MiniStat({ label, value }) {
 function ResolvedPickBanner({ pick, onViewDetails, onDismiss }) {
   const isWin = pick.result === 'win';
   const isPush = pick.result === 'push';
-  const accentColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--green-profit)' : 'var(--red-loss)';
-  const accentBg = isPush ? 'rgba(255,255,255,0.04)' : isWin ? 'rgba(52,211,153,0.06)' : 'rgba(239,68,68,0.06)';
-  const accentBorder = isPush ? 'rgba(255,255,255,0.1)' : isWin ? 'rgba(52,211,153,0.18)' : 'rgba(239,68,68,0.18)';
+  const isRevoked = pick.result === 'revoked';
+  const accentColor = isRevoked ? 'var(--text-tertiary)' : isPush ? 'var(--text-secondary)' : isWin ? 'var(--green-profit)' : 'var(--red-loss)';
+  const accentBg = isRevoked ? 'rgba(128,128,128,0.06)' : isPush ? 'rgba(255,255,255,0.04)' : isWin ? 'rgba(52,211,153,0.06)' : 'rgba(239,68,68,0.06)';
+  const accentBorder = isRevoked ? 'rgba(128,128,128,0.18)' : isPush ? 'rgba(255,255,255,0.1)' : isWin ? 'rgba(52,211,153,0.18)' : 'rgba(239,68,68,0.18)';
   const profitDisplay = pick.profit_units != null
     ? `${pick.profit_units >= 0 ? '+' : ''}${pick.profit_units}u`
     : isPush ? '0u' : isWin ? '+0.91u' : '-1.0u';
