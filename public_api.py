@@ -341,15 +341,6 @@ def dashboard_stats():
 
     most_recent = sorted(picks, key=lambda p: p.game_date or '', reverse=True)[:10]
 
-    clv_picks = [p for p in resolved if p.clv is not None]
-    clv_beating_close = sum(1 for p in clv_picks if p.clv > 0)
-    clv_beat_pct = round(clv_beating_close / len(clv_picks) * 100, 1) if clv_picks else None
-    avg_clv = round(sum(p.clv for p in clv_picks) / len(clv_picks), 2) if clv_picks else None
-
-    counter = FoundingCounter.query.first()
-    founding_count = counter.current_count if counter else 0
-    founding_closed = counter.closed if counter else False
-
     recent_picks = []
     for p in most_recent:
         line_move = None
@@ -368,8 +359,6 @@ def dashboard_stats():
             'line_open': p.line_open,
             'line_close': p.line_close,
             'line_movement': line_move,
-            'clv': p.clv,
-            'profit_units': p.profit_units,
             'game_date': p.game_date,
             'start_time': p.start_time,
             'published_at': (p.published_at.isoformat() + 'Z') if p.published_at else None,
@@ -416,16 +405,6 @@ def dashboard_stats():
             'sigma': latest_sigma,
             'last_retrain': last_retrain_date,
             'model_version': last_run.model_version if last_run else 'v1.0',
-        },
-        'clv': {
-            'beat_close_pct': clv_beat_pct,
-            'avg_clv': avg_clv,
-            'total_tracked': len(clv_picks),
-        },
-        'founding': {
-            'current_count': founding_count,
-            'max_count': 500,
-            'closed': founding_closed,
         },
         'recent_picks': recent_picks,
     })

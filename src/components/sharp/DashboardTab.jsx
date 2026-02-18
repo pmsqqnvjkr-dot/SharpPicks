@@ -28,14 +28,11 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
   }
 
   const perf = dashData?.performance || {};
+  const risk = dashData?.risk || {};
   const discipline = dashData?.discipline || {};
   const health = dashData?.model_health || {};
-  const clv = dashData?.clv || {};
-  const founding = dashData?.founding || {};
   const recentPicks = dashData?.recent_picks || [];
   const equityCurve = perf.equity_curve || [];
-  const risk = dashData?.risk || {};
-
   return (
     <div style={{ padding: '0', paddingBottom: embedded ? '0' : '100px' }}>
       {!embedded && (
@@ -64,21 +61,25 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
       <div style={{ padding: '0 20px' }}>
         {embedded && <ModelHealthBadge health={health} />}
 
-        <PerformanceSnapshot perf={perf} equityCurve={equityCurve} risk={risk} />
+        <PerformanceCore perf={perf} equityCurve={equityCurve} />
 
-        <SelectivityPanel discipline={discipline} perf={perf} />
+        <DisciplineScore discipline={discipline} />
 
-        <CLVPanel clv={clv} />
+        <LatestResultCard picks={recentPicks} />
 
-        <PickTimingLog picks={recentPicks} />
-
-        <PhilosophyPanel />
-
-        <FoundingPanel founding={founding} />
+        <RecentPickLog picks={recentPicks} />
 
         <p style={{
+          fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+          fontSize: '13px', color: 'var(--text-secondary)',
+          textAlign: 'center', padding: '8px 20px 4px',
+          lineHeight: '1.5',
+        }}>
+          This dashboard measures discipline, not excitement.
+        </p>
+        <p style={{
           fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
-          textAlign: 'center', padding: '8px 20px 16px',
+          textAlign: 'center', padding: '0 20px 16px',
         }}>
           Past performance does not guarantee future results. This analysis reflects probabilities, not certainty.
         </p>
@@ -88,14 +89,13 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
 }
 
 
-function PerformanceSnapshot({ perf, equityCurve, risk }) {
+function PerformanceCore({ perf, equityCurve }) {
   const pnl = perf.total_pnl || 0;
   const isPositive = pnl >= 0;
-  const unitsWon = pnl / 110;
 
   return (
     <>
-      <SectionLabel>Performance</SectionLabel>
+      <SectionLabel>Model Performance</SectionLabel>
       <div style={{
         backgroundColor: 'var(--surface-1)', borderRadius: '20px',
         border: '1px solid var(--stroke-subtle)', padding: '24px',
@@ -104,14 +104,28 @@ function PerformanceSnapshot({ perf, equityCurve, risk }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
-              color: 'var(--text-secondary)', letterSpacing: '1px',
-              textTransform: 'uppercase', marginBottom: '8px',
-            }}>Season Record</div>
+              fontFamily: 'var(--font-mono)', fontSize: '42px', fontWeight: 800,
+              color: isPositive ? 'var(--green-profit)' : 'var(--red-loss)',
+              lineHeight: '1', marginBottom: '8px',
+            }}>
+              {isPositive ? '+' : '-'}${Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </div>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '36px', fontWeight: 800,
-              color: 'var(--text-primary)', lineHeight: '1', marginBottom: '12px',
-            }}>{perf.record || '0-0'}</div>
+              fontFamily: 'var(--font-mono)', fontSize: '10px',
+              color: 'var(--text-tertiary)', letterSpacing: '0.5px',
+              marginBottom: '10px',
+            }}>
+              Model Only · 1u Standardized · -110 Baseline
+            </div>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              <StatChip
+                value={`${perf.roi >= 0 ? '+' : ''}${perf.roi || 0}%`}
+                label="ROI"
+                color={perf.roi >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'}
+              />
+              <InfoTooltip text="ROI measures efficiency, not streaks. Short samples swing. Long samples tell the truth." />
+              <StatChip value={perf.record || '0-0'} label="Record" />
+            </div>
           </div>
           {equityCurve.length > 1 && (
             <div style={{ width: '120px', flexShrink: 0 }}>
@@ -121,33 +135,14 @@ function PerformanceSnapshot({ perf, equityCurve, risk }) {
         </div>
 
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
-          gap: '12px', marginTop: '8px',
-        }}>
-          <StatBlock
-            label="ROI"
-            value={`${perf.roi >= 0 ? '+' : ''}${perf.roi || 0}%`}
-            color={perf.roi >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'}
-          />
-          <StatBlock
-            label="Units Won"
-            value={`${unitsWon >= 0 ? '+' : ''}${unitsWon.toFixed(1)}u`}
-            color={unitsWon >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'}
-          />
-          <StatBlock
-            label="Avg Edge"
-            value={`${risk.avg_edge_published || perf.avg_edge || 0}%`}
-            color="var(--text-primary)"
-          />
-        </div>
-
-        <div style={{
           marginTop: '16px', paddingTop: '14px',
           borderTop: '1px solid var(--stroke-subtle)',
           display: 'flex', gap: '6px', flexWrap: 'wrap',
         }}>
+          <MetaTag label="Season" />
           <MetaTag label={`${perf.total_picks || 0} Picks`} />
-          <MetaTag label={`${perf.total_passes || 0} Pass Days`} />
+          <MetaTag label={`${perf.total_passes || 0} Passes`} />
+          <MetaTag label={`${perf.selectivity || 0}% Selectivity`} />
         </div>
       </div>
     </>
@@ -155,35 +150,35 @@ function PerformanceSnapshot({ perf, equityCurve, risk }) {
 }
 
 
-function SelectivityPanel({ discipline, perf }) {
-  const pickRate = 100 - (discipline.selectivity_rate || 0);
-  const industryPickRate = 100 - (discipline.industry_avg || 78);
 
+
+function DisciplineScore({ discipline }) {
   return (
     <>
-      <SectionLabel>Selectivity</SectionLabel>
+      <SectionLabel>Discipline Score</SectionLabel>
+      <InfoCallout
+        header="Passing Is a Position"
+        text="Volume increases variance. Filtration preserves capital. Edge only matters when it exceeds risk."
+      />
       <div style={{
         backgroundColor: 'var(--surface-1)', borderRadius: '20px',
         border: '1px solid var(--stroke-subtle)', padding: '24px',
         marginBottom: '16px',
       }}>
-        <div style={{
-          fontFamily: 'var(--font-serif)', fontStyle: 'italic',
-          fontSize: '16px', color: 'var(--text-primary)',
-          lineHeight: '1.5', marginBottom: '20px',
-        }}>
-          One sharp pick beats five gut plays.
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginBottom: '4px' }}>
+              <span style={{
+                fontSize: '13px', color: 'var(--text-secondary)',
+              }}>Selectivity Rate</span>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '22px',
+                color: 'var(--text-primary)', fontWeight: 700,
+              }}>{discipline.selectivity_rate || 0}%</span>
+            </div>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 800,
-              color: 'var(--green-profit)', lineHeight: '1',
-            }}>{discipline.selectivity_rate || 0}%</div>
-            <div style={{
-              fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px',
-            }}>of games passed</div>
+              fontSize: '12px', color: 'var(--text-tertiary)',
+            }}>Industry Avg: {discipline.industry_avg || 78}%</div>
           </div>
           <div style={{
             width: '56px', height: '56px', borderRadius: '14px',
@@ -198,51 +193,24 @@ function SelectivityPanel({ discipline, perf }) {
             <span style={{
               fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 800,
               color: discipline.restraint_grade?.startsWith('A') ? 'var(--green-profit)' : 'var(--text-primary)',
-            }}>{discipline.restraint_grade || '--'}</span>
+            }}>{discipline.restraint_grade || '—'}</span>
           </div>
         </div>
 
         <SelectivityBar selectivity={discipline.selectivity_rate || 0} industryAvg={discipline.industry_avg || 78} />
 
         <div style={{
-          marginTop: '20px', paddingTop: '16px',
+          marginTop: '16px', paddingTop: '14px',
           borderTop: '1px solid var(--stroke-subtle)',
         }}>
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            marginBottom: '8px',
+          <p style={{
+            fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6',
           }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-              Industry avg plays per slate
-            </span>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '14px',
-              color: 'var(--text-tertiary)', fontWeight: 600,
-            }}>3-5 picks</span>
-          </div>
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            marginBottom: '8px',
-          }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-              SharpPicks per slate
-            </span>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '14px',
-              color: 'var(--green-profit)', fontWeight: 600,
-            }}>0-1 picks</span>
-          </div>
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-              Capital preserved from passing
-            </span>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '14px',
-              color: 'var(--green-profit)', fontWeight: 600,
-            }}>+${(discipline.capital_preserved || 0).toLocaleString()}</span>
-          </div>
+            Capital preserved: <span style={{
+              fontFamily: 'var(--font-mono)', fontWeight: 700,
+              color: 'var(--green-profit)',
+            }}>+${(discipline.capital_preserved || 0).toLocaleString()}</span> from avoided -EV spots
+          </p>
         </div>
       </div>
     </>
@@ -250,111 +218,151 @@ function SelectivityPanel({ discipline, perf }) {
 }
 
 
-function CLVPanel({ clv }) {
-  if (!clv || clv.total_tracked === 0) {
-    return (
-      <>
-        <SectionLabel>Closing Line Value</SectionLabel>
-        <div style={{
-          backgroundColor: 'var(--surface-1)', borderRadius: '20px',
-          border: '1px solid var(--stroke-subtle)', padding: '24px',
-          marginBottom: '16px', textAlign: 'center',
-        }}>
-          <div style={{
-            fontSize: '13px', color: 'var(--text-tertiary)',
-            fontFamily: 'var(--font-serif)', fontStyle: 'italic',
-          }}>CLV tracking begins once closing lines are captured.</div>
-        </div>
-      </>
-    );
-  }
+function LatestResultCard({ picks }) {
+  if (!picks || picks.length === 0) return null;
+  const latest = picks[0];
+  if (!latest || (latest.result !== 'win' && latest.result !== 'loss' && latest.result !== 'push')) return null;
+
+  const isWin = latest.result === 'win';
+  const isPush = latest.result === 'push';
+  const accentColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--green-profit)' : 'var(--red-loss)';
+  const accentBg = isPush ? 'rgba(255,255,255,0.04)' : isWin ? 'rgba(52,211,153,0.06)' : 'rgba(239,68,68,0.06)';
+  const accentBorder = isPush ? 'rgba(255,255,255,0.1)' : isWin ? 'rgba(52,211,153,0.18)' : 'rgba(239,68,68,0.18)';
+  const resultLabel = isPush ? 'Push' : isWin ? 'Win' : 'Loss';
+  const profitDisplay = latest.profit_units != null
+    ? `${latest.profit_units >= 0 ? '+' : ''}${latest.profit_units}u`
+    : isPush ? '0u' : isWin ? '+0.91u' : '-1.0u';
 
   return (
     <>
-      <SectionLabel>Closing Line Value</SectionLabel>
+      <SectionLabel>Latest Result</SectionLabel>
       <div style={{
-        backgroundColor: 'var(--surface-1)', borderRadius: '20px',
-        border: '1px solid var(--stroke-subtle)', padding: '24px',
+        backgroundColor: accentBg,
+        borderRadius: '20px',
+        border: `1px solid ${accentBorder}`,
+        padding: '20px 24px',
         marginBottom: '16px',
       }}>
-        <div style={{
-          fontFamily: 'var(--font-serif)', fontStyle: 'italic',
-          fontSize: '13px', color: 'var(--text-tertiary)',
-          marginBottom: '16px', lineHeight: '1.5',
-        }}>
-          Consistently beating the closing line is the strongest indicator of long-term profitability.
-        </div>
-
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr',
-          gap: '12px',
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
-            backgroundColor: 'var(--surface-2)', borderRadius: '14px',
-            padding: '16px', textAlign: 'center',
+            width: '40px', height: '40px', borderRadius: '50%',
+            backgroundColor: isPush ? 'rgba(255,255,255,0.05)' : isWin ? 'rgba(52,211,153,0.12)' : 'rgba(239,68,68,0.12)',
+            border: `2px solid ${accentColor}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
           }}>
+            {isPush ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round">
+                <line x1="6" y1="12" x2="18" y2="12"/>
+              </svg>
+            ) : isWin ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            )}
+          </div>
+          <div style={{ flex: 1 }}>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 800,
-              color: clv.beat_close_pct >= 50 ? 'var(--green-profit)' : 'var(--text-primary)',
-              lineHeight: '1', marginBottom: '6px',
-            }}>{clv.beat_close_pct}%</div>
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+              letterSpacing: '1.5px', textTransform: 'uppercase',
+              color: accentColor, marginBottom: '3px',
+            }}>{resultLabel}</div>
             <div style={{
-              fontSize: '11px', color: 'var(--text-tertiary)',
-              textTransform: 'uppercase', letterSpacing: '0.5px',
-            }}>Beating Close</div>
+              fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
+              color: 'var(--text-primary)',
+            }}>
+              {latest.side} {latest.line > 0 ? `+${latest.line}` : latest.line}
+            </div>
+            {(latest.away_team || latest.home_team) && (
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '11px',
+                color: 'var(--text-secondary)', marginTop: '2px',
+              }}>
+                {latest.away_team} @ {latest.home_team}
+              </div>
+            )}
           </div>
           <div style={{
-            backgroundColor: 'var(--surface-2)', borderRadius: '14px',
-            padding: '16px', textAlign: 'center',
+            fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 700,
+            color: accentColor,
           }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 800,
-              color: clv.avg_clv > 0 ? 'var(--green-profit)' : clv.avg_clv < 0 ? 'var(--red-loss)' : 'var(--text-primary)',
-              lineHeight: '1', marginBottom: '6px',
-            }}>{clv.avg_clv > 0 ? '+' : ''}{clv.avg_clv}</div>
-            <div style={{
-              fontSize: '11px', color: 'var(--text-tertiary)',
-              textTransform: 'uppercase', letterSpacing: '0.5px',
-            }}>Avg CLV / Pick</div>
+            {profitDisplay}
           </div>
-        </div>
-
-        <div style={{
-          marginTop: '12px', textAlign: 'center',
-        }}>
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px',
-            color: 'var(--text-tertiary)',
-          }}>{clv.total_tracked} picks tracked</span>
         </div>
       </div>
     </>
   );
 }
 
-
-function PickTimingLog({ picks }) {
+function RecentPickLog({ picks }) {
   if (!picks || picks.length === 0) return null;
-
-  const picksWithResults = picks.filter(p => p.result === 'win' || p.result === 'loss' || p.result === 'push' || p.result === 'pending');
 
   return (
     <>
-      <SectionLabel>Pick Log</SectionLabel>
+      <SectionLabel>Recent Picks</SectionLabel>
       <div style={{
         backgroundColor: 'var(--surface-1)', borderRadius: '20px',
         border: '1px solid var(--stroke-subtle)',
         marginBottom: '16px', overflow: 'hidden',
       }}>
-        {picksWithResults.map((pick, i) => (
-          <PickRow key={pick.id} pick={pick} isLast={i === picksWithResults.length - 1} />
+        {picks.map((pick, i) => (
+          <PickLogRow key={pick.id} pick={pick} isLast={i === picks.length - 1} />
         ))}
       </div>
     </>
   );
 }
 
-function PickRow({ pick, isLast }) {
+function toET(isoStr) {
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return null;
+    return new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  } catch { return null; }
+}
+
+function formatPickTimestamp(gameDate, startTime, publishedAt) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  let gamePart = '';
+  if (startTime && startTime.includes('T')) {
+    const et = toET(startTime);
+    if (et) {
+      let hours = et.getHours();
+      const mins = et.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      gamePart = `${months[et.getMonth()]} ${et.getDate()} · ${hours}:${mins} ${ampm} ET`;
+    }
+  }
+  if (!gamePart && gameDate && typeof gameDate === 'string' && gameDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const [y, m, day] = gameDate.split('-');
+    gamePart = `${months[parseInt(m)-1]} ${parseInt(day)}`;
+  }
+
+  let postedPart = '';
+  if (publishedAt) {
+    const et = toET(publishedAt);
+    if (et) {
+      let hours = et.getHours();
+      const mins = et.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      postedPart = `Posted ${hours}:${mins} ${ampm} ET`;
+    }
+  }
+  if (gamePart && postedPart) return `${gamePart} · ${postedPart}`;
+  if (gamePart) return gamePart;
+  if (postedPart) return postedPart;
+  return null;
+}
+
+function PickLogRow({ pick, isLast }) {
   const isWin = pick.result === 'win';
   const isLoss = pick.result === 'loss';
   const isPending = pick.result === 'pending';
@@ -375,7 +383,7 @@ function PickRow({ pick, isLast }) {
           fontFamily: 'var(--font-sans)', fontSize: '14px',
           color: 'var(--text-primary)', fontWeight: 600,
           textDecoration: isRevoked ? 'line-through' : 'none',
-        }}>{pick.side} {pick.line > 0 ? `+${pick.line}` : pick.line}</span>
+        }}>{pick.side}</span>
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700,
           color: isWin ? 'var(--green-profit)' : isLoss ? 'var(--red-loss)' : isRevoked ? 'var(--text-tertiary)' : 'var(--gold-pro)',
@@ -404,171 +412,34 @@ function PickRow({ pick, isLast }) {
       <div style={{
         display: 'flex', gap: '10px', flexWrap: 'wrap',
       }}>
-        {pick.line != null && (
-          <PickMeta label="Released" value={pick.line > 0 ? `+${pick.line}` : `${pick.line}`} />
+        <PickMeta label="Edge" value={`${pick.edge_pct || 0}%`} />
+        {pick.predicted_margin !== null && pick.predicted_margin !== undefined && (
+          <PickMeta label="Margin" value={`${pick.predicted_margin > 0 ? '+' : ''}${pick.predicted_margin}`} />
         )}
-        {pick.closing_spread != null && (
-          <PickMeta label="Close" value={pick.closing_spread > 0 ? `+${pick.closing_spread}` : `${pick.closing_spread}`} />
+        {pick.cover_prob !== null && pick.cover_prob !== undefined && (
+          <PickMeta label="Cover" value={`${(pick.cover_prob * 100).toFixed(0)}%`} />
         )}
-        {pick.clv != null && (
-          <PickMeta label="CLV" value={`${pick.clv > 0 ? '+' : ''}${pick.clv}`}
-            color={pick.clv > 0 ? 'var(--green-profit)' : pick.clv < 0 ? 'var(--red-loss)' : undefined} />
+        {pick.closing_spread !== null && pick.closing_spread !== undefined && (
+          <PickMeta label="Close" value={pick.closing_spread > 0 ? `+${pick.closing_spread}` : pick.closing_spread} />
         )}
-        {pick.profit_units != null && (
-          <PickMeta label="P/L" value={`${pick.profit_units >= 0 ? '+' : ''}${pick.profit_units}u`}
-            color={pick.profit_units >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'} />
+        {pick.line_movement !== null && pick.line_movement !== undefined && pick.line_movement !== 0 && (
+          <PickMeta label="Move" value={`${pick.line_movement > 0 ? '+' : ''}${pick.line_movement}`}
+            color={Math.abs(pick.line_movement) > 1 ? 'var(--gold-pro)' : undefined} />
         )}
       </div>
     </div>
   );
 }
 
-
-function PhilosophyPanel() {
+function PickMeta({ label, value, color }) {
   return (
-    <>
-      <SectionLabel>Framework</SectionLabel>
-      <div style={{
-        backgroundColor: 'var(--surface-1)', borderRadius: '20px',
-        border: '1px solid var(--stroke-subtle)', padding: '24px',
-        marginBottom: '16px',
-      }}>
-        <div style={{
-          fontFamily: 'var(--font-serif)', fontSize: '18px',
-          color: 'var(--text-primary)', fontWeight: 600,
-          marginBottom: '16px', lineHeight: '1.4',
-        }}>The SharpPicks Framework</div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <FrameworkRule
-            icon={
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-profit)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-              </svg>
-            }
-            text="No edge, no pick. We pass more than we play."
-          />
-          <FrameworkRule
-            icon={
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-profit)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-              </svg>
-            }
-            text="A statistical edge threshold must be met before any pick is released."
-          />
-          <FrameworkRule
-            icon={
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-profit)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-              </svg>
-            }
-            text="Every pick is verified against live market odds across multiple books."
-          />
-          <FrameworkRule
-            icon={
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-profit)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-              </svg>
-            }
-            text="Selective by design. Discipline is the edge most bettors lack."
-          />
-        </div>
-      </div>
-    </>
-  );
-}
-
-function FrameworkRule({ icon, text }) {
-  return (
-    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-      <div style={{ flexShrink: 0, marginTop: '1px' }}>{icon}</div>
-      <span style={{
-        fontSize: '14px', color: 'var(--text-secondary)',
-        lineHeight: '1.5',
-      }}>{text}</span>
-    </div>
-  );
-}
-
-
-function FoundingPanel({ founding }) {
-  const pct = Math.min(((founding.current_count || 0) / (founding.max_count || 500)) * 100, 100);
-
-  return (
-    <>
-      <SectionLabel>Founding Access</SectionLabel>
-      <div style={{
-        backgroundColor: 'var(--surface-1)', borderRadius: '20px',
-        border: '1px solid rgba(245,158,11,0.2)', padding: '24px',
-        marginBottom: '16px',
-        background: 'linear-gradient(135deg, var(--surface-1) 0%, rgba(245,158,11,0.04) 100%)',
-      }}>
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-          marginBottom: '12px',
-        }}>
-          <div style={{
-            fontFamily: 'var(--font-sans)', fontSize: '15px',
-            color: 'var(--text-primary)', fontWeight: 600,
-          }}>Founding Members</div>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '20px',
-            color: 'var(--gold-pro)', fontWeight: 800,
-          }}>
-            {founding.current_count || 0}
-            <span style={{ fontSize: '14px', color: 'var(--text-tertiary)', fontWeight: 400 }}> of {founding.max_count || 500}</span>
-          </div>
-        </div>
-
-        <div style={{
-          height: '6px', borderRadius: '3px',
-          backgroundColor: 'var(--surface-2)',
-          marginBottom: '12px',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            height: '100%', borderRadius: '3px',
-            width: `${pct}%`,
-            background: 'linear-gradient(90deg, var(--gold-pro), #f59e0b)',
-            transition: 'width 0.5s ease',
-          }} />
-        </div>
-
-        <div style={{
-          fontFamily: 'var(--font-serif)', fontStyle: 'italic',
-          fontSize: '13px', color: 'var(--text-secondary)',
-          lineHeight: '1.5', textAlign: 'center',
-        }}>
-          {founding.closed
-            ? 'Founding access is closed.'
-            : 'Founding access closes at 500 members.'}
-        </div>
-      </div>
-    </>
-  );
-}
-
-
-function StatBlock({ label, value, color }) {
-  return (
-    <div style={{
-      backgroundColor: 'var(--surface-2)', borderRadius: '12px',
-      padding: '12px', textAlign: 'center',
+    <span style={{
+      fontFamily: 'var(--font-mono)', fontSize: '11px',
+      color: color || 'var(--text-tertiary)',
     }}>
-      <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700,
-        color: color || 'var(--text-primary)', lineHeight: '1',
-        marginBottom: '4px',
-      }}>{value}</div>
-      <div style={{
-        fontSize: '10px', color: 'var(--text-tertiary)',
-        textTransform: 'uppercase', letterSpacing: '0.5px',
-      }}>{label}</div>
-    </div>
+      <span style={{ opacity: 0.6 }}>{label}</span>{' '}
+      <span style={{ color: color || 'var(--text-secondary)', fontWeight: 600 }}>{value}</span>
+    </span>
   );
 }
 
@@ -595,23 +466,107 @@ function ModelHealthBadge({ health }) {
         color: 'var(--text-secondary)', fontWeight: 600,
         letterSpacing: '0.5px', textTransform: 'uppercase',
       }}>{statusText}</span>
+      {health.sigma && (
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '10px',
+          color: 'var(--text-tertiary)',
+        }}>{health.sigma}pt</span>
+      )}
     </div>
   );
 }
 
 
-function PickMeta({ label, value, color }) {
+function StatChip({ value, label, color }) {
   return (
-    <span style={{
-      fontFamily: 'var(--font-mono)', fontSize: '11px',
-      color: color || 'var(--text-tertiary)',
-    }}>
-      <span style={{ opacity: 0.6 }}>{label}</span>{' '}
-      <span style={{ color: color || 'var(--text-secondary)', fontWeight: 600 }}>{value}</span>
+    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: 'var(--text-secondary)' }}>
+      <strong style={{ color: color || 'var(--text-primary)', fontWeight: 700 }}>{value}</strong>{' '}
+      <span style={{ fontSize: '12px' }}>{label}</span>
     </span>
   );
 }
 
+function InfoTooltip({ text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          width: '18px', height: '18px', borderRadius: '50%',
+          backgroundColor: open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
+          border: '1px solid var(--stroke-subtle)',
+          color: 'var(--text-tertiary)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 0, fontSize: '11px', fontFamily: 'var(--font-sans)', fontWeight: 600,
+          lineHeight: 1, transition: 'background-color 0.15s ease',
+        }}
+        aria-label="More info"
+      >i</button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '24px', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+          borderRadius: '10px', padding: '10px 12px',
+          width: '220px', zIndex: 10,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        }}>
+          <p style={{
+            fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+            fontSize: '12px', color: 'var(--text-secondary)',
+            lineHeight: '1.5', margin: 0,
+          }}>{text}</p>
+        </div>
+      )}
+    </span>
+  );
+}
+
+function InfoCallout({ header, text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ marginBottom: '12px' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
+          color: 'var(--text-tertiary)', fontFamily: 'var(--font-sans)', fontSize: '12px',
+          fontWeight: 500, transition: 'color 0.15s ease',
+        }}
+      >
+        <span style={{
+          width: '16px', height: '16px', borderRadius: '50%',
+          backgroundColor: 'rgba(255,255,255,0.06)',
+          border: '1px solid var(--stroke-subtle)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '10px', fontWeight: 600, lineHeight: 1, flexShrink: 0,
+        }}>?</span>
+        <span>{header}</span>
+        <span style={{
+          fontSize: '10px', transition: 'transform 0.2s ease',
+          transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+        }}>▾</span>
+      </button>
+      <div style={{
+        maxHeight: open ? '200px' : '0px',
+        overflow: 'hidden',
+        transition: 'max-height 0.25s ease',
+      }}>
+        <div style={{
+          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+          borderRadius: '10px', padding: '12px 14px', marginTop: '6px',
+        }}>
+          <p style={{
+            fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+            fontSize: '12px', color: 'var(--text-secondary)',
+            lineHeight: '1.6', margin: 0,
+          }}>{text}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function MetaTag({ label }) {
   return (
@@ -693,51 +648,6 @@ function MiniEquityChart({ data }) {
 }
 
 
-function toET(isoStr) {
-  try {
-    const d = new Date(isoStr);
-    if (isNaN(d.getTime())) return null;
-    return new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-  } catch { return null; }
-}
-
-function formatPickTimestamp(gameDate, startTime, publishedAt) {
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-  let gamePart = '';
-  if (startTime && startTime.includes('T')) {
-    const et = toET(startTime);
-    if (et) {
-      let hours = et.getHours();
-      const mins = et.getMinutes().toString().padStart(2, '0');
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12 || 12;
-      gamePart = `${months[et.getMonth()]} ${et.getDate()} · ${hours}:${mins} ${ampm} ET`;
-    }
-  }
-  if (!gamePart && gameDate && typeof gameDate === 'string' && gameDate.match(/^\d{4}-\d{2}-\d{2}/)) {
-    const [y, m, day] = gameDate.split('-');
-    gamePart = `${months[parseInt(m)-1]} ${parseInt(day)}`;
-  }
-
-  let postedPart = '';
-  if (publishedAt) {
-    const et = toET(publishedAt);
-    if (et) {
-      let hours = et.getHours();
-      const mins = et.getMinutes().toString().padStart(2, '0');
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12 || 12;
-      postedPart = `Released ${hours}:${mins} ${ampm} ET`;
-    }
-  }
-  if (gamePart && postedPart) return `${gamePart} · ${postedPart}`;
-  if (gamePart) return gamePart;
-  if (postedPart) return postedPart;
-  return null;
-}
-
-
 function DashboardSkeleton() {
   const shimmer = {
     background: 'linear-gradient(90deg, var(--surface-1) 25%, var(--surface-2) 50%, var(--surface-1) 75%)',
@@ -750,8 +660,8 @@ function DashboardSkeleton() {
     <div style={{ padding: '0 20px' }}>
       <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
       <div style={{ ...shimmer, height: '180px', marginBottom: '16px', borderRadius: '20px' }} />
-      <div style={{ ...shimmer, height: '200px', marginBottom: '16px', borderRadius: '20px' }} />
       <div style={{ ...shimmer, height: '120px', marginBottom: '16px', borderRadius: '20px' }} />
+      <div style={{ ...shimmer, height: '100px', marginBottom: '16px', borderRadius: '20px' }} />
       <div style={{ ...shimmer, height: '140px', marginBottom: '16px', borderRadius: '20px' }} />
     </div>
   );
