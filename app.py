@@ -2279,7 +2279,7 @@ def get_user_stats():
     total_passes_count = Pass.query.count()
     user_selectivity = round((picks_followed / total_sharp_picks_available) * 100, 1) if total_sharp_picks_available > 0 else 0
     picks_passed = total_sharp_picks_available - picks_followed
-    capital_preserved = round(picks_passed * 110 * 0.04, 0)
+    capital_preserved = round(picks_passed * avg_bet * 0.04, 0) if avg_bet > 0 else round(picks_passed * 110 * 0.04, 0)
 
     bet_dates = sorted([b.created_at for b in bets if b.created_at])
     if len(bet_dates) >= 2:
