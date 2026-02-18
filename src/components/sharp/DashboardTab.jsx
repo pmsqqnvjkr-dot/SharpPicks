@@ -21,6 +21,7 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
   const { data: calibrationData } = useApi(sportQuery('/public/calibration', sport), { pollInterval: 60000 });
   const { data: edgeDecayData } = useApi(sportQuery('/public/edge-decay', sport), { pollInterval: 120000 });
   const { data: regimeData } = useApi(sportQuery('/public/regime-stats', sport), { pollInterval: 120000 });
+  const { data: killSwitchData } = useApi(sportQuery('/public/kill-switch', sport), { pollInterval: 120000 });
 
   if (loading) {
     return (
@@ -75,6 +76,8 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
         <EdgeDecayPanel data={edgeDecayData} />
 
         <RegimePanel data={regimeData} />
+
+        <KillSwitchPanel data={killSwitchData} />
 
         <DisciplineScore discipline={discipline} />
 
@@ -409,6 +412,113 @@ function RegimePanel({ data }) {
           {segs.spread_buckets && Object.entries(segs.spread_buckets).map(([bucket, rec]) =>
             renderSegment(`Spread ${bucket}`, rec)
           )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function KillSwitchPanel({ data }) {
+  if (!data) return null;
+  const { active, position_size_pct, conditions, diagnostics, triggers_met, triggers_required, trigger_reasons, triggered_at } = data;
+  const statusColor = active ? '#ef4444' : triggers_met >= 2 ? '#f59e0b' : '#4ade80';
+  const statusLabel = active ? 'ACTIVE — Position Reduced' : triggers_met >= 2 ? 'WARNING — 2/3 Conditions Met' : 'CLEAR';
+  const statusIcon = active ? '\u26A0' : triggers_met >= 2 ? '\u25CF' : '\u2713';
+
+  const conditionRow = (label, triggered, detail) => (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      paddingBottom: '10px', borderBottom: '1px solid var(--stroke-subtle)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{
+          width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block',
+          backgroundColor: triggered ? '#ef4444' : '#4ade80',
+        }} />
+        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{label}</span>
+      </div>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: triggered ? '#ef4444' : 'var(--text-tertiary)' }}>
+        {detail}
+      </span>
+    </div>
+  );
+
+  return (
+    <>
+      <SectionLabel>Kill Switch</SectionLabel>
+      <div style={{
+        backgroundColor: active ? 'rgba(239, 68, 68, 0.06)' : 'var(--surface-1)',
+        borderRadius: '20px',
+        border: `1px solid ${active ? 'rgba(239, 68, 68, 0.3)' : 'var(--stroke-subtle)'}`,
+        padding: '20px', marginBottom: '16px',
+      }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          paddingBottom: '14px', borderBottom: '1px solid var(--stroke-subtle)', marginBottom: '14px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '14px' }}>{statusIcon}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600, color: statusColor }}>
+              {statusLabel}
+            </span>
+          </div>
+          {active && (
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 800, color: '#ef4444',
+            }}>
+              {position_size_pct}%
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {conditionRow(
+            'Rolling 100-bet ROI',
+            conditions?.rolling_roi_triggered,
+            diagnostics?.rolling_100_roi != null ? `${diagnostics.rolling_100_roi}%` : `< ${diagnostics?.min_sample || 100} bets`
+          )}
+          {conditionRow(
+            'CLV Trend',
+            conditions?.clv_negative_triggered,
+            diagnostics?.clv_total_with_data > 0
+              ? `${diagnostics.clv_negative_count}/${diagnostics.clv_total_with_data} negative`
+              : 'No CLV data'
+          )}
+          {conditionRow(
+            'Edge Decay Signal',
+            conditions?.edge_decay_stale,
+            diagnostics?.edge_decay_signal || (diagnostics?.edge_decay_picks_tracked < 10 ? `${diagnostics?.edge_decay_picks_tracked || 0}/10 tracked` : 'unknown')
+          )}
+        </div>
+
+        {active && trigger_reasons && trigger_reasons.length > 0 && (
+          <div style={{
+            marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--stroke-subtle)',
+          }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-tertiary)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>
+              Trigger Log
+            </div>
+            {trigger_reasons.map((reason, i) => (
+              <div key={i} style={{ fontSize: '11px', color: '#ef4444', lineHeight: '1.6', paddingLeft: '12px', borderLeft: '2px solid rgba(239, 68, 68, 0.3)', marginBottom: '6px' }}>
+                {reason}
+              </div>
+            ))}
+            {triggered_at && (
+              <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '6px' }}>
+                Triggered: {new Date(triggered_at).toLocaleDateString()}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{
+          marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--stroke-subtle)',
+          fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5', fontStyle: 'italic',
+        }}>
+          {active
+            ? 'All three conditions met. Position size automatically reduced. Recovery requires positive rolling ROI and improving CLV.'
+            : `Predefined risk circuit breaker. When all 3 conditions trigger simultaneously, position size reduces by 50%. ${triggers_met}/3 conditions currently met.`
+          }
         </div>
       </div>
     </>

@@ -132,6 +132,7 @@ class Pick(db.Model):
     pnl = db.Column(db.Float, nullable=True)
     profit_units = db.Column(db.Float, nullable=True)
     notes = db.Column(db.String, nullable=True)
+    position_size_pct = db.Column(db.Integer, default=100)
 
 
 class Pass(db.Model):
@@ -287,3 +288,18 @@ class CronLog(db.Model):
     duration_ms = db.Column(db.Integer)
     message = db.Column(db.Text)
     executed_at = db.Column(db.DateTime, default=datetime.now, index=True)
+
+
+class KillSwitch(db.Model):
+    __tablename__ = 'kill_switch'
+    id = db.Column(db.Integer, primary_key=True)
+    sport = db.Column(db.String(10), default='nba', index=True)
+    active = db.Column(db.Boolean, default=False)
+    position_size_pct = db.Column(db.Integer, default=100)
+    triggered_at = db.Column(db.DateTime, nullable=True)
+    cleared_at = db.Column(db.DateTime, nullable=True)
+    trigger_reasons = db.Column(JSONB, nullable=True)
+    rolling_roi = db.Column(db.Float, nullable=True)
+    clv_negative_streak = db.Column(db.Integer, nullable=True)
+    edge_decay_signal = db.Column(db.String(20), nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)

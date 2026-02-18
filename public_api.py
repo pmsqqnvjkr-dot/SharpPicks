@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot
+from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, KillSwitch
 from sqlalchemy import func
 from sport_config import get_active_sports
 
@@ -619,3 +619,156 @@ def regime_stats():
         'total_picks': len(picks),
         'concentration_warning': concentration_warning,
     })
+
+
+KILL_SWITCH_ROI_THRESHOLD = -8.0
+KILL_SWITCH_CLV_WINDOW = 50
+KILL_SWITCH_ROLLING_WINDOW = 100
+KILL_SWITCH_POSITION_REDUCTION = 50
+KILL_SWITCH_RECOVERY_ROI = 0.0
+KILL_SWITCH_RECOVERY_CLV_POSITIVE = 20
+
+
+def evaluate_kill_switch(sport=None):
+    from datetime import datetime as dt
+
+    pick_q = Pick.query.filter(Pick.result.in_(['win', 'loss']))
+    if sport:
+        pick_q = pick_q.filter(Pick.sport == sport)
+    resolved = pick_q.order_by(Pick.game_date.asc()).all()
+
+    conditions = {
+        'rolling_roi_triggered': False,
+        'clv_negative_triggered': False,
+        'edge_decay_stale': False,
+    }
+    diagnostics = {
+        'rolling_100_roi': None,
+        'clv_negative_count': 0,
+        'clv_window': KILL_SWITCH_CLV_WINDOW,
+        'edge_decay_signal': None,
+        'total_resolved': len(resolved),
+        'min_sample': KILL_SWITCH_ROLLING_WINDOW,
+    }
+
+    if len(resolved) >= KILL_SWITCH_ROLLING_WINDOW:
+        last_n = resolved[-KILL_SWITCH_ROLLING_WINDOW:]
+        total_pnl = sum(p.pnl or 0 for p in last_n)
+        total_wagered = len(last_n) * 110
+        rolling_roi = round((total_pnl / total_wagered) * 100, 2) if total_wagered > 0 else 0
+        diagnostics['rolling_100_roi'] = rolling_roi
+        if rolling_roi < KILL_SWITCH_ROI_THRESHOLD:
+            conditions['rolling_roi_triggered'] = True
+
+    clv_window = resolved[-KILL_SWITCH_CLV_WINDOW:] if len(resolved) >= KILL_SWITCH_CLV_WINDOW else resolved
+    clv_negative_count = sum(1 for p in clv_window if p.clv is not None and p.clv < 0)
+    clv_total_with_data = sum(1 for p in clv_window if p.clv is not None)
+    diagnostics['clv_negative_count'] = clv_negative_count
+    diagnostics['clv_total_with_data'] = clv_total_with_data
+    if clv_total_with_data >= 30 and clv_negative_count > clv_total_with_data * 0.6:
+        conditions['clv_negative_triggered'] = True
+
+    snapshot_q = db.session.query(EdgeSnapshot)
+    if sport:
+        snapshot_q = snapshot_q.filter(EdgeSnapshot.sport == sport)
+    snapshots = snapshot_q.order_by(EdgeSnapshot.game_date.desc(), EdgeSnapshot.created_at.desc()).all()
+
+    pick_snapshots = {}
+    for s in snapshots:
+        key = s.pick_id or f"{s.game_date}_{s.home_team}_{s.away_team}"
+        if key not in pick_snapshots:
+            pick_snapshots[key] = {}
+        pick_snapshots[key][s.snapshot_label] = s.edge_pct or 0
+
+    decay_records = []
+    for key, labels in pick_snapshots.items():
+        if 'open' in labels and 'pre_tip' in labels:
+            open_e = labels['open']
+            pretip_e = labels['pre_tip']
+            decay_pct = ((open_e - pretip_e) / open_e * 100) if open_e != 0 else 0
+            decay_records.append(decay_pct)
+
+    edge_decay_signal = None
+    if len(decay_records) >= 10:
+        avg_decay = sum(decay_records) / len(decay_records)
+        if avg_decay > 40:
+            edge_decay_signal = 'stale'
+        elif avg_decay < 15:
+            edge_decay_signal = 'structural'
+        else:
+            edge_decay_signal = 'mixed'
+    diagnostics['edge_decay_signal'] = edge_decay_signal
+    diagnostics['edge_decay_picks_tracked'] = len(decay_records)
+
+    if edge_decay_signal == 'stale':
+        conditions['edge_decay_stale'] = True
+
+    all_triggered = all(conditions.values())
+    any_triggered = any(conditions.values())
+    triggers_met = sum(1 for v in conditions.values() if v)
+
+    ks = KillSwitch.query.filter_by(sport=sport or 'nba').first()
+    if not ks:
+        ks = KillSwitch(sport=sport or 'nba', active=False, position_size_pct=100)
+        db.session.add(ks)
+
+    if all_triggered and not ks.active:
+        ks.active = True
+        ks.position_size_pct = KILL_SWITCH_POSITION_REDUCTION
+        ks.triggered_at = dt.now()
+        ks.cleared_at = None
+        reasons = []
+        if conditions['rolling_roi_triggered']:
+            reasons.append(f"Rolling {KILL_SWITCH_ROLLING_WINDOW}-bet ROI at {diagnostics['rolling_100_roi']}% (threshold: {KILL_SWITCH_ROI_THRESHOLD}%)")
+        if conditions['clv_negative_triggered']:
+            reasons.append(f"CLV negative on {clv_negative_count}/{clv_total_with_data} of last {KILL_SWITCH_CLV_WINDOW} picks")
+        if conditions['edge_decay_stale']:
+            reasons.append(f"Edge decay signal: stale (avg decay >{40}%)")
+        ks.trigger_reasons = reasons
+        ks.rolling_roi = diagnostics['rolling_100_roi']
+        ks.clv_negative_streak = clv_negative_count
+        ks.edge_decay_signal = edge_decay_signal
+        db.session.commit()
+
+    elif ks.active:
+        recovery_met = True
+        if diagnostics['rolling_100_roi'] is not None and diagnostics['rolling_100_roi'] < KILL_SWITCH_RECOVERY_ROI:
+            recovery_met = False
+        recent_clv = resolved[-KILL_SWITCH_RECOVERY_CLV_POSITIVE:] if len(resolved) >= KILL_SWITCH_RECOVERY_CLV_POSITIVE else resolved
+        recent_clv_positive = sum(1 for p in recent_clv if p.clv is not None and p.clv > 0)
+        recent_clv_total = sum(1 for p in recent_clv if p.clv is not None)
+        if recent_clv_total < 10 or recent_clv_positive < recent_clv_total * 0.5:
+            recovery_met = False
+
+        if recovery_met:
+            ks.active = False
+            ks.position_size_pct = 100
+            ks.cleared_at = dt.now()
+            ks.trigger_reasons = None
+            db.session.commit()
+        else:
+            ks.rolling_roi = diagnostics['rolling_100_roi']
+            ks.clv_negative_streak = clv_negative_count
+            ks.edge_decay_signal = edge_decay_signal
+            db.session.commit()
+    else:
+        db.session.commit()
+
+    return {
+        'active': ks.active,
+        'position_size_pct': ks.position_size_pct,
+        'triggered_at': ks.triggered_at.isoformat() if ks.triggered_at else None,
+        'cleared_at': ks.cleared_at.isoformat() if ks.cleared_at else None,
+        'trigger_reasons': ks.trigger_reasons or [],
+        'conditions': conditions,
+        'diagnostics': diagnostics,
+        'triggers_met': triggers_met,
+        'triggers_required': 3,
+    }
+
+
+@public_bp.route('/kill-switch')
+def kill_switch_status():
+    sport = _get_sport_filter()
+    result = evaluate_kill_switch(sport)
+    return jsonify(result)

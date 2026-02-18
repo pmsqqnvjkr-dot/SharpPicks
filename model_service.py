@@ -7,7 +7,7 @@ This service only: runs the model, reads outputs, stores to DB.
 
 import time
 from datetime import datetime, timedelta
-from models import db, Pick, Pass, ModelRun, EdgeSnapshot
+from models import db, Pick, Pass, ModelRun, EdgeSnapshot, KillSwitch
 from sport_config import get_sport_config, get_live_sports
 
 
@@ -267,6 +267,9 @@ def run_model_and_log(app, sport='nba'):
                 pick_spread = spread if is_home_pick else -spread
 
                 if is_live:
+                    ks = KillSwitch.query.filter_by(sport=sport).first()
+                    position_pct = ks.position_size_pct if ks and ks.active else 100
+
                     pick = Pick(
                         sport=sport,
                         away_team=best['away_team'],
@@ -287,6 +290,7 @@ def run_model_and_log(app, sport='nba'):
                         market_odds=_to_python(best.get('market_odds', -110)),
                         sportsbook=best.get('best_book', 'DraftKings'),
                         notes=' | '.join(best.get('explanation', [])) if isinstance(best.get('explanation'), list) else (best.get('explanation') or ''),
+                        position_size_pct=position_pct,
                     )
                     db.session.add(pick)
 

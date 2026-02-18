@@ -108,6 +108,7 @@ def today():
             'market_odds': pick.market_odds,
             'closing_spread': pick.closing_spread,
             'clv': pick.clv,
+            'position_size_pct': pick.position_size_pct or 100,
             'model_line': model_line,
             'market_line': market_line,
             'model_signals': model_signals,
