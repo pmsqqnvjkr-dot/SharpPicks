@@ -170,7 +170,7 @@ def send_trial_expiring_email(to, first_name=None, trial_end_date=None, picks_re
     name = first_name or "there"
     end_str = trial_end_date.strftime('%B %d, %Y') if trial_end_date else "soon"
     record_str = picks_record or "Check your dashboard for details"
-    founding_line = f"Founding rate: $99/year ({founding_spots} of 500 spots remaining)" if founding_spots else "Founding rate: $99/year (limited spots)"
+    founding_line = f"Founding rate: $99/year ({founding_spots} of 50 spots remaining)" if founding_spots else "Founding rate: $99/year (limited spots)"
 
     attachments = []
     logo_b64 = _get_logo_b64()

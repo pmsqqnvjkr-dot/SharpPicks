@@ -164,7 +164,7 @@ export default function UpgradeScreen({ onBack, user }) {
             <div>
               <div style={{
                 fontSize: '13px', color: 'var(--gold-pro)', fontWeight: 600,
-              }}>Founding rate closes at 500 members.</div>
+              }}>Founding rate closes at 50 members.</div>
               <div style={{
                 fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '3px',
               }}>{spotsRemaining} remaining.</div>

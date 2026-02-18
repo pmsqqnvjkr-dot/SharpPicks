@@ -1130,7 +1130,7 @@ def check_expiring_trials():
                     losses = Pick.query.filter_by(result='loss').count()
                     record = f"{picks}W-{losses}L published picks"
                     founding_count = User.query.filter_by(founding_member=True).count()
-                    spots = 500 - founding_count
+                    spots = 50 - founding_count
                     send_trial_expiring_email(user.email, user.first_name, user.trial_end_date, record, spots)
                     user.trial_warning_sent = True
                 except Exception as e:
@@ -1822,7 +1822,7 @@ def maybe_assign_founding(user_id):
         if not row or row[2]:
             return
         current_count = row[1]
-        if current_count >= 500:
+        if current_count >= 50:
             return
 
         user = db.session.get(User, user_id)
@@ -1830,7 +1830,7 @@ def maybe_assign_founding(user_id):
             return
 
         new_count = current_count + 1
-        closed = new_count >= 500
+        closed = new_count >= 50
         db.session.execute(
             sql_text("UPDATE founding_counter SET current_count = :cnt, closed = :closed, last_updated_at = NOW() WHERE id = 1"),
             {'cnt': new_count, 'closed': closed}

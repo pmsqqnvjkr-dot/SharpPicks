@@ -465,9 +465,9 @@ def founding_count():
 
     return jsonify({
         'current': counter.current_count,
-        'total': 500,
+        'total': 50,
         'open': not counter.closed,
-        'remaining': max(0, 500 - counter.current_count),
+        'remaining': max(0, 50 - counter.current_count),
     })
 
 

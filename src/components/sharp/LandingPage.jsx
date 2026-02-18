@@ -9,7 +9,7 @@ export default function LandingPage() {
   const [authMode, setAuthMode] = useState('register');
   const [accountType, setAccountType] = useState(null);
 
-  const spotsLeft = founding ? (founding.remaining != null ? founding.remaining : Math.max(0, 500 - (founding.current || 0))) : null;
+  const spotsLeft = founding ? (founding.remaining != null ? founding.remaining : Math.max(0, 50 - (founding.current || 0))) : null;
 
   const ShieldLogo = ({ size = 24 }) => (
     <svg viewBox="0 0 40 40" width={size} height={size} fill="none">
@@ -251,7 +251,7 @@ export default function LandingPage() {
               color: 'var(--text-primary)', marginBottom: '6px',
             }}>Founding member pricing</div>
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              First 500 lock in <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 600 }}>$99/year</span> for life.
+              First 50 lock in <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 600 }}>$99/year</span> for life.
             </p>
             <p style={{
               fontFamily: 'var(--font-mono)', fontSize: '12px',
