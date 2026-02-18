@@ -714,6 +714,17 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
   </div>
 
   <div class="panel wide-2">
+    <div class="panel-label">Risk Profile</div>
+    <div class="stat-row"><span class="label">Max Drawdown</span><span class="value" id="rp-max-drawdown">--</span></div>
+    <div class="stat-row"><span class="label">Rolling 50-Bet ROI</span><span class="value" id="rp-rolling-50">--</span></div>
+    <div class="stat-row"><span class="label">Rolling 100-Bet ROI</span><span class="value" id="rp-rolling-100">--</span></div>
+    <div class="stat-row"><span class="label">Return Std Dev</span><span class="value" id="rp-return-std">--</span></div>
+    <div class="stat-row"><span class="label">Risk of Ruin</span><span class="value" id="rp-risk-of-ruin">--</span></div>
+    <div class="stat-row"><span class="label">Avg Days Between Picks</span><span class="value" id="rp-avg-days">--</span></div>
+    <div class="stat-row"><span class="label">Avg Edge Published</span><span class="value green" id="rp-avg-edge">--</span></div>
+  </div>
+
+  <div class="panel wide-2">
     <div class="panel-label">Threshold Tuning</div>
     <div class="stat-row"><span class="label">Base Edge Threshold</span><span class="value" id="th-base-edge">--</span></div>
     <div class="stat-row"><span class="label">Elasticity Formula</span><span class="value" id="th-formula" style="font-size:9px;max-width:200px;text-align:right">--</span></div>
@@ -1284,6 +1295,21 @@ async function loadControlRoom() {
         '<div style="font-size:10px;color:var(--red);line-height:1.6;padding-left:10px;border-left:2px solid rgba(239,68,68,0.3);margin-bottom:4px">' + r + '</div>'
       ).join('');
     }
+
+    const rp = d.risk_profile || {};
+    document.getElementById('rp-max-drawdown').textContent = rp.max_drawdown_pct != null ? '-' + rp.max_drawdown_pct + '%' : '--';
+    const r50El = document.getElementById('rp-rolling-50');
+    r50El.textContent = rp.rolling_50_roi != null ? (rp.rolling_50_roi > 0 ? '+' : '') + rp.rolling_50_roi + '%' : '--';
+    if (rp.rolling_50_roi != null) r50El.className = 'value ' + (rp.rolling_50_roi >= 0 ? 'green' : 'red');
+    const r100El = document.getElementById('rp-rolling-100');
+    r100El.textContent = rp.rolling_100_roi != null ? (rp.rolling_100_roi > 0 ? '+' : '') + rp.rolling_100_roi + '%' : '--';
+    if (rp.rolling_100_roi != null) r100El.className = 'value ' + (rp.rolling_100_roi >= 0 ? 'green' : 'red');
+    document.getElementById('rp-return-std').textContent = rp.return_std_dev != null ? rp.return_std_dev + '%' : '--';
+    const rorEl = document.getElementById('rp-risk-of-ruin');
+    rorEl.textContent = rp.risk_of_ruin_pct != null ? rp.risk_of_ruin_pct + '%' : '--';
+    if (rp.risk_of_ruin_pct != null) rorEl.className = 'value ' + (rp.risk_of_ruin_pct < 1 ? 'green' : rp.risk_of_ruin_pct > 5 ? 'red' : '');
+    document.getElementById('rp-avg-days').textContent = rp.avg_days_between_picks || '--';
+    document.getElementById('rp-avg-edge').textContent = rp.avg_edge_published != null ? rp.avg_edge_published + '%' : '--';
 
     const th = d.thresholds;
     document.getElementById('th-base-edge').textContent = th.base_edge + '%';

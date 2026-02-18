@@ -63,8 +63,6 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
 
         <PerformanceCore perf={perf} equityCurve={equityCurve} />
 
-        <RiskProfile risk={risk} />
-
         <DisciplineScore discipline={discipline} />
 
         <LatestResultCard picks={recentPicks} />
@@ -152,49 +150,6 @@ function PerformanceCore({ perf, equityCurve }) {
 }
 
 
-function RiskProfile({ risk }) {
-  return (
-    <>
-      <SectionLabel>Risk Profile</SectionLabel>
-      <div style={{
-        backgroundColor: 'var(--surface-1)', borderRadius: '20px',
-        border: '1px solid var(--stroke-subtle)', padding: '20px',
-        marginBottom: '16px',
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <RiskRow label="Max Drawdown" value={`-${risk.max_drawdown_pct || 0}%`} tooltip="Largest historical drop from peak equity. Every profitable system has drawdowns. The question is whether they are within expectation." />
-          <RiskRow label="Rolling 50-Bet ROI" value={risk.rolling_50_roi != null ? `${risk.rolling_50_roi > 0 ? '+' : ''}${risk.rolling_50_roi}%` : '—'} tooltip="ROI over the last 50 bets. Smooths noise. Shows recent trajectory without overweighting single results." />
-          <RiskRow label="Rolling 100-Bet ROI" value={risk.rolling_100_roi != null ? `${risk.rolling_100_roi > 0 ? '+' : ''}${risk.rolling_100_roi}%` : '—'} tooltip="ROI over the last 100 bets. More stable signal than 50-bet. If this diverges significantly from all-time, investigate." />
-          <RiskRow label="Return Std Dev" value={risk.return_std_dev != null ? `${risk.return_std_dev}%` : '—'} tooltip="Standard deviation of per-bet returns. Lower is more stable. Elite systems target high edge with low variance." />
-          <RiskRow label="Risk of Ruin" value={risk.risk_of_ruin_pct != null ? `${risk.risk_of_ruin_pct}%` : '—'} tooltip="Probability of losing entire bankroll at fixed 1-unit sizing (100 units). Below 1% is institutional-grade. Above 5% demands reduced sizing." valueColor={risk.risk_of_ruin_pct != null && risk.risk_of_ruin_pct < 1 ? '#4ade80' : risk.risk_of_ruin_pct != null && risk.risk_of_ruin_pct > 5 ? '#ef4444' : undefined} />
-          <RiskRow label="Avg Days Between Picks" value={risk.avg_days_between_picks || '—'} />
-          <RiskRow label="Avg Edge Published" value={`${risk.avg_edge_published || 0}%`} tooltip="Higher average edge means fewer but stronger plays. Conviction scales with risk." />
-        </div>
-      </div>
-    </>
-  );
-}
-
-function RiskRow({ label, value, tooltip, valueColor }) {
-  return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      paddingBottom: '12px', borderBottom: '1px solid var(--stroke-subtle)',
-    }}>
-      <span style={{
-        fontSize: '13px', color: 'var(--text-secondary)',
-        display: 'inline-flex', alignItems: 'center',
-      }}>
-        {label}
-        {tooltip && <InfoTooltip text={tooltip} />}
-      </span>
-      <span style={{
-        fontFamily: 'var(--font-mono)', fontSize: '14px',
-        color: valueColor || 'var(--text-primary)', fontWeight: 600,
-      }}>{value}</span>
-    </div>
-  );
-}
 
 
 function DisciplineScore({ discipline }) {

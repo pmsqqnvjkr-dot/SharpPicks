@@ -930,8 +930,82 @@ def control_room():
         b['required_threshold'] = round(min(3.0 + bucket_base * 0.167, 7.0), 2)
         del b['edges']
 
+    import numpy as np
+    unit_results = []
+    cumulative_pnl = 0
+    max_pnl = 0
+    max_drawdown = 0
+    total_wagered = 0
+    for p in sorted(resolved, key=lambda x: x.game_date or ''):
+        if p.result == 'win':
+            unit_results.append(100 / 110)
+        elif p.result == 'loss':
+            unit_results.append(-1.0)
+        elif p.result == 'push':
+            unit_results.append(0.0)
+        cumulative_pnl += unit_results[-1]
+        total_wagered += 1
+        if cumulative_pnl > max_pnl:
+            max_pnl = cumulative_pnl
+        drawdown = max_pnl - cumulative_pnl
+        if drawdown > max_drawdown:
+            max_drawdown = drawdown
+
+    wins_count = sum(1 for p in resolved if p.result == 'win')
+    losses_count = sum(1 for p in resolved if p.result == 'loss')
+    drawdown_pct = 0.0
+    if max_pnl > 0:
+        drawdown_pct = round((max_drawdown / max_pnl) * 100, 1)
+    elif max_drawdown > 0 and total_wagered > 0:
+        drawdown_pct = round((max_drawdown / total_wagered) * 100, 1)
+
+    rolling_50 = None
+    rolling_100 = None
+    if len(unit_results) >= 50:
+        rolling_50 = round(sum(unit_results[-50:]) / 50 * 100, 2)
+    if len(unit_results) >= 100:
+        rolling_100 = round(sum(unit_results[-100:]) / 100 * 100, 2)
+
+    return_std = round(float(np.std(unit_results)) * 100, 2) if len(unit_results) >= 10 else None
+
+    risk_of_ruin_pct = None
+    if (wins_count + losses_count) >= 20:
+        wr = wins_count / (wins_count + losses_count)
+        if wr > 0 and wr < 1:
+            q = 1 - wr
+            if wr != q:
+                ror = (q / wr) ** 100
+                risk_of_ruin_pct = round(ror * 100, 4) if ror < 1 else 100.0
+            else:
+                risk_of_ruin_pct = 100.0
+
+    pick_dates = sorted([p.game_date for p in resolved if p.game_date])
+    avg_days_between = 0
+    if len(pick_dates) >= 2:
+        from datetime import datetime
+        gaps = []
+        for i in range(1, len(pick_dates)):
+            try:
+                d1 = datetime.strptime(str(pick_dates[i-1]), '%Y-%m-%d')
+                d2 = datetime.strptime(str(pick_dates[i]), '%Y-%m-%d')
+                gaps.append(abs((d2 - d1).days))
+            except Exception:
+                pass
+        avg_days_between = round(sum(gaps) / len(gaps), 1) if gaps else 0
+
+    risk_profile = {
+        'max_drawdown_pct': drawdown_pct,
+        'rolling_50_roi': rolling_50,
+        'rolling_100_roi': rolling_100,
+        'return_std_dev': return_std,
+        'risk_of_ruin_pct': risk_of_ruin_pct,
+        'avg_days_between_picks': avg_days_between,
+        'avg_edge_published': avg_edge,
+    }
+
     return jsonify({
         'kill_switch': ks_result,
+        'risk_profile': risk_profile,
         'thresholds': {
             'base_edge': cfg.get('edge_threshold_pct', 3.5),
             'elasticity_formula': 'Required Edge = 3.0% + Spread × 0.167 (capped at 7.0%)',
