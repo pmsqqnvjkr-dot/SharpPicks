@@ -1,0 +1,176 @@
+You’re asking what separates elite, durable, institutional-level betting models from sharp hobby projects.
+
+Let’s build the checklist the right way.
+
+⸻
+
+🧠 1. Closing Line Value Tracking (Non-Negotiable)
+
+If you don’t measure CLV, you don’t know if you have edge.
+
+Your system should track:
+	•	Pick line
+	•	Closing line
+	•	CLV in points
+	•	CLV in implied probability
+
+Over 500+ bets, positive CLV = real edge.
+Negative CLV but good record = variance.
+
+This is your lie detector.
+
+⸻
+
+📉 2. Volatility & Drawdown Modeling
+
+Most models optimize win rate.
+Elite systems optimize survival.
+
+Track:
+	•	Max drawdown
+	•	Rolling 50-bet ROI
+	•	Standard deviation of returns
+	•	Risk-of-ruin at fixed unit sizing
+
+You want:
+	•	Lower variance per edge point
+	•	Stability across market regimes
+
+You’re building a fund, not a hot streak.
+
+⸻
+
+📊 3. Market Regime Detection
+
+The NBA changes during the season.
+
+Early season:
+	•	Underpriced team shifts
+	•	Rotation chaos
+
+Pre-All Star:
+	•	Fatigue patterns
+
+Post-All Star:
+	•	Tanking signals
+	•	Playoff urgency
+
+Late season:
+	•	Motivation asymmetry
+
+Elite models have:
+	•	Regime flags
+	•	Or season-phase weighting
+
+Right now you’re static.
+That’s exploitable.
+
+⸻
+
+🧩 4. Motivation & Incentive Layer
+
+This is uncomfortable but real.
+
+Teams late season:
+	•	Tanking
+	•	Seeding jockeying
+	•	Resting stars
+	•	Travel compression
+
+You need signals for:
+	•	Playoff probability proximity
+	•	Back-to-back before marquee matchup
+	•	Long road trip final game
+
+Markets are decent at this.
+They’re not perfect.
+
+⸻
+
+📈 5. Line Movement Decomposition
+
+You already penalize line movement.
+
+Next step:
+	•	Distinguish sharp steam from public steam.
+
+Sharp steam:
+	•	Early
+	•	Low-volume book
+	•	No injury news
+
+Public steam:
+	•	Late
+	•	Primetime
+	•	Big market team
+
+Different signals.
+Different meanings.
+
+⸻
+
+⚙️ 6. Spread Elasticity Adjustment
+
+You added rust scaling. Good.
+
+Now consider:
+
+The distribution of NBA margins is not linear.
+
+A 2-point edge on a 3-point spread ≠
+2-point edge on a 14-point spread.
+
+Blowouts have fatter tails.
+Backdoor risk increases with spread.
+
+Edge needs nonlinear weighting.
+
+⸻
+
+🏥 7. Injury Impact Modeling (Real Version)
+
+Not just “player out.”
+
+You want:
+	•	On/off net rating impact
+	•	Replacement value delta
+	•	Usage redistribution effects
+	•	Bench depth adjustment
+
+One star missing affects:
+	•	Pace
+	•	Efficiency
+	•	Variance
+
+If you’re just using binary flags, you’re underpowered.
+
+⸻
+
+🎯 8. Pick Selectivity Discipline Layer
+
+This is huge for SharpPicks.
+
+Your brand is:
+“One Pick Beats Five.”
+
+So build:
+	•	Edge threshold that scales with spread size
+	•	Edge threshold that scales with volatility score
+	•	Daily max exposure cap
+	•	Auto-pass if model disagreement > X%
+
+Make the system capable of saying:
+“No edge today.”
+
+That’s elite behavior.
+
+⸻
+
+📦 9. Overfitting Detection
+
+Every time you add a layer:
+
+Run:
+	•	Walk-forward validation
+	•	Out-of-sample testing
+	•	Feature importance drift check

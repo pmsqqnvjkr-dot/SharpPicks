@@ -44,11 +44,47 @@ SPREAD_RISK_SCALE_RATE = 0.25
 STAR_QUESTIONABLE_EDGE_PENALTY = 2.0
 STAR_QUESTIONABLE_SPREAD_THRESHOLD = 10.0
 
-RUST_REST_THRESHOLD = 4
-RUST_SPREAD_THRESHOLD = 8.0
-RUST_BASE_PENALTY_PCT = 1.5
-RUST_HEAVY_REST_THRESHOLD = 6
-RUST_HEAVY_PENALTY_PCT = 2.5
+LONG_REST_THRESHOLD = 5
+LONG_REST_SPREAD_THRESHOLD = 8.0
+LONG_REST_PENALTY_PER_DAY = 0.3
+
+ASB_SPREAD_THRESHOLD = 8.0
+ASB_PENALTY_PCT = 3.0
+
+NBA_ALL_STAR_BREAK_WINDOWS = {
+    2013: ('2013-02-15', '2013-02-19'),
+    2014: ('2014-02-14', '2014-02-18'),
+    2015: ('2015-02-13', '2015-02-18'),
+    2016: ('2016-02-12', '2016-02-17'),
+    2017: ('2017-02-17', '2017-02-22'),
+    2018: ('2018-02-16', '2018-02-21'),
+    2019: ('2019-02-15', '2019-02-20'),
+    2020: ('2020-02-14', '2020-02-19'),
+    2021: ('2021-03-05', '2021-03-10'),
+    2022: ('2022-02-18', '2022-02-23'),
+    2023: ('2023-02-17', '2023-02-22'),
+    2024: ('2024-02-16', '2024-02-21'),
+    2025: ('2025-02-14', '2025-02-19'),
+    2026: ('2026-02-13', '2026-02-18'),
+}
+
+
+def is_all_star_first_game(game_date):
+    if game_date is None:
+        return False
+    if isinstance(game_date, str):
+        try:
+            game_date = pd.to_datetime(game_date)
+        except Exception:
+            return False
+    gd = game_date.date() if hasattr(game_date, 'date') and callable(game_date.date) else game_date
+    cal_year = gd.year
+    if cal_year not in NBA_ALL_STAR_BREAK_WINDOWS:
+        return False
+    _, resume_date_str = NBA_ALL_STAR_BREAK_WINDOWS[cal_year]
+    resume = pd.to_datetime(resume_date_str).date()
+    from datetime import timedelta
+    return resume <= gd <= resume + timedelta(days=1)
 
 
 def get_edge_threshold_for_spread(spread_abs):
@@ -58,19 +94,24 @@ def get_edge_threshold_for_spread(spread_abs):
     return 8.0
 
 
-def calculate_rust_penalty(pick_side, spread_abs, home_rest, away_rest):
+def calculate_long_rest_penalty(pick_side, spread_abs, home_rest, away_rest):
     fav_rest = home_rest if pick_side == 'home' else away_rest
-    if fav_rest is None or spread_abs < RUST_SPREAD_THRESHOLD or fav_rest < RUST_REST_THRESHOLD:
+    if fav_rest is None or spread_abs < LONG_REST_SPREAD_THRESHOLD or fav_rest < LONG_REST_THRESHOLD:
         return 0.0, None
 
-    if fav_rest >= RUST_HEAVY_REST_THRESHOLD:
-        penalty = RUST_HEAVY_PENALTY_PCT
-        reason = f"Rust penalty: {fav_rest}d rest on {spread_abs:.0f}pt spread ({penalty:+.1f}%)"
-    else:
-        penalty = RUST_BASE_PENALTY_PCT
-        reason = f"Rust penalty: {fav_rest}d rest on {spread_abs:.0f}pt spread ({penalty:+.1f}%)"
-
+    excess_days = fav_rest - LONG_REST_THRESHOLD + 1
+    penalty = excess_days * LONG_REST_PENALTY_PER_DAY
+    reason = f"Long rest: {fav_rest}d rest on {spread_abs:.0f}pt fav (-{penalty:.1f}% edge)"
     return penalty, reason
+
+
+def calculate_asb_penalty(spread_abs, game_date):
+    if not is_all_star_first_game(game_date):
+        return 0.0, None
+    if spread_abs < ASB_SPREAD_THRESHOLD:
+        return 0.0, None
+    reason = f"All-Star break first game: {spread_abs:.0f}pt fav (-{ASB_PENALTY_PCT:.1f}% edge, 42.4% ATS historical)"
+    return ASB_PENALTY_PCT, reason
 
 
 def spread_risk_adjusted_edge(adjusted_edge, spread_abs):
@@ -783,16 +824,23 @@ class EnsemblePredictor:
             except (ValueError, TypeError):
                 home_rest_int, away_rest_int = None, None
 
+            game_date_val = row.get('game_date', None) if hasattr(row, 'get') else None
+
             is_fav = (pick_side == 'home' and spread < 0) or (pick_side == 'away' and spread > 0)
-            rust_penalty, rust_reason = 0.0, None
             if is_fav:
-                rust_penalty, rust_reason = calculate_rust_penalty(
+                asb_penalty, asb_reason = calculate_asb_penalty(spread_abs, game_date_val)
+                if asb_penalty > 0:
+                    adjusted_edge -= asb_penalty
+                    if asb_reason and 'star_questionable' not in fail_reasons:
+                        pass_reason = asb_reason
+
+                rest_penalty, rest_reason = calculate_long_rest_penalty(
                     pick_side, spread_abs, home_rest_int, away_rest_int
                 )
-            if rust_penalty > 0:
-                adjusted_edge -= rust_penalty
-                if rust_reason and 'star_questionable' not in fail_reasons:
-                    pass_reason = rust_reason
+                if rest_penalty > 0 and asb_penalty == 0:
+                    adjusted_edge -= rest_penalty
+                    if rest_reason and not pass_reason:
+                        pass_reason = rest_reason
 
             risk_weighted_edge = spread_risk_adjusted_edge(adjusted_edge, spread_abs)
 
@@ -1211,8 +1259,16 @@ class EnsemblePredictor:
                 if is_fav:
                     h_rest = int(home_rest_vals[j]) if j < len(home_rest_vals) and home_rest_vals[j] is not None and not pd.isna(home_rest_vals[j]) else None
                     a_rest = int(away_rest_vals[j]) if j < len(away_rest_vals) and away_rest_vals[j] is not None and not pd.isna(away_rest_vals[j]) else None
-                    rust_pen, _ = calculate_rust_penalty(pick_side, spread_abs, h_rest, a_rest)
-                    adjusted_edge -= rust_pen
+
+                    game_dt = test_df.iloc[j].get('game_date_parsed', None) if hasattr(test_df.iloc[j], 'get') else test_df['game_date_parsed'].iloc[j] if 'game_date_parsed' in test_df.columns else None
+
+                    asb_pen, _ = calculate_asb_penalty(spread_abs, game_dt)
+                    if asb_pen > 0:
+                        adjusted_edge -= asb_pen
+                    else:
+                        rest_pen, _ = calculate_long_rest_penalty(pick_side, spread_abs, h_rest, a_rest)
+                        if rest_pen > 0:
+                            adjusted_edge -= rest_pen
 
                 risk_weighted = spread_risk_adjusted_edge(adjusted_edge, spread_abs)
                 all_edges.append(risk_weighted)
