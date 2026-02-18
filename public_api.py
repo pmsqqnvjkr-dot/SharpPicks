@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, KillSwitch
+from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, KillSwitch, UserBet, User
 from sqlalchemy import func
 from sport_config import get_active_sports
 
@@ -256,11 +256,22 @@ def dashboard_stats():
 
     return_std = round(float(np.std(unit_results)) * 100, 2) if len(unit_results) >= 10 else None
 
+    from app import get_current_user_obj
+    current_user_obj = get_current_user_obj()
+    user_avg_bet = None
+    bankroll_units = 100
+    if current_user_obj:
+        bankroll_units = getattr(current_user_obj, 'unit_size', None) or 100
+        user_bets = UserBet.query.filter_by(user_id=current_user_obj.id).all()
+        if user_bets:
+            user_avg_bet = sum(b.wager_amount for b in user_bets) / len(user_bets)
+
+    avg_bet_size = user_avg_bet or 110.0
+
     if len(unit_results) >= 20:
         win_rate_decimal = wins / (wins + losses) if (wins + losses) > 0 else 0.5
         avg_win = 100.0 / 110.0
         avg_loss = 1.0
-        bankroll_units = 100
         if win_rate_decimal > 0 and win_rate_decimal < 1:
             p = win_rate_decimal
             q = 1 - p
@@ -315,7 +326,7 @@ def dashboard_stats():
 
     selectivity = round((total_picks / total_days) * 100, 1) if total_days > 0 else 0
 
-    capital_preserved = round(total_passes * 110 * 0.04, 0)
+    capital_preserved = round(total_passes * avg_bet_size * 0.04, 0)
 
     if selectivity <= 20:
         restraint_grade = 'A+'
@@ -390,6 +401,8 @@ def dashboard_stats():
             'rolling_100_roi': rolling_100,
             'return_std_dev': return_std,
             'risk_of_ruin_pct': risk_of_ruin_pct,
+            'bankroll_units': bankroll_units,
+            'avg_bet_size': round(avg_bet_size, 0),
             'rolling_50_series': rolling_50_series,
             'total_resolved': len(resolved),
         },
