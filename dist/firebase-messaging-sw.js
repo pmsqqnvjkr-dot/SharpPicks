@@ -15,11 +15,40 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   const { title, body } = payload.notification || {};
+  const data = payload.data || {};
   if (title) {
     self.registration.showNotification(title, {
       body: body || '',
       icon: '/icon-192x192.png',
-      badge: '/favicon-32x32.png'
+      badge: '/favicon-32x32.png',
+      data: data
     });
   }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const data = event.notification.data || {};
+  let urlPath = '/';
+
+  if (data.type === 'weekly_summary') {
+    urlPath = '/?push=weekly_summary';
+  } else if (data.type === 'pick' || data.type === 'result' || data.type === 'revoke') {
+    urlPath = '/?push=picks';
+  } else if (data.type === 'pass') {
+    urlPath = '/?push=picks';
+  }
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin)) {
+          client.focus();
+          client.postMessage({ type: 'sp-push-navigate', data: data });
+          return;
+        }
+      }
+      return clients.openWindow(urlPath);
+    })
+  );
 });

@@ -111,6 +111,44 @@ function AppContent() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const handlePushNav = (e) => {
+      const data = e.detail || {};
+      if (data.type === 'weekly_summary') {
+        setActiveTab('profile');
+        setProfileScreen('weekly');
+      } else if (data.type === 'pick' || data.type === 'result' || data.type === 'revoke') {
+        setActiveTab('picks');
+      } else if (data.type === 'pass') {
+        setActiveTab('picks');
+      }
+    };
+    window.addEventListener('sp-push-navigate', handlePushNav);
+
+    const handleSWMessage = (event) => {
+      if (event.data?.type === 'sp-push-navigate') {
+        handlePushNav({ detail: event.data.data });
+      }
+    };
+    navigator.serviceWorker?.addEventListener('message', handleSWMessage);
+
+    const params = new URLSearchParams(window.location.search);
+    const pushParam = params.get('push');
+    if (pushParam === 'weekly_summary') {
+      setActiveTab('profile');
+      setProfileScreen('weekly');
+      window.history.replaceState({}, '', '/');
+    } else if (pushParam === 'picks') {
+      setActiveTab('picks');
+      window.history.replaceState({}, '', '/');
+    }
+
+    return () => {
+      window.removeEventListener('sp-push-navigate', handlePushNav);
+      navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
+    };
+  }, []);
+
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
     localStorage.setItem('sp_onboarded', '1');

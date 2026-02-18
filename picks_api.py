@@ -307,6 +307,96 @@ def history():
     })
 
 
+@picks_bp.route('/weekly-summary')
+def weekly_summary():
+    from app import get_current_user_obj
+    cu = get_current_user_obj()
+    is_pro = cu is not None and cu.is_pro
+    if not is_pro:
+        return jsonify({'error': 'Pro subscription required'}), 403
+
+    sport = request.args.get('sport', 'nba')
+
+    try:
+        from zoneinfo import ZoneInfo
+        now_et = datetime.now(ZoneInfo('America/New_York'))
+    except ImportError:
+        now_et = datetime.utcnow() - timedelta(hours=5)
+
+    today = now_et.date()
+    days_since_monday = today.weekday()
+    week_start = today - timedelta(days=days_since_monday)
+    week_end = week_start + timedelta(days=6)
+
+    week_start_str = week_start.strftime('%Y-%m-%d')
+    week_end_str = week_end.strftime('%Y-%m-%d')
+
+    picks = Pick.query.filter(
+        Pick.game_date >= week_start_str,
+        Pick.game_date <= week_end_str,
+        Pick.sport == sport,
+    ).order_by(Pick.game_date, Pick.published_at.desc()).all()
+
+    passes = Pass.query.filter(
+        Pass.date >= week_start_str,
+        Pass.date <= week_end_str,
+        Pass.sport == sport,
+    ).order_by(Pass.date).all()
+
+    wins = sum(1 for p in picks if p.result == 'win')
+    losses = sum(1 for p in picks if p.result == 'loss')
+    pnl = round(sum(p.profit_units or 0 for p in picks if p.result in ('win', 'loss', 'push')), 2)
+
+    pick_by_date = {}
+    for p in picks:
+        if p.game_date not in pick_by_date:
+            pick_by_date[p.game_date] = p
+    pass_dates = {p.date for p in passes}
+
+    days = []
+    for i in range(7):
+        day_date = week_start + timedelta(days=i)
+        day_str = day_date.strftime('%Y-%m-%d')
+        if day_str in pick_by_date:
+            p = pick_by_date[day_str]
+            days.append({
+                'type': 'pick',
+                'date': day_str,
+                'summary': f"{p.away_team} @ {p.home_team} — {p.side} {p.line}",
+                'result': p.result if p.result in ('win', 'loss', 'push') else None,
+                'pnl': p.profit_units,
+            })
+        elif day_str in pass_dates:
+            days.append({
+                'type': 'pass',
+                'date': day_str,
+                'summary': 'No qualifying edge',
+            })
+        elif day_date > today:
+            days.append({
+                'type': 'upcoming',
+                'date': day_str,
+                'summary': 'Upcoming',
+            })
+        else:
+            days.append({
+                'type': 'no_games',
+                'date': day_str,
+                'summary': 'No games',
+            })
+
+    return jsonify({
+        'record': f"{wins}-{losses}",
+        'wins': wins,
+        'losses': losses,
+        'passes': len(passes),
+        'pnl': pnl,
+        'week_start': week_start_str,
+        'week_end': week_end_str,
+        'days': days,
+    })
+
+
 @picks_bp.route('/<pick_id>')
 def get_pick(pick_id):
     pick = Pick.query.get_or_404(pick_id)

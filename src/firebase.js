@@ -75,6 +75,10 @@ async function requestNativePush() {
 
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
       console.log("[Push] notification tapped:", action.notification.title);
+      const data = action.notification.data || {};
+      if (data.type) {
+        window.dispatchEvent(new CustomEvent('sp-push-navigate', { detail: data }));
+      }
     });
 
     PushNotifications.register();
@@ -98,8 +102,15 @@ function getOrInitMessaging() {
     messagingInstance = getMessaging(app);
     onMessage(messagingInstance, (payload) => {
       const { title, body } = payload.notification || {};
+      const data = payload.data || {};
       if (title) {
-        new Notification(title, { body, icon: "/icon-192x192.png", badge: "/favicon-32x32.png" });
+        const n = new Notification(title, { body, icon: "/icon-192x192.png", badge: "/favicon-32x32.png" });
+        if (data.type) {
+          n.onclick = () => {
+            window.focus();
+            window.dispatchEvent(new CustomEvent('sp-push-navigate', { detail: data }));
+          };
+        }
       }
     });
     return messagingInstance;

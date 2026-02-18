@@ -1,4 +1,96 @@
-export default function WeeklySummary({ onBack, stats, weekData }) {
+import { useState, useEffect } from 'react';
+import { apiGet } from '../../hooks/useApi';
+
+export default function WeeklySummary({ onBack, stats, weekData: initialWeekData }) {
+  const [weekData, setWeekData] = useState(initialWeekData || null);
+  const [loading, setLoading] = useState(!initialWeekData);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!initialWeekData) {
+      setLoading(true);
+      setError(null);
+      apiGet('/picks/weekly-summary')
+        .then(data => {
+          if (data.error) {
+            setError(data.error);
+          } else {
+            setWeekData(data);
+          }
+        })
+        .catch(() => setError('Unable to load weekly summary'))
+        .finally(() => setLoading(false));
+    }
+  }, [initialWeekData]);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '0', paddingBottom: '100px' }}>
+        <div style={{
+          padding: '16px 20px',
+          display: 'flex', alignItems: 'center', gap: '12px',
+        }}>
+          <button onClick={onBack} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-secondary)', padding: '4px',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <span style={{
+            fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 600,
+            color: 'var(--text-primary)',
+          }}>Weekly Summary</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+          <div style={{
+            width: '32px', height: '32px', borderRadius: '50%',
+            border: '3px solid var(--stroke-subtle)',
+            borderTopColor: 'var(--blue-primary)',
+            animation: 'spin 1s linear infinite',
+          }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: '0', paddingBottom: '100px' }}>
+        <div style={{
+          padding: '16px 20px',
+          display: 'flex', alignItems: 'center', gap: '12px',
+        }}>
+          <button onClick={onBack} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-secondary)', padding: '4px',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <span style={{
+            fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 600,
+            color: 'var(--text-primary)',
+          }}>Weekly Summary</span>
+        </div>
+        <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+            {error === 'Pro subscription required'
+              ? 'Weekly summaries are available for Pro subscribers.'
+              : 'Unable to load the weekly summary right now.'}
+          </p>
+          <p style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>
+            {error === 'Pro subscription required'
+              ? 'Upgrade to access full weekly performance breakdowns.'
+              : 'Please try again later.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const record = weekData?.record || stats?.record || '0-0';
   const [wins, losses] = record.split('-').map(Number);
   const totalPicks = (wins || 0) + (losses || 0);
@@ -92,9 +184,11 @@ export default function WeeklySummary({ onBack, stats, weekData }) {
                     : type === 'pass' ? 'var(--text-tertiary)'
                     : 'var(--text-tertiary)',
                   fontWeight: type === 'pick' ? 600 : 400,
+                  flex: 1, textAlign: 'center',
                 }}>
                   {type === 'pick' ? dayData?.summary || 'Pick published'
                     : type === 'pass' ? 'No qualifying edge'
+                    : type === 'upcoming' ? 'Upcoming'
                     : 'No games'}
                 </span>
                 {type === 'pick' && dayData?.result && (
@@ -102,7 +196,7 @@ export default function WeeklySummary({ onBack, stats, weekData }) {
                     fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
                     color: dayData.result === 'win' ? 'var(--green-profit)' : 'var(--red-loss)',
                   }}>
-                    {dayData.result === 'win' ? 'W' : 'L'}
+                    {dayData.result === 'win' ? 'W' : dayData.result === 'push' ? 'P' : 'L'}
                   </span>
                 )}
               </div>
