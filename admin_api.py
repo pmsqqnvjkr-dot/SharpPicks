@@ -867,18 +867,10 @@ def test_push():
     if not tokens:
         return jsonify({'error': f'No enabled FCM tokens for your account ({user.email})', 'sent': 0}), 400
 
+    sa_file = os.path.join(os.path.dirname(__file__), 'firebase-service-account.json')
     pk = os.environ.get('FIREBASE_PRIVATE_KEY', '')
-    if not pk:
-        return jsonify({'error': 'FIREBASE_PRIVATE_KEY not set', 'sent': 0}), 500
-    try:
-        test_pk = pk.strip()
-        if test_pk.startswith("'") and test_pk.endswith("'"):
-            test_pk = test_pk[1:-1]
-        elif test_pk.startswith('"') and test_pk.endswith('"'):
-            test_pk = test_pk[1:-1]
-        _json.loads(test_pk)
-    except _json.JSONDecodeError as e:
-        return jsonify({'error': f'FIREBASE_PRIVATE_KEY invalid JSON: {str(e)[:100]}', 'sent': 0}), 500
+    if not pk and not os.path.exists(sa_file):
+        return jsonify({'error': 'No Firebase credentials found (FIREBASE_PRIVATE_KEY not set and no service account file)', 'sent': 0}), 500
 
     from app import send_push_notification
     sent = send_push_notification(user.id, title, body)
