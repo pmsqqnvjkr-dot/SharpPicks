@@ -34,6 +34,28 @@ The system features a dual signup flow supporting free and trial accounts. Free 
 ### Key Design Decisions
 The system enforces a "no pick" policy without sufficient edge. Transparency is maintained through append-only tables and clear labeling of calibration changes. Anti-abuse measures include email verification, Gmail alias normalization, card-on-file trials, and login rate limiting. Security hardening involves CORS restrictions, access controls, session invalidation, and webhook idempotency. Notifications (push, email) are used for pick alerts, pass-day alerts, results, and weekly summaries. Daily pg_dump and JSON backups are performed. Cron job monitoring tracks execution status. Multi-book odds shopping, real sportsbook juice integration, and closing line value (CLV) tracking are central, alongside automated risk filters and fail-safe mechanisms. Rolling performance and risk-of-ruin metrics are used for internal model governance.
 
+## Recent Changes
+- **2026-02-18**: Implemented automated kill switch system — KillSwitch model, `/api/public/kill-switch` endpoint, position_size_pct on Pick model, KillSwitchPanel UI component in Performance tab. Monitors rolling ROI, CLV trend, and edge decay; auto-reduces position to 50% when all 3 conditions trigger.
+
+## Cron Job Schedule (cron-job.org)
+All cron endpoints are POST requests secured with `X-Cron-Secret` header. All times are Eastern Time (ET).
+
+| Endpoint | Schedule (ET) | Purpose |
+|---|---|---|
+| `/api/cron/collect-games` | Daily 9:00 AM | Fetch today's NBA games and opening lines from The-Odds-API |
+| `/api/cron/refresh-lines` | Every 2 hours (10 AM - 6 PM) | Refresh current spread odds across sportsbooks |
+| `/api/cron/pretip-validate` | Daily 5:30 PM | Re-validate today's pick with latest lines before tip-off; may revoke if edge lost |
+| `/api/cron/closing-lines` | Daily 7:15 PM | Capture closing lines for CLV tracking |
+| `/api/cron/grade-picks` | Daily 11:30 PM | Grade completed picks with final scores from ESPN |
+| `/api/cron/grade-whatifs` | Daily 11:45 PM | Grade "what-if" pass scenarios for model transparency |
+| `/api/cron/check-data-quality` | Daily 11:50 PM | Validate data integrity and flag anomalies |
+| `/api/cron/expire-trials` | Daily 3:00 AM | Check expiring trials, send warnings, expire overdue trials |
+| `/api/cron/weekly-summary` | Sundays 10:00 AM | Send weekly performance summary emails to subscribers |
+| `/api/cron/backup` | Daily 4:00 AM | pg_dump + JSON backup of picks, passes, users |
+
+**Header required for all**: `X-Cron-Secret: <your CRON_SECRET value>`
+**Method**: POST (no body required)
+
 ## External Dependencies
 - **PostgreSQL**: Primary database.
 - **SQLite**: Historical game data and ML training data.
