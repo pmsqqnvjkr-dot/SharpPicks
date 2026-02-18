@@ -97,7 +97,7 @@ export default function HowItWorksScreen({ onBack }) {
             </div>
             <p style={{
               fontSize: '13px', color: 'var(--text-secondary)',
-              lineHeight: '1.7',
+              lineHeight: '1.7', fontFamily: 'var(--font-sans)',
             }}>{section.content}</p>
           </div>
         ))}
@@ -133,7 +133,7 @@ function StatBlock({ label, value }) {
         fontWeight: 600, color: 'var(--text-primary)',
       }}>{value}</div>
       <div style={{
-        fontSize: '10px', color: 'var(--text-tertiary)',
+        fontFamily: 'var(--font-sans)', fontSize: '10px', color: 'var(--text-tertiary)',
         textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '4px',
       }}>{label}</div>
     </div>
