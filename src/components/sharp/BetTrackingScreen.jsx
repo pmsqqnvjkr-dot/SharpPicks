@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
 
@@ -790,93 +790,158 @@ function BetRow({ bet, isLast, onMarkResult, confirmDelete, setConfirmDelete, on
   const pickResultLabel = bet.pick_result && bet.pick_result !== 'pending'
     ? bet.pick_result : null;
 
+  const rowRef = useRef(null);
+  const startX = useRef(0);
+  const currentX = useRef(0);
+  const swiping = useRef(false);
+  const [offset, setOffset] = useState(0);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const deleteThreshold = 80;
+
+  const onTouchStart = useCallback((e) => {
+    startX.current = e.touches[0].clientX;
+    currentX.current = 0;
+    swiping.current = true;
+  }, []);
+
+  const onTouchMove = useCallback((e) => {
+    if (!swiping.current) return;
+    const diff = startX.current - e.touches[0].clientX;
+    if (diff > 0) {
+      const clamped = Math.min(diff, deleteThreshold + 20);
+      currentX.current = clamped;
+      setOffset(clamped);
+    } else {
+      currentX.current = 0;
+      setOffset(0);
+    }
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    swiping.current = false;
+    if (currentX.current >= deleteThreshold) {
+      setOffset(deleteThreshold);
+      setShowConfirm(true);
+    } else {
+      setOffset(0);
+      setShowConfirm(false);
+    }
+  }, []);
+
+  const resetSwipe = () => {
+    setOffset(0);
+    setShowConfirm(false);
+  };
+
   return (
     <div style={{
-      padding: '14px 20px',
+      position: 'relative',
+      overflow: 'hidden',
       borderBottom: isLast ? 'none' : '1px solid var(--stroke-subtle)',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>{bet.pick}</div>
-            {bet.pick_id && (
-              <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
-                padding: '2px 6px', borderRadius: '4px',
-                backgroundColor: 'rgba(79, 134, 247, 0.15)', color: 'var(--blue-primary)',
-                textTransform: 'uppercase', letterSpacing: '0.5px',
-              }}>SP</span>
-            )}
+      <div style={{
+        position: 'absolute', right: 0, top: 0, bottom: 0,
+        width: `${deleteThreshold + 20}px`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        backgroundColor: showConfirm ? '#dc2626' : 'rgba(239, 68, 68, 0.85)',
+        transition: showConfirm ? 'background-color 0.2s' : 'none',
+      }}>
+        {showConfirm ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+            <button onClick={() => { onDelete(bet.id); resetSwipe(); }} style={{
+              background: 'none', border: 'none', color: '#fff',
+              fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+              fontFamily: 'var(--font-sans)', padding: '6px 12px',
+            }}>Delete</button>
+            <button onClick={resetSwipe} style={{
+              background: 'none', border: 'none',
+              color: 'rgba(255,255,255,0.7)', fontSize: '10px',
+              cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: '2px 8px',
+            }}>Cancel</button>
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{bet.game}</div>
-          <div style={{
-            fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px',
-            fontFamily: 'var(--font-mono)',
-          }}>
-            ${bet.bet_amount} at {bet.odds > 0 ? `+${bet.odds}` : bet.odds}
-            {pickResultLabel && (
-              <span style={{
-                marginLeft: '8px',
-                color: pickResultLabel === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
-                fontWeight: 600,
-              }}>
-                Pick: {pickResultLabel}
-              </span>
-            )}
-          </div>
-        </div>
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          {bet.result ? (
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        )}
+      </div>
+
+      <div
+        ref={rowRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          padding: '14px 20px',
+          backgroundColor: 'var(--surface-1)',
+          transform: `translateX(-${offset}px)`,
+          transition: swiping.current ? 'none' : 'transform 0.25s ease',
+          position: 'relative', zIndex: 1,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>{bet.pick}</div>
+              {bet.pick_id && (
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                  padding: '2px 6px', borderRadius: '4px',
+                  backgroundColor: 'rgba(79, 134, 247, 0.15)', color: 'var(--blue-primary)',
+                  textTransform: 'uppercase', letterSpacing: '0.5px',
+                }}>SP</span>
+              )}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{bet.game}</div>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
-              color: bet.result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
+              fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px',
+              fontFamily: 'var(--font-mono)',
             }}>
-              {bet.result === 'W' ? `+$${Math.abs(bet.profit).toFixed(0)}` : `-$${Math.abs(bet.profit).toFixed(0)}`}
+              ${bet.bet_amount} at {bet.odds > 0 ? `+${bet.odds}` : bet.odds} · to win ${bet.to_win}
+              {pickResultLabel && (
+                <span style={{
+                  marginLeft: '8px',
+                  color: pickResultLabel === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
+                  fontWeight: 600,
+                }}>
+                  Pick: {pickResultLabel}
+                </span>
+              )}
             </div>
-          ) : pickResultLabel ? (
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <button onClick={() => onMarkResult(bet.id, 'W')} style={{
-                padding: '4px 10px', fontSize: '11px', fontWeight: 600,
-                backgroundColor: 'rgba(52, 211, 153, 0.1)', color: 'var(--green-profit)',
-                border: '1px solid rgba(52, 211, 153, 0.3)', borderRadius: '6px',
-                cursor: 'pointer', fontFamily: 'var(--font-mono)',
-              }}>W</button>
-              <button onClick={() => onMarkResult(bet.id, 'L')} style={{
-                padding: '4px 10px', fontSize: '11px', fontWeight: 600,
-                backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--red-loss)',
-                border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '6px',
-                cursor: 'pointer', fontFamily: 'var(--font-mono)',
-              }}>L</button>
-            </div>
-          ) : (
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
-              color: 'var(--text-tertiary)',
-            }}>Pending</div>
-          )}
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            {bet.result ? (
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
+                color: bet.result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
+              }}>
+                {bet.result === 'W' ? `+$${Math.abs(bet.profit).toFixed(0)}` : `-$${Math.abs(bet.profit).toFixed(0)}`}
+              </div>
+            ) : pickResultLabel ? (
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button onClick={() => onMarkResult(bet.id, 'W')} style={{
+                  padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                  backgroundColor: 'rgba(52, 211, 153, 0.1)', color: 'var(--green-profit)',
+                  border: '1px solid rgba(52, 211, 153, 0.3)', borderRadius: '6px',
+                  cursor: 'pointer', fontFamily: 'var(--font-mono)',
+                }}>W</button>
+                <button onClick={() => onMarkResult(bet.id, 'L')} style={{
+                  padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--red-loss)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '6px',
+                  cursor: 'pointer', fontFamily: 'var(--font-mono)',
+                }}>L</button>
+              </div>
+            ) : (
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
+                color: 'var(--text-tertiary)',
+              }}>Pending</div>
+            )}
+          </div>
         </div>
       </div>
-      {confirmDelete === bet.id ? (
-        <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Remove this bet?</span>
-          <button onClick={() => onDelete(bet.id)} style={{
-            padding: '3px 10px', fontSize: '11px', fontWeight: 600,
-            backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--red-loss)',
-            border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '6px', cursor: 'pointer',
-          }}>Yes</button>
-          <button onClick={() => setConfirmDelete(null)} style={{
-            padding: '3px 10px', fontSize: '11px',
-            backgroundColor: 'transparent', color: 'var(--text-tertiary)',
-            border: '1px solid var(--stroke-subtle)', borderRadius: '6px', cursor: 'pointer',
-          }}>No</button>
-        </div>
-      ) : (
-        <button onClick={() => setConfirmDelete(bet.id)} style={{
-          marginTop: '6px', background: 'none', border: 'none',
-          fontSize: '11px', color: 'var(--text-tertiary)', cursor: 'pointer',
-          padding: '2px 0', fontFamily: 'var(--font-sans)',
-        }}>Remove</button>
-      )}
     </div>
   );
 }
