@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, Pick, Pass, ModelRun, FoundingCounter
+from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot
 from sqlalchemy import func
 from sport_config import get_active_sports
 
@@ -467,4 +467,155 @@ def founding_count():
         'total': 500,
         'open': not counter.closed,
         'remaining': max(0, 500 - counter.current_count),
+    })
+
+
+@public_bp.route('/edge-decay')
+def edge_decay():
+    sport = _get_sport_filter()
+    query = db.session.query(EdgeSnapshot)
+    if sport:
+        query = query.filter(EdgeSnapshot.sport == sport)
+
+    snapshots = query.order_by(EdgeSnapshot.game_date.desc(), EdgeSnapshot.created_at.desc()).all()
+
+    pick_snapshots = {}
+    for s in snapshots:
+        key = s.pick_id or f"{s.game_date}_{s.home_team}_{s.away_team}"
+        if key not in pick_snapshots:
+            pick_snapshots[key] = {}
+        pick_snapshots[key][s.snapshot_label] = {
+            'edge_pct': s.edge_pct,
+            'spread': s.spread,
+            'confidence': s.confidence,
+            'steam_fragility': s.steam_fragility,
+            'line_move_against': s.line_move_against,
+            'created_at': s.created_at.isoformat() if s.created_at else None,
+        }
+
+    decay_records = []
+    for key, labels in pick_snapshots.items():
+        if 'open' in labels and 'pre_tip' in labels:
+            open_edge = labels['open']['edge_pct'] or 0
+            pretip_edge = labels['pre_tip']['edge_pct'] or 0
+            decay_pct = ((open_edge - pretip_edge) / open_edge * 100) if open_edge != 0 else 0
+            decay_records.append({
+                'pick_id': key if isinstance(key, str) and not key.startswith('20') else key,
+                'open_edge': round(open_edge, 2),
+                'pre_tip_edge': round(pretip_edge, 2),
+                'decay_pct': round(decay_pct, 1),
+                'open_spread': labels['open'].get('spread'),
+                'pre_tip_spread': labels['pre_tip'].get('spread'),
+                'open_sfs': labels['open'].get('steam_fragility', 0),
+                'pre_tip_sfs': labels['pre_tip'].get('steam_fragility', 0),
+            })
+
+    avg_decay = round(sum(d['decay_pct'] for d in decay_records) / len(decay_records), 1) if decay_records else None
+    picks_with_decay = len(decay_records)
+    edge_collapsed = sum(1 for d in decay_records if d['decay_pct'] > 50) if decay_records else 0
+    edge_persisted = sum(1 for d in decay_records if d['decay_pct'] < 20) if decay_records else 0
+
+    signal_type = None
+    if picks_with_decay >= 10:
+        if avg_decay is not None and avg_decay > 40:
+            signal_type = 'stale'
+        elif avg_decay is not None and avg_decay < 15:
+            signal_type = 'structural'
+        else:
+            signal_type = 'mixed'
+
+    return jsonify({
+        'avg_decay_pct': avg_decay,
+        'picks_tracked': picks_with_decay,
+        'edge_collapsed_count': edge_collapsed,
+        'edge_persisted_count': edge_persisted,
+        'signal_type': signal_type,
+        'records': decay_records[-20:],
+    })
+
+
+@public_bp.route('/regime-stats')
+def regime_stats():
+    sport = _get_sport_filter()
+    query = Pick.query.filter(Pick.result_ats.in_(['win', 'loss', 'push']))
+    if sport:
+        query = query.filter(Pick.sport == sport)
+
+    picks = query.order_by(Pick.game_date.desc()).all()
+
+    if not picks:
+        return jsonify({'segments': {}, 'total_picks': 0})
+
+    def segment_record(picks_list):
+        wins = sum(1 for p in picks_list if p.result_ats == 'win')
+        losses = sum(1 for p in picks_list if p.result_ats == 'loss')
+        pushes = sum(1 for p in picks_list if p.result_ats == 'push')
+        total = wins + losses
+        wr = round(wins / total * 100, 1) if total > 0 else None
+        pnl = round(sum(p.profit_units or 0 for p in picks_list), 2)
+        return {
+            'wins': wins,
+            'losses': losses,
+            'pushes': pushes,
+            'total': wins + losses + pushes,
+            'win_rate': wr,
+            'pnl_units': pnl,
+        }
+
+    fav_picks = [p for p in picks if p.line is not None and p.line < 0]
+    dog_picks = [p for p in picks if p.line is not None and p.line > 0]
+
+    spread_buckets = {
+        '0-3': [p for p in picks if p.line is not None and abs(p.line) <= 3],
+        '3.5-7': [p for p in picks if p.line is not None and 3 < abs(p.line) <= 7],
+        '7.5-10': [p for p in picks if p.line is not None and 7 < abs(p.line) <= 10],
+        '10+': [p for p in picks if p.line is not None and abs(p.line) > 10],
+    }
+
+    home_picks = [p for p in picks if p.side and 'home' in (p.side or '').lower()]
+    away_picks = [p for p in picks if p.side and 'away' in (p.side or '').lower()]
+    if not home_picks and not away_picks:
+        home_picks = [p for p in picks if p.side and p.home_team and p.home_team.lower() in (p.side or '').lower()]
+        away_picks = [p for p in picks if p.side and p.away_team and p.away_team.lower() in (p.side or '').lower()]
+
+    segments = {}
+    segments['favorite'] = segment_record(fav_picks) if fav_picks else None
+    segments['underdog'] = segment_record(dog_picks) if dog_picks else None
+
+    segments['spread_buckets'] = {}
+    for bucket_name, bucket_picks in spread_buckets.items():
+        if bucket_picks:
+            segments['spread_buckets'][bucket_name] = segment_record(bucket_picks)
+
+    if home_picks or away_picks:
+        segments['home'] = segment_record(home_picks) if home_picks else None
+        segments['away'] = segment_record(away_picks) if away_picks else None
+
+    concentration_warning = None
+    if len(picks) >= 10:
+        bucket_records = segments.get('spread_buckets', {})
+        total_pnl = sum(abs(b.get('pnl_units', 0)) for b in bucket_records.values())
+        if total_pnl > 0:
+            for bname, brec in bucket_records.items():
+                if abs(brec.get('pnl_units', 0)) / total_pnl > 0.7:
+                    concentration_warning = f"Profit concentrated in {bname} spread bucket ({abs(brec['pnl_units'])/total_pnl:.0%} of total P&L)"
+                    break
+
+        if not concentration_warning:
+            fav_rec = segments.get('favorite')
+            dog_rec = segments.get('underdog')
+            if fav_rec and dog_rec:
+                fav_pnl = abs(fav_rec.get('pnl_units', 0))
+                dog_pnl = abs(dog_rec.get('pnl_units', 0))
+                total_side = fav_pnl + dog_pnl
+                if total_side > 0:
+                    if fav_pnl / total_side > 0.8:
+                        concentration_warning = f"Favorite-heavy: {fav_pnl/total_side:.0%} of P&L from favorites"
+                    elif dog_pnl / total_side > 0.8:
+                        concentration_warning = f"Underdog-heavy: {dog_pnl/total_side:.0%} of P&L from dogs"
+
+    return jsonify({
+        'segments': segments,
+        'total_picks': len(picks),
+        'concentration_warning': concentration_warning,
     })

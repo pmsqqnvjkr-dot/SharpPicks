@@ -19,6 +19,8 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
   const { sport } = useSport();
   const { data: dashData, loading } = useApi(sportQuery('/public/dashboard-stats', sport), { pollInterval: 60000 });
   const { data: calibrationData } = useApi(sportQuery('/public/calibration', sport), { pollInterval: 60000 });
+  const { data: edgeDecayData } = useApi(sportQuery('/public/edge-decay', sport), { pollInterval: 120000 });
+  const { data: regimeData } = useApi(sportQuery('/public/regime-stats', sport), { pollInterval: 120000 });
 
   if (loading) {
     return (
@@ -69,6 +71,10 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
         <CalibrationPanel buckets={buckets} health={calibrationData?.health} />
 
         <RiskProfile risk={risk} />
+
+        <EdgeDecayPanel data={edgeDecayData} />
+
+        <RegimePanel data={regimeData} />
 
         <DisciplineScore discipline={discipline} />
 
@@ -302,6 +308,112 @@ function RiskRow({ label, value, tooltip, valueColor }) {
   );
 }
 
+
+function EdgeDecayPanel({ data }) {
+  if (!data) return null;
+  const signalColor = data.signal_type === 'structural' ? '#4ade80' : data.signal_type === 'stale' ? '#ef4444' : data.signal_type === 'mixed' ? '#f59e0b' : 'var(--text-secondary)';
+  const signalLabel = data.signal_type === 'structural' ? 'Structural Edge' : data.signal_type === 'stale' ? 'Stale Inefficiency' : data.signal_type === 'mixed' ? 'Mixed Signal' : 'Awaiting Data';
+  return (
+    <>
+      <SectionLabel>Edge Stability</SectionLabel>
+      <div style={{
+        backgroundColor: 'var(--surface-1)', borderRadius: '20px',
+        border: '1px solid var(--stroke-subtle)', padding: '20px',
+        marginBottom: '16px',
+      }}>
+        {data.picks_tracked < 10 ? (
+          <div style={{ textAlign: 'center', padding: '12px 0' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '6px' }}>
+              {data.picks_tracked}/10 picks tracked
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+              Edge decay analysis requires 10+ picks with open and pre-tip snapshots.
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--stroke-subtle)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center' }}>
+                Signal Type
+                <InfoTooltip text="If edge consistently decays before tip-off, the model may be harvesting stale inefficiencies. Structural signal persists." />
+              </span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: signalColor, fontWeight: 600 }}>{signalLabel}</span>
+            </div>
+            <RiskRow label="Avg Edge Decay" value={data.avg_decay_pct != null ? `${data.avg_decay_pct}%` : '—'} tooltip="Average percentage of edge that disappears between publication and tip-off. Lower is better." />
+            <RiskRow label="Edge Persisted" value={`${data.edge_persisted_count}/${data.picks_tracked}`} tooltip="Picks where edge decayed less than 20%. Higher ratio = more durable signal." />
+            <RiskRow label="Edge Collapsed" value={`${data.edge_collapsed_count}/${data.picks_tracked}`} tooltip="Picks where edge decayed more than 50%. If this is high, investigate timing." valueColor={data.edge_collapsed_count > data.picks_tracked * 0.3 ? '#ef4444' : undefined} />
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function RegimePanel({ data }) {
+  if (!data || !data.segments) return null;
+  const segs = data.segments;
+  const total = data.total_picks || 0;
+  if (total < 5) return null;
+
+  const renderSegment = (label, seg) => {
+    if (!seg || seg.total < 2) return null;
+    return (
+      <div key={label} style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        paddingBottom: '10px', borderBottom: '1px solid var(--stroke-subtle)',
+      }}>
+        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{label}</span>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text-tertiary)' }}>
+            {seg.wins}-{seg.losses}{seg.pushes > 0 ? `-${seg.pushes}` : ''}
+          </span>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
+            color: seg.win_rate != null && seg.win_rate >= 55 ? '#4ade80' : seg.win_rate != null && seg.win_rate < 45 ? '#ef4444' : 'var(--text-primary)',
+          }}>
+            {seg.win_rate != null ? `${seg.win_rate}%` : '—'}
+          </span>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '12px',
+            color: seg.pnl_units >= 0 ? '#4ade80' : '#ef4444',
+          }}>
+            {seg.pnl_units >= 0 ? '+' : ''}{seg.pnl_units}u
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <SectionLabel>Regime Detection</SectionLabel>
+      {data.concentration_warning && (
+        <div style={{
+          backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)',
+          borderRadius: '12px', padding: '12px 16px', marginBottom: '12px',
+          fontSize: '12px', color: '#f59e0b', lineHeight: '1.5',
+        }}>
+          {data.concentration_warning}
+        </div>
+      )}
+      <div style={{
+        backgroundColor: 'var(--surface-1)', borderRadius: '20px',
+        border: '1px solid var(--stroke-subtle)', padding: '20px',
+        marginBottom: '16px',
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {renderSegment('Favorites', segs.favorite)}
+          {renderSegment('Underdogs', segs.underdog)}
+          {segs.home && renderSegment('Home', segs.home)}
+          {segs.away && renderSegment('Away', segs.away)}
+          {segs.spread_buckets && Object.entries(segs.spread_buckets).map(([bucket, rec]) =>
+            renderSegment(`Spread ${bucket}`, rec)
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
 
 function DisciplineScore({ discipline }) {
   return (

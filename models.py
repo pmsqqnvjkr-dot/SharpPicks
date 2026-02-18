@@ -260,6 +260,25 @@ class FCMToken(db.Model):
     last_seen_at = db.Column(db.DateTime, default=datetime.now)
 
 
+class EdgeSnapshot(db.Model):
+    __tablename__ = 'edge_snapshots'
+    id = db.Column(db.Integer, primary_key=True)
+    pick_id = db.Column(db.String, db.ForeignKey('picks.id'), nullable=True)
+    game_date = db.Column(db.String, nullable=False)
+    sport = db.Column(db.String, default='nba')
+    home_team = db.Column(db.String, nullable=False)
+    away_team = db.Column(db.String, nullable=False)
+    side = db.Column(db.String, nullable=False)
+    snapshot_label = db.Column(db.String(20), nullable=False)
+    hours_to_tip = db.Column(db.Float, nullable=True)
+    edge_pct = db.Column(db.Float, nullable=False)
+    spread = db.Column(db.Float, nullable=True)
+    confidence = db.Column(db.Float, nullable=True)
+    steam_fragility = db.Column(db.Float, nullable=True)
+    line_move_against = db.Column(db.Float, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now, index=True)
+
+
 class CronLog(db.Model):
     __tablename__ = 'cron_logs'
     id = db.Column(db.Integer, primary_key=True)

@@ -32,17 +32,19 @@ LINE_MOVE_HARD_STOP = 2.5
 LINE_MOVE_HARD_STOP_MIN_EDGE = 8.0
 
 SHARP_MOVE_STD_THRESHOLD = 0.8
-SHARP_AGREE_DISCOUNT = 0.4
-SHARP_DISAGREE_SURCHARGE = 0.5
 PUBLIC_MOVE_STD_THRESHOLD = 0.3
+
+SFS_MAGNITUDE_WEIGHT = 0.35
+SFS_SPREAD_WEIGHT = 0.25
+SFS_DISPERSION_WEIGHT = 0.40
+SFS_MAX = 0.60
+SFS_MIN = 0.0
 MODEL_WEIGHT = 0.3
 MAX_EDGE_PCT = 8.0
 
-SPREAD_EDGE_CURVE = [
-    (0, 7, 3.5),
-    (7, 11, 5.0),
-    (11, float('inf'), 8.0),
-]
+SPREAD_EDGE_BASE = 3.0
+SPREAD_EDGE_ELASTICITY = 0.167
+SPREAD_EDGE_MAX = 7.0
 
 SPREAD_RISK_SCALE_BASE = 7.0
 SPREAD_RISK_SCALE_RATE = 0.25
@@ -93,10 +95,8 @@ def is_all_star_first_game(game_date):
 
 
 def get_edge_threshold_for_spread(spread_abs):
-    for low, high, threshold in SPREAD_EDGE_CURVE:
-        if low <= spread_abs < high:
-            return threshold
-    return 8.0
+    threshold = SPREAD_EDGE_BASE + (spread_abs * SPREAD_EDGE_ELASTICITY)
+    return min(threshold, SPREAD_EDGE_MAX)
 
 
 def calculate_long_rest_penalty(pick_side, spread_abs, home_rest, away_rest):
@@ -119,50 +119,64 @@ def calculate_asb_penalty(spread_abs, game_date):
     return ASB_PENALTY_PCT, reason
 
 
-def classify_line_movement(line_move, rundown_std, rundown_num_books, pick_side_agrees_with_move):
-    if abs(line_move) < 0.5:
-        return 'minimal', 0.0, None
+def calculate_steam_fragility_score(line_move_magnitude, spread_abs, rundown_std, rundown_num_books):
+    magnitude_score = min(line_move_magnitude / 4.0, 1.0)
 
-    if rundown_num_books is None or rundown_num_books < 3:
-        return 'unknown', 0.0, None
+    spread_score = min(max(spread_abs - 3.0, 0.0) / 12.0, 1.0)
 
-    if rundown_std is not None and rundown_std >= SHARP_MOVE_STD_THRESHOLD:
-        if pick_side_agrees_with_move:
-            discount = SHARP_AGREE_DISCOUNT
-            reason = f"Sharp steam aligns with model ({rundown_std:.1f} book std) — penalty reduced {discount*100:.0f}%"
-            return 'sharp_agree', -discount, reason
+    dispersion_score = 0.5
+    if rundown_std is not None and rundown_num_books is not None and rundown_num_books >= 3:
+        if rundown_std >= SHARP_MOVE_STD_THRESHOLD:
+            dispersion_score = min(0.6 + (rundown_std - SHARP_MOVE_STD_THRESHOLD) * 0.4, 1.0)
+        elif rundown_std <= PUBLIC_MOVE_STD_THRESHOLD:
+            dispersion_score = max(rundown_std / PUBLIC_MOVE_STD_THRESHOLD * 0.3, 0.05)
         else:
-            surcharge = SHARP_DISAGREE_SURCHARGE
-            reason = f"Sharp steam opposes model ({rundown_std:.1f} book std) — fragility +{surcharge*100:.0f}%"
-            return 'sharp_disagree', surcharge, reason
+            dispersion_score = 0.3 + (rundown_std - PUBLIC_MOVE_STD_THRESHOLD) / (SHARP_MOVE_STD_THRESHOLD - PUBLIC_MOVE_STD_THRESHOLD) * 0.3
 
-    if rundown_std is not None and rundown_std <= PUBLIC_MOVE_STD_THRESHOLD:
-        reason = f"Public steam ({rundown_std:.1f} book std, uniform move) — standard penalty"
-        return 'public', 0.0, reason
-
-    return 'mixed', 0.0, None
-
-
-def decompose_line_penalty(line_move_against, pick_side, spread, rundown_std, rundown_num_books):
-    if line_move_against <= 0:
-        return 0.0, 'no_move', None
-
-    base_penalty = line_move_against * LINE_MOVE_PENALTY_PER_PT
-
-    move_type, modifier, reason = classify_line_movement(
-        line_move_against, rundown_std, rundown_num_books, False
+    raw_sfs = (
+        SFS_MAGNITUDE_WEIGHT * magnitude_score +
+        SFS_SPREAD_WEIGHT * spread_score +
+        SFS_DISPERSION_WEIGHT * dispersion_score
     )
 
-    if modifier < 0:
-        adjusted_penalty = base_penalty * (1 + modifier)
-    elif modifier > 0:
-        adjusted_penalty = base_penalty * (1 + modifier)
+    sfs = max(SFS_MIN, min(raw_sfs, SFS_MAX))
+
+    if rundown_std is not None and rundown_std >= SHARP_MOVE_STD_THRESHOLD:
+        move_type = 'sharp_disagree'
+    elif rundown_std is not None and rundown_std <= PUBLIC_MOVE_STD_THRESHOLD:
+        move_type = 'public'
+    elif rundown_num_books is not None and rundown_num_books >= 3:
+        move_type = 'mixed'
     else:
-        adjusted_penalty = base_penalty
+        move_type = 'unknown'
 
-    adjusted_penalty = max(adjusted_penalty, 0.0)
+    components = {
+        'magnitude': round(magnitude_score, 3),
+        'spread': round(spread_score, 3),
+        'dispersion': round(dispersion_score, 3),
+    }
+    reason = (
+        f"SFS={sfs:.1%} [{move_type}] — "
+        f"mag={magnitude_score:.2f}({line_move_magnitude:.1f}pts), "
+        f"spread={spread_score:.2f}({spread_abs:.0f}pt), "
+        f"disp={dispersion_score:.2f}"
+        f"({f'{rundown_std:.1f}std' if rundown_std is not None else 'n/a'})"
+    )
 
-    return adjusted_penalty, move_type, reason
+    return sfs, move_type, reason, components
+
+
+def apply_steam_fragility(edge, line_move_against, spread_abs, rundown_std, rundown_num_books):
+    if line_move_against <= 0:
+        return edge, 0.0, 'no_move', None
+
+    sfs, move_type, reason, components = calculate_steam_fragility_score(
+        line_move_against, spread_abs, rundown_std, rundown_num_books
+    )
+
+    adjusted_edge = edge * (1.0 - sfs)
+
+    return adjusted_edge, sfs, move_type, reason
 
 
 def spread_risk_adjusted_edge(adjusted_edge, spread_abs):
@@ -819,7 +833,7 @@ class EnsemblePredictor:
             open_spread = row.get('spread_home_open', None)
             line_move_against = 0.0
             line_move_in_favor = 0.0
-            line_move_penalty = 0.0
+            steam_fragility = 0.0
             line_move_type = 'no_move'
             line_move_decomp_reason = None
             r_std = None
@@ -842,16 +856,17 @@ class EnsemblePredictor:
 
                 if adverse_move >= 1.0:
                     line_move_against = adverse_move
-                    line_move_penalty, line_move_type, line_move_decomp_reason = decompose_line_penalty(
-                        line_move_against, pick_side, spread, r_std, r_num
-                    )
                 elif adverse_move <= -1.0:
                     line_move_in_favor = abs(adverse_move)
                     if r_std is not None and r_std >= SHARP_MOVE_STD_THRESHOLD and r_num is not None and r_num >= 3:
                         line_move_type = 'sharp_agree'
                         line_move_decomp_reason = f"Sharp steam supports model ({r_std:.1f} book std, {line_move_in_favor:.1f}pts in our favor)"
-            
-            adjusted_edge = edge_vs_market - line_move_penalty
+
+            adjusted_edge = edge_vs_market
+            if line_move_against >= 1.0:
+                adjusted_edge, steam_fragility, line_move_type, line_move_decomp_reason = apply_steam_fragility(
+                    edge_vs_market, line_move_against, spread_abs, r_std, r_num
+                )
             adjusted_edge = min(adjusted_edge, self.max_edge_pct)
             
             fail_reasons = []
@@ -933,8 +948,8 @@ class EnsemblePredictor:
                     pass_reason = f"Edge below threshold ({risk_weighted_edge:+.1f}% < {self.edge_threshold_pct}%)"
             if len(fail_reasons) == 0 and confidence < min_confidence:
                 pass_reason = f"Confidence below minimum ({confidence:.1%} < {min_confidence:.0%})"
-            if line_move_penalty > 0 and risk_weighted_edge < self.edge_threshold_pct and edge_vs_market >= self.edge_threshold_pct:
-                pass_reason = f"Line moved against us ({line_move_against:+.1f}pts), reduced edge from {edge_vs_market:+.1f}% to {adjusted_edge:+.1f}%"
+            if steam_fragility > 0 and risk_weighted_edge < self.edge_threshold_pct and edge_vs_market >= self.edge_threshold_pct:
+                pass_reason = f"Steam fragility {steam_fragility:.0%} on {line_move_against:+.1f}pt move, edge {edge_vs_market:+.1f}% → {adjusted_edge:+.1f}%"
 
             passes = (
                 len(fail_reasons) == 0
@@ -977,7 +992,7 @@ class EnsemblePredictor:
                 'rating': rating,
                 'home_proba': proba,
                 'line_move_against': round(line_move_against, 1),
-                'line_move_penalty': round(line_move_penalty, 1),
+                'steam_fragility': round(steam_fragility, 3),
                 'line_move_type': line_move_type,
                 'line_move_decomp_reason': line_move_decomp_reason,
                 'injury_penalty': round(injury_penalty, 1),
@@ -999,7 +1014,7 @@ class EnsemblePredictor:
         for pick in sorted(filtered_picks, key=lambda x: x['adjusted_edge'], reverse=True):
             game_str = pick['game'][:27]
             margin_str = f"{pick['predicted_margin']:+.1f}" if pick['predicted_margin'] is not None else "  --"
-            penalty_str = f" (-{pick['line_move_penalty']:.0f}%)" if pick['line_move_penalty'] > 0 else ""
+            penalty_str = f" (SFS:{pick['steam_fragility']:.0%})" if pick['steam_fragility'] > 0 else ""
             print(f"{game_str:<28} {pick['pick']:<16} {margin_str:>7} {pick['cover_prob']:>6.1%} {pick['edge']:>+5.1f}% {pick['adjusted_edge']:>+5.1f}% {pick['ev']:>+6.1f}% {pick['rating']:>8}{penalty_str}")
         
         print("-" * 100)
@@ -1315,7 +1330,6 @@ class EnsemblePredictor:
 
                 raw_edge = min((confidence - implied_prob) * 100, self.max_edge_pct)
 
-                line_move_penalty = 0.0
                 line_move_against = 0.0
                 open_spread = open_spreads[j] if j < len(open_spreads) else None
                 if open_spread is not None and not pd.isna(open_spread):
@@ -1326,18 +1340,19 @@ class EnsemblePredictor:
                         adverse_move = move
                     if adverse_move >= 1.0:
                         line_move_against = adverse_move
-                        wf_r_std = test_df['rundown_spread_std'].iloc[j] if 'rundown_spread_std' in test_df.columns else None
-                        wf_r_num = test_df['rundown_num_books'].iloc[j] if 'rundown_num_books' in test_df.columns else None
-                        try:
-                            wf_r_std = float(wf_r_std) if wf_r_std is not None and not pd.isna(wf_r_std) else None
-                            wf_r_num = int(wf_r_num) if wf_r_num is not None and not pd.isna(wf_r_num) else None
-                        except (ValueError, TypeError):
-                            wf_r_std, wf_r_num = None, None
-                        line_move_penalty, _, _ = decompose_line_penalty(
-                            line_move_against, pick_side, spread, wf_r_std, wf_r_num
-                        )
 
-                adjusted_edge = raw_edge - line_move_penalty
+                adjusted_edge = raw_edge
+                if line_move_against >= 1.0:
+                    wf_r_std = test_df['rundown_spread_std'].iloc[j] if 'rundown_spread_std' in test_df.columns else None
+                    wf_r_num = test_df['rundown_num_books'].iloc[j] if 'rundown_num_books' in test_df.columns else None
+                    try:
+                        wf_r_std = float(wf_r_std) if wf_r_std is not None and not pd.isna(wf_r_std) else None
+                        wf_r_num = int(wf_r_num) if wf_r_num is not None and not pd.isna(wf_r_num) else None
+                    except (ValueError, TypeError):
+                        wf_r_std, wf_r_num = None, None
+                    adjusted_edge, _, _, _ = apply_steam_fragility(
+                        raw_edge, line_move_against, abs(spread), wf_r_std, wf_r_num
+                    )
                 adjusted_edge = min(adjusted_edge, self.max_edge_pct)
 
                 spread_abs = abs(spread)

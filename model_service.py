@@ -7,7 +7,7 @@ This service only: runs the model, reads outputs, stores to DB.
 
 import time
 from datetime import datetime, timedelta
-from models import db, Pick, Pass, ModelRun
+from models import db, Pick, Pass, ModelRun, EdgeSnapshot
 from sport_config import get_sport_config, get_live_sports
 
 
@@ -23,6 +23,38 @@ def _to_python(val):
     except ImportError:
         pass
     return val
+
+
+def log_edge_snapshots(predictions, snapshot_label, hours_to_tip=None, pick_id=None, sport='nba'):
+    today_str = _get_et_date()
+    for p in predictions:
+        if not p.get('passes_filter', False) and not pick_id:
+            continue
+        if pick_id and p.get('home_team') != None:
+            pass
+
+        snap = EdgeSnapshot(
+            pick_id=pick_id,
+            game_date=today_str,
+            sport=sport,
+            home_team=p.get('home_team', ''),
+            away_team=p.get('away_team', ''),
+            side=p.get('pick', '').split()[0] if p.get('pick') else p.get('pick_side', ''),
+            snapshot_label=snapshot_label,
+            hours_to_tip=_to_python(hours_to_tip),
+            edge_pct=_to_python(p.get('adjusted_edge', p.get('edge', 0))),
+            spread=_to_python(p.get('spread')),
+            confidence=_to_python(p.get('cover_prob')),
+            steam_fragility=_to_python(p.get('steam_fragility', 0)),
+            line_move_against=_to_python(p.get('line_move_against', 0)),
+        )
+        db.session.add(snap)
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        import logging
+        logging.error(f"Edge snapshot logging failed: {e}")
 
 
 def _get_et_date():
@@ -87,6 +119,11 @@ def pretip_revalidate(app, sport='nba'):
 
             if not matching:
                 return {'status': 'game_not_found', 'pick_id': pick.id}
+
+            try:
+                log_edge_snapshots([matching], 'pre_tip', hours_to_tip=None, pick_id=pick.id, sport=sport)
+            except Exception:
+                pass
 
             still_passes = matching.get('passes_filter', False)
             new_edge = matching.get('risk_weighted_edge', matching.get('adjusted_edge', 0))
@@ -263,6 +300,11 @@ def run_model_and_log(app, sport='nba'):
                     )
                     db.session.add(model_run)
                     db.session.commit()
+
+                    try:
+                        log_edge_snapshots([best], 'open', hours_to_tip=None, pick_id=pick.id, sport=sport)
+                    except Exception:
+                        pass
 
                     try:
                         from notification_service import send_pick_notification
