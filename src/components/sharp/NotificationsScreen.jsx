@@ -6,7 +6,7 @@ export default function NotificationsScreen({ onBack }) {
   const { user, enablePush, pushStatus } = useAuth();
   const [prefs, setPrefs] = useState({
     pick_alert: true,
-    no_action: false,
+    no_action: true,
     outcome: true,
     weekly_summary: true,
   });

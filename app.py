@@ -2533,7 +2533,7 @@ def get_notification_prefs():
     if not user:
         return jsonify({'error': 'Not authenticated'}), 401
     return jsonify({'prefs': user.notification_prefs or {
-        'pick_alert': True, 'no_action': False, 'outcome': True, 'weekly_summary': True
+        'pick_alert': True, 'no_action': True, 'outcome': True, 'weekly_summary': True
     }})
 
 @app.route('/api/user/notifications', methods=['POST'])
