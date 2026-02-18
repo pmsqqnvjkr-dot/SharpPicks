@@ -264,7 +264,7 @@ class FCMToken(db.Model):
 class EdgeSnapshot(db.Model):
     __tablename__ = 'edge_snapshots'
     id = db.Column(db.Integer, primary_key=True)
-    pick_id = db.Column(db.String, db.ForeignKey('picks.id'), nullable=True)
+    pick_id = db.Column(db.String, db.ForeignKey('picks.id', ondelete='CASCADE'), nullable=True)
     game_date = db.Column(db.String, nullable=False)
     sport = db.Column(db.String, default='nba')
     home_team = db.Column(db.String, nullable=False)

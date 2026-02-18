@@ -66,6 +66,15 @@ import subprocess
 import requests as http_requests
 from datetime import datetime, timedelta
 
+def _get_et_today():
+    """Get current Eastern Time date string (YYYY-MM-DD)."""
+    try:
+        from zoneinfo import ZoneInfo
+        now_et = datetime.now(ZoneInfo('America/New_York'))
+    except ImportError:
+        now_et = datetime.utcnow() - timedelta(hours=5)
+    return now_et.strftime('%Y-%m-%d')
+
 from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent, CronLog
 from picks_api import picks_bp
 from public_api import public_bp
@@ -638,8 +647,8 @@ def send_weekly_summary_job():
             from email_service import send_weekly_summary
             from sqlalchemy import text as sql_text
 
-            week_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
-            today_str = datetime.now().strftime('%Y-%m-%d')
+            today_str = _get_et_today()
+            week_ago = (datetime.strptime(today_str, '%Y-%m-%d') - timedelta(days=7)).strftime('%Y-%m-%d')
 
             picks_result = db.session.execute(sql_text("""
                 SELECT 
@@ -844,7 +853,7 @@ def collect_closing_lines():
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            today_str = datetime.now().strftime('%Y-%m-%d')
+            today_str = _get_et_today()
             cursor.execute('''
                 SELECT id, home_team, away_team, spread_home, total,
                        home_ml, away_ml, game_date
@@ -922,7 +931,7 @@ def collect_wnba_closing_lines_job():
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            today_str = datetime.now().strftime('%Y-%m-%d')
+            today_str = _get_et_today()
             cursor.execute('''
                 SELECT id, home_team, away_team, spread_home, total,
                        home_ml, away_ml
@@ -983,7 +992,7 @@ def check_data_quality():
         conn = sqlite3.connect('sharp_picks.db')
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        today_str = datetime.now().strftime('%Y-%m-%d')
+        today_str = _get_et_today()
         
         cursor.execute('''
             SELECT COUNT(*) as cnt FROM games
@@ -2916,7 +2925,7 @@ def get_predictions():
     conn = get_db()
     cursor = conn.cursor()
     
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = _get_et_today()
     cursor.execute('''
         SELECT id, home_team, away_team, game_date, game_time,
                spread_home, spread_away, spread_home_open, 
