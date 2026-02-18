@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
@@ -832,122 +832,173 @@ function BetsSection({ title, children }) {
 }
 
 function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete, onViewPick }) {
-  const isConfirming = confirmDelete === bet.id;
   const isClickable = bet.result && bet.linked_pick;
+
+  const rowRef = useRef(null);
+  const startX = useRef(0);
+  const currentX = useRef(0);
+  const swipingRef = useRef(false);
+  const [offset, setOffset] = useState(0);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const deleteThreshold = 80;
+
+  const onTouchStart = useCallback((e) => {
+    startX.current = e.touches[0].clientX;
+    currentX.current = 0;
+    swipingRef.current = true;
+  }, []);
+
+  const onTouchMove = useCallback((e) => {
+    if (!swipingRef.current) return;
+    const diff = startX.current - e.touches[0].clientX;
+    if (diff > 0) {
+      const clamped = Math.min(diff, deleteThreshold + 20);
+      currentX.current = clamped;
+      setOffset(clamped);
+    } else {
+      currentX.current = 0;
+      setOffset(0);
+    }
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    swipingRef.current = false;
+    if (currentX.current >= deleteThreshold) {
+      setOffset(deleteThreshold);
+      setShowConfirm(true);
+    } else {
+      setOffset(0);
+      setShowConfirm(false);
+    }
+  }, []);
+
+  const resetSwipe = () => {
+    setOffset(0);
+    setShowConfirm(false);
+  };
 
   return (
     <div style={{
-      padding: '14px 16px',
+      position: 'relative',
+      overflow: 'hidden',
       borderBottom: '1px solid var(--stroke-subtle)',
-      cursor: isClickable ? 'pointer' : 'default',
-    }}
-      onClick={() => { if (isClickable && onViewPick) onViewPick(bet.linked_pick); }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {bet.pick}
-            {isClickable && (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            )}
+    }}>
+      <div style={{
+        position: 'absolute', right: 0, top: 0, bottom: 0,
+        width: `${deleteThreshold + 20}px`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        backgroundColor: showConfirm ? '#dc2626' : 'rgba(239, 68, 68, 0.85)',
+        transition: showConfirm ? 'background-color 0.2s' : 'none',
+      }}>
+        {showConfirm ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+            <button onClick={() => { onDelete(bet.id); resetSwipe(); }} style={{
+              background: 'none', border: 'none', color: '#fff',
+              fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+              fontFamily: 'var(--font-sans)', padding: '6px 12px',
+            }}>Delete</button>
+            <button onClick={resetSwipe} style={{
+              background: 'none', border: 'none',
+              color: 'rgba(255,255,255,0.7)', fontSize: '11px',
+              cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: '2px 8px',
+            }}>Cancel</button>
           </div>
-          {bet.game && (
-            <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-tertiary)', marginTop: '2px' }}>
-              {bet.game}
-            </div>
-          )}
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
-            color: 'var(--text-tertiary)', marginTop: '4px',
-          }}>
-            ${bet.bet_amount} at {bet.odds > 0 ? `+${bet.odds}` : bet.odds}
-            {bet.to_win ? ` · to win $${bet.to_win}` : ''}
-          </div>
-        </div>
-        <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
-          {bet.result ? (
-            <div>
-              <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
-                color: bet.result === 'W' ? 'var(--green-profit)' : bet.result === 'L' ? 'var(--red-loss)' : 'var(--text-secondary)',
-              }}>
-                {bet.result === 'W' ? `+$${Math.abs(bet.profit || 0).toFixed(0)}` : bet.result === 'L' ? `-$${Math.abs(bet.profit || 0).toFixed(0)}` : 'Push'}
-              </span>
-            </div>
-          ) : bet.pick_result === 'W' || bet.pick_result === 'L' ? (
-            <button onClick={(e) => { e.stopPropagation(); onMarkResult(bet.id, bet.pick_result); }} style={{
-              padding: '8px 14px', fontSize: '13px', fontWeight: 700,
-              fontFamily: 'var(--font-mono)',
-              backgroundColor: bet.pick_result === 'W' ? 'rgba(52, 211, 153, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-              color: bet.pick_result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
-              border: `1px solid ${bet.pick_result === 'W' ? 'rgba(52, 211, 153, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-              borderRadius: '10px', cursor: 'pointer',
-              minHeight: '44px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-            }}>
-              {bet.pick_result === 'W' ? 'Mark Win' : 'Mark Loss'}
-            </button>
-          ) : (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={(e) => { e.stopPropagation(); onMarkResult(bet.id, 'W'); }} style={{
-                minWidth: '44px', minHeight: '44px',
-                padding: '8px 14px', fontSize: '13px', fontWeight: 700,
-                fontFamily: 'var(--font-mono)',
-                backgroundColor: 'rgba(52, 211, 153, 0.1)',
-                color: 'var(--green-profit)',
-                border: '1px solid rgba(52, 211, 153, 0.3)',
-                borderRadius: '10px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>W</button>
-              <button onClick={(e) => { e.stopPropagation(); onMarkResult(bet.id, 'L'); }} style={{
-                minWidth: '44px', minHeight: '44px',
-                padding: '8px 14px', fontSize: '13px', fontWeight: 700,
-                fontFamily: 'var(--font-mono)',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                color: 'var(--red-loss)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                borderRadius: '10px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>L</button>
-            </div>
-          )}
-        </div>
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        )}
       </div>
 
-      {isConfirming ? (
-        <div style={{
-          marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center',
-        }}>
-          <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Delete this bet?</span>
-          <button onClick={() => onDelete(bet.id)} style={{
-            padding: '8px 14px', fontSize: '13px', fontWeight: 600,
-            minHeight: '36px',
-            backgroundColor: 'rgba(239, 68, 68, 0.15)',
-            color: 'var(--red-loss)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '8px', cursor: 'pointer',
-          }}>Yes</button>
-          <button onClick={() => setConfirmDelete(null)} style={{
-            padding: '8px 14px', fontSize: '13px',
-            minHeight: '36px',
-            backgroundColor: 'var(--surface-2)',
-            color: 'var(--text-secondary)',
-            border: '1px solid var(--stroke-subtle)',
-            borderRadius: '8px', cursor: 'pointer',
-          }}>No</button>
+      <div
+        ref={rowRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onClick={() => { if (isClickable && onViewPick && offset === 0) onViewPick(bet.linked_pick); }}
+        style={{
+          padding: '14px 16px',
+          backgroundColor: 'var(--surface-1)',
+          transform: `translateX(-${offset}px)`,
+          transition: swipingRef.current ? 'none' : 'transform 0.25s ease',
+          position: 'relative', zIndex: 1,
+          cursor: isClickable ? 'pointer' : 'default',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {bet.pick}
+              {isClickable && (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              )}
+            </div>
+            {bet.game && (
+              <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                {bet.game}
+              </div>
+            )}
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
+              color: 'var(--text-tertiary)', marginTop: '4px',
+            }}>
+              ${bet.bet_amount} at {bet.odds > 0 ? `+${bet.odds}` : bet.odds}
+              {bet.to_win ? ` · to win $${bet.to_win}` : ''}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
+            {bet.result ? (
+              <div>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+                  color: bet.result === 'W' ? 'var(--green-profit)' : bet.result === 'L' ? 'var(--red-loss)' : 'var(--text-secondary)',
+                }}>
+                  {bet.result === 'W' ? `+$${Math.abs(bet.profit || 0).toFixed(0)}` : bet.result === 'L' ? `-$${Math.abs(bet.profit || 0).toFixed(0)}` : 'Push'}
+                </span>
+              </div>
+            ) : bet.pick_result === 'W' || bet.pick_result === 'L' ? (
+              <button onClick={(e) => { e.stopPropagation(); onMarkResult(bet.id, bet.pick_result); }} style={{
+                padding: '8px 14px', fontSize: '13px', fontWeight: 700,
+                fontFamily: 'var(--font-mono)',
+                backgroundColor: bet.pick_result === 'W' ? 'rgba(52, 211, 153, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                color: bet.pick_result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
+                border: `1px solid ${bet.pick_result === 'W' ? 'rgba(52, 211, 153, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                borderRadius: '10px', cursor: 'pointer',
+                minHeight: '44px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              }}>
+                {bet.pick_result === 'W' ? 'Mark Win' : 'Mark Loss'}
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={(e) => { e.stopPropagation(); onMarkResult(bet.id, 'W'); }} style={{
+                  minWidth: '44px', minHeight: '44px',
+                  padding: '8px 14px', fontSize: '13px', fontWeight: 700,
+                  fontFamily: 'var(--font-mono)',
+                  backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                  color: 'var(--green-profit)',
+                  border: '1px solid rgba(52, 211, 153, 0.3)',
+                  borderRadius: '10px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>W</button>
+                <button onClick={(e) => { e.stopPropagation(); onMarkResult(bet.id, 'L'); }} style={{
+                  minWidth: '44px', minHeight: '44px',
+                  padding: '8px 14px', fontSize: '13px', fontWeight: 700,
+                  fontFamily: 'var(--font-mono)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  color: 'var(--red-loss)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '10px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>L</button>
+              </div>
+            )}
+          </div>
         </div>
-      ) : (
-        <button onClick={() => setConfirmDelete(bet.id)} style={{
-          marginTop: '6px', background: 'none', border: 'none',
-          color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 500,
-          cursor: 'pointer', padding: '4px 0',
-          minHeight: '32px',
-        }}>
-          Delete
-        </button>
-      )}
+      </div>
     </div>
   );
 }
