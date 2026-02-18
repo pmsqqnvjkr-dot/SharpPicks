@@ -691,6 +691,12 @@ def send_weekly_summary_job():
                         sent_count += 1
 
             logging.info(f"Weekly summary sent to {sent_count}/{len(pro_users)} pro users")
+
+            try:
+                from notification_service import send_weekly_summary_notification
+                send_weekly_summary_notification(stats)
+            except Exception as e:
+                logging.error(f"Weekly summary push notification error: {e}")
         except Exception as e:
             logging.error(f"Weekly summary job error: {e}")
 
@@ -795,6 +801,12 @@ def grade_pending_picks():
                 pick.result_resolved_at = datetime.now()
 
                 print(f"[Auto-grade] {pick.game_date}: {pick.side} -> {pick.result} (score: {home_score}-{away_score})")
+
+                try:
+                    from notification_service import send_result_notification
+                    send_result_notification(pick, pick.result)
+                except Exception as e:
+                    print(f"[Auto-grade] Result notification error: {e}")
 
                 linked_bets = TrackedBet.query.filter_by(pick_id=pick.id, result=None).all()
                 for tb in linked_bets:
@@ -1009,11 +1021,24 @@ def check_data_quality():
         if issues:
             for issue in issues:
                 print(f"[Data Quality] {issue}")
+            try:
+                from notification_service import send_admin_health_alert
+                send_admin_health_alert(
+                    "Data Quality Issues",
+                    " | ".join(issues)
+                )
+            except Exception as ne:
+                print(f"[Data Quality] Admin alert error: {ne}")
         else:
             print(f"[{datetime.now()}] Data quality OK")
             
     except Exception as e:
         print(f"[Data Quality] Check failed: {e}")
+        try:
+            from notification_service import send_admin_health_alert
+            send_admin_health_alert("Data Quality Check Failed", str(e)[:200])
+        except Exception:
+            pass
 
 
 def grade_whatif_passes():

@@ -1,79 +1,94 @@
 import os
 import logging
-import requests
 
 
-ONESIGNAL_APP_ID = os.environ.get('ONESIGNAL_APP_ID', '')
-ONESIGNAL_API_KEY = os.environ.get('ONESIGNAL_API_KEY', '')
-
-ONESIGNAL_API_URL = 'https://onesignal.com/api/v1/notifications'
-
-
-def _send_notification(headings, contents, segment=None, filters=None, data=None):
-    if not ONESIGNAL_APP_ID or not ONESIGNAL_API_KEY:
-        logging.warning("OneSignal not configured. Notification not sent.")
-        return False
-    
-    payload = {
-        'app_id': ONESIGNAL_APP_ID,
-        'headings': {'en': headings},
-        'contents': {'en': contents},
-    }
-    
-    if segment:
-        payload['included_segments'] = [segment]
-    if filters:
-        payload['filters'] = filters
-    if data:
-        payload['data'] = data
-    
-    headers = {
-        'Authorization': f'Basic {ONESIGNAL_API_KEY}',
-        'Content-Type': 'application/json',
-    }
-    
+def _get_push_functions():
     try:
-        resp = requests.post(ONESIGNAL_API_URL, json=payload, headers=headers, timeout=10)
-        if resp.status_code in (200, 201):
-            logging.info(f"Push notification sent: {headings}")
-            return True
-        else:
-            logging.error(f"OneSignal error {resp.status_code}: {resp.text}")
-            return False
-    except Exception as e:
-        logging.error(f"Push notification failed: {e}")
-        return False
+        from app import send_push_to_all, send_push_notification, send_admin_alert
+        return send_push_to_all, send_push_notification, send_admin_alert
+    except ImportError:
+        logging.error("Could not import push functions from app")
+        return None, None, None
 
 
 def send_pick_notification(pick):
-    return _send_notification(
-        headings='Sharp Picks',
-        contents=f'Qualified opportunity posted. {pick.away_team} @ {pick.home_team}.',
-        segment='Pro Users',
-        data={'type': 'pick', 'pick_id': pick.id},
-    )
+    send_push_to_all, _, _ = _get_push_functions()
+    if not send_push_to_all:
+        return False
+    try:
+        title = 'Sharp Picks'
+        body = f'Qualified opportunity posted. {pick.away_team} @ {pick.home_team}.'
+        data = {'type': 'pick', 'pick_id': str(pick.id)}
+        sent = send_push_to_all(title, body, data=data, premium_only=True)
+        logging.info(f"Pick notification sent to {sent} device(s)")
+        return sent > 0
+    except Exception as e:
+        logging.error(f"Pick notification failed: {e}")
+        return False
 
 
 def send_pass_notification(pass_entry):
-    return _send_notification(
-        headings='Sharp Picks — No Action Today',
-        contents=f'{pass_entry.games_analyzed} games analyzed. No edge detected. Discipline is the edge.',
-        segment='Pass Alerts',
-        data={'type': 'pass', 'date': pass_entry.date},
-    )
+    send_push_to_all, _, _ = _get_push_functions()
+    if not send_push_to_all:
+        return False
+    try:
+        title = 'Sharp Picks — No Action Today'
+        body = f'{pass_entry.games_analyzed} games analyzed. No edge detected. Discipline is the edge.'
+        data = {'type': 'pass', 'date': str(pass_entry.date)}
+        sent = send_push_to_all(title, body, data=data, premium_only=True)
+        logging.info(f"Pass notification sent to {sent} device(s)")
+        return sent > 0
+    except Exception as e:
+        logging.error(f"Pass notification failed: {e}")
+        return False
 
 
 def send_result_notification(pick, result):
-    if result == 'win':
-        contents = f'Result: WIN. {pick.side} covered. Your discipline paid off.'
-    elif result == 'loss':
-        contents = f'Result: LOSS. {pick.side} did not cover. The edge plays out over time.'
-    else:
-        contents = f'Result: PUSH. {pick.side} pushed. No action needed.'
-    
-    return _send_notification(
-        headings='Sharp Picks — Result',
-        contents=contents,
-        segment='Pro Users',
-        data={'type': 'result', 'pick_id': pick.id, 'result': result},
-    )
+    send_push_to_all, _, _ = _get_push_functions()
+    if not send_push_to_all:
+        return False
+    try:
+        if result == 'win':
+            body = f'Result: WIN. {pick.side} covered. Your discipline paid off.'
+        elif result == 'loss':
+            body = f'Result: LOSS. {pick.side} did not cover. The edge plays out over time.'
+        else:
+            body = f'Result: PUSH. {pick.side} pushed. No action needed.'
+        title = 'Sharp Picks — Result'
+        data = {'type': 'result', 'pick_id': str(pick.id), 'result': result}
+        sent = send_push_to_all(title, body, data=data, premium_only=True)
+        logging.info(f"Result notification ({result}) sent to {sent} device(s)")
+        return sent > 0
+    except Exception as e:
+        logging.error(f"Result notification failed: {e}")
+        return False
+
+
+def send_weekly_summary_notification(stats):
+    send_push_to_all, _, _ = _get_push_functions()
+    if not send_push_to_all:
+        return False
+    try:
+        record = f"{stats.get('wins', 0)}W-{stats.get('losses', 0)}L"
+        passes = stats.get('passes', 0)
+        title = 'Sharp Picks — Weekly Summary'
+        body = f'This week: {record}. {passes} pass days. Full summary in app.'
+        data = {'type': 'weekly_summary'}
+        sent = send_push_to_all(title, body, data=data, premium_only=True)
+        logging.info(f"Weekly summary notification sent to {sent} device(s)")
+        return sent > 0
+    except Exception as e:
+        logging.error(f"Weekly summary notification failed: {e}")
+        return False
+
+
+def send_admin_health_alert(title, details):
+    _, _, send_admin_alert = _get_push_functions()
+    if not send_admin_alert:
+        return False
+    try:
+        sent = send_admin_alert(title, details)
+        return sent > 0
+    except Exception as e:
+        logging.error(f"Admin health alert failed: {e}")
+        return False
