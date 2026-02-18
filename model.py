@@ -30,6 +30,11 @@ MARGIN_STD_CEILING = 15.0
 LINE_MOVE_PENALTY_PER_PT = 1.0
 LINE_MOVE_HARD_STOP = 2.5
 LINE_MOVE_HARD_STOP_MIN_EDGE = 8.0
+
+SHARP_MOVE_STD_THRESHOLD = 0.8
+SHARP_AGREE_DISCOUNT = 0.4
+SHARP_DISAGREE_SURCHARGE = 0.5
+PUBLIC_MOVE_STD_THRESHOLD = 0.3
 MODEL_WEIGHT = 0.3
 MAX_EDGE_PCT = 8.0
 
@@ -112,6 +117,52 @@ def calculate_asb_penalty(spread_abs, game_date):
         return 0.0, None
     reason = f"All-Star break first game: {spread_abs:.0f}pt fav (-{ASB_PENALTY_PCT:.1f}% edge, 42.4% ATS historical)"
     return ASB_PENALTY_PCT, reason
+
+
+def classify_line_movement(line_move, rundown_std, rundown_num_books, pick_side_agrees_with_move):
+    if abs(line_move) < 0.5:
+        return 'minimal', 0.0, None
+
+    if rundown_num_books is None or rundown_num_books < 3:
+        return 'unknown', 0.0, None
+
+    if rundown_std is not None and rundown_std >= SHARP_MOVE_STD_THRESHOLD:
+        if pick_side_agrees_with_move:
+            discount = SHARP_AGREE_DISCOUNT
+            reason = f"Sharp steam aligns with model ({rundown_std:.1f} book std) — penalty reduced {discount*100:.0f}%"
+            return 'sharp_agree', -discount, reason
+        else:
+            surcharge = SHARP_DISAGREE_SURCHARGE
+            reason = f"Sharp steam opposes model ({rundown_std:.1f} book std) — fragility +{surcharge*100:.0f}%"
+            return 'sharp_disagree', surcharge, reason
+
+    if rundown_std is not None and rundown_std <= PUBLIC_MOVE_STD_THRESHOLD:
+        reason = f"Public steam ({rundown_std:.1f} book std, uniform move) — standard penalty"
+        return 'public', 0.0, reason
+
+    return 'mixed', 0.0, None
+
+
+def decompose_line_penalty(line_move_against, pick_side, spread, rundown_std, rundown_num_books):
+    if line_move_against <= 0:
+        return 0.0, 'no_move', None
+
+    base_penalty = line_move_against * LINE_MOVE_PENALTY_PER_PT
+
+    move_type, modifier, reason = classify_line_movement(
+        line_move_against, rundown_std, rundown_num_books, False
+    )
+
+    if modifier < 0:
+        adjusted_penalty = base_penalty * (1 + modifier)
+    elif modifier > 0:
+        adjusted_penalty = base_penalty * (1 + modifier)
+    else:
+        adjusted_penalty = base_penalty
+
+    adjusted_penalty = max(adjusted_penalty, 0.0)
+
+    return adjusted_penalty, move_type, reason
 
 
 def spread_risk_adjusted_edge(adjusted_edge, spread_abs):
@@ -767,16 +818,38 @@ class EnsemblePredictor:
             
             open_spread = row.get('spread_home_open', None)
             line_move_against = 0.0
+            line_move_in_favor = 0.0
             line_move_penalty = 0.0
+            line_move_type = 'no_move'
+            line_move_decomp_reason = None
+            r_std = None
+            r_num = None
             if open_spread is not None and spread is not None:
                 move = spread - open_spread
-                if pick_side == 'home' and move > 0:
-                    line_move_against = move
-                elif pick_side == 'away' and move > 0:
-                    line_move_against = move
-                
-                if line_move_against >= 1.0:
-                    line_move_penalty = line_move_against * LINE_MOVE_PENALTY_PER_PT
+                if hasattr(row, 'get'):
+                    r_std_raw = row.get('rundown_spread_std', None)
+                    r_num_raw = row.get('rundown_num_books', None)
+                    try:
+                        r_std = float(r_std_raw) if r_std_raw is not None and not pd.isna(r_std_raw) else None
+                        r_num = int(r_num_raw) if r_num_raw is not None and not pd.isna(r_num_raw) else None
+                    except (ValueError, TypeError):
+                        r_std, r_num = None, None
+
+                if pick_side == 'home':
+                    adverse_move = -move
+                else:
+                    adverse_move = move
+
+                if adverse_move >= 1.0:
+                    line_move_against = adverse_move
+                    line_move_penalty, line_move_type, line_move_decomp_reason = decompose_line_penalty(
+                        line_move_against, pick_side, spread, r_std, r_num
+                    )
+                elif adverse_move <= -1.0:
+                    line_move_in_favor = abs(adverse_move)
+                    if r_std is not None and r_std >= SHARP_MOVE_STD_THRESHOLD and r_num is not None and r_num >= 3:
+                        line_move_type = 'sharp_agree'
+                        line_move_decomp_reason = f"Sharp steam supports model ({r_std:.1f} book std, {line_move_in_favor:.1f}pts in our favor)"
             
             adjusted_edge = edge_vs_market - line_move_penalty
             adjusted_edge = min(adjusted_edge, self.max_edge_pct)
@@ -905,8 +978,9 @@ class EnsemblePredictor:
                 'home_proba': proba,
                 'line_move_against': round(line_move_against, 1),
                 'line_move_penalty': round(line_move_penalty, 1),
+                'line_move_type': line_move_type,
+                'line_move_decomp_reason': line_move_decomp_reason,
                 'injury_penalty': round(injury_penalty, 1),
-                'rust_penalty': round(rust_penalty, 1),
                 'risk_weighted_edge': round(risk_weighted_edge, 2),
                 'fail_reasons': fail_reasons,
                 'pass_reason': pass_reason,
@@ -1246,9 +1320,22 @@ class EnsemblePredictor:
                 open_spread = open_spreads[j] if j < len(open_spreads) else None
                 if open_spread is not None and not pd.isna(open_spread):
                     move = spread - open_spread
-                    if move > 0 and move >= 1.0:
-                        line_move_against = move
-                        line_move_penalty = move * LINE_MOVE_PENALTY_PER_PT
+                    if pick_side == 'home':
+                        adverse_move = -move
+                    else:
+                        adverse_move = move
+                    if adverse_move >= 1.0:
+                        line_move_against = adverse_move
+                        wf_r_std = test_df['rundown_spread_std'].iloc[j] if 'rundown_spread_std' in test_df.columns else None
+                        wf_r_num = test_df['rundown_num_books'].iloc[j] if 'rundown_num_books' in test_df.columns else None
+                        try:
+                            wf_r_std = float(wf_r_std) if wf_r_std is not None and not pd.isna(wf_r_std) else None
+                            wf_r_num = int(wf_r_num) if wf_r_num is not None and not pd.isna(wf_r_num) else None
+                        except (ValueError, TypeError):
+                            wf_r_std, wf_r_num = None, None
+                        line_move_penalty, _, _ = decompose_line_penalty(
+                            line_move_against, pick_side, spread, wf_r_std, wf_r_num
+                        )
 
                 adjusted_edge = raw_edge - line_move_penalty
                 adjusted_edge = min(adjusted_edge, self.max_edge_pct)

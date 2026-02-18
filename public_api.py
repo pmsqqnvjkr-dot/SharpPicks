@@ -220,12 +220,16 @@ def dashboard_stats():
     running_pnl = 0
     max_pnl = 0
     max_drawdown = 0
+    unit_results = []
     for p in resolved:
-        running_pnl += (p.pnl or 0)
+        pnl = p.pnl or 0
+        running_pnl += pnl
         max_pnl = max(max_pnl, running_pnl)
         drawdown = max_pnl - running_pnl
         if drawdown > max_drawdown:
             max_drawdown = drawdown
+        unit_return = pnl / 110.0 if pnl != 0 else (-1.0 if p.result == 'loss' else 0.0)
+        unit_results.append(unit_return)
         equity_curve.append({
             'date': p.game_date,
             'pnl': round(running_pnl, 2),
@@ -239,6 +243,52 @@ def dashboard_stats():
         drawdown_pct = round((max_drawdown / total_wagered) * 100, 1)
     else:
         drawdown_pct = 0
+
+    import numpy as np
+    rolling_50 = None
+    rolling_100 = None
+    if len(unit_results) >= 50:
+        last_50 = unit_results[-50:]
+        rolling_50 = round(sum(last_50) / (50 * 1.0) * 100, 2)
+    if len(unit_results) >= 100:
+        last_100 = unit_results[-100:]
+        rolling_100 = round(sum(last_100) / (100 * 1.0) * 100, 2)
+
+    return_std = round(float(np.std(unit_results)) * 100, 2) if len(unit_results) >= 10 else None
+
+    if len(unit_results) >= 20:
+        win_rate_decimal = wins / (wins + losses) if (wins + losses) > 0 else 0.5
+        avg_win = 100.0 / 110.0
+        avg_loss = 1.0
+        bankroll_units = 100
+        if win_rate_decimal > 0 and win_rate_decimal < 1:
+            p = win_rate_decimal
+            q = 1 - p
+            edge = p * avg_win - q * avg_loss
+            if edge > 0:
+                try:
+                    import math
+                    r = (q * avg_loss) / (p * avg_win)
+                    if r < 1:
+                        ror = r ** bankroll_units
+                        ror = min(ror, 1.0)
+                        risk_of_ruin_pct = round(ror * 100, 4)
+                    else:
+                        risk_of_ruin_pct = 100.0
+                except (OverflowError, ZeroDivisionError):
+                    risk_of_ruin_pct = 0.0
+            else:
+                risk_of_ruin_pct = 100.0
+        else:
+            risk_of_ruin_pct = 0.0 if win_rate_decimal == 1 else 100.0
+    else:
+        risk_of_ruin_pct = None
+
+    rolling_50_series = []
+    if len(unit_results) >= 50:
+        for i in range(50, len(unit_results) + 1):
+            window = unit_results[i-50:i]
+            rolling_50_series.append(round(sum(window) / 50 * 100, 2))
 
     pick_dates = sorted([p.game_date for p in picks if p.game_date])
     if len(pick_dates) >= 2:
@@ -336,6 +386,12 @@ def dashboard_stats():
             'avg_days_between_picks': avg_days_between,
             'avg_line_move_against': avg_line_move,
             'avg_edge_published': avg_edge,
+            'rolling_50_roi': rolling_50,
+            'rolling_100_roi': rolling_100,
+            'return_std_dev': return_std,
+            'risk_of_ruin_pct': risk_of_ruin_pct,
+            'rolling_50_series': rolling_50_series,
+            'total_resolved': len(resolved),
         },
         'discipline': {
             'selectivity_rate': selectivity,
