@@ -1399,6 +1399,15 @@ def register():
     session['user_id'] = user.id
     session['session_token'] = user.session_token
 
+    try:
+        send_admin_alert(
+            "New Signup",
+            f"{first_name} ({email}) joined as {account_type}",
+            {'type': 'new_signup', 'email': email, 'account_type': account_type}
+        )
+    except Exception as e:
+        logging.error(f"Admin signup alert failed: {e}")
+
     if is_free:
         try:
             from email_service import send_welcome_email
