@@ -197,7 +197,7 @@ def command_center_data():
     monthly_subs = [u for u in active_subs if u.subscription_plan and 'month' in u.subscription_plan.lower()]
     founding_members = [u for u in users if u.founding_member]
     founding_count = len(founding_members)
-    founding_cap = 500
+    founding_cap = 50
 
     counter = FoundingCounter.query.first()
     if counter and counter.current_count != founding_count:
