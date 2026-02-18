@@ -691,6 +691,64 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div class="stat-row"><span class="label">Published</span><span class="value green" id="insights-published">--</span></div>
   </div>
 
+  <!-- CONTROL ROOM -->
+  <div class="section-label" style="background:rgba(255,165,2,0.06);color:var(--amber)">&#x1F7E0; Control Room <span style="font-size:8px;letter-spacing:1px;margin-left:8px;color:var(--text-dim)">ADMIN ONLY</span></div>
+
+  <div class="panel wide-2">
+    <div class="panel-label">Kill Switch &amp; Trigger States <span class="status-dot" id="ks-status-dot"></span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <div class="metric-val" id="ks-status-label" style="font-size:16px">--</div>
+        <div class="metric-sub" id="ks-position-label">--</div>
+      </div>
+      <div style="text-align:right">
+        <div class="metric-val" id="ks-triggers-count" style="font-size:22px">--</div>
+        <div class="metric-sub">triggers met</div>
+      </div>
+    </div>
+    <div id="ks-conditions-list"></div>
+    <div id="ks-trigger-log" style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;display:none">
+      <div class="panel-label" style="font-size:9px;margin-bottom:4px">Trigger Log</div>
+      <div id="ks-trigger-reasons"></div>
+    </div>
+  </div>
+
+  <div class="panel wide-2">
+    <div class="panel-label">Threshold Tuning</div>
+    <div class="stat-row"><span class="label">Base Edge Threshold</span><span class="value" id="th-base-edge">--</span></div>
+    <div class="stat-row"><span class="label">Elasticity Formula</span><span class="value" id="th-formula" style="font-size:9px;max-width:200px;text-align:right">--</span></div>
+    <div class="stat-row"><span class="label">Max Edge Cap</span><span class="value" id="th-max-edge">--</span></div>
+    <div class="stat-row"><span class="label">Model Weight (Shrinkage)</span><span class="value" id="th-model-weight">--</span></div>
+    <div class="stat-row"><span class="label">Sigma (σ)</span><span class="value" id="th-sigma">--</span></div>
+    <div class="stat-row"><span class="label">SFS Cap</span><span class="value" id="th-sfs-cap">--</span></div>
+    <div class="stat-row"><span class="label">Avg Edge Published</span><span class="value green" id="th-avg-edge">--</span></div>
+    <div class="stat-row"><span class="label">Avg Spread Published</span><span class="value" id="th-avg-spread">--</span></div>
+  </div>
+
+  <div class="panel wide-2">
+    <div class="panel-label">Bucket Segmentation</div>
+    <div id="cr-bucket-list"></div>
+  </div>
+
+  <div class="panel wide-2">
+    <div class="panel-label">Decay Metrics</div>
+    <div class="stat-row"><span class="label">Open Snapshots</span><span class="value" id="dm-open-count">--</span></div>
+    <div class="stat-row"><span class="label">Pre-Tip Snapshots</span><span class="value" id="dm-pretip-count">--</span></div>
+    <div class="stat-row"><span class="label">Avg Edge at Open</span><span class="value green" id="dm-avg-open">--</span></div>
+    <div class="stat-row"><span class="label">Avg Edge at Pre-Tip</span><span class="value" id="dm-avg-pretip">--</span></div>
+    <div class="stat-row"><span class="label">Avg Decay</span><span class="value" id="dm-avg-decay">--</span></div>
+  </div>
+
+  <div class="panel wide-2">
+    <div class="panel-label">Fragility Scoring Breakdown</div>
+    <div id="cr-fragility-list" style="max-height:250px;overflow-y:auto"></div>
+  </div>
+
+  <div class="panel wide-2">
+    <div class="panel-label">Experimental Toggles</div>
+    <div id="cr-toggles-list"></div>
+  </div>
+
   <!-- USERS -->
   <div class="section-label">Users</div>
 
@@ -1052,6 +1110,7 @@ function refreshAll() {
   loadDashboard();
   loadHealthChecks();
   loadCronHealth();
+  loadControlRoom();
   setTimeout(() => {
     btn.style.color = 'var(--text-dim)';
     btn.querySelector('svg').style.transform = 'rotate(0deg)';
@@ -1170,6 +1229,135 @@ async function loadCronHealth() {
 }
 
 ensureAdminToken().then(() => { loadCronHealth(); setInterval(loadCronHealth, 30000); });
+
+async function loadControlRoom() {
+  try {
+    const res = await adminFetch('/api/admin/control-room');
+    if (!res.ok) return;
+    const d = await res.json();
+
+    const ks = d.kill_switch;
+    const dot = document.getElementById('ks-status-dot');
+    const statusLabel = document.getElementById('ks-status-label');
+    const posLabel = document.getElementById('ks-position-label');
+    const triggersCount = document.getElementById('ks-triggers-count');
+
+    if (ks.active) {
+      dot.className = 'status-dot red';
+      statusLabel.textContent = 'ACTIVE';
+      statusLabel.className = 'metric-val red';
+      posLabel.textContent = 'Position reduced to ' + ks.position_size_pct + '%';
+    } else if (ks.triggers_met >= 2) {
+      dot.className = 'status-dot amber';
+      statusLabel.textContent = 'WARNING';
+      statusLabel.className = 'metric-val amber';
+      posLabel.textContent = ks.triggers_met + '/3 conditions met';
+    } else {
+      dot.className = 'status-dot green';
+      statusLabel.textContent = 'CLEAR';
+      statusLabel.className = 'metric-val green';
+      posLabel.textContent = 'All systems nominal';
+    }
+    triggersCount.textContent = (ks.triggers_met || 0) + '/' + (ks.triggers_required || 3);
+
+    const condList = document.getElementById('ks-conditions-list');
+    condList.innerHTML = '';
+    const conds = [
+      { label: 'Rolling 100-bet ROI < -8%', triggered: ks.conditions?.rolling_roi_triggered, detail: ks.diagnostics?.rolling_100_roi != null ? ks.diagnostics.rolling_100_roi + '%' : '< ' + (ks.diagnostics?.min_sample || 100) + ' bets' },
+      { label: 'CLV Negative >60%', triggered: ks.conditions?.clv_negative_triggered, detail: ks.diagnostics?.clv_total_with_data > 0 ? ks.diagnostics.clv_negative_count + '/' + ks.diagnostics.clv_total_with_data + ' negative' : 'No CLV data' },
+      { label: 'Edge Decay Stale', triggered: ks.conditions?.edge_decay_stale, detail: ks.diagnostics?.edge_decay_signal || (ks.diagnostics?.edge_decay_picks_tracked < 10 ? ks.diagnostics.edge_decay_picks_tracked + '/10 tracked' : 'unknown') },
+    ];
+    conds.forEach(c => {
+      const row = document.createElement('div');
+      row.className = 'status-bar-row';
+      row.innerHTML = '<div class="status-indicator ' + (c.triggered ? 'err' : 'ok') + '"></div>' +
+        '<span class="status-name">' + c.label + '</span>' +
+        '<span class="status-val" style="color:' + (c.triggered ? 'var(--red)' : 'var(--text-dim)') + '">' + c.detail + '</span>';
+      condList.appendChild(row);
+    });
+
+    if (ks.active && ks.trigger_reasons && ks.trigger_reasons.length > 0) {
+      const logDiv = document.getElementById('ks-trigger-log');
+      logDiv.style.display = 'block';
+      const reasonsDiv = document.getElementById('ks-trigger-reasons');
+      reasonsDiv.innerHTML = ks.trigger_reasons.map(r =>
+        '<div style="font-size:10px;color:var(--red);line-height:1.6;padding-left:10px;border-left:2px solid rgba(239,68,68,0.3);margin-bottom:4px">' + r + '</div>'
+      ).join('');
+    }
+
+    const th = d.thresholds;
+    document.getElementById('th-base-edge').textContent = th.base_edge + '%';
+    document.getElementById('th-formula').textContent = th.elasticity_formula;
+    document.getElementById('th-max-edge').textContent = th.max_edge_cap + '%';
+    document.getElementById('th-model-weight').textContent = th.model_weight;
+    document.getElementById('th-sigma').textContent = th.sigma;
+    document.getElementById('th-sfs-cap').textContent = (th.sfs_cap * 100) + '%';
+    document.getElementById('th-avg-edge').textContent = th.avg_edge_published + '%';
+    document.getElementById('th-avg-spread').textContent = th.avg_spread_published + ' pts';
+
+    const bucketList = document.getElementById('cr-bucket-list');
+    bucketList.innerHTML = '';
+    const sortedBuckets = Object.entries(d.spread_buckets).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+    sortedBuckets.forEach(([key, b]) => {
+      const wrClass = b.win_rate != null && b.win_rate >= 55 ? 'green' : b.win_rate != null && b.win_rate < 45 ? 'red' : '';
+      bucketList.innerHTML += '<div style="border-bottom:1px solid var(--border);padding:8px 0">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+          '<span style="font-size:12px;font-weight:600;color:var(--text-bright)">Spread ' + key + '</span>' +
+          '<span class="value ' + wrClass + '" style="font-size:12px">' + (b.win_rate != null ? b.win_rate + '%' : '--') + '</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:16px;font-size:10px;color:var(--text-dim)">' +
+          '<span>' + b.wins + '-' + b.losses + (b.pushes > 0 ? '-' + b.pushes : '') + '</span>' +
+          '<span>Avg Edge: ' + b.avg_edge + '%</span>' +
+          '<span>Req Threshold: ' + b.required_threshold + '%</span>' +
+          '<span>n=' + b.total + '</span>' +
+        '</div>' +
+      '</div>';
+    });
+
+    const dm = d.decay_metrics;
+    document.getElementById('dm-open-count').textContent = dm.open_snapshots;
+    document.getElementById('dm-pretip-count').textContent = dm.pretip_snapshots;
+    document.getElementById('dm-avg-open').textContent = dm.avg_open_edge != null ? dm.avg_open_edge + '%' : '--';
+    document.getElementById('dm-avg-pretip').textContent = dm.avg_pretip_edge != null ? dm.avg_pretip_edge + '%' : '--';
+    const avgDecay = (dm.avg_open_edge != null && dm.avg_pretip_edge != null) ? Math.round((1 - dm.avg_pretip_edge / dm.avg_open_edge) * 100) : null;
+    const dmDecayEl = document.getElementById('dm-avg-decay');
+    dmDecayEl.textContent = avgDecay != null ? avgDecay + '%' : '--';
+    if (avgDecay != null) dmDecayEl.className = 'value ' + (avgDecay > 40 ? 'red' : avgDecay > 20 ? 'amber' : 'green');
+
+    const fragList = document.getElementById('cr-fragility-list');
+    fragList.innerHTML = '';
+    if (d.fragility && d.fragility.length > 0) {
+      d.fragility.forEach(f => {
+        const sfsColor = f.sfs > 0.4 ? 'var(--red)' : f.sfs > 0.2 ? 'var(--amber)' : 'var(--green)';
+        const resultColor = f.result === 'win' ? 'var(--green)' : f.result === 'loss' ? 'var(--red)' : 'var(--text-dim)';
+        fragList.innerHTML += '<div class="stat-row">' +
+          '<span class="label" style="flex:1">' + f.date + ' · ' + f.side + ' (' + f.line + ')</span>' +
+          '<span style="color:' + sfsColor + ';font-weight:700;width:55px;text-align:right">SFS ' + (f.sfs * 100).toFixed(0) + '%</span>' +
+          '<span style="width:45px;text-align:right;color:var(--text-dim)">' + f.edge_pct + '%</span>' +
+          '<span style="width:20px;text-align:right;color:' + resultColor + ';font-weight:700">' + (f.result === 'win' ? 'W' : f.result === 'loss' ? 'L' : 'P') + '</span>' +
+        '</div>';
+      });
+    } else {
+      fragList.innerHTML = '<div style="color:var(--text-dim);font-size:10px;padding:12px 0;text-align:center">No SFS data yet</div>';
+    }
+
+    const toggleList = document.getElementById('cr-toggles-list');
+    toggleList.innerHTML = '';
+    const toggles = d.experimental;
+    Object.entries(toggles).forEach(([key, enabled]) => {
+      const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      toggleList.innerHTML += '<div class="status-bar-row">' +
+        '<div class="status-indicator ' + (enabled ? 'ok' : 'err') + '"></div>' +
+        '<span class="status-name">' + label + '</span>' +
+        '<span class="status-val" style="color:' + (enabled ? 'var(--green)' : 'var(--red)') + '">' + (enabled ? 'ON' : 'OFF') + '</span>' +
+      '</div>';
+    });
+  } catch (err) {
+    console.error('Control room error:', err);
+  }
+}
+
+ensureAdminToken().then(() => { loadControlRoom(); setInterval(loadControlRoom, 60000); });
 </script>
 
 </body>

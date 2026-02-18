@@ -852,6 +852,115 @@ def retro_calibrate():
     })
 
 
+@admin_bp.route('/api/admin/control-room')
+def control_room():
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    from public_api import evaluate_kill_switch
+    from sport_config import get_sport_config
+
+    sport = request.args.get('sport', 'nba')
+    cfg = get_sport_config(sport)
+
+    ks_result = evaluate_kill_switch(sport)
+
+    resolved = Pick.query.filter(
+        Pick.result.in_(['win', 'loss', 'push']),
+        Pick.sport == sport,
+    ).order_by(Pick.game_date.desc()).limit(200).all()
+
+    edge_values = [p.edge_pct for p in resolved if p.edge_pct is not None]
+    avg_edge = round(sum(edge_values) / len(edge_values), 2) if edge_values else 0
+    line_values = [abs(p.line) for p in resolved if p.line is not None]
+    avg_spread = round(sum(line_values) / len(line_values), 1) if line_values else 0
+
+    from models import EdgeSnapshot
+    snapshots = db.session.query(EdgeSnapshot).join(Pick).filter(
+        Pick.sport == sport,
+        Pick.result.in_(['win', 'loss', 'push']),
+    ).order_by(EdgeSnapshot.created_at.desc()).limit(100).all()
+
+    open_edges = [s.edge_at_open for s in snapshots if s.edge_at_open is not None and s.snapshot_type == 'open']
+    pretip_edges = [s.edge_at_open for s in snapshots if s.snapshot_type == 'pretip' and s.edge_at_open is not None]
+
+    sfs_data = []
+    for p in resolved[:20]:
+        if p.steam_fragility is not None:
+            sfs_data.append({
+                'date': p.game_date,
+                'side': p.side,
+                'sfs': round(p.steam_fragility, 3) if p.steam_fragility else 0,
+                'edge_pct': p.edge_pct,
+                'result': p.result,
+                'line': p.line,
+            })
+
+    spread_buckets = {}
+    for p in resolved:
+        if p.line is None:
+            continue
+        s = abs(p.line)
+        if s <= 3:
+            bk = '0-3'
+        elif s <= 6:
+            bk = '3.5-6'
+        elif s <= 10:
+            bk = '6.5-10'
+        else:
+            bk = '10+'
+        if bk not in spread_buckets:
+            spread_buckets[bk] = {'wins': 0, 'losses': 0, 'pushes': 0, 'total': 0, 'edges': []}
+        spread_buckets[bk]['total'] += 1
+        spread_buckets[bk]['edges'].append(p.edge_pct or 0)
+        if p.result == 'win':
+            spread_buckets[bk]['wins'] += 1
+        elif p.result == 'loss':
+            spread_buckets[bk]['losses'] += 1
+        else:
+            spread_buckets[bk]['pushes'] += 1
+
+    for bk in spread_buckets:
+        b = spread_buckets[bk]
+        total_wl = b['wins'] + b['losses']
+        b['win_rate'] = round(b['wins'] / total_wl * 100, 1) if total_wl > 0 else None
+        b['avg_edge'] = round(sum(b['edges']) / len(b['edges']), 2) if b['edges'] else 0
+        bucket_base = {'0-3': 1.5, '3.5-6': 4.75, '6.5-10': 8.25, '10+': 12.0}.get(bk, 5.0)
+        b['required_threshold'] = round(min(3.0 + bucket_base * 0.167, 7.0), 2)
+        del b['edges']
+
+    return jsonify({
+        'kill_switch': ks_result,
+        'thresholds': {
+            'base_edge': cfg.get('edge_threshold_pct', 3.5),
+            'elasticity_formula': 'Required Edge = 3.0% + Spread × 0.167 (capped at 7.0%)',
+            'max_edge_cap': cfg.get('max_edge_pct', 8.0),
+            'model_weight': cfg.get('model_weight', 0.3),
+            'sigma': cfg.get('sigma', 11.7),
+            'sfs_cap': 0.6,
+            'avg_edge_published': avg_edge,
+            'avg_spread_published': avg_spread,
+        },
+        'spread_buckets': spread_buckets,
+        'decay_metrics': {
+            'open_snapshots': len(open_edges),
+            'pretip_snapshots': len(pretip_edges),
+            'avg_open_edge': round(sum(open_edges) / len(open_edges), 2) if open_edges else None,
+            'avg_pretip_edge': round(sum(pretip_edges) / len(pretip_edges), 2) if pretip_edges else None,
+        },
+        'fragility': sfs_data,
+        'experimental': {
+            'kill_switch_enabled': True,
+            'sfs_enabled': True,
+            'edge_decay_tracking': True,
+            'regime_detection': True,
+            'rest_penalties': True,
+            'star_injury_gates': True,
+        },
+    })
+
+
 @admin_bp.route('/api/admin/test-push', methods=['POST'])
 def test_push():
     user, err = require_superuser()
