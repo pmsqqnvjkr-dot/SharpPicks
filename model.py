@@ -44,12 +44,33 @@ SPREAD_RISK_SCALE_RATE = 0.25
 STAR_QUESTIONABLE_EDGE_PENALTY = 2.0
 STAR_QUESTIONABLE_SPREAD_THRESHOLD = 10.0
 
+RUST_REST_THRESHOLD = 4
+RUST_SPREAD_THRESHOLD = 8.0
+RUST_BASE_PENALTY_PCT = 1.5
+RUST_HEAVY_REST_THRESHOLD = 6
+RUST_HEAVY_PENALTY_PCT = 2.5
+
 
 def get_edge_threshold_for_spread(spread_abs):
     for low, high, threshold in SPREAD_EDGE_CURVE:
         if low <= spread_abs < high:
             return threshold
     return 8.0
+
+
+def calculate_rust_penalty(pick_side, spread_abs, home_rest, away_rest):
+    fav_rest = home_rest if pick_side == 'home' else away_rest
+    if fav_rest is None or spread_abs < RUST_SPREAD_THRESHOLD or fav_rest < RUST_REST_THRESHOLD:
+        return 0.0, None
+
+    if fav_rest >= RUST_HEAVY_REST_THRESHOLD:
+        penalty = RUST_HEAVY_PENALTY_PCT
+        reason = f"Rust penalty: {fav_rest}d rest on {spread_abs:.0f}pt spread ({penalty:+.1f}%)"
+    else:
+        penalty = RUST_BASE_PENALTY_PCT
+        reason = f"Rust penalty: {fav_rest}d rest on {spread_abs:.0f}pt spread ({penalty:+.1f}%)"
+
+    return penalty, reason
 
 
 def spread_risk_adjusted_edge(adjusted_edge, spread_abs):
@@ -754,6 +775,25 @@ class EnsemblePredictor:
                     fail_reasons.append('star_questionable')
                     pass_reason = injury_reason
 
+            home_rest_val = row.get('home_rest_days', None) if hasattr(row, 'get') else None
+            away_rest_val = row.get('away_rest_days', None) if hasattr(row, 'get') else None
+            try:
+                home_rest_int = int(home_rest_val) if home_rest_val is not None and not pd.isna(home_rest_val) else None
+                away_rest_int = int(away_rest_val) if away_rest_val is not None and not pd.isna(away_rest_val) else None
+            except (ValueError, TypeError):
+                home_rest_int, away_rest_int = None, None
+
+            is_fav = (pick_side == 'home' and spread < 0) or (pick_side == 'away' and spread > 0)
+            rust_penalty, rust_reason = 0.0, None
+            if is_fav:
+                rust_penalty, rust_reason = calculate_rust_penalty(
+                    pick_side, spread_abs, home_rest_int, away_rest_int
+                )
+            if rust_penalty > 0:
+                adjusted_edge -= rust_penalty
+                if rust_reason and 'star_questionable' not in fail_reasons:
+                    pass_reason = rust_reason
+
             risk_weighted_edge = spread_risk_adjusted_edge(adjusted_edge, spread_abs)
 
             explanation = self._generate_explanation(row, proba, confidence, adjusted_edge, pred_margin)
@@ -818,6 +858,7 @@ class EnsemblePredictor:
                 'line_move_against': round(line_move_against, 1),
                 'line_move_penalty': round(line_move_penalty, 1),
                 'injury_penalty': round(injury_penalty, 1),
+                'rust_penalty': round(rust_penalty, 1),
                 'risk_weighted_edge': round(risk_weighted_edge, 2),
                 'fail_reasons': fail_reasons,
                 'pass_reason': pass_reason,
@@ -1047,6 +1088,22 @@ class EnsemblePredictor:
             lambda d: d.year if d.month >= 10 else d.year - 1
         )
 
+        if 'home_rest_days' not in df.columns or df['home_rest_days'].isna().sum() > len(df) * 0.5:
+            team_last = {}
+            computed_home_rest = []
+            computed_away_rest = []
+            for _, row in df.iterrows():
+                d = row['game_date_parsed']
+                h, a = row['home_team'], row['away_team']
+                hr = (d - team_last[h]).days if h in team_last else 3
+                ar = (d - team_last[a]).days if a in team_last else 3
+                computed_home_rest.append(hr)
+                computed_away_rest.append(ar)
+                team_last[h] = d
+                team_last[a] = d
+            df['home_rest_days'] = computed_home_rest
+            df['away_rest_days'] = computed_away_rest
+
         margin_target = (df['home_score'] - df['away_score']).astype(float)
 
         seasons = sorted(df['season'].unique())
@@ -1107,6 +1164,9 @@ class EnsemblePredictor:
             actual_margins = margin_test.values
             actual_covers = y_test.values
 
+            home_rest_vals = test_df['home_rest_days'].values if 'home_rest_days' in test_df.columns else [None] * len(test_df)
+            away_rest_vals = test_df['away_rest_days'].values if 'away_rest_days' in test_df.columns else [None] * len(test_df)
+
             implied_prob = odds_to_implied_prob(STANDARD_ODDS)
 
             season_bets = []
@@ -1146,6 +1206,14 @@ class EnsemblePredictor:
                 adjusted_edge = min(adjusted_edge, self.max_edge_pct)
 
                 spread_abs = abs(spread)
+
+                is_fav = (pick_side == 'home' and spread < 0) or (pick_side == 'away' and spread > 0)
+                if is_fav:
+                    h_rest = int(home_rest_vals[j]) if j < len(home_rest_vals) and home_rest_vals[j] is not None and not pd.isna(home_rest_vals[j]) else None
+                    a_rest = int(away_rest_vals[j]) if j < len(away_rest_vals) and away_rest_vals[j] is not None and not pd.isna(away_rest_vals[j]) else None
+                    rust_pen, _ = calculate_rust_penalty(pick_side, spread_abs, h_rest, a_rest)
+                    adjusted_edge -= rust_pen
+
                 risk_weighted = spread_risk_adjusted_edge(adjusted_edge, spread_abs)
                 all_edges.append(risk_weighted)
 
