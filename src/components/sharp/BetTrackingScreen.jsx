@@ -175,9 +175,9 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                           padding: '4px 10px', borderRadius: '6px',
                           backgroundColor: 'rgba(79, 134, 247, 0.12)',
                           color: 'var(--blue-primary)',
-                          textTransform: 'uppercase', letterSpacing: '0.5px',
+                          letterSpacing: '0.3px',
                         }}>
-                          Pending
+                          Awaiting Result
                         </div>
                       </div>
                     ))}
@@ -914,30 +914,18 @@ function BetRow({ bet, isLast, onMarkResult, confirmDelete, setConfirmDelete, on
             {bet.result ? (
               <div style={{
                 fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
-                color: bet.result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
+                color: bet.result === 'W' ? 'var(--green-profit)' : bet.result === 'P' ? 'var(--text-tertiary)' : 'var(--red-loss)',
               }}>
-                {bet.result === 'W' ? `+$${Math.abs(bet.profit).toFixed(0)}` : `-$${Math.abs(bet.profit).toFixed(0)}`}
-              </div>
-            ) : pickResultLabel ? (
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button onClick={() => onMarkResult(bet.id, 'W')} style={{
-                  padding: '4px 10px', fontSize: '11px', fontWeight: 600,
-                  backgroundColor: 'rgba(52, 211, 153, 0.1)', color: 'var(--green-profit)',
-                  border: '1px solid rgba(52, 211, 153, 0.3)', borderRadius: '6px',
-                  cursor: 'pointer', fontFamily: 'var(--font-mono)',
-                }}>W</button>
-                <button onClick={() => onMarkResult(bet.id, 'L')} style={{
-                  padding: '4px 10px', fontSize: '11px', fontWeight: 600,
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--red-loss)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '6px',
-                  cursor: 'pointer', fontFamily: 'var(--font-mono)',
-                }}>L</button>
+                {bet.result === 'W' ? `+$${Math.abs(bet.profit).toFixed(0)}` : bet.result === 'P' ? 'Push' : `-$${Math.abs(bet.profit).toFixed(0)}`}
               </div>
             ) : (
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
-                color: 'var(--text-tertiary)',
-              }}>Pending</div>
+                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+                padding: '4px 10px', borderRadius: '6px',
+                backgroundColor: 'rgba(79, 134, 247, 0.12)',
+                color: 'var(--blue-primary)',
+                letterSpacing: '0.3px',
+              }}>Awaiting Result</div>
             )}
           </div>
         </div>
