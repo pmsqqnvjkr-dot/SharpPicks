@@ -16,8 +16,8 @@ def send_pick_notification(pick):
     if not send_push_to_all:
         return False
     try:
-        title = 'Sharp Picks'
-        body = f'Qualified opportunity posted. {pick.away_team} @ {pick.home_team}.'
+        title = 'SharpPicks \u2014 Qualified Edge'
+        body = f'Edge identified. {pick.away_team} @ {pick.home_team}. View in app.'
         data = {'type': 'pick', 'pick_id': str(pick.id)}
         sent = send_push_to_all(title, body, data=data, premium_only=True)
         logging.info(f"Pick notification sent to {sent} device(s)")
@@ -32,8 +32,8 @@ def send_pass_notification(pass_entry):
     if not send_push_to_all:
         return False
     try:
-        title = 'Sharp Picks — No Action Today'
-        body = f'{pass_entry.games_analyzed} games analyzed. No edge detected. Discipline is the edge.'
+        title = 'SharpPicks \u2014 No Action'
+        body = f'{pass_entry.games_analyzed} games analyzed. No edge detected.'
         data = {'type': 'pass', 'date': str(pass_entry.date)}
         sent = send_push_to_all(title, body, data=data, premium_only=True)
         logging.info(f"Pass notification sent to {sent} device(s)")
@@ -49,12 +49,12 @@ def send_result_notification(pick, result):
         return False
     try:
         if result == 'win':
-            body = f'Result: WIN. {pick.side} covered. Your discipline paid off.'
+            body = f'Result: WIN. {pick.side} covered.'
         elif result == 'loss':
-            body = f'Result: LOSS. {pick.side} did not cover. The edge plays out over time.'
+            body = f'Result: LOSS. {pick.side} did not cover.'
         else:
-            body = f'Result: PUSH. {pick.side} pushed. No action needed.'
-        title = 'Sharp Picks — Result'
+            body = 'Result: PUSH. No impact.'
+        title = 'SharpPicks \u2014 Result'
         data = {'type': 'result', 'pick_id': str(pick.id), 'result': result}
         sent = send_push_to_all(title, body, data=data, premium_only=True)
         logging.info(f"Result notification ({result}) sent to {sent} device(s)")
@@ -69,10 +69,10 @@ def send_weekly_summary_notification(stats):
     if not send_push_to_all:
         return False
     try:
-        record = f"{stats.get('wins', 0)}W-{stats.get('losses', 0)}L"
+        record = f"{stats.get('wins', 0)}W\u2013{stats.get('losses', 0)}L"
         passes = stats.get('passes', 0)
-        title = 'Sharp Picks — Weekly Summary'
-        body = f'This week: {record}. {passes} pass days. Full summary in app.'
+        title = 'SharpPicks \u2014 Weekly Report'
+        body = f'{record}. {passes} pass days. Full report in app.'
         data = {'type': 'weekly_summary'}
         sent = send_push_to_all(title, body, data=data, premium_only=True)
         logging.info(f"Weekly summary notification sent to {sent} device(s)")
@@ -87,8 +87,8 @@ def send_revoke_notification(pick, reason):
     if not send_push_to_all:
         return False
     try:
-        title = 'Sharp Picks — Pick Revoked'
-        body = f'{pick.away_team} @ {pick.home_team} pick revoked. {reason}'
+        title = 'SharpPicks \u2014 Update'
+        body = f'{pick.away_team} @ {pick.home_team} withdrawn. Threshold no longer met.'
         data = {'type': 'revoke', 'pick_id': str(pick.id)}
         sent = send_push_to_all(title, body, data=data, premium_only=True)
         logging.info(f"Revoke notification sent to {sent} device(s)")

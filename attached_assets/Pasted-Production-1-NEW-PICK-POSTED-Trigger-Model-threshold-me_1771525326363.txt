@@ -1,0 +1,131 @@
+Production)
+
+⸻
+
+1. NEW PICK POSTED
+
+Trigger: Model threshold met and pick published
+
+Title: SharpPicks — Qualified Edge
+Body: Edge identified. {away_team} @ {home_team}. View in app.
+
+Deep link: /pick/{pick_id}
+
+⸻
+
+2. PASS DAY (NO PICK)
+
+Trigger: Slate completed without qualifying edge
+
+Title: SharpPicks — No Action
+Body: {games_analyzed} games analyzed. No edge detected.
+
+Deep link: /dashboard
+
+Alternate body if you want stronger brand positioning:
+
+{games_analyzed} games analyzed. Selective by design.
+
+⸻
+
+3. RESULT — WIN
+
+Trigger: Pick graded as win
+
+Title: SharpPicks — Result
+Body: WIN. {side} covered.
+
+Deep link: /results/{pick_id}
+
+⸻
+
+4. RESULT — LOSS
+
+Trigger: Pick graded as loss
+
+Title: SharpPicks — Result
+Body: LOSS. {side} did not cover.
+
+Deep link: /results/{pick_id}
+
+Optional more institutional variant:
+
+LOSS. Edge variance. Process unchanged.
+
+⸻
+
+5. RESULT — PUSH
+
+Trigger: Pick graded as push
+
+Title: SharpPicks — Result
+Body: PUSH. No impact.
+
+Deep link: /results/{pick_id}
+
+⸻
+
+6. WEEKLY SUMMARY
+
+Trigger: Weekly summary cron completes
+
+Title: SharpPicks — Weekly Report
+Body: {wins}W–{losses}L. {passes} pass days. Full report in app.
+
+Deep link: /weekly-summary
+
+⸻
+
+7. PICK REVOKED / WITHDRAWN
+
+Trigger: Pick manually revoked or threshold invalidated
+
+Title: SharpPicks — Update
+Body: {away_team} @ {home_team} withdrawn. Threshold no longer met.
+
+Deep link: /dashboard
+
+⸻
+
+8. ADMIN HEALTH ALERT (Internal Only)
+
+Audience: Admin users only
+
+Title: [Admin] {custom_title}
+Body: {custom_details}
+
+No deep link required unless specified.
+
+⸻
+
+🔒 Tone Rules (Give This To Dev As Comment)
+	•	No emojis
+	•	No exclamation points
+	•	No hype language
+	•	No betting slang
+	•	Capitalized result states: WIN, LOSS, PUSH
+	•	Max 90 characters in body when possible
+
+⸻
+
+Optional Upgrade (High-End Touch)
+
+If you want this to feel even more institutional:
+
+Instead of:
+
+WIN. {side} covered.
+
+Use:
+
+Result: WIN. {side} covered.
+
+It reads more like reporting than cheering.
+
+⸻
+
+This version keeps SharpPicks positioned as:
+	•	Analytical
+	•	Controlled
+	•	Process-driven
+	•	Premium
