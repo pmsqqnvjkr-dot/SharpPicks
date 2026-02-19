@@ -830,6 +830,7 @@ class EnsemblePredictor:
             edge_vs_market = (confidence - implied_prob) * 100
             ev = calculate_ev(confidence, market_odds)
             
+            spread_abs = abs(spread) if spread is not None else 0
             open_spread = row.get('spread_home_open', None)
             line_move_against = 0.0
             line_move_in_favor = 0.0
