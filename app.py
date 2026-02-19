@@ -869,15 +869,9 @@ def grade_pending_picks():
             print(f"[Auto-grade] Error: {e}")
 
 def collect_closing_lines():
-    """Collect closing lines for all today's games and pending picks.
-    Refreshes data from APIs, then snapshots current lines as closing lines.
-    Runs multiple times during game windows to catch lines close to tip-off."""
-    print(f"[{datetime.now()}] Refreshing lines for closing snapshot...")
-    try:
-        subprocess.run(['python', 'main.py'], timeout=300)
-    except Exception as e:
-        print(f"[{datetime.now()}] Line refresh error (continuing): {e}")
-    
+    """Snapshot current lines as closing lines from local SQLite.
+    Does NOT re-fetch from external APIs — relies on refresh-lines cron
+    to keep lines current. Runs frequently during game windows."""
     print(f"[{datetime.now()}] Capturing closing lines...")
     with app.app_context():
         try:
