@@ -147,7 +147,7 @@ export default function PicksTab({ onNavigate }) {
         )}
 
         {isRevoked && (
-          <RevokedPassCard pick={todayData} />
+          <RevokedPassCard pick={todayData} onViewDetails={() => { setResolutionPick(todayData); setShowResolution(true); }} />
         )}
 
         {todayData?.type === 'pick' && !isResolved && !isRevoked && isPro && (
@@ -316,97 +316,43 @@ export default function PicksTab({ onNavigate }) {
 }
 
 
-function RevokedPassCard({ pick }) {
-  const accentColor = 'rgba(99,102,241,0.8)';
-  const accentBg = 'rgba(99,102,241,0.04)';
-  const accentBorder = 'rgba(99,102,241,0.15)';
-
+function RevokedPassCard({ pick, onViewDetails }) {
   return (
-    <div style={{ padding: '0 4px' }}>
-      <div style={{
-        backgroundColor: accentBg,
-        borderRadius: '20px',
-        border: `1px solid ${accentBorder}`,
-        padding: '24px',
+    <div
+      onClick={onViewDetails}
+      style={{
+        backgroundColor: 'rgba(99,102,241,0.04)',
+        borderRadius: '16px',
+        border: '1px solid rgba(99,102,241,0.12)',
+        padding: '16px 20px',
         marginBottom: '16px',
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+        <div style={{
+          fontFamily: 'var(--font-serif)', fontSize: '16px', fontWeight: 600,
+          color: 'var(--text-primary)',
+        }}>
+          {pick.side} {pick.line > 0 ? `+${pick.line}` : pick.line}
+        </div>
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
+          letterSpacing: '1px', textTransform: 'uppercase',
+          color: 'rgba(99,102,241,0.8)',
+        }}>Withdrawn</div>
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '12px',
+        color: 'var(--text-tertiary)', marginBottom: '4px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-          <div style={{
-            width: '44px', height: '44px', borderRadius: '50%',
-            backgroundColor: 'rgba(99,102,241,0.1)',
-            border: `2px solid ${accentColor}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke={accentColor} fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-              letterSpacing: '1.5px', textTransform: 'uppercase',
-              color: accentColor, marginBottom: '4px',
-            }}>Outcome: Withdrawn</div>
-            <div style={{
-              fontFamily: 'var(--font-serif)', fontSize: '18px', fontWeight: 600,
-              color: 'var(--text-primary)',
-            }}>
-              {pick.side} {pick.line > 0 ? `+${pick.line}` : pick.line}
-            </div>
-          </div>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700,
-            color: accentColor,
-          }}>0u</div>
-        </div>
-
-        <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: '13px',
-          color: 'var(--text-secondary)',
-          marginBottom: '12px',
-        }}>
-          {pick.away_team} @ {pick.home_team}
-        </div>
-
-        <div style={{
-          fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: '13px',
-          color: 'var(--text-secondary)', lineHeight: '1.6',
-          marginBottom: '16px',
-        }}>
-          Edge shifted before tip-off. Not a loss — capital preserved. The next pick comes when the edge is there.
-        </div>
-
-        <div style={{
-          backgroundColor: 'rgba(99,102,241,0.06)',
-          borderRadius: '12px',
-          border: '1px solid rgba(99,102,241,0.12)',
-          padding: '14px 16px',
-          marginBottom: '12px',
-        }}>
-          <div style={{
-            fontFamily: 'var(--font-serif)', fontSize: '14px', fontWeight: 600,
-            color: 'var(--text-primary)', marginBottom: '6px',
-          }}>This is the system working</div>
-          <p style={{
-            fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.55', margin: 0,
-          }}>The model detected market conditions changed and pulled the recommendation to protect your bankroll.</p>
-        </div>
-
-        <div style={{
-          backgroundColor: 'rgba(99,102,241,0.06)',
-          borderRadius: '12px',
-          border: '1px solid rgba(99,102,241,0.12)',
-          padding: '14px 16px',
-        }}>
-          <div style={{
-            fontFamily: 'var(--font-serif)', fontSize: '14px', fontWeight: 600,
-            color: 'var(--text-primary)', marginBottom: '6px',
-          }}>Already placed the bet?</div>
-          <p style={{
-            fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.55', margin: 0,
-          }}>If you already wagered before the withdrawal, treat it as a standalone decision. Your tracked bet will still be graded based on the actual game result. The model withdrawal only reflects that the statistical edge no longer meets our threshold.</p>
-        </div>
+        {pick.away_team} @ {pick.home_team}
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '11px',
+        color: 'var(--text-tertiary)',
+      }}>
+        {pick.edge_pct ? `${pick.edge_pct}% edge at entry · ` : ''}Pulled pre-tip
       </div>
     </div>
   );

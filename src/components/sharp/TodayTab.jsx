@@ -65,7 +65,7 @@ export default function TodayTab({ onNavigate }) {
         )}
 
         {isRevoked && (
-          <RevokedPassCard pick={todayData} />
+          <RevokedPassCard pick={todayData} onViewDetails={() => { setResolutionPick(todayData); setShowResolution(true); }} />
         )}
 
         {todayData?.type === 'pick' && !isResolved && !isRevoked && isPro && (
@@ -345,100 +345,44 @@ function MiniStat({ label, value }) {
   );
 }
 
-function RevokedPassCard({ pick }) {
+function RevokedPassCard({ pick, onViewDetails }) {
   return (
-    <div style={{ padding: '0 4px' }}>
-      <div style={{ textAlign: 'center', padding: '24px 0 32px' }}>
+    <div
+      onClick={onViewDetails}
+      style={{
+        backgroundColor: 'rgba(99,102,241,0.04)',
+        borderRadius: '16px',
+        border: '1px solid rgba(99,102,241,0.12)',
+        padding: '16px 20px',
+        marginBottom: '16px',
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
         <div style={{
-          width: '72px', height: '72px', borderRadius: '22px',
-          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-muted)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 24px',
+          fontFamily: 'var(--font-serif)', fontSize: '16px', fontWeight: 600,
+          color: 'var(--text-primary)',
         }}>
-          <svg viewBox="0 0 24 24" width="32" height="32" stroke="var(--text-secondary)" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            <line x1="9" y1="9" x2="15" y2="15"/>
-            <line x1="15" y1="9" x2="9" y2="15"/>
-          </svg>
+          {pick.side} {pick.line > 0 ? `+${pick.line}` : pick.line}
         </div>
-
-        <h1 style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '24px',
-          fontWeight: 700,
-          color: 'var(--text-primary)',
-          marginBottom: '12px',
-        }}>
-          Pick withdrawn
-        </h1>
-
-        <p style={{
-          fontSize: '14px',
-          color: 'var(--text-secondary)',
-          lineHeight: '1.55',
-          marginBottom: '4px',
-        }}>
-          {pick.away_team} @ {pick.home_team}
-        </p>
-        <p style={{
-          fontSize: '14px',
-          color: 'var(--text-secondary)',
-          lineHeight: '1.55',
-        }}>
-          Pre-tip conditions shifted. The edge no longer meets threshold.
-        </p>
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
+          letterSpacing: '1px', textTransform: 'uppercase',
+          color: 'rgba(99,102,241,0.8)',
+        }}>Withdrawn</div>
       </div>
-
       <div style={{
-        backgroundColor: 'var(--surface-1)',
-        borderRadius: '16px',
-        border: '1px solid var(--stroke-subtle)',
-        padding: '20px',
-        marginBottom: '16px',
+        fontFamily: 'var(--font-mono)', fontSize: '12px',
+        color: 'var(--text-tertiary)', marginBottom: '4px',
       }}>
-        <h3 style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '16px',
-          fontWeight: 600,
-          color: 'var(--text-primary)',
-          marginBottom: '8px',
-        }}>This is the system working</h3>
-        <p style={{
-          fontSize: '13px',
-          color: 'var(--text-secondary)',
-          lineHeight: '1.55',
-        }}>A revoked pick is not a loss. It means the model detected that market conditions changed before tip-off and pulled the recommendation to protect your bankroll.</p>
+        {pick.away_team} @ {pick.home_team}
       </div>
-
       <div style={{
-        backgroundColor: 'var(--surface-1)',
-        borderRadius: '16px',
-        border: '1px solid var(--stroke-subtle)',
-        padding: '20px',
-        marginBottom: '16px',
+        fontFamily: 'var(--font-mono)', fontSize: '11px',
+        color: 'var(--text-tertiary)',
       }}>
-        <h3 style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '16px',
-          fontWeight: 600,
-          color: 'var(--text-primary)',
-          marginBottom: '8px',
-        }}>Already placed the bet?</h3>
-        <p style={{
-          fontSize: '13px',
-          color: 'var(--text-secondary)',
-          lineHeight: '1.55',
-        }}>If you already wagered before the withdrawal, treat it as a standalone decision. Your tracked bet will still be graded based on the actual game result. The model withdrawal only reflects that the statistical edge no longer meets our threshold.</p>
+        {pick.edge_pct ? `${pick.edge_pct}% edge at entry · ` : ''}Pulled pre-tip
       </div>
-
-      <p style={{
-        fontFamily: 'var(--font-serif)',
-        fontStyle: 'italic',
-        fontSize: '15px',
-        color: 'var(--text-secondary)',
-        textAlign: 'center',
-        marginTop: '24px',
-      }}>Capital preservation is the discipline.</p>
     </div>
   );
 }

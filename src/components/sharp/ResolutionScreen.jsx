@@ -1,6 +1,12 @@
 export default function ResolutionScreen({ pick, onBack }) {
+  const isRevoked = pick?.result === 'revoked';
   const isWin = pick?.result === 'win';
   const isPush = pick?.result === 'push';
+
+  if (isRevoked) {
+    return <WithdrawnDetailScreen pick={pick} onBack={onBack} />;
+  }
+
   const accentColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--green-profit)' : 'var(--red-loss)';
   const resultLabel = isPush ? 'Push' : isWin ? 'Win' : 'Loss';
   const profitDisplay = pick?.profit_units != null
@@ -169,12 +175,156 @@ export default function ResolutionScreen({ pick, onBack }) {
   );
 }
 
-function ContextStat({ value, label }) {
+function WithdrawnDetailScreen({ pick, onBack }) {
+  const accentColor = 'rgba(99,102,241,0.8)';
+
+  return (
+    <div style={{ padding: '0', paddingBottom: '100px' }}>
+      <div style={{
+        padding: '16px 20px',
+        display: 'flex', alignItems: 'center', gap: '12px',
+      }}>
+        <button onClick={onBack} style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: 'var(--text-secondary)', padding: '4px',
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <span style={{
+          fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 600,
+          color: 'var(--text-primary)',
+        }}>Pick Withdrawn</span>
+      </div>
+
+      <div style={{ padding: '0 20px' }}>
+        <div style={{
+          backgroundColor: 'var(--surface-1)', borderRadius: '20px',
+          border: '1px solid var(--stroke-subtle)', padding: '24px',
+          marginBottom: '16px', textAlign: 'center',
+        }}>
+          <div style={{
+            width: '56px', height: '56px', borderRadius: '50%',
+            backgroundColor: 'rgba(99,102,241,0.1)',
+            border: `2px solid ${accentColor}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 16px',
+          }}>
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke={accentColor} fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
+            letterSpacing: '2px', textTransform: 'uppercase',
+            color: accentColor, marginBottom: '8px',
+          }}>Withdrawn</div>
+
+          <div style={{
+            fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 600,
+            color: 'var(--text-primary)', marginBottom: '6px',
+          }}>
+            {pick?.away_team} @ {pick?.home_team}
+          </div>
+
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '14px',
+            color: 'var(--text-secondary)', marginBottom: '16px',
+          }}>
+            {pick?.side} {pick?.line > 0 ? `+${pick.line}` : pick?.line}
+          </div>
+
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '36px', fontWeight: 700,
+            color: accentColor,
+          }}>0u</div>
+        </div>
+
+        <div style={{
+          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+          border: '1px solid var(--stroke-subtle)', padding: '20px',
+          marginBottom: '16px',
+        }}>
+          <h3 style={{
+            fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
+            color: 'var(--text-primary)', marginBottom: '12px',
+          }}>Process Review</h3>
+          <p style={{
+            fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7',
+            marginBottom: '16px',
+          }}>
+            The market moved and the statistical edge fell below our threshold before tip-off. Capital was preserved. No trade is a position.
+          </p>
+
+          <div style={{
+            display: 'flex', justifyContent: 'space-around',
+            padding: '16px 0', borderTop: '1px solid var(--stroke-subtle)',
+          }}>
+            <ContextStat value={`${pick?.edge_pct || '--'}%`} label="Edge at entry" color={accentColor} />
+            <ContextStat value={pick?.edge_at_close ? `${pick.edge_at_close}%` : '< threshold'} label="Edge at withdrawal" color="var(--text-tertiary)" />
+            <ContextStat value="Pull" label="Action" color="var(--text-tertiary)" />
+          </div>
+        </div>
+
+        <div style={{
+          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+          border: '1px solid var(--stroke-subtle)', padding: '20px',
+          marginBottom: '16px',
+        }}>
+          <h3 style={{
+            fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
+            color: 'var(--text-primary)', marginBottom: '12px',
+          }}>What Discipline Looks Like</h3>
+          <p style={{
+            fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7',
+          }}>
+            Not every signal survives. The edge decides — not emotion. A withdrawal is the system protecting capital. The next pick comes when the edge is there.
+          </p>
+        </div>
+
+        <div style={{
+          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+          border: '1px solid var(--stroke-subtle)', padding: '20px',
+          marginBottom: '16px',
+        }}>
+          <h3 style={{
+            fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
+            color: 'var(--text-primary)', marginBottom: '12px',
+          }}>Already placed the bet?</h3>
+          <p style={{
+            fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7',
+          }}>
+            If you already wagered before the withdrawal, treat it as a standalone decision. Your tracked bet will still be graded based on the actual game result. The withdrawal only reflects that the statistical edge no longer met our threshold.
+          </p>
+        </div>
+
+        <div style={{
+          fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: '14px',
+          color: 'var(--text-secondary)', textAlign: 'center',
+          padding: '16px 0 8px', lineHeight: '1.5',
+        }}>
+          Capital preservation is the discipline.
+        </div>
+
+        <p style={{
+          fontSize: '11px', color: 'var(--text-tertiary)', textAlign: 'center',
+          padding: '4px 0 16px', lineHeight: '1.5',
+        }}>
+          Past performance does not guarantee future results.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ContextStat({ value, label, color }) {
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 600,
-        color: 'var(--text-primary)', marginBottom: '4px',
+        color: color || 'var(--text-primary)', marginBottom: '4px',
       }}>{value}</div>
       <div style={{
         fontSize: '10px', color: 'var(--text-tertiary)',
