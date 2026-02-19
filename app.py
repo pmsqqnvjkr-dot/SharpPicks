@@ -249,6 +249,13 @@ def seed_database():
             db.create_all()
             logging.info("Database tables created")
 
+            try:
+                db.session.execute(db.text("ALTER TABLE picks ADD COLUMN IF NOT EXISTS steam_fragility FLOAT"))
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                logging.warning(f"Column migration note: {e}")
+
             from werkzeug.security import generate_password_hash
             admin_accounts = [
                 {'email': 'evan@sharppicks.ai', 'first_name': 'Evan', 'password': 'H@rp2019*'},
@@ -288,6 +295,27 @@ def seed_database():
                 for p in seed_picks:
                     db.session.add(p)
                 logging.info("Seeded historical picks")
+
+            live_pick_id = 'c9284c80-a253-4d94-bd17-5462da685983'
+            if not Pick.query.get(live_pick_id):
+                live_pick = Pick(
+                    id=live_pick_id,
+                    game_date='2026-02-19', sport='nba',
+                    away_team='Indiana Pacers', home_team='Washington Wizards',
+                    side='Washington Wizards +4.5', line=4.5,
+                    edge_pct=5.5, model_confidence=0.5768,
+                    predicted_margin=-2.2, cover_prob=0.5768,
+                    implied_prob=0.5215, market_odds=-109,
+                    sportsbook='BetRivers', result='pending',
+                    published_at=datetime(2026, 2, 18, 15, 15, 33),
+                    start_time='2026-02-20T00:00:00Z',
+                    sigma=11.71, z_score=0.194, raw_edge=5.52,
+                    line_open=4.5, position_size_pct=100,
+                    notes='Washington Wizards averaging 113.2pts vs defense allowing 117.8 | Line stable since open (+4.5), market agrees with number | Both teams on 5d rest — no rest edge',
+                )
+                db.session.add(live_pick)
+                db.session.commit()
+                logging.info("Inserted live pick for 2026-02-19")
 
             if Pass.query.count() == 0:
                 seed_passes = [

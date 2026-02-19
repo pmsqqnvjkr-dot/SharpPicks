@@ -34,6 +34,11 @@ The system features a dual signup flow supporting free and trial accounts. Free 
 ### Key Design Decisions
 The system enforces a "no pick" policy without sufficient edge. Transparency is maintained through append-only tables and clear labeling of calibration changes. Anti-abuse measures include email verification, Gmail alias normalization, card-on-file trials, and login rate limiting. Security hardening involves CORS restrictions, access controls, session invalidation, and webhook idempotency. Notifications (push, email) are used for pick alerts, pass-day alerts, results, and weekly summaries. Daily pg_dump and JSON backups are performed. Cron job monitoring tracks execution status. Multi-book odds shopping, real sportsbook juice integration, and closing line value (CLV) tracking are central, alongside automated risk filters and fail-safe mechanisms. Rolling performance and risk-of-ruin metrics are used for internal model governance.
 
+## Critical Architecture Notes
+- **Development and production use SEPARATE PostgreSQL databases.** Cron jobs on cron-job.org MUST target the production URL (`https://app.sharppicks.ai/api/cron/...`), NOT the dev URL. Otherwise, picks/passes only get created in the dev database and won't appear for production users.
+- The `seed_database()` function runs on startup and handles: admin account creation, historical data seeding, schema migrations (e.g., adding missing columns), and live pick insertion for data sync.
+- `db.create_all()` does NOT add new columns to existing tables. Any schema changes (new columns) must be handled via explicit `ALTER TABLE` statements in `seed_database()`.
+
 ## Recent Changes
 - **2026-02-18**: Moved Risk Profile from public Performance tab to admin-only Control Room alongside other model metrics. Control Room now has 7 panels: Risk Profile, Trigger States, Threshold Tuning, Bucket Segmentation, Decay Metrics, Fragility Scoring, Experimental Toggles.
 - **2026-02-18**: Moved model metrics (Calibration, Edge Decay, Regime Detection, Kill Switch) from public Performance tab to admin-only Control Room in Command Center. Added `/api/admin/control-room` endpoint.
