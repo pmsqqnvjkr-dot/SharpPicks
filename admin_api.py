@@ -887,11 +887,12 @@ def control_room():
 
     sfs_data = []
     for p in resolved[:20]:
-        if p.steam_fragility is not None:
+        sfs = getattr(p, 'steam_fragility', None)
+        if sfs is not None:
             sfs_data.append({
                 'date': p.game_date,
                 'side': p.side,
-                'sfs': round(p.steam_fragility, 3) if p.steam_fragility else 0,
+                'sfs': round(sfs, 3),
                 'edge_pct': p.edge_pct,
                 'result': p.result,
                 'line': p.line,
