@@ -15,6 +15,7 @@ log_level = logging.INFO if os.environ.get("REPLIT_DEPLOYMENT") == "1" else logg
 logging.basicConfig(level=log_level)
 
 from flask import Flask, jsonify, Response, session, request, redirect, send_from_directory
+from sport_config import get_live_sports
 
 app = Flask(__name__, static_folder='dist', static_url_path='/static-disabled')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
