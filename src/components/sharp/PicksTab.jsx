@@ -382,6 +382,7 @@ function RevokedPassCard({ pick }) {
           borderRadius: '12px',
           border: '1px solid rgba(99,102,241,0.12)',
           padding: '14px 16px',
+          marginBottom: '12px',
         }}>
           <div style={{
             fontFamily: 'var(--font-serif)', fontSize: '14px', fontWeight: 600,
@@ -389,7 +390,22 @@ function RevokedPassCard({ pick }) {
           }}>This is the system working</div>
           <p style={{
             fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.55', margin: 0,
-          }}>The model detected market conditions changed and pulled the recommendation to protect your bankroll. No action required.</p>
+          }}>The model detected market conditions changed and pulled the recommendation to protect your bankroll.</p>
+        </div>
+
+        <div style={{
+          backgroundColor: 'rgba(99,102,241,0.06)',
+          borderRadius: '12px',
+          border: '1px solid rgba(99,102,241,0.12)',
+          padding: '14px 16px',
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-serif)', fontSize: '14px', fontWeight: 600,
+            color: 'var(--text-primary)', marginBottom: '6px',
+          }}>Already placed the bet?</div>
+          <p style={{
+            fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.55', margin: 0,
+          }}>If you already wagered before the withdrawal, treat it as a standalone decision. Your tracked bet will still be graded based on the actual game result. The model withdrawal only reflects that the statistical edge no longer meets our threshold.</p>
         </div>
       </div>
     </div>

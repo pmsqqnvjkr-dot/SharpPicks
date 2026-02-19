@@ -423,12 +423,12 @@ function RevokedPassCard({ pick }) {
           fontWeight: 600,
           color: 'var(--text-primary)',
           marginBottom: '8px',
-        }}>No action required</h3>
+        }}>Already placed the bet?</h3>
         <p style={{
           fontSize: '13px',
           color: 'var(--text-secondary)',
           lineHeight: '1.55',
-        }}>If you already placed the bet, consider it a standalone decision. The model's next pick will come when the edge is there.</p>
+        }}>If you already wagered before the withdrawal, treat it as a standalone decision. Your tracked bet will still be graded based on the actual game result. The model withdrawal only reflects that the statistical edge no longer meets our threshold.</p>
       </div>
 
       <p style={{
