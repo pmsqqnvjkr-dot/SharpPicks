@@ -600,15 +600,16 @@ def cron_health():
     now_et = datetime.now(ET)
 
     job_configs = {
-        'collect_games':  {'schedule': 'Daily 9:00 AM', 'expected_h': 24},
-        'refresh_lines':  {'schedule': 'Daily 2:00 PM', 'expected_h': 24},
-        'closing_lines':  {'schedule': 'Daily 7:00 PM', 'expected_h': 24},
-        'grade_picks':    {'schedule': 'Daily 12:05 AM', 'expected_h': 24},
-        'grade_whatifs':   {'schedule': 'Daily 12:10 AM', 'expected_h': 24},
-        'expire_trials':  {'schedule': 'Daily 12:15 AM', 'expected_h': 24},
-        'weekly_summary': {'schedule': 'Mon 9:00 AM', 'expected_h': 168},
-        'backup':         {'schedule': 'Daily 3:00 AM', 'expected_h': 24},
-        'data_quality':   {'schedule': 'Daily 6:00 AM', 'expected_h': 24},
+        'pretip_validate': {'label': 'Pre-Tip Validate', 'schedule': '9:55 AM + 4:55 PM', 'expected_h': 24},
+        'backup':          {'label': 'SP — Daily Backup', 'schedule': 'Daily 3:20 AM', 'expected_h': 24},
+        'data_quality':    {'label': 'SP — Data Quality', 'schedule': '4:15 AM + 12:15 PM', 'expected_h': 24},
+        'collect_games':   {'label': 'SP — Collect Games', 'schedule': '5:05 AM + 1:05 PM', 'expected_h': 24},
+        'refresh_lines':   {'label': 'SP — Refresh Lines', 'schedule': 'Every 10 min, 6 AM–2 AM', 'expected_h': 1},
+        'closing_lines':   {'label': 'SP — Closing Lines', 'schedule': 'Every min, 10 AM–1 AM (×4 shards)', 'expected_h': 1},
+        'grade_picks':     {'label': 'SP — Grade Picks', 'schedule': '3:45 AM + 11:30 AM', 'expected_h': 24},
+        'grade_whatifs':   {'label': 'SP — Grade What-Ifs', 'schedule': '4:05 AM + 4:05 PM', 'expected_h': 24},
+        'expire_trials':   {'label': 'SP — Expire Trials', 'schedule': 'Hourly at :10', 'expected_h': 2},
+        'weekly_summary':  {'label': 'SP — Weekly Summary', 'schedule': 'Mon 6:30 AM', 'expected_h': 168},
     }
 
     jobs = []
@@ -633,7 +634,7 @@ def cron_health():
             health = 'never'
 
         jobs.append({
-            'name': job_name,
+            'name': config.get('label', job_name),
             'schedule': config['schedule'],
             'health': health,
             'last_run': last_log.executed_at.isoformat() if last_log else None,

@@ -47,18 +47,19 @@ The system enforces a "no pick" policy without sufficient edge. Transparency is 
 ## Cron Job Schedule (cron-job.org)
 All cron endpoints are POST requests secured with `X-Cron-Secret` header. All times are Eastern Time (ET).
 
-| Endpoint | Schedule (ET) | Purpose |
-|---|---|---|
-| `/api/cron/collect-games` | Daily 9:00 AM | Fetch today's NBA games and opening lines from The-Odds-API |
-| `/api/cron/refresh-lines` | Every 2 hours (10 AM - 6 PM) | Refresh current spread odds across sportsbooks |
-| `/api/cron/pretip-validate` | Daily 5:30 PM | Re-validate today's pick with latest lines before tip-off; may revoke if edge lost |
-| `/api/cron/closing-lines` | Daily 7:15 PM | Capture closing lines for CLV tracking |
-| `/api/cron/grade-picks` | Daily 11:30 PM | Grade completed picks with final scores from ESPN |
-| `/api/cron/grade-whatifs` | Daily 11:45 PM | Grade "what-if" pass scenarios for model transparency |
-| `/api/cron/check-data-quality` | Daily 11:50 PM | Validate data integrity and flag anomalies |
-| `/api/cron/expire-trials` | Daily 3:00 AM | Check expiring trials, send warnings, expire overdue trials |
-| `/api/cron/weekly-summary` | Sundays 10:00 AM | Send weekly performance summary emails to subscribers |
-| `/api/cron/backup` | Daily 4:00 AM | pg_dump + JSON backup of picks, passes, users |
+| Job | Endpoint | Schedule (ET) | Purpose |
+|---|---|---|---|
+| Pre-Tip Validate | `/api/cron/pretip-validate` | 9:55 AM + 4:55 PM | Final sanity checks before pick window |
+| SP — Daily Backup | `/api/cron/backup` | Daily 3:20 AM | Backups + retention |
+| SP — Data Quality | `/api/cron/check-data-quality` | 4:15 AM + 12:15 PM | Detect missing lines/games/odds gaps |
+| SP — Collect Games (AM) | `/api/cron/collect-games` | 5:05 AM | Pull today/next slate early |
+| SP — Collect Games (PM) | `/api/cron/collect-games` | 1:05 PM | Catch late adds/time changes |
+| SP — Refresh Lines | `/api/cron/refresh-lines` | Every 10 min, 6 AM–2 AM | Keep current lines fresh |
+| SP — Closing Lines 1–4 | `/api/cron/closing-lines` | Every min, 10 AM–1 AM (×4 shards) | High-resolution closing capture |
+| SP — Grade Picks | `/api/cron/grade-picks` | 3:45 AM + 11:30 AM | Grade completed events |
+| SP — Grade What-Ifs | `/api/cron/grade-whatifs` | 4:05 AM + 4:05 PM | Recalcs / counterfactuals |
+| SP — Expire Trials | `/api/cron/expire-trials` | Hourly at :10 | Access control cleanup |
+| SP — Weekly Summary | `/api/cron/weekly-summary` | Mon 6:30 AM | Weekly performance reporting |
 
 **Header required for all**: `X-Cron-Secret: <your CRON_SECRET value>`
 **Method**: POST (no body required)
