@@ -51,10 +51,13 @@ def verify_cron(f):
 def set_cache_headers(response):
     if request.path.startswith('/assets/'):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
-    elif request.path.endswith('.html') or request.path == '/':
+    elif request.path.endswith('.html') or request.path == '/' or request.path == '/manifest.webmanifest':
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
+    elif request.path.endswith('.js') and not request.path.startswith('/assets/'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
     return response
 
 from flask_cors import CORS
