@@ -89,7 +89,9 @@ export default function ResolutionScreen({ pick, onBack }) {
             fontFamily: 'var(--font-mono)', fontSize: '14px',
             color: 'var(--text-secondary)', marginBottom: '16px',
           }}>
-            {pick?.side} {pick?.line > 0 ? `+${pick.line}` : pick?.line}
+            {pick?.side && pick?.line != null && pick.side.includes(String(Math.abs(pick.line)))
+              ? pick.side
+              : `${pick?.side} ${pick?.line > 0 ? '+' : ''}${pick?.line}`}
             {pick?.market_odds ? ` (${pick.market_odds > 0 ? '+' : ''}${pick.market_odds})` : ''}
           </div>
 
@@ -233,7 +235,9 @@ function WithdrawnDetailScreen({ pick, onBack }) {
             fontFamily: 'var(--font-mono)', fontSize: '14px',
             color: 'var(--text-secondary)', marginBottom: '16px',
           }}>
-            {pick?.side} {pick?.line > 0 ? `+${pick.line}` : pick?.line}
+            {pick?.side && pick?.line != null && pick.side.includes(String(Math.abs(pick.line)))
+              ? pick.side
+              : `${pick?.side} ${pick?.line > 0 ? '+' : ''}${pick?.line}`}
           </div>
 
           <div style={{
