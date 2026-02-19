@@ -429,18 +429,19 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           <div style={{
             marginTop: '16px', padding: '14px',
             borderRadius: '16px',
-            border: '1px solid rgba(128,128,128,0.22)',
-            background: 'rgba(128,128,128,0.08)',
+            border: '1px solid rgba(99,102,241,0.18)',
+            background: 'rgba(99,102,241,0.06)',
             textAlign: 'center',
           }}>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 800,
-              color: 'var(--text-tertiary)',
-            }}>REVOKED</div>
+              fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+              letterSpacing: '1.2px', textTransform: 'uppercase',
+              color: 'rgba(99,102,241,0.8)',
+            }}>Withdrawn</div>
             <div style={{
               fontFamily: 'var(--font-sans)', fontSize: '12px',
-              color: 'var(--text-tertiary)', marginTop: '4px',
-            }}>Pre-tip conditions changed. No action.</div>
+              color: 'var(--text-secondary)', marginTop: '6px', lineHeight: '1.5',
+            }}>Edge shifted before tip-off. No action needed — capital preserved.</div>
           </div>
         ) : pick.result && pick.result !== 'pending' ? (
           <div style={{

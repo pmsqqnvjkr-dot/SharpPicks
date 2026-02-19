@@ -152,12 +152,12 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                       <div style={{
                         fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700,
                         color: pick.result === 'win' ? 'var(--green-profit)'
-                          : pick.result === 'loss' ? 'var(--red-loss)' : 'var(--text-tertiary)',
-                        textDecoration: isRevoked ? 'line-through' : 'none',
+                          : pick.result === 'loss' ? 'var(--red-loss)'
+                          : isRevoked ? 'rgba(99,102,241,0.7)' : 'var(--text-tertiary)',
                       }}>
                         {pick.result === 'win' ? `+${pick.pnl != null ? pick.pnl : 91}u`
                           : pick.result === 'loss' ? `${pick.pnl != null ? pick.pnl : -100}u`
-                          : isRevoked ? 'Revoked'
+                          : isRevoked ? 'Withdrawn'
                           : 'Pending'}
                       </div>
                       {isPro && pick.edge_pct && (

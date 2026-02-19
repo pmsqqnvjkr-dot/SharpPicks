@@ -22,7 +22,8 @@ export default function TodayTab({ onNavigate }) {
     return <LoadingState />;
   }
 
-  const isResolved = todayData?.type === 'pick' && todayData?.result && todayData.result !== 'pending';
+  const isRevoked = todayData?.type === 'pick' && todayData?.result === 'revoked';
+  const isResolved = todayData?.type === 'pick' && todayData?.result && todayData.result !== 'pending' && todayData.result !== 'revoked';
 
   const handleDismissResolution = async (pickId) => {
     await apiPost('/picks/dismiss-resolution', { pick_id: pickId });
@@ -63,7 +64,11 @@ export default function TodayTab({ onNavigate }) {
           }} />
         )}
 
-        {todayData?.type === 'pick' && !isResolved && isPro && (
+        {isRevoked && (
+          <RevokedPassCard pick={todayData} />
+        )}
+
+        {todayData?.type === 'pick' && !isResolved && !isRevoked && isPro && (
           <PickCard pick={todayData} isPro={isPro} onUpgrade={() => setShowAuth(true)} onTrack={() => {
             if (onNavigate) onNavigate('profile', 'bets', {
               pickToTrack: {
@@ -79,7 +84,7 @@ export default function TodayTab({ onNavigate }) {
           }} />
         )}
 
-        {todayData?.type === 'pick' && !isResolved && !isPro && (
+        {todayData?.type === 'pick' && !isResolved && !isRevoked && !isPro && (
           <FreePickNotice onUpgrade={() => {
             if (user) {
               if (onNavigate) onNavigate('profile', 'upgrade');
@@ -340,13 +345,110 @@ function MiniStat({ label, value }) {
   );
 }
 
+function RevokedPassCard({ pick }) {
+  return (
+    <div style={{ padding: '0 4px' }}>
+      <div style={{ textAlign: 'center', padding: '24px 0 32px' }}>
+        <div style={{
+          width: '72px', height: '72px', borderRadius: '22px',
+          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-muted)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 24px',
+        }}>
+          <svg viewBox="0 0 24 24" width="32" height="32" stroke="var(--text-secondary)" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+          </svg>
+        </div>
+
+        <h1 style={{
+          fontFamily: 'var(--font-serif)',
+          fontSize: '24px',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
+          marginBottom: '12px',
+        }}>
+          Pick withdrawn
+        </h1>
+
+        <p style={{
+          fontSize: '14px',
+          color: 'var(--text-secondary)',
+          lineHeight: '1.55',
+          marginBottom: '4px',
+        }}>
+          {pick.away_team} @ {pick.home_team}
+        </p>
+        <p style={{
+          fontSize: '14px',
+          color: 'var(--text-secondary)',
+          lineHeight: '1.55',
+        }}>
+          Pre-tip conditions shifted. The edge no longer meets threshold.
+        </p>
+      </div>
+
+      <div style={{
+        backgroundColor: 'var(--surface-1)',
+        borderRadius: '16px',
+        border: '1px solid var(--stroke-subtle)',
+        padding: '20px',
+        marginBottom: '16px',
+      }}>
+        <h3 style={{
+          fontFamily: 'var(--font-serif)',
+          fontSize: '16px',
+          fontWeight: 600,
+          color: 'var(--text-primary)',
+          marginBottom: '8px',
+        }}>This is the system working</h3>
+        <p style={{
+          fontSize: '13px',
+          color: 'var(--text-secondary)',
+          lineHeight: '1.55',
+        }}>A revoked pick is not a loss. It means the model detected that market conditions changed before tip-off and pulled the recommendation to protect your bankroll.</p>
+      </div>
+
+      <div style={{
+        backgroundColor: 'var(--surface-1)',
+        borderRadius: '16px',
+        border: '1px solid var(--stroke-subtle)',
+        padding: '20px',
+        marginBottom: '16px',
+      }}>
+        <h3 style={{
+          fontFamily: 'var(--font-serif)',
+          fontSize: '16px',
+          fontWeight: 600,
+          color: 'var(--text-primary)',
+          marginBottom: '8px',
+        }}>No action required</h3>
+        <p style={{
+          fontSize: '13px',
+          color: 'var(--text-secondary)',
+          lineHeight: '1.55',
+        }}>If you already placed the bet, consider it a standalone decision. The model's next pick will come when the edge is there.</p>
+      </div>
+
+      <p style={{
+        fontFamily: 'var(--font-serif)',
+        fontStyle: 'italic',
+        fontSize: '15px',
+        color: 'var(--text-secondary)',
+        textAlign: 'center',
+        marginTop: '24px',
+      }}>Capital preservation is the discipline.</p>
+    </div>
+  );
+}
+
 function ResolvedPickBanner({ pick, onViewDetails, onDismiss }) {
   const isWin = pick.result === 'win';
   const isPush = pick.result === 'push';
-  const isRevoked = pick.result === 'revoked';
-  const accentColor = isRevoked ? 'var(--text-tertiary)' : isPush ? 'var(--text-secondary)' : isWin ? 'var(--green-profit)' : 'var(--red-loss)';
-  const accentBg = isRevoked ? 'rgba(128,128,128,0.06)' : isPush ? 'rgba(255,255,255,0.04)' : isWin ? 'rgba(52,211,153,0.06)' : 'rgba(239,68,68,0.06)';
-  const accentBorder = isRevoked ? 'rgba(128,128,128,0.18)' : isPush ? 'rgba(255,255,255,0.1)' : isWin ? 'rgba(52,211,153,0.18)' : 'rgba(239,68,68,0.18)';
+  const accentColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--green-profit)' : 'var(--red-loss)';
+  const accentBg = isPush ? 'rgba(255,255,255,0.04)' : isWin ? 'rgba(52,211,153,0.06)' : 'rgba(239,68,68,0.06)';
+  const accentBorder = isPush ? 'rgba(255,255,255,0.1)' : isWin ? 'rgba(52,211,153,0.18)' : 'rgba(239,68,68,0.18)';
   const profitDisplay = pick.profit_units != null
     ? `${pick.profit_units >= 0 ? '+' : ''}${pick.profit_units}u`
     : isPush ? '0u' : isWin ? '+0.91u' : '-1.0u';

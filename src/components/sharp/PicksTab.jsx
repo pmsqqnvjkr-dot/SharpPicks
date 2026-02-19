@@ -26,7 +26,8 @@ export default function PicksTab({ onNavigate }) {
     return <LoadingState />;
   }
 
-  const isResolved = todayData?.type === 'pick' && todayData?.result && todayData.result !== 'pending';
+  const isRevoked = todayData?.type === 'pick' && todayData?.result === 'revoked';
+  const isResolved = todayData?.type === 'pick' && todayData?.result && todayData.result !== 'pending' && todayData.result !== 'revoked';
 
   if (showResolution && resolutionPick) {
     return <ResolutionScreen pick={resolutionPick} onBack={() => { setShowResolution(false); setResolutionPick(null); }} />;
@@ -145,7 +146,11 @@ export default function PicksTab({ onNavigate }) {
           }} />
         )}
 
-        {todayData?.type === 'pick' && !isResolved && isPro && (
+        {isRevoked && (
+          <RevokedPassCard pick={todayData} />
+        )}
+
+        {todayData?.type === 'pick' && !isResolved && !isRevoked && isPro && (
           <PickCard pick={todayData} isPro={isPro} onUpgrade={() => setShowAuth(true)} onTrack={() => {
             if (onNavigate) onNavigate('profile', 'bets', {
               pickToTrack: {
@@ -161,7 +166,7 @@ export default function PicksTab({ onNavigate }) {
           }} />
         )}
 
-        {todayData?.type === 'pick' && !isResolved && !isPro && (
+        {todayData?.type === 'pick' && !isResolved && !isRevoked && !isPro && (
           <FreePickNotice onUpgrade={() => {
             if (user) {
               if (onNavigate) onNavigate('profile', 'upgrade');
@@ -277,12 +282,11 @@ export default function PicksTab({ onNavigate }) {
                           fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
                           color: pick.result === 'win' ? 'var(--green-profit)'
                             : pick.result === 'loss' ? 'var(--red-loss)'
-                            : isRevoked ? 'var(--text-tertiary)' : 'var(--text-tertiary)',
-                          textDecoration: isRevoked ? 'line-through' : 'none',
+                            : isRevoked ? 'rgba(99,102,241,0.7)' : 'var(--text-tertiary)',
                         }}>
                           {pick.result === 'win' ? `+${pick.pnl != null ? pick.pnl : 91}u`
                             : pick.result === 'loss' ? `${pick.pnl != null ? pick.pnl : -100}u`
-                            : isRevoked ? 'Revoked'
+                            : isRevoked ? 'Withdrawn'
                             : 'Pending'}
                         </div>
                       )}
@@ -311,6 +315,46 @@ export default function PicksTab({ onNavigate }) {
   );
 }
 
+
+function RevokedPassCard({ pick }) {
+  return (
+    <div style={{ padding: '0 4px' }}>
+      <div style={{
+        background: 'var(--surface-1)',
+        borderRadius: '16px',
+        border: '1px solid var(--stroke-subtle)',
+        padding: '24px 20px',
+        textAlign: 'center',
+        marginBottom: '16px',
+      }}>
+        <div style={{
+          width: '56px', height: '56px', borderRadius: '16px',
+          backgroundColor: 'rgba(99,102,241,0.08)',
+          border: '1px solid rgba(99,102,241,0.15)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 16px',
+        }}>
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="rgba(99,102,241,0.7)" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+          </svg>
+        </div>
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
+          letterSpacing: '1.5px', textTransform: 'uppercase',
+          color: 'rgba(99,102,241,0.8)', marginBottom: '8px',
+        }}>Pick Withdrawn</div>
+        <div style={{
+          fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px',
+        }}>{pick.away_team} @ {pick.home_team}</div>
+        <p style={{
+          fontSize: '13px', color: 'var(--text-tertiary)', lineHeight: '1.55', marginTop: '8px',
+        }}>Edge shifted before tip-off. Not a loss — capital preserved.</p>
+      </div>
+    </div>
+  );
+}
 
 function BreakCard({ data }) {
   const isAllStar = data?.type === 'allstar_break';
