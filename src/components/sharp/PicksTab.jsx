@@ -321,33 +321,52 @@ function RevokedPassCard({ pick, onViewDetails }) {
     <div
       onClick={onViewDetails}
       style={{
-        backgroundColor: 'rgba(99,102,241,0.04)',
-        borderRadius: '16px',
-        border: '1px solid rgba(99,102,241,0.12)',
-        padding: '16px 20px',
+        backgroundColor: 'rgba(99,102,241,0.06)',
+        borderRadius: '20px',
+        border: '1px solid rgba(99,102,241,0.18)',
+        padding: '24px',
         marginBottom: '16px',
         cursor: 'pointer',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
         <div style={{
-          fontFamily: 'var(--font-serif)', fontSize: '16px', fontWeight: 600,
-          color: 'var(--text-primary)',
+          width: '44px', height: '44px', borderRadius: '50%',
+          backgroundColor: 'rgba(99,102,241,0.1)',
+          border: '2px solid rgba(99,102,241,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
         }}>
-          {pick.side} {pick.line > 0 ? `+${pick.line}` : pick.line}
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="rgba(99,102,241,0.7)" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+            letterSpacing: '1.5px', textTransform: 'uppercase',
+            color: 'rgba(99,102,241,0.8)', marginBottom: '4px',
+          }}>Withdrawn</div>
+          <div style={{
+            fontFamily: 'var(--font-serif)', fontSize: '18px', fontWeight: 600,
+            color: 'var(--text-primary)',
+          }}>
+            {pick.side} {pick.line > 0 ? `+${pick.line}` : pick.line}
+          </div>
         </div>
         <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
-          letterSpacing: '1px', textTransform: 'uppercase',
-          color: 'rgba(99,102,241,0.8)',
-        }}>Withdrawn</div>
+          fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700,
+          color: 'rgba(99,102,241,0.6)',
+        }}>0u</div>
       </div>
+
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '12px',
-        color: 'var(--text-tertiary)', marginBottom: '4px',
+        fontFamily: 'var(--font-mono)', fontSize: '13px',
+        color: 'var(--text-secondary)', marginBottom: '6px',
       }}>
         {pick.away_team} @ {pick.home_team}
       </div>
+
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: '11px',
         color: 'var(--text-tertiary)',
