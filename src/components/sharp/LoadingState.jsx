@@ -8,12 +8,12 @@ export default function LoadingState() {
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src="/images/crest.png" alt="" width="24" height="24" style={{ display: 'block', marginRight: '14px', flexShrink: 0, objectFit: 'contain' }} />
+          <img src="/images/crest.png" alt="" width="26" height="26" style={{ display: 'block', marginRight: '16px', flexShrink: 0, objectFit: 'contain' }} />
           <span style={{
             fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 600,
             color: '#F2F4F8', letterSpacing: '3.9px', textTransform: 'uppercase',
             lineHeight: 1,
-          }}>SHARP<span style={{ opacity: 0.65, margin: '0 0.6em', fontWeight: 500 }}>||</span>PICKS</span>
+          }}>SHARP<span style={{ opacity: 0.65, margin: '0 0.45em', fontWeight: 500, letterSpacing: '0.18em' }}>||</span>PICKS</span>
         </div>
       </div>
 

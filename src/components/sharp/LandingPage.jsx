@@ -30,14 +30,14 @@ export default function LandingPage() {
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginRight: '14px', flexShrink: 0 }}><ShieldLogo size={24} /></div>
+          <div style={{ display: 'flex', alignItems: 'center', marginRight: '16px', flexShrink: 0 }}><ShieldLogo size={26} /></div>
           <span style={{
             fontFamily: 'var(--font-sans)',
             fontSize: '13px', fontWeight: 600,
             color: '#F2F4F8',
             letterSpacing: '3.9px', textTransform: 'uppercase',
             lineHeight: 1,
-          }}>SHARP<span style={{ opacity: 0.65, margin: '0 0.6em', fontWeight: 500 }}>||</span>PICKS</span>
+          }}>SHARP<span style={{ opacity: 0.65, margin: '0 0.45em', fontWeight: 500, letterSpacing: '0.18em' }}>||</span>PICKS</span>
         </div>
         <button
           onClick={() => { setAuthMode('login'); setShowAuth(true); }}
