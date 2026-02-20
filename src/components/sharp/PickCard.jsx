@@ -164,8 +164,8 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
       <div style={{
         backgroundColor: 'var(--surface-1)',
         border: '1px solid var(--stroke-subtle)',
-        borderRadius: '16px',
-        padding: '24px 20px',
+        borderRadius: '14px',
+        padding: '16px',
         marginTop: '8px',
       }}>
         <div style={{
@@ -228,8 +228,8 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
   return (
     <div style={{ padding: '0 4px' }}>
       <article style={{
-        borderRadius: '22px',
-        padding: '22px 18px 18px',
+        borderRadius: '18px',
+        padding: '16px',
         background: 'radial-gradient(900px 520px at 40% 0%, rgba(79,134,247,0.26), transparent 55%), linear-gradient(165deg, rgba(23,36,74,0.92), rgba(17,26,56,0.92))',
         border: '1px solid rgba(79,134,247,0.18)',
         boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
@@ -273,21 +273,21 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         </div>
 
         <section style={{
-          margin: '14px 0 12px',
-          padding: '16px',
-          borderRadius: '16px',
+          margin: '12px 0 10px',
+          padding: '12px',
+          borderRadius: '14px',
           border: '1px solid rgba(255,255,255,0.10)',
           background: 'rgba(0,0,0,0.18)',
         }}>
           <div style={{
             fontSize: '11px', letterSpacing: '1.2px', textTransform: 'uppercase',
             fontWeight: 800, color: 'rgba(169,180,207,0.9)',
-            marginBottom: '16px',
+            marginBottom: '12px',
           }}>Edge Analysis</div>
 
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            marginBottom: '16px',
+            marginBottom: '12px',
           }}>
             <div style={{
               padding: '10px 24px',
@@ -342,9 +342,9 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
 
         {pick.model_signals && pick.model_signals.length > 0 && (
           <section style={{
-            margin: '0 0 12px',
-            padding: '14px 16px',
-            borderRadius: '16px',
+            margin: '0 0 10px',
+            padding: '12px',
+            borderRadius: '14px',
             border: '1px solid rgba(255,255,255,0.08)',
             background: 'rgba(0,0,0,0.12)',
           }}>
@@ -386,10 +386,10 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
 
         {pick.stake_guidance && (
           <>
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.10)', margin: '14px 0' }} />
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.10)', margin: '12px 0' }} />
             <div style={{
-              padding: '14px',
-              borderRadius: '16px',
+              padding: '12px',
+              borderRadius: '14px',
               border: '1px solid rgba(255,255,255,0.10)',
               background: 'rgba(0,0,0,0.18)',
             }}>
@@ -427,8 +427,8 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
 
         {pick.result === 'revoked' ? (
           <div style={{
-            marginTop: '16px', padding: '14px',
-            borderRadius: '16px',
+            marginTop: '12px', padding: '12px',
+            borderRadius: '14px',
             border: '1px solid rgba(99,102,241,0.18)',
             background: 'rgba(99,102,241,0.06)',
             textAlign: 'center',
@@ -445,8 +445,8 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           </div>
         ) : pick.result && pick.result !== 'pending' ? (
           <div style={{
-            marginTop: '16px', padding: '14px',
-            borderRadius: '16px',
+            marginTop: '12px', padding: '12px',
+            borderRadius: '14px',
             border: `1px solid ${pick.result === 'win' ? 'rgba(52,211,153,0.22)' : 'rgba(239,68,68,0.22)'}`,
             background: pick.result === 'win' ? 'rgba(52,211,153,0.08)' : 'rgba(239,68,68,0.08)',
             textAlign: 'center',
@@ -463,8 +463,8 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
             onClick={handleUntrack}
             disabled={tracking}
             style={{
-              width: '100%', marginTop: '16px',
-              borderRadius: '16px', padding: '15px 14px',
+              width: '100%', marginTop: '12px',
+              borderRadius: '14px', padding: '13px 12px',
               fontWeight: 800, fontSize: '15px', letterSpacing: '0.3px',
               color: 'rgba(52,211,153,0.92)',
               background: 'rgba(52,211,153,0.08)',
@@ -479,8 +479,8 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
               onClick={handleTrackPick}
               disabled={tracking}
               style={{
-                width: '100%', marginTop: '16px',
-                borderRadius: '16px', padding: '15px 14px',
+                width: '100%', marginTop: '12px',
+                borderRadius: '14px', padding: '13px 12px',
                 fontWeight: 800, fontSize: '15px', letterSpacing: '0.3px',
                 color: tracking ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.92)',
                 background: 'rgba(255,255,255,0.06)',
@@ -502,7 +502,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         )}
 
         <div style={{
-          marginTop: '14px', paddingTop: '14px',
+          marginTop: '12px', paddingTop: '12px',
           borderTop: '1px solid rgba(255,255,255,0.10)',
           fontSize: '13px', fontWeight: 500, lineHeight: '1.55',
           color: 'rgba(169,180,207,0.78)',
@@ -529,7 +529,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
 function PickStat({ label, value, profit }) {
   return (
     <div style={{
-      borderRadius: '16px', padding: '12px 12px 10px',
+      borderRadius: '12px', padding: '10px 10px 8px',
       border: '1px solid rgba(255,255,255,0.10)',
       background: 'rgba(0,0,0,0.16)',
     }}>
