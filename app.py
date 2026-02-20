@@ -1193,7 +1193,38 @@ def expire_trials():
 
 import time as _time
 
+_cron_locks = {}
+_cron_lock_mutex = threading.Lock()
+
+CRON_MIN_INTERVAL = {
+    'closing_lines': 45,
+    'refresh_lines': 300,
+    'collect_games': 600,
+    'grade_picks': 300,
+    'grade_whatifs': 300,
+    'pretip_validate': 300,
+}
+
 def log_cron(job_name, fn):
+    min_interval = CRON_MIN_INTERVAL.get(job_name, 0)
+    if min_interval:
+        last_ok = CronLog.query.filter_by(job_name=job_name, status='ok')\
+            .order_by(CronLog.executed_at.desc()).first()
+        if last_ok:
+            seconds_since = (datetime.utcnow() - last_ok.executed_at).total_seconds()
+            if seconds_since < min_interval:
+                return jsonify({'status': 'skipped', 'job': job_name,
+                                'reason': f'throttled ({int(seconds_since)}s since last run, min {min_interval}s)'}), 200
+
+    with _cron_lock_mutex:
+        now = _time.time()
+        if job_name in _cron_locks:
+            lock_time, running = _cron_locks[job_name]
+            if running:
+                return jsonify({'status': 'skipped', 'job': job_name,
+                                'reason': 'already running'}), 200
+        _cron_locks[job_name] = (now, True)
+
     start = _time.time()
     try:
         result = fn()
@@ -1224,6 +1255,9 @@ def log_cron(job_name, fn):
         except Exception:
             logging.error(f"Failed to send admin alert for cron error: {job_name}")
         return jsonify({'status': 'error', 'job': job_name, 'message': str(e)}), 500
+    finally:
+        with _cron_lock_mutex:
+            _cron_locks[job_name] = (_time.time(), False)
 
 
 @app.route('/api/cron/collect-games', methods=['POST'])
