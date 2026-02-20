@@ -27,7 +27,7 @@ export default function PerformanceTab({ onNavigate, initialView, onViewConsumed
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
 
-      <div style={{ padding: '0 20px', marginBottom: '16px' }}>
+      <div style={{ padding: '0 20px', marginTop: '12px', marginBottom: '16px' }}>
         <div style={{
           display: 'flex',
           backgroundColor: 'var(--surface-1)',
