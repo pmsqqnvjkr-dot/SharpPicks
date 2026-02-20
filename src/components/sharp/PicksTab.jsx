@@ -42,7 +42,7 @@ export default function PicksTab({ onNavigate }) {
   return (
     <div style={{ padding: '0' }}>
 
-      <div style={{ padding: '28px 20px 0' }}>
+      <div style={{ padding: '40px 20px 0' }}>
         {user && user.subscription_status === 'trial' && user.trial_end_date && (() => {
           const daysLeft = Math.max(0, Math.ceil((new Date(user.trial_end_date) - new Date()) / (1000 * 60 * 60 * 24)));
           return daysLeft > 0 ? (
