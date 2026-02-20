@@ -909,7 +909,7 @@ def collect_closing_lines():
 
             if not games:
                 conn.close()
-                return {'processed': 0, 'reason': 'no games within 15min window'}
+                return {'processed': 0, 'reason': 'no games within 10min window'}
 
             updated = 0
             today_str = _get_et_today()
