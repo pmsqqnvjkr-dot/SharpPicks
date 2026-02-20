@@ -12,7 +12,7 @@ export default function LandingPage() {
   const spotsLeft = founding ? (founding.remaining != null ? founding.remaining : Math.max(0, 50 - (founding.current || 0))) : null;
 
   const ShieldLogo = ({ size = 24, opacity = 1 }) => (
-    <svg viewBox="0 0 40 40" width={size} height={size} fill="none" style={{ opacity, display: 'block' }}>
+    <svg viewBox="0 0 40 44" width={size} height={Math.round(size * 44/40)} fill="none" style={{ opacity, display: 'block', overflow: 'visible' }}>
       <path d="M20 2L4 9v12c0 10 6.5 18.5 16 21 9.5-2.5 16-11 16-21V9L20 2z" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" fill="none"/>
       <rect x="14" y="16" width="3" height="12" rx="1" fill="rgba(255,255,255,0.85)"/>
       <rect x="19" y="12" width="3" height="16" rx="1" fill="rgba(255,255,255,0.85)"/>
@@ -37,7 +37,7 @@ export default function LandingPage() {
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div style={{ marginRight: '14px', transform: 'translateY(-1px)', display: 'flex' }}><ShieldLogo size={22} /></div>
+          <div style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', marginRight: '14px', flexShrink: 0 }}><ShieldLogo size={22} /></div>
           <span style={{
             fontFamily: 'var(--font-sans)',
             fontSize: '13px', fontWeight: 600,
