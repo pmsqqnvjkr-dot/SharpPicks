@@ -870,28 +870,40 @@ def grade_pending_picks():
 
 def collect_closing_lines():
     """Snapshot current lines as closing lines from local SQLite.
+    Only processes games starting within the next 15 minutes.
     Does NOT re-fetch from external APIs — relies on refresh-lines cron
-    to keep lines current. Runs frequently during game windows."""
-    print(f"[{datetime.now()}] Capturing closing lines...")
+    to keep lines current."""
     with app.app_context():
         try:
             conn = sqlite3.connect('sharp_picks.db')
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            
-            today_str = _get_et_today()
+
+            now_utc = datetime.utcnow()
+            window_end = now_utc + timedelta(minutes=15)
+            now_iso = now_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
+            end_iso = window_end.strftime('%Y-%m-%dT%H:%M:%SZ')
+
             cursor.execute('''
                 SELECT id, home_team, away_team, spread_home, total,
-                       home_ml, away_ml, game_date
+                       home_ml, away_ml, game_date, game_time
                 FROM games
-                WHERE game_date LIKE ?
+                WHERE game_time IS NOT NULL
+                AND game_time >= ?
+                AND game_time <= ?
                 AND home_score IS NULL
                 AND spread_home IS NOT NULL
-            ''', (f'{today_str}%',))
-            
+            ''', (now_iso, end_iso))
+
             games = cursor.fetchall()
+
+            if not games:
+                conn.close()
+                return {'processed': 0, 'reason': 'no games within 15min window'}
+
             updated = 0
-            
+            today_str = _get_et_today()
+
             for game in games:
                 cursor.execute('''
                     UPDATE games SET
@@ -904,7 +916,7 @@ def collect_closing_lines():
                 ''', (game['spread_home'], game['total'],
                       game['home_ml'], game['away_ml'],
                       datetime.now().isoformat(), game['id']))
-                
+
                 try:
                     from performance_tracker import update_closing_line
                     update_closing_line(game['id'], game['spread_home'])
@@ -924,13 +936,14 @@ def collect_closing_lines():
                     if today_pick.line is not None and closing is not None:
                         pick_line = today_pick.line
                         today_pick.clv = closing - pick_line
-            
+
             conn.commit()
             conn.close()
             db.session.commit()
-            print(f"[{datetime.now()}] Captured closing lines for {updated} games")
+            return {'processed': updated, 'window': f'{now_iso} to {end_iso}'}
         except Exception as e:
             print(f"[{datetime.now()}] Closing line error: {e}")
+            raise
 
 def collect_wnba_games_job():
     """Run the WNBA data collector"""
