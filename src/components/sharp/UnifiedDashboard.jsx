@@ -291,7 +291,7 @@ function DashHeader() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: '#0B1A2B',
+      background: 'linear-gradient(to bottom, #0E1A2B, #08121F)',
       borderBottom: '1px solid rgba(255,255,255,0.06)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -302,7 +302,7 @@ function DashHeader() {
           fontWeight: 600,
           letterSpacing: '3.9px',
           textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.9)',
+          color: '#F2F4F8',
           lineHeight: 1,
         }}>
           SHARP<span style={{ opacity: 0.65, margin: '0 0.6em', fontWeight: 500 }}>||</span>PICKS

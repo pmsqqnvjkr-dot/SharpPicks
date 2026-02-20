@@ -44,7 +44,7 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
             <img src="/images/crest.png" alt="" width="22" height="22" style={{ display: 'block', marginRight: '14px', flexShrink: 0, objectFit: 'contain' }} />
             <span style={{
               fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 600,
-              color: 'rgba(255,255,255,0.9)', letterSpacing: '3.9px', textTransform: 'uppercase',
+              color: '#F2F4F8', letterSpacing: '3.9px', textTransform: 'uppercase',
               lineHeight: 1,
             }}>SHARP<span style={{ opacity: 0.65, margin: '0 0.6em', fontWeight: 500 }}>||</span>PICKS</span>
           </div>

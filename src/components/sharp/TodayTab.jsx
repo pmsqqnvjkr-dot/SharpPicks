@@ -145,7 +145,7 @@ function Header({ user, onAuthClick }) {
           fontFamily: 'var(--font-sans)',
           fontSize: '13px',
           fontWeight: 600,
-          color: 'rgba(255,255,255,0.9)',
+          color: '#F2F4F8',
           letterSpacing: '3.9px',
           textTransform: 'uppercase',
           lineHeight: 1,
