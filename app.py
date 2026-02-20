@@ -260,6 +260,16 @@ def seed_database():
                 db.session.rollback()
                 logging.warning(f"Column migration note: {e}")
 
+            try:
+                sconn = sqlite3.connect('sharp_picks.db')
+                sconn.execute('CREATE INDEX IF NOT EXISTS idx_games_game_time ON games(game_time)')
+                sconn.execute('CREATE INDEX IF NOT EXISTS idx_games_home_score ON games(home_score)')
+                sconn.execute('CREATE INDEX IF NOT EXISTS idx_games_game_date ON games(game_date)')
+                sconn.commit()
+                sconn.close()
+            except Exception:
+                pass
+
             from werkzeug.security import generate_password_hash
             admin_accounts = [
                 {'email': 'evan@sharppicks.ai', 'first_name': 'Evan', 'password': 'H@rp2019*'},
@@ -870,7 +880,7 @@ def grade_pending_picks():
 
 def collect_closing_lines():
     """Snapshot current lines as closing lines from local SQLite.
-    Only processes games starting within the next 15 minutes.
+    Only processes games starting within the next 10 minutes.
     Does NOT re-fetch from external APIs — relies on refresh-lines cron
     to keep lines current."""
     with app.app_context():
@@ -880,7 +890,7 @@ def collect_closing_lines():
             cursor = conn.cursor()
 
             now_utc = datetime.utcnow()
-            window_end = now_utc + timedelta(minutes=15)
+            window_end = now_utc + timedelta(minutes=10)
             now_iso = now_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
             end_iso = window_end.strftime('%Y-%m-%dT%H:%M:%SZ')
 
