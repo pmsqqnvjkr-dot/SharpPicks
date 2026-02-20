@@ -604,6 +604,7 @@ def cron_health():
         'backup':          {'label': 'SP — Daily Backup', 'schedule': 'Daily 3:20 AM', 'expected_h': 24},
         'data_quality':    {'label': 'SP — Data Quality', 'schedule': '4:15 AM + 12:15 PM', 'expected_h': 24},
         'collect_games':   {'label': 'SP — Collect Games', 'schedule': '5:05 AM + 1:05 PM', 'expected_h': 24},
+        'run_model':       {'label': 'SP — Run Model', 'schedule': '10:15 AM + 2:15 PM', 'expected_h': 24},
         'refresh_lines':   {'label': 'SP — Refresh Lines', 'schedule': 'Every 10 min, 6 AM–2 AM', 'expected_h': 1},
         'closing_lines':   {'label': 'SP — Closing Lines', 'schedule': 'Every min, 10 AM–1 AM (×4 shards)', 'expected_h': 1},
         'grade_picks':     {'label': 'SP — Grade Picks', 'schedule': '3:45 AM + 11:30 AM', 'expected_h': 24},

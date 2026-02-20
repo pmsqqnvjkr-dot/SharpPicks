@@ -900,7 +900,7 @@ function populateSportStats(m, prefix) {
   if (el('last-pick')) {
     if (m.last_pick_date) {
       const lpd = new Date(m.last_pick_date + 'T12:00:00');
-      el('last-pick').textContent = lpd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      el('last-pick').textContent = lpd.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', year: 'numeric' });
     } else {
       el('last-pick').textContent = 'None';
     }
@@ -929,13 +929,13 @@ function buildUsersTable(users) {
   tbody.innerHTML = '';
   users.forEach(u => {
     const tr = document.createElement('tr');
-    const date = u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+    const date = u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' }) : '—';
     let trialEnd = '—';
     if (u.trial_end) {
       const te = new Date(u.trial_end);
       const now = new Date();
       const daysLeft = Math.max(0, Math.ceil((te - now) / (1000 * 60 * 60 * 24)));
-      const dateStr = te.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dateStr = te.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' });
       const urgencyClass = daysLeft <= 3 ? 'red' : daysLeft <= 7 ? 'amber' : 'green';
       trialEnd = `<span class="${urgencyClass}">${dateStr}</span> <span style="color:var(--text-dim);font-size:11px">(${daysLeft}d)</span>`;
     }
@@ -1101,7 +1101,7 @@ async function loadDashboard() {
 
       const ul = document.getElementById('push-user-list');
       ul.innerHTML = p.user_tokens.map(t =>
-        `<div class="stat-row" style="font-size:10px"><span class="label">${t.user_email}</span><span class="value" style="font-size:9px">${t.platform} · ${t.last_seen ? new Date(t.last_seen).toLocaleDateString() : 'new'}</span></div>`
+        `<div class="stat-row" style="font-size:10px"><span class="label">${t.user_email}</span><span class="value" style="font-size:9px">${t.platform} · ${t.last_seen ? new Date(t.last_seen).toLocaleDateString('en-US', { timeZone: 'America/New_York' }) : 'new'}</span></div>`
       ).join('') || '<div class="metric-sub">No devices registered</div>';
     }
 
