@@ -33,7 +33,7 @@ export default function LandingPage() {
       <div style={{
         padding: '12px 24px 12px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        backgroundColor: '#0B1A2B',
+        background: 'linear-gradient(to bottom, #0E1A2B 0%, #0C1726 60%, #0A0D14 100%)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
