@@ -140,16 +140,7 @@ function Header({ user, onAuthClick }) {
       alignItems: 'center',
     }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <div style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', marginRight: '14px', flexShrink: 0 }}>
-          <svg viewBox="0 0 40 44" width="22" height="24" fill="none" style={{ display: 'block', overflow: 'visible' }}>
-            <path d="M20 2L4 9v12c0 10 6.5 18.5 16 21 9.5-2.5 16-11 16-21V9L20 2z" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" fill="none"/>
-            <rect x="14" y="16" width="3" height="12" rx="1" fill="rgba(255,255,255,0.85)"/>
-            <rect x="19" y="12" width="3" height="16" rx="1" fill="rgba(255,255,255,0.85)"/>
-            <rect x="24" y="18" width="3" height="10" rx="1" fill="rgba(255,255,255,0.85)"/>
-            <path d="M12 20L20 10L30 6" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-            <path d="M27 5l4 1-1 4" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-          </svg>
-        </div>
+        <img src="/images/crest.png" alt="" width="22" height="22" style={{ display: 'block', marginRight: '14px', flexShrink: 0, objectFit: 'contain' }} />
         <span style={{
           fontFamily: 'var(--font-sans)',
           fontSize: '13px',
