@@ -30,7 +30,7 @@ export default function LandingPage() {
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', marginRight: '14px', flexShrink: 0 }}><ShieldLogo size={22} /></div>
+          <div style={{ display: 'flex', alignItems: 'center', marginRight: '14px', flexShrink: 0 }}><ShieldLogo size={24} /></div>
           <span style={{
             fontFamily: 'var(--font-sans)',
             fontSize: '13px', fontWeight: 600,

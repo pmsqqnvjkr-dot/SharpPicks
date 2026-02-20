@@ -50,7 +50,7 @@ export default function AppHeader({ onNavigate, showSportToggle }) {
       borderBottom: '1px solid rgba(255,255,255,0.06)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <img src="/images/crest.png" alt="" width="22" height="22" style={{ display: 'block', marginRight: '14px', flexShrink: 0, objectFit: 'contain' }} />
+        <img src="/images/crest.png" alt="" width="24" height="24" style={{ display: 'block', marginRight: '14px', flexShrink: 0, objectFit: 'contain' }} />
         <span style={{
           fontFamily: 'var(--font-sans)',
           fontSize: '13px',
