@@ -880,7 +880,8 @@ def grade_pending_picks():
 
 def collect_closing_lines():
     """Snapshot current lines as closing lines from local SQLite.
-    Only processes games starting within the next 10 minutes.
+    Fetches all today's games, then filters for those tipping off within
+    the next 10 minutes that haven't been scored yet.
     Does NOT re-fetch from external APIs — relies on refresh-lines cron
     to keep lines current."""
     with app.app_context():
@@ -889,32 +890,38 @@ def collect_closing_lines():
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
+            today_str = _get_et_today()
             now_utc = datetime.utcnow()
-            window_end = now_utc + timedelta(minutes=10)
             now_iso = now_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
+            window_end = now_utc + timedelta(minutes=10)
             end_iso = window_end.strftime('%Y-%m-%dT%H:%M:%SZ')
 
             cursor.execute('''
                 SELECT id, home_team, away_team, spread_home, total,
-                       home_ml, away_ml, game_date, game_time
+                       home_ml, away_ml, game_date, game_time,
+                       home_score, spread_home_close
                 FROM games
-                WHERE game_time IS NOT NULL
-                AND game_time >= ?
-                AND game_time <= ?
-                AND home_score IS NULL
+                WHERE game_date = ?
+                AND game_time IS NOT NULL
                 AND spread_home IS NOT NULL
-            ''', (now_iso, end_iso))
+            ''', (today_str,))
 
-            games = cursor.fetchall()
-
-            if not games:
-                conn.close()
-                return {'processed': 0, 'reason': 'no games within 10min window'}
-
+            all_today = cursor.fetchall()
+            evaluated = 0
             updated = 0
-            today_str = _get_et_today()
+            skipped_scored = 0
+            skipped_outside = 0
 
-            for game in games:
+            for game in all_today:
+                gt = game['game_time']
+                if gt < now_iso or gt > end_iso:
+                    skipped_outside += 1
+                    continue
+                evaluated += 1
+                if game['home_score'] is not None:
+                    skipped_scored += 1
+                    continue
+
                 cursor.execute('''
                     UPDATE games SET
                         spread_home_close = ?,
@@ -950,7 +957,15 @@ def collect_closing_lines():
             conn.commit()
             conn.close()
             db.session.commit()
-            return {'processed': updated, 'window': f'{now_iso} to {end_iso}'}
+            print(f"[{datetime.now()}] closing-lines: {len(all_today)} today, {evaluated} in window, {updated} snapshotted, {skipped_scored} already scored, {skipped_outside} outside window")
+            return {
+                'today_games': len(all_today),
+                'evaluated': evaluated,
+                'snapshotted': updated,
+                'skipped_scored': skipped_scored,
+                'skipped_outside': skipped_outside,
+                'window': f'{now_iso} to {end_iso}',
+            }
         except Exception as e:
             print(f"[{datetime.now()}] Closing line error: {e}")
             raise
