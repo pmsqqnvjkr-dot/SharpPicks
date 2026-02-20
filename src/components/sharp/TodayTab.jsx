@@ -139,14 +139,14 @@ function Header({ user, onAuthClick }) {
       justifyContent: 'space-between',
       alignItems: 'center',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <svg viewBox="0 0 40 40" width="18" height="18" fill="none" style={{ display: 'block' }}>
-          <path d="M20 2L4 9v12c0 10 6.5 18.5 16 21 9.5-2.5 16-11 16-21V9L20 2z" stroke="white" strokeWidth="3" fill="none"/>
-          <rect x="14" y="16" width="3" height="12" rx="1" fill="white"/>
-          <rect x="19" y="12" width="3" height="16" rx="1" fill="white"/>
-          <rect x="24" y="18" width="3" height="10" rx="1" fill="white"/>
-          <path d="M12 20L20 10L30 6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-          <path d="M27 5l4 1-1 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <svg viewBox="0 0 40 40" width="22" height="22" fill="none" style={{ display: 'block', marginRight: '14px', transform: 'translateY(-1px)' }}>
+          <path d="M20 2L4 9v12c0 10 6.5 18.5 16 21 9.5-2.5 16-11 16-21V9L20 2z" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" fill="none"/>
+          <rect x="14" y="16" width="3" height="12" rx="1" fill="rgba(255,255,255,0.85)"/>
+          <rect x="19" y="12" width="3" height="16" rx="1" fill="rgba(255,255,255,0.85)"/>
+          <rect x="24" y="18" width="3" height="10" rx="1" fill="rgba(255,255,255,0.85)"/>
+          <path d="M12 20L20 10L30 6" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+          <path d="M27 5l4 1-1 4" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
         </svg>
         <span style={{
           fontFamily: 'var(--font-sans)',
@@ -156,7 +156,7 @@ function Header({ user, onAuthClick }) {
           letterSpacing: '3.9px',
           textTransform: 'uppercase',
           lineHeight: 1,
-        }}>SHARP<span style={{ opacity: 0.7, margin: '0 0.6em', fontWeight: 700 }}>||</span>PICKS</span>
+        }}>SHARP<span style={{ opacity: 0.65, margin: '0 0.6em', fontWeight: 500 }}>||</span>PICKS</span>
       </div>
       {!user && (
         <button

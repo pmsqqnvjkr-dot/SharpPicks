@@ -35,7 +35,7 @@ export default function TabNav({ activeTab, onTabChange }) {
             aria-current={isActive ? 'page' : undefined}
             style={{
               position: 'relative',
-              background: isActive ? 'rgba(52, 211, 153, 0.06)' : 'none',
+              background: 'none',
               border: 'none',
               borderRadius: '8px',
               padding: '8px 14px',
@@ -43,9 +43,8 @@ export default function TabNav({ activeTab, onTabChange }) {
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: isActive ? 'var(--green-profit)' : 'rgba(255,255,255,0.5)',
-              opacity: isActive ? 1 : 0.6,
-              transition: 'color 0.2s, background 0.2s',
+              color: isActive ? '#4BD38B' : 'rgba(255,255,255,0.35)',
+              transition: 'color 0.2s',
             }}
           >
             <tab.icon />

@@ -219,10 +219,11 @@ export default function PicksTab({ onNavigate }) {
           {['all', 'wins', 'losses', 'pending'].map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
               padding: '5px 12px', borderRadius: '8px', fontSize: '11px',
-              fontWeight: 600, border: 'none', cursor: 'pointer',
+              fontWeight: 600, cursor: 'pointer',
               textTransform: 'capitalize', fontFamily: 'var(--font-sans)',
-              backgroundColor: filter === f ? 'var(--blue-primary)' : 'var(--surface-2)',
-              color: filter === f ? '#fff' : 'var(--text-secondary)',
+              backgroundColor: filter === f ? 'rgba(79,125,243,0.18)' : 'rgba(255,255,255,0.04)',
+              color: filter === f ? '#FFFFFF' : 'rgba(255,255,255,0.55)',
+              border: filter === f ? '1px solid rgba(79,125,243,0.45)' : '1px solid transparent',
             }}>{f}</button>
           ))}
         </div>
@@ -292,7 +293,7 @@ export default function PicksTab({ onNavigate }) {
                       )}
                       {isPro && pick.edge_pct && (
                         <div style={{
-                          fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
+                          fontSize: '10px', color: 'rgba(255,255,255,0.45)', marginTop: '2px',
                           fontFamily: 'var(--font-mono)',
                         }}>{pick.edge_pct}% edge</div>
                       )}
@@ -452,11 +453,11 @@ function WaitingCard() {
     <div style={{ textAlign: 'center', padding: '40px 0 24px' }}>
       <div style={{
         width: '64px', height: '64px', borderRadius: '16px',
-        backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+        backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.12)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         margin: '0 auto 24px',
       }}>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5">
           <circle cx="12" cy="12" r="10"/>
           <polyline points="12 6 12 12 16 14"/>
         </svg>
@@ -526,12 +527,12 @@ function Stat({ label, value }) {
 function RecordStrip({ stats }) {
   return (
     <div style={{
-      backgroundColor: 'var(--surface-1)', borderRadius: '12px',
+      backgroundColor: 'rgba(18,23,37,0.85)', borderRadius: '8px',
       padding: '16px 20px', marginTop: '16px',
       border: '1px solid var(--stroke-subtle)',
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     }}>
-      <div style={{ display: 'flex', gap: '20px' }}>
+      <div style={{ display: 'flex', gap: '28px' }}>
         <MiniStat label="Picks" value={stats.total_picks} />
         <MiniStat label="Passes" value={stats.total_passes} />
         <MiniStat label="Select." value={`${stats.selectivity}%`} />
