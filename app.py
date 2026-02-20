@@ -1220,7 +1220,7 @@ _cron_locks = {}
 _cron_lock_mutex = threading.Lock()
 
 CRON_MIN_INTERVAL = {
-    'closing_lines': 45,
+    'closing_lines': 60,
     'refresh_lines': 300,
     'collect_games': 600,
     'grade_picks': 300,
