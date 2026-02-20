@@ -1025,7 +1025,21 @@ class EnsemblePredictor:
             print(f"\n   {len(failed)} games hard-passed: {', '.join(set(r for p in failed for r in p['fail_reasons']))}")
         if excluded_count > 0:
             print(f"   {excluded_count} games excluded (below {self.edge_threshold_pct}% adjusted edge)")
-        
+
+        all_adj = [p['adjusted_edge'] for p in picks]
+        all_rw = [p['risk_weighted_edge'] for p in picks]
+        all_req = [p['required_edge'] for p in picks]
+        if all_adj:
+            max_adj = max(all_adj)
+            max_rw = max(all_rw)
+            min_req = min(all_req)
+            best_game = max(picks, key=lambda p: p['adjusted_edge'])
+            print(f"\n   Max edge today: {max_adj:+.1f}% (risk-weighted: {max_rw:+.1f}%)")
+            print(f"   Lowest threshold: {min_req:.1f}% (base: {self.edge_threshold_pct}%)")
+            print(f"   Best game: {best_game['game']} — need {best_game['required_edge']:.1f}%, have {best_game['adjusted_edge']:+.1f}%")
+            if best_game['pass_reason']:
+                print(f"   Pass reason: {best_game['pass_reason']}")
+
         if log_predictions:
             try:
                 from performance_tracker import log_prediction
