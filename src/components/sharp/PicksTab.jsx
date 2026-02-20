@@ -247,7 +247,7 @@ export default function PicksTab({ onNavigate }) {
               const isPending = pick.result === 'pending';
               const isRevoked = pick.result === 'revoked';
               const hideLine = !isPro && isPending;
-              const canView = isPro && pickResolved;
+              const canView = isPro && (pickResolved || isRevoked);
               return (
                 <div key={pick.id} onClick={() => canView && (() => { setResolutionPick(pick); setShowResolution(true); })()} style={{
                   padding: '14px 20px',
@@ -375,6 +375,21 @@ function RevokedPassCard({ pick, onViewDetails }) {
         color: 'var(--text-tertiary)',
       }}>
         {pick.edge_pct ? `${pick.edge_pct}% edge at entry · ` : ''}Pulled pre-tip
+      </div>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+        marginTop: '16px', paddingTop: '14px',
+        borderTop: '1px solid rgba(99,102,241,0.12)',
+      }}>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+          letterSpacing: '1px', textTransform: 'uppercase',
+          color: 'rgba(99,102,241,0.6)',
+        }}>View details</span>
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="rgba(99,102,241,0.5)" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
       </div>
     </div>
   );
