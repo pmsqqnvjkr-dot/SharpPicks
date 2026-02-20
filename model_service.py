@@ -205,10 +205,12 @@ def run_model_and_log(app, sport='nba'):
     is_active = cfg.get('active', True)
 
     if not is_active:
+        print(f"[model-run] {sport} is inactive, skipping")
         return {'status': 'inactive', 'sport': sport, 'message': f'{cfg["name"]} is inactive.'}
 
     start_time = time.time()
     today_str = _get_et_date()
+    print(f"[model-run] Starting {sport} run for {today_str} (live={is_live})")
 
     with app.app_context():
         existing_pick = Pick.query.filter(
@@ -218,6 +220,7 @@ def run_model_and_log(app, sport='nba'):
         existing_pass = Pass.query.filter_by(date=today_str, sport=sport).first()
 
         if existing_pick or existing_pass:
+            print(f"[model-run] Already run for {today_str} — pick={'yes' if existing_pick else 'no'}, pass={'yes' if existing_pass else 'no'}")
             return {'status': 'already_run', 'date': today_str, 'sport': sport}
 
         try:
@@ -225,9 +228,11 @@ def run_model_and_log(app, sport='nba'):
 
             model = EnsemblePredictor(sport=sport)
             if not model.load_model():
+                print(f"[model-run] ERROR: Model not trained for {sport}")
                 return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
 
             predictions = model.predict_games(log_predictions=True)
+            print(f"[model-run] Games found: {len(predictions) if predictions else 0}")
 
             if not predictions:
                 pass_entry = Pass(
@@ -264,6 +269,7 @@ def run_model_and_log(app, sport='nba'):
             closest_edge = max(all_edges) if all_edges else 0
 
             duration_ms = int((time.time() - start_time) * 1000)
+            print(f"[model-run] Eligible: {len(qualified)}, Max edge: {closest_edge:+.1f}%, Duration: {duration_ms}ms")
 
             if qualified:
                 best = max(qualified, key=lambda p: p.get('adjusted_edge', 0))
@@ -324,6 +330,7 @@ def run_model_and_log(app, sport='nba'):
                         import logging
                         logging.error(f"Pick notification failed: {notif_err}")
 
+                    print(f"[model-run] Published: {pick.side} | Edge: {pick.edge_pct}% | {best['away_team']} @ {best['home_team']}")
                     return {
                         'status': 'pick',
                         'pick_id': pick.id,
@@ -434,6 +441,7 @@ def run_model_and_log(app, sport='nba'):
                     import logging
                     logging.error(f"Pass notification failed: {notif_err}")
 
+                print(f"[model-run] Pass: {top_pass_reason} | Max edge: {closest_edge:+.1f}% | {len(predictions)} games")
                 return {
                     'status': 'pass',
                     'closest_edge': round(closest_edge, 1),
