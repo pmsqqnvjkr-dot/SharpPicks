@@ -139,8 +139,8 @@ function Header({ user, onAuthClick }) {
       justifyContent: 'space-between',
       alignItems: 'center',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <svg viewBox="0 0 40 40" width="16" height="16" fill="none">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <svg viewBox="0 0 40 40" width="18" height="18" fill="none" style={{ display: 'block' }}>
           <path d="M20 2L4 9v12c0 10 6.5 18.5 16 21 9.5-2.5 16-11 16-21V9L20 2z" stroke="white" strokeWidth="3" fill="none"/>
           <rect x="14" y="16" width="3" height="12" rx="1" fill="white"/>
           <rect x="19" y="12" width="3" height="16" rx="1" fill="white"/>
@@ -153,9 +153,10 @@ function Header({ user, onAuthClick }) {
           fontSize: '13px',
           fontWeight: 600,
           color: 'rgba(255,255,255,0.9)',
-          letterSpacing: '2.5px',
+          letterSpacing: '3.9px',
           textTransform: 'uppercase',
-        }}>SHARP <span style={{ opacity: 0.5 }}>||</span> PICKS</span>
+          lineHeight: 1,
+        }}>SHARP<span style={{ opacity: 0.7, margin: '0 0.6em', fontWeight: 700 }}>||</span>PICKS</span>
       </div>
       {!user && (
         <button

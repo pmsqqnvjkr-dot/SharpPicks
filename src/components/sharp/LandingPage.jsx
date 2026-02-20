@@ -31,17 +31,20 @@ export default function LandingPage() {
       overflow: 'auto',
     }}>
       <div style={{
-        padding: '8px 24px 16px',
+        padding: '12px 24px 12px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        backgroundColor: '#0B1A2B',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <ShieldLogo size={16} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <ShieldLogo size={18} />
           <span style={{
             fontFamily: 'var(--font-sans)',
             fontSize: '13px', fontWeight: 600,
             color: 'rgba(255,255,255,0.9)',
-            letterSpacing: '2.5px', textTransform: 'uppercase',
-          }}>SHARP <span style={{ opacity: 0.5 }}>||</span> PICKS</span>
+            letterSpacing: '3.9px', textTransform: 'uppercase',
+            lineHeight: 1,
+          }}>SHARP<span style={{ opacity: 0.7, margin: '0 0.6em', fontWeight: 700 }}>||</span>PICKS</span>
         </div>
         <button
           onClick={() => { setAuthMode('login'); setShowAuth(true); }}
