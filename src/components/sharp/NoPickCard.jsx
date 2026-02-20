@@ -5,15 +5,17 @@ export default function NoPickCard({ data, onInsightTap }) {
     <div style={{ padding: '0 4px' }}>
       <div style={{ textAlign: 'center', padding: '24px 0 32px' }}>
         <div style={{
-          width: '72px', height: '72px', borderRadius: '22px',
-          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-muted)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 24px',
+          gap: '6px', margin: '0 auto 24px',
         }}>
-          <svg viewBox="0 0 24 24" width="32" height="32" stroke="var(--text-secondary)" fill="none" strokeWidth="2.5" strokeLinecap="round">
-            <rect x="6" y="5" width="4" height="14" rx="1" />
-            <rect x="14" y="5" width="4" height="14" rx="1" />
-          </svg>
+          <div style={{
+            width: '4px', height: '32px', borderRadius: '2px',
+            backgroundColor: 'var(--text-secondary)', opacity: 0.6,
+          }} />
+          <div style={{
+            width: '4px', height: '32px', borderRadius: '2px',
+            backgroundColor: 'var(--text-secondary)', opacity: 0.6,
+          }} />
         </div>
 
         <h1 style={{

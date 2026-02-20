@@ -292,20 +292,24 @@ function DashHeader() {
       alignItems: 'center',
       justifyContent: 'space-between',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-          <path d="M16 4L6 8v8c0 5.5 4.3 10.7 10 12 5.7-1.3 10-6.5 10-12V8l-10-4z" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5"/>
-          <path d="M11 16l3 3 7-7" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <svg viewBox="0 0 40 40" width="16" height="16" fill="none">
+          <path d="M20 2L4 9v12c0 10 6.5 18.5 16 21 9.5-2.5 16-11 16-21V9L20 2z" stroke="white" strokeWidth="3" fill="none"/>
+          <rect x="14" y="16" width="3" height="12" rx="1" fill="white"/>
+          <rect x="19" y="12" width="3" height="16" rx="1" fill="white"/>
+          <rect x="24" y="18" width="3" height="10" rx="1" fill="white"/>
+          <path d="M12 20L20 10L30 6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+          <path d="M27 5l4 1-1 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
         </svg>
         <span style={{
           fontFamily: 'var(--font-sans)',
           fontSize: '13px',
-          fontWeight: 700,
-          letterSpacing: '2px',
+          fontWeight: 600,
+          letterSpacing: '2.5px',
           textTransform: 'uppercase',
-          color: 'var(--text-primary)',
+          color: 'rgba(255,255,255,0.9)',
         }}>
-          Sharp Picks
+          SHARP <span style={{ opacity: 0.5 }}>||</span> PICKS
         </span>
       </div>
       <div style={{

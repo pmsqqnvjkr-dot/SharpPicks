@@ -139,23 +139,23 @@ function Header({ user, onAuthClick }) {
       justifyContent: 'space-between',
       alignItems: 'center',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <svg viewBox="0 0 40 40" width="24" height="24" fill="none">
-          <path d="M20 4L6 10v10c0 9.2 6 17.4 14 20 8-2.6 14-10.8 14-20V10L20 4z" stroke="white" strokeWidth="1.8" fill="none"/>
-          <rect x="12" y="24" width="3" height="6" rx="1" fill="rgba(255,255,255,0.3)"/>
-          <rect x="17" y="20" width="3" height="10" rx="1" fill="rgba(255,255,255,0.4)"/>
-          <rect x="22" y="22" width="3" height="8" rx="1" fill="rgba(255,255,255,0.35)"/>
-          <path d="M11 22L17 16L22 19L30 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M26 11h4v4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <svg viewBox="0 0 40 40" width="16" height="16" fill="none">
+          <path d="M20 2L4 9v12c0 10 6.5 18.5 16 21 9.5-2.5 16-11 16-21V9L20 2z" stroke="white" strokeWidth="3" fill="none"/>
+          <rect x="14" y="16" width="3" height="12" rx="1" fill="white"/>
+          <rect x="19" y="12" width="3" height="16" rx="1" fill="white"/>
+          <rect x="24" y="18" width="3" height="10" rx="1" fill="white"/>
+          <path d="M12 20L20 10L30 6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+          <path d="M27 5l4 1-1 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
         </svg>
         <span style={{
           fontFamily: 'var(--font-sans)',
           fontSize: '13px',
-          fontWeight: 700,
-          color: 'var(--text-primary)',
-          letterSpacing: '2px',
+          fontWeight: 600,
+          color: 'rgba(255,255,255,0.9)',
+          letterSpacing: '2.5px',
           textTransform: 'uppercase',
-        }}>Sharp Picks</span>
+        }}>SHARP <span style={{ opacity: 0.5 }}>||</span> PICKS</span>
       </div>
       {!user && (
         <button
@@ -255,29 +255,21 @@ function DailyBrief({ stats }) {
   return (
     <div style={{ textAlign: 'center', padding: '40px 0 24px' }}>
       <div style={{
-        width: '64px', height: '64px', borderRadius: '16px',
-        backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        margin: '0 auto 24px',
+        gap: '6px', margin: '0 auto 24px',
       }}>
-        <svg viewBox="0 0 40 40" width="36" height="36" fill="none">
-          <path d="M20 4L6 10v10c0 9.2 6 17.4 14 20 8-2.6 14-10.8 14-20V10L20 4z" stroke="white" strokeWidth="1.8" fill="none"/>
-          <rect x="12" y="24" width="3" height="6" rx="1" fill="rgba(255,255,255,0.3)"/>
-          <rect x="17" y="20" width="3" height="10" rx="1" fill="rgba(255,255,255,0.4)"/>
-          <rect x="22" y="22" width="3" height="8" rx="1" fill="rgba(255,255,255,0.35)"/>
-          <path d="M11 22L17 16L22 19L30 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M26 11h4v4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        <div style={{ width: '4px', height: '28px', borderRadius: '2px', backgroundColor: 'var(--text-secondary)', opacity: 0.5 }} />
+        <div style={{ width: '4px', height: '28px', borderRadius: '2px', backgroundColor: 'var(--text-secondary)', opacity: 0.5 }} />
       </div>
       <h2 style={{
-        fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
+        fontFamily: 'var(--font-serif)', fontSize: '20px', fontWeight: 600,
         color: 'var(--text-primary)', marginBottom: '8px',
-      }}>Standing by</h2>
+      }}>Waiting for model</h2>
       <p style={{
         fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
         maxWidth: '300px', margin: '0 auto',
       }}>
-        The model is waiting for today's game data. When games are available, it will analyze all matchups and publish a pick only if the edge exceeds the threshold.
+        The system has not processed today's data yet. Signals will update as games are analyzed.
       </p>
       {stats && (
         <div style={{

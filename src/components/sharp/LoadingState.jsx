@@ -5,44 +5,68 @@ export default function LoadingState() {
         padding: '16px 20px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <svg viewBox="0 0 40 40" width="24" height="24" fill="none">
-            <path d="M20 4L6 10v10c0 9.2 6 17.4 14 20 8-2.6 14-10.8 14-20V10L20 4z" stroke="white" strokeWidth="1.8" fill="none"/>
-            <rect x="12" y="24" width="3" height="6" rx="1" fill="rgba(255,255,255,0.3)"/>
-            <rect x="17" y="20" width="3" height="10" rx="1" fill="rgba(255,255,255,0.4)"/>
-            <rect x="22" y="22" width="3" height="8" rx="1" fill="rgba(255,255,255,0.35)"/>
-            <path d="M11 22L17 16L22 19L30 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M26 11h4v4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <svg viewBox="0 0 40 40" width="16" height="16" fill="none">
+            <path d="M20 2L4 9v12c0 10 6.5 18.5 16 21 9.5-2.5 16-11 16-21V9L20 2z" stroke="white" strokeWidth="3" fill="none"/>
+            <rect x="14" y="16" width="3" height="12" rx="1" fill="white"/>
+            <rect x="19" y="12" width="3" height="16" rx="1" fill="white"/>
+            <rect x="24" y="18" width="3" height="10" rx="1" fill="white"/>
+            <path d="M12 20L20 10L30 6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            <path d="M27 5l4 1-1 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
           </svg>
           <span style={{
-            fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 700,
-            color: 'var(--text-primary)', letterSpacing: '2px', textTransform: 'uppercase',
-          }}>Sharp Picks</span>
+            fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 600,
+            color: 'rgba(255,255,255,0.9)', letterSpacing: '2.5px', textTransform: 'uppercase',
+          }}>SHARP <span style={{ opacity: 0.5 }}>||</span> PICKS</span>
         </div>
       </div>
 
-      <div style={{ padding: '0 20px' }}>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', padding: '60px 20px 40px',
+      }}>
         <div style={{
-          display: 'flex', alignItems: 'center', gap: '8px',
-          marginBottom: '20px',
+          display: 'flex', alignItems: 'center', gap: '6px',
+          marginBottom: '28px',
         }}>
           <div style={{
-            width: '8px', height: '8px', borderRadius: '50%',
-            backgroundColor: 'var(--blue-primary)',
-            animation: 'loadingPulse 1.5s ease-in-out infinite',
+            width: '4px', height: '28px', borderRadius: '2px',
+            backgroundColor: 'var(--text-secondary)',
+            animation: 'barPulse 1.4s ease-in-out infinite',
           }} />
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '12px',
-            color: 'var(--text-secondary)', letterSpacing: '0.02em',
-          }}>Checking today's model output...</span>
+          <div style={{
+            width: '4px', height: '28px', borderRadius: '2px',
+            backgroundColor: 'var(--text-secondary)',
+            animation: 'barPulse 1.4s ease-in-out infinite 0.2s',
+          }} />
         </div>
 
+        <h2 style={{
+          fontFamily: 'var(--font-serif)',
+          fontSize: '20px', fontWeight: 600,
+          color: 'var(--text-primary)',
+          marginBottom: '10px',
+          textAlign: 'center',
+        }}>Waiting for model</h2>
+
+        <p style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: '14px', fontWeight: 400,
+          color: 'var(--text-secondary)',
+          textAlign: 'center',
+          lineHeight: '1.55',
+          maxWidth: '280px',
+        }}>
+          The system has not processed today's data yet. Signals will update as games are analyzed.
+        </p>
+      </div>
+
+      <div style={{ padding: '0 20px' }}>
         <SkeletonCard>
           <SkeletonBar width="40%" />
           <SkeletonBar height="48px" radius="10px" />
           <SkeletonBar width="65%" />
-          <SkeletonBar width="50%" />
-          <SkeletonBar height="80px" radius="10px" last />
+          <SkeletonBar width="50%" last />
         </SkeletonCard>
 
         <SkeletonCard>
@@ -54,18 +78,12 @@ export default function LoadingState() {
             <SkeletonBar height="60px" radius="10px" last />
           </div>
         </SkeletonCard>
-
-        <SkeletonCard>
-          <SkeletonBar width="45%" />
-          <SkeletonBar width="80%" />
-          <SkeletonBar width="60%" last />
-        </SkeletonCard>
       </div>
 
       <style>{`
-        @keyframes loadingPulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
+        @keyframes barPulse {
+          0%, 100% { opacity: 1; transform: scaleY(1); }
+          50% { opacity: 0.3; transform: scaleY(0.7); }
         }
         @keyframes shimmer {
           0% { background-position: -200% 0; }

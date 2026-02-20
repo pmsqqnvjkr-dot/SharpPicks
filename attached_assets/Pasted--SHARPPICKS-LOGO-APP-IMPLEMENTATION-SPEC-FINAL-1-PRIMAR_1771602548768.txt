@@ -1,0 +1,187 @@
+🔒 SHARPPICKS LOGO + APP IMPLEMENTATION SPEC (FINAL)
+
+⸻
+
+1️⃣ PRIMARY APP ICON (LOCKED)
+
+Name: SharpPicks_AppIcon_Primary
+
+Structure:
+	•	Background: Midnight
+	•	HEX: #0B1A2B
+	•	Shield outline: White #FFFFFF
+	•	Arrow + bars: White #FFFFFF
+	•	No gradients
+	•	No glow
+	•	No drop shadow
+	•	Flat vector only
+
+Geometry Rules:
+	•	Shield stroke weight: 8–10% of icon width
+	•	Internal arrow centered
+	•	Bars aligned to center vertical axis
+	•	Safe padding: 18% inside rounded square
+
+iOS Required Sizes:
+	•	1024x1024 (App Store)
+	•	180x180 (iPhone)
+	•	167x167 (iPad Pro)
+	•	152x152 (iPad)
+	•	120x120 (iPhone legacy)
+
+Android:
+	•	512x512 adaptive foreground
+	•	Background solid midnight
+
+No text on icon.
+No SHARP || PICKS on icon.
+
+This is your product mark only.
+
+⸻
+
+2️⃣ IN-APP LOGO USAGE (Header Placement)
+
+From your screenshot:
+
+Top Left Header
+
+Use:
+
+ICON (16px height)
++
+SHARP PICKS (spaced)
+
+But here’s the correction:
+
+It should read:
+
+SHARP || PICKS
+
+Spacing rules:
+	•	12px space between icon and wordmark
+	•	Wordmark in Inter SemiBold
+	•	Tracking: +40
+	•	All caps
+	•	White at 90% opacity
+
+Remove:
+Any glow or soft blur behind it.
+
+⸻
+
+3️⃣ HERO SECTION LOGO (Landing Page)
+
+Current hero shows shield faded.
+
+Correct version:
+	•	Shield watermark at 8% opacity
+	•	No gradient behind it
+	•	Centered vertically
+	•	Slight blur radius: 2px max
+
+Headline:
+IBM Plex Serif
+White
+Large contrast
+
+Subheadline:
+Inter Regular
+70% white opacity
+
+⸻
+
+4️⃣ SIGNAL MARK (||) SYSTEM
+
+You now have a brand weapon.
+
+Use || for:
+	•	Tab active indicator
+	•	Loading animation
+	•	“Model running” animation
+	•	Success state pulse
+	•	Splash screen micro animation
+
+Never use bars randomly.
+Always centered.
+Always symmetrical.
+
+⸻
+
+5️⃣ MODEL WAITING SCREEN (Refinement)
+
+Current:
+“Waiting for model”
+
+Upgrade to:
+
+Icon: Animated ||
+Text hierarchy:
+
+Headline:
+Waiting for model
+
+Subtext:
+The system has not processed today’s data yet.
+Signals will update as games are analyzed.
+
+Tone:
+Calm.
+Not sportsbook hype.
+
+⸻
+
+6️⃣ EDGE COLOR SYSTEM
+
+Wins: #4BD38B
+Loss: #FF5A5F
+Withdrawn: #8E9AAF
+
+No neon.
+Muted saturation only.
+
+⸻
+
+7️⃣ BUTTON SYSTEM
+
+Primary CTA:
+Background: #4F7DF3
+Text: White
+Border radius: 14px
+Shadow: subtle 4px soft dark
+
+Secondary:
+Border only
+White 30% opacity
+
+⸻
+
+8️⃣ FAVICON + WEB ICON
+
+Use the app icon shield only.
+No text.
+No wordmark.
+
+⸻
+
+9️⃣ WHAT NOT TO DO
+
+❌ No gradients inside shield
+❌ No drop shadows on logo
+❌ No glowing bars
+❌ No blue glow backgrounds
+❌ No sportsbook green highlights
+
+You are building:
+
+Structured intelligence.
+Not betting content.
+
+⸻
+
+10️⃣ FINAL HIERARCHY (Locked)
+
+Primary Mark: Shield + Arrow
+Secondary: SHARP || PICKS
+Tertiary: ||
+Philosophy: One Pick Beats Five

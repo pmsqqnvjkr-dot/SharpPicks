@@ -479,29 +479,21 @@ function DailyBrief({ stats }) {
   return (
     <div style={{ textAlign: 'center', padding: '40px 0 24px' }}>
       <div style={{
-        width: '64px', height: '64px', borderRadius: '16px',
-        backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        margin: '0 auto 24px',
+        gap: '6px', margin: '0 auto 24px',
       }}>
-        <svg viewBox="0 0 40 40" width="36" height="36" fill="none">
-          <path d="M20 4L6 10v10c0 9.2 6 17.4 14 20 8-2.6 14-10.8 14-20V10L20 4z" stroke="white" strokeWidth="1.8" fill="none"/>
-          <rect x="12" y="24" width="3" height="6" rx="1" fill="rgba(255,255,255,0.3)"/>
-          <rect x="17" y="20" width="3" height="10" rx="1" fill="rgba(255,255,255,0.4)"/>
-          <rect x="22" y="22" width="3" height="8" rx="1" fill="rgba(255,255,255,0.35)"/>
-          <path d="M11 22L17 16L22 19L30 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M26 11h4v4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        <div style={{ width: '4px', height: '28px', borderRadius: '2px', backgroundColor: 'var(--text-secondary)', opacity: 0.5 }} />
+        <div style={{ width: '4px', height: '28px', borderRadius: '2px', backgroundColor: 'var(--text-secondary)', opacity: 0.5 }} />
       </div>
       <h2 style={{
-        fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
+        fontFamily: 'var(--font-serif)', fontSize: '20px', fontWeight: 600,
         color: 'var(--text-primary)', marginBottom: '8px',
-      }}>Standing by</h2>
+      }}>Waiting for model</h2>
       <p style={{
         fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
         maxWidth: '300px', margin: '0 auto',
       }}>
-        The model is waiting for today's game data. When games are available, it will analyze all matchups and publish a pick only if the edge exceeds the threshold.
+        The system has not processed today's data yet. Signals will update as games are analyzed.
       </p>
       {stats && (
         <div style={{

@@ -11,14 +11,14 @@ export default function LandingPage() {
 
   const spotsLeft = founding ? (founding.remaining != null ? founding.remaining : Math.max(0, 50 - (founding.current || 0))) : null;
 
-  const ShieldLogo = ({ size = 24 }) => (
-    <svg viewBox="0 0 40 40" width={size} height={size} fill="none">
-      <path d="M20 4L6 10v10c0 9.2 6 17.4 14 20 8-2.6 14-10.8 14-20V10L20 4z" stroke="white" strokeWidth="1.8" fill="none"/>
-      <rect x="12" y="24" width="3" height="6" rx="1" fill="rgba(255,255,255,0.3)"/>
-      <rect x="17" y="20" width="3" height="10" rx="1" fill="rgba(255,255,255,0.4)"/>
-      <rect x="22" y="22" width="3" height="8" rx="1" fill="rgba(255,255,255,0.35)"/>
-      <path d="M11 22L17 16L22 19L30 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M26 11h4v4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  const ShieldLogo = ({ size = 24, opacity = 1 }) => (
+    <svg viewBox="0 0 40 40" width={size} height={size} fill="none" style={{ opacity }}>
+      <path d="M20 2L4 9v12c0 10 6.5 18.5 16 21 9.5-2.5 16-11 16-21V9L20 2z" stroke="white" strokeWidth="3" fill="none"/>
+      <rect x="14" y="16" width="3" height="12" rx="1" fill="white"/>
+      <rect x="19" y="12" width="3" height="16" rx="1" fill="white"/>
+      <rect x="24" y="18" width="3" height="10" rx="1" fill="white"/>
+      <path d="M12 20L20 10L30 6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <path d="M27 5l4 1-1 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
     </svg>
   );
 
@@ -34,14 +34,14 @@ export default function LandingPage() {
         padding: '8px 24px 16px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <ShieldLogo size={24} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <ShieldLogo size={16} />
           <span style={{
             fontFamily: 'var(--font-sans)',
-            fontSize: '13px', fontWeight: 700,
-            color: 'var(--text-primary)',
-            letterSpacing: '2px', textTransform: 'uppercase',
-          }}>Sharp Picks</span>
+            fontSize: '13px', fontWeight: 600,
+            color: 'rgba(255,255,255,0.9)',
+            letterSpacing: '2.5px', textTransform: 'uppercase',
+          }}>SHARP <span style={{ opacity: 0.5 }}>||</span> PICKS</span>
         </div>
         <button
           onClick={() => { setAuthMode('login'); setShowAuth(true); }}
@@ -66,30 +66,23 @@ export default function LandingPage() {
           marginBottom: '28px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <div style={{
-            position: 'absolute',
-            width: '120px', height: '120px',
-            background: 'radial-gradient(circle, rgba(79,134,247,0.12) 0%, transparent 70%)',
-            borderRadius: '50%',
-          }} />
-          <ShieldLogo size={80} />
+          <ShieldLogo size={80} opacity={0.08} />
         </div>
 
         <h1 style={{
           fontFamily: 'var(--font-serif)',
           fontSize: '32px', fontWeight: 700,
           lineHeight: '1.15',
-          color: 'var(--text-primary)',
+          color: '#FFFFFF',
           marginBottom: '12px',
         }}>
           One Pick Beats Five
         </h1>
 
         <p style={{
-          fontFamily: 'var(--font-serif)',
+          fontFamily: 'var(--font-sans)',
           fontSize: '16px', fontWeight: 400,
-          fontStyle: 'italic',
-          color: 'var(--text-secondary)',
+          color: 'rgba(255,255,255,0.7)',
           marginBottom: '32px',
         }}>
           Discipline is the product.
@@ -101,12 +94,13 @@ export default function LandingPage() {
             width: '100%', maxWidth: '280px',
             height: '52px', borderRadius: '14px',
             border: 'none',
-            background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
+            backgroundColor: 'var(--blue-primary)',
             color: 'white',
             fontFamily: 'var(--font-sans)',
             fontSize: '16px', fontWeight: 700,
             cursor: 'pointer',
             marginBottom: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           }}
         >
           Start 14-Day Trial
@@ -123,8 +117,8 @@ export default function LandingPage() {
           onClick={() => { setAuthMode('register'); setAccountType('free'); setShowAuth(true); }}
           style={{
             width: '100%', maxWidth: '280px',
-            height: '44px', borderRadius: '12px',
-            border: '1px solid var(--stroke-muted)',
+            height: '44px', borderRadius: '14px',
+            border: '1px solid rgba(255,255,255,0.3)',
             backgroundColor: 'transparent',
             color: 'var(--text-secondary)',
             fontFamily: 'var(--font-sans)',
