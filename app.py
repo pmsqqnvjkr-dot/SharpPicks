@@ -1241,6 +1241,7 @@ CRON_MIN_INTERVAL = {
     'grade_picks': 300,
     'grade_whatifs': 300,
     'pretip_validate': 300,
+    'run_model': 600,
 }
 
 def log_cron(job_name, fn):
@@ -1383,6 +1384,17 @@ def cron_backup():
         backup_database()
         return {'picks': len(picks), 'users': len(users)}
     return log_cron('backup', _backup)
+
+
+@app.route('/api/cron/run-model', methods=['POST'])
+@verify_cron
+def cron_run_model():
+    def _run():
+        results = {}
+        for sport in get_live_sports():
+            results[sport] = run_model_and_log(app, sport=sport)
+        return results
+    return log_cron('run_model', _run)
 
 
 @app.route('/api/cron/pretip-validate', methods=['POST'])

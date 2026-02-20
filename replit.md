@@ -54,6 +54,8 @@ All cron endpoints are POST requests secured with `X-Cron-Secret` header. All ti
 | SP — Data Quality | `/api/cron/check-data-quality` | 4:15 AM + 12:15 PM | Detect missing lines/games/odds gaps |
 | SP — Collect Games (AM) | `/api/cron/collect-games` | 5:05 AM | Pull today/next slate early |
 | SP — Collect Games (PM) | `/api/cron/collect-games` | 1:05 PM | Catch late adds/time changes |
+| SP — Run Model (AM) | `/api/cron/run-model` | 10:15 AM | Run model, generate pick or pass |
+| SP — Run Model (PM) | `/api/cron/run-model` | 2:15 PM | Re-run if AM didn't produce result |
 | SP — Refresh Lines | `/api/cron/refresh-lines` | Every 10 min, 6 AM–2 AM | Keep current lines fresh |
 | SP — Closing Lines 1–4 | `/api/cron/closing-lines` | Every min, 10 AM–1 AM (×4 shards) | High-resolution closing capture |
 | SP — Grade Picks | `/api/cron/grade-picks` | 3:45 AM + 11:30 AM | Grade completed events |
