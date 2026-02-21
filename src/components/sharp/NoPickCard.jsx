@@ -34,7 +34,9 @@ export default function NoPickCard({ data, onInsightTap }) {
           lineHeight: '1.55',
           marginBottom: '4px',
         }}>
-          Model analyzed {data.games_analyzed} games.
+          {data.games_analyzed > 0
+            ? `Model analyzed ${data.games_analyzed} games.`
+            : 'Model completed today\u2019s evaluation.'}
         </p>
         <p style={{
           fontSize: '14px',
