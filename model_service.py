@@ -6,9 +6,94 @@ This service only: runs the model, reads outputs, stores to DB.
 """
 
 import time
+import sqlite3
 from datetime import datetime, timedelta
 from models import db, Pick, Pass, ModelRun, EdgeSnapshot, KillSwitch
 from sport_config import get_sport_config, get_live_sports
+
+
+def _diagnose_no_games(today_str, sport='nba'):
+    """Diagnose WHY the model found no games.
+
+    Returns a dict with:
+        situation: 'off_day' | 'no_spreads' | 'data_failure'
+        total_games: int — rows in SQLite for today
+        games_with_spreads: int — rows with spread_home set
+        message: str — human-readable explanation
+    """
+    games_table = 'wnba_games' if sport == 'wnba' else 'games'
+    try:
+        conn = sqlite3.connect('sharp_picks.db')
+        cur = conn.cursor()
+
+        has_table = cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (games_table,)
+        ).fetchone()
+        if not has_table:
+            conn.close()
+            return {
+                'situation': 'data_failure',
+                'total_games': 0,
+                'games_with_spreads': 0,
+                'message': f'SQLite table {games_table} does not exist',
+            }
+
+        total = cur.execute(
+            f"SELECT COUNT(*) FROM {games_table} WHERE game_date = ?",
+            (today_str,)
+        ).fetchone()[0]
+
+        with_spreads = cur.execute(
+            f"SELECT COUNT(*) FROM {games_table} WHERE game_date = ? AND spread_home IS NOT NULL",
+            (today_str,)
+        ).fetchone()[0]
+
+        unscored = cur.execute(
+            f"SELECT COUNT(*) FROM {games_table} WHERE game_date = ? AND home_score IS NULL",
+            (today_str,)
+        ).fetchone()[0]
+
+        conn.close()
+
+        if total == 0:
+            return {
+                'situation': 'data_failure',
+                'total_games': 0,
+                'games_with_spreads': 0,
+                'message': 'No games in database — data collection may have failed',
+            }
+
+        if with_spreads == 0:
+            return {
+                'situation': 'no_spreads',
+                'total_games': total,
+                'games_with_spreads': 0,
+                'message': f'{total} games found but none have spreads — lines may not be posted yet',
+            }
+
+        if unscored == 0:
+            return {
+                'situation': 'off_day',
+                'total_games': total,
+                'games_with_spreads': with_spreads,
+                'message': 'All games already scored — genuine off day or data stale',
+            }
+
+        return {
+            'situation': 'off_day',
+            'total_games': total,
+            'games_with_spreads': with_spreads,
+            'message': f'{total} games, {with_spreads} with spreads — model found none eligible (time filter or other)',
+        }
+
+    except Exception as e:
+        return {
+            'situation': 'data_failure',
+            'total_games': 0,
+            'games_with_spreads': 0,
+            'message': f'SQLite diagnostic error: {e}',
+        }
 
 
 def _to_python(val):
