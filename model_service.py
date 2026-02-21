@@ -361,19 +361,46 @@ def run_model_and_log(app, sport='nba'):
 
                 if situation == 'no_eligible':
                     duration_ms = int((time.time() - start_time) * 1000)
-                    print(f"[model-run] NO ELIGIBLE — {diag['total_games']} games, {diag['games_with_spreads']} with spreads but none passed filters, will retry later")
+                    print(f"[model-run] NO ELIGIBLE — {diag['total_games']} games, {diag['games_with_spreads']} with spreads but none passed filters — creating pass")
+
+                    pass_entry = Pass(
+                        date=today_str,
+                        sport=sport,
+                        games_analyzed=diag['games_with_spreads'],
+                        closest_edge_pct=0,
+                        pass_reason=f"No eligible games — {diag['games_with_spreads']} analyzed, none passed filters",
+                    )
+                    db.session.add(pass_entry)
+
+                    model_run = ModelRun(
+                        date=today_str,
+                        sport=sport,
+                        games_analyzed=diag['games_with_spreads'],
+                        pick_generated=False,
+                        pass_id=pass_entry.id,
+                        run_duration_ms=duration_ms,
+                    )
+                    db.session.add(model_run)
+                    db.session.commit()
+
+                    try:
+                        from notification_service import send_pass_notification
+                        send_pass_notification(pass_entry)
+                    except Exception as notif_err:
+                        import logging
+                        logging.error(f"No-eligible pass notification failed: {notif_err}")
+
                     return {
-                        'status': 'no_eligible',
-                        'reason': diag['message'],
-                        'total_games': diag['total_games'],
-                        'games_with_spreads': diag['games_with_spreads'],
+                        'status': 'pass',
+                        'reason': 'no_eligible',
                         'date': today_str,
                         'sport': sport,
+                        'games_analyzed': diag['games_with_spreads'],
                         'duration_ms': duration_ms,
                     }
 
                 duration_ms = int((time.time() - start_time) * 1000)
-                print(f"[model-run] Unknown no-games situation '{situation}' — not creating pass")
+                print(f"[model-run] Unknown no-games situation '{situation}' — not creating pass, will retry")
                 return {
                     'status': 'unknown_no_games',
                     'reason': diag['message'],
