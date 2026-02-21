@@ -101,8 +101,15 @@ export default function ResolutionScreen({ pick, onBack }) {
         </div>
 
         <div style={{
-          textAlign: 'right', padding: '4px 8px 12px',
+          backgroundColor: 'var(--surface-1)', borderRadius: '12px',
+          border: '1px solid var(--stroke-subtle)', padding: '12px 16px',
+          marginBottom: '16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
+          <span style={{
+            fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 500,
+            color: 'var(--text-tertiary)',
+          }}>P&L</span>
           <span style={{
             fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
             color: pnlColor, opacity: 0.8,
