@@ -143,10 +143,13 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
             <div style={{ padding: '40px 0', textAlign: 'center' }}>
               <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Loading your dashboard...</p>
             </div>
-          ) : !hasBets && pendingBets.length === 0 ? (
+          ) : !hasBets && pendingBets.length === 0 && !(stats && stats.behavioral) ? (
             <EmptyDashboard onTrack={() => setShowTrackModal(true)} />
           ) : (
             <>
+              {!hasBets && pendingBets.length === 0 && (
+                <EmptyDashboard onTrack={() => setShowTrackModal(true)} />
+              )}
               {pendingBets.length > 0 && (
                 <SectionCard title={`Active (${pendingBets.length})`}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -292,7 +295,77 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                 )}
               </SectionCard>
 
-              {stats.behavioral && (
+              <SectionCard title="Streak">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                  <MiniCard
+                    label="Current"
+                    value={`${stats.streak?.current || 0}${stats.streak?.currentType === 'W' ? 'W' : stats.streak?.currentType === 'L' ? 'L' : ''}`}
+                    color={stats.streak?.currentType === 'W' ? 'var(--green-profit)' : stats.streak?.currentType === 'L' ? 'var(--red-loss)' : 'var(--text-primary)'}
+                  />
+                  <MiniCard label="Best Win" value={`${stats.streak?.bestWin || 0}W`} color="var(--green-profit)" />
+                  <MiniCard label="Worst Loss" value={`${stats.streak?.worstLoss || 0}L`} color="var(--red-loss)" />
+                </div>
+                {stats.equityCurve && stats.equityCurve.length > 0 && (
+                  <div style={{ marginTop: '14px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                    {stats.equityCurve.slice(-20).map((p, i) => (
+                      <div key={i} style={{
+                        width: '24px', height: '24px', borderRadius: '4px',
+                        backgroundColor: p.result === 'W' ? 'rgba(52, 211, 153, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                        border: `1px solid ${p.result === 'W' ? 'rgba(52, 211, 153, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '10px', fontWeight: 600, fontFamily: 'var(--font-mono)',
+                        color: p.result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
+                      }}>
+                        {p.result === 'W' ? 'W' : 'L'}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </SectionCard>
+
+              <SectionCard title="Betting Details">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <MiniCard label="Total Risked" value={`$${stats.totalRisked?.toFixed(0) || 0}`} />
+                  <MiniCard label="Avg Bet" value={`$${stats.avgBet?.toFixed(0) || 0}`} />
+                  <MiniCard label="Biggest Win" value={`+$${Math.abs(stats.biggestWin || 0).toFixed(0)}`} color="var(--green-profit)" />
+                  <MiniCard label="Biggest Loss" value={`-$${Math.abs(stats.biggestLoss || 0).toFixed(0)}`} color="var(--red-loss)" />
+                </div>
+              </SectionCard>
+
+              {stats.monthlyBreakdown && stats.monthlyBreakdown.length > 0 && (
+                <SectionCard title="Monthly Breakdown">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {stats.monthlyBreakdown.map((m, i) => (
+                      <div key={i} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '12px 14px', backgroundColor: 'var(--surface-2)', borderRadius: '10px',
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                            {m.label}
+                          </div>
+                          <div style={{
+                            fontFamily: 'var(--font-mono)', fontSize: '12px',
+                            color: 'var(--text-tertiary)', marginTop: '2px',
+                          }}>
+                            {m.wins}W-{m.losses}L ({m.bets} bets) · {m.roi >= 0 ? '+' : ''}{m.roi}% ROI
+                          </div>
+                        </div>
+                        <div style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
+                          color: m.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
+                        }}>
+                          {m.pnl >= 0 ? '+' : ''}${Math.abs(m.pnl).toFixed(0)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
+              </>
+              )}
+
+              {stats && stats.behavioral && (
                 <SectionCard title="Discipline Score">
                   <div style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px',
@@ -368,76 +441,6 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                     </p>
                   </div>
                 </SectionCard>
-              )}
-
-              <SectionCard title="Streak">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                  <MiniCard
-                    label="Current"
-                    value={`${stats.streak?.current || 0}${stats.streak?.currentType === 'W' ? 'W' : stats.streak?.currentType === 'L' ? 'L' : ''}`}
-                    color={stats.streak?.currentType === 'W' ? 'var(--green-profit)' : stats.streak?.currentType === 'L' ? 'var(--red-loss)' : 'var(--text-primary)'}
-                  />
-                  <MiniCard label="Best Win" value={`${stats.streak?.bestWin || 0}W`} color="var(--green-profit)" />
-                  <MiniCard label="Worst Loss" value={`${stats.streak?.worstLoss || 0}L`} color="var(--red-loss)" />
-                </div>
-                {stats.equityCurve && stats.equityCurve.length > 0 && (
-                  <div style={{ marginTop: '14px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {stats.equityCurve.slice(-20).map((p, i) => (
-                      <div key={i} style={{
-                        width: '24px', height: '24px', borderRadius: '4px',
-                        backgroundColor: p.result === 'W' ? 'rgba(52, 211, 153, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                        border: `1px solid ${p.result === 'W' ? 'rgba(52, 211, 153, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '10px', fontWeight: 600, fontFamily: 'var(--font-mono)',
-                        color: p.result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
-                      }}>
-                        {p.result === 'W' ? 'W' : 'L'}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </SectionCard>
-
-              <SectionCard title="Betting Details">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <MiniCard label="Total Risked" value={`$${stats.totalRisked?.toFixed(0) || 0}`} />
-                  <MiniCard label="Avg Bet" value={`$${stats.avgBet?.toFixed(0) || 0}`} />
-                  <MiniCard label="Biggest Win" value={`+$${Math.abs(stats.biggestWin || 0).toFixed(0)}`} color="var(--green-profit)" />
-                  <MiniCard label="Biggest Loss" value={`-$${Math.abs(stats.biggestLoss || 0).toFixed(0)}`} color="var(--red-loss)" />
-                </div>
-              </SectionCard>
-
-              {stats.monthlyBreakdown && stats.monthlyBreakdown.length > 0 && (
-                <SectionCard title="Monthly Breakdown">
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {stats.monthlyBreakdown.map((m, i) => (
-                      <div key={i} style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: '12px 14px', backgroundColor: 'var(--surface-2)', borderRadius: '10px',
-                      }}>
-                        <div>
-                          <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                            {m.label}
-                          </div>
-                          <div style={{
-                            fontFamily: 'var(--font-mono)', fontSize: '12px',
-                            color: 'var(--text-tertiary)', marginTop: '2px',
-                          }}>
-                            {m.wins}W-{m.losses}L ({m.bets} bets) · {m.roi >= 0 ? '+' : ''}{m.roi}% ROI
-                          </div>
-                        </div>
-                        <div style={{
-                          fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
-                          color: m.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
-                        }}>
-                          {m.pnl >= 0 ? '+' : ''}${Math.abs(m.pnl).toFixed(0)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </SectionCard>
-              )}
-              </>
               )}
 
               <div style={{ padding: '4px 0 12px' }}>
@@ -1098,18 +1101,21 @@ function PersonalEquityChart({ data }) {
             stroke="var(--surface-1)" strokeWidth="1.5" />
         ))}
 
-        {data.length <= 12 && data.map((d, i) => {
-          const label = d.date ? d.date.substring(5) : '';
-          const prevLabel = i > 0 && data[i-1].date ? data[i-1].date.substring(5) : '';
-          if (label === prevLabel) return null;
-          return (
-            <text key={i} x={getX(i)} y={height - 5}
-              textAnchor="middle" fill="var(--text-tertiary)"
-              fontSize="7" fontFamily="var(--font-mono)">
-              {label}
-            </text>
-          );
-        })}
+        {(() => {
+          const seenLabels = new Set();
+          return data.length <= 12 && data.map((d, i) => {
+            const label = d.date ? d.date.substring(5) : '';
+            if (!label || seenLabels.has(label)) return null;
+            seenLabels.add(label);
+            return (
+              <text key={i} x={getX(i)} y={height - 5}
+                textAnchor="middle" fill="var(--text-tertiary)"
+                fontSize="7" fontFamily="var(--font-mono)">
+                {label}
+              </text>
+            );
+          });
+        })()}
       </svg>
     </div>
   );

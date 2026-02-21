@@ -945,7 +945,7 @@ function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete, 
               fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
               color: 'var(--text-tertiary)', marginTop: '4px',
             }}>
-              ${bet.bet_amount} at {bet.odds > 0 ? `+${bet.odds}` : bet.odds}
+              ${bet.bet_amount} at {bet.odds != null ? (bet.odds > 0 ? `+${bet.odds}` : bet.odds) : '-110'}
               {bet.to_win ? ` · to win $${bet.to_win}` : ''}
             </div>
           </div>

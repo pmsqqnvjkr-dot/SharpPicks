@@ -61,14 +61,20 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
 
         <RecentPickLog picks={recentPicks} />
 
-        <p style={{
-          fontFamily: 'var(--font-serif)', fontStyle: 'italic',
-          fontSize: '13px', color: 'var(--text-secondary)',
-          textAlign: 'center', padding: '8px 20px 4px',
-          lineHeight: '1.5',
+        <DisciplineScore discipline={discipline} />
+
+        <div style={{
+          textAlign: 'center', padding: '16px 20px 8px',
         }}>
-          This dashboard measures discipline, not excitement.
-        </p>
+          <p style={{
+            fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+            fontSize: '15px', color: 'var(--text-primary)',
+            letterSpacing: '0.3px', lineHeight: '1.5',
+            opacity: 0.85,
+          }}>
+            This dashboard measures discipline, not excitement.
+          </p>
+        </div>
         <p style={{
           fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
           textAlign: 'center', padding: '0 20px 16px',
