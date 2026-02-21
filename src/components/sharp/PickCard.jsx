@@ -56,8 +56,8 @@ function PickTimestamp({ gameDate, startTime, publishedAt, light }) {
       fontFamily: 'var(--font-mono)',
       fontSize: '11px', fontWeight: 600,
       color,
-      marginBottom: '12px',
-      display: 'flex', flexDirection: 'column', gap: '3px',
+      marginBottom: '10px',
+      display: 'flex', flexDirection: 'column', gap: '2px',
     }}>
       {gameTimeFmt && <span>Tip-off: {gameTimeFmt}</span>}
       {postedFmt && <span>Posted: {postedFmt}</span>}
@@ -113,6 +113,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
   const [tracked, setTracked] = useState(pick.already_tracked || false);
   const [trackedBetId, setTrackedBetId] = useState(pick.tracked_bet_id || null);
   const [trackError, setTrackError] = useState(null);
+  const [signalsOpen, setSignalsOpen] = useState(false);
 
   const handleTrackPick = async () => {
     setTracking(true);
@@ -229,20 +230,20 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
     <div style={{ padding: '0 4px' }}>
       <article style={{
         borderRadius: '18px',
-        padding: '16px',
+        padding: '14px',
         background: 'radial-gradient(900px 520px at 40% 0%, rgba(79,134,247,0.26), transparent 55%), linear-gradient(165deg, rgba(23,36,74,0.92), rgba(17,26,56,0.92))',
         border: '1px solid rgba(79,134,247,0.18)',
         boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: '14px',
+          marginBottom: '10px',
         }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '8px',
-            padding: '8px 14px', borderRadius: '999px',
+            padding: '6px 12px', borderRadius: '999px',
             fontFamily: 'var(--font-sans)',
-            fontSize: '12px', fontWeight: 800,
+            fontSize: '11px', fontWeight: 800,
             letterSpacing: '1.2px', textTransform: 'uppercase',
             border: '1px solid rgba(52,211,153,0.22)',
             background: 'rgba(52,211,153,0.10)',
@@ -263,196 +264,198 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         <PickTimestamp gameDate={pick.game_date} startTime={pick.start_time} publishedAt={pick.published_at} light />
 
         <div style={{
-          fontSize: '34px', fontWeight: 800, lineHeight: '1.0',
+          fontSize: '32px', fontWeight: 800, lineHeight: '1.0',
           letterSpacing: '-0.6px',
           color: 'rgba(255,255,255,0.95)',
           textShadow: '0 12px 30px rgba(0,0,0,0.35)',
-          marginBottom: '14px',
+          marginBottom: '10px',
         }}>
           {pick.side}
         </div>
 
+        {/* Edge Analysis - compact inline layout */}
         <section style={{
-          margin: '12px 0 10px',
-          padding: '12px',
-          borderRadius: '14px',
+          margin: '0 0 8px',
+          padding: '10px',
+          borderRadius: '12px',
           border: '1px solid rgba(255,255,255,0.10)',
           background: 'rgba(0,0,0,0.18)',
         }}>
           <div style={{
-            fontSize: '11px', letterSpacing: '1.2px', textTransform: 'uppercase',
-            fontWeight: 800, color: 'rgba(169,180,207,0.9)',
-            marginBottom: '12px',
-          }}>Edge Analysis</div>
-
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            marginBottom: '12px',
+            display: 'flex', alignItems: 'center', gap: '10px',
+            marginBottom: '8px',
           }}>
             <div style={{
-              padding: '10px 24px',
-              borderRadius: '12px',
-              background: 'rgba(52, 211, 153, 0.08)',
-              border: '1px solid rgba(52, 211, 153, 0.18)',
-              textAlign: 'center',
-            }}>
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 800,
-                color: 'var(--green-profit)', letterSpacing: '-0.5px',
-              }}>{pick.edge_pct != null ? `+${pick.edge_pct}%` : '--'}</div>
-              <div style={{
-                fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
-                color: 'var(--green-profit)', marginTop: '2px', opacity: 0.7,
-              }}>Calibrated Edge</div>
-            </div>
+              fontFamily: 'var(--font-mono)', fontSize: '26px', fontWeight: 800,
+              color: 'var(--green-profit)', letterSpacing: '-0.5px',
+              lineHeight: 1,
+            }}>{pick.edge_pct != null ? `+${pick.edge_pct}%` : '--'}</div>
+            <div style={{
+              fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase',
+              fontWeight: 800, color: 'rgba(169,180,207,0.7)',
+              lineHeight: 1.3,
+            }}>Calibrated<br/>Edge</div>
           </div>
 
           <div style={{
             display: 'flex', justifyContent: 'space-between',
-            padding: '10px 0',
+            padding: '6px 0 0',
             borderTop: '1px solid rgba(255,255,255,0.06)',
           }}>
             <div style={{ textAlign: 'center', flex: 1 }}>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 800,
+                fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 800,
                 color: 'rgba(255,255,255,0.95)',
               }}>
                 {pick.cover_prob ? `${(pick.cover_prob * 100).toFixed(1)}%` : (pick.model_confidence ? `${(pick.model_confidence * 100).toFixed(1)}%` : '--')}
               </div>
               <div style={{
-                fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
-                color: 'rgba(169,180,207,0.55)', marginTop: '3px',
+                fontSize: '9px', letterSpacing: '0.8px', textTransform: 'uppercase',
+                color: 'rgba(169,180,207,0.55)', marginTop: '2px',
               }}>Cover Prob</div>
             </div>
             <div style={{ width: '1px', background: 'rgba(255,255,255,0.08)' }} />
             <div style={{ textAlign: 'center', flex: 1 }}>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 800,
+                fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 800,
                 color: 'rgba(255,255,255,0.5)',
               }}>
                 {pick.implied_prob ? `${(pick.implied_prob * 100).toFixed(1)}%` : '--'}
               </div>
               <div style={{
-                fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
-                color: 'rgba(169,180,207,0.55)', marginTop: '3px',
+                fontSize: '9px', letterSpacing: '0.8px', textTransform: 'uppercase',
+                color: 'rgba(169,180,207,0.55)', marginTop: '2px',
               }}>Market Implied</div>
             </div>
           </div>
         </section>
 
+        {/* Why This Game - collapsible accordion */}
         {pick.model_signals && pick.model_signals.length > 0 && (
           <section style={{
-            margin: '0 0 10px',
-            padding: '12px',
-            borderRadius: '14px',
+            margin: '0 0 8px',
+            borderRadius: '12px',
             border: '1px solid rgba(255,255,255,0.08)',
             background: 'rgba(0,0,0,0.12)',
+            overflow: 'hidden',
           }}>
-            <div style={{
-              fontSize: '11px', letterSpacing: '1.3px', textTransform: 'uppercase',
-              fontWeight: 800, color: 'rgba(169,180,207,0.9)',
-              marginBottom: '10px',
-            }}>Why This Game</div>
-            <ul style={{
-              margin: 0, paddingLeft: '16px',
-              color: 'rgba(234,240,255,0.85)',
-              lineHeight: '1.65', fontSize: '13px',
-              listStyle: 'none',
-            }}>
-              {pick.model_signals.map((s, i) => (
-                <li key={i} style={{ margin: '5px 0', position: 'relative', paddingLeft: '2px' }}>
-                  <span style={{ position: 'absolute', left: '-14px', color: 'rgba(52,211,153,0.6)' }}>›</span>
-                  {s}
-                </li>
-              ))}
-            </ul>
+            <button
+              onClick={() => setSignalsOpen(!signalsOpen)}
+              style={{
+                width: '100%',
+                padding: '9px 10px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: 'none', border: 'none', cursor: 'pointer',
+              }}
+            >
+              <span style={{
+                fontSize: '10px', letterSpacing: '1.3px', textTransform: 'uppercase',
+                fontWeight: 800, color: 'rgba(169,180,207,0.9)',
+              }}>Why This Game</span>
+              <span style={{
+                fontSize: '14px', color: 'rgba(169,180,207,0.5)',
+                transform: signalsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+                lineHeight: 1,
+              }}>▾</span>
+            </button>
+            {signalsOpen && (
+              <ul style={{
+                margin: 0, padding: '0 10px 10px 24px',
+                color: 'rgba(234,240,255,0.85)',
+                lineHeight: '1.55', fontSize: '12px',
+                listStyle: 'none',
+              }}>
+                {pick.model_signals.map((s, i) => (
+                  <li key={i} style={{ margin: '3px 0', position: 'relative', paddingLeft: '2px' }}>
+                    <span style={{ position: 'absolute', left: '-14px', color: 'rgba(52,211,153,0.6)' }}>›</span>
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         )}
 
+        {/* Stats - single 2x2 grid */}
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 1fr',
-          gap: '8px',
+          gap: '6px', marginBottom: '0',
         }}>
-          <PickStat label="Blended Margin" value={pick.predicted_margin != null ? `${pick.predicted_margin > 0 ? '+' : ''}${pick.predicted_margin}` : '--'} />
+          <PickStat label="Margin" value={pick.predicted_margin != null ? `${pick.predicted_margin > 0 ? '+' : ''}${pick.predicted_margin}` : '--'} />
           <PickStat label="Spread" value={pick.line != null ? (pick.line > 0 ? `+${pick.line}` : pick.line) : '--'} />
-        </div>
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr',
-          gap: '8px', marginTop: '8px',
-        }}>
-          <PickStat label={`Best Price${pick.best_book ? ` · ${pick.best_book}` : ''}`} value={pick.market_odds || '-110'} />
+          <PickStat label={pick.best_book || 'Best Price'} value={pick.market_odds || '-110'} />
           <PickStat label="Edge" value={pick.edge_pct != null ? `+${pick.edge_pct}%` : '--'} profit />
         </div>
 
+        {/* Position size - compact inline */}
         {pick.stake_guidance && (
-          <>
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.10)', margin: '12px 0' }} />
+          <div style={{
+            marginTop: '8px',
+            padding: '8px 10px',
+            borderRadius: '12px',
+            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'rgba(0,0,0,0.18)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
             <div style={{
-              padding: '12px',
-              borderRadius: '14px',
-              border: '1px solid rgba(255,255,255,0.10)',
-              background: 'rgba(0,0,0,0.18)',
-            }}>
-              <div style={{
-                fontSize: '10px', letterSpacing: '1.25px', textTransform: 'uppercase',
-                fontWeight: 800, color: 'rgba(169,180,207,0.9)',
-                marginBottom: '10px',
-              }}>Suggested Position Size</div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 800,
-                    color: 'rgba(255,255,255,0.95)',
-                  }}>{pick.stake_guidance.flat_stake}u</div>
-                  <div style={{
-                    fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
-                    color: 'rgba(169,180,207,0.7)', marginTop: '4px',
-                  }}>Flat</div>
-                </div>
-                <div style={{ width: '1px', background: 'rgba(255,255,255,0.10)' }} />
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 800,
-                    color: 'rgba(255,255,255,0.95)',
-                  }}>{pick.stake_guidance.kelly_stake}u</div>
-                  <div style={{
-                    fontSize: '10px', letterSpacing: '0.8px', textTransform: 'uppercase',
-                    color: 'rgba(169,180,207,0.7)', marginTop: '4px',
-                  }}>Quarter-Kelly</div>
-                </div>
+              fontSize: '9px', letterSpacing: '1px', textTransform: 'uppercase',
+              fontWeight: 800, color: 'rgba(169,180,207,0.7)',
+            }}>Position Size</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 800,
+                  color: 'rgba(255,255,255,0.95)',
+                }}>{pick.stake_guidance.flat_stake}u</span>
+                <span style={{
+                  fontSize: '9px', letterSpacing: '0.5px', textTransform: 'uppercase',
+                  color: 'rgba(169,180,207,0.5)', marginLeft: '3px',
+                }}>flat</span>
+              </div>
+              <div style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)' }} />
+              <div style={{ textAlign: 'center' }}>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 800,
+                  color: 'rgba(255,255,255,0.95)',
+                }}>{pick.stake_guidance.kelly_stake}u</span>
+                <span style={{
+                  fontSize: '9px', letterSpacing: '0.5px', textTransform: 'uppercase',
+                  color: 'rgba(169,180,207,0.5)', marginLeft: '3px',
+                }}>kelly</span>
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {pick.result === 'revoked' ? (
           <div style={{
-            marginTop: '12px', padding: '12px',
-            borderRadius: '14px',
+            marginTop: '8px', padding: '10px',
+            borderRadius: '12px',
             border: '1px solid rgba(99,102,241,0.18)',
             background: 'rgba(99,102,241,0.06)',
             textAlign: 'center',
           }}>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+              fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700,
               letterSpacing: '1.2px', textTransform: 'uppercase',
               color: 'rgba(99,102,241,0.8)',
             }}>Withdrawn</div>
             <div style={{
-              fontFamily: 'var(--font-sans)', fontSize: '12px',
-              color: 'var(--text-secondary)', marginTop: '6px', lineHeight: '1.5',
-            }}>Edge shifted before tip-off. No action needed — capital preserved.</div>
+              fontFamily: 'var(--font-sans)', fontSize: '11px',
+              color: 'var(--text-secondary)', marginTop: '4px', lineHeight: '1.4',
+            }}>Edge shifted before tip-off. No action needed.</div>
           </div>
         ) : pick.result && pick.result !== 'pending' ? (
           <div style={{
-            marginTop: '12px', padding: '12px',
-            borderRadius: '14px',
+            marginTop: '8px', padding: '10px',
+            borderRadius: '12px',
             border: `1px solid ${pick.result === 'win' ? 'rgba(52,211,153,0.22)' : 'rgba(239,68,68,0.22)'}`,
             background: pick.result === 'win' ? 'rgba(52,211,153,0.08)' : 'rgba(239,68,68,0.08)',
             textAlign: 'center',
           }}>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 800,
+              fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 800,
               color: pick.result === 'win' ? 'var(--green-profit)' : 'var(--red-loss)',
             }}>
               {pick.result === 'win' ? `Win +${pick.pnl ?? 91}u` : `Loss ${pick.pnl ?? -110}u`}
@@ -463,9 +466,9 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
             onClick={handleUntrack}
             disabled={tracking}
             style={{
-              width: '100%', marginTop: '12px',
-              borderRadius: '14px', padding: '13px 12px',
-              fontWeight: 800, fontSize: '15px', letterSpacing: '0.3px',
+              width: '100%', marginTop: '8px',
+              borderRadius: '12px', padding: '11px 10px',
+              fontWeight: 800, fontSize: '14px', letterSpacing: '0.3px',
               color: 'rgba(52,211,153,0.92)',
               background: 'rgba(52,211,153,0.08)',
               border: '1px solid rgba(52,211,153,0.22)',
@@ -479,13 +482,13 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
               onClick={handleTrackPick}
               disabled={tracking}
               style={{
-                width: '100%', marginTop: '12px',
-                borderRadius: '14px', padding: '13px 12px',
-                fontWeight: 800, fontSize: '15px', letterSpacing: '0.3px',
+                width: '100%', marginTop: '8px',
+                borderRadius: '12px', padding: '11px 10px',
+                fontWeight: 800, fontSize: '14px', letterSpacing: '0.3px',
                 color: tracking ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.92)',
                 background: 'rgba(255,255,255,0.06)',
                 border: '1px solid rgba(255,255,255,0.14)',
-                boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
+                boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
                 cursor: tracking ? 'default' : 'pointer',
                 opacity: tracking ? 0.7 : 1,
               }}
@@ -494,7 +497,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
             </button>
             {trackError && (
               <div style={{
-                marginTop: '8px', fontSize: '13px',
+                marginTop: '6px', fontSize: '12px',
                 color: 'var(--red-loss)', textAlign: 'center',
               }}>{trackError}</div>
             )}
@@ -502,10 +505,10 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         )}
 
         <div style={{
-          marginTop: '12px', paddingTop: '12px',
-          borderTop: '1px solid rgba(255,255,255,0.10)',
-          fontSize: '13px', fontWeight: 500, lineHeight: '1.55',
-          color: 'rgba(169,180,207,0.78)',
+          marginTop: '8px', paddingTop: '8px',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          fontSize: '11px', fontWeight: 500, lineHeight: '1.4',
+          color: 'rgba(169,180,207,0.6)',
           textAlign: 'center',
         }}>
           Posted {pick.posted_time || '2h before tip'} · Best at {pick.best_book || 'DraftKings'}
@@ -513,9 +516,9 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
 
         {pick.disclaimer && (
           <div style={{
-            marginTop: '10px',
-            fontSize: '11px', lineHeight: '1.5',
-            color: 'rgba(138,148,166,0.6)',
+            marginTop: '6px',
+            fontSize: '10px', lineHeight: '1.4',
+            color: 'rgba(138,148,166,0.5)',
             textAlign: 'center',
           }}>
             {pick.disclaimer}
@@ -529,18 +532,18 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
 function PickStat({ label, value, profit }) {
   return (
     <div style={{
-      borderRadius: '12px', padding: '10px 10px 8px',
+      borderRadius: '10px', padding: '7px 8px 6px',
       border: '1px solid rgba(255,255,255,0.10)',
       background: 'rgba(0,0,0,0.16)',
     }}>
       <div style={{
-        fontSize: '11px', letterSpacing: '1.25px', textTransform: 'uppercase',
-        fontWeight: 800, color: 'rgba(169,180,207,0.9)',
-        marginBottom: '8px',
+        fontSize: '9px', letterSpacing: '1px', textTransform: 'uppercase',
+        fontWeight: 800, color: 'rgba(169,180,207,0.8)',
+        marginBottom: '3px',
       }}>{label}</div>
       <div style={{
         fontFamily: 'var(--font-mono)',
-        fontSize: '20px', fontWeight: 800,
+        fontSize: '16px', fontWeight: 800,
         color: profit ? 'var(--green-profit)' : 'rgba(255,255,255,0.95)',
         letterSpacing: '-0.2px',
         fontVariantNumeric: 'tabular-nums',
