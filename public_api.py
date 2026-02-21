@@ -29,7 +29,10 @@ def record():
     wins = sum(1 for p in picks if p.result == 'win')
     losses = sum(1 for p in picks if p.result == 'loss')
     pending = sum(1 for p in picks if p.result == 'pending')
-    total_pnl = sum(p.pnl or 0 for p in picks if p.result in ('win', 'loss'))
+    total_pnl_units = sum(
+        (p.profit_units if p.profit_units is not None else (p.pnl / 100 if p.pnl else 0))
+        for p in picks if p.result in ('win', 'loss')
+    )
 
     from datetime import datetime
     CALIBRATION_DATE = datetime(2026, 2, 12)
@@ -45,6 +48,7 @@ def record():
             'edge_pct': p.edge_pct,
             'result': p.result,
             'pnl': p.pnl,
+            'profit_units': p.profit_units if p.profit_units is not None else (round(p.pnl / 100, 2) if p.pnl else None),
             'away_team': p.away_team,
             'home_team': p.home_team,
             'pre_calibration': p.published_at < CALIBRATION_DATE if p.published_at else False,
@@ -61,7 +65,7 @@ def record():
             'pending': pending,
             'total_picks': len(picks),
             'total_passes': len(passes),
-            'pnl': round(total_pnl, 2),
+            'pnl': round(total_pnl_units, 2),
             'win_rate': round(wins / (wins + losses) * 100, 1) if (wins + losses) > 0 else 0,
             'selectivity': round(len(picks) / (len(picks) + len(passes)) * 100, 1) if (len(picks) + len(passes)) > 0 else 0,
         }
@@ -84,10 +88,17 @@ def stats():
     pnl_q = db.session.query(func.sum(Pick.pnl)).filter(Pick.result.in_(['win', 'loss']))
     if sport:
         pnl_q = pnl_q.filter(Pick.sport == sport)
-    total_pnl = pnl_q.scalar() or 0
+    total_pnl_dollars = pnl_q.scalar() or 0
+
+    unit_q = db.session.query(func.sum(Pick.profit_units)).filter(Pick.result.in_(['win', 'loss']))
+    if sport:
+        unit_q = unit_q.filter(Pick.sport == sport)
+    total_pnl_units = unit_q.scalar()
+    if total_pnl_units is None:
+        total_pnl_units = total_pnl_dollars / 100 if total_pnl_dollars else 0
 
     total_decided = wins + losses
-    roi = round((total_pnl / (total_decided * 110)) * 100, 1) if total_decided > 0 else 0
+    roi = round((total_pnl_dollars / (total_decided * 110)) * 100, 1) if total_decided > 0 else 0
 
     return jsonify({
         'record': f'{wins}-{losses}',
@@ -96,7 +107,7 @@ def stats():
         'pending': pending,
         'total_picks': total_picks,
         'total_passes': total_passes,
-        'pnl': round(total_pnl, 2),
+        'pnl': round(total_pnl_units, 2),
         'roi': roi,
         'win_rate': round(wins / total_decided * 100, 1) if total_decided > 0 else 0,
         'selectivity': round(total_picks / (total_picks + total_passes) * 100, 1) if (total_picks + total_passes) > 0 else 0,

@@ -285,10 +285,13 @@ export default function PicksTab({ onNavigate }) {
                             : pick.result === 'loss' ? 'var(--red-loss)'
                             : isRevoked ? 'rgba(99,102,241,0.7)' : 'var(--text-tertiary)',
                         }}>
-                          {pick.result === 'win' ? `+${pick.pnl != null ? Math.abs(pick.pnl) : 91}u`
-                            : pick.result === 'loss' ? `-${pick.pnl != null ? Math.abs(pick.pnl) : 100}u`
-                            : isRevoked ? 'Withdrawn'
-                            : 'Pending'}
+                          {(() => {
+                            const units = pick.profit_units != null ? pick.profit_units : (pick.pnl != null ? pick.pnl / 100 : null);
+                            if (pick.result === 'win') return `+${units != null ? Math.abs(units).toFixed(2) : '0.91'}u`;
+                            if (pick.result === 'loss') return `-${units != null ? Math.abs(units).toFixed(2) : '1.00'}u`;
+                            if (isRevoked) return 'Withdrawn';
+                            return 'Pending';
+                          })()}
                         </div>
                       )}
                       {isPro && pick.edge_pct && (
