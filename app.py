@@ -30,8 +30,10 @@ def root_health():
     dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
     index_path = os.path.join(dist_dir, 'index.html')
     if os.path.isfile(index_path):
-        from flask import send_from_directory
-        return send_from_directory(dist_dir, 'index.html')
+        from flask import send_from_directory, make_response
+        resp = make_response(send_from_directory(dist_dir, 'index.html'))
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return resp
     return 'ok', 200
 
 is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
@@ -3434,12 +3436,19 @@ def serve_spa(path):
     dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
     full_path = os.path.join(dist_dir, path)
     if os.path.isfile(full_path):
-        from flask import send_from_directory
-        return send_from_directory(dist_dir, path)
+        from flask import send_from_directory, make_response
+        resp = make_response(send_from_directory(dist_dir, path))
+        if path.startswith('assets/'):
+            resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        else:
+            resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return resp
     index_path = os.path.join(dist_dir, 'index.html')
     if os.path.isfile(index_path):
-        from flask import send_from_directory
-        return send_from_directory(dist_dir, 'index.html')
+        from flask import send_from_directory, make_response
+        resp = make_response(send_from_directory(dist_dir, 'index.html'))
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return resp
     return jsonify({'status': 'ok'}), 200
 
 
