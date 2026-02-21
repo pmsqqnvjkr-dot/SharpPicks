@@ -74,14 +74,14 @@ def _diagnose_no_games(today_str, sport='nba'):
 
         if unscored == 0:
             return {
-                'situation': 'off_day',
+                'situation': 'stale_data',
                 'total_games': total,
                 'games_with_spreads': with_spreads,
-                'message': 'All games already scored — genuine off day or data stale',
+                'message': f'All {total} games already scored — data stale or not refreshed',
             }
 
         return {
-            'situation': 'off_day',
+            'situation': 'no_eligible',
             'total_games': total,
             'games_with_spreads': with_spreads,
             'message': f'{total} games, {with_spreads} with spreads — model found none eligible (time filter or other)',
@@ -347,35 +347,40 @@ def run_model_and_log(app, sport='nba'):
                         'duration_ms': duration_ms,
                     }
 
-                pass_entry = Pass(
-                    date=today_str,
-                    sport=sport,
-                    games_analyzed=diag['games_with_spreads'],
-                    closest_edge_pct=0,
-                    pass_reason=diag['message'],
-                )
-                db.session.add(pass_entry)
+                if situation == 'stale_data':
+                    duration_ms = int((time.time() - start_time) * 1000)
+                    print(f"[model-run] STALE DATA — {diag['total_games']} games all scored, not creating pass, will retry later")
+                    return {
+                        'status': 'stale_data',
+                        'reason': diag['message'],
+                        'total_games': diag['total_games'],
+                        'date': today_str,
+                        'sport': sport,
+                        'duration_ms': duration_ms,
+                    }
 
-                model_run = ModelRun(
-                    date=today_str,
-                    sport=sport,
-                    games_analyzed=diag['games_with_spreads'],
-                    pick_generated=False,
-                    pass_id=pass_entry.id,
-                    run_duration_ms=int((time.time() - start_time) * 1000),
-                )
-                db.session.add(model_run)
-                db.session.commit()
+                if situation == 'no_eligible':
+                    duration_ms = int((time.time() - start_time) * 1000)
+                    print(f"[model-run] NO ELIGIBLE — {diag['total_games']} games, {diag['games_with_spreads']} with spreads but none passed filters, will retry later")
+                    return {
+                        'status': 'no_eligible',
+                        'reason': diag['message'],
+                        'total_games': diag['total_games'],
+                        'games_with_spreads': diag['games_with_spreads'],
+                        'date': today_str,
+                        'sport': sport,
+                        'duration_ms': duration_ms,
+                    }
 
-                try:
-                    from notification_service import send_pass_notification
-                    send_pass_notification(pass_entry)
-                except Exception as notif_err:
-                    import logging
-                    logging.error(f"No-games pass notification failed: {notif_err}")
-
-                return {'status': 'pass', 'reason': 'off_day', 'date': today_str, 'sport': sport,
-                        'games_with_spreads': diag['games_with_spreads']}
+                duration_ms = int((time.time() - start_time) * 1000)
+                print(f"[model-run] Unknown no-games situation '{situation}' — not creating pass")
+                return {
+                    'status': 'unknown_no_games',
+                    'reason': diag['message'],
+                    'date': today_str,
+                    'sport': sport,
+                    'duration_ms': duration_ms,
+                }
 
             qualified = [p for p in predictions if p.get('passes_filter')]
             all_edges = [p.get('adjusted_edge', 0) for p in predictions]
