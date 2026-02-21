@@ -40,6 +40,7 @@ The system enforces a "no pick" policy without sufficient edge. Transparency is 
 - `db.create_all()` does NOT add new columns to existing tables. Any schema changes (new columns) must be handled via explicit `ALTER TABLE` statements in `seed_database()`.
 
 ## Recent Changes
+- **2026-02-21**: Added model signal diagnostic — tracks model-only (unblended) cover probability and edge on every pick. New columns `model_only_cover_prob` and `model_only_edge` on Pick model. New `/api/admin/model-signal` endpoint compares blended vs model-only win rate, ROI, and edge-outcome correlation on a consistent sample. After 50+ picks, this will reveal whether MODEL_WEIGHT=0.3 should increase (model adds signal) or stay/decrease (market does the heavy lifting).
 - **2026-02-18**: Moved Risk Profile from public Performance tab to admin-only Control Room alongside other model metrics. Control Room now has 7 panels: Risk Profile, Trigger States, Threshold Tuning, Bucket Segmentation, Decay Metrics, Fragility Scoring, Experimental Toggles.
 - **2026-02-18**: Moved model metrics (Calibration, Edge Decay, Regime Detection, Kill Switch) from public Performance tab to admin-only Control Room in Command Center. Added `/api/admin/control-room` endpoint.
 - **2026-02-18**: Implemented automated kill switch system — KillSwitch model, `/api/public/kill-switch` endpoint, position_size_pct on Pick model. Monitors rolling ROI, CLV trend, and edge decay; auto-reduces position to 50% when all 3 conditions trigger.

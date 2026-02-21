@@ -1038,6 +1038,163 @@ def control_room():
     })
 
 
+@admin_bp.route('/api/admin/model-signal')
+def model_signal():
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    sport = request.args.get('sport', 'nba')
+
+    resolved = Pick.query.filter(
+        Pick.result.in_(['win', 'loss', 'push']),
+        Pick.sport == sport,
+    ).order_by(Pick.game_date.desc()).all()
+
+    from model import get_edge_threshold_for_spread
+
+    picks_with_signal = []
+    all_blended_wins = 0
+    all_blended_losses = 0
+    all_blended_profit = 0.0
+
+    tracked_blended_wins = 0
+    tracked_blended_losses = 0
+    tracked_blended_profit = 0.0
+    model_only_wins = 0
+    model_only_losses = 0
+    model_only_would_pass = 0
+    model_only_profit = 0.0
+
+    corr_edges = []
+    corr_outcomes = []
+
+    for p in resolved:
+        won = p.result == 'win'
+        push = p.result == 'push'
+        unit = 100 / 110 if won else (-1.0 if not push else 0.0)
+        all_blended_profit += unit
+        if won:
+            all_blended_wins += 1
+        elif not push:
+            all_blended_losses += 1
+
+        mo_edge = getattr(p, 'model_only_edge', None)
+        mo_prob = getattr(p, 'model_only_cover_prob', None)
+
+        mo_would_bet = False
+        if mo_edge is not None:
+            spread_abs = abs(p.line) if p.line is not None else 0
+            req_edge = get_edge_threshold_for_spread(spread_abs)
+            mo_would_bet = mo_edge >= req_edge
+
+            tracked_blended_profit += unit
+            if won:
+                tracked_blended_wins += 1
+            elif not push:
+                tracked_blended_losses += 1
+
+            if mo_would_bet:
+                model_only_profit += unit
+                if won:
+                    model_only_wins += 1
+                elif not push:
+                    model_only_losses += 1
+            else:
+                model_only_would_pass += 1
+
+            if not push:
+                corr_edges.append(mo_edge)
+                corr_outcomes.append(1 if won else 0)
+
+        picks_with_signal.append({
+            'date': p.game_date,
+            'side': p.side,
+            'line': p.line,
+            'result': p.result,
+            'blended_edge': p.edge_pct,
+            'blended_cover_prob': round(p.cover_prob, 4) if p.cover_prob else None,
+            'model_only_edge': round(mo_edge, 2) if mo_edge is not None else None,
+            'model_only_cover_prob': round(mo_prob, 4) if mo_prob is not None else None,
+            'model_only_would_bet': mo_would_bet,
+        })
+
+    total_all = all_blended_wins + all_blended_losses
+    total_tracked = tracked_blended_wins + tracked_blended_losses
+    total_model = model_only_wins + model_only_losses
+    tracked_count = sum(1 for p in picks_with_signal if p['model_only_edge'] is not None)
+
+    all_blended_wr = round(all_blended_wins / total_all * 100, 1) if total_all > 0 else None
+    all_blended_roi = round(all_blended_profit / total_all * 100, 1) if total_all > 0 else None
+    tracked_wr = round(tracked_blended_wins / total_tracked * 100, 1) if total_tracked > 0 else None
+    tracked_roi = round(tracked_blended_profit / total_tracked * 100, 1) if total_tracked > 0 else None
+    model_wr = round(model_only_wins / total_model * 100, 1) if total_model > 0 else None
+    model_roi = round(model_only_profit / total_model * 100, 1) if total_model > 0 else None
+
+    edge_corr = None
+    if len(corr_edges) >= 10:
+        import numpy as np
+        edge_corr = round(float(np.corrcoef(corr_edges, corr_outcomes)[0, 1]), 4)
+
+    return jsonify({
+        'sport': sport,
+        'tracked_picks': tracked_count,
+        'total_resolved': len(resolved),
+        'sample_target': 50,
+        'blended_all': {
+            'wins': all_blended_wins,
+            'losses': all_blended_losses,
+            'win_rate': all_blended_wr,
+            'roi': all_blended_roi,
+            'total_profit': round(all_blended_profit, 2),
+        },
+        'blended_tracked': {
+            'wins': tracked_blended_wins,
+            'losses': tracked_blended_losses,
+            'win_rate': tracked_wr,
+            'roi': tracked_roi,
+            'total_profit': round(tracked_blended_profit, 2),
+            'note': 'Same picks as model_only set for apples-to-apples comparison',
+        },
+        'model_only': {
+            'wins': model_only_wins,
+            'losses': model_only_losses,
+            'win_rate': model_wr,
+            'roi': model_roi,
+            'total_profit': round(model_only_profit, 2),
+            'would_pass_count': model_only_would_pass,
+        },
+        'edge_outcome_correlation': edge_corr,
+        'diagnosis': _diagnose_signal(tracked_count, tracked_wr, model_wr, tracked_roi, model_roi, edge_corr),
+        'picks': picks_with_signal[:50],
+    })
+
+
+def _diagnose_signal(n, blended_wr, model_wr, blended_roi, model_roi, corr):
+    if n < 20:
+        return f"Need more data — {n}/50 picks tracked so far. Keep collecting."
+    if model_wr is None or blended_wr is None:
+        return "Insufficient resolved picks to diagnose."
+    if model_roi is not None and blended_roi is not None:
+        roi_gap = blended_roi - model_roi
+        if roi_gap > 5:
+            msg = f"Market is doing heavy lifting. Blended ROI {blended_roi:+.1f}% vs model-only {model_roi:+.1f}%. Consider keeping MODEL_WEIGHT at 0.3 or lower."
+        elif roi_gap < -3:
+            msg = f"Model is adding signal. Model-only ROI {model_roi:+.1f}% vs blended {blended_roi:+.1f}%. Consider increasing MODEL_WEIGHT cautiously."
+        else:
+            msg = f"Model and market contributing roughly equally. ROI gap: {roi_gap:+.1f}%."
+    else:
+        msg = "Not enough data for ROI comparison."
+    if corr is not None:
+        if corr > 0.15:
+            msg += f" Edge-outcome correlation {corr:+.4f} is positive — model edge has predictive value."
+        elif corr < -0.05:
+            msg += f" Edge-outcome correlation {corr:+.4f} is negative — model edge may be noise."
+        else:
+            msg += f" Edge-outcome correlation {corr:+.4f} is flat — inconclusive signal."
+    return msg
+
+
 @admin_bp.route('/api/admin/test-push', methods=['POST'])
 def test_push():
     user, err = require_superuser()

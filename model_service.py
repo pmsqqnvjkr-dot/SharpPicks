@@ -304,6 +304,8 @@ def run_model_and_log(app, sport='nba'):
                         sportsbook=best.get('best_book', 'DraftKings'),
                         notes=' | '.join(best.get('explanation', [])) if isinstance(best.get('explanation'), list) else (best.get('explanation') or ''),
                         position_size_pct=position_pct,
+                        model_only_cover_prob=_to_python(round(best['model_only_cover_prob'], 4)) if best.get('model_only_cover_prob') is not None else None,
+                        model_only_edge=_to_python(round(best['model_only_edge'], 2)) if best.get('model_only_edge') is not None else None,
                     )
                     db.session.add(pick)
 

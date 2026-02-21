@@ -799,10 +799,12 @@ class EnsemblePredictor:
             pred_margin_raw = predicted_margins[idx] if predicted_margins is not None else None
             
             used_fallback = False
+            model_only_home_cover = None
             if pred_margin_raw is not None and spread is not None:
                 market_margin = -spread
                 pred_margin = self.model_weight * pred_margin_raw + (1 - self.model_weight) * market_margin
                 home_cover_prob = float(norm.cdf((pred_margin + spread) / sigma))
+                model_only_home_cover = float(norm.cdf((pred_margin_raw + spread) / sigma))
             else:
                 used_fallback = True
                 pred_margin = pred_margin_raw
@@ -964,6 +966,12 @@ class EnsemblePredictor:
                 if pick_side == 'away':
                     z_score_val = -z_score_val
 
+            model_only_conf = None
+            model_only_edge_val = None
+            if model_only_home_cover is not None:
+                model_only_conf = model_only_home_cover if pick_side == 'home' else 1 - model_only_home_cover
+                model_only_edge_val = round((model_only_conf - implied_prob) * 100, 2)
+
             picks.append({
                 'game_id': row['id'],
                 'game_date': row['game_date'],
@@ -998,6 +1006,8 @@ class EnsemblePredictor:
                 'line_move_decomp_reason': line_move_decomp_reason,
                 'injury_penalty': round(injury_penalty, 1),
                 'risk_weighted_edge': round(risk_weighted_edge, 2),
+                'model_only_cover_prob': round(model_only_conf, 4) if model_only_conf is not None else None,
+                'model_only_edge': model_only_edge_val,
                 'fail_reasons': fail_reasons,
                 'pass_reason': pass_reason,
                 'required_edge': required_edge,

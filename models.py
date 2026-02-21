@@ -133,6 +133,8 @@ class Pick(db.Model):
     profit_units = db.Column(db.Float, nullable=True)
     notes = db.Column(db.String, nullable=True)
     position_size_pct = db.Column(db.Integer, default=100)
+    model_only_cover_prob = db.Column(db.Float, nullable=True)
+    model_only_edge = db.Column(db.Float, nullable=True)
 
 
 class Pass(db.Model):
