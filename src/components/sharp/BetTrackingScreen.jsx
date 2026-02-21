@@ -167,7 +167,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                             fontFamily: 'var(--font-mono)', fontSize: '11px',
                             color: 'var(--text-tertiary)', marginTop: '4px',
                           }}>
-                            ${bet.bet_amount} at {bet.odds > 0 ? `+${bet.odds}` : bet.odds} · to win ${bet.to_win}
+                            ${bet.bet_amount} at {bet.odds != null ? (bet.odds > 0 ? `+${bet.odds}` : bet.odds) : '-110'} · to win ${bet.to_win || '—'}
                           </div>
                         </div>
                         <div style={{
@@ -898,7 +898,7 @@ function BetRow({ bet, isLast, onMarkResult, confirmDelete, setConfirmDelete, on
               fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px',
               fontFamily: 'var(--font-mono)',
             }}>
-              ${bet.bet_amount} at {bet.odds > 0 ? `+${bet.odds}` : bet.odds} · to win ${bet.to_win}
+              ${bet.bet_amount} at {bet.odds != null ? (bet.odds > 0 ? `+${bet.odds}` : bet.odds) : '-110'} · to win ${bet.to_win || '—'}
               {pickResultLabel && (
                 <span style={{
                   marginLeft: '8px',
@@ -916,7 +916,7 @@ function BetRow({ bet, isLast, onMarkResult, confirmDelete, setConfirmDelete, on
                 fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
                 color: bet.result === 'W' ? 'var(--green-profit)' : bet.result === 'P' ? 'var(--text-tertiary)' : 'var(--red-loss)',
               }}>
-                {bet.result === 'W' ? `+$${Math.abs(bet.profit).toFixed(0)}` : bet.result === 'P' ? 'Push' : `-$${Math.abs(bet.profit).toFixed(0)}`}
+                {bet.result === 'W' ? `+$${Math.abs(bet.profit || 0).toFixed(0)}` : bet.result === 'P' ? 'Push' : `-$${Math.abs(bet.profit || 0).toFixed(0)}`}
               </div>
             ) : (
               <div style={{
@@ -1022,6 +1022,8 @@ function PersonalEquityChart({ data }) {
 
         {data.length <= 12 && data.map((d, i) => {
           const label = d.date ? d.date.substring(5) : '';
+          const prevLabel = i > 0 && data[i-1].date ? data[i-1].date.substring(5) : '';
+          if (label === prevLabel) return null;
           return (
             <text key={i} x={getX(i)} y={height - 5}
               textAnchor="middle" fill="var(--text-tertiary)"

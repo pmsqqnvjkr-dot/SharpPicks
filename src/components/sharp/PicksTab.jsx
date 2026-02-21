@@ -285,8 +285,8 @@ export default function PicksTab({ onNavigate }) {
                             : pick.result === 'loss' ? 'var(--red-loss)'
                             : isRevoked ? 'rgba(99,102,241,0.7)' : 'var(--text-tertiary)',
                         }}>
-                          {pick.result === 'win' ? `+${pick.pnl != null ? pick.pnl : 91}u`
-                            : pick.result === 'loss' ? `${pick.pnl != null ? pick.pnl : -100}u`
+                          {pick.result === 'win' ? `+${pick.pnl != null ? Math.abs(pick.pnl) : 91}u`
+                            : pick.result === 'loss' ? `-${pick.pnl != null ? Math.abs(pick.pnl) : 100}u`
                             : isRevoked ? 'Withdrawn'
                             : 'Pending'}
                         </div>

@@ -1,0 +1,12 @@
+The Your Results tab is excellent
+The personal equity curve with dollar amounts, the 2-1 record at +$82, the settled bets showing actual odds paid (-105, -110) — this is the right level of detail for someone who’s actually tracking their betting. The “Track a Bet” CTA is well-placed. This tab will be the one users check compulsively after games resolve.
+One thing to fix: the x-axis on the chart shows “02-18” twice. That’s likely a rendering bug with how dates are being calculated or displayed. Small but noticeable.
+The Model tab / Discipline Score is your strongest differentiator
+“This dashboard measures discipline, not excitement” at the bottom is the best line in the entire product. Put that somewhere more prominent.
+The Selectivity Spectrum (Sharp vs Square) is genuinely smart UX — it frames your 31.4% selectivity as a feature, not a limitation, and anchors it against the 78% industry average in a way that makes users feel they’re doing something right by following fewer picks. The “Capital preserved: +$106 from avoided -EV spots” is compelling because it makes the pass days feel tangible rather than just absent.
+The Recent Picks data in Image 6 is the most analytically rich view you have
+Edge, Margin, Cover %, Close, Move — all in a compact row. This is exactly what a sophisticated bettor wants to see. The line move data (+0.5 on Hawks, -1 on Lakers and 76ers) is particularly valuable. Worth noting: the 76ers at +24.5 with Cover 83% is flagging again — an 83% cover probability at +24.5 is an extraordinary claim that will raise eyebrows with anyone who understands spreads. Make sure that record is clean.
+The B+ Discipline Score
+This is a clever retention mechanic — users will want to maintain or improve their grade. The framing around it is solid. The one risk is that users who track every pick will get a worse grade than users who are selective, which is the right incentive. Make sure the grade calculation actually rewards selectivity rather than just tracking volume.
+Remaining issues from before
+The -100u display is still in Image 1 in the history list. Still needs fixing before broader launch. The undefined odds bug is presumably still on older picks. These are the two things I’d close before showing this to anyone new.
