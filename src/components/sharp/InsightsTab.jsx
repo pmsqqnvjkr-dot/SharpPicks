@@ -123,7 +123,7 @@ export default function InsightsTab({ onNavigate }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {activeCategory === 'all' && <StartHereCard onTap={() => {
-              const philosophy = insights.find(i => i.slug === 'not-every-edge-is-worth-taking') || insights[0];
+              const philosophy = insights.find(i => i.slug === 'why-one-pick-beats-five') || insights.find(i => i.category === 'philosophy') || insights[0];
               if (philosophy) setSelectedInsight(philosophy);
             }} />}
             {insights.map(insight => (
