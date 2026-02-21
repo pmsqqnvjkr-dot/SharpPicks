@@ -1306,9 +1306,9 @@ CRON_MIN_INTERVAL = {
     'run_model': 600,
 }
 
-def log_cron(job_name, fn):
+def log_cron(job_name, fn, skip_throttle=False):
     min_interval = CRON_MIN_INTERVAL.get(job_name, 0)
-    if min_interval:
+    if min_interval and not skip_throttle:
         last_ok = CronLog.query.filter_by(job_name=job_name, status='ok')\
             .order_by(CronLog.executed_at.desc()).first()
         if last_ok:
@@ -1465,7 +1465,7 @@ def cron_run_model():
         for sport in get_live_sports():
             results[sport] = run_model_and_log(app, sport=sport)
         return results
-    return log_cron('run_model', _run)
+    return log_cron('run_model', _run, skip_throttle=force)
 
 
 @app.route('/api/cron/pretip-validate', methods=['POST'])
