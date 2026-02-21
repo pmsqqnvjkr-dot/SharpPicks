@@ -320,19 +320,46 @@ def run_model_and_log(app, sport='nba'):
             print(f"[model-run] Games found: {len(predictions) if predictions else 0}")
 
             if not predictions:
+                diag = _diagnose_no_games(today_str, sport=sport)
+                situation = diag['situation']
+                print(f"[model-run] No-games diagnostic: {situation} — {diag['message']}")
+
+                if situation == 'data_failure':
+                    duration_ms = int((time.time() - start_time) * 1000)
+                    print(f"[model-run] DATA FAILURE — not creating pass, will retry later")
+                    return {
+                        'status': 'data_failure',
+                        'reason': diag['message'],
+                        'date': today_str,
+                        'sport': sport,
+                        'duration_ms': duration_ms,
+                    }
+
+                if situation == 'no_spreads':
+                    duration_ms = int((time.time() - start_time) * 1000)
+                    print(f"[model-run] NO SPREADS — {diag['total_games']} games but lines not posted yet, will retry later")
+                    return {
+                        'status': 'no_spreads',
+                        'reason': diag['message'],
+                        'total_games': diag['total_games'],
+                        'date': today_str,
+                        'sport': sport,
+                        'duration_ms': duration_ms,
+                    }
+
                 pass_entry = Pass(
                     date=today_str,
                     sport=sport,
-                    games_analyzed=0,
+                    games_analyzed=diag['games_with_spreads'],
                     closest_edge_pct=0,
-                    pass_reason='No games available today',
+                    pass_reason=diag['message'],
                 )
                 db.session.add(pass_entry)
 
                 model_run = ModelRun(
                     date=today_str,
                     sport=sport,
-                    games_analyzed=0,
+                    games_analyzed=diag['games_with_spreads'],
                     pick_generated=False,
                     pass_id=pass_entry.id,
                     run_duration_ms=int((time.time() - start_time) * 1000),
@@ -347,7 +374,8 @@ def run_model_and_log(app, sport='nba'):
                     import logging
                     logging.error(f"No-games pass notification failed: {notif_err}")
 
-                return {'status': 'pass', 'reason': 'no_games', 'date': today_str, 'sport': sport}
+                return {'status': 'pass', 'reason': 'off_day', 'date': today_str, 'sport': sport,
+                        'games_with_spreads': diag['games_with_spreads']}
 
             qualified = [p for p in predictions if p.get('passes_filter')]
             all_edges = [p.get('adjusted_edge', 0) for p in predictions]
