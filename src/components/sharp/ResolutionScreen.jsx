@@ -191,18 +191,6 @@ function WithdrawnDetailScreen({ pick, onBack }) {
           marginBottom: '16px', textAlign: 'center',
         }}>
           <div style={{
-            width: '40px', height: '40px', borderRadius: '50%',
-            backgroundColor: 'rgba(99,102,241,0.06)',
-            border: '1px solid rgba(99,102,241,0.2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px',
-          }}>
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke={accentColor} fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-          </div>
-
-          <div style={{
             fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 600,
             color: 'var(--text-primary)', marginBottom: '6px',
           }}>
@@ -239,26 +227,26 @@ function WithdrawnDetailScreen({ pick, onBack }) {
             display: 'flex', justifyContent: 'space-around',
             padding: '16px 0', borderTop: '1px solid var(--stroke-subtle)',
           }}>
-            <ContextStat value={`${pick?.edge_pct || '--'}%`} label="Edge at entry" color={accentColor} />
+            <ContextStat value={`${pick?.edge_pct || '--'}%`} label="Edge at entry" />
             <ContextStat value={pick?.edge_at_close ? `${pick.edge_at_close}%` : '< threshold'} label="Edge at withdrawal" color="var(--text-tertiary)" />
             <ContextStat value="Pull" label="Action" color="var(--text-tertiary)" />
           </div>
         </div>
 
         <div style={{
-          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-          border: '1px solid var(--stroke-subtle)', padding: '16px 20px',
+          backgroundColor: 'var(--surface-1)', borderRadius: '12px',
+          border: '1px solid var(--stroke-subtle)', padding: '12px 16px',
           marginBottom: '16px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <div style={{
-            fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 500,
+          <span style={{
+            fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 500,
             color: 'var(--text-tertiary)',
-          }}>Result</div>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 600,
-            color: accentColor,
-          }}>0u</div>
+          }}>P&L</span>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
+            color: 'var(--text-secondary)', opacity: 0.8,
+          }}>0u</span>
         </div>
 
         <div style={{
