@@ -333,7 +333,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
         {/* Why This Game - collapsible accordion */}
         {pick.model_signals && pick.model_signals.length > 0 && (
           <section style={{
-            margin: '0 0 8px',
+            margin: '0 0 6px',
             borderRadius: '12px',
             border: '1px solid rgba(255,255,255,0.08)',
             background: 'rgba(0,0,0,0.12)',
@@ -343,7 +343,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
               onClick={() => setSignalsOpen(!signalsOpen)}
               style={{
                 width: '100%',
-                padding: '9px 10px',
+                padding: '7px 10px',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 background: 'none', border: 'none', cursor: 'pointer',
               }}
@@ -361,14 +361,14 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
             </button>
             {signalsOpen && (
               <ul style={{
-                margin: 0, padding: '0 10px 10px 24px',
-                color: 'rgba(234,240,255,0.85)',
-                lineHeight: '1.55', fontSize: '12px',
+                margin: 0, padding: '0 10px 8px 22px',
+                color: 'rgba(234,240,255,0.8)',
+                lineHeight: '1.35', fontSize: '11px',
                 listStyle: 'none',
               }}>
                 {pick.model_signals.map((s, i) => (
-                  <li key={i} style={{ margin: '3px 0', position: 'relative', paddingLeft: '2px' }}>
-                    <span style={{ position: 'absolute', left: '-14px', color: 'rgba(52,211,153,0.6)' }}>›</span>
+                  <li key={i} style={{ margin: '2px 0', position: 'relative', paddingLeft: '2px' }}>
+                    <span style={{ position: 'absolute', left: '-13px', color: 'rgba(52,211,153,0.6)' }}>›</span>
                     {s}
                   </li>
                 ))}
