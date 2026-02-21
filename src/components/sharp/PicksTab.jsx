@@ -611,7 +611,9 @@ function ResolvedPickBanner({ pick, onViewDetails }) {
           fontFamily: 'var(--font-serif)', fontSize: '17px', fontWeight: 600,
           color: 'var(--text-primary)',
         }}>
-          {pick.side} {pick.line > 0 ? `+${pick.line}` : pick.line}
+          {pick.side && pick.line != null && pick.side.includes(String(Math.abs(pick.line)))
+            ? pick.side
+            : `${pick.side} ${pick.line > 0 ? '+' : ''}${pick.line}`}
         </div>
       </div>
 
