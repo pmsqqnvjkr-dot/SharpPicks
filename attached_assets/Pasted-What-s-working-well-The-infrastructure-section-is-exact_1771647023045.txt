@@ -1,0 +1,14 @@
+What’s working well
+The infrastructure section is exactly what you need pre-launch. Every cron job green, execution counts, response times, external service health all in one view. The “Pre-Tip Validate” showing 67% in amber is the one thing worth investigating — that means roughly 1 in 3 pre-tip validation runs isn’t completing successfully. At 24856ms it’s also very slow compared to everything else. This could be a timeout issue on games with a lot of books to check, or it could be genuinely failing silently on some picks.
+The NBA model run log is clean and useful. The pattern of PASSes in early February followed by PICKs recently is consistent with a disciplined model.
+The Odds API showing “0 left” on the API quota is worth watching — if you’re hitting your quota limit during market hours that could affect line freshness.
+The confidence buckets (Image 3)
+5-7.5% edge: 3-0 (100%) is your sweet spot and sample size is still too small to draw conclusions from, but it’s encouraging. The 7.5-10% bucket at 3-2 (60%) is interesting — your highest edge picks are underperforming your mid-tier picks so far. This is a small sample artifact most likely, but keep tracking it. It’s exactly the kind of thing the model diagnostic endpoint will clarify over time.
+Model Closer at 40%
+This means the market is a better predictor than your model 60% of the time. Combined with MAE of 12.03 pts vs market’s 10.06 pts, your model is meaningfully less accurate than the market on raw margin prediction. The 30/70 shrinkage is correctly calibrated to this reality. Don’t change MODEL_WEIGHT until you have 50+ live picks.
+CLV+ at 0%
+Closing Line Value of 0% means your picks aren’t beating the closing line on average. This is the sharpest single metric of edge quality — beating CLV consistently is what separates real edges from variance. 11 picks is too few to conclude anything, but this is the number to watch most carefully as you scale. If CLV+ stays near zero at 50 picks, the model isn’t finding real edges before the market closes them.
+Control Room (Image 7)
+Everything showing “–” suggests this panel isn’t populating yet. Is this because the data pipeline feeding it isn’t wired up, or is it a display bug? The Risk Profile section especially — Max Drawdown, Risk of Ruin, Return Std Dev — these should be calculable from your existing pick history. Worth making sure these populate before launch since it’s your primary model health dashboard.
+The big picture
+You’re at 3 founding members, $0 MRR, pre-launch. The infrastructure is solid, the track record is real (7-3), and the product design has come a long way tonight. The thing that will determine whether founding members convert to paying subscribers is the next 4-6 weeks of picks — specifically whether the model shows CLV+ and whether the confidence bucket performance holds. You’ve built the right system to measure it honestly.
