@@ -559,7 +559,7 @@ function RecordStrip({ stats }) {
         fontFamily: 'var(--font-mono)', fontSize: '13px',
         color: stats.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
       }}>
-        {stats.pnl >= 0 ? '+' : ''}{stats.pnl}u
+        {stats.pnl >= 0 ? '+' : ''}{Number(stats.pnl).toFixed(2)}u
       </div>
     </div>
   );
