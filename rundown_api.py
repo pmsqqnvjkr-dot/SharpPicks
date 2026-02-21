@@ -44,6 +44,27 @@ TEAM_NAME_MAP = {
     'WAS': 'Washington Wizards',
 }
 
+RUNDOWN_NAME_FIX = {
+    'LA': 'Los Angeles Clippers',
+    'Los Angeles': 'Los Angeles Lakers',
+    'LA Clippers': 'Los Angeles Clippers',
+    'LA Lakers': 'Los Angeles Lakers',
+    'New York': 'New York Knicks',
+    'Golden State': 'Golden State Warriors',
+    'Oklahoma City': 'Oklahoma City Thunder',
+    'San Antonio': 'San Antonio Spurs',
+    'New Orleans': 'New Orleans Pelicans',
+    'Portland': 'Portland Trail Blazers',
+}
+
+def normalize_team_name(name):
+    if name in RUNDOWN_NAME_FIX:
+        return RUNDOWN_NAME_FIX[name]
+    for full_name in TEAM_NAME_MAP.values():
+        if name in full_name or full_name.startswith(name):
+            return full_name
+    return name
+
 
 def get_nba_events():
     """Fetch today's NBA events from The Rundown"""
@@ -129,8 +150,8 @@ def parse_rundown_games(data):
             if len(teams) < 2:
                 continue
             
-            away_team = teams[0].get('name', '') if isinstance(teams[0], dict) else teams[0]
-            home_team = teams[1].get('name', '') if isinstance(teams[1], dict) else teams[1]
+            away_team = normalize_team_name(teams[0].get('name', '') if isinstance(teams[0], dict) else teams[0])
+            home_team = normalize_team_name(teams[1].get('name', '') if isinstance(teams[1], dict) else teams[1])
             
             lines = event.get('lines', {})
             

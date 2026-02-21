@@ -820,89 +820,145 @@ def collect_todays_games():
         'bookmakers': ','.join(PREFERRED_BOOKS)
     }
     
+    odds_api_ok = False
+    games_to_process = []
+    using_rundown = False
+
     try:
         response = api_request_with_retry(url, params)
         
         if response is None:
-            print("\n❌ Failed to connect after 3 attempts.")
-            print("   Please check your internet connection and try again.\n")
-            return
-        
-        if response.status_code != 200:
-            print(f"\n❌ API Error {response.status_code}")
+            print("\n⚠️ Failed to connect to Odds API after 3 attempts.")
+        elif response.status_code != 200:
+            print(f"\n⚠️ Odds API Error {response.status_code}")
             print(f"   {response.text}\n")
+        else:
+            games = response.json()
+            print(f"✅ Odds API Connected!")
+            print(f"   Games found: {len(games)}")
+            print(f"   API calls left: {API_USAGE['remaining']}/500\n")
+            check_api_usage()
+            odds_api_ok = True
+
+            for game in games:
+                game_id = game['id']
+                home = game['home_team']
+                away = game['away_team']
+                commence_time = utc_to_eastern_date(game['commence_time'])
+
+                spread_home = None
+                spread_away = None
+                total = None
+                home_ml = None
+                away_ml = None
+                home_spread_odds = None
+                away_spread_odds = None
+                home_spread_book = None
+                away_spread_book = None
+
+                def is_better_odds(new_odds, current_odds):
+                    if current_odds is None:
+                        return True
+                    return new_odds > current_odds
+
+                for bookmaker in game.get('bookmakers', []):
+                    book_key = bookmaker.get('key', '')
+                    book_name = BOOK_DISPLAY.get(book_key, book_key)
+
+                    for market in bookmaker.get('markets', []):
+                        if market['key'] == 'spreads':
+                            for outcome in market['outcomes']:
+                                if outcome['name'] == home:
+                                    if spread_home is None:
+                                        spread_home = outcome['point']
+                                    price = outcome.get('price')
+                                    if price is not None and is_better_odds(price, home_spread_odds):
+                                        home_spread_odds = price
+                                        home_spread_book = book_name
+                                else:
+                                    if spread_away is None:
+                                        spread_away = outcome['point']
+                                    price = outcome.get('price')
+                                    if price is not None and is_better_odds(price, away_spread_odds):
+                                        away_spread_odds = price
+                                        away_spread_book = book_name
+
+                        elif market['key'] == 'totals' and total is None:
+                            total = market['outcomes'][0]['point']
+
+                        elif market['key'] == 'h2h':
+                            for outcome in market['outcomes']:
+                                if outcome['name'] == home:
+                                    if home_ml is None or outcome['price'] > home_ml:
+                                        home_ml = outcome['price']
+                                else:
+                                    if away_ml is None or outcome['price'] > away_ml:
+                                        away_ml = outcome['price']
+
+                games_to_process.append({
+                    'game_id': game_id, 'home': home, 'away': away,
+                    'commence_time': commence_time, 'game_time': game.get('commence_time', ''),
+                    'spread_home': spread_home, 'spread_away': spread_away,
+                    'total': total, 'home_ml': home_ml, 'away_ml': away_ml,
+                    'home_spread_odds': home_spread_odds, 'away_spread_odds': away_spread_odds,
+                    'home_spread_book': home_spread_book, 'away_spread_book': away_spread_book,
+                })
+    except Exception as e:
+        print(f"\n⚠️ Odds API exception: {e}")
+
+    if not odds_api_ok or len(games_to_process) == 0:
+        if rundown_games:
+            print("🔄 Falling back to The Rundown API for today's games...")
+            using_rundown = True
+            from datetime import date as _date
+            today_str = _date.today().strftime('%Y-%m-%d')
+            for key, rg in rundown_games.items():
+                away_t = rg.get('away_team', '')
+                home_t = rg.get('home_team', '')
+                if not away_t or not home_t:
+                    continue
+                rd_spread = rg.get('spread_home') or rg.get('consensus_spread')
+                games_to_process.append({
+                    'game_id': f"rundown_{away_t}_{home_t}_{today_str}".replace(' ', '_').lower(),
+                    'home': home_t, 'away': away_t,
+                    'commence_time': rg.get('game_date', today_str),
+                    'game_time': '',
+                    'spread_home': rd_spread,
+                    'spread_away': -rd_spread if rd_spread is not None else None,
+                    'total': rg.get('total'),
+                    'home_ml': rg.get('home_ml'), 'away_ml': rg.get('away_ml'),
+                    'home_spread_odds': -110, 'away_spread_odds': -110,
+                    'home_spread_book': 'Rundown Consensus', 'away_spread_book': 'Rundown Consensus',
+                })
+            print(f"   ✅ Rundown fallback: {len(games_to_process)} games loaded\n")
+        else:
+            print("❌ No odds source available. No games collected.\n")
             return
-        
-        games = response.json()
-        
-        print(f"✅ API Connected!")
-        print(f"   Games found: {len(games)}")
-        print(f"   API calls left: {API_USAGE['remaining']}/500\n")
-        
-        check_api_usage()
-        
-        if len(games) == 0:
-            show_no_games_message()
-            show_stats()
-            return
-        
+
+    if len(games_to_process) == 0:
+        show_no_games_message()
+        show_stats()
+        return
+
+    try:
         conn = sqlite3.connect('sharp_picks.db')
         cursor = conn.cursor()
-        
-        for game in games:
-            game_id = game['id']
-            home = game['home_team']
-            away = game['away_team']
-            commence_time = utc_to_eastern_date(game['commence_time'])
-            
-            spread_home = None
-            spread_away = None
-            total = None
-            home_ml = None
-            away_ml = None
-            home_spread_odds = None
-            away_spread_odds = None
-            home_spread_book = None
-            away_spread_book = None
 
-            def is_better_odds(new_odds, current_odds):
-                if current_odds is None:
-                    return True
-                return new_odds > current_odds
-
-            for bookmaker in game.get('bookmakers', []):
-                book_key = bookmaker.get('key', '')
-                book_name = BOOK_DISPLAY.get(book_key, book_key)
-                
-                for market in bookmaker.get('markets', []):
-                    if market['key'] == 'spreads':
-                        for outcome in market['outcomes']:
-                            if outcome['name'] == home:
-                                if spread_home is None:
-                                    spread_home = outcome['point']
-                                price = outcome.get('price')
-                                if price is not None and is_better_odds(price, home_spread_odds):
-                                    home_spread_odds = price
-                                    home_spread_book = book_name
-                            else:
-                                if spread_away is None:
-                                    spread_away = outcome['point']
-                                price = outcome.get('price')
-                                if price is not None and is_better_odds(price, away_spread_odds):
-                                    away_spread_odds = price
-                                    away_spread_book = book_name
-                    
-                    elif market['key'] == 'totals' and total is None:
-                        total = market['outcomes'][0]['point']
-                    
-                    elif market['key'] == 'h2h':
-                        for outcome in market['outcomes']:
-                            if outcome['name'] == home:
-                                if home_ml is None or outcome['price'] > home_ml:
-                                    home_ml = outcome['price']
-                            else:
-                                if away_ml is None or outcome['price'] > away_ml:
-                                    away_ml = outcome['price']
+        for gp in games_to_process:
+            game_id = gp['game_id']
+            home = gp['home']
+            away = gp['away']
+            commence_time = gp['commence_time']
+            game_time = gp['game_time']
+            spread_home = gp['spread_home']
+            spread_away = gp['spread_away']
+            total = gp['total']
+            home_ml = gp['home_ml']
+            away_ml = gp['away_ml']
+            home_spread_odds = gp['home_spread_odds']
+            away_spread_odds = gp['away_spread_odds']
+            home_spread_book = gp['home_spread_book']
+            away_spread_book = gp['away_spread_book']
             
             # Get enhanced data
             home_info = team_data.get(home, {})
@@ -927,8 +983,7 @@ def collect_todays_games():
             home_injuries = injuries.get(home, '')
             away_injuries = injuries.get(away, '')
             
-            # Get game time
-            game_time = game.get('commence_time', '')
+            # Get game time (already set from gp above)
 
             rd_game = {}
             rd_key_full = f"{away}@{home}"
