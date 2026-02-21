@@ -1451,7 +1451,16 @@ def cron_backup():
 @app.route('/api/cron/run-model', methods=['POST'])
 @verify_cron
 def cron_run_model():
+    force = request.args.get('force', '').lower() == 'true'
     def _run():
+        if force:
+            today_str = datetime.now(pytz.timezone('US/Eastern')).strftime('%Y-%m-%d')
+            for sport in get_live_sports():
+                stale_pass = Pass.query.filter_by(date=today_str, sport=sport).first()
+                if stale_pass and stale_pass.games_analyzed == 0:
+                    db.session.delete(stale_pass)
+                    db.session.commit()
+                    print(f"[model-run] Force: cleared stale pass for {today_str}/{sport}")
         results = {}
         for sport in get_live_sports():
             results[sport] = run_model_and_log(app, sport=sport)
