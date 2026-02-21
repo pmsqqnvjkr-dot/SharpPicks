@@ -1454,7 +1454,7 @@ def cron_run_model():
     force = request.args.get('force', '').lower() == 'true'
     def _run():
         if force:
-            today_str = datetime.now(pytz.timezone('US/Eastern')).strftime('%Y-%m-%d')
+            today_str = _get_et_today()
             for sport in get_live_sports():
                 stale_pass = Pass.query.filter_by(date=today_str, sport=sport).first()
                 if stale_pass and stale_pass.games_analyzed == 0:
