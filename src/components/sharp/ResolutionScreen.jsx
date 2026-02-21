@@ -228,8 +228,8 @@ function WithdrawnDetailScreen({ pick, onBack }) {
             padding: '16px 0', borderTop: '1px solid var(--stroke-subtle)',
           }}>
             <ContextStat value={`${pick?.edge_pct || '--'}%`} label="Edge at entry" />
-            <ContextStat value={pick?.edge_at_close ? `${pick.edge_at_close}%` : '< threshold'} label="Edge at withdrawal" color="var(--text-tertiary)" />
-            <ContextStat value="Pull" label="Action" color="var(--text-tertiary)" />
+            <ContextStat value={pick?.edge_at_close != null ? `${pick.edge_at_close}%` : '--'} label="Edge at withdrawal" color="var(--text-tertiary)" />
+            <ContextStat value="Protected" label="Action" color="var(--text-tertiary)" />
           </div>
         </div>
 
