@@ -599,11 +599,69 @@ Fewer decisions. Better decisions.""",
                         publish_date=datetime(2026, 2, 14),
                         reading_time_minutes=4,
                     ),
+                    Insight(
+                        title="When the Edge Disappears Before Tip-Off",
+                        slug="when-the-edge-disappears-before-tipoff",
+                        category="market_notes",
+                        excerpt="A pick published at noon isn't the same pick at 7 PM. Here's why we check again before every game.",
+                        content="""A pick published at noon isn't the same pick at 7 PM. Here's why we check again before every game.
+
+---
+
+## Edge Is a Snapshot, Not a Guarantee
+
+When we publish a pick, we've identified a gap between what our model believes and what the market is pricing. That gap is real at the moment we find it.
+
+But markets move. Sharp money comes in. Books adjust. A line that opened at +4 might close at +2.5. The edge you saw at noon can shrink, shift, or disappear entirely by tip-off.
+
+Most services publish and forget. We don't.
+
+---
+
+## What Revalidation Means
+
+Two to three hours before every game, our system runs the pick again. Same model. Current lines. Current injury reports.
+
+We're asking one question: is the edge still there?
+
+If the answer is yes, nothing changes. The pick stands.
+
+If the edge has decayed below our minimum threshold, we withdraw the pick before anyone bets into a number that no longer has value.
+
+---
+
+## Why This Protects You
+
+A pick published at 7.6% edge that's now sitting at 1.2% is a different bet. The original thesis — that the market was mispricing this game — may no longer be true. The market has corrected, and following the pick now means betting into an efficient price.
+
+The withdrawal isn't a failure. It's the system working.
+
+---
+
+## The Line Move Signal
+
+When a line moves significantly against our pick — two or more points — that's information. It means sharp money landed on the other side. Our model may have identified something real, but so did someone else, and they bet it hard enough to move the market.
+
+In that case, we stop. Not because we're wrong, but because we can no longer quantify the advantage with confidence.
+
+---
+
+> A pick you don't make costs nothing. A pick you make into a bad number costs real money.
+
+---
+
+You'll occasionally see a pick disappear before game time. Now you know why. The withdrawal is the product working as designed.
+
+*Evan*""",
+                        status="published",
+                        publish_date=datetime(2026, 2, 21),
+                        reading_time_minutes=3,
+                    ),
                 ]
                 for ins in seed_insights:
                     db.session.add(ins)
                 db.session.commit()
-                logging.info("Seeded 4 initial insights")
+                logging.info("Seeded 5 initial insights")
 
             founding_members = User.query.filter_by(founding_member=True).order_by(User.created_at.asc()).all()
             for i, fm in enumerate(founding_members, 1):
