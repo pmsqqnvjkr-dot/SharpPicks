@@ -2514,6 +2514,7 @@ def get_user_stats():
             'total_passes': total_passes_count,
             'avg_days_between': avg_days_between,
             'capital_preserved': capital_preserved,
+            'restraint_grade': 'A+' if user_selectivity <= 20 else 'A' if user_selectivity <= 35 else 'B+' if user_selectivity <= 50 else 'B' if user_selectivity <= 65 else 'C',
         },
     })
 

@@ -57,8 +57,6 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
 
         <PerformanceCore perf={perf} equityCurve={equityCurve} />
 
-        <DisciplineScore discipline={discipline} />
-
         <LatestResultCard picks={recentPicks} />
 
         <RecentPickLog picks={recentPicks} />

@@ -292,6 +292,84 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                 )}
               </SectionCard>
 
+              {stats.behavioral && (
+                <SectionCard title="Discipline Score">
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px',
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Selectivity Rate</span>
+                        <span style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '22px',
+                          color: 'var(--text-primary)', fontWeight: 700,
+                        }}>{stats.behavioral.selectivity || 0}%</span>
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                        Industry Avg: {stats.behavioral.industry_avg || 78}%
+                      </div>
+                    </div>
+                    <div style={{
+                      width: '56px', height: '56px', borderRadius: '14px',
+                      background: stats.behavioral.restraint_grade?.startsWith('A')
+                        ? 'linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))'
+                        : 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                      border: stats.behavioral.restraint_grade?.startsWith('A')
+                        ? '1px solid rgba(52,211,153,0.3)'
+                        : '1px solid var(--stroke-subtle)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <span style={{
+                        fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 800,
+                        color: stats.behavioral.restraint_grade?.startsWith('A') ? 'var(--green-profit)' : 'var(--text-primary)',
+                      }}>{stats.behavioral.restraint_grade || '—'}</span>
+                    </div>
+                  </div>
+                  <div style={{ position: 'relative', height: '28px', marginBottom: '16px' }}>
+                    <div style={{
+                      position: 'absolute', left: 0, right: 0, height: '6px', top: '11px',
+                      backgroundColor: 'var(--surface-2)', borderRadius: '3px',
+                    }} />
+                    <div style={{
+                      position: 'absolute', left: 0, top: '11px',
+                      width: `${Math.min(Math.max(stats.behavioral.selectivity || 0, 0), 100)}%`,
+                      height: '6px',
+                      background: 'linear-gradient(90deg, #34D399, #2563EB)',
+                      borderRadius: '3px',
+                    }} />
+                    <div style={{
+                      position: 'absolute', left: `${Math.min(Math.max(stats.behavioral.selectivity || 0, 0), 100)}%`,
+                      top: '5px', width: '3px', height: '18px',
+                      backgroundColor: 'var(--green-profit)', borderRadius: '2px',
+                      transform: 'translateX(-50%)',
+                    }} />
+                    <div style={{
+                      position: 'absolute', left: `${stats.behavioral.industry_avg || 78}%`,
+                      top: 0, transform: 'translateX(-50%)',
+                      fontSize: '8px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap',
+                    }}>Industry ({stats.behavioral.industry_avg || 78}%)</div>
+                    <div style={{
+                      position: 'absolute', left: `${stats.behavioral.industry_avg || 78}%`,
+                      top: '11px', width: '1px', height: '6px',
+                      backgroundColor: 'var(--text-tertiary)', opacity: 0.5,
+                    }} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                    <MiniCard label="Picks Followed" value={stats.behavioral.picks_followed || 0} />
+                    <MiniCard label="Picks Passed" value={stats.behavioral.picks_passed || 0} />
+                  </div>
+                  <div style={{
+                    paddingTop: '12px', borderTop: '1px solid var(--stroke-subtle)',
+                  }}>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                      Capital preserved: <span style={{
+                        fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--green-profit)',
+                      }}>+${(stats.behavioral.capital_preserved || 0).toLocaleString()}</span> from avoided -EV spots
+                    </p>
+                  </div>
+                </SectionCard>
+              )}
+
               <SectionCard title="Streak">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                   <MiniCard
