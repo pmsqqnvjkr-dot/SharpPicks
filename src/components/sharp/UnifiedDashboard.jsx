@@ -176,6 +176,22 @@ export default function UnifiedDashboard({ embedded = false }) {
           <EmptyPerformance />
         )}
 
+        <div style={{ marginBottom: '16px' }}>
+          <button onClick={() => setShowTrackModal(true)} style={{
+            width: '100%', padding: '14px',
+            backgroundColor: 'var(--blue-primary)', color: '#fff',
+            border: 'none', borderRadius: '12px',
+            fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+            fontFamily: 'var(--font-sans)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Track a Bet
+          </button>
+        </div>
+
         {stats && stats.behavioral && (
           <div style={{
             backgroundColor: 'var(--surface-1)', borderRadius: '20px',
@@ -264,22 +280,6 @@ export default function UnifiedDashboard({ embedded = false }) {
             </div>
           </div>
         )}
-
-        <div style={{ marginBottom: '16px' }}>
-          <button onClick={() => setShowTrackModal(true)} style={{
-            width: '100%', padding: '14px',
-            backgroundColor: 'var(--blue-primary)', color: '#fff',
-            border: 'none', borderRadius: '12px',
-            fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'var(--font-sans)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Track a Bet
-          </button>
-        </div>
 
         {pendingBets.length > 0 && (
           <BetsSection title={`Active (${pendingBets.length})`}>
