@@ -102,7 +102,7 @@ function PerformanceCore({ perf, equityCurve }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '42px', fontWeight: 800,
+              fontFamily: 'var(--font-mono)', fontSize: '42px', fontWeight: 600,
               color: isPositive ? 'var(--green-profit)' : 'var(--red-loss)',
               lineHeight: '1', marginBottom: '8px',
             }}>
@@ -189,7 +189,7 @@ function DisciplineScore({ discipline }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 800,
+              fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 600,
               color: discipline.restraint_grade?.startsWith('A') ? 'var(--green-profit)' : 'var(--text-primary)',
             }}>{discipline.restraint_grade || '—'}</span>
           </div>
@@ -205,7 +205,7 @@ function DisciplineScore({ discipline }) {
             fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6',
           }}>
             Capital preserved: <span style={{
-              fontFamily: 'var(--font-mono)', fontWeight: 700,
+              fontFamily: 'var(--font-mono)', fontWeight: 500,
               color: 'var(--green-profit)',
             }}>+${(discipline.capital_preserved || 0).toLocaleString()}</span> from avoided -EV spots
           </p>
@@ -351,7 +351,7 @@ function PickLogRow({ pick, isLast }) {
           color: isRevoked ? 'var(--text-secondary)' : 'var(--text-primary)', fontWeight: 600,
         }}>{pick.side}</span>
         <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
           color: isWin ? 'var(--green-profit)' : isLoss ? 'var(--text-tertiary)' : isRevoked ? 'rgba(99,102,241,0.7)' : 'var(--text-tertiary)',
           opacity: isLoss ? 0.8 : 1,
         }}>

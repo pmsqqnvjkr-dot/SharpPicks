@@ -310,10 +310,10 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                     {stats.equityCurve.slice(-20).map((p, i) => (
                       <div key={i} style={{
                         width: '24px', height: '24px', borderRadius: '4px',
-                        backgroundColor: p.result === 'W' ? 'rgba(52, 211, 153, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                        border: `1px solid ${p.result === 'W' ? 'rgba(52, 211, 153, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                        backgroundColor: p.result === 'W' ? 'rgba(90, 158, 114, 0.2)' : 'rgba(196, 104, 107, 0.2)',
+                        border: `1px solid ${p.result === 'W' ? 'rgba(90, 158, 114, 0.4)' : 'rgba(196, 104, 107, 0.4)'}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '10px', fontWeight: 600, fontFamily: 'var(--font-mono)',
+                        fontSize: '10px', fontWeight: 500, fontFamily: 'var(--font-mono)',
                         color: p.result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
                       }}>
                         {p.result === 'W' ? 'W' : 'L'}
@@ -436,7 +436,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                   }}>
                     <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
                       Capital preserved: <span style={{
-                        fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--green-profit)',
+                        fontFamily: 'var(--font-mono)', fontWeight: 500, color: 'var(--green-profit)',
                       }}>+${(stats.behavioral.capital_preserved || 0).toLocaleString()}</span> from avoided -EV spots
                     </p>
                   </div>
@@ -1203,7 +1203,7 @@ function StatCard({ label, value, color, large }) {
     }}>
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: large ? '22px' : '16px',
-        fontWeight: 700, color: color || 'var(--text-primary)',
+        fontWeight: 500, color: color || 'var(--text-primary)',
       }}>{value}</div>
       <div style={{
         fontSize: '10px', color: 'var(--text-tertiary)',
@@ -1221,7 +1221,7 @@ function MiniCard({ label, value, color }) {
     }}>
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: '15px',
-        fontWeight: 600, color: color || 'var(--text-primary)',
+        fontWeight: 500, color: color || 'var(--text-primary)',
       }}>{value}</div>
       <div style={{
         fontSize: '10px', color: 'var(--text-tertiary)',

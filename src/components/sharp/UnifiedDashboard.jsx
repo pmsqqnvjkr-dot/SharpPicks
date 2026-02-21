@@ -274,7 +274,7 @@ export default function UnifiedDashboard({ embedded = false }) {
             <div style={{ paddingTop: '12px', borderTop: '1px solid var(--stroke-subtle)' }}>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
                 Capital preserved: <span style={{
-                  fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--green-profit)',
+                  fontFamily: 'var(--font-mono)', fontWeight: 500, color: 'var(--green-profit)',
                 }}>+${(stats.behavioral.capital_preserved || 0).toLocaleString()}</span> from avoided -EV spots
               </p>
             </div>
@@ -1042,7 +1042,7 @@ function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete, 
             {bet.result ? (
               <div>
                 <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+                  fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
                   color: bet.result === 'W' ? 'var(--green-profit)' : bet.result === 'L' ? 'var(--red-loss)' : 'var(--text-secondary)',
                 }}>
                   {bet.result === 'W' ? `+$${Math.abs(bet.profit || 0).toFixed(0)}` : bet.result === 'L' ? `-$${Math.abs(bet.profit || 0).toFixed(0)}` : 'Push'}
@@ -1050,11 +1050,11 @@ function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete, 
               </div>
             ) : bet.pick_result === 'W' || bet.pick_result === 'L' ? (
               <button onClick={(e) => { e.stopPropagation(); onMarkResult(bet.id, bet.pick_result); }} style={{
-                padding: '8px 14px', fontSize: '13px', fontWeight: 700,
+                padding: '8px 14px', fontSize: '13px', fontWeight: 500,
                 fontFamily: 'var(--font-mono)',
-                backgroundColor: bet.pick_result === 'W' ? 'rgba(52, 211, 153, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                backgroundColor: bet.pick_result === 'W' ? 'rgba(90, 158, 114, 0.1)' : 'rgba(196, 104, 107, 0.1)',
                 color: bet.pick_result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
-                border: `1px solid ${bet.pick_result === 'W' ? 'rgba(52, 211, 153, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                border: `1px solid ${bet.pick_result === 'W' ? 'rgba(90, 158, 114, 0.3)' : 'rgba(196, 104, 107, 0.3)'}`,
                 borderRadius: '10px', cursor: 'pointer',
                 minHeight: '44px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
@@ -1065,21 +1065,21 @@ function BetRow({ bet, onMarkResult, confirmDelete, setConfirmDelete, onDelete, 
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={(e) => { e.stopPropagation(); onMarkResult(bet.id, 'W'); }} style={{
                   minWidth: '44px', minHeight: '44px',
-                  padding: '8px 14px', fontSize: '13px', fontWeight: 700,
+                  padding: '8px 14px', fontSize: '13px', fontWeight: 500,
                   fontFamily: 'var(--font-mono)',
-                  backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                  backgroundColor: 'rgba(90, 158, 114, 0.1)',
                   color: 'var(--green-profit)',
-                  border: '1px solid rgba(52, 211, 153, 0.3)',
+                  border: '1px solid rgba(90, 158, 114, 0.3)',
                   borderRadius: '10px', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>W</button>
                 <button onClick={(e) => { e.stopPropagation(); onMarkResult(bet.id, 'L'); }} style={{
                   minWidth: '44px', minHeight: '44px',
-                  padding: '8px 14px', fontSize: '13px', fontWeight: 700,
+                  padding: '8px 14px', fontSize: '13px', fontWeight: 500,
                   fontFamily: 'var(--font-mono)',
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  backgroundColor: 'rgba(196, 104, 107, 0.1)',
                   color: 'var(--red-loss)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  border: '1px solid rgba(196, 104, 107, 0.3)',
                   borderRadius: '10px', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>L</button>

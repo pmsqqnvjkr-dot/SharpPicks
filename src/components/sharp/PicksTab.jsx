@@ -280,7 +280,7 @@ export default function PicksTab({ onNavigate }) {
                         }}>Pending</div>
                       ) : (
                         <div style={{
-                          fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
+                          fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
                           color: pick.result === 'win' ? 'var(--green-profit)'
                             : pick.result === 'loss' ? 'var(--red-loss)'
                             : isRevoked ? 'rgba(99,102,241,0.7)' : 'var(--text-tertiary)',

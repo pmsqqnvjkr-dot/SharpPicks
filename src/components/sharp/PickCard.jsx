@@ -494,12 +494,12 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
           ) : pick.result && pick.result !== 'pending' ? (
             <div style={{
               padding: '9px 10px', borderRadius: '12px',
-              border: `1px solid ${pick.result === 'win' ? 'rgba(52,211,153,0.22)' : 'rgba(239,68,68,0.22)'}`,
-              background: pick.result === 'win' ? 'rgba(52,211,153,0.08)' : 'rgba(239,68,68,0.08)',
+              border: `1px solid ${pick.result === 'win' ? 'rgba(90,158,114,0.22)' : 'rgba(196,104,107,0.22)'}`,
+              background: pick.result === 'win' ? 'rgba(90,158,114,0.08)' : 'rgba(196,104,107,0.08)',
               textAlign: 'center',
             }}>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 800,
+                fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 600,
                 color: pick.result === 'win' ? 'var(--green-profit)' : 'var(--red-loss)',
               }}>
                 {pick.result === 'win' ? `Win +${pick.pnl ?? 91}u` : `Loss ${pick.pnl ?? -110}u`}
