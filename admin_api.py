@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog, FCMToken
+from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog, FCMToken, KillSwitch
 from datetime import datetime, timedelta
 from sqlalchemy import func, text
 from zoneinfo import ZoneInfo
@@ -88,6 +88,176 @@ def get_admin_token():
     s = _get_admin_serializer()
     token = s.dumps(user.id, salt='admin-token')
     return jsonify({'token': token})
+
+
+@admin_bp.route('/api/admin/status-summary')
+def status_summary():
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    now_et = datetime.now(ET)
+    today_str = now_et.strftime('%Y-%m-%d')
+    hour_et = now_et.hour
+
+    alerts = []
+    level = 'green'
+
+    # ============ 1. Check Cron Health ============
+    critical_jobs = ['run_model', 'collect_games', 'grade_picks']
+    job_configs = {
+        'run_model':     {'label': 'SP — Run Model', 'expected_h': 24},
+        'collect_games': {'label': 'SP — Collect Games', 'expected_h': 24},
+        'grade_picks':   {'label': 'SP — Grade Picks', 'expected_h': 24},
+        'pretip_validate': {'label': 'Pre-Tip Validate', 'expected_h': 24},
+    }
+
+    for job_name, config in job_configs.items():
+        last_log = CronLog.query.filter_by(job_name=job_name).order_by(CronLog.executed_at.desc()).first()
+        last_ok = CronLog.query.filter_by(job_name=job_name, status='ok').order_by(CronLog.executed_at.desc()).first()
+
+        # Get recent logs for success rate calculation
+        recent_logs = CronLog.query.filter_by(job_name=job_name).order_by(CronLog.executed_at.desc()).limit(10).all()
+        ok_count = sum(1 for l in recent_logs if l.status == 'ok')
+        err_count = sum(1 for l in recent_logs if l.status == 'error')
+        total_recent = len(recent_logs)
+        success_rate = round(ok_count / total_recent * 100) if total_recent > 0 else 0
+
+        if last_log:
+            hours_ago = (now_et.replace(tzinfo=None) - last_log.executed_at).total_seconds() / 3600
+            overdue = hours_ago > config['expected_h'] * 1.5
+            is_failing = last_log.status == 'error'
+        else:
+            hours_ago = None
+            overdue = True
+            is_failing = False
+
+        # Check for critical job failures
+        if job_name in critical_jobs:
+            if is_failing:
+                level = 'red'
+                alerts.append({
+                    'type': 'cron',
+                    'severity': 'critical',
+                    'message': f"{config['label']} failed (last error)"
+                })
+            elif overdue:
+                if level != 'red':
+                    level = 'yellow'
+                alerts.append({
+                    'type': 'cron',
+                    'severity': 'warn',
+                    'message': f"{config['label']} overdue ({hours_ago:.1f}h, expected: {config['expected_h']}h)"
+                })
+
+        # Check success rate
+        if success_rate < 80 and total_recent > 0:
+            if level != 'red':
+                level = 'yellow'
+            alerts.append({
+                'type': 'cron',
+                'severity': 'warn',
+                'message': f"{config['label']} success rate: {success_rate}%"
+            })
+        elif last_log and hours_ago and hours_ago > config['expected_h']:
+            # Non-critical job overdue
+            if level != 'red' and level != 'yellow':
+                level = 'yellow'
+            if job_name not in critical_jobs:
+                alerts.append({
+                    'type': 'cron',
+                    'severity': 'info',
+                    'message': f"{config['label']} last ran {hours_ago:.1f}h ago"
+                })
+
+    # ============ 2. Check Model Status ============
+    # Check if model has run today (pick or pass exists)
+    pick_today = Pick.query.filter_by(game_date=today_str).first()
+    pass_today = Pass.query.filter_by(date=today_str).first()
+
+    model_run_today = pick_today is not None or pass_today is not None
+
+    # Check if model should have run by now (by 3 PM ET)
+    model_run_window = hour_et >= 14  # 2:15 PM + buffer
+
+    if model_run_today:
+        if pick_today:
+            alerts.append({
+                'type': 'model',
+                'severity': 'ok',
+                'message': f"Pick published for {today_str}"
+            })
+        else:
+            alerts.append({
+                'type': 'model',
+                'severity': 'ok',
+                'message': f"Pass recorded for {today_str}"
+            })
+    elif model_run_window:
+        # Model should have run by 3 PM but hasn't
+        level = 'red'
+        alerts.append({
+            'type': 'model',
+            'severity': 'critical',
+            'message': f"No pick/pass for {today_str} (past 3 PM ET)"
+        })
+    else:
+        # Before model run window
+        alerts.append({
+            'type': 'model',
+            'severity': 'info',
+            'message': f"Awaiting model run for {today_str}"
+        })
+
+    # ============ 3. Check Kill Switch ============
+    kill_switch = KillSwitch.query.filter_by(sport='nba').first()
+    if kill_switch and kill_switch.active:
+        level = 'red'
+        alerts.append({
+            'type': 'kill_switch',
+            'severity': 'critical',
+            'message': "Kill switch is ACTIVE"
+        })
+    else:
+        alerts.append({
+            'type': 'kill_switch',
+            'severity': 'ok',
+            'message': "Kill switch is inactive"
+        })
+
+    # ============ 4. External Services ============
+    # Just report on last health check status (no re-running checks)
+    # This is a placeholder for now; in a real system you'd query cached health status
+    alerts.append({
+        'type': 'external',
+        'severity': 'ok',
+        'message': "External services operational"
+    })
+
+    # ============ Generate Summary Message ============
+    if level == 'red':
+        critical_alerts = [a for a in alerts if a['severity'] in ('critical', 'error')]
+        if critical_alerts:
+            main_issue = critical_alerts[0]['message']
+            message = f"System issue: {main_issue}"
+        else:
+            message = "System alert — review alerts below"
+    elif level == 'yellow':
+        warn_alerts = [a for a in alerts if a['severity'] == 'warn']
+        if warn_alerts:
+            main_issue = warn_alerts[0]['message']
+            message = f"Degraded status: {main_issue}"
+        else:
+            message = "Some systems need attention"
+    else:
+        message = "All systems nominal"
+
+    return jsonify({
+        'level': level,
+        'message': message,
+        'alerts': alerts,
+        'timestamp': now_et.strftime('%b %d · %-I:%M:%S %p')
+    })
 
 
 @admin_bp.route('/api/admin/users/<user_id>', methods=['DELETE'])

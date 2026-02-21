@@ -41,6 +41,12 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
   background: var(--border);
   min-height: 100vh;
 }
+#control-room-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 1px;
+  grid-column: span 4;
+}
 
 .header {
   grid-column: 1 / -1;
@@ -381,12 +387,14 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
 
 @media (max-width: 1200px) {
   .dashboard { grid-template-columns: 1fr 1fr; }
+  #control-room-body { grid-template-columns: 1fr 1fr; grid-column: span 2; }
   .panel.wide-3 { grid-column: span 2; }
   .panel.wide-4 { grid-column: span 2; }
 }
 
 @media (max-width: 768px) {
   .dashboard { grid-template-columns: 1fr; }
+  #control-room-body { grid-template-columns: 1fr; grid-column: span 1; }
   .panel.wide-2, .panel.wide-3, .panel.wide-4 { grid-column: span 1; }
 }
 
@@ -466,41 +474,90 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     </div>
   </div>
 
-  <!-- REVENUE & SALES -->
-  <div class="section-label">Revenue & Sales</div>
+  <!-- STATUS BANNER -->
+  <div id="status-banner" class="panel wide-4" style="padding:14px 24px;display:flex;align-items:center;gap:16px;border-bottom:2px solid var(--border)">
+    <div id="status-dot-main" style="width:14px;height:14px;border-radius:50%;background:var(--text-dim);flex-shrink:0;box-shadow:0 0 8px rgba(0,0,0,0.3)"></div>
+    <div style="flex:1">
+      <div id="status-message" style="font-size:13px;font-weight:600;color:var(--text-bright);line-height:1.4">Loading system status...</div>
+      <div id="status-time" style="font-size:10px;color:var(--text-dim);margin-top:2px"></div>
+    </div>
+    <div id="status-alert-count" style="font-size:11px;color:var(--text-dim);white-space:nowrap"></div>
+  </div>
 
-  <div class="panel">
-    <div class="panel-label">Monthly Recurring Revenue</div>
-    <div class="metric-val green" id="mrr">--</div>
-    <div class="metric-sub">MRR</div>
+  <!-- ALERTS (only shown when issues exist) -->
+  <div id="alerts-panel" class="panel wide-4" style="padding:10px 20px;display:none;background:rgba(255,165,2,0.04);border-bottom:1px solid rgba(255,165,2,0.15)">
+    <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--amber);margin-bottom:8px;display:flex;align-items:center;gap:8px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Needs Attention
+    </div>
+    <div id="alerts-list"></div>
+  </div>
+
+  <!-- INFRASTRUCTURE & OPS (moved to top) -->
+  <div class="section-label">Infrastructure & Operations</div>
+
+  <div class="panel wide-2">
+    <div class="panel-label">Cron Job Health <span class="status-dot" id="cron-overall-dot"></span></div>
+    <div class="metric-sub" style="margin-bottom:8px" id="cron-checked-at">Loading...</div>
+    <div id="cron-jobs-list"></div>
+    <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
+      <div class="stat-row"><span class="label">Total Executions</span><span class="value" id="cron-total-exec">--</span></div>
+    </div>
   </div>
 
   <div class="panel">
-    <div class="panel-label">Annual Run Rate</div>
-    <div class="metric-val" id="arr">--</div>
-    <div class="metric-sub">ARR · Projected</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Active Subscribers</div>
-    <div class="metric-val blue" id="total-subs">--</div>
-    <div class="metric-sub" id="sub-breakdown">-- annual · -- monthly · -- trial</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Founding Members</div>
-    <div class="metric-val amber" id="founding-count">--</div>
-    <div class="progress-bar"><div class="fill amber" id="founding-bar" style="width:0%"></div></div>
-    <div class="metric-sub" id="founding-sub">--</div>
+    <div class="panel-label">Push Notifications <span class="status-dot" id="push-health-dot"></span></div>
+    <div class="stat-row"><span class="label">Opt-in Rate</span><span class="value" id="push-opt-in">--</span></div>
+    <div class="stat-row"><span class="label">Enabled Tokens</span><span class="value" id="push-enabled">--</span></div>
+    <div class="stat-row"><span class="label">Unique Users</span><span class="value" id="push-unique-users">--</span></div>
+    <div class="stat-row"><span class="label">Active (24h)</span><span class="value" id="push-active-24h">--</span></div>
+    <div class="stat-row"><span class="label">Active (7d)</span><span class="value" id="push-active-7d">--</span></div>
+    <div class="stat-row"><span class="label">Stale (7d+)</span><span class="value" id="push-stale">--</span></div>
+    <div class="stat-row"><span class="label">Disabled</span><span class="value" id="push-disabled">--</span></div>
+    <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+      <div class="panel-label" style="font-size:10px;margin-bottom:4px">By Platform</div>
+      <div id="push-platforms"></div>
+    </div>
+    <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+      <div class="panel-label" style="font-size:10px;margin-bottom:4px">Registered Devices</div>
+      <div id="push-user-list" style="max-height:150px;overflow-y:auto"></div>
+    </div>
+    <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+      <div class="panel-label" style="font-size:10px;margin-bottom:6px">Send Test Push</div>
+      <input id="test-push-title" placeholder="Title" value="SharpPicks Test" style="width:100%;padding:6px 8px;margin-bottom:4px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;box-sizing:border-box">
+      <input id="test-push-body" placeholder="Body" value="Push notifications are working." style="width:100%;padding:6px 8px;margin-bottom:6px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;box-sizing:border-box">
+      <button onclick="sendTestPush()" id="test-push-btn" style="width:100%;padding:7px;background:var(--green);color:#000;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer">Send Test Push</button>
+      <div id="test-push-result" style="font-size:10px;margin-top:4px;color:var(--text-dim)"></div>
+    </div>
   </div>
 
   <div class="panel wide-2">
-    <div class="panel-label">User Distribution</div>
-    <div class="stat-row"><span class="label">Total Users</span><span class="value" id="total-users">--</span></div>
-    <div class="stat-row"><span class="label">Active (Paid)</span><span class="value green" id="paid-users">--</span></div>
-    <div class="stat-row"><span class="label">Trial</span><span class="value blue" id="trial-users">--</span></div>
-    <div class="stat-row"><span class="label">Free</span><span class="value" id="free-users">--</span></div>
-    <div class="stat-row"><span class="label">Founding Members</span><span class="value amber" id="founding-users">--</span></div>
+    <div class="panel-label">External Services <span class="status-dot" id="health-overall-dot"></span></div>
+    <div class="metric-sub" style="margin-bottom:8px" id="health-checked-at">Checking...</div>
+    <div id="health-services-list">
+      <div class="status-bar-row"><div class="status-indicator" id="hc-postgresql-dot"></div><span class="status-name">PostgreSQL</span><span class="status-val" id="hc-postgresql-val">...</span></div>
+      <div class="status-bar-row"><div class="status-indicator" id="hc-odds_api-dot"></div><span class="status-name">The Odds API</span><span class="status-val" id="hc-odds_api-val">...</span></div>
+      <div class="status-bar-row"><div class="status-indicator" id="hc-balldontlie-dot"></div><span class="status-name">balldontlie</span><span class="status-val" id="hc-balldontlie-val">...</span></div>
+      <div class="status-bar-row"><div class="status-indicator" id="hc-espn-dot"></div><span class="status-name">ESPN</span><span class="status-val" id="hc-espn-val">...</span></div>
+      <div class="status-bar-row"><div class="status-indicator" id="hc-resend-dot"></div><span class="status-name">Resend (Email)</span><span class="status-val" id="hc-resend-val">...</span></div>
+      <div class="status-bar-row"><div class="status-indicator" id="hc-stripe-dot"></div><span class="status-name">Stripe</span><span class="status-val" id="hc-stripe-val">...</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">NBA Model Runs</div>
+    <div id="nba-model-runs-list" style="max-height:200px;overflow-y:auto"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">WNBA Model Runs</div>
+    <div id="wnba-model-runs-list" style="max-height:200px;overflow-y:auto"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Content</div>
+    <div class="stat-row"><span class="label">Total Insights</span><span class="value" id="insights-total">--</span></div>
+    <div class="stat-row"><span class="label">Published</span><span class="value green" id="insights-published">--</span></div>
   </div>
 
   <!-- NBA MODEL PERFORMANCE -->
@@ -624,75 +681,49 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div class="metric-sub" id="wnba-equity-sub">--</div>
   </div>
 
-  <!-- INFRASTRUCTURE -->
-  <div class="section-label">Infrastructure</div>
+  <!-- REVENUE & SALES -->
+  <div class="section-label">Revenue & Sales</div>
 
-  <div class="panel wide-2">
-    <div class="panel-label">Cron Job Health <span class="status-dot" id="cron-overall-dot"></span></div>
-    <div class="metric-sub" style="margin-bottom:8px" id="cron-checked-at">Loading...</div>
-    <div id="cron-jobs-list"></div>
-    <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
-      <div class="stat-row"><span class="label">Total Executions</span><span class="value" id="cron-total-exec">--</span></div>
-    </div>
+  <div class="panel">
+    <div class="panel-label">Monthly Recurring Revenue</div>
+    <div class="metric-val green" id="mrr">--</div>
+    <div class="metric-sub">MRR</div>
   </div>
 
   <div class="panel">
-    <div class="panel-label">Push Notifications <span class="status-dot" id="push-health-dot"></span></div>
-    <div class="stat-row"><span class="label">Opt-in Rate</span><span class="value" id="push-opt-in">--</span></div>
-    <div class="stat-row"><span class="label">Enabled Tokens</span><span class="value" id="push-enabled">--</span></div>
-    <div class="stat-row"><span class="label">Unique Users</span><span class="value" id="push-unique-users">--</span></div>
-    <div class="stat-row"><span class="label">Active (24h)</span><span class="value" id="push-active-24h">--</span></div>
-    <div class="stat-row"><span class="label">Active (7d)</span><span class="value" id="push-active-7d">--</span></div>
-    <div class="stat-row"><span class="label">Stale (7d+)</span><span class="value" id="push-stale">--</span></div>
-    <div class="stat-row"><span class="label">Disabled</span><span class="value" id="push-disabled">--</span></div>
-    <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
-      <div class="panel-label" style="font-size:10px;margin-bottom:4px">By Platform</div>
-      <div id="push-platforms"></div>
-    </div>
-    <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
-      <div class="panel-label" style="font-size:10px;margin-bottom:4px">Registered Devices</div>
-      <div id="push-user-list" style="max-height:150px;overflow-y:auto"></div>
-    </div>
-    <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
-      <div class="panel-label" style="font-size:10px;margin-bottom:6px">Send Test Push</div>
-      <input id="test-push-title" placeholder="Title" value="SharpPicks Test" style="width:100%;padding:6px 8px;margin-bottom:4px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;box-sizing:border-box">
-      <input id="test-push-body" placeholder="Body" value="Push notifications are working." style="width:100%;padding:6px 8px;margin-bottom:6px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;box-sizing:border-box">
-      <button onclick="sendTestPush()" id="test-push-btn" style="width:100%;padding:7px;background:var(--green);color:#000;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer">Send Test Push</button>
-      <div id="test-push-result" style="font-size:10px;margin-top:4px;color:var(--text-dim)"></div>
-    </div>
+    <div class="panel-label">Annual Run Rate</div>
+    <div class="metric-val" id="arr">--</div>
+    <div class="metric-sub">ARR · Projected</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Active Subscribers</div>
+    <div class="metric-val blue" id="total-subs">--</div>
+    <div class="metric-sub" id="sub-breakdown">-- annual · -- monthly · -- trial</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Founding Members</div>
+    <div class="metric-val amber" id="founding-count">--</div>
+    <div class="progress-bar"><div class="fill amber" id="founding-bar" style="width:0%"></div></div>
+    <div class="metric-sub" id="founding-sub">--</div>
   </div>
 
   <div class="panel wide-2">
-    <div class="panel-label">External Services <span class="status-dot" id="health-overall-dot"></span></div>
-    <div class="metric-sub" style="margin-bottom:8px" id="health-checked-at">Checking...</div>
-    <div id="health-services-list">
-      <div class="status-bar-row"><div class="status-indicator" id="hc-postgresql-dot"></div><span class="status-name">PostgreSQL</span><span class="status-val" id="hc-postgresql-val">...</span></div>
-      <div class="status-bar-row"><div class="status-indicator" id="hc-odds_api-dot"></div><span class="status-name">The Odds API</span><span class="status-val" id="hc-odds_api-val">...</span></div>
-      <div class="status-bar-row"><div class="status-indicator" id="hc-balldontlie-dot"></div><span class="status-name">balldontlie</span><span class="status-val" id="hc-balldontlie-val">...</span></div>
-      <div class="status-bar-row"><div class="status-indicator" id="hc-espn-dot"></div><span class="status-name">ESPN</span><span class="status-val" id="hc-espn-val">...</span></div>
-      <div class="status-bar-row"><div class="status-indicator" id="hc-resend-dot"></div><span class="status-name">Resend (Email)</span><span class="status-val" id="hc-resend-val">...</span></div>
-      <div class="status-bar-row"><div class="status-indicator" id="hc-stripe-dot"></div><span class="status-name">Stripe</span><span class="status-val" id="hc-stripe-val">...</span></div>
-    </div>
+    <div class="panel-label">User Distribution</div>
+    <div class="stat-row"><span class="label">Total Users</span><span class="value" id="total-users">--</span></div>
+    <div class="stat-row"><span class="label">Active (Paid)</span><span class="value green" id="paid-users">--</span></div>
+    <div class="stat-row"><span class="label">Trial</span><span class="value blue" id="trial-users">--</span></div>
+    <div class="stat-row"><span class="label">Free</span><span class="value" id="free-users">--</span></div>
+    <div class="stat-row"><span class="label">Founding Members</span><span class="value amber" id="founding-users">--</span></div>
   </div>
 
-  <div class="panel">
-    <div class="panel-label">NBA Model Runs</div>
-    <div id="nba-model-runs-list" style="max-height:200px;overflow-y:auto"></div>
+  <!-- CONTROL ROOM (collapsible) -->
+  <div class="section-label" style="background:rgba(255,165,2,0.06);color:var(--amber);cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between" onclick="toggleControlRoom()">
+    <span>&#x1F7E0; Control Room <span style="font-size:8px;letter-spacing:1px;margin-left:8px;color:var(--text-dim)">ADMIN ONLY</span></span>
+    <svg id="cr-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
   </div>
-
-  <div class="panel">
-    <div class="panel-label">WNBA Model Runs</div>
-    <div id="wnba-model-runs-list" style="max-height:200px;overflow-y:auto"></div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Content</div>
-    <div class="stat-row"><span class="label">Total Insights</span><span class="value" id="insights-total">--</span></div>
-    <div class="stat-row"><span class="label">Published</span><span class="value green" id="insights-published">--</span></div>
-  </div>
-
-  <!-- CONTROL ROOM -->
-  <div class="section-label" style="background:rgba(255,165,2,0.06);color:var(--amber)">&#x1F7E0; Control Room <span style="font-size:8px;letter-spacing:1px;margin-left:8px;color:var(--text-dim)">ADMIN ONLY</span></div>
+  <div id="control-room-body" style="display:none">
 
   <div class="panel wide-2">
     <div class="panel-label">Kill Switch &amp; Trigger States <span class="status-dot" id="ks-status-dot"></span></div>
@@ -760,6 +791,8 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div id="cr-toggles-list"></div>
   </div>
 
+  </div><!-- /control-room-body -->
+
   <!-- USERS -->
   <div class="section-label">Users</div>
 
@@ -800,6 +833,67 @@ function fmt$(n) {
 
 function pnlClass(v) {
   return v > 0 ? 'green' : v < 0 ? 'red' : '';
+}
+
+function toggleControlRoom() {
+  const body = document.getElementById('control-room-body');
+  const icon = document.getElementById('cr-toggle-icon');
+  if (body.style.display === 'none') {
+    body.style.display = '';
+    icon.style.transform = 'rotate(180deg)';
+  } else {
+    body.style.display = 'none';
+    icon.style.transform = 'rotate(0deg)';
+  }
+}
+
+function loadStatusBanner() {
+  apiFetch('/api/admin/status-summary')
+    .then(r => r.json())
+    .then(data => {
+      const dot = document.getElementById('status-dot-main');
+      const banner = document.getElementById('status-banner');
+      const msg = document.getElementById('status-message');
+      const time = document.getElementById('status-time');
+      const count = document.getElementById('status-alert-count');
+      const alertsPanel = document.getElementById('alerts-panel');
+      const alertsList = document.getElementById('alerts-list');
+
+      const colors = { green: '#22c55e', yellow: '#ffa502', red: '#ef4444' };
+      const bgColors = { green: 'rgba(34,197,94,0.06)', yellow: 'rgba(255,165,2,0.06)', red: 'rgba(239,68,68,0.06)' };
+      const borderColors = { green: 'rgba(34,197,94,0.2)', yellow: 'rgba(255,165,2,0.2)', red: 'rgba(239,68,68,0.3)' };
+
+      dot.style.background = colors[data.level] || colors.yellow;
+      dot.style.boxShadow = '0 0 12px ' + (colors[data.level] || colors.yellow) + '40';
+      banner.style.background = bgColors[data.level] || bgColors.yellow;
+      banner.style.borderBottomColor = borderColors[data.level] || borderColors.yellow;
+      msg.textContent = data.message;
+      time.textContent = data.timestamp;
+
+      const issues = (data.alerts || []).filter(a => a.severity !== 'ok');
+      if (issues.length > 0) {
+        count.textContent = issues.length + ' alert' + (issues.length > 1 ? 's' : '');
+        count.style.color = colors[data.level] || colors.yellow;
+        alertsPanel.style.display = '';
+        alertsPanel.style.background = bgColors[data.level] || bgColors.yellow;
+        alertsPanel.style.borderBottomColor = borderColors[data.level] || borderColors.yellow;
+        alertsList.innerHTML = issues.map(a => {
+          const sevColor = a.severity === 'error' ? 'var(--red)' : 'var(--amber)';
+          const sevLabel = a.severity === 'error' ? 'ERR' : 'WARN';
+          return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px">' +
+            '<span style="font-size:8px;font-weight:700;letter-spacing:1px;color:' + sevColor + ';width:32px">' + sevLabel + '</span>' +
+            '<span style="color:var(--text-dim);width:48px;font-size:9px;text-transform:uppercase">' + a.type + '</span>' +
+            '<span style="color:var(--text)">' + a.message + '</span>' +
+            '</div>';
+        }).join('');
+      } else {
+        count.textContent = '';
+        alertsPanel.style.display = 'none';
+      }
+    })
+    .catch(() => {
+      document.getElementById('status-message').textContent = 'Failed to load status';
+    });
 }
 
 function buildEquityCurve(curve, prefix) {
@@ -1118,6 +1212,7 @@ function refreshAll() {
   btn.style.color = 'var(--blue)';
   btn.querySelector('svg').style.transition = 'transform 0.6s';
   btn.querySelector('svg').style.transform = 'rotate(360deg)';
+  loadStatusBanner();
   loadDashboard();
   loadHealthChecks();
   loadCronHealth();
@@ -1129,8 +1224,10 @@ function refreshAll() {
 }
 
 ensureAdminToken().then(() => {
+  loadStatusBanner();
   loadDashboard();
   setInterval(loadDashboard, 30000);
+  setInterval(loadStatusBanner, 60000);
 });
 
 function hcStatusClass(s) { return s === 'ok' ? 'ok' : s === 'warn' ? 'warn' : 'err'; }
