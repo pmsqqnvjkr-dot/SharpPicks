@@ -167,8 +167,14 @@ def today():
         selectivity = round((total_picks / total_days) * 100) if total_days > 0 else 0
         days_per_bet = round(total_days / total_picks, 1) if total_picks > 0 else 0
 
+        is_off_day = pass_entry.games_analyzed == 0
+        pass_type = 'off_day' if is_off_day else 'pass'
+        message = ('No NBA games scheduled today. The model will resume when games return.'
+                   if is_off_day
+                   else 'No qualifying edge found today. The model analyzed all available games and none met the threshold. Discipline preserved.')
+
         return jsonify({
-            'type': 'pass',
+            'type': pass_type,
             'date': pass_entry.date,
             'games_analyzed': pass_entry.games_analyzed,
             'closest_edge_pct': pass_entry.closest_edge_pct,
@@ -177,7 +183,7 @@ def today():
             'passes_this_week': passes_this_week,
             'selectivity': selectivity,
             'days_per_bet': days_per_bet,
-            'message': 'No qualifying edge found today. The model analyzed all available games and none met the threshold. Discipline preserved.'
+            'message': message,
         })
 
     allstar_ranges = [
