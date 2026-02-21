@@ -1455,6 +1455,12 @@ def cron_run_model():
     def _run():
         if force:
             today_str = _get_et_today()
+            print(f"[model-run] Force mode: collecting games + clearing stale passes for {today_str}")
+            try:
+                collect_todays_games()
+                print(f"[model-run] Force: games collected successfully")
+            except Exception as e:
+                print(f"[model-run] Force: game collection error (continuing): {e}")
             for sport in get_live_sports():
                 stale_pass = Pass.query.filter_by(date=today_str, sport=sport).first()
                 if stale_pass and stale_pass.games_analyzed == 0:
