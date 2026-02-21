@@ -884,8 +884,8 @@ def control_room():
         Pick.result.in_(['win', 'loss', 'push']),
     ).order_by(EdgeSnapshot.created_at.desc()).limit(100).all()
 
-    open_edges = [s.edge_at_open for s in snapshots if s.edge_at_open is not None and s.snapshot_type == 'open']
-    pretip_edges = [s.edge_at_open for s in snapshots if s.snapshot_type == 'pretip' and s.edge_at_open is not None]
+    open_edges = [s.edge_pct for s in snapshots if s.edge_pct is not None and s.snapshot_label == 'open']
+    pretip_edges = [s.edge_pct for s in snapshots if s.snapshot_label == 'pretip' and s.edge_pct is not None]
 
     sfs_data = []
     for p in resolved[:20]:
