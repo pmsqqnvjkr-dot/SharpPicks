@@ -398,7 +398,6 @@ def send_weekly_summary(to, first_name=None, stats=None):
         f"Weekly Summary | {record_str}" if picks_made > 0 else "Weekly Summary | All Pass Week",
         html,
         reply_to="evan@sharppicks.ai",
-        from_email=FOUNDER_EMAIL,
         attachments=attachments or None,
     )
 
