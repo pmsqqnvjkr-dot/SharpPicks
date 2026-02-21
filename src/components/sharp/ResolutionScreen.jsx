@@ -45,29 +45,6 @@ export default function ResolutionScreen({ pick, onBack }) {
           marginBottom: '16px', textAlign: 'center',
         }}>
           <div style={{
-            width: '40px', height: '40px', borderRadius: '50%',
-            backgroundColor: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px',
-          }}>
-            {isPush ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="6" y1="12" x2="18" y2="12"/>
-              </svg>
-            ) : isWin ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-profit)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            ) : (
-              <div style={{
-                width: '8px', height: '8px', borderRadius: '50%',
-                backgroundColor: 'var(--red-loss)', opacity: 0.7,
-              }} />
-            )}
-          </div>
-
-          <div style={{
             fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 600,
             color: 'var(--text-primary)', marginBottom: '6px',
           }}>
@@ -124,19 +101,12 @@ export default function ResolutionScreen({ pick, onBack }) {
         </div>
 
         <div style={{
-          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-          border: '1px solid var(--stroke-subtle)', padding: '16px 20px',
-          marginBottom: '16px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          textAlign: 'right', padding: '4px 8px 12px',
         }}>
-          <div style={{
-            fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 500,
-            color: 'var(--text-tertiary)',
-          }}>Result</div>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 600,
-            color: pnlColor,
-          }}>{profitDisplay}</div>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
+            color: pnlColor, opacity: 0.8,
+          }}>{profitDisplay}</span>
         </div>
 
         <div style={{

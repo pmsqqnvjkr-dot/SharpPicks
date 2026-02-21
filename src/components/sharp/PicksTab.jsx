@@ -601,47 +601,17 @@ function ResolvedPickBanner({ pick, onViewDetails }) {
         cursor: 'pointer',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+      <div style={{ marginBottom: '14px' }}>
         <div style={{
-          width: '36px', height: '36px', borderRadius: '50%',
-          backgroundColor: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          {isPush ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="6" y1="12" x2="18" y2="12"/>
-            </svg>
-          ) : isWin ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green-profit)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          ) : (
-            <div style={{
-              width: '7px', height: '7px', borderRadius: '50%',
-              backgroundColor: 'var(--red-loss)', opacity: 0.65,
-            }} />
-          )}
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-            letterSpacing: '1.5px', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: '3px',
-          }}>Outcome Resolved</div>
-          <div style={{
-            fontFamily: 'var(--font-serif)', fontSize: '17px', fontWeight: 600,
-            color: 'var(--text-primary)',
-          }}>
-            {pick.side} {pick.line > 0 ? `+${pick.line}` : pick.line}
-          </div>
-        </div>
+          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+          letterSpacing: '1.5px', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)', marginBottom: '6px',
+        }}>Outcome Resolved</div>
         <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
-          color: pnlColor,
+          fontFamily: 'var(--font-serif)', fontSize: '17px', fontWeight: 600,
+          color: 'var(--text-primary)',
         }}>
-          {profitDisplay}
+          {pick.side} {pick.line > 0 ? `+${pick.line}` : pick.line}
         </div>
       </div>
 
