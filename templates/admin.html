@@ -848,7 +848,7 @@ function toggleControlRoom() {
 }
 
 function loadStatusBanner() {
-  apiFetch('/api/admin/status-summary')
+  adminFetch('/api/admin/status-summary')
     .then(r => r.json())
     .then(data => {
       const dot = document.getElementById('status-dot-main');
