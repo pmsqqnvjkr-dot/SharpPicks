@@ -181,6 +181,31 @@ def today_pipeline():
     return jsonify(result)
 
 
+@admin_bp.route('/api/admin/rerun-model', methods=['POST'])
+def rerun_model():
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    now_et = datetime.now(ET)
+    today_str = now_et.strftime('%Y-%m-%d')
+    sport = request.json.get('sport', 'nba') if request.json else 'nba'
+
+    runs_deleted = ModelRun.query.filter_by(date=today_str, sport=sport).delete()
+    passes_deleted = Pass.query.filter_by(date=today_str, sport=sport).delete()
+    picks_deleted = Pick.query.filter_by(game_date=today_str, sport=sport).delete()
+    db.session.commit()
+
+    from model_service import run_model_and_log
+    from flask import current_app
+    result = run_model_and_log(current_app._get_current_object(), sport=sport)
+
+    return jsonify({
+        'cleared': {'runs': runs_deleted, 'passes': passes_deleted, 'picks': picks_deleted},
+        'result': result,
+    })
+
+
 @admin_bp.route('/api/admin/status-summary')
 def status_summary():
     admin, err_code = require_superuser()
