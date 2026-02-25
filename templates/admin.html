@@ -493,7 +493,49 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div id="alerts-list"></div>
   </div>
 
-  <!-- INFRASTRUCTURE & OPS (moved to top) -->
+  <!-- TODAY'S PIPELINE -->
+  <div class="section-label">Today's Pipeline</div>
+
+  <div class="panel wide-4" id="pipeline-panel">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <div id="pipeline-status-dot" style="width:10px;height:10px;border-radius:50%;background:var(--text-dim)"></div>
+      <div style="flex:1">
+        <span id="pipeline-status-label" style="font-size:13px;font-weight:600;color:var(--text-bright)">Loading...</span>
+        <span id="pipeline-date" style="font-size:10px;color:var(--text-dim);margin-left:8px"></span>
+      </div>
+      <span id="pipeline-run-time" style="font-size:10px;color:var(--text-dim);font-family:var(--mono)"></span>
+    </div>
+    <div id="pipeline-details" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+        <div>
+          <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Games</div>
+          <div id="pipeline-games" style="font-size:18px;font-weight:700;color:var(--text-bright)">--</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Result</div>
+          <div id="pipeline-result" style="font-size:18px;font-weight:700">--</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Edge</div>
+          <div id="pipeline-edge" style="font-size:18px;font-weight:700;color:var(--text-bright)">--</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Duration</div>
+          <div id="pipeline-duration" style="font-size:18px;font-weight:700;color:var(--text-dim)">--</div>
+        </div>
+      </div>
+      <div id="pipeline-pick-details" style="display:none;padding:10px 12px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:6px;margin-bottom:10px">
+      </div>
+      <div id="pipeline-pass-details" style="display:none;padding:10px 12px;background:rgba(255,165,2,0.06);border:1px solid rgba(255,165,2,0.15);border-radius:6px;margin-bottom:10px">
+      </div>
+    </div>
+    <div id="pipeline-cron-attempts" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
+      <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Cron Attempts</div>
+      <div id="pipeline-cron-list" style="font-size:10px;color:var(--text-dim)">--</div>
+    </div>
+  </div>
+
+  <!-- INFRASTRUCTURE & OPS -->
   <div class="section-label">Infrastructure & Operations</div>
 
   <div class="panel wide-2">
@@ -845,6 +887,99 @@ function toggleControlRoom() {
     body.style.display = 'none';
     icon.style.transform = 'rotate(0deg)';
   }
+}
+
+function loadPipeline() {
+  adminFetch('/api/admin/today-pipeline')
+    .then(r => r.json())
+    .then(data => {
+      const dot = document.getElementById('pipeline-status-dot');
+      const label = document.getElementById('pipeline-status-label');
+      const dateEl = document.getElementById('pipeline-date');
+      const timeEl = document.getElementById('pipeline-run-time');
+      const details = document.getElementById('pipeline-details');
+      const gamesEl = document.getElementById('pipeline-games');
+      const resultEl = document.getElementById('pipeline-result');
+      const edgeEl = document.getElementById('pipeline-edge');
+      const durationEl = document.getElementById('pipeline-duration');
+      const pickBox = document.getElementById('pipeline-pick-details');
+      const passBox = document.getElementById('pipeline-pass-details');
+      const cronList = document.getElementById('pipeline-cron-list');
+
+      dateEl.textContent = data.date;
+
+      if (data.status === 'pick') {
+        dot.style.background = 'var(--green)';
+        label.textContent = 'Pick Published';
+        label.style.color = 'var(--green)';
+        timeEl.textContent = data.run_time ? 'Ran at ' + data.run_time : '';
+        details.style.display = '';
+        gamesEl.textContent = data.games_analyzed;
+        resultEl.textContent = 'PICK';
+        resultEl.style.color = 'var(--green)';
+        edgeEl.textContent = data.pick.edge_pct != null ? (data.pick.edge_pct > 0 ? '+' : '') + data.pick.edge_pct + '%' : '--';
+        edgeEl.style.color = 'var(--green)';
+        durationEl.textContent = data.duration_ms ? (data.duration_ms / 1000).toFixed(1) + 's' : '--';
+        pickBox.style.display = '';
+        passBox.style.display = 'none';
+        pickBox.innerHTML =
+          '<div style="font-size:11px;font-weight:600;color:var(--green);margin-bottom:6px">' + data.pick.side + ' ' + (data.pick.line != null ? (data.pick.line > 0 ? '+' : '') + data.pick.line : '') + '</div>' +
+          '<div style="font-size:10px;color:var(--text-dim)">' + data.pick.away_team + ' @ ' + data.pick.home_team + '</div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;font-size:10px">' +
+            '<div><span style="color:var(--text-dim)">Edge</span><br><span style="color:var(--green)">' + data.pick.edge_pct + '%</span></div>' +
+            '<div><span style="color:var(--text-dim)">Cover</span><br>' + (data.pick.cover_prob != null ? (data.pick.cover_prob * 100).toFixed(1) + '%' : '--') + '</div>' +
+            '<div><span style="color:var(--text-dim)">Book</span><br>' + (data.pick.sportsbook || '--') + '</div>' +
+          '</div>' +
+          (data.pick.predicted_margin ? '<div style="margin-top:6px;font-size:10px;color:var(--text-dim)">Predicted margin: ' + data.pick.predicted_margin + ' pts</div>' : '');
+      } else if (data.status === 'pass') {
+        dot.style.background = 'var(--amber)';
+        label.textContent = 'Pass Day';
+        label.style.color = 'var(--amber)';
+        timeEl.textContent = data.run_time ? 'Ran at ' + data.run_time : '';
+        details.style.display = '';
+        gamesEl.textContent = data.games_analyzed;
+        resultEl.textContent = 'PASS';
+        resultEl.style.color = 'var(--amber)';
+        var passEdge = data.pass.closest_edge_pct;
+        edgeEl.textContent = passEdge != null && passEdge !== 0 ? (passEdge > 0 ? '+' : '') + passEdge + '%' : 'None';
+        edgeEl.style.color = passEdge != null && passEdge > 0 ? 'var(--amber)' : 'var(--text-dim)';
+        durationEl.textContent = data.duration_ms ? (data.duration_ms / 1000).toFixed(1) + 's' : '--';
+        pickBox.style.display = 'none';
+        passBox.style.display = '';
+        var passHtml = '<div style="font-size:11px;color:var(--amber);margin-bottom:4px">' + (data.pass.pass_reason || 'No edge detected') + '</div>';
+        if (data.pass.whatif) {
+          var w = data.pass.whatif;
+          passHtml += '<div style="font-size:10px;color:var(--text-dim);margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,165,2,0.15)">' +
+            'Closest: ' + w.side + ' ' + (w.line != null ? (w.line > 0 ? '+' : '') + w.line : '') + ' (' + w.away_team + ' @ ' + w.home_team + ') · Edge: ' + (w.edge != null ? (w.edge > 0 ? '+' : '') + w.edge + '%' : '--') + '</div>';
+        }
+        passBox.innerHTML = passHtml;
+      } else {
+        dot.style.background = 'var(--text-dim)';
+        label.textContent = 'Awaiting Model Run';
+        label.style.color = 'var(--text-dim)';
+        timeEl.textContent = '';
+        details.style.display = 'none';
+        pickBox.style.display = 'none';
+        passBox.style.display = 'none';
+      }
+
+      if (data.cron_attempts && data.cron_attempts.length > 0) {
+        cronList.innerHTML = data.cron_attempts.map(function(a) {
+          var statusColor = a.status === 'ok' ? 'var(--green)' : a.status === 'error' ? 'var(--red)' : 'var(--text-dim)';
+          return '<div style="display:flex;gap:8px;padding:2px 0">' +
+            '<span style="color:' + statusColor + ';width:8px">●</span>' +
+            '<span style="width:80px">' + a.time + '</span>' +
+            '<span style="color:var(--text-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (a.message || '--') + '</span>' +
+            '<span style="color:var(--text-dim)">' + (a.duration_ms ? (a.duration_ms / 1000).toFixed(1) + 's' : '') + '</span>' +
+            '</div>';
+        }).join('');
+      } else {
+        cronList.innerHTML = '<span style="color:var(--text-dim)">No model runs attempted today</span>';
+      }
+    })
+    .catch(function() {
+      document.getElementById('pipeline-status-label').textContent = 'Failed to load pipeline';
+    });
 }
 
 function loadStatusBanner() {
@@ -1214,6 +1349,7 @@ function refreshAll() {
   btn.querySelector('svg').style.transition = 'transform 0.6s';
   btn.querySelector('svg').style.transform = 'rotate(360deg)';
   loadStatusBanner();
+  loadPipeline();
   loadDashboard();
   loadHealthChecks();
   loadCronHealth();
@@ -1226,9 +1362,11 @@ function refreshAll() {
 
 ensureAdminToken().then(() => {
   loadStatusBanner();
+  loadPipeline();
   loadDashboard();
   setInterval(loadDashboard, 30000);
   setInterval(loadStatusBanner, 60000);
+  setInterval(loadPipeline, 60000);
 });
 
 function hcStatusClass(s) { return s === 'ok' ? 'ok' : s === 'warn' ? 'warn' : 'err'; }

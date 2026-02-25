@@ -90,6 +90,78 @@ def get_admin_token():
     return jsonify({'token': token})
 
 
+@admin_bp.route('/api/admin/today-pipeline')
+def today_pipeline():
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    now_et = datetime.now(ET)
+    today_str = now_et.strftime('%Y-%m-%d')
+
+    model_run = ModelRun.query.filter_by(date=today_str, sport='nba').order_by(ModelRun.created_at.desc()).first()
+    pick = Pick.query.filter_by(game_date=today_str, sport='nba').first()
+    pass_entry = Pass.query.filter_by(date=today_str, sport='nba').first()
+
+    start_of_day = now_et.replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+    cron_logs = CronLog.query.filter(
+        CronLog.job_name == 'run_model',
+        CronLog.executed_at >= start_of_day
+    ).order_by(CronLog.executed_at.desc()).all()
+
+    runs = []
+    for cl in cron_logs:
+        runs.append({
+            'time': cl.executed_at.strftime('%-I:%M:%S %p'),
+            'status': cl.status,
+            'message': cl.message[:300] if cl.message else None,
+            'duration_ms': cl.duration_ms,
+        })
+
+    result = {
+        'date': today_str,
+        'status': 'waiting',
+        'model_ran': model_run is not None,
+        'run_time': model_run.created_at.strftime('%-I:%M:%S %p') if model_run else None,
+        'games_analyzed': model_run.games_analyzed if model_run else 0,
+        'duration_ms': model_run.run_duration_ms if model_run else 0,
+        'cron_attempts': runs,
+    }
+
+    if pick:
+        result['status'] = 'pick'
+        result['pick'] = {
+            'side': pick.side,
+            'away_team': pick.away_team,
+            'home_team': pick.home_team,
+            'line': pick.line,
+            'edge_pct': pick.edge_pct,
+            'confidence': pick.model_confidence,
+            'sportsbook': pick.sportsbook,
+            'predicted_margin': pick.predicted_margin,
+            'cover_prob': pick.cover_prob,
+            'published_at': pick.published_at.strftime('%-I:%M %p') if pick.published_at else None,
+        }
+    elif pass_entry:
+        result['status'] = 'pass'
+        result['pass'] = {
+            'games_analyzed': pass_entry.games_analyzed,
+            'closest_edge_pct': pass_entry.closest_edge_pct,
+            'pass_reason': pass_entry.pass_reason,
+            'whatif': None,
+        }
+        if pass_entry.whatif_side:
+            result['pass']['whatif'] = {
+                'side': pass_entry.whatif_side,
+                'home_team': pass_entry.whatif_home_team,
+                'away_team': pass_entry.whatif_away_team,
+                'line': pass_entry.whatif_line,
+                'edge': pass_entry.whatif_edge,
+            }
+
+    return jsonify(result)
+
+
 @admin_bp.route('/api/admin/status-summary')
 def status_summary():
     admin, err_code = require_superuser()
