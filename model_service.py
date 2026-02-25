@@ -5,11 +5,33 @@ model.py is the single source of truth for all decision logic.
 This service only: runs the model, reads outputs, stores to DB.
 """
 
+import json
 import time
 import sqlite3
 from datetime import datetime, timedelta
 from models import db, Pick, Pass, ModelRun, EdgeSnapshot, KillSwitch
 from sport_config import get_sport_config, get_live_sports
+
+
+def _build_games_detail(predictions):
+    if not predictions:
+        return None
+    details = []
+    for p in sorted(predictions, key=lambda x: x.get('adjusted_edge', 0), reverse=True):
+        spread = p.get('spread', 0) or 0
+        is_home = p.get('pick_side') == 'home'
+        pick_line = spread if is_home else -spread
+        details.append({
+            'away': p.get('away_team', '?'),
+            'home': p.get('home_team', '?'),
+            'pick': p.get('pick', ''),
+            'line': round(pick_line, 1),
+            'edge': round(p.get('adjusted_edge', 0), 1),
+            'cover_prob': round(p.get('cover_prob', 0.5), 3),
+            'passes': bool(p.get('passes_filter')),
+            'reason': p.get('pass_reason', ''),
+        })
+    return json.dumps(details)
 
 
 def _diagnose_no_games(today_str, sport='nba'):
@@ -379,6 +401,7 @@ def run_model_and_log(app, sport='nba'):
                         pick_generated=False,
                         pass_id=pass_entry.id,
                         run_duration_ms=duration_ms,
+                        games_detail=None,
                     )
                     db.session.add(model_run)
                     db.session.commit()
@@ -461,6 +484,7 @@ def run_model_and_log(app, sport='nba'):
                         pick_generated=True,
                         pick_id=pick.id,
                         run_duration_ms=duration_ms,
+                        games_detail=_build_games_detail(predictions),
                     )
                     db.session.add(model_run)
                     db.session.commit()
@@ -508,6 +532,7 @@ def run_model_and_log(app, sport='nba'):
                         pick_generated=False,
                         pass_id=pass_entry.id,
                         run_duration_ms=duration_ms,
+                        games_detail=_build_games_detail(predictions),
                     )
                     db.session.add(model_run)
                     db.session.commit()
@@ -577,6 +602,7 @@ def run_model_and_log(app, sport='nba'):
                     pick_generated=False,
                     pass_id=pass_entry.id,
                     run_duration_ms=duration_ms,
+                    games_detail=_build_games_detail(predictions),
                 )
                 db.session.add(model_run)
                 db.session.commit()

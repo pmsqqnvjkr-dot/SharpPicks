@@ -171,6 +171,7 @@ class ModelRun(db.Model):
     pass_id = db.Column(db.String, db.ForeignKey('passes.id'), nullable=True)
     run_duration_ms = db.Column(db.Integer, default=0)
     model_version = db.Column(db.String, default='v1.0')
+    games_detail = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
 

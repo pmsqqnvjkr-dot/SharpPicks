@@ -528,6 +528,10 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
       </div>
       <div id="pipeline-pass-details" style="display:none;padding:10px 12px;background:rgba(255,165,2,0.06);border:1px solid rgba(255,165,2,0.15);border-radius:6px;margin-bottom:10px">
       </div>
+      <div id="pipeline-games-section" style="display:none;margin-top:4px">
+        <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Games Analyzed</div>
+        <div id="pipeline-games-list" style="font-size:10px"></div>
+      </div>
     </div>
     <div id="pipeline-cron-attempts" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
       <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Cron Attempts</div>
@@ -961,6 +965,32 @@ function loadPipeline() {
         details.style.display = 'none';
         pickBox.style.display = 'none';
         passBox.style.display = 'none';
+      }
+
+      var gamesSection = document.getElementById('pipeline-games-section');
+      var gamesList = document.getElementById('pipeline-games-list');
+      if (data.games && data.games.length > 0) {
+        gamesSection.style.display = '';
+        var header = '<div style="display:grid;grid-template-columns:2fr 1.2fr 0.8fr 0.8fr;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px">' +
+          '<span>Matchup</span><span>Pick</span><span style="text-align:right">Edge</span><span style="text-align:right">Cover</span></div>';
+        var rows = data.games.map(function(g) {
+          var edgeColor = g.passes ? 'var(--green)' : g.edge > 0 ? 'var(--amber)' : 'var(--text-dim)';
+          var edgeStr = g.edge != null ? (g.edge > 0 ? '+' : '') + g.edge + '%' : '--';
+          var coverStr = g.cover_prob != null ? (g.cover_prob * 100).toFixed(1) + '%' : '--';
+          var lineStr = g.line != null ? (g.line > 0 ? '+' : '') + g.line : '';
+          var rowBg = g.passes ? 'rgba(34,197,94,0.04)' : 'transparent';
+          var reason = !g.passes && g.reason ? ' title="' + g.reason.replace(/"/g, '&quot;') + '"' : '';
+          return '<div style="display:grid;grid-template-columns:2fr 1.2fr 0.8fr 0.8fr;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);background:' + rowBg + '"' + reason + '>' +
+            '<span style="color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + g.away + ' @ ' + g.home + '</span>' +
+            '<span style="color:var(--text-dim)">' + (g.pick || '--') + ' ' + lineStr + '</span>' +
+            '<span style="text-align:right;color:' + edgeColor + ';font-family:var(--mono)">' + edgeStr + '</span>' +
+            '<span style="text-align:right;color:var(--text-dim);font-family:var(--mono)">' + coverStr + '</span>' +
+            '</div>';
+        }).join('');
+        gamesList.innerHTML = header + rows;
+      } else {
+        gamesSection.style.display = data.model_ran ? '' : 'none';
+        gamesList.innerHTML = '<span style="color:var(--text-dim)">No game details stored for this run</span>';
       }
 
       if (data.cron_attempts && data.cron_attempts.length > 0) {

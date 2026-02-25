@@ -109,23 +109,42 @@ def today_pipeline():
         CronLog.executed_at >= start_of_day
     ).order_by(CronLog.executed_at.desc()).all()
 
+    from zoneinfo import ZoneInfo
+    utc = ZoneInfo('UTC')
+
+    def to_et_str(dt, fmt='%-I:%M:%S %p'):
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=utc)
+        return dt.astimezone(ET).strftime(fmt)
+
     runs = []
     for cl in cron_logs:
         runs.append({
-            'time': cl.executed_at.strftime('%-I:%M:%S %p'),
+            'time': to_et_str(cl.executed_at),
             'status': cl.status,
             'message': cl.message[:300] if cl.message else None,
             'duration_ms': cl.duration_ms,
         })
 
+    games_detail = None
+    if model_run and model_run.games_detail:
+        try:
+            import json
+            games_detail = json.loads(model_run.games_detail)
+        except Exception:
+            games_detail = None
+
     result = {
         'date': today_str,
         'status': 'waiting',
         'model_ran': model_run is not None,
-        'run_time': model_run.created_at.strftime('%-I:%M:%S %p') if model_run else None,
+        'run_time': to_et_str(model_run.created_at) if model_run else None,
         'games_analyzed': model_run.games_analyzed if model_run else 0,
         'duration_ms': model_run.run_duration_ms if model_run else 0,
         'cron_attempts': runs,
+        'games': games_detail,
     }
 
     if pick:
@@ -140,7 +159,7 @@ def today_pipeline():
             'sportsbook': pick.sportsbook,
             'predicted_margin': pick.predicted_margin,
             'cover_prob': pick.cover_prob,
-            'published_at': pick.published_at.strftime('%-I:%M %p') if pick.published_at else None,
+            'published_at': to_et_str(pick.published_at, '%-I:%M %p'),
         }
     elif pass_entry:
         result['status'] = 'pass'
