@@ -144,10 +144,11 @@ def status_summary():
             elif overdue:
                 if level != 'red':
                     level = 'yellow'
+                age_str = f"{hours_ago:.1f}h" if hours_ago is not None else "never run"
                 alerts.append({
                     'type': 'cron',
                     'severity': 'warn',
-                    'message': f"{config['label']} overdue ({hours_ago:.1f}h, expected: {config['expected_h']}h)"
+                    'message': f"{config['label']} overdue ({age_str}, expected: {config['expected_h']}h)"
                 })
 
         # Check success rate

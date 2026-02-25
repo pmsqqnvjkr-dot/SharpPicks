@@ -870,7 +870,7 @@ function loadStatusBanner() {
       msg.textContent = data.message;
       time.textContent = data.timestamp;
 
-      const issues = (data.alerts || []).filter(a => a.severity !== 'ok');
+      const issues = (data.alerts || []).filter(a => a.severity !== 'ok' && a.severity !== 'info');
       if (issues.length > 0) {
         count.textContent = issues.length + ' alert' + (issues.length > 1 ? 's' : '');
         count.style.color = colors[data.level] || colors.yellow;
@@ -878,8 +878,9 @@ function loadStatusBanner() {
         alertsPanel.style.background = bgColors[data.level] || bgColors.yellow;
         alertsPanel.style.borderBottomColor = borderColors[data.level] || borderColors.yellow;
         alertsList.innerHTML = issues.map(a => {
-          const sevColor = a.severity === 'error' ? 'var(--red)' : 'var(--amber)';
-          const sevLabel = a.severity === 'error' ? 'ERR' : 'WARN';
+          const isErr = a.severity === 'error' || a.severity === 'critical';
+          const sevColor = isErr ? 'var(--red)' : 'var(--amber)';
+          const sevLabel = isErr ? 'ERR' : 'WARN';
           return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px">' +
             '<span style="font-size:8px;font-weight:700;letter-spacing:1px;color:' + sevColor + ';width:32px">' + sevLabel + '</span>' +
             '<span style="color:var(--text-dim);width:48px;font-size:9px;text-transform:uppercase">' + a.type + '</span>' +
