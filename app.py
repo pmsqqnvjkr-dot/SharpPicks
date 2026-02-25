@@ -665,11 +665,272 @@ You'll occasionally see a pick disappear before game time. Now you know why. The
                         publish_date=datetime(2026, 2, 21),
                         reading_time_minutes=3,
                     ),
+                    Insight(
+                        title="What CLV Actually Tells You",
+                        slug="what-clv-actually-tells-you",
+                        category="how_it_works",
+                        excerpt="Most bettors judge a pick by whether it won or lost. Sharps judge it by something more important: where the line moved after they bet.",
+                        content="""Most bettors judge a pick by whether it won or lost. Sharps judge it by something more important: where the line moved after they bet.
+
+---
+
+## Closing Line Value — What It Is
+
+When you place a bet, the market is still open. Books continue taking action, adjusting their lines based on where the sharp money flows. The line that exists at game time — the closing line — reflects the most efficient, information-rich price the market has to offer.
+
+If you bet a team at -3 and the line closes at -4.5, you got the better of the market. That's closing line value. You beat the closing number by a full point and a half. The outcome of the game is almost irrelevant.
+
+---
+
+## Why Outcomes Are Noise
+
+A bet can win and still have been a bad bet. A bet can lose and still have been the right call. Over a small sample — ten picks, twenty picks — variance dominates. The winning percentage tells you almost nothing about whether your process is sound.
+
+CLV cuts through the noise. Consistently beating the closing line means you're identifying edges before the market prices them in. That's not luck. That's the definition of an information advantage.
+
+> **SHARP PRINCIPLE**
+> *If you consistently get the better of the closing number, the wins will follow. Focus on the process, not the outcome.*
+
+---
+
+## How We Use It
+
+Every pick Sharp Picks publishes is logged against its closing line. It's one of the primary ways we validate that the model is doing what it's supposed to do — finding real edges, not manufactured ones. A model that beats closing lines at scale is a model that works. Everything else is storytelling.
+
+The scoreboard matters. But CLV is how we know whether we deserve the score.
+
+*Evan*""",
+                        status="published",
+                        publish_date=datetime(2026, 2, 25),
+                        featured=False,
+                        pass_day=False,
+                        reading_time_minutes=3,
+                    ),
+                    Insight(
+                        title="Why the Model Beats Your Gut",
+                        slug="why-the-model-beats-your-gut",
+                        category="philosophy",
+                        excerpt="Your instincts are not your enemy. But in sports betting, they are almost certainly costing you money.",
+                        content="""Your instincts are not your enemy. But in sports betting, they are almost certainly costing you money.
+
+---
+
+## The Problem With Pattern Recognition
+
+The human brain is exceptional at finding patterns. It's also exceptional at finding patterns that don't exist. We remember the game we called perfectly. We forget the six we called wrong. We feel confident after a win and cautious after a loss — precisely the opposite of how edge works.
+
+This isn't a character flaw. It's how cognition operates. Recency bias, availability bias, the hot hand fallacy — these aren't things you can simply decide to stop doing. They're structural features of human judgment.
+
+---
+
+## What a Model Doesn't Have
+
+Our ensemble model — trained on twelve seasons of NBA data across 56 features — has no memory of last night's game. It doesn't know that a team looked sharp in warmups or that a star player had a bad interview this week. It doesn't care about narratives.
+
+It processes the same inputs in the same way every single time. It doesn't get frustrated after a losing week. It doesn't press after a cold stretch. It doesn't get overconfident when it's running hot.
+
+> **SHARP PRINCIPLE**
+> *The model's greatest advantage isn't what it knows. It's what it ignores.*
+
+---
+
+## Where Gut Belongs
+
+Intuition built from genuine expertise has real value — in reading situations the data doesn't capture, in knowing when to trust a number and when to question it. That's why a human is still part of this process.
+
+But when it comes to deciding whether a statistical edge exists and whether it clears the threshold worth acting on, the model wins that argument every time. Not because machines are smarter than people. Because they're more consistent.
+
+Consistency, compounded over hundreds of decisions, is where edge lives.
+
+*Evan*""",
+                        status="scheduled",
+                        publish_date=datetime(2026, 2, 27),
+                        featured=False,
+                        pass_day=False,
+                        reading_time_minutes=3,
+                    ),
+                    Insight(
+                        title="What to Do During a Losing Streak",
+                        slug="what-to-do-during-a-losing-streak",
+                        category="discipline",
+                        excerpt="Losing streaks happen. They happen to disciplined bettors. They happen to sharp models. What you do inside one determines everything.",
+                        content="""Losing streaks happen. They happen to disciplined bettors. They happen to sharp models. They will happen to you. What you do inside one determines everything.
+
+---
+
+## The First Thing to Understand
+
+Even a model with a 68% win rate will lose four in a row. The math guarantees it. Over a long enough sample, strings of losses aren't aberrations — they're expected features of any probabilistic system. A losing week doesn't mean the edge is gone. It may mean the edge is simply waiting.
+
+The mistake most bettors make isn't losing. It's what losing makes them do.
+
+---
+
+## The Three Temptations
+
+The first is chasing — increasing bet size to recover losses faster. This is how accounts get blown. The edge, if it exists, works through volume over time. Compressing that timeline by adding size during a losing stretch is how you turn a recoverable drawdown into a catastrophic one.
+
+The second is abandoning process — suddenly second-guessing the model, adding gut-feel overlays, deciding that a different approach is needed. This is how you destroy the consistency that makes the edge real.
+
+The third is quitting — walking away convinced the system doesn't work after a sample too small to mean anything. Most bettors quit their best strategies just before they would have inflected.
+
+> **SHARP PRINCIPLE**
+> *The streak is not information. Your response to the streak is the only variable that matters.*
+
+---
+
+## What Sharp Discipline Looks Like
+
+You hold the unit size. You trust the model's threshold. You don't publish a pick because you need a win — you publish it because the edge is there. And when there's no edge, you pass. Especially when you're losing.
+
+The discipline that protects your bankroll on good days is the same discipline that rebuilds it on bad ones. It doesn't change based on recent results. That's the whole point.
+
+*Evan*""",
+                        status="scheduled",
+                        publish_date=datetime(2026, 3, 1),
+                        featured=False,
+                        pass_day=False,
+                        reading_time_minutes=3,
+                    ),
                 ]
                 for ins in seed_insights:
                     db.session.add(ins)
                 db.session.commit()
-                logging.info("Seeded 5 initial insights")
+                logging.info("Seeded 8 initial insights")
+
+            existing_slugs = {i.slug for i in Insight.query.with_entities(Insight.slug).all()}
+            incremental_insights = []
+            if 'what-clv-actually-tells-you' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="What CLV Actually Tells You", slug="what-clv-actually-tells-you",
+                    category="how_it_works",
+                    excerpt="Most bettors judge a pick by whether it won or lost. Sharps judge it by something more important: where the line moved after they bet.",
+                    content="""Most bettors judge a pick by whether it won or lost. Sharps judge it by something more important: where the line moved after they bet.
+
+---
+
+## Closing Line Value — What It Is
+
+When you place a bet, the market is still open. Books continue taking action, adjusting their lines based on where the sharp money flows. The line that exists at game time — the closing line — reflects the most efficient, information-rich price the market has to offer.
+
+If you bet a team at -3 and the line closes at -4.5, you got the better of the market. That's closing line value. You beat the closing number by a full point and a half. The outcome of the game is almost irrelevant.
+
+---
+
+## Why Outcomes Are Noise
+
+A bet can win and still have been a bad bet. A bet can lose and still have been the right call. Over a small sample — ten picks, twenty picks — variance dominates. The winning percentage tells you almost nothing about whether your process is sound.
+
+CLV cuts through the noise. Consistently beating the closing line means you're identifying edges before the market prices them in. That's not luck. That's the definition of an information advantage.
+
+> **SHARP PRINCIPLE**
+> *If you consistently get the better of the closing number, the wins will follow. Focus on the process, not the outcome.*
+
+---
+
+## How We Use It
+
+Every pick Sharp Picks publishes is logged against its closing line. It's one of the primary ways we validate that the model is doing what it's supposed to do — finding real edges, not manufactured ones. A model that beats closing lines at scale is a model that works. Everything else is storytelling.
+
+The scoreboard matters. But CLV is how we know whether we deserve the score.
+
+*Evan*""",
+                    status="published", publish_date=datetime(2026, 2, 25), reading_time_minutes=3,
+                ))
+            if 'why-the-model-beats-your-gut' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="Why the Model Beats Your Gut", slug="why-the-model-beats-your-gut",
+                    category="philosophy",
+                    excerpt="Your instincts are not your enemy. But in sports betting, they are almost certainly costing you money.",
+                    content="""Your instincts are not your enemy. But in sports betting, they are almost certainly costing you money.
+
+---
+
+## The Problem With Pattern Recognition
+
+The human brain is exceptional at finding patterns. It's also exceptional at finding patterns that don't exist. We remember the game we called perfectly. We forget the six we called wrong. We feel confident after a win and cautious after a loss — precisely the opposite of how edge works.
+
+This isn't a character flaw. It's how cognition operates. Recency bias, availability bias, the hot hand fallacy — these aren't things you can simply decide to stop doing. They're structural features of human judgment.
+
+---
+
+## What a Model Doesn't Have
+
+Our ensemble model — trained on twelve seasons of NBA data across 56 features — has no memory of last night's game. It doesn't know that a team looked sharp in warmups or that a star player had a bad interview this week. It doesn't care about narratives.
+
+It processes the same inputs in the same way every single time. It doesn't get frustrated after a losing week. It doesn't press after a cold stretch. It doesn't get overconfident when it's running hot.
+
+> **SHARP PRINCIPLE**
+> *The model's greatest advantage isn't what it knows. It's what it ignores.*
+
+---
+
+## Where Gut Belongs
+
+Intuition built from genuine expertise has real value — in reading situations the data doesn't capture, in knowing when to trust a number and when to question it. That's why a human is still part of this process.
+
+But when it comes to deciding whether a statistical edge exists and whether it clears the threshold worth acting on, the model wins that argument every time. Not because machines are smarter than people. Because they're more consistent.
+
+Consistency, compounded over hundreds of decisions, is where edge lives.
+
+*Evan*""",
+                    status="scheduled", publish_date=datetime(2026, 2, 27), reading_time_minutes=3,
+                ))
+            if 'what-to-do-during-a-losing-streak' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="What to Do During a Losing Streak", slug="what-to-do-during-a-losing-streak",
+                    category="discipline",
+                    excerpt="Losing streaks happen. They happen to disciplined bettors. They happen to sharp models. What you do inside one determines everything.",
+                    content="""Losing streaks happen. They happen to disciplined bettors. They happen to sharp models. They will happen to you. What you do inside one determines everything.
+
+---
+
+## The First Thing to Understand
+
+Even a model with a 68% win rate will lose four in a row. The math guarantees it. Over a long enough sample, strings of losses aren't aberrations — they're expected features of any probabilistic system. A losing week doesn't mean the edge is gone. It may mean the edge is simply waiting.
+
+The mistake most bettors make isn't losing. It's what losing makes them do.
+
+---
+
+## The Three Temptations
+
+The first is chasing — increasing bet size to recover losses faster. This is how accounts get blown. The edge, if it exists, works through volume over time. Compressing that timeline by adding size during a losing stretch is how you turn a recoverable drawdown into a catastrophic one.
+
+The second is abandoning process — suddenly second-guessing the model, adding gut-feel overlays, deciding that a different approach is needed. This is how you destroy the consistency that makes the edge real.
+
+The third is quitting — walking away convinced the system doesn't work after a sample too small to mean anything. Most bettors quit their best strategies just before they would have inflected.
+
+> **SHARP PRINCIPLE**
+> *The streak is not information. Your response to the streak is the only variable that matters.*
+
+---
+
+## What Sharp Discipline Looks Like
+
+You hold the unit size. You trust the model's threshold. You don't publish a pick because you need a win — you publish it because the edge is there. And when there's no edge, you pass. Especially when you're losing.
+
+The discipline that protects your bankroll on good days is the same discipline that rebuilds it on bad ones. It doesn't change based on recent results. That's the whole point.
+
+*Evan*""",
+                    status="scheduled", publish_date=datetime(2026, 3, 1), reading_time_minutes=3,
+                ))
+            if incremental_insights:
+                for ins in incremental_insights:
+                    db.session.add(ins)
+                db.session.commit()
+                logging.info(f"Added {len(incremental_insights)} new insights")
+
+            now = datetime.now()
+            scheduled_to_publish = Insight.query.filter(
+                Insight.status == 'scheduled',
+                Insight.publish_date <= now
+            ).all()
+            for ins in scheduled_to_publish:
+                ins.status = 'published'
+                logging.info(f"Auto-published insight: {ins.slug}")
+            if scheduled_to_publish:
+                db.session.commit()
 
             founding_members = User.query.filter_by(founding_member=True).order_by(User.created_at.asc()).all()
             for i, fm in enumerate(founding_members, 1):
@@ -1405,6 +1666,13 @@ def cron_expire_trials():
     def _expire():
         check_expiring_trials()
         expire_trials()
+        now = datetime.now()
+        scheduled = Insight.query.filter(Insight.status == 'scheduled', Insight.publish_date <= now).all()
+        for ins in scheduled:
+            ins.status = 'published'
+            logging.info(f"Auto-published scheduled insight: {ins.slug}")
+        if scheduled:
+            db.session.commit()
     return log_cron('expire_trials', _expire)
 
 
