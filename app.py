@@ -105,9 +105,16 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     'pool_pre_ping': True,
     "pool_recycle": 300,
+    "pool_size": 5,
+    "max_overflow": 10,
+    "pool_timeout": 20,
 }
 
 db.init_app(app)
+
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db.session.remove()
 allowed_origins = [
     'https://app.sharppicks.ai',
     'https://sharppicks.ai',
