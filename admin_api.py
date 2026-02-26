@@ -1624,10 +1624,12 @@ def export_picks():
 
     def run_to_dict(r):
         return {
-            'id': r.id, 'date': r.date, 'sport': r.sport, 'status': r.status,
-            'games_analyzed': r.games_analyzed, 'best_edge': r.best_edge,
-            'threshold_used': r.threshold_used, 'pick_id': r.pick_id,
-            'duration_ms': r.duration_ms,
+            'id': r.id, 'date': r.date, 'sport': r.sport,
+            'games_analyzed': r.games_analyzed,
+            'pick_generated': r.pick_generated, 'pick_id': r.pick_id,
+            'pass_id': getattr(r, 'pass_id', None),
+            'run_duration_ms': r.run_duration_ms,
+            'model_version': r.model_version,
             'games_detail': r.games_detail,
             'created_at': r.created_at.isoformat() if r.created_at else None,
         }
@@ -1731,9 +1733,12 @@ def sync_from_prod():
         else:
             r = ModelRun(
                 id=rd['id'], date=rd.get('date'), sport=rd.get('sport', 'nba'),
-                status=rd.get('status'), games_analyzed=rd.get('games_analyzed'),
-                best_edge=rd.get('best_edge'), threshold_used=rd.get('threshold_used'),
-                pick_id=rd.get('pick_id'), duration_ms=rd.get('duration_ms'),
+                games_analyzed=rd.get('games_analyzed'),
+                pick_generated=rd.get('pick_generated', False),
+                pick_id=rd.get('pick_id'),
+                pass_id=rd.get('pass_id'),
+                run_duration_ms=rd.get('run_duration_ms', 0),
+                model_version=rd.get('model_version', 'v1.0'),
                 games_detail=rd.get('games_detail'),
             )
             if rd.get('created_at'):
