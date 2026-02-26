@@ -1574,3 +1574,172 @@ def test_push():
     from app import send_push_notification
     sent = send_push_notification(user.id, title, body)
     return jsonify({'sent': sent})
+
+
+@admin_bp.route('/api/admin/export-picks')
+def export_picks():
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Unauthorized'}), err_code
+
+    picks = Pick.query.order_by(Pick.published_at.desc()).all()
+    passes = Pass.query.order_by(Pass.date.desc()).all()
+    runs = ModelRun.query.order_by(ModelRun.created_at.desc()).all()
+
+    def pick_to_dict(p):
+        return {
+            'id': p.id, 'published_at': p.published_at.isoformat() if p.published_at else None,
+            'sport': p.sport, 'away_team': p.away_team, 'home_team': p.home_team,
+            'game_date': p.game_date, 'side': p.side, 'line': p.line,
+            'line_open': p.line_open, 'line_close': p.line_close, 'start_time': p.start_time,
+            'edge_pct': p.edge_pct, 'model_confidence': p.model_confidence,
+            'predicted_margin': p.predicted_margin, 'sigma': p.sigma, 'z_score': p.z_score,
+            'raw_edge': p.raw_edge, 'cover_prob': p.cover_prob, 'implied_prob': p.implied_prob,
+            'market_odds': p.market_odds, 'sportsbook': p.sportsbook,
+            'closing_spread': p.closing_spread, 'clv': p.clv,
+            'home_score': p.home_score, 'away_score': p.away_score,
+            'result': p.result, 'result_ats': p.result_ats,
+            'result_resolved_at': p.result_resolved_at.isoformat() if p.result_resolved_at else None,
+            'pnl': p.pnl, 'profit_units': p.profit_units, 'notes': p.notes,
+            'position_size_pct': p.position_size_pct,
+            'model_only_cover_prob': getattr(p, 'model_only_cover_prob', None),
+            'model_only_edge': getattr(p, 'model_only_edge', None),
+        }
+
+    def pass_to_dict(p):
+        return {
+            'id': p.id, 'date': p.date, 'sport': p.sport,
+            'games_analyzed': p.games_analyzed, 'closest_edge_pct': p.closest_edge_pct,
+            'pass_reason': p.pass_reason, 'notes': p.notes, 'model_run_id': p.model_run_id,
+            'whatif_side': p.whatif_side, 'whatif_home_team': p.whatif_home_team,
+            'whatif_away_team': p.whatif_away_team, 'whatif_pick_side': p.whatif_pick_side,
+            'whatif_line': p.whatif_line, 'whatif_edge': p.whatif_edge,
+            'whatif_cover_prob': p.whatif_cover_prob, 'whatif_pred_margin': p.whatif_pred_margin,
+            'whatif_result': p.whatif_result, 'whatif_covered': p.whatif_covered,
+            'created_at': p.created_at.isoformat() if p.created_at else None,
+        }
+
+    def run_to_dict(r):
+        return {
+            'id': r.id, 'date': r.date, 'sport': r.sport, 'status': r.status,
+            'games_analyzed': r.games_analyzed, 'best_edge': r.best_edge,
+            'threshold_used': r.threshold_used, 'pick_id': r.pick_id,
+            'duration_ms': r.duration_ms,
+            'games_detail': r.games_detail,
+            'created_at': r.created_at.isoformat() if r.created_at else None,
+        }
+
+    return jsonify({
+        'picks': [pick_to_dict(p) for p in picks],
+        'passes': [pass_to_dict(p) for p in passes],
+        'model_runs': [run_to_dict(r) for r in runs],
+        'exported_at': datetime.now(ET).isoformat(),
+    })
+
+
+@admin_bp.route('/api/admin/sync-from-prod', methods=['POST'])
+def sync_from_prod():
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Unauthorized'}), err_code
+
+    prod_url = 'https://app.sharppicks.ai/api/admin/export-picks'
+    try:
+        resp = requests.get(prod_url, headers={'X-Cron-Secret': cron_secret}, timeout=30)
+        if resp.status_code != 200:
+            return jsonify({'error': f'Production returned {resp.status_code}'}), 502
+        data = resp.json()
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch from production: {e}'}), 502
+
+    stats = {'picks_added': 0, 'picks_updated': 0, 'passes_added': 0, 'passes_updated': 0, 'runs_added': 0, 'runs_updated': 0}
+
+    for pd in data.get('picks', []):
+        existing = Pick.query.get(pd['id'])
+        if existing:
+            for key in ['result', 'result_ats', 'pnl', 'profit_units', 'home_score', 'away_score',
+                        'closing_spread', 'clv', 'line_close', 'position_size_pct',
+                        'model_only_cover_prob', 'model_only_edge']:
+                if pd.get(key) is not None:
+                    setattr(existing, key, pd[key])
+            if pd.get('result_resolved_at'):
+                existing.result_resolved_at = datetime.fromisoformat(pd['result_resolved_at'])
+            stats['picks_updated'] += 1
+        else:
+            pick = Pick(
+                id=pd['id'], sport=pd.get('sport', 'nba'),
+                away_team=pd.get('away_team'), home_team=pd.get('home_team'),
+                game_date=pd.get('game_date'), side=pd.get('side'), line=pd.get('line'),
+                line_open=pd.get('line_open'), line_close=pd.get('line_close'),
+                start_time=pd.get('start_time'), edge_pct=pd.get('edge_pct'),
+                model_confidence=pd.get('model_confidence'),
+                predicted_margin=pd.get('predicted_margin'), sigma=pd.get('sigma'),
+                z_score=pd.get('z_score'), raw_edge=pd.get('raw_edge'),
+                cover_prob=pd.get('cover_prob'), implied_prob=pd.get('implied_prob'),
+                market_odds=pd.get('market_odds'), sportsbook=pd.get('sportsbook'),
+                closing_spread=pd.get('closing_spread'), clv=pd.get('clv'),
+                home_score=pd.get('home_score'), away_score=pd.get('away_score'),
+                result=pd.get('result', 'pending'), result_ats=pd.get('result_ats'),
+                pnl=pd.get('pnl'), profit_units=pd.get('profit_units'),
+                notes=pd.get('notes'), position_size_pct=pd.get('position_size_pct'),
+            )
+            if pd.get('published_at'):
+                pick.published_at = datetime.fromisoformat(pd['published_at'])
+            if pd.get('result_resolved_at'):
+                pick.result_resolved_at = datetime.fromisoformat(pd['result_resolved_at'])
+            if pd.get('model_only_cover_prob') is not None:
+                pick.model_only_cover_prob = pd['model_only_cover_prob']
+            if pd.get('model_only_edge') is not None:
+                pick.model_only_edge = pd['model_only_edge']
+            db.session.add(pick)
+            stats['picks_added'] += 1
+
+    for ps in data.get('passes', []):
+        existing = Pass.query.get(ps['id'])
+        if existing:
+            for key in ['whatif_result', 'whatif_covered']:
+                if ps.get(key) is not None:
+                    setattr(existing, key, ps[key])
+            stats['passes_updated'] += 1
+        else:
+            p = Pass(
+                id=ps['id'], date=ps.get('date'), sport=ps.get('sport', 'nba'),
+                games_analyzed=ps.get('games_analyzed'), closest_edge_pct=ps.get('closest_edge_pct'),
+                pass_reason=ps.get('pass_reason'), notes=ps.get('notes'),
+                model_run_id=ps.get('model_run_id'),
+                whatif_side=ps.get('whatif_side'), whatif_home_team=ps.get('whatif_home_team'),
+                whatif_away_team=ps.get('whatif_away_team'), whatif_pick_side=ps.get('whatif_pick_side'),
+                whatif_line=ps.get('whatif_line'), whatif_edge=ps.get('whatif_edge'),
+                whatif_cover_prob=ps.get('whatif_cover_prob'), whatif_pred_margin=ps.get('whatif_pred_margin'),
+                whatif_result=ps.get('whatif_result'), whatif_covered=ps.get('whatif_covered'),
+            )
+            if ps.get('created_at'):
+                p.created_at = datetime.fromisoformat(ps['created_at'])
+            db.session.add(p)
+            stats['passes_added'] += 1
+
+    for rd in data.get('model_runs', []):
+        existing = ModelRun.query.get(rd['id'])
+        if existing:
+            stats['runs_updated'] += 1
+        else:
+            r = ModelRun(
+                id=rd['id'], date=rd.get('date'), sport=rd.get('sport', 'nba'),
+                status=rd.get('status'), games_analyzed=rd.get('games_analyzed'),
+                best_edge=rd.get('best_edge'), threshold_used=rd.get('threshold_used'),
+                pick_id=rd.get('pick_id'), duration_ms=rd.get('duration_ms'),
+                games_detail=rd.get('games_detail'),
+            )
+            if rd.get('created_at'):
+                r.created_at = datetime.fromisoformat(rd['created_at'])
+            db.session.add(r)
+            stats['runs_added'] += 1
+
+    db.session.commit()
+    return jsonify({'status': 'synced', 'stats': stats, 'source': 'app.sharppicks.ai'})
