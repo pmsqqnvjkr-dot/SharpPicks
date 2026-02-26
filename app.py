@@ -1129,10 +1129,38 @@ def grade_pending_picks():
                         break
 
                 if not game:
+                    try:
+                        date_str = pick_date.replace('-', '')
+                        espn_url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={date_str}"
+                        espn_resp = requests.get(espn_url, timeout=15)
+                        if espn_resp.status_code == 200:
+                            espn_data = espn_resp.json()
+                            for event in espn_data.get('events', []):
+                                comp = event['competitions'][0]
+                                if comp['status']['type']['description'] != 'Final':
+                                    continue
+                                teams = comp['competitors']
+                                espn_home = next((t for t in teams if t['homeAway'] == 'home'), None)
+                                espn_away = next((t for t in teams if t['homeAway'] == 'away'), None)
+                                if not espn_home or not espn_away:
+                                    continue
+                                espn_home_name = espn_home['team']['displayName']
+                                espn_away_name = espn_away['team']['displayName']
+                                if espn_home_name == pick.home_team and espn_away_name == pick.away_team:
+                                    game = {
+                                        'home_score': int(espn_home.get('score', 0)),
+                                        'away_score': int(espn_away.get('score', 0)),
+                                    }
+                                    print(f"[Auto-grade] ESPN fallback found: {espn_away_name} {game['away_score']} @ {espn_home_name} {game['home_score']}")
+                                    break
+                    except Exception as espn_err:
+                        print(f"[Auto-grade] ESPN fallback error: {espn_err}")
+
+                if not game:
                     continue
 
-                home_score = game['home_score']
-                away_score = game['away_score']
+                home_score = game['home_score'] if isinstance(game, dict) else game['home_score']
+                away_score = game['away_score'] if isinstance(game, dict) else game['away_score']
                 if home_score is None or away_score is None:
                     continue
 
