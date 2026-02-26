@@ -59,33 +59,6 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
     }
   };
 
-  const handleMarkResult = async (betId, result) => {
-    const bet = bets.find(b => b.id === betId);
-    if (!bet) return;
-
-    let profit = 0;
-    if (result === 'W') {
-      if (bet.odds < 0) {
-        profit = bet.bet_amount * (100 / Math.abs(bet.odds));
-      } else {
-        profit = bet.bet_amount * (bet.odds / 100);
-      }
-    } else if (result === 'L') {
-      profit = -bet.bet_amount;
-    }
-
-    try {
-      const res = await apiPost(`/bets/${betId}/result`, { result, profit: Math.round(profit * 100) / 100 });
-      if (res.success) {
-        await loadBets();
-      } else {
-        alert(res.error || 'Failed to update result');
-      }
-    } catch (e) {
-      alert('Failed to update result');
-    }
-  };
-
   const handleDelete = async (betId) => {
     try {
       const res = await apiDelete(`/bets/${betId}`);
@@ -517,7 +490,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                   }}>
                     {pendingBets.map((bet, i) => (
                       <BetRow key={bet.id} bet={bet} isLast={i === pendingBets.length - 1}
-                        onMarkResult={handleMarkResult} confirmDelete={confirmDelete}
+                        confirmDelete={confirmDelete}
                         setConfirmDelete={setConfirmDelete} onDelete={handleDelete} />
                     ))}
                   </div>
@@ -536,7 +509,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                   }}>
                     {settledBets.map((bet, i) => (
                       <BetRow key={bet.id} bet={bet} isLast={i === settledBets.length - 1}
-                        onMarkResult={handleMarkResult} confirmDelete={confirmDelete}
+                        confirmDelete={confirmDelete}
                         setConfirmDelete={setConfirmDelete} onDelete={handleDelete} />
                     ))}
                   </div>
@@ -867,7 +840,7 @@ function EmptyDashboard({ onTrack }) {
   );
 }
 
-function BetRow({ bet, isLast, onMarkResult, confirmDelete, setConfirmDelete, onDelete }) {
+function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete }) {
   const pickResultLabel = bet.pick_result && bet.pick_result !== 'pending'
     ? bet.pick_result : null;
 
