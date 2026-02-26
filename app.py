@@ -1679,7 +1679,8 @@ def cron_closing_lines():
 @app.route('/api/cron/grade-picks', methods=['POST'])
 @verify_cron
 def cron_grade_picks():
-    return log_cron('grade_picks', grade_pending_picks)
+    force = request.args.get('force') == '1'
+    return log_cron('grade_picks', grade_pending_picks, skip_throttle=force)
 
 
 @app.route('/api/cron/grade-whatifs', methods=['POST'])
