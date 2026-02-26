@@ -1101,9 +1101,13 @@ def grade_pending_picks():
             return
 
         try:
-            conn = sqlite3.connect('sharp_picks.db')
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            sqlite_conn = None
+            try:
+                sqlite_conn = sqlite3.connect('sharp_picks.db')
+                sqlite_conn.row_factory = sqlite3.Row
+                sqlite_cursor = sqlite_conn.cursor()
+            except Exception:
+                sqlite_cursor = None
 
             for pick in pending_picks:
                 game = None
@@ -1112,68 +1116,65 @@ def grade_pending_picks():
                     pick_date = raw_date.strftime('%Y-%m-%d')
                 else:
                     pick_date = str(raw_date)[:10]
-                logging.info(f"[Auto-grade] Processing: {pick.home_team} vs {pick.away_team} on {pick_date} (raw: {raw_date}, type: {type(raw_date).__name__})")
+                logging.info(f"[Auto-grade] Processing: {pick.away_team} @ {pick.home_team} on {pick_date}")
+
+                date_str = pick_date.replace('-', '')
+                sport_path = 'womens-basketball/wnba' if pick.sport == 'wnba' else 'basketball/nba'
+                espn_url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/scoreboard?dates={date_str}"
                 try:
-                    pd = datetime.strptime(pick_date, '%Y-%m-%d').date()
-                    next_day = (pd + timedelta(days=1)).strftime('%Y-%m-%d')
-                    check_dates = [pick_date, next_day]
-                except:
-                    check_dates = [pick_date]
+                    espn_resp = requests.get(espn_url, timeout=15)
+                    if espn_resp.status_code == 200:
+                        espn_data = espn_resp.json()
+                        for event in espn_data.get('events', []):
+                            comp = event['competitions'][0]
+                            if comp['status']['type']['description'] != 'Final':
+                                continue
+                            teams = comp['competitors']
+                            espn_home = next((t for t in teams if t['homeAway'] == 'home'), None)
+                            espn_away = next((t for t in teams if t['homeAway'] == 'away'), None)
+                            if not espn_home or not espn_away:
+                                continue
+                            if espn_home['team']['displayName'] == pick.home_team and espn_away['team']['displayName'] == pick.away_team:
+                                game = {
+                                    'home_score': int(espn_home.get('score', 0)),
+                                    'away_score': int(espn_away.get('score', 0)),
+                                }
+                                logging.info(f"[Auto-grade] ESPN: {pick.away_team} {game['away_score']} @ {pick.home_team} {game['home_score']}")
+                                break
+                    else:
+                        logging.warning(f"[Auto-grade] ESPN returned {espn_resp.status_code}")
+                except Exception as espn_err:
+                    logging.error(f"[Auto-grade] ESPN error: {espn_err}")
 
-                table_name = 'wnba_games' if pick.sport == 'wnba' else 'games'
-
-                for check_date in check_dates:
-                    cursor.execute(f'''
-                        SELECT home_score, away_score, home_team, away_team
-                        FROM {table_name}
-                        WHERE home_team = ? AND away_team = ? AND game_date LIKE ?
-                        AND home_score IS NOT NULL AND away_score IS NOT NULL
-                    ''', (pick.home_team, pick.away_team, f'{check_date}%'))
-                    game = cursor.fetchone()
-                    if game:
-                        logging.info(f"[Auto-grade] Found in SQLite: {game['away_team']} {game['away_score']} @ {game['home_team']} {game['home_score']}")
-                        break
-
-                if not game:
-                    logging.info(f"[Auto-grade] Not in SQLite, trying ESPN fallback for {pick_date}")
+                if not game and sqlite_cursor:
                     try:
-                        date_str = pick_date.replace('-', '')
-                        sport_path = 'womens-basketball/wnba' if pick.sport == 'wnba' else 'basketball/nba'
-                        espn_url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/scoreboard?dates={date_str}"
-                        espn_resp = requests.get(espn_url, timeout=15)
-                        logging.info(f"[Auto-grade] ESPN response status: {espn_resp.status_code}")
-                        if espn_resp.status_code == 200:
-                            espn_data = espn_resp.json()
-                            events = espn_data.get('events', [])
-                            logging.info(f"[Auto-grade] ESPN events found: {len(events)}")
-                            for event in events:
-                                comp = event['competitions'][0]
-                                if comp['status']['type']['description'] != 'Final':
-                                    continue
-                                teams = comp['competitors']
-                                espn_home = next((t for t in teams if t['homeAway'] == 'home'), None)
-                                espn_away = next((t for t in teams if t['homeAway'] == 'away'), None)
-                                if not espn_home or not espn_away:
-                                    continue
-                                espn_home_name = espn_home['team']['displayName']
-                                espn_away_name = espn_away['team']['displayName']
-                                if espn_home_name == pick.home_team and espn_away_name == pick.away_team:
-                                    game = {
-                                        'home_score': int(espn_home.get('score', 0)),
-                                        'away_score': int(espn_away.get('score', 0)),
-                                    }
-                                    logging.info(f"[Auto-grade] ESPN fallback found: {espn_away_name} {game['away_score']} @ {espn_home_name} {game['home_score']}")
-                                    break
-                            if not game:
-                                logging.info(f"[Auto-grade] ESPN: no matching game found for {pick.away_team} @ {pick.home_team}")
-                    except Exception as espn_err:
-                        logging.error(f"[Auto-grade] ESPN fallback error: {espn_err}")
+                        table_name = 'wnba_games' if pick.sport == 'wnba' else 'games'
+                        try:
+                            pd_date = datetime.strptime(pick_date, '%Y-%m-%d').date()
+                            next_day = (pd_date + timedelta(days=1)).strftime('%Y-%m-%d')
+                            check_dates = [pick_date, next_day]
+                        except:
+                            check_dates = [pick_date]
+                        for check_date in check_dates:
+                            sqlite_cursor.execute(f'''
+                                SELECT home_score, away_score, home_team, away_team
+                                FROM {table_name}
+                                WHERE home_team = ? AND away_team = ? AND game_date LIKE ?
+                                AND home_score IS NOT NULL AND away_score IS NOT NULL
+                            ''', (pick.home_team, pick.away_team, f'{check_date}%'))
+                            row = sqlite_cursor.fetchone()
+                            if row:
+                                game = {'home_score': row['home_score'], 'away_score': row['away_score']}
+                                logging.info(f"[Auto-grade] SQLite fallback: {pick.away_team} {game['away_score']} @ {pick.home_team} {game['home_score']}")
+                                break
+                    except Exception as sq_err:
+                        logging.error(f"[Auto-grade] SQLite fallback error: {sq_err}")
 
                 if not game:
                     continue
 
-                home_score = game['home_score'] if isinstance(game, dict) else game['home_score']
-                away_score = game['away_score'] if isinstance(game, dict) else game['away_score']
+                home_score = game['home_score']
+                away_score = game['away_score']
                 if home_score is None or away_score is None:
                     continue
 
@@ -1245,7 +1246,8 @@ def grade_pending_picks():
                         tb.profit = -tb.bet_amount
                     print(f"[Auto-grade] Tracked bet #{tb.id} for user {tb.user_id} -> {pick.result_ats}")
 
-            conn.close()
+            if sqlite_conn:
+                sqlite_conn.close()
             db.session.commit()
         except Exception as e:
             print(f"[Auto-grade] Error: {e}")
