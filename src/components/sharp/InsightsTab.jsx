@@ -399,12 +399,17 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                   color: 'var(--text-primary)',
                   margin: '28px 0 12px',
                 }}>
-                  {p.replace('## ', '')}
+                  {parseInlineMarkdown(p.replace('## ', ''))}
                 </h2>
               );
             }
             if (p.startsWith('> ')) {
-              return <SharpPrincipleBlock key={i} text={p.replace('> ', '')} />;
+              const quoteText = p.split('\n').map(line => line.replace(/^>\s*/, '')).join('\n');
+              const labelMatch = quoteText.match(/^\*\*(.+?)\*\*\n?([\s\S]*)/);
+              if (labelMatch) {
+                return <SharpPrincipleBlock key={i} label={labelMatch[1]} text={labelMatch[2].trim()} />;
+              }
+              return <SharpPrincipleBlock key={i} text={quoteText} />;
             }
             if (p.startsWith('– ') || p.startsWith('— ')) {
               return (
@@ -421,10 +426,14 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                     fontFamily: 'var(--font-serif)',
                     fontStyle: 'italic',
                   }}>
-                    {p}
+                    {parseInlineMarkdown(p)}
                   </p>
                 </div>
               );
+            }
+            const trimmed = p.trim();
+            if (/^\*[A-Z][a-z]+\*$/.test(trimmed)) {
+              return null;
             }
             const isClosingPunch = p === 'Discipline compounds. Impulse erodes.' ||
               p === 'Fewer bets. Higher quality.\nThat is how ROI survives.' ||
@@ -437,9 +446,9 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                 fontWeight: 600,
                 color: 'var(--text-primary)',
                 lineHeight: '1.7',
-              }}>{p}</p>;
+              }}>{parseInlineMarkdown(p)}</p>;
             }
-            return <p key={i} style={{ margin: '0 0 16px' }}>{p}</p>;
+            return <p key={i} style={{ margin: '0 0 16px' }}>{parseInlineMarkdown(p)}</p>;
           })}
         </div>
 
@@ -523,7 +532,32 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
   );
 }
 
-function SharpPrincipleBlock({ text }) {
+function parseInlineMarkdown(text) {
+  if (!text) return text;
+  const parts = [];
+  let remaining = text;
+  let key = 0;
+  const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)/g;
+  let lastIndex = 0;
+  let match;
+  while ((match = regex.exec(remaining)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(remaining.slice(lastIndex, match.index));
+    }
+    if (match[1]) {
+      parts.push(<strong key={key++} style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{match[2]}</strong>);
+    } else if (match[3]) {
+      parts.push(<em key={key++} style={{ fontStyle: 'italic' }}>{match[4]}</em>);
+    }
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < remaining.length) {
+    parts.push(remaining.slice(lastIndex));
+  }
+  return parts.length > 0 ? parts : text;
+}
+
+function SharpPrincipleBlock({ text, label }) {
   return (
     <div style={{
       margin: '36px 0',
@@ -540,7 +574,7 @@ function SharpPrincipleBlock({ text }) {
         letterSpacing: '2.5px', textTransform: 'uppercase',
         color: 'var(--green-profit)',
         marginBottom: '14px',
-      }}>Sharp Principle</div>
+      }}>{label || 'Sharp Principle'}</div>
       <div style={{
         fontFamily: 'var(--font-serif)',
         fontSize: '19px',
@@ -549,7 +583,7 @@ function SharpPrincipleBlock({ text }) {
         lineHeight: '1.55',
         fontStyle: 'italic',
       }}>
-        {text}
+        {parseInlineMarkdown(text)}
       </div>
     </div>
   );

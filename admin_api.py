@@ -1624,13 +1624,14 @@ def export_picks():
 
     def run_to_dict(r):
         return {
-            'id': r.id, 'date': r.date, 'sport': r.sport,
-            'games_analyzed': r.games_analyzed,
-            'pick_generated': r.pick_generated, 'pick_id': r.pick_id,
+            'id': r.id, 'date': r.date, 'sport': getattr(r, 'sport', 'nba'),
+            'games_analyzed': getattr(r, 'games_analyzed', 0),
+            'pick_generated': getattr(r, 'pick_generated', False),
+            'pick_id': getattr(r, 'pick_id', None),
             'pass_id': getattr(r, 'pass_id', None),
-            'run_duration_ms': r.run_duration_ms,
-            'model_version': r.model_version,
-            'games_detail': r.games_detail,
+            'run_duration_ms': getattr(r, 'run_duration_ms', 0),
+            'model_version': getattr(r, 'model_version', 'v1.0'),
+            'games_detail': getattr(r, 'games_detail', None),
             'created_at': r.created_at.isoformat() if r.created_at else None,
         }
 
