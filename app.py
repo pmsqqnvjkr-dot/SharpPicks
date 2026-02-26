@@ -1096,6 +1096,7 @@ def grade_pending_picks():
     """Check game results and grade pending picks as win/loss"""
     with app.app_context():
         pending_picks = Pick.query.filter_by(result='pending').all()
+        logging.info(f"[Auto-grade] Found {len(pending_picks)} pending picks")
         if not pending_picks:
             return
 
@@ -1106,9 +1107,13 @@ def grade_pending_picks():
 
             for pick in pending_picks:
                 game = None
-                pick_date = pick.game_date[:10]
+                raw_date = pick.game_date
+                if hasattr(raw_date, 'strftime'):
+                    pick_date = raw_date.strftime('%Y-%m-%d')
+                else:
+                    pick_date = str(raw_date)[:10]
+                logging.info(f"[Auto-grade] Processing: {pick.home_team} vs {pick.away_team} on {pick_date} (raw: {raw_date}, type: {type(raw_date).__name__})")
                 try:
-                    from datetime import date as date_type
                     pd = datetime.strptime(pick_date, '%Y-%m-%d').date()
                     next_day = (pd + timedelta(days=1)).strftime('%Y-%m-%d')
                     check_dates = [pick_date, next_day]
@@ -1126,16 +1131,22 @@ def grade_pending_picks():
                     ''', (pick.home_team, pick.away_team, f'{check_date}%'))
                     game = cursor.fetchone()
                     if game:
+                        logging.info(f"[Auto-grade] Found in SQLite: {game['away_team']} {game['away_score']} @ {game['home_team']} {game['home_score']}")
                         break
 
                 if not game:
+                    logging.info(f"[Auto-grade] Not in SQLite, trying ESPN fallback for {pick_date}")
                     try:
                         date_str = pick_date.replace('-', '')
-                        espn_url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={date_str}"
+                        sport_path = 'womens-basketball/wnba' if pick.sport == 'wnba' else 'basketball/nba'
+                        espn_url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/scoreboard?dates={date_str}"
                         espn_resp = requests.get(espn_url, timeout=15)
+                        logging.info(f"[Auto-grade] ESPN response status: {espn_resp.status_code}")
                         if espn_resp.status_code == 200:
                             espn_data = espn_resp.json()
-                            for event in espn_data.get('events', []):
+                            events = espn_data.get('events', [])
+                            logging.info(f"[Auto-grade] ESPN events found: {len(events)}")
+                            for event in events:
                                 comp = event['competitions'][0]
                                 if comp['status']['type']['description'] != 'Final':
                                     continue
@@ -1151,10 +1162,12 @@ def grade_pending_picks():
                                         'home_score': int(espn_home.get('score', 0)),
                                         'away_score': int(espn_away.get('score', 0)),
                                     }
-                                    print(f"[Auto-grade] ESPN fallback found: {espn_away_name} {game['away_score']} @ {espn_home_name} {game['home_score']}")
+                                    logging.info(f"[Auto-grade] ESPN fallback found: {espn_away_name} {game['away_score']} @ {espn_home_name} {game['home_score']}")
                                     break
+                            if not game:
+                                logging.info(f"[Auto-grade] ESPN: no matching game found for {pick.away_team} @ {pick.home_team}")
                     except Exception as espn_err:
-                        print(f"[Auto-grade] ESPN fallback error: {espn_err}")
+                        logging.error(f"[Auto-grade] ESPN fallback error: {espn_err}")
 
                 if not game:
                     continue

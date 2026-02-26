@@ -181,6 +181,72 @@ def today_pipeline():
     return jsonify(result)
 
 
+@admin_bp.route('/api/admin/manual-grade', methods=['POST'])
+def manual_grade():
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    data = request.json or {}
+    pick_id = data.get('pick_id')
+    home_score = data.get('home_score')
+    away_score = data.get('away_score')
+    if not pick_id or home_score is None or away_score is None:
+        return jsonify({'error': 'pick_id, home_score, away_score required'}), 400
+
+    pick = Pick.query.get(pick_id)
+    if not pick:
+        return jsonify({'error': 'Pick not found'}), 404
+    if pick.result != 'pending':
+        return jsonify({'error': f'Pick already graded: {pick.result}'}), 400
+
+    spread_result = int(home_score) - int(away_score)
+    line_value = pick.line if pick.line and abs(pick.line) < 50 else 0
+
+    side_lower = pick.side.lower() if pick.side else ''
+    home_lower = pick.home_team.lower() if pick.home_team else ''
+    away_lower = pick.away_team.lower() if pick.away_team else ''
+
+    if home_lower and home_lower in side_lower:
+        pick_is_home = True
+    elif away_lower and away_lower in side_lower:
+        pick_is_home = False
+    else:
+        return jsonify({'error': f'Cannot determine side from: {pick.side}'}), 400
+
+    if pick_is_home:
+        covered = (spread_result + line_value) > 0
+        push = (spread_result + line_value) == 0
+    else:
+        covered = (away_score - home_score + line_value) > 0
+        push = (away_score - home_score + line_value) == 0
+
+    if push:
+        pick.result = 'push'
+        pick.result_ats = 'push'
+    elif covered:
+        pick.result = 'win'
+        pick.result_ats = 'win'
+    else:
+        pick.result = 'loss'
+        pick.result_ats = 'loss'
+
+    pick.pnl = 1.0 if pick.result == 'win' else (-1.1 if pick.result == 'loss' else 0.0)
+    pick.profit_units = pick.pnl
+    db.session.commit()
+
+    return jsonify({
+        'pick_id': pick_id,
+        'result': pick.result,
+        'score': f'{away_score}-{home_score}',
+        'spread_result': spread_result,
+        'line': line_value,
+    })
+
+
 @admin_bp.route('/api/admin/rerun-model', methods=['POST'])
 def rerun_model():
     cron_secret = os.environ.get('CRON_SECRET', '')
