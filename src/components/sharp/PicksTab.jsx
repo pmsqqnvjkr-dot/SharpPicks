@@ -256,12 +256,13 @@ export default function PicksTab({ onNavigate }) {
               const isRevoked = pick.result === 'revoked';
               const hideLine = !isPro && isPending;
               const canView = isPro && (pickResolved || isRevoked);
-              const dotColor = pick.result === 'win' ? 'hsl(142,35%,40%)'
-                : pick.result === 'loss' ? 'hsl(0,35%,42%)'
-                : 'hsl(220,10%,45%)';
+              const topBorderColor = pick.result === 'win' ? 'hsl(142,30%,38%)'
+                : pick.result === 'loss' ? 'hsl(0,30%,40%)'
+                : isRevoked ? 'transparent' : 'hsl(220,8%,38%)';
               return (
                 <div key={pick.id} onClick={() => canView && (() => { setResolutionPick(pick); setShowResolution(true); })()} style={{
-                  padding: '16px 16px 16px 16px',
+                  padding: '16px',
+                  borderTop: `2px solid ${topBorderColor}`,
                   borderBottom: i < displayPicks.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   cursor: canView ? 'pointer' : 'default',
@@ -270,12 +271,7 @@ export default function PicksTab({ onNavigate }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
                       fontSize: '16px', fontWeight: 700, color: '#f9fafb', lineHeight: 1.3,
-                      display: 'flex', alignItems: 'center',
                     }}>
-                      <span style={{
-                        display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
-                        backgroundColor: dotColor, marginRight: '8px', flexShrink: 0,
-                      }} />
                       {hideLine ? `${pick.away_team} @ ${pick.home_team}` : (pick.side || `${pick.away_team} @ ${pick.home_team}`)}
                     </div>
                     {!hideLine && (
