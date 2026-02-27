@@ -115,8 +115,8 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
               const isResolved = pick.result === 'win' || pick.result === 'loss';
               const isRevoked = pick.result === 'revoked';
               const canViewResolution = isPro && isResolved && onViewResolution;
-              const notchColor = pick.result === 'win' ? 'rgba(34,197,94,0.5)'
-                : pick.result === 'loss' ? 'rgba(239,68,68,0.45)'
+              const notchColor = pick.result === 'win' ? 'hsl(142,40%,35%)'
+                : pick.result === 'loss' ? 'hsl(0,40%,38%)'
                 : isRevoked ? 'transparent' : 'rgba(156,163,175,0.3)';
               return (
                 <div key={pick.id} onClick={() => canViewResolution && onViewResolution(pick)} style={{
@@ -173,8 +173,12 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                         lineHeight: 1,
                         color: pick.result === 'win' ? '#22c55e' : '#ef4444',
                       }}>
-                        {pick.result === 'win' ? `+${pick.pnl != null ? pick.pnl : 91}u`
-                          : `${pick.pnl != null ? pick.pnl : -100}u`}
+                        {(() => {
+                        const val = pick.result === 'win'
+                          ? `+${pick.pnl != null ? pick.pnl : 91}`
+                          : `${pick.pnl != null ? pick.pnl : -100}`;
+                        return <>{val}<span style={{ fontSize: '11px', fontWeight: 400, opacity: 0.7, marginLeft: '1px' }}>u</span></>;
+                      })()}
                       </div>
                     ) : (
                       <span style={{

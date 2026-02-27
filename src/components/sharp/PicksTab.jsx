@@ -256,8 +256,8 @@ export default function PicksTab({ onNavigate }) {
               const isRevoked = pick.result === 'revoked';
               const hideLine = !isPro && isPending;
               const canView = isPro && (pickResolved || isRevoked);
-              const notchColor = pick.result === 'win' ? 'rgba(34,197,94,0.5)'
-                : pick.result === 'loss' ? 'rgba(239,68,68,0.45)'
+              const notchColor = pick.result === 'win' ? 'hsl(142,40%,35%)'
+                : pick.result === 'loss' ? 'hsl(0,40%,38%)'
                 : isRevoked ? 'transparent' : 'rgba(156,163,175,0.3)';
               return (
                 <div key={pick.id} onClick={() => canView && (() => { setResolutionPick(pick); setShowResolution(true); })()} style={{
@@ -311,8 +311,10 @@ export default function PicksTab({ onNavigate }) {
                           }}>
                             {(() => {
                               const units = pick.profit_units != null ? pick.profit_units : (pick.pnl != null ? pick.pnl / 100 : null);
-                              if (pick.result === 'win') return `+${units != null ? Math.abs(units).toFixed(2) : '0.91'}u`;
-                              return `-${units != null ? Math.abs(units).toFixed(2) : '1.00'}u`;
+                              const val = pick.result === 'win'
+                                ? `+${units != null ? Math.abs(units).toFixed(2) : '0.91'}`
+                                : `-${units != null ? Math.abs(units).toFixed(2) : '1.00'}`;
+                              return <>{val}<span style={{ fontSize: '11px', fontWeight: 400, opacity: 0.7, marginLeft: '1px' }}>u</span></>;
                             })()}
                           </div>
                         ) : (
