@@ -256,9 +256,9 @@ export default function PicksTab({ onNavigate }) {
               const isRevoked = pick.result === 'revoked';
               const hideLine = !isPro && isPending;
               const canView = isPro && (pickResolved || isRevoked);
-              const notchColor = pick.result === 'win' ? '#16a34a'
-                : pick.result === 'loss' ? 'rgba(220,38,38,0.5)'
-                : isRevoked ? 'transparent' : 'rgba(156,163,175,0.4)';
+              const notchColor = pick.result === 'win' ? 'rgba(34,197,94,0.5)'
+                : pick.result === 'loss' ? 'rgba(239,68,68,0.45)'
+                : isRevoked ? 'transparent' : 'rgba(156,163,175,0.3)';
               return (
                 <div key={pick.id} onClick={() => canView && (() => { setResolutionPick(pick); setShowResolution(true); })()} style={{
                   padding: '16px 16px 16px 18px',
@@ -270,7 +270,7 @@ export default function PicksTab({ onNavigate }) {
                 }}>
                   <div style={{
                     position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
-                    height: '32px', width: '3px', borderRadius: '0 2px 2px 0',
+                    height: '24px', width: '2px', borderRadius: '2px',
                     backgroundColor: notchColor,
                   }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
