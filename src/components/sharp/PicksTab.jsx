@@ -256,27 +256,26 @@ export default function PicksTab({ onNavigate }) {
               const isRevoked = pick.result === 'revoked';
               const hideLine = !isPro && isPending;
               const canView = isPro && (pickResolved || isRevoked);
-              const notchColor = pick.result === 'win' ? 'hsl(142,40%,35%)'
-                : pick.result === 'loss' ? 'hsl(0,40%,38%)'
-                : isRevoked ? 'transparent' : 'rgba(156,163,175,0.3)';
+              const dotColor = pick.result === 'win' ? 'hsl(142,35%,40%)'
+                : pick.result === 'loss' ? 'hsl(0,35%,42%)'
+                : 'hsl(220,10%,45%)';
               return (
                 <div key={pick.id} onClick={() => canView && (() => { setResolutionPick(pick); setShowResolution(true); })()} style={{
-                  padding: '16px 16px 16px 18px',
+                  padding: '16px 16px 16px 16px',
                   borderBottom: i < displayPicks.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   cursor: canView ? 'pointer' : 'default',
                   minHeight: '72px',
-                  position: 'relative',
                 }}>
-                  <div style={{
-                    position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
-                    height: '24px', width: '2px', borderRadius: '2px',
-                    backgroundColor: notchColor,
-                  }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
                       fontSize: '16px', fontWeight: 700, color: '#f9fafb', lineHeight: 1.3,
+                      display: 'flex', alignItems: 'center',
                     }}>
+                      <span style={{
+                        display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
+                        backgroundColor: dotColor, marginRight: '8px', flexShrink: 0,
+                      }} />
                       {hideLine ? `${pick.away_team} @ ${pick.home_team}` : (pick.side || `${pick.away_team} @ ${pick.home_team}`)}
                     </div>
                     {!hideLine && (
