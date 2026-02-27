@@ -256,13 +256,13 @@ export default function PicksTab({ onNavigate }) {
               const isRevoked = pick.result === 'revoked';
               const hideLine = !isPro && isPending;
               const canView = isPro && (pickResolved || isRevoked);
-              const borderColor = pick.result === 'win' ? '#22c55e'
-                : pick.result === 'loss' ? '#ef4444'
-                : isRevoked ? '#7c3aed' : '#6b7280';
+              const borderColor = pick.result === 'win' ? '#16a34a'
+                : pick.result === 'loss' ? 'rgba(220,38,38,0.5)'
+                : isRevoked ? '#4b5563' : '#4b5563';
               return (
                 <div key={pick.id} onClick={() => canView && (() => { setResolutionPick(pick); setShowResolution(true); })()} style={{
                   padding: '16px 16px 16px 18px',
-                  borderLeft: `4px solid ${borderColor}`,
+                  borderLeft: `3px solid ${borderColor}`,
                   borderBottom: i < displayPicks.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   cursor: canView ? 'pointer' : 'default',
