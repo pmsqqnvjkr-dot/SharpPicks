@@ -7,12 +7,17 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
   const { user } = useAuth();
   const [filter, setFilter] = useState('all');
 
+  const [showAll, setShowAll] = useState(false);
+  const INITIAL_LIMIT = 6;
+
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const picks = data?.picks || [];
   const filtered = filter === 'all' ? picks
     : filter === 'wins' ? picks.filter(p => p.result === 'win')
     : filter === 'losses' ? picks.filter(p => p.result === 'loss')
     : picks.filter(p => p.result === 'pending');
+  const visible = showAll ? filtered : filtered.slice(0, INITIAL_LIMIT);
+  const hasMore = filtered.length > INITIAL_LIMIT;
 
   return (
     <div style={{ padding: '0' }}>
@@ -81,7 +86,7 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
         padding: '0 20px 12px', display: 'flex', gap: '8px',
       }}>
         {['all', 'wins', 'losses', 'pending'].map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{
+          <button key={f} onClick={() => { setFilter(f); setShowAll(false); }} style={{
             padding: '8px 16px', borderRadius: '8px', fontSize: '13px',
             fontWeight: 600, border: 'none', cursor: 'pointer',
             textTransform: 'capitalize', fontFamily: 'var(--font-sans)',
@@ -105,14 +110,14 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
             backgroundColor: 'var(--surface-1)', borderRadius: '16px',
             overflow: 'hidden', border: '1px solid var(--stroke-subtle)',
           }}>
-            {filtered.map((pick, i) => {
+            {visible.map((pick, i) => {
               const isResolved = pick.result === 'win' || pick.result === 'loss';
               const isRevoked = pick.result === 'revoked';
               const canViewResolution = isPro && isResolved && onViewResolution;
               return (
                 <div key={pick.id} onClick={() => canViewResolution && onViewResolution(pick)} style={{
                   padding: '14px 20px',
-                  borderBottom: i < filtered.length - 1 ? '1px solid var(--stroke-subtle)' : 'none',
+                  borderBottom: i < visible.length - 1 ? '1px solid var(--stroke-subtle)' : 'none',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   cursor: canViewResolution ? 'pointer' : 'default',
                 }}>
@@ -177,6 +182,36 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
               );
             })}
           </div>
+          {hasMore && !showAll && (
+            <button onClick={() => setShowAll(true)} style={{
+              width: '100%', padding: '14px', marginTop: '12px',
+              backgroundColor: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
+              borderRadius: '12px', cursor: 'pointer',
+              fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 600,
+              color: 'var(--blue-primary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            }}>
+              Show All ({filtered.length - INITIAL_LIMIT} more)
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+          )}
+          {showAll && hasMore && (
+            <button onClick={() => setShowAll(false)} style={{
+              width: '100%', padding: '14px', marginTop: '12px',
+              backgroundColor: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
+              borderRadius: '12px', cursor: 'pointer',
+              fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 600,
+              color: 'var(--text-secondary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            }}>
+              Show Less
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="18 15 12 9 6 15"/>
+              </svg>
+            </button>
+          )}
         )}
       </div>
     </div>
