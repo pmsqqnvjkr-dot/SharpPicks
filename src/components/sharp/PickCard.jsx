@@ -516,7 +516,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
                 color: 'rgba(52,211,153,0.9)',
                 background: 'rgba(52,211,153,0.08)',
                 border: '1px solid rgba(52,211,153,0.2)',
-                borderLeft: 'none',
+                borderLeft: '3px solid rgba(52,211,153,0.55)',
                 textAlign: 'center', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
               }}>

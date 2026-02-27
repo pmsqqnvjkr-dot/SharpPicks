@@ -8,7 +8,6 @@ import AuthModal from './AuthModal';
 import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
 import { InlineError } from './ErrorStates';
-import EdgeDots from './EdgeDots';
 
 const HISTORY_DEFAULT_LIMIT = 6;
 
@@ -258,79 +257,59 @@ export default function PicksTab({ onNavigate }) {
               const canView = isPro && (pickResolved || isRevoked);
               return (
                 <div key={pick.id} onClick={() => canView && (() => { setResolutionPick(pick); setShowResolution(true); })()} style={{
-                  padding: '16px',
-                  borderBottom: i < displayPicks.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                  padding: '14px 20px',
+                  borderBottom: i < displayPicks.length - 1 ? '1px solid var(--stroke-subtle)' : 'none',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   cursor: canView ? 'pointer' : 'default',
-                  minHeight: '72px',
                 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div>
                     <div style={{
-                      fontSize: '16px', fontWeight: 700, color: '#f9fafb', lineHeight: 1.3,
+                      fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
                     }}>
                       {hideLine ? `${pick.away_team} @ ${pick.home_team}` : (pick.side || `${pick.away_team} @ ${pick.home_team}`)}
                     </div>
                     {!hideLine && (
                       <div style={{
-                        fontSize: '13px', fontWeight: 400, color: '#9ca3af', marginTop: '2px',
+                        fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
                       }}>{pick.away_team} @ {pick.home_team}</div>
                     )}
                     <div style={{
-                      fontSize: '11px', fontWeight: 400, color: '#6b7280', marginTop: '2px',
+                      fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
                       fontFamily: 'var(--font-mono)',
                     }}>{pick.game_date}</div>
                   </div>
-                  <div style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
-                    justifyContent: 'center', gap: '4px', flexShrink: 0, marginLeft: '12px',
-                  }}>
-                    {hideLine ? (
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center',
-                        padding: '3px 10px', borderRadius: '999px',
-                        fontSize: '11px', fontWeight: 600, letterSpacing: '0.04em',
-                        textTransform: 'uppercase',
-                        backgroundColor: 'rgba(107,114,128,0.15)', color: '#9ca3af',
-                      }}>Pending</span>
-                    ) : (
-                      <>
-                        {(pick.result === 'win' || pick.result === 'loss') ? (
-                          <div style={{
-                            fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700,
-                            lineHeight: 1, letterSpacing: '-0.02em',
-                            color: pick.result === 'win' ? '#4ade80' : '#f87171',
-                          }}>
-                            {(() => {
-                              const units = pick.profit_units != null ? pick.profit_units : (pick.pnl != null ? pick.pnl / 100 : null);
-                              const val = pick.result === 'win'
-                                ? `+${units != null ? Math.abs(units).toFixed(2) : '0.91'}`
-                                : `-${units != null ? Math.abs(units).toFixed(2) : '1.00'}`;
-                              return <>{val}<span style={{ fontSize: '10px', fontWeight: 500, opacity: 0.6, verticalAlign: 'super', marginLeft: '1px' }}>u</span></>;
-                            })()}
-                          </div>
-                        ) : (
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center',
-                            padding: '3px 10px', borderRadius: '999px',
-                            fontSize: '11px', fontWeight: 600, letterSpacing: '0.04em',
-                            textTransform: 'uppercase',
-                            backgroundColor: isRevoked ? 'rgba(124,58,237,0.12)' : 'rgba(107,114,128,0.15)',
-                            color: isRevoked ? '#a78bfa' : '#9ca3af',
-                          }}>{isRevoked ? 'Withdrawn' : 'Pending'}</span>
-                        )}
-                        {isPro && pick.edge_pct && (
-                          <>
-                            <div style={{
-                              fontSize: '11px', fontWeight: 500, color: '#6b7280',
-                              fontFamily: 'var(--font-mono)', textAlign: 'right',
-                            }}>{pick.edge_pct}% edge</div>
-                            <EdgeDots edge={parseFloat(pick.edge_pct)} />
-                          </>
-                        )}
-                      </>
-                    )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ textAlign: 'right' }}>
+                      {hideLine ? (
+                        <div style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
+                          color: 'var(--text-tertiary)',
+                        }}>Pending</div>
+                      ) : (
+                        <div style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
+                          color: pick.result === 'win' ? 'var(--green-profit)'
+                            : pick.result === 'loss' ? 'var(--red-loss)'
+                            : isRevoked ? 'rgba(99,102,241,0.7)' : 'var(--text-tertiary)',
+                        }}>
+                          {(() => {
+                            const units = pick.profit_units != null ? pick.profit_units : (pick.pnl != null ? pick.pnl / 100 : null);
+                            if (pick.result === 'win') return `+${units != null ? Math.abs(units).toFixed(2) : '0.91'}u`;
+                            if (pick.result === 'loss') return `-${units != null ? Math.abs(units).toFixed(2) : '1.00'}u`;
+                            if (isRevoked) return 'Withdrawn';
+                            return 'Pending';
+                          })()}
+                        </div>
+                      )}
+                      {isPro && pick.edge_pct && (
+                        <div style={{
+                          fontSize: '10px', color: 'rgba(255,255,255,0.45)', marginTop: '2px',
+                          fontFamily: 'var(--font-mono)',
+                        }}>{pick.edge_pct}% edge</div>
+                      )}
+                    </div>
                     {canView && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="2" style={{ marginTop: '4px' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
                         <polyline points="9 18 15 12 9 6"/>
                       </svg>
                     )}
