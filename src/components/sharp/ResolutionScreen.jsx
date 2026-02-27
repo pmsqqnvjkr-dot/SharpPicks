@@ -1,4 +1,10 @@
+import { useEffect } from 'react';
+
 export default function ResolutionScreen({ pick, onBack }) {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const isRevoked = pick?.result === 'revoked';
   const isWin = pick?.result === 'win';
   const isPush = pick?.result === 'push';
@@ -162,6 +168,9 @@ export default function ResolutionScreen({ pick, onBack }) {
 }
 
 function WithdrawnDetailScreen({ pick, onBack }) {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const accentColor = 'rgba(99,102,241,0.8)';
 
   return (
