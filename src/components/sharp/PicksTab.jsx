@@ -298,7 +298,7 @@ export default function PicksTab({ onNavigate }) {
                           <div style={{
                             fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700,
                             lineHeight: 1, letterSpacing: '-0.02em',
-                            color: pick.result === 'win' ? 'hsl(142,45%,52%)' : 'hsl(0,55%,58%)',
+                            color: pick.result === 'win' ? '#4ade80' : '#f87171',
                           }}>
                             {(() => {
                               const units = pick.profit_units != null ? pick.profit_units : (pick.pnl != null ? pick.pnl / 100 : null);
