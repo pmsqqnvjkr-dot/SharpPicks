@@ -258,7 +258,7 @@ export default function PicksTab({ onNavigate }) {
               return (
                 <div key={pick.id} onClick={() => canView && (() => { setResolutionPick(pick); setShowResolution(true); })()} style={{
                   padding: '14px 20px',
-                  borderBottom: i < filtered.length - 1 ? '1px solid var(--stroke-subtle)' : 'none',
+                  borderBottom: i < displayPicks.length - 1 ? '1px solid var(--stroke-subtle)' : 'none',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   cursor: canView ? 'pointer' : 'default',
                 }}>
