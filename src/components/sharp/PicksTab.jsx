@@ -9,7 +9,7 @@ import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
 import { InlineError } from './ErrorStates';
 
-const HISTORY_DEFAULT_LIMIT = 10;
+const HISTORY_DEFAULT_LIMIT = 6;
 
 export default function PicksTab({ onNavigate }) {
   const { user, loading: authLoading } = useAuth();
