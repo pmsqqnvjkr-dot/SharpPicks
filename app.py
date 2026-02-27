@@ -1636,6 +1636,8 @@ CRON_MIN_INTERVAL = {
     'run_model': 600,
     'wnba_collect': 600,
     'wnba_closing_lines': 60,
+    'wnba_shadow': 600,
+    'wnba_grade': 300,
 }
 
 def log_cron(job_name, fn, skip_throttle=False):
@@ -1721,6 +1723,38 @@ def cron_wnba_collect():
 @verify_cron
 def cron_wnba_closing_lines():
     return log_cron('wnba_closing_lines', collect_wnba_closing_lines_job)
+
+
+def run_wnba_shadow_job():
+    """Run WNBA shadow predictions — compute ratings then predict."""
+    print(f"[{datetime.now()}] Running WNBA shadow predictions...")
+    try:
+        subprocess.run(['python', 'main.py', '--wnba-shadow'], timeout=300)
+        print(f"[{datetime.now()}] WNBA shadow predictions completed!")
+    except Exception as e:
+        print(f"[{datetime.now()}] WNBA shadow error: {e}")
+
+
+def grade_wnba_shadow_job():
+    """Grade completed WNBA shadow picks."""
+    print(f"[{datetime.now()}] Grading WNBA shadow picks...")
+    try:
+        subprocess.run(['python', 'main.py', '--wnba-grade'], timeout=120)
+        print(f"[{datetime.now()}] WNBA shadow grading completed!")
+    except Exception as e:
+        print(f"[{datetime.now()}] WNBA shadow grading error: {e}")
+
+
+@app.route('/api/cron/wnba-shadow', methods=['POST'])
+@verify_cron
+def cron_wnba_shadow():
+    return log_cron('wnba_shadow', run_wnba_shadow_job)
+
+
+@app.route('/api/cron/wnba-grade', methods=['POST'])
+@verify_cron
+def cron_wnba_grade():
+    return log_cron('wnba_grade', grade_wnba_shadow_job)
 
 
 @app.route('/api/cron/grade-picks', methods=['POST'])

@@ -2031,6 +2031,519 @@ def collect_wnba_scores(date_offset=1):
         print(f"❌ WNBA score collection error: {e}")
 
 
+def update_wnba_rolling_ratings():
+    """Compute rolling team ratings from game-by-game results (no leakage).
+    Uses last 20 games with 50% prior-season carry-over.
+    Stores in wnba_rolling_ratings table for live prediction use."""
+    import numpy as np
+
+    print(f"\n{'='*60}")
+    print("📊 WNBA ROLLING RATINGS UPDATE")
+    print(f"{'='*60}\n")
+
+    conn = sqlite3.connect('sharp_picks.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''CREATE TABLE IF NOT EXISTS wnba_rolling_ratings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        team TEXT NOT NULL,
+        game_date TEXT NOT NULL,
+        season INTEGER,
+        games_played INTEGER,
+        ortg REAL,
+        drtg REAL,
+        nrtg REAL,
+        pace_proxy REAL,
+        avg_pf REAL,
+        avg_pa REAL,
+        margin_avg REAL,
+        margin_std REAL,
+        win_pct REAL,
+        updated_at TEXT,
+        UNIQUE(team, game_date)
+    )''')
+
+    cursor.execute('''
+        SELECT game_date, season, home_team, away_team, home_score, away_score
+        FROM wnba_games
+        WHERE home_score IS NOT NULL AND away_score IS NOT NULL
+        ORDER BY game_date ASC
+    ''')
+    all_games = cursor.fetchall()
+
+    if not all_games:
+        print("  No completed WNBA games found.")
+        conn.close()
+        return
+
+    PRIOR_SEASON_DECAY = 0.5
+    MIN_GAMES = 5
+    WINDOW = 20
+
+    team_stats = {}
+    ratings_computed = 0
+
+    for game_date, season, ht, at, hs, as_ in all_games:
+        hs, as_ = float(hs), float(as_)
+
+        for team in [ht, at]:
+            if team not in team_stats:
+                team_stats[team] = {
+                    'pts_for': [], 'pts_against': [], 'margins': [],
+                    'season': None
+                }
+
+        for team in [ht, at]:
+            ts = team_stats[team]
+            if ts['season'] is not None and ts['season'] != season:
+                if len(ts['pts_for']) > 0:
+                    n = len(ts['pts_for'])
+                    keep = max(1, int(n * PRIOR_SEASON_DECAY))
+                    ts['pts_for'] = ts['pts_for'][-keep:]
+                    ts['pts_against'] = ts['pts_against'][-keep:]
+                    ts['margins'] = ts['margins'][-keep:]
+                    ts['has_prior'] = True
+                    ts['season'] = season
+
+        for team in [ht, at]:
+            ts = team_stats[team]
+            total_games = len(ts['pts_for'])
+            if total_games >= MIN_GAMES or (total_games >= 1 and ts.get('has_prior', False)):
+                use_count = max(MIN_GAMES, total_games) if total_games >= MIN_GAMES else total_games
+                pf = np.array(ts['pts_for'][-WINDOW:])
+                pa = np.array(ts['pts_against'][-WINDOW:])
+                margins = np.array(ts['margins'][-WINDOW:])
+
+                avg_pf = float(np.mean(pf))
+                avg_pa = float(np.mean(pa))
+                pace_proxy = (avg_pf + avg_pa) / 2.0
+
+                ortg = (avg_pf / pace_proxy) * 100 if pace_proxy > 0 else 100
+                drtg = (avg_pa / pace_proxy) * 100 if pace_proxy > 0 else 100
+                nrtg = ortg - drtg
+
+                margin_avg = float(np.mean(margins))
+                margin_std = float(np.std(margins)) if len(margins) > 2 else 12.0
+                w = sum(1 for m in margins if m > 0)
+                win_pct = w / len(margins)
+
+                cursor.execute('''INSERT OR REPLACE INTO wnba_rolling_ratings
+                    (team, game_date, season, games_played, ortg, drtg, nrtg,
+                     pace_proxy, avg_pf, avg_pa, margin_avg, margin_std, win_pct, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (team, game_date, season, total_games,
+                     round(ortg, 2), round(drtg, 2), round(nrtg, 2),
+                     round(pace_proxy, 1), round(avg_pf, 1), round(avg_pa, 1),
+                     round(margin_avg, 2), round(margin_std, 2), round(win_pct, 3),
+                     datetime.now().isoformat()))
+                ratings_computed += 1
+
+        team_stats[ht]['pts_for'].append(hs)
+        team_stats[ht]['pts_against'].append(as_)
+        team_stats[ht]['margins'].append(hs - as_)
+        team_stats[ht]['season'] = season
+
+        team_stats[at]['pts_for'].append(as_)
+        team_stats[at]['pts_against'].append(hs)
+        team_stats[at]['margins'].append(as_ - hs)
+        team_stats[at]['season'] = season
+
+    conn.commit()
+
+    cursor.execute('SELECT COUNT(DISTINCT team) FROM wnba_rolling_ratings')
+    team_count = cursor.fetchone()[0]
+    cursor.execute('SELECT MAX(game_date) FROM wnba_rolling_ratings')
+    latest = cursor.fetchone()[0]
+
+    print(f"  ✅ {ratings_computed} rolling ratings computed for {team_count} teams")
+    print(f"  📅 Latest rating date: {latest}")
+
+    cursor.execute('''
+        SELECT team, nrtg, ortg, drtg, win_pct, games_played
+        FROM wnba_rolling_ratings
+        WHERE game_date = ?
+        ORDER BY nrtg DESC
+    ''', (latest,))
+    latest_ratings = cursor.fetchall()
+    if latest_ratings:
+        print(f"\n  Current ratings (as of {latest}):")
+        print(f"  {'Team':<25} {'NRtg':>6} {'ORtg':>6} {'DRtg':>6} {'Win%':>6} {'GP':>4}")
+        print(f"  {'-'*55}")
+        for team, nrtg, ortg, drtg, wpct, gp in latest_ratings:
+            print(f"  {team:<25} {nrtg:>+6.1f} {ortg:>6.1f} {drtg:>6.1f} {wpct:>6.1%} {gp:>4}")
+
+    conn.close()
+    print()
+
+
+def check_wnba_star_availability(home_team, away_team, home_injuries_str, away_injuries_str):
+    """Cross-reference ESPN injury report against prior-season top-5 players.
+    Parses per-player entries from semicolon-delimited injury strings.
+    Format expected: 'Player Name (Status - Injury Type); Player2 (Status)'
+    Returns structured availability data for both teams."""
+    import re
+
+    conn = sqlite3.connect('sharp_picks.db')
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT MAX(season) FROM wnba_top_players')
+    row = cursor.fetchone()
+    if not row or not row[0]:
+        conn.close()
+        return {'home': {}, 'away': {}}
+
+    latest_season = row[0]
+
+    def parse_injury_entries(inj_str):
+        """Parse 'Name (Status - Detail); Name2 (Status)' into per-player dicts."""
+        if not inj_str:
+            return {}
+        entries = {}
+        for entry in re.split(r';\s*', inj_str):
+            entry = entry.strip()
+            if not entry:
+                continue
+            match = re.match(r'^(.+?)\s*\(([^)]+)\)', entry)
+            if match:
+                name = match.group(1).strip()
+                status_str = match.group(2).strip().lower()
+                if 'out' in status_str:
+                    entries[name.lower()] = 'OUT'
+                elif 'doubtful' in status_str:
+                    entries[name.lower()] = 'DOUBTFUL'
+                elif 'questionable' in status_str:
+                    entries[name.lower()] = 'QUESTIONABLE'
+                elif 'day-to-day' in status_str or 'day to day' in status_str:
+                    entries[name.lower()] = 'DTD'
+                elif 'probable' in status_str:
+                    entries[name.lower()] = 'PROBABLE'
+                else:
+                    entries[name.lower()] = status_str.upper()
+        return entries
+
+    result = {'home': {}, 'away': {}}
+
+    for side, team, inj_str in [('home', home_team, home_injuries_str),
+                                 ('away', away_team, away_injuries_str)]:
+        cursor.execute('''
+            SELECT player_name, player_rank, ppg, rpg, apg
+            FROM wnba_top_players
+            WHERE season = ? AND team = ?
+            ORDER BY player_rank
+        ''', (latest_season, team))
+        top_players = cursor.fetchall()
+
+        if not top_players:
+            continue
+
+        injury_entries = parse_injury_entries(inj_str)
+
+        stars_out = []
+        stars_questionable = []
+        total_ppg_at_risk = 0.0
+
+        for name, rank, ppg, rpg, apg in top_players:
+            name_lower = name.lower()
+            last_name = name_lower.split()[-1] if name_lower.split() else ''
+
+            player_status = None
+            for inj_name, status in injury_entries.items():
+                if name_lower in inj_name or inj_name in name_lower or last_name in inj_name:
+                    player_status = status
+                    break
+
+            if not player_status:
+                continue
+
+            if player_status in ('OUT', 'DOUBTFUL'):
+                stars_out.append({'name': name, 'rank': rank, 'ppg': ppg, 'status': player_status})
+                total_ppg_at_risk += ppg
+            elif player_status in ('QUESTIONABLE', 'DTD'):
+                stars_questionable.append({'name': name, 'rank': rank, 'ppg': ppg, 'status': player_status})
+                total_ppg_at_risk += ppg * 0.3
+
+        star1_names_out = [s['name'] for s in stars_out]
+        result[side] = {
+            'top5_from_season': latest_season,
+            'stars_out': stars_out,
+            'stars_questionable': stars_questionable,
+            'ppg_at_risk': round(total_ppg_at_risk, 1),
+            'star1_available': not top_players or top_players[0][0] not in star1_names_out,
+        }
+
+    conn.close()
+    return result
+
+
+def setup_wnba_shadow_table(cursor):
+    """Create shadow mode logging table for WNBA predictions."""
+    cursor.execute('''CREATE TABLE IF NOT EXISTS wnba_shadow_picks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        game_id TEXT NOT NULL,
+        game_date TEXT,
+        home_team TEXT,
+        away_team TEXT,
+        spread_home REAL,
+        predicted_margin REAL,
+        model_edge REAL,
+        adjusted_edge REAL,
+        cover_prob REAL,
+        sigma REAL,
+        pick_side TEXT,
+        pick_spread REAL,
+        would_have_picked INTEGER DEFAULT 0,
+        home_nrtg REAL,
+        away_nrtg REAL,
+        home_star_available INTEGER,
+        away_star_available INTEGER,
+        ppg_at_risk_home REAL,
+        ppg_at_risk_away REAL,
+        shrinkage REAL,
+        edge_threshold REAL,
+        home_score INTEGER,
+        away_score INTEGER,
+        spread_result TEXT,
+        result TEXT,
+        units REAL,
+        graded_at TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(game_id)
+    )''')
+
+
+def run_wnba_shadow_predictions():
+    """Run WNBA model predictions in shadow mode — log everything, publish nothing.
+    Uses rolling ratings + prior-season player data for leak-free predictions."""
+    from scipy.stats import norm
+    import numpy as np
+
+    print(f"\n{'='*60}")
+    print("🔮 WNBA SHADOW MODE — PREDICTIONS (NOT PUBLISHED)")
+    print(f"{'='*60}\n")
+
+    conn = sqlite3.connect('sharp_picks.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    setup_wnba_shadow_table(cursor)
+
+    cursor.execute('''
+        SELECT id, game_date, home_team, away_team, spread_home,
+               home_injuries, away_injuries
+        FROM wnba_games
+        WHERE home_score IS NULL
+        AND spread_home IS NOT NULL
+        AND game_date >= date('now', '-1 day')
+        ORDER BY game_date
+    ''')
+    upcoming = cursor.fetchall()
+
+    if not upcoming:
+        print("  No upcoming WNBA games with spreads.")
+        conn.close()
+        return
+
+    print(f"  Found {len(upcoming)} upcoming WNBA games\n")
+
+    SHRINKAGE = 0.7
+    EDGE_THRESHOLD = 0.035
+    SIGMA_DEFAULT = 11.0
+    STANDARD_JUICE = 0.9091
+
+    shadow_count = 0
+    pick_count = 0
+
+    for game in upcoming:
+        game_id = game['id']
+        game_date = game['game_date']
+        home = game['home_team']
+        away = game['away_team']
+        spread_home = float(game['spread_home'])
+        home_injuries = game['home_injuries'] or ''
+        away_injuries = game['away_injuries'] or ''
+
+        cursor.execute('''
+            SELECT nrtg, ortg, drtg, margin_avg, margin_std, win_pct, games_played
+            FROM wnba_rolling_ratings
+            WHERE team = ?
+            ORDER BY game_date DESC LIMIT 1
+        ''', (home,))
+        h_rating = cursor.fetchone()
+
+        cursor.execute('''
+            SELECT nrtg, ortg, drtg, margin_avg, margin_std, win_pct, games_played
+            FROM wnba_rolling_ratings
+            WHERE team = ?
+            ORDER BY game_date DESC LIMIT 1
+        ''', (away,))
+        a_rating = cursor.fetchone()
+
+        if not h_rating or not a_rating:
+            print(f"  ⏭️  {away} @ {home} — insufficient rolling ratings, skipping")
+            continue
+
+        h_nrtg, h_ortg, h_drtg, h_margin, h_std, h_wpct, h_gp = h_rating
+        a_nrtg, a_ortg, a_drtg, a_margin, a_std, a_wpct, a_gp = a_rating
+
+        hca = 2.5
+        model_margin = (h_margin - a_margin) / 2.0 + hca
+        nrtg_margin = ((h_nrtg - a_nrtg) / 2.0) * 0.8 + hca
+        raw_margin = (model_margin + nrtg_margin) / 2.0
+
+        market_margin = -spread_home
+        blended_margin = SHRINKAGE * raw_margin + (1 - SHRINKAGE) * market_margin
+
+        sigma = (h_std + a_std) / 2.0
+        sigma = max(7.0, min(13.0, sigma))
+
+        z = (blended_margin + spread_home) / sigma
+        cover_prob = float(norm.cdf(z))
+
+        implied_prob = STANDARD_JUICE / (1 + STANDARD_JUICE)
+        edge = cover_prob - implied_prob
+
+        if cover_prob < 0.5:
+            edge = (1 - cover_prob) - implied_prob
+            pick_side = 'AWAY'
+            pick_spread = -spread_home
+        else:
+            pick_side = 'HOME'
+            pick_spread = spread_home
+
+        spread_abs = abs(spread_home)
+        if spread_abs <= 7:
+            req_edge = EDGE_THRESHOLD
+        elif spread_abs <= 11:
+            req_edge = 0.05
+        else:
+            req_edge = 0.08
+
+        would_pick = 1 if edge >= req_edge else 0
+
+        avail = check_wnba_star_availability(home, away, home_injuries or '', away_injuries or '')
+
+        cursor.execute('''INSERT OR REPLACE INTO wnba_shadow_picks
+            (game_id, game_date, home_team, away_team, spread_home,
+             predicted_margin, model_edge, adjusted_edge, cover_prob, sigma,
+             pick_side, pick_spread, would_have_picked,
+             home_nrtg, away_nrtg,
+             home_star_available, away_star_available,
+             ppg_at_risk_home, ppg_at_risk_away,
+             shrinkage, edge_threshold, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            (game_id, game_date, home, away, spread_home,
+             round(blended_margin, 2), round(edge, 4), round(edge, 4),
+             round(cover_prob, 4), round(sigma, 2),
+             pick_side, round(pick_spread, 1), would_pick,
+             round(h_nrtg, 2), round(a_nrtg, 2),
+             1 if avail['home'].get('star1_available', True) else 0,
+             1 if avail['away'].get('star1_available', True) else 0,
+             avail['home'].get('ppg_at_risk', 0),
+             avail['away'].get('ppg_at_risk', 0),
+             SHRINKAGE, req_edge, datetime.now().isoformat()))
+
+        shadow_count += 1
+        if would_pick:
+            pick_count += 1
+
+        emoji = "✅" if would_pick else "⏸️"
+        print(f"  {emoji} {away} @ {home} (spread {spread_home:+.1f})")
+        print(f"     Model margin: {blended_margin:+.1f} | Edge: {edge:.1%} (need {req_edge:.1%}) | σ={sigma:.1f}")
+        print(f"     NRtg: {home} {h_nrtg:+.1f} vs {away} {a_nrtg:+.1f}")
+        if avail['home'].get('ppg_at_risk', 0) > 0 or avail['away'].get('ppg_at_risk', 0) > 0:
+            print(f"     ⚠️  PPG at risk: {home} {avail['home'].get('ppg_at_risk', 0):.1f} | {away} {avail['away'].get('ppg_at_risk', 0):.1f}")
+        print()
+
+    conn.commit()
+    conn.close()
+
+    print(f"  📊 Shadow summary: {shadow_count} games analyzed, {pick_count} would have been picked\n")
+
+
+def grade_wnba_shadow_picks():
+    """Grade completed shadow picks by matching final scores."""
+    print(f"\n{'='*60}")
+    print("📝 GRADING WNBA SHADOW PICKS")
+    print(f"{'='*60}\n")
+
+    conn = sqlite3.connect('sharp_picks.db')
+    cursor = conn.cursor()
+
+    setup_wnba_shadow_table(cursor)
+
+    cursor.execute('''
+        SELECT sp.game_id, sp.pick_side, sp.pick_spread, sp.would_have_picked,
+               g.home_score, g.away_score, g.spread_result
+        FROM wnba_shadow_picks sp
+        JOIN wnba_games g ON sp.game_id = g.id
+        WHERE sp.result IS NULL
+        AND g.home_score IS NOT NULL
+    ''')
+    ungraded = cursor.fetchall()
+
+    if not ungraded:
+        print("  No ungraded shadow picks.")
+        conn.close()
+        return
+
+    graded = 0
+    wins = 0
+    losses = 0
+
+    for game_id, pick_side, pick_spread, would_pick, hs, as_, spread_result in ungraded:
+        margin = float(hs) - float(as_)
+
+        if pick_side == 'HOME':
+            adjusted = margin + pick_spread
+        else:
+            adjusted = -margin + pick_spread
+
+        if adjusted > 0:
+            result = 'WIN'
+            units = 1.0
+            if would_pick:
+                wins += 1
+        elif adjusted < 0:
+            result = 'LOSS'
+            units = -1.1
+            if would_pick:
+                losses += 1
+        else:
+            result = 'PUSH'
+            units = 0.0
+
+        cursor.execute('''UPDATE wnba_shadow_picks
+            SET home_score = ?, away_score = ?, spread_result = ?,
+                result = ?, units = ?, graded_at = ?
+            WHERE game_id = ?''',
+            (hs, as_, spread_result, result, round(units, 2),
+             datetime.now().isoformat(), game_id))
+        graded += 1
+
+    conn.commit()
+
+    cursor.execute('''
+        SELECT COUNT(*), SUM(CASE WHEN result='WIN' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN result='LOSS' THEN 1 ELSE 0 END),
+               SUM(units)
+        FROM wnba_shadow_picks
+        WHERE result IS NOT NULL AND would_have_picked = 1
+    ''')
+    total, total_wins, total_losses, total_units = cursor.fetchone()
+
+    print(f"  ✅ Graded {graded} shadow picks")
+    if total and total > 0:
+        total_wins = total_wins or 0
+        total_losses = total_losses or 0
+        total_units = total_units or 0
+        pct = total_wins / (total_wins + total_losses) * 100 if (total_wins + total_losses) > 0 else 0
+        print(f"\n  📊 Shadow Record (would-pick only): {total_wins}-{total_losses} ({pct:.1f}%)")
+        print(f"  💰 Shadow Units: {total_units:+.1f}u")
+
+    conn.close()
+    print()
+
+
 def collect_wnba_odds():
     """Fetch today's WNBA odds from The Odds API with enriched data"""
     from sport_config import get_odds_api_url
@@ -2268,8 +2781,16 @@ if __name__ == "__main__":
         elif sys.argv[1] == '--wnba':
             collect_wnba_scores()
             collect_wnba_odds()
+            update_wnba_rolling_ratings()
         elif sys.argv[1] == '--wnba-close':
             collect_wnba_closing_lines()
+        elif sys.argv[1] == '--wnba-shadow':
+            update_wnba_rolling_ratings()
+            run_wnba_shadow_predictions()
+        elif sys.argv[1] == '--wnba-grade':
+            grade_wnba_shadow_picks()
+        elif sys.argv[1] == '--wnba-ratings':
+            update_wnba_rolling_ratings()
         else:
             print(f"Unknown command: {sys.argv[1]}")
     else:
@@ -2280,7 +2801,10 @@ if __name__ == "__main__":
     print("\n💡 Commands:")
     print("   python main.py              - Daily NBA collection (scores + lines)")
     print("   python main.py --close      - Capture NBA closing lines before games")
-    print("   python main.py --wnba       - Collect WNBA scores + odds")
+    print("   python main.py --wnba       - Collect WNBA scores + odds + rolling ratings")
     print("   python main.py --wnba-close - Capture WNBA closing lines before games")
+    print("   python main.py --wnba-shadow - Run WNBA shadow predictions (log only)")
+    print("   python main.py --wnba-grade - Grade completed WNBA shadow picks")
+    print("   python main.py --wnba-ratings - Recompute all WNBA rolling ratings")
     print("   python main.py --report     - Show data collection report")
     print("   python main.py --viz    - Show progress visualization\n")
