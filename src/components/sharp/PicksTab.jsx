@@ -9,6 +9,8 @@ import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
 import { InlineError } from './ErrorStates';
 
+const HISTORY_DEFAULT_LIMIT = 10;
+
 export default function PicksTab({ onNavigate }) {
   const { user, loading: authLoading } = useAuth();
   const { sport } = useSport();
@@ -19,6 +21,7 @@ export default function PicksTab({ onNavigate }) {
   const [showResolution, setShowResolution] = useState(false);
   const [resolutionPick, setResolutionPick] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [showAllPicks, setShowAllPicks] = useState(false);
 
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
 
@@ -217,7 +220,7 @@ export default function PicksTab({ onNavigate }) {
 
         <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
           {['all', 'wins', 'losses', 'pending'].map(f => (
-            <button key={f} onClick={() => setFilter(f)} style={{
+            <button key={f} onClick={() => { setFilter(f); setShowAllPicks(false); }} style={{
               padding: '5px 12px', borderRadius: '8px', fontSize: '11px',
               fontWeight: 600, cursor: 'pointer',
               textTransform: 'capitalize', fontFamily: 'var(--font-sans)',
@@ -237,12 +240,16 @@ export default function PicksTab({ onNavigate }) {
             textAlign: 'center', padding: '40px 0',
             color: 'var(--text-tertiary)', fontSize: '14px',
           }}>No picks found</div>
-        ) : (
+        ) : (() => {
+          const isTruncated = !showAllPicks && filtered.length > HISTORY_DEFAULT_LIMIT;
+          const displayPicks = isTruncated ? filtered.slice(0, HISTORY_DEFAULT_LIMIT) : filtered;
+          return (
+          <>
           <div style={{
             backgroundColor: 'var(--surface-1)', borderRadius: '16px',
             overflow: 'hidden', border: '1px solid var(--stroke-subtle)',
           }}>
-            {filtered.map((pick, i) => {
+            {displayPicks.map((pick, i) => {
               const pickResolved = pick.result === 'win' || pick.result === 'loss';
               const isPending = pick.result === 'pending';
               const isRevoked = pick.result === 'revoked';
@@ -311,7 +318,27 @@ export default function PicksTab({ onNavigate }) {
               );
             })}
           </div>
-        )}
+          {isTruncated && (
+            <button onClick={() => setShowAllPicks(true)} style={{
+              width: '100%', padding: '14px', marginTop: '8px',
+              backgroundColor: 'var(--surface-1)', borderRadius: '12px',
+              border: '1px solid var(--stroke-subtle)',
+              color: 'var(--blue-primary)', fontSize: '13px', fontWeight: 600,
+              fontFamily: 'var(--font-sans)', cursor: 'pointer',
+              letterSpacing: '0.01em',
+            }}>Show all {filtered.length} picks</button>
+          )}
+          {showAllPicks && filtered.length > HISTORY_DEFAULT_LIMIT && (
+            <button onClick={() => setShowAllPicks(false)} style={{
+              width: '100%', padding: '12px', marginTop: '6px',
+              background: 'none', border: 'none',
+              color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 500,
+              fontFamily: 'var(--font-sans)', cursor: 'pointer',
+            }}>Show less</button>
+          )}
+          </>
+          );
+        })()}
       </div>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
