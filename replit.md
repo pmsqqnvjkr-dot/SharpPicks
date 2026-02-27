@@ -40,6 +40,7 @@ The system enforces a "no pick" policy without sufficient edge. Transparency is 
 - `db.create_all()` does NOT add new columns to existing tables. Any schema changes (new columns) must be handled via explicit `ALTER TABLE` statements in `seed_database()`.
 
 ## Recent Changes
+- **2026-02-27**: Built `wnba_data_pipeline.py` — comprehensive WNBA data backfill tool with ESPN score scraping, Odds API historical odds backfill, and schedule feature enrichment. Backfilled 667 WNBA games with spread/total/moneyline data across 2022-2024 seasons (2024 at 99% coverage). Data now SUFFICIENT for walk-forward backtesting. Added WNBA cron throttle intervals. Commands: `--backfill-scores`, `--backfill-odds [max_calls] [year]`, `--enrich`, `--report`, `--quota`.
 - **2026-02-26**: Added production-to-dev database sync system — `/api/admin/export-picks` exports all picks, passes, and model runs as JSON from production; `/api/admin/sync-from-prod` pulls from production and upserts into dev database. Both secured by admin auth or cron secret. Keeps dev and prod databases in sync.
 - **2026-02-26**: Added `/api/admin/manual-grade` endpoint — allows manual grading of specific picks by providing pick_id, home_score, and away_score. Secured by admin auth or cron secret.
 - **2026-02-26**: Enhanced `grade_pending_picks()` with ESPN API fallback — when SQLite game data is missing, fetches scores directly from ESPN scoreboard API. Added detailed logging throughout grading process. Sport-aware ESPN URL (NBA vs WNBA).

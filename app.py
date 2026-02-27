@@ -1634,6 +1634,8 @@ CRON_MIN_INTERVAL = {
     'grade_whatifs': 300,
     'pretip_validate': 300,
     'run_model': 600,
+    'wnba_collect': 600,
+    'wnba_closing_lines': 60,
 }
 
 def log_cron(job_name, fn, skip_throttle=False):
@@ -1707,6 +1709,18 @@ def cron_refresh_lines():
 @verify_cron
 def cron_closing_lines():
     return log_cron('closing_lines', collect_closing_lines)
+
+
+@app.route('/api/cron/wnba-collect', methods=['POST'])
+@verify_cron
+def cron_wnba_collect():
+    return log_cron('wnba_collect', collect_wnba_games_job)
+
+
+@app.route('/api/cron/wnba-closing-lines', methods=['POST'])
+@verify_cron
+def cron_wnba_closing_lines():
+    return log_cron('wnba_closing_lines', collect_wnba_closing_lines_job)
 
 
 @app.route('/api/cron/grade-picks', methods=['POST'])
