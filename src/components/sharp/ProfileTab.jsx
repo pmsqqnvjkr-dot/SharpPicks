@@ -14,6 +14,7 @@ import ResolutionScreen from './ResolutionScreen';
 export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack, onPickTracked, screenData }) {
   const { user, logout } = useAuth();
   const { data: foundingData } = useApi('/public/founding-count');
+  const { data: publicStats } = useApi('/public/stats?sport=nba');
   const [showAuth, setShowAuth] = useState(false);
   const [screen, setScreen] = useState(initialScreen || null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -134,7 +135,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
       </div>
 
       <div style={{ padding: '0 20px' }}>
-        <AccessStatusCard user={user} isPro={isPro} />
+        <AccessStatusCard user={user} isPro={isPro} stats={publicStats} />
 
         <ControlsSection user={user} onNavigate={navigate} isPro={isPro} foundingData={foundingData} onSubscribe={handleSubscribe} checkoutLoading={checkoutLoading} />
 
@@ -162,11 +163,11 @@ function SettingsSection({ user, onNavigate }) {
   const isMonthly = user?.subscription_plan === 'monthly';
 
   const menuItems = [
-    { id: 'how', label: 'How It Works', subtitle: 'Our model and methodology' },
-    { id: 'notifications', label: 'Notifications', subtitle: 'Alert preferences' },
+    { id: 'how', label: 'Model Architecture', subtitle: 'Edge logic, filters, and methodology' },
+    { id: 'notifications', label: 'Signal Alerts', subtitle: 'Pick delivery and result notifications' },
     ...(!isPro && user ? [{ id: 'upgrade', label: 'Upgrade to Pro', subtitle: 'Full pick details and analytics', badge: 'Pro' }] : []),
     ...(isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
-    ...(isPro ? [{ id: 'cancel', label: 'Manage Membership', subtitle: 'Billing & access', requiresAuth: true }] : []),
+    ...(isPro ? [{ id: 'cancel', label: 'Allocation & Access', subtitle: 'Billing, plan, and membership', requiresAuth: true }] : []),
   ];
 
   const visibleItems = user
@@ -593,7 +594,7 @@ function useCardAnimations() {
   }, []);
 }
 
-function AccessStatusCard({ user, isPro }) {
+function AccessStatusCard({ user, isPro, stats }) {
   useCardAnimations();
   const isFounder = user.founding_member;
   const isTrial = user.subscription_status === 'trial';
@@ -631,6 +632,11 @@ function AccessStatusCard({ user, isPro }) {
     ? '0 0 8px rgba(239,68,68,0.5)'
     : '0 0 6px rgba(52,211,153,0.3)';
 
+  const pnl = stats?.pnl;
+  const capitalPreserved = stats?.total_picks && stats?.total_passes
+    ? Math.round((stats.total_passes / (stats.total_picks + stats.total_passes)) * 100)
+    : null;
+
   return (
     <div style={{
       borderRadius: '20px',
@@ -651,6 +657,20 @@ function AccessStatusCard({ user, isPro }) {
           position: 'absolute', inset: 0, pointerEvents: 'none', borderRadius: '19px',
           backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'0.04\'/%3E%3C/svg%3E")',
         }} />
+
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', borderRadius: '19px',
+          opacity: 0.03,
+          backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(255,255,255,0.5) 19px, rgba(255,255,255,0.5) 20px), repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(255,255,255,0.5) 19px, rgba(255,255,255,0.5) 20px)`,
+        }} />
+
+        <div style={{
+          position: 'absolute', right: '-10px', bottom: '-15px', pointerEvents: 'none',
+          fontFamily: 'var(--font-serif)', fontSize: '120px', fontWeight: 900,
+          lineHeight: 1, letterSpacing: '-4px',
+          color: 'rgba(255,255,255,0.025)',
+          userSelect: 'none',
+        }}>SP</div>
 
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -715,7 +735,7 @@ function AccessStatusCard({ user, isPro }) {
         <div style={{
           textAlign: 'center',
           padding: '16px 0',
-          marginBottom: '16px',
+          marginBottom: pnl != null ? '12px' : '16px',
           position: 'relative', zIndex: 1,
         }}>
           <div style={{
@@ -748,6 +768,41 @@ function AccessStatusCard({ user, isPro }) {
             }}>
               #{String(user.founding_number || '').padStart(3, '0')}
             </span>
+          </div>
+        )}
+
+        {pnl != null && (
+          <div style={{
+            borderTop: `1px solid ${isFounder ? 'rgba(245,166,35,0.08)' : 'rgba(255,255,255,0.05)'}`,
+            paddingTop: '14px', marginBottom: '14px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+            position: 'relative', zIndex: 1,
+          }}>
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '8px', fontWeight: 600,
+                letterSpacing: '1px', textTransform: 'uppercase',
+                color: 'var(--text-tertiary)', opacity: 0.7, marginBottom: '4px',
+              }}>Since Activation</div>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 800,
+                color: pnl >= 0 ? 'var(--green-profit, #34D399)' : 'var(--red-loss, #C4686B)',
+                lineHeight: 1,
+              }}>{pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}u</div>
+            </div>
+            {capitalPreserved != null && (
+              <div style={{ textAlign: 'right' }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '8px', fontWeight: 600,
+                  letterSpacing: '1px', textTransform: 'uppercase',
+                  color: 'var(--text-tertiary)', opacity: 0.7, marginBottom: '4px',
+                }}>Capital Preserved</div>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700,
+                  color: 'var(--text-secondary)', lineHeight: 1,
+                }}>{capitalPreserved}%</div>
+              </div>
+            )}
           </div>
         )}
 
@@ -788,11 +843,11 @@ function ControlsSection({ user, onNavigate, isPro, foundingData, onSubscribe, c
   const isMonthly = user?.subscription_plan === 'monthly';
 
   const menuItems = [
-    ...(isPro ? [{ id: 'notifications', label: 'Notifications', subtitle: 'Alert preferences' }] : []),
-    { id: 'how', label: 'How It Works', subtitle: 'Model methodology and edge logic' },
+    ...(isPro ? [{ id: 'notifications', label: 'Signal Alerts', subtitle: 'Pick delivery and result notifications' }] : []),
+    { id: 'how', label: 'Model Architecture', subtitle: 'Edge logic, filters, and methodology' },
     ...(!isPro && user ? [{ id: 'upgrade', label: 'Upgrade to Pro', subtitle: 'Unlock full decision visibility', badge: 'Pro' }] : []),
     ...(isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
-    ...(isPro ? [{ id: 'cancel', label: 'Manage Membership', subtitle: 'Billing, plan, and access' }] : []),
+    ...(isPro ? [{ id: 'cancel', label: 'Allocation & Access', subtitle: 'Billing, plan, and membership' }] : []),
   ];
 
   return (
