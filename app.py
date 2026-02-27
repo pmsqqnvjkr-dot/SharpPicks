@@ -1757,6 +1757,15 @@ def cron_wnba_grade():
     return log_cron('wnba_grade', grade_wnba_shadow_job)
 
 
+@app.route('/api/cron/player-props', methods=['POST'])
+@verify_cron
+def cron_player_props():
+    def _collect_props():
+        from main import collect_player_props
+        collect_player_props()
+    return log_cron('player_props', _collect_props)
+
+
 @app.route('/api/cron/grade-picks', methods=['POST'])
 @verify_cron
 def cron_grade_picks():
@@ -3301,6 +3310,67 @@ def send_admin_alert(title, body, data=None):
     else:
         logging.warning(f"Admin alert could not be delivered (no admin tokens): {title}")
     return total
+
+
+@app.route('/api/game-board')
+def game_board():
+    """Get today's game board with enhanced markets (1H, alt spreads, props)"""
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+    if not user.is_pro:
+        return jsonify({'error': 'Pro subscription required', 'upgrade': True}), 403
+
+    import sqlite3
+    conn = sqlite3.connect('sharp_picks.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    today_et = datetime.now(pytz.timezone('US/Eastern')).strftime('%Y-%m-%d')
+    cursor.execute('''
+        SELECT id, home_team, away_team, game_time, commence_time,
+               spread_home, spread_away, total, home_ml, away_ml,
+               home_spread_odds, away_spread_odds, home_spread_book, away_spread_book,
+               spread_h1_home, spread_h1_away, spread_h1_home_odds, spread_h1_away_odds,
+               total_h1,
+               alt_spread_minus_1, alt_spread_minus_3, alt_spread_minus_5, alt_spread_minus_7,
+               alt_spread_plus_1, alt_spread_plus_3, alt_spread_plus_5, alt_spread_plus_7,
+               home_record, away_record, home_injuries, away_injuries,
+               line_movement
+        FROM games WHERE game_date = ?
+        ORDER BY game_time
+    ''', (today_et,))
+
+    games = []
+    for row in cursor.fetchall():
+        game = dict(row)
+        game_id = game['id']
+
+        cursor.execute('''
+            SELECT player_name, team, market, line, over_odds, under_odds, book
+            FROM nba_player_props
+            WHERE game_id = ? OR game_date = ?
+            ORDER BY market, player_name
+        ''', (game_id, today_et))
+
+        props = []
+        for p in cursor.fetchall():
+            props.append(dict(p))
+
+        alt_spreads = {}
+        for pt in [-7, -5, -3, -1, 1, 3, 5, 7]:
+            col = f"alt_spread_{'minus' if pt < 0 else 'plus'}_{abs(pt)}"
+            val = game.get(col)
+            if val is not None:
+                alt_spreads[str(pt)] = val
+            game.pop(col, None)
+
+        game['alt_spreads'] = alt_spreads
+        game['player_props'] = props
+        games.append(game)
+
+    conn.close()
+    return jsonify({'date': today_et, 'games': games, 'count': len(games)})
 
 
 @app.route('/api/model/calibration')

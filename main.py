@@ -274,6 +274,24 @@ def setup_database():
         ('away_spread_odds_close', 'INTEGER'),
         ('home_spread_book', 'TEXT'),
         ('away_spread_book', 'TEXT'),
+        ('spread_h1_home', 'REAL'),
+        ('spread_h1_away', 'REAL'),
+        ('spread_h1_home_odds', 'INTEGER'),
+        ('spread_h1_away_odds', 'INTEGER'),
+        ('total_h1', 'REAL'),
+        ('spread_h1_home_open', 'REAL'),
+        ('total_h1_open', 'REAL'),
+        ('alt_spread_minus_1', 'INTEGER'),
+        ('alt_spread_minus_3', 'INTEGER'),
+        ('alt_spread_minus_5', 'INTEGER'),
+        ('alt_spread_minus_7', 'INTEGER'),
+        ('alt_spread_plus_1', 'INTEGER'),
+        ('alt_spread_plus_3', 'INTEGER'),
+        ('alt_spread_plus_5', 'INTEGER'),
+        ('alt_spread_plus_7', 'INTEGER'),
+        ('commence_time', 'TEXT'),
+        ('spread_h1_home_close', 'REAL'),
+        ('total_h1_close', 'REAL'),
     ]
     
     for col_name, col_type in new_columns:
@@ -281,7 +299,22 @@ def setup_database():
             cursor.execute(f'ALTER TABLE games ADD COLUMN {col_name} {col_type}')
         except:
             pass
-    
+
+    cursor.execute('''CREATE TABLE IF NOT EXISTS nba_player_props (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        game_id TEXT NOT NULL,
+        game_date TEXT,
+        player_name TEXT NOT NULL,
+        team TEXT,
+        market TEXT NOT NULL,
+        line REAL,
+        over_odds INTEGER,
+        under_odds INTEGER,
+        book TEXT,
+        collected_at TEXT,
+        UNIQUE(game_id, player_name, market, book)
+    )''')
+
     conn.commit()
     conn.close()
 
@@ -815,7 +848,7 @@ def collect_todays_games():
     params = {
         'apiKey': API_KEY,
         'regions': 'us',
-        'markets': 'spreads,totals,h2h',
+        'markets': 'spreads,totals,h2h,spreads_h1,totals_h1,alternate_spreads',
         'oddsFormat': 'american',
         'bookmakers': ','.join(PREFERRED_BOOKS)
     }
@@ -856,6 +889,14 @@ def collect_todays_games():
                 home_spread_book = None
                 away_spread_book = None
 
+                spread_h1_home = None
+                spread_h1_away = None
+                spread_h1_home_odds = None
+                spread_h1_away_odds = None
+                total_h1 = None
+
+                alt_spreads = {}
+
                 def is_better_odds(new_odds, current_odds):
                     if current_odds is None:
                         return True
@@ -895,6 +936,38 @@ def collect_todays_games():
                                     if away_ml is None or outcome['price'] > away_ml:
                                         away_ml = outcome['price']
 
+                        elif market['key'] == 'spreads_h1':
+                            for outcome in market.get('outcomes', []):
+                                if outcome['name'] == home:
+                                    if spread_h1_home is None:
+                                        spread_h1_home = outcome.get('point')
+                                    price = outcome.get('price')
+                                    if price is not None and is_better_odds(price, spread_h1_home_odds):
+                                        spread_h1_home_odds = price
+                                else:
+                                    if spread_h1_away is None:
+                                        spread_h1_away = outcome.get('point')
+                                    price = outcome.get('price')
+                                    if price is not None and is_better_odds(price, spread_h1_away_odds):
+                                        spread_h1_away_odds = price
+
+                        elif market['key'] == 'totals_h1' and total_h1 is None:
+                            outcomes = market.get('outcomes', [])
+                            if outcomes:
+                                total_h1 = outcomes[0].get('point')
+
+                        elif market['key'] == 'alternate_spreads':
+                            for outcome in market.get('outcomes', []):
+                                if outcome['name'] == home:
+                                    pt = outcome.get('point')
+                                    price = outcome.get('price')
+                                    if pt is not None and price is not None:
+                                        pt_round = round(pt)
+                                        if pt_round in [-1, -3, -5, -7, 1, 3, 5, 7]:
+                                            key = f"alt_{pt_round}"
+                                            if key not in alt_spreads or price > alt_spreads[key]:
+                                                alt_spreads[key] = price
+
                 games_to_process.append({
                     'game_id': game_id, 'home': home, 'away': away,
                     'commence_time': commence_time, 'game_time': game.get('commence_time', ''),
@@ -902,6 +975,10 @@ def collect_todays_games():
                     'total': total, 'home_ml': home_ml, 'away_ml': away_ml,
                     'home_spread_odds': home_spread_odds, 'away_spread_odds': away_spread_odds,
                     'home_spread_book': home_spread_book, 'away_spread_book': away_spread_book,
+                    'spread_h1_home': spread_h1_home, 'spread_h1_away': spread_h1_away,
+                    'spread_h1_home_odds': spread_h1_home_odds, 'spread_h1_away_odds': spread_h1_away_odds,
+                    'total_h1': total_h1,
+                    'alt_spreads': alt_spreads,
                 })
     except Exception as e:
         print(f"\n⚠️ Odds API exception: {e}")
@@ -1021,6 +1098,13 @@ def collect_todays_games():
             is_new_game = existing is None
             has_opening = existing and existing[1] is not None
             
+            spread_h1_home = gp.get('spread_h1_home')
+            spread_h1_away = gp.get('spread_h1_away')
+            spread_h1_home_odds = gp.get('spread_h1_home_odds')
+            spread_h1_away_odds = gp.get('spread_h1_away_odds')
+            total_h1 = gp.get('total_h1')
+            alt_sp = gp.get('alt_spreads', {})
+
             if is_new_game:
                 cursor.execute('''
                     INSERT INTO games 
@@ -1039,9 +1123,16 @@ def collect_todays_games():
                      bdl_home_avg_pts_against, bdl_away_avg_pts_against,
                      home_spread_odds, away_spread_odds,
                      home_spread_odds_open, away_spread_odds_open,
-                     home_spread_book, away_spread_book)
+                     home_spread_book, away_spread_book,
+                     spread_h1_home, spread_h1_away, spread_h1_home_odds, spread_h1_away_odds,
+                     total_h1, spread_h1_home_open, total_h1_open,
+                     alt_spread_minus_1, alt_spread_minus_3, alt_spread_minus_5, alt_spread_minus_7,
+                     alt_spread_plus_1, alt_spread_plus_3, alt_spread_plus_5, alt_spread_plus_7,
+                     commence_time)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     game_id, commence_time, game_time, home, away,
                     spread_home, spread_away, total, home_ml, away_ml,
@@ -1059,6 +1150,11 @@ def collect_todays_games():
                     home_spread_odds, away_spread_odds,
                     home_spread_odds, away_spread_odds,
                     home_spread_book, away_spread_book,
+                    spread_h1_home, spread_h1_away, spread_h1_home_odds, spread_h1_away_odds,
+                    total_h1, spread_h1_home, total_h1,
+                    alt_sp.get('alt_-1'), alt_sp.get('alt_-3'), alt_sp.get('alt_-5'), alt_sp.get('alt_-7'),
+                    alt_sp.get('alt_1'), alt_sp.get('alt_3'), alt_sp.get('alt_5'), alt_sp.get('alt_7'),
+                    game_time,
                 ))
                 line_status = "📌 OPENING"
             else:
@@ -1080,7 +1176,14 @@ def collect_todays_games():
                         bdl_home_avg_pts = ?, bdl_away_avg_pts = ?,
                         bdl_home_avg_pts_against = ?, bdl_away_avg_pts_against = ?,
                         home_spread_odds = ?, away_spread_odds = ?,
-                        home_spread_book = ?, away_spread_book = ?
+                        home_spread_book = ?, away_spread_book = ?,
+                        spread_h1_home = ?, spread_h1_away = ?,
+                        spread_h1_home_odds = ?, spread_h1_away_odds = ?,
+                        total_h1 = ?,
+                        alt_spread_minus_1 = ?, alt_spread_minus_3 = ?,
+                        alt_spread_minus_5 = ?, alt_spread_minus_7 = ?,
+                        alt_spread_plus_1 = ?, alt_spread_plus_3 = ?,
+                        alt_spread_plus_5 = ?, alt_spread_plus_7 = ?
                     WHERE id = ?
                 ''', (
                     spread_home, spread_away, total, home_ml, away_ml,
@@ -1096,6 +1199,13 @@ def collect_todays_games():
                     bdl_home_avg_pts_against, bdl_away_avg_pts_against,
                     home_spread_odds, away_spread_odds,
                     home_spread_book, away_spread_book,
+                    spread_h1_home, spread_h1_away,
+                    spread_h1_home_odds, spread_h1_away_odds,
+                    total_h1,
+                    alt_sp.get('alt_-1'), alt_sp.get('alt_-3'),
+                    alt_sp.get('alt_-5'), alt_sp.get('alt_-7'),
+                    alt_sp.get('alt_1'), alt_sp.get('alt_3'),
+                    alt_sp.get('alt_5'), alt_sp.get('alt_7'),
                     game_id
                 ))
                 
@@ -1129,6 +1239,18 @@ def collect_todays_games():
                 print(f"   🏠 Splits: {home} home ({home_home_record}) | {away} away ({away_away_record})")
             if home_rest is not None or away_rest is not None:
                 print(f"   😴 Rest: {home} ({home_rest or '?'} days) | {away} ({away_rest or '?'} days)")
+            if spread_h1_home is not None:
+                h1_odds_str = f" ({spread_h1_home_odds:+d})" if spread_h1_home_odds else ""
+                print(f"   🏀 1H Spread: {home} {spread_h1_home:+.1f}{h1_odds_str}")
+            if total_h1 is not None:
+                print(f"   🏀 1H Total: {total_h1}")
+            if alt_sp:
+                alt_parts = []
+                for k in sorted(alt_sp.keys(), key=lambda x: int(x.split('_')[1])):
+                    pt = int(k.split('_')[1])
+                    alt_parts.append(f"{pt:+d}={alt_sp[k]:+d}")
+                if alt_parts:
+                    print(f"   🎰 Alt Spreads: {', '.join(alt_parts)}")
             if home_injuries or away_injuries:
                 if home_injuries:
                     print(f"   🏥 {home}: {home_injuries[:60]}...")
@@ -1178,6 +1300,130 @@ def show_stats():
     print("="*60)
 
 
+def collect_player_props():
+    """Collect player props (points, rebounds, assists) for today's games.
+    Uses per-event endpoint: 1 credit per market per region per event.
+    """
+    print("\n" + "="*60)
+    print("🎯 COLLECTING PLAYER PROPS")
+    print("="*60 + "\n")
+
+    API_KEY = os.environ.get('ODDS_API_KEY', '')
+    if not API_KEY:
+        print("❌ No ODDS_API_KEY set")
+        return
+
+    PROP_MARKETS = ['player_points', 'player_rebounds', 'player_assists']
+    PREFERRED_BOOKS = ['fanduel', 'draftkings', 'betmgm', 'caesars', 'pointsbetus', 'betrivers']
+
+    events_url = "https://api.the-odds-api.com/v4/sports/basketball_nba/events/"
+    params = {'apiKey': API_KEY}
+
+    try:
+        resp = requests.get(events_url, params=params, timeout=15)
+        resp.raise_for_status()
+        events = resp.json()
+    except Exception as e:
+        print(f"❌ Failed to fetch events: {e}")
+        return
+
+    today_et = datetime.now(pytz.timezone('US/Eastern')).strftime('%Y-%m-%d')
+    today_events = []
+    for ev in events:
+        ct = ev.get('commence_time', '')
+        game_date = utc_to_eastern_date(ct)
+        if game_date == today_et:
+            today_events.append(ev)
+
+    if not today_events:
+        print(f"   No games found for {today_et}")
+        return
+
+    print(f"   Found {len(today_events)} games for {today_et}")
+    credit_cost = len(today_events) * len(PROP_MARKETS)
+    print(f"   Estimated API cost: {credit_cost} credits")
+
+    init_db()
+    conn = sqlite3.connect('sharp_picks.db')
+    cursor = conn.cursor()
+    total_props = 0
+
+    for ev in today_events:
+        event_id = ev['id']
+        home = ev.get('home_team', '')
+        away = ev.get('away_team', '')
+        game_date = utc_to_eastern_date(ev.get('commence_time', ''))
+        print(f"\n   {away} @ {home}")
+
+        for mk in PROP_MARKETS:
+            props_url = f"https://api.the-odds-api.com/v4/sports/basketball_nba/events/{event_id}/odds"
+            props_params = {
+                'apiKey': API_KEY,
+                'regions': 'us',
+                'markets': mk,
+                'oddsFormat': 'american',
+                'bookmakers': ','.join(PREFERRED_BOOKS),
+            }
+
+            try:
+                r = requests.get(props_url, params=props_params, timeout=15)
+                remaining = r.headers.get('x-requests-remaining', '?')
+                r.raise_for_status()
+                data = r.json()
+            except Exception as e:
+                print(f"     ❌ {mk}: {e}")
+                continue
+
+            market_label = mk.replace('player_', '').upper()
+            count = 0
+
+            for bookmaker in data.get('bookmakers', []):
+                book_key = bookmaker.get('key', '')
+                for market in bookmaker.get('markets', []):
+                    if market['key'] != mk:
+                        continue
+                    for outcome in market.get('outcomes', []):
+                        player = outcome.get('description', '')
+                        line = outcome.get('point')
+                        price = outcome.get('price')
+                        name = outcome.get('name', '')
+                        if not player or line is None or price is None:
+                            continue
+
+                        over_odds = price if name == 'Over' else None
+                        under_odds = price if name == 'Under' else None
+
+                        try:
+                            cursor.execute('''
+                                INSERT INTO nba_player_props 
+                                (game_id, game_date, player_name, team, market, line, 
+                                 over_odds, under_odds, book, collected_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                ON CONFLICT(game_id, player_name, market, book) 
+                                DO UPDATE SET 
+                                    line = excluded.line,
+                                    over_odds = COALESCE(excluded.over_odds, nba_player_props.over_odds),
+                                    under_odds = COALESCE(excluded.under_odds, nba_player_props.under_odds),
+                                    collected_at = excluded.collected_at
+                            ''', (
+                                event_id, game_date, player, None, mk, line,
+                                over_odds, under_odds, book_key,
+                                datetime.now().isoformat()
+                            ))
+                            count += 1
+                        except Exception as e:
+                            pass
+
+            print(f"     {market_label}: {count} lines (API remaining: {remaining})")
+            total_props += count
+            time.sleep(0.3)
+
+    conn.commit()
+    conn.close()
+    print(f"\n   Total props stored: {total_props}")
+    print("="*60)
+
+
 def collect_closing_lines():
     """Collect closing lines for games starting soon (within 30 min)"""
     print("\n" + "="*60)
@@ -1198,7 +1444,7 @@ def collect_closing_lines():
     params = {
         'apiKey': API_KEY,
         'regions': 'us',
-        'markets': 'spreads,totals,h2h',
+        'markets': 'spreads,totals,h2h,spreads_h1,totals_h1',
         'oddsFormat': 'american',
         'bookmakers': ','.join(PREFERRED_BOOKS)
     }
@@ -1243,6 +1489,8 @@ def collect_closing_lines():
             away_ml = None
             home_spread_odds = None
             away_spread_odds = None
+            spread_h1_close = None
+            total_h1_close = None
             
             def is_better_odds(new_odds, current_odds):
                 if current_odds is None:
@@ -1273,17 +1521,27 @@ def collect_closing_lines():
                             else:
                                 if away_ml is None or outcome['price'] > away_ml:
                                     away_ml = outcome['price']
+                    elif market['key'] == 'spreads_h1' and spread_h1_close is None:
+                        for outcome in market.get('outcomes', []):
+                            if outcome['name'] == home:
+                                spread_h1_close = outcome.get('point')
+                                break
+                    elif market['key'] == 'totals_h1' and total_h1_close is None:
+                        outcomes = market.get('outcomes', [])
+                        if outcomes:
+                            total_h1_close = outcomes[0].get('point')
             
-            # Update closing line
             cursor.execute('''
                 UPDATE games SET
                     spread_home_close = ?, total_close = ?,
                     home_ml_close = ?, away_ml_close = ?,
                     home_spread_odds_close = ?, away_spread_odds_close = ?,
+                    spread_h1_home_close = ?, total_h1_close = ?,
                     close_collected_at = ?
                 WHERE id = ?
             ''', (spread_home, total, home_ml, away_ml,
                   home_spread_odds, away_spread_odds,
+                  spread_h1_close, total_h1_close,
                   datetime.now().isoformat(), game_id))
             
             # Calculate total line movement
@@ -2791,6 +3049,8 @@ if __name__ == "__main__":
             grade_wnba_shadow_picks()
         elif sys.argv[1] == '--wnba-ratings':
             update_wnba_rolling_ratings()
+        elif sys.argv[1] == '--props':
+            collect_player_props()
         else:
             print(f"Unknown command: {sys.argv[1]}")
     else:
@@ -2801,6 +3061,7 @@ if __name__ == "__main__":
     print("\n💡 Commands:")
     print("   python main.py              - Daily NBA collection (scores + lines)")
     print("   python main.py --close      - Capture NBA closing lines before games")
+    print("   python main.py --props      - Collect NBA player props (pts/reb/ast)")
     print("   python main.py --wnba       - Collect WNBA scores + odds + rolling ratings")
     print("   python main.py --wnba-close - Capture WNBA closing lines before games")
     print("   python main.py --wnba-shadow - Run WNBA shadow predictions (log only)")
