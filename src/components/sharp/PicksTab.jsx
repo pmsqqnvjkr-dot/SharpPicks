@@ -256,13 +256,9 @@ export default function PicksTab({ onNavigate }) {
               const isRevoked = pick.result === 'revoked';
               const hideLine = !isPro && isPending;
               const canView = isPro && (pickResolved || isRevoked);
-              const topBorderColor = pick.result === 'win' ? 'hsl(142,30%,38%)'
-                : pick.result === 'loss' ? 'hsl(0,30%,40%)'
-                : isRevoked ? 'transparent' : 'hsl(220,8%,38%)';
               return (
                 <div key={pick.id} onClick={() => canView && (() => { setResolutionPick(pick); setShowResolution(true); })()} style={{
                   padding: '16px',
-                  borderTop: `2px solid ${topBorderColor}`,
                   borderBottom: i < displayPicks.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   cursor: canView ? 'pointer' : 'default',
@@ -300,16 +296,16 @@ export default function PicksTab({ onNavigate }) {
                       <>
                         {(pick.result === 'win' || pick.result === 'loss') ? (
                           <div style={{
-                            fontFamily: 'var(--font-mono)', fontSize: '17px', fontWeight: 700,
-                            lineHeight: 1,
-                            color: pick.result === 'win' ? '#22c55e' : '#ef4444',
+                            fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700,
+                            lineHeight: 1, letterSpacing: '-0.02em',
+                            color: pick.result === 'win' ? 'hsl(142,45%,52%)' : 'hsl(0,55%,58%)',
                           }}>
                             {(() => {
                               const units = pick.profit_units != null ? pick.profit_units : (pick.pnl != null ? pick.pnl / 100 : null);
                               const val = pick.result === 'win'
                                 ? `+${units != null ? Math.abs(units).toFixed(2) : '0.91'}`
                                 : `-${units != null ? Math.abs(units).toFixed(2) : '1.00'}`;
-                              return <>{val}<span style={{ fontSize: '11px', fontWeight: 400, opacity: 0.7, marginLeft: '1px' }}>u</span></>;
+                              return <>{val}<span style={{ fontSize: '10px', fontWeight: 500, opacity: 0.6, verticalAlign: 'super', marginLeft: '1px' }}>u</span></>;
                             })()}
                           </div>
                         ) : (

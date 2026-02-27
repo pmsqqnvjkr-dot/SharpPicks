@@ -115,13 +115,9 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
               const isResolved = pick.result === 'win' || pick.result === 'loss';
               const isRevoked = pick.result === 'revoked';
               const canViewResolution = isPro && isResolved && onViewResolution;
-              const topBorderColor = pick.result === 'win' ? 'hsl(142,30%,38%)'
-                : pick.result === 'loss' ? 'hsl(0,30%,40%)'
-                : isRevoked ? 'transparent' : 'hsl(220,8%,38%)';
               return (
                 <div key={pick.id} onClick={() => canViewResolution && onViewResolution(pick)} style={{
                   padding: '16px',
-                  borderTop: `2px solid ${topBorderColor}`,
                   borderBottom: i < visible.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   cursor: canViewResolution ? 'pointer' : 'default',
@@ -164,15 +160,15 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                   }}>
                     {isResolved ? (
                       <div style={{
-                        fontFamily: 'var(--font-mono)', fontSize: '17px', fontWeight: 700,
-                        lineHeight: 1,
-                        color: pick.result === 'win' ? '#22c55e' : '#ef4444',
+                        fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700,
+                        lineHeight: 1, letterSpacing: '-0.02em',
+                        color: pick.result === 'win' ? 'hsl(142,45%,52%)' : 'hsl(0,55%,58%)',
                       }}>
                         {(() => {
                         const val = pick.result === 'win'
                           ? `+${pick.pnl != null ? pick.pnl : 91}`
                           : `${pick.pnl != null ? pick.pnl : -100}`;
-                        return <>{val}<span style={{ fontSize: '11px', fontWeight: 400, opacity: 0.7, marginLeft: '1px' }}>u</span></>;
+                        return <>{val}<span style={{ fontSize: '10px', fontWeight: 500, opacity: 0.6, verticalAlign: 'super', marginLeft: '1px' }}>u</span></>;
                       })()}
                       </div>
                     ) : (
