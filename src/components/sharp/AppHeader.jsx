@@ -63,7 +63,7 @@ export default function AppHeader({ onNavigate, showSportToggle }) {
               fontSize: '11px', color: 'rgba(255,255,255,0.55)',
               fontFamily: 'var(--font-sans)', fontWeight: 400,
             }}>
-              {greeting}
+              Welcome back, {greeting}
             </span>
           )}
           <button
