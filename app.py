@@ -1695,31 +1695,31 @@ def log_cron(job_name, fn, skip_throttle=False):
             _cron_locks[job_name] = (_time.time(), False)
 
 
-@app.route('/api/cron/collect-games', methods=['POST'])
+@app.route('/api/cron/collect-games', methods=['GET', 'POST'])
 @verify_cron
 def cron_collect_games():
     return log_cron('collect_games', collect_todays_games)
 
 
-@app.route('/api/cron/refresh-lines', methods=['POST'])
+@app.route('/api/cron/refresh-lines', methods=['GET', 'POST'])
 @verify_cron
 def cron_refresh_lines():
     return log_cron('refresh_lines', collect_todays_games)
 
 
-@app.route('/api/cron/closing-lines', methods=['POST'])
+@app.route('/api/cron/closing-lines', methods=['GET', 'POST'])
 @verify_cron
 def cron_closing_lines():
     return log_cron('closing_lines', collect_closing_lines)
 
 
-@app.route('/api/cron/wnba-collect', methods=['POST'])
+@app.route('/api/cron/wnba-collect', methods=['GET', 'POST'])
 @verify_cron
 def cron_wnba_collect():
     return log_cron('wnba_collect', collect_wnba_games_job)
 
 
-@app.route('/api/cron/wnba-closing-lines', methods=['POST'])
+@app.route('/api/cron/wnba-closing-lines', methods=['GET', 'POST'])
 @verify_cron
 def cron_wnba_closing_lines():
     return log_cron('wnba_closing_lines', collect_wnba_closing_lines_job)
@@ -1745,19 +1745,19 @@ def grade_wnba_shadow_job():
         print(f"[{datetime.now()}] WNBA shadow grading error: {e}")
 
 
-@app.route('/api/cron/wnba-shadow', methods=['POST'])
+@app.route('/api/cron/wnba-shadow', methods=['GET', 'POST'])
 @verify_cron
 def cron_wnba_shadow():
     return log_cron('wnba_shadow', run_wnba_shadow_job)
 
 
-@app.route('/api/cron/wnba-grade', methods=['POST'])
+@app.route('/api/cron/wnba-grade', methods=['GET', 'POST'])
 @verify_cron
 def cron_wnba_grade():
     return log_cron('wnba_grade', grade_wnba_shadow_job)
 
 
-@app.route('/api/cron/player-props', methods=['POST'])
+@app.route('/api/cron/player-props', methods=['GET', 'POST'])
 @verify_cron
 def cron_player_props():
     def _collect_props():
@@ -1766,20 +1766,20 @@ def cron_player_props():
     return log_cron('player_props', _collect_props)
 
 
-@app.route('/api/cron/grade-picks', methods=['POST'])
+@app.route('/api/cron/grade-picks', methods=['GET', 'POST'])
 @verify_cron
 def cron_grade_picks():
     force = request.args.get('force') == '1'
     return log_cron('grade_picks', grade_pending_picks, skip_throttle=force)
 
 
-@app.route('/api/cron/grade-whatifs', methods=['POST'])
+@app.route('/api/cron/grade-whatifs', methods=['GET', 'POST'])
 @verify_cron
 def cron_grade_whatifs():
     return log_cron('grade_whatifs', grade_whatif_passes)
 
 
-@app.route('/api/cron/expire-trials', methods=['POST'])
+@app.route('/api/cron/expire-trials', methods=['GET', 'POST'])
 @verify_cron
 def cron_expire_trials():
     def _expire():
@@ -1795,13 +1795,13 @@ def cron_expire_trials():
     return log_cron('expire_trials', _expire)
 
 
-@app.route('/api/cron/weekly-summary', methods=['POST'])
+@app.route('/api/cron/weekly-summary', methods=['GET', 'POST'])
 @verify_cron
 def cron_weekly_summary():
     return log_cron('weekly_summary', send_weekly_summary_job)
 
 
-@app.route('/api/cron/backup', methods=['POST'])
+@app.route('/api/cron/backup', methods=['GET', 'POST'])
 @verify_cron
 def cron_backup():
     def _backup():
@@ -1843,7 +1843,7 @@ def cron_backup():
     return log_cron('backup', _backup)
 
 
-@app.route('/api/cron/run-model', methods=['POST'])
+@app.route('/api/cron/run-model', methods=['GET', 'POST'])
 @verify_cron
 def cron_run_model():
     force = request.args.get('force', '').lower() == 'true'
@@ -1869,7 +1869,7 @@ def cron_run_model():
     return log_cron('run_model', _run, skip_throttle=force)
 
 
-@app.route('/api/cron/pretip-validate', methods=['POST'])
+@app.route('/api/cron/pretip-validate', methods=['GET', 'POST'])
 @verify_cron
 def cron_pretip_validate():
     from model_service import pretip_revalidate
@@ -1881,7 +1881,7 @@ def cron_pretip_validate():
     return log_cron('pretip_validate', _validate)
 
 
-@app.route('/api/cron/check-data-quality', methods=['POST'])
+@app.route('/api/cron/check-data-quality', methods=['GET', 'POST'])
 @verify_cron
 def cron_data_quality():
     return log_cron('data_quality', check_data_quality)
