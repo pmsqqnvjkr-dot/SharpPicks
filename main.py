@@ -300,6 +300,8 @@ def setup_database():
         except:
             pass
 
+    cursor.execute("UPDATE games SET game_time = NULL WHERE game_time = ''")
+
     cursor.execute('''CREATE TABLE IF NOT EXISTS nba_player_props (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         game_id TEXT NOT NULL,
@@ -970,7 +972,7 @@ def collect_todays_games():
 
                 games_to_process.append({
                     'game_id': game_id, 'home': home, 'away': away,
-                    'commence_time': commence_time, 'game_time': game.get('commence_time', ''),
+                    'commence_time': commence_time, 'game_time': game.get('commence_time') or None,
                     'spread_home': spread_home, 'spread_away': spread_away,
                     'total': total, 'home_ml': home_ml, 'away_ml': away_ml,
                     'home_spread_odds': home_spread_odds, 'away_spread_odds': away_spread_odds,
@@ -2857,7 +2859,7 @@ def collect_wnba_odds():
             home = game['home_team']
             away = game['away_team']
             commence_time = utc_to_eastern_date(game.get('commence_time', ''))
-            game_time = game.get('commence_time', '')
+            game_time = game.get('commence_time') or None
 
             spread_home = None
             spread_away = None
