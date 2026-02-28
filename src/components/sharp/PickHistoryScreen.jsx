@@ -155,10 +155,14 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ textAlign: 'right' }}>
                       {isRevoked ? (
-                        <div style={{
-                          fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700,
-                          color: 'var(--text-tertiary)',
-                        }}>Withdrawn</div>
+                        <span style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+                          color: 'rgba(255,255,255,0.5)',
+                          backgroundColor: 'rgba(255,255,255,0.06)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          padding: '4px 10px', borderRadius: '20px',
+                          display: 'inline-block',
+                        }}>Withdrawn</span>
                       ) : pick.result === 'pending' ? (
                         <span style={{
                           fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
