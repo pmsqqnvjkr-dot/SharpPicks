@@ -291,21 +291,20 @@ export default function PicksTab({ onNavigate }) {
                         }}>Pending</span>
                       ) : (
                         <>
-                        {(isRevoked || isPending) ? (
+                        {isRevoked ? (
+                          <div style={{
+                            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
+                            color: 'var(--text-tertiary)',
+                          }}>Withdrawn</div>
+                        ) : isPending ? (
                           <span style={{
                             fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+                            color: 'rgba(255,255,255,0.5)',
+                            backgroundColor: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.08)',
                             padding: '4px 10px', borderRadius: '20px',
                             display: 'inline-block',
-                            ...(isRevoked ? {
-                              color: 'rgba(99,102,241,0.8)',
-                              backgroundColor: 'rgba(99,102,241,0.08)',
-                              border: '1px solid rgba(99,102,241,0.15)',
-                            } : {
-                              color: 'rgba(255,255,255,0.5)',
-                              backgroundColor: 'rgba(255,255,255,0.06)',
-                              border: '1px solid rgba(255,255,255,0.08)',
-                            }),
-                          }}>{isRevoked ? 'Withdrawn' : 'Pending'}</span>
+                          }}>Pending</span>
                         ) : (
                         <div style={{
                           fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
