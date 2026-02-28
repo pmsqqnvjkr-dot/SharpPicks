@@ -281,25 +281,47 @@ export default function PicksTab({ onNavigate }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ textAlign: 'right' }}>
                       {hideLine ? (
-                        <div style={{
-                          fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
-                          color: 'var(--text-tertiary)',
-                        }}>Pending</div>
+                        <span style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+                          color: 'rgba(255,255,255,0.5)',
+                          backgroundColor: 'rgba(255,255,255,0.06)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          padding: '4px 10px', borderRadius: '20px',
+                          display: 'inline-block',
+                        }}>Pending</span>
                       ) : (
+                        <>
+                        {(isRevoked || isPending) ? (
+                          <span style={{
+                            fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+                            padding: '4px 10px', borderRadius: '20px',
+                            display: 'inline-block',
+                            ...(isRevoked ? {
+                              color: 'rgba(99,102,241,0.8)',
+                              backgroundColor: 'rgba(99,102,241,0.08)',
+                              border: '1px solid rgba(99,102,241,0.15)',
+                            } : {
+                              color: 'rgba(255,255,255,0.5)',
+                              backgroundColor: 'rgba(255,255,255,0.06)',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                            }),
+                          }}>{isRevoked ? 'Withdrawn' : 'Pending'}</span>
+                        ) : (
                         <div style={{
                           fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
                           color: pick.result === 'win' ? 'var(--green-profit)'
                             : pick.result === 'loss' ? 'var(--red-loss)'
-                            : isRevoked ? 'rgba(99,102,241,0.7)' : 'var(--text-tertiary)',
+                            : 'var(--text-tertiary)',
                         }}>
                           {(() => {
                             const units = pick.profit_units != null ? pick.profit_units : (pick.pnl != null ? pick.pnl / 100 : null);
                             if (pick.result === 'win') return `+${units != null ? Math.abs(units).toFixed(2) : '0.91'}u`;
                             if (pick.result === 'loss') return `-${units != null ? Math.abs(units).toFixed(2) : '1.00'}u`;
-                            if (isRevoked) return 'Withdrawn';
-                            return 'Pending';
+                            return '';
                           })()}
                         </div>
+                        )}
+                        </>
                       )}
                       {isPro && pick.edge_pct && (
                         <div style={{

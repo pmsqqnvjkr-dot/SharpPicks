@@ -154,17 +154,33 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{
-                        fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700,
-                        color: pick.result === 'win' ? 'var(--green-profit)'
-                          : pick.result === 'loss' ? 'var(--red-loss)'
-                          : isRevoked ? 'rgba(99,102,241,0.7)' : 'var(--text-tertiary)',
-                      }}>
-                        {pick.result === 'win' ? `+${pick.pnl != null ? pick.pnl : 91}u`
-                          : pick.result === 'loss' ? `${pick.pnl != null ? pick.pnl : -100}u`
-                          : isRevoked ? 'Withdrawn'
-                          : 'Pending'}
-                      </div>
+                      {(isRevoked || pick.result === 'pending') ? (
+                        <span style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+                          padding: '4px 10px', borderRadius: '20px',
+                          display: 'inline-block',
+                          ...(isRevoked ? {
+                            color: 'rgba(99,102,241,0.8)',
+                            backgroundColor: 'rgba(99,102,241,0.08)',
+                            border: '1px solid rgba(99,102,241,0.15)',
+                          } : {
+                            color: 'rgba(255,255,255,0.5)',
+                            backgroundColor: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                          }),
+                        }}>{isRevoked ? 'Withdrawn' : 'Pending'}</span>
+                      ) : (
+                        <div style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700,
+                          color: pick.result === 'win' ? 'var(--green-profit)'
+                            : pick.result === 'loss' ? 'var(--red-loss)'
+                            : 'var(--text-tertiary)',
+                        }}>
+                          {pick.result === 'win' ? `+${pick.pnl != null ? pick.pnl : 91}u`
+                            : pick.result === 'loss' ? `${pick.pnl != null ? pick.pnl : -100}u`
+                            : ''}
+                        </div>
+                      )}
                       {isPro && pick.edge_pct && (
                         <div style={{
                           fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', marginTop: '2px',
