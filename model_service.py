@@ -382,13 +382,32 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
 
                 if situation == 'stale_data':
                     duration_ms = int((time.time() - start_time) * 1000)
-                    print(f"[model-run] STALE DATA — {diag['total_games']} games all scored, not creating pass, will retry later")
+                    print(f"[model-run] STALE DATA — {diag['total_games']} games all scored, creating pass so today has a result")
+                    pass_entry = Pass(
+                        date=today_str,
+                        sport=sport,
+                        games_analyzed=diag['games_with_spreads'],
+                        closest_edge_pct=0,
+                        pass_reason=f"All {diag['total_games']} games already completed — model ran after games finished",
+                    )
+                    db.session.add(pass_entry)
+                    model_run = ModelRun(
+                        date=today_str,
+                        sport=sport,
+                        games_analyzed=diag['games_with_spreads'],
+                        pick_generated=False,
+                        pass_id=pass_entry.id,
+                        run_duration_ms=duration_ms,
+                        games_detail=None,
+                    )
+                    db.session.add(model_run)
+                    db.session.commit()
                     return {
-                        'status': 'stale_data',
-                        'reason': diag['message'],
-                        'total_games': diag['total_games'],
+                        'status': 'pass',
+                        'reason': 'stale_data',
                         'date': today_str,
                         'sport': sport,
+                        'games_analyzed': diag['games_with_spreads'],
                         'duration_ms': duration_ms,
                     }
 

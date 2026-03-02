@@ -3,6 +3,8 @@ from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, Kill
 from sqlalchemy import func
 from sqlalchemy.exc import ProgrammingError, OperationalError
 from sport_config import get_active_sports
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import logging
 
 public_bp = Blueprint('public', __name__)
@@ -40,6 +42,13 @@ def record():
         logging.warning(f"Public record DB error: {e}")
         return _empty_record()
 
+    # Exclude very old pending picks (game_date > 7 days ago) so they don't clutter the UI
+    today_et = datetime.now(ZoneInfo('America/New_York')).date()
+    cutoff_str = (today_et - timedelta(days=7)).strftime('%Y-%m-%d')
+    picks = [p for p in picks if not (
+        p.result == 'pending' and p.game_date and str(p.game_date)[:10] < cutoff_str
+    )]
+
     wins = sum(1 for p in picks if p.result == 'win')
     losses = sum(1 for p in picks if p.result == 'loss')
     pending = sum(1 for p in picks if p.result == 'pending')
@@ -48,7 +57,6 @@ def record():
         for p in picks if p.result in ('win', 'loss')
     )
 
-    from datetime import datetime
     CALIBRATION_DATE = datetime(2026, 2, 12)
 
     return jsonify({
