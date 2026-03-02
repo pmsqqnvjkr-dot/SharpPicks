@@ -49,7 +49,7 @@ def verify_cron(f):
         return f(*args, **kwargs)
     return wrapper
 
-@app.after_request
+@app.after_requestan
 def set_cache_headers(response):
     if request.path.startswith('/assets/'):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
@@ -1751,7 +1751,8 @@ def cron_collect_games():
 @app.route('/api/cron/refresh-lines', methods=['GET', 'POST'])
 @verify_cron
 def cron_refresh_lines():
-    return log_cron('refresh_lines', collect_todays_games)
+    force = request.args.get('force', '').lower() == 'true'
+    return log_cron('refresh_lines', collect_todays_games, skip_throttle=force)
 
 
 @app.route('/api/cron/closing-lines', methods=['GET', 'POST'])
