@@ -2531,6 +2531,30 @@ def stripe_webhook():
                     if plan in ('annual', 'founding', 'annual_founding'):
                         maybe_assign_founding(user_id)
 
+        elif event_type == 'customer.subscription.created':
+            # Handle same as updated for new subscriptions
+            cust_id = data_obj.get('customer')
+            status = data_obj.get('status')
+            if cust_id:
+                user = User.query.filter_by(stripe_customer_id=cust_id).first()
+                if user:
+                    plan_meta = data_obj.get('metadata', {}).get('plan')
+                    if plan_meta:
+                        user.subscription_plan = plan_meta
+                    if status == 'active':
+                        user.subscription_status = 'active'
+                        user.is_premium = True
+                    elif status == 'trialing':
+                        user.subscription_status = 'trial'
+                        user.is_premium = True
+                        trial_end = data_obj.get('trial_end')
+                        if trial_end:
+                            user.trial_end_date = datetime.fromtimestamp(trial_end)
+                    period_end = data_obj.get('current_period_end')
+                    if period_end:
+                        user.current_period_end = datetime.fromtimestamp(period_end)
+                    db.session.commit()
+
         elif event_type == 'customer.subscription.updated':
             cust_id = data_obj.get('customer')
             status = data_obj.get('status')
@@ -2574,7 +2598,7 @@ def stripe_webhook():
                     except Exception as e:
                         logging.error(f"Cancellation email failed: {e}")
 
-        elif event_type == 'invoice.paid':
+        elif event_type in ('invoice.paid', 'invoice.payment_succeeded'):
             cust_id = data_obj.get('customer')
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
