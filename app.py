@@ -100,7 +100,9 @@ app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_DATABASE_URI"] = (
+    os.environ.get("SQLALCHEMY_DATABASE_URI") or os.environ.get("DATABASE_URL")
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     'pool_pre_ping': True,
@@ -1002,9 +1004,9 @@ def backup_database():
     during development and provide point-in-time recovery within a single deploy.
     """
     try:
-        db_url = os.environ.get('DATABASE_URL', '')
+        db_url = os.environ.get('SQLALCHEMY_DATABASE_URI') or os.environ.get('DATABASE_URL', '')
         if not db_url:
-            logging.warning("DATABASE_URL not set, skipping backup")
+            logging.warning("SQLALCHEMY_DATABASE_URI/DATABASE_URL not set, skipping backup")
             return
         timestamp = datetime.now().strftime('%Y%m%d_%H%M')
         backup_dir = '/tmp/backups'
