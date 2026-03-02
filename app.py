@@ -111,7 +111,12 @@ def _database_url():
     )
 
 
-app.config["SQLALCHEMY_DATABASE_URI"] = _database_url()
+_db_url = _database_url()
+if not _db_url:
+    # Help debug when DB URL is missing: log which keys exist (values hidden)
+    _db_keys = [k for k in os.environ if "DATABASE" in k or "SQLALCHEMY" in k]
+    logging.warning(f"No database URL. DB-related env keys: {_db_keys or '(none)'}")
+app.config["SQLALCHEMY_DATABASE_URI"] = _db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     'pool_pre_ping': True,
