@@ -304,8 +304,10 @@ def pretip_revalidate(app, sport='nba'):
             return {'status': 'error', 'error': str(e)}
 
 
-def run_model_and_log(app, sport='nba', force=False):
-    """Run the model for today and log either a pick or pass."""
+def run_model_and_log(app, sport='nba', force=False, date_override=None):
+    """Run the model for today and log either a pick or pass.
+    date_override: optional YYYY-MM-DD to force a specific date (e.g. tomorrow for tonight's games).
+    """
     cfg = get_sport_config(sport)
 
     is_live = cfg.get('live', False)
@@ -316,7 +318,7 @@ def run_model_and_log(app, sport='nba', force=False):
         return {'status': 'inactive', 'sport': sport, 'message': f'{cfg["name"]} is inactive.'}
 
     start_time = time.time()
-    today_str = _get_et_date()
+    today_str = date_override if date_override else _get_et_date()
     print(f"[model-run] Starting {sport} run for {today_str} (live={is_live}, force={force})")
 
     with app.app_context():

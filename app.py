@@ -1895,9 +1895,15 @@ def cron_backup():
 @verify_cron
 def cron_run_model():
     force = request.args.get('force', '').lower() == 'true'
+    date_override = request.args.get('date', '').strip() or None
+    if date_override and len(date_override) == 10 and date_override[4] == '-' and date_override[7] == '-':
+        pass
+    else:
+        date_override = None
+
     def _run():
         if force:
-            today_str = _get_et_today()
+            today_str = date_override or _get_et_today()
             print(f"[model-run] Force mode: collecting games + clearing stale passes for {today_str}")
             try:
                 collect_todays_games()
@@ -1912,7 +1918,7 @@ def cron_run_model():
                     print(f"[model-run] Force: cleared stale pass for {today_str}/{sport}")
         results = {}
         for sport in get_live_sports():
-            results[sport] = run_model_and_log(app, sport=sport, force=force)
+            results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override)
         return results
     return log_cron('run_model', _run, skip_throttle=force)
 
