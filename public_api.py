@@ -1,7 +1,9 @@
 from flask import Blueprint, jsonify, request
 from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, KillSwitch
 from sqlalchemy import func
+from sqlalchemy.exc import ProgrammingError, OperationalError
 from sport_config import get_active_sports
+import logging
 
 public_bp = Blueprint('public', __name__)
 
@@ -15,16 +17,28 @@ def _get_sport_filter():
     return 'nba'
 
 
+def _empty_record():
+    return jsonify({
+        'calibration_note': 'Model calibrated Feb 12, 2026.',
+        'calibration_date': '2026-02-12', 'picks': [], 'passes': [],
+        'stats': {'wins': 0, 'losses': 0, 'pending': 0, 'total_picks': 0, 'total_passes': 0, 'pnl': 0, 'win_rate': 0, 'selectivity': 0},
+    })
+
+
 @public_bp.route('/record')
 def record():
     sport = _get_sport_filter()
-    pick_q = Pick.query
-    pass_q = Pass.query
-    if sport:
-        pick_q = pick_q.filter(Pick.sport == sport)
-        pass_q = pass_q.filter(Pass.sport == sport)
-    picks = pick_q.order_by(Pick.published_at.desc()).all()
-    passes = pass_q.order_by(Pass.created_at.desc()).all()
+    try:
+        pick_q = Pick.query
+        pass_q = Pass.query
+        if sport:
+            pick_q = pick_q.filter(Pick.sport == sport)
+            pass_q = pass_q.filter(Pass.sport == sport)
+        picks = pick_q.order_by(Pick.published_at.desc()).all()
+        passes = pass_q.order_by(Pass.created_at.desc()).all()
+    except (ProgrammingError, OperationalError) as e:
+        logging.warning(f"Public record DB error: {e}")
+        return _empty_record()
 
     wins = sum(1 for p in picks if p.result == 'win')
     losses = sum(1 for p in picks if p.result == 'loss')
@@ -75,30 +89,34 @@ def record():
 @public_bp.route('/stats')
 def stats():
     sport = _get_sport_filter()
-    pick_q = Pick.query
-    pass_q = Pass.query
-    if sport:
-        pick_q = pick_q.filter(Pick.sport == sport)
-        pass_q = pass_q.filter(Pass.sport == sport)
-    wins = pick_q.filter(Pick.result == 'win').count()
-    losses = pick_q.filter(Pick.result == 'loss').count()
-    pending = pick_q.filter(Pick.result == 'pending').count()
-    total_picks = pick_q.count()
-    total_passes = pass_q.count()
-    pnl_q = db.session.query(func.sum(Pick.pnl)).filter(Pick.result.in_(['win', 'loss']))
-    if sport:
-        pnl_q = pnl_q.filter(Pick.sport == sport)
-    total_pnl_dollars = pnl_q.scalar() or 0
+    try:
+        pick_q = Pick.query
+        pass_q = Pass.query
+        if sport:
+            pick_q = pick_q.filter(Pick.sport == sport)
+            pass_q = pass_q.filter(Pass.sport == sport)
+        wins = pick_q.filter(Pick.result == 'win').count()
+        losses = pick_q.filter(Pick.result == 'loss').count()
+        pending = pick_q.filter(Pick.result == 'pending').count()
+        total_picks = pick_q.count()
+        total_passes = pass_q.count()
+        pnl_q = db.session.query(func.sum(Pick.pnl)).filter(Pick.result.in_(['win', 'loss']))
+        if sport:
+            pnl_q = pnl_q.filter(Pick.sport == sport)
+        total_pnl_dollars = pnl_q.scalar() or 0
 
-    unit_q = db.session.query(func.sum(Pick.profit_units)).filter(Pick.result.in_(['win', 'loss']))
-    if sport:
-        unit_q = unit_q.filter(Pick.sport == sport)
-    total_pnl_units = unit_q.scalar()
-    if total_pnl_units is None:
-        total_pnl_units = total_pnl_dollars / 100 if total_pnl_dollars else 0
+        unit_q = db.session.query(func.sum(Pick.profit_units)).filter(Pick.result.in_(['win', 'loss']))
+        if sport:
+            unit_q = unit_q.filter(Pick.sport == sport)
+        total_pnl_units = unit_q.scalar()
+        if total_pnl_units is None:
+            total_pnl_units = total_pnl_dollars / 100 if total_pnl_dollars else 0
 
-    total_decided = wins + losses
-    roi = round((total_pnl_dollars / (total_decided * 110)) * 100, 1) if total_decided > 0 else 0
+        total_decided = wins + losses
+        roi = round((total_pnl_dollars / (total_decided * 110)) * 100, 1) if total_decided > 0 else 0
+    except (ProgrammingError, OperationalError) as e:
+        logging.warning(f"Public stats DB error: {e}")
+        return jsonify({'record': '0-0', 'wins': 0, 'losses': 0, 'pending': 0, 'total_picks': 0, 'total_passes': 0, 'pnl': 0, 'roi': 0, 'win_rate': 0, 'selectivity': 0, 'capital_preserved_days': 0})
 
     return jsonify({
         'record': f'{wins}-{losses}',

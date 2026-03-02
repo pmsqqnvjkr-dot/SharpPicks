@@ -161,7 +161,7 @@ def handle_unauthorized():
 
 @login_manager.user_loader
 def load_user(user_id):
-    user = User.query.get(user_id)
+    user = _safe_get_user(user_id)
     if not user:
         return None
     stored_token = session.get('session_token')
@@ -197,18 +197,27 @@ def verify_auth_token():
     try:
         s = _get_auth_serializer()
         data = s.loads(token, salt='auth-token', max_age=86400 * 30)
-        user = db.session.get(User, data['uid'])
+        user = _safe_get_user(data['uid'])
         if user and user.session_token == data['st']:
             return user
     except Exception:
         pass
     return None
 
+def _safe_get_user(user_id):
+    """Get user by id, return None if table missing or error."""
+    try:
+        return db.session.get(User, user_id)
+    except Exception as e:
+        logging.warning(f"User lookup failed: {e}")
+        return None
+
+
 def get_current_user_from_session():
     """Get current user from session, Bearer token, or flask-login"""
     user_id = session.get('user_id')
     if user_id:
-        user = db.session.get(User, user_id)
+        user = _safe_get_user(user_id)
         if user:
             stored_token = session.get('session_token')
             if not stored_token or stored_token != user.session_token:
@@ -231,7 +240,7 @@ def get_current_user_obj():
 
     user_id = session.get('user_id')
     if user_id:
-        user = db.session.get(User, user_id)
+        user = _safe_get_user(user_id)
         if user:
             stored_token = session.get('session_token')
             if stored_token and stored_token == user.session_token:
@@ -4045,10 +4054,21 @@ def serve_spa(path):
 def start_background_services_later():
     threading.Timer(10.0, start_background_services).start()
 
-# Run seed (db.create_all + migrations) on startup for Replit and Railway
+
+def _run_seed_now():
+    """Run seed synchronously (Railway: tables must exist before first request)."""
+    try:
+        seed_database()
+    except Exception as e:
+        logging.error(f"Startup seed failed: {e}")
+
+
+# Run seed on startup for Replit and Railway
 _on_replit = os.environ.get("REPLIT_DEPLOYMENT") == "1"
 _on_railway = bool(os.environ.get("RAILWAY_PUBLIC_DOMAIN") or os.environ.get("RAILWAY_PROJECT_ID"))
-if _db_url and (_on_replit or _on_railway):
+if _db_url and _on_railway:
+    _run_seed_now()
+elif _db_url and _on_replit:
     start_background_services_later()
 
 if __name__ == '__main__':
