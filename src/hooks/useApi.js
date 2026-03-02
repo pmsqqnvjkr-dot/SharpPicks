@@ -37,6 +37,7 @@ export function useApi(endpoint, options = {}) {
       const res = await fetch(`${API_BASE}${endpoint}`, {
         credentials: 'include',
         headers: authHeaders(),
+        cache: 'no-store',
       });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const json = await res.json();
@@ -99,6 +100,7 @@ export async function apiGet(endpoint) {
       credentials: 'include',
       headers: authHeaders(),
       signal: controller.signal,
+      cache: 'no-store',
     });
     const json = await res.json();
     if (json.token) setAuthToken(json.token);

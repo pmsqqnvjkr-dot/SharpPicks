@@ -53,6 +53,10 @@ def verify_cron(f):
 def set_cache_headers(response):
     if request.path.startswith('/assets/'):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    elif request.path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
     elif request.path.endswith('.html') or request.path == '/' or request.path == '/manifest.webmanifest':
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
@@ -3629,19 +3633,6 @@ def get_predictions():
     except:
         schedule_available = False
     
-    json_path = 'todays_picks.json'
-    if os.path.exists(json_path):
-        try:
-            with open(json_path, 'r') as f:
-                picks = json.load(f)
-                return jsonify({
-                    'predictions': picks,
-                    'count': len(picks),
-                    'source': 'json_file'
-                })
-        except:
-            pass
-    
     conn = get_db()
     cursor = conn.cursor()
     
@@ -4063,11 +4054,24 @@ def _run_seed_now():
         logging.error(f"Startup seed failed: {e}")
 
 
+def _railway_startup_refresh():
+    """On Railway: refresh game data 30s after startup so SQLite has today's games before first cron."""
+    import time
+    time.sleep(30)
+    try:
+        logging.info("Railway startup: refreshing game data...")
+        collect_todays_games()
+        logging.info("Railway startup: game data refresh done")
+    except Exception as e:
+        logging.warning(f"Railway startup refresh failed (non-fatal): {e}")
+
+
 # Run seed on startup for Replit and Railway
 _on_replit = os.environ.get("REPLIT_DEPLOYMENT") == "1"
 _on_railway = bool(os.environ.get("RAILWAY_PUBLIC_DOMAIN") or os.environ.get("RAILWAY_PROJECT_ID"))
 if _db_url and _on_railway:
     _run_seed_now()
+    threading.Timer(30.0, _railway_startup_refresh).start()
 elif _db_url and _on_replit:
     start_background_services_later()
 
