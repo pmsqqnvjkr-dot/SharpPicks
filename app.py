@@ -103,12 +103,18 @@ app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 
 def _database_url():
     """Resolve database URL from environment (Railway, Replit, etc.)."""
-    return (
+    raw = (
         os.environ.get("SQLALCHEMY_DATABASE_URI")
         or os.environ.get("DATABASE_URL")
         or os.environ.get("DATABASE_PRIVATE_URL")
         or ""
     )
+    if not raw:
+        return ""
+    # Railway/Heroku often provide postgres:// but SQLAlchemy needs postgresql://
+    if raw.startswith("postgres://"):
+        raw = "postgresql://" + raw[len("postgres://") :]
+    return raw
 
 
 _db_url = _database_url()
