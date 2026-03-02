@@ -1907,7 +1907,7 @@ def cron_run_model():
                     print(f"[model-run] Force: cleared stale pass for {today_str}/{sport}")
         results = {}
         for sport in get_live_sports():
-            results[sport] = run_model_and_log(app, sport=sport)
+            results[sport] = run_model_and_log(app, sport=sport, force=force)
         return results
     return log_cron('run_model', _run, skip_throttle=force)
 

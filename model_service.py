@@ -221,7 +221,7 @@ def pretip_revalidate(app, sport='nba'):
             if not model.load_model():
                 return {'status': 'error', 'error': 'Model not trained'}
 
-            predictions = model.predict_games(log_predictions=False)
+            predictions = model.predict_games(log_predictions=False, date_str=today_str)
             if not predictions:
                 return {'status': 'no_games', 'date': today_str}
 
@@ -304,7 +304,7 @@ def pretip_revalidate(app, sport='nba'):
             return {'status': 'error', 'error': str(e)}
 
 
-def run_model_and_log(app, sport='nba'):
+def run_model_and_log(app, sport='nba', force=False):
     """Run the model for today and log either a pick or pass."""
     cfg = get_sport_config(sport)
 
@@ -317,7 +317,7 @@ def run_model_and_log(app, sport='nba'):
 
     start_time = time.time()
     today_str = _get_et_date()
-    print(f"[model-run] Starting {sport} run for {today_str} (live={is_live})")
+    print(f"[model-run] Starting {sport} run for {today_str} (live={is_live}, force={force})")
 
     with app.app_context():
         existing_pick = Pick.query.filter(
@@ -326,9 +326,18 @@ def run_model_and_log(app, sport='nba'):
         ).first()
         existing_pass = Pass.query.filter_by(date=today_str, sport=sport).first()
 
-        if existing_pick or existing_pass:
+        if (existing_pick or existing_pass) and not force:
             print(f"[model-run] Already run for {today_str} — pick={'yes' if existing_pick else 'no'}, pass={'yes' if existing_pass else 'no'}")
             return {'status': 'already_run', 'date': today_str, 'sport': sport}
+
+        if force and (existing_pick or existing_pass):
+            if existing_pick:
+                db.session.delete(existing_pick)
+                print(f"[model-run] Force: deleted existing pick for {today_str}/{sport}")
+            if existing_pass:
+                db.session.delete(existing_pass)
+                print(f"[model-run] Force: deleted existing pass for {today_str}/{sport}")
+            db.session.commit()
 
         try:
             from model import EnsemblePredictor
@@ -338,7 +347,7 @@ def run_model_and_log(app, sport='nba'):
                 print(f"[model-run] ERROR: Model not trained for {sport}")
                 return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
 
-            predictions = model.predict_games(log_predictions=True)
+            predictions = model.predict_games(log_predictions=True, date_str=today_str)
             print(f"[model-run] Games found: {len(predictions) if predictions else 0}")
 
             if not predictions:

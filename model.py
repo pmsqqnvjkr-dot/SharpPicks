@@ -683,21 +683,34 @@ class EnsemblePredictor:
         proba = self.predict_proba(X)
         return (proba >= 0.5).astype(int)
     
-    def predict_games(self, min_confidence=None, log_predictions=True):
+    def _get_betting_date(self):
+        """Get current betting day in ET (rollover at 2:30 AM)."""
+        try:
+            from zoneinfo import ZoneInfo
+            now_et = datetime.now(ZoneInfo('America/New_York'))
+        except ImportError:
+            now_et = datetime.utcnow() - timedelta(hours=5)
+        if now_et.hour < 2 or (now_et.hour == 2 and now_et.minute < 30):
+            now_et = now_et - timedelta(days=1)
+        return now_et.strftime('%Y-%m-%d')
+
+    def predict_games(self, min_confidence=None, log_predictions=True, date_str=None):
         """Make predictions for today's upcoming games with filtering"""
+        if date_str is None:
+            date_str = self._get_betting_date()
         print("\n" + "="*60)
-        print("🎯 TODAY'S PREDICTIONS")
+        print(f"🎯 PREDICTIONS FOR {date_str}")
         print("="*60 + "\n")
-        
+
         if min_confidence is None:
             min_confidence = MIN_CONFIDENCE_THRESHOLD
-        
+
         if not self.trained:
             self.load_model()
             if not self.trained:
                 print("❌ No trained model found. Run training first.\n")
                 return []
-        
+
         conn = sqlite3.connect('sharp_picks.db')
 
         games_tbl = self._games_table()
@@ -717,7 +730,7 @@ class EnsemblePredictor:
             LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_abbr"""
 
         query = f'''
-            SELECT 
+            SELECT
                 g.id, g.home_team, g.away_team, g.game_date, g.game_time,
                 g.spread_home, g.spread_home_open, g.spread_home_close,
                 g.total, g.total_open, g.total_close,
@@ -737,12 +750,13 @@ class EnsemblePredictor:
                 g.home_spread_odds, g.away_spread_odds,
                 g.home_spread_book, g.away_spread_book
             FROM {games_tbl} g{ratings_join}
-            WHERE g.home_score IS NULL
+            WHERE g.game_date = ?
+            AND g.home_score IS NULL
             AND g.spread_home IS NOT NULL
             AND (g.game_time IS NULL OR g.game_time > datetime('now'))
         '''
-        
-        df = pd.read_sql_query(query, conn)
+
+        df = pd.read_sql_query(query, conn, params=(date_str,))
         conn.close()
         
         if len(df) == 0:
