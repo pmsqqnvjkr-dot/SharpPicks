@@ -682,20 +682,20 @@ def collect_yesterdays_scores():
             if not all([home_team, away_team, home_score is not None, away_score is not None]):
                 continue
             
-            game_date = yesterday.strftime('%Y-%m-%d')
-            next_date = (yesterday + timedelta(days=1)).strftime('%Y-%m-%d')
+            # Use ESPN event's actual date — never match yesterday's scores to today's games
+            espn_date_str = event.get('date', '')[:10]  # e.g. 2026-03-01 from 2026-03-01T00:00Z
+            if not espn_date_str or len(espn_date_str) < 10:
+                continue
+            try_date = espn_date_str[:10]  # YYYY-MM-DD
             
             game = None
-            for try_date in [game_date, next_date]:
-                cursor.execute('''
-                    SELECT id, spread_home, total FROM games 
-                    WHERE game_date = ? 
-                    AND (home_team LIKE ? OR home_team LIKE ?)
-                    AND home_score IS NULL
-                ''', (try_date, f'%{home_team.split()[-1]}%', f'%{home_team}%'))
-                game = cursor.fetchone()
-                if game:
-                    break
+            cursor.execute('''
+                SELECT id, spread_home, total FROM games 
+                WHERE game_date = ? 
+                AND (home_team LIKE ? OR home_team LIKE ?)
+                AND home_score IS NULL
+            ''', (try_date, f'%{home_team.split()[-1]}%', f'%{home_team}%'))
+            game = cursor.fetchone()
             
             if game:
                 game_id, spread_home, total = game
@@ -1160,6 +1160,7 @@ def collect_todays_games():
                 ))
                 line_status = "📌 OPENING"
             else:
+                # Odds API still lists this game = not final — clear any wrongly-applied scores
                 cursor.execute('''
                     UPDATE games SET
                         spread_home = ?, spread_away = ?, total = ?, 
@@ -1185,7 +1186,8 @@ def collect_todays_games():
                         alt_spread_minus_1 = ?, alt_spread_minus_3 = ?,
                         alt_spread_minus_5 = ?, alt_spread_minus_7 = ?,
                         alt_spread_plus_1 = ?, alt_spread_plus_3 = ?,
-                        alt_spread_plus_5 = ?, alt_spread_plus_7 = ?
+                        alt_spread_plus_5 = ?, alt_spread_plus_7 = ?,
+                        home_score = NULL, away_score = NULL, spread_result = NULL, total_result = NULL
                     WHERE id = ?
                 ''', (
                     spread_home, spread_away, total, home_ml, away_ml,
