@@ -4045,7 +4045,10 @@ def serve_spa(path):
 def start_background_services_later():
     threading.Timer(10.0, start_background_services).start()
 
-if os.environ.get("REPLIT_DEPLOYMENT") == "1":
+# Run seed (db.create_all + migrations) on startup for Replit and Railway
+_on_replit = os.environ.get("REPLIT_DEPLOYMENT") == "1"
+_on_railway = bool(os.environ.get("RAILWAY_PUBLIC_DOMAIN") or os.environ.get("RAILWAY_PROJECT_ID"))
+if _db_url and (_on_replit or _on_railway):
     start_background_services_later()
 
 if __name__ == '__main__':
