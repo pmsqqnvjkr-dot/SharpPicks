@@ -49,7 +49,7 @@ def verify_cron(f):
         return f(*args, **kwargs)
     return wrapper
 
-@app.after_requestan
+@app.after_request
 def set_cache_headers(response):
     if request.path.startswith('/assets/'):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
