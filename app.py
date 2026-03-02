@@ -1127,10 +1127,22 @@ def collect_todays_games():
     """Run the main.py data collector"""
     print(f"[{datetime.now()}] Running scheduled data collection...")
     try:
-        subprocess.run(['python', 'main.py'], timeout=300)
+        result = subprocess.run(
+            [sys.executable, 'main.py'],
+            timeout=300,
+            capture_output=True,
+            text=True,
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+        )
+        if result.returncode != 0:
+            err = (result.stderr or result.stdout or "").strip() or f"Exit code {result.returncode}"
+            raise RuntimeError(f"main.py failed: {err[:500]}")
         print(f"[{datetime.now()}] Data collection completed!")
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError(f"Data collection timed out after 300s: {e}")
     except Exception as e:
-        print(f"[{datetime.now()}] Collection error: {e}")
+        logging.error(f"Collection error: {e}")
+        raise
 
 def grade_pending_picks():
     """Check game results and grade pending picks as win/loss"""
