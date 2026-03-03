@@ -1156,7 +1156,7 @@ def collect_todays_games():
         out = (result.stdout or "").strip()
         if out:
             for line in out.splitlines():
-                if any(k in line for k in ('Events API:', 'Odds path:', 'eventIds returned', 'Date filter only:', 'Filtered to', 'Games found:', 'Odds API Connected', 'Games stored', ' - ', 'Error', 'Failed', '⚠️')):
+                if any(k in line for k in ('ESPN', 'Odds path:', 'Odds API', 'eventIds', 'Games found:', 'Games stored', ' - ', 'Error', 'Failed', '⚠️')):
                     logging.info(f"[collect] {line.strip()}")
         print(f"[{datetime.now()}] Data collection completed!")
     except subprocess.TimeoutExpired as e:

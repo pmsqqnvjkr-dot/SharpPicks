@@ -3,15 +3,14 @@
 All times **Eastern (ET)**. Use `X-Cron-Secret` header with your `CRON_SECRET` value.
 
 ## Pipeline Order (Critical)
-1. **collect_games** must run **before** run_model
+1. **run_model?force=true** runs collect **then** model in one request — use this for the pick pipeline
 2. **grade_picks** runs **after** games finish (overnight + late West Coast)
 
 ## Recommended Schedule
 
 | Job | URL | Schedule (ET) |
 |-----|-----|---------------|
-| collect_games | `https://app.sharppicks.ai/api/cron/collect-games` | 5:05 AM, 9:00 AM, 1:05 PM |
-| run_model | `https://app.sharppicks.ai/api/cron/run-model` | 10:15 AM, 2:15 PM |
+| run_model | `https://app.sharppicks.ai/api/cron/run-model?force=true` | 10:15 AM, 2:15 PM |
 | refresh_lines | `https://app.sharppicks.ai/api/cron/refresh-lines` | Every 10 min, 6 AM–2 AM |
 | closing_lines | `https://app.sharppicks.ai/api/cron/closing-lines` | Every 1 min, 10 AM–1 AM |
 | grade_picks | `https://app.sharppicks.ai/api/cron/grade-picks` | 3:45 AM, 11:30 AM |
@@ -22,9 +21,12 @@ All times **Eastern (ET)**. Use `X-Cron-Secret` header with your `CRON_SECRET` v
 | expire_trials | `https://app.sharppicks.ai/api/cron/expire-trials` | Hourly at :10 |
 | weekly_summary | `https://app.sharppicks.ai/api/cron/weekly-summary` | Mon 6:30 AM |
 
-## Why 9:00 AM Collect?
-Lines typically post 8–10 AM ET. The 9:00 AM collect ensures the 10:15 AM model run has fresh odds. Without it, the 5:05 AM collect may have had partial/no lines.
+## Why run-model?force=true?
+- **force=true** runs collect (games + lines) immediately before the model, so you always get fresh data
+- Lines post 8–10 AM ET; 10:15 AM and 2:15 PM ensure odds are live before first tip-offs (~7 PM ET)
+- No need for separate collect_games crons — the pipeline is self-contained
+- Manual collect still available: `POST /api/cron/collect-games` or `refresh-lines?force=true`
 
 ## Throttling
 - run_model, collect_games: 10 min min interval (skip if run again within 10 min)
-- Use `?force=true` on run-model to bypass throttle and re-run collect first
+- force=true bypasses throttle

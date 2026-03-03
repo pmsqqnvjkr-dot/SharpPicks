@@ -807,6 +807,39 @@ def show_spread_stats():
     print()
 
 
+def _fetch_espn_expected_games(today_str_et):
+    """Fetch ESPN scoreboard for today — source of truth for expected game count.
+    Returns (count, matchups_list) or (0, []) on failure.
+    """
+    date_str = today_str_et.replace('-', '')
+    url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={date_str}"
+    try:
+        resp = requests.get(url, timeout=10)
+        if resp.status_code != 200:
+            return 0, []
+        data = resp.json()
+        events = data.get('events', [])
+        matchups = []
+        for ev in events:
+            comps = ev.get('competitions', [])
+            if not comps:
+                continue
+            comp = comps[0]
+            competitors = comp.get('competitors', [])
+            home = away = None
+            for c in competitors:
+                name = c.get('team', {}).get('displayName', '')
+                if c.get('homeAway') == 'home':
+                    home = name
+                else:
+                    away = name
+            if home and away:
+                matchups.append((away, home))
+        return len(matchups), matchups
+    except Exception:
+        return 0, []
+
+
 def collect_todays_games():
     """Fetch today's NBA games with enhanced data"""
     print("\n" + "="*60)
@@ -824,6 +857,25 @@ def collect_todays_games():
         print("   6. Click 'Run' again\n")
         return
     
+    # Today's date in ET (used throughout)
+    try:
+        import zoneinfo
+        today_str_et = datetime.now(zoneinfo.ZoneInfo("America/New_York")).strftime('%Y-%m-%d')
+    except ImportError:
+        today_str_et = (datetime.now() - timedelta(hours=5)).strftime('%Y-%m-%d')
+
+    # Step 0: ESPN as source of truth for expected game count
+    espn_expected, espn_matchups = _fetch_espn_expected_games(today_str_et)
+    if espn_expected > 0:
+        print(f"   ESPN (source of truth): {espn_expected} games for today {today_str_et}")
+        for away, home in espn_matchups[:5]:
+            print(f"      - {away} @ {home}")
+        if espn_expected > 5:
+            print(f"      ... and {espn_expected - 5} more")
+        print()
+    else:
+        print(f"   ESPN: no games or API unavailable for {today_str_et}\n")
+
     # Fetch supplementary data
     team_data = get_team_data()
     injuries = get_injuries()
@@ -868,51 +920,16 @@ def collect_todays_games():
     commence_from, commence_to = get_et_today_utc_range()
     print(f"   Today's ET window: {commence_from} → {commence_to} UTC")
 
-    # Step 1: Fetch today's event IDs from Events API (FREE, no quota)
-    events_url = "https://api.the-odds-api.com/v4/sports/basketball_nba/events/"
-    events_params = {
-        'apiKey': API_KEY,
-        'commenceTimeFrom': commence_from,
-        'commenceTimeTo': commence_to,
-    }
-    # Filter to TODAY only (ET) — Events API 2-day window returns tomorrow's games too
-    try:
-        import zoneinfo
-        today_str_et = datetime.now(zoneinfo.ZoneInfo("America/New_York")).strftime('%Y-%m-%d')
-    except ImportError:
-        today_str_et = (datetime.now() - timedelta(hours=5)).strftime('%Y-%m-%d')
-
-    today_event_ids = []
-    try:
-        ev_resp = api_request_with_retry(events_url, events_params)
-        if ev_resp and ev_resp.status_code == 200:
-            all_events = ev_resp.json()
-            today_events = [e for e in all_events if utc_to_eastern_date(e.get('commence_time', '')) == today_str_et]
-            today_event_ids = [e['id'] for e in today_events if isinstance(e.get('id'), str) and len(e.get('id', '')) == 32]
-            print(f"   Events API: {len(today_event_ids)} games for today {today_str_et} (filtered from {len(all_events)})")
-            for ev in today_events:
-                print(f"      - {ev.get('away_team')} @ {ev.get('home_team')} ({ev.get('commence_time', '')[:10]})")
-        else:
-            print(f"   Events API: {ev_resp.status_code if ev_resp else 'no response'} (fallback to odds-only)")
-    except Exception as e:
-        print(f"   Events API fallback skipped: {e}")
-
-    # Step 2: Fetch odds — use eventIds for today only; omit date params to avoid 422
+    # Step 1: Fetch odds — DATE FILTER FIRST (reliable), eventIds only as fallback
     url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
-    params = {
+    params_base = {
         'apiKey': API_KEY,
         'regions': 'us',
         'markets': 'spreads,totals,h2h,spreads_h1,totals_h1,alternate_spreads',
         'oddsFormat': 'american',
         'bookmakers': ','.join(PREFERRED_BOOKS),
     }
-    if today_event_ids:
-        params['eventIds'] = ','.join(today_event_ids[:50])
-        print(f"   Odds path: eventIds ({len(today_event_ids)} events, no date filter)")
-    else:
-        params['commenceTimeFrom'] = commence_from
-        params['commenceTimeTo'] = commence_to
-        print(f"   Odds path: date filter only (Events API had 0)")
+    params_date = {**params_base, 'commenceTimeFrom': commence_from, 'commenceTimeTo': commence_to}
 
     odds_api_ok = False
     games_to_process = []
@@ -920,38 +937,38 @@ def collect_todays_games():
     games = []
 
     try:
-        response = api_request_with_retry(url, params)
-        # 422 = INVALID_EVENT_IDS or param conflict — retry with date filter only
-        if response and response.status_code == 422 and today_event_ids:
-            print(f"   Odds API 422 with eventIds; retrying with date filter...")
-            params_fallback = {k: v for k, v in params.items() if k != 'eventIds'}
-            params_fallback['commenceTimeFrom'] = commence_from
-            params_fallback['commenceTimeTo'] = commence_to
-            response = api_request_with_retry(url, params_fallback)
+        # Primary: date filter (avoids 422 from eventIds)
+        print(f"   Odds path: date filter (primary)")
+        response = api_request_with_retry(url, params_date)
         if response and response.status_code == 200:
-            games = response.json()
-            if len(games) == 0 and today_event_ids:
-                print("   eventIds returned 0; retrying with date filter only...")
-                params.pop('eventIds', None)
-                response = api_request_with_retry(url, params)
-                if response and response.status_code == 200:
-                    games = response.json()
-                    print(f"   Date filter only: {len(games)} games")
-            if len(games) == 0:
-                print("   No games with date filter; retrying without filter...")
-                params_no_filter = {k: v for k, v in params.items() if k not in ('commenceTimeFrom', 'commenceTimeTo')}
-                params_no_filter.pop('eventIds', None)
-                response = api_request_with_retry(url, params_no_filter)
-                if response and response.status_code == 200:
-                    all_games = response.json()
-                    # Filter to today's ET date when using unfiltered response
-                    try:
-                        import zoneinfo
-                        today_str_et = datetime.now(zoneinfo.ZoneInfo("America/New_York")).strftime('%Y-%m-%d')
-                    except ImportError:
-                        today_str_et = (datetime.now() - timedelta(hours=5)).strftime('%Y-%m-%d')
-                    games = [g for g in all_games if utc_to_eastern_date(g.get('commence_time', '')) == today_str_et]
-                    print(f"   Filtered to {len(games)} games for today ({today_str_et})")
+            all_from_api = response.json()
+            games = [g for g in all_from_api if utc_to_eastern_date(g.get('commence_time', '')) == today_str_et]
+            print(f"   Odds API (date filter): {len(games)} games for today")
+
+            # Fallback: if 0 or fewer than ESPN expected, try Events API + eventIds
+            if len(games) < espn_expected and espn_expected > 0:
+                print(f"   Odds returned {len(games)} < ESPN expected {espn_expected}; trying eventIds fallback...")
+                events_url = "https://api.the-odds-api.com/v4/sports/basketball_nba/events/"
+                events_params = {
+                    'apiKey': API_KEY,
+                    'commenceTimeFrom': commence_from,
+                    'commenceTimeTo': commence_to,
+                }
+                ev_resp = api_request_with_retry(events_url, events_params)
+                if ev_resp and ev_resp.status_code == 200:
+                    all_events = ev_resp.json()
+                    today_events = [e for e in all_events if utc_to_eastern_date(e.get('commence_time', '')) == today_str_et]
+                    today_event_ids = [e['id'] for e in today_events if isinstance(e.get('id'), str) and len(e.get('id', '')) == 32]
+                    if today_event_ids:
+                        params_event = {**params_base, 'eventIds': ','.join(today_event_ids[:50])}
+                        resp2 = api_request_with_retry(url, params_event)
+                        if resp2 and resp2.status_code == 200:
+                            games_event = resp2.json()
+                            if len(games_event) > len(games):
+                                games = games_event
+                                print(f"   eventIds fallback: {len(games)} games")
+                        elif resp2 and resp2.status_code == 422:
+                            print(f"   eventIds returned 422; keeping date-filter result ({len(games)} games)")
 
         if response is None:
             print("\n⚠️ Failed to connect to Odds API after 3 attempts.")
@@ -959,9 +976,12 @@ def collect_todays_games():
             print(f"\n⚠️ Odds API Error {response.status_code}")
             print(f"   {response.text}\n")
         else:
-            # games already set from response (or filtered fallback); don't overwrite
-            if not games:
-                games = response.json()
+            # games set from primary path or fallback
+            if not games and response:
+                raw = response.json()
+                games = [g for g in raw if utc_to_eastern_date(g.get('commence_time', '')) == today_str_et]
+            if espn_expected > 0 and len(games) < espn_expected:
+                print(f"   ⚠️ Odds returned {len(games)} games, ESPN expects {espn_expected} — possible partial data")
             print(f"✅ Odds API Connected!")
             print(f"   Games found: {len(games)}")
             print(f"   API calls left: {API_USAGE['remaining']}/500")
