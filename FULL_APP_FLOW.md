@@ -499,19 +499,23 @@ Multi-step onboarding for new users including:
 ### Cron Endpoints (External Trigger)
 All secured by `X-Cron-Secret` header. All log execution to `cron_logs` table.
 
-| Method | Path | Schedule (cron-job.org) | Purpose |
-|--------|------|------------------------|---------|
-| POST | `/api/cron/collect-games` | Daily 9:00 AM ET | Fetch today's NBA games |
-| POST | `/api/cron/refresh-lines` | Every 2 hours, 10 AM–6 PM ET | Refresh odds from all sportsbooks |
-| POST | `/api/cron/closing-lines` | Daily 6:30 PM ET | Capture closing lines before tipoff |
-| POST | `/api/cron/grade-picks` | Daily 12:00 AM ET | Grade pending picks |
-| POST | `/api/cron/grade-whatifs` | Daily 12:30 AM ET | Grade what-if passes |
-| POST | `/api/cron/expire-trials` | Daily 8:00 AM ET | Expire trials + 2-day warnings |
-| POST | `/api/cron/weekly-summary` | Mon 9:00 AM ET | Send weekly summary email |
-| POST | `/api/cron/backup` | Daily 3:00 AM ET | pg_dump + JSON backup |
-| POST | `/api/cron/check-data-quality` | Daily 7:00 AM ET | Validate data integrity |
+**Pipeline order (critical):** collect_games → run_model (collect must run before model). Grade runs after games complete.
 
-**External scheduler:** cron-job.org (all endpoints hit via HTTPS POST with `X-Cron-Secret` header)
+| Method | Path | Schedule (ET) | Purpose |
+|--------|------|----------------|---------|
+| POST | `/api/cron/collect-games` | 5:05 AM + 9:00 AM + 1:05 PM | Fetch today's NBA games (9 AM before first model run) |
+| POST | `/api/cron/run-model` | 10:15 AM + 2:15 PM | Run model, publish pick or pass |
+| POST | `/api/cron/refresh-lines` | Every 10 min, 6 AM–2 AM | Refresh odds between collects |
+| POST | `/api/cron/closing-lines` | Every min, 10 AM–1 AM (×4 shards) | Capture closing lines before tipoff |
+| POST | `/api/cron/grade-picks` | 3:45 AM + 11:30 AM | Grade pending picks (after games finish) |
+| POST | `/api/cron/grade-whatifs` | 4:05 AM + 4:05 PM | Grade what-if passes |
+| POST | `/api/cron/pretip-validate` | 9:55 AM + 4:55 PM | Re-validate pending pick before tipoff |
+| POST | `/api/cron/expire-trials` | Hourly at :10 | Expire trials + 2-day warnings |
+| POST | `/api/cron/weekly-summary` | Mon 6:30 AM | Send weekly summary email |
+| POST | `/api/cron/backup` | Daily 3:20 AM | pg_dump + JSON backup |
+| POST | `/api/cron/check-data-quality` | 4:15 AM + 12:15 PM | Validate data integrity |
+
+**External scheduler:** cron-job.org (GET or POST, `X-Cron-Secret` header)
 
 ### Admin (Superuser Only)
 | Method | Path | Purpose |
