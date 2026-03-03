@@ -1099,6 +1099,12 @@ def collect_todays_games():
                                             if key not in alt_spreads or price > alt_spreads[key]:
                                                 alt_spreads[key] = price
 
+                # Debug: spread parsing
+                bms = game.get('bookmakers', [])
+                first_keys = [m.get('key') for m in bms[0].get('markets', [])] if bms else []
+                got_spread = spread_home is not None
+                print(f"   [DEBUG] {away} @ {home}: bookmakers={len(bms)}, first_markets={first_keys}, spread_home={'OK' if got_spread else 'MISS'}")
+
                 games_to_process.append({
                     'game_id': game_id, 'home': home, 'away': away,
                     'commence_time': commence_time, 'game_time': game.get('commence_time') or None,
