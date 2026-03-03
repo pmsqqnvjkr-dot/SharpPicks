@@ -889,7 +889,7 @@ def health_checks():
             resp = requests.get(
                 'https://api.the-odds-api.com/v4/sports/',
                 params={'apiKey': api_key},
-                timeout=8
+                timeout=(5, 15)
             )
             latency = round((time.time() - start) * 1000)
             remaining = resp.headers.get('x-requests-remaining', '?')
@@ -900,8 +900,12 @@ def health_checks():
                 return {'status': 'error', 'message': 'Invalid API key'}
             else:
                 return {'status': 'warn', 'message': f'HTTP {resp.status_code}', 'latency_ms': latency}
-        except requests.Timeout:
-            return {'status': 'warn', 'message': 'Timeout (8s)'}
+        except requests.exceptions.Timeout:
+            return {'status': 'warn', 'message': 'Connection timeout'}
+        except requests.exceptions.ConnectionError as e:
+            return {'status': 'error', 'message': f'Connection failed: {str(e)[:50]}'}
+        except requests.exceptions.SSLError as e:
+            return {'status': 'error', 'message': f'SSL error: {str(e)[:50]}'}
         except Exception as e:
             logging.error(f"Odds API health check failed: {e}")
             return {'status': 'error', 'message': str(e)[:80]}

@@ -57,59 +57,73 @@ API_KEY = os.environ.get('ODDS_API_KEY')
 API_USAGE = {'remaining': 500, 'used': 0}
 
 
+# Shared session for Odds API — connection reuse, keep-alive (helps Railway cold starts)
+_odds_session = None
+
+def _get_odds_session():
+    global _odds_session
+    if _odds_session is None:
+        _odds_session = requests.Session()
+        _odds_session.headers.update({'User-Agent': 'SharpPicks/1.0', 'Accept': 'application/json'})
+        adapter = requests.adapters.HTTPAdapter(pool_connections=2, pool_maxsize=4, max_retries=0)
+        _odds_session.mount('https://', adapter)
+    return _odds_session
+
 def api_request_with_retry(url, params, max_retries=3):
-    """Make API request with retry logic and usage tracking"""
+    """Make API request with retry logic and usage tracking. Uses session for connection reuse."""
     global API_USAGE
-    
+    session = _get_odds_session()
+    timeout = (15, 45)  # (connect, read) — shorter connect, longer read for large responses
+
     for attempt in range(max_retries):
         try:
-            response = requests.get(url, params=params, timeout=30)
-            
+            response = session.get(url, params=params, timeout=timeout)
+
             # Track API usage from headers
             remaining = response.headers.get('x-requests-remaining')
             used = response.headers.get('x-requests-used')
-            
             if remaining:
                 API_USAGE['remaining'] = int(remaining)
             if used:
                 API_USAGE['used'] = int(used)
-            
-            # Check for rate limiting
+
             if response.status_code == 429:
                 wait_time = (attempt + 1) * 5
                 print(f"   ⏳ Rate limited. Waiting {wait_time}s... (attempt {attempt + 1}/{max_retries})")
                 time.sleep(wait_time)
                 continue
-            
-            # Success
+
             if response.status_code == 200:
                 return response
-            
-            # Other errors
+
             if response.status_code >= 500:
                 wait_time = (attempt + 1) * 2
                 print(f"   ⚠️ Server error {response.status_code}. Retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
                 time.sleep(wait_time)
                 continue
-            
-            # Client error - don't retry
+
             return response
-            
-        except requests.exceptions.Timeout:
-            wait_time = (attempt + 1) * 2
-            print(f"   ⏱️ Request timeout. Retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
-            time.sleep(wait_time)
-            
-        except requests.exceptions.ConnectionError:
+
+        except requests.exceptions.Timeout as e:
             wait_time = (attempt + 1) * 3
-            print(f"   🔌 Connection error. Retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+            print(f"   ⏱️ Timeout ({e}). Retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
             time.sleep(wait_time)
-            
+
+        except requests.exceptions.ConnectionError as e:
+            wait_time = (attempt + 1) * 4
+            print(f"   🔌 Connection error: {str(e)[:80]}. Retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+            time.sleep(wait_time)
+
+        except requests.exceptions.SSLError as e:
+            wait_time = (attempt + 1) * 3
+            print(f"   🔒 SSL error: {str(e)[:80]}. Retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+            time.sleep(wait_time)
+
         except Exception as e:
-            print(f"   ❌ Unexpected error: {e}")
+            print(f"   ❌ Unexpected error: {type(e).__name__}: {str(e)[:80]}")
             if attempt < max_retries - 1:
-                time.sleep(2)
-    
+                time.sleep(3)
+
     return None
 
 
@@ -145,6 +159,21 @@ def show_no_games_message():
     print("   python main.py --report - View your collection stats")
     print("   python main.py --viz    - See progress visualization")
     print("   python model.py train   - Train model (if 50+ games)\n")
+
+def _outcome_matches_team(outcome_name, team_name):
+    """Match outcome name to team — exact or by nickname (last word) for Odds API variants."""
+    if not outcome_name or not team_name:
+        return False
+    if outcome_name == team_name:
+        return True
+    # e.g. "LA Clippers" vs "Los Angeles Clippers", "Celtics" vs "Boston Celtics"
+    o_words = outcome_name.strip().split()
+    t_words = team_name.strip().split()
+    if o_words and t_words and o_words[-1] == t_words[-1]:
+        return True
+    if team_name in outcome_name or outcome_name in team_name:
+        return True
+    return False
 
 # Team name mapping (Odds API -> ESPN abbreviation)
 TEAM_ABBR_MAP = {
@@ -859,7 +888,8 @@ def collect_todays_games():
         print("   6. Click 'Run' again\n")
         return
     
-    # Today's date in ET (used throughout)
+    # Today's date in ET (e.g. '2026-03-03'). Filter: utc_to_eastern_date(commence_time) == today_str_et.
+    # E.g. commence_time '2026-03-04T00:10:00Z' (7:10 PM ET Mar 3) → utc1 returns '2026-03-03' → passes.
     try:
         import zoneinfo
         today_str_et = datetime.now(zoneinfo.ZoneInfo("America/New_York")).strftime('%Y-%m-%d')
@@ -996,24 +1026,36 @@ def collect_todays_games():
                     book_name = BOOK_DISPLAY.get(book_key, book_key)
 
                     for market in bookmaker.get('markets', []):
-                        if market['key'] == 'spreads':
-                            for outcome in market['outcomes']:
-                                if outcome['name'] == home:
-                                    if spread_home is None:
-                                        spread_home = outcome['point']
+                        mk = (market.get('key') or market.get('description', '') or '').lower()
+                        if mk in ('spreads', 'spread'):
+                            for outcome in market.get('outcomes', []):
+                                pt = outcome.get('point') or outcome.get('handicap') or outcome.get('points')
+                                if pt is not None:
+                                    try:
+                                        pt = float(pt)
+                                    except (TypeError, ValueError):
+                                        pt = None
+                                if _outcome_matches_team(outcome.get('name', ''), home):
+                                    if spread_home is None and pt is not None:
+                                        spread_home = pt
                                     price = outcome.get('price')
                                     if price is not None and is_better_odds(price, home_spread_odds):
                                         home_spread_odds = price
                                         home_spread_book = book_name
-                                else:
-                                    if spread_away is None:
-                                        spread_away = outcome['point']
+                                elif _outcome_matches_team(outcome.get('name', ''), away):
+                                    if spread_away is None and pt is not None:
+                                        spread_away = pt
                                     price = outcome.get('price')
                                     if price is not None and is_better_odds(price, away_spread_odds):
                                         away_spread_odds = price
                                         away_spread_book = book_name
+                            # Infer spread_away from spread_home if we only matched one side
+                            if spread_away is None and spread_home is not None:
+                                spread_away = -spread_home
+                            elif spread_home is None and spread_away is not None:
+                                spread_home = -spread_away
 
-                        elif market['key'] == 'totals' and total is None:
+                        elif (market.get('key') or '') == 'totals' and total is None:
                             total = market['outcomes'][0]['point']
 
                         elif market['key'] == 'h2h':
