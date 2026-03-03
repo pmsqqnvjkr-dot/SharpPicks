@@ -44,10 +44,7 @@ def verify_cron(f):
     from functools import wraps
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if not CRON_SECRET:
-            return jsonify({'error': 'cron not configured'}), 503
-        provided = request.headers.get('X-Cron-Secret') or request.args.get('cron_secret', '')
-        if provided != CRON_SECRET:
+        if not CRON_SECRET or request.headers.get('X-Cron-Secret') != CRON_SECRET:
             return jsonify({'error': 'unauthorized'}), 403
         return f(*args, **kwargs)
     return wrapper
