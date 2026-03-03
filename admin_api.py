@@ -1000,6 +1000,36 @@ def health_checks():
 
     results['postgresql'] = check_postgres()
 
+    def check_sqlite():
+        """SQLite (games data) - must use persistent volume on Railway."""
+        try:
+            from db_path import get_sqlite_status
+            status = get_sqlite_status()
+            if not status['persistent']:
+                return {'status': 'warn', 'message': 'No volume (RAILWAY_VOLUME_MOUNT_PATH unset) — data ephemeral', **status}
+            if not status['parent_exists']:
+                return {'status': 'error', 'message': 'Volume path missing', **status}
+            if not status['writable']:
+                return {'status': 'error', 'message': 'Volume not writable (try RAILWAY_RUN_UID=0)', **status}
+            import sqlite3
+            conn = sqlite3.connect(status['path'])
+            try:
+                cur = conn.execute("SELECT COUNT(*) FROM games")
+                count = cur.fetchone()[0]
+            except sqlite3.OperationalError:
+                count = 0  # Table may not exist yet
+            conn.close()
+            return {'status': 'ok', 'games': count, **status}
+        except Exception as e:
+            try:
+                from db_path import get_sqlite_status
+                status = get_sqlite_status()
+            except Exception:
+                status = {}
+            return {'status': 'error', 'message': str(e)[:80], **status}
+
+    results['sqlite'] = check_sqlite()
+
     external_checks = {
         'odds_api': check_odds_api,
         'balldontlie': check_balldontlie,

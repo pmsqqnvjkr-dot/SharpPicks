@@ -593,6 +593,7 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
       <div class="status-bar-row"><div class="status-indicator" id="hc-espn-dot"></div><span class="status-name">ESPN</span><span class="status-val" id="hc-espn-val">...</span></div>
       <div class="status-bar-row"><div class="status-indicator" id="hc-resend-dot"></div><span class="status-name">Resend (Email)</span><span class="status-val" id="hc-resend-val">...</span></div>
       <div class="status-bar-row"><div class="status-indicator" id="hc-stripe-dot"></div><span class="status-name">Stripe</span><span class="status-val" id="hc-stripe-val">...</span></div>
+      <div class="status-bar-row"><div class="status-indicator" id="hc-sqlite-dot"></div><span class="status-name">SQLite (games)</span><span class="status-val" id="hc-sqlite-val">...</span></div>
     </div>
   </div>
 
@@ -1456,6 +1457,9 @@ function hcDotClass(s) { return s === 'ok' ? 'green' : s === 'warn' ? 'amber' : 
 
 function hcFormatVal(svc) {
   if (svc.status === 'ok') {
+    if (svc.persistent !== undefined) {
+      return (svc.persistent ? 'persistent' : 'ephemeral') + ' · ' + (svc.games ?? 0) + ' games';
+    }
     let val = svc.latency_ms + 'ms';
     if (svc.requests_remaining) val += ' · ' + svc.requests_remaining + ' left';
     if (svc.games_today !== undefined) val += ' · ' + svc.games_today + ' games';
@@ -1473,7 +1477,7 @@ async function loadHealthChecks() {
     if (!res.ok) return;
     const d = await res.json();
 
-    const services = ['postgresql', 'odds_api', 'balldontlie', 'espn', 'resend', 'stripe'];
+    const services = ['postgresql', 'odds_api', 'balldontlie', 'espn', 'resend', 'stripe', 'sqlite'];
     services.forEach(key => {
       const svc = d[key];
       if (!svc) return;
