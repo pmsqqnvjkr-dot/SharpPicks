@@ -54,6 +54,7 @@ def set_cache_headers(response):
     if request.path.startswith('/assets/'):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     elif request.path.startswith('/api/'):
+        
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
@@ -1184,8 +1185,8 @@ def grade_pending_picks():
                 logging.info(f"[Auto-grade] Processing: {pick.away_team} @ {pick.home_team} on {pick_date}")
 
                 date_str = pick_date.replace('-', '')
-                sport_path = 'womens-basketball/wnba' if pick.sport == 'wnba' else 'basketball/nba'
-                espn_url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/scoreboard?dates={date_str}"
+                from sport_config import get_espn_scoreboard_url
+                espn_url = get_espn_scoreboard_url(pick.sport, date_str)
                 try:
                     espn_resp = requests.get(espn_url, timeout=15)
                     if espn_resp.status_code == 200:
@@ -3090,6 +3091,7 @@ def get_trackable_picks():
             'side': p.side,
             'line': p.line,
             'edge_pct': p.edge_pct,
+            'market_odds': p.market_odds,
             'result': 'W' if p.result == 'win' else ('L' if p.result == 'loss' else p.result),
             'published_at': p.published_at.isoformat() if p.published_at else None,
             'already_tracked': p.id in tracked_ids,
@@ -3127,6 +3129,10 @@ def track_bet():
 
     bet_amount = data.get('bet_amount', 100)
     odds = data.get('odds', -110)
+
+    # Use pick's live market odds when tracking a Sharp Pick (not generic -110)
+    if pick_id and sp_pick and sp_pick.market_odds is not None and odds == -110:
+        odds = int(sp_pick.market_odds)
 
     if odds < 0:
         to_win = bet_amount * (100 / abs(odds))

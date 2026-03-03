@@ -1245,7 +1245,7 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
   const [loadingPicks, setLoadingPicks] = useState(!initialPick);
   const [selected, setSelected] = useState(initialPick || null);
   const [amount, setAmount] = useState('100');
-  const [odds, setOdds] = useState('-110');
+  const [odds, setOdds] = useState(initialPick?.market_odds != null ? String(initialPick.market_odds) : '-110');
   const [followType, setFollowType] = useState('exact');
   const [submitting, setSubmitting] = useState(false);
 
@@ -1265,6 +1265,7 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
   const handleSelectPick = (pick) => {
     if (pick.already_tracked) return;
     setSelected(pick);
+    setOdds(pick.market_odds != null ? String(pick.market_odds) : '-110');
     setStep('wager');
   };
 

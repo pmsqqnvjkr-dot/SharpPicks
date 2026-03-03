@@ -79,6 +79,7 @@ export default function TodayTab({ onNavigate }) {
                 side: todayData.side,
                 line: todayData.line,
                 edge_pct: todayData.edge_pct,
+                market_odds: todayData.market_odds,
               }
             });
           }} />
