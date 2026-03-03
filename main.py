@@ -940,7 +940,7 @@ def collect_todays_games():
     response = None
 
     try:
-        # Odds API with date filter (primary method — no Events API dependency)
+        # Odds API with date filter (primary)
         print(f"   Odds API: querying with date range")
         response = api_request_with_retry(url, params)
         if response and response.status_code == 200:
@@ -949,6 +949,17 @@ def collect_todays_games():
             games = [g for g in raw_games if utc_to_eastern_date(g.get('commence_time', '') or '') == today_str_et]
             filtered_count = len(games)
             print(f"   Odds API: {raw_count} games raw → {filtered_count} after today filter ({today_str_et})")
+        elif response and response.status_code == 422:
+            # 422 = validation error on date params — retry without date filter, get all upcoming, filter client-side
+            print(f"   Odds API 422 with date range; retrying without date filter...")
+            params_no_date = {k: v for k, v in params.items() if k not in ('commenceTimeFrom', 'commenceTimeTo')}
+            response = api_request_with_retry(url, params_no_date)
+            if response and response.status_code == 200:
+                raw_games = response.json()
+                raw_count = len(raw_games)
+                games = [g for g in raw_games if utc_to_eastern_date(g.get('commence_time', '') or '') == today_str_et]
+                filtered_count = len(games)
+                print(f"   Odds API (no date filter): {raw_count} games raw → {filtered_count} after today filter ({today_str_et})")
 
         if response is None:
             print("\n⚠️ Failed to connect to Odds API after 3 attempts.")
