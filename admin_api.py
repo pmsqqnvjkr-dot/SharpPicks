@@ -272,11 +272,18 @@ def rerun_model():
     today_str = now_et.strftime('%Y-%m-%d')
     data = request.get_json() or {}
     sport = data.get('sport', 'nba')
+    clear_only = data.get('clear_only', False)
 
     runs_deleted = ModelRun.query.filter_by(date=today_str, sport=sport).delete()
     passes_deleted = Pass.query.filter_by(date=today_str, sport=sport).delete()
     picks_deleted = Pick.query.filter_by(game_date=today_str, sport=sport).delete()
     db.session.commit()
+
+    if clear_only:
+        return jsonify({
+            'cleared': {'runs': runs_deleted, 'passes': passes_deleted, 'picks': picks_deleted},
+            'message': f'Cleared {today_str}/{sport}. Run model when ready.',
+        })
 
     from model_service import run_model_and_log
     from flask import current_app
