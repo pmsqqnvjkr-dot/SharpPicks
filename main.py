@@ -30,6 +30,24 @@ def utc_to_eastern_date(utc_str):
     except Exception:
         return utc_str[:10]
 
+
+def get_et_today_utc_range():
+    """Return (commenceTimeFrom, commenceTimeTo) in UTC ISO for today's ET slate.
+    Ensures Odds API returns today's games (00:00 ET through 23:59 ET next calendar day for late games).
+    """
+    try:
+        import zoneinfo
+        tz = zoneinfo.ZoneInfo("America/New_York")
+    except ImportError:
+        tz = timezone(timedelta(hours=-5))
+    now_et = datetime.now(tz)
+    today_start = now_et.replace(hour=0, minute=0, second=0, microsecond=0)
+    # Include through tomorrow 05:59 ET to catch 11pm PT West Coast games (~2am ET next day)
+    tomorrow_end = today_start + timedelta(days=2)
+    from_utc = today_start.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    to_utc = tomorrow_end.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    return from_utc, to_utc
+
 # Get API key from Replit Secrets
 API_KEY = os.environ.get('ODDS_API_KEY')
 
@@ -848,13 +866,17 @@ def collect_todays_games():
     }
 
     url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
+    commence_from, commence_to = get_et_today_utc_range()
     params = {
         'apiKey': API_KEY,
         'regions': 'us',
         'markets': 'spreads,totals,h2h,spreads_h1,totals_h1,alternate_spreads',
         'oddsFormat': 'american',
-        'bookmakers': ','.join(PREFERRED_BOOKS)
+        'bookmakers': ','.join(PREFERRED_BOOKS),
+        'commenceTimeFrom': commence_from,
+        'commenceTimeTo': commence_to,
     }
+    print(f"   Requesting games: {commence_from} → {commence_to} UTC")
     
     odds_api_ok = False
     games_to_process = []
@@ -862,6 +884,14 @@ def collect_todays_games():
 
     try:
         response = api_request_with_retry(url, params)
+        if response and response.status_code == 200:
+            games = response.json()
+            if len(games) == 0:
+                print("   No games with date filter; retrying without filter...")
+                params_no_filter = {k: v for k, v in params.items() if k not in ('commenceTimeFrom', 'commenceTimeTo')}
+                response = api_request_with_retry(url, params_no_filter)
+                if response and response.status_code == 200:
+                    games = response.json()
         
         if response is None:
             print("\n⚠️ Failed to connect to Odds API after 3 attempts.")
