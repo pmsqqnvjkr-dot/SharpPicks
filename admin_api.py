@@ -288,6 +288,32 @@ def rerun_model():
     })
 
 
+@admin_bp.route('/api/admin/clear-today', methods=['POST'])
+def clear_today():
+    """Clear today's pass/pick so model can run again (admin or cron auth). Does not re-run model."""
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    now_et = datetime.now(ET)
+    today_str = now_et.strftime('%Y-%m-%d')
+    data = request.get_json() or {}
+    sport = data.get('sport', 'nba')
+
+    runs_deleted = ModelRun.query.filter_by(date=today_str, sport=sport).delete()
+    passes_deleted = Pass.query.filter_by(date=today_str, sport=sport).delete()
+    picks_deleted = Pick.query.filter_by(game_date=today_str, sport=sport).delete()
+    db.session.commit()
+
+    return jsonify({
+        'cleared': {'runs': runs_deleted, 'passes': passes_deleted, 'picks': picks_deleted},
+        'message': f'Cleared {today_str}/{sport}. Run model when ready.',
+    })
+
+
 @admin_bp.route('/api/admin/trigger-model', methods=['POST'])
 def trigger_model():
     """Run model without clearing (admin auth). Use force=true in body to clear and rerun."""
