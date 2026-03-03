@@ -13,22 +13,24 @@ import statistics
 from datetime import datetime, timedelta, timezone
 
 def utc_to_eastern_date(utc_str):
-    """Convert UTC ISO timestamp to Eastern Time date string (YYYY-MM-DD)."""
+    """Convert UTC ISO timestamp to Eastern Time date string (YYYY-MM-DD). Returns None on parse failure."""
+    if not utc_str:
+        return None
     try:
         utc_str = utc_str.replace('Z', '+00:00')
         utc_dt = datetime.fromisoformat(utc_str)
         if utc_dt.tzinfo is None:
             utc_dt = utc_dt.replace(tzinfo=timezone.utc)
-        eastern_offset = timedelta(hours=-5)
         try:
             import zoneinfo
             eastern = zoneinfo.ZoneInfo("America/New_York")
             et_dt = utc_dt.astimezone(eastern)
         except ImportError:
-            et_dt = utc_dt + eastern_offset
+            et_dt = utc_dt + timedelta(hours=-5)
         return et_dt.strftime('%Y-%m-%d')
     except Exception:
-        return utc_str[:10]
+        # Return None — never use utc_str[:10] which can yield '2026-03-0' and break today match
+        return None
 
 
 def get_et_today_utc_range():
@@ -921,12 +923,14 @@ def collect_todays_games():
     print(f"   Today's ET window: {commence_from} → {commence_to} UTC")
 
     url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
-    params_base = {
+    params = {
         'apiKey': API_KEY,
         'regions': 'us',
         'markets': 'spreads,totals,h2h,spreads_h1,totals_h1,alternate_spreads',
         'oddsFormat': 'american',
         'bookmakers': ','.join(PREFERRED_BOOKS),
+        'commenceTimeFrom': commence_from,
+        'commenceTimeTo': commence_to,
     }
 
     odds_api_ok = False
@@ -936,42 +940,15 @@ def collect_todays_games():
     response = None
 
     try:
-        # Step 1: Events API first (FREE, no quota) — get today's event IDs
-        events_url = "https://api.the-odds-api.com/v4/sports/basketball_nba/events/"
-        events_params = {
-            'apiKey': API_KEY,
-            'commenceTimeFrom': commence_from,
-            'commenceTimeTo': commence_to,
-        }
-        ev_resp = api_request_with_retry(events_url, events_params)
-        today_event_ids = []
-        if ev_resp and ev_resp.status_code == 200:
-            all_events = ev_resp.json()
-            today_events = [e for e in all_events if utc_to_eastern_date(e.get('commence_time', '')) == today_str_et]
-            today_event_ids = [e['id'] for e in today_events if isinstance(e.get('id'), str) and len(e.get('id', '')) == 32]
-            print(f"   Events API: {len(today_event_ids)} games for today {today_str_et} (from {len(all_events)} total)")
-
-        # Step 2: Odds API — eventIds PRIMARY (no date params to avoid 422), date filter FALLBACK
-        if today_event_ids:
-            params_event = {**params_base, 'eventIds': ','.join(today_event_ids[:50])}
-            print(f"   Odds path: eventIds ({len(today_event_ids)} events)")
-            response = api_request_with_retry(url, params_event)
-            if response and response.status_code == 200:
-                games = response.json()
-                games = [g for g in games if utc_to_eastern_date(g.get('commence_time', '')) == today_str_et]
-                print(f"   Odds API (eventIds): {len(games)} games")
-            elif response and response.status_code == 422:
-                print(f"   Odds API 422 with eventIds; falling back to date filter...")
-                response = None
-
-        if not games:
-            params_date = {**params_base, 'commenceTimeFrom': commence_from, 'commenceTimeTo': commence_to}
-            print(f"   Odds path: date filter (fallback)")
-            response = api_request_with_retry(url, params_date)
-            if response and response.status_code == 200:
-                all_from_api = response.json()
-                games = [g for g in all_from_api if utc_to_eastern_date(g.get('commence_time', '')) == today_str_et]
-                print(f"   Odds API (date filter): {len(games)} games")
+        # Odds API with date filter (primary method — no Events API dependency)
+        print(f"   Odds API: querying with date range")
+        response = api_request_with_retry(url, params)
+        if response and response.status_code == 200:
+            raw_games = response.json()
+            raw_count = len(raw_games)
+            games = [g for g in raw_games if utc_to_eastern_date(g.get('commence_time', '') or '') == today_str_et]
+            filtered_count = len(games)
+            print(f"   Odds API: {raw_count} games raw → {filtered_count} after today filter ({today_str_et})")
 
         if response is None:
             print("\n⚠️ Failed to connect to Odds API after 3 attempts.")
@@ -979,10 +956,6 @@ def collect_todays_games():
             print(f"\n⚠️ Odds API Error {response.status_code}")
             print(f"   {response.text}\n")
         else:
-            # games set from primary path or fallback
-            if not games and response:
-                raw = response.json()
-                games = [g for g in raw if utc_to_eastern_date(g.get('commence_time', '')) == today_str_et]
             if espn_expected > 0 and len(games) < espn_expected:
                 print(f"   ⚠️ Odds returned {len(games)} games, ESPN expects {espn_expected} — possible partial data")
             print(f"✅ Odds API Connected!")
@@ -998,7 +971,7 @@ def collect_todays_games():
                 game_id = game['id']
                 home = game['home_team']
                 away = game['away_team']
-                commence_time = utc_to_eastern_date(game['commence_time'])
+                commence_time = utc_to_eastern_date(game['commence_time']) or today_str_et
 
                 spread_home = None
                 spread_away = None
