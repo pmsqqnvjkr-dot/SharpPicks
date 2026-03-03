@@ -875,13 +875,21 @@ def collect_todays_games():
         'commenceTimeFrom': commence_from,
         'commenceTimeTo': commence_to,
     }
+    # Filter to TODAY only (ET) — Events API 2-day window returns tomorrow's games too
+    try:
+        import zoneinfo
+        today_str_et = datetime.now(zoneinfo.ZoneInfo("America/New_York")).strftime('%Y-%m-%d')
+    except ImportError:
+        today_str_et = (datetime.now() - timedelta(hours=5)).strftime('%Y-%m-%d')
+
     today_event_ids = []
     try:
         ev_resp = api_request_with_retry(events_url, events_params)
         if ev_resp and ev_resp.status_code == 200:
-            today_events = ev_resp.json()
-            today_event_ids = [e['id'] for e in today_events]
-            print(f"   Events API: {len(today_event_ids)} games for today (no quota used)")
+            all_events = ev_resp.json()
+            today_events = [e for e in all_events if utc_to_eastern_date(e.get('commence_time', '')) == today_str_et]
+            today_event_ids = [e['id'] for e in today_events if isinstance(e.get('id'), str) and len(e.get('id', '')) == 32]
+            print(f"   Events API: {len(today_event_ids)} games for today {today_str_et} (filtered from {len(all_events)})")
             for ev in today_events:
                 print(f"      - {ev.get('away_team')} @ {ev.get('home_team')} ({ev.get('commence_time', '')[:10]})")
         else:
@@ -889,7 +897,7 @@ def collect_todays_games():
     except Exception as e:
         print(f"   Events API fallback skipped: {e}")
 
-    # Step 2: Fetch odds — use eventIds when we have them to ensure full slate
+    # Step 2: Fetch odds — use eventIds for today only; omit date params to avoid 422
     url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
     params = {
         'apiKey': API_KEY,
@@ -897,13 +905,13 @@ def collect_todays_games():
         'markets': 'spreads,totals,h2h,spreads_h1,totals_h1,alternate_spreads',
         'oddsFormat': 'american',
         'bookmakers': ','.join(PREFERRED_BOOKS),
-        'commenceTimeFrom': commence_from,
-        'commenceTimeTo': commence_to,
     }
     if today_event_ids:
-        params['eventIds'] = ','.join(today_event_ids[:50])  # API limit ~50
-        print(f"   Odds path: eventIds ({len(today_event_ids)} events)")
+        params['eventIds'] = ','.join(today_event_ids[:50])
+        print(f"   Odds path: eventIds ({len(today_event_ids)} events, no date filter)")
     else:
+        params['commenceTimeFrom'] = commence_from
+        params['commenceTimeTo'] = commence_to
         print(f"   Odds path: date filter only (Events API had 0)")
 
     odds_api_ok = False
@@ -913,6 +921,13 @@ def collect_todays_games():
 
     try:
         response = api_request_with_retry(url, params)
+        # 422 = INVALID_EVENT_IDS or param conflict — retry with date filter only
+        if response and response.status_code == 422 and today_event_ids:
+            print(f"   Odds API 422 with eventIds; retrying with date filter...")
+            params_fallback = {k: v for k, v in params.items() if k != 'eventIds'}
+            params_fallback['commenceTimeFrom'] = commence_from
+            params_fallback['commenceTimeTo'] = commence_to
+            response = api_request_with_retry(url, params_fallback)
         if response and response.status_code == 200:
             games = response.json()
             if len(games) == 0 and today_event_ids:
