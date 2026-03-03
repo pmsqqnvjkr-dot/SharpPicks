@@ -6,6 +6,7 @@ Run this daily to build your dataset
 import requests
 import sqlite3
 import os
+from db_path import get_sqlite_path
 import time
 import random
 import statistics
@@ -177,7 +178,7 @@ WNBA_TEAM_ABBR_MAP = {
 
 def setup_database():
     """Create database if it doesn't exist"""
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -646,7 +647,7 @@ def collect_yesterdays_scores():
         
         print(f"✅ Found {len(events)} games\n")
         
-        conn = sqlite3.connect('sharp_picks.db')
+        conn = sqlite3.connect(get_sqlite_path())
         cursor = conn.cursor()
         
         updated_count = 0
@@ -755,7 +756,7 @@ def collect_yesterdays_scores():
 
 def show_spread_stats():
     """Show spread hit/miss statistics"""
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -1020,7 +1021,7 @@ def collect_todays_games():
         return
 
     try:
-        conn = sqlite3.connect('sharp_picks.db')
+        conn = sqlite3.connect(get_sqlite_path())
         cursor = conn.cursor()
 
         for gp in games_to_process:
@@ -1274,7 +1275,7 @@ def collect_todays_games():
 
 def show_stats():
     """Display collection statistics"""
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
     
     cursor.execute('SELECT COUNT(*) FROM games')
@@ -1348,7 +1349,7 @@ def collect_player_props():
     print(f"   Estimated API cost: {credit_cost} credits")
 
     init_db()
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
     total_props = 0
 
@@ -1471,7 +1472,7 @@ def collect_closing_lines():
         
         check_api_usage()
         
-        conn = sqlite3.connect('sharp_picks.db')
+        conn = sqlite3.connect(get_sqlite_path())
         cursor = conn.cursor()
         
         updated = 0
@@ -1609,7 +1610,7 @@ def collect_wnba_closing_lines():
 
         check_api_usage()
 
-        conn = sqlite3.connect('sharp_picks.db')
+        conn = sqlite3.connect(get_sqlite_path())
         cursor = conn.cursor()
 
         updated = 0
@@ -1701,7 +1702,7 @@ def show_visualization():
     print("📈 SHARP PICKS - COLLECTION VISUALIZATION")
     print("="*60 + "\n")
     
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
     
     # Get games per day
@@ -1821,7 +1822,7 @@ def generate_report():
     print("📊 SHARP PICKS - DATA COLLECTION REPORT")
     print("="*60 + "\n")
     
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
     
     # 1. Total games collected
@@ -1987,7 +1988,7 @@ def generate_report():
 
 def show_welcome():
     """Show welcome message with progress stats"""
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
     
     # Total games
@@ -2180,7 +2181,7 @@ def collect_wnba_scores(date_offset=1):
 
         print(f"✅ Found {len(events)} WNBA games\n")
 
-        conn = sqlite3.connect('sharp_picks.db')
+        conn = sqlite3.connect(get_sqlite_path())
         cursor = conn.cursor()
 
         setup_wnba_table(cursor)
@@ -2303,7 +2304,7 @@ def update_wnba_rolling_ratings():
     print("📊 WNBA ROLLING RATINGS UPDATE")
     print(f"{'='*60}\n")
 
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS wnba_rolling_ratings (
@@ -2445,7 +2446,7 @@ def check_wnba_star_availability(home_team, away_team, home_injuries_str, away_i
     Returns structured availability data for both teams."""
     import re
 
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
 
     cursor.execute('SELECT MAX(season) FROM wnba_top_players')
@@ -2583,7 +2584,7 @@ def run_wnba_shadow_predictions():
     print("🔮 WNBA SHADOW MODE — PREDICTIONS (NOT PUBLISHED)")
     print(f"{'='*60}\n")
 
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
@@ -2728,7 +2729,7 @@ def grade_wnba_shadow_picks():
     print("📝 GRADING WNBA SHADOW PICKS")
     print(f"{'='*60}\n")
 
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
 
     setup_wnba_shadow_table(cursor)
@@ -2850,7 +2851,7 @@ def collect_wnba_odds():
             print("ℹ️  No WNBA games available today\n")
             return
 
-        conn = sqlite3.connect('sharp_picks.db')
+        conn = sqlite3.connect(get_sqlite_path())
         cursor = conn.cursor()
 
         setup_wnba_table(cursor)

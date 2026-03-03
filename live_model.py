@@ -7,6 +7,7 @@ import requests
 import sqlite3
 import numpy as np
 from datetime import datetime
+from db_path import get_sqlite_path
 
 
 class LiveGamePredictor:
@@ -108,7 +109,7 @@ class LiveGamePredictor:
     def get_pregame_spread(self, home_team, away_team):
         """Get pregame spread from database"""
         try:
-            conn = sqlite3.connect('sharp_picks.db')
+            conn = sqlite3.connect(get_sqlite_path())
             cursor = conn.cursor()
             
             today = datetime.now().strftime('%Y-%m-%d')

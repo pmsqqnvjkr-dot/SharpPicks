@@ -8,6 +8,7 @@ This service only: runs the model, reads outputs, stores to DB.
 import json
 import time
 import sqlite3
+from db_path import get_sqlite_path
 from datetime import datetime, timedelta
 from models import db, Pick, Pass, ModelRun, EdgeSnapshot, KillSwitch
 from sport_config import get_sport_config, get_live_sports
@@ -34,6 +35,41 @@ def _build_games_detail(predictions):
     return json.dumps(details)
 
 
+def _build_games_detail_from_sqlite(today_str, sport='nba', reason=''):
+    """Build games_detail from SQLite when model returns no predictions (stale_data, no_eligible)."""
+    games_table = 'wnba_games' if sport == 'wnba' else 'games'
+    try:
+        conn = sqlite3.connect(get_sqlite_path())
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT away_team, home_team, spread_home FROM {games_table} WHERE game_date = ? AND spread_home IS NOT NULL ORDER BY home_team",
+            (today_str,)
+        )
+        rows = cur.fetchall()
+        conn.close()
+    except Exception:
+        return None
+    if not rows:
+        return None
+    details = []
+    for row in rows:
+        away, home = row[0], row[1]
+        spread_home = row[2] if len(row) > 2 else 0
+        spread = float(spread_home) if spread_home is not None else 0
+        pick_label = f"{home} {spread:+.1f}" if spread != 0 else home
+        details.append({
+            'away': away or '?',
+            'home': home or '?',
+            'pick': pick_label,
+            'line': round(spread, 1),
+            'edge': 0,
+            'cover_prob': 0.5,
+            'passes': False,
+            'reason': reason,
+        })
+    return json.dumps(details)
+
+
 def _diagnose_no_games(today_str, sport='nba'):
     """Diagnose WHY the model found no games.
 
@@ -45,7 +81,7 @@ def _diagnose_no_games(today_str, sport='nba'):
     """
     games_table = 'wnba_games' if sport == 'wnba' else 'games'
     try:
-        conn = sqlite3.connect('sharp_picks.db')
+        conn = sqlite3.connect(get_sqlite_path())
         cur = conn.cursor()
 
         has_table = cur.execute(
@@ -359,7 +395,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
 
                 if situation == 'data_failure':
                     duration_ms = int((time.time() - start_time) * 1000)
-                    print(f"[model-run] DATA FAILURE — not creating pass, will retry later")
+                    print(f"[model-run] DATA FAILURE — not creating pass, will retry later (db={get_sqlite_path()})")
                     return {
                         'status': 'data_failure',
                         'reason': diag['message'],
@@ -391,6 +427,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                         pass_reason=f"All {diag['total_games']} games already completed — model ran after games finished",
                     )
                     db.session.add(pass_entry)
+                    games_detail = _build_games_detail_from_sqlite(today_str, sport, reason='All games already scored')
                     model_run = ModelRun(
                         date=today_str,
                         sport=sport,
@@ -398,7 +435,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                         pick_generated=False,
                         pass_id=pass_entry.id,
                         run_duration_ms=duration_ms,
-                        games_detail=None,
+                        games_detail=games_detail,
                     )
                     db.session.add(model_run)
                     db.session.commit()
@@ -424,6 +461,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                     )
                     db.session.add(pass_entry)
 
+                    games_detail = _build_games_detail_from_sqlite(today_str, sport, reason='Model returned no predictions')
                     model_run = ModelRun(
                         date=today_str,
                         sport=sport,
@@ -431,7 +469,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                         pick_generated=False,
                         pass_id=pass_entry.id,
                         run_duration_ms=duration_ms,
-                        games_detail=None,
+                        games_detail=games_detail,
                     )
                     db.session.add(model_run)
                     db.session.commit()

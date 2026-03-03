@@ -6,6 +6,7 @@ Enhanced with pace/ratings features, sample weighting, and betting filters
 
 import sqlite3
 import pandas as pd
+from db_path import get_sqlite_path
 import numpy as np
 from datetime import datetime, timedelta
 import pickle
@@ -260,7 +261,7 @@ class EnsemblePredictor:
 
     def load_data(self):
         """Load training data from database with team ratings"""
-        conn = sqlite3.connect('sharp_picks.db')
+        conn = sqlite3.connect(get_sqlite_path())
 
         games_tbl = self._games_table()
         ratings_tbl = self._ratings_table()
@@ -711,7 +712,7 @@ class EnsemblePredictor:
                 print("❌ No trained model found. Run training first.\n")
                 return []
 
-        conn = sqlite3.connect('sharp_picks.db')
+        conn = sqlite3.connect(get_sqlite_path())
 
         games_tbl = self._games_table()
         ratings_tbl = self._ratings_table()
@@ -728,6 +729,10 @@ class EnsemblePredictor:
             ratings_join = f"""
             LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team_abbr
             LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_abbr"""
+
+        # Use UTC now in ISO format so comparison with game_time (ISO 8601) is reliable.
+        # SQLite datetime('now') returns 'YYYY-MM-DD HH:MM:SS' which compares incorrectly with 'YYYY-MM-DDTHH:MM:SSZ'.
+        now_utc_iso = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
         query = f'''
             SELECT
@@ -753,10 +758,10 @@ class EnsemblePredictor:
             WHERE g.game_date = ?
             AND g.home_score IS NULL
             AND g.spread_home IS NOT NULL
-            AND (g.game_time IS NULL OR g.game_time > datetime('now'))
+            AND (g.game_time IS NULL OR g.game_time > ?)
         '''
 
-        df = pd.read_sql_query(query, conn, params=(date_str,))
+        df = pd.read_sql_query(query, conn, params=(date_str, now_utc_iso))
         conn.close()
         
         if len(df) == 0:

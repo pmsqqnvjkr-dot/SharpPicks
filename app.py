@@ -74,6 +74,7 @@ from flask_login import LoginManager, login_required, current_user, login_user, 
 from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3
 import subprocess
+from db_path import get_sqlite_path
 import requests as http_requests
 from datetime import datetime, timedelta
 
@@ -327,7 +328,7 @@ def seed_database():
                 logging.info(f"Backfilled profit_units on {len(null_unit_picks)} picks")
 
             try:
-                sconn = sqlite3.connect('sharp_picks.db')
+                sconn = sqlite3.connect(get_sqlite_path())
                 sconn.execute('CREATE INDEX IF NOT EXISTS idx_games_game_time ON games(game_time)')
                 sconn.execute('CREATE INDEX IF NOT EXISTS idx_games_home_score ON games(home_score)')
                 sconn.execute('CREATE INDEX IF NOT EXISTS idx_games_game_date ON games(game_date)')
@@ -1139,7 +1140,7 @@ def send_weekly_summary_job():
 
 def collect_todays_games():
     """Run the main.py data collector"""
-    print(f"[{datetime.now()}] Running scheduled data collection...")
+    print(f"[{datetime.now()}] Running scheduled data collection... (db={get_sqlite_path()})")
     try:
         result = subprocess.run(
             [sys.executable, 'main.py'],
@@ -1169,7 +1170,7 @@ def grade_pending_picks():
         try:
             sqlite_conn = None
             try:
-                sqlite_conn = sqlite3.connect('sharp_picks.db')
+                sqlite_conn = sqlite3.connect(get_sqlite_path())
                 sqlite_conn.row_factory = sqlite3.Row
                 sqlite_cursor = sqlite_conn.cursor()
             except Exception:
@@ -1330,7 +1331,7 @@ def collect_closing_lines():
     to keep lines current."""
     with app.app_context():
         try:
-            conn = sqlite3.connect('sharp_picks.db')
+            conn = sqlite3.connect(get_sqlite_path())
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -1435,7 +1436,7 @@ def collect_wnba_closing_lines_job():
     print(f"[{datetime.now()}] Capturing WNBA closing lines...")
     with app.app_context():
         try:
-            conn = sqlite3.connect('sharp_picks.db')
+            conn = sqlite3.connect(get_sqlite_path())
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
@@ -1497,7 +1498,7 @@ def check_data_quality():
     issues = []
     
     try:
-        conn = sqlite3.connect('sharp_picks.db')
+        conn = sqlite3.connect(get_sqlite_path())
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         today_str = _get_et_today()
@@ -1574,7 +1575,7 @@ def grade_whatif_passes():
                 print(f"[{datetime.now()}] No ungraded what-if passes")
                 return
 
-            conn = sqlite3.connect('sharp_picks.db')
+            conn = sqlite3.connect(get_sqlite_path())
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -1914,7 +1915,8 @@ def cron_run_model():
                 collect_todays_games()
                 print(f"[model-run] Force: games collected successfully")
             except Exception as e:
-                print(f"[model-run] Force: game collection error (continuing): {e}")
+                print(f"[model-run] Force: game collection failed — aborting model run: {e}")
+                return {'status': 'collect_failed', 'error': str(e), 'date': today_str}
             for sport in get_live_sports():
                 stale_pass = Pass.query.filter_by(date=today_str, sport=sport).first()
                 if stale_pass and stale_pass.games_analyzed == 0:
@@ -1957,7 +1959,7 @@ def start_background_services():
         logging.error(f"Background services failed (non-fatal): {e}")
 
 def get_db():
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -3419,7 +3421,7 @@ def game_board():
         return jsonify({'error': 'Pro subscription required', 'upgrade': True}), 403
 
     import sqlite3
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = sqlite3.connect(get_sqlite_path())
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
