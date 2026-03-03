@@ -865,8 +865,28 @@ def collect_todays_games():
         'betrivers': 'BetRivers',
     }
 
-    url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
     commence_from, commence_to = get_et_today_utc_range()
+    print(f"   Today's ET window: {commence_from} → {commence_to} UTC")
+
+    # Step 1: Fetch today's event IDs from Events API (FREE, no quota)
+    events_url = "https://api.the-odds-api.com/v4/sports/basketball_nba/events/"
+    events_params = {
+        'apiKey': API_KEY,
+        'commenceTimeFrom': commence_from,
+        'commenceTimeTo': commence_to,
+    }
+    today_event_ids = []
+    try:
+        ev_resp = api_request_with_retry(events_url, events_params)
+        if ev_resp and ev_resp.status_code == 200:
+            today_events = ev_resp.json()
+            today_event_ids = [e['id'] for e in today_events]
+            print(f"   Events API: {len(today_event_ids)} games for today (no quota used)")
+    except Exception as e:
+        print(f"   Events API fallback skipped: {e}")
+
+    # Step 2: Fetch odds — use eventIds when we have them to ensure full slate
+    url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
     params = {
         'apiKey': API_KEY,
         'regions': 'us',
@@ -876,30 +896,52 @@ def collect_todays_games():
         'commenceTimeFrom': commence_from,
         'commenceTimeTo': commence_to,
     }
-    print(f"   Requesting games: {commence_from} → {commence_to} UTC")
-    
+    if today_event_ids:
+        params['eventIds'] = ','.join(today_event_ids[:50])  # API limit ~50
+        print(f"   Requesting odds for {len(today_event_ids)} event(s)...")
+    else:
+        print(f"   Requesting odds with date filter...")
+
     odds_api_ok = False
     games_to_process = []
     using_rundown = False
+    games = []
 
     try:
         response = api_request_with_retry(url, params)
         if response and response.status_code == 200:
             games = response.json()
+            if len(games) == 0 and today_event_ids:
+                print("   eventIds returned 0; retrying with date filter only...")
+                params.pop('eventIds', None)
+                response = api_request_with_retry(url, params)
+                if response and response.status_code == 200:
+                    games = response.json()
             if len(games) == 0:
                 print("   No games with date filter; retrying without filter...")
                 params_no_filter = {k: v for k, v in params.items() if k not in ('commenceTimeFrom', 'commenceTimeTo')}
+                params_no_filter.pop('eventIds', None)
                 response = api_request_with_retry(url, params_no_filter)
                 if response and response.status_code == 200:
-                    games = response.json()
-        
+                    all_games = response.json()
+                    # Filter to today's ET date when using unfiltered response
+                    try:
+                        import zoneinfo
+                        today_str_et = datetime.now(zoneinfo.ZoneInfo("America/New_York")).strftime('%Y-%m-%d')
+                    except ImportError:
+                        today_str_et = (datetime.now() - timedelta(hours=5)).strftime('%Y-%m-%d')
+                    games = [g for g in all_games if utc_to_eastern_date(g.get('commence_time', '')) == today_str_et]
+                    print(f"   Filtered to {len(games)} games for today ({today_str_et})")
+
         if response is None:
             print("\n⚠️ Failed to connect to Odds API after 3 attempts.")
         elif response.status_code != 200:
             print(f"\n⚠️ Odds API Error {response.status_code}")
             print(f"   {response.text}\n")
         else:
-            games = response.json()
+            # games already set from response (or filtered fallback); don't overwrite
+            if not games:
+                games = response.json()
             print(f"✅ Odds API Connected!")
             print(f"   Games found: {len(games)}")
             print(f"   API calls left: {API_USAGE['remaining']}/500\n")
