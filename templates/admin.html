@@ -534,7 +534,13 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
       </div>
     </div>
     <div id="pipeline-cron-attempts" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
-      <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Cron Attempts</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px">Cron Attempts</span>
+        <div style="display:flex;gap:6px">
+          <button id="pipeline-run-model-btn" onclick="triggerModel()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--blue-dim);color:var(--blue);border:1px solid rgba(79,134,247,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Run Model</button>
+          <button id="pipeline-grade-btn" onclick="triggerGrade()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,214,143,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Grade Picks</button>
+        </div>
+      </div>
       <div id="pipeline-cron-list" style="font-size:10px;color:var(--text-dim)">--</div>
     </div>
   </div>
@@ -570,8 +576,8 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     </div>
     <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
       <div class="panel-label" style="font-size:10px;margin-bottom:6px">Send Test Push</div>
-      <input id="test-push-title" placeholder="Title" value="SharpPicks Test" style="width:100%;padding:6px 8px;margin-bottom:4px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;box-sizing:border-box">
-      <input id="test-push-body" placeholder="Body" value="Push notifications are working." style="width:100%;padding:6px 8px;margin-bottom:6px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;box-sizing:border-box">
+      <input id="test-push-title" placeholder="Title" value="SharpPicks Test" style="width:100%;padding:6px 8px;margin-bottom:4px;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;box-sizing:border-box">
+      <input id="test-push-body" placeholder="Body" value="Push notifications are working." style="width:100%;padding:6px 8px;margin-bottom:6px;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;box-sizing:border-box">
       <button onclick="sendTestPush()" id="test-push-btn" style="width:100%;padding:7px;background:var(--green);color:#000;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer">Send Test Push</button>
       <div id="test-push-result" style="font-size:10px;margin-top:4px;color:var(--text-dim)"></div>
     </div>
@@ -1259,6 +1265,52 @@ async function deleteUser(userId, email) {
   } catch(e) {
     alert('Delete failed: ' + e.message);
   }
+}
+
+async function triggerModel() {
+  const btn = document.getElementById('pipeline-run-model-btn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Running...';
+  try {
+    const res = await adminFetch('/api/admin/trigger-model', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: false }) });
+    const data = await res.json();
+    if (res.ok) {
+      loadPipeline();
+      loadDashboard();
+      btn.textContent = 'Done';
+    } else {
+      btn.textContent = 'Error';
+      alert(data.error || 'Failed');
+    }
+  } catch (e) {
+    btn.textContent = 'Error';
+    alert('Error: ' + e.message);
+  }
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Run Model'; }, 2000);
+}
+
+async function triggerGrade() {
+  const btn = document.getElementById('pipeline-grade-btn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Grading...';
+  try {
+    const res = await adminFetch('/api/admin/trigger-grade', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      loadPipeline();
+      loadDashboard();
+      btn.textContent = 'Done';
+    } else {
+      btn.textContent = 'Error';
+      alert(data.error || 'Failed');
+    }
+  } catch (e) {
+    btn.textContent = 'Error';
+    alert('Error: ' + e.message);
+  }
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Grade Picks'; }, 2000);
 }
 
 async function sendTestPush() {

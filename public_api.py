@@ -578,7 +578,7 @@ def edge_decay():
 @public_bp.route('/regime-stats')
 def regime_stats():
     sport = _get_sport_filter()
-    query = Pick.query.filter(Pick.result_ats.in_(['win', 'loss', 'push']))
+    query = Pick.query.filter(Pick.result_ats.in_(['W', 'L', 'P', 'win', 'loss', 'push']))
     if sport:
         query = query.filter(Pick.sport == sport)
 
@@ -588,9 +588,9 @@ def regime_stats():
         return jsonify({'segments': {}, 'total_picks': 0})
 
     def segment_record(picks_list):
-        wins = sum(1 for p in picks_list if p.result_ats == 'win')
-        losses = sum(1 for p in picks_list if p.result_ats == 'loss')
-        pushes = sum(1 for p in picks_list if p.result_ats == 'push')
+        wins = sum(1 for p in picks_list if p.result_ats in ('W', 'win'))
+        losses = sum(1 for p in picks_list if p.result_ats in ('L', 'loss'))
+        pushes = sum(1 for p in picks_list if p.result_ats in ('P', 'push'))
         total = wins + losses
         wr = round(wins / total * 100, 1) if total > 0 else None
         pnl = round(sum(p.profit_units or 0 for p in picks_list), 2)

@@ -258,7 +258,7 @@ def serialize_user(user):
         'id': user.id,
         'email': user.email,
         'first_name': user.first_name or '',
-        'display_name': user.first_name or user.display_name or user.username or user.email.split('@')[0],
+        'display_name': user.first_name or user.display_name or user.username or (user.email or '').split('@')[0],
         'username': user.username,
         'is_premium': user.is_pro,
         'is_superuser': user.is_superuser,
@@ -1192,10 +1192,14 @@ def grade_pending_picks():
                     if espn_resp.status_code == 200:
                         espn_data = espn_resp.json()
                         for event in espn_data.get('events', []):
-                            comp = event['competitions'][0]
-                            if comp['status']['type']['description'] != 'Final':
+                            comps = event.get('competitions') or []
+                            if not comps:
                                 continue
-                            teams = comp['competitors']
+                            comp = comps[0]
+                            status_desc = (comp.get('status') or {}).get('type') or {}
+                            if status_desc.get('description') != 'Final':
+                                continue
+                            teams = comp.get('competitors') or []
                             espn_home = next((t for t in teams if t['homeAway'] == 'home'), None)
                             espn_away = next((t for t in teams if t['homeAway'] == 'away'), None)
                             if not espn_home or not espn_away:
@@ -1993,7 +1997,7 @@ def register():
     from models import normalize_email
     import uuid
 
-    data = request.get_json()
+    data = request.get_json() or {}
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
     first_name = data.get('first_name', '').strip()
@@ -2149,7 +2153,7 @@ def login():
     from flask import request
     from werkzeug.security import check_password_hash
 
-    data = request.get_json()
+    data = request.get_json() or {}
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
 
@@ -2201,7 +2205,7 @@ def logout():
 @limiter.limit("3 per minute")
 def forgot_password():
     from itsdangerous import URLSafeTimedSerializer
-    data = request.get_json()
+    data = request.get_json() or {}
     email = data.get('email', '').strip().lower()
     if not email:
         return jsonify({'error': 'Email required'}), 400
@@ -2234,7 +2238,7 @@ def reset_password():
     from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
     from werkzeug.security import generate_password_hash
 
-    data = request.get_json()
+    data = request.get_json() or {}
     token = data.get('token', '')
     new_password = data.get('password', '')
 
@@ -2717,7 +2721,7 @@ def list_products():
 def set_unit_size():
     """Set user's unit size"""
     from flask import request
-    data = request.get_json()
+    data = request.get_json() or {}
     unit_size = data.get('unit_size', 100)
     test_user.unit_size = unit_size
     return jsonify({'success': True, 'unit_size': unit_size})
@@ -2729,7 +2733,7 @@ def start_trial():
     from datetime import timedelta
     import re
     
-    data = request.get_json()
+    data = request.get_json() or {}
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
     
@@ -3104,7 +3108,7 @@ def track_bet():
     user = get_current_user_obj()
     if not user:
         return jsonify({'error': 'Login required'}), 401
-    data = request.get_json()
+    data = request.get_json() or {}
     pick_id = data.get('pick_id')
 
     if pick_id:
@@ -3198,13 +3202,22 @@ def update_bet_result(bet_id):
     user = get_current_user_obj()
     if not user:
         return jsonify({'error': 'Login required'}), 401
-    data = request.get_json()
+    data = request.get_json() or {}
     bet = TrackedBet.query.filter_by(id=bet_id, user_id=user.id).first()
     if not bet:
         return jsonify({'error': 'Bet not found'}), 404
-    
-    bet.result = data.get('result')
-    bet.profit = data.get('profit', 0)
+
+    new_result = data.get('result')
+    if new_result is not None and new_result not in ('W', 'L', 'P'):
+        return jsonify({'error': 'Invalid result. Use W, L, or P.'}), 400
+    profit_val = data.get('profit', 0)
+    try:
+        profit_val = float(profit_val) if profit_val is not None else 0
+    except (TypeError, ValueError):
+        profit_val = 0
+
+    bet.result = new_result
+    bet.profit = profit_val
     db.session.commit()
     
     return jsonify({'success': True})
@@ -3238,7 +3251,7 @@ def update_notification_prefs():
     user = get_current_user_obj()
     if not user:
         return jsonify({'error': 'Not authenticated'}), 401
-    data = request.get_json()
+    data = request.get_json() or {}
     user.notification_prefs = data.get('prefs', user.notification_prefs)
     db.session.commit()
     return jsonify({'success': True, 'prefs': user.notification_prefs})
@@ -3248,7 +3261,7 @@ def save_fcm_token():
     user = get_current_user_obj()
     if not user:
         return jsonify({'error': 'Not authenticated'}), 401
-    data = request.get_json()
+    data = request.get_json() or {}
     token = data.get('token', '').strip()
     platform = data.get('platform', 'web')
     if not token:
@@ -3271,7 +3284,7 @@ def delete_fcm_token():
     user = get_current_user_obj()
     if not user:
         return jsonify({'error': 'Not authenticated'}), 401
-    data = request.get_json()
+    data = request.get_json() or {}
     token = data.get('token', '').strip()
     if not token:
         return jsonify({'error': 'Token required'}), 400

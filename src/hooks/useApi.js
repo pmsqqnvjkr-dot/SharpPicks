@@ -125,7 +125,22 @@ export async function apiDelete(endpoint) {
       headers: authHeaders(),
       signal: controller.signal,
     });
-    return res.json();
+    const contentType = res.headers.get('content-type');
+    if (!res.ok) {
+      if (contentType?.includes('application/json')) {
+        const json = await res.json();
+        return { error: json.error || json.message || `Error ${res.status}` };
+      }
+      return { error: `Request failed (${res.status})` };
+    }
+    if (contentType?.includes('application/json')) {
+      try {
+        return await res.json();
+      } catch {
+        return { success: true };
+      }
+    }
+    return { success: true };
   } catch (err) {
     if (err.name === 'AbortError') {
       return { error: 'Request timed out. Please try again.' };

@@ -24,7 +24,7 @@ def require_superuser():
             return None, 403
         return current_user, None
 
-    token = request.headers.get('X-Admin-Token') or request.args.get('admin_token')
+    token = request.headers.get('X-Admin-Token')
     if token:
         try:
             s = _get_admin_serializer()
@@ -217,25 +217,37 @@ def manual_grade():
     else:
         return jsonify({'error': f'Cannot determine side from: {pick.side}'}), 400
 
+    home_int, away_int = int(home_score), int(away_score)
     if pick_is_home:
-        covered = (spread_result + line_value) > 0
-        push = (spread_result + line_value) == 0
+        ats_margin = spread_result + line_value
     else:
-        covered = (away_score - home_score + line_value) > 0
-        push = (away_score - home_score + line_value) == 0
+        ats_margin = away_int - home_int + line_value
+    covered = ats_margin > 0
+    push = ats_margin == 0
 
     if push:
         pick.result = 'push'
-        pick.result_ats = 'push'
+        pick.result_ats = 'P'
+        pick.profit_units = 0.0
+        pick.pnl = 0
     elif covered:
         pick.result = 'win'
-        pick.result_ats = 'win'
+        pick.result_ats = 'W'
+        actual_odds = pick.market_odds or -110
+        if actual_odds < 0:
+            pick.profit_units = round(100 / abs(actual_odds), 2)
+        else:
+            pick.profit_units = round(actual_odds / 100, 2)
+        pick.pnl = round(pick.profit_units * 100, 0)
     else:
         pick.result = 'loss'
-        pick.result_ats = 'loss'
+        pick.result_ats = 'L'
+        pick.profit_units = -1.0
+        pick.pnl = -100
 
-    pick.pnl = 1.0 if pick.result == 'win' else (-1.1 if pick.result == 'loss' else 0.0)
-    pick.profit_units = pick.pnl
+    pick.home_score = int(home_score)
+    pick.away_score = int(away_score)
+    pick.result_resolved_at = datetime.now()
     db.session.commit()
 
     return jsonify({
@@ -258,7 +270,8 @@ def rerun_model():
 
     now_et = datetime.now(ET)
     today_str = now_et.strftime('%Y-%m-%d')
-    sport = request.json.get('sport', 'nba') if request.json else 'nba'
+    data = request.get_json() or {}
+    sport = data.get('sport', 'nba')
 
     runs_deleted = ModelRun.query.filter_by(date=today_str, sport=sport).delete()
     passes_deleted = Pass.query.filter_by(date=today_str, sport=sport).delete()
@@ -273,6 +286,39 @@ def rerun_model():
         'cleared': {'runs': runs_deleted, 'passes': passes_deleted, 'picks': picks_deleted},
         'result': result,
     })
+
+
+@admin_bp.route('/api/admin/trigger-model', methods=['POST'])
+def trigger_model():
+    """Run model without clearing (admin auth). Use force=true in body to clear and rerun."""
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    data = request.get_json() or {}
+    force = data.get('force', False)
+    sport = data.get('sport', 'nba')
+
+    from model_service import run_model_and_log
+    from flask import current_app
+    result = run_model_and_log(current_app._get_current_object(), sport=sport, force=force)
+    return jsonify({'result': result})
+
+
+@admin_bp.route('/api/admin/trigger-grade', methods=['POST'])
+def trigger_grade():
+    """Manually run grade_pending_picks (admin auth)."""
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    from app import grade_pending_picks
+    try:
+        grade_pending_picks()
+        return jsonify({'success': True, 'message': 'Grade completed'})
+    except Exception as e:
+        logging.error(f"Admin trigger-grade error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @admin_bp.route('/api/admin/status-summary')
