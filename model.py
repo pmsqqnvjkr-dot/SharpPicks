@@ -8,7 +8,7 @@ import sqlite3
 import pandas as pd
 from db_path import get_sqlite_path
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pickle
 import os
 
@@ -730,10 +730,18 @@ class EnsemblePredictor:
             LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team_abbr
             LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_abbr"""
 
-        # Use UTC now in ISO format so comparison with game_time (ISO 8601) is reliable.
-        # Include NULL/empty game_time as "upcoming" — Rundown fallback and some Odds responses omit it.
-        now_utc_iso = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-
+        # Time filter: America/New_York explicitly. Eligible until 30 min before tip-off.
+        # game_time is UTC ISO; cutoff = now ET + 30 min, converted to UTC ISO.
+        try:
+            from zoneinfo import ZoneInfo
+            et = ZoneInfo("America/New_York")
+        except ImportError:
+            from datetime import timezone as tz
+            et = tz(timedelta(hours=-5))
+        now_et = datetime.now(et)
+        cutoff_et = now_et + timedelta(minutes=30)
+        cutoff_utc_iso = cutoff_et.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        # Include NULL/empty game_time as upcoming; otherwise require game_time > cutoff (30 min buffer)
         query = f'''
             SELECT
                 g.id, g.home_team, g.away_team, g.game_date, g.game_time,
@@ -761,7 +769,7 @@ class EnsemblePredictor:
             AND (g.game_time IS NULL OR COALESCE(TRIM(g.game_time), '') = '' OR g.game_time > ?)
         '''
 
-        df = pd.read_sql_query(query, conn, params=(date_str, now_utc_iso))
+        df = pd.read_sql_query(query, conn, params=(date_str, cutoff_utc_iso))
         conn.close()
         
         if len(df) == 0:

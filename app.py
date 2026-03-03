@@ -1139,30 +1139,14 @@ def send_weekly_summary_job():
 
 
 def collect_todays_games():
-    """Run the main.py data collector"""
-    print(f"[{datetime.now()}] Running scheduled data collection... (db={get_sqlite_path()})")
+    """Run data collection in-process — same env, shared SQLite path, no subprocess fragility."""
+    logging.info(f"[collect] Starting (db={get_sqlite_path()})")
     try:
-        result = subprocess.run(
-            [sys.executable, 'main.py'],
-            timeout=300,
-            capture_output=True,
-            text=True,
-            cwd=os.path.dirname(os.path.abspath(__file__)),
-        )
-        if result.returncode != 0:
-            err = (result.stderr or result.stdout or "").strip() or f"Exit code {result.returncode}"
-            raise RuntimeError(f"main.py failed: {err[:500]}")
-        # Log collect output for debugging (Events API count, Odds API path, games found)
-        out = (result.stdout or "").strip()
-        if out:
-            for line in out.splitlines():
-                if any(k in line for k in ('ESPN', 'Odds path:', 'Odds API', 'eventIds', 'Games found:', 'Games stored', ' - ', 'Error', 'Failed', '⚠️')):
-                    logging.info(f"[collect] {line.strip()}")
-        print(f"[{datetime.now()}] Data collection completed!")
-    except subprocess.TimeoutExpired as e:
-        raise RuntimeError(f"Data collection timed out after 300s: {e}")
+        from main import collect_todays_games as _collect
+        _collect()
+        logging.info("[collect] Completed")
     except Exception as e:
-        logging.error(f"Collection error: {e}")
+        logging.error(f"[collect] Error: {e}")
         raise
 
 def grade_pending_picks():

@@ -1,6 +1,8 @@
 """
 Central SQLite path for Railway persistent volumes.
-On Railway, use RAILWAY_VOLUME_MOUNT_PATH if a volume is attached.
+All production code (app.py, main.py, model.py, model_service.py) MUST use
+get_sqlite_path() — never hardcode 'sharp_picks.db'. Railway sets
+RAILWAY_VOLUME_MOUNT_PATH=/data when a volume is attached.
 """
 import os
 

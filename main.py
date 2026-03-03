@@ -919,9 +919,6 @@ def collect_todays_games():
         'betrivers': 'BetRivers',
     }
 
-    commence_from, commence_to = get_et_today_utc_range()
-    print(f"   Today's ET window: {commence_from} → {commence_to} UTC")
-
     url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
     params = {
         'apiKey': API_KEY,
@@ -929,8 +926,6 @@ def collect_todays_games():
         'markets': 'spreads,totals,h2h,spreads_h1,totals_h1,alternate_spreads',
         'oddsFormat': 'american',
         'bookmakers': ','.join(PREFERRED_BOOKS),
-        'commenceTimeFrom': commence_from,
-        'commenceTimeTo': commence_to,
     }
 
     odds_api_ok = False
@@ -940,8 +935,8 @@ def collect_todays_games():
     response = None
 
     try:
-        # Odds API with date filter (primary)
-        print(f"   Odds API: querying with date range")
+        # Odds API: single call, no date/eventIds params (422 on Railway). Filter to today client-side.
+        print(f"   Odds API: querying (filter to {today_str_et} client-side)")
         response = api_request_with_retry(url, params)
         if response and response.status_code == 200:
             raw_games = response.json()
@@ -949,17 +944,6 @@ def collect_todays_games():
             games = [g for g in raw_games if utc_to_eastern_date(g.get('commence_time', '') or '') == today_str_et]
             filtered_count = len(games)
             print(f"   Odds API: {raw_count} games raw → {filtered_count} after today filter ({today_str_et})")
-        elif response and response.status_code == 422:
-            # 422 = validation error on date params — retry without date filter, get all upcoming, filter client-side
-            print(f"   Odds API 422 with date range; retrying without date filter...")
-            params_no_date = {k: v for k, v in params.items() if k not in ('commenceTimeFrom', 'commenceTimeTo')}
-            response = api_request_with_retry(url, params_no_date)
-            if response and response.status_code == 200:
-                raw_games = response.json()
-                raw_count = len(raw_games)
-                games = [g for g in raw_games if utc_to_eastern_date(g.get('commence_time', '') or '') == today_str_et]
-                filtered_count = len(games)
-                print(f"   Odds API (no date filter): {raw_count} games raw → {filtered_count} after today filter ({today_str_et})")
 
         if response is None:
             print("\n⚠️ Failed to connect to Odds API after 3 attempts.")
