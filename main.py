@@ -1352,7 +1352,8 @@ def collect_todays_games():
         conn.commit()
         conn.close()
 
-        print(f"   Games stored for today: {len(games_to_process)}")
+        with_spreads = sum(1 for gp in games_to_process if gp.get('spread_home') is not None)
+        print(f"   Games stored for today: {len(games_to_process)} ({with_spreads} with spreads from Odds API)")
         
         print("="*60)
         show_stats()
