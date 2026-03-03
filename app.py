@@ -1185,12 +1185,22 @@ def grade_pending_picks():
                     pick_date = str(raw_date)[:10]
                 logging.info(f"[Auto-grade] Processing: {pick.away_team} @ {pick.home_team} on {pick_date}")
 
-                date_str = pick_date.replace('-', '')
                 from sport_config import get_espn_scoreboard_url
-                espn_url = get_espn_scoreboard_url(pick.sport, date_str)
                 try:
-                    espn_resp = requests.get(espn_url, timeout=15)
-                    if espn_resp.status_code == 200:
+                    pd_date = datetime.strptime(pick_date, '%Y-%m-%d').date()
+                    next_day = (pd_date + timedelta(days=1)).strftime('%Y-%m-%d').replace('-', '')
+                    espn_dates_to_try = [pick_date.replace('-', ''), next_day]
+                except Exception:
+                    espn_dates_to_try = [pick_date.replace('-', '')]
+                try:
+                    for date_str in espn_dates_to_try:
+                        if game:
+                            break
+                        espn_url = get_espn_scoreboard_url(pick.sport, date_str)
+                        espn_resp = requests.get(espn_url, timeout=15)
+                        if espn_resp.status_code != 200:
+                            logging.warning(f"[Auto-grade] ESPN returned {espn_resp.status_code} for {date_str}")
+                            continue
                         espn_data = espn_resp.json()
                         for event in espn_data.get('events', []):
                             comps = event.get('competitions') or []
@@ -1198,7 +1208,8 @@ def grade_pending_picks():
                                 continue
                             comp = comps[0]
                             status_desc = (comp.get('status') or {}).get('type') or {}
-                            if status_desc.get('description') != 'Final':
+                            desc = (status_desc.get('description') or '').strip()
+                            if desc != 'Final' and not desc.startswith('Final'):
                                 continue
                             teams = comp.get('competitors') or []
                             espn_home = next((t for t in teams if t['homeAway'] == 'home'), None)
@@ -1212,8 +1223,6 @@ def grade_pending_picks():
                                 }
                                 logging.info(f"[Auto-grade] ESPN: {pick.away_team} {game['away_score']} @ {pick.home_team} {game['home_score']}")
                                 break
-                    else:
-                        logging.warning(f"[Auto-grade] ESPN returned {espn_resp.status_code}")
                 except Exception as espn_err:
                     logging.error(f"[Auto-grade] ESPN error: {espn_err}")
 
