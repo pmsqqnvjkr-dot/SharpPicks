@@ -882,6 +882,10 @@ def collect_todays_games():
             today_events = ev_resp.json()
             today_event_ids = [e['id'] for e in today_events]
             print(f"   Events API: {len(today_event_ids)} games for today (no quota used)")
+            for ev in today_events:
+                print(f"      - {ev.get('away_team')} @ {ev.get('home_team')} ({ev.get('commence_time', '')[:10]})")
+        else:
+            print(f"   Events API: {ev_resp.status_code if ev_resp else 'no response'} (fallback to odds-only)")
     except Exception as e:
         print(f"   Events API fallback skipped: {e}")
 
@@ -898,9 +902,9 @@ def collect_todays_games():
     }
     if today_event_ids:
         params['eventIds'] = ','.join(today_event_ids[:50])  # API limit ~50
-        print(f"   Requesting odds for {len(today_event_ids)} event(s)...")
+        print(f"   Odds path: eventIds ({len(today_event_ids)} events)")
     else:
-        print(f"   Requesting odds with date filter...")
+        print(f"   Odds path: date filter only (Events API had 0)")
 
     odds_api_ok = False
     games_to_process = []
@@ -917,6 +921,7 @@ def collect_todays_games():
                 response = api_request_with_retry(url, params)
                 if response and response.status_code == 200:
                     games = response.json()
+                    print(f"   Date filter only: {len(games)} games")
             if len(games) == 0:
                 print("   No games with date filter; retrying without filter...")
                 params_no_filter = {k: v for k, v in params.items() if k not in ('commenceTimeFrom', 'commenceTimeTo')}
@@ -944,7 +949,10 @@ def collect_todays_games():
                 games = response.json()
             print(f"✅ Odds API Connected!")
             print(f"   Games found: {len(games)}")
-            print(f"   API calls left: {API_USAGE['remaining']}/500\n")
+            print(f"   API calls left: {API_USAGE['remaining']}/500")
+            for g in games:
+                print(f"      - {g.get('away_team')} @ {g.get('home_team')} (commence: {g.get('commence_time', '')[:19]})")
+            print()
             check_api_usage()
             odds_api_ok = True
 
@@ -1337,6 +1345,8 @@ def collect_todays_games():
         
         conn.commit()
         conn.close()
+
+        print(f"   Games stored for today: {len(games_to_process)}")
         
         print("="*60)
         show_stats()

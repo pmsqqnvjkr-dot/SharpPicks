@@ -1152,6 +1152,12 @@ def collect_todays_games():
         if result.returncode != 0:
             err = (result.stderr or result.stdout or "").strip() or f"Exit code {result.returncode}"
             raise RuntimeError(f"main.py failed: {err[:500]}")
+        # Log collect output for debugging (Events API count, Odds API path, games found)
+        out = (result.stdout or "").strip()
+        if out:
+            for line in out.splitlines():
+                if any(k in line for k in ('Events API:', 'Odds path:', 'eventIds returned', 'Date filter only:', 'Filtered to', 'Games found:', 'Odds API Connected', 'Games stored', ' - ', 'Error', 'Failed', '⚠️')):
+                    logging.info(f"[collect] {line.strip()}")
         print(f"[{datetime.now()}] Data collection completed!")
     except subprocess.TimeoutExpired as e:
         raise RuntimeError(f"Data collection timed out after 300s: {e}")
@@ -4107,6 +4113,12 @@ def _railway_startup_refresh():
 _on_replit = os.environ.get("REPLIT_DEPLOYMENT") == "1"
 _on_railway = bool(os.environ.get("RAILWAY_PUBLIC_DOMAIN") or os.environ.get("RAILWAY_PROJECT_ID"))
 if _db_url and _on_railway:
+    try:
+        from db_path import get_sqlite_status
+        sq = get_sqlite_status()
+        logging.info(f"SQLite: path={sq['path']} volume={sq.get('volume_mount', 'none')} persistent={sq.get('persistent')}")
+    except Exception as e:
+        logging.warning(f"SQLite status check: {e}")
     _run_seed_now()
     threading.Timer(30.0, _railway_startup_refresh).start()
 elif _db_url and _on_replit:
