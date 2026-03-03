@@ -1099,12 +1099,6 @@ def collect_todays_games():
                                             if key not in alt_spreads or price > alt_spreads[key]:
                                                 alt_spreads[key] = price
 
-                # Debug: spread parsing
-                bms = game.get('bookmakers', [])
-                first_keys = [m.get('key') for m in bms[0].get('markets', [])] if bms else []
-                got_spread = spread_home is not None
-                print(f"   [DEBUG] {away} @ {home}: bookmakers={len(bms)}, first_markets={first_keys}, spread_home={'OK' if got_spread else 'MISS'}")
-
                 games_to_process.append({
                     'game_id': game_id, 'home': home, 'away': away,
                     'commence_time': commence_time, 'game_time': game.get('commence_time') or None,
@@ -1173,50 +1167,56 @@ def collect_todays_games():
             away_spread_odds = gp['away_spread_odds']
             home_spread_book = gp['home_spread_book']
             away_spread_book = gp['away_spread_book']
-            
-            # Get enhanced data
-            home_info = team_data.get(home, {})
-            away_info = team_data.get(away, {})
-            
-            home_record = home_info.get('record', 'N/A')
-            away_record = away_info.get('record', 'N/A')
-            home_home_record = home_info.get('home_record', 'N/A')
-            away_away_record = away_info.get('away_record', 'N/A')
-            
-            # Get form and rest days
-            home_abbr = TEAM_ABBR_MAP.get(home, '')
-            away_abbr = TEAM_ABBR_MAP.get(away, '')
-            
-            home_last5, home_last_game = get_team_schedule(home_abbr) if home_abbr else (None, None)
-            away_last5, away_last_game = get_team_schedule(away_abbr) if away_abbr else (None, None)
-            
-            home_rest = calculate_rest_days(home_last_game)
-            away_rest = calculate_rest_days(away_last_game)
-            
-            # Get injuries
-            home_injuries = injuries.get(home, '')
-            away_injuries = injuries.get(away, '')
-            
-            # Get game time (already set from gp above)
 
-            rd_game = {}
-            rd_key_full = f"{away}@{home}"
-            rd_game = rundown_games.get(rd_key_full, {})
-            if not rd_game:
-                for rk, rv in rundown_games.items():
-                    rk_away, rk_home = rk.split('@', 1) if '@' in rk else ('', '')
-                    if (rk_away in away or away.startswith(rk_away)) and (rk_home in home or home.startswith(rk_home)):
-                        rd_game = rv
-                        break
-            rd_consensus = rd_game.get('consensus')
-            rd_std = rd_game.get('spread_std')
-            rd_range = rd_game.get('spread_range')
-            rd_best_book = rd_game.get('best_book')
-            rd_num_books = rd_game.get('num_books')
+            try:
+                # ESPN / enrichment — failures must not drop the game
+                home_info = team_data.get(home, {})
+                away_info = team_data.get(away, {})
 
-            # Get BallDontLie team stats
-            bdl_home = bdl_stats.get(home, {})
-            bdl_away = bdl_stats.get(away, {})
+                home_record = home_info.get('record', 'N/A')
+                away_record = away_info.get('record', 'N/A')
+                home_home_record = home_info.get('home_record', 'N/A')
+                away_away_record = away_info.get('away_record', 'N/A')
+
+                home_abbr = TEAM_ABBR_MAP.get(home, '')
+                away_abbr = TEAM_ABBR_MAP.get(away, '')
+
+                home_last5, home_last_game = get_team_schedule(home_abbr) if home_abbr else (None, None)
+                away_last5, away_last_game = get_team_schedule(away_abbr) if away_abbr else (None, None)
+
+                home_rest = calculate_rest_days(home_last_game)
+                away_rest = calculate_rest_days(away_last_game)
+
+                home_injuries = injuries.get(home, '')
+                away_injuries = injuries.get(away, '')
+
+                rd_game = {}
+                rd_key_full = f"{away}@{home}"
+                rd_game = rundown_games.get(rd_key_full, {})
+                if not rd_game:
+                    for rk, rv in rundown_games.items():
+                        rk_away, rk_home = rk.split('@', 1) if '@' in rk else ('', '')
+                        if (rk_away in away or away.startswith(rk_away)) and (rk_home in home or home.startswith(rk_home)):
+                            rd_game = rv
+                            break
+                rd_consensus = rd_game.get('consensus')
+                rd_std = rd_game.get('spread_std')
+                rd_range = rd_game.get('spread_range')
+                rd_best_book = rd_game.get('best_book')
+                rd_num_books = rd_game.get('num_books')
+
+                bdl_home = bdl_stats.get(home, {})
+                bdl_away = bdl_stats.get(away, {})
+            except Exception as enrich_err:
+                print(f"   ⚠️ Enrichment failed for {away} @ {home}: {enrich_err} — storing with Odds API data only")
+                home_record = away_record = home_home_record = away_away_record = 'N/A'
+                home_last5 = away_last5 = None
+                home_rest = away_rest = None
+                home_injuries = away_injuries = ''
+                rd_consensus = rd_std = rd_range = rd_best_book = rd_num_books = None
+                bdl_home = {}
+                bdl_away = {}
+
             bdl_home_win_pct = bdl_home.get('win_pct')
             bdl_away_win_pct = bdl_away.get('win_pct')
             bdl_home_conf_rank = bdl_home.get('conference_rank')
