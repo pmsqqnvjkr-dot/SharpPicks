@@ -27,17 +27,20 @@ try { analytics = getAnalytics(app); } catch (e) {}
 async function sendTokenToServer(token, platform) {
   const authToken = getAuthToken();
   console.log("[Push] auth token available:", !!authToken);
-  if (!authToken) return;
   const base = isNative ? API_BASE : '';
+  const headers = { 'Content-Type': 'application/json' };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
   const resp = await fetch(base + '/api/user/fcm-token', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
-    },
+    headers,
+    credentials: 'include',
     body: JSON.stringify({ token, platform })
   });
   console.log("[Push] token POST status:", resp.status);
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    console.warn("[Push] token POST failed:", resp.status, err);
+  }
   return resp;
 }
 

@@ -3268,6 +3268,7 @@ def update_notification_prefs():
 def save_fcm_token():
     user = get_current_user_obj()
     if not user:
+        logging.warning("[FCM] save_fcm_token: not authenticated")
         return jsonify({'error': 'Not authenticated'}), 401
     data = request.get_json() or {}
     token = data.get('token', '').strip()
@@ -3284,6 +3285,7 @@ def save_fcm_token():
         new_token = FCMToken(user_id=user.id, fcm_token=token, platform=platform)
         db.session.add(new_token)
     db.session.commit()
+    logging.info("[FCM] token registered: user=%s platform=%s", user.email, platform)
     return jsonify({'success': True})
 
 
