@@ -18,7 +18,9 @@ def get_base_url():
         domain = os.environ.get('REPLIT_DOMAINS', '')
         if domain:
             return f"https://{domain.split(',')[0].strip()}"
-    return "https://sharp-picks-erindonnelly4.replit.app"
+    if os.environ.get('RAILWAY_PUBLIC_DOMAIN'):
+        return f"https://{os.environ['RAILWAY_PUBLIC_DOMAIN']}"
+    return "https://app.sharppicks.ai"
 
 def _load_image_b64(filename):
     for d in [os.path.join(SCRIPT_DIR, 'public'), os.path.join(SCRIPT_DIR, 'dist')]:
