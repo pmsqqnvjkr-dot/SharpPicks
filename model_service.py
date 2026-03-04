@@ -36,7 +36,7 @@ def _cache_model(sport, model, filepath):
         _model_cache[sport] = (model, filepath, mtime)
     except OSError:
         pass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from models import db, Pick, Pass, ModelRun, EdgeSnapshot, KillSwitch
 from sport_config import get_sport_config, get_live_sports
 
@@ -95,6 +95,39 @@ def _build_games_detail_from_sqlite(today_str, sport='nba', reason=''):
             'reason': reason,
         })
     return json.dumps(details)
+
+
+def _games_funnel_diagnostic(today_str, sport='nba'):
+    """Return counts at each filter step: total, with_spreads, unscored, time_eligible (matches model query)."""
+    games_table = 'wnba_games' if sport == 'wnba' else 'games'
+    diag = {'total': 0, 'with_spreads': 0, 'unscored': 0, 'time_eligible': 0, 'cutoff_utc': None}
+    try:
+        conn = sqlite3.connect(get_sqlite_path())
+        cur = conn.cursor()
+        if not cur.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (games_table,)).fetchone():
+            conn.close()
+            return diag
+        diag['total'] = cur.execute(f"SELECT COUNT(*) FROM {games_table} WHERE game_date = ?", (today_str,)).fetchone()[0]
+        diag['with_spreads'] = cur.execute(f"SELECT COUNT(*) FROM {games_table} WHERE game_date = ? AND spread_home IS NOT NULL", (today_str,)).fetchone()[0]
+        diag['unscored'] = cur.execute(f"SELECT COUNT(*) FROM {games_table} WHERE game_date = ? AND home_score IS NULL", (today_str,)).fetchone()[0]
+        try:
+            from zoneinfo import ZoneInfo
+            et = ZoneInfo("America/New_York")
+        except ImportError:
+            et = timezone(timedelta(hours=-5))
+        now_et = datetime.now(et)
+        cutoff_et = now_et + timedelta(minutes=30)
+        cutoff_utc_iso = cutoff_et.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        diag['cutoff_utc'] = cutoff_utc_iso
+        cur.execute(f"""SELECT COUNT(*) FROM {games_table} g
+            WHERE g.game_date = ? AND g.home_score IS NULL AND g.spread_home IS NOT NULL
+            AND (g.game_time IS NULL OR COALESCE(TRIM(g.game_time), '') = '' OR g.game_time > ?)""",
+            (today_str, cutoff_utc_iso))
+        diag['time_eligible'] = cur.fetchone()[0]
+        conn.close()
+    except Exception:
+        pass
+    return diag
 
 
 def _diagnose_no_games(today_str, sport='nba'):
@@ -385,7 +418,10 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
 
     start_time = time.time()
     today_str = date_override if date_override else _get_et_date()
+    funnel = _games_funnel_diagnostic(today_str, sport=sport)
     print(f"[model-run] Starting {sport} run for {today_str} (live={is_live}, force={force})")
+    if funnel['total'] > 0:
+        print(f"[model-run] Games funnel: total={funnel['total']} spread={funnel['with_spreads']} unscored={funnel['unscored']} time_ok={funnel['time_eligible']} cutoff={funnel.get('cutoff_utc','?')}")
 
     with app.app_context():
         existing_pick = Pick.query.filter(
@@ -396,7 +432,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
 
         if (existing_pick or existing_pass) and not force:
             print(f"[model-run] Already run for {today_str} — pick={'yes' if existing_pick else 'no'}, pass={'yes' if existing_pass else 'no'}")
-            return {'status': 'already_run', 'date': today_str, 'sport': sport}
+            return {'status': 'already_run', 'date': today_str, 'sport': sport, 'games_funnel': funnel}
 
         if force and (existing_pick or existing_pass):
             if existing_pick:
@@ -435,6 +471,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                         'date': today_str,
                         'sport': sport,
                         'duration_ms': duration_ms,
+                        'games_funnel': funnel,
                     }
 
                 if situation == 'no_spreads':
@@ -447,6 +484,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                         'date': today_str,
                         'sport': sport,
                         'duration_ms': duration_ms,
+                        'games_funnel': funnel,
                     }
 
                 if situation == 'stale_data':
@@ -723,6 +761,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                     'pass_reason': top_pass_reason,
                     'date': today_str,
                     'sport': sport,
+                    'games_funnel': funnel,
                 }
 
         except Exception as e:
