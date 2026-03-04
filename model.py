@@ -695,8 +695,9 @@ class EnsemblePredictor:
             now_et = now_et - timedelta(days=1)
         return now_et.strftime('%Y-%m-%d')
 
-    def predict_games(self, min_confidence=None, log_predictions=True, date_str=None):
-        """Make predictions for today's upcoming games with filtering"""
+    def predict_games(self, min_confidence=None, log_predictions=True, date_str=None, min_minutes_to_tip=30):
+        """Make predictions for today's upcoming games with filtering.
+        min_minutes_to_tip: buffer before tip (0 = include all unscored games, 30 = default)."""
         if date_str is None:
             date_str = self._get_betting_date()
         print("\n" + "="*60)
@@ -730,8 +731,7 @@ class EnsemblePredictor:
             LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team_abbr
             LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_abbr"""
 
-        # Time filter: America/New_York explicitly. Eligible until 30 min before tip-off.
-        # game_time is UTC ISO; cutoff = now ET + 30 min, converted to UTC ISO.
+        # Time filter: America/New_York. Eligible until min_minutes_to_tip before tip (0 = all unscored).
         try:
             from zoneinfo import ZoneInfo
             et = ZoneInfo("America/New_York")
@@ -739,9 +739,9 @@ class EnsemblePredictor:
             from datetime import timezone as tz
             et = tz(timedelta(hours=-5))
         now_et = datetime.now(et)
-        cutoff_et = now_et + timedelta(minutes=30)
+        cutoff_et = now_et + timedelta(minutes=min_minutes_to_tip)
         cutoff_utc_iso = cutoff_et.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-        # Include NULL/empty game_time as upcoming; otherwise require game_time > cutoff (30 min buffer)
+        # Include NULL/empty game_time as upcoming; otherwise require game_time > cutoff
         query = f'''
             SELECT
                 g.id, g.home_team, g.away_team, g.game_date, g.game_time,

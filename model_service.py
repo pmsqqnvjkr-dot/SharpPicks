@@ -454,7 +454,9 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                     return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
                 _cache_model(sport, model, model._default_filepath())
 
-            predictions = model.predict_games(log_predictions=True, date_str=today_str)
+            # When force=true, use 0 min buffer so all stored games are analyzed (useful for late runs / testing)
+            min_minutes = 0 if force else 30
+            predictions = model.predict_games(log_predictions=True, date_str=today_str, min_minutes_to_tip=min_minutes)
             print(f"[model-run] Games found: {len(predictions) if predictions else 0}")
 
             if not predictions:
