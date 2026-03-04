@@ -10,6 +10,7 @@ from db_path import get_sqlite_path
 import time
 import random
 import statistics
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 
 def utc_to_eastern_date(utc_str):
@@ -59,6 +60,7 @@ API_USAGE = {'remaining': 500, 'used': 0}
 
 # Shared session for Odds API — connection reuse, keep-alive (helps Railway cold starts)
 _odds_session = None
+_espn_session = None
 
 def _get_odds_session():
     global _odds_session
@@ -68,6 +70,16 @@ def _get_odds_session():
         adapter = requests.adapters.HTTPAdapter(pool_connections=2, pool_maxsize=4, max_retries=0)
         _odds_session.mount('https://', adapter)
     return _odds_session
+
+def _get_espn_session():
+    """Shared session for ESPN API — connection reuse."""
+    global _espn_session
+    if _espn_session is None:
+        _espn_session = requests.Session()
+        _espn_session.headers.update({'User-Agent': 'SharpPicks/1.0', 'Accept': 'application/json'})
+        adapter = requests.adapters.HTTPAdapter(pool_connections=4, pool_maxsize=8, max_retries=0)
+        _espn_session.mount('https://', adapter)
+    return _espn_session
 
 def api_request_with_retry(url, params, max_retries=3):
     """Make API request with retry logic and usage tracking. Uses session for connection reuse."""
@@ -371,50 +383,44 @@ def setup_database():
     conn.close()
 
 
+def _fetch_one_team_record(team_name, abbr):
+    """Fetch one team's record from ESPN. Returns (team_name, data_dict) or (team_name, None) on failure."""
+    try:
+        url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/{abbr.lower()}"
+        session = _get_espn_session()
+        response = session.get(url, timeout=5)
+        if response.status_code != 200:
+            return team_name, None
+        data = response.json()
+        team = data.get('team', {})
+        records = team.get('record', {}).get('items', [])
+        record = home_record = away_record = 'N/A'
+        for item in records:
+            rec_type = item.get('type', '')
+            summary = item.get('summary', '')
+            if rec_type == 'total':
+                record = summary
+            elif rec_type == 'home':
+                home_record = summary
+            elif rec_type == 'road':
+                away_record = summary
+        return team_name, {'record': record, 'home_record': home_record, 'away_record': away_record}
+    except Exception:
+        return team_name, None
+
+
 def get_team_data():
-    """Fetch team records, home/away splits from ESPN team endpoints"""
+    """Fetch team records, home/away splits from ESPN — parallelized."""
     print("📊 Fetching team records...")
-    
     team_data = {}
-    
-    for team_name, abbr in TEAM_ABBR_MAP.items():
-        try:
-            url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/{abbr.lower()}"
-            response = requests.get(url, timeout=5)
-            
-            if response.status_code != 200:
-                continue
-            
-            data = response.json()
-            team = data.get('team', {})
-            records = team.get('record', {}).get('items', [])
-            
-            record = 'N/A'
-            home_record = 'N/A'
-            away_record = 'N/A'
-            
-            for item in records:
-                rec_type = item.get('type', '')
-                summary = item.get('summary', '')
-                
-                if rec_type == 'total':
-                    record = summary
-                elif rec_type == 'home':
-                    home_record = summary
-                elif rec_type == 'road':
-                    away_record = summary
-            
-            team_data[team_name] = {
-                'record': record,
-                'home_record': home_record,
-                'away_record': away_record,
-            }
-            
-        except Exception:
-            continue
-    
+    max_workers = min(8, len(TEAM_ABBR_MAP))
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        futures = {ex.submit(_fetch_one_team_record, tn, abbr): tn for tn, abbr in TEAM_ABBR_MAP.items()}
+        for future in as_completed(futures):
+            team_name, data = future.result()
+            if data:
+                team_data[team_name] = data
     print(f"   ✅ Loaded records for {len(team_data)} teams")
-    
     return team_data
 
 
@@ -429,7 +435,7 @@ def get_wnba_team_data():
     for team_name, abbr in WNBA_TEAM_ABBR_MAP.items():
         try:
             url = f"{cfg['espn_teams']}/{abbr.lower()}"
-            response = requests.get(url, timeout=5)
+            response = _get_espn_session().get(url, timeout=5)
 
             if response.status_code != 200:
                 continue
@@ -473,7 +479,7 @@ def get_wnba_team_schedule(team_abbr):
     cfg = get_sport_config('wnba')
     try:
         url = f"{cfg['espn_teams']}/{team_abbr}/schedule"
-        response = requests.get(url, timeout=10)
+        response = _get_espn_session().get(url, timeout=10)
 
         if response.status_code != 200:
             return None, None
@@ -521,7 +527,7 @@ def get_team_schedule(team_abbr):
     """Get team's recent games for form and rest days calculation"""
     try:
         url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/{team_abbr}/schedule"
-        response = requests.get(url, timeout=10)
+        response = _get_espn_session().get(url, timeout=10)
         
         if response.status_code != 200:
             return None, None
@@ -593,7 +599,7 @@ def get_injuries():
     
     try:
         url = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries"
-        response = requests.get(url, timeout=15)
+        response = _get_espn_session().get(url, timeout=15)
         
         if response.status_code != 200:
             print(f"   ⚠️ Injuries API error: {response.status_code}")
@@ -635,7 +641,7 @@ def get_wnba_injuries():
 
     try:
         url = cfg['espn_injuries']
-        response = requests.get(url, timeout=15)
+        response = _get_espn_session().get(url, timeout=15)
 
         if response.status_code != 200:
             print(f"   ⚠️ WNBA Injuries API error: {response.status_code}")
@@ -681,7 +687,7 @@ def collect_yesterdays_scores():
     url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={date_str}"
     
     try:
-        response = requests.get(url)
+        response = _get_espn_session().get(url, timeout=10)
         
         if response.status_code != 200:
             print(f"❌ ESPN API Error: {response.status_code}")
@@ -845,7 +851,7 @@ def _fetch_espn_expected_games(today_str_et):
     date_str = today_str_et.replace('-', '')
     url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={date_str}"
     try:
-        resp = requests.get(url, timeout=10)
+        resp = _get_espn_session().get(url, timeout=10)
         if resp.status_code != 200:
             return 0, []
         data = resp.json()
@@ -1148,11 +1154,33 @@ def collect_todays_games():
         show_stats()
         return
 
+    # Pre-fetch schedules for unique teams (avoid 2× per game)
+    schedule_cache = {}
+    for gp in games_to_process:
+        for team_name in (gp.get('home'), gp.get('away')):
+            abbr = TEAM_ABBR_MAP.get(team_name, '')
+            if abbr and abbr not in schedule_cache:
+                schedule_cache[abbr] = get_team_schedule(abbr)
+
+    # Pre-resolve Rundown matchup for each game (avoid per-game loop)
+    rd_for_game = []
+    for gp in games_to_process:
+        away, home = gp.get('away', ''), gp.get('home', '')
+        rd_key = f"{away}@{home}"
+        rd_game = rundown_games.get(rd_key, {})
+        if not rd_game:
+            for rk, rv in rundown_games.items():
+                rk_away, rk_home = (rk.split('@', 1) + [''])[:2] if '@' in rk else ('', '')
+                if (rk_away in away or away.startswith(rk_away)) and (rk_home in home or home.startswith(rk_home)):
+                    rd_game = rv
+                    break
+        rd_for_game.append(rd_game)
+
     try:
         conn = sqlite3.connect(get_sqlite_path())
         cursor = conn.cursor()
 
-        for gp in games_to_process:
+        for idx, gp in enumerate(games_to_process):
             game_id = gp['game_id']
             home = gp['home']
             away = gp['away']
@@ -1181,8 +1209,8 @@ def collect_todays_games():
                 home_abbr = TEAM_ABBR_MAP.get(home, '')
                 away_abbr = TEAM_ABBR_MAP.get(away, '')
 
-                home_last5, home_last_game = get_team_schedule(home_abbr) if home_abbr else (None, None)
-                away_last5, away_last_game = get_team_schedule(away_abbr) if away_abbr else (None, None)
+                home_last5, home_last_game = schedule_cache.get(home_abbr, (None, None))
+                away_last5, away_last_game = schedule_cache.get(away_abbr, (None, None))
 
                 home_rest = calculate_rest_days(home_last_game)
                 away_rest = calculate_rest_days(away_last_game)
@@ -1190,15 +1218,7 @@ def collect_todays_games():
                 home_injuries = injuries.get(home, '')
                 away_injuries = injuries.get(away, '')
 
-                rd_game = {}
-                rd_key_full = f"{away}@{home}"
-                rd_game = rundown_games.get(rd_key_full, {})
-                if not rd_game:
-                    for rk, rv in rundown_games.items():
-                        rk_away, rk_home = rk.split('@', 1) if '@' in rk else ('', '')
-                        if (rk_away in away or away.startswith(rk_away)) and (rk_home in home or home.startswith(rk_home)):
-                            rd_game = rv
-                            break
+                rd_game = rd_for_game[idx] if idx < len(rd_for_game) else {}
                 rd_consensus = rd_game.get('consensus')
                 rd_std = rd_game.get('spread_std')
                 rd_range = rd_game.get('spread_range')
@@ -2304,7 +2324,7 @@ def collect_wnba_scores(date_offset=1):
     url = f"{cfg['espn_scoreboard']}?dates={date_str}"
 
     try:
-        response = requests.get(url, timeout=15)
+        response = _get_espn_session().get(url, timeout=15)
         if response.status_code != 200:
             print(f"❌ ESPN WNBA Error: {response.status_code}")
             return

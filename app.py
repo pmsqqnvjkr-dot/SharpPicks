@@ -1418,7 +1418,10 @@ def collect_wnba_games_job():
     """Run the WNBA data collector"""
     print(f"[{datetime.now()}] Running scheduled WNBA data collection...")
     try:
-        subprocess.run(['python', 'main.py', '--wnba'], timeout=300)
+        from main import collect_wnba_scores, collect_wnba_odds, update_wnba_rolling_ratings
+        collect_wnba_scores()
+        collect_wnba_odds()
+        update_wnba_rolling_ratings()
         print(f"[{datetime.now()}] WNBA data collection completed!")
     except Exception as e:
         print(f"[{datetime.now()}] WNBA collection error: {e}")
@@ -1428,7 +1431,8 @@ def collect_wnba_closing_lines_job():
     First refreshes WNBA data from APIs, then snapshots current lines as closing lines."""
     print(f"[{datetime.now()}] Refreshing WNBA lines for closing snapshot...")
     try:
-        subprocess.run(['python', 'main.py', '--wnba-close'], timeout=300)
+        from main import collect_wnba_closing_lines
+        collect_wnba_closing_lines()
     except Exception as e:
         print(f"[{datetime.now()}] WNBA line refresh error (continuing): {e}")
     
@@ -1782,7 +1786,9 @@ def run_wnba_shadow_job():
     """Run WNBA shadow predictions — compute ratings then predict."""
     print(f"[{datetime.now()}] Running WNBA shadow predictions...")
     try:
-        subprocess.run(['python', 'main.py', '--wnba-shadow'], timeout=300)
+        from main import update_wnba_rolling_ratings, run_wnba_shadow_predictions
+        update_wnba_rolling_ratings()
+        run_wnba_shadow_predictions()
         print(f"[{datetime.now()}] WNBA shadow predictions completed!")
     except Exception as e:
         print(f"[{datetime.now()}] WNBA shadow error: {e}")
@@ -1792,7 +1798,8 @@ def grade_wnba_shadow_job():
     """Grade completed WNBA shadow picks."""
     print(f"[{datetime.now()}] Grading WNBA shadow picks...")
     try:
-        subprocess.run(['python', 'main.py', '--wnba-grade'], timeout=120)
+        from main import grade_wnba_shadow_picks
+        grade_wnba_shadow_picks()
         print(f"[{datetime.now()}] WNBA shadow grading completed!")
     except Exception as e:
         print(f"[{datetime.now()}] WNBA shadow grading error: {e}")

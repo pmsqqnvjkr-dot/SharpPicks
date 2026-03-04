@@ -9,6 +9,18 @@ from datetime import datetime
 
 RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY')
 
+_rundown_session = None
+
+def _get_rundown_session():
+    global _rundown_session
+    if _rundown_session is None:
+        _rundown_session = requests.Session()
+        _rundown_session.headers.update({
+            "x-rapidapi-key": RAPIDAPI_KEY or "",
+            "x-rapidapi-host": "therundown-therundown-v1.p.rapidapi.com"
+        })
+    return _rundown_session
+
 SPORT_ID = 4  # NBA
 
 TEAM_NAME_MAP = {
@@ -74,15 +86,9 @@ def get_nba_events():
     
     today = datetime.now().strftime('%Y-%m-%d')
     
-    headers = {
-        "x-rapidapi-key": RAPIDAPI_KEY,
-        "x-rapidapi-host": "therundown-therundown-v1.p.rapidapi.com"
-    }
-    
     try:
-        response = requests.get(
+        response = _get_rundown_session().get(
             f"https://therundown-therundown-v1.p.rapidapi.com/sports/{SPORT_ID}/events/{today}",
-            headers=headers,
             timeout=15
         )
         
@@ -102,15 +108,9 @@ def get_nba_odds():
     if not RAPIDAPI_KEY:
         return None
     
-    headers = {
-        "x-rapidapi-key": RAPIDAPI_KEY,
-        "x-rapidapi-host": "therundown-therundown-v1.p.rapidapi.com"
-    }
-    
     try:
-        response = requests.get(
+        response = _get_rundown_session().get(
             f"https://therundown-therundown-v1.p.rapidapi.com/sports/{SPORT_ID}/odds",
-            headers=headers,
             params={
                 "include": "scores",
                 "affiliate_ids": "1,2,3,4,6"  # DraftKings, FanDuel, BetMGM, Caesars, etc.
@@ -257,17 +257,11 @@ def test_connection():
     
     print(f"✅ API Key found: {RAPIDAPI_KEY[:10]}...")
     
-    headers = {
-        "x-rapidapi-key": RAPIDAPI_KEY,
-        "x-rapidapi-host": "therundown-therundown-v1.p.rapidapi.com"
-    }
-    
     today = datetime.now().strftime('%Y-%m-%d')
     
     try:
-        response = requests.get(
+        response = _get_rundown_session().get(
             f"https://therundown-therundown-v1.p.rapidapi.com/sports/{SPORT_ID}/events/{today}",
-            headers=headers,
             timeout=15
         )
         

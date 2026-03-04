@@ -28,6 +28,17 @@ TEAM_ABBREV_TO_BDL = {
 
 BDL_NAME_TO_FULL = {v: k for k, v in TEAM_ABBREV_TO_BDL.items()}
 
+_bdl_session = None
+
+def _get_bdl_session():
+    global _bdl_session
+    if _bdl_session is None:
+        _bdl_session = requests.Session()
+        _bdl_session.headers.update({"Authorization": API_KEY or ""})
+        adapter = requests.adapters.HTTPAdapter(pool_connections=2, pool_maxsize=4, max_retries=0)
+        _bdl_session.mount('https://', adapter)
+    return _bdl_session
+
 
 def _headers():
     return {"Authorization": API_KEY}
@@ -62,7 +73,7 @@ def get_teams():
         return {}
 
     try:
-        resp = requests.get(
+        resp = _get_bdl_session().get(
             f"{BASE_URL}/nba/v1/teams",
             headers=_headers(),
             timeout=15
@@ -123,7 +134,7 @@ def _fetch_recent_game_stats():
                 if cursor:
                     params["cursor"] = cursor
 
-                resp = requests.get(
+                resp = _get_bdl_session().get(
                     f"{BASE_URL}/nba/v1/games",
                     headers=_headers(),
                     params=params,
@@ -223,7 +234,7 @@ def test_connection():
     print(f"API Key found: {API_KEY[:10]}...")
 
     try:
-        resp = requests.get(
+        resp = _get_bdl_session().get(
             f"{BASE_URL}/nba/v1/teams",
             headers=_headers(),
             timeout=15

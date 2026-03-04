@@ -6,9 +6,36 @@ This service only: runs the model, reads outputs, stores to DB.
 """
 
 import json
+import os
 import time
 import sqlite3
 from db_path import get_sqlite_path
+
+# Cache loaded model per sport (avoid re-loading pickle on each run)
+_model_cache = {}  # sport -> (model, filepath, mtime)
+
+
+def _get_cached_model(sport):
+    """Return cached EnsemblePredictor if valid; else None."""
+    from model import EnsemblePredictor
+    if sport not in _model_cache:
+        return None
+    model, filepath, cached_mtime = _model_cache[sport]
+    try:
+        if os.path.exists(filepath) and os.path.getmtime(filepath) == cached_mtime:
+            return model
+    except OSError:
+        pass
+    del _model_cache[sport]
+    return None
+
+
+def _cache_model(sport, model, filepath):
+    try:
+        mtime = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
+        _model_cache[sport] = (model, filepath, mtime)
+    except OSError:
+        pass
 from datetime import datetime, timedelta
 from models import db, Pick, Pass, ModelRun, EdgeSnapshot, KillSwitch
 from sport_config import get_sport_config, get_live_sports
@@ -245,17 +272,20 @@ def pretip_revalidate(app, sport='nba'):
             return {'status': 'no_pick', 'date': today_str, 'sport': sport}
 
         try:
-            import subprocess
-            subprocess.run(['python', 'main.py'], timeout=300)
+            from main import collect_todays_games
+            collect_todays_games()
         except Exception as e:
             import logging
             logging.error(f"Pre-tip data refresh failed: {e}")
 
         try:
             from model import EnsemblePredictor
-            model = EnsemblePredictor(sport=sport)
-            if not model.load_model():
-                return {'status': 'error', 'error': 'Model not trained'}
+            model = _get_cached_model(sport)
+            if model is None:
+                model = EnsemblePredictor(sport=sport)
+                if not model.load_model():
+                    return {'status': 'error', 'error': 'Model not trained'}
+                _cache_model(sport, model, model._default_filepath())
 
             predictions = model.predict_games(log_predictions=False, date_str=today_str)
             if not predictions:
@@ -380,10 +410,13 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
         try:
             from model import EnsemblePredictor
 
-            model = EnsemblePredictor(sport=sport)
-            if not model.load_model():
-                print(f"[model-run] ERROR: Model not trained for {sport}")
-                return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
+            model = _get_cached_model(sport)
+            if model is None:
+                model = EnsemblePredictor(sport=sport)
+                if not model.load_model():
+                    print(f"[model-run] ERROR: Model not trained for {sport}")
+                    return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
+                _cache_model(sport, model, model._default_filepath())
 
             predictions = model.predict_games(log_predictions=True, date_str=today_str)
             print(f"[model-run] Games found: {len(predictions) if predictions else 0}")
