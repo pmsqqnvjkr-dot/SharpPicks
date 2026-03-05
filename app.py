@@ -973,6 +973,210 @@ The discipline that protects your bankroll on good days is the same discipline t
 *Evan*""",
                     status="scheduled", publish_date=datetime(2026, 3, 1), reading_time_minutes=3,
                 ))
+            if 'the-bet-you-didnt-place' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="The Bet You Didn\u2019t Place Is the One That Matters",
+                    slug="the-bet-you-didnt-place",
+                    category="philosophy",
+                    excerpt="Most betting services sell you volume. Ten picks a day. Twenty. A full card for every slate. The implicit promise is simple: more picks, more chances to win. That math is wrong.",
+                    content="""Most betting services sell you volume. Ten picks a day. Twenty. A full card for every slate. The implicit promise is simple: more picks, more chances to win.
+
+That math is wrong.
+
+---
+
+## The Volume Trap
+
+Every pick you place carries risk. That part is obvious. What\u2019s less obvious is that bad picks don\u2019t just lose money \u2014 they erode the edge from your good ones.
+
+A model with a genuine 4% edge on one game and no edge on four others doesn\u2019t produce a five-pick day. It produces a one-pick day. Padding the card with low-conviction plays doesn\u2019t diversify your risk. It dilutes your signal.
+
+This is the difference between activity and discipline. And discipline is the one the market doesn\u2019t reward in the short term.
+
+---
+
+## Why Services Sell Volume
+
+The incentive structure of the picks industry is broken. Subscription services need engagement. Engagement means content. Content means picks \u2014 as many as possible, as often as possible.
+
+A service that says \u201cno pick today\u201d looks like it\u2019s not working. A service that fires ten picks looks busy, confident, involved. But busy isn\u2019t sharp. Busy is noise dressed up as conviction.
+
+The tout model rewards the appearance of effort. The sharp model rewards the absence of it.
+
+> **Most of our value comes from the days we don\u2019t publish. Restraint is the edge nobody wants to sell.**
+
+---
+
+## What Our Threshold Actually Does
+
+Sharp Picks publishes at most one pick per day. Some days, zero. The ensemble model evaluates every game on the board. If nothing clears a 3.5% expected edge, the system stays silent.
+
+That silence isn\u2019t a failure. It\u2019s the system working exactly as designed. It means the market is priced efficiently that night, and there\u2019s nothing worth risking capital on.
+
+Over a long enough sample, the nights you sit out contribute just as much to your ROI as the nights you fire.
+
+> **WHY THIS MATTERS**
+>
+> This principle defines the product. Sharp Picks will never pad your card to justify a subscription. If the edge isn\u2019t there, you\u2019ll hear nothing. That\u2019s the point.
+
+*Evan Cole*
+Founder, Sharp Picks""",
+                    status="scheduled", publish_date=datetime(2026, 3, 8), reading_time_minutes=3,
+                ))
+            if 'what-56-features-actually-means' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="What 56 Features Actually Means",
+                    slug="what-56-features-actually-means",
+                    category="how_it_works",
+                    excerpt="People hear \u201cmachine learning model\u201d and picture a black box. Data goes in, picks come out, nobody knows why. That\u2019s not how Sharp Picks works.",
+                    content="""People hear \u201cmachine learning model\u201d and picture a black box. Data goes in, picks come out, nobody knows why. That\u2019s not how Sharp Picks works. And it\u2019s not how any model you trust with real money should work.
+
+---
+
+## The Inputs
+
+Our ensemble runs on 56 features per game. That sounds like a lot, but it\u2019s less about quantity and more about what we chose to include \u2014 and what we deliberately left out.
+
+The features span team efficiency metrics, pace and rest adjustments, recent form windows, home-court dynamics, and market-derived signals. Each one was selected because it showed predictive value across twelve seasons of NBA data, not because it told a good story.
+
+We don\u2019t include features just because they feel important. \u201cStar player returned from injury\u201d might make a great narrative on ESPN. But if the data shows that variable doesn\u2019t reliably predict spread outcomes at a statistically significant level, it doesn\u2019t make the cut.
+
+---
+
+## The Ensemble
+
+A single model has blind spots. A gradient boosting model might overfit to certain game profiles. A random forest might smooth over edges that matter. That\u2019s why Sharp Picks doesn\u2019t rely on one model.
+
+The ensemble combines four algorithms \u2014 Gradient Boosting, Random Forest, XGBoost, and AdaBoost \u2014 each trained on the same feature set but learning different patterns in the data. Their outputs are calibrated and blended with a 30/70 model-to-market weight.
+
+That 30/70 split is intentional. The market is smart. Oddsmakers with billion-dollar operations set efficient lines. Our model doesn\u2019t try to ignore the market \u2014 it uses the market as a baseline and looks for spots where our signal diverges enough to act.
+
+> **We don\u2019t bet against the market. We look for the moments the market hasn\u2019t finished its homework.**
+
+---
+
+## Why Calibration Matters More Than Accuracy
+
+Raw prediction accuracy is a vanity metric. A model that picks winners 55% of the time sounds impressive until you realize the lines were -200 favorites.
+
+What matters is calibration \u2014 does the model\u2019s probability output match reality? When our model says a team has a 58% chance of covering, do they actually cover 58% of the time across a large sample?
+
+Calibrated probabilities are what allow us to calculate true expected value. And expected value is the only thing that separates sharp betting from educated guessing.
+
+> **WHY THIS MATTERS**
+>
+> Transparency isn\u2019t a marketing angle. It\u2019s how you evaluate whether a model deserves your trust. If a service can\u2019t explain what drives its picks, that\u2019s not sophistication \u2014 it\u2019s a red flag.
+
+*Evan Cole*
+Founder, Sharp Picks""",
+                    status="scheduled", publish_date=datetime(2026, 3, 12), reading_time_minutes=3,
+                ))
+            if 'you-will-lose-five-in-a-row' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="You Will Lose Five in a Row. Here\u2019s Why That\u2019s Fine.",
+                    slug="you-will-lose-five-in-a-row",
+                    category="discipline",
+                    excerpt="If you bet long enough with any edge \u2014 even a real, verified, positive-EV edge \u2014 you will hit a losing streak that makes you question everything. This isn\u2019t a possibility. It\u2019s a mathematical certainty.",
+                    content="""If you bet long enough with any edge \u2014 even a real, verified, positive-EV edge \u2014 you will hit a losing streak that makes you question everything. Five in a row. Seven. Maybe more.
+
+This isn\u2019t a possibility. It\u2019s a mathematical certainty.
+
+---
+
+## The Math Nobody Wants to Hear
+
+A model with a 57% hit rate on spread picks \u2014 which would be elite \u2014 still has roughly a 15% chance of losing five straight at any given point in a season. Over a full NBA calendar, that five-game skid isn\u2019t just possible. It\u2019s expected.
+
+Zoom out further. In any 200-pick sample, you should expect at least one stretch of seven or more consecutive losses. Not because the model broke. Because that\u2019s what 57% looks like over a long series.
+
+The human brain is terrible at accepting this. We experience five losses and start looking for a reason: the model is broken, the features are stale, the market shifted. Sometimes one of those things is true. Most of the time, it\u2019s just variance doing what variance does.
+
+---
+
+## The Danger Zone
+
+The real damage from a losing streak isn\u2019t financial. It\u2019s behavioral.
+
+Bettors in a drawdown do predictable things: they increase unit size to \u201cmake it back,\u201d they override the model with gut picks, they chase action on games the model didn\u2019t flag. Every one of these reactions converts a temporary drawdown into a permanent one.
+
+The model doesn\u2019t feel the streak. It evaluates the next game with the same dispassion it brought to the first. That\u2019s not a limitation \u2014 it\u2019s the entire advantage.
+
+> **A losing streak doesn\u2019t mean the edge is gone. It means you\u2019re finally seeing what edge actually looks like over a real sample.**
+
+---
+
+## What We Do During a Streak
+
+Nothing different. That\u2019s the answer.
+
+The threshold doesn\u2019t change. The unit sizing doesn\u2019t change. The model doesn\u2019t get \u201cmore aggressive\u201d to recover losses. There\u2019s no revenge trade, no double-down night, no \u201clock of the year\u201d to dig out of a hole.
+
+If the model sees an edge above threshold, it fires. If it doesn\u2019t, it stays quiet. The process is the same on night one and night fifty, whether we\u2019re up twelve units or down four.
+
+This is easy to say and brutally hard to do. But it\u2019s the only way compounding edge works.
+
+> **WHY THIS MATTERS**
+>
+> Sharp Picks was built to remove you from the decision loop during the moments when human judgment is at its worst. The streak is temporary. The process is permanent.
+
+*Evan Cole*
+Founder, Sharp Picks""",
+                    status="scheduled", publish_date=datetime(2026, 3, 17), reading_time_minutes=3,
+                ))
+            if 'the-line-moved-now-what' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="The Line Moved. Now What?",
+                    slug="the-line-moved-now-what",
+                    category="market_notes",
+                    excerpt="You see the model fire a pick at 1 PM. Spread is -3.5. By tip-off, it\u2019s -5. The pick is the same, but the bet isn\u2019t. Most people don\u2019t understand why.",
+                    content="""You see the model fire a pick at 1 PM. Spread is -3.5. By tip-off, it\u2019s -5. The pick is the same, but the bet isn\u2019t. Most people don\u2019t understand why.
+
+---
+
+## Lines Are Living Things
+
+An opening line is a hypothesis. The sportsbook posts a number, and the market reacts. Sharp money moves first. Public money follows. Injuries get reported. Rotation updates hit Twitter. Each piece of information pushes the number toward its true resting point.
+
+By the time you place your bet, the line in front of you might be meaningfully different from the line the model evaluated. And that difference matters more than most bettors realize.
+
+---
+
+## The CLV Problem
+
+Closing Line Value \u2014 the difference between the line when you bet and the line at close \u2014 is the single most reliable indicator of long-term betting skill. Not win rate. Not units won over a week. CLV.
+
+If you consistently bet spreads before they move in the direction of your pick, you\u2019re capturing value. If you consistently bet after they move past you, you\u2019re giving it back.
+
+This is why timing matters. Not in a \u201cgut feel\u201d way, but in a structural way. A pick at -3.5 with a model probability calibrated to that number is a different bet than the same pick at -5. The expected value changed. The edge may have evaporated entirely.
+
+> **The pick didn\u2019t change. The price did. And in this game, price is everything.**
+
+---
+
+## Why We Re-evaluate Before Every Game
+
+Sharp Picks checks the current line against the model\u2019s edge calculation before every tip-off. If the line has moved enough to push the expected edge below our threshold, the pick gets pulled.
+
+This feels counterintuitive. You fired a pick six hours ago \u2014 how can you un-fire it? But the alternative is worse: recommending a bet where the edge no longer exists just because it existed earlier in the day.
+
+A pick published at noon isn\u2019t the same pick at 7 PM if the spread moved two points. The game is the same. The teams are the same. But the price is different, and the price is the bet.
+
+---
+
+## What This Means for You
+
+When you see a Sharp Picks notification, act on it promptly. Not recklessly \u2014 check your book, confirm the line is still in range. But understand that edges are perishable. The market is efficient and getting more efficient every season.
+
+The window between when an edge appears and when it closes is shrinking. The model finds those windows. Your job is to be ready when they open.
+
+> **WHY THIS MATTERS**
+>
+> Sharp Picks doesn\u2019t just tell you who to bet. It tells you when the bet is worth making \u2014 and when it\u2019s not, even if the pick hasn\u2019t changed. The line is the bet.
+
+*Evan Cole*
+Founder, Sharp Picks""",
+                    status="scheduled", publish_date=datetime(2026, 3, 22), reading_time_minutes=3,
+                ))
             if incremental_insights:
                 for ins in incremental_insights:
                     db.session.add(ins)
