@@ -1105,6 +1105,19 @@ def send_weekly_summary_job():
             total_losses = tr[1] or 0 if tr else 0
             total_record = f"{total_wins}W-{total_losses}L" if (total_wins + total_losses) > 0 else ''
 
+            # ROI and top edge for push notifications
+            week_picks_result = db.session.execute(sql_text("""
+                SELECT COALESCE(SUM(profit_units), 0), COALESCE(MAX(edge_pct), 0)
+                FROM picks
+                WHERE game_date >= :week_ago AND game_date <= :today AND result IN ('win', 'loss')
+            """), {'week_ago': week_ago, 'today': today_str})
+            wp = week_picks_result.fetchone()
+            week_profit = wp[0] or 0 if wp else 0
+            top_edge = round(wp[1] or 0, 1) if wp else 0
+            picks_in_week = (pr[1] or 0) + (pr[2] or 0) if pr else 0  # wins + losses
+            roi = round((week_profit / picks_in_week * 100), 1) if picks_in_week > 0 else 0
+            week_num = datetime.strptime(today_str, '%Y-%m-%d').isocalendar()[1]
+
             stats = {
                 'picks_made': pr[0] or 0 if pr else 0,
                 'wins': pr[1] or 0 if pr else 0,
@@ -1113,6 +1126,9 @@ def send_weekly_summary_job():
                 'passes': passes_count,
                 'total_record': total_record,
                 'next_week_games': 'Full NBA slate',
+                'week_num': week_num,
+                'roi': roi,
+                'top_edge': top_edge,
             }
 
             pro_users = User.query.filter(
@@ -3353,7 +3369,29 @@ def _get_firebase_service_info():
         except Exception as e:
             logging.error(f"Failed to load firebase-service-account.json: {e}")
 
-    raw = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON', '') or os.environ.get('FIREBASE_PRIVATE_KEY', '')
+    # Option 1: Separate env vars (most reliable for Railway/Heroku)
+    pk_env = os.environ.get('FIREBASE_PRIVATE_KEY', '').strip()
+    client_email = os.environ.get('FIREBASE_CLIENT_EMAIL', '').strip()
+    project_id = os.environ.get('FIREBASE_PROJECT_ID', 'sharp-picks').strip() or 'sharp-picks'
+    if pk_env and client_email:
+        pk_norm = _normalize_pem_private_key(pk_env.replace('\\n', '\n'))
+        if pk_norm and '-----BEGIN' in pk_norm:
+            return {
+                "type": "service_account",
+                "project_id": project_id,
+                "private_key_id": os.environ.get('FIREBASE_PRIVATE_KEY_ID', 'e6289e4f161c78502bdddd57031094b7cf0f123e'),
+                "private_key": pk_norm,
+                "client_email": client_email,
+                "client_id": os.environ.get('FIREBASE_CLIENT_ID', '116349919118145525435'),
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                "client_x509_cert_url": f"https://www.googleapis.com/robot/v1/metadata/x509/{client_email.replace('@', '%40')}",
+                "universe_domain": "googleapis.com"
+            }
+
+    # Option 2: Full JSON from env
+    raw = (os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON', '') or os.environ.get('FIREBASE_PRIVATE_KEY', '')).strip()
     if not raw:
         return None
     raw = raw.strip()
@@ -3362,96 +3400,116 @@ def _get_firebase_service_info():
     elif raw.startswith('"') and raw.endswith('"'):
         raw = raw[1:-1]
 
-    try:
-        info = json.loads(raw)
+    def _parse_and_normalize(s):
+        info = json.loads(s)
         if isinstance(info, dict) and info.get('type') == 'service_account':
             pk = info.get('private_key', '')
             if pk:
                 info = dict(info)
                 info['private_key'] = _normalize_pem_private_key(pk)
             return info
+        return None
+
+    try:
+        info = _parse_and_normalize(raw)
+        if info:
+            return info
+        # Double-encode: Railway sometimes stores JSON as a JSON string
+        if isinstance(json.loads(raw), str):
+            info = _parse_and_normalize(json.loads(raw))
+            if info:
+                return info
     except json.JSONDecodeError:
         pass
 
     try:
         import base64
         decoded = base64.b64decode(raw).decode('utf-8')
-        info = json.loads(decoded)
-        if isinstance(info, dict) and info.get('type') == 'service_account':
-            pk = info.get('private_key', '')
-            if pk:
-                info = dict(info)
-                info['private_key'] = _normalize_pem_private_key(pk)
+        info = _parse_and_normalize(decoded)
+        if info:
             return info
     except Exception:
         pass
 
-    pk_raw = raw.replace('\\n', '\n')
-    if not pk_raw.strip().startswith('-----BEGIN'):
-        pk_raw = '-----BEGIN PRIVATE KEY-----\n' + pk_raw
-    if not pk_raw.strip().endswith('-----END PRIVATE KEY-----'):
-        pk_raw = pk_raw.rstrip() + '\n-----END PRIVATE KEY-----\n'
-    pk_pem = _normalize_pem_private_key(pk_raw)
-    return {
-        "type": "service_account",
-        "project_id": "sharp-picks",
-        "private_key_id": os.environ.get('FIREBASE_PRIVATE_KEY_ID', 'e6289e4f161c78502bdddd57031094b7cf0f123e'),
-        "private_key": pk_pem,
-        "client_email": "firebase-adminsdk-fbsvc@sharp-picks.iam.gserviceaccount.com",
-        "client_id": "116349919118145525435",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40sharp-picks.iam.gserviceaccount.com",
-        "universe_domain": "googleapis.com"
-    }
+    # Fallback: raw PEM in FIREBASE_PRIVATE_KEY
+    if '-----BEGIN' in raw:
+        pk_norm = _normalize_pem_private_key(raw.replace('\\n', '\n'))
+        if pk_norm and '-----BEGIN' in pk_norm:
+            return {
+                "type": "service_account",
+                "project_id": os.environ.get('FIREBASE_PROJECT_ID', 'sharp-picks').strip() or 'sharp-picks',
+                "private_key_id": os.environ.get('FIREBASE_PRIVATE_KEY_ID', 'e6289e4f161c78502bdddd57031094b7cf0f123e'),
+                "private_key": pk_norm,
+                "client_email": os.environ.get('FIREBASE_CLIENT_EMAIL', 'firebase-adminsdk-fbsvc@sharp-picks.iam.gserviceaccount.com').strip() or 'firebase-adminsdk-fbsvc@sharp-picks.iam.gserviceaccount.com',
+                "client_id": "116349919118145525435",
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40sharp-picks.iam.gserviceaccount.com",
+                "universe_domain": "googleapis.com"
+            }
+
+    return None
+
+
+def _get_firebase_credentials_and_project():
+    """Get (credentials, project_id) or raise. Tries file-based load first (most reliable), then dict-based."""
+    import json
+    import tempfile
+    import google.auth.transport.requests
+    from google.oauth2 import service_account
+    from models import FCMToken  # noqa: F401 - for imports
+
+    service_info = _get_firebase_service_info()
+    if not service_info:
+        raise ValueError("No Firebase credentials. Set FIREBASE_PRIVATE_KEY + FIREBASE_CLIENT_EMAIL, or FIREBASE_SERVICE_ACCOUNT_JSON.")
+
+    project_id = service_info.get('project_id', 'sharp-picks')
+
+    # Strategy 1: Write to temp file — file-based loading is most reliable (avoids env var encoding)
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(service_info, f, indent=2)
+            tmp_path = f.name
+        try:
+            creds = service_account.Credentials.from_service_account_file(
+                tmp_path,
+                scopes=['https://www.googleapis.com/auth/firebase.messaging']
+            )
+            creds.refresh(google.auth.transport.requests.Request())
+            return creds, project_id
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+    except Exception as e1:
+        logging.warning(f"Firebase file-based load failed: {e1}")
+
+    # Strategy 2: Dict-based (can hit PEM format issues with env vars)
+    try:
+        creds = service_account.Credentials.from_service_account_info(
+            service_info,
+            scopes=['https://www.googleapis.com/auth/firebase.messaging']
+        )
+        creds.refresh(google.auth.transport.requests.Request())
+        return creds, project_id
+    except Exception as e2:
+        raise ValueError(
+            f"Firebase private key format invalid. Set FIREBASE_PRIVATE_KEY and FIREBASE_CLIENT_EMAIL as separate env vars "
+            "(paste PEM with \\n for newlines), or use FIREBASE_SERVICE_ACCOUNT_JSON with full JSON. {e2}"
+        ) from e2
 
 
 def send_push_notification(user_id, title, body, data=None):
-    import json
-    import google.auth.transport.requests
-    from google.oauth2 import service_account
     from models import FCMToken
 
     tokens = FCMToken.query.filter_by(user_id=user_id, enabled=True).all()
     if not tokens:
         return 0
 
-    service_info = _get_firebase_service_info()
-    if not service_info:
-        logging.warning("No Firebase credentials found")
-        return 0
+    credentials, project_id = _get_firebase_credentials_and_project()
 
-    try:
-        credentials = service_account.Credentials.from_service_account_info(
-            service_info,
-            scopes=['https://www.googleapis.com/auth/firebase.messaging']
-        )
-        credentials.refresh(google.auth.transport.requests.Request())
-    except Exception as e:
-        err_msg = str(e).strip()
-        logging.warning(f"Firebase from_service_account_info failed: {err_msg}, trying temp file fallback")
-        try:
-            import tempfile
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-                json.dump(service_info, f, indent=2)
-                tmp_path = f.name
-            try:
-                credentials = service_account.Credentials.from_service_account_file(
-                    tmp_path,
-                    scopes=['https://www.googleapis.com/auth/firebase.messaging']
-                )
-                credentials.refresh(google.auth.transport.requests.Request())
-            finally:
-                try:
-                    os.unlink(tmp_path)
-                except Exception:
-                    pass
-        except Exception as e2:
-            logging.error(f"Firebase credential load failed: {e2}")
-            raise ValueError(f"Firebase credentials invalid: {str(e2)[:200]}")
-
-    project_id = service_info.get('project_id', 'sharp-picks')
     url = f'https://fcm.googleapis.com/v1/projects/{project_id}/messages:send'
     headers = {
         'Authorization': f'Bearer {credentials.token}',
