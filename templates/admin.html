@@ -396,7 +396,73 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
   .dashboard { grid-template-columns: 1fr; }
   #control-room-body { grid-template-columns: 1fr; grid-column: span 1; }
   .panel.wide-2, .panel.wide-3, .panel.wide-4 { grid-column: span 1; }
+  .tab-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab-nav::-webkit-scrollbar { display: none; }
+  .header-left .cal-badge { display: none; }
 }
+
+.tab-nav {
+  grid-column: 1 / -1;
+  background: var(--bg);
+  display: flex;
+  gap: 0;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-bright);
+  white-space: nowrap;
+}
+.tab-btn {
+  padding: 10px 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--text-bright); border-bottom-color: var(--green); }
+
+.tab-content { display: none; }
+.tab-content.active { display: contents; }
+
+.cron-row-ok { }
+.cron-row-warn .status-name, .cron-row-warn .status-val { color: var(--amber) !important; }
+.cron-row-err { background: rgba(255,71,87,0.04); }
+.cron-row-err .status-name { color: var(--red) !important; }
+
+.ks-header-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  padding: 3px 8px; border-radius: 3px; text-transform: uppercase;
+}
+.ks-header-badge.clear { background: var(--green-dim); color: var(--green); }
+.ks-header-badge.warning { background: var(--amber-dim); color: var(--amber); }
+.ks-header-badge.active { background: var(--red-dim); color: var(--red); }
+
+.tooltip-trigger { position: relative; cursor: help; }
+.tooltip-trigger:hover::after {
+  content: attr(data-tooltip);
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  background: #1a2235; color: var(--text); border: 1px solid var(--border-bright);
+  padding: 6px 10px; border-radius: 6px; font-size: 10px; white-space: nowrap;
+  z-index: 10; pointer-events: none; margin-bottom: 4px;
+}
+
+.refresh-countdown {
+  font-size: 10px; color: var(--text-dim); font-family: var(--mono);
+}
+
+.user-action-btn {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text-dim); font-size: 9px; font-weight: 600;
+  padding: 2px 8px; border-radius: 4px; cursor: pointer;
+  font-family: var(--mono); letter-spacing: 0.3px; margin-right: 4px;
+}
+.user-action-btn:hover { background: var(--panel-hover); color: var(--text-bright); border-color: var(--border-bright); }
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--panel); }
@@ -460,7 +526,8 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
       </button>
       <div class="header-logo">Sharp Picks</div>
       <div class="header-badge">Command Center</div>
-      <span class="cal-badge">Calibrated 11.7pt</span>
+      <span class="cal-badge tooltip-trigger" data-tooltip="Model-to-market shrinkage sigma: 11.7 points. Controls probability calibration width.">Calibrated 11.7pt</span>
+      <span class="ks-header-badge clear" id="ks-header-badge">Kill Switch: Clear</span>
     </div>
     <div class="header-right">
       <button class="header-back" id="refresh-btn" onclick="refreshAll()" title="Refresh all data" style="width:auto;padding:0 10px;gap:6px;display:flex;align-items:center;font-family:var(--mono);font-size:11px;color:var(--text-dim);">
@@ -469,6 +536,7 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
         </svg>
         Refresh
       </button>
+      <span class="refresh-countdown" id="refresh-countdown"></span>
       <span class="header-time" id="clock"></span>
       <div class="header-pulse"></div>
     </div>
@@ -502,6 +570,18 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     </div>
     <div id="alerts-list"></div>
   </div>
+
+  <!-- TAB NAVIGATION -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
+    <button class="tab-btn" onclick="switchTab('infra')">Infrastructure</button>
+    <button class="tab-btn" onclick="switchTab('model')">Model</button>
+    <button class="tab-btn" onclick="switchTab('revenue')">Revenue &amp; Users</button>
+    <button class="tab-btn" onclick="switchTab('control')">Control Room</button>
+  </div>
+
+  <!-- TAB: OVERVIEW -->
+  <div class="tab-content active" id="tab-overview">
 
   <!-- TODAY'S PIPELINE -->
   <div class="section-label">Today's Pipeline</div>
@@ -544,18 +624,46 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
       </div>
     </div>
     <div id="pipeline-cron-attempts" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px">Key Actions</span>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end">
-          <button id="pipeline-get-games-btn" onclick="triggerGetGames()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--panel-hover);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:var(--mono)">Get Games</button>
-          <button id="pipeline-get-lines-btn" onclick="triggerGetLines()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--panel-hover);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:var(--mono)">Get Lines</button>
-          <button id="pipeline-clear-btn" onclick="triggerClearToday()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--red-dim);color:var(--red);border:1px solid rgba(255,71,87,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Clear</button>
-          <button id="pipeline-run-model-btn" onclick="triggerModel()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--blue-dim);color:var(--blue);border:1px solid rgba(79,134,247,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Run Model</button>
-          <button id="pipeline-grade-btn" onclick="triggerGrade()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,214,143,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Grade</button>
-        </div>
-      </div>
+      <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Recent Runs</div>
       <div id="pipeline-cron-list" style="font-size:10px;color:var(--text-dim)">--</div>
     </div>
+  </div>
+
+  <!-- OVERVIEW: Quick KPIs from all sections -->
+  <div class="section-label">Key Metrics</div>
+  <div class="panel">
+    <div class="panel-label">NBA Record</div>
+    <div class="metric-val green" id="ov-nba-record">--</div>
+    <div class="metric-sub" id="ov-nba-roi">--</div>
+  </div>
+  <div class="panel">
+    <div class="panel-label">Revenue</div>
+    <div class="metric-val green" id="ov-mrr">--</div>
+    <div class="metric-sub">MRR</div>
+  </div>
+  <div class="panel">
+    <div class="panel-label">Users</div>
+    <div class="metric-val blue" id="ov-total-users">--</div>
+    <div class="metric-sub" id="ov-users-breakdown">--</div>
+  </div>
+  <div class="panel">
+    <div class="panel-label">Cron Health</div>
+    <div class="metric-val" id="ov-cron-status">--</div>
+    <div class="metric-sub" id="ov-cron-sub">--</div>
+  </div>
+
+  </div><!-- /tab-overview -->
+
+  <!-- TAB: INFRASTRUCTURE -->
+  <div class="tab-content" id="tab-infra">
+
+  <!-- CRON ALERTS BANNER (shown when cron jobs are overdue) -->
+  <div id="cron-alerts-banner" class="panel wide-4" style="display:none;padding:12px 20px;background:rgba(255,71,87,0.06);border-bottom:1px solid rgba(255,71,87,0.2)">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--red)">Overdue Cron Jobs</span>
+    </div>
+    <div id="cron-alerts-list" style="font-size:11px"></div>
   </div>
 
   <!-- INFRASTRUCTURE & OPS -->
@@ -626,6 +734,11 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div class="stat-row"><span class="label">Published</span><span class="value green" id="insights-published">--</span></div>
   </div>
 
+  </div><!-- /tab-infra -->
+
+  <!-- TAB: MODEL -->
+  <div class="tab-content" id="tab-model">
+
   <!-- NBA MODEL PERFORMANCE -->
   <div class="section-label">NBA Model Performance</div>
 
@@ -678,26 +791,29 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div class="stat-row"><span class="label">Consecutive Passes</span><span class="value" id="nba-pass-streak">--</span></div>
   </div>
 
-  <div class="panel wide-2">
+  <div class="panel wide-4">
     <div class="panel-label">NBA Equity Curve (1u Standardized)</div>
-    <div class="sparkline-wrap" id="nba-equity-chart">
-      <svg viewBox="0 0 400 60" preserveAspectRatio="none">
+    <div id="nba-equity-chart" style="position:relative;height:180px;margin:8px 0">
+      <svg viewBox="0 0 800 180" preserveAspectRatio="none" style="width:100%;height:100%">
         <defs>
           <linearGradient id="nba-eq-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="rgba(0,214,143,0.3)"/>
+            <stop offset="0%" stop-color="rgba(0,214,143,0.25)"/>
             <stop offset="100%" stop-color="rgba(0,214,143,0)"/>
           </linearGradient>
         </defs>
-        <path id="nba-eq-line" d="" fill="none" stroke="var(--green)" stroke-width="2"/>
+        <line id="nba-eq-zero" x1="0" y1="90" x2="800" y2="90" stroke="var(--border)" stroke-width="1" stroke-dasharray="4"/>
         <path id="nba-eq-area" d="" fill="url(#nba-eq-fill)" opacity="0.5"/>
+        <path id="nba-eq-line" d="" fill="none" stroke="var(--green)" stroke-width="2"/>
+        <g id="nba-eq-dots"></g>
       </svg>
+      <div id="nba-eq-tooltip" style="display:none;position:absolute;background:var(--panel);border:1px solid var(--border-bright);border-radius:6px;padding:8px 12px;font-size:10px;pointer-events:none;z-index:5;white-space:nowrap"></div>
     </div>
     <div class="metric-sub" id="nba-equity-sub">--</div>
   </div>
 
-  <div class="panel wide-2">
+  <div class="panel wide-4">
     <div class="panel-label">NBA Recent Picks</div>
-    <div id="nba-recent-picks-list" style="max-height:200px;overflow-y:auto"></div>
+    <div id="nba-recent-picks-list" style="max-height:250px;overflow-y:auto"></div>
   </div>
 
   <!-- WNBA MODEL PERFORMANCE -->
@@ -730,22 +846,30 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     </div>
   </div>
 
-  <div class="panel">
-    <div class="panel-label">WNBA Equity Curve</div>
-    <div class="sparkline-wrap" id="wnba-equity-chart">
-      <svg viewBox="0 0 400 60" preserveAspectRatio="none">
+  <div class="panel wide-4">
+    <div class="panel-label">WNBA Equity Curve (1u Standardized)</div>
+    <div id="wnba-equity-chart" style="position:relative;height:140px;margin:8px 0">
+      <svg viewBox="0 0 800 140" preserveAspectRatio="none" style="width:100%;height:100%">
         <defs>
           <linearGradient id="wnba-eq-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="rgba(79,134,247,0.3)"/>
+            <stop offset="0%" stop-color="rgba(79,134,247,0.25)"/>
             <stop offset="100%" stop-color="rgba(79,134,247,0)"/>
           </linearGradient>
         </defs>
-        <path id="wnba-eq-line" d="" fill="none" stroke="var(--blue)" stroke-width="2"/>
+        <line id="wnba-eq-zero" x1="0" y1="70" x2="800" y2="70" stroke="var(--border)" stroke-width="1" stroke-dasharray="4"/>
         <path id="wnba-eq-area" d="" fill="url(#wnba-eq-fill)" opacity="0.5"/>
+        <path id="wnba-eq-line" d="" fill="none" stroke="var(--blue)" stroke-width="2"/>
+        <g id="wnba-eq-dots"></g>
       </svg>
+      <div id="wnba-eq-tooltip" style="display:none;position:absolute;background:var(--panel);border:1px solid var(--border-bright);border-radius:6px;padding:8px 12px;font-size:10px;pointer-events:none;z-index:5;white-space:nowrap"></div>
     </div>
     <div class="metric-sub" id="wnba-equity-sub">--</div>
   </div>
+
+  </div><!-- /tab-model -->
+
+  <!-- TAB: REVENUE & USERS -->
+  <div class="tab-content" id="tab-revenue">
 
   <!-- REVENUE & SALES -->
   <div class="section-label">Revenue & Sales</div>
@@ -775,7 +899,7 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div class="metric-sub" id="founding-sub">--</div>
   </div>
 
-  <div class="panel wide-2">
+  <div class="panel">
     <div class="panel-label">User Distribution</div>
     <div class="stat-row"><span class="label">Total Users</span><span class="value" id="total-users">--</span></div>
     <div class="stat-row"><span class="label">Active (Paid)</span><span class="value green" id="paid-users">--</span></div>
@@ -784,12 +908,29 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div class="stat-row"><span class="label">Founding Members</span><span class="value amber" id="founding-users">--</span></div>
   </div>
 
-  <!-- CONTROL ROOM (collapsible) -->
-  <div class="section-label" style="background:rgba(255,165,2,0.06);color:var(--amber);cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between" onclick="toggleControlRoom()">
-    <span>&#x1F7E0; Control Room <span style="font-size:8px;letter-spacing:1px;margin-left:8px;color:var(--text-dim)">ADMIN ONLY</span></span>
-    <svg id="cr-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
+  <div class="panel">
+    <div class="panel-label">Funnel &amp; Conversion</div>
+    <div class="stat-row"><span class="label">Trial → Paid Rate</span><span class="value" id="trial-conversion-rate">--</span></div>
+    <div class="stat-row"><span class="label">Signups (7d)</span><span class="value" id="signups-7d">--</span></div>
+    <div class="stat-row"><span class="label">Signups (30d)</span><span class="value" id="signups-30d">--</span></div>
+    <div class="stat-row"><span class="label">Active Trials</span><span class="value blue" id="active-trials-count">--</span></div>
+    <div class="stat-row"><span class="label">Trials Expiring (7d)</span><span class="value amber" id="trials-expiring-7d">--</span></div>
   </div>
-  <div id="control-room-body" style="display:none">
+
+  <div class="panel wide-2">
+    <div class="panel-label">User Growth</div>
+    <div id="user-growth-chart" style="height:80px;display:flex;align-items:flex-end;gap:2px;margin:8px 0"></div>
+    <div class="metric-sub" id="user-growth-sub">--</div>
+  </div>
+
+  </div><!-- /tab-revenue -->
+
+  <!-- TAB: CONTROL ROOM -->
+  <div class="tab-content" id="tab-control">
+  <div class="section-label" style="background:rgba(255,165,2,0.06);color:var(--amber)">
+    <span>Control Room <span style="font-size:8px;letter-spacing:1px;margin-left:8px;color:var(--text-dim)">ADMIN ONLY</span></span>
+  </div>
+  <div id="control-room-body">
 
   <div class="panel wide-2">
     <div class="panel-label">Kill Switch &amp; Trigger States <span class="status-dot" id="ks-status-dot"></span></div>
@@ -859,7 +1000,10 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
 
   </div><!-- /control-room-body -->
 
-  <!-- USERS -->
+  </div><!-- /tab-control -->
+
+  <!-- USERS (inside revenue tab via JS switching) -->
+  <div class="tab-content" id="tab-users-section">
   <div class="section-label">Users</div>
 
   <div class="panel wide-4" style="margin-bottom:8px">
@@ -890,14 +1034,31 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     </table>
   </div>
 
+  </div><!-- /tab-users-section -->
+
 </div>
 
 <script>
+function fmtET(date) {
+  if (!date) return '—';
+  if (typeof date === 'string') date = new Date(date);
+  return date.toLocaleString('en-US', {
+    timeZone: 'America/New_York', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true
+  }).replace(',', ' ·') + ' ET';
+}
+
+function fmtDateET(date) {
+  if (!date) return '—';
+  if (typeof date === 'string') date = new Date(date);
+  return date.toLocaleDateString('en-US', {
+    timeZone: 'America/New_York', month: 'short', day: 'numeric', year: 'numeric'
+  });
+}
+
 function updateClock() {
   const now = new Date();
-  const opts = { timeZone: 'America/New_York', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true };
-  const formatted = now.toLocaleString('en-US', opts) + ' EST';
-  document.getElementById('clock').textContent = formatted.replace(',', ' ·');
+  document.getElementById('clock').textContent = fmtET(now);
 }
 updateClock();
 setInterval(updateClock, 1000);
@@ -910,16 +1071,30 @@ function pnlClass(v) {
   return v > 0 ? 'green' : v < 0 ? 'red' : '';
 }
 
-function toggleControlRoom() {
-  const body = document.getElementById('control-room-body');
-  const icon = document.getElementById('cr-toggle-icon');
-  if (body.style.display === 'none') {
-    body.style.display = '';
-    icon.style.transform = 'rotate(180deg)';
-  } else {
-    body.style.display = 'none';
-    icon.style.transform = 'rotate(0deg)';
-  }
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  const target = document.getElementById('tab-' + tabId);
+  if (target) target.classList.add('active');
+  const usersSection = document.getElementById('tab-users-section');
+  if (usersSection) usersSection.classList.toggle('active', tabId === 'revenue');
+  const btn = document.querySelector(`.tab-btn[onclick="switchTab('${tabId}')"]`);
+  if (btn) btn.classList.add('active');
+}
+
+function viewUserProfile(userId) {
+  alert('User profile view for ID: ' + userId + '\n\n(Full profile screen coming soon)');
+}
+
+function extendTrial(userId, email) {
+  if (!confirm('Extend trial for ' + email + ' by 7 days?')) return;
+  adminFetch('/api/admin/users/' + userId + '/extend-trial', { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) { alert('Trial extended.'); loadDashboard(); }
+      else alert('Failed: ' + (d.error || 'Unknown error'));
+    })
+    .catch(e => alert('Error: ' + e.message));
 }
 
 function loadPipeline() {
@@ -1091,20 +1266,33 @@ function loadStatusBanner() {
     });
 }
 
+let _equityCurveData = {};
+
 function buildEquityCurve(curve, prefix) {
   const lineEl = document.getElementById(prefix + '-eq-line');
   const areaEl = document.getElementById(prefix + '-eq-area');
   if (!lineEl || !areaEl) return;
   if (!curve || curve.length < 2) { lineEl.setAttribute('d', ''); areaEl.setAttribute('d', ''); return; }
+
+  _equityCurveData[prefix] = curve;
+
   const vals = curve.map(c => c.value);
   const minV = Math.min(...vals, 0);
   const maxV = Math.max(...vals);
   const range = maxV - minV || 1;
-  const w = 400, h = 60;
+  const w = 800;
+  const chartEl = document.getElementById(prefix + '-equity-chart');
+  const svgEl = chartEl ? chartEl.querySelector('svg') : null;
+  const h = svgEl ? parseInt(svgEl.getAttribute('viewBox').split(' ')[3]) : 180;
+  const pad = 6;
+
+  const zeroY = h - ((0 - minV) / range) * (h - pad * 2) - pad;
+  const zeroLine = document.getElementById(prefix + '-eq-zero');
+  if (zeroLine) { zeroLine.setAttribute('y1', zeroY.toFixed(1)); zeroLine.setAttribute('y2', zeroY.toFixed(1)); }
 
   const points = curve.map((c, i) => {
     const x = (i / (curve.length - 1)) * w;
-    const y = h - ((c.value - minV) / range) * (h - 4) - 2;
+    const y = h - ((c.value - minV) / range) * (h - pad * 2) - pad;
     return { x, y };
   });
 
@@ -1113,6 +1301,45 @@ function buildEquityCurve(curve, prefix) {
 
   lineEl.setAttribute('d', line);
   areaEl.setAttribute('d', area);
+
+  const dotsG = document.getElementById(prefix + '-eq-dots');
+  if (dotsG) {
+    dotsG.innerHTML = '';
+    points.forEach((p, i) => {
+      const c = curve[i];
+      const color = c.value >= 0 ? 'var(--green)' : 'var(--red)';
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', p.x.toFixed(1));
+      circle.setAttribute('cy', p.y.toFixed(1));
+      circle.setAttribute('r', '4');
+      circle.setAttribute('fill', color);
+      circle.setAttribute('opacity', '0');
+      circle.setAttribute('style', 'cursor:pointer;transition:opacity 0.15s');
+      circle.addEventListener('mouseenter', (e) => {
+        circle.setAttribute('opacity', '1');
+        const tooltip = document.getElementById(prefix + '-eq-tooltip');
+        if (tooltip) {
+          const pnlStr = c.value >= 0 ? '+' + c.value.toFixed(2) + 'u' : c.value.toFixed(2) + 'u';
+          const resultStr = c.result === 'win' ? '<span style="color:var(--green)">W</span>' : c.result === 'loss' ? '<span style="color:var(--red)">L</span>' : 'P';
+          tooltip.innerHTML = '<div style="color:var(--text-bright);font-weight:600;margin-bottom:2px">' + (c.side || '') + '</div>' +
+            '<div>' + (c.date || '') + ' ' + resultStr + ' &middot; ' + pnlStr + '</div>' +
+            (c.edge ? '<div style="color:var(--text-dim)">Edge: ' + c.edge + '%</div>' : '');
+          tooltip.style.display = 'block';
+          const chartEl = document.getElementById(prefix + '-equity-chart');
+          const rect = chartEl.getBoundingClientRect();
+          const px = (p.x / w) * rect.width;
+          tooltip.style.left = Math.min(px, rect.width - 160) + 'px';
+          tooltip.style.top = Math.max(0, (p.y / h) * rect.height - 60) + 'px';
+        }
+      });
+      circle.addEventListener('mouseleave', () => {
+        circle.setAttribute('opacity', '0');
+        const tooltip = document.getElementById(prefix + '-eq-tooltip');
+        if (tooltip) tooltip.style.display = 'none';
+      });
+      dotsG.appendChild(circle);
+    });
+  }
 }
 
 function buildRecentPicks(picks, containerId) {
@@ -1188,8 +1415,7 @@ function populateSportStats(m, prefix) {
 
   if (el('last-pick')) {
     if (m.last_pick_date) {
-      const lpd = new Date(m.last_pick_date + 'T12:00:00');
-      el('last-pick').textContent = lpd.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', year: 'numeric' });
+      el('last-pick').textContent = fmtDateET(m.last_pick_date + 'T12:00:00');
     } else {
       el('last-pick').textContent = 'None';
     }
@@ -1218,17 +1444,22 @@ function buildUsersTable(users) {
   tbody.innerHTML = '';
   users.forEach(u => {
     const tr = document.createElement('tr');
-    const date = u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' }) : '—';
+    const date = u.created_at ? fmtDateET(u.created_at) : '—';
     let trialEnd = '—';
     if (u.trial_end) {
       const te = new Date(u.trial_end);
       const now = new Date();
       const daysLeft = Math.max(0, Math.ceil((te - now) / (1000 * 60 * 60 * 24)));
-      const dateStr = te.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' });
+      const dateStr = fmtDateET(te);
       const urgencyClass = daysLeft <= 3 ? 'red' : daysLeft <= 7 ? 'amber' : 'green';
       trialEnd = `<span class="${urgencyClass}">${dateStr}</span> <span style="color:var(--text-dim);font-size:11px">(${daysLeft}d)</span>`;
     }
     const isSuperuser = u.is_superuser;
+    const safeEmail = u.email.replace(/'/g, "\\'");
+    const actionsHtml = isSuperuser ? '<span style="color:var(--text-dim);font-size:9px">ADMIN</span>' :
+      '<button class="user-action-btn" onclick="viewUserProfile(\'' + u.id + '\')" title="View full profile">Profile</button>' +
+      (u.tier === 'trial' ? '<button class="user-action-btn" style="border-color:var(--green);color:var(--green)" onclick="extendTrial(\'' + u.id + '\', \'' + safeEmail + '\')" title="Extend trial by 7 days">Extend</button>' : '') +
+      '<button class="btn-delete" onclick="deleteUser(\'' + u.id + '\', \'' + safeEmail + '\')">Delete</button>';
     tr.innerHTML = `
       <td>${u.email}</td>
       <td>${u.first_name}</td>
@@ -1236,7 +1467,7 @@ function buildUsersTable(users) {
       <td>${u.plan || '—'}</td>
       <td>${date}</td>
       <td>${trialEnd}</td>
-      <td>${isSuperuser ? '' : '<button class="btn-delete" onclick="deleteUser(\'' + u.id + '\', \'' + u.email.replace(/'/g, "\\'") + '\')">Delete</button>'}</td>
+      <td style="white-space:nowrap">${actionsHtml}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -1321,7 +1552,7 @@ async function deleteUser(userId, email) {
 }
 
 function _getActionBtns(name) {
-  return [document.getElementById('pipeline-' + name + '-btn'), document.getElementById('top-' + name + '-btn')].filter(Boolean);
+  return [document.getElementById('top-' + name + '-btn')].filter(Boolean);
 }
 async function triggerGetGames() {
   const btns = _getActionBtns('get-games');
@@ -1501,8 +1732,59 @@ async function loadDashboard() {
     document.getElementById('free-users').textContent = d.revenue.free_count;
     document.getElementById('founding-users').textContent = d.revenue.founding_count;
 
+    const ovMrr = document.getElementById('ov-mrr');
+    if (ovMrr) ovMrr.textContent = fmt$(d.revenue.mrr);
+    const ovUsers = document.getElementById('ov-total-users');
+    if (ovUsers) ovUsers.textContent = d.users.total;
+    const ovUsersBrk = document.getElementById('ov-users-breakdown');
+    if (ovUsersBrk) ovUsersBrk.textContent = (d.revenue.monthly_subs + d.revenue.annual_subs) + ' paid · ' + d.revenue.trial_count + ' trial';
+
+    const trialConv = document.getElementById('trial-conversion-rate');
+    if (trialConv) {
+      const totalTrialed = d.revenue.trial_count + (d.revenue.monthly_subs + d.revenue.annual_subs);
+      const paid = d.revenue.monthly_subs + d.revenue.annual_subs;
+      const rate = totalTrialed > 0 ? Math.round(paid / totalTrialed * 100) : 0;
+      trialConv.textContent = rate + '%';
+      trialConv.className = 'value ' + (rate >= 30 ? 'green' : rate >= 10 ? 'amber' : 'red');
+    }
+    const signups7d = document.getElementById('signups-7d');
+    if (signups7d) {
+      const now = new Date();
+      const week = new Date(now - 7 * 86400000);
+      const recent = d.users.list ? d.users.list.filter(u => u.created_at && new Date(u.created_at) >= week).length : 0;
+      signups7d.textContent = recent;
+    }
+    const signups30d = document.getElementById('signups-30d');
+    if (signups30d) {
+      const now = new Date();
+      const month = new Date(now - 30 * 86400000);
+      const recent = d.users.list ? d.users.list.filter(u => u.created_at && new Date(u.created_at) >= month).length : 0;
+      signups30d.textContent = recent;
+    }
+    const activeTrials = document.getElementById('active-trials-count');
+    if (activeTrials) activeTrials.textContent = d.revenue.trial_count;
+    const trialsExpiring = document.getElementById('trials-expiring-7d');
+    if (trialsExpiring) {
+      const now = new Date();
+      const nextWeek = new Date(now.getTime() + 7 * 86400000);
+      const expiring = d.users.list ? d.users.list.filter(u => u.trial_end && new Date(u.trial_end) <= nextWeek && new Date(u.trial_end) >= now).length : 0;
+      trialsExpiring.textContent = expiring;
+    }
+
+    if (d.users.list && d.users.list.length > 0) {
+      buildUserGrowthChart(d.users.list);
+    }
+
     populateSportStats(d.model, 'nba');
     populateSportStats(d.wnba_model, 'wnba');
+
+    const ovRecord = document.getElementById('ov-nba-record');
+    if (ovRecord) {
+      ovRecord.textContent = d.model.record;
+      ovRecord.className = 'metric-val ' + (d.model.win_rate >= 55 ? 'green' : d.model.win_rate >= 50 ? '' : 'red');
+    }
+    const ovRoi = document.getElementById('ov-nba-roi');
+    if (ovRoi) ovRoi.textContent = (d.model.roi >= 0 ? '+' : '') + d.model.roi + '% ROI · ' + d.model.selectivity + '% selectivity';
 
     buildRecentPicks(d.recent_picks, 'nba-recent-picks-list');
     buildModelRuns(d.model_runs, 'nba-model-runs-list');
@@ -1534,7 +1816,7 @@ async function loadDashboard() {
 
       const ul = document.getElementById('push-user-list');
       ul.innerHTML = p.user_tokens.map(t =>
-        `<div class="stat-row" style="font-size:10px"><span class="label">${t.user_email}</span><span class="value" style="font-size:9px">${t.platform} · ${t.last_seen ? new Date(t.last_seen).toLocaleDateString('en-US', { timeZone: 'America/New_York' }) : 'new'}</span></div>`
+        `<div class="stat-row" style="font-size:10px"><span class="label">${t.user_email}</span><span class="value" style="font-size:9px">${t.platform} · ${t.last_seen ? fmtDateET(t.last_seen) : 'new'}</span></div>`
       ).join('') || '<div class="metric-sub">No devices registered</div>';
     }
 
@@ -1546,7 +1828,56 @@ async function loadDashboard() {
   }
 }
 
+function buildUserGrowthChart(users) {
+  const chart = document.getElementById('user-growth-chart');
+  const sub = document.getElementById('user-growth-sub');
+  if (!chart) return;
+  const now = new Date();
+  const weeks = [];
+  for (let i = 11; i >= 0; i--) {
+    const weekStart = new Date(now - i * 7 * 86400000);
+    const weekEnd = new Date(now - (i - 1) * 7 * 86400000);
+    const count = users.filter(u => u.created_at && new Date(u.created_at) >= weekStart && new Date(u.created_at) < weekEnd).length;
+    weeks.push({ label: weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), count });
+  }
+  const maxCount = Math.max(1, ...weeks.map(w => w.count));
+  chart.innerHTML = weeks.map(w => {
+    const pct = Math.max(4, (w.count / maxCount) * 100);
+    return '<div title="' + w.label + ': ' + w.count + ' signups" style="flex:1;background:var(--blue);border-radius:2px 2px 0 0;height:' + pct + '%;opacity:0.7;transition:opacity 0.2s;cursor:default" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7"></div>';
+  }).join('');
+  const total = weeks.reduce((s, w) => s + w.count, 0);
+  if (sub) sub.textContent = 'Last 12 weeks · ' + total + ' new signups';
+}
+
+let _refreshSecondsLeft = 30;
+function updateRefreshCountdown() {
+  _refreshSecondsLeft--;
+  const el = document.getElementById('refresh-countdown');
+  if (el) el.textContent = _refreshSecondsLeft + 's';
+  if (_refreshSecondsLeft <= 0) {
+    _refreshSecondsLeft = 30;
+    refreshAll();
+  }
+}
+setInterval(updateRefreshCountdown, 1000);
+
+function updateKillSwitchBadge(ks) {
+  const badge = document.getElementById('ks-header-badge');
+  if (!badge) return;
+  if (ks.active) {
+    badge.className = 'ks-header-badge active';
+    badge.textContent = 'Kill Switch: ACTIVE';
+  } else if (ks.triggers_met >= 2) {
+    badge.className = 'ks-header-badge warning';
+    badge.textContent = 'Kill Switch: ' + ks.triggers_met + '/3';
+  } else {
+    badge.className = 'ks-header-badge clear';
+    badge.textContent = 'Kill Switch: Clear';
+  }
+}
+
 function refreshAll() {
+  _refreshSecondsLeft = 30;
   const btn = document.getElementById('refresh-btn');
   btn.style.color = 'var(--blue)';
   btn.querySelector('svg').style.transition = 'transform 0.6s';
@@ -1567,9 +1898,6 @@ ensureAdminToken().then(() => {
   loadStatusBanner();
   loadPipeline();
   loadDashboard();
-  setInterval(loadDashboard, 30000);
-  setInterval(loadStatusBanner, 60000);
-  setInterval(loadPipeline, 60000);
 });
 
 function hcStatusClass(s) { return s === 'ok' ? 'ok' : s === 'warn' ? 'warn' : 'err'; }
@@ -1619,29 +1947,78 @@ async function loadHealthChecks() {
   }
 }
 
-ensureAdminToken().then(() => { loadHealthChecks(); setInterval(loadHealthChecks, 60000); });
+ensureAdminToken().then(() => { loadHealthChecks(); });
 
 function cronHealthClass(h) { return h === 'ok' ? 'ok' : h === 'warn' ? 'warn' : h === 'never' ? 'warn' : 'err'; }
 function cronDotClass(h) { return h === 'ok' ? 'green' : h === 'warn' || h === 'never' ? 'amber' : 'red'; }
 
-function formatCronAge(hoursAgo) {
-  if (hoursAgo == null) return 'Never';
-  if (hoursAgo < 1) return Math.round(hoursAgo * 60) + 'm ago';
-  if (hoursAgo < 24) return Math.round(hoursAgo) + 'h ago';
-  return Math.round(hoursAgo / 24) + 'd ago';
+function formatCronAge(hoursAgo, health) {
+  if (hoursAgo == null) return { text: 'Never', color: 'var(--text-dim)' };
+  const isOverdue = health === 'overdue' || health === 'err';
+  if (hoursAgo < 0) {
+    const mins = Math.abs(Math.round(hoursAgo * 60));
+    return { text: 'Overdue by ' + mins + 'm', color: 'var(--red)' };
+  }
+  if (hoursAgo < 1) {
+    const mins = Math.round(hoursAgo * 60);
+    return { text: 'Ran ' + mins + 'm ago', color: isOverdue ? 'var(--red)' : 'var(--green)' };
+  }
+  if (hoursAgo < 24) {
+    return { text: 'Ran ' + Math.round(hoursAgo) + 'h ago', color: isOverdue ? 'var(--amber)' : 'var(--green)' };
+  }
+  return { text: 'Ran ' + Math.round(hoursAgo / 24) + 'd ago', color: 'var(--red)' };
 }
 
 function buildCronJobs(jobs) {
   const container = document.getElementById('cron-jobs-list');
   if (!container) return;
   container.innerHTML = '';
+
+  const alertBanner = document.getElementById('cron-alerts-banner');
+  const alertList = document.getElementById('cron-alerts-list');
+  const overdueJobs = jobs.filter(j => j.health === 'overdue' || j.health === 'err' || (j.hours_ago != null && j.hours_ago < 0));
+
+  if (alertBanner && alertList) {
+    if (overdueJobs.length > 0) {
+      alertBanner.style.display = '';
+      alertList.innerHTML = overdueJobs.map(j => {
+        const age = formatCronAge(j.hours_ago, j.health);
+        return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0">' +
+          '<span style="color:var(--red);font-weight:700;font-size:10px">' + j.name + '</span>' +
+          '<span style="color:var(--red);font-size:10px">' + age.text + '</span>' +
+          (j.last_error_msg ? '<span style="color:var(--text-dim);font-size:10px"> — ' + j.last_error_msg + '</span>' : '') +
+          '</div>';
+      }).join('');
+    } else {
+      alertBanner.style.display = 'none';
+    }
+  }
+
+  const ovCronStatus = document.getElementById('ov-cron-status');
+  const ovCronSub = document.getElementById('ov-cron-sub');
+  if (ovCronStatus) {
+    if (overdueJobs.length > 0) {
+      ovCronStatus.textContent = overdueJobs.length + ' Overdue';
+      ovCronStatus.className = 'metric-val red';
+      if (ovCronSub) ovCronSub.textContent = overdueJobs.map(j => j.name).join(', ');
+    } else {
+      ovCronStatus.textContent = 'Healthy';
+      ovCronStatus.className = 'metric-val green';
+      if (ovCronSub) ovCronSub.textContent = jobs.length + ' jobs running';
+    }
+  }
+
   jobs.forEach(j => {
     const row = document.createElement('div');
-    row.className = 'status-bar-row';
+    const isErr = j.health === 'overdue' || j.health === 'err';
+    const isWarn = j.health === 'warn' || j.health === 'never';
+    row.className = 'status-bar-row' + (isErr ? ' cron-row-err' : isWarn ? ' cron-row-warn' : ' cron-row-ok');
     row.style.cursor = 'default';
+    row.style.padding = '4px 6px';
+    row.style.borderRadius = '4px';
+    row.style.marginBottom = '1px';
     const durStr = j.last_duration_ms != null ? j.last_duration_ms + 'ms' : '';
-    const ageStr = formatCronAge(j.hours_ago);
-    const statusColor = j.last_status === 'ok' ? 'var(--green)' : j.last_status === 'error' ? 'var(--red)' : 'var(--text-dim)';
+    const age = formatCronAge(j.hours_ago, j.health);
     const successRate = j.recent_ok + j.recent_errors > 0 ? Math.round(j.recent_ok / (j.recent_ok + j.recent_errors) * 100) : null;
     const rateStr = successRate != null ? successRate + '%' : '';
     const rateColor = successRate === 100 ? 'var(--green)' : successRate >= 80 ? 'var(--amber)' : 'var(--red)';
@@ -1650,7 +2027,7 @@ function buildCronJobs(jobs) {
       <div class="status-indicator ${cronHealthClass(j.health)}"></div>
       <span class="status-name">${j.name}</span>
       <span style="color:var(--text-dim);font-size:10px;width:70px;text-align:right">${j.schedule.replace('Daily ', '')}</span>
-      <span style="color:${statusColor};font-size:10px;width:45px;text-align:right;font-weight:600">${ageStr}</span>
+      <span style="color:${age.color};font-size:10px;width:100px;text-align:right;font-weight:600">${age.text}</span>
       <span style="color:var(--text-dim);font-size:10px;width:40px;text-align:right">${durStr}</span>
       <span style="color:${rateColor};font-size:10px;width:30px;text-align:right;font-weight:600">${rateStr}</span>
     `;
@@ -1681,7 +2058,7 @@ async function loadCronHealth() {
   }
 }
 
-ensureAdminToken().then(() => { loadCronHealth(); setInterval(loadCronHealth, 30000); });
+ensureAdminToken().then(() => { loadCronHealth(); });
 
 async function loadControlRoom() {
   try {
@@ -1690,6 +2067,7 @@ async function loadControlRoom() {
     const d = await res.json();
 
     const ks = d.kill_switch;
+    updateKillSwitchBadge(ks);
     const dot = document.getElementById('ks-status-dot');
     const statusLabel = document.getElementById('ks-status-label');
     const posLabel = document.getElementById('ks-position-label');
@@ -1825,7 +2203,7 @@ async function loadControlRoom() {
   }
 }
 
-ensureAdminToken().then(() => { loadControlRoom(); setInterval(loadControlRoom, 60000); });
+ensureAdminToken().then(() => { loadControlRoom(); });
 </script>
 
 </body>

@@ -213,10 +213,8 @@ def today():
             })
 
     # Enrich waiting state with today's slate info for daily insight screen
-    games_scheduled = 0
     games_preview = []
     model_runs_at = '10:00 AM ET'
-    games_table = 'wnba_games' if sport == 'wnba' else 'games'
 
     def _format_utc_to_et(utc_str):
         """Convert UTC ISO timestamp to ET display string like '7:30 PM ET'."""
@@ -232,64 +230,55 @@ def today():
         except Exception:
             return None
 
-    # Try SQLite first for game list
-    db_games = []
-    try:
-        conn = sqlite3.connect(get_sqlite_path())
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute(
-            f"SELECT away_team, home_team, "
-            f"COALESCE(NULLIF(game_time, ''), NULLIF(commence_time, '')) as game_time "
-            f"FROM {games_table} WHERE game_date = ? AND home_score IS NULL "
-            f"GROUP BY away_team, home_team ORDER BY game_time",
-            (today_str,)
-        )
-        db_games = cur.fetchall()
-        conn.close()
-    except Exception:
-        pass
-
-    # Fetch ESPN schedule for reliable start times
-    espn_times = {}
+    espn_sport = 'womens-basketball/wnba' if sport == 'wnba' else 'basketball/nba'
     try:
         import requests as _req
         espn_date = today_str.replace('-', '')
-        espn_url = f'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={espn_date}'
+        espn_url = f'https://site.api.espn.com/apis/site/v2/sports/{espn_sport}/scoreboard?dates={espn_date}'
         resp = _req.get(espn_url, timeout=5)
         if resp.status_code == 200:
             for ev in resp.json().get('events', []):
                 comp = ev.get('competitions', [{}])[0]
                 teams = comp.get('competitors', [])
                 if len(teams) == 2:
-                    home_t = teams[0].get('team', {}).get('displayName', '')
-                    away_t = teams[1].get('team', {}).get('displayName', '')
-                    if teams[0].get('homeAway') == 'away':
-                        home_t, away_t = away_t, home_t
-                    utc_time = ev.get('date', '')
-                    espn_times[(away_t, home_t)] = _format_utc_to_et(utc_time)
+                    home_t = next((t for t in teams if t.get('homeAway') == 'home'), teams[0])
+                    away_t = next((t for t in teams if t.get('homeAway') == 'away'), teams[1])
+                    games_preview.append({
+                        'away': away_t.get('team', {}).get('displayName', ''),
+                        'home': home_t.get('team', {}).get('displayName', ''),
+                        'time': _format_utc_to_et(ev.get('date', '')),
+                    })
     except Exception:
         pass
 
-    if db_games:
-        games_scheduled = len(db_games)
-        for r in db_games:
-            db_time = _format_utc_to_et(r['game_time'])
-            espn_time = espn_times.get((r['away_team'], r['home_team']))
-            games_preview.append({
-                'away': r['away_team'],
-                'home': r['home_team'],
-                'time': db_time or espn_time,
-            })
-    elif espn_times:
-        games_scheduled = len(espn_times)
-        for (away, home), time_str in espn_times.items():
-            games_preview.append({'away': away, 'home': home, 'time': time_str})
+    # Fallback to SQLite if ESPN returned nothing
+    if not games_preview:
+        games_table = 'wnba_games' if sport == 'wnba' else 'games'
+        try:
+            conn = sqlite3.connect(get_sqlite_path())
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute(
+                f"SELECT away_team, home_team, "
+                f"COALESCE(NULLIF(game_time, ''), NULLIF(commence_time, '')) as game_time "
+                f"FROM {games_table} WHERE game_date = ? AND home_score IS NULL "
+                f"GROUP BY away_team, home_team ORDER BY game_time",
+                (today_str,)
+            )
+            for r in cur.fetchall():
+                games_preview.append({
+                    'away': r['away_team'],
+                    'home': r['home_team'],
+                    'time': _format_utc_to_et(r['game_time']),
+                })
+            conn.close()
+        except Exception:
+            pass
 
     return jsonify({
         'type': 'waiting',
         'message': 'Model has not run yet today. Check back later.',
-        'games_scheduled': games_scheduled,
+        'games_scheduled': len(games_preview),
         'games_preview': games_preview,
         'model_runs_at': model_runs_at,
     })
