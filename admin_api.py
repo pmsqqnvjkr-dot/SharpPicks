@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog, FCMToken, KillSwitch
+from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog, FCMToken, KillSwitch, UserBet
 from datetime import datetime, timedelta
 from sqlalchemy import func, text
 from zoneinfo import ZoneInfo
@@ -328,6 +328,14 @@ def clear_today():
     data = request.get_json() or {}
     sport = data.get('sport', 'nba')
 
+    # Get today's pick IDs before delete (for FK cleanup)
+    today_picks = Pick.query.filter_by(game_date=today_str, sport=sport).all()
+    pick_ids = [p.id for p in today_picks]
+    for pick_id in pick_ids:
+        ModelRun.query.filter_by(pick_id=pick_id).update({'pick_id': None})
+        TrackedBet.query.filter_by(pick_id=pick_id).update({'pick_id': None})
+        UserBet.query.filter_by(pick_id=pick_id).delete()
+
     runs_deleted = ModelRun.query.filter_by(date=today_str, sport=sport).delete()
     passes_deleted = Pass.query.filter_by(date=today_str, sport=sport).delete()
     picks_deleted = Pick.query.filter_by(game_date=today_str, sport=sport).delete()
@@ -337,6 +345,35 @@ def clear_today():
         'cleared': {'runs': runs_deleted, 'passes': passes_deleted, 'picks': picks_deleted},
         'message': f'Cleared {today_str}/{sport}. Run model when ready.',
     })
+
+
+@admin_bp.route('/api/admin/delete-live-pick', methods=['POST'])
+def delete_live_pick():
+    """Delete today's live pick (admin or cron auth). Use when a pick was published a day early."""
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+    now_et = datetime.now(ET)
+    today_str = now_et.strftime('%Y-%m-%d')
+    data = request.get_json() or {}
+    sport = data.get('sport', 'nba')
+
+    pick = Pick.query.filter_by(game_date=today_str, sport=sport).first()
+    if not pick:
+        return jsonify({'message': 'No live pick for today', 'deleted': False}), 200
+
+    pick_id = pick.id
+    info = f"{pick.away_team} @ {pick.home_team} ({pick.side})"
+    ModelRun.query.filter_by(pick_id=pick_id).update({'pick_id': None})
+    TrackedBet.query.filter_by(pick_id=pick_id).update({'pick_id': None})
+    UserBet.query.filter_by(pick_id=pick_id).delete()
+    db.session.delete(pick)
+    db.session.commit()
+    return jsonify({'deleted': True, 'pick': info, 'game_date': today_str})
 
 
 @admin_bp.route('/api/admin/trigger-model', methods=['POST'])
@@ -1717,9 +1754,11 @@ def test_push():
         msg = str(e)
         if any(x in msg.lower() for x in ('expected pattern', 'pem', 'format invalid', 'credentials invalid')):
             msg = (
-                'Firebase credentials invalid. Ensure FIREBASE_SERVICE_ACCOUNT_JSON is the exact JSON from '
-                'Firebase Console (Project Settings → Service accounts → Generate new private key). '
-                'Paste the full JSON as one line, or use jq -c . to compact it. Avoid editing the private_key.'
+                'Firebase credentials invalid. Try one of:\n'
+                '1. Separate env vars (most reliable on Railway): FIREBASE_PRIVATE_KEY (PEM with \\n for newlines), '
+                'FIREBASE_CLIENT_EMAIL, FIREBASE_PROJECT_ID.\n'
+                '2. FIREBASE_SERVICE_ACCOUNT_JSON = full JSON from Firebase Console → Service accounts → Generate new private key. '
+                'Use jq -c . to compact. Ensure private_key has proper newlines.'
             )
         return jsonify({'error': msg, 'sent': 0}), 500
     except Exception as e:
