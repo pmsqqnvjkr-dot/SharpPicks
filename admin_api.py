@@ -414,6 +414,38 @@ def trigger_grade():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@admin_bp.route('/api/admin/collect-games', methods=['POST'])
+def admin_collect_games():
+    """Collect today's games from ESPN/Odds API (admin auth)."""
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    from app import collect_todays_games
+    try:
+        result = collect_todays_games()
+        return jsonify({'success': True, 'message': 'Games collected', 'result': str(result) if result else None})
+    except Exception as e:
+        logging.error(f"Admin collect-games error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/refresh-lines', methods=['POST'])
+def admin_refresh_lines():
+    """Refresh lines (collect games + odds) (admin auth)."""
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    from app import collect_todays_games
+    try:
+        result = collect_todays_games()
+        return jsonify({'success': True, 'message': 'Lines refreshed', 'result': str(result) if result else None})
+    except Exception as e:
+        logging.error(f"Admin refresh-lines error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @admin_bp.route('/api/admin/status-summary')
 def status_summary():
     admin, err_code = require_superuser()

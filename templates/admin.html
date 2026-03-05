@@ -535,10 +535,13 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     </div>
     <div id="pipeline-cron-attempts" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px">Cron Attempts</span>
-        <div style="display:flex;gap:6px">
+        <span style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px">Key Actions</span>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end">
+          <button id="pipeline-get-games-btn" onclick="triggerGetGames()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--panel-hover);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:var(--mono)">Get Games</button>
+          <button id="pipeline-get-lines-btn" onclick="triggerGetLines()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--panel-hover);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:var(--mono)">Get Lines</button>
+          <button id="pipeline-clear-btn" onclick="triggerClearToday()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--red-dim);color:var(--red);border:1px solid rgba(255,71,87,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Clear</button>
           <button id="pipeline-run-model-btn" onclick="triggerModel()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--blue-dim);color:var(--blue);border:1px solid rgba(79,134,247,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Run Model</button>
-          <button id="pipeline-grade-btn" onclick="triggerGrade()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,214,143,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Grade Picks</button>
+          <button id="pipeline-grade-btn" onclick="triggerGrade()" style="padding:4px 10px;font-size:10px;font-weight:600;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,214,143,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Grade</button>
         </div>
       </div>
       <div id="pipeline-cron-list" style="font-size:10px;color:var(--text-dim)">--</div>
@@ -1305,6 +1308,76 @@ async function deleteUser(userId, email) {
   } catch(e) {
     alert('Delete failed: ' + e.message);
   }
+}
+
+async function triggerGetGames() {
+  const btn = document.getElementById('pipeline-get-games-btn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    const res = await adminFetch('/api/admin/collect-games', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      loadPipeline();
+      loadDashboard();
+      btn.textContent = 'Done';
+    } else {
+      btn.textContent = 'Error';
+      alert(data.error || 'Failed');
+    }
+  } catch (e) {
+    btn.textContent = 'Error';
+    alert('Error: ' + e.message);
+  }
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Get Games'; }, 2000);
+}
+
+async function triggerGetLines() {
+  const btn = document.getElementById('pipeline-get-lines-btn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    const res = await adminFetch('/api/admin/refresh-lines', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      loadPipeline();
+      loadDashboard();
+      btn.textContent = 'Done';
+    } else {
+      btn.textContent = 'Error';
+      alert(data.error || 'Failed');
+    }
+  } catch (e) {
+    btn.textContent = 'Error';
+    alert('Error: ' + e.message);
+  }
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Get Lines'; }, 2000);
+}
+
+async function triggerClearToday() {
+  const btn = document.getElementById('pipeline-clear-btn');
+  if (btn.disabled) return;
+  if (!confirm('Clear today\'s pick/pass? Run model after to regenerate.')) return;
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    const res = await adminFetch('/api/admin/clear-today', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sport: 'nba' }) });
+    const data = await res.json();
+    if (res.ok) {
+      loadPipeline();
+      loadDashboard();
+      btn.textContent = 'Done';
+    } else {
+      btn.textContent = 'Error';
+      alert(data.error || 'Failed');
+    }
+  } catch (e) {
+    btn.textContent = 'Error';
+    alert('Error: ' + e.message);
+  }
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Clear'; }, 2000);
 }
 
 async function triggerModel() {
