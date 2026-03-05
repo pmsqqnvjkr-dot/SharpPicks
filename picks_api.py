@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from models import db, Pick, Pass, ModelRun, UserBet, TrackedBet
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import sqlite3
 
 picks_bp = Blueprint('picks', __name__)
@@ -222,14 +222,31 @@ def today():
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         cur.execute(
-            f"SELECT away_team, home_team, game_time FROM {games_table} WHERE game_date = ? ORDER BY game_time",
+            f"SELECT away_team, home_team, MIN(game_time) as game_time "
+            f"FROM {games_table} WHERE game_date = ? AND home_score IS NULL "
+            f"GROUP BY away_team, home_team ORDER BY game_time",
             (today_str,)
         )
         rows = cur.fetchall()
         games_scheduled = len(rows)
+
+        def _format_game_time(utc_str):
+            """Convert UTC ISO timestamp to ET display time like '7:30 PM'."""
+            if not utc_str:
+                return None
+            try:
+                from zoneinfo import ZoneInfo
+                dt = datetime.fromisoformat(utc_str.replace('Z', '+00:00'))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                et = dt.astimezone(ZoneInfo('America/New_York'))
+                return et.strftime('%-I:%M %p')
+            except Exception:
+                return None
+
         games_preview = [
-            {'away': r['away_team'], 'home': r['home_team'], 'time': r['game_time']}
-            for r in rows[:12]  # cap at 12 for response size
+            {'away': r['away_team'], 'home': r['home_team'], 'time': _format_game_time(r['game_time'])}
+            for r in rows[:12]
         ]
         conn.close()
     except Exception:
