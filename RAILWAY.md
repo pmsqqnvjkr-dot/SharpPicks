@@ -21,3 +21,11 @@ The app uses **SQLite** for games/odds data (collect, model). Without a persiste
 
 - **PostgreSQL** (DATABASE_URL): Users, Picks, Passes, ModelRuns — managed by Railway.
 - **SQLite** (via volume): Games, odds — requires the `/data` volume.
+
+### Push notifications (FCM)
+
+Set **FIREBASE_SERVICE_ACCOUNT_JSON** to the full JSON from your Firebase service account (Project Settings → Service accounts → Generate new private key). Paste the entire JSON as the env value.
+
+Alternatively, add `firebase-service-account.json` to the project root (ensure it's not in .gitignore for deploy, or use a build secret).
+
+For **iOS** push, upload your APNs key in Firebase Console → Project Settings → Cloud Messaging → Apple app configuration.

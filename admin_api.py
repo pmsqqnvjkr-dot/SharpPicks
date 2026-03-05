@@ -1666,27 +1666,42 @@ def _diagnose_signal(n, blended_wr, model_wr, blended_roi, model_roi, corr):
 
 @admin_bp.route('/api/admin/test-push', methods=['POST'])
 def test_push():
-    user, err = require_superuser()
-    if err:
-        return jsonify({'error': 'Unauthorized'}), err
-    import json as _json
+    user, when_err = require_superuser()
+    if when_err:
+        return jsonify({'error': 'Unauthorized'}), when_err
     from models import FCMToken
+    from app import send_push_notification, _get_firebase_service_info
+
     data = request.get_json(silent=True) or {}
-    title = data.get('title', 'SharpPicks Test')
-    body = data.get('body', 'Push notifications are working.')
+    title = (data.get('title') or 'SharpPicks Test').strip()
+    body = (data.get('body') or 'Push notifications are working.').strip()
 
     tokens = FCMToken.query.filter_by(user_id=user.id, enabled=True).all()
     if not tokens:
         return jsonify({'error': f'No enabled FCM tokens for your account ({user.email})', 'sent': 0}), 400
 
-    sa_file = os.path.join(os.path.dirname(__file__), 'firebase-service-account.json')
-    pk = os.environ.get('FIREBASE_PRIVATE_KEY', '')
-    if not pk and not os.path.exists(sa_file):
-        return jsonify({'error': 'No Firebase credentials found (FIREBASE_PRIVATE_KEY not set and no service account file)', 'sent': 0}), 500
+    if not _get_firebase_service_info():
+        return jsonify({
+            'error': 'No Firebase credentials. Set FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_PRIVATE_KEY, or add firebase-service-account.json',
+            'sent': 0
+        }), 500
 
-    from app import send_push_notification
-    sent = send_push_notification(user.id, title, body)
-    return jsonify({'sent': sent})
+    try:
+        sent = send_push_notification(user.id, title, body)
+        if sent == 0 and any(getattr(t, 'platform', '') == 'ios' for t in tokens):
+            return jsonify({
+                'sent': 0,
+                'error': 'Push failed. For iOS, upload APNs key in Firebase Console → Project Settings → Cloud Messaging.',
+                'hint': 'APNs authentication required for iOS tokens'
+            }), 400
+        return jsonify({'sent': sent})
+    except ValueError as e:
+        msg = str(e)
+        if 'expected pattern' in msg.lower() or 'pem' in msg.lower():
+            msg = 'Firebase private key format invalid. Set FIREBASE_SERVICE_ACCOUNT_JSON to full JSON (with proper newlines in private_key).'
+        return jsonify({'error': msg, 'sent': 0}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)[:200], 'sent': 0}), 500
 
 
 @admin_bp.route('/api/admin/export-picks')

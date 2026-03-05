@@ -3304,6 +3304,92 @@ def delete_fcm_token():
     return jsonify({'success': True})
 
 
+def _normalize_pem_private_key(pk):
+    """
+    Normalize PEM private key for cryptography library.
+    Handles: escaped \\n, single-line base64, missing trailing newline.
+    """
+    if not pk or not isinstance(pk, str):
+        return pk
+    # Replace escaped newlines (env vars often have literal \n as backslash-n)
+    pk = pk.replace('\\n', '\n')
+    pk = pk.strip()
+    if not pk:
+        return pk
+    # Extract base64 body between markers
+    begin = '-----BEGIN PRIVATE KEY-----'
+    end = '-----END PRIVATE KEY-----'
+    if begin not in pk:
+        return pk
+    if end not in pk:
+        return pk
+    parts = pk.split(begin, 1)[1].split(end, 1)
+    if len(parts) != 2:
+        return pk
+    b64_body = parts[0].replace('\n', '').replace('\r', '').strip()
+    if not b64_body:
+        return pk
+    # Re-wrap base64 at 64 chars (RFC 7468) — single-line causes "expected pattern" error
+    wrapped = '\n'.join(b64_body[i:i + 64] for i in range(0, len(b64_body), 64))
+    return f"{begin}\n{wrapped}\n{end}\n"
+
+
+def _get_firebase_service_info():
+    """Load Firebase credentials from file or env. Returns dict or None."""
+    import json
+    sa_file = os.path.join(os.path.dirname(__file__), 'firebase-service-account.json')
+    if os.path.exists(sa_file):
+        try:
+            info = json.load(open(sa_file))
+            pk = info.get('private_key', '')
+            if pk:
+                info = dict(info)
+                info['private_key'] = _normalize_pem_private_key(pk)
+            return info
+        except Exception as e:
+            logging.error(f"Failed to load firebase-service-account.json: {e}")
+
+    raw = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON', '') or os.environ.get('FIREBASE_PRIVATE_KEY', '')
+    if not raw:
+        return None
+    raw = raw.strip()
+    if raw.startswith("'") and raw.endswith("'"):
+        raw = raw[1:-1]
+    elif raw.startswith('"') and raw.endswith('"'):
+        raw = raw[1:-1]
+
+    try:
+        info = json.loads(raw)
+        if isinstance(info, dict) and info.get('type') == 'service_account':
+            pk = info.get('private_key', '')
+            if pk:
+                info = dict(info)
+                info['private_key'] = _normalize_pem_private_key(pk)
+            return info
+    except json.JSONDecodeError:
+        pass
+
+    pk_raw = raw.replace('\\n', '\n')
+    if not pk_raw.strip().startswith('-----BEGIN'):
+        pk_raw = '-----BEGIN PRIVATE KEY-----\n' + pk_raw
+    if not pk_raw.strip().endswith('-----END PRIVATE KEY-----'):
+        pk_raw = pk_raw.rstrip() + '\n-----END PRIVATE KEY-----\n'
+    pk_pem = _normalize_pem_private_key(pk_raw)
+    return {
+        "type": "service_account",
+        "project_id": "sharp-picks",
+        "private_key_id": os.environ.get('FIREBASE_PRIVATE_KEY_ID', 'e6289e4f161c78502bdddd57031094b7cf0f123e'),
+        "private_key": pk_pem,
+        "client_email": "firebase-adminsdk-fbsvc@sharp-picks.iam.gserviceaccount.com",
+        "client_id": "116349919118145525435",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40sharp-picks.iam.gserviceaccount.com",
+        "universe_domain": "googleapis.com"
+    }
+
+
 def send_push_notification(user_id, title, body, data=None):
     import json
     import google.auth.transport.requests
@@ -3314,54 +3400,21 @@ def send_push_notification(user_id, title, body, data=None):
     if not tokens:
         return 0
 
-    service_info = None
-    sa_file = os.path.join(os.path.dirname(__file__), 'firebase-service-account.json')
-    if os.path.exists(sa_file):
-        try:
-            with open(sa_file) as f:
-                service_info = json.load(f)
-            logging.debug("Loaded Firebase credentials from file")
-        except Exception as e:
-            logging.error(f"Failed to load firebase-service-account.json: {e}")
-
+    service_info = _get_firebase_service_info()
     if not service_info:
-        raw_key = os.environ.get('FIREBASE_PRIVATE_KEY', '')
-        if not raw_key:
-            logging.warning("FIREBASE_PRIVATE_KEY not set and no service account file found")
-            return 0
-        pk = raw_key.strip()
-        if pk.startswith("'") and pk.endswith("'"):
-            pk = pk[1:-1]
-        elif pk.startswith('"') and pk.endswith('"'):
-            pk = pk[1:-1]
-        try:
-            service_info = json.loads(pk)
-        except json.JSONDecodeError:
-            pk_pem = pk.replace('\\n', '\n')
-            if not pk_pem.startswith('-----BEGIN'):
-                pk_pem = '-----BEGIN PRIVATE KEY-----\n' + pk_pem
-            if not pk_pem.strip().endswith('-----END PRIVATE KEY-----'):
-                pk_pem = pk_pem.rstrip('\n') + '\n-----END PRIVATE KEY-----\n'
-            service_info = {
-                "type": "service_account",
-                "project_id": "sharp-picks",
-                "private_key_id": "e6289e4f161c78502bdddd57031094b7cf0f123e",
-                "private_key": pk_pem,
-                "client_email": "firebase-adminsdk-fbsvc@sharp-picks.iam.gserviceaccount.com",
-                "client_id": "116349919118145525435",
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40sharp-picks.iam.gserviceaccount.com",
-                "universe_domain": "googleapis.com"
-            }
-            logging.info("Reconstructed Firebase service account from FIREBASE_PRIVATE_KEY")
+        logging.warning("No Firebase credentials found")
+        return 0
 
-    credentials = service_account.Credentials.from_service_account_info(
-        service_info,
-        scopes=['https://www.googleapis.com/auth/firebase.messaging']
-    )
-    credentials.refresh(google.auth.transport.requests.Request())
+    try:
+        credentials = service_account.Credentials.from_service_account_info(
+            service_info,
+            scopes=['https://www.googleapis.com/auth/firebase.messaging']
+        )
+        credentials.refresh(google.auth.transport.requests.Request())
+    except Exception as e:
+        err_msg = str(e).strip()
+        logging.error(f"Firebase credential load failed: {err_msg}")
+        raise ValueError(f"Firebase credentials invalid: {err_msg}")
 
     project_id = service_info.get('project_id', 'sharp-picks')
     url = f'https://fcm.googleapis.com/v1/projects/{project_id}/messages:send'
@@ -3372,22 +3425,29 @@ def send_push_notification(user_id, title, body, data=None):
 
     sent = 0
     for t in tokens:
+        token = (t.fcm_token or '').strip()
+        if not token or len(token) < 100:
+            logging.warning(f"Skipping invalid FCM token (too short or empty) for user {user_id}")
+            continue
         payload = {
             'message': {
-                'token': t.fcm_token,
-                'notification': {'title': title, 'body': body}
+                'token': token,
+                'notification': {'title': title or ' ', 'body': body or ' '}
             }
         }
         if data:
-            payload['message']['data'] = {k: str(v) for k, v in data.items()}
+            payload['message']['data'] = {str(k): str(v) for k, v in data.items()}
         try:
             resp = http_requests.post(url, json=payload, headers=headers, timeout=10)
             if resp.status_code == 200:
                 sent += 1
-            elif resp.status_code == 404 or resp.status_code == 410:
+            elif resp.status_code in (404, 410):
                 t.enabled = False
                 db.session.commit()
                 logging.info(f"Disabled stale FCM token for user {user_id}")
+            elif resp.status_code == 401:
+                err_text = resp.text[:300]
+                logging.warning(f"FCM 401 (APNs/credentials): {err_text}")
             else:
                 logging.warning(f"FCM send failed ({resp.status_code}): {resp.text[:200]}")
         except Exception as e:
