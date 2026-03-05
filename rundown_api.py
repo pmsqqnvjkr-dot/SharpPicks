@@ -5,9 +5,18 @@ Fetches NBA odds from The Rundown via RapidAPI
 
 import requests
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY')
+
+
+def _get_et_date_str():
+    """Return today's date in Eastern Time (YYYY-MM-DD). Server may be UTC."""
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo("America/New_York")).strftime('%Y-%m-%d')
+    except ImportError:
+        return (datetime.now(timezone.utc) - timedelta(hours=5)).strftime('%Y-%m-%d')
 
 _rundown_session = None
 
@@ -84,7 +93,7 @@ def get_nba_events():
         print("   ⚠️ No RAPIDAPI_KEY found")
         return None
     
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = _get_et_date_str()
     
     try:
         response = _get_rundown_session().get(
@@ -257,7 +266,7 @@ def test_connection():
     
     print(f"✅ API Key found: {RAPIDAPI_KEY[:10]}...")
     
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = _get_et_date_str()
     
     try:
         response = _get_rundown_session().get(

@@ -446,6 +446,113 @@ def admin_refresh_lines():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+def run_admin_alert_check(include_health=True):
+    """
+    Check for issues (cron, model, kill switch, optional health).
+    If issues found, send admin push and return True. Returns False if all ok.
+    """
+    now_et = datetime.now(ET)
+    today_str = now_et.strftime('%Y-%m-%d')
+    hour_et = now_et.hour
+    alerts = []
+    level = 'green'
+
+    # Cron health
+    critical_jobs = ['run_model', 'collect_games', 'grade_picks']
+    job_configs = {
+        'run_model': {'label': 'Run Model', 'expected_h': 24},
+        'collect_games': {'label': 'Collect Games', 'expected_h': 24},
+        'grade_picks': {'label': 'Grade Picks', 'expected_h': 24},
+        'pretip_validate': {'label': 'Pre-Tip Validate', 'expected_h': 24},
+    }
+    for job_name, config in job_configs.items():
+        last_log = CronLog.query.filter_by(job_name=job_name).order_by(CronLog.executed_at.desc()).first()
+        if last_log:
+            hours_ago = (now_et.replace(tzinfo=None) - last_log.executed_at).total_seconds() / 3600
+            overdue = hours_ago > config['expected_h'] * 1.5
+            is_failing = last_log.status == 'error'
+        else:
+            hours_ago = None
+            overdue = True
+            is_failing = False
+        if job_name in critical_jobs:
+            if is_failing:
+                level = 'red'
+                alerts.append({'severity': 'critical', 'message': f"{config['label']} failed (last error)"})
+            elif overdue:
+                if level != 'red':
+                    level = 'yellow'
+                age_str = f"{hours_ago:.1f}h" if hours_ago is not None else "never"
+                alerts.append({'severity': 'warn', 'message': f"{config['label']} overdue ({age_str})"})
+
+    # Model status
+    pick_today = Pick.query.filter_by(game_date=today_str).first()
+    pass_today = Pass.query.filter_by(date=today_str).first()
+    model_run_today = pick_today is not None or pass_today is not None
+    model_run_window = hour_et >= 14
+    if not model_run_today and model_run_window:
+        level = 'red'
+        alerts.append({'severity': 'critical', 'message': f"No pick/pass for {today_str} (past 3 PM ET)"})
+
+    # Kill switch
+    kill_switch = KillSwitch.query.filter_by(sport='nba').first()
+    if kill_switch and kill_switch.active:
+        level = 'red'
+        alerts.append({'severity': 'critical', 'message': "Kill switch is ACTIVE"})
+
+    # Health checks (quick: postgres + critical externals)
+    if include_health:
+        try:
+            db.session.execute(text('SELECT 1'))
+            db.session.rollback()
+        except Exception as e:
+            level = 'red'
+            alerts.append({'severity': 'critical', 'message': f"PostgreSQL: {str(e)[:60]}"})
+        for name, check_fn in [
+            ('Odds API', lambda: _quick_check('https://api.the-odds-api.com/v4/sports/', headers=None, key_env='ODDS_API_KEY', key_param='apiKey')),
+            ('Resend', lambda: _quick_check('https://api.resend.com/domains', headers=lambda k: {'Authorization': f'Bearer {k}'}, key_env='RESEND_API_KEY')),
+        ]:
+            try:
+                r = check_fn()
+                if r and r.get('status') == 'error':
+                    if level != 'red':
+                        level = 'yellow'
+                    alerts.append({'severity': 'warn', 'message': f"{name}: {r.get('message', 'failed')[:50]}"})
+            except Exception:
+                pass
+
+    if level == 'green':
+        return False
+
+    from app import send_admin_alert
+    critical = [a for a in alerts if a['severity'] == 'critical']
+    warn = [a for a in alerts if a['severity'] == 'warn']
+    title = "System Issue" if critical else "Needs Attention"
+    lines = [a['message'] for a in (critical[:2] + warn[:2])]
+    body = '\n'.join(lines) if lines else "Check admin dashboard"
+    send_admin_alert(title, body, {'level': level})
+    return True
+
+
+def _quick_check(url, headers=None, key_env=None, key_param=None):
+    """Quick HTTP check for health. Returns {'status':'ok'} or {'status':'error','message':...}"""
+    key = os.environ.get(key_env) if key_env else None
+    if key_env and not key:
+        return {'status': 'error', 'message': f'{key_env} not set'}
+    try:
+        kw = {'timeout': 6}
+        if key_param and key:
+            kw['params'] = {key_param: key}
+        elif headers and key:
+            kw['headers'] = headers(key) if callable(headers) else headers
+        resp = requests.get(url, **kw)
+        if resp.status_code in (200, 201):
+            return {'status': 'ok'}
+        return {'status': 'error', 'message': f'HTTP {resp.status_code}'}
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)[:50]}
+
+
 @admin_bp.route('/api/admin/status-summary')
 def status_summary():
     admin, err_code = require_superuser()

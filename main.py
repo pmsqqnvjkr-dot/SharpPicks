@@ -894,13 +894,14 @@ def collect_todays_games():
         print("   6. Click 'Run' again\n")
         return
     
-    # Today's date in ET (e.g. '2026-03-03'). Filter: utc_to_eastern_date(commence_time) == today_str_et.
-    # E.g. commence_time '2026-03-04T00:10:00Z' (7:10 PM ET Mar 3) → utc1 returns '2026-03-03' → passes.
+    # Today's date in Eastern Time (YYYY-MM-DD). Server may run in UTC — always convert to ET.
+    # Filter: utc_to_eastern_date(commence_time) == today_str_et.
     try:
         import zoneinfo
         today_str_et = datetime.now(zoneinfo.ZoneInfo("America/New_York")).strftime('%Y-%m-%d')
     except ImportError:
-        today_str_et = (datetime.now() - timedelta(hours=5)).strftime('%Y-%m-%d')
+        # Fallback: assume server is UTC, subtract 5 for ET
+        today_str_et = (datetime.utcnow() - timedelta(hours=5)).strftime('%Y-%m-%d')
 
     # Step 0: ESPN as source of truth for expected game count
     espn_expected, espn_matchups = _fetch_espn_expected_games(today_str_et)
@@ -1124,8 +1125,6 @@ def collect_todays_games():
         if rundown_games:
             print("🔄 Falling back to The Rundown API for today's games...")
             using_rundown = True
-            from datetime import date as _date
-            today_str = _date.today().strftime('%Y-%m-%d')
             for key, rg in rundown_games.items():
                 away_t = rg.get('away_team', '')
                 home_t = rg.get('home_team', '')
@@ -1133,9 +1132,9 @@ def collect_todays_games():
                     continue
                 rd_spread = rg.get('spread_home') or rg.get('consensus_spread')
                 games_to_process.append({
-                    'game_id': f"rundown_{away_t}_{home_t}_{today_str}".replace(' ', '_').lower(),
+                    'game_id': f"rundown_{away_t}_{home_t}_{today_str_et}".replace(' ', '_').lower(),
                     'home': home_t, 'away': away_t,
-                    'commence_time': rg.get('game_date', today_str),
+                    'commence_time': rg.get('game_date', today_str_et),
                     'game_time': '',
                     'spread_home': rd_spread,
                     'spread_away': -rd_spread if rd_spread is not None else None,

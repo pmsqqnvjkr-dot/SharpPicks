@@ -3,7 +3,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.dialects.postgresql import JSONB
+import os
+if os.environ.get('TESTING') == '1':
+    from sqlalchemy import JSON as JSONB  # SQLite-compatible for tests
+else:
+    from sqlalchemy.dialects.postgresql import JSONB
 import uuid
 import random
 import string

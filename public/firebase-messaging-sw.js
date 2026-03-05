@@ -34,7 +34,7 @@ self.addEventListener('notificationclick', (event) => {
   if (data.type === 'weekly_summary') {
     urlPath = '/?push=weekly_summary';
   } else if (data.type === 'pick' || data.type === 'result' || data.type === 'revoke') {
-    urlPath = '/?push=picks';
+    urlPath = data.pick_id ? '/?push=picks&pick_id=' + encodeURIComponent(data.pick_id) : '/?push=picks';
   } else if (data.type === 'pass') {
     urlPath = '/?push=picks';
   }

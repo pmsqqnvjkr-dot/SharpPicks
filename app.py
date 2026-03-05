@@ -130,13 +130,16 @@ if not _db_url:
     logging.warning(f"No database URL. DB-related env keys: {_db_keys or '(none)'}")
 app.config["SQLALCHEMY_DATABASE_URI"] = _db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    'pool_pre_ping': True,
-    "pool_recycle": 300,
-    "pool_size": 5,
-    "max_overflow": 10,
-    "pool_timeout": 20,
-}
+if _db_url and 'sqlite' in _db_url:
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {}
+else:
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        'pool_pre_ping': True,
+        "pool_recycle": 300,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 20,
+    }
 
 db.init_app(app)
 
@@ -1699,6 +1702,7 @@ _cron_locks = {}
 _cron_lock_mutex = threading.Lock()
 
 CRON_MIN_INTERVAL = {
+    'admin_alert': 7200,
     'closing_lines': 60,
     'refresh_lines': 300,
     'collect_games': 600,
@@ -1875,6 +1879,17 @@ def cron_expire_trials():
 @verify_cron
 def cron_weekly_summary():
     return log_cron('weekly_summary', send_weekly_summary_job)
+
+
+@app.route('/api/cron/admin-alert', methods=['GET', 'POST'])
+@verify_cron
+def cron_admin_alert():
+    """Run status + health check; send admin push if issues found. Schedule every 2–4 hours."""
+    def _check():
+        from admin_api import run_admin_alert_check
+        run_admin_alert_check(include_health=True)
+        return {'checked': True}
+    return log_cron('admin_alert', _check)
 
 
 @app.route('/api/cron/backup', methods=['GET', 'POST'])
@@ -2636,6 +2651,10 @@ def stripe_webhook():
                             user.trial_end_date = datetime.fromtimestamp(trial_end)
                     elif status == 'canceled':
                         user.subscription_status = 'cancelled'
+                        user.is_premium = False
+                    elif status in ('unpaid', 'incomplete_expired'):
+                        # Trial ended without payment or payment never completed
+                        user.subscription_status = 'expired'
                         user.is_premium = False
                     elif status == 'past_due':
                         user.subscription_status = 'past_due'

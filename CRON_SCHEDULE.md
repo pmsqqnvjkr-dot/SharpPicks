@@ -20,6 +20,7 @@ All times **Eastern (ET)**. Use `X-Cron-Secret` header with your `CRON_SECRET` v
 | data_quality | `https://app.sharppicks.ai/api/cron/check-data-quality` | 4:15 AM, 12:15 PM |
 | expire_trials | `https://app.sharppicks.ai/api/cron/expire-trials` | Hourly at :10 |
 | weekly_summary | `https://app.sharppicks.ai/api/cron/weekly-summary` | Mon 6:30 AM |
+| admin_alert | `https://app.sharppicks.ai/api/cron/admin-alert` | Every 2–4 hours (sends push to admins when issues detected) |
 
 ## Why run-model?force=true?
 - **force=true** runs collect (games + lines) immediately before the model, so you always get fresh data
