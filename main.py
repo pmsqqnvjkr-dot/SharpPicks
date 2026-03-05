@@ -844,6 +844,17 @@ def show_spread_stats():
     print()
 
 
+_TEAM_ALIASES = {
+    'la clippers': 'los angeles clippers',
+    'la lakers': 'los angeles lakers',
+}
+
+def _normalize_team(name):
+    """Lowercase, strip whitespace, resolve common aliases for matching."""
+    n = name.strip().lower()
+    return _TEAM_ALIASES.get(n, n)
+
+
 def _fetch_espn_expected_games(today_str_et):
     """Fetch ESPN scoreboard for today — source of truth for expected game count.
     Returns (count, matchups_list) or (0, []) on failure.
@@ -1159,6 +1170,51 @@ def collect_todays_games():
         show_no_games_message()
         show_stats()
         return
+
+    # ── ESPN Cross-Reference QC ──────────────────────────────────────
+    if espn_matchups:
+        espn_set = set()
+        for away, home in espn_matchups:
+            espn_set.add(_normalize_team(away) + '@' + _normalize_team(home))
+
+        verified = []
+        rejected = []
+        for gp in games_to_process:
+            key = _normalize_team(gp['away']) + '@' + _normalize_team(gp['home'])
+            if key in espn_set:
+                verified.append(gp)
+            else:
+                rejected.append(gp)
+
+        if rejected:
+            print(f"\n🔍 ESPN QC: {len(rejected)} game(s) NOT on ESPN schedule — dropping:")
+            for gp in rejected:
+                print(f"      ✗ {gp['away']} @ {gp['home']}")
+            games_to_process = verified
+
+        missing_from_odds = []
+        odds_set = set()
+        for gp in games_to_process:
+            odds_set.add(_normalize_team(gp['away']) + '@' + _normalize_team(gp['home']))
+        for away, home in espn_matchups:
+            key = _normalize_team(away) + '@' + _normalize_team(home)
+            if key not in odds_set:
+                missing_from_odds.append(f"{away} @ {home}")
+
+        if missing_from_odds:
+            print(f"   ⚠️ ESPN QC: {len(missing_from_odds)} ESPN game(s) missing from odds source:")
+            for m in missing_from_odds:
+                print(f"      ? {m}")
+
+        print(f"   ✅ ESPN QC: {len(games_to_process)} of {espn_expected} games verified\n")
+    else:
+        print(f"   ⚠️ ESPN QC: skipped (ESPN unavailable) — proceeding with {len(games_to_process)} unverified games\n")
+
+    if len(games_to_process) == 0:
+        print("❌ All games rejected by ESPN QC. No games to collect.")
+        show_stats()
+        return
+    # ─────────────────────────────────────────────────────────────────
 
     # Pre-fetch schedules for unique teams (avoid 2× per game)
     schedule_cache = {}
