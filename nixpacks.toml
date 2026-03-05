@@ -1,5 +1,15 @@
 # Railway/Nixpacks build config
+# 1. Node provider: installs deps, runs npm run build → populates dist/
+# 2. Python provider: uv sync for backend
 # Use uv sync without --locked to avoid build failures when lockfile
 # resolution differs between local (e.g. 3.14) and Railway (3.13).
+providers = ["node", "python"]
+
 [phases.install]
-cmds = ["uv sync --no-dev --no-install-project"]
+cmds = [
+  "npm ci || npm install",
+  "uv sync --no-dev --no-install-project"
+]
+
+[phases.build]
+cmds = ["npm run build"]
