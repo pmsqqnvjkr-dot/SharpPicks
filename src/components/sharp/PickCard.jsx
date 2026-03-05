@@ -106,7 +106,7 @@ function edgeBarHeight(edgePct) {
   return Math.min(80, Math.max(20, Math.round((pct / 12) * 80)));
 }
 
-export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
+export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }) {
   const isLocked = pick.locked && !isPro;
   const [tracking, setTracking] = useState(false);
   const [tracked, setTracked] = useState(pick.already_tracked || false);
@@ -573,6 +573,26 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack }) {
 
         </div>
       </article>
+
+      {onNavigate && !pick.result && (
+        <button
+          onClick={() => onNavigate('insights')}
+          style={{
+            width: '100%', textAlign: 'center', padding: '10px',
+            background: 'none', border: 'none', cursor: 'pointer',
+            marginTop: '8px',
+          }}
+        >
+          <span style={{
+            fontSize: '12px', color: 'var(--text-tertiary)',
+          }}>
+            {parseFloat(pick.edge_pct) >= 6
+              ? 'Why high-edge games still lose sometimes'
+              : 'How edge thresholds protect your bankroll'}
+          </span>
+          <span style={{ color: 'var(--blue-primary)', marginLeft: '5px', fontSize: '12px' }}>&rarr;</span>
+        </button>
+      )}
     </div>
   );
 }

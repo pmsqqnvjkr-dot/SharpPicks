@@ -3,20 +3,6 @@ import { apiGet } from '../../hooks/useApi';
 
 const CATEGORY_LABELS = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Founder Notes' };
 
-const TEAM_SHORT = {
-  'Atlanta Hawks': 'ATL', 'Boston Celtics': 'BOS', 'Brooklyn Nets': 'BKN',
-  'Charlotte Hornets': 'CHA', 'Chicago Bulls': 'CHI', 'Cleveland Cavaliers': 'CLE',
-  'Dallas Mavericks': 'DAL', 'Denver Nuggets': 'DEN', 'Detroit Pistons': 'DET',
-  'Golden State Warriors': 'GSW', 'Houston Rockets': 'HOU', 'Indiana Pacers': 'IND',
-  'Los Angeles Clippers': 'LAC', 'Los Angeles Lakers': 'LAL', 'Memphis Grizzlies': 'MEM',
-  'Miami Heat': 'MIA', 'Milwaukee Bucks': 'MIL', 'Minnesota Timberwolves': 'MIN',
-  'New Orleans Pelicans': 'NOP', 'New York Knicks': 'NYK', 'Oklahoma City Thunder': 'OKC',
-  'Orlando Magic': 'ORL', 'Philadelphia 76ers': 'PHI', 'Phoenix Suns': 'PHX',
-  'Portland Trail Blazers': 'POR', 'Sacramento Kings': 'SAC', 'San Antonio Spurs': 'SAS',
-  'Toronto Raptors': 'TOR', 'Utah Jazz': 'UTA', 'Washington Wizards': 'WAS',
-};
-const abbr = (name) => TEAM_SHORT[name] || name;
-
 function useCountdownTo(targetHourEt = 10) {
   const [text, setText] = useState('');
   useEffect(() => {
@@ -50,29 +36,26 @@ function MatchupRow({ away, home, time }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '8px 12px',
+      padding: '10px 14px',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
-          color: 'var(--text-primary)', width: '34px', textAlign: 'right',
-          letterSpacing: '0.02em',
-        }}>{abbr(away)}</span>
+          fontSize: '13px', fontWeight: 600,
+          color: 'var(--text-primary)',
+        }}>{away}</span>
         <span style={{
-          fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: 500,
-          letterSpacing: '0.05em',
+          fontSize: '12px', color: 'var(--text-tertiary)', margin: '0 6px',
         }}>@</span>
         <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
-          color: 'var(--text-primary)', width: '34px',
-          letterSpacing: '0.02em',
-        }}>{abbr(home)}</span>
+          fontSize: '13px', fontWeight: 600,
+          color: 'var(--text-primary)',
+        }}>{home}</span>
       </div>
       {time && (
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-tertiary)',
-          whiteSpace: 'nowrap',
-        }}>{time}</span>
+          whiteSpace: 'nowrap', flexShrink: 0, marginLeft: '8px',
+        }}>{time} ET</span>
       )}
     </div>
   );
@@ -84,6 +67,10 @@ export default function DailyInsightCard({ data, onNavigate }) {
   const gamesScheduled = data?.games_scheduled ?? 0;
   const gamesPreview = data?.games_preview ?? [];
   const modelRunsAt = data?.model_runs_at ?? '10:00 AM ET';
+
+  const todayFormatted = new Date().toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/New_York',
+  });
 
   useEffect(() => {
     apiGet('/insights?limit=20').then((res) => {
@@ -109,6 +96,10 @@ export default function DailyInsightCard({ data, onNavigate }) {
         }}>Today&apos;s Slate</h2>
         <p style={{
           fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5',
+          marginBottom: '2px',
+        }}>{todayFormatted}</p>
+        <p style={{
+          fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5',
         }}>
           {gamesScheduled > 0
             ? `${gamesScheduled} game${gamesScheduled === 1 ? '' : 's'} · Model runs at ${modelRunsAt}`
@@ -122,21 +113,12 @@ export default function DailyInsightCard({ data, onNavigate }) {
           background: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
           borderRadius: '14px', overflow: 'hidden', marginBottom: '20px',
         }}>
-          {gamesPreview.slice(0, 8).map((g, i) => (
+          {gamesPreview.map((g, i) => (
             <div key={`${g.away}-${g.home}`}>
-              {i > 0 && <div style={{ height: '1px', background: 'var(--stroke-subtle)', margin: '0 12px' }} />}
+              {i > 0 && <div style={{ height: '1px', background: 'var(--stroke-subtle)', margin: '0 14px' }} />}
               <MatchupRow away={g.away} home={g.home} time={g.time} />
             </div>
           ))}
-          {gamesScheduled > 8 && (
-            <div style={{
-              textAlign: 'center', padding: '6px 12px 10px',
-              fontSize: '11px', color: 'var(--text-tertiary)',
-              fontFamily: 'var(--font-mono)', letterSpacing: '0.02em',
-            }}>
-              +{gamesScheduled - 8} more
-            </div>
-          )}
         </div>
       )}
 
@@ -149,7 +131,7 @@ export default function DailyInsightCard({ data, onNavigate }) {
             color: 'var(--text-tertiary)', marginBottom: '10px',
           }}>Recommended read</div>
           <button
-            onClick={() => onNavigate && onNavigate('insights')}
+            onClick={() => onNavigate && onNavigate('insights', null, { insight })}
             style={{
               width: '100%', textAlign: 'left',
               background: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',

@@ -204,27 +204,7 @@ export default function WeeklySummary({ onBack, stats, weekData: initialWeekData
           })}
         </div>
 
-        <div style={{
-          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-          border: '1px solid var(--stroke-subtle)', padding: '20px',
-          marginBottom: '16px',
-        }}>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-            letterSpacing: '2px', textTransform: 'uppercase',
-            color: 'var(--green-profit)', marginBottom: '10px',
-          }}>Discipline Note</div>
-          <p style={{
-            fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7',
-          }}>
-            {passDays >= 5
-              ? 'High pass rate this week. The model found few qualifying edges. Restraint preserved capital for better opportunities.'
-              : totalPicks > 0 && pnl >= 0
-                ? 'Selective picks with positive results. The edge threshold continues to filter out marginal opportunities.'
-                : 'Every pass represents a decision not to risk capital without an edge. That discipline compounds over time.'
-            }
-          </p>
-        </div>
+        <WeeklyNarrative wins={wins} losses={losses} passDays={passDays} pnl={pnl} selectivity={selectivity} days={weekData?.days} />
 
         <p style={{
           fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
@@ -233,6 +213,90 @@ export default function WeeklySummary({ onBack, stats, weekData: initialWeekData
           Past performance does not guarantee future results.
         </p>
       </div>
+    </div>
+  );
+}
+
+function WeeklyNarrative({ wins, losses, passDays, pnl, selectivity, days }) {
+  const totalPicks = (wins || 0) + (losses || 0);
+  const winStreak = [];
+  const lossStreak = [];
+  let currentW = 0, currentL = 0;
+  (days || []).forEach(d => {
+    if (d?.result === 'win') { currentW++; currentL = 0; }
+    else if (d?.result === 'loss') { currentL++; currentW = 0; }
+    winStreak.push(currentW);
+    lossStreak.push(currentL);
+  });
+  const maxWinStreak = Math.max(0, ...winStreak);
+  const maxLossStreak = Math.max(0, ...lossStreak);
+
+  const paragraphs = [];
+
+  if (totalPicks === 0) {
+    paragraphs.push(
+      'The model found no qualifying edges this week. Seven days, zero action. ' +
+      'That\u2019s not a failure \u2014 it\u2019s the discipline working exactly as designed. ' +
+      'Capital was preserved for the week ahead.'
+    );
+  } else {
+    const actionRate = Math.round((totalPicks / 7) * 100);
+    paragraphs.push(
+      `This week the model acted on ${totalPicks} of 7 slate${totalPicks > 1 ? 's' : ''} (${actionRate}% action rate), ` +
+      `passing on ${passDays} day${passDays !== 1 ? 's' : ''} where the edge wasn\u2019t there. ` +
+      (selectivity <= 30
+        ? 'That selectivity is well below the industry average of 78% \u2014 the kind of restraint that compounds.'
+        : 'Staying selective is what separates process from impulse.')
+    );
+
+    if (wins > 0 && losses === 0) {
+      paragraphs.push(
+        `A clean ${wins}-0 week. But the correct response is the same as any other result: ` +
+        'no expanding criteria, no chasing higher volume. The edge threshold doesn\u2019t change because of a good week.'
+      );
+    } else if (losses > 0 && wins === 0) {
+      paragraphs.push(
+        `An 0-${losses} week. Variance like this is within expected parameters for any calibrated model. ` +
+        'The picks met the edge threshold. The outcomes simply fell on the wrong side of probability. ' +
+        'No adjustments needed.'
+      );
+    } else if (wins > 0 && losses > 0) {
+      paragraphs.push(
+        `Finished ${wins}-${losses}` +
+        (pnl >= 0 ? `, netting +${pnl.toFixed(2)}u. ` : `, at ${pnl.toFixed(2)}u. `) +
+        (maxWinStreak >= 2 ? `Built a ${maxWinStreak}-game win streak mid-week. ` : '') +
+        'Each pick cleared the minimum edge threshold before qualifying. ' +
+        'The process doesn\u2019t guarantee outcomes \u2014 it guarantees discipline.'
+      );
+    }
+  }
+
+  paragraphs.push(
+    pnl > 0
+      ? 'Positive weeks are a byproduct of process, not a cause for celebration. The model\u2019s job is to find edge. Your job is to follow the process.'
+      : pnl < 0
+      ? 'Negative weeks are part of any probabilistic system. What matters is whether each pick had a genuine edge at the time it was made. This week, they did.'
+      : 'A flat week means capital was protected while the model waited for real opportunities. That patience has value.'
+  );
+
+  return (
+    <div style={{
+      backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+      border: '1px solid var(--stroke-subtle)', padding: '20px',
+      marginBottom: '16px',
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+        letterSpacing: '2px', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', marginBottom: '14px',
+      }}>Week in Narrative</div>
+      {paragraphs.map((p, i) => (
+        <p key={i} style={{
+          fontFamily: 'var(--font-serif)', fontSize: '14px',
+          color: 'var(--text-secondary)', lineHeight: '1.75',
+          marginBottom: i < paragraphs.length - 1 ? '12px' : 0,
+        }}>{p}</p>
+      ))}
     </div>
   );
 }

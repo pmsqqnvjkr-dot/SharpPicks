@@ -240,7 +240,7 @@ def today():
                 if dt.tzinfo is None:
                     dt = dt.replace(tzinfo=timezone.utc)
                 et = dt.astimezone(ZoneInfo('America/New_York'))
-                return et.strftime('%-I:%M %p')
+                return et.strftime('%-I:%M %p ET')
             except Exception:
                 return None
 
@@ -491,3 +491,88 @@ def get_pick(pick_id):
         'notes': pick.notes,
         'disclaimer': 'For informational and entertainment purposes only. No guaranteed outcomes. Past performance does not guarantee future results. Please gamble responsibly.',
     })
+
+
+@picks_bp.route('/market')
+def market_view():
+    """Today's game board with spreads, totals, moneylines, and 1H lines."""
+    today_str = _get_et_date()
+    sport = request.args.get('sport', 'nba')
+    games_table = 'wnba_games' if sport == 'wnba' else 'games'
+
+    try:
+        conn = sqlite3.connect(get_sqlite_path())
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute(
+            f"""SELECT
+                id, home_team, away_team, game_time,
+                spread_home, spread_away, total, home_ml, away_ml,
+                spread_home_open, total_open, home_ml_open, away_ml_open,
+                home_spread_odds, away_spread_odds,
+                home_spread_book, away_spread_book,
+                spread_h1_home, spread_h1_away,
+                spread_h1_home_odds, spread_h1_away_odds, total_h1,
+                home_record, away_record,
+                home_score, away_score
+            FROM {games_table}
+            WHERE game_date = ?
+            ORDER BY game_time""",
+            (today_str,)
+        )
+        rows = cur.fetchall()
+        conn.close()
+    except Exception:
+        return jsonify({'games': [], 'date': today_str})
+
+    def _fmt_time(utc_str):
+        if not utc_str:
+            return None
+        try:
+            from zoneinfo import ZoneInfo
+            dt = datetime.fromisoformat(utc_str.replace('Z', '+00:00'))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            et = dt.astimezone(ZoneInfo('America/New_York'))
+            return et.strftime('%-I:%M %p')
+        except Exception:
+            return None
+
+    seen = set()
+    games = []
+    for r in rows:
+        key = (r['away_team'], r['home_team'])
+        if key in seen:
+            continue
+        seen.add(key)
+
+        is_live = r['home_score'] is not None and r['away_score'] is not None
+        status = 'final' if is_live else 'scheduled'
+
+        games.append({
+            'id': r['id'],
+            'away': r['away_team'],
+            'home': r['home_team'],
+            'time': _fmt_time(r['game_time']),
+            'status': status,
+            'spread_home': r['spread_home'],
+            'spread_away': r['spread_away'],
+            'spread_home_open': r['spread_home_open'],
+            'total': r['total'],
+            'total_open': r['total_open'],
+            'home_ml': r['home_ml'],
+            'away_ml': r['away_ml'],
+            'home_spread_odds': r['home_spread_odds'],
+            'away_spread_odds': r['away_spread_odds'],
+            'home_spread_book': r['home_spread_book'],
+            'away_spread_book': r['away_spread_book'],
+            'spread_h1_home': r['spread_h1_home'],
+            'spread_h1_away': r['spread_h1_away'],
+            'total_h1': r['total_h1'],
+            'home_record': r['home_record'],
+            'away_record': r['away_record'],
+            'home_score': r['home_score'],
+            'away_score': r['away_score'],
+        })
+
+    return jsonify({'games': games, 'date': today_str, 'count': len(games)})

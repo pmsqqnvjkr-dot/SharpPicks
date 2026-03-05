@@ -8,6 +8,7 @@ import DailyInsightCard from './DailyInsightCard';
 import AuthModal from './AuthModal';
 import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
+import MarketView from './MarketView';
 import { InlineError } from './ErrorStates';
 
 const HISTORY_DEFAULT_LIMIT = 6;
@@ -31,6 +32,7 @@ export default function PicksTab({ onNavigate }) {
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
   const [resolutionPick, setResolutionPick] = useState(null);
+  const [showMarket, setShowMarket] = useState(false);
   const [filter, setFilter] = useState('all');
   const [showAllPicks, setShowAllPicks] = useState(false);
 
@@ -43,8 +45,12 @@ export default function PicksTab({ onNavigate }) {
   const isRevoked = todayData?.type === 'pick' && todayData?.result === 'revoked';
   const isResolved = todayData?.type === 'pick' && todayData?.result && todayData.result !== 'pending' && todayData.result !== 'revoked';
 
+  if (showMarket) {
+    return <MarketView onBack={() => setShowMarket(false)} />;
+  }
+
   if (showResolution && resolutionPick) {
-    return <ResolutionScreen pick={resolutionPick} onBack={() => { setShowResolution(false); setResolutionPick(null); }} />;
+    return <ResolutionScreen pick={resolutionPick} onBack={() => { setShowResolution(false); setResolutionPick(null); }} onNavigate={onNavigate} />;
   }
 
   const picks = historyData?.picks || [];
@@ -165,7 +171,7 @@ export default function PicksTab({ onNavigate }) {
         )}
 
         {todayData?.type === 'pick' && !isResolved && !isRevoked && isPro && (
-          <PickCard pick={todayData} isPro={isPro} onUpgrade={() => setShowAuth(true)} onTrack={() => {
+          <PickCard pick={todayData} isPro={isPro} onUpgrade={() => setShowAuth(true)} onNavigate={onNavigate} onTrack={() => {
             if (onNavigate) onNavigate('profile', 'bets', {
               pickToTrack: {
                 id: todayData.id,
@@ -212,6 +218,30 @@ export default function PicksTab({ onNavigate }) {
         )}
 
         {stats && <RecordStrip stats={stats} />}
+
+        <button
+          onClick={() => setShowMarket(true)}
+          style={{
+            width: '100%', padding: '12px 16px', marginTop: '16px',
+            background: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+            borderRadius: '12px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            transition: 'border-color 0.2s ease',
+          }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(79, 134, 247, 0.3)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--stroke-subtle)'}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/>
+            </svg>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Market View</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '1px' }}>Today&apos;s lines, totals &amp; moneylines</div>
+            </div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
       </div>
 
       <div style={{ padding: '0 20px', marginTop: '32px' }}>

@@ -3052,7 +3052,34 @@ def get_user_stats():
             'capital_preserved': capital_preserved,
             'restraint_grade': 'A+' if user_selectivity <= 20 else 'A' if user_selectivity <= 35 else 'B+' if user_selectivity <= 50 else 'B' if user_selectivity <= 65 else 'C',
         },
+        'source_comparison': _compute_source_comparison(settled, sharp_bets),
     })
+
+
+def _compute_source_comparison(settled, sharp_bets):
+    """Compare model-followed bets vs off-model manual bets."""
+    sharp_ids = {b.id for b in sharp_bets}
+    model_settled = [b for b in settled if b.id in sharp_ids]
+    manual_settled = [b for b in settled if b.id not in sharp_ids]
+
+    def _bucket_stats(bucket):
+        w = sum(1 for b in bucket if b.result == 'W')
+        l = sum(1 for b in bucket if b.result == 'L')
+        pnl = sum(b.profit or 0 for b in bucket)
+        risked = sum(b.bet_amount or 0 for b in bucket)
+        return {
+            'bets': len(bucket),
+            'wins': w,
+            'losses': l,
+            'win_rate': round(w / len(bucket) * 100, 1) if bucket else 0,
+            'pnl': round(pnl, 2),
+            'roi': round(pnl / risked * 100, 1) if risked > 0 else 0,
+        }
+
+    return {
+        'model': _bucket_stats(model_settled),
+        'off_model': _bucket_stats(manual_settled),
+    }
 
 @app.route('/api/bets', methods=['GET'])
 def get_user_bets():

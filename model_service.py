@@ -390,6 +390,12 @@ def pretip_revalidate(app, sport='nba'):
                     'line_drift': round(line_drift, 1),
                 }
 
+            try:
+                from notification_service import send_pretip_reminder
+                send_pretip_reminder(pick, minutes_until=120)
+            except Exception:
+                pass
+
             return {
                 'status': 'confirmed',
                 'pick_id': pick.id,

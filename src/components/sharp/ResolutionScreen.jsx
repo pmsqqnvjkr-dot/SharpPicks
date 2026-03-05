@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-export default function ResolutionScreen({ pick, onBack }) {
+export default function ResolutionScreen({ pick, onBack, onNavigate }) {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -156,6 +156,31 @@ export default function ResolutionScreen({ pick, onBack }) {
             : "A loss doesn't mean the model failed. It means variance occurred within expected parameters."
           }
         </div>
+
+        {onNavigate && (
+          <button
+            onClick={() => onNavigate('insights')}
+            style={{
+              width: '100%', textAlign: 'center', padding: '14px 16px',
+              background: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+              borderRadius: '12px', cursor: 'pointer', marginBottom: '12px',
+              transition: 'border-color 0.2s ease',
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(79, 134, 247, 0.3)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--stroke-subtle)'}
+          >
+            <span style={{
+              fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5',
+            }}>
+              {isWin
+                ? 'Read: Why one win doesn\u2019t change the process'
+                : isPush
+                ? 'Read: How pushes fit into long-term edge'
+                : 'Read: How to think about losses correctly'}
+            </span>
+            <span style={{ color: 'var(--blue-primary)', fontWeight: 500, marginLeft: '6px' }}>&rarr;</span>
+          </button>
+        )}
 
         <p style={{
           fontSize: '11px', color: 'var(--text-tertiary)', textAlign: 'center',

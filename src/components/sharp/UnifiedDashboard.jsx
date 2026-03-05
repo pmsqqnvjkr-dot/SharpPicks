@@ -316,6 +316,10 @@ export default function UnifiedDashboard({ embedded = false }) {
           </>
         )}
 
+        {stats?.source_comparison && (stats.source_comparison.model.bets > 0 || stats.source_comparison.off_model.bets > 0) && (
+          <SourceComparisonCard data={stats.source_comparison} />
+        )}
+
         <div style={{ padding: '20px 0', textAlign: 'center' }}>
           <p style={{
             fontFamily: 'var(--font-serif)', fontStyle: 'italic',
@@ -1531,6 +1535,94 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function SourceComparisonCard({ data }) {
+  const { model, off_model } = data;
+  if (model.bets === 0 && off_model.bets === 0) return null;
+
+  const rows = [
+    { label: 'Bets', m: model.bets, o: off_model.bets },
+    { label: 'Win Rate', m: `${model.win_rate}%`, o: `${off_model.win_rate}%` },
+    { label: 'ROI', m: `${model.roi >= 0 ? '+' : ''}${model.roi}%`, o: `${off_model.roi >= 0 ? '+' : ''}${off_model.roi}%`,
+      mColor: model.roi >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
+      oColor: off_model.roi >= 0 ? 'var(--green-profit)' : 'var(--red-loss)' },
+    { label: 'P&L', m: `${model.pnl >= 0 ? '+' : ''}$${Math.abs(model.pnl).toFixed(0)}`, o: `${off_model.pnl >= 0 ? '+' : ''}$${Math.abs(off_model.pnl).toFixed(0)}`,
+      mColor: model.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
+      oColor: off_model.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)' },
+  ];
+
+  return (
+    <div style={{
+      backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+      border: '1px solid var(--stroke-subtle)', padding: '20px',
+      marginBottom: '12px',
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+        letterSpacing: '1.5px', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', marginBottom: '16px',
+      }}>Model vs Off-Model</div>
+
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+        gap: '0', borderRadius: '10px', overflow: 'hidden',
+        border: '1px solid var(--stroke-subtle)',
+      }}>
+        {/* Header */}
+        <div style={{ padding: '8px 12px', background: 'var(--surface-2)' }} />
+        <div style={{
+          padding: '8px 12px', background: 'var(--surface-2)', textAlign: 'center',
+          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+          letterSpacing: '0.5px', color: 'var(--blue-primary)',
+        }}>Model</div>
+        <div style={{
+          padding: '8px 12px', background: 'var(--surface-2)', textAlign: 'center',
+          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+          letterSpacing: '0.5px', color: 'var(--text-tertiary)',
+        }}>Off-Model</div>
+
+        {rows.map((row, i) => (
+          <div key={row.label} style={{ display: 'contents' }}>
+            <div style={{
+              padding: '10px 12px', fontSize: '12px', fontWeight: 500,
+              color: 'var(--text-secondary)',
+              borderTop: '1px solid var(--stroke-subtle)',
+            }}>{row.label}</div>
+            <div style={{
+              padding: '10px 12px', textAlign: 'center',
+              fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+              color: row.mColor || 'var(--text-primary)',
+              borderTop: '1px solid var(--stroke-subtle)',
+            }}>{model.bets > 0 ? row.m : '—'}</div>
+            <div style={{
+              padding: '10px 12px', textAlign: 'center',
+              fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+              color: row.oColor || 'var(--text-primary)',
+              borderTop: '1px solid var(--stroke-subtle)',
+            }}>{off_model.bets > 0 ? row.o : '—'}</div>
+          </div>
+        ))}
+      </div>
+
+      {model.bets > 0 && off_model.bets > 0 && model.roi > off_model.roi && (
+        <p style={{
+          fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5',
+          marginTop: '12px', textAlign: 'center',
+        }}>
+          Model-followed bets outperform off-model by {(model.roi - off_model.roi).toFixed(1)}% ROI.
+        </p>
+      )}
+      {model.bets > 0 && off_model.bets > 0 && off_model.roi >= model.roi && (
+        <p style={{
+          fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5',
+          marginTop: '12px', textAlign: 'center',
+        }}>
+          Track more bets to see how model discipline affects long-term ROI.
+        </p>
+      )}
     </div>
   );
 }

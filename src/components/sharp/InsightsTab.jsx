@@ -24,12 +24,19 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function InsightsTab({ onNavigate }) {
+export default function InsightsTab({ onNavigate, initialInsight, onInitialInsightConsumed }) {
   const [insights, setInsights] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedInsight, setSelectedInsight] = useState(null);
   const [animateIn, setAnimateIn] = useState(false);
+
+  useEffect(() => {
+    if (initialInsight) {
+      setSelectedInsight(initialInsight);
+      if (onInitialInsightConsumed) onInitialInsightConsumed();
+    }
+  }, [initialInsight]);
 
   useEffect(() => {
     loadInsights();
