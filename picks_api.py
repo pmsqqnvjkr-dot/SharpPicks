@@ -1,8 +1,15 @@
 from flask import Blueprint, jsonify, request
 from models import db, Pick, Pass, ModelRun, UserBet, TrackedBet
 from datetime import datetime, timedelta
+import sqlite3
 
 picks_bp = Blueprint('picks', __name__)
+
+try:
+    from db_path import get_sqlite_path
+except ImportError:
+    def get_sqlite_path():
+        return 'sharp_picks.db'
 
 EDGE_THRESHOLD = 3.5
 
@@ -170,11 +177,19 @@ def today():
         pass_type = 'pass'
         message = 'No qualifying edge found today. The model analyzed all available games and none met the threshold. Discipline preserved.'
 
+        whatif = None
+        if pass_entry.whatif_side and pass_entry.whatif_edge is not None:
+            whatif = {
+                'side': pass_entry.whatif_side,
+                'edge_pct': pass_entry.whatif_edge,
+            }
+
         return jsonify({
             'type': pass_type,
             'date': pass_entry.date,
             'games_analyzed': pass_entry.games_analyzed,
             'closest_edge_pct': pass_entry.closest_edge_pct,
+            'whatif': whatif,
             'pass_reason': pass_entry.pass_reason,
             'picks_this_week': picks_this_week,
             'passes_this_week': passes_this_week,
@@ -197,9 +212,35 @@ def today():
                 'message': 'The NBA All-Star break is underway. No regular season games are scheduled. The model will resume when the regular season continues.'
             })
 
+    # Enrich waiting state with today's slate info for daily insight screen
+    games_scheduled = 0
+    games_preview = []
+    model_runs_at = '10:00 AM ET'
+    games_table = 'wnba_games' if sport == 'wnba' else 'games'
+    try:
+        conn = sqlite3.connect(get_sqlite_path())
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT away_team, home_team, game_time FROM {games_table} WHERE game_date = ? ORDER BY game_time",
+            (today_str,)
+        )
+        rows = cur.fetchall()
+        games_scheduled = len(rows)
+        games_preview = [
+            {'away': r['away_team'], 'home': r['home_team'], 'time': r['game_time']}
+            for r in rows[:12]  # cap at 12 for response size
+        ]
+        conn.close()
+    except Exception:
+        pass
+
     return jsonify({
         'type': 'waiting',
-        'message': 'Model has not run yet today. Check back later.'
+        'message': 'Model has not run yet today. Check back later.',
+        'games_scheduled': games_scheduled,
+        'games_preview': games_preview,
+        'model_runs_at': model_runs_at,
     })
 
 

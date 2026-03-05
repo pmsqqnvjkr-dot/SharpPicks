@@ -21,7 +21,9 @@ export default function ResolutionScreen({ pick, onBack }) {
 
   const sideDisplay = pick?.side && pick?.line != null && pick.side.includes(String(Math.abs(pick.line)))
     ? pick.side
-    : `${pick?.side} ${pick?.line > 0 ? '+' : ''}${pick?.line}`;
+    : pick?.side && pick?.line != null
+    ? `${pick.side} ${pick.line > 0 ? '+' : ''}${pick.line}`
+    : pick?.side || '—';
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
@@ -102,7 +104,6 @@ export default function ResolutionScreen({ pick, onBack }) {
           }}>
             <ContextStat value={`${pick?.edge_pct || '--'}%`} label="Edge at entry" />
             <ContextStat value={`${Math.round(50 + (pick?.edge_pct || 0))}%`} label="Win probability" />
-            <ContextStat value={pick?.season_record || '--'} label="Season record" />
           </div>
         </div>
 
@@ -212,7 +213,9 @@ function WithdrawnDetailScreen({ pick, onBack }) {
           }}>
             {pick?.side && pick?.line != null && pick.side.includes(String(Math.abs(pick.line)))
               ? pick.side
-              : `${pick?.side} ${pick?.line > 0 ? '+' : ''}${pick?.line}`}
+              : pick?.side && pick?.line != null
+              ? `${pick.side} ${pick.line > 0 ? '+' : ''}${pick.line}`
+              : pick?.side || '—'}
           </div>
         </div>
 

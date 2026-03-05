@@ -2,6 +2,16 @@ import { useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
 
+function formatDateShort(isoStr) {
+  if (!isoStr) return '';
+  if (typeof isoStr === 'string' && isoStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const [y, m, day] = isoStr.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[parseInt(m) - 1]} ${parseInt(day)}`;
+  }
+  return isoStr;
+}
+
 export default function PickHistoryScreen({ onBack, onViewResolution }) {
   const { data, loading } = useApi('/public/record');
   const { user } = useAuth();
@@ -103,7 +113,7 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
           </p>
         ) : filtered.length === 0 ? (
           <p style={{ color: 'var(--text-tertiary)', fontSize: '14px', textAlign: 'center', padding: '40px 0' }}>
-            No picks found
+            {filter === 'wins' ? 'No wins yet this season.' : filter === 'losses' ? 'No losses yet this season.' : filter === 'pending' ? 'No pending picks.' : 'No picks found'}
           </p>
         ) : (
           <div style={{
@@ -121,7 +131,21 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   cursor: canViewResolution ? 'pointer' : 'default',
                 }}>
-                  <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {isResolved && (
+                      <span style={{
+                        fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
+                        width: '24px', height: '24px', borderRadius: '6px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                        backgroundColor: pick.result === 'win' ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.15)',
+                        color: pick.result === 'win' ? 'var(--green-profit)' : 'var(--red-loss)',
+                        border: `1px solid ${pick.result === 'win' ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                      }}>
+                        {pick.result === 'win' ? 'W' : 'L'}
+                      </span>
+                    )}
+                    <div>
                     <div style={{
                       fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
                     }}>
@@ -141,7 +165,7 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                       fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', marginTop: '2px',
                       fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '6px',
                     }}>
-                      {pick.game_date}
+                      {formatDateShort(pick.game_date)}
                       {pick.pre_calibration && (
                         <span style={{
                           fontSize: '9px', fontWeight: 700, textTransform: 'uppercase',
@@ -150,6 +174,7 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                           padding: '1px 5px', borderRadius: '3px',
                         }}>Pre-Cal</span>
                       )}
+                    </div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

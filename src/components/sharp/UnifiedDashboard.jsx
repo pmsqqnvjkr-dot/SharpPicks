@@ -617,7 +617,7 @@ function BloombergChart({ data, color, isPositive }) {
   const height = 200;
   const width = 400;
   const padL = 48;
-  const padR = 8;
+  const padR = 24;
   const padT = 8;
   const padB = 24;
 
@@ -731,7 +731,7 @@ function UnitGrowthCard({ equityCurve }) {
   const height = 160;
   const width = 400;
   const padL = 48;
-  const padR = 8;
+  const padR = 24;
   const padT = 8;
   const padB = 24;
 
@@ -1111,9 +1111,19 @@ function CapitalPreservedCard({ amount, passes }) {
         Estimated bankroll saved by passing on {passes} picks you didn't follow this season.
       </p>
 
+      <p style={{
+        fontFamily: 'var(--font-sans)',
+        fontSize: '13px',
+        color: 'var(--text-tertiary)',
+        lineHeight: '1.5',
+        margin: '0 0 8px 0',
+      }}>
+        Passing on -EV spots protects your bankroll long-term. Money saved compounds just like wins do.
+      </p>
+
       <InfoCallout
-        header="Why This Matters"
-        text="Money saved by passing low conviction plays compounds just like wins do. Discipline protects downside before upside appears."
+        header="More on discipline"
+        text="The average bettor plays 78% of opportunities. You play fewer. Fewer decisions reduce error exposure. Discipline protects downside before upside appears."
       />
     </div>
   );

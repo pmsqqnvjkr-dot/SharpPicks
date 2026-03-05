@@ -4,12 +4,23 @@ import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
+import DailyInsightCard from './DailyInsightCard';
 import AuthModal from './AuthModal';
 import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
 import { InlineError } from './ErrorStates';
 
 const HISTORY_DEFAULT_LIMIT = 6;
+
+function formatDateShort(isoStr) {
+  if (!isoStr) return '';
+  if (typeof isoStr === 'string' && isoStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const [y, m, day] = isoStr.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[parseInt(m) - 1]} ${parseInt(day)}`;
+  }
+  return isoStr;
+}
 
 export default function PicksTab({ onNavigate }) {
   const { user, loading: authLoading } = useAuth();
@@ -185,7 +196,7 @@ export default function PicksTab({ onNavigate }) {
         )}
 
         {todayData?.type === 'waiting' && (
-          <WaitingCard />
+          <DailyInsightCard data={todayData} onNavigate={onNavigate} />
         )}
 
         {(todayData?.type === 'allstar_break' || todayData?.type === 'off_day') && (
@@ -240,7 +251,9 @@ export default function PicksTab({ onNavigate }) {
           <div style={{
             textAlign: 'center', padding: '40px 0',
             color: 'var(--text-tertiary)', fontSize: '14px',
-          }}>No picks found</div>
+          }}>
+            {filter === 'wins' ? 'No wins yet this season.' : filter === 'losses' ? 'No losses yet this season.' : filter === 'pending' ? 'No pending picks.' : 'No picks found'}
+          </div>
         ) : (() => {
           const isTruncated = !showAllPicks && filtered.length > HISTORY_DEFAULT_LIMIT;
           const displayPicks = isTruncated ? filtered.slice(0, HISTORY_DEFAULT_LIMIT) : filtered;
@@ -263,7 +276,21 @@ export default function PicksTab({ onNavigate }) {
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   cursor: canView ? 'pointer' : 'default',
                 }}>
-                  <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {pickResolved && (
+                      <span style={{
+                        fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
+                        width: '22px', height: '22px', borderRadius: '6px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                        backgroundColor: pick.result === 'win' ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.15)',
+                        color: pick.result === 'win' ? 'var(--green-profit)' : 'var(--red-loss)',
+                        border: `1px solid ${pick.result === 'win' ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                      }}>
+                        {pick.result === 'win' ? 'W' : 'L'}
+                      </span>
+                    )}
+                    <div>
                     <div style={{
                       fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
                     }}>
@@ -277,7 +304,8 @@ export default function PicksTab({ onNavigate }) {
                     <div style={{
                       fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
                       fontFamily: 'var(--font-mono)',
-                    }}>{pick.game_date}</div>
+                    }}>{formatDateShort(pick.game_date)}</div>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ textAlign: 'right' }}>
@@ -519,34 +547,6 @@ function BreakCard({ data }) {
   );
 }
 
-function WaitingCard() {
-  return (
-    <div style={{ textAlign: 'center', padding: '40px 0 24px' }}>
-      <div style={{
-        width: '64px', height: '64px', borderRadius: '16px',
-        backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.12)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        margin: '0 auto 24px',
-      }}>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
-        </svg>
-      </div>
-      <h2 style={{
-        fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
-        color: 'var(--text-primary)', marginBottom: '12px',
-      }}>Waiting for model</h2>
-      <p style={{
-        fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
-        maxWidth: '300px', margin: '0 auto',
-      }}>
-        The model has not run yet today. Games will be analyzed as data becomes available.
-      </p>
-    </div>
-  );
-}
-
 function DailyBrief({ stats }) {
   return (
     <div style={{ textAlign: 'center', padding: '40px 0 24px' }}>
@@ -603,13 +603,15 @@ function RecordStrip({ stats }) {
       border: '1px solid var(--stroke-subtle)',
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     }}>
-      <div style={{ display: 'flex', gap: '28px' }}>
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <MiniStat label="Win Rate" value={stats.win_rate != null ? `${stats.win_rate}%` : '--'} />
+        <MiniStat label="ROI" value={stats.roi != null ? `${stats.roi >= 0 ? '+' : ''}${stats.roi}%` : '--'} />
         <MiniStat label="Picks" value={stats.total_picks} />
         <MiniStat label="Passes" value={stats.total_passes} />
-        <MiniStat label="Select." value={`${stats.selectivity}%`} />
+        <MiniStat label="Selectivity" value={`${stats.selectivity}%`} />
       </div>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '13px',
+        fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
         color: stats.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
       }}>
         {stats.pnl >= 0 ? '+' : ''}{Number(stats.pnl).toFixed(2)}u

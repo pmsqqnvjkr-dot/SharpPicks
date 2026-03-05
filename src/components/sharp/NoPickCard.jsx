@@ -38,6 +38,17 @@ export default function NoPickCard({ data, onInsightTap }) {
             ? `Model analyzed ${data.games_analyzed} games.`
             : 'Model completed today\u2019s evaluation.'}
         </p>
+        {((data.whatif?.side && data.whatif?.edge_pct != null) || (data.closest_edge_pct != null && data.closest_edge_pct > 0)) && (
+          <p style={{
+            fontSize: '13px',
+            color: 'var(--text-tertiary)',
+            lineHeight: '1.55',
+            marginBottom: '8px',
+            fontFamily: 'var(--font-mono)',
+          }}>
+            Closest edge: {data.whatif?.side ? `${data.whatif.side} at ${data.whatif.edge_pct}%` : `${data.closest_edge_pct}%`} — below the 3% threshold.
+          </p>
+        )}
         <p style={{
           fontSize: '14px',
           color: 'var(--text-secondary)',

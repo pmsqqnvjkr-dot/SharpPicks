@@ -665,8 +665,8 @@ function AccessStatusCard({ user, isPro, stats }) {
         }} />
 
         <div style={{
-          position: 'absolute', right: '-10px', bottom: '-15px', pointerEvents: 'none',
-          fontFamily: 'var(--font-serif)', fontSize: '120px', fontWeight: 900,
+          position: 'absolute', right: '8px', bottom: '8px', pointerEvents: 'none',
+          fontFamily: 'var(--font-serif)', fontSize: '96px', fontWeight: 900,
           lineHeight: 1, letterSpacing: '-4px',
           color: 'rgba(255,255,255,0.025)',
           userSelect: 'none',

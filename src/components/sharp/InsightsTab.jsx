@@ -78,10 +78,14 @@ export default function InsightsTab({ onNavigate }) {
         }}>Sharp Journal</div>
 
         <div style={{
-          display: 'flex', gap: '8px', overflowX: 'auto',
-          paddingBottom: '16px',
-          scrollbarWidth: 'none',
+          position: 'relative',
+          marginBottom: '0',
         }}>
+          <div style={{
+            display: 'flex', gap: '8px', overflowX: 'auto',
+            paddingBottom: '16px',
+            scrollbarWidth: 'none',
+          }}>
           {CATEGORIES.map(cat => {
             const isActive = activeCategory === cat.id;
             return (
@@ -107,6 +111,13 @@ export default function InsightsTab({ onNavigate }) {
               </button>
             );
           })}
+          </div>
+          <div style={{
+            position: 'absolute',
+            top: 0, right: 0, bottom: '16px', width: '32px',
+            background: 'linear-gradient(to left, var(--bg-primary) 60%, transparent)',
+            pointerEvents: 'none',
+          }} />
         </div>
       </div>
 

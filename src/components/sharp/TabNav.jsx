@@ -2,8 +2,8 @@ export default function TabNav({ activeTab, onTabChange }) {
   const tabs = [
     { id: 'picks', label: 'Picks', icon: TargetIcon },
     { id: 'insights', label: 'Journal', icon: BookIcon },
-    { id: 'performance', label: 'Performance', icon: ChartIcon },
-    { id: 'profile', label: 'Membership', icon: PersonIcon },
+    { id: 'performance', label: 'Stats', icon: ChartIcon },
+    { id: 'profile', label: 'Account', icon: PersonIcon },
   ];
 
   return (
@@ -38,16 +38,18 @@ export default function TabNav({ activeTab, onTabChange }) {
               background: 'none',
               border: 'none',
               borderRadius: '8px',
-              padding: '8px 14px',
+              padding: '8px 10px',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: '2px',
               cursor: 'pointer',
               color: isActive ? '#4BD38B' : 'rgba(255,255,255,0.35)',
               transition: 'color 0.2s',
             }}
           >
             <tab.icon />
+            <span style={{ fontSize: '10px', fontWeight: 500, fontFamily: 'var(--font-sans)' }}>{tab.label}</span>
           </button>
         );
       })}

@@ -3,6 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useApi, apiPost } from '../../hooks/useApi';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
+import DailyInsightCard from './DailyInsightCard';
 import AuthModal from './AuthModal';
 import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
@@ -104,7 +105,7 @@ export default function TodayTab({ onNavigate }) {
         )}
 
         {todayData?.type === 'waiting' && (
-          <WaitingCard />
+          <DailyInsightCard data={todayData} onNavigate={onNavigate} />
         )}
 
         {error && (
@@ -218,34 +219,6 @@ function OffDayCard() {
   );
 }
 
-function WaitingCard() {
-  return (
-    <div style={{ textAlign: 'center', padding: '40px 0 24px' }}>
-      <div style={{
-        width: '64px', height: '64px', borderRadius: '16px',
-        backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        margin: '0 auto 24px',
-      }}>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
-        </svg>
-      </div>
-      <h2 style={{
-        fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
-        color: 'var(--text-primary)', marginBottom: '12px',
-      }}>Waiting for model</h2>
-      <p style={{
-        fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
-        maxWidth: '300px', margin: '0 auto',
-      }}>
-        The model has not run yet today. Games will be analyzed as data becomes available.
-      </p>
-    </div>
-  );
-}
-
 function DailyBrief({ stats }) {
   return (
     <div style={{ textAlign: 'center', padding: '40px 0 24px' }}>
@@ -302,10 +275,12 @@ function RecordStrip({ stats }) {
       border: '1px solid var(--stroke-subtle)',
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     }}>
-      <div style={{ display: 'flex', gap: '20px' }}>
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <MiniStat label="Win Rate" value={stats.win_rate != null ? `${stats.win_rate}%` : '--'} />
+        <MiniStat label="ROI" value={stats.roi != null ? `${stats.roi >= 0 ? '+' : ''}${stats.roi}%` : '--'} />
         <MiniStat label="Picks" value={stats.total_picks} />
         <MiniStat label="Passes" value={stats.total_passes} />
-        <MiniStat label="Select." value={`${stats.selectivity}%`} />
+        <MiniStat label="Selectivity" value={`${stats.selectivity}%`} />
       </div>
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: '13px',
