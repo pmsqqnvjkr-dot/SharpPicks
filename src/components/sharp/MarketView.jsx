@@ -1,144 +1,156 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 
-const TEAM_SHORT = {
-  'Atlanta Hawks': 'ATL', 'Boston Celtics': 'BOS', 'Brooklyn Nets': 'BKN',
-  'Charlotte Hornets': 'CHA', 'Chicago Bulls': 'CHI', 'Cleveland Cavaliers': 'CLE',
-  'Dallas Mavericks': 'DAL', 'Denver Nuggets': 'DEN', 'Detroit Pistons': 'DET',
-  'Golden State Warriors': 'GSW', 'Houston Rockets': 'HOU', 'Indiana Pacers': 'IND',
-  'Los Angeles Clippers': 'LAC', 'Los Angeles Lakers': 'LAL', 'Memphis Grizzlies': 'MEM',
-  'Miami Heat': 'MIA', 'Milwaukee Bucks': 'MIL', 'Minnesota Timberwolves': 'MIN',
-  'New Orleans Pelicans': 'NOP', 'New York Knicks': 'NYK', 'Oklahoma City Thunder': 'OKC',
-  'Orlando Magic': 'ORL', 'Philadelphia 76ers': 'PHI', 'Phoenix Suns': 'PHX',
-  'Portland Trail Blazers': 'POR', 'Sacramento Kings': 'SAC', 'San Antonio Spurs': 'SAS',
-  'Toronto Raptors': 'TOR', 'Utah Jazz': 'UTA', 'Washington Wizards': 'WAS',
-};
-const abbr = (name) => TEAM_SHORT[name] || name;
-
 function fmtSpread(val) {
-  if (val == null) return '—';
+  if (val == null || val === '') return '—';
   const n = parseFloat(val);
   return n > 0 ? `+${n}` : `${n}`;
 }
 
 function fmtML(val) {
-  if (val == null) return '—';
-  const n = parseInt(val);
+  if (val == null || val === '') return '—';
+  const n = parseInt(val, 10);
   return n > 0 ? `+${n}` : `${n}`;
 }
 
 function fmtTotal(val) {
-  if (val == null) return '—';
-  return `${parseFloat(val)}`;
+  if (val == null || val === '') return null;
+  const n = parseFloat(val);
+  return Number.isInteger(n) ? `${n}` : n.toFixed(1);
 }
 
-function LineMove({ current, open }) {
+function Movement({ current, open }) {
   if (current == null || open == null) return null;
   const diff = parseFloat(current) - parseFloat(open);
   if (Math.abs(diff) < 0.25) return null;
+  const isUp = diff > 0;
   return (
     <span style={{
-      fontSize: '9px', fontWeight: 600, marginLeft: '3px',
-      color: diff < 0 ? 'rgba(52,211,153,0.7)' : 'rgba(239,68,68,0.6)',
+      fontSize: '0.65rem', fontWeight: 600, marginLeft: 3,
+      color: isUp ? 'var(--red-loss, #ef4444)' : 'var(--green-profit, #10b981)',
     }}>
-      {diff > 0 ? '\u2191' : '\u2193'}{Math.abs(diff).toFixed(1)}
+      {isUp ? '▲' : '▼'}{Math.abs(diff).toFixed(1)}
     </span>
   );
 }
 
-function GameCard({ game }) {
+function GameRow({ game }) {
+  const totalDisplay = fmtTotal(game.total);
   const isFinal = game.status === 'final';
 
   return (
     <div style={{
-      background: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
-      borderRadius: '14px', overflow: 'hidden', marginBottom: '10px',
+      background: 'var(--surface-1, #111827)',
+      border: '1px solid var(--stroke-subtle, #1e293b)',
+      borderRadius: 10,
+      overflow: 'hidden',
     }}>
-      {/* Header: time + status */}
+      {/* Column headers */}
       <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '8px 14px',
-        borderBottom: '1px solid var(--stroke-subtle)',
+        display: 'grid', gridTemplateColumns: '1fr 72px 56px 64px',
+        padding: '6px 14px 2px', gap: 6,
       }}>
-        <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-          color: 'var(--text-tertiary)',
-        }}>{game.time || 'TBD'}</span>
-        {isFinal && (
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-            letterSpacing: '1px', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', opacity: 0.7,
-          }}>Final</span>
-        )}
-        {game.home_record && game.away_record && (
-          <span style={{
-            fontSize: '10px', color: 'var(--text-tertiary)', opacity: 0.6,
-          }}>{game.away_record} vs {game.home_record}</span>
-        )}
+        <span />
+        {['Spread', 'Total', 'ML'].map(h => (
+          <span key={h} style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', textAlign: 'center', opacity: 0.6,
+          }}>{h}</span>
+        ))}
       </div>
 
-      {/* Teams + lines grid */}
-      <div style={{ padding: '0' }}>
-        {/* Column headers */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 70px 60px 60px',
-          padding: '6px 14px 2px', gap: '4px',
-        }}>
-          <div />
-          {['Spread', 'Total', 'ML'].map(h => (
-            <div key={h} style={{
-              fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
-              letterSpacing: '0.8px', textTransform: 'uppercase',
-              color: 'var(--text-tertiary)', opacity: 0.5, textAlign: 'center',
-            }}>{h}</div>
-          ))}
+      {/* Away row */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 72px 56px 64px',
+        padding: '5px 14px', alignItems: 'center', gap: 6,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700,
+            color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{game.away}</span>
+          {game.away_record && (
+            <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', flexShrink: 0 }}>{game.away_record}</span>
+          )}
+          {isFinal && game.away_score != null && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0 }}>{game.away_score}</span>
+          )}
         </div>
+        <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+          {fmtSpread(game.spread_away)}
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          {totalDisplay && (
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
+              color: 'var(--text-primary)', background: 'rgba(100,116,139,0.08)',
+              borderRadius: 4, padding: '2px 0',
+            }}>
+              {totalDisplay}
+              <Movement current={game.total} open={game.total_open} />
+            </div>
+          )}
+        </div>
+        <div style={{
+          textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
+          color: parseFloat(game.away_ml) > 0 ? '#f59e0b' : 'var(--text-secondary)',
+          fontWeight: parseFloat(game.away_ml) > 0 ? 600 : 400,
+        }}>
+          {fmtML(game.away_ml)}
+        </div>
+      </div>
 
-        {/* Away team row */}
-        <TeamRow
-          team={game.away}
-          spread={game.spread_away}
-          ml={game.away_ml}
-          score={game.away_score}
-          isFinal={isFinal}
-        />
+      <div style={{ height: 1, background: 'var(--stroke-subtle)', margin: '0 14px' }} />
 
-        <div style={{ height: '1px', background: 'var(--stroke-subtle)', margin: '0 14px' }} />
-
-        {/* Home team row */}
-        <TeamRow
-          team={game.home}
-          spread={game.spread_home}
-          spreadOpen={game.spread_home_open}
-          total={game.total}
-          totalOpen={game.total_open}
-          ml={game.home_ml}
-          score={game.home_score}
-          isFinal={isFinal}
-          isHome
-        />
+      {/* Home row */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 72px 56px 64px',
+        padding: '5px 14px 8px', alignItems: 'center', gap: 6,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700,
+            color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{game.home}</span>
+          {game.home_record && (
+            <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', flexShrink: 0 }}>{game.home_record}</span>
+          )}
+          {isFinal && game.home_score != null && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0 }}>{game.home_score}</span>
+          )}
+        </div>
+        <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+          {fmtSpread(game.spread_home)}
+          <Movement current={game.spread_home} open={game.spread_home_open} />
+        </div>
+        <div />
+        <div style={{
+          textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
+          color: parseFloat(game.home_ml) > 0 ? '#f59e0b' : 'var(--text-primary)', fontWeight: 600,
+        }}>
+          {fmtML(game.home_ml)}
+        </div>
       </div>
 
       {/* 1H lines */}
       {(game.spread_h1_home != null || game.total_h1 != null) && (
         <div style={{
           borderTop: '1px solid var(--stroke-subtle)',
-          padding: '6px 14px',
-          display: 'flex', gap: '16px', justifyContent: 'center',
+          padding: '5px 14px', display: 'flex', gap: 14, justifyContent: 'center',
         }}>
           <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-            color: 'var(--text-tertiary)', opacity: 0.6,
+            fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 700,
+            color: 'var(--text-tertiary)', opacity: 0.6, letterSpacing: '0.05em',
           }}>1H</span>
           {game.spread_h1_home != null && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-secondary)' }}>
-              {abbr(game.home)} {fmtSpread(game.spread_h1_home)}
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              {fmtSpread(game.spread_h1_home)}
             </span>
           )}
           {game.total_h1 != null && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-secondary)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
               O/U {fmtTotal(game.total_h1)}
             </span>
           )}
@@ -148,56 +160,46 @@ function GameCard({ game }) {
   );
 }
 
-function TeamRow({ team, spread, spreadOpen, total, totalOpen, ml, score, isFinal, isHome }) {
+function TimeSlotGroup({ time, games }) {
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: '1fr 70px 60px 60px',
-      padding: '10px 14px', gap: '4px', alignItems: 'center',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+    <div style={{ marginBottom: 18 }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        marginBottom: 8, padding: '0 2px',
+      }}>
         <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
-          color: 'var(--text-primary)', letterSpacing: '0.02em',
-        }}>{abbr(team)}</span>
-        {isFinal && score != null && (
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
-            color: 'var(--text-secondary)', marginLeft: '4px',
-          }}>{score}</span>
-        )}
+          fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 600,
+          color: 'var(--text-secondary)', letterSpacing: '0.04em',
+        }}>{time}</span>
+        <div style={{ flex: 1, height: 1, background: 'var(--stroke-subtle)' }} />
+        <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>
+          {games.length} {games.length === 1 ? 'game' : 'games'}
+        </span>
       </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {games.map(g => <GameRow key={g.id} game={g} />)}
+      </div>
+    </div>
+  );
+}
 
-      {/* Spread cell */}
-      <div style={{ textAlign: 'center' }}>
-        <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
-          color: spread != null ? 'var(--text-primary)' : 'var(--text-tertiary)',
-        }}>{fmtSpread(spread)}</span>
-        {isHome && <LineMove current={spread} open={spreadOpen} />}
-      </div>
-
-      {/* Total cell (only on home row) */}
-      <div style={{ textAlign: 'center' }}>
-        {isHome ? (
-          <>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
-              color: total != null ? 'var(--text-primary)' : 'var(--text-tertiary)',
-            }}>{fmtTotal(total)}</span>
-            <LineMove current={total} open={totalOpen} />
-          </>
-        ) : (
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-tertiary)', opacity: 0.3 }}>—</span>
-        )}
-      </div>
-
-      {/* ML cell */}
-      <div style={{ textAlign: 'center' }}>
-        <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
-          color: ml != null ? (parseInt(ml) > 0 ? 'rgba(52,211,153,0.8)' : 'var(--text-primary)') : 'var(--text-tertiary)',
-        }}>{fmtML(ml)}</span>
-      </div>
+function FilterTabs({ active, onChange }) {
+  const tabs = ['All', 'Upcoming', 'Final'];
+  return (
+    <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+      {tabs.map(tab => {
+        const isActive = active === tab;
+        return (
+          <button key={tab} onClick={() => onChange(tab)} style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 600,
+            padding: '6px 14px', borderRadius: 6, cursor: 'pointer',
+            letterSpacing: '0.03em', transition: 'all 0.15s ease',
+            border: isActive ? '1px solid rgba(79,125,243,0.45)' : '1px solid var(--stroke-subtle)',
+            background: isActive ? 'rgba(79,125,243,0.12)' : 'transparent',
+            color: isActive ? '#fff' : 'var(--text-tertiary)',
+          }}>{tab}</button>
+        );
+      })}
     </div>
   );
 }
@@ -205,80 +207,86 @@ function TeamRow({ team, spread, spreadOpen, total, totalOpen, ml, score, isFina
 export default function MarketView({ onBack }) {
   const { sport } = useSport();
   const { data, loading } = useApi(sportQuery('/picks/market', sport));
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filter, setFilter] = useState('All');
 
   const games = data?.games || [];
-  const filtered = filterStatus === 'all'
-    ? games
-    : filterStatus === 'live'
-    ? games.filter(g => g.status === 'final')
-    : games.filter(g => g.status === 'scheduled');
+
+  const filtered = useMemo(() => {
+    if (filter === 'All') return games;
+    if (filter === 'Upcoming') return games.filter(g => g.status === 'scheduled');
+    if (filter === 'Final') return games.filter(g => g.status === 'final');
+    return games;
+  }, [games, filter]);
+
+  const grouped = useMemo(() => {
+    const map = new Map();
+    filtered.forEach(g => {
+      const t = g.time || 'TBD';
+      if (!map.has(t)) map.set(t, []);
+      map.get(t).push(g);
+    });
+    return map;
+  }, [filtered]);
 
   return (
-    <div style={{ padding: '0', minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh' }}>
+      {/* Sticky header */}
       <div style={{
-        padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px',
+        position: 'sticky', top: 0, zIndex: 10,
+        background: 'var(--bg-primary, #0a0e17)',
         borderBottom: '1px solid var(--stroke-subtle)',
+        padding: '12px 16px',
       }}>
-        <button onClick={onBack} style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--text-secondary)', padding: '4px',
-          display: 'flex', alignItems: 'center',
-        }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M15 18l-6-6 6-6"/>
-          </svg>
-        </button>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          <button onClick={onBack} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-secondary)', padding: '4px',
+            display: 'flex', alignItems: 'center',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
           <h1 style={{
-            fontFamily: 'var(--font-serif)', fontSize: '20px', fontWeight: 600,
-            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-serif)', fontSize: '1.1rem', fontWeight: 700,
+            color: 'var(--text-primary)', margin: 0,
           }}>Market View</h1>
-          <p style={{
-            fontFamily: 'var(--font-mono)', fontSize: '11px',
-            color: 'var(--text-tertiary)', marginTop: '1px',
-          }}>{data?.date || 'Today'} &middot; {games.length} game{games.length !== 1 ? 's' : ''}</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 36 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+            {data?.date || 'Today'}
+          </span>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>&middot;</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+            {games.length} game{games.length !== 1 ? 's' : ''}
+          </span>
         </div>
       </div>
 
-      <div style={{ padding: '12px 16px 100px' }}>
-        {games.length > 0 && (
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
-            {['all', 'upcoming', 'live'].map(f => (
-              <button key={f} onClick={() => setFilterStatus(f)} style={{
-                padding: '5px 12px', borderRadius: '8px', fontSize: '11px',
-                fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
-                fontFamily: 'var(--font-sans)',
-                backgroundColor: filterStatus === f ? 'rgba(79,125,243,0.18)' : 'rgba(255,255,255,0.04)',
-                color: filterStatus === f ? '#FFFFFF' : 'rgba(255,255,255,0.55)',
-                border: filterStatus === f ? '1px solid rgba(79,125,243,0.45)' : '1px solid transparent',
-              }}>{f === 'live' ? 'Final' : f}</button>
-            ))}
-          </div>
-        )}
+      {/* Body */}
+      <div style={{ padding: '14px 12px 100px' }}>
+        {games.length > 0 && <FilterTabs active={filter} onChange={setFilter} />}
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-tertiary)' }}>
+          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
             Loading market data...
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 0' }}>
-            <p style={{ fontSize: '14px', color: 'var(--text-tertiary)' }}>
-              {games.length === 0 ? 'No games on today\'s slate.' : 'No games match this filter.'}
-            </p>
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
+            {games.length === 0 ? 'No games on today\'s slate.' : `No ${filter.toLowerCase()} games.`}
           </div>
         ) : (
-          filtered.map(game => (
-            <GameCard key={game.id} game={game} />
+          Array.from(grouped.entries()).map(([time, gamesInSlot]) => (
+            <TimeSlotGroup key={time} time={time} games={gamesInSlot} />
           ))
         )}
 
         <p style={{
-          fontSize: '10px', color: 'var(--text-tertiary)', opacity: 0.5,
-          textAlign: 'center', marginTop: '20px', lineHeight: '1.5',
+          fontSize: '0.6rem', color: 'var(--text-tertiary)', opacity: 0.45,
+          textAlign: 'center', marginTop: 20, lineHeight: 1.5,
         }}>
           Lines from DraftKings, FanDuel, BetMGM, Caesars, PointsBet, BetRivers.
-          Best available odds shown.
+          Best available shown.
         </p>
       </div>
     </div>
