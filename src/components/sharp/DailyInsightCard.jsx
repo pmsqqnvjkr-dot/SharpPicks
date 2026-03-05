@@ -55,7 +55,7 @@ function MatchupRow({ away, home, time }) {
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-tertiary)',
           whiteSpace: 'nowrap', flexShrink: 0, marginLeft: '8px',
-        }}>{time} ET</span>
+        }}>{time}</span>
       )}
     </div>
   );

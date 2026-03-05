@@ -217,40 +217,74 @@ def today():
     games_preview = []
     model_runs_at = '10:00 AM ET'
     games_table = 'wnba_games' if sport == 'wnba' else 'games'
+
+    def _format_utc_to_et(utc_str):
+        """Convert UTC ISO timestamp to ET display string like '7:30 PM ET'."""
+        if not utc_str:
+            return None
+        try:
+            from zoneinfo import ZoneInfo
+            dt = datetime.fromisoformat(utc_str.replace('Z', '+00:00'))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            et = dt.astimezone(ZoneInfo('America/New_York'))
+            return et.strftime('%-I:%M %p ET')
+        except Exception:
+            return None
+
+    # Try SQLite first for game list
+    db_games = []
     try:
         conn = sqlite3.connect(get_sqlite_path())
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         cur.execute(
-            f"SELECT away_team, home_team, MIN(game_time) as game_time "
+            f"SELECT away_team, home_team, "
+            f"COALESCE(NULLIF(game_time, ''), NULLIF(commence_time, '')) as game_time "
             f"FROM {games_table} WHERE game_date = ? AND home_score IS NULL "
             f"GROUP BY away_team, home_team ORDER BY game_time",
             (today_str,)
         )
-        rows = cur.fetchall()
-        games_scheduled = len(rows)
-
-        def _format_game_time(utc_str):
-            """Convert UTC ISO timestamp to ET display time like '7:30 PM'."""
-            if not utc_str:
-                return None
-            try:
-                from zoneinfo import ZoneInfo
-                dt = datetime.fromisoformat(utc_str.replace('Z', '+00:00'))
-                if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
-                et = dt.astimezone(ZoneInfo('America/New_York'))
-                return et.strftime('%-I:%M %p ET')
-            except Exception:
-                return None
-
-        games_preview = [
-            {'away': r['away_team'], 'home': r['home_team'], 'time': _format_game_time(r['game_time'])}
-            for r in rows[:12]
-        ]
+        db_games = cur.fetchall()
         conn.close()
     except Exception:
         pass
+
+    # Fetch ESPN schedule for reliable start times
+    espn_times = {}
+    try:
+        import requests as _req
+        espn_date = today_str.replace('-', '')
+        espn_url = f'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={espn_date}'
+        resp = _req.get(espn_url, timeout=5)
+        if resp.status_code == 200:
+            for ev in resp.json().get('events', []):
+                comp = ev.get('competitions', [{}])[0]
+                teams = comp.get('competitors', [])
+                if len(teams) == 2:
+                    home_t = teams[0].get('team', {}).get('displayName', '')
+                    away_t = teams[1].get('team', {}).get('displayName', '')
+                    if teams[0].get('homeAway') == 'away':
+                        home_t, away_t = away_t, home_t
+                    utc_time = ev.get('date', '')
+                    espn_times[(away_t, home_t)] = _format_utc_to_et(utc_time)
+    except Exception:
+        pass
+
+    if db_games:
+        games_scheduled = len(db_games)
+        for r in db_games:
+            db_time = _format_utc_to_et(r['game_time'])
+            espn_time = espn_times.get((r['away_team'], r['home_team']))
+            games_preview.append({
+                'away': r['away_team'],
+                'home': r['home_team'],
+                'time': db_time or espn_time,
+            })
+    elif espn_times:
+        games_scheduled = len(espn_times)
+        for (away, home), time_str in espn_times.items():
+            games_preview.append({'away': away, 'home': home, 'time': time_str})
 
     return jsonify({
         'type': 'waiting',
