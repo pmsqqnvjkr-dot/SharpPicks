@@ -90,6 +90,24 @@ def get_admin_token():
     return jsonify({'token': token})
 
 
+@admin_bp.route('/api/admin/db-stats')
+def db_stats():
+    """Quick DB stats: user count, DB source (for verifying prod connection). Superuser only."""
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    user_count = User.query.count()
+    db_url = os.environ.get('DATABASE_URL') or os.environ.get('SQLALCHEMY_DATABASE_URI') or ''
+    db_source = 'railway' if ('railway' in db_url.lower() or 'rlwy.net' in db_url) else 'unknown'
+
+    return jsonify({
+        'users': user_count,
+        'db_source': db_source,
+        'db_configured': bool(db_url),
+    })
+
+
 @admin_bp.route('/api/admin/today-pipeline')
 def today_pipeline():
     admin, err_code = require_superuser()
@@ -1697,8 +1715,12 @@ def test_push():
         return jsonify({'sent': sent})
     except ValueError as e:
         msg = str(e)
-        if 'expected pattern' in msg.lower() or 'pem' in msg.lower():
-            msg = 'Firebase private key format invalid. Set FIREBASE_SERVICE_ACCOUNT_JSON to full JSON (with proper newlines in private_key).'
+        if any(x in msg.lower() for x in ('expected pattern', 'pem', 'format invalid', 'credentials invalid')):
+            msg = (
+                'Firebase credentials invalid. Ensure FIREBASE_SERVICE_ACCOUNT_JSON is the exact JSON from '
+                'Firebase Console (Project Settings → Service accounts → Generate new private key). '
+                'Paste the full JSON as one line, or use jq -c . to compact it. Avoid editing the private_key.'
+            )
         return jsonify({'error': msg, 'sent': 0}), 500
     except Exception as e:
         return jsonify({'error': str(e)[:200], 'sent': 0}), 500

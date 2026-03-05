@@ -3312,22 +3312,26 @@ def _normalize_pem_private_key(pk):
     if not pk or not isinstance(pk, str):
         return pk
     # Replace escaped newlines (env vars often have literal \n as backslash-n)
-    pk = pk.replace('\\n', '\n')
+    pk = pk.replace('\\n', '\n').replace('\\r', '\r')
     pk = pk.strip()
     if not pk:
         return pk
-    # Extract base64 body between markers
+    # Extract base64 body between markers (support BEGIN PRIVATE KEY or BEGIN RSA PRIVATE KEY)
     begin = '-----BEGIN PRIVATE KEY-----'
     end = '-----END PRIVATE KEY-----'
-    if begin not in pk:
+    if '-----BEGIN RSA PRIVATE KEY-----' in pk:
+        begin = '-----BEGIN RSA PRIVATE KEY-----'
+        end = '-----END RSA PRIVATE KEY-----'
+    if begin not in pk or end not in pk:
         return pk
-    if end not in pk:
+    start_idx = pk.find(begin) + len(begin)
+    end_idx = pk.find(end)
+    if start_idx <= 0 or end_idx <= start_idx:
         return pk
-    parts = pk.split(begin, 1)[1].split(end, 1)
-    if len(parts) != 2:
-        return pk
-    b64_body = parts[0].replace('\n', '').replace('\r', '').strip()
-    if not b64_body:
+    import re
+    b64_body = pk[start_idx:end_idx].replace('\n', '').replace('\r', '').replace(' ', '')
+    b64_body = re.sub(r'[^A-Za-z0-9+/=]', '', b64_body)
+    if not b64_body or len(b64_body) < 100:
         return pk
     # Re-wrap base64 at 64 chars (RFC 7468) — single-line causes "expected pattern" error
     wrapped = '\n'.join(b64_body[i:i + 64] for i in range(0, len(b64_body), 64))
@@ -3367,6 +3371,19 @@ def _get_firebase_service_info():
                 info['private_key'] = _normalize_pem_private_key(pk)
             return info
     except json.JSONDecodeError:
+        pass
+
+    try:
+        import base64
+        decoded = base64.b64decode(raw).decode('utf-8')
+        info = json.loads(decoded)
+        if isinstance(info, dict) and info.get('type') == 'service_account':
+            pk = info.get('private_key', '')
+            if pk:
+                info = dict(info)
+                info['private_key'] = _normalize_pem_private_key(pk)
+            return info
+    except Exception:
         pass
 
     pk_raw = raw.replace('\\n', '\n')
@@ -3413,8 +3430,26 @@ def send_push_notification(user_id, title, body, data=None):
         credentials.refresh(google.auth.transport.requests.Request())
     except Exception as e:
         err_msg = str(e).strip()
-        logging.error(f"Firebase credential load failed: {err_msg}")
-        raise ValueError(f"Firebase credentials invalid: {err_msg}")
+        logging.warning(f"Firebase from_service_account_info failed: {err_msg}, trying temp file fallback")
+        try:
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                json.dump(service_info, f, indent=2)
+                tmp_path = f.name
+            try:
+                credentials = service_account.Credentials.from_service_account_file(
+                    tmp_path,
+                    scopes=['https://www.googleapis.com/auth/firebase.messaging']
+                )
+                credentials.refresh(google.auth.transport.requests.Request())
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except Exception:
+                    pass
+        except Exception as e2:
+            logging.error(f"Firebase credential load failed: {e2}")
+            raise ValueError(f"Firebase credentials invalid: {str(e2)[:200]}")
 
     project_id = service_info.get('project_id', 'sharp-picks')
     url = f'https://fcm.googleapis.com/v1/projects/{project_id}/messages:send'
@@ -4081,6 +4116,40 @@ def export_users():
         mimetype='text/csv',
         headers={'Content-Disposition': 'attachment; filename=sharppicks_users.csv'}
     )
+
+@app.route('/api/admin/users/search')
+def admin_users_search():
+    """Search users by email (exact or normalized) — superusers only"""
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    db_user = db.session.get(User, user['id'])
+    if not db_user or not db_user.is_superuser:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    q = (request.args.get('q') or '').strip().lower()
+    if not q:
+        return jsonify({'error': 'Missing q parameter (email to search)'}), 400
+
+    from models import normalize_email
+    norm = normalize_email(q) if '@' in q else None
+
+    by_email = User.query.filter(func.lower(User.email) == q).first()
+    by_norm = User.query.filter_by(email_normalized=norm).first() if norm else None
+
+    results = []
+    seen = set()
+    for u in (by_email, by_norm):
+        if u and u.id not in seen:
+            seen.add(u.id)
+            results.append({
+                'id': u.id, 'email': u.email, 'email_normalized': u.email_normalized,
+                'first_name': u.first_name, 'subscription_status': u.subscription_status,
+                'created_at': u.created_at.isoformat() if u.created_at else None,
+            })
+
+    return jsonify({'found': len(results), 'users': results})
+
 
 @app.route('/api/admin/users')
 def admin_users():

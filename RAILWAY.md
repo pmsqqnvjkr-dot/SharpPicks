@@ -24,8 +24,10 @@ The app uses **SQLite** for games/odds data (collect, model). Without a persiste
 
 ### Push notifications (FCM)
 
-Set **FIREBASE_SERVICE_ACCOUNT_JSON** to the full JSON from your Firebase service account (Project Settings → Service accounts → Generate new private key). Paste the entire JSON as the env value.
+Set **FIREBASE_SERVICE_ACCOUNT_JSON** to the full JSON from your Firebase service account (Project Settings → Service accounts → Generate new private key).
 
-Alternatively, add `firebase-service-account.json` to the project root (ensure it's not in .gitignore for deploy, or use a build secret).
+**Format:** Paste the exact JSON—do not edit the `private_key` field. Use compact form: `jq -c . < key.json` then paste the output. Railway accepts long env values; the full JSON is ~2–3KB.
+
+If you get "credentials invalid", regenerate the key in Firebase and paste the new JSON without modifications.
 
 For **iOS** push, upload your APNs key in Firebase Console → Project Settings → Cloud Messaging → Apple app configuration.
