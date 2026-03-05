@@ -331,15 +331,20 @@ def clear_today():
     # Get today's pick IDs before delete (for FK cleanup)
     today_picks = Pick.query.filter_by(game_date=today_str, sport=sport).all()
     pick_ids = [p.id for p in today_picks]
-    for pick_id in pick_ids:
-        ModelRun.query.filter_by(pick_id=pick_id).update({'pick_id': None})
-        TrackedBet.query.filter_by(pick_id=pick_id).update({'pick_id': None})
-        UserBet.query.filter_by(pick_id=pick_id).delete()
+    try:
+        for pick_id in pick_ids:
+            ModelRun.query.filter_by(pick_id=pick_id).update({'pick_id': None})
+            TrackedBet.query.filter_by(pick_id=pick_id).update({'pick_id': None})
+            UserBet.query.filter_by(pick_id=pick_id).delete()
 
-    runs_deleted = ModelRun.query.filter_by(date=today_str, sport=sport).delete()
-    passes_deleted = Pass.query.filter_by(date=today_str, sport=sport).delete()
-    picks_deleted = Pick.query.filter_by(game_date=today_str, sport=sport).delete()
-    db.session.commit()
+        runs_deleted = ModelRun.query.filter_by(date=today_str, sport=sport).delete()
+        passes_deleted = Pass.query.filter_by(date=today_str, sport=sport).delete()
+        picks_deleted = Pick.query.filter_by(game_date=today_str, sport=sport).delete()
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"clear-today failed: {e}")
+        return jsonify({'error': str(e)[:200]}), 500
 
     return jsonify({
         'cleared': {'runs': runs_deleted, 'passes': passes_deleted, 'picks': picks_deleted},
