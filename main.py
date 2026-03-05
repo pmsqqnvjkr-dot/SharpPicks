@@ -957,10 +957,12 @@ def collect_todays_games():
     }
 
     url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
+    base_markets = 'spreads,totals,h2h'
+    extra_markets = 'spreads_h1,totals_h1,alternate_spreads'
     params = {
         'apiKey': API_KEY,
         'regions': 'us',
-        'markets': 'spreads,totals,h2h,spreads_h1,totals_h1,alternate_spreads',
+        'markets': f'{base_markets},{extra_markets}',
         'oddsFormat': 'american',
         'bookmakers': ','.join(PREFERRED_BOOKS),
     }
@@ -972,10 +974,15 @@ def collect_todays_games():
     response = None
 
     try:
-        # Odds API: single call, no date/eventIds params (422 on Railway). Filter to today client-side.
         print(f"   Odds API: querying (filter to {today_str_et} client-side)")
         response = api_request_with_retry(url, params)
-        if response and response.status_code == 200:
+
+        if response is not None and response.status_code == 422:
+            print(f"   Odds API: 422 on extended markets — retrying with base only ({base_markets})")
+            params['markets'] = base_markets
+            response = api_request_with_retry(url, params)
+
+        if response is not None and response.status_code == 200:
             raw_games = response.json()
             raw_count = len(raw_games)
             games = [g for g in raw_games if utc_to_eastern_date(g.get('commence_time', '') or '') == today_str_et]
