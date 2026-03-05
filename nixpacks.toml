@@ -1,0 +1,5 @@
+# Railway/Nixpacks build config
+# Use uv sync without --locked to avoid build failures when lockfile
+# resolution differs between local (e.g. 3.14) and Railway (3.13).
+[phases.install]
+cmds = ["uv sync --no-dev --no-install-project"]
