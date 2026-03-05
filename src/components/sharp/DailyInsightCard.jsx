@@ -3,6 +3,20 @@ import { apiGet } from '../../hooks/useApi';
 
 const CATEGORY_LABELS = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Founder Notes' };
 
+const TEAM_SHORT = {
+  'Atlanta Hawks': 'ATL', 'Boston Celtics': 'BOS', 'Brooklyn Nets': 'BKN',
+  'Charlotte Hornets': 'CHA', 'Chicago Bulls': 'CHI', 'Cleveland Cavaliers': 'CLE',
+  'Dallas Mavericks': 'DAL', 'Denver Nuggets': 'DEN', 'Detroit Pistons': 'DET',
+  'Golden State Warriors': 'GSW', 'Houston Rockets': 'HOU', 'Indiana Pacers': 'IND',
+  'Los Angeles Clippers': 'LAC', 'Los Angeles Lakers': 'LAL', 'Memphis Grizzlies': 'MEM',
+  'Miami Heat': 'MIA', 'Milwaukee Bucks': 'MIL', 'Minnesota Timberwolves': 'MIN',
+  'New Orleans Pelicans': 'NOP', 'New York Knicks': 'NYK', 'Oklahoma City Thunder': 'OKC',
+  'Orlando Magic': 'ORL', 'Philadelphia 76ers': 'PHI', 'Phoenix Suns': 'PHX',
+  'Portland Trail Blazers': 'POR', 'Sacramento Kings': 'SAC', 'San Antonio Spurs': 'SAS',
+  'Toronto Raptors': 'TOR', 'Utah Jazz': 'UTA', 'Washington Wizards': 'WAS',
+};
+const abbr = (name) => TEAM_SHORT[name] || name;
+
 function useCountdownTo(targetHourEt = 10) {
   const [text, setText] = useState('');
   useEffect(() => {
@@ -18,9 +32,9 @@ function useCountdownTo(targetHourEt = 10) {
         const targetMins = targetHourEt * 60;
         let minsUntil = targetMins - currentMins;
         if (minsUntil <= 0) minsUntil += 24 * 60;
-        if (minsUntil < 60) setText(`in ${minsUntil} min`);
-        else if (minsUntil < 1440) setText(`in ${Math.floor(minsUntil / 60)}h ${minsUntil % 60}m`);
-        else setText(`in ${Math.floor(minsUntil / 1440)}d`);
+        if (minsUntil < 60) setText(`${minsUntil}m`);
+        else if (minsUntil < 1440) setText(`${Math.floor(minsUntil / 60)}h ${minsUntil % 60}m`);
+        else setText(`${Math.floor(minsUntil / 1440)}d`);
       } catch {
         setText('');
       }
@@ -30,6 +44,38 @@ function useCountdownTo(targetHourEt = 10) {
     return () => clearInterval(id);
   }, [targetHourEt]);
   return text;
+}
+
+function MatchupRow({ away, home, time }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '8px 12px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
+          color: 'var(--text-primary)', width: '34px', textAlign: 'right',
+          letterSpacing: '0.02em',
+        }}>{abbr(away)}</span>
+        <span style={{
+          fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: 500,
+          letterSpacing: '0.05em',
+        }}>@</span>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
+          color: 'var(--text-primary)', width: '34px',
+          letterSpacing: '0.02em',
+        }}>{abbr(home)}</span>
+      </div>
+      {time && (
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-tertiary)',
+          whiteSpace: 'nowrap',
+        }}>{time}</span>
+      )}
+    </div>
+  );
 }
 
 export default function DailyInsightCard({ data, onNavigate }) {
@@ -48,53 +94,53 @@ export default function DailyInsightCard({ data, onNavigate }) {
 
   return (
     <div style={{ padding: '0 4px 24px' }}>
-      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+      {/* Countdown banner */}
+      <div style={{
+        textAlign: 'center', padding: '20px 16px 24px',
+      }}>
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: '6px', margin: '0 auto 20px',
-        }}>
-          <div style={{ width: '4px', height: '32px', borderRadius: '2px', backgroundColor: 'var(--text-secondary)', opacity: 0.6 }} />
-          <div style={{ width: '4px', height: '32px', borderRadius: '2px', backgroundColor: 'var(--text-secondary)', opacity: 0.6 }} />
-        </div>
+          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+          letterSpacing: '1.5px', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)', marginBottom: '8px',
+        }}>Model analysis {countdown ? countdown : 'soon'}</div>
         <h2 style={{
           fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 700,
-          color: 'var(--text-primary)', marginBottom: '12px',
-        }}>Today&apos;s slate</h2>
+          color: 'var(--text-primary)', marginBottom: '4px',
+        }}>Today&apos;s Slate</h2>
         <p style={{
-          fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.6',
-          marginBottom: '8px',
+          fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5',
         }}>
           {gamesScheduled > 0
-            ? `${gamesScheduled} game${gamesScheduled === 1 ? '' : 's'} on today's slate`
-            : 'Loading today\'s schedule…'}
-        </p>
-        {gamesPreview.length > 0 && (
-          <ul style={{
-            listStyle: 'none', padding: 0, margin: '0 0 16px',
-            textAlign: 'left', maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto',
-          }}>
-            {gamesPreview.slice(0, 6).map((g, i) => (
-              <li key={i} style={{
-                fontSize: '13px', color: 'var(--text-tertiary)',
-                padding: '4px 0', borderBottom: i < 5 ? '1px solid var(--stroke-subtle)' : 'none',
-              }}>
-                {g.away} @ {g.home}{g.time ? ` · ${g.time}` : ''}
-              </li>
-            ))}
-            {gamesScheduled > 6 && (
-              <li style={{ fontSize: '12px', color: 'var(--text-tertiary)', padding: '6px 0 0', fontStyle: 'italic' }}>
-                +{gamesScheduled - 6} more
-              </li>
-            )}
-          </ul>
-        )}
-        <p style={{
-          fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
-        }}>
-          Model runs daily at {modelRunsAt} {countdown && `(${countdown})`}
+            ? `${gamesScheduled} game${gamesScheduled === 1 ? '' : 's'} · Model runs at ${modelRunsAt}`
+            : 'Loading schedule\u2026'}
         </p>
       </div>
 
+      {/* Games list */}
+      {gamesPreview.length > 0 && (
+        <div style={{
+          background: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+          borderRadius: '14px', overflow: 'hidden', marginBottom: '20px',
+        }}>
+          {gamesPreview.slice(0, 8).map((g, i) => (
+            <div key={`${g.away}-${g.home}`}>
+              {i > 0 && <div style={{ height: '1px', background: 'var(--stroke-subtle)', margin: '0 12px' }} />}
+              <MatchupRow away={g.away} home={g.home} time={g.time} />
+            </div>
+          ))}
+          {gamesScheduled > 8 && (
+            <div style={{
+              textAlign: 'center', padding: '6px 12px 10px',
+              fontSize: '11px', color: 'var(--text-tertiary)',
+              fontFamily: 'var(--font-mono)', letterSpacing: '0.02em',
+            }}>
+              +{gamesScheduled - 8} more
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Recommended read */}
       {insight && (
         <div style={{ marginBottom: '24px' }}>
           <div style={{
@@ -127,7 +173,7 @@ export default function DailyInsightCard({ data, onNavigate }) {
             </div>
             {insight.excerpt && (
               <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5', margin: 0 }}>
-                {insight.excerpt.slice(0, 120)}{insight.excerpt.length > 120 ? '…' : ''}
+                {insight.excerpt.slice(0, 120)}{insight.excerpt.length > 120 ? '\u2026' : ''}
               </p>
             )}
             {insight.reading_time_minutes && (
