@@ -503,7 +503,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
   );
 }
 
-function TrackBetModal({ initialPick, onClose, onSubmit }) {
+export function TrackBetModal({ initialPick, onClose, onSubmit }) {
   const [step, setStep] = useState(initialPick ? 'wager' : 'picks');
   const [mode, setMode] = useState('model');
   const [picks, setPicks] = useState([]);
