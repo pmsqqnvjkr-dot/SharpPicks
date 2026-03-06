@@ -1,6 +1,7 @@
 export default function TabNav({ activeTab, onTabChange }) {
   const tabs = [
     { id: 'picks', label: 'Picks', icon: TargetIcon },
+    { id: 'market', label: 'Market', icon: MarketIcon },
     { id: 'insights', label: 'Journal', icon: BookIcon },
     { id: 'performance', label: 'Stats', icon: ChartIcon },
     { id: 'profile', label: 'Account', icon: PersonIcon },
@@ -17,7 +18,7 @@ export default function TabNav({ activeTab, onTabChange }) {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      gap: '32px',
+      gap: '16px',
       padding: '12px 0 calc(10px + env(safe-area-inset-bottom, 0px))',
       background: 'var(--bg-primary)',
       borderTop: '1px solid rgba(255, 255, 255, 0.04)',
@@ -81,6 +82,17 @@ function BookIcon() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>
+  );
+}
+
+function MarketIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1"/>
+      <rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/>
+      <rect x="14" y="14" width="7" height="7" rx="1"/>
     </svg>
   );
 }
