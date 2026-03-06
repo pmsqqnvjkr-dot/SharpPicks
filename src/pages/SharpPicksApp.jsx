@@ -267,6 +267,23 @@ function AppContent() {
     return <LandingPage />;
   }
 
+  useEffect(() => {
+    if (user && user.subscription_status === 'pending_verification') {
+      const poll = setInterval(async () => {
+        try { await checkAuth(); } catch {}
+      }, 5000);
+      const onFocus = () => { checkAuth(); };
+      window.addEventListener('focus', onFocus);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkAuth();
+      });
+      return () => {
+        clearInterval(poll);
+        window.removeEventListener('focus', onFocus);
+      };
+    }
+  }, [user?.subscription_status]);
+
   if (user && user.subscription_status === 'pending_verification') {
     return (
       <div style={{

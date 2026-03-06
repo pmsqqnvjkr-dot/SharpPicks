@@ -2385,6 +2385,32 @@ def verify_email():
     session.permanent = True
     session['user_id'] = user.id
     session['session_token'] = user.session_token
+
+    ua = request.headers.get('User-Agent', '').lower()
+    is_mobile = any(k in ua for k in ('iphone', 'ipad', 'android', 'capacitor'))
+    if is_mobile:
+        html = """<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Email Verified — SharpPicks</title>
+<style>body{margin:0;padding:40px 20px;background:#0A0D14;color:#e2e8f0;font-family:-apple-system,sans-serif;
+text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:90vh}
+.check{width:64px;height:64px;border-radius:50%;background:rgba(52,211,153,0.1);display:flex;align-items:center;
+justify-content:center;margin:0 auto 20px}
+h1{font-size:22px;margin-bottom:8px}
+p{font-size:15px;color:#94a3b8;margin-bottom:24px;line-height:1.6}
+.btn{display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#4f86f7,#2f5fd6);
+border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;text-decoration:none;cursor:pointer}
+.sub{font-size:12px;color:#64748b;margin-top:16px}
+</style></head><body>
+<div class="check"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2.5">
+<path d="M20 6L9 17l-5-5"/></svg></div>
+<h1>Email Verified</h1>
+<p>Your account is active. Return to the SharpPicks app to continue.</p>
+<a class="btn" href="/">Open SharpPicks</a>
+<div class="sub">You can close this browser tab.</div>
+</body></html>"""
+        return Response(html, content_type='text/html')
+
     return redirect('/?verify=success')
 
 
