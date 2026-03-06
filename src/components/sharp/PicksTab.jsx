@@ -38,10 +38,11 @@ export default function PicksTab({ onNavigate }) {
   const [showMarket, setShowMarket] = useState(false);
   const [filter, setFilter] = useState('all');
   const [showAllPicks, setShowAllPicks] = useState(false);
-  const [dismissedResolutionId, setDismissedResolutionId] = useState(null);
+  const [dismissedResolutionId, setDismissedResolutionId] = useState(() => localStorage.getItem('sp_dismissed_resolution'));
 
   const handleDismissResolution = (pickId) => {
     setDismissedResolutionId(pickId);
+    localStorage.setItem('sp_dismissed_resolution', pickId);
   };
 
   if (loading || authLoading) {
