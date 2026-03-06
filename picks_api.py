@@ -563,6 +563,7 @@ def market_view():
 
     # Load model analysis if available
     model_analysis = {}
+    pick_signals = {}
     try:
         model_run = ModelRun.query.filter_by(date=today_str, sport=sport).order_by(ModelRun.created_at.desc()).first()
         if model_run and model_run.games_detail:
@@ -575,6 +576,12 @@ def market_view():
                         model_analysis[ga_key] = ga
             except Exception:
                 pass
+        if model_run and model_run.pick_id:
+            pick_obj = Pick.query.get(model_run.pick_id)
+            if pick_obj and pick_obj.notes:
+                pick_signals[(pick_obj.away_team, pick_obj.home_team)] = [
+                    s.strip() for s in pick_obj.notes.split('|') if s.strip()
+                ]
     except Exception:
         pass
 
@@ -667,7 +674,7 @@ def market_view():
                 'passes': ma.get('passes', False),
                 'reason': ma.get('reason', ''),
                 'fail_reasons': ma.get('fail_reasons', []),
-                'signals': ma.get('signals', []),
+                'signals': ma.get('signals') or pick_signals.get(key, []),
             }
 
         games.append(game_data)
