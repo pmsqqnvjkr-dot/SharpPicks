@@ -602,7 +602,7 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
   })();
 
   const stepTitle = step === 'picks'
-    ? (mode === 'manual' ? 'Log a Personal Bet' : 'Select a Pick')
+    ? 'Track a Bet'
     : 'Enter Your Wager';
 
   return (
@@ -653,21 +653,19 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
               backgroundColor: 'var(--surface-2)', borderRadius: '10px', padding: '3px',
             }}>
               <button onClick={() => setMode('model')} style={{
-                flex: 1, padding: '8px 12px', borderRadius: '8px', border: 'none',
-                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                flex: 1, padding: '9px 12px', borderRadius: '8px', border: 'none',
+                fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                 fontFamily: 'var(--font-mono)', transition: 'all 0.15s',
-                backgroundColor: mode === 'model' ? 'var(--surface-1)' : 'transparent',
-                color: mode === 'model' ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                boxShadow: mode === 'model' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
-              }}>Sharp Pick</button>
+                backgroundColor: mode === 'model' ? 'var(--blue-primary)' : 'transparent',
+                color: mode === 'model' ? '#fff' : 'var(--text-tertiary)',
+              }}>Model Pick</button>
               <button onClick={() => setMode('manual')} style={{
-                flex: 1, padding: '8px 12px', borderRadius: '8px', border: 'none',
-                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                flex: 1, padding: '9px 12px', borderRadius: '8px', border: 'none',
+                fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                 fontFamily: 'var(--font-mono)', transition: 'all 0.15s',
-                backgroundColor: mode === 'manual' ? 'var(--surface-1)' : 'transparent',
-                color: mode === 'manual' ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                boxShadow: mode === 'manual' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
-              }}>Personal Bet</button>
+                backgroundColor: mode === 'manual' ? '#f59e0b' : 'transparent',
+                color: mode === 'manual' ? '#fff' : 'var(--text-tertiary)',
+              }}>My Own Bet</button>
             </div>
 
             {mode === 'model' ? (
