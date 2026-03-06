@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 import { useNetwork } from '../hooks/useNetwork';
 import { SportProvider } from '../hooks/useSport';
+
+const PROD_URL = 'https://app.sharppicks.ai';
+const NATIVE_API = Capacitor.isNativePlatform() ? PROD_URL : '';
 import TabNav from '../components/sharp/TabNav';
 import AppHeader from '../components/sharp/AppHeader';
 import PicksTab from '../components/sharp/PicksTab';
@@ -319,7 +323,7 @@ function AppContent() {
         <button
           onClick={async () => {
             try {
-              await fetch('/api/auth/resend-verification', { method: 'POST', credentials: 'include' });
+              await fetch(`${NATIVE_API}/api/auth/resend-verification`, { method: 'POST', credentials: 'include' });
             } catch {}
           }}
           style={{
@@ -331,7 +335,7 @@ function AppContent() {
         >Resend verification email</button>
         <button
           onClick={async () => {
-            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+            await fetch(`${NATIVE_API}/api/auth/logout`, { method: 'POST', credentials: 'include' });
             window.location.reload();
           }}
           style={{

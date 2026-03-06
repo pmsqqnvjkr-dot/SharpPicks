@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { Capacitor } from '@capacitor/core';
 
-const API_BASE = '/api';
+const PROD_URL = 'https://app.sharppicks.ai';
+const API_BASE = Capacitor.isNativePlatform() ? PROD_URL + '/api' : '/api';
 
 export default function AuthModal({ onClose, initialMode, initialAccountType }) {
   const [mode, setMode] = useState(initialMode || 'login');
@@ -173,7 +175,7 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
               onClick={async () => {
                 setSubmitting(true);
                 try {
-                  const res = await fetch('/api/auth/resend-verification', { method: 'POST', credentials: 'include' });
+                  const res = await fetch(`${API_BASE}/auth/resend-verification`, { method: 'POST', credentials: 'include' });
                   const data = await res.json();
                   if (data.success) setSuccess('Verification email resent!');
                   else setError(data.error || 'Failed to resend');

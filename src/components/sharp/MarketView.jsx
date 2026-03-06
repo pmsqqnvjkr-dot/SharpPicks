@@ -1,8 +1,12 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import PullToRefresh from '../shared/PullToRefresh';
+
+const PROD_URL = 'https://app.sharppicks.ai';
+const MV_API_BASE = Capacitor.isNativePlatform() ? PROD_URL : '';
 
 function fmtSpread(val) {
   if (val == null || val === '') return '—';
@@ -686,7 +690,7 @@ export default function MarketView({ onBack }) {
 
   const fetchLiveScores = useCallback(async () => {
     try {
-      const resp = await fetch(`/api/picks/live-scores?sport=${sport}`);
+      const resp = await fetch(`${MV_API_BASE}/api/picks/live-scores?sport=${sport}`);
       const json = await resp.json();
       if (json.scores) {
         const map = {};
@@ -755,7 +759,7 @@ export default function MarketView({ onBack }) {
 
   const handleWatch = async (game) => {
     try {
-      const resp = await fetch('/api/picks/watch', {
+      const resp = await fetch(`${MV_API_BASE}/api/picks/watch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
