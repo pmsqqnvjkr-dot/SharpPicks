@@ -537,14 +537,14 @@ def market_view():
                 spread_h1_home, spread_h1_away,
                 spread_h1_home_odds, spread_h1_away_odds, total_h1,
                 home_record, away_record,
-                home_score, away_score
+                home_score, away_score,
+                rundown_spread_consensus, rundown_spread_range, rundown_num_books
             FROM {games_table}
             WHERE game_date = ?
             ORDER BY game_time""",
             (today_str,)
         )
         rows = cur.fetchall()
-        conn.close()
     except Exception:
         return jsonify({'games': [], 'date': today_str})
 
@@ -561,6 +561,44 @@ def market_view():
         except Exception:
             return None
 
+    # Load model analysis if available
+    model_analysis = {}
+    try:
+        model_run = ModelRun.query.filter_by(date=today_str, sport=sport).order_by(ModelRun.created_at.desc()).first()
+        if model_run and model_run.games_detail:
+            import json as _json
+            try:
+                details = _json.loads(model_run.games_detail)
+                if isinstance(details, list):
+                    for ga in details:
+                        ga_key = (ga.get('away'), ga.get('home'))
+                        model_analysis[ga_key] = ga
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    # Load line snapshots for sparklines
+    line_snapshots = {}
+    try:
+        cur.execute(
+            f"""SELECT away_team, home_team, spread_home, total,
+                       snapped_at FROM line_snapshots
+                WHERE game_date = ? ORDER BY snapped_at""",
+            (today_str,)
+        )
+        for snap in cur.fetchall():
+            sk = (snap['away_team'], snap['home_team'])
+            if sk not in line_snapshots:
+                line_snapshots[sk] = []
+            line_snapshots[sk].append({
+                'spread': snap['spread_home'],
+                'total': snap['total'],
+                'at': snap['snapped_at'],
+            })
+    except Exception:
+        pass
+
     seen = set()
     games = []
     for r in rows:
@@ -572,7 +610,15 @@ def market_view():
         is_live = r['home_score'] is not None and r['away_score'] is not None
         status = 'final' if is_live else 'scheduled'
 
-        games.append({
+        spread_open = r['spread_home_open']
+        spread_now = r['spread_home']
+        rlm = None
+        if spread_open is not None and spread_now is not None:
+            move = spread_now - spread_open
+            if abs(move) >= 1.0:
+                rlm = 'home' if move < 0 else 'away'
+
+        game_data = {
             'id': r['id'],
             'away': r['away_team'],
             'home': r['home_team'],
@@ -580,7 +626,7 @@ def market_view():
             'status': status,
             'spread_home': r['spread_home'],
             'spread_away': r['spread_away'],
-            'spread_home_open': r['spread_home_open'],
+            'spread_home_open': spread_open,
             'total': r['total'],
             'total_open': r['total_open'],
             'home_ml': r['home_ml'],
@@ -596,6 +642,82 @@ def market_view():
             'away_record': r['away_record'],
             'home_score': r['home_score'],
             'away_score': r['away_score'],
+            'rlm': rlm,
+            'snapshots': line_snapshots.get(key, []),
+        }
+
+        try:
+            game_data['consensus_spread'] = r['rundown_spread_consensus']
+            game_data['spread_range'] = r['rundown_spread_range']
+            game_data['num_books'] = r['rundown_num_books']
+        except (KeyError, IndexError):
+            pass
+
+        ma = model_analysis.get(key)
+        if ma:
+            game_data['model'] = {
+                'predicted_margin': ma.get('predicted_margin'),
+                'cover_prob': ma.get('cover_prob'),
+                'edge': ma.get('adjusted_edge'),
+                'rating': ma.get('rating'),
+                'pick_side': ma.get('pick_side'),
+                'pick': ma.get('pick'),
+                'fail_reasons': ma.get('fail_reasons', []),
+            }
+
+        games.append(game_data)
+
+    conn.close()
+    return jsonify({'games': games, 'date': today_str, 'count': len(games)})
+
+
+@picks_bp.route('/live-scores')
+def live_scores():
+    """Poll ESPN scoreboard for live game data (scores, quarter, clock)."""
+    import requests as http_requests
+    sport = request.args.get('sport', 'nba')
+
+    espn_url = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard'
+    if sport == 'wnba':
+        espn_url = 'https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard'
+
+    try:
+        resp = http_requests.get(espn_url, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception:
+        return jsonify({'scores': [], 'error': 'ESPN unavailable'})
+
+    scores = []
+    for event in data.get('events', []):
+        comp = event.get('competitions', [{}])[0]
+        status = comp.get('status', {})
+        status_type = status.get('type', {})
+        clock = status.get('displayClock', '')
+        period = status.get('period', 0)
+        state = status_type.get('name', '')
+
+        competitors = comp.get('competitors', [])
+        home = away = None
+        for c in competitors:
+            if c.get('homeAway') == 'home':
+                home = c
+            else:
+                away = c
+        if not home or not away:
+            continue
+
+        home_name = home.get('team', {}).get('displayName', '')
+        away_name = away.get('team', {}).get('displayName', '')
+
+        scores.append({
+            'home': home_name,
+            'away': away_name,
+            'home_score': int(home.get('score', 0)),
+            'away_score': int(away.get('score', 0)),
+            'clock': clock,
+            'period': period,
+            'state': state,
         })
 
-    return jsonify({'games': games, 'date': today_str, 'count': len(games)})
+    return jsonify({'scores': scores})

@@ -364,6 +364,20 @@ def setup_database():
 
     cursor.execute("UPDATE games SET game_time = NULL WHERE game_time = ''")
 
+    cursor.execute('''CREATE TABLE IF NOT EXISTS line_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        game_date TEXT NOT NULL,
+        home_team TEXT NOT NULL,
+        away_team TEXT NOT NULL,
+        spread_home REAL,
+        total REAL,
+        home_ml INTEGER,
+        away_ml INTEGER,
+        snapped_at TEXT NOT NULL
+    )''')
+    cursor.execute('''CREATE INDEX IF NOT EXISTS idx_snapshots_date
+        ON line_snapshots(game_date)''')
+
     cursor.execute('''CREATE TABLE IF NOT EXISTS nba_player_props (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         game_id TEXT NOT NULL,
@@ -1484,7 +1498,26 @@ def collect_todays_games():
 
         with_spreads = sum(1 for gp in games_to_process if gp.get('spread_home') is not None)
         print(f"   Games stored for today: {len(games_to_process)} ({with_spreads} with spreads from Odds API)")
-        
+
+        # Snapshot current lines for sparkline history
+        try:
+            snap_time = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            snap_cursor = conn.cursor()
+            for gp in games_to_process:
+                if gp.get('spread_home') is not None:
+                    snap_cursor.execute(
+                        '''INSERT INTO line_snapshots
+                           (game_date, home_team, away_team, spread_home, total, home_ml, away_ml, snapped_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                        (today_str_et, gp['home'], gp['away'],
+                         gp.get('spread_home'), gp.get('total'),
+                         gp.get('home_ml'), gp.get('away_ml'), snap_time)
+                    )
+            conn.commit()
+            print(f"   📸 Line snapshot saved ({len(games_to_process)} games)")
+        except Exception as snap_err:
+            print(f"   ⚠️ Snapshot failed: {snap_err}")
+
         print("="*60)
         show_stats()
         

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 
@@ -35,124 +35,122 @@ function Movement({ current, open }) {
   );
 }
 
-function GameRow({ game }) {
-  const totalDisplay = fmtTotal(game.total);
-  const isFinal = game.status === 'final';
+function Sparkline({ snapshots, field = 'spread', width = 48, height = 16 }) {
+  if (!snapshots || snapshots.length < 2) return null;
+  const values = snapshots.map(s => s[field]).filter(v => v != null);
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * width;
+    const y = height - ((v - min) / range) * (height - 2) - 1;
+    return `${x},${y}`;
+  }).join(' ');
+  const lastVal = values[values.length - 1];
+  const firstVal = values[0];
+  const color = lastVal < firstVal ? 'var(--green-profit, #10b981)' : lastVal > firstVal ? 'var(--red-loss, #ef4444)' : 'var(--text-tertiary)';
+  return (
+    <svg width={width} height={height} style={{ display: 'block' }}>
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function RLMBadge({ rlm }) {
+  if (!rlm) return null;
+  return (
+    <span style={{
+      fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
+      padding: '1px 5px', borderRadius: 3,
+      background: 'rgba(251,191,36,0.12)', color: '#f59e0b',
+      border: '1px solid rgba(251,191,36,0.25)',
+    }}>RLM</span>
+  );
+}
+
+function ModelAnalysisPanel({ model }) {
+  if (!model) return null;
+  const edgeColor = model.edge >= 5 ? 'var(--green-profit)' : model.edge >= 2 ? '#f59e0b' : 'var(--text-tertiary)';
+  const probPct = model.cover_prob != null ? (model.cover_prob * 100).toFixed(1) : null;
 
   return (
     <div style={{
-      background: 'var(--surface-1, #111827)',
-      border: '1px solid var(--stroke-subtle, #1e293b)',
-      borderRadius: 10,
-      overflow: 'hidden',
+      borderTop: '1px solid var(--stroke-subtle)',
+      padding: '10px 14px 12px',
+      background: 'rgba(79,125,243,0.03)',
     }}>
-      {/* Column headers */}
       <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 72px 56px 64px',
-        padding: '6px 14px 2px', gap: 6,
+        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
       }}>
-        <span />
-        {['Spread', 'Total', 'ML'].map(h => (
-          <span key={h} style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 700,
-            letterSpacing: '0.08em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', textAlign: 'center', opacity: 0.6,
-          }}>{h}</span>
-        ))}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(79,125,243,0.6)" strokeWidth="2">
+          <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+        </svg>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)',
+        }}>Model Analysis</span>
+        {model.rating && (
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 600,
+            color: model.passes ? 'var(--green-profit)' : 'var(--text-tertiary)',
+            marginLeft: 'auto',
+          }}>{model.rating}</span>
+        )}
       </div>
 
-      {/* Away row */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 72px 56px 64px',
-        padding: '5px 14px', alignItems: 'center', gap: 6,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700,
-            color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>{game.away}</span>
-          {game.away_record && (
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', flexShrink: 0 }}>{game.away_record}</span>
-          )}
-          {isFinal && game.away_score != null && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0 }}>{game.away_score}</span>
-          )}
-        </div>
-        <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-          {fmtSpread(game.spread_away)}
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          {totalDisplay && (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        {model.predicted_margin != null && (
+          <div>
+            <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', marginBottom: 2 }}>Proj. Margin</div>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
-              color: 'var(--text-primary)', background: 'rgba(100,116,139,0.08)',
-              borderRadius: 4, padding: '2px 0',
-            }}>
-              {totalDisplay}
-              <Movement current={game.total} open={game.total_open} />
-            </div>
-          )}
-        </div>
-        <div style={{
-          textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
-          color: parseFloat(game.away_ml) > 0 ? '#f59e0b' : 'var(--text-secondary)',
-          fontWeight: parseFloat(game.away_ml) > 0 ? 600 : 400,
-        }}>
-          {fmtML(game.away_ml)}
-        </div>
+              fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 600,
+              color: 'var(--text-primary)',
+            }}>{model.predicted_margin > 0 ? '+' : ''}{model.predicted_margin}</div>
+          </div>
+        )}
+        {probPct && (
+          <div>
+            <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', marginBottom: 2 }}>Cover Prob</div>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 600,
+              color: 'var(--text-primary)',
+            }}>{probPct}%</div>
+          </div>
+        )}
+        {model.edge != null && (
+          <div>
+            <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', marginBottom: 2 }}>Edge</div>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 600,
+              color: edgeColor,
+            }}>{model.edge > 0 ? '+' : ''}{model.edge}%</div>
+          </div>
+        )}
       </div>
 
-      <div style={{ height: 1, background: 'var(--stroke-subtle)', margin: '0 14px' }} />
-
-      {/* Home row */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 72px 56px 64px',
-        padding: '5px 14px 8px', alignItems: 'center', gap: 6,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700,
-            color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>{game.home}</span>
-          {game.home_record && (
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', flexShrink: 0 }}>{game.home_record}</span>
-          )}
-          {isFinal && game.home_score != null && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0 }}>{game.home_score}</span>
-          )}
-        </div>
-        <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-          {fmtSpread(game.spread_home)}
-          <Movement current={game.spread_home} open={game.spread_home_open} />
-        </div>
-        <div />
+      {model.pick && (
         <div style={{
-          textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
-          color: parseFloat(game.home_ml) > 0 ? '#f59e0b' : 'var(--text-primary)', fontWeight: 600,
-        }}>
-          {fmtML(game.home_ml)}
-        </div>
-      </div>
-
-      {/* 1H lines */}
-      {(game.spread_h1_home != null || game.total_h1 != null) && (
-        <div style={{
-          borderTop: '1px solid var(--stroke-subtle)',
-          padding: '5px 14px', display: 'flex', gap: 14, justifyContent: 'center',
+          marginTop: 8, padding: '5px 8px', borderRadius: 6,
+          background: model.passes ? 'rgba(52,211,153,0.08)' : 'rgba(255,255,255,0.03)',
+          border: `1px solid ${model.passes ? 'rgba(52,211,153,0.2)' : 'var(--stroke-subtle)'}`,
+          display: 'flex', alignItems: 'center', gap: 6,
         }}>
           <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 700,
-            color: 'var(--text-tertiary)', opacity: 0.6, letterSpacing: '0.05em',
-          }}>1H</span>
-          {game.spread_h1_home != null && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-              {fmtSpread(game.spread_h1_home)}
+            fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 600,
+            color: model.passes ? 'var(--green-profit)' : 'var(--text-secondary)',
+          }}>{model.pick}</span>
+          {!model.passes && model.fail_reasons?.length > 0 && (
+            <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
+              {model.fail_reasons[0]}
             </span>
           )}
-          {game.total_h1 != null && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-              O/U {fmtTotal(game.total_h1)}
-            </span>
+          {model.passes && (
+            <span style={{
+              fontSize: '0.55rem', fontWeight: 700, color: 'var(--green-profit)',
+              marginLeft: 'auto', letterSpacing: '0.06em',
+            }}>QUALIFIES</span>
           )}
         </div>
       )}
@@ -160,7 +158,214 @@ function GameRow({ game }) {
   );
 }
 
-function TimeSlotGroup({ time, games }) {
+function ConsensusBar({ consensus, current }) {
+  if (consensus == null || current == null) return null;
+  const diff = current - consensus;
+  if (Math.abs(diff) < 0.3) return null;
+  const label = diff > 0
+    ? `Market ${Math.abs(diff).toFixed(1)} off consensus`
+    : `Market ${Math.abs(diff).toFixed(1)} off consensus`;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 5,
+      padding: '3px 8px', marginTop: 4,
+    }}>
+      <span style={{
+        fontFamily: 'var(--font-mono)', fontSize: '0.55rem',
+        color: 'var(--text-tertiary)', opacity: 0.7,
+      }}>Consensus {fmtSpread(consensus)}</span>
+      {Math.abs(diff) >= 1.0 && (
+        <span style={{
+          fontSize: '0.5rem', fontWeight: 700, padding: '1px 4px',
+          borderRadius: 2, background: 'rgba(251,191,36,0.1)',
+          color: '#f59e0b', letterSpacing: '0.05em',
+        }}>OFF</span>
+      )}
+    </div>
+  );
+}
+
+function GameRow({ game, expanded, onToggle }) {
+  const totalDisplay = fmtTotal(game.total);
+  const isFinal = game.status === 'final';
+  const isLive = game.status === 'live';
+  const showScores = isLive || isFinal;
+  const hasModel = !!game.model;
+
+  const awayWinning = showScores && game.away_score > game.home_score;
+  const homeWinning = showScores && game.home_score > game.away_score;
+
+  return (
+    <div style={{
+      background: 'var(--surface-1, #111827)',
+      border: `1px solid ${isLive ? 'rgba(239,68,68,0.2)' : expanded ? 'rgba(79,125,243,0.25)' : 'var(--stroke-subtle, #1e293b)'}`,
+      borderRadius: 10,
+      overflow: 'hidden',
+      transition: 'border-color 0.15s ease',
+    }}>
+      <div
+        onClick={onToggle}
+        style={{ cursor: hasModel ? 'pointer' : 'default' }}
+      >
+        {/* Column headers */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: showScores ? '1fr 48px 72px 56px 64px' : '1fr 72px 56px 64px',
+          padding: '6px 14px 2px', gap: 6,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            {isLive && <LiveBadge state={game.live_state} period={game.live_period} clock={game.live_clock} />}
+            {isFinal && <LiveBadge state="STATUS_FINAL" />}
+            {!isLive && !isFinal && <RLMBadge rlm={game.rlm} />}
+            {!isLive && !isFinal && game.snapshots?.length >= 2 && (
+              <Sparkline snapshots={game.snapshots} field="spread" />
+            )}
+          </div>
+          {showScores && (
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 700,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)', textAlign: 'center', opacity: 0.6,
+            }}>Score</span>
+          )}
+          {['Spread', 'Total', 'ML'].map(h => (
+            <span key={h} style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 700,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)', textAlign: 'center', opacity: 0.6,
+            }}>{h}</span>
+          ))}
+        </div>
+
+        {/* Away row */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: showScores ? '1fr 48px 72px 56px 64px' : '1fr 72px 56px 64px',
+          padding: '5px 14px', alignItems: 'center', gap: 6,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700,
+              color: awayWinning ? 'var(--text-primary)' : showScores ? 'var(--text-secondary)' : 'var(--text-primary)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{game.away}</span>
+            {game.away_record && !showScores && (
+              <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', flexShrink: 0 }}>{game.away_record}</span>
+            )}
+          </div>
+          {showScores && (
+            <div style={{
+              textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.9rem',
+              fontWeight: awayWinning ? 700 : 500,
+              color: awayWinning ? '#fff' : 'var(--text-secondary)',
+            }}>{game.away_score}</div>
+          )}
+          <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+            {fmtSpread(game.spread_away)}
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            {totalDisplay && (
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
+                color: 'var(--text-primary)', background: 'rgba(100,116,139,0.08)',
+                borderRadius: 4, padding: '2px 0',
+              }}>
+                {totalDisplay}
+                <Movement current={game.total} open={game.total_open} />
+              </div>
+            )}
+          </div>
+          <div style={{
+            textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
+            color: parseFloat(game.away_ml) > 0 ? '#f59e0b' : 'var(--text-secondary)',
+            fontWeight: parseFloat(game.away_ml) > 0 ? 600 : 400,
+          }}>
+            {fmtML(game.away_ml)}
+          </div>
+        </div>
+
+        <div style={{ height: 1, background: 'var(--stroke-subtle)', margin: '0 14px' }} />
+
+        {/* Home row */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: showScores ? '1fr 48px 72px 56px 64px' : '1fr 72px 56px 64px',
+          padding: '5px 14px 8px', alignItems: 'center', gap: 6,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700,
+              color: homeWinning ? 'var(--text-primary)' : showScores ? 'var(--text-secondary)' : 'var(--text-primary)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{game.home}</span>
+            {game.home_record && !showScores && (
+              <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', flexShrink: 0 }}>{game.home_record}</span>
+            )}
+          </div>
+          {showScores && (
+            <div style={{
+              textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.9rem',
+              fontWeight: homeWinning ? 700 : 500,
+              color: homeWinning ? '#fff' : 'var(--text-secondary)',
+            }}>{game.home_score}</div>
+          )}
+          <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+            {fmtSpread(game.spread_home)}
+            <Movement current={game.spread_home} open={game.spread_home_open} />
+          </div>
+          <div />
+          <div style={{
+            textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
+            color: parseFloat(game.home_ml) > 0 ? '#f59e0b' : 'var(--text-primary)', fontWeight: 600,
+          }}>
+            {fmtML(game.home_ml)}
+          </div>
+        </div>
+
+        {/* 1H lines */}
+        {(game.spread_h1_home != null || game.total_h1 != null) && (
+          <div style={{
+            borderTop: '1px solid var(--stroke-subtle)',
+            padding: '5px 14px', display: 'flex', gap: 14, justifyContent: 'center',
+          }}>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 700,
+              color: 'var(--text-tertiary)', opacity: 0.6, letterSpacing: '0.05em',
+            }}>1H</span>
+            {game.spread_h1_home != null && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                {fmtSpread(game.spread_h1_home)}
+              </span>
+            )}
+            {game.total_h1 != null && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                O/U {fmtTotal(game.total_h1)}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Consensus bar */}
+        <ConsensusBar consensus={game.consensus_spread} current={game.spread_home} />
+
+        {/* Expand hint */}
+        {hasModel && !expanded && (
+          <div style={{
+            padding: '4px 14px 6px', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', gap: 4,
+          }}>
+            <span style={{ fontSize: '0.55rem', color: 'rgba(79,125,243,0.5)' }}>Tap for model view</span>
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="rgba(79,125,243,0.4)" strokeWidth="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+        )}
+      </div>
+
+      {/* Expanded model analysis */}
+      {expanded && <ModelAnalysisPanel model={game.model} />}
+    </div>
+  );
+}
+
+function TimeSlotGroup({ time, games, expandedId, onToggle }) {
   return (
     <div style={{ marginBottom: 18 }}>
       <div style={{
@@ -177,16 +382,23 @@ function TimeSlotGroup({ time, games }) {
         </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {games.map(g => <GameRow key={g.id} game={g} />)}
+        {games.map(g => (
+          <GameRow
+            key={g.id}
+            game={g}
+            expanded={expandedId === g.id}
+            onToggle={() => onToggle(g.id)}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-function FilterTabs({ active, onChange }) {
-  const tabs = ['All', 'Upcoming', 'Final'];
+function FilterTabs({ active, onChange, hasLive }) {
+  const tabs = hasLive ? ['All', 'Live', 'Upcoming', 'Final'] : ['All', 'Upcoming', 'Final'];
   return (
-    <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+    <div style={{ display: 'flex', gap: 6 }}>
       {tabs.map(tab => {
         const isActive = active === tab;
         return (
@@ -204,29 +416,171 @@ function FilterTabs({ active, onChange }) {
   );
 }
 
+const SORT_OPTIONS = [
+  { key: 'time', label: 'Time' },
+  { key: 'spread', label: 'Spread' },
+  { key: 'total', label: 'Total' },
+  { key: 'edge', label: 'Edge' },
+];
+
+function SortPicker({ active, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: 4 }}>
+      {SORT_OPTIONS.map(opt => {
+        const isActive = active === opt.key;
+        return (
+          <button key={opt.key} onClick={() => onChange(opt.key)} style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 600,
+            padding: '4px 8px', borderRadius: 4, cursor: 'pointer',
+            border: 'none',
+            background: isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
+            color: isActive ? 'var(--text-primary)' : 'var(--text-tertiary)',
+            opacity: isActive ? 1 : 0.6,
+          }}>{opt.label}</button>
+        );
+      })}
+    </div>
+  );
+}
+
+function sortGames(games, sortKey) {
+  const sorted = [...games];
+  switch (sortKey) {
+    case 'spread':
+      return sorted.sort((a, b) => Math.abs(a.spread_home || 0) - Math.abs(b.spread_home || 0));
+    case 'total':
+      return sorted.sort((a, b) => (b.total || 0) - (a.total || 0));
+    case 'edge':
+      return sorted.sort((a, b) => (b.model?.edge || -99) - (a.model?.edge || -99));
+    default:
+      return sorted;
+  }
+}
+
+function normalizeTeam(name) {
+  if (!name) return '';
+  return name.toLowerCase().replace(/[^a-z]/g, '');
+}
+
+function LiveBadge({ state, period, clock }) {
+  if (state === 'STATUS_FINAL') {
+    return (
+      <span style={{
+        fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
+        padding: '1px 5px', borderRadius: 3,
+        background: 'rgba(100,116,139,0.15)', color: 'var(--text-tertiary)',
+      }}>FINAL</span>
+    );
+  }
+  if (state === 'STATUS_IN_PROGRESS') {
+    const qLabel = period <= 4 ? `Q${period}` : `OT${period - 4}`;
+    return (
+      <span style={{
+        fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
+        padding: '1px 5px', borderRadius: 3,
+        background: 'rgba(239,68,68,0.12)', color: '#ef4444',
+        display: 'inline-flex', alignItems: 'center', gap: 3,
+      }}>
+        <span style={{
+          width: 4, height: 4, borderRadius: '50%',
+          background: '#ef4444', animation: 'pulse 2s infinite',
+        }} />
+        {qLabel} {clock}
+      </span>
+    );
+  }
+  if (state === 'STATUS_HALFTIME') {
+    return (
+      <span style={{
+        fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
+        padding: '1px 5px', borderRadius: 3,
+        background: 'rgba(251,191,36,0.12)', color: '#f59e0b',
+      }}>HALF</span>
+    );
+  }
+  return null;
+}
+
 export default function MarketView({ onBack }) {
   const { sport } = useSport();
   const { data, loading } = useApi(sportQuery('/picks/market', sport));
   const [filter, setFilter] = useState('All');
+  const [sort, setSort] = useState('time');
+  const [expandedId, setExpandedId] = useState(null);
+  const [liveScores, setLiveScores] = useState({});
 
-  const games = data?.games || [];
+  const fetchLiveScores = useCallback(async () => {
+    try {
+      const resp = await fetch(`/api/picks/live-scores?sport=${sport}`);
+      const json = await resp.json();
+      if (json.scores) {
+        const map = {};
+        json.scores.forEach(s => {
+          const key = normalizeTeam(s.home);
+          map[key] = s;
+        });
+        setLiveScores(map);
+      }
+    } catch { /* silent */ }
+  }, [sport]);
+
+  useEffect(() => {
+    fetchLiveScores();
+    const interval = setInterval(fetchLiveScores, 30000);
+    return () => clearInterval(interval);
+  }, [fetchLiveScores]);
+
+  const rawGames = data?.games || [];
+
+  const games = useMemo(() => {
+    if (Object.keys(liveScores).length === 0) return rawGames;
+    return rawGames.map(g => {
+      const key = normalizeTeam(g.home);
+      const live = liveScores[key];
+      if (!live) return g;
+      const isLive = live.state === 'STATUS_IN_PROGRESS' || live.state === 'STATUS_HALFTIME';
+      const isFinal = live.state === 'STATUS_FINAL';
+      if (!isLive && !isFinal) return g;
+      return {
+        ...g,
+        home_score: live.home_score,
+        away_score: live.away_score,
+        status: isFinal ? 'final' : 'live',
+        live_clock: live.clock,
+        live_period: live.period,
+        live_state: live.state,
+      };
+    });
+  }, [rawGames, liveScores]);
+
+  const hasLive = games.some(g => g.status === 'live');
 
   const filtered = useMemo(() => {
     if (filter === 'All') return games;
+    if (filter === 'Live') return games.filter(g => g.status === 'live');
     if (filter === 'Upcoming') return games.filter(g => g.status === 'scheduled');
     if (filter === 'Final') return games.filter(g => g.status === 'final');
     return games;
   }, [games, filter]);
 
+  const sorted = useMemo(() => sortGames(filtered, sort), [filtered, sort]);
+
   const grouped = useMemo(() => {
+    if (sort !== 'time') return null;
     const map = new Map();
-    filtered.forEach(g => {
+    sorted.forEach(g => {
       const t = g.time || 'TBD';
       if (!map.has(t)) map.set(t, []);
       map.get(t).push(g);
     });
     return map;
-  }, [filtered]);
+  }, [sorted, sort]);
+
+  const handleToggle = (id) => {
+    setExpandedId(prev => prev === id ? null : id);
+  };
+
+  const hasModelData = games.some(g => g.model);
 
   return (
     <div style={{ minHeight: '100vh' }}>
@@ -260,25 +614,58 @@ export default function MarketView({ onBack }) {
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
             {games.length} game{games.length !== 1 ? 's' : ''}
           </span>
+          {hasModelData && (
+            <>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>&middot;</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'rgba(79,125,243,0.6)' }}>
+                Model analyzed
+              </span>
+            </>
+          )}
         </div>
       </div>
 
       {/* Body */}
       <div style={{ padding: '14px 12px 100px' }}>
-        {games.length > 0 && <FilterTabs active={filter} onChange={setFilter} />}
+        {games.length > 0 && (
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginBottom: 18, gap: 8,
+          }}>
+            <FilterTabs active={filter} onChange={setFilter} hasLive={hasLive} />
+            <SortPicker active={sort} onChange={setSort} />
+          </div>
+        )}
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
             Loading market data...
           </div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
             {games.length === 0 ? 'No games on today\'s slate.' : `No ${filter.toLowerCase()} games.`}
           </div>
-        ) : (
+        ) : grouped ? (
           Array.from(grouped.entries()).map(([time, gamesInSlot]) => (
-            <TimeSlotGroup key={time} time={time} games={gamesInSlot} />
+            <TimeSlotGroup
+              key={time}
+              time={time}
+              games={gamesInSlot}
+              expandedId={expandedId}
+              onToggle={handleToggle}
+            />
           ))
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {sorted.map(g => (
+              <GameRow
+                key={g.id}
+                game={g}
+                expanded={expandedId === g.id}
+                onToggle={() => handleToggle(g.id)}
+              />
+            ))}
+          </div>
         )}
 
         <p style={{
@@ -286,7 +673,7 @@ export default function MarketView({ onBack }) {
           textAlign: 'center', marginTop: 20, lineHeight: 1.5,
         }}>
           Lines from DraftKings, FanDuel, BetMGM, Caesars, PointsBet, BetRivers.
-          Best available shown.
+          Best available shown. {hasModelData ? 'Tap any game for model analysis.' : ''}
         </p>
       </div>
     </div>

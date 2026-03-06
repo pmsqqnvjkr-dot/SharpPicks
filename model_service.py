@@ -53,11 +53,16 @@ def _build_games_detail(predictions):
             'away': p.get('away_team', '?'),
             'home': p.get('home_team', '?'),
             'pick': p.get('pick', ''),
+            'pick_side': p.get('pick_side'),
             'line': round(pick_line, 1),
             'edge': round(p.get('adjusted_edge', 0), 1),
+            'raw_edge': round(p.get('raw_edge', 0), 1) if p.get('raw_edge') is not None else None,
             'cover_prob': round(p.get('cover_prob', 0.5), 3),
+            'predicted_margin': round(p['predicted_margin'], 1) if p.get('predicted_margin') is not None else None,
+            'rating': p.get('rating'),
             'passes': bool(p.get('passes_filter')),
             'reason': p.get('pass_reason', ''),
+            'fail_reasons': p.get('fail_reasons', []),
         })
     return json.dumps(details)
 
