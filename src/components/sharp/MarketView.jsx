@@ -618,6 +618,7 @@ export default function MarketView({ onBack }) {
   const { data: watchedData } = useApi('/picks/watched');
   const [filter, setFilter] = useState('All');
   const [sort, setSort] = useState('time');
+  const [autoSorted, setAutoSorted] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [liveScores, setLiveScores] = useState({});
   const [watchedIds, setWatchedIds] = useState(new Set());
@@ -625,6 +626,13 @@ export default function MarketView({ onBack }) {
   useEffect(() => {
     if (watchedData?.game_ids) setWatchedIds(new Set(watchedData.game_ids));
   }, [watchedData]);
+
+  useEffect(() => {
+    if (!autoSorted && !loading && rawGames.length > 0 && rawGames.some(g => g.model)) {
+      setSort('edge');
+      setAutoSorted(true);
+    }
+  }, [loading, rawGames, autoSorted]);
 
   const fetchLiveScores = useCallback(async () => {
     try {
