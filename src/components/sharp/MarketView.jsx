@@ -366,12 +366,23 @@ function GameRow({ game, expanded, onToggle, watching, onWatch }) {
         {/* Consensus bar */}
         <ConsensusBar consensus={game.consensus_spread} current={game.spread_home} />
 
-        {/* Expand hint */}
+        {/* Model edge + expand hint */}
         {hasModel && !expanded && (
           <div style={{
             padding: '4px 14px 6px', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', gap: 4,
+            justifyContent: 'center', gap: 8,
           }}>
+            {game.model.edge != null && (
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 700,
+                padding: '1px 7px', borderRadius: 4,
+                background: game.model.edge >= 5 ? 'rgba(52,211,153,0.1)' : game.model.edge >= 2 ? 'rgba(251,191,36,0.1)' : 'rgba(100,116,139,0.08)',
+                color: game.model.edge >= 5 ? 'var(--green-profit, #10b981)' : game.model.edge >= 2 ? '#f59e0b' : 'var(--text-tertiary)',
+                border: `1px solid ${game.model.edge >= 5 ? 'rgba(52,211,153,0.2)' : game.model.edge >= 2 ? 'rgba(251,191,36,0.2)' : 'var(--stroke-subtle)'}`,
+              }}>
+                {game.model.edge > 0 ? '+' : ''}{game.model.edge}% edge
+              </span>
+            )}
             <span style={{ fontSize: '0.55rem', color: 'rgba(79,125,243,0.5)' }}>Tap for model view</span>
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="rgba(79,125,243,0.4)" strokeWidth="2">
               <polyline points="6 9 12 15 18 9"/>
