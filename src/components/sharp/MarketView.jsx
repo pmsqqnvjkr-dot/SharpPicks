@@ -231,6 +231,32 @@ function ModelAnalysisPanel({ model }) {
           )}
         </div>
       )}
+
+      {/* Model insight signals */}
+      {model.signals?.length > 0 && (
+        <div style={{
+          marginTop: 10, padding: '8px 10px', borderRadius: 6,
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.04)',
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: 6, opacity: 0.7,
+          }}>Model Reasoning</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {model.signals.map((s, i) => (
+              <div key={i} style={{
+                fontSize: '0.62rem', color: 'var(--text-secondary)',
+                lineHeight: 1.45, display: 'flex', gap: 5,
+              }}>
+                <span style={{ color: 'rgba(79,125,243,0.5)', flexShrink: 0 }}>›</span>
+                <span>{s}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

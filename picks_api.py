@@ -667,6 +667,7 @@ def market_view():
                 'passes': ma.get('passes', False),
                 'reason': ma.get('reason', ''),
                 'fail_reasons': ma.get('fail_reasons', []),
+                'signals': ma.get('signals', []),
             }
 
         games.append(game_data)

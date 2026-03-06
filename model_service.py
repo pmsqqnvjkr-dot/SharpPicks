@@ -63,6 +63,7 @@ def _build_games_detail(predictions):
             'passes': bool(p.get('passes_filter')),
             'reason': p.get('pass_reason', ''),
             'fail_reasons': p.get('fail_reasons', []),
+            'signals': p.get('explanation', []),
         })
     return json.dumps(details)
 
