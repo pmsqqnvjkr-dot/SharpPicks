@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import PullToRefresh from '../shared/PullToRefresh';
@@ -309,7 +310,7 @@ function WatchButton({ watching, onWatch }) {
   );
 }
 
-function GameRow({ game, expanded, onToggle, watching, onWatch }) {
+function GameRow({ game, expanded, onToggle, watching, onWatch, isPro }) {
   const totalDisplay = fmtTotal(game.total);
   const isFinal = game.status === 'final';
   const isLive = game.status === 'live';
@@ -476,7 +477,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch }) {
             padding: '4px 14px 6px', display: 'flex', alignItems: 'center',
             justifyContent: 'center', gap: 8,
           }}>
-            {game.model.edge != null && (
+            {isPro && game.model.edge != null && (
               <span style={{
                 fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 700,
                 padding: '1px 7px', borderRadius: 4,
@@ -487,7 +488,9 @@ function GameRow({ game, expanded, onToggle, watching, onWatch }) {
                 {game.model.edge > 0 ? '+' : ''}{game.model.edge}% edge
               </span>
             )}
-            <span style={{ fontSize: '0.55rem', color: 'rgba(79,125,243,0.5)' }}>Tap for model view</span>
+            <span style={{ fontSize: '0.55rem', color: 'rgba(79,125,243,0.5)' }}>
+              {isPro ? 'Tap for model view' : 'Pro: model analysis'}
+            </span>
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="rgba(79,125,243,0.4)" strokeWidth="2">
               <polyline points="6 9 12 15 18 9"/>
             </svg>
@@ -495,13 +498,27 @@ function GameRow({ game, expanded, onToggle, watching, onWatch }) {
         )}
       </div>
 
-      {/* Expanded model analysis */}
-      {expanded && <ModelAnalysisPanel model={game.model} />}
+      {/* Expanded model analysis — Pro only */}
+      {expanded && isPro && <ModelAnalysisPanel model={game.model} />}
+      {expanded && !isPro && (
+        <div style={{
+          padding: '16px', textAlign: 'center',
+          borderTop: '1px solid var(--stroke-subtle)',
+        }}>
+          <div style={{
+            fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)',
+            marginBottom: '4px',
+          }}>Model analysis is a Pro feature</div>
+          <div style={{
+            fontSize: '0.65rem', color: 'var(--text-tertiary)',
+          }}>Upgrade for edge data, cover probability, and model reasoning</div>
+        </div>
+      )}
     </div>
   );
 }
 
-function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch }) {
+function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch, isPro }) {
   return (
     <div style={{ marginBottom: 18 }}>
       <div style={{
@@ -526,6 +543,7 @@ function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch 
             onToggle={() => onToggle(g.id)}
             watching={watchedIds?.has(g.id)}
             onWatch={() => onWatch(g)}
+            isPro={isPro}
           />
         ))}
       </div>
@@ -561,10 +579,11 @@ const SORT_OPTIONS = [
   { key: 'edge', label: 'Edge' },
 ];
 
-function SortPicker({ active, onChange }) {
+function SortPicker({ active, onChange, isPro }) {
+  const opts = isPro ? SORT_OPTIONS : SORT_OPTIONS.filter(o => o.key !== 'edge');
   return (
     <div style={{ display: 'flex', gap: 4 }}>
-      {SORT_OPTIONS.map(opt => {
+      {opts.map(opt => {
         const isActive = active === opt.key;
         return (
           <button key={opt.key} onClick={() => onChange(opt.key)} style={{
@@ -640,6 +659,8 @@ function LiveBadge({ state, period, clock }) {
 }
 
 export default function MarketView({ onBack }) {
+  const { user } = useAuth();
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const { sport } = useSport();
   const { data, loading, refetch: refetchMarket } = useApi(sportQuery('/picks/market', sport));
   const { data: watchedData, refetch: refetchWatched } = useApi('/picks/watched');
@@ -657,11 +678,11 @@ export default function MarketView({ onBack }) {
   }, [watchedData]);
 
   useEffect(() => {
-    if (!autoSorted && !loading && rawGames.length > 0 && rawGames.some(g => g.model)) {
+    if (isPro && !autoSorted && !loading && rawGames.length > 0 && rawGames.some(g => g.model)) {
       setSort('edge');
       setAutoSorted(true);
     }
-  }, [loading, rawGames, autoSorted]);
+  }, [isPro, loading, rawGames, autoSorted]);
 
   const fetchLiveScores = useCallback(async () => {
     try {
@@ -813,7 +834,7 @@ export default function MarketView({ onBack }) {
             marginBottom: 18, gap: 8,
           }}>
             <FilterTabs active={filter} onChange={setFilter} hasLive={hasLive} />
-            <SortPicker active={sort} onChange={setSort} />
+            <SortPicker active={sort} onChange={setSort} isPro={isPro} />
           </div>
         )}
 
@@ -872,6 +893,7 @@ export default function MarketView({ onBack }) {
               onToggle={handleToggle}
               watchedIds={watchedIds}
               onWatch={handleWatch}
+              isPro={isPro}
             />
           ))
         ) : (
@@ -884,6 +906,7 @@ export default function MarketView({ onBack }) {
                 onToggle={() => handleToggle(g.id)}
                 watching={watchedIds.has(g.id)}
                 onWatch={() => handleWatch(g)}
+                isPro={isPro}
               />
             ))}
           </div>
