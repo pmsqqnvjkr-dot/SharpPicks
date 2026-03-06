@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { useApi, apiPost } from '../../hooks/useApi';
+import { useApi } from '../../hooks/useApi';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
 import DailyInsightCard from './DailyInsightCard';
@@ -14,10 +14,11 @@ export default function TodayTab({ onNavigate }) {
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const { data: todayData, loading, error } = useApi('/picks/today', { pollInterval: 60000 });
   const { data: stats } = useApi('/public/stats', { pollInterval: 60000 });
-  const { data: lastResolved, refetch: refetchResolved } = useApi('/picks/last-resolved', { skip: !isPro });
+  const { data: lastResolved } = useApi('/picks/last-resolved', { skip: !isPro });
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
   const [resolutionPick, setResolutionPick] = useState(null);
+  const [dismissedResolutionId, setDismissedResolutionId] = useState(null);
 
   if (loading || authLoading) {
     return <LoadingState />;
@@ -26,9 +27,8 @@ export default function TodayTab({ onNavigate }) {
   const isRevoked = todayData?.type === 'pick' && todayData?.result === 'revoked';
   const isResolved = todayData?.type === 'pick' && todayData?.result && todayData.result !== 'pending' && todayData.result !== 'revoked';
 
-  const handleDismissResolution = async (pickId) => {
-    await apiPost('/picks/dismiss-resolution', { pick_id: pickId });
-    refetchResolved();
+  const handleDismissResolution = (pickId) => {
+    setDismissedResolutionId(pickId);
   };
 
   if (showResolution && resolutionPick) {
@@ -40,7 +40,7 @@ export default function TodayTab({ onNavigate }) {
       <Header user={user} onAuthClick={() => setShowAuth(true)} />
 
       <div style={{ padding: '0 20px' }}>
-        {lastResolved && lastResolved.id && !isResolved && (
+        {lastResolved && lastResolved.id && !isResolved && dismissedResolutionId !== lastResolved.id && (
           <ResolvedPickBanner
             pick={lastResolved}
             onViewDetails={() => { setResolutionPick(lastResolved); setShowResolution(true); }}

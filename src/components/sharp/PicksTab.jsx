@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { useApi, apiPost } from '../../hooks/useApi';
+import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
@@ -30,17 +30,17 @@ export default function PicksTab({ onNavigate }) {
   const { data: stats } = useApi(sportQuery('/public/stats', sport));
   const { data: historyData, loading: historyLoading } = useApi(sportQuery('/public/record', sport));
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
-  const { data: lastResolved, refetch: refetchResolved } = useApi('/picks/last-resolved', { skip: !isPro });
+  const { data: lastResolved } = useApi('/picks/last-resolved', { skip: !isPro });
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
   const [resolutionPick, setResolutionPick] = useState(null);
   const [showMarket, setShowMarket] = useState(false);
   const [filter, setFilter] = useState('all');
   const [showAllPicks, setShowAllPicks] = useState(false);
+  const [dismissedResolutionId, setDismissedResolutionId] = useState(null);
 
-  const handleDismissResolution = async (pickId) => {
-    await apiPost('/picks/dismiss-resolution', { pick_id: pickId });
-    if (refetchResolved) refetchResolved();
+  const handleDismissResolution = (pickId) => {
+    setDismissedResolutionId(pickId);
   };
 
   if (loading || authLoading) {
@@ -154,7 +154,7 @@ export default function PicksTab({ onNavigate }) {
           ) : null;
         })()}
 
-        {lastResolved && lastResolved.id && !isResolved && (
+        {lastResolved && lastResolved.id && !isResolved && dismissedResolutionId !== lastResolved.id && (
           <ResolvedPickBanner
             pick={lastResolved}
             onViewDetails={() => { setResolutionPick(lastResolved); setShowResolution(true); }}
