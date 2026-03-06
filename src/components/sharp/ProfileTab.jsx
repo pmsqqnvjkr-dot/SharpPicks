@@ -466,7 +466,7 @@ function LegalSection() {
           fontSize: '11px', color: 'var(--text-tertiary)', margin: 0,
           lineHeight: '1.6',
         }}>
-          Sharp Picks provides sports betting analytics and information for educational and entertainment purposes only. Sharp Picks is not a sportsbook, does not accept wagers or real-money deposits, and does not pay out prizes. Past performance does not guarantee future results. Please gamble responsibly. If you or someone you know has a gambling problem, call 1-800-GAMBLER.
+          SharpPicks provides sports betting analytics and information for educational and entertainment purposes only. SharpPicks is not a sportsbook, does not accept wagers or real-money deposits, and does not pay out prizes. Past performance does not guarantee future results. Please gamble responsibly. If you or someone you know has a gambling problem, call 1-800-GAMBLER.
         </p>
         <p style={{
           fontSize: '10px', color: 'var(--text-tertiary)', margin: '8px 0 0', opacity: 0.6,

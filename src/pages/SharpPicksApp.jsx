@@ -27,7 +27,7 @@ function WelcomeScreen({ onContinue }) {
     }}>
       <img
         src="/logo.png"
-        alt="Sharp Picks"
+        alt="SharpPicks"
         style={{
           width: '160px', height: '160px', borderRadius: '28px',
           marginBottom: '32px',
@@ -36,7 +36,7 @@ function WelcomeScreen({ onContinue }) {
       <h1 style={{
         fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 600,
         color: 'var(--text-primary)', marginBottom: '12px',
-      }}>Welcome to Sharp Picks Pro</h1>
+      }}>Welcome to SharpPicks Pro</h1>
       <p style={{
         fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.6',
         maxWidth: '340px', marginBottom: '8px',
@@ -93,7 +93,7 @@ function AgeGate({ onConfirm }) {
         fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.6',
         maxWidth: '340px', marginBottom: '8px',
       }}>
-        Sharp Picks provides sports betting analytics for informational and entertainment purposes only.
+        SharpPicks provides sports betting analytics for informational and entertainment purposes only.
       </p>
       <p style={{
         fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5',

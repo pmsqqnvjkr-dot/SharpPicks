@@ -547,7 +547,7 @@ That is the wrong question.
 
 The right question is: Is it behaving the way it is supposed to?
 
-Sharp Picks is built on probability, not streaks. So here is how to read the model dashboard the right way.
+SharpPicks is built on probability, not streaks. So here is how to read the model dashboard the right way.
 
 ---
 
@@ -778,7 +778,7 @@ CLV cuts through the noise. Consistently beating the closing line means you're i
 
 ## How We Use It
 
-Every pick Sharp Picks publishes is logged against its closing line. It's one of the primary ways we validate that the model is doing what it's supposed to do — finding real edges, not manufactured ones. A model that beats closing lines at scale is a model that works. Everything else is storytelling.
+Every pick SharpPicks publishes is logged against its closing line. It's one of the primary ways we validate that the model is doing what it's supposed to do — finding real edges, not manufactured ones. A model that beats closing lines at scale is a model that works. Everything else is storytelling.
 
 The scoreboard matters. But CLV is how we know whether we deserve the score.
 
@@ -913,7 +913,7 @@ CLV cuts through the noise. Consistently beating the closing line means you're i
 
 ## How We Use It
 
-Every pick Sharp Picks publishes is logged against its closing line. It's one of the primary ways we validate that the model is doing what it's supposed to do — finding real edges, not manufactured ones. A model that beats closing lines at scale is a model that works. Everything else is storytelling.
+Every pick SharpPicks publishes is logged against its closing line. It's one of the primary ways we validate that the model is doing what it's supposed to do — finding real edges, not manufactured ones. A model that beats closing lines at scale is a model that works. Everything else is storytelling.
 
 The scoreboard matters. But CLV is how we know whether we deserve the score.
 
@@ -1034,7 +1034,7 @@ The tout model rewards the appearance of effort. The sharp model rewards the abs
 
 ## What Our Threshold Actually Does
 
-Sharp Picks publishes at most one pick per day. Some days, zero. The ensemble model evaluates every game on the board. If nothing clears a 3.5% expected edge, the system stays silent.
+SharpPicks publishes at most one pick per day. Some days, zero. The ensemble model evaluates every game on the board. If nothing clears a 3.5% expected edge, the system stays silent.
 
 That silence isn\u2019t a failure. It\u2019s the system working exactly as designed. It means the market is priced efficiently that night, and there\u2019s nothing worth risking capital on.
 
@@ -1042,10 +1042,10 @@ Over a long enough sample, the nights you sit out contribute just as much to you
 
 > **WHY THIS MATTERS**
 >
-> This principle defines the product. Sharp Picks will never pad your card to justify a subscription. If the edge isn\u2019t there, you\u2019ll hear nothing. That\u2019s the point.
+> This principle defines the product. SharpPicks will never pad your card to justify a subscription. If the edge isn\u2019t there, you\u2019ll hear nothing. That\u2019s the point.
 
 *Evan Cole*
-Founder, Sharp Picks""",
+Founder, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 8), reading_time_minutes=3,
                 ))
             if 'what-56-features-actually-means' not in existing_slugs:
@@ -1053,8 +1053,8 @@ Founder, Sharp Picks""",
                     title="What 56 Features Actually Means",
                     slug="what-56-features-actually-means",
                     category="how_it_works",
-                    excerpt="People hear \u201cmachine learning model\u201d and picture a black box. Data goes in, picks come out, nobody knows why. That\u2019s not how Sharp Picks works.",
-                    content="""People hear \u201cmachine learning model\u201d and picture a black box. Data goes in, picks come out, nobody knows why. That\u2019s not how Sharp Picks works. And it\u2019s not how any model you trust with real money should work.
+                    excerpt="People hear \u201cmachine learning model\u201d and picture a black box. Data goes in, picks come out, nobody knows why. That\u2019s not how SharpPicks works.",
+                    content="""People hear \u201cmachine learning model\u201d and picture a black box. Data goes in, picks come out, nobody knows why. That\u2019s not how SharpPicks works. And it\u2019s not how any model you trust with real money should work.
 
 ---
 
@@ -1070,7 +1070,7 @@ We don\u2019t include features just because they feel important. \u201cStar play
 
 ## The Ensemble
 
-A single model has blind spots. A gradient boosting model might overfit to certain game profiles. A random forest might smooth over edges that matter. That\u2019s why Sharp Picks doesn\u2019t rely on one model.
+A single model has blind spots. A gradient boosting model might overfit to certain game profiles. A random forest might smooth over edges that matter. That\u2019s why SharpPicks doesn\u2019t rely on one model.
 
 The ensemble combines four algorithms \u2014 Gradient Boosting, Random Forest, XGBoost, and AdaBoost \u2014 each trained on the same feature set but learning different patterns in the data. Their outputs are calibrated and blended with a 30/70 model-to-market weight.
 
@@ -1093,7 +1093,7 @@ Calibrated probabilities are what allow us to calculate true expected value. And
 > Transparency isn\u2019t a marketing angle. It\u2019s how you evaluate whether a model deserves your trust. If a service can\u2019t explain what drives its picks, that\u2019s not sophistication \u2014 it\u2019s a red flag.
 
 *Evan Cole*
-Founder, Sharp Picks""",
+Founder, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 12), reading_time_minutes=3,
                 ))
             if 'you-will-lose-five-in-a-row' not in existing_slugs:
@@ -1142,10 +1142,10 @@ This is easy to say and brutally hard to do. But it\u2019s the only way compound
 
 > **WHY THIS MATTERS**
 >
-> Sharp Picks was built to remove you from the decision loop during the moments when human judgment is at its worst. The streak is temporary. The process is permanent.
+> SharpPicks was built to remove you from the decision loop during the moments when human judgment is at its worst. The streak is temporary. The process is permanent.
 
 *Evan Cole*
-Founder, Sharp Picks""",
+Founder, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 17), reading_time_minutes=3,
                 ))
             if 'the-line-moved-now-what' not in existing_slugs:
@@ -1180,7 +1180,7 @@ This is why timing matters. Not in a \u201cgut feel\u201d way, but in a structur
 
 ## Why We Re-evaluate Before Every Game
 
-Sharp Picks checks the current line against the model\u2019s edge calculation before every tip-off. If the line has moved enough to push the expected edge below our threshold, the pick gets pulled.
+SharpPicks checks the current line against the model\u2019s edge calculation before every tip-off. If the line has moved enough to push the expected edge below our threshold, the pick gets pulled.
 
 This feels counterintuitive. You fired a pick six hours ago \u2014 how can you un-fire it? But the alternative is worse: recommending a bet where the edge no longer exists just because it existed earlier in the day.
 
@@ -1190,16 +1190,16 @@ A pick published at noon isn\u2019t the same pick at 7 PM if the spread moved tw
 
 ## What This Means for You
 
-When you see a Sharp Picks notification, act on it promptly. Not recklessly \u2014 check your book, confirm the line is still in range. But understand that edges are perishable. The market is efficient and getting more efficient every season.
+When you see a SharpPicks notification, act on it promptly. Not recklessly \u2014 check your book, confirm the line is still in range. But understand that edges are perishable. The market is efficient and getting more efficient every season.
 
 The window between when an edge appears and when it closes is shrinking. The model finds those windows. Your job is to be ready when they open.
 
 > **WHY THIS MATTERS**
 >
-> Sharp Picks doesn\u2019t just tell you who to bet. It tells you when the bet is worth making \u2014 and when it\u2019s not, even if the pick hasn\u2019t changed. The line is the bet.
+> SharpPicks doesn\u2019t just tell you who to bet. It tells you when the bet is worth making \u2014 and when it\u2019s not, even if the pick hasn\u2019t changed. The line is the bet.
 
 *Evan Cole*
-Founder, Sharp Picks""",
+Founder, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 22), reading_time_minutes=3,
                 ))
             if incremental_insights:
@@ -3074,7 +3074,7 @@ def start_trial():
             'is_premium': True,
             'subscription_status': 'trial',
             'trial_ends': user.trial_ends.isoformat(),
-            'message': 'Welcome! Your account is active. Explore Sharp Picks Pro.'
+            'message': 'Welcome! Your account is active. Explore SharpPicks Pro.'
         }
     })
 
@@ -4622,7 +4622,7 @@ def admin_users():
 def privacy_policy():
     html = """<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Privacy Policy — Sharp Picks</title>
+<title>Privacy Policy — SharpPicks</title>
 <style>
 body{margin:0;padding:40px 20px;background:#0A0D14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;max-width:680px;margin:0 auto}
 h1{font-size:24px;margin-bottom:8px;color:#fff}
@@ -4642,7 +4642,7 @@ a{color:#4f86f7}
 
 <h2>2. How We Use Your Information</h2>
 <ul>
-<li>Provide and maintain the Sharp Picks service</li>
+<li>Provide and maintain the SharpPicks service</li>
 <li>Send push notifications for picks, results, and alerts (with your consent)</li>
 <li>Process subscription payments via Stripe</li>
 <li>Analyze usage patterns to improve features</li>
@@ -4675,7 +4675,7 @@ a{color:#4f86f7}
 <p>EU/EEA residents (GDPR): You may exercise your rights under GDPR by contacting us.</p>
 
 <h2>7. Children's Privacy</h2>
-<p>Sharp Picks is intended for users 21 years of age and older. We do not knowingly collect information from children under 21.</p>
+<p>SharpPicks is intended for users 21 years of age and older. We do not knowingly collect information from children under 21.</p>
 
 <h2>8. Security</h2>
 <p>We use HTTPS encryption, hashed passwords, and secure session management to protect your data. No method of transmission over the Internet is 100% secure.</p>
@@ -4693,7 +4693,7 @@ a{color:#4f86f7}
 def terms_of_service():
     html = """<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Terms of Service — Sharp Picks</title>
+<title>Terms of Service — SharpPicks</title>
 <style>
 body{margin:0;padding:40px 20px;background:#0A0D14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;max-width:680px;margin:0 auto}
 h1{font-size:24px;margin-bottom:8px;color:#fff}
@@ -4706,13 +4706,13 @@ a{color:#4f86f7}
 <p class="updated">Last updated: March 2, 2026</p>
 
 <h2>1. Acceptance</h2>
-<p>By using Sharp Picks, you agree to these Terms of Service. If you do not agree, do not use the app.</p>
+<p>By using SharpPicks, you agree to these Terms of Service. If you do not agree, do not use the app.</p>
 
 <h2>2. Eligibility</h2>
-<p>You must be at least 21 years old to use Sharp Picks. By using the app, you represent that you meet this age requirement and that sports betting is legal in your jurisdiction.</p>
+<p>You must be at least 21 years old to use SharpPicks. By using the app, you represent that you meet this age requirement and that sports betting is legal in your jurisdiction.</p>
 
 <h2>3. Nature of the Service</h2>
-<p><strong>Sharp Picks is NOT a sportsbook.</strong> We do not accept wagers, handle deposits, or pay out prizes. Sharp Picks provides sports betting analytics, model-generated pick recommendations, and informational content for educational and entertainment purposes only.</p>
+<p><strong>SharpPicks is NOT a sportsbook.</strong> We do not accept wagers, handle deposits, or pay out prizes. SharpPicks provides sports betting analytics, model-generated pick recommendations, and informational content for educational and entertainment purposes only.</p>
 
 <h2>4. No Guarantee of Results</h2>
 <p>Past performance does not guarantee future results. Sports betting involves risk. Model predictions are probabilistic estimates, not certainties. You are solely responsible for any betting decisions you make.</p>
@@ -4740,13 +4740,13 @@ a{color:#4f86f7}
 </ul>
 
 <h2>8. Intellectual Property</h2>
-<p>All content, including model outputs, journal articles, and analytics, is the property of Sharp Picks. You may not reproduce or distribute this content without permission.</p>
+<p>All content, including model outputs, journal articles, and analytics, is the property of SharpPicks. You may not reproduce or distribute this content without permission.</p>
 
 <h2>9. Responsible Gambling</h2>
-<p>Sharp Picks encourages responsible gambling. Never bet more than you can afford to lose. If you or someone you know has a gambling problem, please call 1-800-GAMBLER or visit <a href="https://www.ncpgambling.org">ncpgambling.org</a>.</p>
+<p>SharpPicks encourages responsible gambling. Never bet more than you can afford to lose. If you or someone you know has a gambling problem, please call 1-800-GAMBLER or visit <a href="https://www.ncpgambling.org">ncpgambling.org</a>.</p>
 
 <h2>10. Limitation of Liability</h2>
-<p>Sharp Picks is provided "as is" without warranties of any kind. We are not liable for any losses resulting from the use of our service, including but not limited to financial losses from betting decisions.</p>
+<p>SharpPicks is provided "as is" without warranties of any kind. We are not liable for any losses resulting from the use of our service, including but not limited to financial losses from betting decisions.</p>
 
 <h2>11. Changes</h2>
 <p>We reserve the right to modify these terms. Continued use after changes constitutes acceptance.</p>
@@ -4761,7 +4761,7 @@ a{color:#4f86f7}
 def disclaimer_page():
     html = """<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Disclaimer — Sharp Picks</title>
+<title>Disclaimer — SharpPicks</title>
 <style>
 body{margin:0;padding:40px 20px;background:#0A0D14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;max-width:680px;margin:0 auto}
 h1{font-size:24px;margin-bottom:8px;color:#fff}
@@ -4775,23 +4775,23 @@ a{color:#4f86f7}
 <p class="updated">Last updated: March 2, 2026</p>
 
 <div class="box">
-<p style="color:#e2e8f0;font-weight:600;margin-top:0">Sharp Picks provides sports betting analytics and information for educational and entertainment purposes only.</p>
-<p>Sharp Picks is not a sportsbook, does not accept wagers or real-money deposits, and does not pay out prizes.</p>
+<p style="color:#e2e8f0;font-weight:600;margin-top:0">SharpPicks provides sports betting analytics and information for educational and entertainment purposes only.</p>
+<p>SharpPicks is not a sportsbook, does not accept wagers or real-money deposits, and does not pay out prizes.</p>
 <p>Past performance does not guarantee future results. All model predictions are probabilistic estimates and should not be considered financial advice.</p>
 <p style="margin-bottom:0">Please gamble responsibly. If you or someone you know has a gambling problem, call <strong>1-800-GAMBLER</strong> or visit <a href="https://www.ncpgambling.org">ncpgambling.org</a>.</p>
 </div>
 
 <h2>About the Model</h2>
-<p>Sharp Picks uses an ensemble machine learning model to analyze NBA games. The model produces probabilistic estimates of game outcomes. These estimates are based on historical data and statistical patterns. They are not guarantees.</p>
+<p>SharpPicks uses an ensemble machine learning model to analyze NBA games. The model produces probabilistic estimates of game outcomes. These estimates are based on historical data and statistical patterns. They are not guarantees.</p>
 
 <h2>Your Responsibility</h2>
-<p>Any decisions to place bets based on information provided by Sharp Picks are made at your own risk and discretion. You are solely responsible for your betting activity and any associated financial outcomes.</p>
+<p>Any decisions to place bets based on information provided by SharpPicks are made at your own risk and discretion. You are solely responsible for your betting activity and any associated financial outcomes.</p>
 
 <h2>Age Requirement</h2>
-<p>You must be at least 21 years old to use Sharp Picks. By using the app, you confirm that you meet this requirement and that sports betting is legal in your jurisdiction.</p>
+<p>You must be at least 21 years old to use SharpPicks. By using the app, you confirm that you meet this requirement and that sports betting is legal in your jurisdiction.</p>
 
 <h2>No Professional Advice</h2>
-<p>Nothing in Sharp Picks constitutes professional financial, investment, or gambling advice. Consult a qualified professional before making financial decisions.</p>
+<p>Nothing in SharpPicks constitutes professional financial, investment, or gambling advice. Consult a qualified professional before making financial decisions.</p>
 
 <h2>Contact</h2>
 <p>Questions? Email <a href="mailto:support@sharppicks.ai">support@sharppicks.ai</a></p>
@@ -4883,6 +4883,6 @@ elif _db_url and _on_replit:
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print(f"Starting Sharp Picks API on http://0.0.0.0:{port}")
+    print(f"Starting SharpPicks API on http://0.0.0.0:{port}")
     start_background_services_later()
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
