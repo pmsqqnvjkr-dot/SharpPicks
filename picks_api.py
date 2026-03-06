@@ -658,10 +658,14 @@ def market_view():
             game_data['model'] = {
                 'predicted_margin': ma.get('predicted_margin'),
                 'cover_prob': ma.get('cover_prob'),
-                'edge': ma.get('adjusted_edge'),
+                'edge': ma.get('edge', ma.get('adjusted_edge')),
+                'raw_edge': ma.get('raw_edge'),
                 'rating': ma.get('rating'),
                 'pick_side': ma.get('pick_side'),
                 'pick': ma.get('pick'),
+                'line': ma.get('line'),
+                'passes': ma.get('passes', False),
+                'reason': ma.get('reason', ''),
                 'fail_reasons': ma.get('fail_reasons', []),
             }
 

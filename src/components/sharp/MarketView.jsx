@@ -69,19 +69,45 @@ function RLMBadge({ rlm }) {
   );
 }
 
+function EdgeBar({ value, max = 15 }) {
+  if (value == null) return null;
+  const pct = Math.min(Math.abs(value) / max * 100, 100);
+  const color = value >= 5 ? 'var(--green-profit, #10b981)' : value >= 2 ? '#f59e0b' : 'var(--text-tertiary)';
+  return (
+    <div style={{ width: '100%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)', marginTop: 4 }}>
+      <div style={{ width: `${pct}%`, height: '100%', borderRadius: 2, background: color, transition: 'width 0.3s ease' }} />
+    </div>
+  );
+}
+
+function StatCell({ label, value, color, sub }) {
+  return (
+    <div>
+      <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', marginBottom: 2, letterSpacing: '0.03em' }}>{label}</div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 600,
+        color: color || 'var(--text-primary)',
+      }}>{value}</div>
+      {sub && <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)', marginTop: 1, opacity: 0.7 }}>{sub}</div>}
+    </div>
+  );
+}
+
 function ModelAnalysisPanel({ model }) {
   if (!model) return null;
-  const edgeColor = model.edge >= 5 ? 'var(--green-profit)' : model.edge >= 2 ? '#f59e0b' : 'var(--text-tertiary)';
+  const edgeColor = model.edge >= 5 ? 'var(--green-profit, #10b981)' : model.edge >= 2 ? '#f59e0b' : 'var(--text-tertiary)';
   const probPct = model.cover_prob != null ? (model.cover_prob * 100).toFixed(1) : null;
+  const impliedFromLine = model.line != null ? (model.line <= 0 ? 52.4 : 47.6) : null;
 
   return (
     <div style={{
       borderTop: '1px solid var(--stroke-subtle)',
-      padding: '10px 14px 12px',
+      padding: '10px 14px 14px',
       background: 'rgba(79,125,243,0.03)',
     }}>
+      {/* Header */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
+        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
       }}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(79,125,243,0.6)" strokeWidth="2">
           <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
@@ -93,64 +119,115 @@ function ModelAnalysisPanel({ model }) {
         }}>Model Analysis</span>
         {model.rating && (
           <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 600,
-            color: model.passes ? 'var(--green-profit)' : 'var(--text-tertiary)',
+            fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 700,
+            padding: '1px 6px', borderRadius: 3,
+            background: model.passes ? 'rgba(52,211,153,0.1)' : 'rgba(100,116,139,0.08)',
+            color: model.passes ? 'var(--green-profit, #10b981)' : 'var(--text-tertiary)',
+            border: `1px solid ${model.passes ? 'rgba(52,211,153,0.2)' : 'var(--stroke-subtle)'}`,
             marginLeft: 'auto',
           }}>{model.rating}</span>
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-        {model.predicted_margin != null && (
+      {/* Primary stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+        {model.edge != null && (
           <div>
-            <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', marginBottom: 2 }}>Proj. Margin</div>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 600,
-              color: 'var(--text-primary)',
-            }}>{model.predicted_margin > 0 ? '+' : ''}{model.predicted_margin}</div>
+            <StatCell label="Adj. Edge" value={`${model.edge > 0 ? '+' : ''}${model.edge}%`} color={edgeColor} />
+            <EdgeBar value={model.edge} />
           </div>
         )}
         {probPct && (
-          <div>
-            <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', marginBottom: 2 }}>Cover Prob</div>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 600,
-              color: 'var(--text-primary)',
-            }}>{probPct}%</div>
-          </div>
+          <StatCell
+            label="Cover Prob"
+            value={`${probPct}%`}
+            sub={impliedFromLine ? `vs ${impliedFromLine.toFixed(1)}% implied` : null}
+          />
         )}
-        {model.edge != null && (
-          <div>
-            <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', marginBottom: 2 }}>Edge</div>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 600,
-              color: edgeColor,
-            }}>{model.edge > 0 ? '+' : ''}{model.edge}%</div>
-          </div>
+        {model.predicted_margin != null && (
+          <StatCell
+            label="Proj. Margin"
+            value={`${model.predicted_margin > 0 ? '+' : ''}${model.predicted_margin}`}
+            color={model.predicted_margin > 0 ? 'var(--green-profit, #10b981)' : model.predicted_margin < 0 ? 'var(--red-loss, #ef4444)' : 'var(--text-primary)'}
+          />
         )}
       </div>
 
+      {/* Secondary stats row */}
+      {(model.raw_edge != null || model.line != null) && (
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10,
+          marginBottom: 10, paddingTop: 8,
+          borderTop: '1px solid rgba(255,255,255,0.04)',
+        }}>
+          {model.raw_edge != null && (
+            <StatCell
+              label="Raw Edge"
+              value={`${model.raw_edge > 0 ? '+' : ''}${model.raw_edge}%`}
+              sub={model.edge != null && model.raw_edge !== model.edge ? `${(model.edge - model.raw_edge) > 0 ? '+' : ''}${(model.edge - model.raw_edge).toFixed(1)} adj` : null}
+            />
+          )}
+          {model.line != null && (
+            <StatCell label="Pick Line" value={fmtSpread(model.line)} />
+          )}
+          {probPct && impliedFromLine && (
+            <StatCell
+              label="Prob. Edge"
+              value={`+${(parseFloat(probPct) - impliedFromLine).toFixed(1)}pp`}
+              color={parseFloat(probPct) > impliedFromLine ? 'var(--green-profit, #10b981)' : 'var(--text-tertiary)'}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Pick recommendation */}
       {model.pick && (
         <div style={{
-          marginTop: 8, padding: '5px 8px', borderRadius: 6,
-          background: model.passes ? 'rgba(52,211,153,0.08)' : 'rgba(255,255,255,0.03)',
+          padding: '7px 10px', borderRadius: 6,
+          background: model.passes ? 'rgba(52,211,153,0.06)' : 'rgba(255,255,255,0.02)',
           border: `1px solid ${model.passes ? 'rgba(52,211,153,0.2)' : 'var(--stroke-subtle)'}`,
-          display: 'flex', alignItems: 'center', gap: 6,
         }}>
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 600,
-            color: model.passes ? 'var(--green-profit)' : 'var(--text-secondary)',
-          }}>{model.pick}</span>
-          {!model.passes && model.fail_reasons?.length > 0 && (
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
-              {model.fail_reasons[0]}
-            </span>
-          )}
-          {model.passes && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{
-              fontSize: '0.55rem', fontWeight: 700, color: 'var(--green-profit)',
-              marginLeft: 'auto', letterSpacing: '0.06em',
-            }}>QUALIFIES</span>
+              fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 700,
+              color: model.passes ? 'var(--green-profit, #10b981)' : 'var(--text-secondary)',
+            }}>{model.pick}</span>
+            {model.passes && (
+              <span style={{
+                fontSize: '0.55rem', fontWeight: 700, color: 'var(--green-profit, #10b981)',
+                marginLeft: 'auto', letterSpacing: '0.06em',
+                display: 'flex', alignItems: 'center', gap: 3,
+              }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                QUALIFIES
+              </span>
+            )}
+            {!model.passes && (
+              <span style={{
+                fontSize: '0.55rem', fontWeight: 600, color: 'var(--text-tertiary)',
+                marginLeft: 'auto', letterSpacing: '0.04em',
+              }}>NO ACTION</span>
+            )}
+          </div>
+          {!model.passes && model.fail_reasons?.length > 0 && (
+            <div style={{ marginTop: 5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {model.fail_reasons.map((r, i) => (
+                <div key={i} style={{
+                  fontSize: '0.58rem', color: 'var(--text-tertiary)', opacity: 0.8,
+                  display: 'flex', alignItems: 'center', gap: 4,
+                }}>
+                  <span style={{ color: 'var(--red-loss, #ef4444)', fontSize: '0.5rem' }}>✕</span>
+                  {r}
+                </div>
+              ))}
+            </div>
+          )}
+          {!model.passes && model.reason && !model.fail_reasons?.length && (
+            <div style={{ fontSize: '0.58rem', color: 'var(--text-tertiary)', marginTop: 4, opacity: 0.8 }}>
+              {model.reason}
+            </div>
           )}
         </div>
       )}
