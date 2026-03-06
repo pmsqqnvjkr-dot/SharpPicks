@@ -311,6 +311,9 @@ def seed_database():
                 db.session.execute(db.text("ALTER TABLE picks ADD COLUMN IF NOT EXISTS model_only_cover_prob FLOAT"))
                 db.session.execute(db.text("ALTER TABLE picks ADD COLUMN IF NOT EXISTS model_only_edge FLOAT"))
                 db.session.execute(db.text("ALTER TABLE model_runs ADD COLUMN IF NOT EXISTS games_detail TEXT"))
+                db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS related_pick_ids JSONB DEFAULT '[]'"))
+                db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS date_range_start VARCHAR"))
+                db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS date_range_end VARCHAR"))
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
