@@ -623,6 +623,8 @@ export default function MarketView({ onBack }) {
   const [liveScores, setLiveScores] = useState({});
   const [watchedIds, setWatchedIds] = useState(new Set());
 
+  const rawGames = data?.games || [];
+
   useEffect(() => {
     if (watchedData?.game_ids) setWatchedIds(new Set(watchedData.game_ids));
   }, [watchedData]);
@@ -654,8 +656,6 @@ export default function MarketView({ onBack }) {
     const interval = setInterval(fetchLiveScores, 30000);
     return () => clearInterval(interval);
   }, [fetchLiveScores]);
-
-  const rawGames = data?.games || [];
 
   const games = useMemo(() => {
     if (Object.keys(liveScores).length === 0) return rawGames;
