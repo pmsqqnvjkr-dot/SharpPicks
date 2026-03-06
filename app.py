@@ -258,6 +258,9 @@ def get_current_user_obj():
     return verify_auth_token()
 
 def serialize_user(user):
+    is_new = False
+    if user.created_at:
+        is_new = (datetime.now() - user.created_at).days <= 7
     return {
         'id': user.id,
         'email': user.email,
@@ -273,6 +276,7 @@ def serialize_user(user):
         'unit_size': user.unit_size,
         'trial_end_date': user.trial_end_date.isoformat() if user.trial_end_date else None,
         'email_verified': user.email_verified,
+        'is_new': is_new,
     }
 
 @app.before_request
@@ -1870,6 +1874,12 @@ def check_expiring_trials():
                     user.trial_warning_sent = True
                 except Exception as e:
                     logging.error(f"Trial expiring email failed for {user.email}: {e}")
+                try:
+                    from notification_service import send_trial_expiring_notification
+                    days_left = max(1, (user.trial_end_date - datetime.now()).days)
+                    send_trial_expiring_notification(user, days_left)
+                except Exception as e:
+                    logging.error(f"Trial expiring push failed for {user.email}: {e}")
             db.session.commit()
             if expiring:
                 logging.info(f"Sent {len(expiring)} trial expiring warnings")
@@ -3511,14 +3521,26 @@ def delete_bet(bet_id):
     
     return jsonify({'success': True})
 
+NOTIFICATION_PREF_DEFAULTS = {
+    'pick_alert': True,
+    'no_action': True,
+    'outcome': True,
+    'weekly_summary': True,
+    'line_movement': True,
+    'journal_updates': True,
+    'quiet_hours_enabled': False,
+    'quiet_hours_start': '23:00',
+    'quiet_hours_end': '08:00',
+}
+
+
 @app.route('/api/user/notifications', methods=['GET'])
 def get_notification_prefs():
     user = get_current_user_obj()
     if not user:
         return jsonify({'error': 'Not authenticated'}), 401
-    return jsonify({'prefs': user.notification_prefs or {
-        'pick_alert': True, 'no_action': True, 'outcome': True, 'weekly_summary': True
-    }})
+    merged = {**NOTIFICATION_PREF_DEFAULTS, **(user.notification_prefs or {})}
+    return jsonify({'prefs': merged})
 
 @app.route('/api/user/notifications', methods=['POST'])
 def update_notification_prefs():
@@ -3798,12 +3820,45 @@ def send_push_notification(user_id, title, body, data=None):
     return sent
 
 
-def send_push_to_all(title, body, data=None, premium_only=False):
+def send_push_to_all(title, body, data=None, premium_only=False, notification_type=None):
     users = User.query.all()
     if premium_only:
         users = [u for u in users if u.is_premium or u.subscription_status in ('active', 'trial')]
+
+    PREF_KEY_MAP = {
+        'pick': 'pick_alert',
+        'pass': 'no_action',
+        'result': 'outcome',
+        'revoke': 'pick_alert',
+        'pretip': 'pick_alert',
+        'weekly_summary': 'weekly_summary',
+        'line_movement': 'line_movement',
+        'journal': 'journal_updates',
+    }
+
     total = 0
     for u in users:
+        if notification_type and hasattr(u, 'notification_prefs') and u.notification_prefs:
+            pref_key = PREF_KEY_MAP.get(notification_type)
+            if pref_key and not u.notification_prefs.get(pref_key, True):
+                continue
+
+            quiet_start = u.notification_prefs.get('quiet_hours_start')
+            quiet_end = u.notification_prefs.get('quiet_hours_end')
+            if quiet_start and quiet_end:
+                try:
+                    now_et = datetime.now(pytz.timezone('US/Eastern'))
+                    now_t = now_et.hour * 60 + now_et.minute
+                    qs = int(quiet_start.split(':')[0]) * 60 + int(quiet_start.split(':')[1])
+                    qe = int(quiet_end.split(':')[0]) * 60 + int(quiet_end.split(':')[1])
+                    if qs > qe:
+                        if now_t >= qs or now_t < qe:
+                            continue
+                    elif qs <= now_t < qe:
+                        continue
+                except Exception:
+                    pass
+
         total += send_push_notification(u.id, title, body, data)
     return total
 

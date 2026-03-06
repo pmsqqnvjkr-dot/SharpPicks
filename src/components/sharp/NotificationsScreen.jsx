@@ -9,6 +9,11 @@ export default function NotificationsScreen({ onBack }) {
     no_action: true,
     outcome: true,
     weekly_summary: true,
+    line_movement: true,
+    journal_updates: true,
+    quiet_hours_enabled: false,
+    quiet_hours_start: '23:00',
+    quiet_hours_end: '08:00',
   });
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -18,16 +23,15 @@ export default function NotificationsScreen({ onBack }) {
   useEffect(() => {
     if (user) {
       apiGet('/user/notifications').then(data => {
-        if (data.prefs) setPrefs(data.prefs);
+        if (data.prefs) setPrefs(prev => ({ ...prev, ...data.prefs }));
         setLoaded(true);
       }).catch(() => setLoaded(true));
     }
   }, [user]);
 
-  const togglePref = async (key) => {
-    const updated = { ...prefs, [key]: !prefs[key] };
+  const updatePref = async (key, value) => {
+    const updated = { ...prefs, [key]: value };
     setPrefs(updated);
-
     if (user) {
       setSaving(true);
       try {
@@ -39,6 +43,8 @@ export default function NotificationsScreen({ onBack }) {
       }
     }
   };
+
+  const togglePref = (key) => updatePref(key, !prefs[key]);
 
   return (
     <div style={{ padding: '0' }}>
@@ -67,11 +73,10 @@ export default function NotificationsScreen({ onBack }) {
         </div>
       </div>
 
-      <div style={{ padding: '0 20px' }}>
+      <div style={{ padding: '0 20px 40px' }}>
         {!user && (
           <div style={{
-            borderRadius: '12px',
-            padding: '12px 16px', marginBottom: '12px',
+            borderRadius: '12px', padding: '12px 16px', marginBottom: '12px',
             border: '1px solid rgba(79, 134, 247, 0.2)',
             backgroundColor: 'rgba(79, 134, 247, 0.06)',
           }}>
@@ -83,8 +88,8 @@ export default function NotificationsScreen({ onBack }) {
 
         {user && pushStatus !== 'granted' && (
           <div style={{
-            borderRadius: '16px', padding: '20px',
-            marginBottom: '16px', border: '1px solid var(--stroke-subtle)',
+            borderRadius: '16px', padding: '20px', marginBottom: '16px',
+            border: '1px solid var(--stroke-subtle)',
             backgroundColor: 'var(--surface-1)', textAlign: 'center',
           }}>
             <div style={{ fontSize: '28px', marginBottom: '8px' }}>
@@ -152,10 +157,12 @@ export default function NotificationsScreen({ onBack }) {
           </div>
         )}
 
+        {/* Signal Alerts */}
+        <SectionLabel text="Signal Alerts" />
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '16px',
           overflow: 'hidden', border: '1px solid var(--stroke-subtle)',
-          opacity: user ? 1 : 0.6,
+          opacity: user ? 1 : 0.6, marginBottom: '16px',
         }}>
           <ToggleRow
             label="Pick alerts"
@@ -179,13 +186,69 @@ export default function NotificationsScreen({ onBack }) {
             disabled={!user}
           />
           <ToggleRow
+            label="Line movement"
+            subtitle="Alerts when a watched game's line moves significantly"
+            active={prefs.line_movement}
+            onToggle={() => togglePref('line_movement')}
+            disabled={!user}
+          />
+          <ToggleRow
             label="Weekly summary"
             subtitle="Weekly recap of picks, passes, and performance"
             active={prefs.weekly_summary}
             onToggle={() => togglePref('weekly_summary')}
-            last
             disabled={!user}
           />
+          <ToggleRow
+            label="Journal updates"
+            subtitle="Notified when a new journal article is published"
+            active={prefs.journal_updates}
+            onToggle={() => togglePref('journal_updates')}
+            disabled={!user}
+            last
+          />
+        </div>
+
+        {/* Quiet Hours */}
+        <SectionLabel text="Quiet Hours" />
+        <div style={{
+          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+          overflow: 'hidden', border: '1px solid var(--stroke-subtle)',
+          opacity: user ? 1 : 0.6, marginBottom: '16px',
+        }}>
+          <ToggleRow
+            label="Quiet hours"
+            subtitle="Suppress notifications during specified hours"
+            active={prefs.quiet_hours_enabled}
+            onToggle={() => togglePref('quiet_hours_enabled')}
+            disabled={!user}
+            last={!prefs.quiet_hours_enabled}
+          />
+          {prefs.quiet_hours_enabled && (
+            <div style={{
+              padding: '12px 20px 16px',
+              borderTop: '1px solid var(--stroke-subtle)',
+              display: 'flex', gap: '16px', alignItems: 'center',
+            }}>
+              <TimeInput
+                label="Start"
+                value={prefs.quiet_hours_start}
+                onChange={(v) => updatePref('quiet_hours_start', v)}
+                disabled={!user}
+              />
+              <span style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}>to</span>
+              <TimeInput
+                label="End"
+                value={prefs.quiet_hours_end}
+                onChange={(v) => updatePref('quiet_hours_end', v)}
+                disabled={!user}
+              />
+              <span style={{
+                fontSize: '11px', color: 'var(--text-tertiary)',
+                fontFamily: 'var(--font-mono)', marginLeft: 'auto',
+              }}>ET</span>
+            </div>
+          )}
         </div>
 
         {user && (
@@ -198,6 +261,16 @@ export default function NotificationsScreen({ onBack }) {
         )}
       </div>
     </div>
+  );
+}
+
+function SectionLabel({ text }) {
+  return (
+    <div style={{
+      fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+      letterSpacing: '1.5px', textTransform: 'uppercase',
+      color: 'var(--text-tertiary)', padding: '8px 4px 6px',
+    }}>{text}</div>
   );
 }
 
@@ -228,6 +301,30 @@ function ToggleRow({ label, subtitle, active, onToggle, last, disabled }) {
           left: active ? '22px' : '2px', transition: 'left 0.2s',
         }} />
       </button>
+    </div>
+  );
+}
+
+function TimeInput({ label, value, onChange, disabled }) {
+  return (
+    <div>
+      <div style={{
+        fontSize: '10px', color: 'var(--text-tertiary)',
+        fontFamily: 'var(--font-mono)', marginBottom: '4px',
+        textTransform: 'uppercase', letterSpacing: '0.5px',
+      }}>{label}</div>
+      <input
+        type="time"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        style={{
+          background: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
+          borderRadius: '8px', padding: '6px 10px',
+          color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
+          fontSize: '14px', colorScheme: 'dark',
+        }}
+      />
     </div>
   );
 }

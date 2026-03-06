@@ -499,6 +499,10 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
           </p>
         </div>
 
+        {insight.has_related_picks && (
+          <RelatedPicksSection insightId={insight.id} />
+        )}
+
         {nextInsight && (
           <button
             onClick={() => onSelectInsight(nextInsight)}
@@ -826,5 +830,74 @@ export function InsightPassDayCTA({ onTap }) {
         </svg>
       </div>
     </button>
+  );
+}
+
+function RelatedPicksSection({ insightId }) {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    apiGet(`/insights/${insightId}/picks`).then(setData).catch(() => {});
+  }, [insightId]);
+
+  if (!data || !data.picks?.length) return null;
+
+  return (
+    <div style={{
+      background: 'var(--surface-1)', borderRadius: '12px',
+      border: '1px solid var(--stroke-subtle)', padding: '16px 18px',
+      marginBottom: '16px',
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+        letterSpacing: '2px', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', marginBottom: '12px',
+      }}>Related Picks</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {data.picks.map(p => (
+          <div key={p.id} style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '8px 10px', borderRadius: '8px',
+            background: 'rgba(255,255,255,0.02)',
+          }}>
+            <span style={{ fontSize: '14px', width: '20px', textAlign: 'center', flexShrink: 0 }}>
+              {p.result === 'win' ? '✅' : p.result === 'loss' ? '❌' : p.result === 'push' ? '➖' : '⏳'}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
+                color: 'var(--text-primary)', overflow: 'hidden',
+                textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{p.side}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-tertiary)' }}>{p.game_date}</div>
+            </div>
+            {p.profit_units != null && (
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
+                color: p.profit_units > 0 ? 'var(--green-profit)' : p.profit_units < 0 ? 'var(--red-loss)' : 'var(--text-secondary)',
+                flexShrink: 0,
+              }}>{p.profit_units > 0 ? '+' : ''}{p.profit_units.toFixed(2)}u</span>
+            )}
+          </div>
+        ))}
+      </div>
+      {data.summary && (
+        <div style={{
+          marginTop: '10px', paddingTop: '10px',
+          borderTop: '1px solid var(--stroke-subtle)',
+          display: 'flex', justifyContent: 'center', gap: '16px',
+        }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-tertiary)' }}>
+            {data.summary.total} picks
+          </span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-tertiary)' }}>
+            {data.summary.wins}-{data.summary.losses}
+          </span>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+            color: data.summary.units >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
+          }}>{data.summary.units >= 0 ? '+' : ''}{data.summary.units}u</span>
+        </div>
+      )}
+    </div>
   );
 }

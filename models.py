@@ -246,6 +246,9 @@ class Insight(db.Model):
     featured = db.Column(db.Boolean, default=False)
     pass_day = db.Column(db.Boolean, default=False)
     reading_time_minutes = db.Column(db.Integer, default=2)
+    related_pick_ids = db.Column(JSONB, default=list)
+    date_range_start = db.Column(db.String, nullable=True)
+    date_range_end = db.Column(db.String, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
@@ -295,6 +298,20 @@ class CronLog(db.Model):
     duration_ms = db.Column(db.Integer)
     message = db.Column(db.Text)
     executed_at = db.Column(db.DateTime, default=datetime.now, index=True)
+
+
+class WatchedGame(db.Model):
+    __tablename__ = 'watched_games'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False, index=True)
+    game_id = db.Column(db.String(100), nullable=False)
+    game_date = db.Column(db.String(10), nullable=False)
+    home_team = db.Column(db.String, nullable=False)
+    away_team = db.Column(db.String, nullable=False)
+    line_at_watch = db.Column(db.Float, nullable=True)
+    notified = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    __table_args__ = (db.UniqueConstraint('user_id', 'game_id', name='uq_user_game'),)
 
 
 class KillSwitch(db.Model):

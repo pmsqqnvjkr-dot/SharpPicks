@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, Pick, Pass, ModelRun, UserBet, TrackedBet
+from models import db, Pick, Pass, ModelRun, UserBet, TrackedBet, WatchedGame
 from datetime import datetime, timedelta, timezone
 import sqlite3
 
@@ -721,3 +721,48 @@ def live_scores():
         })
 
     return jsonify({'scores': scores})
+
+
+@picks_bp.route('/watch', methods=['POST'])
+def watch_game():
+    """Toggle watching a game for line movement alerts."""
+    from app import get_current_user_obj
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+
+    data = request.get_json() or {}
+    game_id = data.get('game_id')
+    if not game_id:
+        return jsonify({'error': 'game_id required'}), 400
+
+    existing = WatchedGame.query.filter_by(user_id=user.id, game_id=game_id).first()
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        return jsonify({'watching': False})
+
+    wg = WatchedGame(
+        user_id=user.id,
+        game_id=game_id,
+        game_date=data.get('game_date', ''),
+        home_team=data.get('home', ''),
+        away_team=data.get('away', ''),
+        line_at_watch=data.get('spread_home'),
+    )
+    db.session.add(wg)
+    db.session.commit()
+    return jsonify({'watching': True})
+
+
+@picks_bp.route('/watched', methods=['GET'])
+def get_watched_games():
+    """Return IDs of games the current user is watching."""
+    from app import get_current_user_obj
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'game_ids': []})
+
+    today_str = _get_et_date()
+    watched = WatchedGame.query.filter_by(user_id=user.id, game_date=today_str).all()
+    return jsonify({'game_ids': [w.game_id for w in watched]})

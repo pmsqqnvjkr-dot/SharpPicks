@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, session
-from models import db, Insight, User
+from models import db, Insight, Pick, User
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import re
@@ -35,6 +35,10 @@ def insight_to_dict(insight):
         'featured': insight.featured,
         'pass_day': insight.pass_day,
         'reading_time_minutes': insight.reading_time_minutes,
+        'related_pick_ids': insight.related_pick_ids or [],
+        'date_range_start': insight.date_range_start,
+        'date_range_end': insight.date_range_end,
+        'has_related_picks': bool(insight.related_pick_ids) or bool(insight.date_range_start),
         'created_at': insight.created_at.isoformat() if insight.created_at else None,
     }
 
@@ -107,6 +111,57 @@ def get_insight_by_slug(slug):
     return jsonify(insight_to_dict(insight))
 
 
+@insights_bp.route('/<insight_id>/picks', methods=['GET'])
+def get_related_picks(insight_id):
+    """Return mini pick cards for a journal entry's related picks."""
+    insight = Insight.query.filter(
+        _visible_filter(), Insight.id == insight_id
+    ).first()
+    if not insight:
+        insight = Insight.query.filter(
+            _visible_filter(), Insight.slug == insight_id
+        ).first()
+    if not insight:
+        return jsonify({'picks': []})
+
+    picks = []
+    if insight.related_pick_ids:
+        picks = Pick.query.filter(Pick.id.in_(insight.related_pick_ids)).order_by(Pick.game_date).all()
+    elif insight.date_range_start and insight.date_range_end:
+        picks = Pick.query.filter(
+            Pick.game_date >= insight.date_range_start,
+            Pick.game_date <= insight.date_range_end
+        ).order_by(Pick.game_date).all()
+
+    result = []
+    for p in picks:
+        result.append({
+            'id': p.id,
+            'side': p.side,
+            'line': p.line,
+            'game_date': p.game_date,
+            'away_team': p.away_team,
+            'home_team': p.home_team,
+            'result': p.result,
+            'profit_units': p.profit_units,
+            'edge_pct': p.edge_pct,
+        })
+
+    wins = sum(1 for p in result if p['result'] == 'win')
+    losses = sum(1 for p in result if p['result'] == 'loss')
+    total_units = sum(p['profit_units'] or 0 for p in result)
+
+    return jsonify({
+        'picks': result,
+        'summary': {
+            'total': len(result),
+            'wins': wins,
+            'losses': losses,
+            'units': round(total_units, 2),
+        }
+    })
+
+
 @insights_bp.route('/admin', methods=['POST'])
 def create_insight():
     user = get_current_user()
@@ -139,6 +194,9 @@ def create_insight():
         featured=data.get('featured', False),
         pass_day=data.get('pass_day', False),
         reading_time_minutes=data.get('reading_time_minutes', reading_time),
+        related_pick_ids=data.get('related_pick_ids', []),
+        date_range_start=data.get('date_range_start'),
+        date_range_end=data.get('date_range_end'),
     )
 
     db.session.add(insight)
@@ -159,7 +217,8 @@ def update_insight(insight_id):
 
     data = request.json
 
-    for field in ['title', 'slug', 'category', 'excerpt', 'content', 'status', 'featured', 'pass_day', 'reading_time_minutes']:
+    for field in ['title', 'slug', 'category', 'excerpt', 'content', 'status', 'featured', 'pass_day',
+                   'reading_time_minutes', 'related_pick_ids', 'date_range_start', 'date_range_end']:
         if field in data:
             setattr(insight, field, data[field])
 

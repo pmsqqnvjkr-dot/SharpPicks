@@ -185,7 +185,27 @@ function ConsensusBar({ consensus, current }) {
   );
 }
 
-function GameRow({ game, expanded, onToggle }) {
+function WatchButton({ watching, onWatch }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onWatch(); }}
+      style={{
+        background: 'none', border: 'none', cursor: 'pointer',
+        padding: '4px', display: 'flex', alignItems: 'center',
+        opacity: watching ? 1 : 0.4,
+      }}
+      aria-label={watching ? 'Unwatch game' : 'Watch game'}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill={watching ? 'var(--blue-primary)' : 'none'}
+        stroke={watching ? 'var(--blue-primary)' : 'currentColor'} strokeWidth="2">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>
+  );
+}
+
+function GameRow({ game, expanded, onToggle, watching, onWatch }) {
   const totalDisplay = fmtTotal(game.total);
   const isFinal = game.status === 'final';
   const isLive = game.status === 'live';
@@ -219,6 +239,7 @@ function GameRow({ game, expanded, onToggle }) {
             {!isLive && !isFinal && game.snapshots?.length >= 2 && (
               <Sparkline snapshots={game.snapshots} field="spread" />
             )}
+            {onWatch && <WatchButton watching={watching} onWatch={onWatch} />}
           </div>
           {showScores && (
             <span style={{
@@ -365,7 +386,7 @@ function GameRow({ game, expanded, onToggle }) {
   );
 }
 
-function TimeSlotGroup({ time, games, expandedId, onToggle }) {
+function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch }) {
   return (
     <div style={{ marginBottom: 18 }}>
       <div style={{
@@ -388,6 +409,8 @@ function TimeSlotGroup({ time, games, expandedId, onToggle }) {
             game={g}
             expanded={expandedId === g.id}
             onToggle={() => onToggle(g.id)}
+            watching={watchedIds?.has(g.id)}
+            onWatch={() => onWatch(g)}
           />
         ))}
       </div>
@@ -504,10 +527,16 @@ function LiveBadge({ state, period, clock }) {
 export default function MarketView({ onBack }) {
   const { sport } = useSport();
   const { data, loading } = useApi(sportQuery('/picks/market', sport));
+  const { data: watchedData } = useApi('/picks/watched');
   const [filter, setFilter] = useState('All');
   const [sort, setSort] = useState('time');
   const [expandedId, setExpandedId] = useState(null);
   const [liveScores, setLiveScores] = useState({});
+  const [watchedIds, setWatchedIds] = useState(new Set());
+
+  useEffect(() => {
+    if (watchedData?.game_ids) setWatchedIds(new Set(watchedData.game_ids));
+  }, [watchedData]);
 
   const fetchLiveScores = useCallback(async () => {
     try {
@@ -578,6 +607,30 @@ export default function MarketView({ onBack }) {
 
   const handleToggle = (id) => {
     setExpandedId(prev => prev === id ? null : id);
+  };
+
+  const handleWatch = async (game) => {
+    try {
+      const resp = await fetch('/api/picks/watch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          game_id: game.id,
+          game_date: data?.date,
+          home: game.home,
+          away: game.away,
+          spread_home: game.spread_home,
+        }),
+      });
+      const result = await resp.json();
+      setWatchedIds(prev => {
+        const next = new Set(prev);
+        if (result.watching) next.add(game.id);
+        else next.delete(game.id);
+        return next;
+      });
+    } catch { /* silent */ }
   };
 
   const hasModelData = games.some(g => g.model);
@@ -653,6 +706,8 @@ export default function MarketView({ onBack }) {
               games={gamesInSlot}
               expandedId={expandedId}
               onToggle={handleToggle}
+              watchedIds={watchedIds}
+              onWatch={handleWatch}
             />
           ))
         ) : (
@@ -663,6 +718,8 @@ export default function MarketView({ onBack }) {
                 game={g}
                 expanded={expandedId === g.id}
                 onToggle={() => handleToggle(g.id)}
+                watching={watchedIds.has(g.id)}
+                onWatch={() => handleWatch(g)}
               />
             ))}
           </div>
