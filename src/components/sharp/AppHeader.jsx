@@ -43,7 +43,10 @@ export default function AppHeader({ onNavigate, showSportToggle }) {
       background: 'linear-gradient(to bottom, #0E1A2B, #08121F)',
       borderBottom: '1px solid rgba(255,255,255,0.06)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div
+        onClick={() => onNavigate('picks')}
+        style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+      >
         <img src="/images/crest.png" alt="" width="26" height="26" style={{ display: 'block', marginRight: '16px', flexShrink: 0, objectFit: 'contain' }} />
         <span style={{
           fontFamily: 'var(--font-sans)',
