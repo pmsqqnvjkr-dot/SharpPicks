@@ -66,6 +66,7 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('picks');
+  const [picksResetKey, setPicksResetKey] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [profileScreen, setProfileScreen] = useState(null);
@@ -265,9 +266,14 @@ function AppContent() {
       margin: '0 auto',
       position: 'relative',
     }}>
-      <AppHeader onNavigate={(tab) => setActiveTab(tab)} />
+      <AppHeader onNavigate={(tab) => {
+        if (tab === 'picks' && activeTab === 'picks') {
+          setPicksResetKey(k => k + 1);
+        }
+        setActiveTab(tab);
+      }} />
       <div style={{ flex: 1, paddingBottom: '60px', overflowY: 'auto' }}>
-        {activeTab === 'picks' && <PicksTab onNavigate={navigateTo} />}
+        {activeTab === 'picks' && <PicksTab key={picksResetKey} onNavigate={navigateTo} />}
         {activeTab === 'insights' && <InsightsTab onNavigate={navigateTo} initialInsight={initialInsight} onInitialInsightConsumed={() => setInitialInsight(null)} />}
         {activeTab === 'performance' && <PerformanceTab onNavigate={navigateTo} initialView={perfView} onViewConsumed={() => setPerfView(null)} />}
         {activeTab === 'profile' && <ProfileTab initialScreen={profileScreen} onScreenChange={setProfileScreen} pickToTrack={pickToTrack} onPickTracked={() => setPickToTrack(null)} screenData={profileScreenData} />}
