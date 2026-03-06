@@ -1410,7 +1410,7 @@ def grade_pending_picks():
                         if game:
                             break
                         espn_url = get_espn_scoreboard_url(pick.sport, date_str)
-                        espn_resp = requests.get(espn_url, timeout=15)
+                        espn_resp = http_requests.get(espn_url, timeout=15)
                         if espn_resp.status_code != 200:
                             logging.warning(f"[Auto-grade] ESPN returned {espn_resp.status_code} for {date_str}")
                             continue
