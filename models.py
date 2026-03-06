@@ -228,6 +228,8 @@ class TrackedBet(db.Model):
     follow_type = db.Column(db.String, default='exact')
     line_at_bet = db.Column(db.Float, nullable=True)
     odds_at_publish = db.Column(db.Integer, nullable=True)
+    bet_type = db.Column(db.String, default='spread')
+    parlay_legs = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     user = db.relationship('User', backref='tracked_bets', overlaps="user_bets")
     linked_pick = db.relationship('Pick', backref='tracked_bets')

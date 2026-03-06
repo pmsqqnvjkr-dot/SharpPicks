@@ -1539,8 +1539,16 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
   );
 }
 
+const TYPE_META = {
+  spread: { label: 'Spreads', color: '#f59e0b', bg: 'rgba(251,191,36,0.1)' },
+  total: { label: 'Totals', color: '#f59e0b', bg: 'rgba(251,191,36,0.1)' },
+  moneyline: { label: 'Moneylines', color: '#f59e0b', bg: 'rgba(251,191,36,0.1)' },
+  prop: { label: 'Props', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
+  parlay: { label: 'Parlays', color: '#a855f7', bg: 'rgba(168,85,247,0.1)' },
+};
+
 function SourceComparisonCard({ data }) {
-  const { model, off_model } = data;
+  const { model, off_model, off_model_by_type } = data;
   if (model.bets === 0 && off_model.bets === 0) return null;
 
   const rows = [
@@ -1553,6 +1561,8 @@ function SourceComparisonCard({ data }) {
       mColor: model.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
       oColor: off_model.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)' },
   ];
+
+  const typeEntries = off_model_by_type ? Object.entries(off_model_by_type).filter(([, v]) => v.bets > 0) : [];
 
   return (
     <div style={{
@@ -1571,7 +1581,6 @@ function SourceComparisonCard({ data }) {
         gap: '0', borderRadius: '10px', overflow: 'hidden',
         border: '1px solid var(--stroke-subtle)',
       }}>
-        {/* Header */}
         <div style={{ padding: '8px 12px', background: 'var(--surface-2)' }} />
         <div style={{
           padding: '8px 12px', background: 'var(--surface-2)', textAlign: 'center',
@@ -1584,7 +1593,7 @@ function SourceComparisonCard({ data }) {
           letterSpacing: '0.5px', color: 'var(--text-tertiary)',
         }}>Off-Model</div>
 
-        {rows.map((row, i) => (
+        {rows.map((row) => (
           <div key={row.label} style={{ display: 'contents' }}>
             <div style={{
               padding: '10px 12px', fontSize: '12px', fontWeight: 500,
@@ -1623,6 +1632,96 @@ function SourceComparisonCard({ data }) {
           Track more bets to see how model discipline affects long-term ROI.
         </p>
       )}
+
+      {/* Per-type breakdown for off-model bets */}
+      {typeEntries.length > 1 && (
+        <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--stroke-subtle)' }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+            letterSpacing: '1.2px', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '10px',
+          }}>Off-Model Breakdown</div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {typeEntries.map(([type, stats]) => {
+              const meta = TYPE_META[type] || TYPE_META.spread;
+              return (
+                <div key={type} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '8px 12px', borderRadius: '8px',
+                  backgroundColor: 'var(--surface-2)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+                      padding: '2px 6px', borderRadius: '4px',
+                      backgroundColor: meta.bg, color: meta.color,
+                      textTransform: 'uppercase', letterSpacing: '0.5px',
+                    }}>{meta.label}</span>
+                    <span style={{
+                      fontFamily: 'var(--font-mono)', fontSize: '11px',
+                      color: 'var(--text-secondary)',
+                    }}>{stats.bets} bet{stats.bets !== 1 ? 's' : ''}</span>
+                    {type === 'parlay' && stats.avg_legs && (
+                      <span style={{
+                        fontSize: '10px', color: 'var(--text-tertiary)',
+                      }}>avg {stats.avg_legs} legs</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{
+                      fontFamily: 'var(--font-mono)', fontSize: '11px',
+                      color: 'var(--text-tertiary)',
+                    }}>{stats.win_rate}% W</span>
+                    <span style={{
+                      fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700,
+                      color: stats.roi >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
+                    }}>{stats.roi >= 0 ? '+' : ''}{stats.roi}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Highlight the worst-performing type vs model */}
+          {model.bets > 0 && (() => {
+            const worst = typeEntries.reduce((a, b) => a[1].roi < b[1].roi ? a : b);
+            const worstMeta = TYPE_META[worst[0]] || TYPE_META.spread;
+            if (worst[1].roi < model.roi) {
+              return (
+                <p style={{
+                  fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5',
+                  marginTop: '10px', textAlign: 'center',
+                }}>
+                  <span style={{ color: worstMeta.color, fontWeight: 600 }}>{worstMeta.label}</span> are
+                  costing you <span style={{ color: 'var(--red-loss)', fontWeight: 600 }}>
+                  {(model.roi - worst[1].roi).toFixed(1)}%</span> more ROI vs following the model.
+                </p>
+              );
+            }
+            return null;
+          })()}
+        </div>
+      )}
+
+      {/* Single-type nudge for props/parlays */}
+      {typeEntries.length === 1 && typeEntries[0][1].bets >= 2 && model.bets > 0 && (() => {
+        const [type, stats] = typeEntries[0];
+        if ((type === 'prop' || type === 'parlay') && stats.roi < model.roi) {
+          const meta = TYPE_META[type];
+          return (
+            <p style={{
+              fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5',
+              marginTop: '12px', textAlign: 'center',
+            }}>
+              Your <span style={{ color: meta.color, fontWeight: 600 }}>{meta.label.toLowerCase()}</span> are
+              at <span style={{ color: 'var(--red-loss)', fontWeight: 600 }}>{stats.roi >= 0 ? '+' : ''}{stats.roi}% ROI</span> vs
+              the model's <span style={{ color: 'var(--green-profit)', fontWeight: 600 }}>{model.roi >= 0 ? '+' : ''}{model.roi}%</span>.
+            </p>
+          );
+        }
+        return null;
+      })()}
     </div>
   );
 }

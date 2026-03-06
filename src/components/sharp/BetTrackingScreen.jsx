@@ -127,35 +127,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                 <SectionCard title={`Active (${pendingBets.length})`}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {pendingBets.map(bet => (
-                      <div key={bet.id} style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: '12px 14px', backgroundColor: 'var(--surface-2)', borderRadius: '10px',
-                        border: '1px solid rgba(79, 134, 247, 0.15)',
-                      }}>
-                        <div>
-                          <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                            {bet.pick}
-                          </div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                            {bet.game}
-                          </div>
-                          <div style={{
-                            fontFamily: 'var(--font-mono)', fontSize: '11px',
-                            color: 'var(--text-tertiary)', marginTop: '4px',
-                          }}>
-                            ${bet.bet_amount} at {bet.odds != null ? (bet.odds > 0 ? `+${bet.odds}` : bet.odds) : '-110'} · to win ${bet.to_win || '—'}
-                          </div>
-                        </div>
-                        <div style={{
-                          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-                          padding: '4px 10px', borderRadius: '6px',
-                          backgroundColor: 'rgba(79, 134, 247, 0.12)',
-                          color: 'var(--blue-primary)',
-                          letterSpacing: '0.3px',
-                        }}>
-                          Awaiting Result
-                        </div>
-                      </div>
+                      <PendingBetCard key={bet.id} bet={bet} onGraded={loadBets} />
                     ))}
                   </div>
                 </SectionCard>
@@ -546,6 +518,8 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
   const [manualPick, setManualPick] = useState('');
   const [manualLine, setManualLine] = useState('');
   const [manualBetType, setManualBetType] = useState('spread');
+  const [parlayLegs, setParlayLegs] = useState('2');
+  const [parlayDesc, setParlayDesc] = useState('');
 
   useEffect(() => {
     if (!initialPick) {
@@ -574,7 +548,10 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (mode === 'model' && !selected) return;
-    if (mode === 'manual' && (!manualGame.trim() || !manualPick.trim())) return;
+    if (mode === 'manual') {
+      if (manualBetType === 'parlay' && !parlayDesc.trim()) return;
+      if (manualBetType !== 'parlay' && (!manualGame.trim() || !manualPick.trim())) return;
+    }
     setSubmitting(true);
     const userOdds = parseInt(odds) || -110;
 
@@ -585,20 +562,33 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
         odds: userOdds,
         follow_type: followType,
         line_at_bet: selected.line,
+        bet_type: 'spread',
+      });
+    } else if (manualBetType === 'parlay') {
+      const legs = parseInt(parlayLegs) || 2;
+      await onSubmit({
+        game: `${legs}-Leg Parlay`,
+        pick: parlayDesc.trim(),
+        bet_amount: parseInt(amount) || 100,
+        odds: userOdds,
+        bet_type: 'parlay',
+        parlay_legs: legs,
       });
     } else {
       const lineVal = parseFloat(manualLine) || 0;
-      const pickLabel = manualBetType === 'moneyline'
-        ? `${manualPick.trim()} ML`
-        : manualBetType === 'total'
-        ? `${manualPick.trim()}`
-        : `${manualPick.trim()} ${lineVal >= 0 ? '+' : ''}${lineVal}`;
+      let pickLabel;
+      if (manualBetType === 'moneyline') pickLabel = `${manualPick.trim()} ML`;
+      else if (manualBetType === 'total') pickLabel = manualPick.trim();
+      else if (manualBetType === 'prop') pickLabel = manualPick.trim();
+      else pickLabel = `${manualPick.trim()} ${lineVal >= 0 ? '+' : ''}${lineVal}`;
+
       await onSubmit({
         game: manualGame.trim(),
         pick: pickLabel,
         bet_amount: parseInt(amount) || 100,
         odds: userOdds,
-        line_at_bet: manualBetType === 'moneyline' ? null : lineVal,
+        line_at_bet: (manualBetType === 'moneyline' || manualBetType === 'prop') ? null : lineVal,
+        bet_type: manualBetType,
       });
     }
     setSubmitting(false);
@@ -755,26 +745,31 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
               </>
             ) : (
               /* Manual bet entry form */
-              <form onSubmit={(e) => { e.preventDefault(); if (manualGame.trim() && manualPick.trim()) setStep('wager'); }}>
-                <FormField label="Game" placeholder="e.g. Lakers @ Celtics" value={manualGame} onChange={setManualGame} />
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                if (manualBetType === 'parlay' && parlayDesc.trim()) setStep('wager');
+                else if (manualBetType !== 'parlay' && manualGame.trim() && manualPick.trim()) setStep('wager');
+              }}>
                 <div style={{ marginBottom: '12px' }}>
                   <div style={{
                     fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
                     letterSpacing: '1.2px', textTransform: 'uppercase',
                     color: 'var(--text-tertiary)', marginBottom: '6px',
                   }}>Bet Type</div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
                     {[
                       { value: 'spread', label: 'Spread' },
                       { value: 'total', label: 'Total' },
                       { value: 'moneyline', label: 'ML' },
+                      { value: 'prop', label: 'Prop' },
+                      { value: 'parlay', label: 'Parlay' },
                     ].map(opt => (
                       <button
                         key={opt.value}
                         type="button"
                         onClick={() => setManualBetType(opt.value)}
                         style={{
-                          padding: '6px 14px', borderRadius: '8px',
+                          padding: '6px 12px', borderRadius: '8px',
                           fontSize: '12px', fontWeight: 600,
                           fontFamily: 'var(--font-mono)', cursor: 'pointer',
                           backgroundColor: manualBetType === opt.value ? 'var(--blue-primary)' : 'var(--surface-1)',
@@ -786,28 +781,69 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
                     ))}
                   </div>
                 </div>
-                <FormField
-                  label={manualBetType === 'total' ? 'Pick (e.g. Over 218.5)' : manualBetType === 'moneyline' ? 'Pick (e.g. Lakers)' : 'Pick (e.g. Lakers)'}
-                  placeholder={manualBetType === 'total' ? 'Over 218.5' : manualBetType === 'moneyline' ? 'Lakers' : 'Lakers'}
-                  value={manualPick}
-                  onChange={setManualPick}
-                />
-                {manualBetType === 'spread' && (
-                  <FormField label="Spread" placeholder="-3.5" value={manualLine} onChange={setManualLine} type="number" />
+
+                {manualBetType === 'parlay' ? (
+                  <>
+                    <FormField label="Number of Legs" placeholder="2" value={parlayLegs} onChange={setParlayLegs} type="number" />
+                    <div style={{ marginBottom: '12px' }}>
+                      <label style={{
+                        display: 'block', fontSize: '12px', fontWeight: 600,
+                        color: 'var(--text-tertiary)', textTransform: 'uppercase',
+                        letterSpacing: '0.05em', marginBottom: '6px',
+                      }}>Parlay Legs</label>
+                      <textarea
+                        placeholder={"e.g.\nLakers -3.5\nCeltics ML\nOver 218.5"}
+                        value={parlayDesc}
+                        onChange={e => setParlayDesc(e.target.value)}
+                        rows={3}
+                        style={{
+                          width: '100%', padding: '12px 14px',
+                          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+                          borderRadius: '10px', color: 'var(--text-primary)',
+                          fontSize: '14px', fontFamily: 'var(--font-sans)',
+                          outline: 'none', boxSizing: 'border-box', resize: 'vertical',
+                        }}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <FormField label="Game" placeholder="e.g. Lakers @ Celtics" value={manualGame} onChange={setManualGame} />
+                    <FormField
+                      label={
+                        manualBetType === 'prop' ? 'Prop (e.g. LeBron Over 25.5 pts)'
+                        : manualBetType === 'total' ? 'Pick (e.g. Over 218.5)'
+                        : manualBetType === 'moneyline' ? 'Pick (e.g. Lakers)'
+                        : 'Pick (e.g. Lakers)'
+                      }
+                      placeholder={
+                        manualBetType === 'prop' ? 'LeBron Over 25.5 pts'
+                        : manualBetType === 'total' ? 'Over 218.5'
+                        : manualBetType === 'moneyline' ? 'Lakers'
+                        : 'Lakers'
+                      }
+                      value={manualPick}
+                      onChange={setManualPick}
+                    />
+                    {manualBetType === 'spread' && (
+                      <FormField label="Spread" placeholder="-3.5" value={manualLine} onChange={setManualLine} type="number" />
+                    )}
+                    {manualBetType === 'total' && (
+                      <FormField label="Line" placeholder="218.5" value={manualLine} onChange={setManualLine} type="number" />
+                    )}
+                  </>
                 )}
-                {manualBetType === 'total' && (
-                  <FormField label="Line" placeholder="218.5" value={manualLine} onChange={setManualLine} type="number" />
-                )}
+
                 <button
                   type="submit"
-                  disabled={!manualGame.trim() || !manualPick.trim()}
+                  disabled={manualBetType === 'parlay' ? !parlayDesc.trim() : (!manualGame.trim() || !manualPick.trim())}
                   style={{
                     width: '100%', padding: '14px',
                     backgroundColor: 'var(--blue-primary)', color: '#fff',
                     border: 'none', borderRadius: '12px',
                     fontSize: '15px', fontWeight: 600, cursor: 'pointer',
                     fontFamily: 'var(--font-sans)',
-                    opacity: (!manualGame.trim() || !manualPick.trim()) ? 0.4 : 1,
+                    opacity: (manualBetType === 'parlay' ? !parlayDesc.trim() : (!manualGame.trim() || !manualPick.trim())) ? 0.4 : 1,
                   }}
                 >Next: Enter Wager</button>
               </form>
@@ -844,20 +880,31 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
                     <span style={{
                       fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
                       padding: '2px 6px', borderRadius: '4px',
-                      backgroundColor: 'rgba(251,191,36,0.12)', color: '#f59e0b',
+                      backgroundColor: manualBetType === 'parlay' ? 'rgba(168,85,247,0.12)'
+                        : manualBetType === 'prop' ? 'rgba(59,130,246,0.12)'
+                        : 'rgba(251,191,36,0.12)',
+                      color: manualBetType === 'parlay' ? '#a855f7'
+                        : manualBetType === 'prop' ? '#3b82f6'
+                        : '#f59e0b',
                       textTransform: 'uppercase', letterSpacing: '0.5px',
-                    }}>Personal</span>
+                    }}>{manualBetType === 'parlay' ? `${parlayLegs}-Leg Parlay` : manualBetType === 'prop' ? 'Player Prop' : 'Personal'}</span>
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {manualGame}
+                    {manualBetType === 'parlay' ? `${parlayLegs}-Leg Parlay` : manualGame}
                   </div>
                   <div style={{
-                    fontSize: '15px', color: '#f59e0b', fontWeight: 700, marginTop: '6px',
+                    fontSize: manualBetType === 'parlay' ? '13px' : '15px',
+                    color: manualBetType === 'parlay' ? '#a855f7'
+                      : manualBetType === 'prop' ? '#3b82f6'
+                      : '#f59e0b',
+                    fontWeight: 700, marginTop: '6px',
+                    whiteSpace: manualBetType === 'parlay' ? 'pre-line' : 'normal',
+                    lineHeight: manualBetType === 'parlay' ? '1.5' : 'inherit',
                   }}>
-                    {manualBetType === 'moneyline'
-                      ? `${manualPick} ML`
-                      : manualBetType === 'total'
-                      ? manualPick
+                    {manualBetType === 'parlay' ? parlayDesc
+                      : manualBetType === 'moneyline' ? `${manualPick} ML`
+                      : manualBetType === 'prop' ? manualPick
+                      : manualBetType === 'total' ? manualPick
                       : `${manualPick} ${parseFloat(manualLine) >= 0 ? '+' : ''}${manualLine || '0'}`}
                   </div>
                 </>
@@ -930,6 +977,114 @@ function TrackBetModal({ initialPick, onClose, onSubmit }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function PendingBetCard({ bet, onGraded }) {
+  const [grading, setGrading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const isManual = !bet.pick_id;
+  const betTypeMeta = bet.bet_type === 'parlay'
+    ? { label: `${bet.parlay_legs || ''}L Parlay`, color: '#a855f7', bg: 'rgba(168,85,247,0.15)' }
+    : bet.bet_type === 'prop'
+    ? { label: 'Prop', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' }
+    : null;
+
+  const handleGrade = async (result) => {
+    setSubmitting(true);
+    const profit = result === 'W' ? (bet.to_win || 0) : result === 'P' ? 0 : -(bet.bet_amount || 0);
+    try {
+      await apiPost(`/bets/${bet.id}/result`, { result, profit });
+      onGraded();
+    } catch { /* silent */ }
+    setSubmitting(false);
+    setGrading(false);
+  };
+
+  return (
+    <div style={{
+      padding: '12px 14px', backgroundColor: 'var(--surface-2)', borderRadius: '10px',
+      border: `1px solid ${grading ? 'rgba(79,134,247,0.3)' : 'rgba(79, 134, 247, 0.15)'}`,
+      transition: 'border-color 0.15s',
+    }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+              {bet.pick}
+            </div>
+            {betTypeMeta && (
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                padding: '2px 6px', borderRadius: '4px',
+                backgroundColor: betTypeMeta.bg, color: betTypeMeta.color,
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+              }}>{betTypeMeta.label}</span>
+            )}
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+            {bet.game}
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '11px',
+            color: 'var(--text-tertiary)', marginTop: '4px',
+          }}>
+            ${bet.bet_amount} at {bet.odds != null ? (bet.odds > 0 ? `+${bet.odds}` : bet.odds) : '-110'} · to win ${bet.to_win || '—'}
+          </div>
+        </div>
+        {!grading && (
+          <button
+            onClick={() => setGrading(true)}
+            style={{
+              fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+              padding: '4px 10px', borderRadius: '6px',
+              backgroundColor: isManual ? 'rgba(251,191,36,0.12)' : 'rgba(79, 134, 247, 0.12)',
+              color: isManual ? '#f59e0b' : 'var(--blue-primary)',
+              letterSpacing: '0.3px', border: 'none', cursor: 'pointer',
+            }}
+          >
+            {isManual ? 'Grade' : 'Awaiting'}
+          </button>
+        )}
+      </div>
+      {grading && (
+        <div style={{
+          marginTop: '10px', paddingTop: '10px',
+          borderTop: '1px solid var(--stroke-subtle)',
+          display: 'flex', gap: '8px', justifyContent: 'center',
+        }}>
+          {[
+            { result: 'W', label: 'Win', color: 'var(--green-profit)', bg: 'rgba(52,211,153,0.12)' },
+            { result: 'L', label: 'Loss', color: 'var(--red-loss)', bg: 'rgba(239,68,68,0.12)' },
+            { result: 'P', label: 'Push', color: 'var(--text-tertiary)', bg: 'rgba(100,116,139,0.12)' },
+          ].map(opt => (
+            <button
+              key={opt.result}
+              onClick={() => handleGrade(opt.result)}
+              disabled={submitting}
+              style={{
+                flex: 1, padding: '8px 12px', borderRadius: '8px',
+                fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'var(--font-mono)', border: 'none',
+                backgroundColor: opt.bg, color: opt.color,
+                opacity: submitting ? 0.5 : 1,
+                transition: 'opacity 0.15s',
+              }}
+            >{opt.label}</button>
+          ))}
+          <button
+            onClick={() => setGrading(false)}
+            style={{
+              padding: '8px', borderRadius: '8px', border: 'none',
+              backgroundColor: 'transparent', cursor: 'pointer',
+              color: 'var(--text-tertiary)', fontSize: '12px',
+            }}
+          >✕</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1080,7 +1235,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete }) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
               <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>{bet.pick}</div>
               {bet.pick_id && (
                 <span style={{
@@ -1089,6 +1244,22 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete }) {
                   backgroundColor: 'rgba(79, 134, 247, 0.15)', color: 'var(--blue-primary)',
                   textTransform: 'uppercase', letterSpacing: '0.5px',
                 }}>SP</span>
+              )}
+              {bet.bet_type === 'parlay' && (
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                  padding: '2px 6px', borderRadius: '4px',
+                  backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7',
+                  textTransform: 'uppercase', letterSpacing: '0.5px',
+                }}>{bet.parlay_legs || ''}L Parlay</span>
+              )}
+              {bet.bet_type === 'prop' && (
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                  padding: '2px 6px', borderRadius: '4px',
+                  backgroundColor: 'rgba(59,130,246,0.15)', color: '#3b82f6',
+                  textTransform: 'uppercase', letterSpacing: '0.5px',
+                }}>Prop</span>
               )}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{bet.game}</div>

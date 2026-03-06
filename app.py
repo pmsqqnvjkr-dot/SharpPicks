@@ -314,6 +314,8 @@ def seed_database():
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS related_pick_ids JSONB DEFAULT '[]'"))
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS date_range_start VARCHAR"))
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS date_range_end VARCHAR"))
+                db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS bet_type VARCHAR DEFAULT 'spread'"))
+                db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS parlay_legs INTEGER"))
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
@@ -3274,7 +3276,7 @@ def get_user_stats():
 
 
 def _compute_source_comparison(settled, sharp_bets):
-    """Compare model-followed bets vs off-model manual bets."""
+    """Compare model-followed bets vs off-model manual bets, broken down by type."""
     sharp_ids = {b.id for b in sharp_bets}
     model_settled = [b for b in settled if b.id in sharp_ids]
     manual_settled = [b for b in settled if b.id not in sharp_ids]
@@ -3293,9 +3295,20 @@ def _compute_source_comparison(settled, sharp_bets):
             'roi': round(pnl / risked * 100, 1) if risked > 0 else 0,
         }
 
+    by_type = {}
+    for bt in ('spread', 'total', 'moneyline', 'prop', 'parlay'):
+        typed = [b for b in manual_settled if (getattr(b, 'bet_type', None) or 'spread') == bt]
+        if typed:
+            stats = _bucket_stats(typed)
+            if bt == 'parlay':
+                legs = [getattr(b, 'parlay_legs', None) or 0 for b in typed]
+                stats['avg_legs'] = round(sum(legs) / len(legs), 1) if legs else 0
+            by_type[bt] = stats
+
     return {
         'model': _bucket_stats(model_settled),
         'off_model': _bucket_stats(manual_settled),
+        'off_model_by_type': by_type,
     }
 
 @app.route('/api/bets', methods=['GET'])
@@ -3354,6 +3367,8 @@ def get_user_bets():
             'follow_type': b.follow_type or 'exact',
             'line_at_bet': b.line_at_bet,
             'odds_at_publish': b.odds_at_publish,
+            'bet_type': b.bet_type or 'spread',
+            'parlay_legs': b.parlay_legs,
             'created_at': b.created_at.isoformat() if b.created_at else None,
             'linked_pick': pick_detail,
         })
@@ -3433,6 +3448,8 @@ def track_bet():
     source = 'sharp_pick' if pick_id else 'manual'
     follow_type = data.get('follow_type', 'exact')
     line_at_bet = data.get('line_at_bet')
+    bet_type = data.get('bet_type', 'spread')
+    parlay_legs = data.get('parlay_legs')
     odds_at_publish_val = None
 
     if pick_id and sp_pick:
@@ -3464,6 +3481,8 @@ def track_bet():
         follow_type=follow_type,
         line_at_bet=line_at_bet,
         odds_at_publish=odds_at_publish_val,
+        bet_type=bet_type,
+        parlay_legs=parlay_legs,
     )
     db.session.add(bet)
     db.session.commit()
