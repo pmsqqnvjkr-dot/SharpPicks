@@ -468,7 +468,7 @@ def run_admin_alert_check(include_health=True):
     for job_name, config in job_configs.items():
         last_log = CronLog.query.filter_by(job_name=job_name).order_by(CronLog.executed_at.desc()).first()
         if last_log:
-            hours_ago = (now_et.replace(tzinfo=None) - last_log.executed_at).total_seconds() / 3600
+            hours_ago = (datetime.utcnow() - last_log.executed_at).total_seconds() / 3600
             overdue = hours_ago > config['expected_h'] * 1.5
             is_failing = last_log.status == 'error'
         else:
@@ -587,7 +587,7 @@ def status_summary():
         success_rate = round(ok_count / total_recent * 100) if total_recent > 0 else 0
 
         if last_log:
-            hours_ago = (now_et.replace(tzinfo=None) - last_log.executed_at).total_seconds() / 3600
+            hours_ago = (datetime.utcnow() - last_log.executed_at).total_seconds() / 3600
             overdue = hours_ago > config['expected_h'] * 1.5
             is_failing = last_log.status == 'error'
         else:
@@ -1292,7 +1292,7 @@ def cron_health():
         err_count = sum(1 for l in recent_logs if l.status == 'error')
 
         if last_log:
-            hours_ago = (now_et.replace(tzinfo=None) - last_log.executed_at).total_seconds() / 3600
+            hours_ago = (datetime.utcnow() - last_log.executed_at).total_seconds() / 3600
             overdue = hours_ago > config['expected_h'] * 1.5
             health = 'error' if overdue or (last_log.status == 'error') else 'ok'
             if not overdue and last_log.status == 'error' and last_ok:
