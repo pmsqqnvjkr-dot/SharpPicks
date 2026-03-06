@@ -4527,16 +4527,28 @@ def _run_seed_now():
         logging.error(f"Startup seed failed: {e}")
 
 
+_startup_refresh_lock = threading.Lock()
+_startup_refresh_done = False
+
 def _railway_startup_refresh():
-    """On Railway: refresh game data 30s after startup so SQLite has today's games before first cron."""
+    """On Railway: refresh game data 30s after startup so SQLite has today's games before first cron.
+    Guarded so only one worker runs the refresh even with multiple gunicorn workers."""
+    global _startup_refresh_done
     import time
     time.sleep(30)
+    if not _startup_refresh_lock.acquire(blocking=False):
+        return
     try:
+        if _startup_refresh_done:
+            return
         logging.info("Railway startup: refreshing game data...")
         collect_todays_games()
+        _startup_refresh_done = True
         logging.info("Railway startup: game data refresh done")
     except Exception as e:
         logging.warning(f"Railway startup refresh failed (non-fatal): {e}")
+    finally:
+        _startup_refresh_lock.release()
 
 
 # Run seed on startup for Replit and Railway
