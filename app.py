@@ -150,6 +150,9 @@ allowed_origins = [
     'https://app.sharppicks.ai',
     'https://sharppicks.ai',
     'https://www.sharppicks.ai',
+    'capacitor://localhost',
+    'https://localhost',
+    'http://localhost',
 ]
 if not is_production:
     allowed_origins.append('http://localhost:5000')
