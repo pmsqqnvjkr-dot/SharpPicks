@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { useApi, apiPost, apiGet } from '../../hooks/useApi';
+import { useApi, apiPost, apiGet, apiDelete } from '../../hooks/useApi';
 import AuthModal from './AuthModal';
 import HowItWorksScreen from './HowItWorksScreen';
 import BetTrackingScreen from './BetTrackingScreen';
@@ -19,6 +19,8 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
   const [screen, setScreen] = useState(initialScreen || null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [localScreenData, setLocalScreenData] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const activeScreenData = localScreenData || screenData;
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
@@ -150,6 +152,72 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
             color: 'var(--text-secondary)', fontSize: '14px',
             fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)',
           }}>Sign Out</button>
+        </div>
+        <div style={{ marginBottom: '40px' }}>
+          {!deleteConfirm ? (
+            <button onClick={() => setDeleteConfirm(true)} style={{
+              width: '100%', padding: '14px',
+              backgroundColor: 'transparent',
+              border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px',
+              color: 'var(--red-loss)', fontSize: '14px',
+              fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+            }}>Delete Account</button>
+          ) : (
+            <div style={{
+              backgroundColor: 'var(--surface-1)', borderRadius: '12px',
+              padding: '20px', border: '1px solid rgba(239,68,68,0.3)',
+            }}>
+              <p style={{
+                fontSize: '14px', color: 'var(--text-primary)',
+                fontWeight: 600, marginBottom: '8px',
+              }}>Are you sure?</p>
+              <p style={{
+                fontSize: '13px', color: 'var(--text-secondary)',
+                lineHeight: '1.5', marginBottom: '16px',
+              }}>
+                This will permanently delete your account, cancel any active subscription, and remove all your data. This action cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={async () => {
+                    setDeleting(true);
+                    try {
+                      const res = await apiDelete('/account/delete');
+                      if (res?.error) {
+                        alert('Failed to delete account. Please contact support.');
+                      } else {
+                        window.location.reload();
+                      }
+                    } catch {
+                      alert('Failed to delete account. Please contact support.');
+                    }
+                    setDeleting(false);
+                  }}
+                  disabled={deleting}
+                  style={{
+                    flex: 1, padding: '12px',
+                    backgroundColor: 'rgba(239,68,68,0.15)',
+                    border: 'none', borderRadius: '8px',
+                    color: '#ef4444', fontSize: '14px',
+                    fontWeight: 700, cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    opacity: deleting ? 0.5 : 1,
+                  }}
+                >{deleting ? 'Deleting...' : 'Yes, Delete'}</button>
+                <button
+                  onClick={() => setDeleteConfirm(false)}
+                  style={{
+                    flex: 1, padding: '12px',
+                    backgroundColor: 'var(--surface-2)',
+                    border: 'none', borderRadius: '8px',
+                    color: 'var(--text-secondary)', fontSize: '14px',
+                    fontWeight: 600, cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >Cancel</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -398,7 +466,7 @@ function LegalSection() {
           fontSize: '11px', color: 'var(--text-tertiary)', margin: 0,
           lineHeight: '1.6',
         }}>
-          SharpPicks provides sports analytics and model-based insights only. Not financial advice. Not a sportsbook. Past performance does not guarantee future results.
+          Sharp Picks provides sports betting analytics and information for educational and entertainment purposes only. Sharp Picks is not a sportsbook, does not accept wagers or real-money deposits, and does not pay out prizes. Past performance does not guarantee future results. Please gamble responsibly. If you or someone you know has a gambling problem, call 1-800-GAMBLER.
         </p>
         <p style={{
           fontSize: '10px', color: 'var(--text-tertiary)', margin: '8px 0 0', opacity: 0.6,

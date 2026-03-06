@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
+import PullToRefresh from '../shared/PullToRefresh';
 
 function fmtSpread(val) {
   if (val == null || val === '') return '—';
@@ -640,8 +641,8 @@ function LiveBadge({ state, period, clock }) {
 
 export default function MarketView({ onBack }) {
   const { sport } = useSport();
-  const { data, loading } = useApi(sportQuery('/picks/market', sport));
-  const { data: watchedData } = useApi('/picks/watched');
+  const { data, loading, refetch: refetchMarket } = useApi(sportQuery('/picks/market', sport));
+  const { data: watchedData, refetch: refetchWatched } = useApi('/picks/watched');
   const [filter, setFilter] = useState('All');
   const [sort, setSort] = useState('time');
   const [autoSorted, setAutoSorted] = useState(false);
@@ -758,6 +759,10 @@ export default function MarketView({ onBack }) {
   const hasModelData = games.some(g => g.model);
 
   return (
+    <PullToRefresh onRefresh={async () => {
+      await Promise.all([refetchMarket(true), refetchWatched(true)]);
+      await fetchLiveScores();
+    }}>
     <div style={{ minHeight: '100vh' }}>
       {/* Sticky header */}
       <div style={{
@@ -813,12 +818,49 @@ export default function MarketView({ onBack }) {
         )}
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
-            Loading market data...
+          <div style={{ padding: '16px 16px 0' }}>
+            {[1,2,3,4].map(i => (
+              <div key={i} style={{
+                padding: '14px 16px', marginBottom: '8px',
+                backgroundColor: 'var(--surface-1)', borderRadius: '12px',
+                border: '1px solid var(--stroke-subtle)',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <div style={{ width: '45%', height: '14px', borderRadius: '6px',
+                    background: 'linear-gradient(90deg, var(--surface-2) 25%, rgba(255,255,255,0.06) 50%, var(--surface-2) 75%)',
+                    backgroundSize: '200% 100%', animation: 'mktShimmer 1.8s ease-in-out infinite' }} />
+                  <div style={{ width: '20%', height: '14px', borderRadius: '6px',
+                    background: 'linear-gradient(90deg, var(--surface-2) 25%, rgba(255,255,255,0.06) 50%, var(--surface-2) 75%)',
+                    backgroundSize: '200% 100%', animation: 'mktShimmer 1.8s ease-in-out infinite' }} />
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[1,2,3].map(j => (
+                    <div key={j} style={{ flex: 1, height: '32px', borderRadius: '6px',
+                      background: 'linear-gradient(90deg, var(--surface-2) 25%, rgba(255,255,255,0.06) 50%, var(--surface-2) 75%)',
+                      backgroundSize: '200% 100%', animation: 'mktShimmer 1.8s ease-in-out infinite' }} />
+                  ))}
+                </div>
+              </div>
+            ))}
+            <style>{`@keyframes mktShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }`}</style>
           </div>
         ) : sorted.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
-            {games.length === 0 ? 'No games on today\'s slate.' : `No ${filter.toLowerCase()} games.`}
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '12px',
+              backgroundColor: 'var(--surface-2)', margin: '0 auto 16px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10"/><path d="M8 15h8M9 9h.01M15 9h.01"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              {games.length === 0 ? 'No games today' : `No ${filter.toLowerCase()} games`}
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-tertiary)', lineHeight: '1.5' }}>
+              {games.length === 0 ? 'Check back tomorrow for the next slate.' : 'Try a different filter to see more games.'}
+            </div>
           </div>
         ) : grouped ? (
           Array.from(grouped.entries()).map(([time, gamesInSlot]) => (
@@ -856,5 +898,6 @@ export default function MarketView({ onBack }) {
         </p>
       </div>
     </div>
+    </PullToRefresh>
   );
 }

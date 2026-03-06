@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
+import PullToRefresh from '../shared/PullToRefresh';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
 import DailyInsightCard from './DailyInsightCard';
@@ -26,9 +27,9 @@ function formatDateShort(isoStr) {
 export default function PicksTab({ onNavigate }) {
   const { user, loading: authLoading } = useAuth();
   const { sport } = useSport();
-  const { data: todayData, loading, error } = useApi(sportQuery('/picks/today', sport));
-  const { data: stats } = useApi(sportQuery('/public/stats', sport));
-  const { data: historyData, loading: historyLoading } = useApi(sportQuery('/public/record', sport));
+  const { data: todayData, loading, error, refetch: refetchToday } = useApi(sportQuery('/picks/today', sport));
+  const { data: stats, refetch: refetchStats } = useApi(sportQuery('/public/stats', sport));
+  const { data: historyData, loading: historyLoading, refetch: refetchRecord } = useApi(sportQuery('/public/record', sport));
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const { data: lastResolved } = useApi('/picks/last-resolved', { skip: !isPro });
   const [showAuth, setShowAuth] = useState(false);
@@ -66,7 +67,9 @@ export default function PicksTab({ onNavigate }) {
 
   return (
     <div style={{ padding: '0' }}>
-
+      <PullToRefresh onRefresh={async () => {
+        await Promise.all([refetchToday(true), refetchStats(true), refetchRecord(true)]);
+      }}>
       <div style={{ padding: '20px 20px 0' }}>
         {user && user.subscription_status === 'trial' && user.trial_end_date && (() => {
           const daysLeft = Math.max(0, Math.ceil((new Date(user.trial_end_date) - new Date()) / (1000 * 60 * 60 * 24)));
@@ -439,6 +442,7 @@ export default function PicksTab({ onNavigate }) {
       </div>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      </PullToRefresh>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
+import { useNetwork } from '../hooks/useNetwork';
 import { SportProvider } from '../hooks/useSport';
 import TabNav from '../components/sharp/TabNav';
 import AppHeader from '../components/sharp/AppHeader';
@@ -62,8 +63,82 @@ function WelcomeScreen({ onContinue }) {
   );
 }
 
+function AgeGate({ onConfirm }) {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: 'var(--bg-primary)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '40px 24px',
+      textAlign: 'center',
+    }}>
+      <div style={{
+        width: '64px', height: '64px', borderRadius: '16px',
+        backgroundColor: 'var(--surface-2)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginBottom: '24px',
+      }}>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <h1 style={{
+        fontFamily: 'var(--font-serif)', fontSize: '24px', fontWeight: 600,
+        color: 'var(--text-primary)', marginBottom: '12px',
+      }}>Age Verification</h1>
+      <p style={{
+        fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.6',
+        maxWidth: '340px', marginBottom: '8px',
+      }}>
+        Sharp Picks provides sports betting analytics for informational and entertainment purposes only.
+      </p>
+      <p style={{
+        fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5',
+        maxWidth: '320px', marginBottom: '32px',
+      }}>
+        You must be 21 years or older to use this app.
+      </p>
+      <button
+        onClick={() => {
+          localStorage.setItem('sp_age_verified', '1');
+          onConfirm();
+        }}
+        style={{
+          padding: '16px 48px', width: '100%', maxWidth: '320px',
+          background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
+          border: 'none', borderRadius: '14px',
+          color: '#fff', fontSize: '16px', fontWeight: 700,
+          cursor: 'pointer', fontFamily: 'var(--font-sans)',
+          marginBottom: '12px',
+        }}
+      >I am 21 or older</button>
+      <button
+        onClick={() => {
+          window.location.href = 'https://sharppicks.ai';
+        }}
+        style={{
+          padding: '12px 24px',
+          background: 'none', border: 'none',
+          color: 'var(--text-tertiary)', fontSize: '14px',
+          cursor: 'pointer', fontFamily: 'var(--font-sans)',
+        }}
+      >I am under 21</button>
+      <p style={{
+        fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '32px',
+        lineHeight: '1.6', maxWidth: '300px', opacity: 0.7,
+      }}>
+        If you or someone you know has a gambling problem, call 1-800-GAMBLER.
+      </p>
+    </div>
+  );
+}
+
 function AppContent() {
   const { user, loading, checkAuth } = useAuth();
+  const online = useNetwork();
   const location = useLocation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('picks');
@@ -74,6 +149,7 @@ function AppContent() {
   const [profileScreenData, setProfileScreenData] = useState(null);
   const [pickToTrack, setPickToTrack] = useState(null);
   const [perfView, setPerfView] = useState(null);
+  const [ageVerified, setAgeVerified] = useState(() => localStorage.getItem('sp_age_verified') === '1');
 
   const [initialInsight, setInitialInsight] = useState(null);
 
@@ -183,6 +259,10 @@ function AppContent() {
     );
   }
 
+  if (!ageVerified) {
+    return <AgeGate onConfirm={() => setAgeVerified(true)} />;
+  }
+
   if (!user) {
     return <LandingPage />;
   }
@@ -273,6 +353,28 @@ function AppContent() {
         }
         setActiveTab(tab);
       }} />
+      {!online && (
+        <div style={{
+          padding: '8px 16px',
+          backgroundColor: 'rgba(239,68,68,0.12)',
+          borderBottom: '1px solid rgba(239,68,68,0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round">
+            <line x1="1" y1="1" x2="23" y2="23"/>
+            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+            <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+            <line x1="12" y1="20" x2="12.01" y2="20"/>
+          </svg>
+          <span style={{
+            fontSize: '12px', fontWeight: 600, color: '#ef4444',
+            fontFamily: 'var(--font-mono)', letterSpacing: '0.3px',
+          }}>No connection — data may be outdated</span>
+        </div>
+      )}
       <div style={{ flex: 1, paddingBottom: '60px', overflowY: 'auto' }}>
         {activeTab === 'picks' && <PicksTab key={picksResetKey} onNavigate={navigateTo} />}
         {activeTab === 'market' && <MarketView onBack={() => setActiveTab('picks')} />}

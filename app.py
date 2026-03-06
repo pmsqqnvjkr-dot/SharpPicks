@@ -371,6 +371,22 @@ def seed_database():
                     )
                     db.session.add(u)
                     logging.info(f"Created admin account: {acct['email']}")
+
+            review_email = 'review@sharppicks.ai'
+            if not User.query.filter_by(email=review_email).first():
+                review_user = User(
+                    email=review_email,
+                    first_name='App Review',
+                    password_hash=generate_password_hash('SharpReview2026!'),
+                    is_premium=True,
+                    subscription_status='active',
+                    subscription_plan='annual',
+                    trial_used=True,
+                    email_verified=True,
+                )
+                db.session.add(review_user)
+                logging.info("Created App Store review account: review@sharppicks.ai")
+
             db.session.commit()
 
             if Pick.query.count() == 0:
@@ -3614,6 +3630,47 @@ def delete_fcm_token():
     return jsonify({'success': True})
 
 
+@app.route('/api/account/delete', methods=['DELETE'])
+def delete_account():
+    """Delete user account and all associated data. Required by App Store / Play Store."""
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    try:
+        # Cancel Stripe subscription if active
+        if user.stripe_customer_id:
+            try:
+                from stripe_client import get_stripe_client
+                stripe = get_stripe_client()
+                subs = stripe.Subscription.list(customer=user.stripe_customer_id, status='active', limit=10)
+                for sub in subs.data:
+                    stripe.Subscription.delete(sub.id)
+            except Exception:
+                pass  # Don't block deletion if Stripe fails
+
+        user_id = user.id
+
+        # Delete associated data
+        from models import FCMToken, WatchedGame
+        TrackedBet.query.filter_by(user_id=user_id).delete()
+        FCMToken.query.filter_by(user_id=user_id).delete()
+        WatchedGame.query.filter_by(user_id=user_id).delete()
+
+        # Delete the user
+        db.session.delete(user)
+        db.session.commit()
+
+        # Clear session
+        from flask import session as flask_session
+        flask_session.clear()
+
+        return jsonify({'success': True, 'message': 'Account deleted'}), 200
+    except Exception:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete account'}), 500
+
+
 def _normalize_pem_private_key(pk):
     """
     Normalize PEM private key for cryptography library.
@@ -4560,6 +4617,187 @@ def admin_users():
             'created_at': u.created_at.isoformat() if u.created_at else None,
         } for u in users]
     })
+
+@app.route('/privacy')
+def privacy_policy():
+    html = """<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Policy — Sharp Picks</title>
+<style>
+body{margin:0;padding:40px 20px;background:#0A0D14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;max-width:680px;margin:0 auto}
+h1{font-size:24px;margin-bottom:8px;color:#fff}
+h2{font-size:18px;margin-top:32px;color:#fff}
+p,li{font-size:14px;color:#94a3b8}
+a{color:#4f86f7}
+.updated{font-size:12px;color:#64748b;margin-bottom:32px}
+</style></head><body>
+<h1>Privacy Policy</h1>
+<p class="updated">Last updated: March 2, 2026</p>
+
+<h2>1. Information We Collect</h2>
+<p><strong>Account Information:</strong> Email address and password (hashed) when you create an account.</p>
+<p><strong>Usage Data:</strong> App interactions, feature usage, and device information to improve the product.</p>
+<p><strong>Payment Information:</strong> Processed by Stripe. We do not store credit card numbers.</p>
+<p><strong>Push Notification Tokens:</strong> Firebase Cloud Messaging tokens for delivering notifications.</p>
+
+<h2>2. How We Use Your Information</h2>
+<ul>
+<li>Provide and maintain the Sharp Picks service</li>
+<li>Send push notifications for picks, results, and alerts (with your consent)</li>
+<li>Process subscription payments via Stripe</li>
+<li>Analyze usage patterns to improve features</li>
+<li>Respond to support requests</li>
+</ul>
+
+<h2>3. Third-Party Services</h2>
+<p>We use the following third-party services:</p>
+<ul>
+<li><strong>Stripe</strong> — Payment processing (<a href="https://stripe.com/privacy">Stripe Privacy Policy</a>)</li>
+<li><strong>Firebase (Google)</strong> — Push notifications and analytics (<a href="https://firebase.google.com/support/privacy">Firebase Privacy</a>)</li>
+<li><strong>Railway</strong> — Application hosting</li>
+</ul>
+
+<h2>4. Data Retention</h2>
+<p>We retain your data for as long as your account is active. You may delete your account at any time from the app's Account settings, which permanently removes all your data.</p>
+
+<h2>5. Data Sharing</h2>
+<p>We do not sell, rent, or share your personal information with third parties for marketing purposes. Data is shared only with service providers listed above, solely to operate the service.</p>
+
+<h2>6. Your Rights</h2>
+<p>You have the right to:</p>
+<ul>
+<li>Access your personal data</li>
+<li>Request correction of inaccurate data</li>
+<li>Delete your account and all associated data</li>
+<li>Opt out of push notifications at any time</li>
+</ul>
+<p>California residents (CCPA): You have the right to know what data we collect, request deletion, and opt out of data sales (we do not sell data).</p>
+<p>EU/EEA residents (GDPR): You may exercise your rights under GDPR by contacting us.</p>
+
+<h2>7. Children's Privacy</h2>
+<p>Sharp Picks is intended for users 21 years of age and older. We do not knowingly collect information from children under 21.</p>
+
+<h2>8. Security</h2>
+<p>We use HTTPS encryption, hashed passwords, and secure session management to protect your data. No method of transmission over the Internet is 100% secure.</p>
+
+<h2>9. Changes</h2>
+<p>We may update this policy from time to time. Changes will be posted on this page with an updated date.</p>
+
+<h2>10. Contact</h2>
+<p>Questions? Email <a href="mailto:support@sharppicks.ai">support@sharppicks.ai</a></p>
+</body></html>"""
+    return Response(html, content_type='text/html')
+
+
+@app.route('/terms')
+def terms_of_service():
+    html = """<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terms of Service — Sharp Picks</title>
+<style>
+body{margin:0;padding:40px 20px;background:#0A0D14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;max-width:680px;margin:0 auto}
+h1{font-size:24px;margin-bottom:8px;color:#fff}
+h2{font-size:18px;margin-top:32px;color:#fff}
+p,li{font-size:14px;color:#94a3b8}
+a{color:#4f86f7}
+.updated{font-size:12px;color:#64748b;margin-bottom:32px}
+</style></head><body>
+<h1>Terms of Service</h1>
+<p class="updated">Last updated: March 2, 2026</p>
+
+<h2>1. Acceptance</h2>
+<p>By using Sharp Picks, you agree to these Terms of Service. If you do not agree, do not use the app.</p>
+
+<h2>2. Eligibility</h2>
+<p>You must be at least 21 years old to use Sharp Picks. By using the app, you represent that you meet this age requirement and that sports betting is legal in your jurisdiction.</p>
+
+<h2>3. Nature of the Service</h2>
+<p><strong>Sharp Picks is NOT a sportsbook.</strong> We do not accept wagers, handle deposits, or pay out prizes. Sharp Picks provides sports betting analytics, model-generated pick recommendations, and informational content for educational and entertainment purposes only.</p>
+
+<h2>4. No Guarantee of Results</h2>
+<p>Past performance does not guarantee future results. Sports betting involves risk. Model predictions are probabilistic estimates, not certainties. You are solely responsible for any betting decisions you make.</p>
+
+<h2>5. Accounts</h2>
+<p>You are responsible for maintaining the confidentiality of your account credentials. You may delete your account at any time from the app settings.</p>
+
+<h2>6. Subscriptions</h2>
+<p>Paid subscriptions are processed through Stripe. Subscription terms:</p>
+<ul>
+<li>Free trial: 14 days with full access. Payment method required.</li>
+<li>Monthly: $29/month, billed monthly</li>
+<li>Annual: $149/year (or $99/year founding rate while available)</li>
+<li>Cancel anytime — access continues until the end of your billing period</li>
+<li>No refunds for partial billing periods</li>
+</ul>
+
+<h2>7. Acceptable Use</h2>
+<p>You agree not to:</p>
+<ul>
+<li>Resell, redistribute, or publicly share pick content</li>
+<li>Use automated tools to scrape data from the service</li>
+<li>Attempt to reverse-engineer the model or algorithms</li>
+<li>Harass other users or staff</li>
+</ul>
+
+<h2>8. Intellectual Property</h2>
+<p>All content, including model outputs, journal articles, and analytics, is the property of Sharp Picks. You may not reproduce or distribute this content without permission.</p>
+
+<h2>9. Responsible Gambling</h2>
+<p>Sharp Picks encourages responsible gambling. Never bet more than you can afford to lose. If you or someone you know has a gambling problem, please call 1-800-GAMBLER or visit <a href="https://www.ncpgambling.org">ncpgambling.org</a>.</p>
+
+<h2>10. Limitation of Liability</h2>
+<p>Sharp Picks is provided "as is" without warranties of any kind. We are not liable for any losses resulting from the use of our service, including but not limited to financial losses from betting decisions.</p>
+
+<h2>11. Changes</h2>
+<p>We reserve the right to modify these terms. Continued use after changes constitutes acceptance.</p>
+
+<h2>12. Contact</h2>
+<p>Questions? Email <a href="mailto:support@sharppicks.ai">support@sharppicks.ai</a></p>
+</body></html>"""
+    return Response(html, content_type='text/html')
+
+
+@app.route('/disclaimer')
+def disclaimer_page():
+    html = """<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Disclaimer — Sharp Picks</title>
+<style>
+body{margin:0;padding:40px 20px;background:#0A0D14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;max-width:680px;margin:0 auto}
+h1{font-size:24px;margin-bottom:8px;color:#fff}
+h2{font-size:18px;margin-top:32px;color:#fff}
+p,li{font-size:14px;color:#94a3b8}
+a{color:#4f86f7}
+.updated{font-size:12px;color:#64748b;margin-bottom:32px}
+.box{background:#111827;border:1px solid #1e293b;border-radius:12px;padding:20px;margin:24px 0}
+</style></head><body>
+<h1>Disclaimer</h1>
+<p class="updated">Last updated: March 2, 2026</p>
+
+<div class="box">
+<p style="color:#e2e8f0;font-weight:600;margin-top:0">Sharp Picks provides sports betting analytics and information for educational and entertainment purposes only.</p>
+<p>Sharp Picks is not a sportsbook, does not accept wagers or real-money deposits, and does not pay out prizes.</p>
+<p>Past performance does not guarantee future results. All model predictions are probabilistic estimates and should not be considered financial advice.</p>
+<p style="margin-bottom:0">Please gamble responsibly. If you or someone you know has a gambling problem, call <strong>1-800-GAMBLER</strong> or visit <a href="https://www.ncpgambling.org">ncpgambling.org</a>.</p>
+</div>
+
+<h2>About the Model</h2>
+<p>Sharp Picks uses an ensemble machine learning model to analyze NBA games. The model produces probabilistic estimates of game outcomes. These estimates are based on historical data and statistical patterns. They are not guarantees.</p>
+
+<h2>Your Responsibility</h2>
+<p>Any decisions to place bets based on information provided by Sharp Picks are made at your own risk and discretion. You are solely responsible for your betting activity and any associated financial outcomes.</p>
+
+<h2>Age Requirement</h2>
+<p>You must be at least 21 years old to use Sharp Picks. By using the app, you confirm that you meet this requirement and that sports betting is legal in your jurisdiction.</p>
+
+<h2>No Professional Advice</h2>
+<p>Nothing in Sharp Picks constitutes professional financial, investment, or gambling advice. Consult a qualified professional before making financial decisions.</p>
+
+<h2>Contact</h2>
+<p>Questions? Email <a href="mailto:support@sharppicks.ai">support@sharppicks.ai</a></p>
+</body></html>"""
+    return Response(html, content_type='text/html')
+
 
 @app.route('/manifest.webmanifest')
 def serve_manifest():
