@@ -463,7 +463,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                     {pendingBets.map((bet, i) => (
                       <BetRow key={bet.id} bet={bet} isLast={i === pendingBets.length - 1}
                         confirmDelete={confirmDelete}
-                        setConfirmDelete={setConfirmDelete} onDelete={handleDelete} />
+                        setConfirmDelete={setConfirmDelete} onDelete={handleDelete} onGraded={loadBets} />
                     ))}
                   </div>
                 </div>
@@ -1137,7 +1137,7 @@ function EmptyDashboard({ onTrack }) {
   );
 }
 
-function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete }) {
+function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGraded }) {
   const pickResultLabel = bet.pick_result && bet.pick_result !== 'pending'
     ? bet.pick_result : null;
 
@@ -1147,7 +1147,20 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete }) {
   const swiping = useRef(false);
   const [offset, setOffset] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [grading, setGrading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const deleteThreshold = 80;
+
+  const handleGrade = async (result) => {
+    setSubmitting(true);
+    const profit = result === 'W' ? (bet.to_win || 0) : result === 'P' ? 0 : -(bet.bet_amount || 0);
+    try {
+      await apiPost(`/bets/${bet.id}/result`, { result, profit });
+      if (onGraded) onGraded();
+    } catch { /* silent */ }
+    setSubmitting(false);
+    setGrading(false);
+  };
 
   const onTouchStart = useCallback((e) => {
     startX.current = e.touches[0].clientX;
@@ -1286,16 +1299,54 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete }) {
                 {bet.result === 'W' ? `+$${Math.abs(bet.profit || 0).toFixed(0)}` : bet.result === 'P' ? 'Push' : `-$${Math.abs(bet.profit || 0).toFixed(0)}`}
               </div>
             ) : (
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-                padding: '4px 10px', borderRadius: '6px',
-                backgroundColor: 'rgba(79, 134, 247, 0.12)',
-                color: 'var(--blue-primary)',
-                letterSpacing: '0.3px',
-              }}>Awaiting Result</div>
+              <button
+                onClick={(e) => { e.stopPropagation(); setGrading(!grading); }}
+                style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+                  padding: '4px 10px', borderRadius: '6px',
+                  backgroundColor: grading ? 'rgba(251,191,36,0.18)' : 'rgba(251,191,36,0.12)',
+                  color: '#f59e0b',
+                  letterSpacing: '0.3px', border: 'none', cursor: 'pointer',
+                  transition: 'background-color 0.15s',
+                }}>Grade</button>
             )}
           </div>
         </div>
+        {!bet.result && grading && (
+          <div style={{
+            marginTop: '10px', paddingTop: '10px',
+            borderTop: '1px solid var(--stroke-subtle)',
+            display: 'flex', gap: '8px', justifyContent: 'center',
+          }}>
+            {[
+              { result: 'W', label: 'Win', color: 'var(--green-profit)', bg: 'rgba(52,211,153,0.12)' },
+              { result: 'L', label: 'Loss', color: 'var(--red-loss)', bg: 'rgba(239,68,68,0.12)' },
+              { result: 'P', label: 'Push', color: 'var(--text-tertiary)', bg: 'rgba(100,116,139,0.12)' },
+            ].map(opt => (
+              <button
+                key={opt.result}
+                onClick={() => handleGrade(opt.result)}
+                disabled={submitting}
+                style={{
+                  flex: 1, padding: '8px 12px', borderRadius: '8px',
+                  fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                  fontFamily: 'var(--font-mono)', border: 'none',
+                  backgroundColor: opt.bg, color: opt.color,
+                  opacity: submitting ? 0.5 : 1,
+                  transition: 'opacity 0.15s',
+                }}
+              >{opt.label}</button>
+            ))}
+            <button
+              onClick={() => setGrading(false)}
+              style={{
+                padding: '8px', borderRadius: '8px', border: 'none',
+                backgroundColor: 'transparent', cursor: 'pointer',
+                color: 'var(--text-tertiary)', fontSize: '12px',
+              }}
+            >✕</button>
+          </div>
+        )}
       </div>
     </div>
   );
