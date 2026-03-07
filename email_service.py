@@ -71,16 +71,39 @@ def send_email(to, subject, html, reply_to=None, from_email=None, attachments=No
 # ── Shared email base template ──
 # Dark terminal aesthetic, table-based for Outlook, inline CSS.
 
+def check_email_pref(to_email, pref_key):
+    """Check if a user has opted into a specific email category.
+    Returns True if the email should be sent, False if the user unsubscribed.
+    Always returns True if the user is not found (fail-open for transactional)."""
+    try:
+        from models import User
+        user = User.query.filter_by(email=to_email).first()
+        if not user:
+            return True
+        prefs = user.notification_prefs or {}
+        return prefs.get(pref_key, True)
+    except Exception:
+        return True
+
+
+def _make_unsub_url(to_email, category='all'):
+    try:
+        from itsdangerous import URLSafeTimedSerializer
+        secret = os.environ.get('SESSION_SECRET', os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production'))
+        s = URLSafeTimedSerializer(secret)
+        token = s.dumps(to_email, salt='email-unsubscribe')
+        return f'{get_base_url()}/unsubscribe?token={token}&cat={category}'
+    except Exception:
+        return f'{get_base_url()}/unsubscribe'
+
+
 def _base_template(type_label, body_html, cta_text=None, cta_url=None,
-                   fine_print=None, unsubscribe=False):
+                   fine_print=None, to_email=None, unsub_category='all'):
     base = get_base_url()
-    unsub_html = ''
-    if unsubscribe:
-        unsub_html = f'''
+    unsub_url = _make_unsub_url(to_email, unsub_category) if to_email else f'{base}/unsubscribe'
+    unsub_html = f'''
         <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#444444;text-align:center;margin:8px 0 0;">
-          <a href="{base}/unsubscribe" style="color:#4A9EFF;text-decoration:underline;">Unsubscribe</a>
-          &nbsp;&middot;&nbsp;
-          <a href="{base}/preferences" style="color:#4A9EFF;text-decoration:underline;">Manage preferences</a>
+          <a href="{unsub_url}" style="color:#4A9EFF;text-decoration:underline;">Unsubscribe</a>
         </p>'''
 
     cta_html = ''
@@ -161,6 +184,7 @@ def send_password_reset(to, reset_url, first_name=None):
         'ACCOUNT SECURITY', body,
         cta_text='RESET PASSWORD', cta_url=reset_url,
         fine_print='This link expires in 1 hour. If you did not request this, no action is needed.',
+        to_email=to,
     )
     return send_email(to, 'SharpPicks \u2014 Password reset requested', html)
 
@@ -180,6 +204,7 @@ def send_verification_email(to, verify_url, first_name=None):
         'ACCOUNT VERIFICATION', body,
         cta_text='VERIFY EMAIL', cta_url=verify_url,
         fine_print='This link expires in 24 hours. If you did not create this account, no action is needed.',
+        to_email=to,
     )
     return send_email(to, 'SharpPicks \u2014 Verify your email', html)
 
@@ -203,6 +228,7 @@ def send_welcome_email(to, first_name=None):
         'ACCOUNT STATUS', body,
         cta_text='ENTER MARKET VIEW', cta_url=f'{base}/',
         fine_print='Questions? Reply to this email or contact support@sharppicks.ai',
+        to_email=to,
     )
     return send_email(to, 'SharpPicks \u2014 Account active', html)
 
@@ -238,6 +264,7 @@ def send_trial_started_email(to, trial_start=None, trial_end=None):
         'ACCOUNT STATUS', body,
         cta_text='VIEW TODAY\'S MARKET', cta_url=f'{base}/',
         fine_print=f'Your trial will convert to a paid subscription on {end_str} unless cancelled.' if end_str else None,
+        to_email=to,
     )
     return send_email(to, 'SharpPicks \u2014 Trial period active', html)
 
@@ -267,6 +294,7 @@ def send_trial_expiring_email(to, first_name=None, trial_end_date=None, picks_re
         'ACCOUNT NOTICE', body,
         cta_text='MANAGE SUBSCRIPTION', cta_url=f'{base}/subscribe',
         fine_print='To cancel, manage your subscription before the trial end date.',
+        to_email=to,
     )
     return send_email(to, 'SharpPicks \u2014 Trial expires tomorrow', html)
 
@@ -286,6 +314,7 @@ def send_trial_expired_email(to, first_name=None):
     html = _base_template(
         'ACCOUNT STATUS', body,
         cta_text='SUBSCRIBE', cta_url=f'{base}/subscribe',
+        to_email=to,
     )
     return send_email(to, 'SharpPicks \u2014 Trial period ended', html)
 
@@ -319,6 +348,7 @@ def send_cancellation_email(to, first_name=None, access_end_date=None, is_foundi
     html = _base_template(
         'ACCOUNT STATUS', body,
         cta_text='RESUBSCRIBE', cta_url=f'{base}/subscribe',
+        to_email=to,
     )
     return send_email(to, 'SharpPicks \u2014 Subscription cancelled', html)
 
@@ -338,6 +368,7 @@ def send_payment_failed_email(to, first_name=None):
     html = _base_template(
         'BILLING NOTICE', body,
         cta_text='UPDATE PAYMENT', cta_url=f'{base}/',
+        to_email=to,
     )
     return send_email(to, 'SharpPicks \u2014 Payment issue', html)
 
@@ -345,6 +376,9 @@ def send_payment_failed_email(to, first_name=None):
 # ── 9. Signal Generated (P0 — most important email) ──
 
 def send_signal_email(to, pick):
+    if not check_email_pref(to, 'email_signals'):
+        logging.info(f"Skipping signal email to {to} — unsubscribed")
+        return False
     base = get_base_url()
     side = pick.get('side', '') if isinstance(pick, dict) else (pick.side or '')
     edge = pick.get('edge_pct', 0) if isinstance(pick, dict) else (pick.edge_pct or 0)
@@ -396,6 +430,7 @@ def send_signal_email(to, pick):
         'SIGNAL GENERATED', body,
         cta_text='VIEW FULL ANALYSIS', cta_url=f'{base}/',
         fine_print='This signal was generated by the SharpPicks model. Past performance does not guarantee future results.',
+        to_email=to, unsub_category='email_signals',
     )
     return send_email(to, f'SharpPicks Signal \u2014 {side}', html)
 
@@ -403,6 +438,9 @@ def send_signal_email(to, pick):
 # ── 10. Signal Result ──
 
 def send_result_email(to, pick):
+    if not check_email_pref(to, 'email_results'):
+        logging.info(f"Skipping result email to {to} — unsubscribed")
+        return False
     base = get_base_url()
     side = pick.get('side', '') if isinstance(pick, dict) else (pick.side or '')
     result = pick.get('result', '') if isinstance(pick, dict) else (pick.result or '')
@@ -460,6 +498,7 @@ def send_result_email(to, pick):
     html = _base_template(
         'SIGNAL RESULT', body,
         cta_text='VIEW FULL RESULTS', cta_url=f'{base}/',
+        to_email=to, unsub_category='email_results',
     )
     return send_email(to, f'SharpPicks Result \u2014 {side} {subject_icon} {result_label}', html)
 
@@ -467,6 +506,9 @@ def send_result_email(to, pick):
 # ── 11. Weekly Recap ──
 
 def send_weekly_summary(to, first_name=None, stats=None):
+    if not check_email_pref(to, 'email_weekly'):
+        logging.info(f"Skipping weekly summary email to {to} — unsubscribed")
+        return False
     base = get_base_url()
     s = stats or {}
     wins = s.get('wins', 0)
@@ -516,7 +558,7 @@ def send_weekly_summary(to, first_name=None, stats=None):
     html = _base_template(
         'WEEKLY REPORT', body,
         cta_text='VIEW FULL REPORT', cta_url=f'{base}/',
-        unsubscribe=True,
+        to_email=to, unsub_category='email_weekly',
     )
     subj = f'SharpPicks Weekly \u2014 {record_str} \u00b7 {"+" if units >= 0 else ""}{units:.1f}u \u00b7 {roi:+.1f}% ROI' if picks_made > 0 else 'SharpPicks Weekly \u2014 All pass week'
     return send_email(to, subj, html, reply_to='evan@sharppicks.ai')
@@ -553,6 +595,7 @@ def send_founding_member_email(to, member_number=None, total=100, joined_date=No
     html = _base_template(
         'MEMBER STATUS', body,
         cta_text='ENTER MARKET VIEW', cta_url=f'{base}/',
+        to_email=to,
     )
     return send_email(to, 'SharpPicks \u2014 Founding member status confirmed', html)
 
@@ -560,6 +603,9 @@ def send_founding_member_email(to, member_number=None, total=100, joined_date=No
 # ── 13. Daily Market Scan Complete (No Signal) ──
 
 def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0):
+    if not check_email_pref(to, 'email_marketing'):
+        logging.info(f"Skipping no-signal email to {to} — unsubscribed")
+        return False
     base = get_base_url()
 
     body = f'''
@@ -583,7 +629,7 @@ def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0):
     html = _base_template(
         'MARKET SCAN', body,
         cta_text='VIEW MARKET REPORT', cta_url=f'{base}/',
-        unsubscribe=True,
+        to_email=to, unsub_category='email_marketing',
     )
     return send_email(to, 'SharpPicks \u2014 Market scan complete \u00b7 No qualifying signal', html)
 
@@ -678,6 +724,9 @@ def send_welcome(to, first_name=None):
       <hr style="border: none; border-top: 1px solid #2A2A2A; margin: 36px 0;">
       <p style="font-size: 12px; color: #444; text-align: center;">SharpPicks &mdash; Discipline is the product.</p>
       <p style="font-size: 12px; color: #444; text-align: center; margin-top: 4px;">support@sharppicks.ai</p>
+      <p style="font-size: 12px; color: #444; text-align: center; margin-top: 8px;">
+        <a href="{_make_unsub_url(to)}" style="color:#4A9EFF;text-decoration:underline;">Unsubscribe</a>
+      </p>
     </div>
     """
     return send_email(

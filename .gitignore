@@ -11,3 +11,4 @@ venv/
 firebase-service-account.json
 uv.lock
 node_modules
+sharp-picks-release.keystore

@@ -3601,6 +3601,10 @@ NOTIFICATION_PREF_DEFAULTS = {
     'quiet_hours_enabled': False,
     'quiet_hours_start': '23:00',
     'quiet_hours_end': '08:00',
+    'email_signals': True,
+    'email_results': True,
+    'email_weekly': True,
+    'email_marketing': True,
 }
 
 
@@ -3621,6 +3625,76 @@ def update_notification_prefs():
     user.notification_prefs = data.get('prefs', user.notification_prefs)
     db.session.commit()
     return jsonify({'success': True, 'prefs': user.notification_prefs})
+
+
+@app.route('/unsubscribe')
+def unsubscribe_page():
+    from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+    token = request.args.get('token', '')
+    category = request.args.get('cat', 'all')
+
+    if not token:
+        return _unsub_html('Invalid unsubscribe link.', success=False)
+
+    s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    try:
+        email = s.loads(token, salt='email-unsubscribe', max_age=60 * 60 * 24 * 365)
+    except (SignatureExpired, BadSignature):
+        return _unsub_html('This unsubscribe link has expired or is invalid.', success=False)
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return _unsub_html('Account not found.', success=False)
+
+    prefs = dict(user.notification_prefs or {})
+
+    if category == 'all':
+        prefs['email_signals'] = False
+        prefs['email_results'] = False
+        prefs['email_weekly'] = False
+        prefs['email_marketing'] = False
+    elif category in ('email_signals', 'email_results', 'email_weekly', 'email_marketing'):
+        prefs[category] = False
+    else:
+        prefs['email_signals'] = False
+        prefs['email_results'] = False
+        prefs['email_weekly'] = False
+        prefs['email_marketing'] = False
+
+    user.notification_prefs = prefs
+    db.session.commit()
+
+    label = {
+        'all': 'all emails',
+        'email_signals': 'signal emails',
+        'email_results': 'result emails',
+        'email_weekly': 'weekly recap emails',
+        'email_marketing': 'marketing emails',
+    }.get(category, 'all emails')
+
+    return _unsub_html(f'You have been unsubscribed from {label}.', success=True, email=email)
+
+
+def _unsub_html(message, success=True, email=None):
+    color = '#5A9E72' if success else '#CC3333'
+    icon = '&#x2714;' if success else '&#x2718;'
+    renable = '<p style="font-size:13px;color:#666;">You can re-enable emails anytime in your account settings.</p>' if success else ''
+    html = f'''<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SharpPicks &mdash; Unsubscribe</title></head>
+<body style="margin:0;padding:0;background:#0D0D0D;font-family:Arial,Helvetica,sans-serif;">
+<div style="max-width:480px;margin:80px auto;text-align:center;padding:40px 24px;">
+  <p style="font-size:13px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#FFFFFF;margin:0 0 32px;">
+    SHARP<span style="opacity:0.5;margin:0 0.35em;font-weight:500;letter-spacing:0.15em;">||</span>PICKS
+  </p>
+  <div style="font-size:36px;color:{color};margin:0 0 16px;">{icon}</div>
+  <p style="font-size:16px;color:#FFFFFF;margin:0 0 12px;">{message}</p>
+  {renable}
+  <a href="https://app.sharppicks.ai" style="display:inline-block;margin-top:24px;padding:12px 28px;background:#5A9E72;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;">Open SharpPicks</a>
+</div>
+</body></html>'''
+    return html, 200, {'Content-Type': 'text/html'}
+
 
 @app.route('/api/user/fcm-token', methods=['POST'])
 def save_fcm_token():

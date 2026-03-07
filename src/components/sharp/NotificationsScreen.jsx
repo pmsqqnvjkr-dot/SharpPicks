@@ -14,6 +14,10 @@ export default function NotificationsScreen({ onBack }) {
     quiet_hours_enabled: false,
     quiet_hours_start: '23:00',
     quiet_hours_end: '08:00',
+    email_signals: true,
+    email_results: true,
+    email_weekly: true,
+    email_marketing: true,
   });
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -249,6 +253,44 @@ export default function NotificationsScreen({ onBack }) {
               }}>ET</span>
             </div>
           )}
+        </div>
+
+        {/* Email Preferences */}
+        <SectionLabel text="Email Notifications" />
+        <div style={{
+          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+          overflow: 'hidden', border: '1px solid var(--stroke-subtle)',
+          opacity: user ? 1 : 0.6, marginBottom: '16px',
+        }}>
+          <ToggleRow
+            label="Signal emails"
+            subtitle="Email when a new signal is generated"
+            active={prefs.email_signals}
+            onToggle={() => togglePref('email_signals')}
+            disabled={!user}
+          />
+          <ToggleRow
+            label="Result emails"
+            subtitle="Email when a signal outcome is graded"
+            active={prefs.email_results}
+            onToggle={() => togglePref('email_results')}
+            disabled={!user}
+          />
+          <ToggleRow
+            label="Weekly recap"
+            subtitle="Weekly performance summary email"
+            active={prefs.email_weekly}
+            onToggle={() => togglePref('email_weekly')}
+            disabled={!user}
+          />
+          <ToggleRow
+            label="Market updates"
+            subtitle="Daily scan results and other updates"
+            active={prefs.email_marketing}
+            onToggle={() => togglePref('email_marketing')}
+            disabled={!user}
+            last
+          />
         </div>
 
         {user && (
