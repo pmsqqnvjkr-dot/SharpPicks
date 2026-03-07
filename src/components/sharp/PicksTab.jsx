@@ -69,7 +69,8 @@ export default function PicksTab({ onNavigate }) {
   const filtered = filter === 'all' ? picks
     : filter === 'wins' ? picks.filter(p => p.result === 'win')
     : filter === 'losses' ? picks.filter(p => p.result === 'loss')
-    : picks.filter(p => p.result === 'pending');
+    : filter === 'active' ? picks.filter(p => p.result === 'pending')
+    : picks.filter(p => p.result === 'revoked' || p.result === 'push');
 
   return (
     <div style={{ padding: '0' }}>
@@ -280,31 +281,50 @@ export default function PicksTab({ onNavigate }) {
       </div>
 
       <div style={{ padding: '0 20px', marginTop: '32px' }}>
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-          marginBottom: '14px',
-        }}>
+        {/* Section Header */}
+        <div style={{ marginBottom: '14px' }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
-            letterSpacing: '0.08em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)',
-          }}>Signal History</div>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '11px',
-            color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums',
-          }}>{picks.length} signals</div>
+            display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          }}>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)',
+            }}>Signal History</div>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '11px',
+              color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums',
+            }}>{picks.length} signals</div>
+          </div>
+          {stats && (
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '12px',
+              color: 'var(--text-tertiary)', marginTop: '4px',
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              Season 2025-26 &middot; {stats.record || `${stats.wins || 0}-${stats.losses || 0}`} &middot; {stats.pnl >= 0 ? '+' : ''}{Number(stats.pnl || 0).toFixed(1)}u
+            </div>
+          )}
         </div>
 
+        {/* Filter Tabs */}
         <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-          {['all', 'wins', 'losses', 'pending'].map(f => (
-            <button key={f} onClick={() => { setFilter(f); setShowAllPicks(false); }} style={{
-              padding: '5px 12px', borderRadius: '8px', fontSize: '11px',
-              fontWeight: 600, cursor: 'pointer',
-              textTransform: 'capitalize', fontFamily: 'var(--font-sans)',
-              backgroundColor: filter === f ? 'rgba(79,125,243,0.18)' : 'rgba(255,255,255,0.04)',
-              color: filter === f ? '#FFFFFF' : 'rgba(255,255,255,0.55)',
-              border: filter === f ? '1px solid rgba(79,125,243,0.45)' : '1px solid transparent',
-            }}>{f}</button>
+          {[
+            { key: 'all', label: 'All' },
+            { key: 'wins', label: 'Wins' },
+            { key: 'losses', label: 'Losses' },
+            { key: 'active', label: 'Active' },
+            { key: 'other', label: 'Other' },
+          ].map(f => (
+            <button key={f.key} onClick={() => { setFilter(f.key); setShowAllPicks(false); }} style={{
+              padding: '6px 14px', borderRadius: '4px', fontSize: '13px',
+              fontWeight: filter === f.key ? 600 : 400, cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              backgroundColor: filter === f.key ? '#FFFFFF' : 'transparent',
+              color: filter === f.key ? '#0D0D0D' : 'var(--text-tertiary)',
+              border: filter === f.key ? 'none' : '1px solid var(--color-border)',
+              transition: 'none',
+            }}>{f.label}</button>
           ))}
         </div>
 
@@ -313,12 +333,7 @@ export default function PicksTab({ onNavigate }) {
             Loading...
           </p>
         ) : filtered.length === 0 ? (
-          <div style={{
-            textAlign: 'center', padding: '40px 0',
-            color: 'var(--text-tertiary)', fontSize: '14px',
-          }}>
-            {filter === 'wins' ? 'No wins recorded this season.' : filter === 'losses' ? 'No losses recorded this season.' : filter === 'pending' ? 'No pending signals.' : 'No signals found'}
-          </div>
+          <SignalHistoryEmpty filter={filter} totalCount={picks.length} />
         ) : (() => {
           const isTruncated = !showAllPicks && filtered.length > HISTORY_DEFAULT_LIMIT;
           const displayPicks = isTruncated ? filtered.slice(0, HISTORY_DEFAULT_LIMIT) : filtered;
@@ -328,137 +343,28 @@ export default function PicksTab({ onNavigate }) {
             backgroundColor: 'var(--surface-1)', borderRadius: '16px',
             overflow: 'hidden', border: '1px solid var(--stroke-subtle)',
           }}>
-            {displayPicks.map((pick, i) => {
-              const pickResolved = pick.result === 'win' || pick.result === 'loss';
-              const isPending = pick.result === 'pending';
-              const isRevoked = pick.result === 'revoked';
-              const hideLine = !isPro && isPending;
-              const canView = isPro && (pickResolved || isRevoked);
-              return (
-                <div key={pick.id} onClick={() => canView && (() => { setResolutionPick(pick); setShowResolution(true); })()} style={{
-                  padding: '14px 20px',
-                  borderBottom: i < displayPicks.length - 1 ? '1px solid var(--stroke-subtle)' : 'none',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  cursor: canView ? 'pointer' : 'default',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {pickResolved && (
-                      <span style={{
-                        fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
-                        width: '22px', height: '22px', borderRadius: '6px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                        backgroundColor: pick.result === 'win' ? 'var(--color-signal-bg)' : 'rgba(196,104,107,0.08)',
-                        color: pick.result === 'win' ? 'var(--color-signal)' : 'var(--color-loss)',
-                        border: `1px solid ${pick.result === 'win' ? 'var(--color-signal-border)' : 'rgba(196,104,107,0.22)'}`,
-                      }}>
-                        {pick.result === 'win' ? 'W' : 'L'}
-                      </span>
-                    )}
-                    <div>
-                    <div style={{
-                      fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
-                    }}>
-                      {hideLine ? `${pick.away_team} @ ${pick.home_team}` : (pick.side || `${pick.away_team} @ ${pick.home_team}`)}
-                    </div>
-                    {!hideLine && (
-                      <div style={{
-                        fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
-                      }}>{pick.away_team} @ {pick.home_team}</div>
-                    )}
-                    <div style={{
-                      fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
-                      fontFamily: 'var(--font-mono)',
-                    }}>{formatDateShort(pick.game_date)}</div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ textAlign: 'right' }}>
-                      {hideLine ? (
-                        <span style={{
-                          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-                          color: 'rgba(255,255,255,0.5)',
-                          backgroundColor: 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          padding: '4px 10px', borderRadius: '20px',
-                          display: 'inline-block',
-                        }}>Pending</span>
-                      ) : (
-                        <>
-                        {isRevoked ? (
-                          <span style={{
-                            fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-                            color: 'rgba(255,255,255,0.5)',
-                            backgroundColor: 'rgba(255,255,255,0.06)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            padding: '4px 10px', borderRadius: '20px',
-                            display: 'inline-block',
-                          }}>Withdrawn</span>
-                        ) : isPending ? (
-                          <span style={{
-                            fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-                            color: 'rgba(255,255,255,0.5)',
-                            backgroundColor: 'rgba(255,255,255,0.06)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            padding: '4px 10px', borderRadius: '20px',
-                            display: 'inline-block',
-                          }}>Pending</span>
-                        ) : (
-                        <div style={{
-                          fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
-                          fontVariantNumeric: 'tabular-nums',
-                          color: pick.result === 'win' ? 'var(--color-signal)'
-                            : pick.result === 'loss' ? 'var(--color-loss)'
-                            : 'var(--text-tertiary)',
-                        }}>
-                          {(() => {
-                            const units = pick.profit_units != null ? pick.profit_units : (pick.pnl != null ? pick.pnl / 100 : null);
-                            if (pick.result === 'win') return `+${units != null ? Math.abs(units).toFixed(1) : '0.9'}u`;
-                            if (pick.result === 'loss') return `-${units != null ? Math.abs(units).toFixed(1) : '1.0'}u`;
-                            return '';
-                          })()}
-                        </div>
-                        )}
-                        </>
-                      )}
-                      {isPro && pick.edge_pct && (
-                        <div style={{
-                          fontSize: '10px', color: 'rgba(255,255,255,0.45)', marginTop: '2px',
-                          fontFamily: 'var(--font-mono)',
-                        }}>{pick.edge_pct}% edge</div>
-                      )}
-                    </div>
-                    {pickResolved && (
-                      <button onClick={(e) => {
-                        e.stopPropagation();
-                        shareCard({ cardUrl: `/api/cards/result/${pick.id}`, text: resultShareText(pick) });
-                      }} style={{
-                        background: 'none', border: 'none', padding: '8px',
-                        cursor: 'pointer', minWidth: '44px', minHeight: '44px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <ShareIcon size={14} />
-                      </button>
-                    )}
-                    {canView && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
-                        <polyline points="9 18 15 12 9 6"/>
-                      </svg>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {displayPicks.map((pick, i) => (
+              <SignalHistoryRow
+                key={pick.id}
+                pick={pick}
+                isPro={isPro}
+                isLast={i === displayPicks.length - 1}
+                onView={() => { setResolutionPick(pick); setShowResolution(true); }}
+                onShare={() => shareCard({ cardUrl: `/api/cards/result/${pick.id}`, text: resultShareText(pick) })}
+              />
+            ))}
           </div>
           {isTruncated && (
             <button onClick={() => setShowAllPicks(true)} style={{
               width: '100%', padding: '14px', marginTop: '8px',
-              backgroundColor: 'var(--surface-1)', borderRadius: '12px',
-              border: '1px solid var(--stroke-subtle)',
-              color: 'var(--blue-primary)', fontSize: '13px', fontWeight: 600,
+              background: 'none', borderRadius: '4px',
+              border: '1px solid var(--color-border)',
+              color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 400,
               fontFamily: 'var(--font-sans)', cursor: 'pointer',
               letterSpacing: '0.01em',
-            }}>Show all {filtered.length} signals</button>
+            }}>
+              View complete signal history&nbsp;&nbsp;<span style={{ color: 'var(--text-tertiary)' }}>({filtered.length})</span>
+            </button>
           )}
           {showAllPicks && filtered.length > HISTORY_DEFAULT_LIMIT && (
             <button onClick={() => setShowAllPicks(false)} style={{
@@ -475,6 +381,180 @@ export default function PicksTab({ onNavigate }) {
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
       </PullToRefresh>
+    </div>
+  );
+}
+
+
+function StatusBadge({ result }) {
+  const config = {
+    win:     { label: 'W',  bg: '#1B7A3D', color: '#FFFFFF' },
+    loss:    { label: 'L',  bg: '#CC3333', color: '#FFFFFF' },
+    pending: { label: 'P',  bg: '#2A2A2A', color: '#AAAAAA' },
+    revoked: { label: 'WD', bg: '#2A2A2A', color: '#666666' },
+    push:    { label: 'PU', bg: '#2A2A2A', color: '#AAAAAA' },
+  };
+  const c = config[result] || config.pending;
+  const isWide = c.label.length > 1;
+  return (
+    <span style={{
+      fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
+      width: isWide ? '32px' : '24px', height: '24px', borderRadius: '6px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0, backgroundColor: c.bg, color: c.color,
+      letterSpacing: isWide ? '-0.02em' : '0',
+    }}>
+      {c.label}
+    </span>
+  );
+}
+
+function SignalHistoryRow({ pick, isPro, isLast, onView, onShare }) {
+  const isSettled = pick.result === 'win' || pick.result === 'loss' || pick.result === 'push';
+  const isPending = pick.result === 'pending';
+  const isRevoked = pick.result === 'revoked';
+  const hideLine = !isPro && isPending;
+  const canView = isPro && (isSettled || isRevoked);
+
+  const units = pick.profit_units != null ? pick.profit_units : (pick.pnl != null ? pick.pnl / 100 : null);
+  const unitsStr = (() => {
+    if (pick.result === 'push') return '0.0u';
+    if (pick.result === 'win') return `+${units != null ? Math.abs(units).toFixed(1) : '0.9'}u`;
+    if (pick.result === 'loss') return `-${units != null ? Math.abs(units).toFixed(1) : '1.0'}u`;
+    return null;
+  })();
+
+  const unitsColor = pick.result === 'win' ? 'var(--color-signal)'
+    : pick.result === 'loss' ? 'var(--color-loss)'
+    : 'var(--text-tertiary)';
+
+  const rightLine1 = isSettled ? unitsStr : (isPending ? 'Pending' : isRevoked ? 'Withdrawn' : null);
+  const rightLine1Color = isSettled ? unitsColor : 'var(--text-tertiary)';
+
+  const clvVal = pick.clv != null ? parseFloat(pick.clv) : null;
+  const rightLine2 = isSettled && clvVal != null
+    ? `CLV: ${clvVal >= 0 ? '+' : ''}${clvVal}`
+    : pick.edge_pct ? `+${pick.edge_pct}% edge` : null;
+  const rightLine2Color = isSettled && clvVal != null
+    ? (clvVal > 0 ? 'var(--color-signal)' : clvVal < 0 ? 'var(--color-loss)' : 'var(--text-tertiary)')
+    : 'var(--text-tertiary)';
+
+  const sideDisplay = hideLine
+    ? `${pick.away_team} @ ${pick.home_team}`
+    : (pick.side || `${pick.away_team} @ ${pick.home_team}`);
+
+  return (
+    <div
+      onClick={() => canView && onView()}
+      style={{
+        padding: '14px 16px',
+        borderBottom: isLast ? 'none' : '1px solid var(--stroke-subtle)',
+        display: 'flex', alignItems: 'center', gap: '8px',
+        cursor: canView ? 'pointer' : 'default',
+        minHeight: '60px',
+        transition: 'background-color 0.1s',
+      }}
+      onMouseDown={e => canView && (e.currentTarget.style.opacity = '0.7')}
+      onMouseUp={e => canView && (e.currentTarget.style.opacity = '1')}
+      onMouseLeave={e => canView && (e.currentTarget.style.opacity = '1')}
+    >
+      <StatusBadge result={pick.result} />
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {sideDisplay}
+        </div>
+        <div style={{
+          fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
+          fontFamily: 'var(--font-mono)',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {pick.away_team} @ {pick.home_team} &middot; {formatDateShort(pick.game_date)}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <div style={{ textAlign: 'right' }}>
+          {rightLine1 && (
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: isSettled ? '14px' : '12px',
+              fontWeight: isSettled ? 600 : 500,
+              fontVariantNumeric: 'tabular-nums',
+              color: rightLine1Color,
+            }}>{rightLine1}</div>
+          )}
+          {isPro && rightLine2 && (
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '11px',
+              fontVariantNumeric: 'tabular-nums',
+              color: rightLine2Color, marginTop: '2px',
+            }}>{rightLine2}</div>
+          )}
+        </div>
+
+        {isSettled && (
+          <button onClick={(e) => {
+            e.stopPropagation();
+            onShare();
+          }} style={{
+            background: 'none', border: 'none', padding: '8px',
+            cursor: 'pointer', minWidth: '44px', minHeight: '44px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ShareIcon size={14} />
+          </button>
+        )}
+
+        {canView && (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{ flexShrink: 0 }}>
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SignalHistoryEmpty({ filter, totalCount }) {
+  if (totalCount === 0) {
+    return (
+      <div style={{
+        textAlign: 'center', padding: '48px 24px',
+        color: 'var(--text-tertiary)', fontSize: '14px', lineHeight: '1.7',
+      }}>
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--text-secondary)', marginBottom: '12px',
+        }}>No signals generated yet.</div>
+        <p style={{ maxWidth: '300px', margin: '0 auto 12px' }}>
+          The model evaluates the full daily slate and generates signals only when a statistically significant edge is detected.
+        </p>
+        <p style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>
+          Check back after today&apos;s market scan.
+        </p>
+      </div>
+    );
+  }
+
+  const msgs = {
+    wins: { title: 'No wins recorded.', detail: `0 of ${totalCount} signals resulted in a win.` },
+    losses: { title: 'No losses recorded.', detail: `0 of ${totalCount} signals resulted in a loss.` },
+    active: { title: 'No active signals.', detail: 'All signals have been resolved.' },
+    other: { title: 'No withdrawn or push signals.', detail: '' },
+  };
+  const m = msgs[filter] || { title: 'No signals found.', detail: '' };
+
+  return (
+    <div style={{
+      textAlign: 'center', padding: '40px 24px',
+      color: 'var(--text-tertiary)', fontSize: '14px',
+    }}>
+      <div style={{ color: 'var(--text-secondary)', marginBottom: '6px' }}>{m.title}</div>
+      {m.detail && <div style={{ fontSize: '13px' }}>{m.detail}</div>}
     </div>
   );
 }
