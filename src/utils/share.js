@@ -1,9 +1,3 @@
-import { Capacitor } from '@capacitor/core';
-
-const API_BASE = Capacitor.isNativePlatform()
-  ? 'https://app.sharppicks.ai'
-  : '';
-
 function fmtSpread(val) {
   if (val == null) return '';
   const n = parseFloat(val);
@@ -77,35 +71,9 @@ export function marketReportShareText(data) {
   ].join('\n');
 }
 
-export async function shareCard({ cardUrl, text, title = 'SharpPicks' }) {
-  try {
-    const fullUrl = `${API_BASE}${cardUrl}`;
-    const response = await fetch(fullUrl);
-    if (!response.ok) throw new Error('Failed to fetch card image');
-
-    const blob = await response.blob();
-    const file = new File([blob], 'sharppicks.png', { type: 'image/png' });
-
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ text, files: [file] });
-      return true;
-    }
-
-    if (navigator.share) {
-      await navigator.share({ text, url: 'https://sharppicks.ai' });
-      return true;
-    }
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'sharppicks.png';
-    a.click();
-    URL.revokeObjectURL(url);
-    return true;
-  } catch (e) {
-    if (e.name === 'AbortError') return false;
-    console.error('Share failed:', e);
-    return false;
-  }
+export function shareToX({ text }) {
+  const encoded = encodeURIComponent(text);
+  const url = `https://twitter.com/intent/tweet?text=${encoded}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+  return true;
 }

@@ -1,8 +1,5 @@
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
-import ShareButton from './ShareButton';
-import { shareCard, marketReportShareText } from '../../utils/share';
-
 const label = {
   fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)',
   fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -45,14 +42,10 @@ export default function DailyMarketReport() {
       padding: 'var(--space-md)',
       marginBottom: 'var(--space-md)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
+      <div style={{ marginBottom: 'var(--space-xs)' }}>
         <div style={{ ...label }}>
           SharpPicks Market Report
         </div>
-        <ShareButton onShare={() => shareCard({
-          cardUrl: `/api/cards/market-report?date=${data.date}`,
-          text: marketReportShareText(data),
-        })} />
       </div>
       <div style={{
         fontSize: 'var(--text-metric)', color: 'var(--text-secondary)',

@@ -12,10 +12,8 @@ import ResolutionScreen from './ResolutionScreen';
 import MarketView from './MarketView';
 import { InlineError } from './ErrorStates';
 import DailyMarketReport from './DailyMarketReport';
-import DisciplineScore from './DisciplineScore';
-import { ShareResultsButton } from './ShareButton';
 import { ShareIcon } from './ShareButton';
-import { shareCard, userResultsShareText, resultShareText } from '../../utils/share';
+import { shareToX, resultShareText } from '../../utils/share';
 
 const HISTORY_DEFAULT_LIMIT = 6;
 
@@ -244,17 +242,6 @@ export default function PicksTab({ onNavigate }) {
 
         {stats && <RecordStrip stats={stats} />}
 
-        <DisciplineScore />
-
-        {stats && (
-          <div style={{ marginBottom: 'var(--space-md)' }}>
-            <ShareResultsButton onShare={() => shareCard({
-              cardUrl: '/api/cards/user-results',
-              text: userResultsShareText(stats),
-            })} />
-          </div>
-        )}
-
         <button
           onClick={() => setShowMarket(true)}
           style={{
@@ -350,7 +337,7 @@ export default function PicksTab({ onNavigate }) {
                 isPro={isPro}
                 isLast={i === displayPicks.length - 1}
                 onView={() => { setResolutionPick(pick); setShowResolution(true); }}
-                onShare={() => shareCard({ cardUrl: `/api/cards/result/${pick.id}`, text: resultShareText(pick) })}
+                onShare={() => shareToX({ text: resultShareText(pick) })}
               />
             ))}
           </div>
