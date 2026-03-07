@@ -595,16 +595,7 @@ def send_welcome(to, first_name=None):
     dashboard_url = get_base_url()
 
     attachments = []
-    logo_b64 = _get_logo_b64()
     sig_b64 = _get_sig_b64()
-
-    if logo_b64:
-        attachments.append({
-            "content": logo_b64,
-            "filename": "logo.png",
-            "content_id": "sp-logo",
-            "content_type": "image/png",
-        })
     if sig_b64:
         attachments.append({
             "content": sig_b64,
@@ -613,7 +604,6 @@ def send_welcome(to, first_name=None):
             "content_type": "image/png",
         })
 
-    logo_src = 'cid:sp-logo' if logo_b64 else f'{get_base_url()}/logo-email.png'
     sig_src = 'cid:evan-sig' if sig_b64 else f'{get_base_url()}/evan-signature.png'
 
     html = f"""
