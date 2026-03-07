@@ -5,7 +5,7 @@ import resend
 
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
 
-FROM_EMAIL = "SharpPicks <support@sharppicks.ai>"
+FROM_EMAIL = "SharpPicks <info@sharppicks.ai>"
 FOUNDER_EMAIL = "Evan Cole <evan@sharppicks.ai>"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -88,15 +88,15 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
         cta_html = f'''
         <table cellpadding="0" cellspacing="0" border="0" style="margin:32px auto;">
           <tr>
-            <td align="center" bgcolor="#1B7A3D" style="border-radius:6px;">
+            <td align="center" bgcolor="#5A9E72" style="border-radius:6px;">
               <!--[if mso]>
               <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"
-                href="{cta_url}" style="height:46px;v-text-anchor:middle;width:220px;" arcsize="13%" strokecolor="#1B7A3D" fillcolor="#1B7A3D">
+                href="{cta_url}" style="height:46px;v-text-anchor:middle;width:220px;" arcsize="13%" strokecolor="#5A9E72" fillcolor="#5A9E72">
               <w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;letter-spacing:0.05em;">{cta_text}</center>
               </v:roundrect>
               <![endif]-->
               <!--[if !mso]><!-->
-              <a href="{cta_url}" style="display:inline-block;padding:14px 32px;background-color:#1B7A3D;color:#ffffff;text-decoration:none;border-radius:6px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;">{cta_text}</a>
+              <a href="{cta_url}" style="display:inline-block;padding:14px 32px;background-color:#5A9E72;color:#ffffff;text-decoration:none;border-radius:6px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;">{cta_text}</a>
               <!--<![endif]-->
             </td>
           </tr>
@@ -116,7 +116,7 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
   <tr><td align="center" style="padding:32px 16px;">
     <table cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background-color:#141414;border-radius:8px;">
       <tr><td style="padding:32px 32px 0;">
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;letter-spacing:0.12em;text-transform:uppercase;color:#1B7A3D;margin:0 0 16px;">SHARPPICKS</p>
+        <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;letter-spacing:0.12em;text-transform:uppercase;color:#5A9E72;margin:0 0 16px;text-align:center;">SHARPPICKS</p>
         <hr style="border:none;border-top:1px solid #2A2A2A;margin:0 0 24px;">
       </td></tr>
       <tr><td style="padding:0 32px;">
@@ -367,7 +367,7 @@ def send_signal_email(to, pick):
     body = f'''
     {f'<p style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;margin:0 0 20px;">{timestamp}</p>' if timestamp else ''}
     <p style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:bold;color:#FFFFFF;margin:0 0 8px;">{side}</p>
-    <p style="font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:bold;color:#1B7A3D;margin:0 0 20px;">Edge: +{edge:.1f}%</p>
+    <p style="font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:bold;color:#5A9E72;margin:0 0 20px;">Edge: +{edge:.1f}%</p>
     <table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
       <tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;">
         Model: {model_prob * 100:.1f}%
@@ -411,13 +411,13 @@ def send_result_email(to, pick):
     is_push = result == 'push'
     icon = '&#x2714;' if is_win else ('&#x2014;' if is_push else '&#x2718;')
     result_label = result.upper() if result else 'PENDING'
-    result_color = '#1B7A3D' if is_win else ('#CC3333' if result == 'loss' else '#666666')
+    result_color = '#5A9E72' if is_win else ('#CC3333' if result == 'loss' else '#666666')
 
     units_str = ''
     if units is not None:
         u = float(units)
         units_str = f'{"+" if u > 0 else ""}{u:.1f}u'
-        units_color = '#1B7A3D' if u > 0 else ('#CC3333' if u < 0 else '#666666')
+        units_color = '#5A9E72' if u > 0 else ('#CC3333' if u < 0 else '#666666')
     else:
         units_color = '#666666'
 
@@ -436,7 +436,7 @@ def send_result_email(to, pick):
             clv_html += f'<tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;">Closing Line: {cl_str}</td></tr>'
         if clv is not None:
             cv = float(clv)
-            clv_c = '#1B7A3D' if cv > 0 else ('#CC3333' if cv < 0 else '#666666')
+            clv_c = '#5A9E72' if cv > 0 else ('#CC3333' if cv < 0 else '#666666')
             clv_html += f'<tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:{clv_c};">CLV: {"+" if cv > 0 else ""}{cv:.1f}</td></tr>'
         clv_html += '</table>'
 
@@ -482,7 +482,7 @@ def send_weekly_summary(to, first_name=None, stats=None):
     if pending:
         record_str += f' ({pending} pending)'
 
-    roi_color = '#1B7A3D' if roi >= 0 else '#CC3333'
+    roi_color = '#5A9E72' if roi >= 0 else '#CC3333'
 
     body = f'''
     {f'<p style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;margin:0 0 20px;">{week_range}</p>' if week_range else ''}
@@ -561,7 +561,7 @@ def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0):
     <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
       Today&rsquo;s market was analyzed. No edge exceeded the qualification threshold.
     </p>
-    <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#1B7A3D;font-style:italic;margin:0 0 24px;">
+    <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#5A9E72;font-style:italic;margin:0 0 24px;">
       Passing is a position.
     </p>
     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;">
@@ -630,34 +630,34 @@ def send_welcome(to, first_name=None):
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
         <tr>
           <td style="padding: 14px 16px; border-bottom: 1px solid #1a1d28;">
-            <span style="font-size: 14px; font-weight: 700; color: #1B7A3D; margin-right: 10px;">1.</span>
+            <span style="font-size: 14px; font-weight: 700; color: #5A9E72; margin-right: 10px;">1.</span>
             <span style="font-size: 15px; color: #ffffff; font-weight: 600;">Set Your Unit Size</span>
             <p style="font-size: 13px; color: #888; margin: 4px 0 0 22px; line-height: 1.6;">Discipline starts with bankroll management.</p>
           </td>
         </tr>
         <tr>
           <td style="padding: 14px 16px; border-bottom: 1px solid #1a1d28;">
-            <span style="font-size: 14px; font-weight: 700; color: #1B7A3D; margin-right: 10px;">2.</span>
+            <span style="font-size: 14px; font-weight: 700; color: #5A9E72; margin-right: 10px;">2.</span>
             <span style="font-size: 15px; color: #ffffff; font-weight: 600;">Explore Today's Analysis</span>
             <p style="font-size: 13px; color: #888; margin: 4px 0 0 22px; line-height: 1.6;">See what the model found &#8212; or why it passed.</p>
           </td>
         </tr>
         <tr>
           <td style="padding: 14px 16px;">
-            <span style="font-size: 14px; font-weight: 700; color: #1B7A3D; margin-right: 10px;">3.</span>
+            <span style="font-size: 14px; font-weight: 700; color: #5A9E72; margin-right: 10px;">3.</span>
             <span style="font-size: 15px; color: #ffffff; font-weight: 600;">Review the Public Record</span>
             <p style="font-size: 13px; color: #888; margin: 4px 0 0 22px; line-height: 1.6;">Every pick and pass tracked transparently &#8212; verified by data, not talk.</p>
           </td>
         </tr>
       </table>
 
-      <div style="margin: 28px 0 28px 0; padding: 20px 24px; border-left: 3px solid #1B7A3D; background-color: rgba(27, 122, 61, 0.04);">
-        <div style="font-family: 'Courier New', monospace; font-size: 9px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #1B7A3D; margin-bottom: 14px;">Sharp Principle</div>
+      <div style="margin: 28px 0 28px 0; padding: 20px 24px; border-left: 3px solid #5A9E72; background-color: rgba(27, 122, 61, 0.04);">
+        <div style="font-family: 'Courier New', monospace; font-size: 9px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #5A9E72; margin-bottom: 14px;">Sharp Principle</div>
         <p style="font-family: Georgia, 'Times New Roman', serif; font-size: 19px; line-height: 1.55; color: #ffffff; font-weight: 500; font-style: italic; margin: 0;">The goal isn't just to win a bet; it's to build a sustainable edge.</p>
       </div>
 
       <div style="text-align: center; margin: 32px 0;">
-        <a href="{dashboard_url}" style="display: inline-block; padding: 14px 36px; background-color: #1B7A3D; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; font-family: Arial, sans-serif; letter-spacing: 0.05em; text-transform: uppercase;">ENTER MARKET VIEW</a>
+        <a href="{dashboard_url}" style="display: inline-block; padding: 14px 36px; background-color: #5A9E72; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; font-family: Arial, sans-serif; letter-spacing: 0.05em; text-transform: uppercase;">ENTER MARKET VIEW</a>
       </div>
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">If you have questions or feedback on the interface, reply directly to this email. I'm personally looking for ways to make our tools sharper for you.</p>
@@ -670,7 +670,7 @@ def send_welcome(to, first_name=None):
       <table cellpadding="0" cellspacing="0" border="0"><tr>
         <td style="vertical-align: middle; padding-right: 12px;">
           <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, rgba(27,122,61,0.2), rgba(27,122,61,0.15)); border: 1px solid rgba(27,122,61,0.3); text-align: center; line-height: 38px;">
-            <span style="font-size: 15px; font-weight: 600; color: #1B7A3D;">EC</span>
+            <span style="font-size: 15px; font-weight: 600; color: #5A9E72;">EC</span>
           </div>
         </td>
         <td style="vertical-align: middle;">
