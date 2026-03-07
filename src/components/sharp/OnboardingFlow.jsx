@@ -2,7 +2,7 @@ export default function OnboardingFlow({ onComplete }) {
   return (
     <div style={{
       position: 'fixed', inset: 0,
-      backgroundColor: 'var(--bg-primary)',
+      backgroundColor: '#0A0D14',
       zIndex: 1000,
       display: 'flex', flexDirection: 'column',
       maxWidth: '480px', margin: '0 auto',
@@ -11,62 +11,91 @@ export default function OnboardingFlow({ onComplete }) {
     }}>
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
-        padding: '0 24px',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '0 32px',
+        minHeight: '100vh',
       }}>
+
+        {/* ── Logo ── */}
+        <img
+          src="/images/crest.png"
+          alt="SharpPicks"
+          style={{
+            width: '72px', height: '72px',
+            objectFit: 'contain',
+            marginBottom: '24px',
+          }}
+        />
 
         {/* ── Wordmark ── */}
         <div style={{
-          textAlign: 'center',
-          paddingTop: 'max(env(safe-area-inset-top, 20px), 48px)',
-          marginBottom: 'var(--space-xl)',
+          fontFamily: 'var(--font-sans)', fontSize: '18px', fontWeight: 700,
+          letterSpacing: '0.18em', textTransform: 'uppercase',
+          color: '#FFFFFF',
+          marginBottom: '48px',
         }}>
-          <span style={{
-            fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700,
-            letterSpacing: '0.2em', textTransform: 'uppercase',
-            color: 'var(--color-signal)',
-          }}>SHARP<span style={{ opacity: 0.5, margin: '0 0.3em' }}>||</span>PICKS</span>
+          SHARP<span style={{ opacity: 0.4, margin: '0 0.25em' }}>||</span>PICKS
         </div>
 
         {/* ── Headline ── */}
         <h1 style={{
-          fontFamily: 'var(--font-sans)', fontSize: '28px', fontWeight: 600,
-          color: 'var(--text-primary)', lineHeight: 1.2,
-          textAlign: 'center', marginBottom: 'var(--space-lg)',
-          maxWidth: '340px', margin: '0 auto var(--space-lg)',
+          fontFamily: 'var(--font-sans)', fontSize: '26px', fontWeight: 600,
+          color: '#FFFFFF', lineHeight: 1.25,
+          textAlign: 'center', marginBottom: '16px',
+          maxWidth: '320px',
+          margin: '0 auto 16px',
         }}>
-          Sports markets analyzed<br />like financial markets
+          Sports markets analyzed like financial markets
         </h1>
 
         {/* ── Subtext ── */}
         <p style={{
-          fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.7,
-          textAlign: 'center', maxWidth: '320px', margin: '0 auto',
-          marginBottom: 'var(--space-lg)',
+          fontSize: '15px', color: '#8A94A6', lineHeight: 1.7,
+          textAlign: 'center', maxWidth: '310px', margin: '0 auto 40px',
         }}>
-          SharpPicks scans the entire betting market and identifies
-          statistical edges using ensemble machine learning.
+          One signal per day. Only when the edge is real.
         </p>
-        <p style={{
-          fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.7,
-          textAlign: 'center', maxWidth: '320px', margin: '0 auto',
-          marginBottom: 'var(--space-xl)',
+
+        {/* ── Divider ── */}
+        <div style={{
+          width: '40px', height: '1px',
+          backgroundColor: '#5A9E72',
+          margin: '0 auto 40px',
+        }} />
+
+        {/* ── Process Flow ── */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          marginBottom: '40px', width: '100%', maxWidth: '240px',
         }}>
-          Only edges that pass strict qualification filters become
-          signals. Most days produce few opportunities.
-        </p>
+          {['Market Data', 'Model Analysis', 'Edge Detection', 'Qualification Filters'].map((label, i) => (
+            <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{
+                fontFamily: 'var(--font-mono, monospace)', fontSize: '12px',
+                fontWeight: 500, letterSpacing: '0.06em',
+                color: '#5A6678', textTransform: 'uppercase',
+                padding: '8px 0',
+              }}>{label}</div>
+              <div style={{ width: '1px', height: '14px', backgroundColor: '#1E2A3A' }} />
+            </div>
+          ))}
+          <div style={{
+            fontFamily: 'var(--font-mono, monospace)', fontSize: '13px',
+            fontWeight: 700, letterSpacing: '0.06em',
+            color: '#5A9E72', textTransform: 'uppercase',
+            padding: '8px 0',
+            borderBottom: '2px solid #5A9E72',
+          }}>Qualified Signal</div>
+        </div>
 
         {/* ── Philosophy ── */}
         <div style={{
-          textAlign: 'center',
-          padding: 'var(--space-xl) 0',
-          borderTop: '1px solid var(--color-border)',
-          borderBottom: '1px solid var(--color-border)',
-          margin: '0 auto var(--space-xl)',
-          maxWidth: '280px', width: '100%',
+          textAlign: 'center', marginBottom: '40px',
+          maxWidth: '280px',
         }}>
           <p style={{
-            fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 500,
-            fontStyle: 'italic', color: 'var(--text-primary)', lineHeight: 1.6,
+            fontSize: '15px', fontWeight: 500,
+            fontStyle: 'italic', color: '#C8CDD5', lineHeight: 1.6,
             margin: 0,
           }}>
             Passing is a position.<br />
@@ -74,26 +103,9 @@ export default function OnboardingFlow({ onComplete }) {
           </p>
         </div>
 
-        {/* ── Process Diagram ── */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          maxWidth: '200px', margin: '0 auto var(--space-xl)', width: '100%',
-        }}>
-          <ProcessStep label="Market Data" />
-          <Connector />
-          <ProcessStep label="Model Analysis" />
-          <Connector />
-          <ProcessStep label="Edge Detection" />
-          <Connector />
-          <ProcessStep label="Qualification Filters" />
-          <Connector />
-          <ProcessStep label="Qualified Signal" isSignal />
-        </div>
-
         {/* ── Supporting Points ── */}
         <div style={{
-          padding: '0 0 var(--space-xl)',
-          maxWidth: '340px', margin: '0 auto', width: '100%',
+          maxWidth: '320px', width: '100%', marginBottom: '48px',
         }}>
           <SupportPoint text="Every game is analyzed — the model evaluates the full daily slate" />
           <SupportPoint text="Most edges are filtered out — only statistically significant edges pass" />
@@ -103,67 +115,46 @@ export default function OnboardingFlow({ onComplete }) {
 
       {/* ── CTA ── */}
       <div style={{
-        padding: '0 24px 24px',
-        paddingBottom: 'max(24px, calc(env(safe-area-inset-bottom, 0px) + 24px))',
+        padding: '0 32px 32px',
+        paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom, 0px) + 32px))',
+        position: 'sticky', bottom: 0,
+        backgroundColor: '#0A0D14',
       }}>
         <button
           onClick={onComplete}
-          onPointerDown={e => { e.currentTarget.style.opacity = '0.8'; }}
+          onPointerDown={e => { e.currentTarget.style.opacity = '0.85'; }}
           onPointerUp={e => { e.currentTarget.style.opacity = '1'; }}
           onPointerLeave={e => { e.currentTarget.style.opacity = '1'; }}
           style={{
             width: '100%', height: '52px',
-            background: 'var(--color-signal)',
-            border: 'none', borderRadius: '8px',
-            color: '#fff', fontSize: '16px', fontWeight: 600,
+            background: '#5A9E72',
+            border: 'none', borderRadius: '10px',
+            color: '#FFFFFF', fontSize: '15px', fontWeight: 600,
             fontFamily: 'var(--font-sans)',
-            letterSpacing: '0.05em', textTransform: 'uppercase',
+            letterSpacing: '0.06em', textTransform: 'uppercase',
             cursor: 'pointer',
           }}
         >
-          Enter Market View
+          Enter SharpPicks
         </button>
       </div>
     </div>
   );
 }
 
-function ProcessStep({ label, isSignal }) {
-  return (
-    <div style={{
-      fontFamily: 'var(--font-sans)', fontSize: '14px',
-      fontWeight: isSignal ? 700 : 400,
-      color: isSignal ? 'var(--color-signal)' : 'var(--text-secondary)',
-      textAlign: 'center',
-      padding: 'var(--space-sm) 0',
-    }}>
-      {label}
-    </div>
-  );
-}
-
-function Connector() {
-  return (
-    <div style={{
-      width: '1px', height: '16px',
-      backgroundColor: 'var(--color-border)',
-    }} />
-  );
-}
-
 function SupportPoint({ text }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'flex-start', gap: 'var(--space-sm)',
-      marginBottom: 'var(--space-sm)',
-      paddingLeft: 'var(--space-lg)',
+      display: 'flex', alignItems: 'flex-start', gap: '12px',
+      marginBottom: '14px',
     }}>
+      <div style={{
+        width: '6px', height: '6px', borderRadius: '50%',
+        backgroundColor: '#5A9E72',
+        flexShrink: 0, marginTop: '7px',
+      }} />
       <span style={{
-        color: 'var(--color-signal)', fontSize: '14px', lineHeight: 1.6,
-        flexShrink: 0,
-      }}>✔</span>
-      <span style={{
-        fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6,
+        fontSize: '14px', color: '#8A94A6', lineHeight: 1.6,
       }}>{text}</span>
     </div>
   );
