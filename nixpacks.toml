@@ -5,6 +5,9 @@
 # resolution differs between local (e.g. 3.14) and Railway (3.13).
 providers = ["node", "python"]
 
+[variables]
+NIXPACKS_NODE_VERSION = "22"
+
 [phases.install]
 cmds = [
   "npm ci || npm install",
