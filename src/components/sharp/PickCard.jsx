@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { apiPost, apiDelete } from '../../hooks/useApi';
+import ShareButton from './ShareButton';
+import { shareCard, signalShareText, resultShareText } from '../../utils/share';
 
 function fmtTimestamp(isoStr) {
   if (!isoStr) return null;
@@ -202,8 +204,8 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
       }}>
         <div style={{ padding: 'var(--space-lg) var(--space-md) var(--space-md)' }}>
 
-          {/* ── Status Badge ── */}
-          <div style={{ marginBottom: 'var(--space-sm)' }}>
+          {/* ── Status Badge + Share ── */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',
               padding: '4px 10px', borderRadius: '999px',
@@ -222,6 +224,11 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
               }} />
               {isSettled ? `Outcome: ${pick.result === 'win' ? 'Win' : pick.result === 'push' ? 'Push' : 'Loss'}` : 'Qualified Signal'}
             </span>
+            <ShareButton onShare={() => {
+              const cardUrl = isSettled ? `/api/cards/result/${pick.id}` : `/api/cards/signal/${pick.id}`;
+              const text = isSettled ? resultShareText(pick) : signalShareText(pick);
+              return shareCard({ cardUrl, text });
+            }} />
           </div>
 
           {/* ── PRIMARY: Team + Spread ── */}
@@ -232,14 +239,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
             {pick.away_team} @ {pick.home_team}
           </div>
 
-          <div style={{
-            fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 500,
-            color: 'var(--text-tertiary)', marginBottom: 'var(--space-sm)',
-          }}>
-            {gameFmt && <span>Tip: {gameFmt}</span>}
-            {gameFmt && postedFmt && <span style={{ margin: '0 6px', opacity: 0.4 }}>·</span>}
-            {postedFmt && <span>Signal Generated · {postedFmt}</span>}
-          </div>
+          <SignalTimestamp publishedAt={pick.published_at} gameFmt={gameFmt} />
 
           <div style={{
             marginBottom: 'var(--space-md)',
@@ -299,6 +299,21 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
               </div>
             </div>
           </section>
+
+          {/* ── EDGE STRENGTH bar ── */}
+          {pick.edge_pct != null && (
+            <EdgeStrengthBar edge={parseFloat(pick.edge_pct)} />
+          )}
+
+          {/* ── EDGE TRACKER ── */}
+          {pick.line != null && (
+            <EdgeTracker
+              signalLine={pick.line}
+              currentLine={pick.closing_spread ?? pick.line}
+              clv={pick.clv}
+              isSettled={isSettled}
+            />
+          )}
 
           {/* ── WHY THIS GAME (signals) ── */}
           {pick.model_signals && pick.model_signals.length > 0 && (
@@ -498,5 +513,123 @@ function MetricCell({ label: labelText, value }) {
         fontVariantNumeric: 'tabular-nums',
       }}>{value}</div>
     </div>
+  );
+}
+
+function SignalTimestamp({ publishedAt, gameFmt }) {
+  let timeStr = null;
+  let isRecent = false;
+  if (publishedAt) {
+    try {
+      const d = new Date(publishedAt);
+      if (!isNaN(d.getTime())) {
+        const et = new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+        let h = et.getHours();
+        const m = et.getMinutes().toString().padStart(2, '0');
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        timeStr = `${h}:${m} ${ampm} ET`;
+        isRecent = (Date.now() - d.getTime()) < 30 * 60 * 1000;
+      }
+    } catch {}
+  }
+
+  return (
+    <div style={{
+      fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 500,
+      color: 'var(--text-tertiary)', marginBottom: 'var(--space-sm)',
+      display: 'flex', alignItems: 'center', gap: '6px',
+    }}>
+      {timeStr && (
+        <span style={{
+          ...label, fontSize: '10px', marginBottom: 0,
+          ...(isRecent ? { animation: 'live-pulse 2s ease-in-out infinite', opacity: 0.8 } : {}),
+        }}>Signal Generated</span>
+      )}
+      {timeStr && <span style={{ color: 'var(--text-secondary)' }}>{timeStr}</span>}
+      {gameFmt && timeStr && <span style={{ opacity: 0.3 }}>·</span>}
+      {gameFmt && <span>Tip: {gameFmt}</span>}
+    </div>
+  );
+}
+
+function EdgeStrengthBar({ edge }) {
+  const maxEdge = 15;
+  const widthPct = Math.min(100, (edge / maxEdge) * 100);
+  let barColor = 'var(--text-tertiary)';
+  if (edge >= 10) barColor = 'var(--color-signal)';
+  else if (edge >= 7) barColor = '#4CAF50';
+
+  return (
+    <section style={{
+      margin: '0 0 var(--space-sm)',
+      padding: 'var(--space-sm) var(--space-md)',
+      borderRadius: '12px',
+      border: '1px solid var(--color-border)',
+      background: 'rgba(0,0,0,0.10)',
+    }}>
+      <div style={{ ...label, marginBottom: 'var(--space-sm)' }}>Edge Strength</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+        <div style={{
+          flex: 1, height: '4px', borderRadius: '2px',
+          background: 'var(--color-border)', position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', top: 0, left: 0, height: '100%',
+            width: `${widthPct}%`, borderRadius: '2px',
+            background: barColor,
+          }} />
+        </div>
+        <span style={{
+          ...metric, fontSize: 'var(--text-metric)',
+          fontVariantNumeric: 'tabular-nums',
+          color: 'var(--text-primary)', whiteSpace: 'nowrap',
+        }}>+{edge.toFixed(1)}pp</span>
+      </div>
+    </section>
+  );
+}
+
+function EdgeTracker({ signalLine, currentLine, clv, isSettled }) {
+  const clvVal = clv != null ? parseFloat(clv) : (currentLine != null && signalLine != null ? parseFloat(signalLine) - parseFloat(currentLine) : null);
+  const clvColor = clvVal == null ? 'var(--text-tertiary)'
+    : clvVal > 0 ? 'var(--color-signal)'
+    : clvVal < 0 ? 'var(--color-loss)'
+    : 'var(--text-tertiary)';
+
+  return (
+    <section style={{
+      margin: '0 0 var(--space-sm)',
+      padding: 'var(--space-sm) var(--space-md)',
+      borderRadius: '12px',
+      border: '1px solid var(--color-border)',
+      background: 'rgba(0,0,0,0.10)',
+    }}>
+      <div style={{ ...label, marginBottom: 'var(--space-sm)' }}>Edge Tracker</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>Signal Line</span>
+          <span style={{ ...metric, fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>
+            {fmtSpread(signalLine)}
+          </span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>
+            {isSettled ? 'Closing Line' : 'Current Line'}
+          </span>
+          <span style={{ ...metric, fontSize: 'var(--text-metric)', color: 'var(--text-primary)' }}>
+            {fmtSpread(currentLine)}
+          </span>
+        </div>
+        {clvVal != null && (
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>CLV</span>
+            <span style={{ ...metric, fontSize: 'var(--text-metric)', color: clvColor }}>
+              {clvVal > 0 ? '+' : ''}{clvVal.toFixed(1)}
+            </span>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

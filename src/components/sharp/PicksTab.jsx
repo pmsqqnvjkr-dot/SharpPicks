@@ -11,6 +11,11 @@ import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
 import MarketView from './MarketView';
 import { InlineError } from './ErrorStates';
+import DailyMarketReport from './DailyMarketReport';
+import DisciplineScore from './DisciplineScore';
+import { ShareResultsButton } from './ShareButton';
+import { ShareIcon } from './ShareButton';
+import { shareCard, userResultsShareText, resultShareText } from '../../utils/share';
 
 const HISTORY_DEFAULT_LIMIT = 6;
 
@@ -158,6 +163,8 @@ export default function PicksTab({ onNavigate }) {
           ) : null;
         })()}
 
+        <DailyMarketReport />
+
         {lastResolved && lastResolved.id && !isResolved && dismissedResolutionId !== lastResolved.id && (
           <ResolvedPickBanner
             pick={lastResolved}
@@ -235,6 +242,17 @@ export default function PicksTab({ onNavigate }) {
         )}
 
         {stats && <RecordStrip stats={stats} />}
+
+        <DisciplineScore />
+
+        {stats && (
+          <div style={{ marginBottom: 'var(--space-md)' }}>
+            <ShareResultsButton onShare={() => shareCard({
+              cardUrl: '/api/cards/user-results',
+              text: userResultsShareText(stats),
+            })} />
+          </div>
+        )}
 
         <button
           onClick={() => setShowMarket(true)}
@@ -410,6 +428,18 @@ export default function PicksTab({ onNavigate }) {
                         }}>{pick.edge_pct}% edge</div>
                       )}
                     </div>
+                    {pickResolved && (
+                      <button onClick={(e) => {
+                        e.stopPropagation();
+                        shareCard({ cardUrl: `/api/cards/result/${pick.id}`, text: resultShareText(pick) });
+                      }} style={{
+                        background: 'none', border: 'none', padding: '8px',
+                        cursor: 'pointer', minWidth: '44px', minHeight: '44px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <ShareIcon size={14} />
+                      </button>
+                    )}
                     {canView && (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
                         <polyline points="9 18 15 12 9 6"/>

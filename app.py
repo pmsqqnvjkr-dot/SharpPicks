@@ -298,6 +298,9 @@ app.register_blueprint(legal_bp)
 from admin_api import admin_bp
 app.register_blueprint(admin_bp)
 
+from cards_api import cards_bp
+app.register_blueprint(cards_bp, url_prefix='/api/cards')
+
 @app.route('/admin')
 def admin_dashboard():
     from flask import render_template

@@ -813,3 +813,110 @@ def kill_switch_status():
     sport = _get_sport_filter()
     result = evaluate_kill_switch(sport)
     return jsonify(result)
+
+
+@public_bp.route('/market-report')
+def market_report():
+    import json
+    sport = _get_sport_filter()
+    et = ZoneInfo('America/New_York')
+    today = datetime.now(et).strftime('%Y-%m-%d')
+    date_param = request.args.get('date', today)
+
+    query = ModelRun.query.filter_by(date=date_param)
+    if sport:
+        query = query.filter_by(sport=sport)
+    run = query.order_by(ModelRun.created_at.desc()).first()
+
+    if not run:
+        return jsonify({'available': False, 'date': date_param})
+
+    games_analyzed = run.games_analyzed or 0
+    edges_detected = 0
+    qualified_signals = 0
+    detail = []
+
+    if run.games_detail:
+        try:
+            detail = json.loads(run.games_detail)
+        except Exception:
+            detail = []
+
+    edge_threshold = 2.0
+    for g in detail:
+        edge = abs(g.get('edge', 0) or 0)
+        if edge >= edge_threshold:
+            edges_detected += 1
+        if g.get('passes'):
+            qualified_signals += 1
+
+    no_edge_count = games_analyzed - edges_detected
+    efficiency = round(no_edge_count / games_analyzed * 100, 0) if games_analyzed > 0 else 100
+
+    if efficiency >= 90:
+        assessment = 'Highly efficient market today. Passing is a position.'
+    elif efficiency >= 75:
+        assessment = 'Low inefficiency today. Expect fewer opportunities.'
+    elif efficiency >= 60:
+        assessment = 'Moderate inefficiency. Some edges detected.'
+    else:
+        assessment = 'Multiple inefficiencies detected. Expect several signals.'
+
+    updated_at = run.created_at.isoformat() + 'Z' if run.created_at else None
+
+    return jsonify({
+        'available': True,
+        'date': date_param,
+        'games_analyzed': games_analyzed,
+        'edges_detected': edges_detected,
+        'qualified_signals': qualified_signals,
+        'market_efficiency_pct': efficiency,
+        'assessment': assessment,
+        'last_updated': updated_at,
+    })
+
+
+@public_bp.route('/discipline')
+def discipline_score():
+    sport = _get_sport_filter()
+
+    pick_q = Pick.query
+    pass_q = Pass.query
+    if sport:
+        pick_q = pick_q.filter_by(sport=sport)
+        pass_q = pass_q.filter_by(sport=sport)
+
+    total_picks = pick_q.filter(Pick.result != 'revoked').count()
+    total_passes = pass_q.count()
+    total_games = total_picks + total_passes
+
+    if total_games == 0:
+        selectivity = 0
+    else:
+        selectivity = round(total_picks / total_games * 100, 1)
+
+    if selectivity < 20:
+        grade = 'A+'
+    elif selectivity < 30:
+        grade = 'A'
+    elif selectivity < 40:
+        grade = 'B+'
+    elif selectivity < 50:
+        grade = 'B'
+    elif selectivity < 70:
+        grade = 'C'
+    else:
+        grade = 'D'
+
+    avg_bet = 25
+    capital_preserved = round(total_passes * avg_bet * 0.045, 2)
+
+    return jsonify({
+        'grade': grade,
+        'selectivity': selectivity,
+        'industry_avg': 78,
+        'capital_preserved': capital_preserved,
+        'games_passed': total_passes,
+        'games_bet': total_picks,
+        'total_games': total_games,
+    })
