@@ -296,8 +296,8 @@ export default function PicksTab({ onNavigate }) {
               padding: '6px 14px', borderRadius: '4px', fontSize: '13px',
               fontWeight: filter === f.key ? 600 : 400, cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
-              backgroundColor: filter === f.key ? '#FFFFFF' : 'transparent',
-              color: filter === f.key ? '#0D0D0D' : 'var(--text-tertiary)',
+              backgroundColor: filter === f.key ? 'var(--color-signal)' : 'transparent',
+              color: filter === f.key ? '#FFFFFF' : 'var(--text-tertiary)',
               border: filter === f.key ? 'none' : '1px solid var(--color-border)',
               transition: 'none',
             }}>{f.label}</button>
