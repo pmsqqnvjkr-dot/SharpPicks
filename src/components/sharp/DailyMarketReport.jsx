@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 
@@ -21,6 +22,7 @@ const divider = {
 export default function DailyMarketReport() {
   const { sport } = useSport();
   const { data, loading } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
+  const [expanded, setExpanded] = useState(false);
 
   if (loading || !data || !data.available) return null;
 
@@ -54,134 +56,183 @@ export default function DailyMarketReport() {
       padding: 'var(--space-md)',
       marginBottom: 'var(--space-md)',
     }}>
-      {/* Header */}
-      <div style={{ ...label, marginBottom: '4px' }}>
-        Market Scan &mdash; {today}
-      </div>
+      {/* Header — always visible, tappable */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        style={{
+          width: '100%', background: 'none', border: 'none', padding: 0,
+          cursor: 'pointer', textAlign: 'left',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ ...label, marginBottom: 0 }}>
+            Market Scan &mdash; {today}
+          </div>
+          <svg
+            width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round"
+            style={{ transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
 
-      <div style={divider} />
-
-      {/* Market Regime + Efficiency */}
-      <div style={{ marginBottom: 'var(--space-md)' }}>
-        <div style={{ ...label, marginBottom: '6px', fontSize: '9px' }}>Market Regime</div>
+        {/* Compact summary — always visible */}
         <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700,
-          color: regimeColor, marginBottom: '8px',
-        }}>{data.regime || 'Efficient Market'}</div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-          <span style={{ fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>
-            Market Efficiency
-          </span>
+          display: 'flex', alignItems: 'center', gap: '12px',
+          marginTop: '8px', flexWrap: 'wrap',
+        }}>
           <span style={{
-            ...metricNum, fontSize: '20px',
+            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+            color: regimeColor,
+          }}>{data.regime || 'Efficient Market'}</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>&middot;</span>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+            fontVariantNumeric: 'tabular-nums',
             color: data.market_efficiency_pct <= 50 ? 'var(--color-signal)' : 'var(--text-primary)',
           }}>{data.market_efficiency_pct}%</span>
-        </div>
-      </div>
-
-      <div style={divider} />
-
-      {/* Scan Metrics */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-        <MetricRow label="Markets analyzed" value={data.games_analyzed} />
-        <MetricRow label="Edges detected" value={data.edges_detected} />
-        <MetricRow
-          label="Signals generated"
-          value={data.qualified_signals}
-          highlight={data.qualified_signals > 0}
-        />
-      </div>
-
-      <div style={divider} />
-
-      {/* Signal Density */}
-      <div style={{ marginBottom: 'var(--space-md)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>
-            Signal Density
-          </span>
+          <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>&middot;</span>
           <span style={{
-            ...metricNum, fontSize: '16px',
-            color: data.signal_density >= 40 ? 'var(--color-signal)' : 'var(--text-primary)',
-          }}>{data.signal_density}%</span>
+            fontFamily: 'var(--font-mono)', fontSize: '11px',
+            color: data.qualified_signals > 0 ? 'var(--color-signal)' : 'var(--text-tertiary)',
+          }}>{data.qualified_signals} signal{data.qualified_signals !== 1 ? 's' : ''}</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>&middot;</span>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '11px',
+            color: 'var(--text-tertiary)',
+          }}>{data.edges_detected} edges</span>
         </div>
-        <div style={{
-          fontSize: '11px', color: 'var(--text-tertiary)',
-          fontFamily: 'var(--font-mono)', marginTop: '2px',
-        }}>
-          {data.qualified_signals} signal{data.qualified_signals !== 1 ? 's' : ''} from {data.games_analyzed} markets
-        </div>
-      </div>
+      </button>
 
-      {/* Largest Edge */}
-      {data.largest_edge != null && (
-        <>
+      {/* Expanded detail */}
+      {expanded && (
+        <div style={{ marginTop: 'var(--space-md)' }}>
           <div style={divider} />
+
+          {/* Market Regime + Efficiency */}
           <div style={{ marginBottom: 'var(--space-md)' }}>
-            <div style={{ ...label, marginBottom: '6px', fontSize: '9px' }}>Largest Edge Today</div>
+            <div style={{ ...label, marginBottom: '6px', fontSize: '9px' }}>Market Regime</div>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700,
-              color: 'var(--color-signal)', fontVariantNumeric: 'tabular-nums',
-            }}>+{data.largest_edge}%</div>
-            {data.largest_edge_game && (
-              <div style={{
-                fontSize: '12px', color: 'var(--text-tertiary)',
-                fontFamily: 'var(--font-mono)', marginTop: '2px',
-              }}>{data.largest_edge_game}</div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Edge Distribution */}
-      {data.edges_detected > 0 && (
-        <>
-          <div style={divider} />
-          <div style={{ marginBottom: 'var(--space-md)' }}>
-            <div style={{ ...label, marginBottom: '8px', fontSize: '9px' }}>Edge Distribution</div>
-            <div style={{ display: 'flex', gap: 'var(--space-lg)' }}>
-              <EdgeCategory label="Strong" count={dist.strong || 0} threshold="≥10%" />
-              <EdgeCategory label="Moderate" count={dist.moderate || 0} threshold="7–10%" />
-              <EdgeCategory label="Weak" count={dist.weak || 0} threshold="5–7%" />
+              fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700,
+              color: regimeColor, marginBottom: '8px',
+            }}>{data.regime || 'Efficient Market'}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+              <span style={{ fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>
+                Market Efficiency
+              </span>
+              <span style={{
+                ...metricNum, fontSize: '20px',
+                color: data.market_efficiency_pct <= 50 ? 'var(--color-signal)' : 'var(--text-primary)',
+              }}>{data.market_efficiency_pct}%</span>
             </div>
           </div>
-        </>
-      )}
 
-      {/* Model Insight */}
-      {data.insight && (
-        <>
           <div style={divider} />
-          <div style={{ marginBottom: 'var(--space-md)' }}>
-            <div style={{ ...label, marginBottom: '6px', fontSize: '9px' }}>Model Insight</div>
-            <p style={{
-              fontSize: '13px', fontStyle: 'italic',
-              color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0,
-            }}>{data.insight}</p>
+
+          {/* Scan Metrics */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+            <MetricRow label="Markets analyzed" value={data.games_analyzed} />
+            <MetricRow label="Edges detected" value={data.edges_detected} />
+            <MetricRow
+              label="Signals generated"
+              value={data.qualified_signals}
+              highlight={data.qualified_signals > 0}
+            />
           </div>
-        </>
-      )}
 
-      <div style={divider} />
+          <div style={divider} />
 
-      {/* Scan Timestamp */}
-      {scanTime && (
-        <div style={{
-          fontSize: '11px', color: 'var(--text-tertiary)',
-          fontFamily: 'var(--font-mono)', marginBottom: 'var(--space-sm)',
-        }}>
-          Market scan completed {scanTime}
+          {/* Signal Density */}
+          <div style={{ marginBottom: 'var(--space-md)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>
+                Signal Density
+              </span>
+              <span style={{
+                ...metricNum, fontSize: '16px',
+                color: data.signal_density >= 40 ? 'var(--color-signal)' : 'var(--text-primary)',
+              }}>{data.signal_density}%</span>
+            </div>
+            <div style={{
+              fontSize: '11px', color: 'var(--text-tertiary)',
+              fontFamily: 'var(--font-mono)', marginTop: '2px',
+            }}>
+              {data.qualified_signals} signal{data.qualified_signals !== 1 ? 's' : ''} from {data.games_analyzed} markets
+            </div>
+          </div>
+
+          {/* Largest Edge */}
+          {data.largest_edge != null && (
+            <>
+              <div style={divider} />
+              <div style={{ marginBottom: 'var(--space-md)' }}>
+                <div style={{ ...label, marginBottom: '6px', fontSize: '9px' }}>Largest Edge Today</div>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700,
+                  color: 'var(--color-signal)', fontVariantNumeric: 'tabular-nums',
+                }}>+{data.largest_edge}%</div>
+                {data.largest_edge_game && (
+                  <div style={{
+                    fontSize: '12px', color: 'var(--text-tertiary)',
+                    fontFamily: 'var(--font-mono)', marginTop: '2px',
+                  }}>{data.largest_edge_game}</div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Edge Distribution */}
+          {data.edges_detected > 0 && (
+            <>
+              <div style={divider} />
+              <div style={{ marginBottom: 'var(--space-md)' }}>
+                <div style={{ ...label, marginBottom: '8px', fontSize: '9px' }}>Edge Distribution</div>
+                <div style={{ display: 'flex', gap: 'var(--space-lg)' }}>
+                  <EdgeCategory label="Strong" count={dist.strong || 0} threshold="≥10%" />
+                  <EdgeCategory label="Moderate" count={dist.moderate || 0} threshold="7–10%" />
+                  <EdgeCategory label="Weak" count={dist.weak || 0} threshold="5–7%" />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Model Insight */}
+          {data.insight && (
+            <>
+              <div style={divider} />
+              <div style={{ marginBottom: 'var(--space-md)' }}>
+                <div style={{ ...label, marginBottom: '6px', fontSize: '9px' }}>Model Insight</div>
+                <p style={{
+                  fontSize: '13px', fontStyle: 'italic',
+                  color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0,
+                }}>{data.insight}</p>
+              </div>
+            </>
+          )}
+
+          <div style={divider} />
+
+          {/* Scan Timestamp */}
+          {scanTime && (
+            <div style={{
+              fontSize: '11px', color: 'var(--text-tertiary)',
+              fontFamily: 'var(--font-mono)', marginBottom: 'var(--space-sm)',
+            }}>
+              Market scan completed {scanTime}
+            </div>
+          )}
+
+          {/* Philosophy */}
+          <div style={{
+            fontSize: '11px', color: 'var(--text-tertiary)',
+            fontFamily: 'var(--font-mono)', lineHeight: 1.5,
+            fontStyle: 'italic',
+          }}>
+            Selective by design. Only qualified edges become signals.
+          </div>
         </div>
       )}
-
-      {/* Philosophy */}
-      <div style={{
-        fontSize: '11px', color: 'var(--text-tertiary)',
-        fontFamily: 'var(--font-mono)', lineHeight: 1.5,
-        fontStyle: 'italic',
-      }}>
-        Selective by design. Only qualified edges become signals.
-      </div>
     </div>
   );
 }
