@@ -426,10 +426,14 @@ def send_result_email(to, pick):
         clv_html = '<table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">'
         if signal_line is not None:
             sl = float(signal_line)
-            clv_html += f'<tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;">Signal Line: {"+" if sl > 0 else ""}{sl:.1f if sl != int(sl) else int(sl)}</td></tr>'
+            sl_str = f'{int(sl)}' if sl == int(sl) else f'{sl:.1f}'
+            sl_str = f'+{sl_str}' if sl > 0 else sl_str
+            clv_html += f'<tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;">Signal Line: {sl_str}</td></tr>'
         if closing is not None:
             cl = float(closing)
-            clv_html += f'<tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;">Closing Line: {"+" if cl > 0 else ""}{cl:.1f if cl != int(cl) else int(cl)}</td></tr>'
+            cl_str = f'{int(cl)}' if cl == int(cl) else f'{cl:.1f}'
+            cl_str = f'+{cl_str}' if cl > 0 else cl_str
+            clv_html += f'<tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;">Closing Line: {cl_str}</td></tr>'
         if clv is not None:
             cv = float(clv)
             clv_c = '#1B7A3D' if cv > 0 else ('#CC3333' if cv < 0 else '#666666')
