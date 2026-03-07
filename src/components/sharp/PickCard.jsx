@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { apiPost, apiDelete } from '../../hooks/useApi';
-import ShareButton from './ShareButton';
-import { shareToX, signalShareText, resultShareText } from '../../utils/share';
 
 function fmtTimestamp(isoStr) {
   if (!isoStr) return null;
@@ -224,10 +222,6 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
               }} />
               {isSettled ? `Outcome: ${pick.result === 'win' ? 'Win' : pick.result === 'push' ? 'Push' : 'Loss'}` : 'Qualified Signal'}
             </span>
-            <ShareButton onShare={() => {
-              const text = isSettled ? resultShareText(pick) : signalShareText(pick);
-              return shareToX({ text });
-            }} />
           </div>
 
           {/* ── PRIMARY: Team + Spread ── */}

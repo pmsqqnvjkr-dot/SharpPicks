@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import PullToRefresh from '../shared/PullToRefresh';
+import DailyMarketReport from './DailyMarketReport';
 
 const PROD_URL = 'https://app.sharppicks.ai';
 const MV_API_BASE = Capacitor.isNativePlatform() ? PROD_URL : '';
@@ -832,6 +833,8 @@ export default function MarketView({ onBack }) {
 
       {/* Body */}
       <div style={{ padding: '14px 12px 100px' }}>
+        <DailyMarketReport />
+
         {games.length > 0 && (
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',

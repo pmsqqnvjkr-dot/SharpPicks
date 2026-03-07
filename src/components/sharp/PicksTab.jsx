@@ -9,11 +9,7 @@ import DailyInsightCard from './DailyInsightCard';
 import AuthModal from './AuthModal';
 import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
-import MarketView from './MarketView';
 import { InlineError } from './ErrorStates';
-import DailyMarketReport from './DailyMarketReport';
-import { ShareIcon } from './ShareButton';
-import { shareToX, resultShareText } from '../../utils/share';
 
 const HISTORY_DEFAULT_LIMIT = 6;
 
@@ -38,7 +34,6 @@ export default function PicksTab({ onNavigate }) {
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
   const [resolutionPick, setResolutionPick] = useState(null);
-  const [showMarket, setShowMarket] = useState(false);
   const [filter, setFilter] = useState('all');
   const [showAllPicks, setShowAllPicks] = useState(false);
   const [dismissedResolutionId, setDismissedResolutionId] = useState(() => localStorage.getItem('sp_dismissed_resolution'));
@@ -54,10 +49,6 @@ export default function PicksTab({ onNavigate }) {
 
   const isRevoked = todayData?.type === 'pick' && todayData?.result === 'revoked';
   const isResolved = todayData?.type === 'pick' && todayData?.result && todayData.result !== 'pending' && todayData.result !== 'revoked';
-
-  if (showMarket) {
-    return <MarketView onBack={() => setShowMarket(false)} />;
-  }
 
   if (showResolution && resolutionPick) {
     return <ResolutionScreen pick={resolutionPick} onBack={() => { setShowResolution(false); setResolutionPick(null); }} onNavigate={onNavigate} />;
@@ -162,8 +153,6 @@ export default function PicksTab({ onNavigate }) {
           ) : null;
         })()}
 
-        <DailyMarketReport />
-
         {lastResolved && lastResolved.id && !isResolved && dismissedResolutionId !== lastResolved.id && (
           <ResolvedPickBanner
             pick={lastResolved}
@@ -243,7 +232,7 @@ export default function PicksTab({ onNavigate }) {
         {stats && <RecordStrip stats={stats} />}
 
         <button
-          onClick={() => setShowMarket(true)}
+          onClick={() => onNavigate && onNavigate('market')}
           style={{
             width: '100%', padding: '12px 16px', marginTop: '16px',
             background: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
@@ -259,8 +248,8 @@ export default function PicksTab({ onNavigate }) {
               <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/>
             </svg>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Market Scan</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '1px' }}>Today&apos;s lines, totals &amp; moneylines</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Market Insights &amp; Scan</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '1px' }}>Today&apos;s report, lines, totals &amp; moneylines</div>
             </div>
           </div>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
@@ -337,7 +326,6 @@ export default function PicksTab({ onNavigate }) {
                 isPro={isPro}
                 isLast={i === displayPicks.length - 1}
                 onView={() => { setResolutionPick(pick); setShowResolution(true); }}
-                onShare={() => shareToX({ text: resultShareText(pick) })}
               />
             ))}
           </div>
@@ -396,7 +384,7 @@ function StatusBadge({ result }) {
   );
 }
 
-function SignalHistoryRow({ pick, isPro, isLast, onView, onShare }) {
+function SignalHistoryRow({ pick, isPro, isLast, onView }) {
   const isSettled = pick.result === 'win' || pick.result === 'loss' || pick.result === 'push';
   const isPending = pick.result === 'pending';
   const isRevoked = pick.result === 'revoked';
@@ -481,19 +469,6 @@ function SignalHistoryRow({ pick, isPro, isLast, onView, onShare }) {
             }}>{rightLine2}</div>
           )}
         </div>
-
-        {isSettled && (
-          <button onClick={(e) => {
-            e.stopPropagation();
-            onShare();
-          }} style={{
-            background: 'none', border: 'none', padding: '8px',
-            cursor: 'pointer', minWidth: '44px', minHeight: '44px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <ShareIcon size={14} />
-          </button>
-        )}
 
         {canView && (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{ flexShrink: 0 }}>
