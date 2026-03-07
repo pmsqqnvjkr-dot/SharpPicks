@@ -1,9 +1,7 @@
 import { useEffect } from 'react';
 
 export default function ResolutionScreen({ pick, onBack, onNavigate }) {
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   const isRevoked = pick?.result === 'revoked';
   const isWin = pick?.result === 'win';
@@ -14,10 +12,10 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
   }
 
   const profitDisplay = pick?.profit_units != null
-    ? `${pick.profit_units >= 0 ? '+' : ''}${pick.profit_units}u`
+    ? `${pick.profit_units >= 0 ? '+' : ''}${Number(pick.profit_units).toFixed(1)}u`
     : '--';
   const hasScore = pick?.home_score != null && pick?.away_score != null;
-  const pnlColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--green-profit)' : 'var(--red-loss)';
+  const pnlColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--color-signal)' : 'var(--color-loss)';
 
   const sideDisplay = pick?.side && pick?.line != null && pick.side.includes(String(Math.abs(pick.line)))
     ? pick.side
@@ -26,14 +24,16 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
     : pick?.side || '—';
 
   return (
-    <div style={{ padding: '0', paddingBottom: '100px' }}>
+    <div style={{ padding: 0, paddingBottom: '100px' }}>
       <div style={{
-        padding: '16px 20px',
+        padding: 'var(--space-md) 20px',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
         <button onClick={onBack} style={{
           background: 'none', border: 'none', cursor: 'pointer',
           color: 'var(--text-secondary)', padding: '4px',
+          minWidth: '44px', minHeight: '44px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -42,18 +42,18 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
         <span style={{
           fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 600,
           color: 'var(--text-primary)',
-        }}>Outcome Resolved</span>
+        }}>Outcome Log</span>
       </div>
 
       <div style={{ padding: '0 20px' }}>
-
         <div style={{
-          backgroundColor: 'var(--surface-1)', borderRadius: '20px',
-          border: '1px solid var(--stroke-subtle)', padding: '24px',
-          marginBottom: '16px', textAlign: 'center',
+          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+          border: '1px solid var(--color-border)', padding: 'var(--space-lg)',
+          marginBottom: 'var(--space-md)', textAlign: 'center',
+          opacity: 0.85,
         }}>
           <div style={{
-            fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 600,
+            fontFamily: 'var(--font-sans)', fontSize: '20px', fontWeight: 600,
             color: 'var(--text-primary)', marginBottom: '6px',
           }}>
             {pick?.away_team} @ {pick?.home_team}
@@ -61,8 +61,9 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
 
           {hasScore && (
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 600,
-              color: 'var(--text-primary)', marginBottom: '8px',
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-card-title)', fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums',
+              color: 'var(--text-primary)', marginBottom: 'var(--space-sm)',
             }}>
               {pick.away_score} &ndash; {pick.home_score}
             </div>
@@ -70,6 +71,7 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
 
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: '13px',
+            fontVariantNumeric: 'tabular-nums',
             color: 'var(--text-tertiary)',
           }}>
             {sideDisplay}
@@ -79,81 +81,85 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
 
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-          border: '1px solid var(--stroke-subtle)', padding: '20px',
-          marginBottom: '16px',
+          border: '1px solid var(--color-border)', padding: '20px',
+          marginBottom: 'var(--space-md)',
         }}>
-          <h3 style={{
-            fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
-            color: 'var(--text-primary)', marginBottom: '12px',
-          }}>Process Review</h3>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '12px',
+          }}>Process Review</div>
           <p style={{
-            fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7',
-            marginBottom: '16px',
+            fontSize: 'var(--text-metric)', color: 'var(--text-secondary)', lineHeight: '1.7',
+            marginBottom: 'var(--space-md)',
           }}>
             {isPush
-              ? `The spread landed exactly on the number. Your wager is returned — no win, no loss. The edge was ${pick?.edge_pct || '--'}% at entry. A push is variance doing what variance does.`
+              ? `Spread landed on the number. Wager returned. Edge was ${pick?.edge_pct || '--'}% at entry. Variance within expected parameters.`
               : isWin
-              ? `This outcome was within the model's expected range. The edge was ${pick?.edge_pct || '--'}% — meaning a win was expected roughly ${Math.round(50 + (pick?.edge_pct || 0))}% of the time. This result confirms the process, but one win does not validate a model.`
-              : `This outcome was within the model's expected range. The edge was ${pick?.edge_pct || '--'}% — meaning a loss was expected roughly ${Math.round(50 - (pick?.edge_pct || 0))}% of the time. A single loss does not invalidate the model.`
+              ? `Outcome within expected range. Edge: ${pick?.edge_pct || '--'}%. Win expected ~${Math.round(50 + (pick?.edge_pct || 0))}% of the time. One result does not validate a model.`
+              : `Outcome within expected range. Edge: ${pick?.edge_pct || '--'}%. Loss expected ~${Math.round(50 - (pick?.edge_pct || 0))}% of the time. One result does not invalidate a model.`
             }
           </p>
 
           <div style={{
             display: 'flex', justifyContent: 'space-around',
-            padding: '16px 0', borderTop: '1px solid var(--stroke-subtle)',
+            padding: 'var(--space-md) 0', borderTop: '1px solid var(--color-border)',
           }}>
             <ContextStat value={`${pick?.edge_pct || '--'}%`} label="Edge at entry" />
-            <ContextStat value={`${Math.round(50 + (pick?.edge_pct || 0))}%`} label="Win probability" />
+            <ContextStat value={`${Math.round(50 + (pick?.edge_pct || 0))}%`} label="Model probability" />
           </div>
         </div>
 
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '12px',
-          border: '1px solid var(--stroke-subtle)', padding: '12px 16px',
-          marginBottom: '16px',
+          border: '1px solid var(--color-border)', padding: '12px var(--space-md)',
+          marginBottom: 'var(--space-md)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <span style={{
-            fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 500,
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
             color: 'var(--text-tertiary)',
           }}>P&L</span>
           <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
-            color: pnlColor, opacity: 0.8,
+            fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 700,
+            fontVariantNumeric: 'tabular-nums',
+            color: pnlColor,
           }}>{profitDisplay}</span>
         </div>
 
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-          border: '1px solid var(--stroke-subtle)', padding: '20px',
-          marginBottom: '16px',
+          border: '1px solid var(--color-border)', padding: '20px',
+          marginBottom: 'var(--space-md)',
         }}>
-          <h3 style={{
-            fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
-            color: 'var(--text-primary)', marginBottom: '12px',
-          }}>What Discipline Looks Like Now</h3>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '12px',
+          }}>Discipline Framework</div>
           <p style={{
-            fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7',
+            fontSize: 'var(--text-metric)', color: 'var(--text-secondary)', lineHeight: '1.7',
           }}>
             {isPush
-              ? 'A push changes nothing. No adjustment needed. The process identified an edge, the game landed on the number. The next pick comes when the edge is there.'
+              ? 'Push changes nothing. Process identified an edge, game landed on the number. Next signal when the edge is there.'
               : isWin
-              ? 'The correct response to a win is the same as a loss: nothing. No expanding your criteria. No overconfidence. The next pick comes when the edge is there.'
-              : 'The correct response to a loss is the same as a win: nothing. No revenge bets. No doubling down. No changing your unit size. The next pick comes when the edge is there.'
+              ? 'Correct response to a win: nothing. No expanding criteria. No overconfidence. Next signal when the edge is there.'
+              : 'Correct response to a loss: nothing. No revenge bets. No doubling down. No changing unit size. Next signal when the edge is there.'
             }
           </p>
         </div>
 
         <div style={{
-          fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: '14px',
-          color: 'var(--text-secondary)', textAlign: 'center',
-          padding: '16px 0 8px', lineHeight: '1.5',
+          fontFamily: 'var(--font-mono)', fontSize: 'var(--text-caption)',
+          color: 'var(--text-tertiary)', textAlign: 'center',
+          padding: 'var(--space-md) 0 var(--space-sm)', lineHeight: '1.5',
         }}>
           {isPush
-            ? "A push is neither validation nor failure. The number landed exactly where the market set it."
+            ? "Neither validation nor failure. The number landed where the market set it."
             : isWin
-            ? "A win doesn't mean you were right. It means the probability played out."
-            : "A loss doesn't mean the model failed. It means variance occurred within expected parameters."
+            ? "A win does not mean you were right. It means the probability played out."
+            : "A loss does not mean the model failed. Variance within expected parameters."
           }
         </div>
 
@@ -161,30 +167,28 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
           <button
             onClick={() => onNavigate('insights')}
             style={{
-              width: '100%', textAlign: 'center', padding: '14px 16px',
-              background: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+              width: '100%', textAlign: 'center', padding: '14px var(--space-md)',
+              background: 'var(--surface-1)', border: '1px solid var(--color-border)',
               borderRadius: '12px', cursor: 'pointer', marginBottom: '12px',
-              transition: 'border-color 0.2s ease',
+              minHeight: '44px',
             }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(79, 134, 247, 0.3)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--stroke-subtle)'}
           >
             <span style={{
               fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5',
             }}>
               {isWin
-                ? 'Read: Why one win doesn\u2019t change the process'
+                ? 'Read: Why one win does not change the process'
                 : isPush
                 ? 'Read: How pushes fit into long-term edge'
                 : 'Read: How to think about losses correctly'}
             </span>
-            <span style={{ color: 'var(--blue-primary)', fontWeight: 500, marginLeft: '6px' }}>&rarr;</span>
+            <span style={{ color: 'var(--color-info)', fontWeight: 500, marginLeft: '6px' }}>&rarr;</span>
           </button>
         )}
 
         <p style={{
-          fontSize: '11px', color: 'var(--text-tertiary)', textAlign: 'center',
-          padding: '4px 0 16px', lineHeight: '1.5',
+          fontSize: '10px', color: 'var(--text-tertiary)', textAlign: 'center',
+          padding: '4px 0 var(--space-md)', lineHeight: '1.5', opacity: 0.6,
         }}>
           Past performance does not guarantee future results.
         </p>
@@ -194,20 +198,19 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
 }
 
 function WithdrawnDetailScreen({ pick, onBack }) {
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-  const accentColor = 'rgba(99,102,241,0.8)';
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   return (
-    <div style={{ padding: '0', paddingBottom: '100px' }}>
+    <div style={{ padding: 0, paddingBottom: '100px' }}>
       <div style={{
-        padding: '16px 20px',
+        padding: 'var(--space-md) 20px',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
         <button onClick={onBack} style={{
           background: 'none', border: 'none', cursor: 'pointer',
           color: 'var(--text-secondary)', padding: '4px',
+          minWidth: '44px', minHeight: '44px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -216,17 +219,17 @@ function WithdrawnDetailScreen({ pick, onBack }) {
         <span style={{
           fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 600,
           color: 'var(--text-primary)',
-        }}>Pick Withdrawn</span>
+        }}>Signal Withdrawn</span>
       </div>
 
       <div style={{ padding: '0 20px' }}>
         <div style={{
-          backgroundColor: 'var(--surface-1)', borderRadius: '20px',
-          border: '1px solid var(--stroke-subtle)', padding: '24px',
-          marginBottom: '16px', textAlign: 'center',
+          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+          border: '1px solid var(--color-border)', padding: 'var(--space-lg)',
+          marginBottom: 'var(--space-md)', textAlign: 'center',
         }}>
           <div style={{
-            fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 600,
+            fontFamily: 'var(--font-sans)', fontSize: '20px', fontWeight: 600,
             color: 'var(--text-primary)', marginBottom: '6px',
           }}>
             {pick?.away_team} @ {pick?.home_team}
@@ -234,6 +237,7 @@ function WithdrawnDetailScreen({ pick, onBack }) {
 
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: '13px',
+            fontVariantNumeric: 'tabular-nums',
             color: 'var(--text-tertiary)',
           }}>
             {pick?.side && pick?.line != null && pick.side.includes(String(Math.abs(pick.line)))
@@ -246,89 +250,94 @@ function WithdrawnDetailScreen({ pick, onBack }) {
 
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-          border: '1px solid var(--stroke-subtle)', padding: '20px',
-          marginBottom: '16px',
+          border: '1px solid var(--color-border)', padding: '20px',
+          marginBottom: 'var(--space-md)',
         }}>
-          <h3 style={{
-            fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
-            color: 'var(--text-primary)', marginBottom: '12px',
-          }}>Process Review</h3>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '12px',
+          }}>Process Review</div>
           <p style={{
-            fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7',
-            marginBottom: '16px',
+            fontSize: 'var(--text-metric)', color: 'var(--text-secondary)', lineHeight: '1.7',
+            marginBottom: 'var(--space-md)',
           }}>
-            The market moved and the statistical edge fell below our threshold before tip-off. Capital was preserved. No trade is a position.
+            Market moved. Edge fell below threshold before tip-off. Capital preserved. No trade is a position.
           </p>
 
           <div style={{
             display: 'flex', justifyContent: 'space-around',
-            padding: '16px 0', borderTop: '1px solid var(--stroke-subtle)',
+            padding: 'var(--space-md) 0', borderTop: '1px solid var(--color-border)',
           }}>
             <ContextStat value={`${pick?.edge_pct || '--'}%`} label="Edge at entry" />
-            <ContextStat value={pick?.edge_at_close != null ? `${pick.edge_at_close}%` : '--'} label="Edge at withdrawal" color="var(--text-tertiary)" />
-            <ContextStat value="Protected" label="Action" color="var(--text-tertiary)" />
+            <ContextStat value={pick?.edge_at_close != null ? `${pick.edge_at_close}%` : '--'} label="Edge at withdrawal" muted />
+            <ContextStat value="Protected" label="Action" muted />
           </div>
         </div>
 
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '12px',
-          border: '1px solid var(--stroke-subtle)', padding: '12px 16px',
-          marginBottom: '16px',
+          border: '1px solid var(--color-border)', padding: '12px var(--space-md)',
+          marginBottom: 'var(--space-md)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <span style={{
-            fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 500,
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
             color: 'var(--text-tertiary)',
           }}>P&L</span>
           <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
-            color: 'var(--text-secondary)', opacity: 0.8,
-          }}>0u</span>
+            fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 700,
+            fontVariantNumeric: 'tabular-nums',
+            color: 'var(--text-secondary)',
+          }}>0.0u</span>
         </div>
 
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-          border: '1px solid var(--stroke-subtle)', padding: '20px',
-          marginBottom: '16px',
+          border: '1px solid var(--color-border)', padding: '20px',
+          marginBottom: 'var(--space-md)',
         }}>
-          <h3 style={{
-            fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
-            color: 'var(--text-primary)', marginBottom: '12px',
-          }}>What Discipline Looks Like</h3>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '12px',
+          }}>Discipline Framework</div>
           <p style={{
-            fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7',
+            fontSize: 'var(--text-metric)', color: 'var(--text-secondary)', lineHeight: '1.7',
           }}>
-            Not every signal survives. The edge decides — not emotion. A withdrawal is the system protecting capital. The next pick comes when the edge is there.
+            Not every signal survives. The edge decides — not emotion. A withdrawal is the system protecting capital. Next signal when the edge is there.
           </p>
         </div>
 
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-          border: '1px solid var(--stroke-subtle)', padding: '20px',
-          marginBottom: '16px',
+          border: '1px solid var(--color-border)', padding: '20px',
+          marginBottom: 'var(--space-md)',
         }}>
-          <h3 style={{
-            fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
-            color: 'var(--text-primary)', marginBottom: '12px',
-          }}>Already placed the bet?</h3>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '12px',
+          }}>Already Placed?</div>
           <p style={{
-            fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7',
+            fontSize: 'var(--text-metric)', color: 'var(--text-secondary)', lineHeight: '1.7',
           }}>
-            If you already wagered before the withdrawal, treat it as a standalone decision. Your tracked bet will still be graded based on the actual game result. The withdrawal only reflects that the statistical edge no longer met our threshold.
+            If already wagered before withdrawal, treat as standalone decision. Tracked bet still graded on actual result. Withdrawal reflects edge no longer met threshold.
           </p>
         </div>
 
         <div style={{
-          fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: '14px',
-          color: 'var(--text-secondary)', textAlign: 'center',
-          padding: '16px 0 8px', lineHeight: '1.5',
+          fontFamily: 'var(--font-mono)', fontSize: 'var(--text-caption)',
+          color: 'var(--text-tertiary)', textAlign: 'center',
+          padding: 'var(--space-md) 0 var(--space-sm)', lineHeight: '1.5',
         }}>
           Capital preservation is the discipline.
         </div>
 
         <p style={{
-          fontSize: '11px', color: 'var(--text-tertiary)', textAlign: 'center',
-          padding: '4px 0 16px', lineHeight: '1.5',
+          fontSize: '10px', color: 'var(--text-tertiary)', textAlign: 'center',
+          padding: '4px 0 var(--space-md)', lineHeight: '1.5', opacity: 0.6,
         }}>
           Past performance does not guarantee future results.
         </p>
@@ -337,16 +346,17 @@ function WithdrawnDetailScreen({ pick, onBack }) {
   );
 }
 
-function ContextStat({ value, label, color }) {
+function ContextStat({ value, label, muted }) {
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 600,
-        color: color || 'var(--text-primary)', marginBottom: '4px',
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-card-title)', fontWeight: 700,
+        fontVariantNumeric: 'tabular-nums',
+        color: muted ? 'var(--text-tertiary)' : 'var(--text-primary)', marginBottom: '4px',
       }}>{value}</div>
       <div style={{
         fontSize: '10px', color: 'var(--text-tertiary)',
-        textTransform: 'uppercase', letterSpacing: '0.05em',
+        textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700,
       }}>{label}</div>
     </div>
   );

@@ -809,7 +809,7 @@ export default function MarketView({ onBack }) {
           <h1 style={{
             fontFamily: 'var(--font-serif)', fontSize: '1.1rem', fontWeight: 700,
             color: 'var(--text-primary)', margin: 0,
-          }}>Market View</h1>
+          }}>Market Scan</h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 36 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>

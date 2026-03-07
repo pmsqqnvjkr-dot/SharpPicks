@@ -86,12 +86,12 @@ export default function DailyInsightCard({ data, onNavigate }) {
         textAlign: 'center', padding: '20px 16px 24px',
       }}>
         <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-          letterSpacing: '1.5px', textTransform: 'uppercase',
-          color: 'var(--text-tertiary)', marginBottom: '8px',
-        }}>Model analysis {countdown ? countdown : 'soon'}</div>
+          fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)', marginBottom: 'var(--space-sm)',
+        }}>Market scan in {countdown ? countdown : 'soon'}</div>
         <h2 style={{
-          fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 700,
+          fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
           color: 'var(--text-primary)', marginBottom: '4px',
         }}>Today&apos;s Slate</h2>
         <p style={{
@@ -110,12 +110,12 @@ export default function DailyInsightCard({ data, onNavigate }) {
       {/* Games list */}
       {gamesPreview.length > 0 && (
         <div style={{
-          background: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+          background: 'var(--surface-1)', border: '1px solid var(--color-border)',
           borderRadius: '14px', overflow: 'hidden', marginBottom: '20px',
         }}>
           {gamesPreview.map((g, i) => (
             <div key={`${g.away}-${g.home}`}>
-              {i > 0 && <div style={{ height: '1px', background: 'var(--stroke-subtle)', margin: '0 14px' }} />}
+              {i > 0 && <div style={{ height: '1px', background: 'var(--color-border)', margin: '0 14px' }} />}
               <MatchupRow away={g.away} home={g.home} time={g.time} />
             </div>
           ))}

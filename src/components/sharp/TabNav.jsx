@@ -1,6 +1,6 @@
 export default function TabNav({ activeTab, onTabChange }) {
   const tabs = [
-    { id: 'picks', label: 'Picks', icon: TargetIcon },
+    { id: 'picks', label: 'Signals', icon: TargetIcon },
     { id: 'market', label: 'Market', icon: MarketIcon },
     { id: 'insights', label: 'Journal', icon: BookIcon },
     { id: 'performance', label: 'Stats', icon: ChartIcon },
@@ -45,8 +45,7 @@ export default function TabNav({ activeTab, onTabChange }) {
               alignItems: 'center',
               gap: '2px',
               cursor: 'pointer',
-              color: isActive ? '#4BD38B' : 'rgba(255,255,255,0.35)',
-              transition: 'color 0.2s',
+              color: isActive ? 'var(--color-signal)' : 'rgba(255,255,255,0.35)',
             }}
           >
             <tab.icon />

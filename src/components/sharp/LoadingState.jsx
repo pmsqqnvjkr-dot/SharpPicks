@@ -1,43 +1,32 @@
 export default function LoadingState() {
   return (
-    <div style={{ padding: '0' }}>
+    <div style={{ padding: 0 }}>
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', padding: '60px 20px 40px',
       }}>
         <div style={{
-          display: 'flex', alignItems: 'center', gap: '6px',
+          width: '6px', height: '6px', borderRadius: '50%',
+          background: 'var(--color-signal)',
+          animation: 'live-pulse 2s ease-in-out infinite',
           marginBottom: '28px',
-        }}>
-          <div style={{
-            width: '4px', height: '28px', borderRadius: '2px',
-            backgroundColor: 'var(--text-secondary)',
-            animation: 'barPulse 1.4s ease-in-out infinite',
-          }} />
-          <div style={{
-            width: '4px', height: '28px', borderRadius: '2px',
-            backgroundColor: 'var(--text-secondary)',
-            animation: 'barPulse 1.4s ease-in-out infinite 0.2s',
-          }} />
-        </div>
+        }} />
 
         <h2 style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '20px', fontWeight: 600,
-          color: 'var(--text-primary)',
-          marginBottom: '10px',
-          textAlign: 'center',
-        }}>Waiting for model</h2>
+          fontFamily: 'var(--font-mono)',
+          fontSize: 'var(--text-label-size)', fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--text-secondary)',
+          marginBottom: '10px', textAlign: 'center',
+        }}>Market Scan Active</h2>
 
         <p style={{
           fontFamily: 'var(--font-sans)',
-          fontSize: '14px', fontWeight: 400,
-          color: 'var(--text-secondary)',
-          textAlign: 'center',
-          lineHeight: '1.55',
-          maxWidth: '280px',
+          fontSize: 'var(--text-metric)', fontWeight: 400,
+          color: 'var(--text-tertiary)',
+          textAlign: 'center', lineHeight: '1.55', maxWidth: '280px',
         }}>
-          The system has not processed today's data yet. Signals will update as games are analyzed.
+          Evaluating today's games...
         </p>
       </div>
 
@@ -61,13 +50,9 @@ export default function LoadingState() {
       </div>
 
       <style>{`
-        @keyframes barPulse {
-          0%, 100% { opacity: 1; transform: scaleY(1); }
-          50% { opacity: 0.3; transform: scaleY(0.7); }
-        }
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
+        @keyframes skeleton-shimmer {
+          0%, 100% { opacity: 0.06; }
+          50% { opacity: 0.12; }
         }
       `}</style>
     </div>
@@ -77,8 +62,8 @@ export default function LoadingState() {
 function SkeletonCard({ children }) {
   return (
     <div style={{
-      backgroundColor: 'var(--surface-1)', borderRadius: '20px',
-      border: '1px solid var(--stroke-subtle)', padding: '20px',
+      backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+      border: '1px solid var(--color-border)', padding: '20px',
       marginBottom: '12px',
     }}>
       {children}
@@ -89,12 +74,10 @@ function SkeletonCard({ children }) {
 function SkeletonBar({ width, height = '14px', radius = '6px', last = false }) {
   return (
     <div style={{
-      width: width || '100%', height,
-      borderRadius: radius,
-      background: 'linear-gradient(90deg, var(--surface-2) 25%, rgba(255,255,255,0.06) 50%, var(--surface-2) 75%)',
-      backgroundSize: '200% 100%',
-      animation: 'shimmer 1.8s ease-in-out infinite',
-      marginBottom: last ? '0' : '12px',
+      width: width || '100%', height, borderRadius: radius,
+      background: 'var(--surface-2)',
+      animation: 'skeleton-shimmer 1.5s ease-in-out infinite',
+      marginBottom: last ? 0 : '12px',
     }} />
   );
 }

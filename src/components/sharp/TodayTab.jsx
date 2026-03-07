@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
 import PickCard from './PickCard';
@@ -36,7 +36,7 @@ export default function TodayTab({ onNavigate }) {
   }
 
   return (
-    <div style={{ padding: '0' }}>
+    <div style={{ padding: 0 }}>
       <Header user={user} onAuthClick={() => setShowAuth(true)} />
 
       <div style={{ padding: '0 20px' }}>
@@ -57,11 +57,8 @@ export default function TodayTab({ onNavigate }) {
 
         {todayData?.type === 'pick' && isResolved && !isPro && (
           <FreePickNotice resolved onUpgrade={() => {
-            if (user) {
-              if (onNavigate) onNavigate('profile', 'upgrade');
-            } else {
-              setShowAuth(true);
-            }
+            if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); }
+            else setShowAuth(true);
           }} />
         )}
 
@@ -73,14 +70,9 @@ export default function TodayTab({ onNavigate }) {
           <PickCard pick={todayData} isPro={isPro} onUpgrade={() => setShowAuth(true)} onTrack={() => {
             if (onNavigate) onNavigate('profile', 'bets', {
               pickToTrack: {
-                id: todayData.id,
-                away_team: todayData.away_team,
-                home_team: todayData.home_team,
-                game_date: todayData.game_date,
-                side: todayData.side,
-                line: todayData.line,
-                edge_pct: todayData.edge_pct,
-                market_odds: todayData.market_odds,
+                id: todayData.id, away_team: todayData.away_team, home_team: todayData.home_team,
+                game_date: todayData.game_date, side: todayData.side, line: todayData.line,
+                edge_pct: todayData.edge_pct, market_odds: todayData.market_odds,
               }
             });
           }} />
@@ -88,44 +80,21 @@ export default function TodayTab({ onNavigate }) {
 
         {todayData?.type === 'pick' && !isResolved && !isRevoked && !isPro && (
           <FreePickNotice onUpgrade={() => {
-            if (user) {
-              if (onNavigate) onNavigate('profile', 'upgrade');
-            } else {
-              setShowAuth(true);
-            }
+            if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); }
+            else setShowAuth(true);
           }} />
         )}
 
-        {todayData?.type === 'pass' && (
-          <NoPickCard data={todayData} />
-        )}
-
-        {todayData?.type === 'off_day' && (
-          <OffDayCard />
-        )}
-
-        {todayData?.type === 'waiting' && (
-          <DailyInsightCard data={todayData} onNavigate={onNavigate} />
-        )}
+        {todayData?.type === 'pass' && <NoPickCard data={todayData} />}
+        {todayData?.type === 'off_day' && <OffDayCard />}
+        {todayData?.type === 'waiting' && <DailyInsightCard data={todayData} onNavigate={onNavigate} />}
 
         {error && (
-          <InlineError title="Data delay" message="Unable to load today's analysis. This typically resolves within a few minutes." />
+          <InlineError title="Data Feed Interrupted" message="Unable to load today's analysis. Retrying automatically." />
         )}
 
-        {!todayData && !error && (
-          <DailyBrief stats={stats} />
-        )}
-
+        {!todayData && !error && <DailyBrief stats={stats} />}
         {stats && <RecordStrip stats={stats} />}
-
-        {stats && (
-          <div style={{
-            textAlign: 'center', marginTop: '8px',
-            fontSize: '10px', color: 'var(--text-tertiary)',
-            fontFamily: 'var(--font-mono)', letterSpacing: '0.05em',
-            textTransform: 'uppercase',
-          }}>Algorithm Record</div>
-        )}
       </div>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
@@ -136,31 +105,23 @@ export default function TodayTab({ onNavigate }) {
 function Header({ user, onAuthClick }) {
   return (
     <div style={{
-      padding: '16px 20px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      padding: 'var(--space-md) 20px',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <img src="/images/crest.png" alt="" width="26" height="26" style={{ display: 'block', marginRight: '16px', flexShrink: 0, objectFit: 'contain' }} />
         <span style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: '13px',
-          fontWeight: 600,
-          color: '#F2F4F8',
-          letterSpacing: '3.9px',
-          textTransform: 'uppercase',
-          lineHeight: 1,
+          fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 600,
+          color: '#F2F4F8', letterSpacing: '3.9px', textTransform: 'uppercase', lineHeight: 1,
         }}>SHARP<span style={{ opacity: 0.65, margin: '0 0.45em', fontWeight: 500, letterSpacing: '0.18em' }}>||</span>PICKS</span>
       </div>
       {!user && (
-        <button
-          onClick={onAuthClick}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-tertiary)', padding: '4px',
-          }}
-        >
+        <button onClick={onAuthClick} style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: 'var(--text-tertiary)', padding: '4px',
+          minWidth: '44px', minHeight: '44px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
             <circle cx="12" cy="7" r="4"/>
@@ -170,7 +131,7 @@ function Header({ user, onAuthClick }) {
       {user && (
         <div style={{
           width: '32px', height: '32px', borderRadius: '50%',
-          backgroundColor: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
+          backgroundColor: 'var(--surface-2)', border: '1px solid var(--color-border)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
           fontFamily: 'var(--font-sans)',
@@ -186,32 +147,26 @@ function OffDayCard() {
   return (
     <div style={{ textAlign: 'center', padding: '40px 0 24px' }}>
       <div style={{
-        width: '64px', height: '64px', borderRadius: '16px',
-        backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: '6px', height: '6px', borderRadius: '50%',
+        background: 'var(--text-tertiary)', opacity: 0.5,
         margin: '0 auto 24px',
-      }}>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-          <line x1="16" y1="2" x2="16" y2="6"/>
-          <line x1="8" y1="2" x2="8" y2="6"/>
-          <line x1="3" y1="10" x2="21" y2="10"/>
-        </svg>
-      </div>
-      <h2 style={{
-        fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
-        color: 'var(--text-primary)', marginBottom: '12px',
-      }}>No games today</h2>
+      }} />
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+        letterSpacing: '0.08em', textTransform: 'uppercase',
+        color: 'var(--text-secondary)', marginBottom: '12px',
+      }}>No Games Scheduled</div>
       <p style={{
-        fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
-        maxWidth: '320px', margin: '0 auto 16px',
+        fontSize: 'var(--text-metric)', color: 'var(--text-tertiary)', lineHeight: '1.6',
+        maxWidth: '320px', margin: '0 auto var(--space-md)',
       }}>
-        No NBA games are scheduled today. The model will resume analysis when games return to the schedule.
+        No games scheduled. Model resumes analysis when games return.
       </p>
       <div style={{
-        display: 'inline-block', padding: '8px 16px', borderRadius: '8px',
-        backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid var(--stroke-subtle)',
+        display: 'inline-block', padding: 'var(--space-sm) var(--space-md)', borderRadius: '8px',
+        backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid var(--color-border)',
         fontSize: '13px', color: 'var(--text-tertiary)',
+        fontFamily: 'var(--font-mono)', letterSpacing: '0.04em',
       }}>
         Rest days are part of the discipline
       </div>
@@ -223,25 +178,25 @@ function DailyBrief({ stats }) {
   return (
     <div style={{ textAlign: 'center', padding: '40px 0 24px' }}>
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: '6px', margin: '0 auto 24px',
-      }}>
-        <div style={{ width: '4px', height: '28px', borderRadius: '2px', backgroundColor: 'var(--text-secondary)', opacity: 0.5 }} />
-        <div style={{ width: '4px', height: '28px', borderRadius: '2px', backgroundColor: 'var(--text-secondary)', opacity: 0.5 }} />
-      </div>
-      <h2 style={{
-        fontFamily: 'var(--font-serif)', fontSize: '20px', fontWeight: 600,
-        color: 'var(--text-primary)', marginBottom: '8px',
-      }}>Waiting for model</h2>
+        width: '6px', height: '6px', borderRadius: '50%',
+        background: 'var(--text-tertiary)',
+        margin: '0 auto 24px',
+        animation: 'live-pulse 2s ease-in-out infinite',
+      }} />
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+        letterSpacing: '0.08em', textTransform: 'uppercase',
+        color: 'var(--text-secondary)', marginBottom: '10px',
+      }}>Market Scan Active</div>
       <p style={{
-        fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
+        fontSize: 'var(--text-metric)', color: 'var(--text-tertiary)', lineHeight: '1.6',
         maxWidth: '300px', margin: '0 auto',
       }}>
-        The system has not processed today's data yet. Signals will update as games are analyzed.
+        Evaluating today's games...
       </p>
       {stats && (
         <div style={{
-          marginTop: '24px', display: 'flex', justifyContent: 'center', gap: '24px',
+          marginTop: 'var(--space-lg)', display: 'flex', justifyContent: 'center', gap: 'var(--space-lg)',
         }}>
           <Stat label="Record" value={stats.record || '0-0'} />
           <Stat label="Win Rate" value={stats.win_rate ? `${stats.win_rate}%` : '--'} />
@@ -256,12 +211,12 @@ function Stat({ label, value }) {
   return (
     <div>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 600,
-        color: 'var(--text-primary)',
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-card-title)', fontWeight: 700,
+        fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)',
       }}>{value}</div>
       <div style={{
-        fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
-        textTransform: 'uppercase', letterSpacing: '0.05em',
+        fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px',
+        textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700,
       }}>{label}</div>
     </div>
   );
@@ -271,37 +226,46 @@ function RecordStrip({ stats }) {
   return (
     <div style={{
       backgroundColor: 'var(--surface-1)', borderRadius: '12px',
-      padding: '16px 20px', marginTop: '16px',
-      border: '1px solid var(--stroke-subtle)',
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: 'var(--space-md)', marginTop: 'var(--space-md)',
+      border: '1px solid var(--color-border)',
     }}>
-      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <MiniStat label="Win Rate" value={stats.win_rate != null ? `${stats.win_rate}%` : '--'} />
-        <MiniStat label="ROI" value={stats.roi != null ? `${stats.roi >= 0 ? '+' : ''}${stats.roi}%` : '--'} />
-        <MiniStat label="Picks" value={stats.total_picks} />
-        <MiniStat label="Passes" value={stats.total_passes} />
-        <MiniStat label="Selectivity" value={`${stats.selectivity}%`} />
-      </div>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '13px',
-        color: stats.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+        letterSpacing: '0.08em', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', marginBottom: 'var(--space-sm)',
+      }}>Season Performance</div>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        {stats.pnl >= 0 ? '+' : ''}{stats.pnl}u
+        <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', alignItems: 'center' }}>
+          <MiniStat label="Win Rate" value={stats.win_rate != null ? `${stats.win_rate}%` : '--'} />
+          <MiniStat label="ROI" value={stats.roi != null ? `${stats.roi >= 0 ? '+' : ''}${stats.roi}%` : '--'} highlight={stats.roi >= 0} />
+          <MiniStat label="Signals" value={stats.total_picks} />
+          <MiniStat label="Passes" value={stats.total_passes} />
+        </div>
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 700,
+          fontVariantNumeric: 'tabular-nums',
+          color: stats.pnl >= 0 ? 'var(--color-signal)' : 'var(--color-loss)',
+        }}>
+          {stats.pnl >= 0 ? '+' : ''}{Number(stats.pnl).toFixed(1)}u
+        </div>
       </div>
     </div>
   );
 }
 
-function MiniStat({ label, value }) {
+function MiniStat({ label, value, highlight }) {
   return (
     <div>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
-        color: 'var(--text-primary)',
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-metric)', fontWeight: 700,
+        fontVariantNumeric: 'tabular-nums',
+        color: highlight ? 'var(--color-signal)' : 'var(--text-primary)',
       }}>{value}</div>
       <div style={{
         fontSize: '10px', color: 'var(--text-tertiary)',
-        textTransform: 'uppercase', letterSpacing: '0.05em',
+        textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700,
       }}>{label}</div>
     </div>
   );
@@ -309,37 +273,34 @@ function MiniStat({ label, value }) {
 
 function RevokedPassCard({ pick, onViewDetails }) {
   return (
-    <div
-      onClick={onViewDetails}
-      style={{
-        backgroundColor: 'rgba(99,102,241,0.06)',
-        borderRadius: '20px',
-        border: '1px solid rgba(99,102,241,0.18)',
-        padding: '24px',
-        marginBottom: '16px',
-        cursor: 'pointer',
-      }}
-    >
+    <div onClick={onViewDetails} style={{
+      backgroundColor: 'var(--surface-1)',
+      borderRadius: '16px',
+      border: '1px solid var(--color-border)',
+      padding: 'var(--space-lg)',
+      marginBottom: 'var(--space-md)',
+      cursor: 'pointer',
+    }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
         <div style={{
           width: '44px', height: '44px', borderRadius: '50%',
-          backgroundColor: 'rgba(99,102,241,0.1)',
-          border: '2px solid rgba(99,102,241,0.5)',
+          backgroundColor: 'rgba(142,154,175,0.08)',
+          border: '1px solid rgba(142,154,175,0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}>
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="rgba(99,102,241,0.7)" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="var(--withdrawn)" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
         </div>
         <div style={{ flex: 1 }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-            letterSpacing: '1.5px', textTransform: 'uppercase',
-            color: 'rgba(99,102,241,0.8)', marginBottom: '4px',
-          }}>Withdrawn</div>
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--withdrawn)', marginBottom: '4px',
+          }}>Signal Withdrawn</div>
           <div style={{
-            fontFamily: 'var(--font-serif)', fontSize: '18px', fontWeight: 600,
+            fontFamily: 'var(--font-sans)', fontSize: 'var(--text-card-title)', fontWeight: 600,
             color: 'var(--text-primary)',
           }}>
             {pick.side && pick.line != null && pick.side.includes(String(Math.abs(pick.line)))
@@ -349,8 +310,8 @@ function RevokedPassCard({ pick, onViewDetails }) {
         </div>
         <div style={{
           fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700,
-          color: 'rgba(99,102,241,0.6)',
-        }}>0u</div>
+          fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)',
+        }}>0.0u</div>
       </div>
 
       <div style={{
@@ -364,20 +325,20 @@ function RevokedPassCard({ pick, onViewDetails }) {
         fontFamily: 'var(--font-mono)', fontSize: '11px',
         color: 'var(--text-tertiary)',
       }}>
-        {pick.edge_pct ? `${pick.edge_pct}% edge at entry · ` : ''}Pulled pre-tip
+        {pick.edge_pct ? `${pick.edge_pct}% edge at entry · ` : ''}Withdrawn pre-tip
       </div>
 
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-        marginTop: '16px', paddingTop: '14px',
-        borderTop: '1px solid rgba(99,102,241,0.12)',
+        marginTop: 'var(--space-md)', paddingTop: '14px',
+        borderTop: '1px solid var(--color-border)',
       }}>
         <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-          letterSpacing: '1px', textTransform: 'uppercase',
-          color: 'rgba(99,102,241,0.6)',
-        }}>View details</span>
-        <svg viewBox="0 0 24 24" width="14" height="14" stroke="rgba(99,102,241,0.5)" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)',
+        }}>View Details</span>
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="var(--text-tertiary)" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9 18 15 12 9 6"/>
         </svg>
       </div>
@@ -388,47 +349,44 @@ function RevokedPassCard({ pick, onViewDetails }) {
 function ResolvedPickBanner({ pick, onViewDetails, onDismiss }) {
   const isWin = pick.result === 'win';
   const isPush = pick.result === 'push';
-  const accentColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--green-profit)' : 'var(--red-loss)';
-  const accentBg = isPush ? 'rgba(255,255,255,0.04)' : isWin ? 'rgba(52,211,153,0.06)' : 'rgba(239,68,68,0.06)';
-  const accentBorder = isPush ? 'rgba(255,255,255,0.1)' : isWin ? 'rgba(52,211,153,0.18)' : 'rgba(239,68,68,0.18)';
+  const pnlColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--color-signal)' : 'var(--color-loss)';
   const profitDisplay = pick.profit_units != null
-    ? `${pick.profit_units >= 0 ? '+' : ''}${pick.profit_units}u`
-    : isPush ? '0u' : isWin ? '+0.91u' : '-1.0u';
+    ? `${pick.profit_units >= 0 ? '+' : ''}${Number(pick.profit_units).toFixed(1)}u`
+    : isPush ? '0.0u' : isWin ? '+0.9u' : '-1.0u';
 
   const scoreDisplay = (pick.home_score != null && pick.away_score != null)
     ? `${pick.away_team} ${pick.away_score}, ${pick.home_team} ${pick.home_score}`
     : null;
 
   return (
-    <div
-      onClick={onViewDetails}
-      style={{
-        backgroundColor: accentBg,
-        borderRadius: '20px',
-        border: `1px solid ${accentBorder}`,
-        padding: '24px',
-        marginBottom: '16px',
-        cursor: 'pointer',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+    <div onClick={onViewDetails} style={{
+      backgroundColor: 'var(--surface-1)',
+      borderRadius: '16px',
+      border: '1px solid var(--color-border)',
+      padding: 'var(--space-lg)',
+      marginBottom: 'var(--space-md)',
+      cursor: 'pointer',
+      opacity: 0.85,
+      position: 'relative',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 'var(--space-md)' }}>
         <div style={{
           width: '44px', height: '44px', borderRadius: '50%',
-          backgroundColor: isWin ? 'rgba(52,211,153,0.12)' : 'rgba(239,68,68,0.12)',
-          border: `2px solid ${accentColor}`,
+          backgroundColor: isWin ? 'var(--color-signal-bg)' : isPush ? 'rgba(255,255,255,0.04)' : 'rgba(196,104,107,0.08)',
+          border: `1px solid ${isWin ? 'var(--color-signal-border)' : isPush ? 'var(--color-border)' : 'rgba(196,104,107,0.22)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}>
           {isPush ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2.5" strokeLinecap="round">
               <line x1="6" y1="12" x2="18" y2="12"/>
             </svg>
           ) : isWin ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-signal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
           ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-loss)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -436,14 +394,14 @@ function ResolvedPickBanner({ pick, onViewDetails, onDismiss }) {
         </div>
         <div style={{ flex: 1 }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-            letterSpacing: '1.5px', textTransform: 'uppercase',
-            color: accentColor, marginBottom: '4px',
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: pnlColor, marginBottom: '4px',
           }}>
             {isPush ? 'Outcome: Push' : isWin ? 'Outcome: Win' : 'Outcome: Loss'}
           </div>
           <div style={{
-            fontFamily: 'var(--font-serif)', fontSize: '18px', fontWeight: 600,
+            fontFamily: 'var(--font-sans)', fontSize: 'var(--text-card-title)', fontWeight: 600,
             color: 'var(--text-primary)',
           }}>
             {pick.side} {pick.line > 0 ? `+${pick.line}` : pick.line}
@@ -451,7 +409,7 @@ function ResolvedPickBanner({ pick, onViewDetails, onDismiss }) {
         </div>
         <div style={{
           fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700,
-          color: accentColor,
+          fontVariantNumeric: 'tabular-nums', color: pnlColor,
         }}>
           {profitDisplay}
         </div>
@@ -460,32 +418,31 @@ function ResolvedPickBanner({ pick, onViewDetails, onDismiss }) {
       {scoreDisplay && (
         <div style={{
           fontFamily: 'var(--font-mono)', fontSize: '13px',
-          color: 'var(--text-secondary)',
-          marginBottom: '12px',
+          fontVariantNumeric: 'tabular-nums',
+          color: 'var(--text-secondary)', marginBottom: '12px',
         }}>
           Final: {scoreDisplay}
         </div>
       )}
 
       <div style={{
-        fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: '13px',
-        color: 'var(--text-secondary)', lineHeight: '1.6',
-        marginBottom: '16px',
+        fontSize: '13px', color: 'var(--text-tertiary)', lineHeight: '1.6',
+        marginBottom: 'var(--space-md)',
       }}>
         {isPush
-          ? "A push changes nothing. The spread landed on the number. The next pick comes when the edge is there."
+          ? "Push. Spread landed on the number. Next signal when the edge is there."
           : isWin
-          ? "A win doesn't change the process. The next pick comes when the edge is there."
-          : "A loss doesn't change the process. No revenge bets. The next pick comes when the edge is there."
+          ? "Process unchanged. Next signal when the edge is there."
+          : "Process unchanged. No revenge bets. Next signal when the edge is there."
         }
       </div>
 
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
         fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 500,
-        color: accentColor,
+        color: 'var(--color-info)',
       }}>
-        View full outcome review
+        View outcome log
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
@@ -499,6 +456,7 @@ function ResolvedPickBanner({ pick, onViewDetails, onDismiss }) {
             border: 'none', cursor: 'pointer',
             fontFamily: 'var(--font-sans)', fontSize: '12px',
             color: 'var(--text-tertiary)',
+            minHeight: '44px', minWidth: '44px',
           }}
         >
           Dismiss
@@ -512,58 +470,49 @@ function FreePickNotice({ onUpgrade, resolved }) {
   return (
     <div style={{
       backgroundColor: 'var(--surface-1)',
-      border: '1px solid var(--stroke-subtle)',
+      border: '1px solid var(--color-border)',
       borderRadius: '16px',
-      padding: '32px 24px',
-      textAlign: 'center',
+      padding: '32px 24px', textAlign: 'center',
     }}>
       <div style={{
         width: '56px', height: '56px', borderRadius: '14px',
-        backgroundColor: 'rgba(52,211,153,0.08)',
-        border: '1px solid rgba(52,211,153,0.15)',
+        backgroundColor: 'var(--color-signal-bg)',
+        border: '1px solid var(--color-signal-border)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         margin: '0 auto 20px',
       }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green-profit)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-signal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12"/>
         </svg>
       </div>
 
       <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '11px', fontWeight: 700,
-        letterSpacing: '1.5px', textTransform: 'uppercase',
-        color: 'var(--green-profit)',
-        marginBottom: '12px',
-      }}>Pick Published Today</div>
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+        letterSpacing: '0.08em', textTransform: 'uppercase',
+        color: 'var(--color-signal)', marginBottom: '12px',
+      }}>Signal Published</div>
 
       <p style={{
-        fontSize: '14px', color: 'var(--text-secondary)',
-        lineHeight: '1.6', marginBottom: '24px',
-        maxWidth: '280px', margin: '0 auto 24px',
+        fontSize: 'var(--text-metric)', color: 'var(--text-secondary)',
+        lineHeight: '1.6', maxWidth: '280px', margin: '0 auto 24px',
       }}>
         {resolved
-          ? "Today's pick has been resolved. Upgrade to see the result, side, and full analysis."
-          : "The model found a qualifying edge today. Upgrade to see the full pick, side, and analysis."
+          ? "Today's signal has been resolved. Upgrade to see the outcome, side, and full analysis."
+          : "Edge detected. Upgrade to see the full signal, side, and analysis."
         }
       </p>
 
-      <button
-        onClick={onUpgrade}
-        style={{
-          width: '100%', height: '48px', borderRadius: '14px',
-          border: 'none',
-          background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
-          color: 'white', fontFamily: 'var(--font-sans)',
-          fontSize: '14px', fontWeight: 700, cursor: 'pointer',
-        }}
-      >
-        Upgrade to See Pick
+      <button onClick={onUpgrade} style={{
+        width: '100%', height: '48px', borderRadius: '14px', border: 'none',
+        background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
+        color: 'white', fontFamily: 'var(--font-sans)',
+        fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+      }}>
+        Upgrade to See Signal
       </button>
 
       <p style={{
-        fontSize: '12px', color: 'var(--text-tertiary)',
-        marginTop: '12px',
+        fontSize: 'var(--text-caption)', color: 'var(--text-tertiary)', marginTop: '12px',
       }}>Full access · Cancel anytime</p>
     </div>
   );
