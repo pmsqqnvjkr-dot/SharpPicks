@@ -1955,6 +1955,7 @@ CRON_MIN_INTERVAL = {
     'wnba_closing_lines': 60,
     'wnba_shadow': 600,
     'wnba_grade': 300,
+    'retrain_model': 86400,
 }
 
 def log_cron(job_name, fn, skip_throttle=False):
@@ -2224,6 +2225,35 @@ def cron_pretip_validate():
 @verify_cron
 def cron_data_quality():
     return log_cron('data_quality', check_data_quality)
+
+
+@app.route('/api/cron/retrain-model', methods=['GET', 'POST'])
+@verify_cron
+def cron_retrain_model():
+    """Retrain the model if it's stale (>30 days old). Schedule weekly; it no-ops when fresh."""
+    force = request.args.get('force', '').lower() == 'true'
+    def _retrain():
+        from model import EnsemblePredictor
+        results = {}
+        for sport in get_live_sports():
+            model = EnsemblePredictor(sport=sport)
+            model.load_model()
+            age = model.model_age_days()
+            if not force and not model.is_stale():
+                results[sport] = {
+                    'status': 'fresh',
+                    'age_days': age,
+                    'threshold_days': model.MODEL_STALE_DAYS,
+                }
+                continue
+            model.train()
+            model.save()
+            results[sport] = {
+                'status': 'retrained',
+                'previous_age_days': age,
+            }
+        return results
+    return log_cron('retrain_model', _retrain, skip_throttle=force)
 
 
 def start_background_services():

@@ -6,6 +6,11 @@ SPORT_CONFIG = {
         'live': True,
 
         'sigma': 11.7,
+        # Reviewed 2026-03-07: kept at 0.3. Only 2 CLV data points (avg -6.75),
+        # post-calibration record 2-2. Increase to 0.35 when:
+        # (a) 30+ post-cal picks with CLV data, AND
+        # (b) CLV positive on >55% of those picks, AND
+        # (c) post-cal ROI is positive
         'model_weight': 0.3,
         'edge_threshold_pct': 3.5,
         'max_edge_pct': 8.0,
@@ -18,6 +23,10 @@ SPORT_CONFIG = {
             (7, 11, 5.0),
             (11, float('inf'), 8.0),
         ],
+
+        # Max signals published per day. 1 = "selective by design" brand identity.
+        # Increase only if CLV data shows consistent alpha on 2nd/3rd best edges.
+        'max_daily_picks': 1,
 
         'odds_api_sport_key': 'basketball_nba',
         'espn_slug': 'basketball/nba',
@@ -48,6 +57,8 @@ SPORT_CONFIG = {
             (7, 11, 5.0),
             (11, float('inf'), 8.0),
         ],
+
+        'max_daily_picks': 1,
 
         'odds_api_sport_key': 'basketball_wnba',
         'espn_slug': 'basketball/wnba',

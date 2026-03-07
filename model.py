@@ -713,6 +713,10 @@ class EnsemblePredictor:
                 print("❌ No trained model found. Run training first.\n")
                 return []
 
+        if self.is_stale():
+            age = self.model_age_days()
+            print(f"⚠️  MODEL STALE: trained {age} days ago (threshold: {self.MODEL_STALE_DAYS}d). Consider retraining.")
+
         conn = sqlite3.connect(get_sqlite_path())
 
         games_tbl = self._games_table()
@@ -1835,6 +1839,7 @@ class EnsemblePredictor:
             'margin_std': getattr(self, 'margin_std', None),
             'margin_mae': getattr(self, 'margin_mae', None),
             'using_fallback_sigma': getattr(self, 'using_fallback_sigma', None),
+            'trained_at': datetime.utcnow().isoformat(),
         }
         
         with open(filepath, 'wb') as f:
@@ -1862,11 +1867,32 @@ class EnsemblePredictor:
             self.margin_std = min(max(saved_std, self.margin_std_floor), self.margin_std_ceiling) if saved_std is not None else None
             self.margin_mae = model_data.get('margin_mae', None)
             self.using_fallback_sigma = model_data.get('using_fallback_sigma', None)
+            self.trained_at = model_data.get('trained_at', None)
             
             return True
         except:
             return False
     
+    MODEL_STALE_DAYS = 30
+
+    def model_age_days(self):
+        """Return the number of days since the model was trained, or None if unknown."""
+        trained_at = getattr(self, 'trained_at', None)
+        if not trained_at:
+            return None
+        try:
+            trained_dt = datetime.fromisoformat(trained_at)
+            return (datetime.utcnow() - trained_dt).days
+        except (ValueError, TypeError):
+            return None
+
+    def is_stale(self):
+        """True if the model was trained more than MODEL_STALE_DAYS ago."""
+        age = self.model_age_days()
+        if age is None:
+            return False
+        return age > self.MODEL_STALE_DAYS
+
     def show_feature_importance(self):
         """Display feature importance from the models"""
         if not self.trained:

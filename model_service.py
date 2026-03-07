@@ -11,6 +11,9 @@ import time
 import sqlite3
 from db_path import get_sqlite_path
 
+PRETIP_MIN_EDGE = 2.0       # Revoke if edge decays below this (was 1.5, raised 2026-03-07)
+PRETIP_LINE_DRIFT = 2.0     # Revoke if line moves this many points from publication
+
 # Cache loaded model per sport (avoid re-loading pickle on each run)
 _model_cache = {}  # sport -> (model, filepath, mtime)
 
@@ -358,10 +361,10 @@ def pretip_revalidate(app, sport='nba'):
             if not still_passes:
                 revoke = True
                 revoke_reason = f"Pre-tip re-check: no longer passes filters — {matching.get('pass_reason', 'edge evaporated')}"
-            elif new_edge < 1.5:
+            elif new_edge < PRETIP_MIN_EDGE:
                 revoke = True
                 revoke_reason = f"Pre-tip re-check: edge dropped to {new_edge:+.1f}% (was {old_edge:+.1f}%)"
-            elif line_drift >= 2.0:
+            elif line_drift >= PRETIP_LINE_DRIFT:
                 revoke = True
                 revoke_reason = f"Pre-tip re-check: line moved {line_drift:.1f}pts since publication ({old_line:+.1f} → {new_line:+.1f})"
 
@@ -465,6 +468,13 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                     print(f"[model-run] ERROR: Model not trained for {sport}")
                     return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
                 _cache_model(sport, model, model._default_filepath())
+
+            age = model.model_age_days()
+            if age is not None:
+                print(f"[model-run] Model age: {age} days")
+            if model.is_stale():
+                import logging
+                logging.warning(f"[model-run] {sport} model is STALE ({age}d old, threshold {model.MODEL_STALE_DAYS}d). Retrain recommended.")
 
             # When force=true, use 0 min buffer so all stored games are analyzed (useful for late runs / testing)
             min_minutes = 0 if force else 30
@@ -590,7 +600,14 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
             closest_edge = max(all_edges) if all_edges else 0
 
             duration_ms = int((time.time() - start_time) * 1000)
-            print(f"[model-run] Eligible: {len(qualified)}, Max edge: {closest_edge:+.1f}%, Duration: {duration_ms}ms")
+            max_picks = cfg.get('max_daily_picks', 1)
+            print(f"[model-run] Eligible: {len(qualified)}, Max edge: {closest_edge:+.1f}%, Duration: {duration_ms}ms, Max picks/day: {max_picks}")
+
+            if len(qualified) > max_picks:
+                ranked = sorted(qualified, key=lambda p: p.get('adjusted_edge', 0), reverse=True)
+                unpublished = ranked[max_picks:]
+                for up in unpublished:
+                    print(f"[model-run] Qualified but unpublished: {up.get('away_team')} @ {up.get('home_team')} edge={up.get('adjusted_edge', 0):+.1f}%")
 
             if qualified:
                 best = max(qualified, key=lambda p: p.get('adjusted_edge', 0))
