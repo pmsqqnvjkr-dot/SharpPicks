@@ -147,7 +147,7 @@ function AppContent() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('picks');
   const [picksResetKey, setPicksResetKey] = useState(0);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('sp_onboarded'));
   const [showWelcome, setShowWelcome] = useState(false);
   const [profileScreen, setProfileScreen] = useState(null);
   const [profileScreenData, setProfileScreenData] = useState(null);
@@ -189,14 +189,7 @@ function AppContent() {
     }
   }, [location.pathname, location.search, user]);
 
-  useEffect(() => {
-    if (user) {
-      const onboarded = localStorage.getItem('sp_onboarded');
-      if (!onboarded && user.is_new) {
-        setShowOnboarding(true);
-      }
-    }
-  }, [user]);
+  
 
   useEffect(() => {
     const handlePushNav = (e) => {
@@ -257,6 +250,10 @@ function AppContent() {
       };
     }
   }, [user?.subscription_status]);
+
+  if (showOnboarding) {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  }
 
   if (loading) {
     return (
@@ -352,10 +349,6 @@ function AppContent() {
       setShowWelcome(false);
       navigate('/', { replace: true });
     }} />;
-  }
-
-  if (showOnboarding) {
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
   return (
