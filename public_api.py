@@ -848,15 +848,52 @@ def market_report():
             detail = []
 
     edge_threshold = 2.0
+    all_edges = []
+    largest_edge_val = 0
+    largest_edge_game = None
+    strong_edges = 0
+    moderate_edges = 0
+    weak_edges = 0
+    underdog_edges = 0
+    favorite_edges = 0
+    totals_efficient = True
+
     for g in detail:
         edge = abs(g.get('edge', 0) or 0)
         if edge >= edge_threshold:
             edges_detected += 1
+            all_edges.append(edge)
+            if edge >= 10:
+                strong_edges += 1
+            elif edge >= 7:
+                moderate_edges += 1
+            else:
+                weak_edges += 1
+            spread = g.get('spread') or g.get('line') or 0
+            if spread > 0:
+                underdog_edges += 1
+            else:
+                favorite_edges += 1
+            if edge > largest_edge_val:
+                largest_edge_val = edge
+                away = g.get('away_team', '')
+                home = g.get('home_team', '')
+                largest_edge_game = f'{away} @ {home}' if away and home else None
         if g.get('passes'):
             qualified_signals += 1
 
     no_edge_count = games_analyzed - edges_detected
     efficiency = round(no_edge_count / games_analyzed * 100, 0) if games_analyzed > 0 else 100
+
+    # Market regime
+    if efficiency <= 25:
+        regime = 'High Inefficiency'
+    elif efficiency <= 50:
+        regime = 'Active Market'
+    elif efficiency <= 75:
+        regime = 'Moderate Efficiency'
+    else:
+        regime = 'Efficient Market'
 
     if efficiency >= 90:
         assessment = 'Highly efficient market today. Passing is a position.'
@@ -867,6 +904,28 @@ def market_report():
     else:
         assessment = 'Multiple inefficiencies detected. Expect several signals.'
 
+    # Signal density
+    signal_density = round(qualified_signals / games_analyzed * 100, 0) if games_analyzed > 0 else 0
+
+    # Model insight (rule-based)
+    insight = None
+    if edges_detected == 0:
+        insight = 'No exploitable inefficiencies detected. Markets are pricing correctly today.'
+    elif underdog_edges > favorite_edges and underdog_edges >= 2:
+        insight = 'Underdogs showing unusual value today.'
+    elif favorite_edges > underdog_edges and favorite_edges >= 2:
+        insight = 'Spread inflation detected on road favorites.'
+    elif strong_edges >= 2:
+        insight = 'Multiple strong edges detected. High-conviction environment.'
+    elif qualified_signals == 0 and edges_detected > 0:
+        insight = 'Edges detected but none passed qualification filters.'
+    elif signal_density >= 50:
+        insight = 'High signal density. Market is unusually inefficient today.'
+    elif edges_detected == 1:
+        insight = 'Single edge detected. Selective environment.'
+    else:
+        insight = 'Mixed edge profile across today\'s slate.'
+
     updated_at = run.created_at.isoformat() + 'Z' if run.created_at else None
 
     return jsonify({
@@ -876,7 +935,17 @@ def market_report():
         'edges_detected': edges_detected,
         'qualified_signals': qualified_signals,
         'market_efficiency_pct': efficiency,
+        'regime': regime,
         'assessment': assessment,
+        'signal_density': signal_density,
+        'largest_edge': round(largest_edge_val, 1) if largest_edge_val > 0 else None,
+        'largest_edge_game': largest_edge_game,
+        'edge_distribution': {
+            'strong': strong_edges,
+            'moderate': moderate_edges,
+            'weak': weak_edges,
+        },
+        'insight': insight,
         'last_updated': updated_at,
     })
 
