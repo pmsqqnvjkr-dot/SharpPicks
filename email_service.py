@@ -118,8 +118,8 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
       <tr><td style="padding:32px 32px 0;">
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
           <tr><td align="center" style="padding:0 0 16px;">
-            <img src="{base}/images/crest.png" alt="" width="56" height="56" style="display:inline-block;vertical-align:middle;margin-right:14px;" /><!--
-            --><span style="font-family:Arial,Helvetica,sans-serif;font-size:26px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#FFFFFF;vertical-align:middle;">SHARP<span style="opacity:0.5;margin:0 0.35em;font-weight:500;letter-spacing:0.15em;">||</span>PICKS</span>
+            <img src="{base}/images/crest.png" alt="" width="28" height="28" style="display:inline-block;vertical-align:middle;margin-right:12px;" /><!--
+            --><span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#FFFFFF;vertical-align:middle;">SHARP<span style="opacity:0.5;margin:0 0.35em;font-weight:500;letter-spacing:0.15em;">||</span>PICKS</span>
           </td></tr>
         </table>
         <hr style="border:none;border-top:1px solid #2A2A2A;margin:0 0 24px;">
@@ -609,8 +609,8 @@ def send_welcome(to, first_name=None):
     html = f"""
     <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 20px 24px 48px; color: #e0e0e0; background-color: #0A0D14;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <img src="{dashboard_url}/images/crest.png" alt="" width="56" height="56" style="display:inline-block;vertical-align:middle;margin-right:14px;" /><!--
-        --><span style="font-family:Arial,Helvetica,sans-serif;font-size:26px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#FFFFFF;vertical-align:middle;">SHARP<span style="opacity:0.5;margin:0 0.35em;font-weight:500;letter-spacing:0.15em;">||</span>PICKS</span>
+        <img src="{dashboard_url}/images/crest.png" alt="" width="28" height="28" style="display:inline-block;vertical-align:middle;margin-right:12px;" /><!--
+        --><span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#FFFFFF;vertical-align:middle;">SHARP<span style="opacity:0.5;margin:0 0.35em;font-weight:500;letter-spacing:0.15em;">||</span>PICKS</span>
       </div>
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px; margin-top: 0;">Hi {name},</p>
