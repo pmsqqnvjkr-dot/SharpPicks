@@ -60,7 +60,7 @@ export default function PrivacyPolicy() {
           color: 'var(--text-tertiary)',
           marginBottom: '32px',
           fontFamily: 'var(--font-mono)',
-        }}>Last updated: February 17, 2026</p>
+        }}>Last updated: March 8, 2026</p>
 
         <Section title="1. Introduction">
           <p>SharpPicks ("we," "us," or "our") operates the SharpPicks platform accessible at app.sharppicks.ai and through our mobile applications. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our service.</p>
@@ -100,33 +100,58 @@ export default function PrivacyPolicy() {
           <p>We implement appropriate security measures including encrypted passwords, HTTPS everywhere, secure token-based authentication, and regular database backups. However, no method of transmission over the Internet is 100% secure.</p>
         </Section>
 
-        <Section title="6. Data Retention">
-          <p>We retain your account data for as long as your account is active. Pick history and performance records are maintained as part of our public transparency record. You may request deletion of your account by contacting support@sharppicks.ai.</p>
+        <Section title="6. Account Deletion">
+          <p style={{ marginBottom: '12px' }}>SharpPicks allows you to delete your account and all associated data at any time. To delete your account:</p>
+          <ol style={{ paddingLeft: '20px', marginTop: '8px', marginBottom: '12px' }}>
+            <li>Open the SharpPicks app</li>
+            <li>Go to <strong style={{ color: 'var(--text-primary)' }}>Account</strong> (bottom navigation)</li>
+            <li>Scroll down and tap <strong style={{ color: 'var(--text-primary)' }}>Delete Account</strong></li>
+            <li>Confirm the deletion when prompted</li>
+          </ol>
+          <p style={{ marginBottom: '12px' }}>You can also request account deletion by emailing <strong style={{ color: 'var(--text-primary)' }}>support@sharppicks.ai</strong> from the email address associated with your account. Deletion requests are processed within 7 business days.</p>
+          <p style={{ marginBottom: '12px' }}><strong style={{ color: 'var(--text-primary)' }}>Data that is deleted:</strong></p>
+          <ul style={{ paddingLeft: '20px', marginBottom: '12px' }}>
+            <li>Your account profile (name, email, password)</li>
+            <li>Your tracked bets and personal bet history</li>
+            <li>Your notification preferences and push tokens</li>
+            <li>Your subscription data (active subscriptions are cancelled)</li>
+            <li>Your email preferences and settings</li>
+          </ul>
+          <p style={{ marginBottom: '12px' }}><strong style={{ color: 'var(--text-primary)' }}>Data that may be retained:</strong></p>
+          <ul style={{ paddingLeft: '20px', marginBottom: '12px' }}>
+            <li>Aggregated, anonymized analytics data that cannot be linked back to you</li>
+            <li>Model performance records (public pick history) which do not contain personal information</li>
+          </ul>
+          <p>All personally identifiable data is permanently deleted. There is no additional retention period for personal data after account deletion.</p>
         </Section>
 
-        <Section title="7. Your Rights">
+        <Section title="7. Data Retention">
+          <p>We retain your account data for as long as your account is active. If you delete your account, all personal data is removed as described in Section 6 above. Anonymized model performance records are maintained as part of our public transparency record and do not contain personal information.</p>
+        </Section>
+
+        <Section title="8. Your Rights">
           <p>You have the right to:</p>
           <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
             <li>Access and update your personal information</li>
-            <li>Request deletion of your account</li>
+            <li>Delete your account and personal data (see Section 6)</li>
             <li>Opt out of non-essential communications</li>
             <li>Disable push notifications through your device settings</li>
           </ul>
         </Section>
 
-        <Section title="8. Push Notifications">
+        <Section title="9. Push Notifications">
           <p>With your permission, we send push notifications for pick alerts, pass-day updates, and results. You can disable notifications at any time through your device settings or within the app.</p>
         </Section>
 
-        <Section title="9. Children's Privacy">
+        <Section title="10. Children's Privacy">
           <p>SharpPicks is not intended for individuals under 18 years of age. We do not knowingly collect personal information from minors. If you are under 18, do not use this service.</p>
         </Section>
 
-        <Section title="10. Changes to This Policy">
+        <Section title="11. Changes to This Policy">
           <p>We may update this Privacy Policy from time to time. We will notify you of any changes by updating the "Last updated" date. Continued use of the service constitutes acceptance of the revised policy.</p>
         </Section>
 
-        <Section title="11. Contact Us">
+        <Section title="12. Contact Us">
           <p>If you have questions about this Privacy Policy, contact us at:</p>
           <p style={{ marginTop: '8px' }}>
             <strong style={{ color: 'var(--text-primary)' }}>Email:</strong> support@sharppicks.ai<br />
