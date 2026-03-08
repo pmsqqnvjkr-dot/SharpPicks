@@ -6,14 +6,12 @@ export default function OnboardingFlow({ onComplete }) {
       zIndex: 1000,
       display: 'flex', flexDirection: 'column',
       maxWidth: '480px', margin: '0 auto',
-      overflowY: 'auto',
-      WebkitOverflowScrolling: 'touch',
+      overflow: 'hidden',
     }}>
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         padding: '0 32px',
-        minHeight: '100vh',
       }}>
 
         {/* ── Logo ── */}
@@ -21,92 +19,81 @@ export default function OnboardingFlow({ onComplete }) {
           src="/images/crest.png"
           alt="SharpPicks"
           style={{
-            width: '72px', height: '72px',
+            width: '80px', height: '80px',
             objectFit: 'contain',
-            marginBottom: '24px',
+            opacity: 0.08,
+            marginBottom: '16px',
           }}
         />
 
         {/* ── Wordmark ── */}
         <div style={{
-          fontFamily: 'var(--font-sans)', fontSize: '18px', fontWeight: 700,
-          letterSpacing: '0.18em', textTransform: 'uppercase',
-          color: '#FFFFFF',
-          marginBottom: '48px',
+          fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700,
+          letterSpacing: '0.2em', textTransform: 'uppercase',
+          color: 'rgba(255,255,255,0.5)',
+          marginBottom: '32px',
         }}>
           SHARP<span style={{ opacity: 0.4, margin: '0 0.25em' }}>||</span>PICKS
         </div>
 
         {/* ── Headline ── */}
         <h1 style={{
-          fontFamily: 'var(--font-sans)', fontSize: '26px', fontWeight: 600,
-          color: '#FFFFFF', lineHeight: 1.25,
-          textAlign: 'center', marginBottom: '16px',
-          maxWidth: '320px',
-          margin: '0 auto 16px',
+          fontFamily: 'var(--font-serif)', fontSize: '32px', fontWeight: 700,
+          color: '#FFFFFF', lineHeight: 1.15,
+          textAlign: 'center',
+          maxWidth: '300px',
+          margin: '0 auto 14px',
         }}>
           Sports markets analyzed like financial markets
         </h1>
 
         {/* ── Subtext ── */}
         <p style={{
-          fontSize: '15px', color: '#8A94A6', lineHeight: 1.7,
-          textAlign: 'center', maxWidth: '310px', margin: '0 auto 40px',
+          fontFamily: 'var(--font-sans)',
+          fontSize: '16px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6,
+          textAlign: 'center', maxWidth: '280px', margin: '0 auto 32px',
         }}>
           One signal per day. Only when the edge is real.
         </p>
 
-        {/* ── Divider ── */}
-        <div style={{
-          width: '40px', height: '1px',
-          backgroundColor: '#5A9E72',
-          margin: '0 auto 40px',
-        }} />
-
         {/* ── Process Flow ── */}
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
-          marginBottom: '40px', width: '100%', maxWidth: '240px',
+          marginBottom: '28px', width: '100%', maxWidth: '220px',
         }}>
-          {['Market Data', 'Model Analysis', 'Edge Detection', 'Qualification Filters'].map((label, i) => (
+          {['Market Data', 'Model Analysis', 'Edge Detection', 'Qualification Filters'].map((label) => (
             <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{
-                fontFamily: 'var(--font-mono, monospace)', fontSize: '12px',
-                fontWeight: 500, letterSpacing: '0.06em',
-                color: '#5A6678', textTransform: 'uppercase',
-                padding: '8px 0',
+                fontFamily: 'var(--font-mono, monospace)', fontSize: '11px',
+                fontWeight: 500, letterSpacing: '0.08em',
+                color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase',
+                padding: '5px 0',
               }}>{label}</div>
-              <div style={{ width: '1px', height: '14px', backgroundColor: '#1E2A3A' }} />
+              <div style={{ width: '1px', height: '10px', backgroundColor: '#1E2A3A' }} />
             </div>
           ))}
           <div style={{
-            fontFamily: 'var(--font-mono, monospace)', fontSize: '13px',
+            fontFamily: 'var(--font-mono, monospace)', fontSize: '12px',
             fontWeight: 700, letterSpacing: '0.06em',
             color: '#5A9E72', textTransform: 'uppercase',
-            padding: '8px 0',
+            padding: '5px 0',
             borderBottom: '2px solid #5A9E72',
           }}>Qualified Signal</div>
         </div>
 
         {/* ── Philosophy ── */}
-        <div style={{
-          textAlign: 'center', marginBottom: '40px',
-          maxWidth: '280px',
+        <p style={{
+          fontFamily: 'var(--font-serif)',
+          fontSize: '15px', fontWeight: 500,
+          fontStyle: 'italic', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6,
+          textAlign: 'center', margin: '0 0 28px',
         }}>
-          <p style={{
-            fontSize: '15px', fontWeight: 500,
-            fontStyle: 'italic', color: '#C8CDD5', lineHeight: 1.6,
-            margin: 0,
-          }}>
-            Passing is a position.<br />
-            Selective by design.
-          </p>
-        </div>
+          Passing is a position.<br />
+          Selective by design.
+        </p>
 
         {/* ── Supporting Points ── */}
-        <div style={{
-          maxWidth: '320px', width: '100%', marginBottom: '48px',
-        }}>
+        <div style={{ maxWidth: '300px', width: '100%' }}>
           <SupportPoint text="Every game is analyzed — the model evaluates the full daily slate" />
           <SupportPoint text="Most edges are filtered out — only statistically significant edges pass" />
           <SupportPoint text="Signals appear only when an inefficiency is detected — not on a schedule" />
@@ -115,10 +102,8 @@ export default function OnboardingFlow({ onComplete }) {
 
       {/* ── CTA ── */}
       <div style={{
-        padding: '0 32px 32px',
-        paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom, 0px) + 32px))',
-        position: 'sticky', bottom: 0,
-        backgroundColor: '#0A0D14',
+        padding: '20px 32px',
+        paddingBottom: 'max(24px, calc(env(safe-area-inset-bottom, 0px) + 20px))',
       }}>
         <button
           onClick={onComplete}
@@ -126,13 +111,14 @@ export default function OnboardingFlow({ onComplete }) {
           onPointerUp={e => { e.currentTarget.style.opacity = '1'; }}
           onPointerLeave={e => { e.currentTarget.style.opacity = '1'; }}
           style={{
-            width: '100%', height: '52px',
-            background: '#5A9E72',
-            border: 'none', borderRadius: '10px',
-            color: '#FFFFFF', fontSize: '15px', fontWeight: 600,
+            width: '100%', maxWidth: '280px', height: '52px',
+            display: 'block', margin: '0 auto',
+            background: 'var(--blue-primary)',
+            border: 'none', borderRadius: '14px',
+            color: '#FFFFFF', fontSize: '16px', fontWeight: 700,
             fontFamily: 'var(--font-sans)',
-            letterSpacing: '0.06em', textTransform: 'uppercase',
             cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           }}
         >
           Enter SharpPicks
@@ -145,16 +131,16 @@ export default function OnboardingFlow({ onComplete }) {
 function SupportPoint({ text }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'flex-start', gap: '12px',
-      marginBottom: '14px',
+      display: 'flex', alignItems: 'flex-start', gap: '10px',
+      marginBottom: '10px',
     }}>
       <div style={{
-        width: '6px', height: '6px', borderRadius: '50%',
+        width: '5px', height: '5px', borderRadius: '50%',
         backgroundColor: '#5A9E72',
         flexShrink: 0, marginTop: '7px',
       }} />
       <span style={{
-        fontSize: '14px', color: '#8A94A6', lineHeight: 1.6,
+        fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5,
       }}>{text}</span>
     </div>
   );

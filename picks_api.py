@@ -518,18 +518,13 @@ def get_pick(pick_id):
 
 @picks_bp.route('/market')
 def market_view():
-    """Today's game board with spreads, totals, moneylines, and 1H lines."""
+    """Today's game board with spreads, totals, moneylines, and 1H lines.
+    Falls back to the next upcoming date if today has no games."""
     today_str = _get_et_date()
     sport = request.args.get('sport', 'nba')
     games_table = 'wnba_games' if sport == 'wnba' else 'games'
 
-    try:
-        conn = sqlite3.connect(get_sqlite_path())
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute(
-            f"""SELECT
-                id, home_team, away_team, game_time,
+    _select_cols = f"""id, home_team, away_team, game_time,
                 spread_home, spread_away, total, home_ml, away_ml,
                 spread_home_open, total_open, home_ml_open, away_ml_open,
                 home_spread_odds, away_spread_odds,
@@ -538,14 +533,34 @@ def market_view():
                 spread_h1_home_odds, spread_h1_away_odds, total_h1,
                 home_record, away_record,
                 home_score, away_score,
-                rundown_spread_consensus, rundown_spread_range, rundown_num_books
-            FROM {games_table}
-            WHERE game_date = ?
-            ORDER BY game_time""",
+                rundown_spread_consensus, rundown_spread_range, rundown_num_books"""
+
+    try:
+        conn = sqlite3.connect(get_sqlite_path())
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT {_select_cols} FROM {games_table} WHERE game_date = ? ORDER BY game_time",
             (today_str,)
         )
         rows = cur.fetchall()
+
+        active_date = today_str
+        if not rows:
+            cur.execute(
+                f"SELECT MIN(game_date) FROM {games_table} WHERE game_date > ?",
+                (today_str,)
+            )
+            next_date = cur.fetchone()[0]
+            if next_date:
+                active_date = next_date
+                cur.execute(
+                    f"SELECT {_select_cols} FROM {games_table} WHERE game_date = ? ORDER BY game_time",
+                    (next_date,)
+                )
+                rows = cur.fetchall()
     except Exception:
+        active_date = today_str
         return jsonify({'games': [], 'date': today_str})
 
     def _fmt_time(utc_str):
@@ -565,7 +580,7 @@ def market_view():
     model_analysis = {}
     pick_signals = {}
     try:
-        model_run = ModelRun.query.filter_by(date=today_str, sport=sport).order_by(ModelRun.created_at.desc()).first()
+        model_run = ModelRun.query.filter_by(date=active_date, sport=sport).order_by(ModelRun.created_at.desc()).first()
         if model_run and model_run.games_detail:
             import json as _json
             try:
@@ -592,7 +607,7 @@ def market_view():
             f"""SELECT away_team, home_team, spread_home, total,
                        snapped_at FROM line_snapshots
                 WHERE game_date = ? ORDER BY snapped_at""",
-            (today_str,)
+            (active_date,)
         )
         for snap in cur.fetchall():
             sk = (snap['away_team'], snap['home_team'])
@@ -680,7 +695,7 @@ def market_view():
         games.append(game_data)
 
     conn.close()
-    return jsonify({'games': games, 'date': today_str, 'count': len(games)})
+    return jsonify({'games': games, 'date': active_date, 'count': len(games)})
 
 
 @picks_bp.route('/live-scores')
