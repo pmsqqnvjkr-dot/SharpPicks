@@ -679,6 +679,10 @@ export default function MarketView({ onBack }) {
   const rawGames = data?.games || [];
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     if (watchedData?.game_ids) setWatchedIds(new Set(watchedData.game_ids));
   }, [watchedData]);
 
