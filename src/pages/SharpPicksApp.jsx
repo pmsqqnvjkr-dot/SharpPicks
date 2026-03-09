@@ -251,10 +251,6 @@ function AppContent() {
     }
   }, [user?.subscription_status]);
 
-  if (showOnboarding) {
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
-  }
-
   if (loading) {
     return (
       <div style={{
@@ -283,6 +279,10 @@ function AppContent() {
 
   if (!user) {
     return <LandingPage />;
+  }
+
+  if (showOnboarding) {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
   if (user && user.subscription_status === 'pending_verification') {
