@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "467560918995",
+    "project_id": "sharp-picks",
+    "storage_bucket": "sharp-picks.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:467560918995:android:11749184b75ee41a94c926",
+        "android_client_info": {
+          "package_name": "ai.sharppicks.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyApZTRyCkjphqjrExcD4kyA-qaee5-3EHk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
