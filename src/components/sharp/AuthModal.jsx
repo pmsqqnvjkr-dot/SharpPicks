@@ -338,7 +338,7 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
                   fontFamily: 'var(--font-sans)',
                 }}
               >
-                {submitting ? 'Please wait...' : 'Start Trial — Card Required'}
+                {submitting ? 'Please wait...' : 'Start Free Trial'}
               </button>
 
               <div style={{
@@ -377,7 +377,7 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
                 marginTop: '8px',
                 fontFamily: 'var(--font-sans)',
               }}>
-                No card needed · Upgrade anytime
+                Create your account · Upgrade anytime
               </p>
             </>
           ) : (

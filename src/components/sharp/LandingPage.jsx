@@ -102,18 +102,16 @@ export default function LandingPage() {
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           }}
         >
-          {isNative ? 'Get Started' : 'Start 14-Day Trial'}
+          {isNative ? 'Get Started' : 'Start Free Trial'}
         </button>
-        {!isNative && (
-          <p style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: '11px', fontWeight: 500,
-            color: 'var(--text-tertiary)',
-            marginBottom: '12px',
-          }}>
-            Card required. Cancel anytime.
-          </p>
-        )}
+        <p style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: '11px', fontWeight: 500,
+          color: 'var(--text-tertiary)',
+          marginBottom: '12px',
+        }}>
+          Cancel anytime.
+        </p>
         <button
           onClick={() => { setAuthMode('register'); setAccountType('free'); setShowAuth(true); }}
           style={{
@@ -137,7 +135,7 @@ export default function LandingPage() {
           color: 'var(--text-tertiary)',
           marginBottom: '28px',
         }}>
-          {isNative ? 'Already have an account? Sign in above.' : 'No card needed · Upgrade anytime'}
+          {isNative ? 'Already have an account? Sign in above.' : 'Create your account · Upgrade anytime'}
         </p>
 
         <div style={{

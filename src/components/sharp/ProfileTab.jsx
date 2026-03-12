@@ -306,8 +306,8 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
       price: '$29',
       period: '/mo',
       features: ['Full pick details', 'Real-time alerts', 'Pick history', 'Bet tracking'],
-      cta: 'Start 14-Day Trial',
-      subtitle: 'Card required. Cancel anytime.',
+      cta: 'Start Free Trial',
+      subtitle: 'Cancel anytime.',
       plan: 'trial',
     },
     {
@@ -567,7 +567,7 @@ function TrialSignup({ onBack }) {
           <p style={{
             color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center',
             margin: '0 0 24px', lineHeight: '1.5',
-          }}>Full access to all picks and features. Card required to start — cancel anytime.</p>
+          }}>Full access to all picks and features. Cancel anytime.</p>
 
           <form onSubmit={handleStart}>
             <div style={{ marginBottom: '12px' }}>
