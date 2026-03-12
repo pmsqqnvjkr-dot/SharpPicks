@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { apiPost } from '../../hooks/useApi';
+import { Capacitor } from '@capacitor/core';
+
+const isNative = Capacitor.isNativePlatform();
+const WEB_BILLING_URL = 'https://app.sharppicks.ai/upgrade';
 
 export default function AnnualConversion({ onBack, user, onDismiss }) {
   const [loading, setLoading] = useState(false);
@@ -15,6 +19,11 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
   const userProfit = user?.net_profit || '+$134';
 
   const handleSwitch = async () => {
+    if (isNative) {
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.open({ url: WEB_BILLING_URL });
+      return;
+    }
     setLoading(true);
     try {
       const plan = user?.founding_member ? 'founding' : 'annual';
@@ -30,6 +39,63 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
       setLoading(false);
     }
   };
+
+  if (isNative) {
+    return (
+      <div style={{ padding: '0', paddingBottom: '100px' }}>
+        <div style={{
+          padding: '16px 20px',
+          display: 'flex', alignItems: 'center', gap: '12px',
+        }}>
+          <button onClick={onBack} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-secondary)', padding: '4px',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+        </div>
+        <div style={{ padding: '0 20px', textAlign: 'center' }}>
+          <h2 style={{
+            fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 600,
+            color: 'var(--text-primary)', marginBottom: '12px',
+          }}>Switch to Annual</h2>
+          <p style={{
+            fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
+            maxWidth: '300px', margin: '0 auto 24px',
+          }}>
+            Save by switching to an annual plan. Manage your subscription on the web.
+          </p>
+          <button
+            onClick={handleSwitch}
+            style={{
+              width: '100%', padding: '16px',
+              background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
+              border: 'none', borderRadius: '14px',
+              color: '#fff', fontSize: '15px', fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              marginBottom: '10px',
+            }}
+          >
+            Manage Subscription
+          </button>
+          <p style={{
+            fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5',
+            marginTop: '10px',
+          }}>You'll be taken to sharppicks.ai to complete the switch.</p>
+          <button onClick={onDismiss || onBack} style={{
+            width: '100%', padding: '12px', marginTop: '8px',
+            backgroundColor: 'transparent',
+            border: '1px solid var(--stroke-muted)',
+            borderRadius: '12px',
+            color: 'var(--text-tertiary)', fontSize: '13px', fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'var(--font-sans)',
+          }}>Not now</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi, apiPost, apiGet, apiDelete } from '../../hooks/useApi';
+import { Capacitor } from '@capacitor/core';
 import AuthModal from './AuthModal';
 import HowItWorksScreen from './HowItWorksScreen';
 import BetTrackingScreen from './BetTrackingScreen';
@@ -10,6 +11,9 @@ import CancelScreen from './CancelScreen';
 import AnnualConversion from './AnnualConversion';
 import WeeklySummary from './WeeklySummary';
 import ResolutionScreen from './ResolutionScreen';
+
+const isNative = Capacitor.isNativePlatform();
+const WEB_BILLING_URL = 'https://app.sharppicks.ai/upgrade';
 
 export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack, onPickTracked, screenData }) {
   const { user, logout } = useAuth();
@@ -45,6 +49,11 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
   if (screen === 'resolution') return <ResolutionScreen onBack={() => navigate(null)} pick={activeScreenData} />;
 
   const handleSubscribe = async (plan) => {
+    if (isNative) {
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.open({ url: WEB_BILLING_URL });
+      return;
+    }
     if (plan === 'trial') {
       setScreen('trial');
       return;
@@ -116,7 +125,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
           </div>
 
           <SettingsSection user={null} onNavigate={navigate} />
-          <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />
+          {!isNative && <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />}
           <LegalSection />
         </div>
 
@@ -141,7 +150,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
 
         <ControlsSection user={user} onNavigate={navigate} isPro={isPro} foundingData={foundingData} onSubscribe={handleSubscribe} checkoutLoading={checkoutLoading} />
 
-        {!isPro && <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />}
+        {!isPro && !isNative && <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />}
         <LegalSection />
 
         <div style={{ marginTop: '12px', marginBottom: '20px' }}>
@@ -233,9 +242,9 @@ function SettingsSection({ user, onNavigate }) {
   const menuItems = [
     { id: 'how', label: 'Model Architecture', subtitle: 'Edge logic, filters, and methodology' },
     { id: 'notifications', label: 'Signal Alerts', subtitle: 'Pick delivery and result notifications' },
-    ...(!isPro && user ? [{ id: 'upgrade', label: 'Upgrade to Pro', subtitle: 'Full pick details and analytics', badge: 'Pro' }] : []),
-    ...(isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
-    ...(isPro ? [{ id: 'cancel', label: 'Allocation & Access', subtitle: 'Billing, plan, and membership', requiresAuth: true }] : []),
+    ...(!isPro && user ? [{ id: 'upgrade', label: isNative ? 'Unlock Pro Features' : 'Upgrade to Pro', subtitle: isNative ? 'Full pick details and analytics' : 'Full pick details and analytics', badge: 'Pro' }] : []),
+    ...(!isNative && isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
+    ...(isPro ? [{ id: 'cancel', label: 'Allocation & Access', subtitle: isNative ? 'Plan and membership' : 'Billing, plan, and membership', requiresAuth: true }] : []),
   ];
 
   const visibleItems = user
@@ -631,7 +640,9 @@ function TrialSignup({ onBack }) {
               fontSize: '12px', color: 'var(--text-tertiary)', margin: 0,
               textAlign: 'center', lineHeight: '1.6',
             }}>
-              $0 today — you won't be charged until your trial ends. $29/mo or $99/yr (founding rate). Cancel anytime.
+              {isNative
+                ? 'Full access to all picks and features during your trial. Cancel anytime.'
+                : '$0 today — you won\'t be charged until your trial ends. $29/mo or $99/yr (founding rate). Cancel anytime.'}
             </p>
           </div>
         </div>
@@ -913,9 +924,9 @@ function ControlsSection({ user, onNavigate, isPro, foundingData, onSubscribe, c
   const menuItems = [
     ...(isPro ? [{ id: 'notifications', label: 'Signal Alerts', subtitle: 'Pick delivery and result notifications' }] : []),
     { id: 'how', label: 'Model Architecture', subtitle: 'Edge logic, filters, and methodology' },
-    ...(!isPro && user ? [{ id: 'upgrade', label: 'Upgrade to Pro', subtitle: 'Unlock full decision visibility', badge: 'Pro' }] : []),
-    ...(isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
-    ...(isPro ? [{ id: 'cancel', label: 'Allocation & Access', subtitle: 'Billing, plan, and membership' }] : []),
+    ...(!isPro && user ? [{ id: 'upgrade', label: isNative ? 'Unlock Pro Features' : 'Upgrade to Pro', subtitle: 'Unlock full decision visibility', badge: 'Pro' }] : []),
+    ...(!isNative && isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
+    ...(isPro ? [{ id: 'cancel', label: 'Allocation & Access', subtitle: isNative ? 'Plan and membership' : 'Billing, plan, and membership' }] : []),
   ];
 
   return (

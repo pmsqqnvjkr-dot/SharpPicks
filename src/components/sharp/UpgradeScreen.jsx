@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { useApi, apiPost } from '../../hooks/useApi';
+import { Capacitor } from '@capacitor/core';
+
+const isNative = Capacitor.isNativePlatform();
+const WEB_BILLING_URL = 'https://app.sharppicks.ai/upgrade';
 
 export default function UpgradeScreen({ onBack, user }) {
   const { data: foundingData } = useApi('/public/founding-count');
@@ -7,6 +11,11 @@ export default function UpgradeScreen({ onBack, user }) {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const handleSubscribe = async (plan) => {
+    if (isNative) {
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.open({ url: WEB_BILLING_URL });
+      return;
+    }
     setCheckoutLoading(true);
     try {
       const data = await apiPost('/subscriptions/create-checkout', { plan });
@@ -23,10 +32,9 @@ export default function UpgradeScreen({ onBack, user }) {
   };
 
   const isFoundingOpen = foundingData?.open;
-  const spotsRemaining = foundingData?.remaining || 0;
   const annualPrice = isFoundingOpen ? '$99' : '$149';
   const annualLabel = isFoundingOpen ? 'Founding Rate' : 'Standard';
-
+  const spotsRemaining = foundingData?.remaining || 0;
   const isTrial = user?.subscription_status === 'trial';
 
   return (
@@ -154,7 +162,7 @@ export default function UpgradeScreen({ onBack, user }) {
           </div>
         )}
 
-        {isFoundingOpen && (
+        {!isNative && isFoundingOpen && (
           <div style={{
             backgroundColor: 'rgba(245, 158, 11, 0.06)',
             border: '1px solid rgba(245, 158, 11, 0.18)',
@@ -176,45 +184,69 @@ export default function UpgradeScreen({ onBack, user }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-          {isFoundingOpen && (
+        {isNative ? (
+          <div style={{ marginBottom: '24px' }}>
+            <button
+              onClick={() => handleSubscribe()}
+              disabled={checkoutLoading}
+              style={{
+                width: '100%', padding: '16px',
+                background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
+                border: 'none', borderRadius: '14px',
+                color: '#fff', fontSize: '15px', fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                opacity: checkoutLoading ? 0.6 : 1,
+                boxShadow: '0 0 16px rgba(79,134,247,0.2)',
+              }}
+            >
+              Unlock Pro Features
+            </button>
+            <p style={{
+              fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5',
+              textAlign: 'center', marginTop: '10px',
+            }}>You'll be taken to sharppicks.ai to complete setup.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+            {isFoundingOpen && (
+              <PricingCard
+                name={annualLabel}
+                price={annualPrice}
+                period="/yr"
+                description="Billed annually. Lock in rate permanently."
+                cta="Claim Founding Rate"
+                onSelect={() => handleSubscribe('founding')}
+                loading={checkoutLoading}
+                highlight
+                badge="Best Value"
+                savings="Save $249 vs monthly"
+              />
+            )}
             <PricingCard
-              name={annualLabel}
-              price={annualPrice}
-              period="/yr"
-              description="Billed annually. Lock in rate permanently."
-              cta="Claim Founding Rate"
-              onSelect={() => handleSubscribe('founding')}
+              name="Monthly"
+              price="$29"
+              period="/mo"
+              description="Flexible access. Cancel anytime."
+              cta="Start Monthly Access"
+              onSelect={() => handleSubscribe('monthly')}
               loading={checkoutLoading}
-              highlight
-              badge="Best Value"
-              savings="Save $249 vs monthly"
+              secondary
             />
-          )}
-          <PricingCard
-            name="Monthly"
-            price="$29"
-            period="/mo"
-            description="Flexible access. Cancel anytime."
-            cta="Start Monthly Access"
-            onSelect={() => handleSubscribe('monthly')}
-            loading={checkoutLoading}
-            secondary
-          />
-          {!isFoundingOpen && (
-            <PricingCard
-              name={annualLabel}
-              price={annualPrice}
-              period="/yr"
-              description="Save vs monthly"
-              cta="Subscribe Annually"
-              onSelect={() => handleSubscribe('annual')}
-              loading={checkoutLoading}
-              highlight
-              savings="Save $199 vs monthly"
-            />
-          )}
-        </div>
+            {!isFoundingOpen && (
+              <PricingCard
+                name={annualLabel}
+                price={annualPrice}
+                period="/yr"
+                description="Save vs monthly"
+                cta="Subscribe Annually"
+                onSelect={() => handleSubscribe('annual')}
+                loading={checkoutLoading}
+                highlight
+                savings="Save $199 vs monthly"
+              />
+            )}
+          </div>
+        )}
 
         <div style={{
           textAlign: 'center', padding: '0 0 14px',
@@ -259,14 +291,6 @@ export default function UpgradeScreen({ onBack, user }) {
           <FeatureRow icon="same" text="Max one pick per day." />
           <FeatureRow icon="same" text="Quiet days are intentional." />
           <FeatureRow icon="same" text="No hype. No FOMO. No volume plays." />
-        </div>
-
-        <div style={{
-          textAlign: 'center', padding: '12px 0',
-        }}>
-          <p style={{
-            fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6',
-          }}>Cancel anytime. No hidden fees. No auto price increases.</p>
         </div>
 
         <p style={{

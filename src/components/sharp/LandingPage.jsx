@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useApi } from '../../hooks/useApi';
+import { Capacitor } from '@capacitor/core';
 import AuthModal from './AuthModal';
+
+const isNative = Capacitor.isNativePlatform();
 
 export default function LandingPage() {
   const { data: stats } = useApi('/public/stats');
@@ -85,7 +88,7 @@ export default function LandingPage() {
         </p>
 
         <button
-          onClick={() => { setAuthMode('register'); setAccountType('trial'); setShowAuth(true); }}
+          onClick={() => { setAuthMode('register'); setAccountType(isNative ? 'free' : 'trial'); setShowAuth(true); }}
           style={{
             width: '100%', maxWidth: '280px',
             height: '52px', borderRadius: '14px',
@@ -99,16 +102,18 @@ export default function LandingPage() {
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           }}
         >
-          Start 14-Day Trial
+          {isNative ? 'Get Started' : 'Start 14-Day Trial'}
         </button>
-        <p style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: '11px', fontWeight: 500,
-          color: 'var(--text-tertiary)',
-          marginBottom: '12px',
-        }}>
-          Card required. Cancel anytime.
-        </p>
+        {!isNative && (
+          <p style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: '11px', fontWeight: 500,
+            color: 'var(--text-tertiary)',
+            marginBottom: '12px',
+          }}>
+            Card required. Cancel anytime.
+          </p>
+        )}
         <button
           onClick={() => { setAuthMode('register'); setAccountType('free'); setShowAuth(true); }}
           style={{
@@ -121,9 +126,10 @@ export default function LandingPage() {
             fontSize: '14px', fontWeight: 500,
             cursor: 'pointer',
             marginBottom: '6px',
+            marginTop: isNative ? '12px' : '0',
           }}
         >
-          Create Free Account
+          {isNative ? 'Sign In' : 'Create Free Account'}
         </button>
         <p style={{
           fontFamily: 'var(--font-sans)',
@@ -131,7 +137,7 @@ export default function LandingPage() {
           color: 'var(--text-tertiary)',
           marginBottom: '28px',
         }}>
-          No card needed · Upgrade anytime
+          {isNative ? 'Already have an account? Sign in above.' : 'No card needed · Upgrade anytime'}
         </p>
 
         <div style={{
@@ -199,7 +205,7 @@ export default function LandingPage() {
               <TierItem included text="Position sizing" />
               <TierItem included text="Bet tracking" />
               <TierItem included text="Performance dashboard" />
-              <TierItem included text="14-day free trial" />
+              {!isNative && <TierItem included text="14-day free trial" />}
             </div>
           </div>
         </div>
@@ -226,7 +232,7 @@ export default function LandingPage() {
         </div>
       )}
 
-      {spotsLeft !== null && spotsLeft > 0 && (
+      {!isNative && spotsLeft !== null && spotsLeft > 0 && (
         <div style={{ padding: '16px 28px 0' }}>
           <div style={{
             backgroundColor: 'rgba(79, 134, 247, 0.06)',
