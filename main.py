@@ -1605,7 +1605,6 @@ def collect_player_props():
     credit_cost = len(today_events) * len(PROP_MARKETS)
     print(f"   Estimated API cost: {credit_cost} credits")
 
-    init_db()
     conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
     total_props = 0
