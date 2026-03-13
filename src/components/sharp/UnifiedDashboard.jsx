@@ -15,6 +15,7 @@ export default function UnifiedDashboard({ embedded = false }) {
   const [selectedPick, setSelectedPick] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [resolutionPick, setResolutionPick] = useState(null);
+  const [showAllSettled, setShowAllSettled] = useState(false);
 
   const loadData = async () => {
     try {
@@ -271,18 +272,49 @@ export default function UnifiedDashboard({ embedded = false }) {
           </BetsSection>
         )}
 
-        {settledBets.length > 0 && (
-          <BetsSection title={`Settled (${settledBets.length})`}>
-            {settledBets.map(bet => (
-              <BetRow key={bet.id} bet={bet}
-                confirmDelete={confirmDelete}
-                setConfirmDelete={setConfirmDelete}
-                onDelete={handleDelete}
-                onViewPick={setResolutionPick}
-              />
-            ))}
-          </BetsSection>
-        )}
+        {settledBets.length > 0 && (() => {
+          const SETTLED_LIMIT = 5;
+          const truncated = !showAllSettled && settledBets.length > SETTLED_LIMIT;
+          const displayBets = truncated ? settledBets.slice(0, SETTLED_LIMIT) : settledBets;
+          return (
+            <BetsSection title={`Settled (${settledBets.length})`}>
+              {displayBets.map(bet => (
+                <BetRow key={bet.id} bet={bet}
+                  confirmDelete={confirmDelete}
+                  setConfirmDelete={setConfirmDelete}
+                  onDelete={handleDelete}
+                  onViewPick={setResolutionPick}
+                />
+              ))}
+              {truncated && (
+                <button onClick={() => setShowAllSettled(true)} style={{
+                  width: '100%', padding: '12px',
+                  background: 'none', border: 'none',
+                  borderTop: '1px solid var(--stroke-subtle)',
+                  color: 'var(--blue-primary)', fontSize: '13px', fontWeight: 600,
+                  fontFamily: 'var(--font-sans)', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                }}>
+                  Show all {settledBets.length} settled bets
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+              )}
+              {showAllSettled && settledBets.length > SETTLED_LIMIT && (
+                <button onClick={() => setShowAllSettled(false)} style={{
+                  width: '100%', padding: '10px',
+                  background: 'none', border: 'none',
+                  borderTop: '1px solid var(--stroke-subtle)',
+                  color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 500,
+                  fontFamily: 'var(--font-sans)', cursor: 'pointer',
+                }}>
+                  Show less
+                </button>
+              )}
+            </BetsSection>
+          );
+        })()}
 
         {hasBets && (
           <>
@@ -619,11 +651,12 @@ function PerformanceCard({ totalPnl, roi, record, equityCurve }) {
 }
 
 function BloombergChart({ data, color, isPositive }) {
-  const height = 200;
+  const [activeIdx, setActiveIdx] = useState(null);
+  const height = 220;
   const width = 400;
   const padL = 48;
   const padR = 24;
-  const padT = 8;
+  const padT = 28;
   const padB = 24;
 
   const values = data.map(d => d.pnl);
@@ -669,51 +702,127 @@ function BloombergChart({ data, color, isPositive }) {
     }
   }
 
+  const dateLabels = [];
+  const seenDates = new Set();
+  data.forEach((d, i) => {
+    const label = d.date ? d.date.substring(5) : '';
+    if (!label || seenDates.has(label)) return;
+    seenDates.add(label);
+    dateLabels.push({ label, i });
+  });
+  const maxLabels = 6;
+  const labelStep = dateLabels.length > maxLabels ? Math.ceil(dateLabels.length / maxLabels) : 1;
+  const filteredLabels = dateLabels.filter((_, idx) => idx % labelStep === 0 || idx === dateLabels.length - 1);
+
+  const activePt = activeIdx != null ? data[activeIdx] : null;
+  const activePos = activeIdx != null ? points[activeIdx] : null;
+
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', display: 'block' }}>
-      <defs>
-        <linearGradient id="bbgGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
-          <stop offset="80%" stopColor={color} stopOpacity="0.02" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
+    <div style={{ position: 'relative' }}>
+      {activePt && activePos && (
+        <div style={{
+          position: 'absolute',
+          left: `${(activePos.x / width) * 100}%`,
+          top: '0px',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'var(--surface-1)',
+          border: '1px solid var(--stroke-subtle)',
+          borderRadius: '8px',
+          padding: '6px 10px',
+          zIndex: 2,
+          pointerEvents: 'none',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          whiteSpace: 'nowrap',
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+            color: activePt.pnl >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
+            marginBottom: '2px',
+          }}>
+            {activePt.pnl >= 0 ? '+' : '-'}${Math.abs(activePt.pnl).toFixed(0)}
+            {activePt.result ? ` · ${activePt.result === 'W' ? 'Win' : activePt.result === 'L' ? 'Loss' : 'Push'}` : ''}
+          </div>
+          {activePt.pick && (
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--text-tertiary)' }}>
+              {activePt.pick}
+            </div>
+          )}
+          {activePt.date && (
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--text-tertiary)' }}>
+              {activePt.date}
+            </div>
+          )}
+        </div>
+      )}
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        style={{ width: '100%', display: 'block' }}
+        onMouseLeave={() => setActiveIdx(null)}
+        onTouchEnd={() => setTimeout(() => setActiveIdx(null), 2000)}
+      >
+        <defs>
+          <linearGradient id="bbgGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.18" />
+            <stop offset="80%" stopColor={color} stopOpacity="0.02" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
 
-      {ticks.map((t, i) => (
-        <g key={i}>
-          <line x1={padL} y1={t.y} x2={width - padR} y2={t.y}
-            stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
-          <text x={padL - 6} y={t.y + 3}
-            textAnchor="end" fill="var(--text-tertiary)"
-            fontSize="9" fontFamily="var(--font-mono)" fontWeight="500">
-            {t.value >= 0 ? '' : '-'}${Math.abs(t.value)}
-          </text>
-        </g>
-      ))}
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={padL} y1={t.y} x2={width - padR} y2={t.y}
+              stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+            <text x={padL - 6} y={t.y + 3}
+              textAnchor="end" fill="var(--text-tertiary)"
+              fontSize="9" fontFamily="var(--font-mono)" fontWeight="500">
+              {t.value >= 0 ? '' : '-'}${Math.abs(t.value)}
+            </text>
+          </g>
+        ))}
 
-      <line x1={padL} y1={zeroY} x2={width - padR} y2={zeroY}
-        stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+        <line x1={padL} y1={zeroY} x2={width - padR} y2={zeroY}
+          stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
 
-      <path d={areaD} fill="url(#bbgGrad)" />
+        <path d={areaD} fill="url(#bbgGrad)" />
 
-      <path d={pathD} fill="none"
-        stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={pathD} fill="none"
+          stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 
-      <circle cx={lastPt.x} cy={lastPt.y} r="3" fill={color} />
-      <circle cx={lastPt.x} cy={lastPt.y} r="6" fill={color} fillOpacity="0.15" />
+        {activeIdx != null && activePos && (
+          <line x1={activePos.x} y1={padT} x2={activePos.x} y2={height - padB}
+            stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" strokeDasharray="2,2" />
+        )}
 
-      {data.length <= 20 && data.map((d, i) => {
-        const label = d.date ? d.date.substring(5) : '';
-        if (data.length > 10 && i % 2 !== 0 && i !== data.length - 1) return null;
-        return (
-          <text key={i} x={getX(i)} y={height - 4}
+        <circle cx={lastPt.x} cy={lastPt.y} r="3" fill={color} />
+        <circle cx={lastPt.x} cy={lastPt.y} r="6" fill={color} fillOpacity="0.15" />
+
+        {activeIdx != null && activePos && activeIdx !== data.length - 1 && (
+          <>
+            <circle cx={activePos.x} cy={activePos.y} r="4" fill={color} />
+            <circle cx={activePos.x} cy={activePos.y} r="8" fill={color} fillOpacity="0.15" />
+          </>
+        )}
+
+        {points.map((p, i) => (
+          <circle
+            key={i}
+            cx={p.x} cy={p.y} r="12"
+            fill="transparent"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setActiveIdx(activeIdx === i ? null : i)}
+            onMouseEnter={() => setActiveIdx(i)}
+          />
+        ))}
+
+        {filteredLabels.map(({ label, i: idx }) => (
+          <text key={idx} x={getX(idx)} y={height - 4}
             textAnchor="middle" fill="var(--text-tertiary)"
             fontSize="8" fontFamily="var(--font-mono)">
             {label}
           </text>
-        );
-      })}
-    </svg>
+        ))}
+      </svg>
+    </div>
   );
 }
 
