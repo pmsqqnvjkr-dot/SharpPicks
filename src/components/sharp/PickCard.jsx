@@ -589,35 +589,58 @@ function EdgeTracker({ signalLine, currentLine, clv, isSettled }) {
     : clvVal > 0 ? 'var(--color-signal)'
     : clvVal < 0 ? 'var(--color-loss)'
     : 'var(--text-tertiary)';
+  const hasCLV = clvVal != null && isSettled;
 
   return (
     <section style={{
       margin: '0 0 var(--space-sm)',
-      padding: 'var(--space-sm) var(--space-md)',
+      padding: 'var(--space-md)',
       borderRadius: '12px',
-      border: '1px solid var(--color-border)',
-      background: 'rgba(0,0,0,0.10)',
+      border: hasCLV ? `1px solid ${clvVal > 0 ? 'rgba(52,211,153,0.18)' : clvVal < 0 ? 'rgba(158,122,124,0.18)' : 'var(--color-border)'}` : '1px solid var(--color-border)',
+      background: hasCLV ? `${clvVal > 0 ? 'rgba(52,211,153,0.04)' : clvVal < 0 ? 'rgba(158,122,124,0.04)' : 'rgba(0,0,0,0.10)'}` : 'rgba(0,0,0,0.10)',
     }}>
-      <div style={{ ...label, marginBottom: 'var(--space-sm)' }}>Edge Tracker</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>Signal Line</span>
-          <span style={{ ...metric, fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>
+      <div style={{ ...label, marginBottom: '10px' }}>
+        {isSettled ? 'Closing Line Value' : 'Line Tracker'}
+      </div>
+
+      {hasCLV && (
+        <div style={{
+          textAlign: 'center', padding: '6px 0 12px',
+          borderBottom: '1px solid var(--color-border)', marginBottom: '10px',
+        }}>
+          <div style={{
+            ...metric, fontSize: '32px', color: clvColor,
+            lineHeight: 1, marginBottom: '4px',
+          }}>
+            {clvVal > 0 ? '+' : ''}{clvVal.toFixed(1)}
+          </div>
+          <div style={{
+            ...label, fontSize: '9px', color: 'var(--text-tertiary)', marginBottom: 0,
+          }}>
+            {clvVal > 0 ? 'Beat the close' : clvVal < 0 ? 'Behind the close' : 'Matched the close'}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ ...label, fontSize: '9px', marginBottom: 0 }}>Pick Line</span>
+          <span style={{ ...metric, fontSize: '15px', color: 'var(--text-secondary)' }}>
             {fmtSpread(signalLine)}
           </span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ ...label, fontSize: '9px', marginBottom: 0 }}>
             {isSettled ? 'Closing Line' : 'Current Line'}
           </span>
-          <span style={{ ...metric, fontSize: 'var(--text-metric)', color: 'var(--text-primary)' }}>
+          <span style={{ ...metric, fontSize: '15px', color: 'var(--text-primary)' }}>
             {fmtSpread(currentLine)}
           </span>
         </div>
-        {clvVal != null && (
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>CLV</span>
-            <span style={{ ...metric, fontSize: 'var(--text-metric)', color: clvColor }}>
+        {!hasCLV && clvVal != null && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ ...label, fontSize: '9px', marginBottom: 0 }}>CLV</span>
+            <span style={{ ...metric, fontSize: '15px', color: clvColor }}>
               {clvVal > 0 ? '+' : ''}{clvVal.toFixed(1)}
             </span>
           </div>

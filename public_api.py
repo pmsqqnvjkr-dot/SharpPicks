@@ -131,6 +131,13 @@ def stats():
         logging.warning(f"Public stats DB error: {e}")
         return jsonify({'record': '0-0', 'wins': 0, 'losses': 0, 'pending': 0, 'total_picks': 0, 'total_passes': 0, 'pnl': 0, 'roi': 0, 'win_rate': 0, 'selectivity': 0, 'capital_preserved_days': 0})
 
+    clv_q = pick_q.filter(Pick.clv.isnot(None), Pick.result.in_(['win', 'loss', 'push']))
+    clv_picks = clv_q.all()
+    clv_values = [p.clv for p in clv_picks if p.clv is not None]
+    clv_positive = sum(1 for v in clv_values if v > 0)
+    avg_clv = round(sum(clv_values) / len(clv_values), 2) if clv_values else None
+    clv_beat_rate = round(clv_positive / len(clv_values) * 100, 1) if clv_values else 0
+
     return jsonify({
         'record': f'{wins}-{losses}',
         'wins': wins,
@@ -143,6 +150,8 @@ def stats():
         'win_rate': round(wins / total_decided * 100, 1) if total_decided > 0 else 0,
         'selectivity': round(total_picks / (total_picks + total_passes) * 100, 1) if (total_picks + total_passes) > 0 else 0,
         'capital_preserved_days': total_passes,
+        'avg_clv': avg_clv,
+        'clv_beat_rate': clv_beat_rate,
     })
 
 
@@ -356,6 +365,11 @@ def dashboard_stats():
             line_moves.append(abs(p.line - p.line_open))
     avg_line_move = round(sum(line_moves) / len(line_moves), 1) if line_moves else 0
 
+    clv_values = [p.clv for p in picks if p.clv is not None]
+    clv_positive = sum(1 for v in clv_values if v > 0)
+    avg_clv = round(sum(clv_values) / len(clv_values), 2) if clv_values else None
+    clv_beat_rate = round(clv_positive / len(clv_values) * 100, 1) if clv_values else 0
+
     selectivity = round((total_picks / total_days) * 100, 1) if total_days > 0 else 0
 
     capital_preserved = round(total_passes * 110 * 0.04, 0)
@@ -422,6 +436,12 @@ def dashboard_stats():
             'total_passes': total_passes,
             'selectivity': selectivity,
             'equity_curve': equity_curve,
+        },
+        'clv': {
+            'avg_clv': avg_clv,
+            'beat_rate': clv_beat_rate,
+            'total_tracked': len(clv_values),
+            'positive': clv_positive,
         },
         'risk': {
             'max_drawdown_pct': drawdown_pct,
@@ -885,15 +905,15 @@ def market_report():
     no_edge_count = games_analyzed - edges_detected
     efficiency = round(no_edge_count / games_analyzed * 100, 0) if games_analyzed > 0 else 100
 
-    # Market regime
-    if efficiency <= 25:
-        regime = 'High Inefficiency'
-    elif efficiency <= 50:
-        regime = 'Active Market'
-    elif efficiency <= 75:
-        regime = 'Moderate Efficiency'
+    # Market regime — signature SharpPicks classification
+    if efficiency <= 33:
+        regime = 'Exploitable'
+    elif efficiency <= 60:
+        regime = 'Active'
+    elif efficiency <= 80:
+        regime = 'Moderate'
     else:
-        regime = 'Efficient Market'
+        regime = 'Efficient'
 
     if efficiency >= 90:
         assessment = 'Highly efficient market today. Passing is a position.'
@@ -907,24 +927,33 @@ def market_report():
     # Signal density
     signal_density = round(qualified_signals / games_analyzed * 100, 0) if games_analyzed > 0 else 0
 
-    # Model insight (rule-based)
-    insight = None
+    # Daily briefing narrative (rule-based, multi-line)
+    briefing_lines = []
     if edges_detected == 0:
-        insight = 'No exploitable inefficiencies detected. Markets are pricing correctly today.'
-    elif underdog_edges > favorite_edges and underdog_edges >= 2:
-        insight = 'Underdogs showing unusual value today.'
-    elif favorite_edges > underdog_edges and favorite_edges >= 2:
-        insight = 'Spread inflation detected on road favorites.'
-    elif strong_edges >= 2:
-        insight = 'Multiple strong edges detected. High-conviction environment.'
-    elif qualified_signals == 0 and edges_detected > 0:
-        insight = 'Edges detected but none passed qualification filters.'
-    elif signal_density >= 50:
-        insight = 'High signal density. Market is unusually inefficient today.'
-    elif edges_detected == 1:
-        insight = 'Single edge detected. Selective environment.'
+        briefing_lines.append('No exploitable inefficiencies detected. Markets are pricing correctly today.')
+        briefing_lines.append('Passing is a position.')
     else:
-        insight = 'Mixed edge profile across today\'s slate.'
+        if underdog_edges > favorite_edges and underdog_edges >= 2:
+            briefing_lines.append(f'Underdogs showing unusual value — {underdog_edges} edges on dogs today.')
+        elif favorite_edges > underdog_edges and favorite_edges >= 2:
+            briefing_lines.append(f'Spread inflation detected on favorites — {favorite_edges} edges on chalk.')
+        if strong_edges >= 2:
+            briefing_lines.append(f'{strong_edges} strong edges detected. High-conviction environment.')
+        elif strong_edges == 1:
+            briefing_lines.append('One strong edge identified in today\'s slate.')
+        if qualified_signals > 0:
+            briefing_lines.append(f'{qualified_signals} signal{"s" if qualified_signals != 1 else ""} generated across {games_analyzed} markets.')
+        elif edges_detected > 0:
+            briefing_lines.append('Edges detected but none passed qualification filters.')
+        if signal_density >= 50:
+            briefing_lines.append('High signal density. Market is unusually inefficient today.')
+        if largest_edge_game and largest_edge_val > 0:
+            briefing_lines.append(f'Largest edge: {largest_edge_game} at +{largest_edge_val:.1f}%.')
+
+    if not briefing_lines:
+        briefing_lines.append('Mixed edge profile across today\'s slate.')
+
+    insight = briefing_lines[0]
 
     updated_at = run.created_at.isoformat() + 'Z' if run.created_at else None
 
@@ -945,7 +974,15 @@ def market_report():
             'moderate': moderate_edges,
             'weak': weak_edges,
         },
+        'market_lean': {
+            'favorites': favorite_edges,
+            'underdogs': underdog_edges,
+            'total_edges': edges_detected,
+            'favorite_pct': round(favorite_edges / edges_detected * 100) if edges_detected > 0 else 0,
+            'underdog_pct': round(underdog_edges / edges_detected * 100) if edges_detected > 0 else 0,
+        },
         'insight': insight,
+        'briefing': briefing_lines,
         'last_updated': updated_at,
     })
 

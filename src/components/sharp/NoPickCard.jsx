@@ -19,7 +19,7 @@ export default function NoPickCard({ data, onInsightTap }) {
           color: 'var(--text-secondary)',
           marginBottom: '12px',
         }}>
-          Market Scan Complete
+          Market Intelligence Complete
         </h1>
 
         <h2 style={{

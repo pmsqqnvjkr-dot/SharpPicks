@@ -187,7 +187,7 @@ function DailyBrief({ stats }) {
         fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
         letterSpacing: '0.08em', textTransform: 'uppercase',
         color: 'var(--text-secondary)', marginBottom: '10px',
-      }}>Market Scan Active</div>
+      }}>Market Intelligence Active</div>
       <p style={{
         fontSize: 'var(--text-metric)', color: 'var(--text-tertiary)', lineHeight: '1.6',
         maxWidth: '300px', margin: '0 auto',

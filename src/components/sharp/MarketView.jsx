@@ -64,25 +64,83 @@ function Sparkline({ snapshots, field = 'spread', width = 48, height = 16 }) {
   );
 }
 
-function RLMBadge({ rlm }) {
+function RLMBadge({ rlm, spreadOpen, spreadNow }) {
   if (!rlm) return null;
+  const move = spreadOpen != null && spreadNow != null ? Math.abs(spreadNow - spreadOpen).toFixed(1) : null;
   return (
     <span style={{
       fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
-      padding: '1px 5px', borderRadius: 3,
-      background: 'rgba(251,191,36,0.12)', color: '#f59e0b',
-      border: '1px solid rgba(251,191,36,0.25)',
-    }}>RLM</span>
+      padding: '2px 6px', borderRadius: 3,
+      background: 'rgba(251,191,36,0.15)', color: '#f59e0b',
+      border: '1px solid rgba(251,191,36,0.30)',
+      display: 'inline-flex', alignItems: 'center', gap: 3,
+    }}>
+      <span style={{ fontSize: '0.6rem' }}>⚡</span>RLM{move ? ` ${move}pts` : ''}
+    </span>
   );
+}
+
+function edgeStrength(val) {
+  if (val >= 10) return 'STRONG';
+  if (val >= 7) return 'MODERATE';
+  if (val >= 3.5) return 'WEAK';
+  return null;
+}
+
+function edgeColor(val) {
+  if (val >= 7) return 'var(--green-profit, #10b981)';
+  if (val >= 3.5) return '#FBBF24';
+  return 'var(--text-tertiary)';
 }
 
 function EdgeBar({ value, max = 15 }) {
   if (value == null) return null;
   const pct = Math.min(Math.abs(value) / max * 100, 100);
-  const color = value >= 5 ? 'var(--green-profit, #10b981)' : value >= 2 ? '#f59e0b' : 'var(--text-tertiary)';
+  const color = edgeColor(value);
   return (
-    <div style={{ width: '100%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)', marginTop: 4 }}>
-      <div style={{ width: `${pct}%`, height: '100%', borderRadius: 2, background: color, transition: 'width 0.3s ease' }} />
+    <div style={{ width: '100%', height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.06)', marginTop: 5 }}>
+      <div style={{ width: `${pct}%`, height: '100%', borderRadius: 3, background: color, transition: 'width 0.3s ease' }} />
+    </div>
+  );
+}
+
+function EdgeBadge({ model, isPro }) {
+  if (!model || model.edge == null || !isPro) return null;
+  const edge = model.edge;
+  const strength = edgeStrength(edge);
+  const color = edgeColor(edge);
+  const bgAlpha = edge >= 7 ? '0.12' : edge >= 3.5 ? '0.10' : '0.06';
+  const borderAlpha = edge >= 7 ? '0.25' : edge >= 3.5 ? '0.20' : '0.10';
+  const pct = Math.min(edge / 15 * 100, 100);
+  return (
+    <div style={{
+      padding: '6px 14px 8px', display: 'flex', alignItems: 'center', gap: 8,
+      borderTop: '1px solid var(--stroke-subtle)',
+    }}>
+      <span style={{
+        fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700,
+        padding: '2px 8px', borderRadius: 4,
+        background: `rgba(${edge >= 7 ? '52,211,153' : edge >= 3.5 ? '251,191,36' : '100,116,139'},${bgAlpha})`,
+        color,
+        border: `1px solid rgba(${edge >= 7 ? '52,211,153' : edge >= 3.5 ? '251,191,36' : '100,116,139'},${borderAlpha})`,
+      }}>
+        EDGE +{edge}%
+      </span>
+      {strength && (
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 700,
+          letterSpacing: '0.08em', color,
+        }}>{strength}</span>
+      )}
+      <div style={{
+        flex: 1, height: 6, borderRadius: 3,
+        background: 'rgba(255,255,255,0.06)', marginLeft: 4,
+      }}>
+        <div style={{
+          width: `${pct}%`, height: '100%', borderRadius: 3,
+          background: color, transition: 'width 0.3s ease',
+        }} />
+      </div>
     </div>
   );
 }
@@ -102,7 +160,8 @@ function StatCell({ label, value, color, sub }) {
 
 function ModelAnalysisPanel({ model }) {
   if (!model) return null;
-  const edgeColor = model.edge >= 5 ? 'var(--green-profit, #10b981)' : model.edge >= 2 ? '#f59e0b' : 'var(--text-tertiary)';
+  const ec = edgeColor(model.edge);
+  const strength = edgeStrength(model.edge);
   const probPct = model.cover_prob != null ? (model.cover_prob * 100).toFixed(1) : null;
   const impliedFromLine = model.line != null ? (model.line <= 0 ? 52.4 : 47.6) : null;
 
@@ -123,7 +182,7 @@ function ModelAnalysisPanel({ model }) {
           fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 700,
           letterSpacing: '0.08em', textTransform: 'uppercase',
           color: 'var(--text-tertiary)',
-        }}>Model Analysis</span>
+        }}>Quant Analysis</span>
         {model.rating && (
           <span style={{
             fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 700,
@@ -136,12 +195,48 @@ function ModelAnalysisPanel({ model }) {
         )}
       </div>
 
+      {/* Edge Strength Meter — prominent */}
+      {model.edge != null && (
+        <div style={{
+          padding: '8px 10px', borderRadius: 6, marginBottom: 10,
+          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)',
+        }}>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6,
+          }}>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 700,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)',
+            }}>Edge Strength</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700,
+                color: ec,
+              }}>+{model.edge}%</span>
+              {strength && (
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 700,
+                  letterSpacing: '0.06em', color: ec, opacity: 0.8,
+                }}>{strength}</span>
+              )}
+            </div>
+          </div>
+          <div style={{ width: '100%', height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)' }}>
+            <div style={{
+              width: `${Math.min(model.edge / 15 * 100, 100)}%`,
+              height: '100%', borderRadius: 4, background: ec,
+              transition: 'width 0.3s ease',
+            }} />
+          </div>
+        </div>
+      )}
+
       {/* Primary stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
         {model.edge != null && (
           <div>
-            <StatCell label="Adj. Edge" value={`${model.edge > 0 ? '+' : ''}${model.edge}%`} color={edgeColor} />
-            <EdgeBar value={model.edge} />
+            <StatCell label="Adj. Edge" value={`${model.edge > 0 ? '+' : ''}${model.edge}%`} color={ec} />
           </div>
         )}
         {probPct && (
@@ -250,7 +345,7 @@ function ModelAnalysisPanel({ model }) {
             fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 700,
             letterSpacing: '0.08em', textTransform: 'uppercase',
             color: 'var(--text-tertiary)', marginBottom: 6, opacity: 0.7,
-          }}>Model Reasoning</div>
+          }}>Quant Reasoning</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {model.signals.map((s, i) => (
               <div key={i} style={{
@@ -264,6 +359,197 @@ function ModelAnalysisPanel({ model }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function LineHistoryModal({ game, onClose }) {
+  if (!game || !game.snapshots || game.snapshots.length < 2) return null;
+  const spreads = game.snapshots.map(s => s.spread).filter(v => v != null);
+  const times = game.snapshots.map(s => {
+    if (!s.at) return '';
+    try {
+      const d = new Date(s.at);
+      return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+    } catch { return ''; }
+  });
+  if (spreads.length < 2) return null;
+
+  const min = Math.min(...spreads);
+  const max = Math.max(...spreads);
+  const range = max - min || 0.5;
+  const w = 280, h = 120, pad = 24;
+  const chartW = w - pad * 2, chartH = h - pad;
+
+  const points = spreads.map((v, i) => {
+    const x = pad + (i / (spreads.length - 1)) * chartW;
+    const y = pad / 2 + chartH - ((v - min) / range) * chartH;
+    return { x, y, val: v };
+  });
+
+  const openVal = spreads[0];
+  const currentVal = spreads[spreads.length - 1];
+  const moved = currentVal !== openVal;
+  const lineColor = currentVal < openVal ? 'var(--green-profit, #10b981)' : currentVal > openVal ? 'var(--red-loss, #ef4444)' : 'var(--text-tertiary)';
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 999,
+        background: 'rgba(0,0,0,0.7)', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', padding: 20,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'var(--surface-1, #111827)',
+          border: '1px solid var(--stroke-subtle)',
+          borderRadius: 14, padding: 16, width: '100%', maxWidth: 340,
+        }}
+      >
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)', marginBottom: 4,
+        }}>Line History</div>
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 700,
+          color: 'var(--text-primary)', marginBottom: 12,
+        }}>{game.away} @ {game.home}</div>
+
+        {/* Chart */}
+        <svg width={w} height={h} style={{ display: 'block', margin: '0 auto' }}>
+          <polyline
+            points={points.map(p => `${p.x},${p.y}`).join(' ')}
+            fill="none" stroke={lineColor} strokeWidth="2.5"
+            strokeLinecap="round" strokeLinejoin="round"
+          />
+          {points.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r="3" fill={lineColor} />
+          ))}
+        </svg>
+
+        {/* Open → Current */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginTop: 12, padding: '8px 0',
+          borderTop: '1px solid var(--stroke-subtle)',
+        }}>
+          <div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>OPEN</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+              {fmtSpread(openVal)}
+            </div>
+          </div>
+          {moved && (
+            <svg width="20" height="12" viewBox="0 0 20 12" fill="none" stroke={lineColor} strokeWidth="2" strokeLinecap="round">
+              <path d="M2 6h16M14 2l4 4-4 4" />
+            </svg>
+          )}
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>CURRENT</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', fontWeight: 700, color: lineColor }}>
+              {fmtSpread(currentVal)}
+            </div>
+          </div>
+        </div>
+
+        {/* Movement steps */}
+        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {spreads.map((v, i) => (
+            <div key={i} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '2px 4px',
+              background: i === spreads.length - 1 ? 'rgba(255,255,255,0.03)' : 'transparent',
+              borderRadius: 4,
+            }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>
+                {times[i]}
+              </span>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 600,
+                color: i === spreads.length - 1 ? lineColor : 'var(--text-secondary)',
+              }}>
+                {fmtSpread(v)}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={onClose}
+          style={{
+            width: '100%', marginTop: 12, padding: '8px',
+            background: 'rgba(255,255,255,0.06)', border: '1px solid var(--stroke-subtle)',
+            borderRadius: 6, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)',
+            fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
+          }}
+        >Close</button>
+      </div>
+    </div>
+  );
+}
+
+function SharpMoneyIndicator({ game }) {
+  if (!game.rlm) return null;
+  const spreadOpen = game.spread_home_open;
+  const spreadNow = game.spread_home;
+  if (spreadOpen == null || spreadNow == null) return null;
+  const move = Math.abs(spreadNow - spreadOpen);
+  if (move < 1.0) return null;
+
+  const sharpSide = game.rlm === 'home' ? game.home : game.away;
+  const publicSide = game.rlm === 'home' ? game.away : game.home;
+
+  return (
+    <div style={{
+      padding: '6px 14px 6px',
+      borderTop: '1px solid rgba(251,191,36,0.1)',
+      background: 'rgba(251,191,36,0.03)',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4,
+      }}>
+        <span style={{
+          fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
+          color: '#f59e0b',
+        }}>⚡ REVERSE LINE MOVEMENT</span>
+      </div>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 600,
+            color: 'var(--text-tertiary)', letterSpacing: '0.04em', marginBottom: 2,
+          }}>PUBLIC MONEY</div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 600,
+            color: 'var(--text-secondary)',
+          }}>{publicSide}</div>
+        </div>
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: '0.6rem',
+          color: 'var(--text-tertiary)', textAlign: 'center',
+        }}>
+          <div>Line moved</div>
+          <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.72rem' }}>
+            {move.toFixed(1)}pts
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 600,
+            color: '#f59e0b', letterSpacing: '0.04em', marginBottom: 2,
+          }}>SHARP MONEY</div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700,
+            color: '#f59e0b',
+          }}>{sharpSide}</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -315,7 +601,7 @@ function WatchButton({ watching, onWatch }) {
   );
 }
 
-function GameRow({ game, expanded, onToggle, watching, onWatch, isPro }) {
+function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHistory }) {
   const totalDisplay = fmtTotal(game.total);
   const isFinal = game.status === 'final';
   const isLive = game.status === 'live';
@@ -345,9 +631,11 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             {isLive && <LiveBadge state={game.live_state} period={game.live_period} clock={game.live_clock} />}
             {isFinal && <LiveBadge state="STATUS_FINAL" />}
-            {!isLive && !isFinal && <RLMBadge rlm={game.rlm} />}
+            {!isLive && !isFinal && <RLMBadge rlm={game.rlm} spreadOpen={game.spread_home_open} spreadNow={game.spread_home} />}
             {!isLive && !isFinal && game.snapshots?.length >= 2 && (
-              <Sparkline snapshots={game.snapshots} field="spread" />
+              <span onClick={e => { e.stopPropagation(); onLineHistory?.(game); }} style={{ cursor: 'pointer' }}>
+                <Sparkline snapshots={game.snapshots} field="spread" />
+              </span>
             )}
             {onWatch && <WatchButton watching={watching} onWatch={onWatch} />}
           </div>
@@ -406,7 +694,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro }) {
           </div>
           <div style={{
             textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
-            color: parseFloat(game.away_ml) > 0 ? '#f59e0b' : 'var(--text-secondary)',
+            color: parseFloat(game.away_ml) > 0 ? '#FBBF24' : 'rgba(96,165,250,0.85)',
             fontWeight: parseFloat(game.away_ml) > 0 ? 600 : 400,
           }}>
             {fmtML(game.away_ml)}
@@ -444,7 +732,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro }) {
           <div />
           <div style={{
             textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
-            color: parseFloat(game.home_ml) > 0 ? '#f59e0b' : 'var(--text-primary)', fontWeight: 600,
+            color: parseFloat(game.home_ml) > 0 ? '#FBBF24' : 'rgba(96,165,250,0.85)', fontWeight: 600,
           }}>
             {fmtML(game.home_ml)}
           </div>
@@ -476,30 +764,49 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro }) {
         {/* Consensus bar */}
         <ConsensusBar consensus={game.consensus_spread} current={game.spread_home} />
 
-        {/* Model edge + expand hint */}
+        {/* Sharp vs Public money — shown when RLM detected */}
+        <SharpMoneyIndicator game={game} />
+
+        {/* Edge badge + discipline filter — surfaced on collapsed card */}
         {hasModel && !expanded && (
-          <div style={{
-            padding: '4px 14px 6px', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', gap: 8,
-          }}>
-            {isPro && game.model.edge != null && (
-              <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 700,
-                padding: '1px 7px', borderRadius: 4,
-                background: game.model.edge >= 5 ? 'rgba(52,211,153,0.1)' : game.model.edge >= 2 ? 'rgba(251,191,36,0.1)' : 'rgba(100,116,139,0.08)',
-                color: game.model.edge >= 5 ? 'var(--green-profit, #10b981)' : game.model.edge >= 2 ? '#f59e0b' : 'var(--text-tertiary)',
-                border: `1px solid ${game.model.edge >= 5 ? 'rgba(52,211,153,0.2)' : game.model.edge >= 2 ? 'rgba(251,191,36,0.2)' : 'var(--stroke-subtle)'}`,
+          <>
+            {game.model.passes ? (
+              <EdgeBadge model={game.model} isPro={isPro} />
+            ) : isPro && game.model.edge != null ? (
+              <div style={{
+                padding: '6px 14px 4px',
+                borderTop: '1px solid var(--stroke-subtle)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
-                {game.model.edge > 0 ? '+' : ''}{game.model.edge}% edge
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 700,
+                    letterSpacing: '0.06em', color: 'var(--text-tertiary)',
+                    padding: '2px 6px', borderRadius: 3,
+                    background: 'rgba(100,116,139,0.08)',
+                    border: '1px solid rgba(100,116,139,0.12)',
+                  }}>NO ACTION</span>
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '0.58rem',
+                    color: 'var(--text-tertiary)', opacity: 0.7,
+                  }}>
+                    Edge +{game.model.edge}% · {game.model.fail_reasons?.[0] || 'Below threshold'}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+            <div style={{
+              padding: '3px 14px 6px', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 6,
+            }}>
+              <span style={{ fontSize: '0.55rem', color: 'rgba(79,125,243,0.5)' }}>
+                {isPro ? 'Tap for quant view' : 'Pro: quant analysis'}
               </span>
-            )}
-            <span style={{ fontSize: '0.55rem', color: 'rgba(79,125,243,0.5)' }}>
-              {isPro ? 'Tap for model view' : 'Pro: model analysis'}
-            </span>
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="rgba(79,125,243,0.4)" strokeWidth="2">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </div>
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="rgba(79,125,243,0.4)" strokeWidth="2">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </>
         )}
       </div>
 
@@ -513,17 +820,17 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro }) {
           <div style={{
             fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)',
             marginBottom: '4px',
-          }}>Model analysis is a Pro feature</div>
+          }}>Quant analysis is a Pro feature</div>
           <div style={{
             fontSize: '0.65rem', color: 'var(--text-tertiary)',
-          }}>Upgrade for edge data, cover probability, and model reasoning</div>
+          }}>Upgrade for edge data, cover probability, and quant reasoning</div>
         </div>
       )}
     </div>
   );
 }
 
-function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch, isPro }) {
+function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch, isPro, onLineHistory }) {
   return (
     <div style={{ marginBottom: 18 }}>
       <div style={{
@@ -549,6 +856,7 @@ function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch,
             watching={watchedIds?.has(g.id)}
             onWatch={() => onWatch(g)}
             isPro={isPro}
+            onLineHistory={onLineHistory}
           />
         ))}
       </div>
@@ -556,8 +864,9 @@ function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch,
   );
 }
 
-function FilterTabs({ active, onChange, hasLive }) {
-  const tabs = hasLive ? ['All', 'Live', 'Upcoming', 'Final'] : ['All', 'Upcoming', 'Final'];
+function FilterTabs({ active, onChange, hasLive, hasModel }) {
+  let tabs = hasLive ? ['All', 'Live', 'Upcoming', 'Final'] : ['All', 'Upcoming', 'Final'];
+  if (hasModel) tabs = [...tabs, 'Passed'];
   return (
     <div style={{ display: 'flex', gap: 6 }}>
       {tabs.map(tab => {
@@ -663,6 +972,126 @@ function LiveBadge({ state, period, clock }) {
   return null;
 }
 
+function gameStatus(game) {
+  if (!game.model) return { label: '—', color: 'var(--text-tertiary)' };
+  if (game.model.passes) return { label: 'SIGNAL', color: 'var(--green-profit, #10b981)' };
+  if (game.model.edge >= 5) return { label: 'WATCH', color: '#FBBF24' };
+  if (game.model.edge >= 2) return { label: 'NEAR', color: 'var(--text-tertiary)' };
+  return { label: 'NO EDGE', color: 'var(--text-tertiary)' };
+}
+
+const thStyle = {
+  fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 700,
+  letterSpacing: '0.08em', textTransform: 'uppercase',
+  color: 'var(--text-tertiary)', padding: '6px 8px',
+  textAlign: 'right', whiteSpace: 'nowrap', position: 'sticky', top: 0,
+  background: 'var(--surface-1, #111827)', borderBottom: '1px solid var(--stroke-subtle)',
+};
+
+const tdStyle = {
+  fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 600,
+  padding: '8px 8px', textAlign: 'right', whiteSpace: 'nowrap',
+  borderBottom: '1px solid rgba(255,255,255,0.03)',
+  fontVariantNumeric: 'tabular-nums',
+};
+
+function TableView({ games, isPro, onLineHistory }) {
+  return (
+    <div style={{
+      backgroundColor: 'var(--surface-1, #111827)',
+      borderRadius: 10, border: '1px solid var(--stroke-subtle)',
+      overflow: 'hidden',
+    }}>
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <table style={{
+          width: '100%', borderCollapse: 'collapse',
+          minWidth: isPro ? '540px' : '400px',
+        }}>
+          <thead>
+            <tr>
+              <th style={{ ...thStyle, textAlign: 'left', minWidth: 120 }}>Game</th>
+              <th style={thStyle}>Spread</th>
+              <th style={thStyle}>Total</th>
+              <th style={thStyle}>ML</th>
+              {isPro && <th style={thStyle}>Edge</th>}
+              {isPro && <th style={thStyle}>Status</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {games.map(g => {
+              const status = gameStatus(g);
+              const isSignal = g.model?.passes;
+              const rowBg = isSignal ? 'rgba(52,211,153,0.04)' : 'transparent';
+              const homeML = parseFloat(g.home_ml);
+              const awayML = parseFloat(g.away_ml);
+              return (
+                <tr key={g.id} style={{ background: rowBg }}>
+                  <td style={{
+                    ...tdStyle, textAlign: 'left', padding: '8px 8px',
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{
+                          fontSize: '0.72rem', fontWeight: 600,
+                          color: 'var(--text-secondary)',
+                          overflow: 'hidden', textOverflow: 'ellipsis',
+                        }}>{g.away}</span>
+                        {g.rlm && <span style={{ fontSize: '0.5rem', color: '#f59e0b' }}>⚡</span>}
+                      </div>
+                      <span style={{
+                        fontSize: '0.72rem', fontWeight: 700,
+                        color: 'var(--text-primary)',
+                      }}>{g.home}</span>
+                      {g.time && (
+                        <span style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', fontWeight: 400 }}>
+                          {g.time}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td style={tdStyle}>
+                    <div style={{ color: 'var(--text-primary)' }}>{fmtSpread(g.spread_home)}</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 400 }}>{fmtSpread(g.spread_away)}</div>
+                  </td>
+                  <td style={{ ...tdStyle, color: 'var(--text-primary)' }}>
+                    {fmtTotal(g.total) || '—'}
+                  </td>
+                  <td style={tdStyle}>
+                    <div style={{ color: awayML > 0 ? '#FBBF24' : 'rgba(96,165,250,0.85)', fontWeight: awayML > 0 ? 600 : 400 }}>{fmtML(g.away_ml)}</div>
+                    <div style={{ color: homeML > 0 ? '#FBBF24' : 'rgba(96,165,250,0.85)' }}>{fmtML(g.home_ml)}</div>
+                  </td>
+                  {isPro && (
+                    <td style={{
+                      ...tdStyle,
+                      color: g.model?.edge >= 7 ? 'var(--green-profit, #10b981)'
+                        : g.model?.edge >= 3.5 ? '#FBBF24'
+                        : 'var(--text-tertiary)',
+                    }}>
+                      {g.model?.edge != null ? `+${g.model.edge}%` : '—'}
+                    </td>
+                  )}
+                  {isPro && (
+                    <td style={{ ...tdStyle }}>
+                      <span style={{
+                        fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 700,
+                        letterSpacing: '0.04em',
+                        padding: '2px 6px', borderRadius: 3,
+                        background: isSignal ? 'rgba(52,211,153,0.12)' : status.label === 'WATCH' ? 'rgba(251,191,36,0.10)' : 'rgba(100,116,139,0.08)',
+                        color: status.color,
+                        border: `1px solid ${isSignal ? 'rgba(52,211,153,0.25)' : status.label === 'WATCH' ? 'rgba(251,191,36,0.20)' : 'rgba(100,116,139,0.12)'}`,
+                      }}>{status.label}</span>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function MarketView({ onBack }) {
   const { user } = useAuth();
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
@@ -675,6 +1104,8 @@ export default function MarketView({ onBack }) {
   const [expandedId, setExpandedId] = useState(null);
   const [liveScores, setLiveScores] = useState({});
   const [watchedIds, setWatchedIds] = useState(new Set());
+  const [lineHistoryGame, setLineHistoryGame] = useState(null);
+  const [viewMode, setViewMode] = useState('board');
 
   const rawGames = data?.games || [];
 
@@ -742,6 +1173,7 @@ export default function MarketView({ onBack }) {
     if (filter === 'Live') return games.filter(g => g.status === 'live');
     if (filter === 'Upcoming') return games.filter(g => g.status === 'scheduled');
     if (filter === 'Final') return games.filter(g => g.status === 'final');
+    if (filter === 'Passed') return games.filter(g => g.model && !g.model.passes);
     return games;
   }, [games, filter]);
 
@@ -787,6 +1219,8 @@ export default function MarketView({ onBack }) {
   };
 
   const hasModelData = games.some(g => g.model);
+  const passedGames = useMemo(() => games.filter(g => g.model && !g.model.passes), [games]);
+  const signalGames = useMemo(() => games.filter(g => g.model && g.model.passes), [games]);
 
   return (
     <PullToRefresh onRefresh={async () => {
@@ -814,7 +1248,7 @@ export default function MarketView({ onBack }) {
           <h1 style={{
             fontFamily: 'var(--font-serif)', fontSize: '1.1rem', fontWeight: 700,
             color: 'var(--text-primary)', margin: 0,
-          }}>Market Scan</h1>
+          }}>Market Intelligence</h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 36 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
@@ -828,7 +1262,7 @@ export default function MarketView({ onBack }) {
             <>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>&middot;</span>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'rgba(79,125,243,0.6)' }}>
-                Model analyzed
+                Model active
               </span>
             </>
           )}
@@ -839,13 +1273,128 @@ export default function MarketView({ onBack }) {
       <div style={{ padding: '14px 12px 100px' }}>
         <DailyMarketReport />
 
-        {games.length > 0 && (
+        {/* Discipline Filter summary */}
+        {hasModelData && passedGames.length > 0 && (
           <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            marginBottom: 18, gap: 8,
+            backgroundColor: 'var(--surface-1)',
+            borderRadius: '14px',
+            border: '1px solid var(--color-border, var(--stroke-subtle))',
+            padding: '14px 16px',
+            marginBottom: '14px',
           }}>
-            <FilterTabs active={filter} onChange={setFilter} hasLive={hasLive} />
-            <SortPicker active={sort} onChange={setSort} isPro={isPro} />
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginBottom: '10px',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+                letterSpacing: '0.1em', textTransform: 'uppercase',
+                color: 'var(--text-tertiary)',
+              }}>Discipline Filter</div>
+              <button
+                onClick={() => setFilter(filter === 'Passed' ? 'All' : 'Passed')}
+                style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 600,
+                  padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                  border: filter === 'Passed' ? '1px solid rgba(100,116,139,0.3)' : '1px solid var(--stroke-subtle)',
+                  background: filter === 'Passed' ? 'rgba(100,116,139,0.12)' : 'transparent',
+                  color: filter === 'Passed' ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                }}
+              >
+                {filter === 'Passed' ? 'Show All' : 'View Passed'}
+              </button>
+            </div>
+            <div style={{
+              display: 'flex', gap: '16px', alignItems: 'center',
+            }}>
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 700,
+                  color: 'var(--text-primary)', lineHeight: 1,
+                }}>{games.filter(g => g.model).length}</div>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                  color: 'var(--text-tertiary)', letterSpacing: '0.06em',
+                  textTransform: 'uppercase', marginTop: '3px',
+                }}>Analyzed</div>
+              </div>
+              <div style={{
+                width: 1, height: 28,
+                background: 'var(--stroke-subtle)',
+              }} />
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 700,
+                  color: signalGames.length > 0 ? 'var(--green-profit, #10b981)' : 'var(--text-primary)',
+                  lineHeight: 1,
+                }}>{signalGames.length}</div>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                  color: 'var(--text-tertiary)', letterSpacing: '0.06em',
+                  textTransform: 'uppercase', marginTop: '3px',
+                }}>Signals</div>
+              </div>
+              <div style={{
+                width: 1, height: 28,
+                background: 'var(--stroke-subtle)',
+              }} />
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 700,
+                  color: 'var(--text-secondary)', lineHeight: 1,
+                }}>{passedGames.length}</div>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                  color: 'var(--text-tertiary)', letterSpacing: '0.06em',
+                  textTransform: 'uppercase', marginTop: '3px',
+                }}>Passed</div>
+              </div>
+            </div>
+            <div style={{
+              marginTop: '10px', fontFamily: 'var(--font-mono)',
+              fontSize: '10px', color: 'var(--text-tertiary)',
+              textAlign: 'center', fontStyle: 'italic',
+            }}>
+              No edge, no pick.
+            </div>
+          </div>
+        )}
+
+        {games.length > 0 && (
+          <div style={{ marginBottom: 18 }}>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              gap: 8, marginBottom: 8,
+            }}>
+              <FilterTabs active={filter} onChange={setFilter} hasLive={hasLive} hasModel={hasModelData} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {['board', 'table'].map(mode => (
+                  <button key={mode} onClick={() => setViewMode(mode)} style={{
+                    background: viewMode === mode ? 'rgba(255,255,255,0.08)' : 'transparent',
+                    border: 'none', borderRadius: 4, padding: '5px 6px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: viewMode === mode ? 1 : 0.4,
+                  }} aria-label={mode === 'board' ? 'Board view' : 'Table view'}>
+                    {mode === 'board' ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-primary)" strokeWidth="2" strokeLinecap="round">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-primary)" strokeWidth="2" strokeLinecap="round">
+                        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {viewMode === 'board' && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <SortPicker active={sort} onChange={setSort} isPro={isPro} />
+              </div>
+            )}
           </div>
         )}
 
@@ -888,12 +1437,14 @@ export default function MarketView({ onBack }) {
               </svg>
             </div>
             <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-              {games.length === 0 ? 'No games today' : `No ${filter.toLowerCase()} games`}
+              {games.length === 0 ? 'No games today' : filter === 'Passed' ? 'All games generated signals' : `No ${filter.toLowerCase()} games`}
             </div>
             <div style={{ fontSize: '13px', color: 'var(--text-tertiary)', lineHeight: '1.5' }}>
-              {games.length === 0 ? 'Check back tomorrow for the next slate.' : 'Try a different filter to see more games.'}
+              {games.length === 0 ? 'Check back tomorrow for the next slate.' : filter === 'Passed' ? 'Every game passed qualification filters today. Rare, but it happens.' : 'Try a different filter to see more games.'}
             </div>
           </div>
+        ) : viewMode === 'table' ? (
+          <TableView games={sorted} isPro={isPro} onLineHistory={setLineHistoryGame} />
         ) : grouped ? (
           Array.from(grouped.entries()).map(([time, gamesInSlot]) => (
             <TimeSlotGroup
@@ -905,6 +1456,7 @@ export default function MarketView({ onBack }) {
               watchedIds={watchedIds}
               onWatch={handleWatch}
               isPro={isPro}
+              onLineHistory={setLineHistoryGame}
             />
           ))
         ) : (
@@ -918,6 +1470,7 @@ export default function MarketView({ onBack }) {
                 watching={watchedIds.has(g.id)}
                 onWatch={() => handleWatch(g)}
                 isPro={isPro}
+                onLineHistory={setLineHistoryGame}
               />
             ))}
           </div>
@@ -927,11 +1480,14 @@ export default function MarketView({ onBack }) {
           fontSize: '0.6rem', color: 'var(--text-tertiary)', opacity: 0.45,
           textAlign: 'center', marginTop: 20, lineHeight: 1.5,
         }}>
-          Lines from DraftKings, FanDuel, BetMGM, Caesars, PointsBet, BetRivers.
-          Best available shown. {hasModelData ? 'Tap any game for model analysis.' : ''}
+          Lines sourced from DraftKings, FanDuel, BetMGM, Caesars, PointsBet, BetRivers.
+          Best available shown. {hasModelData ? 'Tap any game for quant analysis. Tap sparkline for line history.' : ''}
         </p>
       </div>
     </div>
+    {lineHistoryGame && (
+      <LineHistoryModal game={lineHistoryGame} onClose={() => setLineHistoryGame(null)} />
+    )}
     </PullToRefresh>
   );
 }

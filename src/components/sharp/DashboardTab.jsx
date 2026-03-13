@@ -31,6 +31,7 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
   const risk = dashData?.risk || {};
   const discipline = dashData?.discipline || {};
   const health = dashData?.model_health || {};
+  const clvStats = dashData?.clv || {};
   const recentPicks = dashData?.recent_picks || [];
   const equityCurve = perf.equity_curve || [];
   return (
@@ -57,11 +58,15 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
 
         <PerformanceCore perf={perf} equityCurve={equityCurve} />
 
+        <CLVTracker clv={clvStats} />
+
         <LatestResultCard picks={recentPicks} />
 
         <RecentPickLog picks={recentPicks} />
 
         <DisciplineScore discipline={discipline} />
+
+        <ModelTrustStack />
 
         <div style={{
           textAlign: 'center', padding: '16px 20px 8px',
@@ -148,6 +153,117 @@ function PerformanceCore({ perf, equityCurve }) {
 }
 
 
+
+
+function CLVTracker({ clv }) {
+  if (!clv || clv.total_tracked === 0) return null;
+  const avgClv = clv.avg_clv;
+  const isPositive = avgClv != null && avgClv > 0;
+  const clvColor = avgClv == null ? 'var(--text-tertiary)' : isPositive ? 'var(--green-profit)' : 'var(--red-loss)';
+
+  return (
+    <>
+      <SectionLabel>Closing Line Value</SectionLabel>
+      <InfoCallout
+        header="The Pro's Metric"
+        text="CLV measures whether you bet before the market moved your way. Consistently beating closing lines means the model identifies real edges — regardless of individual outcomes."
+      />
+      <div style={{
+        backgroundColor: 'var(--surface-1)', borderRadius: '20px',
+        border: '1px solid var(--stroke-subtle)', padding: '24px',
+        marginBottom: '16px',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)', marginBottom: '6px',
+            }}>Average CLV</div>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '36px', fontWeight: 700,
+              color: clvColor, lineHeight: 1, marginBottom: '8px',
+            }}>
+              {avgClv != null ? `${avgClv > 0 ? '+' : ''}${avgClv.toFixed(1)}` : '—'}
+            </div>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px',
+              color: 'var(--text-tertiary)', letterSpacing: '0.5px',
+            }}>
+              Points vs closing line · {clv.total_tracked} pick{clv.total_tracked !== 1 ? 's' : ''} tracked
+            </div>
+            {avgClv != null && (
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px',
+                color: isPositive ? 'var(--green-profit)' : 'var(--text-tertiary)',
+                marginTop: '4px', opacity: 0.8,
+              }}>
+                {avgClv >= 2 ? 'Elite — consistently ahead of the market'
+                  : avgClv >= 1 ? 'Strong — model beats the close'
+                  : avgClv > 0 ? 'Positive — edge over closing lines'
+                  : avgClv === 0 ? 'Neutral — matching the market'
+                  : 'Negative — behind closing lines'}
+              </div>
+            )}
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)', marginBottom: '6px',
+            }}>Beat Rate</div>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 700,
+              color: clv.beat_rate >= 50 ? 'var(--green-profit)' : 'var(--text-primary)',
+              lineHeight: 1,
+            }}>
+              {clv.beat_rate}%
+            </div>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px',
+              color: 'var(--text-tertiary)', marginTop: '4px',
+            }}>
+              {clv.positive}/{clv.total_tracked} picks
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          marginTop: '16px', paddingTop: '14px',
+          borderTop: '1px solid var(--stroke-subtle)',
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '8px',
+          }}>CLV Distribution</div>
+          <div style={{ width: '100%', height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', display: 'flex' }}>
+            <div style={{
+              width: `${clv.beat_rate}%`, height: '100%',
+              background: 'var(--green-profit)',
+              transition: 'width 0.3s ease',
+            }} />
+            <div style={{
+              width: `${100 - clv.beat_rate}%`, height: '100%',
+              background: 'var(--red-loss)',
+              opacity: 0.5,
+            }} />
+          </div>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', marginTop: '4px',
+          }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--green-profit)' }}>
+              Beat close {clv.beat_rate}%
+            </span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-tertiary)' }}>
+              Missed {(100 - clv.beat_rate).toFixed(1)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
 
 
 function DisciplineScore({ discipline }) {
@@ -612,6 +728,118 @@ function MiniEquityChart({ data }) {
   );
 }
 
+
+const TRUST_STEPS = [
+  { label: 'Market Regime', desc: 'Classify daily market conditions — exploitable, active, moderate, or efficient.', accent: 'rgba(79,134,247,0.7)' },
+  { label: 'Edges Detected', desc: 'Every game on the slate scanned for pricing inefficiency vs. model projections.', accent: 'rgba(251,191,36,0.8)' },
+  { label: 'Qualified Signals', desc: 'Only edges above the statistical threshold survive qualification filters.', accent: 'var(--green-profit)' },
+  { label: 'Quant Reasoning', desc: 'Full model logic, line movement, and sharp vs. public money — transparent to you.', accent: 'var(--text-secondary)' },
+  { label: 'CLV Performance', desc: 'After the game closes, did the model beat the closing line? This is the ultimate proof.', accent: 'var(--green-profit)', isFinal: true },
+];
+
+function ModelTrustStack() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'none', border: 'none', cursor: 'pointer',
+          padding: '0 0 10px',
+        }}
+      >
+        <SectionLabel>How the Model Works</SectionLabel>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-tertiary)',
+          transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+          transition: 'transform 0.15s linear', lineHeight: 1,
+        }}>▾</span>
+      </button>
+
+      {open && (
+        <div style={{
+          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+          border: '1px solid var(--stroke-subtle)', padding: '16px',
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+            letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '14px',
+            textAlign: 'center',
+          }}>Model Trust Stack</div>
+
+          {TRUST_STEPS.map((step, i) => (
+            <div key={step.label}>
+              <div style={{
+                display: 'flex', gap: '12px', alignItems: 'flex-start',
+                padding: '8px 0',
+              }}>
+                <div style={{
+                  width: '24px', height: '24px', borderRadius: '6px',
+                  background: step.isFinal ? 'rgba(90,158,114,0.12)' : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${step.isFinal ? 'rgba(90,158,114,0.25)' : 'var(--stroke-subtle)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+                    color: step.accent,
+                  }}>{i + 1}</span>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
+                    letterSpacing: '0.05em', textTransform: 'uppercase',
+                    color: step.accent, lineHeight: 1.2, marginBottom: '3px',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                  }}>
+                    {step.label}
+                    {step.isFinal && (
+                      <span style={{
+                        fontSize: '8px', fontWeight: 700,
+                        padding: '1px 5px', borderRadius: 3,
+                        background: 'rgba(90,158,114,0.12)',
+                        color: 'var(--green-profit)',
+                        border: '1px solid rgba(90,158,114,0.25)',
+                        letterSpacing: '0.04em',
+                      }}>PROOF</span>
+                    )}
+                  </div>
+                  <div style={{
+                    fontFamily: 'var(--font-sans)', fontSize: '12px',
+                    color: 'var(--text-tertiary)', lineHeight: 1.45,
+                  }}>{step.desc}</div>
+                </div>
+              </div>
+              {i < TRUST_STEPS.length - 1 && (
+                <div style={{
+                  marginLeft: '11px', width: '1px', height: '8px',
+                  background: 'rgba(255,255,255,0.06)',
+                }} />
+              )}
+            </div>
+          ))}
+
+          <div style={{
+            marginTop: '14px', paddingTop: '12px',
+            borderTop: '1px solid var(--stroke-subtle)',
+            textAlign: 'center',
+          }}>
+            <p style={{
+              fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+              fontSize: '12px', color: 'var(--text-tertiary)',
+              lineHeight: 1.5, margin: 0,
+            }}>
+              This is how a professional betting desk evaluates a model.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function DashboardSkeleton() {
   const shimmer = {

@@ -128,6 +128,8 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
           }}>{profitDisplay}</span>
         </div>
 
+        <CLVCard pick={pick} />
+
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '16px',
           border: '1px solid var(--color-border)', padding: '20px',
@@ -342,6 +344,109 @@ function WithdrawnDetailScreen({ pick, onBack }) {
           Past performance does not guarantee future results.
         </p>
       </div>
+    </div>
+  );
+}
+
+function fmtSpread(val) {
+  if (val == null) return '—';
+  const n = parseFloat(val);
+  if (Number.isInteger(n)) return n > 0 ? `+${n}` : `${n}`;
+  return n > 0 ? `+${n.toFixed(1)}` : `${n.toFixed(1)}`;
+}
+
+function CLVCard({ pick }) {
+  const pickLine = pick?.line;
+  const closingLine = pick?.closing_spread;
+  const rawCLV = pick?.clv != null ? parseFloat(pick.clv) : null;
+  const clvVal = rawCLV ?? (pickLine != null && closingLine != null ? parseFloat(pickLine) - parseFloat(closingLine) : null);
+
+  if (pickLine == null && closingLine == null && clvVal == null) return null;
+
+  const clvColor = clvVal == null ? 'var(--text-tertiary)'
+    : clvVal > 0 ? 'var(--green-profit, var(--color-signal))'
+    : clvVal < 0 ? 'var(--color-loss)'
+    : 'var(--text-tertiary)';
+
+  const borderAccent = clvVal == null ? 'var(--color-border)'
+    : clvVal > 0 ? 'rgba(52,211,153,0.25)'
+    : clvVal < 0 ? 'rgba(158,122,124,0.25)'
+    : 'var(--color-border)';
+
+  const bgAccent = clvVal == null ? 'var(--surface-1)'
+    : clvVal > 0 ? 'linear-gradient(135deg, var(--surface-1) 0%, rgba(52,211,153,0.04) 100%)'
+    : clvVal < 0 ? 'linear-gradient(135deg, var(--surface-1) 0%, rgba(158,122,124,0.04) 100%)'
+    : 'var(--surface-1)';
+
+  return (
+    <div style={{
+      background: bgAccent, borderRadius: '16px',
+      border: `1px solid ${borderAccent}`, padding: '20px',
+      marginBottom: 'var(--space-md)',
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+        letterSpacing: '0.08em', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', marginBottom: '14px',
+      }}>Closing Line Value</div>
+
+      {clvVal != null && (
+        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '36px', fontWeight: 700,
+            fontVariantNumeric: 'tabular-nums', lineHeight: 1,
+            color: clvColor, marginBottom: '6px',
+          }}>
+            {clvVal > 0 ? '+' : ''}{clvVal.toFixed(1)}
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+            letterSpacing: '0.06em', color: 'var(--text-tertiary)',
+          }}>
+            {clvVal > 0 ? 'Points of closing line value' : clvVal < 0 ? 'Points behind the close' : 'Matched closing line'}
+          </div>
+        </div>
+      )}
+
+      <div style={{
+        borderTop: '1px solid var(--color-border)',
+        paddingTop: '14px',
+        display: 'flex', flexDirection: 'column', gap: '8px',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)',
+          }}>Pick Line</span>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 700,
+            fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)',
+          }}>{fmtSpread(pickLine)}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)',
+          }}>Closing Line</span>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 700,
+            fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)',
+          }}>{fmtSpread(closingLine)}</span>
+        </div>
+      </div>
+
+      {clvVal != null && clvVal > 0 && (
+        <div style={{
+          marginTop: '14px', paddingTop: '12px',
+          borderTop: '1px solid var(--color-border)',
+          fontFamily: 'var(--font-mono)', fontSize: '11px',
+          color: 'var(--text-tertiary)', lineHeight: 1.5, textAlign: 'center',
+        }}>
+          Model identified this line before the market moved. Positive CLV means the model was early and correct.
+        </div>
+      )}
     </div>
   );
 }

@@ -89,7 +89,7 @@ export default function DailyInsightCard({ data, onNavigate }) {
           fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
           letterSpacing: '0.08em', textTransform: 'uppercase',
           color: 'var(--text-tertiary)', marginBottom: 'var(--space-sm)',
-        }}>Market scan in {countdown ? countdown : 'soon'}</div>
+        }}>Market intelligence in {countdown ? countdown : 'soon'}</div>
         <h2 style={{
           fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
           color: 'var(--text-primary)', marginBottom: '4px',

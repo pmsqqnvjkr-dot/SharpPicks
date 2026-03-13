@@ -18,7 +18,7 @@ export default function LoadingState() {
           letterSpacing: '0.08em', textTransform: 'uppercase',
           color: 'var(--text-secondary)',
           marginBottom: '10px', textAlign: 'center',
-        }}>Market Scan Active</h2>
+        }}>Market Intelligence Active</h2>
 
         <p style={{
           fontFamily: 'var(--font-sans)',

@@ -407,10 +407,11 @@ function SignalHistoryRow({ pick, isPro, isLast, onView }) {
   const rightLine1Color = isSettled ? unitsColor : 'var(--text-tertiary)';
 
   const clvVal = pick.clv != null ? parseFloat(pick.clv) : null;
-  const rightLine2 = isSettled && clvVal != null
-    ? `CLV: ${clvVal >= 0 ? '+' : ''}${clvVal}`
+  const hasCLV = isSettled && clvVal != null;
+  const rightLine2 = hasCLV
+    ? `CLV ${clvVal >= 0 ? '+' : ''}${clvVal.toFixed(1)}`
     : pick.edge_pct ? `+${pick.edge_pct}% edge` : null;
-  const rightLine2Color = isSettled && clvVal != null
+  const rightLine2Color = hasCLV
     ? (clvVal > 0 ? 'var(--color-signal)' : clvVal < 0 ? 'var(--color-loss)' : 'var(--text-tertiary)')
     : 'var(--text-tertiary)';
 
@@ -463,9 +464,15 @@ function SignalHistoryRow({ pick, isPro, isLast, onView }) {
           )}
           {isPro && rightLine2 && (
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              fontSize: hasCLV ? '12px' : '11px',
+              fontWeight: hasCLV ? 600 : 400,
               fontVariantNumeric: 'tabular-nums',
               color: rightLine2Color, marginTop: '2px',
+              ...(hasCLV ? {
+                padding: '1px 5px', borderRadius: 3,
+                background: clvVal > 0 ? 'rgba(52,211,153,0.08)' : clvVal < 0 ? 'rgba(158,122,124,0.08)' : 'transparent',
+              } : {}),
             }}>{rightLine2}</div>
           )}
         </div>
@@ -496,7 +503,7 @@ function SignalHistoryEmpty({ filter, totalCount }) {
           The model evaluates the full daily slate and generates signals only when a statistically significant edge is detected.
         </p>
         <p style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>
-          Check back after today&apos;s market scan.
+          Check back after today&apos;s market intelligence report.
         </p>
       </div>
     );
@@ -673,7 +680,7 @@ function DailyBrief({ stats }) {
         fontSize: 'var(--text-label-size)', fontWeight: 700,
         letterSpacing: '0.08em', textTransform: 'uppercase',
         color: 'var(--text-secondary)', marginBottom: '10px',
-      }}>Market Scan Active</h2>
+      }}>Market Intelligence Active</h2>
       <p style={{
         fontSize: 'var(--text-metric)', color: 'var(--text-tertiary)', lineHeight: '1.6',
         maxWidth: '300px', margin: '0 auto',
@@ -710,6 +717,7 @@ function Stat({ label, value }) {
 }
 
 function RecordStrip({ stats }) {
+  const hasClv = stats.avg_clv != null;
   return (
     <div style={{
       backgroundColor: 'var(--surface-1)', borderRadius: '12px',
@@ -727,8 +735,14 @@ function RecordStrip({ stats }) {
         <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', alignItems: 'center' }}>
           <MiniStat label="Win Rate" value={stats.win_rate != null ? `${stats.win_rate}%` : '--'} />
           <MiniStat label="ROI" value={stats.roi != null ? `${stats.roi >= 0 ? '+' : ''}${stats.roi}%` : '--'} highlight={stats.roi >= 0} />
+          {hasClv && (
+            <MiniStat
+              label="Avg CLV"
+              value={`${stats.avg_clv > 0 ? '+' : ''}${stats.avg_clv.toFixed(1)}`}
+              highlight={stats.avg_clv > 0}
+            />
+          )}
           <MiniStat label="Signals" value={stats.total_picks} />
-          <MiniStat label="Passes" value={stats.total_passes} />
         </div>
         <div style={{
           fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 700,
