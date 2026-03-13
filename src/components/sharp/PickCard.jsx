@@ -402,15 +402,29 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
           {/* ── Outcome / Track Action ── */}
           {isRevoked ? (
             <div style={{
-              padding: 'var(--space-sm) var(--space-md)', borderRadius: '12px',
-              border: '1px solid rgba(142,154,175,0.18)',
-              background: 'rgba(142,154,175,0.06)', textAlign: 'center',
+              padding: '14px var(--space-md)', borderRadius: '12px',
+              border: '1px solid rgba(251,191,36,0.2)',
+              background: 'rgba(251,191,36,0.04)',
             }}>
-              <div style={{ ...label, fontSize: '12px', color: 'var(--withdrawn)', marginBottom: '3px' }}>
-                Signal Withdrawn
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px',
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <span style={{ ...label, fontSize: '11px', color: '#f59e0b', marginBottom: 0, letterSpacing: '0.1em' }}>
+                  Signal Invalidated
+                </span>
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.4' }}>
-                Edge shifted before tip-off. No action needed.
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '12px',
+                color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '4px',
+              }}>
+                {pick.withdraw_reason || 'Edge shifted before tip-off.'}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                No action needed &mdash; the system is working as designed.
               </div>
             </div>
           ) : isSettled ? (

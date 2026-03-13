@@ -101,8 +101,16 @@ def today():
 
     if pick:
         model_signals = []
+        withdraw_reason = None
         if pick.notes:
-            model_signals = [s.strip() for s in pick.notes.split('|') if s.strip()]
+            for s in pick.notes.split('|'):
+                s = s.strip()
+                if not s:
+                    continue
+                if s.startswith('REVOKED:'):
+                    withdraw_reason = s[len('REVOKED:'):].strip()
+                else:
+                    model_signals.append(s)
 
         model_line = pick.line
         market_line = round(pick.line + (pick.edge_pct * 0.3 if pick.edge_pct else 0), 1) if pick.line else None
@@ -146,6 +154,7 @@ def today():
             'best_book': pick.sportsbook or 'DraftKings',
             'stake_guidance': stake,
             'playable_to': _calc_playable_to(pick.line, pick.side, pick.edge_pct),
+            'withdraw_reason': withdraw_reason,
             'disclaimer': 'For informational and entertainment purposes only. No guaranteed outcomes. Past performance does not guarantee future results. Please gamble responsibly.',
         }
         from app import get_current_user_obj
@@ -494,8 +503,16 @@ def get_pick(pick_id):
     pick = Pick.query.get_or_404(pick_id)
 
     model_signals = []
+    withdraw_reason = None
     if pick.notes:
-        model_signals = [s.strip() for s in pick.notes.split('|') if s.strip()]
+        for s in pick.notes.split('|'):
+            s = s.strip()
+            if not s:
+                continue
+            if s.startswith('REVOKED:'):
+                withdraw_reason = s[len('REVOKED:'):].strip()
+            else:
+                model_signals.append(s)
 
     actual_odds = pick.market_odds or -110
     stake = calculate_stake_guidance(pick.edge_pct or 0, pick.model_confidence or 0.5, actual_odds)
@@ -528,6 +545,7 @@ def get_pick(pick_id):
         'home_score': pick.home_score,
         'away_score': pick.away_score,
         'notes': pick.notes,
+        'withdraw_reason': withdraw_reason,
         'disclaimer': 'For informational and entertainment purposes only. No guaranteed outcomes. Past performance does not guarantee future results. Please gamble responsibly.',
     })
 

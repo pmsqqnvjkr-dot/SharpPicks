@@ -285,11 +285,30 @@ function WithdrawnDetailScreen({ pick, onBack }) {
             letterSpacing: '0.08em', textTransform: 'uppercase',
             color: 'var(--text-tertiary)', marginBottom: '12px',
           }}>Process Review</div>
+
+          {pick?.withdraw_reason && (
+            <div style={{
+              padding: '10px 14px', borderRadius: '8px', marginBottom: '12px',
+              background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.15)',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
+                color: '#f59e0b', letterSpacing: '0.06em', marginBottom: '4px',
+              }}>INVALIDATION REASON</div>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '13px',
+                color: 'var(--text-secondary)', lineHeight: 1.5,
+              }}>{pick.withdraw_reason}</div>
+            </div>
+          )}
+
           <p style={{
             fontSize: 'var(--text-metric)', color: 'var(--text-secondary)', lineHeight: '1.7',
             marginBottom: 'var(--space-md)',
           }}>
-            Market moved. Edge fell below threshold before tip-off. Capital preserved. No trade is a position.
+            {pick?.withdraw_reason
+              ? 'Pre-tip validation detected a material change. Signal invalidated before tip-off. Capital preserved.'
+              : 'Market moved. Edge fell below threshold before tip-off. Capital preserved. No trade is a position.'}
           </p>
 
           <div style={{
