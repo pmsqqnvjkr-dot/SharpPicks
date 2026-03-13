@@ -1315,7 +1315,7 @@ export default function MarketView({ onBack }) {
               marginBottom: '10px',
             }}>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
                 letterSpacing: '0.1em', textTransform: 'uppercase',
                 color: 'var(--text-tertiary)',
               }}>Discipline Filter</div>
@@ -1341,7 +1341,7 @@ export default function MarketView({ onBack }) {
                   color: 'var(--text-primary)', lineHeight: 1,
                 }}>{games.filter(g => g.model).length}</div>
                 <div style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                  fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
                   color: 'var(--text-tertiary)', letterSpacing: '0.06em',
                   textTransform: 'uppercase', marginTop: '3px',
                 }}>Analyzed</div>
@@ -1357,7 +1357,7 @@ export default function MarketView({ onBack }) {
                   lineHeight: 1,
                 }}>{signalGames.length}</div>
                 <div style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                  fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
                   color: 'var(--text-tertiary)', letterSpacing: '0.06em',
                   textTransform: 'uppercase', marginTop: '3px',
                 }}>Signals</div>
@@ -1372,18 +1372,24 @@ export default function MarketView({ onBack }) {
                   color: 'var(--text-secondary)', lineHeight: 1,
                 }}>{passedGames.length}</div>
                 <div style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                  fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
                   color: 'var(--text-tertiary)', letterSpacing: '0.06em',
                   textTransform: 'uppercase', marginTop: '3px',
                 }}>Passed</div>
               </div>
             </div>
             <div style={{
-              marginTop: '10px', fontFamily: 'var(--font-mono)',
-              fontSize: '10px', color: 'var(--text-tertiary)',
-              textAlign: 'center', fontStyle: 'italic',
+              marginTop: '14px', paddingTop: '12px',
+              borderTop: '1px solid var(--stroke-subtle)',
+              textAlign: 'center',
             }}>
-              No edge, no pick.
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+                letterSpacing: '0.14em', textTransform: 'uppercase',
+                color: 'var(--text-secondary)',
+              }}>
+                No edge. No pick.
+              </div>
             </div>
           </div>
         )}

@@ -1140,14 +1140,14 @@ class EnsemblePredictor:
             if h_rest is not None and a_rest is not None:
                 rest_diff = (h_rest - a_rest) if pick_home else (a_rest - h_rest)
                 if rest_diff > 0:
-                    candidates.append(('rest', 3, f"Rest advantage: {pick_team} on {max(h_rest,a_rest)}d rest vs {opp_team} {min(h_rest,a_rest)}d"))
+                    candidates.append(('rest', 3, f"Rest advantage: {pick_team} {max(h_rest,a_rest)}d rest vs {opp_team} on {min(h_rest,a_rest)}d ({rest_diff:+d}d edge)"))
                 elif h_rest == a_rest:
                     if h_rest == 0:
-                        candidates.append(('rest', 1, f"Back-to-back for both teams — no rest edge"))
+                        candidates.append(('rest', 1, f"Both teams on back-to-back — rest neutral"))
                     else:
-                        candidates.append(('rest', 1, f"Both teams on {h_rest}d rest — no rest edge"))
+                        candidates.append(('rest', 1, f"Both teams on {h_rest}d rest — rest neutral"))
                 elif rest_diff < 0:
-                    candidates.append(('rest', 1, f"Rest disadvantage: {pick_team} {h_rest if pick_home else a_rest}d vs {opp_team} {a_rest if pick_home else h_rest}d — edge overcomes this"))
+                    candidates.append(('rest', 1, f"Rest disadvantage: {pick_team} {h_rest if pick_home else a_rest}d vs {opp_team} {a_rest if pick_home else h_rest}d — statistical edge overcomes"))
                 else:
                     candidates.append(('rest', 1, f"Rest neutral: {home} {h_rest}d, {away} {a_rest}d"))
             else:
@@ -1165,21 +1165,21 @@ class EnsemblePredictor:
                 a_net = float(away_net)
                 net_diff = (h_net - a_net) if pick_home else (a_net - h_net)
                 if net_diff > 3:
-                    candidates.append(('net_rating', 3, f"Net rating edge: {pick_team} {abs(net_diff):.1f}pts better per 100 possessions"))
+                    candidates.append(('net_rating', 3, f"Net rating: {pick_team} +{abs(net_diff):.1f} per 100 possessions vs {opp_team} (significant edge)"))
                 elif net_diff > 0:
-                    candidates.append(('net_rating', 2, f"Net rating slightly favors {pick_team} ({abs(net_diff):.1f}pts)"))
+                    candidates.append(('net_rating', 2, f"Net rating: {pick_team} +{abs(net_diff):.1f} per 100 vs {opp_team} (slight edge)"))
                 else:
-                    candidates.append(('net_rating', 1, f"Net rating favors {opp_team} by {abs(net_diff):.1f}pts — spread accounts for this"))
+                    candidates.append(('net_rating', 1, f"Net rating: {opp_team} +{abs(net_diff):.1f} per 100 — spread accounts for differential"))
             elif home_margin is not None and away_margin is not None:
                 h_margin = float(home_margin)
                 a_margin = float(away_margin)
                 margin_diff = (h_margin - a_margin) if pick_home else (a_margin - h_margin)
                 if margin_diff > 3:
-                    candidates.append(('net_rating', 3, f"Scoring margin edge: {pick_team} outscores opponents by {abs(margin_diff):.1f}pts more per game"))
+                    candidates.append(('net_rating', 3, f"Scoring margin: {pick_team} +{abs(margin_diff):.1f} PPG differential vs {opp_team} (significant)"))
                 elif margin_diff > 0:
-                    candidates.append(('net_rating', 2, f"Scoring margin slightly favors {pick_team} ({abs(margin_diff):.1f}pts better)"))
+                    candidates.append(('net_rating', 2, f"Scoring margin: {pick_team} +{abs(margin_diff):.1f} PPG vs {opp_team} (slight edge)"))
                 else:
-                    candidates.append(('net_rating', 1, f"Scoring margin favors {opp_team} by {abs(margin_diff):.1f}pts — spread accounts for this"))
+                    candidates.append(('net_rating', 1, f"Scoring margin: {opp_team} +{abs(margin_diff):.1f} PPG — spread accounts for differential"))
             else:
                 candidates.append(('net_rating', 0, f"Rating data unavailable"))
         except (ValueError, TypeError):
@@ -1201,13 +1201,13 @@ class EnsemblePredictor:
                     a_margin = float(away_margin)
                     margin_diff = (h_margin - a_margin) if pick_home else (a_margin - h_margin)
                     if margin_diff > 3:
-                        candidates.append(('matchup', 3, f"Scoring margin: {pick_team} {abs(margin_diff):.1f}pts better, combined pace {(h_pace+a_pace)/2:.1f}"))
+                        candidates.append(('matchup', 3, f"Scoring margin: {pick_team} +{abs(margin_diff):.1f} PPG, pace {(h_pace+a_pace)/2:.1f}"))
                     else:
-                        candidates.append(('matchup', 1, f"Combined pace {(h_pace+a_pace)/2:.1f}, scoring margins close"))
+                        candidates.append(('matchup', 1, f"Pace: {(h_pace+a_pace)/2:.1f} combined, margins close — neutral factor"))
                 elif pace_diff > 3:
-                    candidates.append(('matchup', 2, f"Pace mismatch: {h_pace:.1f} vs {a_pace:.1f} possessions per game"))
+                    candidates.append(('matchup', 2, f"Pace mismatch: {h_pace:.1f} vs {a_pace:.1f} poss/game ({pace_diff:.1f} differential)"))
                 else:
-                    candidates.append(('matchup', 1, f"Pace similar ({(h_pace+a_pace)/2:.1f}), neutral matchup factor"))
+                    candidates.append(('matchup', 1, f"Pace neutral ({(h_pace+a_pace)/2:.1f} combined) — no matchup edge"))
             elif home_avg_against is not None and away_avg_against is not None:
                 h_against = float(home_avg_against)
                 a_against = float(away_avg_against)
@@ -1217,12 +1217,13 @@ class EnsemblePredictor:
                     def_diff = h_against - a_against
                 if def_diff > 3:
                     opp_against = a_against if pick_home else h_against
-                    candidates.append(('matchup', 3, f"Defensive mismatch: {opp_team} allows {opp_against:.1f}pts/game"))
+                    candidates.append(('matchup', 3, f"Defensive weakness: {opp_team} allows {opp_against:.1f} PPG ({'+' if def_diff > 5 else ''}{def_diff:.1f} vs avg)"))
                 elif home_avg_pts is not None and away_avg_pts is not None:
                     h_pts = float(home_avg_pts)
                     a_pts = float(away_avg_pts)
                     pick_pts = h_pts if pick_home else a_pts
-                    candidates.append(('matchup', 2, f"{pick_team} averaging {pick_pts:.1f}pts vs defense allowing {(a_against if pick_home else h_against):.1f}"))
+                    opp_def = a_against if pick_home else h_against
+                    candidates.append(('matchup', 2, f"Matchup: {pick_team} {pick_pts:.1f} PPG vs {opp_team} DEF {opp_def:.1f} PPG allowed"))
                 else:
                     candidates.append(('matchup', 1, f"Matchup data limited"))
             else:
@@ -1234,14 +1235,14 @@ class EnsemblePredictor:
             move = spread - open_spread
             move_abs = abs(move)
             if move_abs < 0.5:
-                candidates.append(('line_value', 2, f"Line stable since open ({spread:+.1f}), market agrees with number"))
+                candidates.append(('line_value', 2, f"Line stable: opened {open_spread:+.1f}, current {spread:+.1f} — market consensus intact"))
             elif (pick_home and move < -0.5) or (not pick_home and move > 0.5):
-                candidates.append(('line_value', 3, f"Line value: getting {move_abs:.1f}pts better number than open ({open_spread:+.1f} → {spread:+.1f})"))
+                candidates.append(('line_value', 3, f"Line value: {move_abs:.1f}pts better than open ({open_spread:+.1f} \u2192 {spread:+.1f}) — buying below market"))
             else:
-                candidates.append(('line_value', 1, f"Line moved {move_abs:.1f}pts against since open — still playable at current edge"))
+                candidates.append(('line_value', 1, f"Line moved {move_abs:.1f}pts against ({open_spread:+.1f} \u2192 {spread:+.1f}) — edge sustains at current number"))
         else:
             implied = abs(STANDARD_ODDS) / (abs(STANDARD_ODDS) + 100) if STANDARD_ODDS < 0 else 100 / (STANDARD_ODDS + 100)
-            candidates.append(('line_value', 2, f"Model confidence ({confidence:.0%}) exceeds market implied ({implied:.0%})"))
+            candidates.append(('line_value', 2, f"Model confidence {confidence:.0%} vs implied {implied:.0%} — {(confidence - implied) * 100:.1f}pp probability edge"))
         
         candidates.sort(key=lambda x: x[1], reverse=True)
         
@@ -1255,7 +1256,7 @@ class EnsemblePredictor:
                 break
         
         while len(result) < 3:
-            result.append(f"Edge {edge:+.1f}% exceeds {self.edge_threshold_pct}% threshold")
+            result.append(f"Adjusted edge {edge:+.1f}% exceeds {self.edge_threshold_pct}% qualification threshold")
         
         return result[:3]
     

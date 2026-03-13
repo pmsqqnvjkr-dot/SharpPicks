@@ -131,6 +131,16 @@ export default function DailyMarketReport() {
             color: rs.color, letterSpacing: '0.02em', textTransform: 'uppercase',
             lineHeight: 1,
           }}>{regime}</div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '11px',
+            color: 'var(--text-secondary)', marginTop: '8px',
+            letterSpacing: '0.02em',
+          }}>{
+            regime === 'Exploitable' ? 'High opportunity detected' :
+            regime === 'Active' ? 'Moderate opportunity detected' :
+            regime === 'Moderate' ? 'Limited opportunity today' :
+            'Market priced efficiently'
+          }</div>
         </div>
 
         {/* Key stats — two columns: Edges + Efficiency */}
