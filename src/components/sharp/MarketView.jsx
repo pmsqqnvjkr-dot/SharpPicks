@@ -666,6 +666,14 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
               </span>
             )}
             {onWatch && <WatchButton watching={watching} onWatch={onWatch} />}
+            {hasModel && game.model.edge != null && !expanded && (
+              <span style={{
+                marginLeft: 'auto',
+                fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700,
+                color: edgeColor(game.model.edge),
+                letterSpacing: '0.02em',
+              }}>+{game.model.edge}%</span>
+            )}
           </div>
           {showScores && (
             <span style={{

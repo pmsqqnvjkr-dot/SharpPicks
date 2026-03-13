@@ -177,28 +177,52 @@ export default function DailyMarketReport() {
           </div>
         </div>
 
-        {/* Largest edge callout */}
+        {/* Today's Top Edge */}
         {data.largest_edge != null && (
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: '8px', padding: '8px 0 2px',
+            textAlign: 'center', padding: '12px 0 4px',
+            borderTop: '1px solid var(--color-border)',
+            marginTop: '4px',
           }}>
-            <span style={{
+            <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-              color: 'var(--text-tertiary)',
-            }}>Largest Edge</span>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700,
-              fontVariantNumeric: 'tabular-nums',
-              color: rs.color,
-            }}>+{data.largest_edge}%</span>
-            {data.largest_edge_game && (
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)', marginBottom: '6px',
+            }}>Today&apos;s Top Edge</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '8px' }}>
               <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: '11px',
-                color: 'var(--text-tertiary)',
-              }}>{data.largest_edge_game}</span>
-            )}
+                fontFamily: 'var(--font-mono)', fontSize: '24px', fontWeight: 700,
+                fontVariantNumeric: 'tabular-nums',
+                color: rs.color,
+              }}>+{data.largest_edge}%</span>
+              {data.largest_edge_game && (
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                }}>{data.largest_edge_game}</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Today's Market Insight — always visible */}
+        {(data.briefing?.length > 0 || data.insight) && (
+          <div style={{
+            padding: '10px 0 2px',
+            borderTop: '1px solid var(--color-border)',
+            marginTop: '8px',
+          }}>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)', marginBottom: '6px',
+            }}>Today&apos;s Market Insight</div>
+            <div style={{
+              fontSize: '13px', color: 'var(--text-secondary)',
+              lineHeight: 1.5,
+            }}>
+              {data.briefing?.[0] || data.insight}
+            </div>
           </div>
         )}
       </button>
