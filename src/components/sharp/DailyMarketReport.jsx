@@ -177,6 +177,43 @@ export default function DailyMarketReport() {
           </div>
         </div>
 
+        {/* Market Stability — aggregate line confidence */}
+        {data.market_stability && (() => {
+          const ms = data.market_stability;
+          const stabColor = ms.level === 'low' ? '#f59e0b'
+            : ms.level === 'high' ? 'var(--green-profit, #10b981)' : 'var(--text-secondary)';
+          return (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '8px 0', marginBottom: '6px',
+              borderTop: '1px solid var(--color-border)',
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                color: 'var(--text-tertiary)',
+              }}>Line Stability</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 3 }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{
+                      width: 12, height: 4, borderRadius: 2,
+                      background: (ms.level === 'high' && i <= 2) ||
+                                  (ms.level === 'medium' && i <= 1) ||
+                                  (ms.level === 'low' && i <= 0)
+                        ? stabColor : 'rgba(255,255,255,0.06)',
+                    }} />
+                  ))}
+                </div>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700,
+                  color: stabColor,
+                }}>{ms.label}</span>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Today's Top Edge */}
         {data.largest_edge != null && (
           <div style={{
@@ -245,6 +282,13 @@ export default function DailyMarketReport() {
               value={`${data.signal_density}%`}
               highlight={data.signal_density >= 40}
             />
+            {data.market_stability && (
+              <MetricRow
+                label="Line stability"
+                value={data.market_stability.label}
+                highlight={data.market_stability.level === 'low'}
+              />
+            )}
           </div>
 
           {/* Edge Distribution */}

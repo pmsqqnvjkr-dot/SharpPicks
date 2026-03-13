@@ -158,6 +158,93 @@ function StatCell({ label, value, color, sub }) {
   );
 }
 
+const STABILITY_CONFIG = {
+  low: { color: '#f59e0b', bg: 'rgba(251,191,36,0.04)', border: 'rgba(251,191,36,0.15)', desc: 'Market still finding price — line may continue moving' },
+  medium: { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.02)', border: 'rgba(255,255,255,0.06)', desc: 'Moderate book agreement — some price discovery remaining' },
+  high: { color: 'var(--green-profit, #10b981)', bg: 'rgba(52,211,153,0.03)', border: 'rgba(52,211,153,0.12)', desc: 'Strong book consensus — line unlikely to move significantly' },
+};
+
+function MarketConfidence({ stability, edge }) {
+  const cfg = STABILITY_CONFIG[stability.level] || STABILITY_CONFIG.medium;
+  const edgeAligned = edge > 5 && stability.level === 'low';
+  return (
+    <div style={{
+      marginTop: 10, padding: '10px 12px', borderRadius: 6,
+      background: cfg.bg, border: `1px solid ${cfg.border}`,
+    }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6,
+      }}>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)',
+        }}>Market Confidence</span>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700,
+          color: cfg.color,
+        }}>{stability.label}</span>
+      </div>
+
+      {/* Stability bar */}
+      <div style={{
+        display: 'flex', gap: 3, marginBottom: 8,
+      }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{
+            flex: 1, height: 4, borderRadius: 2,
+            background: (stability.level === 'high' && i <= 2) ||
+                        (stability.level === 'medium' && i <= 1) ||
+                        (stability.level === 'low' && i <= 0)
+              ? cfg.color : 'rgba(255,255,255,0.06)',
+            transition: 'background 0.3s ease',
+          }} />
+        ))}
+      </div>
+
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '0.6rem',
+        color: 'var(--text-secondary)', lineHeight: 1.45,
+      }}>
+        {cfg.desc}
+      </div>
+
+      {/* Stats row */}
+      <div style={{
+        display: 'flex', gap: 12, marginTop: 8, paddingTop: 6,
+        borderTop: '1px solid rgba(255,255,255,0.04)',
+      }}>
+        {stability.total_move > 0 && (
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.58rem', color: 'var(--text-tertiary)' }}>
+            Moved {stability.total_move}pts
+          </span>
+        )}
+        {stability.changes > 0 && (
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.58rem', color: 'var(--text-tertiary)' }}>
+            {stability.changes} change{stability.changes !== 1 ? 's' : ''}
+          </span>
+        )}
+        {stability.spread_range != null && (
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.58rem', color: 'var(--text-tertiary)' }}>
+            {stability.spread_range}pt book spread
+          </span>
+        )}
+      </div>
+
+      {edgeAligned && (
+        <div style={{
+          marginTop: 8, padding: '4px 8px', borderRadius: 4,
+          background: 'rgba(251,191,36,0.08)',
+          fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 600,
+          color: '#f59e0b',
+        }}>
+          Edge + low stability: market may be moving toward model price
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ValueRange({ pickLine, playableTo, currentLine }) {
   const range = Math.abs(playableTo - pickLine);
   if (range < 0.5) return null;
@@ -221,7 +308,7 @@ function ValueRange({ pickLine, playableTo, currentLine }) {
   );
 }
 
-function ModelAnalysisPanel({ model }) {
+function ModelAnalysisPanel({ model, lineStability }) {
   if (!model) return null;
   const ec = edgeColor(model.edge);
   const strength = edgeStrength(model.edge);
@@ -401,6 +488,9 @@ function ModelAnalysisPanel({ model }) {
       {model.line != null && model.playable_to != null && model.passes && (
         <ValueRange pickLine={model.line} playableTo={model.playable_to} currentLine={model.line} />
       )}
+
+      {/* Market Confidence — line stability */}
+      {lineStability && <MarketConfidence stability={lineStability} edge={model.edge} />}
 
       {/* Model insight signals */}
       {model.signals?.length > 0 && (
@@ -736,11 +826,21 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
             {onWatch && <WatchButton watching={watching} onWatch={onWatch} />}
             {hasModel && game.model.edge != null && !expanded && (
               <span style={{
-                marginLeft: 'auto',
-                fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700,
-                color: edgeColor(game.model.edge),
-                letterSpacing: '0.02em',
-              }}>+{game.model.edge}%</span>
+                marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                {game.line_stability && (
+                  <span title={`Line stability: ${game.line_stability.label}`} style={{
+                    width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                    background: (STABILITY_CONFIG[game.line_stability.level] || STABILITY_CONFIG.medium).color,
+                    opacity: 0.85,
+                  }} />
+                )}
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700,
+                  color: edgeColor(game.model.edge),
+                  letterSpacing: '0.02em',
+                }}>+{game.model.edge}%</span>
+              </span>
             )}
           </div>
           {showScores && (
@@ -915,7 +1015,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
       </div>
 
       {/* Expanded model analysis — Pro only */}
-      {expanded && isPro && <ModelAnalysisPanel model={game.model} />}
+      {expanded && isPro && <ModelAnalysisPanel model={game.model} lineStability={game.line_stability} />}
       {expanded && !isPro && (
         <div style={{
           padding: '16px', textAlign: 'center',

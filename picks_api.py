@@ -15,6 +15,45 @@ EDGE_THRESHOLD = 3.5
 PROB_PER_POINT = 2.5
 
 
+def _calc_line_stability(snapshots, game_data):
+    """Compute line stability from spread snapshots and book disagreement.
+    Returns {level, label, total_move, changes, spread_range} or None."""
+    spreads = [s['spread'] for s in snapshots if s.get('spread') is not None]
+    if len(spreads) < 2:
+        return None
+
+    changes = sum(1 for i in range(1, len(spreads)) if spreads[i] != spreads[i - 1])
+    total_move = abs(spreads[-1] - spreads[0]) if len(spreads) >= 2 else 0
+    max_swing = max(spreads) - min(spreads) if spreads else 0
+
+    spread_range = None
+    try:
+        sr = game_data.get('spread_range')
+        if sr and isinstance(sr, str) and ' to ' in sr:
+            parts = sr.split(' to ')
+            spread_range = abs(float(parts[1]) - float(parts[0]))
+    except (ValueError, IndexError):
+        pass
+
+    volatility = max_swing + (changes * 0.5) + (spread_range or 0) * 0.5
+
+    if volatility >= 4.0:
+        level, label = 'low', 'Low'
+    elif volatility >= 2.0:
+        level, label = 'medium', 'Medium'
+    else:
+        level, label = 'high', 'High'
+
+    return {
+        'level': level,
+        'label': label,
+        'total_move': round(total_move, 1),
+        'changes': changes,
+        'max_swing': round(max_swing, 1),
+        'spread_range': round(spread_range, 1) if spread_range else None,
+    }
+
+
 def _calc_playable_to(line, side, edge_pct):
     """Calculate worst spread at which the edge still exceeds threshold."""
     if line is None or edge_pct is None:
@@ -708,6 +747,9 @@ def market_view():
             game_data['num_books'] = r['rundown_num_books']
         except (KeyError, IndexError):
             pass
+
+        snaps = line_snapshots.get(key, [])
+        game_data['line_stability'] = _calc_line_stability(snaps, game_data)
 
         ma = model_analysis.get(key)
         if ma:

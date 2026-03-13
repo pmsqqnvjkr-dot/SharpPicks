@@ -957,6 +957,59 @@ def market_report():
 
     updated_at = run.created_at.isoformat() + 'Z' if run.created_at else None
 
+    # Aggregate line stability from snapshots
+    market_stability = None
+    try:
+        import sqlite3
+        db_path = current_app.config.get('SQLALCHEMY_DATABASE_URI', '').replace('sqlite:///', '')
+        if db_path:
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT away_team, home_team, spread_home FROM line_snapshots WHERE game_date = ? ORDER BY snapped_at",
+                (date_param,)
+            )
+            game_snaps = {}
+            for row in cur.fetchall():
+                k = (row['away_team'], row['home_team'])
+                game_snaps.setdefault(k, []).append(row['spread_home'])
+            conn.close()
+
+            if game_snaps:
+                stabilities = []
+                for spreads in game_snaps.values():
+                    if len(spreads) < 2:
+                        continue
+                    changes = sum(1 for i in range(1, len(spreads)) if spreads[i] != spreads[i - 1])
+                    max_swing = max(spreads) - min(spreads) if spreads else 0
+                    stabilities.append(max_swing + changes * 0.5)
+                if stabilities:
+                    avg_vol = sum(stabilities) / len(stabilities)
+                    low_count = sum(1 for v in stabilities if v >= 4.0)
+                    high_count = sum(1 for v in stabilities if v < 2.0)
+                    if avg_vol >= 4.0:
+                        ms_level, ms_label = 'low', 'Low'
+                    elif avg_vol >= 2.0:
+                        ms_level, ms_label = 'medium', 'Medium'
+                    else:
+                        ms_level, ms_label = 'high', 'High'
+                    market_stability = {
+                        'level': ms_level,
+                        'label': ms_label,
+                        'avg_volatility': round(avg_vol, 1),
+                        'low_stability_games': low_count,
+                        'high_stability_games': high_count,
+                    }
+    except Exception:
+        pass
+
+    if market_stability:
+        if market_stability['level'] == 'low' and edges_detected > 0:
+            briefing_lines.append('Line instability detected — markets still adjusting. Potential for further movement.')
+        elif market_stability['level'] == 'high' and edges_detected > 0:
+            briefing_lines.append('Lines are stable across the board. Remaining edges may hold through tip-off.')
+
     return jsonify({
         'available': True,
         'date': date_param,
@@ -969,6 +1022,7 @@ def market_report():
         'signal_density': signal_density,
         'largest_edge': round(largest_edge_val, 1) if largest_edge_val > 0 else None,
         'largest_edge_game': largest_edge_game,
+        'market_stability': market_stability,
         'edge_distribution': {
             'strong': strong_edges,
             'moderate': moderate_edges,
