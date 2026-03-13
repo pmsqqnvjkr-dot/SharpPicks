@@ -306,6 +306,55 @@ def admin_dashboard():
     from flask import render_template
     return render_template('admin.html')
 
+MANIFESTO_CONTENT = """When I started building SharpPicks, I wasn\u2019t trying to create another betting app. The market already has plenty of those.
+
+Most focus on action \u2014 more picks, more volume, more reasons to bet every game on the board. But anyone who has spent real time studying sports markets eventually arrives at the same conclusion: the majority of opportunities simply aren\u2019t worth taking.
+
+Sports betting is a market. Every spread, total, and moneyline is a price shaped by probability, information, and behavior. Like any market, it becomes efficient quickly. And when markets are efficient, edges become rare.
+
+That reality is the foundation of SharpPicks.
+
+The model was designed to analyze every game on the board \u2014 measuring statistical signals, market movement, and probability gaps. But identifying edges is only part of the equation. The harder part is restraint. The discipline to wait. The discipline to pass. The discipline to accept that most slates will produce very few genuine opportunities.
+
+SharpPicks exists to enforce that discipline.
+
+---
+
+> **SHARP PRINCIPLE**
+>
+> The market rewards patience. It punishes unnecessary action. The best bettors aren\u2019t defined by how many bets they make. They\u2019re defined by the bets they refuse to make. Passing on a game is not inactivity \u2014 it\u2019s risk management.
+
+---
+
+## Edge Is Rare
+
+Most betting services sell the opposite philosophy. More picks. More volume. More action. But adding picks does not create value. It dilutes it.
+
+SharpPicks was built to do the opposite: to filter aggressively, identify real statistical advantage, and ignore everything else. Selective by design.
+
+Some days the model will generate several signals. Other days it may produce none. That isn\u2019t a flaw in the system. That **is the system**.
+
+---
+
+## Beat the Market, Not the Scoreboard
+
+Short-term results in sports betting are noisy. Variance is unavoidable. Professional bettors focus on something else: **price**.
+
+If you consistently capture better numbers than where the market closes, you\u2019re making correct decisions \u2014 regardless of individual game outcomes. Over time, the market rewards disciplined pricing decisions.
+
+SharpPicks is built around that principle.
+
+---
+
+## Why SharpPicks Exists
+
+SharpPicks isn\u2019t designed to tell you what to bet on every night. It\u2019s designed to help you understand when the market offers real opportunity \u2014 and when it doesn\u2019t.
+
+Most bettors search for certainty. Sharp bettors search for **value**. And value only appears when patience meets preparation.
+
+That\u2019s the philosophy behind everything we\u2019re building."""
+
+
 def seed_database():
     with app.app_context():
         try:
@@ -468,102 +517,16 @@ def seed_database():
                 counter = FoundingCounter(current_count=0, closed=False)
                 db.session.add(counter)
                 db.session.commit()
-            if not Insight.query.filter_by(slug='the-sharp-manifesto').first():
+            existing_manifesto = Insight.query.filter_by(slug='the-sharp-manifesto').first()
+            if existing_manifesto:
+                existing_manifesto.content = MANIFESTO_CONTENT
+            else:
                 manifesto = Insight(
                     title="The Sharp Manifesto",
                     slug="the-sharp-manifesto",
                     category="philosophy",
                     excerpt="When I started building SharpPicks, I wasn't trying to create another betting app. The market already has plenty of those.",
-                    content="""When I started building SharpPicks, I wasn't trying to create another betting app.
-
-The market already has plenty of those.
-
-Most focus on action \u2014 more picks, more volume, more reasons to bet every game on the board. But anyone who has spent real time studying sports markets eventually arrives at the same conclusion:
-
-The majority of opportunities simply aren't worth taking.
-
-Sports betting is a market. Every spread, total, and moneyline is a price shaped by probability, information, and behavior. Like any market, it becomes efficient quickly. And when markets are efficient, edges become rare.
-
-That reality is the foundation of SharpPicks.
-
-The model was designed to analyze every game on the board \u2014 measuring statistical signals, market movement, and probability gaps. But identifying edges is only part of the equation.
-
-The harder part is restraint.
-
-The discipline to wait.
-
-The discipline to pass.
-
-The discipline to accept that most slates will produce very few genuine opportunities.
-
-SharpPicks exists to enforce that discipline.
-
----
-
-### SHARP PRINCIPLE
-
-**The market rewards patience. It punishes unnecessary action.**
-
-The best bettors aren't defined by how many bets they make.
-
-They're defined by the bets they refuse to make.
-
-Passing on a game is not inactivity.
-
-It's risk management.
-
----
-
-### Edge Is Rare
-
-Most betting services sell the opposite philosophy.
-
-More picks. More volume. More action.
-
-But adding picks does not create value. It dilutes it.
-
-SharpPicks was built to do the opposite: to filter aggressively, identify real statistical advantage, and ignore everything else.
-
-Selective by design.
-
-Some days the model will generate several signals. Other days it may produce none.
-
-That isn't a flaw in the system.
-
-That **is the system**.
-
----
-
-### Beat the Market, Not the Scoreboard
-
-Short-term results in sports betting are noisy. Variance is unavoidable.
-
-Professional bettors focus on something else: **price**.
-
-If you consistently capture better numbers than where the market closes, you're making correct decisions \u2014 regardless of individual game outcomes.
-
-Over time, the market rewards disciplined pricing decisions.
-
-SharpPicks is built around that principle.
-
----
-
-### Why SharpPicks Exists
-
-SharpPicks isn't designed to tell you what to bet on every night.
-
-It's designed to help you understand when the market offers real opportunity \u2014 and when it doesn't.
-
-Most bettors search for certainty.
-
-Sharp bettors search for **value**.
-
-And value only appears when patience meets preparation.
-
-That's the philosophy behind everything we're building.
-
-\u2014 **Evan Cole**
-Founder, SharpPicks""",
+                    content=MANIFESTO_CONTENT,
                     status="published",
                     publish_date=datetime(2026, 2, 1),
                     featured=True,
@@ -583,96 +546,7 @@ Founder, SharpPicks""",
                         slug="the-sharp-manifesto",
                         category="philosophy",
                         excerpt="When I started building SharpPicks, I wasn't trying to create another betting app. The market already has plenty of those.",
-                        content="""When I started building SharpPicks, I wasn't trying to create another betting app.
-
-The market already has plenty of those.
-
-Most focus on action \u2014 more picks, more volume, more reasons to bet every game on the board. But anyone who has spent real time studying sports markets eventually arrives at the same conclusion:
-
-The majority of opportunities simply aren't worth taking.
-
-Sports betting is a market. Every spread, total, and moneyline is a price shaped by probability, information, and behavior. Like any market, it becomes efficient quickly. And when markets are efficient, edges become rare.
-
-That reality is the foundation of SharpPicks.
-
-The model was designed to analyze every game on the board \u2014 measuring statistical signals, market movement, and probability gaps. But identifying edges is only part of the equation.
-
-The harder part is restraint.
-
-The discipline to wait.
-
-The discipline to pass.
-
-The discipline to accept that most slates will produce very few genuine opportunities.
-
-SharpPicks exists to enforce that discipline.
-
----
-
-### SHARP PRINCIPLE
-
-**The market rewards patience. It punishes unnecessary action.**
-
-The best bettors aren't defined by how many bets they make.
-
-They're defined by the bets they refuse to make.
-
-Passing on a game is not inactivity.
-
-It's risk management.
-
----
-
-### Edge Is Rare
-
-Most betting services sell the opposite philosophy.
-
-More picks. More volume. More action.
-
-But adding picks does not create value. It dilutes it.
-
-SharpPicks was built to do the opposite: to filter aggressively, identify real statistical advantage, and ignore everything else.
-
-Selective by design.
-
-Some days the model will generate several signals. Other days it may produce none.
-
-That isn't a flaw in the system.
-
-That **is the system**.
-
----
-
-### Beat the Market, Not the Scoreboard
-
-Short-term results in sports betting are noisy. Variance is unavoidable.
-
-Professional bettors focus on something else: **price**.
-
-If you consistently capture better numbers than where the market closes, you're making correct decisions \u2014 regardless of individual game outcomes.
-
-Over time, the market rewards disciplined pricing decisions.
-
-SharpPicks is built around that principle.
-
----
-
-### Why SharpPicks Exists
-
-SharpPicks isn't designed to tell you what to bet on every night.
-
-It's designed to help you understand when the market offers real opportunity \u2014 and when it doesn't.
-
-Most bettors search for certainty.
-
-Sharp bettors search for **value**.
-
-And value only appears when patience meets preparation.
-
-That's the philosophy behind everything we're building.
-
-\u2014 **Evan Cole**
-Founder, SharpPicks""",
+                        content=MANIFESTO_CONTENT,
                         status="published",
                         publish_date=datetime(2026, 2, 1),
                         featured=True,
