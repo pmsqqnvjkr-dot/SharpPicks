@@ -69,7 +69,7 @@ function RLMBadge({ rlm, spreadOpen, spreadNow }) {
   const move = spreadOpen != null && spreadNow != null ? Math.abs(spreadNow - spreadOpen).toFixed(1) : null;
   return (
     <span style={{
-      fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
+      fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
       padding: '2px 6px', borderRadius: 3,
       background: 'rgba(251,191,36,0.15)', color: '#f59e0b',
       border: '1px solid rgba(251,191,36,0.30)',
@@ -148,12 +148,12 @@ function EdgeBadge({ model, isPro }) {
 function StatCell({ label, value, color, sub }) {
   return (
     <div>
-      <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', marginBottom: 2, letterSpacing: '0.03em' }}>{label}</div>
+      <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginBottom: 2, letterSpacing: '0.03em' }}>{label}</div>
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 600,
         color: color || 'var(--text-primary)',
       }}>{value}</div>
-      {sub && <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)', marginTop: 1, opacity: 0.7 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: '0.58rem', color: 'var(--text-tertiary)', marginTop: 1 }}>{sub}</div>}
     </div>
   );
 }
@@ -205,7 +205,7 @@ function ModelAnalysisPanel({ model }) {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6,
           }}>
             <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 700,
+              fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 700,
               letterSpacing: '0.08em', textTransform: 'uppercase',
               color: 'var(--text-tertiary)',
             }}>Edge Strength</span>
@@ -216,8 +216,8 @@ function ModelAnalysisPanel({ model }) {
               }}>+{model.edge}%</span>
               {strength && (
                 <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 700,
-                  letterSpacing: '0.06em', color: ec, opacity: 0.8,
+                  fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 700,
+                  letterSpacing: '0.06em', color: ec,
                 }}>{strength}</span>
               )}
             </div>
@@ -296,7 +296,7 @@ function ModelAnalysisPanel({ model }) {
             }}>{model.pick}</span>
             {model.passes && (
               <span style={{
-                fontSize: '0.55rem', fontWeight: 700, color: 'var(--green-profit, #10b981)',
+                fontSize: '0.6rem', fontWeight: 700, color: 'var(--green-profit, #10b981)',
                 marginLeft: 'auto', letterSpacing: '0.06em',
                 display: 'flex', alignItems: 'center', gap: 3,
               }}>
@@ -308,7 +308,7 @@ function ModelAnalysisPanel({ model }) {
             )}
             {!model.passes && (
               <span style={{
-                fontSize: '0.55rem', fontWeight: 600, color: 'var(--text-tertiary)',
+                fontSize: '0.6rem', fontWeight: 600, color: 'var(--text-tertiary)',
                 marginLeft: 'auto', letterSpacing: '0.04em',
               }}>NO ACTION</span>
             )}
@@ -317,17 +317,17 @@ function ModelAnalysisPanel({ model }) {
             <div style={{ marginTop: 5, display: 'flex', flexDirection: 'column', gap: 2 }}>
               {model.fail_reasons.map((r, i) => (
                 <div key={i} style={{
-                  fontSize: '0.58rem', color: 'var(--text-tertiary)', opacity: 0.8,
+                  fontSize: '0.62rem', color: 'var(--text-secondary)',
                   display: 'flex', alignItems: 'center', gap: 4,
                 }}>
-                  <span style={{ color: 'var(--red-loss, #ef4444)', fontSize: '0.5rem' }}>✕</span>
+                  <span style={{ color: 'var(--red-loss, #ef4444)', fontSize: '0.62rem' }}>✕</span>
                   {r}
                 </div>
               ))}
             </div>
           )}
           {!model.passes && model.reason && !model.fail_reasons?.length && (
-            <div style={{ fontSize: '0.58rem', color: 'var(--text-tertiary)', marginTop: 4, opacity: 0.8 }}>
+            <div style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: 4 }}>
               {model.reason}
             </div>
           )}
@@ -342,9 +342,9 @@ function ModelAnalysisPanel({ model }) {
           border: '1px solid rgba(255,255,255,0.04)',
         }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 700,
+            fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 700,
             letterSpacing: '0.08em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: 6, opacity: 0.7,
+            color: 'var(--text-tertiary)', marginBottom: 6,
           }}>Quant Reasoning</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {model.signals.map((s, i) => (
@@ -438,7 +438,7 @@ function LineHistoryModal({ game, onClose }) {
           borderTop: '1px solid var(--stroke-subtle)',
         }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>OPEN</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>OPEN</div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
               {fmtSpread(openVal)}
             </div>
@@ -449,7 +449,7 @@ function LineHistoryModal({ game, onClose }) {
             </svg>
           )}
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>CURRENT</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>CURRENT</div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', fontWeight: 700, color: lineColor }}>
               {fmtSpread(currentVal)}
             </div>
@@ -513,7 +513,7 @@ function SharpMoneyIndicator({ game }) {
         display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4,
       }}>
         <span style={{
-          fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
+          fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
           color: '#f59e0b',
         }}>⚡ REVERSE LINE MOVEMENT</span>
       </div>
@@ -522,7 +522,7 @@ function SharpMoneyIndicator({ game }) {
       }}>
         <div>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 600,
+            fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 600,
             color: 'var(--text-tertiary)', letterSpacing: '0.04em', marginBottom: 2,
           }}>PUBLIC MONEY</div>
           <div style={{
@@ -541,7 +541,7 @@ function SharpMoneyIndicator({ game }) {
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 600,
+            fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 600,
             color: '#f59e0b', letterSpacing: '0.04em', marginBottom: 2,
           }}>SHARP MONEY</div>
           <div style={{
@@ -555,27 +555,55 @@ function SharpMoneyIndicator({ game }) {
 }
 
 function ConsensusBar({ consensus, current }) {
+  const [showTip, setShowTip] = useState(false);
   if (consensus == null || current == null) return null;
   const diff = current - consensus;
   if (Math.abs(diff) < 0.3) return null;
-  const label = diff > 0
-    ? `Market ${Math.abs(diff).toFixed(1)} off consensus`
-    : `Market ${Math.abs(diff).toFixed(1)} off consensus`;
+  const absDiff = Math.abs(diff).toFixed(1);
+  const isSignificant = Math.abs(diff) >= 1.0;
+
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 5,
       padding: '3px 8px', marginTop: 4,
     }}>
-      <span style={{
-        fontFamily: 'var(--font-mono)', fontSize: '0.55rem',
-        color: 'var(--text-tertiary)', opacity: 0.7,
-      }}>Consensus {fmtSpread(consensus)}</span>
-      {Math.abs(diff) >= 1.0 && (
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          cursor: isSignificant ? 'pointer' : 'default',
+        }}
+        onClick={isSignificant ? (e) => { e.stopPropagation(); setShowTip(!showTip); } : undefined}
+      >
         <span style={{
-          fontSize: '0.5rem', fontWeight: 700, padding: '1px 4px',
-          borderRadius: 2, background: 'rgba(251,191,36,0.1)',
-          color: '#f59e0b', letterSpacing: '0.05em',
-        }}>OFF</span>
+          fontFamily: 'var(--font-mono)', fontSize: '0.62rem',
+          color: 'var(--text-secondary)',
+        }}>Consensus {fmtSpread(consensus)}</span>
+        {isSignificant && (
+          <span style={{
+            fontSize: '0.58rem', fontWeight: 700, padding: '1px 6px',
+            borderRadius: 3, background: 'rgba(251,191,36,0.1)',
+            color: '#f59e0b', letterSpacing: '0.04em',
+            border: '1px solid rgba(251,191,36,0.2)',
+            display: 'inline-flex', alignItems: 'center', gap: 3,
+          }}>
+            {absDiff}pts off
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+            </svg>
+          </span>
+        )}
+      </div>
+      {showTip && (
+        <div style={{
+          marginTop: 4, padding: '6px 10px',
+          borderRadius: 6, background: 'var(--surface-1)',
+          border: '1px solid var(--stroke-subtle)',
+          fontSize: '0.68rem', lineHeight: 1.45,
+          color: 'var(--text-secondary)',
+        }}>
+          The current line is <strong style={{ color: '#f59e0b' }}>{absDiff} points</strong> away from the
+          market consensus ({fmtSpread(consensus)}). Large deviations can signal sharp action or book-specific
+          positioning.
+        </div>
       )}
     </div>
   );
@@ -641,16 +669,16 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
           </div>
           {showScores && (
             <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 700,
+              fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 700,
               letterSpacing: '0.08em', textTransform: 'uppercase',
-              color: 'var(--text-tertiary)', textAlign: 'center', opacity: 0.6,
+              color: 'var(--text-tertiary)', textAlign: 'center',
             }}>Score</span>
           )}
           {['Spread', 'Total', 'ML'].map(h => (
             <span key={h} style={{
-              fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 700,
+              fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 700,
               letterSpacing: '0.08em', textTransform: 'uppercase',
-              color: 'var(--text-tertiary)', textAlign: 'center', opacity: 0.6,
+              color: 'var(--text-tertiary)', textAlign: 'center',
             }}>{h}</span>
           ))}
         </div>
@@ -667,7 +695,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>{game.away}</span>
             {game.away_record && !showScores && (
-              <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', flexShrink: 0 }}>{game.away_record}</span>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', flexShrink: 0 }}>{game.away_record}</span>
             )}
           </div>
           {showScores && (
@@ -715,7 +743,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>{game.home}</span>
             {game.home_record && !showScores && (
-              <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', flexShrink: 0 }}>{game.home_record}</span>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', flexShrink: 0 }}>{game.home_record}</span>
             )}
           </div>
           {showScores && (
@@ -746,7 +774,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
           }}>
             <span style={{
               fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 700,
-              color: 'var(--text-tertiary)', opacity: 0.6, letterSpacing: '0.05em',
+              color: 'var(--text-tertiary)', letterSpacing: '0.05em',
             }}>1H</span>
             {game.spread_h1_home != null && (
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
@@ -787,8 +815,8 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
                     border: '1px solid rgba(100,116,139,0.12)',
                   }}>NO ACTION</span>
                   <span style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '0.58rem',
-                    color: 'var(--text-tertiary)', opacity: 0.7,
+                    fontFamily: 'var(--font-mono)', fontSize: '0.62rem',
+                    color: 'var(--text-secondary)',
                   }}>
                     Edge +{game.model.edge}% · {game.model.fail_reasons?.[0] || 'Below threshold'}
                   </span>
@@ -799,10 +827,10 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
               padding: '3px 14px 6px', display: 'flex', alignItems: 'center',
               justifyContent: 'center', gap: 6,
             }}>
-              <span style={{ fontSize: '0.55rem', color: 'rgba(79,125,243,0.5)' }}>
+              <span style={{ fontSize: '0.65rem', color: 'rgba(79,125,243,0.7)' }}>
                 {isPro ? 'Tap for quant view' : 'Pro: quant analysis'}
               </span>
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="rgba(79,125,243,0.4)" strokeWidth="2">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="rgba(79,125,243,0.6)" strokeWidth="2">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
             </div>
@@ -937,7 +965,7 @@ function LiveBadge({ state, period, clock }) {
   if (state === 'STATUS_FINAL') {
     return (
       <span style={{
-        fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
+        fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
         padding: '1px 5px', borderRadius: 3,
         background: 'rgba(100,116,139,0.15)', color: 'var(--text-tertiary)',
       }}>FINAL</span>
@@ -947,7 +975,7 @@ function LiveBadge({ state, period, clock }) {
     const qLabel = period <= 4 ? `Q${period}` : `OT${period - 4}`;
     return (
       <span style={{
-        fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
+        fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
         padding: '1px 5px', borderRadius: 3,
         background: 'rgba(239,68,68,0.12)', color: '#ef4444',
         display: 'inline-flex', alignItems: 'center', gap: 3,
@@ -963,7 +991,7 @@ function LiveBadge({ state, period, clock }) {
   if (state === 'STATUS_HALFTIME') {
     return (
       <span style={{
-        fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
+        fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
         padding: '1px 5px', borderRadius: 3,
         background: 'rgba(251,191,36,0.12)', color: '#f59e0b',
       }}>HALF</span>
@@ -981,7 +1009,7 @@ function gameStatus(game) {
 }
 
 const thStyle = {
-  fontFamily: 'var(--font-mono)', fontSize: '0.55rem', fontWeight: 700,
+  fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 700,
   letterSpacing: '0.08em', textTransform: 'uppercase',
   color: 'var(--text-tertiary)', padding: '6px 8px',
   textAlign: 'right', whiteSpace: 'nowrap', position: 'sticky', top: 0,
@@ -1043,7 +1071,7 @@ function TableView({ games, isPro, onLineHistory }) {
                         color: 'var(--text-primary)',
                       }}>{g.home}</span>
                       {g.time && (
-                        <span style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', fontWeight: 400 }}>
+                        <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontWeight: 400 }}>
                           {g.time}
                         </span>
                       )}
@@ -1477,7 +1505,7 @@ export default function MarketView({ onBack }) {
         )}
 
         <p style={{
-          fontSize: '0.6rem', color: 'var(--text-tertiary)', opacity: 0.45,
+          fontSize: '0.65rem', color: 'var(--text-tertiary)',
           textAlign: 'center', marginTop: 20, lineHeight: 1.5,
         }}>
           Lines sourced from DraftKings, FanDuel, BetMGM, Caesars, PointsBet, BetRivers.

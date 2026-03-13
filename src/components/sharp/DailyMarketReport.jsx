@@ -94,13 +94,13 @@ export default function DailyMarketReport() {
           marginBottom: '16px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ ...label, marginBottom: 0, fontSize: '9px' }}>Market Intelligence</span>
+            <span style={{ ...label, marginBottom: 0, fontSize: '10px' }}>Market Intelligence</span>
             <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '9px',
-              color: 'var(--text-tertiary)', opacity: 0.5,
+              fontFamily: 'var(--font-mono)', fontSize: '10px',
+              color: 'var(--text-tertiary)',
             }}>&mdash;</span>
             <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
               color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase',
             }}>{today}</span>
           </div>
@@ -122,7 +122,7 @@ export default function DailyMarketReport() {
           background: rs.glow,
         }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
             letterSpacing: '0.12em', textTransform: 'uppercase',
             color: 'var(--text-tertiary)', marginBottom: '8px',
           }}>Market Regime</div>
@@ -148,7 +148,7 @@ export default function DailyMarketReport() {
               color: data.edges_detected > 0 ? rs.color : 'var(--text-primary)',
             }}>{data.edges_detected}</div>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
               letterSpacing: '0.08em', textTransform: 'uppercase',
               color: 'var(--text-tertiary)', marginTop: '5px',
             }}>Edges Detected</div>
@@ -160,7 +160,7 @@ export default function DailyMarketReport() {
               color: data.market_efficiency_pct <= 50 ? rs.color : 'var(--text-primary)',
             }}>{data.market_efficiency_pct}%</div>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
               letterSpacing: '0.08em', textTransform: 'uppercase',
               color: 'var(--text-tertiary)', marginTop: '5px',
             }}>Efficiency</div>
@@ -174,7 +174,7 @@ export default function DailyMarketReport() {
             gap: '8px', padding: '8px 0 2px',
           }}>
             <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
               letterSpacing: '0.08em', textTransform: 'uppercase',
               color: 'var(--text-tertiary)',
             }}>Largest Edge</span>
@@ -218,7 +218,7 @@ export default function DailyMarketReport() {
             <>
               <div style={divider} />
               <div style={{ marginBottom: 'var(--space-md)' }}>
-                <div style={{ ...label, marginBottom: '8px', fontSize: '9px' }}>Edge Distribution</div>
+                <div style={{ ...label, marginBottom: '8px', fontSize: '10px' }}>Edge Distribution</div>
                 <div style={{ display: 'flex', gap: 'var(--space-lg)' }}>
                   <EdgeCategory label="Strong" count={dist.strong || 0} threshold="≥10%" />
                   <EdgeCategory label="Moderate" count={dist.moderate || 0} threshold="7–10%" />
@@ -233,7 +233,7 @@ export default function DailyMarketReport() {
             <>
               <div style={divider} />
               <div style={{ marginBottom: 'var(--space-md)' }}>
-                <div style={{ ...label, marginBottom: '10px', fontSize: '9px' }}>Model Favoring</div>
+                <div style={{ ...label, marginBottom: '10px', fontSize: '10px' }}>Model Favoring</div>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -299,7 +299,7 @@ export default function DailyMarketReport() {
             <>
               <div style={divider} />
               <div style={{ marginBottom: 'var(--space-md)' }}>
-                <div style={{ ...label, marginBottom: '8px', fontSize: '9px' }}>Today&apos;s Briefing</div>
+                <div style={{ ...label, marginBottom: '8px', fontSize: '10px' }}>Today&apos;s Briefing</div>
                 {data.briefing?.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     {data.briefing.map((line, i) => (
@@ -376,7 +376,7 @@ function EdgeCategory({ label: labelText, count, threshold }) {
         fontFamily: 'var(--font-mono)', marginTop: '2px',
       }}>{labelText}</div>
       <div style={{
-        fontSize: '9px', color: 'var(--text-tertiary)',
+        fontSize: '10px', color: 'var(--text-tertiary)',
         fontFamily: 'var(--font-mono)', marginTop: '1px',
       }}>{threshold}</div>
     </div>

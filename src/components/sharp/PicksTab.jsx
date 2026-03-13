@@ -444,7 +444,7 @@ function SignalHistoryRow({ pick, isPro, isLast, onView }) {
           {sideDisplay}
         </div>
         <div style={{
-          fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px',
+          fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px',
           fontFamily: 'var(--font-mono)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
@@ -709,7 +709,7 @@ function Stat({ label, value }) {
         color: 'var(--text-primary)',
       }}>{value}</div>
       <div style={{
-        fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px',
+        fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px',
         textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700,
       }}>{label}</div>
     </div>
@@ -765,7 +765,7 @@ function MiniStat({ label, value, highlight }) {
         color: highlight ? 'var(--color-signal)' : 'var(--text-primary)',
       }}>{value}</div>
       <div style={{
-        fontSize: '10px', color: 'var(--text-tertiary)',
+        fontSize: '11px', color: 'var(--text-tertiary)',
         textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700,
       }}>{label}</div>
     </div>
