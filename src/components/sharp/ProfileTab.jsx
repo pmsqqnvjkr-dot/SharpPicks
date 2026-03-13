@@ -865,7 +865,7 @@ function AccessStatusCard({ user, isPro, stats }) {
               }}>Since Activation</div>
               <div style={{
                 fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 800,
-                color: pnl >= 0 ? 'var(--green-profit, #34D399)' : 'var(--red-loss, #C4686B)',
+                color: pnl >= 0 ? 'var(--green-profit, #34D399)' : 'var(--red-loss, #9E7A7C)',
                 lineHeight: 1,
               }}>{pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}u</div>
             </div>

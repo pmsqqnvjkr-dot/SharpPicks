@@ -364,7 +364,7 @@ export default function PicksTab({ onNavigate }) {
 function StatusBadge({ result }) {
   const config = {
     win:     { label: 'W',  bg: '#5A9E72', color: '#FFFFFF' },
-    loss:    { label: 'L',  bg: '#C4686B', color: '#FFFFFF' },
+    loss:    { label: 'L',  bg: '#9E7A7C', color: '#FFFFFF' },
     pending: { label: 'P',  bg: '#2A2A2A', color: '#AAAAAA' },
     revoked: { label: 'WD', bg: '#2A2A2A', color: '#666666' },
     push:    { label: 'PU', bg: '#2A2A2A', color: '#AAAAAA' },
