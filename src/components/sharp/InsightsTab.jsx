@@ -67,7 +67,7 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
         insight={selectedInsight}
         allInsights={insights}
         onBack={() => setSelectedInsight(null)}
-        onSelectInsight={(insight) => { setSelectedInsight(insight); window.scrollTo(0, 0); }}
+        onSelectInsight={(insight) => { setSelectedInsight(insight); }}
         onNavigate={onNavigate}
       />
     );
@@ -302,15 +302,26 @@ function InsightCard({ insight, onTap }) {
 }
 
 function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNavigate }) {
+  const scrollRef = useRef(null);
   const contentRef = useRef(null);
   const [fadeIn, setFadeIn] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   useEffect(() => {
     setFadeIn(false);
+    setScrollProgress(0);
     const t = setTimeout(() => setFadeIn(true), 50);
-    if (contentRef.current) contentRef.current.scrollTop = 0;
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
     return () => clearTimeout(t);
   }, [insight.id]);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const scrollable = el.scrollHeight - el.clientHeight;
+    if (scrollable <= 0) { setScrollProgress(0); return; }
+    setScrollProgress(Math.min(1, el.scrollTop / scrollable));
+  };
 
   const paragraphs = (insight.content || '').split('\n\n').filter(p => p.trim());
 
@@ -320,18 +331,45 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
     : null;
 
   return (
-    <div style={{ padding: '0', minHeight: '100vh' }}>
+    <div
+      ref={scrollRef}
+      onScroll={handleScroll}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'var(--bg-primary)',
+        zIndex: 200,
+        overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+      }}
+    >
+      {/* Scroll progress bar */}
       <div style={{
+        position: 'sticky', top: 0, left: 0, right: 0, height: '2px',
+        zIndex: 2, backgroundColor: 'rgba(255,255,255,0.04)',
+      }}>
+        <div style={{
+          height: '100%',
+          width: `${scrollProgress * 100}%`,
+          backgroundColor: 'var(--blue-primary)',
+          transition: 'width 0.05s linear',
+        }} />
+      </div>
+
+      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+      <div style={{
+        position: 'sticky', top: '2px', zIndex: 1,
+        backgroundColor: 'var(--bg-primary)',
         padding: '16px 20px',
         display: 'flex', alignItems: 'center', gap: '12px',
         borderBottom: '1px solid var(--stroke-subtle)',
       }}>
         <button
           onClick={onBack}
+          aria-label="Go back"
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--text-secondary)', padding: '4px',
-            display: 'flex', alignItems: 'center',
+            minWidth: '44px', minHeight: '44px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -401,9 +439,10 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
 
         <div style={{
           fontFamily: 'var(--font-sans)',
-          fontSize: '15px',
+          fontSize: '15.5px',
           color: 'var(--text-secondary)',
-          lineHeight: '1.7',
+          lineHeight: '1.85',
+          letterSpacing: '0.01em',
         }}>
           {paragraphs.map((p, i) => {
             if (p.trim() === '---') {
@@ -466,7 +505,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                 lineHeight: '1.7',
               }}>{parseInlineMarkdown(p)}</p>;
             }
-            return <p key={i} style={{ margin: '0 0 16px' }}>{parseInlineMarkdown(p)}</p>;
+            return <p key={i} style={{ margin: '0 0 20px' }}>{parseInlineMarkdown(p)}</p>;
           })}
         </div>
 
@@ -549,6 +588,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
             </svg>
           </button>
         )}
+      </div>
       </div>
     </div>
   );
