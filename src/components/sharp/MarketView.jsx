@@ -158,6 +158,69 @@ function StatCell({ label, value, color, sub }) {
   );
 }
 
+function ValueRange({ pickLine, playableTo, currentLine }) {
+  const range = Math.abs(playableTo - pickLine);
+  if (range < 0.5) return null;
+  const current = currentLine ?? pickLine;
+  const consumed = Math.abs(current - pickLine);
+  const pct = Math.min(consumed / range * 100, 100);
+  const isUnderdog = pickLine > 0;
+  const atRisk = pct >= 75;
+
+  return (
+    <div style={{
+      marginTop: 10, padding: '10px 12px', borderRadius: 6,
+      background: atRisk ? 'rgba(251,191,36,0.04)' : 'rgba(79,125,243,0.03)',
+      border: `1px solid ${atRisk ? 'rgba(251,191,36,0.15)' : 'rgba(79,125,243,0.1)'}`,
+    }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
+      }}>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)',
+        }}>Value Range</span>
+        {atRisk && (
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 700,
+            color: '#f59e0b', letterSpacing: '0.04em',
+          }}>EDGE THINNING</span>
+        )}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 700,
+          color: 'var(--green-profit, #10b981)',
+        }}>{fmtSpread(pickLine)}</span>
+        <div style={{
+          flex: 1, height: 6, borderRadius: 3,
+          background: 'rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0,
+            width: `${100 - pct}%`, borderRadius: 3,
+            background: atRisk
+              ? 'linear-gradient(90deg, var(--green-profit, #10b981) 0%, #f59e0b 100%)'
+              : 'var(--green-profit, #10b981)',
+            transition: 'width 0.3s ease',
+          }} />
+        </div>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 700,
+          color: 'var(--text-tertiary)',
+        }}>{fmtSpread(playableTo)}</span>
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '0.6rem',
+        color: 'var(--text-secondary)',
+      }}>
+        Playable {isUnderdog ? 'down' : 'up'} to {fmtSpread(playableTo)} &mdash; edge invalidates beyond
+      </div>
+    </div>
+  );
+}
+
 function ModelAnalysisPanel({ model }) {
   if (!model) return null;
   const ec = edgeColor(model.edge);
@@ -332,6 +395,11 @@ function ModelAnalysisPanel({ model }) {
             </div>
           )}
         </div>
+      )}
+
+      {/* Value Range — playable price boundary */}
+      {model.line != null && model.playable_to != null && model.passes && (
+        <ValueRange pickLine={model.line} playableTo={model.playable_to} currentLine={model.line} />
       )}
 
       {/* Model insight signals */}

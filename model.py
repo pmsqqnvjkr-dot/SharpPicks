@@ -1044,6 +1044,7 @@ class EnsemblePredictor:
                 'required_edge': required_edge,
                 'explanation': explanation,
                 'passes_filter': passes,
+                'playable_to': self._calc_playable_to(spread, pick_side, adjusted_edge),
             })
         
         filtered_picks = [p for p in picks if p['passes_filter']]
@@ -1117,6 +1118,22 @@ class EnsemblePredictor:
         print()
         return picks
     
+    def _calc_playable_to(self, spread, pick_side, adjusted_edge):
+        """Calculate the worst spread at which the edge still exceeds threshold.
+        Uses ~2.5% cover probability shift per point of spread movement (NBA standard)."""
+        if spread is None or adjusted_edge is None:
+            return None
+        cushion = adjusted_edge - self.edge_threshold_pct
+        if cushion <= 0:
+            return None
+        PROB_PER_POINT = 2.5
+        pts_cushion = cushion / PROB_PER_POINT
+        if pick_side == 'home':
+            playable = spread + pts_cushion
+        else:
+            playable = spread - pts_cushion
+        return round(playable * 2) / 2
+
     def _generate_explanation(self, row, proba, confidence, edge, pred_margin=None):
         """Generate exactly 3 structured reasoning bullets from data.
         Always picks from: rest advantage, net rating gap, pace/matchup, line value.

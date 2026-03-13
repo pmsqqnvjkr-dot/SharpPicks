@@ -67,6 +67,7 @@ def _build_games_detail(predictions):
             'reason': p.get('pass_reason', ''),
             'fail_reasons': p.get('fail_reasons', []),
             'signals': p.get('explanation', []),
+            'playable_to': p.get('playable_to'),
         })
     return json.dumps(details)
 

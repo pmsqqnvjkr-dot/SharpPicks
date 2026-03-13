@@ -12,6 +12,21 @@ except ImportError:
         return 'sharp_picks.db'
 
 EDGE_THRESHOLD = 3.5
+PROB_PER_POINT = 2.5
+
+
+def _calc_playable_to(line, side, edge_pct):
+    """Calculate worst spread at which the edge still exceeds threshold."""
+    if line is None or edge_pct is None:
+        return None
+    cushion = edge_pct - EDGE_THRESHOLD
+    if cushion <= 0:
+        return None
+    pts = cushion / PROB_PER_POINT
+    if side == 'home':
+        return round((line + pts) * 2) / 2
+    else:
+        return round((line - pts) * 2) / 2
 
 
 def calculate_stake_guidance(edge_pct, confidence, market_odds=-110):
@@ -130,6 +145,7 @@ def today():
             'posted_time': '2h before tip',
             'best_book': pick.sportsbook or 'DraftKings',
             'stake_guidance': stake,
+            'playable_to': _calc_playable_to(pick.line, pick.side, pick.edge_pct),
             'disclaimer': 'For informational and entertainment purposes only. No guaranteed outcomes. Past performance does not guarantee future results. Please gamble responsibly.',
         }
         from app import get_current_user_obj
@@ -690,6 +706,7 @@ def market_view():
                 'reason': ma.get('reason', ''),
                 'fail_reasons': ma.get('fail_reasons', []),
                 'signals': ma.get('signals') or pick_signals.get(key, []),
+                'playable_to': ma.get('playable_to'),
             }
 
         games.append(game_data)

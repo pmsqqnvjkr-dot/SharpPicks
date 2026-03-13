@@ -308,6 +308,11 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
             />
           )}
 
+          {/* ── VALUE RANGE ── */}
+          {!isSettled && pick.line != null && pick.playable_to != null && Math.abs(pick.playable_to - pick.line) >= 0.5 && (
+            <PickValueRange pickLine={pick.line} playableTo={pick.playable_to} />
+          )}
+
           {/* ── WHY THIS GAME (signals) ── */}
           {pick.model_signals && pick.model_signals.length > 0 && (
             <section style={{
@@ -645,6 +650,50 @@ function EdgeTracker({ signalLine, currentLine, clv, isSettled }) {
             </span>
           </div>
         )}
+      </div>
+    </section>
+  );
+}
+
+function PickValueRange({ pickLine, playableTo }) {
+  const range = Math.abs(playableTo - pickLine);
+  if (range < 0.5) return null;
+  const isUnderdog = pickLine > 0;
+  return (
+    <section style={{
+      borderRadius: '16px', border: '1px solid rgba(79,125,243,0.1)',
+      padding: '16px 20px', marginBottom: 'var(--space-md)',
+      background: 'rgba(79,125,243,0.03)',
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+        letterSpacing: '0.1em', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', marginBottom: '10px',
+      }}>Value Range</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 700,
+          color: 'var(--color-signal)',
+        }}>{fmtSpread(pickLine)}</span>
+        <div style={{
+          flex: 1, height: 6, borderRadius: 3,
+          background: 'rgba(255,255,255,0.06)', overflow: 'hidden',
+        }}>
+          <div style={{
+            width: '100%', height: '100%', borderRadius: 3,
+            background: 'var(--color-signal)',
+          }} />
+        </div>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 700,
+          color: 'var(--text-tertiary)',
+        }}>{fmtSpread(playableTo)}</span>
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '11px',
+        color: 'var(--text-secondary)', lineHeight: 1.4,
+      }}>
+        Playable {isUnderdog ? 'down' : 'up'} to {fmtSpread(playableTo)} &mdash; edge invalidates beyond this number
       </div>
     </section>
   );
