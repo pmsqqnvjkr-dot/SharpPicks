@@ -958,6 +958,7 @@ def command_center_data():
 
     nba_stats = compute_sport_stats('nba')
     wnba_stats = compute_sport_stats('wnba')
+    mlb_stats = compute_sport_stats('mlb')
 
     recent_users = sorted(users, key=lambda u: u.created_at or datetime.min, reverse=True)[:15]
     users_data = []
@@ -999,10 +1000,13 @@ def command_center_data():
         },
         'model': nba_stats,
         'wnba_model': wnba_stats,
+        'mlb_model': mlb_stats,
         'recent_picks': nba_stats['recent_picks'],
         'wnba_recent_picks': wnba_stats['recent_picks'],
+        'mlb_recent_picks': mlb_stats['recent_picks'],
         'model_runs': nba_stats['model_runs'],
         'wnba_model_runs': wnba_stats['model_runs'],
+        'mlb_model_runs': mlb_stats['model_runs'],
         'users': {
             'total': total_users,
             'list': users_data,
