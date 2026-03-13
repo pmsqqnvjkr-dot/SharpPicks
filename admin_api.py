@@ -761,6 +761,8 @@ def update_user_role(user_id):
         user.founding_number = data['founding_number']
     if 'subscription_status' in data:
         user.subscription_status = data['subscription_status']
+    if 'email_verified' in data:
+        user.email_verified = bool(data['email_verified'])
     db.session.commit()
     return jsonify({
         'success': True,
@@ -771,7 +773,8 @@ def update_user_role(user_id):
             'is_superuser': user.is_superuser,
             'founding_member': user.founding_member,
             'founding_number': user.founding_number,
-            'subscription_status': user.subscription_status
+            'subscription_status': user.subscription_status,
+            'email_verified': user.email_verified
         }
     })
 
