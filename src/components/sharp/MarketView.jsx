@@ -1303,6 +1303,11 @@ export default function MarketView({ onBack }) {
             </>
           )}
         </div>
+        <div style={{
+          marginLeft: 36, marginTop: '6px',
+          fontFamily: 'var(--font-serif)', fontSize: '12px', fontStyle: 'italic',
+          color: 'var(--text-tertiary)', letterSpacing: '0.01em',
+        }}>Selective by design.</div>
       </div>
 
       {/* Body */}
