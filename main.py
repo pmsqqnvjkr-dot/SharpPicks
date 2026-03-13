@@ -1584,7 +1584,12 @@ def collect_player_props():
         print(f"❌ Failed to fetch events: {e}")
         return
 
-    today_et = datetime.now(pytz.timezone('US/Eastern')).strftime('%Y-%m-%d')
+    try:
+        import zoneinfo
+        eastern = zoneinfo.ZoneInfo("America/New_York")
+    except ImportError:
+        eastern = timezone(timedelta(hours=-5))
+    today_et = datetime.now(eastern).strftime('%Y-%m-%d')
     today_events = []
     for ev in events:
         ct = ev.get('commence_time', '')
