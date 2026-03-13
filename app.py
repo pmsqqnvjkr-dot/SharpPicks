@@ -2166,6 +2166,7 @@ CRON_MIN_INTERVAL = {
     'wnba_grade': 300,
     'mlb_collect': 600,
     'mlb_closing_lines': 60,
+    'mlb_run_model': 600,
     'mlb_grade': 300,
     'retrain_model': 86400,
 }
@@ -2462,22 +2463,10 @@ def run_mlb_model_job():
             print(f"[{datetime.now()}] MLB model error: {e}")
 
 
-@app.route('/api/cron/mlb-collect', methods=['GET', 'POST'])
-@verify_cron
-def cron_mlb_collect():
-    return log_cron('mlb_collect', collect_mlb_games_job)
-
-
-@app.route('/api/cron/mlb-closing-lines', methods=['GET', 'POST'])
-@verify_cron
-def cron_mlb_closing_lines():
-    return log_cron('mlb_closing_lines', collect_mlb_closing_lines_job)
-
-
 @app.route('/api/cron/mlb-run-model', methods=['GET', 'POST'])
 @verify_cron
 def cron_mlb_run_model():
-    return log_cron('mlb_collect', run_mlb_model_job, skip_throttle=True)
+    return log_cron('mlb_run_model', run_mlb_model_job, skip_throttle=True)
 
 
 @app.route('/api/cron/mlb-grade', methods=['GET', 'POST'])
