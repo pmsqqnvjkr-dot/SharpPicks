@@ -361,7 +361,7 @@ function AppContent() {
       margin: '0 auto',
       position: 'relative',
     }}>
-      <AppHeader showSportToggle onNavigate={(tab) => {
+      <AppHeader onNavigate={(tab) => {
         if (tab === 'picks' && activeTab === 'picks') {
           setPicksResetKey(k => k + 1);
         }
