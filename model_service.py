@@ -74,7 +74,7 @@ def _build_games_detail(predictions):
 
 def _build_games_detail_from_sqlite(today_str, sport='nba', reason=''):
     """Build games_detail from SQLite when model returns no predictions (stale_data, no_eligible)."""
-    games_table = 'wnba_games' if sport == 'wnba' else 'games'
+    games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
     try:
         conn = sqlite3.connect(get_sqlite_path())
         cur = conn.cursor()
@@ -109,7 +109,7 @@ def _build_games_detail_from_sqlite(today_str, sport='nba', reason=''):
 
 def _games_funnel_diagnostic(today_str, sport='nba'):
     """Return counts at each filter step: total, with_spreads, unscored, time_eligible (matches model query)."""
-    games_table = 'wnba_games' if sport == 'wnba' else 'games'
+    games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
     diag = {'total': 0, 'with_spreads': 0, 'unscored': 0, 'time_eligible': 0, 'cutoff_utc': None}
     try:
         conn = sqlite3.connect(get_sqlite_path())
@@ -149,7 +149,7 @@ def _diagnose_no_games(today_str, sport='nba'):
         games_with_spreads: int — rows with spread_home set
         message: str — human-readable explanation
     """
-    games_table = 'wnba_games' if sport == 'wnba' else 'games'
+    games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
     try:
         conn = sqlite3.connect(get_sqlite_path())
         cur = conn.cursor()

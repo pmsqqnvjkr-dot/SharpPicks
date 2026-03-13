@@ -250,10 +250,18 @@ class EnsemblePredictor:
         self.calibration_stats = {}
     
     def _games_table(self):
-        return 'wnba_games' if self.sport == 'wnba' else 'games'
+        if self.sport == 'wnba':
+            return 'wnba_games'
+        elif self.sport == 'mlb':
+            return 'mlb_games'
+        return 'games'
 
     def _ratings_table(self):
-        return 'wnba_team_ratings' if self.sport == 'wnba' else 'team_ratings'
+        if self.sport == 'wnba':
+            return 'wnba_team_ratings'
+        elif self.sport == 'mlb':
+            return 'mlb_team_ratings'
+        return 'team_ratings'
 
     def _has_table(self, conn, table_name):
         cur = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
@@ -1138,7 +1146,9 @@ class EnsemblePredictor:
         """Generate exactly 3 structured reasoning bullets from data.
         Always picks from: rest advantage, net rating gap, pace/matchup, line value.
         Same structure every time."""
-        
+        if self.sport == 'mlb':
+            return self._generate_mlb_explanation(row, proba, confidence, edge, pred_margin)
+
         spread = row.get('spread_home', 0) or 0
         open_spread = row.get('spread_home_open', None)
         home = row['home_team']
@@ -1277,6 +1287,122 @@ class EnsemblePredictor:
         
         return result[:3]
     
+    def _generate_mlb_explanation(self, row, proba, confidence, edge, pred_margin=None):
+        """Generate 3 structured reasoning bullets for MLB games."""
+        spread = row.get('spread_home', 0) or 0
+        open_spread = row.get('spread_home_open', None)
+        home = row['home_team']
+        away = row['away_team']
+        pick_home = proba >= 0.5
+        pick_team = home if pick_home else away
+        opp_team = away if pick_home else home
+
+        home_ml = row.get('home_ml', None)
+        away_ml = row.get('away_ml', None)
+        pick_ml = home_ml if pick_home else away_ml
+
+        candidates = []
+
+        home_rest = row.get('home_rest_days', None)
+        away_rest = row.get('away_rest_days', None)
+        try:
+            h_rest = int(home_rest) if home_rest is not None else None
+            a_rest = int(away_rest) if away_rest is not None else None
+            if h_rest is not None and a_rest is not None:
+                rest_diff = (h_rest - a_rest) if pick_home else (a_rest - h_rest)
+                if rest_diff > 0:
+                    candidates.append(('rest', 3, f"Schedule edge: {pick_team} off {max(h_rest,a_rest)}d rest vs {opp_team} {min(h_rest,a_rest)}d ({rest_diff:+d}d advantage)"))
+                elif h_rest == 0 and a_rest == 0:
+                    candidates.append(('rest', 1, "Both teams played yesterday — fatigue neutral"))
+                elif h_rest == a_rest:
+                    candidates.append(('rest', 1, f"Both teams on {h_rest}d rest — schedule neutral"))
+                else:
+                    candidates.append(('rest', 1, f"Schedule disadvantage: {pick_team} on shorter rest — edge still overcomes"))
+            elif h_rest == 0 or a_rest == 0:
+                team_0 = home if h_rest == 0 else away
+                candidates.append(('rest', 2, f"Possible fatigue: {team_0} on back-to-back"))
+        except (ValueError, TypeError):
+            pass
+
+        home_record = row.get('home_record', 'N/A')
+        away_record = row.get('away_record', 'N/A')
+        home_home_rec = row.get('home_home_record', 'N/A')
+        away_away_rec = row.get('away_away_record', 'N/A')
+        try:
+            def parse_rec(rec):
+                if not rec or rec == 'N/A':
+                    return None
+                parts = rec.split('-')
+                w, l = int(parts[0]), int(parts[1])
+                return w / (w + l) if (w + l) > 0 else 0.5
+            pick_pct = parse_rec(home_record if pick_home else away_record)
+            opp_pct = parse_rec(away_record if pick_home else home_record)
+            if pick_pct is not None and opp_pct is not None:
+                diff = pick_pct - opp_pct
+                pick_rec = home_record if pick_home else away_record
+                opp_rec = away_record if pick_home else home_record
+                if diff > 0.08:
+                    candidates.append(('record', 3, f"Season form: {pick_team} ({pick_rec}) vs {opp_team} ({opp_rec}) — {diff:.0%} win rate gap"))
+                elif diff > 0:
+                    candidates.append(('record', 2, f"Record edge: {pick_team} ({pick_rec}) vs {opp_team} ({opp_rec})"))
+                else:
+                    candidates.append(('record', 1, f"Records close: {pick_team} ({pick_rec}) vs {opp_team} ({opp_rec}) — spread accounts for differential"))
+
+            pick_split = home_home_rec if pick_home else away_away_rec
+            opp_split = away_away_rec if pick_home else home_home_rec
+            pick_split_pct = parse_rec(pick_split)
+            opp_split_pct = parse_rec(opp_split)
+            if pick_split_pct is not None and opp_split_pct is not None:
+                split_diff = pick_split_pct - opp_split_pct
+                split_label = "home" if pick_home else "road"
+                if split_diff > 0.10:
+                    candidates.append(('splits', 3, f"{split_label.capitalize()} split advantage: {pick_team} {pick_split} at {split_label} vs {opp_team} {opp_split} away"))
+                elif split_diff > 0:
+                    candidates.append(('splits', 2, f"Home/away splits: {pick_team} {pick_split} ({split_label}) vs {opp_team} {opp_split}"))
+        except (ValueError, TypeError, IndexError):
+            pass
+
+        if pick_ml is not None:
+            try:
+                ml_val = int(pick_ml)
+                if ml_val > 0:
+                    candidates.append(('value', 3, f"Underdog value: {pick_team} at +{ml_val} — model sees {confidence:.0%} win probability vs implied {1/(1+ml_val/100):.0%}"))
+                elif abs(ml_val) < 150:
+                    candidates.append(('value', 2, f"Market price: {pick_team} {ml_val} — model identifies probability edge at current moneyline"))
+                else:
+                    candidates.append(('value', 1, f"Heavy favorite: {pick_team} {ml_val} — edge detected despite chalk price"))
+            except (ValueError, TypeError):
+                pass
+
+        if open_spread is not None and spread is not None:
+            move = spread - open_spread
+            move_abs = abs(move)
+            if move_abs < 0.5:
+                candidates.append(('line_value', 2, f"Run line stable: opened {open_spread:+.1f}, current {spread:+.1f} — market consensus intact"))
+            elif (pick_home and move < -0.5) or (not pick_home and move > 0.5):
+                candidates.append(('line_value', 3, f"Line value: {move_abs:.1f}pts better than open ({open_spread:+.1f} → {spread:+.1f}) — buying below market"))
+            else:
+                candidates.append(('line_value', 1, f"Line moved {move_abs:.1f}pts against ({open_spread:+.1f} → {spread:+.1f}) — edge sustains at current number"))
+        else:
+            from sport_config import get_sport_config
+            cfg = get_sport_config('mlb')
+            std_odds = cfg.get('standard_odds', -130)
+            implied = abs(std_odds) / (abs(std_odds) + 100) if std_odds < 0 else 100 / (std_odds + 100)
+            candidates.append(('line_value', 2, f"Model confidence {confidence:.0%} vs implied {implied:.0%} — {(confidence - implied) * 100:.1f}pp probability edge"))
+
+        candidates.sort(key=lambda x: x[1], reverse=True)
+        seen_types = set()
+        result = []
+        for cat, score, text in candidates:
+            if cat not in seen_types:
+                seen_types.add(cat)
+                result.append(text)
+            if len(result) == 3:
+                break
+        while len(result) < 3:
+            result.append(f"Adjusted edge {edge:+.1f}% exceeds {self.edge_threshold_pct}% qualification threshold")
+        return result[:3]
+
     def walk_forward_validate(self):
         """Walk-forward validation using margin GBR model with production filters.
         Train on past seasons, test on next. No future leakage.
@@ -1840,7 +1966,11 @@ class EnsemblePredictor:
         return {'all_results': sweep_results, 'brand_matches': brand_matches, 'best': best}
 
     def _default_filepath(self):
-        return f'sharp_picks_{"wnba_" if self.sport == "wnba" else ""}model.pkl'
+        if self.sport == 'wnba':
+            return 'sharp_picks_wnba_model.pkl'
+        elif self.sport == 'mlb':
+            return 'sharp_picks_mlb_model.pkl'
+        return 'sharp_picks_model.pkl'
 
     def save(self, filepath=None):
         """Save the trained model"""

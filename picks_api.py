@@ -317,7 +317,7 @@ def today():
 
     # Fallback to SQLite if ESPN returned nothing
     if not games_preview:
-        games_table = 'wnba_games' if sport == 'wnba' else 'games'
+        games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
         try:
             conn = sqlite3.connect(get_sqlite_path())
             conn.row_factory = sqlite3.Row
@@ -595,7 +595,7 @@ def market_view():
     Falls back to the next upcoming date if today has no games."""
     today_str = _get_et_date()
     sport = request.args.get('sport', 'nba')
-    games_table = 'wnba_games' if sport == 'wnba' else 'games'
+    games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
 
     _select_cols = f"""id, home_team, away_team, game_time,
                 spread_home, spread_away, total, home_ml, away_ml,

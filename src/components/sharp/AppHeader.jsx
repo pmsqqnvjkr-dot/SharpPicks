@@ -137,7 +137,7 @@ export default function AppHeader({ onNavigate, showSportToggle }) {
           border: '1px solid var(--stroke-subtle)',
           marginLeft: 'auto',
         }}>
-          {['nba', 'wnba'].map(s => (
+          {['nba', 'mlb', 'wnba'].map(s => (
             <button
               key={s}
               onClick={() => setSport(s)}

@@ -2164,6 +2164,9 @@ CRON_MIN_INTERVAL = {
     'wnba_closing_lines': 60,
     'wnba_shadow': 600,
     'wnba_grade': 300,
+    'mlb_collect': 600,
+    'mlb_closing_lines': 60,
+    'mlb_grade': 300,
     'retrain_model': 86400,
 }
 
@@ -2286,6 +2289,201 @@ def cron_wnba_shadow():
 @verify_cron
 def cron_wnba_grade():
     return log_cron('wnba_grade', grade_wnba_shadow_job)
+
+
+# ═══════════════════════════════════════════════════════
+# ⚾ MLB CRON ENDPOINTS
+# ═══════════════════════════════════════════════════════
+
+def collect_mlb_games_job():
+    """Run the MLB data collector"""
+    print(f"[{datetime.now()}] Running scheduled MLB data collection...")
+    try:
+        from main import collect_mlb_scores, collect_mlb_odds
+        collect_mlb_scores()
+        collect_mlb_odds()
+        print(f"[{datetime.now()}] MLB data collection completed!")
+    except Exception as e:
+        print(f"[{datetime.now()}] MLB collection error: {e}")
+
+
+def collect_mlb_closing_lines_job():
+    """Collect MLB closing lines right before first pitch."""
+    print(f"[{datetime.now()}] Collecting MLB closing lines...")
+    try:
+        from main import collect_mlb_closing_lines
+        collect_mlb_closing_lines()
+    except Exception as e:
+        print(f"[{datetime.now()}] MLB closing line API error (continuing): {e}")
+
+    print(f"[{datetime.now()}] Capturing MLB closing snapshots...")
+    with app.app_context():
+        try:
+            conn = sqlite3.connect(get_sqlite_path())
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            today_str = _get_et_today()
+            cursor.execute('''
+                SELECT id, home_team, away_team, spread_home, total,
+                       home_ml, away_ml
+                FROM mlb_games
+                WHERE game_date LIKE ?
+                AND home_score IS NULL
+                AND spread_home IS NOT NULL
+            ''', (f'{today_str}%',))
+
+            games = cursor.fetchall()
+            updated = 0
+
+            for game in games:
+                cursor.execute('''
+                    UPDATE mlb_games SET
+                        spread_home_close = ?,
+                        total_close = ?,
+                        home_ml_close = ?,
+                        away_ml_close = ?,
+                        close_collected_at = ?
+                    WHERE id = ?
+                ''', (game['spread_home'], game['total'],
+                      game['home_ml'], game['away_ml'],
+                      datetime.now().isoformat(), game['id']))
+                updated += 1
+
+                today_pick = Pick.query.filter(
+                    Pick.home_team == game['home_team'],
+                    Pick.away_team == game['away_team'],
+                    Pick.sport == 'mlb',
+                    Pick.game_date.like(f'{today_str}%')
+                ).first()
+                if today_pick:
+                    closing = game['spread_home']
+                    if today_pick.line_close is None:
+                        today_pick.line_close = closing
+                    today_pick.closing_spread = closing
+                    if today_pick.line is not None and closing is not None:
+                        today_pick.clv = closing - today_pick.line
+
+            conn.commit()
+            conn.close()
+            db.session.commit()
+            print(f"[{datetime.now()}] Captured MLB closing lines for {updated} games")
+        except Exception as e:
+            print(f"[{datetime.now()}] MLB closing line error: {e}")
+
+
+def grade_mlb_picks_job():
+    """Grade MLB picks from ESPN scores."""
+    print(f"[{datetime.now()}] Grading MLB picks...")
+    with app.app_context():
+        try:
+            from sport_config import get_sport_config
+            cfg = get_sport_config('mlb')
+
+            pending = Pick.query.filter_by(sport='mlb', result='pending').all()
+            if not pending:
+                print("  No pending MLB picks to grade")
+                return
+
+            conn = sqlite3.connect(get_sqlite_path())
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            for pick in pending:
+                cursor.execute(
+                    "SELECT home_score, away_score FROM mlb_games WHERE home_team = ? AND away_team = ? AND game_date = ?",
+                    (pick.home_team, pick.away_team, pick.game_date)
+                )
+                row = cursor.fetchone()
+                if not row or row['home_score'] is None:
+                    continue
+
+                home_score = int(row['home_score'])
+                away_score = int(row['away_score'])
+                pick.home_score = home_score
+                pick.away_score = away_score
+
+                run_diff = home_score - away_score
+                line_val = pick.line or 0
+
+                if pick.side == 'home':
+                    ats_margin = run_diff + line_val
+                else:
+                    ats_margin = -run_diff + line_val
+
+                pick.result_ats = round(ats_margin, 1)
+                odds = pick.market_odds or cfg.get('standard_odds', -130)
+
+                if ats_margin == 0:
+                    pick.result = 'push'
+                    pick.profit_units = 0
+                elif ats_margin > 0:
+                    pick.result = 'win'
+                    if odds > 0:
+                        pick.profit_units = round(odds / 100, 2)
+                    else:
+                        pick.profit_units = round(100 / abs(odds), 2)
+                else:
+                    pick.result = 'loss'
+                    pick.profit_units = -1.0
+
+                pick.pnl = pick.profit_units
+                pick.result_resolved_at = datetime.utcnow()
+                print(f"  Graded: {pick.away_team} @ {pick.home_team} → {pick.result}")
+
+            conn.close()
+            db.session.commit()
+        except Exception as e:
+            print(f"[{datetime.now()}] MLB grading error: {e}")
+
+
+@app.route('/api/cron/mlb-collect', methods=['GET', 'POST'])
+@verify_cron
+def cron_mlb_collect():
+    return log_cron('mlb_collect', collect_mlb_games_job)
+
+
+@app.route('/api/cron/mlb-closing-lines', methods=['GET', 'POST'])
+@verify_cron
+def cron_mlb_closing_lines():
+    return log_cron('mlb_closing_lines', collect_mlb_closing_lines_job)
+
+
+def run_mlb_model_job():
+    """Run the MLB model to generate picks."""
+    print(f"[{datetime.now()}] Running MLB model...")
+    with app.app_context():
+        try:
+            from model_service import run_model_and_log
+            force = request.args.get('force', 'false').lower() == 'true'
+            run_model_and_log(app, sport='mlb', force=force)
+            print(f"[{datetime.now()}] MLB model run completed!")
+        except Exception as e:
+            print(f"[{datetime.now()}] MLB model error: {e}")
+
+
+@app.route('/api/cron/mlb-collect', methods=['GET', 'POST'])
+@verify_cron
+def cron_mlb_collect():
+    return log_cron('mlb_collect', collect_mlb_games_job)
+
+
+@app.route('/api/cron/mlb-closing-lines', methods=['GET', 'POST'])
+@verify_cron
+def cron_mlb_closing_lines():
+    return log_cron('mlb_closing_lines', collect_mlb_closing_lines_job)
+
+
+@app.route('/api/cron/mlb-run-model', methods=['GET', 'POST'])
+@verify_cron
+def cron_mlb_run_model():
+    return log_cron('mlb_collect', run_mlb_model_job, skip_throttle=True)
+
+
+@app.route('/api/cron/mlb-grade', methods=['GET', 'POST'])
+@verify_cron
+def cron_mlb_grade():
+    return log_cron('mlb_grade', grade_mlb_picks_job)
 
 
 @app.route('/api/cron/player-props', methods=['GET', 'POST'])

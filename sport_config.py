@@ -69,6 +69,39 @@ SPORT_CONFIG = {
         'season_months': [5, 6, 7, 8, 9],
         'games_per_season': 40,
     },
+
+    'mlb': {
+        'name': 'MLB',
+        'display_name': 'MLB Baseball',
+        'active': True,
+        'live': False,
+
+        'sigma': 1.65,
+        'model_weight': 0.3,
+        'edge_threshold_pct': 3.5,
+        'max_edge_pct': 10.0,
+        'margin_std_floor': 1.2,
+        'margin_std_ceiling': 2.5,
+        'standard_odds': -130,
+
+        'spread_edge_curve': [
+            (0, 1.5, 3.5),
+            (1.5, float('inf'), 5.0),
+        ],
+
+        'max_daily_picks': 1,
+
+        'odds_api_sport_key': 'baseball_mlb',
+        'espn_slug': 'baseball/mlb',
+        'espn_scoreboard': 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard',
+        'espn_injuries': 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/injuries',
+        'espn_teams': 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams',
+
+        'season_months': [3, 4, 5, 6, 7, 8, 9, 10],
+        'games_per_season': 162,
+        'is_baseball': True,
+        'primary_market': 'moneyline',
+    },
 }
 
 

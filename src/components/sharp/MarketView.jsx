@@ -787,7 +787,7 @@ function WatchButton({ watching, onWatch }) {
   );
 }
 
-function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHistory }) {
+function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHistory, sport }) {
   const totalDisplay = fmtTotal(game.total);
   const isFinal = game.status === 'final';
   const isLive = game.status === 'live';
@@ -850,7 +850,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
               color: 'var(--text-tertiary)', textAlign: 'center',
             }}>Score</span>
           )}
-          {['Spread', 'Total', 'ML'].map(h => (
+          {[sport === 'mlb' ? 'RL' : 'Spread', 'Total', 'ML'].map(h => (
             <span key={h} style={{
               fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 700,
               letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -1034,7 +1034,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
   );
 }
 
-function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch, isPro, onLineHistory }) {
+function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch, isPro, onLineHistory, sport }) {
   return (
     <div style={{ marginBottom: 18 }}>
       <div style={{
@@ -1061,6 +1061,7 @@ function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch,
             onWatch={() => onWatch(g)}
             isPro={isPro}
             onLineHistory={onLineHistory}
+            sport={sport}
           />
         ))}
       </div>
@@ -1199,7 +1200,7 @@ const tdStyle = {
   fontVariantNumeric: 'tabular-nums',
 };
 
-function TableView({ games, isPro, onLineHistory }) {
+function TableView({ games, isPro, onLineHistory, sport }) {
   return (
     <div style={{
       backgroundColor: 'var(--surface-1, #111827)',
@@ -1214,7 +1215,7 @@ function TableView({ games, isPro, onLineHistory }) {
           <thead>
             <tr>
               <th style={{ ...thStyle, textAlign: 'left', minWidth: 120 }}>Game</th>
-              <th style={thStyle}>Spread</th>
+              <th style={thStyle}>{sport === 'mlb' ? 'RL' : 'Spread'}</th>
               <th style={thStyle}>Total</th>
               <th style={thStyle}>ML</th>
               {isPro && <th style={thStyle}>Edge</th>}
@@ -1659,7 +1660,7 @@ export default function MarketView({ onBack }) {
             </div>
           </div>
         ) : viewMode === 'table' ? (
-          <TableView games={sorted} isPro={isPro} onLineHistory={setLineHistoryGame} />
+          <TableView games={sorted} isPro={isPro} onLineHistory={setLineHistoryGame} sport={sport} />
         ) : grouped ? (
           Array.from(grouped.entries()).map(([time, gamesInSlot]) => (
             <TimeSlotGroup
@@ -1672,6 +1673,7 @@ export default function MarketView({ onBack }) {
               onWatch={handleWatch}
               isPro={isPro}
               onLineHistory={setLineHistoryGame}
+              sport={sport}
             />
           ))
         ) : (
@@ -1686,6 +1688,7 @@ export default function MarketView({ onBack }) {
                 onWatch={() => handleWatch(g)}
                 isPro={isPro}
                 onLineHistory={setLineHistoryGame}
+                sport={sport}
               />
             ))}
           </div>

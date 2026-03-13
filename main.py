@@ -3284,6 +3284,549 @@ def collect_wnba_odds():
         print(f"❌ WNBA odds collection error: {e}")
 
 
+# ═══════════════════════════════════════════════════════
+# ⚾ MLB DATA COLLECTION
+# ═══════════════════════════════════════════════════════
+
+MLB_TEAM_ABBR_MAP = {
+    'Arizona Diamondbacks': 'ARI', 'Atlanta Braves': 'ATL',
+    'Baltimore Orioles': 'BAL', 'Boston Red Sox': 'BOS',
+    'Chicago Cubs': 'CHC', 'Chicago White Sox': 'CHW',
+    'Cincinnati Reds': 'CIN', 'Cleveland Guardians': 'CLE',
+    'Colorado Rockies': 'COL', 'Detroit Tigers': 'DET',
+    'Houston Astros': 'HOU', 'Kansas City Royals': 'KC',
+    'Los Angeles Angels': 'LAA', 'Los Angeles Dodgers': 'LAD',
+    'Miami Marlins': 'MIA', 'Milwaukee Brewers': 'MIL',
+    'Minnesota Twins': 'MIN', 'New York Mets': 'NYM',
+    'New York Yankees': 'NYY', 'Oakland Athletics': 'OAK',
+    'Philadelphia Phillies': 'PHI', 'Pittsburgh Pirates': 'PIT',
+    'San Diego Padres': 'SD', 'San Francisco Giants': 'SF',
+    'Seattle Mariners': 'SEA', 'St. Louis Cardinals': 'STL',
+    'Tampa Bay Rays': 'TB', 'Texas Rangers': 'TEX',
+    'Toronto Blue Jays': 'TOR', 'Washington Nationals': 'WSH',
+}
+
+
+def setup_mlb_table(cursor):
+    """Create mlb_games table."""
+    cursor.execute('''CREATE TABLE IF NOT EXISTS mlb_games (
+        id TEXT PRIMARY KEY,
+        game_date TEXT,
+        game_time TEXT,
+        home_team TEXT,
+        away_team TEXT,
+        spread_home REAL,
+        spread_away REAL,
+        total REAL,
+        home_ml INTEGER,
+        away_ml INTEGER,
+        collected_at TEXT,
+        home_score INTEGER,
+        away_score INTEGER,
+        spread_result TEXT,
+        total_result TEXT,
+        scores_updated_at TEXT,
+        home_record TEXT,
+        away_record TEXT,
+        home_home_record TEXT,
+        away_away_record TEXT,
+        home_last5 TEXT,
+        away_last5 TEXT,
+        home_rest_days INTEGER,
+        away_rest_days INTEGER,
+        home_injuries TEXT,
+        away_injuries TEXT,
+        spread_home_open REAL,
+        total_open REAL,
+        home_ml_open INTEGER,
+        away_ml_open INTEGER,
+        open_collected_at TEXT,
+        spread_home_close REAL,
+        total_close REAL,
+        home_ml_close INTEGER,
+        away_ml_close INTEGER,
+        close_collected_at TEXT,
+        line_movement REAL,
+        home_spread_odds INTEGER,
+        away_spread_odds INTEGER,
+        home_spread_odds_open INTEGER,
+        away_spread_odds_open INTEGER,
+        home_spread_odds_close INTEGER,
+        away_spread_odds_close INTEGER,
+        home_spread_book TEXT,
+        away_spread_book TEXT,
+        commence_time TEXT,
+        home_pitcher TEXT,
+        away_pitcher TEXT
+    )''')
+
+    for col, ctype in [
+        ('home_pitcher', 'TEXT'), ('away_pitcher', 'TEXT'),
+        ('game_time', 'TEXT'), ('commence_time', 'TEXT'),
+        ('spread_result', 'TEXT'), ('total_result', 'TEXT'),
+        ('scores_updated_at', 'TEXT'),
+    ]:
+        try:
+            cursor.execute(f'ALTER TABLE mlb_games ADD COLUMN {col} {ctype}')
+        except Exception:
+            pass
+
+
+def get_mlb_team_data():
+    """Fetch MLB team records from ESPN."""
+    from sport_config import get_sport_config
+    cfg = get_sport_config('mlb')
+    teams_url = cfg['espn_teams']
+    data = {}
+    try:
+        resp = api_request_with_retry(teams_url, {'limit': 50})
+        if resp and resp.status_code == 200:
+            for t in resp.json().get('sports', [{}])[0].get('leagues', [{}])[0].get('teams', []):
+                team = t.get('team', {})
+                name = team.get('displayName', '')
+                record_str = 'N/A'
+                home_rec = 'N/A'
+                away_rec = 'N/A'
+                for rec in team.get('record', {}).get('items', []):
+                    if rec.get('type') == 'total':
+                        record_str = rec.get('summary', 'N/A')
+                    elif rec.get('type') == 'home':
+                        home_rec = rec.get('summary', 'N/A')
+                    elif rec.get('type') == 'road':
+                        away_rec = rec.get('summary', 'N/A')
+                data[name] = {
+                    'record': record_str,
+                    'home_record': home_rec,
+                    'away_record': away_rec,
+                }
+    except Exception as e:
+        print(f"⚠️ MLB team data error: {e}")
+    return data
+
+
+def get_mlb_injuries():
+    """Fetch MLB injuries from ESPN."""
+    from sport_config import get_sport_config
+    cfg = get_sport_config('mlb')
+    injuries = {}
+    try:
+        resp = api_request_with_retry(cfg['espn_injuries'])
+        if resp and resp.status_code == 200:
+            for team_block in resp.json().get('injuries', []):
+                team_name = team_block.get('team', {}).get('displayName', '')
+                names = []
+                for item in team_block.get('injuries', []):
+                    pname = item.get('athlete', {}).get('displayName', '')
+                    status = item.get('status', '')
+                    if pname:
+                        names.append(f"{pname} ({status})")
+                injuries[team_name] = ', '.join(names[:5]) if names else ''
+    except Exception as e:
+        print(f"⚠️ MLB injuries error: {e}")
+    return injuries
+
+
+def get_mlb_team_schedule(team_abbr):
+    """Fetch last-5 and last game date for an MLB team from ESPN."""
+    from sport_config import get_sport_config
+    cfg = get_sport_config('mlb')
+    try:
+        url = f"https://site.api.espn.com/apis/site/v2/sports/{cfg['espn_slug']}/teams/{team_abbr}/schedule"
+        resp = api_request_with_retry(url, {})
+        if not resp or resp.status_code != 200:
+            return None, None
+        events = resp.json().get('events', [])
+        completed = [e for e in events if e.get('competitions', [{}])[0].get('status', {}).get('type', {}).get('completed')]
+        if not completed:
+            return None, None
+        recent = completed[-5:]
+        wins = 0
+        last_game_date = None
+        for e in recent:
+            comp = e['competitions'][0]
+            for c in comp.get('competitors', []):
+                if c.get('team', {}).get('abbreviation', '').upper() == team_abbr.upper():
+                    if c.get('winner'):
+                        wins += 1
+            date_str = comp.get('date', '')
+            if date_str:
+                last_game_date = date_str
+        last5 = f"{wins}-{len(recent)-wins}"
+        return last5, last_game_date
+    except Exception:
+        return None, None
+
+
+def collect_mlb_scores():
+    """Fetch MLB scores from ESPN."""
+    from sport_config import get_sport_config
+    cfg = get_sport_config('mlb')
+
+    print(f"\n{'='*60}")
+    print("⚾ MLB SCORE COLLECTOR")
+    print(f"{'='*60}\n")
+
+    try:
+        from zoneinfo import ZoneInfo
+    except ImportError:
+        from backports.zoneinfo import ZoneInfo
+    et = ZoneInfo('America/New_York')
+    today_str = datetime.now(et).strftime('%Y-%m-%d')
+    yesterday = (datetime.now(et) - timedelta(days=1)).strftime('%Y-%m-%d')
+
+    conn = sqlite3.connect(get_sqlite_path())
+    cursor = conn.cursor()
+    setup_mlb_table(cursor)
+
+    for check_date in [yesterday, today_str]:
+        date_compact = check_date.replace('-', '')
+        url = f"{cfg['espn_scoreboard']}?dates={date_compact}"
+        try:
+            resp = api_request_with_retry(url)
+            if not resp or resp.status_code != 200:
+                continue
+            events = resp.json().get('events', [])
+            for event in events:
+                comp = event.get('competitions', [{}])[0]
+                status = comp.get('status', {}).get('type', {})
+                if not status.get('completed'):
+                    continue
+                competitors = comp.get('competitors', [])
+                if len(competitors) < 2:
+                    continue
+                home = next((c for c in competitors if c.get('homeAway') == 'home'), None)
+                away = next((c for c in competitors if c.get('homeAway') == 'away'), None)
+                if not home or not away:
+                    continue
+                home_team = home.get('team', {}).get('displayName', '')
+                away_team = away.get('team', {}).get('displayName', '')
+                home_score = int(home.get('score', 0))
+                away_score = int(away.get('score', 0))
+
+                cursor.execute(
+                    "SELECT id FROM mlb_games WHERE home_team = ? AND away_team = ? AND game_date = ?",
+                    (home_team, away_team, check_date)
+                )
+                row = cursor.fetchone()
+                if row:
+                    spread_result = home_score - away_score
+                    cursor.execute('''UPDATE mlb_games SET
+                        home_score = ?, away_score = ?, spread_result = ?,
+                        scores_updated_at = ? WHERE id = ?''',
+                        (home_score, away_score, str(spread_result),
+                         datetime.now().isoformat(), row[0]))
+                    print(f"   ✅ Score: {away_team} {away_score} @ {home_team} {home_score}")
+        except Exception as e:
+            print(f"   ⚠️ ESPN error for {check_date}: {e}")
+
+    conn.commit()
+    conn.close()
+    print("✅ MLB scores updated\n")
+
+
+def collect_mlb_odds():
+    """Fetch today's MLB odds from The Odds API with enriched data."""
+    from sport_config import get_odds_api_url
+
+    print(f"\n{'='*60}")
+    print("⚾ MLB ODDS COLLECTOR")
+    print(f"{'='*60}\n")
+
+    if not API_KEY:
+        print("❌ No API key found")
+        return
+
+    team_data = get_mlb_team_data()
+    injuries = get_mlb_injuries()
+
+    PREFERRED_BOOKS = ['draftkings', 'fanduel', 'betmgm', 'caesars_sportsbook', 'pointsbetus', 'betrivers']
+    BOOK_DISPLAY = {
+        'draftkings': 'DraftKings', 'fanduel': 'FanDuel', 'betmgm': 'BetMGM',
+        'caesars_sportsbook': 'Caesars', 'pointsbetus': 'PointsBet', 'betrivers': 'BetRivers',
+    }
+
+    url = get_odds_api_url('mlb')
+    params = {
+        'apiKey': API_KEY,
+        'regions': 'us',
+        'markets': 'spreads,totals,h2h',
+        'oddsFormat': 'american',
+        'bookmakers': ','.join(PREFERRED_BOOKS)
+    }
+
+    try:
+        response = api_request_with_retry(url, params)
+        if response is None or response.status_code != 200:
+            print("❌ Failed to fetch MLB odds")
+            return
+
+        games = response.json()
+        print(f"✅ Found {len(games)} MLB games")
+        print(f"   API calls left: {API_USAGE['remaining']}/500\n")
+
+        if not games:
+            print("ℹ️  No MLB games available today\n")
+            return
+
+        conn = sqlite3.connect(get_sqlite_path())
+        cursor = conn.cursor()
+        setup_mlb_table(cursor)
+
+        try:
+            from zoneinfo import ZoneInfo
+        except ImportError:
+            from backports.zoneinfo import ZoneInfo
+        et = ZoneInfo('America/New_York')
+        today_str = datetime.now(et).strftime('%Y-%m-%d')
+
+        stored = 0
+        for game in games:
+            game_id = game['id']
+            home = game['home_team']
+            away = game['away_team']
+            commence_time = utc_to_eastern_date(game.get('commence_time', ''))
+            game_time = game.get('commence_time') or None
+
+            if commence_time and commence_time != today_str:
+                tomorrow = (datetime.now(et) + timedelta(days=1)).strftime('%Y-%m-%d')
+                if commence_time != tomorrow:
+                    continue
+
+            spread_home = None
+            spread_away = None
+            total = None
+            home_ml = None
+            away_ml = None
+            best_home_odds = None
+            best_away_odds = None
+            best_home_book = None
+            best_away_book = None
+
+            def is_better_odds(new_odds, current_odds):
+                if current_odds is None:
+                    return True
+                return new_odds > current_odds
+
+            for bookmaker in game.get('bookmakers', []):
+                book_key = bookmaker.get('key', '')
+                book_name = BOOK_DISPLAY.get(book_key, book_key)
+                for market in bookmaker.get('markets', []):
+                    if market['key'] == 'spreads':
+                        for outcome in market.get('outcomes', []):
+                            if outcome['name'] == home:
+                                if spread_home is None:
+                                    spread_home = outcome.get('point')
+                                price = outcome.get('price')
+                                if price is not None and is_better_odds(price, best_home_odds):
+                                    best_home_odds = price
+                                    best_home_book = book_name
+                            else:
+                                if spread_away is None:
+                                    spread_away = outcome.get('point')
+                                price = outcome.get('price')
+                                if price is not None and is_better_odds(price, best_away_odds):
+                                    best_away_odds = price
+                                    best_away_book = book_name
+                    elif market['key'] == 'totals' and total is None:
+                        total = market['outcomes'][0].get('point')
+                    elif market['key'] == 'h2h':
+                        for outcome in market.get('outcomes', []):
+                            if outcome['name'] == home:
+                                if home_ml is None or outcome['price'] > home_ml:
+                                    home_ml = outcome['price']
+                            else:
+                                if away_ml is None or outcome['price'] > away_ml:
+                                    away_ml = outcome['price']
+
+            home_info = team_data.get(home, {})
+            away_info = team_data.get(away, {})
+
+            home_record = home_info.get('record', 'N/A')
+            away_record = away_info.get('record', 'N/A')
+            home_home_record = home_info.get('home_record', 'N/A')
+            away_away_record = away_info.get('away_record', 'N/A')
+
+            home_abbr = MLB_TEAM_ABBR_MAP.get(home, '')
+            away_abbr = MLB_TEAM_ABBR_MAP.get(away, '')
+
+            home_last5, home_last_game = get_mlb_team_schedule(home_abbr) if home_abbr else (None, None)
+            away_last5, away_last_game = get_mlb_team_schedule(away_abbr) if away_abbr else (None, None)
+
+            home_rest = calculate_rest_days(home_last_game)
+            away_rest = calculate_rest_days(away_last_game)
+
+            home_injuries_str = injuries.get(home, '')
+            away_injuries_str = injuries.get(away, '')
+
+            cursor.execute('SELECT id, spread_home_open FROM mlb_games WHERE id = ?', (game_id,))
+            existing = cursor.fetchone()
+
+            is_new_game = existing is None
+            has_opening = existing and existing[1] is not None
+
+            if is_new_game:
+                cursor.execute('''INSERT INTO mlb_games
+                    (id, game_date, game_time, home_team, away_team,
+                     spread_home, spread_away, total, home_ml, away_ml, collected_at,
+                     spread_home_open, total_open, home_ml_open, away_ml_open, open_collected_at,
+                     home_record, away_record, home_home_record, away_away_record,
+                     home_last5, away_last5, home_rest_days, away_rest_days,
+                     home_injuries, away_injuries,
+                     home_spread_odds, away_spread_odds,
+                     home_spread_odds_open, away_spread_odds_open,
+                     home_spread_book, away_spread_book,
+                     commence_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (game_id, commence_time or today_str, game_time, home, away,
+                     spread_home, spread_away, total, home_ml, away_ml,
+                     datetime.now().isoformat(),
+                     spread_home, total, home_ml, away_ml, datetime.now().isoformat(),
+                     home_record, away_record, home_home_record, away_away_record,
+                     home_last5, away_last5, home_rest, away_rest,
+                     home_injuries_str, away_injuries_str,
+                     best_home_odds, best_away_odds,
+                     best_home_odds, best_away_odds,
+                     best_home_book, best_away_book,
+                     game.get('commence_time', '')))
+                line_status = "📌 OPENING"
+            else:
+                cursor.execute('''UPDATE mlb_games SET
+                    spread_home = ?, spread_away = ?, total = ?,
+                    home_ml = ?, away_ml = ?, collected_at = ?,
+                    game_time = ?,
+                    home_record = ?, away_record = ?,
+                    home_home_record = ?, away_away_record = ?,
+                    home_last5 = ?, away_last5 = ?,
+                    home_rest_days = ?, away_rest_days = ?,
+                    home_injuries = ?, away_injuries = ?,
+                    home_spread_odds = ?, away_spread_odds = ?,
+                    home_spread_book = ?, away_spread_book = ?
+                    WHERE id = ?''',
+                    (spread_home, spread_away, total,
+                     home_ml, away_ml, datetime.now().isoformat(),
+                     game_time,
+                     home_record, away_record, home_home_record, away_away_record,
+                     home_last5, away_last5, home_rest, away_rest,
+                     home_injuries_str, away_injuries_str,
+                     best_home_odds, best_away_odds,
+                     best_home_book, best_away_book,
+                     game_id))
+
+                if has_opening:
+                    open_spread = existing[1]
+                    if open_spread and spread_home:
+                        movement = spread_home - open_spread
+                        cursor.execute('UPDATE mlb_games SET line_movement = ? WHERE id = ?',
+                                      (movement, game_id))
+                        line_status = f"📊 CURRENT (moved {movement:+.1f})" if movement != 0 else "📊 CURRENT"
+                    else:
+                        line_status = "📊 CURRENT"
+                else:
+                    line_status = "📊 CURRENT"
+
+            stored += 1
+            ml_display = f"ML: {home} {home_ml}" if home_ml else ""
+            rl_display = f"RL: {home} {spread_home:+.1f}" if spread_home else ""
+            print(f"{line_status} {away} @ {home}")
+            print(f"   📈 Records: {away} ({away_record}) vs {home} ({home_record})")
+            if ml_display:
+                print(f"   💰 {ml_display}")
+            if rl_display:
+                print(f"   📉 {rl_display}")
+            if total:
+                print(f"   📉 Total: {total}")
+            print()
+
+        conn.commit()
+        conn.close()
+        print(f"\n✅ Stored {stored} MLB games\n")
+
+    except Exception as e:
+        print(f"❌ MLB odds collection error: {e}")
+
+
+def collect_mlb_closing_lines():
+    """Capture MLB closing lines before first pitch."""
+    from sport_config import get_odds_api_url
+
+    print(f"\n{'='*60}")
+    print("⚾ MLB CLOSING LINE COLLECTOR")
+    print(f"{'='*60}\n")
+
+    if not API_KEY:
+        print("❌ No API key found")
+        return
+
+    url = get_odds_api_url('mlb')
+    params = {
+        'apiKey': API_KEY,
+        'regions': 'us',
+        'markets': 'spreads,totals,h2h',
+        'oddsFormat': 'american',
+        'bookmakers': 'draftkings,fanduel,betmgm,caesars_sportsbook'
+    }
+
+    try:
+        response = api_request_with_retry(url, params)
+        if response is None or response.status_code != 200:
+            print("❌ Failed to fetch MLB closing lines")
+            return
+
+        games = response.json()
+        print(f"✅ Found {len(games)} MLB games for closing snapshot\n")
+
+        conn = sqlite3.connect(get_sqlite_path())
+        cursor = conn.cursor()
+        setup_mlb_table(cursor)
+
+        updated = 0
+        for game in games:
+            game_id = game['id']
+            spread_close = None
+            total_close = None
+            home_ml_close = None
+            away_ml_close = None
+            home = game['home_team']
+
+            for bookmaker in game.get('bookmakers', []):
+                for market in bookmaker.get('markets', []):
+                    if market['key'] == 'spreads':
+                        for outcome in market.get('outcomes', []):
+                            if outcome['name'] == home and spread_close is None:
+                                spread_close = outcome.get('point')
+                    elif market['key'] == 'totals' and total_close is None:
+                        total_close = market['outcomes'][0].get('point')
+                    elif market['key'] == 'h2h':
+                        for outcome in market.get('outcomes', []):
+                            if outcome['name'] == home:
+                                if home_ml_close is None or outcome['price'] > home_ml_close:
+                                    home_ml_close = outcome['price']
+                            else:
+                                if away_ml_close is None or outcome['price'] > away_ml_close:
+                                    away_ml_close = outcome['price']
+
+            cursor.execute(
+                "SELECT id FROM mlb_games WHERE id = ?", (game_id,)
+            )
+            if cursor.fetchone():
+                cursor.execute('''UPDATE mlb_games SET
+                    spread_home_close = ?, total_close = ?,
+                    home_ml_close = ?, away_ml_close = ?,
+                    close_collected_at = ?
+                    WHERE id = ?''',
+                    (spread_close, total_close, home_ml_close, away_ml_close,
+                     datetime.now().isoformat(), game_id))
+                updated += 1
+                print(f"   📌 Close: {game['away_team']} @ {home} | RL {spread_close} | O/U {total_close} | ML {home_ml_close}")
+
+        conn.commit()
+        conn.close()
+        print(f"\n✅ Closing lines captured for {updated} MLB games\n")
+
+    except Exception as e:
+        print(f"❌ MLB closing line error: {e}")
+
+
 # Main execution
 if __name__ == "__main__":
     import sys
@@ -3312,6 +3855,11 @@ if __name__ == "__main__":
             update_wnba_rolling_ratings()
         elif sys.argv[1] == '--props':
             collect_player_props()
+        elif sys.argv[1] == '--mlb':
+            collect_mlb_scores()
+            collect_mlb_odds()
+        elif sys.argv[1] == '--mlb-close':
+            collect_mlb_closing_lines()
         else:
             print(f"Unknown command: {sys.argv[1]}")
     else:
@@ -3328,5 +3876,7 @@ if __name__ == "__main__":
     print("   python main.py --wnba-shadow - Run WNBA shadow predictions (log only)")
     print("   python main.py --wnba-grade - Grade completed WNBA shadow picks")
     print("   python main.py --wnba-ratings - Recompute all WNBA rolling ratings")
+    print("   python main.py --mlb        - Collect MLB scores + odds")
+    print("   python main.py --mlb-close  - Capture MLB closing lines before games")
     print("   python main.py --report     - Show data collection report")
     print("   python main.py --viz    - Show progress visualization\n")
