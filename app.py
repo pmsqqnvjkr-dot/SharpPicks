@@ -4743,6 +4743,7 @@ def admin_users():
     return jsonify({
         'total': len(users),
         'users': [{
+            'id': u.id,
             'email': u.email,
             'first_name': u.first_name or '',
             'subscription_status': u.subscription_status or 'free',
