@@ -396,7 +396,12 @@ function AppContent() {
         {activeTab === 'performance' && <PerformanceTab onNavigate={navigateTo} initialView={perfView} onViewConsumed={() => setPerfView(null)} />}
         {activeTab === 'profile' && <ProfileTab initialScreen={profileScreen} onScreenChange={setProfileScreen} pickToTrack={pickToTrack} onPickTracked={() => setPickToTrack(null)} screenData={profileScreenData} />}
       </div>
-      <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabNav activeTab={activeTab} onTabChange={(tab) => {
+        if (tab === activeTab && tab === 'picks') {
+          setPicksResetKey(k => k + 1);
+        }
+        setActiveTab(tab);
+      }} />
     </div>
   );
 }

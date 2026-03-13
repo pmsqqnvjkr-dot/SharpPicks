@@ -1,7 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function ResolutionScreen({ pick, onBack, onNavigate }) {
-  useEffect(() => { window.scrollTo(0, 0); }, []);
+  const scrollRef = useRef(null);
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [pick]);
 
   const isRevoked = pick?.result === 'revoked';
   const isWin = pick?.result === 'win';
@@ -24,12 +27,21 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
     : pick?.side || '—';
 
   return (
-    <div style={{ padding: 0, paddingBottom: '100px' }}>
+    <div ref={scrollRef} style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'var(--bg-primary)',
+      zIndex: 200,
+      overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+    }}>
+    <div style={{ maxWidth: '480px', margin: '0 auto', padding: 0, paddingBottom: '100px' }}>
       <div style={{
+        position: 'sticky', top: 0, zIndex: 1,
+        backgroundColor: 'var(--bg-primary)',
+        borderBottom: '1px solid rgba(255,255,255,0.04)',
         padding: 'var(--space-md) 20px',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
-        <button onClick={onBack} style={{
+        <button onClick={onBack} aria-label="Go back" style={{
           background: 'none', border: 'none', cursor: 'pointer',
           color: 'var(--text-secondary)', padding: '4px',
           minWidth: '44px', minHeight: '44px',
@@ -196,19 +208,32 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
         </p>
       </div>
     </div>
+    </div>
   );
 }
 
 function WithdrawnDetailScreen({ pick, onBack }) {
-  useEffect(() => { window.scrollTo(0, 0); }, []);
+  const scrollRef = useRef(null);
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [pick]);
 
   return (
-    <div style={{ padding: 0, paddingBottom: '100px' }}>
+    <div ref={scrollRef} style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'var(--bg-primary)',
+      zIndex: 200,
+      overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+    }}>
+    <div style={{ maxWidth: '480px', margin: '0 auto', padding: 0, paddingBottom: '100px' }}>
       <div style={{
+        position: 'sticky', top: 0, zIndex: 1,
+        backgroundColor: 'var(--bg-primary)',
+        borderBottom: '1px solid rgba(255,255,255,0.04)',
         padding: 'var(--space-md) 20px',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
-        <button onClick={onBack} style={{
+        <button onClick={onBack} aria-label="Go back" style={{
           background: 'none', border: 'none', cursor: 'pointer',
           color: 'var(--text-secondary)', padding: '4px',
           minWidth: '44px', minHeight: '44px',
@@ -344,6 +369,7 @@ function WithdrawnDetailScreen({ pick, onBack }) {
           Past performance does not guarantee future results.
         </p>
       </div>
+    </div>
     </div>
   );
 }
