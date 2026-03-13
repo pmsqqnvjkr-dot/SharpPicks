@@ -141,8 +141,8 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {activeCategory === 'all' && <StartHereCard onTap={() => {
-              const philosophy = insights.find(i => i.slug === 'why-one-pick-beats-five') || insights.find(i => i.category === 'philosophy') || insights[0];
-              if (philosophy) setSelectedInsight(philosophy);
+              const manifesto = insights.find(i => i.slug === 'the-sharp-manifesto') || insights.find(i => i.category === 'philosophy') || insights[0];
+              if (manifesto) setSelectedInsight(manifesto);
             }} />}
             {insights.map(insight => (
               <InsightCard
@@ -197,7 +197,7 @@ function StartHereCard({ onTap }) {
         <div style={{ flex: 1 }}>
           <div style={{
             fontFamily: 'var(--font-mono)',
-            fontSize: '9px', fontWeight: 700,
+            fontSize: '10px', fontWeight: 700,
             letterSpacing: '2px', textTransform: 'uppercase',
             color: 'var(--blue-primary)',
             marginBottom: '4px',
@@ -207,7 +207,13 @@ function StartHereCard({ onTap }) {
             fontSize: '16px', fontWeight: 600,
             color: 'var(--text-primary)',
             lineHeight: '1.3',
-          }}>The Sharp Picks Philosophy</div>
+          }}>The Sharp Manifesto</div>
+          <div style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '11px',
+            color: 'var(--text-secondary)',
+            marginTop: '3px',
+          }}>Founder Letter &mdash; Evan Cole</div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
           <polyline points="9 18 15 12 9 6"/>
