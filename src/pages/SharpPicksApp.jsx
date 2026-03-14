@@ -361,11 +361,12 @@ function AppContent() {
       margin: '0 auto',
       position: 'relative',
     }}>
-      <AppHeader onNavigate={(tab) => {
+      <AppHeader onNavigate={(tab, screen) => {
         if (tab === 'picks' && activeTab === 'picks') {
           setPicksResetKey(k => k + 1);
         }
         setActiveTab(tab);
+        if (tab === 'profile' && screen) setProfileScreen(screen);
       }} />
       {!online && (
         <div style={{
