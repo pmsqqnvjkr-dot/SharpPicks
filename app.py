@@ -1291,7 +1291,8 @@ The window between when an edge appears and when it closes is shrinking. The mod
 Founder, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 22), reading_time_minutes=3,
                 ))
-            if 'why-mlb-is-a-quant-market' not in existing_slugs:
+            # --- MLB articles temporarily disabled until rolling deployment ---
+            if False and 'why-mlb-is-a-quant-market' not in existing_slugs:
                 incremental_insights.append(Insight(
                     title="Why MLB Is a Quant Market",
                     slug="why-mlb-is-a-quant-market",
@@ -1333,7 +1334,7 @@ Baseball is a quant market. SharpPicks is a quant product. The fit is natural.
 Founder, SharpPicks""",
                     status="published", publish_date=datetime(2026, 3, 1), reading_time_minutes=4,
                 ))
-            if 'why-sharp-bettors-focus-on-price' not in existing_slugs:
+            if False and 'why-sharp-bettors-focus-on-price' not in existing_slugs:
                 incremental_insights.append(Insight(
                     title="Why Sharp Bettors Focus on Price, Not Teams",
                     slug="why-sharp-bettors-focus-on-price",
@@ -1379,7 +1380,7 @@ SharpPicks enforces this automatically. The model doesn't know team names. It kn
 Founder, SharpPicks""",
                     status="published", publish_date=datetime(2026, 3, 2), reading_time_minutes=4,
                 ))
-            if 'the-problem-with-betting-big-favorites' not in existing_slugs:
+            if False and 'the-problem-with-betting-big-favorites' not in existing_slugs:
                 incremental_insights.append(Insight(
                     title="The Problem With Betting Big Favorites in Baseball",
                     slug="the-problem-with-betting-big-favorites",
@@ -1425,7 +1426,7 @@ That doesn't mean every underdog is a bet. Most aren't. But the ones where the g
 Founder, SharpPicks""",
                     status="published", publish_date=datetime(2026, 3, 3), reading_time_minutes=4,
                 ))
-            if 'why-bullpen-fatigue-creates-hidden-value' not in existing_slugs:
+            if False and 'why-bullpen-fatigue-creates-hidden-value' not in existing_slugs:
                 incremental_insights.append(Insight(
                     title="Why Bullpen Fatigue Creates Hidden Value",
                     slug="why-bullpen-fatigue-creates-hidden-value",
@@ -1467,7 +1468,7 @@ The best edges aren't the ones that make headlines. They're the ones nobody else
 Founder, SharpPicks""",
                     status="published", publish_date=datetime(2026, 3, 4), reading_time_minutes=4,
                 ))
-            if 'what-makes-an-mlb-moneyline-mispriced' not in existing_slugs:
+            if False and 'what-makes-an-mlb-moneyline-mispriced' not in existing_slugs:
                 incremental_insights.append(Insight(
                     title="What Makes an MLB Moneyline Mispriced",
                     slug="what-makes-an-mlb-moneyline-mispriced",
@@ -1522,6 +1523,20 @@ Founder, SharpPicks""",
                     db.session.add(ins)
                 db.session.commit()
                 logging.info(f"Added {len(incremental_insights)} new insights")
+
+            mlb_slugs = [
+                'why-mlb-is-a-quant-market',
+                'why-sharp-bettors-focus-on-price',
+                'the-problem-with-betting-big-favorites',
+                'why-bullpen-fatigue-creates-hidden-value',
+                'what-makes-an-mlb-moneyline-mispriced',
+            ]
+            hidden = Insight.query.filter(Insight.slug.in_(mlb_slugs), Insight.status != 'draft').all()
+            for h in hidden:
+                h.status = 'draft'
+            if hidden:
+                db.session.commit()
+                logging.info(f"Hid {len(hidden)} MLB articles (draft) until rolling deployment")
 
             now = datetime.now()
             scheduled_to_publish = Insight.query.filter(
