@@ -32,8 +32,7 @@ export default function UpgradeScreen({ onBack, user }) {
   };
 
   const isFoundingOpen = foundingData?.open;
-  const annualPrice = isFoundingOpen ? '$99' : '$149';
-  const annualLabel = isFoundingOpen ? 'Founding Rate' : 'Standard';
+  const annualLabel = isFoundingOpen ? 'Founding Member' : 'Annual';
   const spotsRemaining = foundingData?.remaining || 0;
   const isTrial = user?.subscription_status === 'trial';
 
@@ -211,23 +210,23 @@ export default function UpgradeScreen({ onBack, user }) {
             {isFoundingOpen && (
               <PricingCard
                 name={annualLabel}
-                price={annualPrice}
-                period="/yr"
-                description="Billed annually. Lock in rate permanently."
-                cta="Claim Founding Rate"
+                price=""
+                period="Annual"
+                description="Lock in your founding member rate permanently."
+                cta="Claim Founding Spot"
                 onSelect={() => handleSubscribe('founding')}
                 loading={checkoutLoading}
                 highlight
-                badge="Best Value"
-                savings="Save $249 vs monthly"
+                badge={`${spotsRemaining} of 50 left`}
+                savings="Best value — billed annually"
               />
             )}
             <PricingCard
               name="Monthly"
-              price="$29"
-              period="/mo"
+              price=""
+              period="Monthly"
               description="Flexible access. Cancel anytime."
-              cta="Start Monthly Access"
+              cta="See Monthly Plan"
               onSelect={() => handleSubscribe('monthly')}
               loading={checkoutLoading}
               secondary
@@ -235,14 +234,14 @@ export default function UpgradeScreen({ onBack, user }) {
             {!isFoundingOpen && (
               <PricingCard
                 name={annualLabel}
-                price={annualPrice}
-                period="/yr"
-                description="Save vs monthly"
-                cta="Subscribe Annually"
+                price=""
+                period="Annual"
+                description="Best value. Billed annually."
+                cta="See Annual Plan"
                 onSelect={() => handleSubscribe('annual')}
                 loading={checkoutLoading}
                 highlight
-                savings="Save $199 vs monthly"
+                savings="Save vs monthly"
               />
             )}
           </div>
@@ -345,10 +344,10 @@ function PricingCard({ name, price, period, description, cta, onSelect, loading,
           {name}
         </span>
         <span>
-          <span style={{
+          {price && <span style={{
             fontFamily: 'var(--font-mono)', fontSize: secondary ? '20px' : '24px',
             fontWeight: 700, color: 'var(--text-primary)',
-          }}>{price}</span>
+          }}>{price}</span>}
           <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>{period}</span>
         </span>
       </div>

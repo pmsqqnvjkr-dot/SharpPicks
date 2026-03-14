@@ -1390,6 +1390,52 @@ class EnsemblePredictor:
             implied = abs(std_odds) / (abs(std_odds) + 100) if std_odds < 0 else 100 / (std_odds + 100)
             candidates.append(('line_value', 2, f"Model confidence {confidence:.0%} vs implied {implied:.0%} — {(confidence - implied) * 100:.1f}pp probability edge"))
 
+        # Pitcher context
+        home_pitcher = row.get('home_pitcher')
+        away_pitcher = row.get('away_pitcher')
+        pick_pitcher = home_pitcher if pick_home else away_pitcher
+        opp_pitcher = away_pitcher if pick_home else home_pitcher
+        if pick_pitcher and opp_pitcher:
+            candidates.append(('pitcher', 2, f"Probables: {away_pitcher} vs {home_pitcher} — pitching matchup factored into model projection"))
+        elif pick_pitcher:
+            candidates.append(('pitcher', 2, f"Starting pitcher: {pick_pitcher} on the mound for {pick_team}"))
+
+        # Market note: detect public favorite inflation, form mismatch
+        try:
+            if pick_ml is not None and home_ml is not None and away_ml is not None:
+                h_ml = int(home_ml)
+                a_ml = int(away_ml)
+                fav_ml = min(h_ml, a_ml)
+                if pick_ml > 0 and fav_ml < -180:
+                    candidates.append(('market_note', 3, f"Public favorite inflation: {opp_team} priced at {fav_ml} — market overvaluing chalk, underdog value detected"))
+                elif pick_ml > 0 and fav_ml < -140:
+                    candidates.append(('market_note', 2, f"Market pricing gap: {pick_team} at +{int(pick_ml)} — model sees value the market has not fully corrected"))
+
+            def _pr(rec):
+                if not rec or rec == 'N/A':
+                    return None
+                parts = rec.split('-')
+                w, l = int(parts[0]), int(parts[1])
+                return w / (w + l) if (w + l) > 0 else 0.5
+            pick_pct_val = _pr(home_record if pick_home else away_record)
+            if pick_pct_val is not None and pick_ml is not None:
+                ml_v = int(pick_ml)
+                ml_implied = abs(ml_v) / (abs(ml_v) + 100) if ml_v < 0 else 100 / (ml_v + 100)
+                if pick_pct_val - ml_implied > 0.06:
+                    candidates.append(('market_note', 2, f"Form mismatch: {pick_team} win rate ({pick_pct_val:.0%}) exceeds moneyline implied probability ({ml_implied:.0%}) — line has not adjusted"))
+        except (ValueError, TypeError, ZeroDivisionError):
+            pass
+
+        # Rest-based bullpen context
+        try:
+            pick_rest_val = int(home_rest if pick_home else away_rest) if (home_rest if pick_home else away_rest) is not None else None
+            opp_rest_val = int(away_rest if pick_home else home_rest) if (away_rest if pick_home else home_rest) is not None else None
+            if opp_rest_val is not None and opp_rest_val == 0:
+                candidates.append(('market_note', 2, f"Bullpen fatigue: {opp_team} on back-to-back — potential bullpen wear creates late-game value"))
+        except (ValueError, TypeError):
+            pass
+
+        max_bullets = 4
         candidates.sort(key=lambda x: x[1], reverse=True)
         seen_types = set()
         result = []
@@ -1397,11 +1443,11 @@ class EnsemblePredictor:
             if cat not in seen_types:
                 seen_types.add(cat)
                 result.append(text)
-            if len(result) == 3:
+            if len(result) == max_bullets:
                 break
         while len(result) < 3:
             result.append(f"Adjusted edge {edge:+.1f}% exceeds {self.edge_threshold_pct}% qualification threshold")
-        return result[:3]
+        return result[:max_bullets]
 
     def walk_forward_validate(self):
         """Walk-forward validation using margin GBR model with production filters.

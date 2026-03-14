@@ -942,6 +942,25 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
           </div>
         </div>
 
+        {/* Probable pitchers (MLB) */}
+        {sport === 'mlb' && (game.home_pitcher || game.away_pitcher) && (
+          <div style={{
+            borderTop: '1px solid var(--stroke-subtle)',
+            padding: '4px 14px', display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 700,
+              color: 'var(--text-tertiary)', letterSpacing: '0.06em', flexShrink: 0,
+            }}>SP</span>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-secondary)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {game.away_pitcher || 'TBD'} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.62rem' }}>vs</span> {game.home_pitcher || 'TBD'}
+            </span>
+          </div>
+        )}
+
         {/* 1H lines */}
         {(game.spread_h1_home != null || game.total_h1 != null) && (
           <div style={{

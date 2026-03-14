@@ -9,14 +9,9 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
   const [loading, setLoading] = useState(false);
 
   const monthsOnMonthly = user?.months_subscribed || 2;
-  const monthlySpent = monthsOnMonthly * 29;
-  const projectedAnnual = 12 * 29;
-  const annualCost = user?.founding_member ? 99 : 149;
-  const savings = projectedAnnual - annualCost;
 
   const userRecord = user?.record || '6-3';
   const userROI = user?.roi || '+11.2';
-  const userProfit = user?.net_profit || '+$134';
 
   const handleSwitch = async () => {
     if (isNative) {
@@ -120,30 +115,14 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
           color: 'var(--text-tertiary)', marginBottom: '20px',
         }}>You've been on Monthly for {monthsOnMonthly} months</div>
 
-        <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '56px', fontWeight: 800,
-            color: 'var(--green-profit)', lineHeight: '1',
-          }}>${savings}</div>
+            fontFamily: 'var(--font-serif)', fontSize: '24px', fontWeight: 700,
+            color: 'var(--text-primary)', lineHeight: '1.2', marginBottom: '8px',
+          }}>Switch to Annual & Save</div>
           <div style={{
-            fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px',
-          }}>You'd save per year by switching</div>
-        </div>
-
-        <div style={{
-          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
-          border: '1px solid var(--stroke-subtle)', padding: '20px',
-          marginBottom: '12px', marginTop: '24px',
-        }}>
-          <h3 style={{
-            fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
-            color: 'var(--text-primary)', marginBottom: '16px',
-          }}>Your Spending</h3>
-
-          <ConvertRow label={`Monthly so far (${monthsOnMonthly} mo)`} value={`$${monthlySpent}`} color="var(--red-loss)" />
-          <ConvertRow label="Projected 12 months" value={`$${projectedAnnual}`} color="var(--red-loss)" />
-          <ConvertRow label="Annual plan cost" value={`$${annualCost}`} color="var(--green-profit)" />
-          <ConvertRow label="Your savings" value={`$${savings}/year`} color="var(--green-profit)" last />
+            fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
+          }}>Lock in the best rate. Pay less per month, billed once a year.</div>
         </div>
 
         <div style={{
@@ -154,11 +133,10 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
           <h3 style={{
             fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
             color: 'var(--text-primary)', marginBottom: '16px',
-          }}>Your Results</h3>
+          }}>Your Results So Far</h3>
 
           <ConvertRow label="Record" value={userRecord} />
-          <ConvertRow label="ROI" value={userROI + '%'} color="var(--green-profit)" />
-          <ConvertRow label="Net profit" value={userProfit} color="var(--green-profit)" last />
+          <ConvertRow label="ROI" value={userROI + '%'} color="var(--green-profit)" last />
         </div>
 
         <button
@@ -174,7 +152,7 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
             opacity: loading ? 0.6 : 1,
           }}
         >
-          {loading ? 'Opening checkout...' : `Switch to Annual — $${annualCost}/yr`}
+          {loading ? 'Opening checkout...' : 'Switch to Annual Plan'}
         </button>
 
         <button onClick={onDismiss || onBack} style={{

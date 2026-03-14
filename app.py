@@ -1291,6 +1291,232 @@ The window between when an edge appears and when it closes is shrinking. The mod
 Founder, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 22), reading_time_minutes=3,
                 ))
+            if 'why-mlb-is-a-quant-market' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="Why MLB Is a Quant Market",
+                    slug="why-mlb-is-a-quant-market",
+                    category="philosophy",
+                    excerpt="Baseball isn't just America's pastime. It's the sport most naturally suited to quantitative analysis — and the one where disciplined pricing matters most.",
+                    content="""Baseball isn't just America's pastime. It's the sport most naturally suited to quantitative analysis — and the one where disciplined pricing matters most.
+
+---
+
+## The Numbers Game
+
+Every major sport has analytics. But baseball was built on them. From batting averages to ERA to WAR, the game has always spoken in statistics. The market reflects that. MLB lines are shaped by probability models, historical matchups, and pitcher projections — not hype cycles or national TV narratives.
+
+That makes baseball uniquely exploitable for a disciplined quantitative approach. The signal-to-noise ratio is higher. The data is deeper. And the market, while efficient, still produces gaps — especially around pitcher matchups, bullpen fatigue, and schedule density.
+
+---
+
+## Why 162 Games Matter
+
+The NBA plays 82 games. The NFL plays 17. Baseball plays 162.
+
+That volume creates two things: more data for models to learn from, and more opportunities for the market to misprice individual games. On any given Tuesday in July, there are 15 games on the board. Most of them are priced correctly. But the ones that aren't? That's where disciplined models find edge.
+
+> **SHARP PRINCIPLE**
+>
+> Volume without discipline is just noise. But volume with selectivity is the ideal environment for quantitative edge detection. Baseball provides exactly that.
+
+---
+
+## What This Means for SharpPicks
+
+SharpPicks was built for exactly this kind of environment: large slates, deep data, and a market that rewards patience over action. The model scans every game, identifies probability gaps, and filters aggressively. Most games get passed. The few that qualify earn a signal.
+
+That philosophy doesn't change with the sport. It intensifies. A 15-game slate with 2 signals is discipline in action. A 15-game slate with 0 signals is the system protecting your bankroll.
+
+Baseball is a quant market. SharpPicks is a quant product. The fit is natural.
+
+*Evan Cole*
+Founder, SharpPicks""",
+                    status="published", publish_date=datetime(2026, 3, 1), reading_time_minutes=4,
+                ))
+            if 'why-sharp-bettors-focus-on-price' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="Why Sharp Bettors Focus on Price, Not Teams",
+                    slug="why-sharp-bettors-focus-on-price",
+                    category="philosophy",
+                    excerpt="The question isn't who wins. The question is whether the price is right. That distinction separates recreational bettors from professionals.",
+                    content="""The question isn't who wins. The question is whether the price is right. That distinction separates recreational bettors from professionals — and it applies across every sport SharpPicks covers.
+
+---
+
+## The Price Is the Bet
+
+When a casual bettor looks at a game, they ask: "Who's going to win?" When a sharp bettor looks at the same game, they ask: "Is this number accurate?"
+
+Those are fundamentally different questions. The first is about prediction. The second is about valuation. And valuation is what separates gambling from investing.
+
+A team can be good and still be a bad bet. A team can be bad and still be a great bet. It depends entirely on where the market has set the price — and whether that price reflects true probability.
+
+---
+
+## From NBA to MLB
+
+This principle translates directly from basketball to baseball. In the NBA, it shows up in spreads. In MLB, it shows up most clearly in moneylines.
+
+When a team is priced at -200, the market is saying they win roughly 67% of the time. If your model says 60%, that's a pass — even if the team is excellent. Conversely, a +150 underdog implied at 40% becomes interesting when your model sees 48%.
+
+The team doesn't matter. The gap matters.
+
+> **SHARP PRINCIPLE**
+>
+> Price is information. Every spread, total, and moneyline is a statement about probability. Sharp bettors don't argue with the statement — they measure whether it's accurate.
+
+---
+
+## Why This Is Hard
+
+Focusing on price requires ignoring narratives. It means passing on your favorite team when the number is wrong. It means betting on teams you don't like when the number is right. It means accepting that the market is usually correct — and only acting when it demonstrably isn't.
+
+That kind of discipline is uncomfortable. But it's the only approach that compounds over time.
+
+SharpPicks enforces this automatically. The model doesn't know team names. It knows probabilities, prices, and gaps. When the gap is large enough, it signals. When it isn't, it stays silent. No narrative. No bias. Just math.
+
+*Evan Cole*
+Founder, SharpPicks""",
+                    status="published", publish_date=datetime(2026, 3, 2), reading_time_minutes=4,
+                ))
+            if 'the-problem-with-betting-big-favorites' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="The Problem With Betting Big Favorites in Baseball",
+                    slug="the-problem-with-betting-big-favorites",
+                    category="discipline",
+                    excerpt="Heavy chalk looks safe. It feels safe. But in baseball, the math behind big favorites is one of the most common traps in the market.",
+                    content="""Heavy chalk looks safe. It feels safe. A dominant pitcher on the mound, a strong lineup, a weak opponent. Laying -220 doesn't seem like a gamble. It seems like common sense.
+
+But in baseball, the math behind big favorites is one of the most common traps in the market.
+
+---
+
+## The Juice Problem
+
+When you bet a -220 favorite, you need that team to win 68.75% of the time just to break even. Not to profit — just to break even. The best teams in baseball win about 60% of their games over a full season. Even elite pitchers lose roughly one out of every three starts.
+
+That means the market is pricing implied probabilities that frequently exceed historical reality. And every percentage point of overpricing comes directly out of your bankroll over time.
+
+> **SHARP PRINCIPLE**
+>
+> The bigger the favorite, the smaller the margin for error. In a sport where the best teams lose 60+ games a year, laying heavy chalk is a long-term leak — not a safe play.
+
+---
+
+## Why the Public Loves Chalk
+
+Betting favorites feels like making a good decision. It aligns with how we think about quality: better team, better bet. But that logic ignores price entirely.
+
+A -250 moneyline on the Yankees doesn't mean the Yankees are a good bet. It means the market thinks the Yankees will win this specific game roughly 71% of the time. If they actually win at that rate, you break even. If they win at 65%, you lose money — even though the Yankees won two out of three.
+
+Sportsbooks know this. Favorite-heavy slates generate enormous handle from recreational bettors willing to pay premium prices for perceived certainty.
+
+---
+
+## Where the Value Actually Lives
+
+The other side of every overpriced favorite is an underpriced underdog. When chalk is inflated, dog value emerges — not because the underdog is good, but because the market has overcorrected.
+
+SharpPicks is built to detect exactly this. The model evaluates every moneyline on the board and identifies games where the implied probability diverges from the model's projection. Some of the highest-edge signals come from spots where the public is piling onto a favorite and the market hasn't fully corrected the dog's price.
+
+That doesn't mean every underdog is a bet. Most aren't. But the ones where the gap is real? Those are the signals worth acting on.
+
+*Evan Cole*
+Founder, SharpPicks""",
+                    status="published", publish_date=datetime(2026, 3, 3), reading_time_minutes=4,
+                ))
+            if 'why-bullpen-fatigue-creates-hidden-value' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="Why Bullpen Fatigue Creates Hidden Value",
+                    slug="why-bullpen-fatigue-creates-hidden-value",
+                    category="market_notes",
+                    excerpt="Starting pitchers get all the attention. But games are won and lost in the sixth, seventh, and eighth innings — and that's where fatigue creates market opportunity.",
+                    content="""Starting pitchers get all the attention. Pregame coverage revolves around the matchup on the mound. Moneylines shift dramatically based on who's starting. But games aren't just won in the first five innings. They're won and lost in the sixth, seventh, and eighth — and that's where fatigue creates market opportunity.
+
+---
+
+## The Invisible Factor
+
+When a team plays three games in three days, the impact isn't just on position players. It's on the bullpen. Relief pitchers who threw 30+ pitches yesterday aren't as sharp today. Closers who converted a save last night may be unavailable tonight. The cumulative toll of consecutive games creates a measurable decline in late-inning performance.
+
+But moneylines rarely adjust for this. The market prices the starting pitcher heavily and discounts the bullpen state. That disconnect is where value hides.
+
+---
+
+## How It Shows Up
+
+Consider two scenarios for the same team. In Game 1, they have a fully rested bullpen after an off day. In Game 2, their top three relievers have all thrown in the last two games and their closer is questionable.
+
+The starting pitcher is the same in both games. The lineup is the same. But the team's actual win probability is meaningfully different — because late-game leverage changes the equation.
+
+> **SHARP PRINCIPLE**
+>
+> The market overweights what's visible (starting pitchers) and underweights what's hidden (bullpen fatigue, schedule density, reliever workload). Models that factor rest and usage patterns find edges the public doesn't see.
+
+---
+
+## Why SharpPicks Tracks This
+
+The SharpPicks model incorporates rest days, schedule density, and back-to-back indicators as features. When one team's bullpen is taxed and the opponent's is fresh, that asymmetry feeds directly into the probability calculation.
+
+It's not glamorous analysis. Nobody tweets about bullpen availability. But it's the kind of structural edge that compounds over a 162-game season — quietly, consistently, and invisibly to the casual market.
+
+The best edges aren't the ones that make headlines. They're the ones nobody else is looking at.
+
+*Evan Cole*
+Founder, SharpPicks""",
+                    status="published", publish_date=datetime(2026, 3, 4), reading_time_minutes=4,
+                ))
+            if 'what-makes-an-mlb-moneyline-mispriced' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="What Makes an MLB Moneyline Mispriced",
+                    slug="what-makes-an-mlb-moneyline-mispriced",
+                    category="how_it_works",
+                    excerpt="Not every moneyline is wrong. But when one is, the gap between market price and true probability is where disciplined bettors find edge.",
+                    content="""Not every moneyline is wrong. In fact, most of the time, the market is remarkably accurate. Sportsbooks have access to the same data, the same models, and the same information that sharp bettors do. The line is efficient more often than not.
+
+But when it's wrong, the gap between market price and true probability is where disciplined bettors find edge. Understanding what causes that gap is the first step to exploiting it.
+
+---
+
+## The Three Sources of Mispricing
+
+Most MLB moneyline mispricings come from three sources: public bias, pitcher reputation lag, and situational blindness.
+
+**Public bias** inflates favorites. When a marquee team faces a small-market opponent, recreational money floods the favorite side. Books adjust the line to manage liability, not to reflect true probability. The result: the favorite gets overpriced and the underdog gets underpriced. This happens most frequently on nationally televised games and weekend series.
+
+**Pitcher reputation lag** creates stale prices. A pitcher's moneyline influence is often based on season-long stats or name recognition. But pitching performance fluctuates on shorter cycles — recent workload, pitch mix changes, mechanical adjustments. The market is slow to price these shifts. A pitcher trending down still carries a premium; a pitcher trending up still gets discounted.
+
+**Situational blindness** ignores context. Schedule density, travel, bullpen state, and platoon matchups all affect game probability. The market accounts for some of this, but imperfectly — especially in the middle of long road trips or during compressed schedule stretches.
+
+> **SHARP PRINCIPLE**
+>
+> A mispriced moneyline isn't a broken line. It's a line that hasn't fully absorbed available information. The edge exists in the lag between reality and market adjustment.
+
+---
+
+## How the Model Finds the Gap
+
+SharpPicks doesn't guess which lines are wrong. It measures every line against its own probability estimate — built from 50+ features including team form, rest, splits, and line movement patterns.
+
+When the model's projected win probability diverges from the moneyline's implied probability by more than the qualification threshold, a signal is generated. The size of that gap determines edge strength.
+
+Not every gap is actionable. Small divergences are noise. But when the gap is persistent and structurally driven — not just random variance — it represents genuine market opportunity.
+
+---
+
+## Why Most People Miss This
+
+Mispriced moneylines don't look mispriced. A -160 favorite doesn't feel wrong. A +130 underdog doesn't feel like value. The numbers seem reasonable because we're conditioned to accept the market's framing.
+
+Sharp bettors reject that framing. They ask: "What does -160 imply? Is that implied probability accurate? If not, how far off is it?" That process — price verification, not price acceptance — is the core of quantitative sports betting.
+
+SharpPicks automates that process across every game on the board, every day. When the gap is there, you'll see a signal. When it's not, you'll see silence. Both outcomes are the system working.
+
+*Evan Cole*
+Founder, SharpPicks""",
+                    status="published", publish_date=datetime(2026, 3, 5), reading_time_minutes=5,
+                ))
             if incremental_insights:
                 for ins in incremental_insights:
                     db.session.add(ins)

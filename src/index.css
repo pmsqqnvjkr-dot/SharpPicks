@@ -100,6 +100,23 @@ input, button, textarea, select {
   font-family: inherit;
 }
 
+/* ── Landing page responsive grids ── */
+.landing-hero-grid,
+.landing-product-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .landing-hero-grid,
+  .landing-product-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
 /* ── LIVE pulse animation ── */
 @keyframes live-pulse {
   0%, 100% { opacity: 1; }

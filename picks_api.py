@@ -597,16 +597,26 @@ def market_view():
     sport = request.args.get('sport', 'nba')
     games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
 
-    _select_cols = f"""id, home_team, away_team, game_time,
-                spread_home, spread_away, total, home_ml, away_ml,
-                spread_home_open, total_open, home_ml_open, away_ml_open,
-                home_spread_odds, away_spread_odds,
-                home_spread_book, away_spread_book,
-                spread_h1_home, spread_h1_away,
-                spread_h1_home_odds, spread_h1_away_odds, total_h1,
-                home_record, away_record,
-                home_score, away_score,
-                rundown_spread_consensus, rundown_spread_range, rundown_num_books"""
+    if sport == 'mlb':
+        _select_cols = """id, home_team, away_team, game_time,
+                    spread_home, spread_away, total, home_ml, away_ml,
+                    spread_home_open, total_open, home_ml_open, away_ml_open,
+                    home_spread_odds, away_spread_odds,
+                    home_spread_book, away_spread_book,
+                    home_record, away_record,
+                    home_score, away_score,
+                    home_pitcher, away_pitcher"""
+    else:
+        _select_cols = """id, home_team, away_team, game_time,
+                    spread_home, spread_away, total, home_ml, away_ml,
+                    spread_home_open, total_open, home_ml_open, away_ml_open,
+                    home_spread_odds, away_spread_odds,
+                    home_spread_book, away_spread_book,
+                    spread_h1_home, spread_h1_away,
+                    spread_h1_home_odds, spread_h1_away_odds, total_h1,
+                    home_record, away_record,
+                    home_score, away_score,
+                    rundown_spread_consensus, rundown_spread_range, rundown_num_books"""
 
     try:
         conn = sqlite3.connect(get_sqlite_path())
@@ -730,9 +740,9 @@ def market_view():
             'away_spread_odds': r['away_spread_odds'],
             'home_spread_book': r['home_spread_book'],
             'away_spread_book': r['away_spread_book'],
-            'spread_h1_home': r['spread_h1_home'],
-            'spread_h1_away': r['spread_h1_away'],
-            'total_h1': r['total_h1'],
+            'spread_h1_home': r['spread_h1_home'] if sport != 'mlb' else None,
+            'spread_h1_away': r['spread_h1_away'] if sport != 'mlb' else None,
+            'total_h1': r['total_h1'] if sport != 'mlb' else None,
             'home_record': r['home_record'],
             'away_record': r['away_record'],
             'home_score': r['home_score'],
@@ -740,6 +750,13 @@ def market_view():
             'rlm': rlm,
             'snapshots': line_snapshots.get(key, []),
         }
+
+        if sport == 'mlb':
+            try:
+                game_data['home_pitcher'] = r['home_pitcher']
+                game_data['away_pitcher'] = r['away_pitcher']
+            except (KeyError, IndexError):
+                pass
 
         try:
             game_data['consensus_spread'] = r['rundown_spread_consensus']

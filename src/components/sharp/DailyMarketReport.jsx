@@ -27,6 +27,30 @@ const REGIME_STYLES = {
     border: 'var(--color-border)',
     accent: 'rgba(100, 116, 139, 0.03)',
   },
+  'Mispriced Board': {
+    color: '#34D399',
+    glow: 'rgba(52, 211, 153, 0.12)',
+    border: 'rgba(52, 211, 153, 0.35)',
+    accent: 'rgba(52, 211, 153, 0.08)',
+  },
+  'Active Board': {
+    color: '#FBBF24',
+    glow: 'rgba(251, 191, 36, 0.12)',
+    border: 'rgba(251, 191, 36, 0.30)',
+    accent: 'rgba(251, 191, 36, 0.06)',
+  },
+  'Moderate Board': {
+    color: 'var(--text-secondary)',
+    glow: 'rgba(148, 163, 184, 0.08)',
+    border: 'var(--color-border)',
+    accent: 'rgba(148, 163, 184, 0.04)',
+  },
+  'Tight Board': {
+    color: 'var(--text-tertiary)',
+    glow: 'rgba(100, 116, 139, 0.06)',
+    border: 'var(--color-border)',
+    accent: 'rgba(100, 116, 139, 0.03)',
+  },
 };
 
 const label = {

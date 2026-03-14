@@ -906,14 +906,24 @@ def market_report():
     efficiency = round(no_edge_count / games_analyzed * 100, 0) if games_analyzed > 0 else 100
 
     # Market regime — signature SharpPicks classification
-    if efficiency <= 33:
-        regime = 'Exploitable'
-    elif efficiency <= 60:
-        regime = 'Active'
-    elif efficiency <= 80:
-        regime = 'Moderate'
+    if sport == 'mlb':
+        if efficiency <= 33:
+            regime = 'Mispriced Board'
+        elif efficiency <= 60:
+            regime = 'Active Board'
+        elif efficiency <= 80:
+            regime = 'Moderate Board'
+        else:
+            regime = 'Tight Board'
     else:
-        regime = 'Efficient'
+        if efficiency <= 33:
+            regime = 'Exploitable'
+        elif efficiency <= 60:
+            regime = 'Active'
+        elif efficiency <= 80:
+            regime = 'Moderate'
+        else:
+            regime = 'Efficient'
 
     if efficiency >= 90:
         assessment = 'Highly efficient market today. Passing is a position.'

@@ -3457,6 +3457,56 @@ def get_mlb_team_schedule(team_abbr):
         return None, None
 
 
+def get_mlb_probable_pitchers():
+    """Fetch probable starting pitchers from ESPN scoreboard."""
+    from sport_config import get_sport_config
+    cfg = get_sport_config('mlb')
+    pitchers = {}
+    try:
+        try:
+            from zoneinfo import ZoneInfo
+        except ImportError:
+            from backports.zoneinfo import ZoneInfo
+        et = ZoneInfo('America/New_York')
+        today_compact = datetime.now(et).strftime('%Y%m%d')
+        url = f"{cfg['espn_scoreboard']}?dates={today_compact}"
+        resp = api_request_with_retry(url)
+        if resp and resp.status_code == 200:
+            for event in resp.json().get('events', []):
+                comp = event.get('competitions', [{}])[0]
+                home_pitcher = None
+                away_pitcher = None
+                home_team = None
+                away_team = None
+                for competitor in comp.get('competitors', []):
+                    team_name = competitor.get('team', {}).get('displayName', '')
+                    probables = competitor.get('probables', [])
+                    pitcher_name = None
+                    for prob in probables:
+                        if prob.get('abbreviation') == 'SP' or 'starter' in prob.get('name', '').lower() or prob.get('name') == 'probableStartingPitcher':
+                            athlete = prob.get('athlete', {})
+                            pitcher_name = athlete.get('fullName') or athlete.get('displayName')
+                            break
+                    if not pitcher_name and probables:
+                        athlete = probables[0].get('athlete', {})
+                        pitcher_name = athlete.get('fullName') or athlete.get('displayName')
+                    if competitor.get('homeAway') == 'home':
+                        home_team = team_name
+                        home_pitcher = pitcher_name
+                    else:
+                        away_team = team_name
+                        away_pitcher = pitcher_name
+                if home_team and away_team:
+                    pitchers[(away_team, home_team)] = {
+                        'home_pitcher': home_pitcher,
+                        'away_pitcher': away_pitcher,
+                    }
+            print(f"   ⚾ Probable pitchers found for {len(pitchers)} games")
+    except Exception as e:
+        print(f"⚠️ MLB probable pitchers error: {e}")
+    return pitchers
+
+
 def collect_mlb_scores():
     """Fetch MLB scores from ESPN."""
     from sport_config import get_sport_config
@@ -3538,6 +3588,7 @@ def collect_mlb_odds():
 
     team_data = get_mlb_team_data()
     injuries = get_mlb_injuries()
+    pitchers = get_mlb_probable_pitchers()
 
     PREFERRED_BOOKS = ['draftkings', 'fanduel', 'betmgm', 'caesars_sportsbook', 'pointsbetus', 'betrivers']
     BOOK_DISPLAY = {
@@ -3658,6 +3709,10 @@ def collect_mlb_odds():
             home_injuries_str = injuries.get(home, '')
             away_injuries_str = injuries.get(away, '')
 
+            pitcher_info = pitchers.get((away, home), {})
+            home_pitcher = pitcher_info.get('home_pitcher')
+            away_pitcher = pitcher_info.get('away_pitcher')
+
             cursor.execute('SELECT id, spread_home_open FROM mlb_games WHERE id = ?', (game_id,))
             existing = cursor.fetchone()
 
@@ -3675,8 +3730,8 @@ def collect_mlb_odds():
                      home_spread_odds, away_spread_odds,
                      home_spread_odds_open, away_spread_odds_open,
                      home_spread_book, away_spread_book,
-                     commence_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                     commence_time, home_pitcher, away_pitcher)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                     (game_id, commence_time or today_str, game_time, home, away,
                      spread_home, spread_away, total, home_ml, away_ml,
                      datetime.now().isoformat(),
@@ -3687,7 +3742,7 @@ def collect_mlb_odds():
                      best_home_odds, best_away_odds,
                      best_home_odds, best_away_odds,
                      best_home_book, best_away_book,
-                     game.get('commence_time', '')))
+                     game.get('commence_time', ''), home_pitcher, away_pitcher))
                 line_status = "📌 OPENING"
             else:
                 cursor.execute('''UPDATE mlb_games SET
@@ -3700,7 +3755,9 @@ def collect_mlb_odds():
                     home_rest_days = ?, away_rest_days = ?,
                     home_injuries = ?, away_injuries = ?,
                     home_spread_odds = ?, away_spread_odds = ?,
-                    home_spread_book = ?, away_spread_book = ?
+                    home_spread_book = ?, away_spread_book = ?,
+                    home_pitcher = COALESCE(?, home_pitcher),
+                    away_pitcher = COALESCE(?, away_pitcher)
                     WHERE id = ?''',
                     (spread_home, spread_away, total,
                      home_ml, away_ml, datetime.now().isoformat(),
@@ -3710,6 +3767,7 @@ def collect_mlb_odds():
                      home_injuries_str, away_injuries_str,
                      best_home_odds, best_away_odds,
                      best_home_book, best_away_book,
+                     home_pitcher, away_pitcher,
                      game_id))
 
                 if has_opening:
@@ -3735,6 +3793,8 @@ def collect_mlb_odds():
                 print(f"   📉 {rl_display}")
             if total:
                 print(f"   📉 Total: {total}")
+            if home_pitcher or away_pitcher:
+                print(f"   ⚾ Probables: {away_pitcher or 'TBD'} vs {home_pitcher or 'TBD'}")
             print()
 
         conn.commit()

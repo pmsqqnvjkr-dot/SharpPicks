@@ -295,16 +295,16 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
   const plans = [
     {
       name: 'Free',
-      price: '$0',
-      period: '',
+      price: '',
+      period: 'Free',
       features: ['See if a pick exists today', 'Public record access'],
       cta: null,
       plan: null,
     },
     {
       name: 'Monthly',
-      price: '$29',
-      period: '/mo',
+      price: '',
+      period: 'Monthly',
       features: ['Full pick details', 'Real-time alerts', 'Pick history', 'Bet tracking'],
       cta: 'Start Free Trial',
       subtitle: 'Cancel anytime.',
@@ -312,15 +312,15 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
     },
     {
       name: 'Annual',
-      price: foundingData?.open ? '$99' : '$149',
-      period: '/yr',
+      price: '',
+      period: 'Annual',
       features: [
         'Everything in Monthly',
-        foundingData?.open ? `Founding rate (${foundingData?.remaining || 0} of 50 left)` : 'Standard annual rate',
+        foundingData?.open ? `Founding member (${foundingData?.remaining || 0} of 50 left)` : 'Best value plan',
         'Priority support',
         'Founding member badge',
       ],
-      cta: foundingData?.open ? 'Claim Founding Rate' : 'Start Annual',
+      cta: foundingData?.open ? 'Claim Founding Spot' : 'See Annual Plan',
       plan: foundingData?.open ? 'founding' : 'annual',
       highlight: true,
     },
@@ -642,7 +642,7 @@ function TrialSignup({ onBack }) {
             }}>
               {isNative
                 ? 'Full access to all picks and features during your trial. Cancel anytime.'
-                : '$0 today — you won\'t be charged until your trial ends. $29/mo or $99/yr (founding rate). Cancel anytime.'}
+                : 'Full access to all picks and features during your trial. Cancel anytime.'}
             </p>
           </div>
         </div>
