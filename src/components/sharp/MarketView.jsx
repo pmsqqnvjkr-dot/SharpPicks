@@ -81,7 +81,7 @@ function RLMBadge({ sharpAction }) {
       border: `1px solid ${cfg.border}`,
       display: 'inline-flex', alignItems: 'center', gap: 3,
     }}>
-      <span style={{ fontSize: '0.6rem' }}>⚡</span>SHARP{sharpAction.move ? ` ${sharpAction.move}pts` : ''}
+      <span style={{ fontSize: '0.6rem' }}>⚡</span>RLM{sharpAction.move ? ` ${sharpAction.move}pts` : ''}
     </span>
   );
 }
