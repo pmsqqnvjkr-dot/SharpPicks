@@ -1,36 +1,13 @@
-# SharpPicks Brand Guidelines
+# SharpPicks Brand System
 
 ---
 
 ## Identity
 
-**Full Name:** SharpPicks
-**Wordmark Format:** SHARP || PICKS
-**Tagline:** Beat the market, not the scoreboard.
+**Product Name:** SharpPicks
 **Category:** Sports Market Intelligence Platform
 
----
-
-## Logo & Crest
-
-The SharpPicks crest is the primary brand mark. It is always used on a dark background.
-
-| Asset | File | Usage |
-|---|---|---|
-| Crest (primary) | `images/crest.png` | App header, landing page, onboarding, social |
-| App Icon — iOS | `images/app-icon-ios-1024.png` | App Store, 1024×1024 |
-| App Icon — Android | `images/app-icon-android.png` | Play Store, adaptive icon |
-| App Icon — Foreground | `images/app-icon-foreground.png` | Android adaptive foreground layer |
-| App Icon — Round | `images/app-icon-round.png` | Android round icon variant |
-
-### Logo Usage Rules
-
-- Crest always appears on `#0A0D14` or darker background
-- Ghosted crest (2-5% opacity) used as watermark on hero sections
-- Minimum clear space: crest width × 0.5 on all sides
-- Never place on light backgrounds, never recolor, never stretch
-
-### Wordmark
+**Wordmark**
 
 ```
 SHARP || PICKS
@@ -40,6 +17,227 @@ SHARP || PICKS
 - Letter spacing: 3.9px
 - All uppercase
 - The `||` divider is rendered at reduced opacity (0.5–0.65)
+
+**Primary Tagline**
+
+> Beat the market, not the scoreboard.
+
+---
+
+## Brand Positioning
+
+SharpPicks is not a picks service.
+
+It is a **sports market intelligence platform** that analyzes betting markets like a trading desk.
+
+The platform identifies pricing inefficiencies, measures probability discrepancies, and generates signals only when real edges appear.
+
+SharpPicks sits above the betting market the same way Bloomberg sits above financial markets.
+
+---
+
+## Category Definition
+
+Sports betting has grown into a massive global market, but the tools available to participants remain primitive. Most bettors rely on social media picks, public betting percentages, gut predictions, and betting tip services.
+
+SharpPicks introduces a new category:
+
+**Sports Market Intelligence**
+
+Instead of telling users what teams to bet, the platform helps them understand **where the market is mispriced**.
+
+---
+
+## Core Philosophy
+
+Sports betting is a market. Every spread, total, and moneyline is a price shaped by probability, information, and behavior.
+
+Sharp bettors do not try to predict outcomes. They look for **pricing inefficiencies**.
+
+SharpPicks was built to detect those inefficiencies and enforce discipline in how they are acted upon.
+
+---
+
+## The Sharp Principles
+
+### Principle 1 — Beat the Market
+
+The goal is not predicting winners. The goal is identifying mispriced markets. Sportsbooks set prices. The scoreboard determines results. Sharp bettors focus on price first.
+
+> **Beat the market, not the scoreboard.**
+
+### Principle 2 — Edge Is Rare
+
+Most games are priced correctly. Real opportunities appear infrequently. Sharp bettors accept that most markets offer no advantage.
+
+> **No edge, no pick.**
+
+### Principle 3 — Discipline Compounds
+
+Profitability is the result of thousands of disciplined decisions. Passing a game is often more important than betting one.
+
+> **Discipline is the product.**
+
+### Principle 4 — Price Is Everything
+
+The same bet can be profitable or unprofitable depending on the number. Sharp bettors evaluate the price, not the team.
+
+> **The number matters more than the team.**
+
+### Principle 5 — Volume Destroys Edge
+
+More picks do not create value. Volume dilutes statistical advantage. SharpPicks signals only the strongest opportunities.
+
+> **One pick beats five.**
+
+### Principle 6 — Markets Reveal Information
+
+Line movement reflects information entering the market. Sharp bettors analyze why prices move.
+
+> **Markets reveal information.**
+
+### Principle 7 — Variance Is Inevitable
+
+Even strong edges lose. Short-term results are noisy. Sharp bettors evaluate decisions, not outcomes.
+
+> **Process over hype.**
+
+### Principle 8 — Passing Is a Decision
+
+Not betting is a strategic choice. Discipline protects capital and preserves edge.
+
+> **The best trade is often the one you don't make.**
+
+---
+
+## Brand Messaging
+
+### Category Line
+
+> **Sports Market Intelligence**
+
+Appears above the hero headline in uppercase monospace — anchors the category before the reader sees anything else.
+
+### Hero Headline
+
+> **Beat the market, not the scoreboard.**
+
+The single most important line. Largest text on the landing page. Defines the brand position: market intelligence, not gambling.
+
+### Core Operating Lines
+
+| Line | Context |
+|---|---|
+| *Selective by design.* | Landing page, onboarding, social bios |
+| *One pick beats five.* | Discipline filter, landing, social |
+| *No edge, no pick.* | Market Intelligence, discipline filter, social |
+| *Discipline is the product.* | Onboarding, journal, social headers |
+
+### Footer Trinity (always together)
+
+> Beat the market, not the scoreboard.
+> One pick beats five.
+> No edge, no pick.
+
+### Product Description
+
+> SharpPicks analyzes sports betting markets like a trading desk — identifying pricing inefficiencies, measuring probability gaps, and generating signals only when real edges appear.
+
+### Short Bio
+
+> Sports market intelligence. Selective by design.
+
+### Daily Social Post Format
+
+```
+SharpPicks Market Scan
+
+8 games analyzed
+4 edges detected
+3 signals generated
+5 games passed
+
+No edge. No pick.
+```
+
+---
+
+## Brand Vocabulary
+
+| Use | Don't Use |
+|---|---|
+| Signals | Picks, Locks, Plays |
+| Market Intelligence | Betting tips, Predictions |
+| Quant Analysis | Model likes, Model says |
+| Edge | Lock of the night |
+| Passed / No Action | Skip |
+| Signal generated | Pick released |
+| Discipline Filter | — |
+| Market Regime | — |
+| Cover probability | Chance to win |
+| Closing Line Value (CLV) | — |
+
+SharpPicks language should always sound **analytical, restrained, and institutional**.
+
+---
+
+## Product Architecture
+
+SharpPicks is built around five core modules.
+
+### Market Intelligence
+
+Daily scan of the entire board. Provides an overview of market conditions.
+
+### Quant Analysis
+
+Each game receives a full statistical breakdown: probability edge, projected margin, line movement, model reasoning.
+
+### Discipline Filter
+
+Most games fail qualification. Enforces the philosophy: one pick beats five.
+
+### Sharp Journal
+
+Explains how sports markets behave. Topics include betting market efficiency, reverse line movement, closing line value, bankroll discipline, and decision psychology. Written in the voice of founder **Evan Cole**.
+
+### Decision Tracking (Future)
+
+Users log whether they followed signals and track CLV performance, discipline compliance, and decision outcomes. SharpPicks becomes a **decision intelligence platform**.
+
+---
+
+## Onboarding Flow
+
+New users must understand the system in the first 30 seconds.
+
+| Screen | Headline | Subtext |
+|---|---|---|
+| 1 | Beat the market, not the scoreboard. | Sports betting is a market. SharpPicks analyzes pricing inefficiencies the way trading desks analyze financial markets. |
+| 2 | One pick beats five. | Most betting services promote action. SharpPicks promotes discipline. |
+| 3 | Understand the market. | SharpPicks measures probability gaps, line movement, and market efficiency. |
+| 4 | No edge. No pick. | Only the strongest opportunities qualify. |
+
+---
+
+## Logo & Crest
+
+The SharpPicks crest is the primary brand mark. Always used on a dark background.
+
+| Asset | File | Usage |
+|---|---|---|
+| Crest (primary) | `images/crest.png` | App header, landing page, onboarding, social |
+| App Icon — iOS | `images/app-icon-ios-1024.png` | App Store, 1024×1024 |
+| App Icon — Android | `images/app-icon-android.png` | Play Store, adaptive icon |
+| App Icon — Foreground | `images/app-icon-foreground.png` | Android adaptive foreground layer |
+| App Icon — Round | `images/app-icon-round.png` | Android round variant |
+
+### Logo Usage Rules
+
+- Crest always appears on `#0A0D14` or darker background
+- Ghosted crest (2–5% opacity) used as watermark on hero sections
+- Minimum clear space: crest width × 0.5 on all sides
+- Never place on light backgrounds, never recolor, never stretch
 
 ---
 
@@ -76,12 +274,12 @@ SHARP || PICKS
 
 ### Market Regime Colors
 
-| Regime | Color | Hex |
-|---|---|---|
-| Exploitable / Mispriced Board | Green | `#34D399` |
-| Active / Active Board | Amber | `#FBBF24` |
-| Moderate / Moderate Board | Muted | `#9AA3B2` |
-| Efficient / Tight Board | Dim | `#6B7280` |
+| Regime (NBA/WNBA) | Regime (MLB) | Color | Hex |
+|---|---|---|---|
+| Exploitable | Mispriced Board | Green | `#34D399` |
+| Active | Active Board | Amber | `#FBBF24` |
+| Moderate | Moderate Board | Muted | `#9AA3B2` |
+| Efficient | Tight Board | Dim | `#6B7280` |
 
 ### Borders & Strokes
 
@@ -132,82 +330,17 @@ SHARP || PICKS
 
 ---
 
-## Brand Voice & Messaging
+## Tone & Voice
 
-### Category Line
-
-> **Sports Market Intelligence**
-
-This appears above the hero headline in uppercase monospace — it anchors the category before the reader sees anything else.
-
-### Hero Headline
-
-> **Beat the market, not the scoreboard.**
-
-This is the single most important line. It appears as the largest text on the landing page and defines the brand position: market intelligence, not gambling.
-
-### Core Taglines
-
-| Line | Context |
-|---|---|
-| *Selective by design.* | Landing page, onboarding, social bios |
-| *One pick beats five.* | Discipline filter, landing, social |
-| *No edge, no pick.* | Market Intelligence, discipline filter, social |
-| *Discipline is the product.* | Onboarding, journal, social headers |
-
-### Footer Trinity (always together)
-
-> Beat the market, not the scoreboard.
-> One pick beats five.
-> No edge, no pick.
-
-### Product Description
-
-> SharpPicks analyzes sports betting markets like a trading desk — identifying pricing inefficiencies, measuring probability gaps, and generating signals only when real edges appear.
-
-### Short Bio
-
-> Sports market intelligence. Selective by design.
-
-### Daily Social Post Format
-
-```
-SharpPicks Market Scan
-
-8 games analyzed
-4 edges detected
-3 signals generated
-5 games passed
-
-No edge. No pick.
-```
-
----
-
-## Brand Vocabulary
-
-| Use | Don't Use |
-|---|---|
-| Signals | Picks, Locks, Plays |
-| Market Intelligence | Betting tips, Predictions |
-| Quant Analysis | Model likes, Model says |
-| Edge | Lock of the night |
-| Passed / No Action | Skip |
-| Discipline Filter | — |
-| Market Regime | — |
-| Cover probability | Chance to win |
-| Closing Line Value (CLV) | — |
-| Signal generated | Pick released |
-
----
-
-## Tone
+SharpPicks communicates with the tone of a **research desk**, not a gambling brand.
 
 - **Institutional, not promotional** — Bloomberg, not DraftKings
 - **Restrained, not hype** — "Edge detected" not "LOCK OF THE CENTURY"
 - **Analytical, not emotional** — Data-first language
 - **Confident, not loud** — Let the numbers speak
 - **Founder voice** — Evan Cole writes journal entries as a practitioner, not a marketer
+
+Never promotional. Avoid hype language. Let the numbers speak.
 
 ---
 
@@ -270,6 +403,32 @@ All journal content follows this template:
 > Sports market intelligence. Selective by design.
 
 **Tone:** No gambling language. No "locks." No dollar amounts in the UI. Position as analytics/intelligence, not a betting tool.
+
+---
+
+## Long-Term Vision
+
+SharpPicks becomes the **market intelligence layer for sports betting**.
+
+| Market | Platform |
+|---|---|
+| Financial Markets | Bloomberg |
+| Crypto Markets | Glassnode / Nansen |
+| Sports Markets | **SharpPicks** |
+
+Users rely on the platform to analyze market conditions, identify inefficiencies, track decision performance, and operate with discipline.
+
+---
+
+## Brand Summary
+
+SharpPicks is not a betting app.
+
+It is a **market intelligence platform** designed for disciplined decision making.
+
+Core belief:
+
+> **Beat the market, not the scoreboard.**
 
 ---
 
