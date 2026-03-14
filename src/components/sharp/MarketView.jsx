@@ -64,18 +64,24 @@ function Sparkline({ snapshots, field = 'spread', width = 48, height = 16 }) {
   );
 }
 
-function RLMBadge({ rlm, spreadOpen, spreadNow }) {
-  if (!rlm) return null;
-  const move = spreadOpen != null && spreadNow != null ? Math.abs(spreadNow - spreadOpen).toFixed(1) : null;
+const SHARP_CONF = {
+  high:     { color: '#f59e0b', bg: 'rgba(251,191,36,0.06)', border: 'rgba(251,191,36,0.20)', label: 'HIGH', fill: 1.0 },
+  moderate: { color: '#d4a24a', bg: 'rgba(251,191,36,0.04)', border: 'rgba(251,191,36,0.12)', label: 'MED',  fill: 0.6 },
+  low:      { color: '#8a7a5e', bg: 'rgba(251,191,36,0.02)', border: 'rgba(251,191,36,0.08)', label: 'LOW',  fill: 0.3 },
+};
+
+function RLMBadge({ sharpAction }) {
+  if (!sharpAction) return null;
+  const cfg = SHARP_CONF[sharpAction.confidence] || SHARP_CONF.low;
   return (
     <span style={{
       fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
       padding: '2px 6px', borderRadius: 3,
-      background: 'rgba(251,191,36,0.15)', color: '#f59e0b',
-      border: '1px solid rgba(251,191,36,0.30)',
+      background: `${cfg.color}22`, color: cfg.color,
+      border: `1px solid ${cfg.border}`,
       display: 'inline-flex', alignItems: 'center', gap: 3,
     }}>
-      <span style={{ fontSize: '0.6rem' }}>⚡</span>RLM{move ? ` ${move}pts` : ''}
+      <span style={{ fontSize: '0.6rem' }}>⚡</span>SHARP{sharpAction.move ? ` ${sharpAction.move}pts` : ''}
     </span>
   );
 }
@@ -651,38 +657,53 @@ function LineHistoryModal({ game, onClose }) {
 }
 
 function SharpMoneyIndicator({ game }) {
-  if (!game.rlm) return null;
-  const spreadOpen = game.spread_home_open;
-  const spreadNow = game.spread_home;
-  if (spreadOpen == null || spreadNow == null) return null;
-  const move = Math.abs(spreadNow - spreadOpen);
-  if (move < 1.0) return null;
-
-  const sharpSide = game.rlm === 'home' ? game.home : game.away;
-  const publicSide = game.rlm === 'home' ? game.away : game.home;
+  const sa = game.sharp_action;
+  if (!sa) return null;
+  const cfg = SHARP_CONF[sa.confidence] || SHARP_CONF.low;
+  const sharpSide = sa.side === 'home' ? game.home : game.away;
+  const publicSide = sa.side === 'home' ? game.away : game.home;
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div style={{
-      padding: '6px 14px 6px',
-      borderTop: '1px solid rgba(251,191,36,0.1)',
-      background: 'rgba(251,191,36,0.03)',
+      padding: '8px 14px',
+      borderTop: `1px solid ${cfg.border}`,
+      background: cfg.bg,
     }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4,
-      }}>
+      <div
+        onClick={() => setExpanded(!expanded)}
+        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}
+      >
         <span style={{
           fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
-          color: '#f59e0b',
-        }}>⚡ REVERSE LINE MOVEMENT</span>
+          color: cfg.color,
+        }}>⚡ SHARP ACTION DETECTED</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{
+            display: 'flex', gap: 2,
+          }}>
+            {[0.3, 0.6, 1.0].map((t, i) => (
+              <div key={i} style={{
+                width: 12, height: 4, borderRadius: 1,
+                background: cfg.fill >= t ? cfg.color : 'rgba(255,255,255,0.08)',
+              }} />
+            ))}
+          </div>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.56rem', fontWeight: 700,
+            color: cfg.color, letterSpacing: '0.06em',
+          }}>{cfg.label}</span>
+          <span style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
+        </div>
       </div>
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 600,
+            fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 600,
             color: 'var(--text-tertiary)', letterSpacing: '0.04em', marginBottom: 2,
-          }}>PUBLIC MONEY</div>
+          }}>PUBLIC SIDE</div>
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 600,
             color: 'var(--text-secondary)',
@@ -693,21 +714,38 @@ function SharpMoneyIndicator({ game }) {
           color: 'var(--text-tertiary)', textAlign: 'center',
         }}>
           <div>Line moved</div>
-          <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.72rem' }}>
-            {move.toFixed(1)}pts
+          <div style={{ color: cfg.color, fontWeight: 700, fontSize: '0.72rem' }}>
+            {sa.move}pts
+          </div>
+          <div style={{ fontSize: '0.52rem', color: 'var(--text-tertiary)', marginTop: 1 }}>
+            {sa.spread_open > 0 ? '+' : ''}{sa.spread_open} → {sa.spread_now > 0 ? '+' : ''}{sa.spread_now}
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 600,
-            color: '#f59e0b', letterSpacing: '0.04em', marginBottom: 2,
-          }}>SHARP MONEY</div>
+            fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 600,
+            color: cfg.color, letterSpacing: '0.04em', marginBottom: 2,
+          }}>SHARP SIDE</div>
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700,
-            color: '#f59e0b',
+            color: cfg.color,
           }}>{sharpSide}</div>
         </div>
       </div>
+      {expanded && sa.evidence?.length > 0 && (
+        <div style={{ marginTop: 8, paddingTop: 6, borderTop: `1px solid ${cfg.border}` }}>
+          {sa.evidence.map((e, i) => (
+            <div key={i} style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.58rem',
+              color: 'var(--text-tertiary)', lineHeight: 1.5,
+              paddingLeft: 8, position: 'relative',
+            }}>
+              <span style={{ position: 'absolute', left: 0, color: cfg.color }}>•</span>
+              {e}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -817,7 +855,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             {isLive && <LiveBadge state={game.live_state} period={game.live_period} clock={game.live_clock} />}
             {isFinal && <LiveBadge state="STATUS_FINAL" />}
-            {!isLive && !isFinal && <RLMBadge rlm={game.rlm} spreadOpen={game.spread_home_open} spreadNow={game.spread_home} />}
+            {!isLive && !isFinal && <RLMBadge sharpAction={game.sharp_action} />}
             {!isLive && !isFinal && game.snapshots?.length >= 2 && (
               <span onClick={e => { e.stopPropagation(); onLineHistory?.(game); }} style={{ cursor: 'pointer' }}>
                 <Sparkline snapshots={game.snapshots} field="spread" />
@@ -1260,7 +1298,7 @@ function TableView({ games, isPro, onLineHistory, sport }) {
                           color: 'var(--text-secondary)',
                           overflow: 'hidden', textOverflow: 'ellipsis',
                         }}>{g.away}</span>
-                        {g.rlm && <span style={{ fontSize: '0.5rem', color: '#f59e0b' }}>⚡</span>}
+                        {g.sharp_action && <span style={{ fontSize: '0.5rem', color: (SHARP_CONF[g.sharp_action.confidence] || SHARP_CONF.low).color }}>⚡</span>}
                       </div>
                       <span style={{
                         fontSize: '0.72rem', fontWeight: 700,

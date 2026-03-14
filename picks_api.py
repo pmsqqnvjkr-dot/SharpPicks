@@ -54,6 +54,163 @@ def _calc_line_stability(snapshots, game_data):
     }
 
 
+def _detect_sharp_action(spread_open, spread_now, snapshots, game_data, model_data=None):
+    """Composite sharp-money detection using all available market signals.
+
+    Returns dict with side, confidence (0-100), evidence list, or None.
+    """
+    if spread_open is None or spread_now is None:
+        return None
+
+    spread_move = spread_now - spread_open
+    abs_move = abs(spread_move)
+    if abs_move < 0.5:
+        return None
+
+    # Primary signal: which direction did the line move?
+    # Negative move = home got more points (line moved toward home)
+    # Books move lines AGAINST sharp money, so if line moves toward home,
+    # sharps are on the away side (betting away, forcing books to give home more points)
+    move_side = 'away' if spread_move < 0 else 'home'
+
+    evidence = []
+    score = 0.0
+
+    # --- Signal 1: Spread movement magnitude ---
+    if abs_move >= 2.0:
+        score += 30
+        evidence.append(f"Spread moved {abs_move:.1f}pts — significant sharp pressure")
+    elif abs_move >= 1.0:
+        score += 20
+        evidence.append(f"Spread moved {abs_move:.1f}pts from open")
+    else:
+        score += 8
+        evidence.append(f"Spread moved {abs_move:.1f}pts — minor shift")
+
+    # --- Signal 2: Snapshot trend consistency ---
+    if snapshots and len(snapshots) >= 3:
+        spreads = [s['spread'] for s in snapshots if s.get('spread') is not None]
+        if len(spreads) >= 3:
+            directional = sum(
+                1 for i in range(1, len(spreads))
+                if (spreads[i] - spreads[i - 1]) * spread_move > 0
+            )
+            consistency = directional / (len(spreads) - 1) if len(spreads) > 1 else 0
+            if consistency >= 0.75:
+                score += 15
+                evidence.append("Sustained one-directional movement across snapshots")
+            elif consistency >= 0.5:
+                score += 8
+                evidence.append("Line trending in one direction")
+
+    # --- Signal 3: Juice / odds shift ---
+    home_odds = game_data.get('home_spread_odds')
+    away_odds = game_data.get('away_spread_odds')
+    if home_odds and away_odds:
+        # Standard juice is -110/-110. Heavier juice on a side means books
+        # are trying to balance action — sharps are on the cheaper side.
+        # More negative = more expensive for that side's bettors.
+        juice_diff = abs(home_odds) - abs(away_odds)
+        # If sharps are on 'home', books make home cheaper (less negative)
+        # and away more expensive (more negative) to attract public to away.
+        # Actually: books make the sharp side MORE expensive to discourage it.
+        # So heavier juice on a side = books think sharps are there.
+        if move_side == 'home' and juice_diff > 5:
+            # Home is more expensive — books pricing against home bettors
+            score += 10
+            evidence.append(f"Juice favors away side ({home_odds}/{away_odds}) — books pricing against sharp side")
+        elif move_side == 'away' and juice_diff < -5:
+            score += 10
+            evidence.append(f"Juice favors home side ({home_odds}/{away_odds}) — books pricing against sharp side")
+        elif (move_side == 'home' and juice_diff < -10) or (move_side == 'away' and juice_diff > 10):
+            score -= 5  # Juice contradicts the move direction
+
+    # --- Signal 4: Book disagreement (spread range) ---
+    spread_range_str = game_data.get('spread_range')
+    if spread_range_str and isinstance(spread_range_str, str) and ' to ' in spread_range_str:
+        try:
+            parts = spread_range_str.split(' to ')
+            sr = abs(float(parts[1]) - float(parts[0]))
+            if sr >= 2.0:
+                score += 10
+                evidence.append(f"Books disagree by {sr:.1f}pts — market still adjusting")
+            elif sr >= 1.0:
+                score += 5
+                evidence.append(f"Moderate book disagreement ({sr:.1f}pt range)")
+        except (ValueError, IndexError):
+            pass
+
+    # --- Signal 5: Consensus vs current spread ---
+    consensus = game_data.get('consensus_spread')
+    if consensus is not None and spread_now is not None:
+        consensus_diff = spread_now - consensus
+        # If current differs from consensus in the same direction as the move,
+        # the best-line book has moved further than the market — steam move
+        if abs(consensus_diff) >= 0.5 and (consensus_diff * spread_move > 0):
+            score += 10
+            evidence.append(f"Best line ({spread_now:+.1f}) ahead of consensus ({consensus:+.1f}) — steam detected")
+
+    # --- Signal 6: Moneyline confirmation ---
+    home_ml = game_data.get('home_ml')
+    away_ml = game_data.get('away_ml')
+    home_ml_open = game_data.get('home_ml_open')
+    away_ml_open = game_data.get('away_ml_open')
+    if home_ml and away_ml and home_ml_open and away_ml_open:
+        # Convert MLs to implied probability shift
+        def ml_to_prob(ml):
+            if ml is None:
+                return None
+            return abs(ml) / (abs(ml) + 100) if ml < 0 else 100 / (ml + 100)
+
+        h_prob_now = ml_to_prob(home_ml)
+        h_prob_open = ml_to_prob(home_ml_open)
+        if h_prob_now is not None and h_prob_open is not None:
+            ml_shift = h_prob_now - h_prob_open
+            # If spread moved toward home (sharps on away) AND home ML implied prob dropped,
+            # that confirms sharps are on away
+            if move_side == 'away' and ml_shift < -0.02:
+                score += 12
+                evidence.append("Moneyline confirms — home implied probability dropped")
+            elif move_side == 'home' and ml_shift > 0.02:
+                score += 12
+                evidence.append("Moneyline confirms — home implied probability rose")
+            elif (move_side == 'away' and ml_shift > 0.03) or (move_side == 'home' and ml_shift < -0.03):
+                score -= 5  # ML contradicts spread direction
+
+    # --- Signal 7: Model alignment ---
+    if model_data:
+        model_side = model_data.get('pick_side')
+        if model_side:
+            model_side_lower = model_side.lower()
+            if model_side_lower == move_side:
+                score += 15
+                evidence.append("Model projection aligns with sharp-side movement")
+            elif model_side_lower in ('home', 'away') and model_side_lower != move_side:
+                score -= 5
+
+    # Clamp and classify
+    score = max(0, min(score, 100))
+    if score < 15:
+        return None
+
+    if score >= 60:
+        confidence = 'high'
+    elif score >= 35:
+        confidence = 'moderate'
+    else:
+        confidence = 'low'
+
+    return {
+        'side': move_side,
+        'confidence': confidence,
+        'score': round(score),
+        'evidence': evidence,
+        'spread_open': spread_open,
+        'spread_now': spread_now,
+        'move': round(abs_move, 1),
+    }
+
+
 def _calc_playable_to(line, side, edge_pct):
     """Calculate worst spread at which the edge still exceeds threshold."""
     if line is None or edge_pct is None:
@@ -717,11 +874,6 @@ def market_view():
 
         spread_open = r['spread_home_open']
         spread_now = r['spread_home']
-        rlm = None
-        if spread_open is not None and spread_now is not None:
-            move = spread_now - spread_open
-            if abs(move) >= 1.0:
-                rlm = 'home' if move < 0 else 'away'
 
         game_data = {
             'id': r['id'],
@@ -736,6 +888,8 @@ def market_view():
             'total_open': r['total_open'],
             'home_ml': r['home_ml'],
             'away_ml': r['away_ml'],
+            'home_ml_open': r['home_ml_open'],
+            'away_ml_open': r['away_ml_open'],
             'home_spread_odds': r['home_spread_odds'],
             'away_spread_odds': r['away_spread_odds'],
             'home_spread_book': r['home_spread_book'],
@@ -747,7 +901,6 @@ def market_view():
             'away_record': r['away_record'],
             'home_score': r['home_score'],
             'away_score': r['away_score'],
-            'rlm': rlm,
             'snapshots': line_snapshots.get(key, []),
         }
 
@@ -785,6 +938,12 @@ def market_view():
                 'signals': ma.get('signals') or pick_signals.get(key, []),
                 'playable_to': ma.get('playable_to'),
             }
+
+        sharp = _detect_sharp_action(
+            spread_open, spread_now, snaps, game_data, ma
+        )
+        game_data['rlm'] = sharp['side'] if sharp else None
+        game_data['sharp_action'] = sharp
 
         games.append(game_data)
 
