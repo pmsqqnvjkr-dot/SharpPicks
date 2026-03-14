@@ -272,6 +272,11 @@ export default function LandingPage() {
         }}>
           {/* Left — Copy */}
           <div>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
+              letterSpacing: '0.16em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)', marginBottom: 16,
+            }}>Sports Market Intelligence</div>
             <h1 style={{
               fontFamily: 'var(--font-serif)', fontSize: 'clamp(32px, 4.5vw, 52px)',
               fontWeight: 700, lineHeight: 1.1,
