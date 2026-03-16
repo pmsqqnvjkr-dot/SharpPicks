@@ -451,7 +451,7 @@ function SignalHistoryRow({ pick, isPro, isLast, onView }) {
   const hasCLV = isSettled && clvVal != null;
   const rightLine2 = hasCLV
     ? `CLV ${clvVal >= 0 ? '+' : ''}${clvVal.toFixed(1)}`
-    : pick.edge_pct ? `+${pick.edge_pct}% edge` : null;
+    : (pick.edge_pct && !hideLine) ? `+${pick.edge_pct}% edge` : null;
   const rightLine2Color = hasCLV
     ? (clvVal > 0 ? 'var(--color-signal)' : clvVal < 0 ? 'var(--color-loss)' : 'var(--text-tertiary)')
     : 'var(--text-tertiary)';

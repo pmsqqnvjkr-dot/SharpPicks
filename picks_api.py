@@ -374,6 +374,7 @@ def today():
         is_pro = cu is not None and cu.is_pro
         if not is_pro:
             pick_data['side'] = 'Upgrade to see pick'
+            pick_data['line'] = None
             pick_data['edge_pct'] = None
             pick_data['model_confidence'] = None
             pick_data['predicted_margin'] = None
@@ -386,7 +387,11 @@ def today():
             pick_data['market_line'] = None
             pick_data['model_projection'] = None
             pick_data['market_context'] = None
+            pick_data['market_odds'] = None
             pick_data['stake_guidance'] = None
+            pick_data['playable_to'] = None
+            pick_data['closing_spread'] = None
+            pick_data['clv'] = None
             pick_data['locked'] = True
         else:
             pick_data['locked'] = False
