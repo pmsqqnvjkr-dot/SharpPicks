@@ -165,7 +165,7 @@ export default function DailyMarketReport({ report: reportProp }) {
           }}>Market Regime</div>
           <div style={{
             fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
-            color: 'var(--text-primary)', letterSpacing: '0.02em', textTransform: 'uppercase',
+            color: 'var(--text-primary)', letterSpacing: '0.02em',
             lineHeight: 1.2,
           }}>{regime}</div>
           <div style={{
