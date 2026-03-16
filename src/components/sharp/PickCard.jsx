@@ -235,24 +235,54 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
             letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: '4px',
+            color: 'var(--text-tertiary)', marginBottom: '10px',
           }}>
             {(pick.sport || 'nba').toUpperCase()} — {pick.away_team} vs {pick.home_team}
           </div>
 
-          {/* ── MODEL EDGE (headline) ── */}
+          {/* ── THE PICK (headline) ── */}
           <div style={{
             marginBottom: 'var(--space-md)',
-            padding: '14px 0 4px',
+            padding: '14px 16px',
+            borderRadius: '12px',
+            background: 'rgba(0,0,0,0.22)',
+            border: '1px solid rgba(79,134,247,0.12)',
+          }}>
+            <div style={{
+              fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
+              color: 'var(--text-primary)', lineHeight: 1.2,
+              display: 'flex', alignItems: 'baseline', gap: '8px',
+            }}>
+              <span>{teamPart}</span>
+              {spreadPart && (
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '24px', fontWeight: 800,
+                  color: '#4F86F7',
+                }}>{spreadPart}</span>
+              )}
+            </div>
+            {gameFmt && (
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
+                color: 'var(--text-tertiary)', marginTop: '6px',
+              }}>
+                {gameFmt}
+              </div>
+            )}
+          </div>
+
+          {/* ── MODEL EDGE ── */}
+          <div style={{
+            marginBottom: 'var(--space-md)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <div style={{
               ...label, fontSize: '9px', letterSpacing: '0.12em',
-              color: 'var(--text-tertiary)', marginBottom: '4px',
+              color: 'var(--text-tertiary)', marginBottom: 0,
             }}>Model Edge</div>
             <div style={{
-              ...metric, fontSize: '32px', lineHeight: 1,
-              color: 'var(--color-signal)',
-              textShadow: `0 0 20px var(--color-signal-glow)`,
+              ...metric, fontSize: '24px', lineHeight: 1,
+              color: '#34D399',
             }}>
               {fmtEdge(pick.edge_pct)}
             </div>
