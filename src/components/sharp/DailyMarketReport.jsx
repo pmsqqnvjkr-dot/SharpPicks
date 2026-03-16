@@ -164,8 +164,8 @@ export default function DailyMarketReport({ report: reportProp }) {
             color: 'var(--text-tertiary)', marginBottom: '6px', lineHeight: 1,
           }}>Market Regime</div>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-hero)', fontWeight: 700,
-            color: rs.color, letterSpacing: '0.02em', textTransform: 'uppercase',
+            fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
+            color: 'var(--text-primary)', letterSpacing: '0.02em', textTransform: 'uppercase',
             lineHeight: 1.2,
           }}>{regime}</div>
           <div style={{
