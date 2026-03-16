@@ -1,0 +1,17 @@
+node_modules
+android
+ios
+.git
+.local
+attached_assets
+IOS and android screenshots
+store-assets
+.config
+brand
+*.db
+*.pkl
+__pycache__
+.venv
+venv
+.DS_Store
+*.log
