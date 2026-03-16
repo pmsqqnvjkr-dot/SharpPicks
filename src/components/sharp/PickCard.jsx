@@ -202,10 +202,10 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
         padding: 0,
         background: isSettled
           ? 'var(--surface-1)'
-          : 'radial-gradient(900px 520px at 40% 0%, rgba(79,134,247,0.20), transparent 55%), linear-gradient(165deg, rgba(23,36,74,0.88), rgba(17,26,56,0.88))',
+          : 'radial-gradient(900px 520px at 40% 0%, rgba(47,95,214,0.12), transparent 55%), linear-gradient(165deg, rgba(18,28,58,0.92), rgba(14,22,48,0.92))',
         border: isSettled
           ? `1px solid var(--color-border)`
-          : '1px solid rgba(79,134,247,0.16)',
+          : '1px solid rgba(47,95,214,0.14)',
         borderTop: isSettled ? undefined : `2px solid var(--color-signal)`,
         boxShadow: isSettled ? 'none' : 'var(--shadow-signal)',
         overflow: 'hidden',
@@ -264,7 +264,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
               padding: '14px 16px',
               borderRadius: '12px',
               background: 'rgba(0,0,0,0.22)',
-              border: '1px solid rgba(79,134,247,0.12)',
+              border: '1px solid rgba(47,95,214,0.10)',
             }}>
               <div style={{
                 fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
