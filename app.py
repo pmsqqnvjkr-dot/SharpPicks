@@ -87,6 +87,70 @@ def _get_et_today():
         now_et = datetime.utcnow() - timedelta(hours=5)
     return now_et.strftime('%Y-%m-%d')
 
+
+def _upsert_market_note_insight(report):
+    """Create or update the daily Market Note insight from the market report dict."""
+    if not report.get('available'):
+        return None
+    date_str = report.get('date', '')
+    if not date_str or len(date_str) != 10:
+        return None
+    slug = f"market-note-{date_str}"
+    title = (report.get('insight') or report.get('briefing', [None])[0] or 'Market Note')[:200]
+    if title and not title[0].isupper():
+        title = title[0].upper() + title[1:]
+    lean = report.get('market_lean') or {}
+    fav = lean.get('favorites', 0)
+    udog = lean.get('underdogs', 0)
+    observation = report.get('insight') or 'No exploitable inefficiencies detected.'
+    content_parts = [
+        '## Observation',
+        observation,
+        '',
+        '## Market Structure',
+        f"- Edges detected: {report.get('edges_detected', 0)}",
+        f"- Signals generated: {report.get('qualified_signals', 0)}",
+        f"- Signal density: {report.get('signal_density', 0)}%",
+        '',
+        '## Bias',
+        f"Favorites vs Underdogs: {fav} favorite edges, {udog} underdog edges.",
+        '',
+        '## Implication',
+        report.get('assessment', ''),
+        '',
+        '*— Evan Cole*',
+    ]
+    content = '\n'.join(content_parts)
+    excerpt = (observation or title)[:160]
+    try:
+        from zoneinfo import ZoneInfo
+        et = ZoneInfo('America/New_York')
+        pub = datetime.strptime(date_str, '%Y-%m-%d').replace(tzinfo=et)
+    except Exception:
+        pub = datetime.utcnow()
+    existing = Insight.query.filter_by(slug=slug).first()
+    if existing:
+        existing.title = title
+        existing.excerpt = excerpt
+        existing.content = content
+        existing.updated_at = datetime.utcnow()
+        db.session.commit()
+        return existing
+    insight = Insight(
+        title=title,
+        slug=slug,
+        category='market_notes',
+        excerpt=excerpt,
+        content=content,
+        status='published',
+        publish_date=pub,
+        pass_day=report.get('edges_detected', 0) == 0,
+    )
+    db.session.add(insight)
+    db.session.commit()
+    return insight
+
+
 from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent, CronLog
 from picks_api import picks_bp
 from public_api import public_bp
@@ -1728,11 +1792,22 @@ def collect_todays_games():
         raise
 
 def grade_pending_picks():
-    """Check game results and grade pending picks as win/loss"""
+    """Check game results and grade pending picks as win/loss.
+    Also grade TrackedBets linked to revoked picks (user bet before withdrawal)."""
     with app.app_context():
-        pending_picks = Pick.query.filter_by(result='pending').all()
-        logging.info(f"[Auto-grade] Found {len(pending_picks)} pending picks")
-        if not pending_picks:
+        from sqlalchemy import or_, and_
+        # Picks that are pending, or revoked but have at least one ungraded tracked bet
+        revoked_with_ungraded_bets = db.session.query(Pick.id).join(
+            TrackedBet, TrackedBet.pick_id == Pick.id
+        ).filter(Pick.result == 'revoked', TrackedBet.result.is_(None)).distinct().subquery()
+        picks_to_grade = Pick.query.filter(
+            or_(
+                Pick.result == 'pending',
+                Pick.id.in_(db.session.query(revoked_with_ungraded_bets.c.id))
+            )
+        ).all()
+        logging.info(f"[Auto-grade] Found {len(picks_to_grade)} picks to grade (pending + revoked with active bets)")
+        if not picks_to_grade:
             return
 
         try:
@@ -1744,7 +1819,7 @@ def grade_pending_picks():
             except Exception:
                 sqlite_cursor = None
 
-            for pick in pending_picks:
+            for pick in picks_to_grade:
                 game = None
                 raw_date = pick.game_date
                 if hasattr(raw_date, 'strftime'):
@@ -1847,58 +1922,64 @@ def grade_pending_picks():
                 else:
                     ats_margin = -spread_result + line_value
 
-                pick.home_score = home_score
-                pick.away_score = away_score
-
+                # Compute outcome (same for pending and revoked-with-bets)
                 if ats_margin == 0:
-                    pick.result = 'push'
-                    pick.result_ats = 'P'
-                    pick.profit_units = 0.0
-                    pick.pnl = 0
+                    result_ats = 'P'
+                    profit_units = 0.0
+                    pnl = 0
                 elif ats_margin > 0:
-                    pick.result = 'win'
-                    pick.result_ats = 'W'
+                    result_ats = 'W'
                     actual_odds = pick.market_odds or -110
                     if actual_odds < 0:
-                        pick.profit_units = round(100 / abs(actual_odds), 2)
+                        profit_units = round(100 / abs(actual_odds), 2)
                     else:
-                        pick.profit_units = round(actual_odds / 100, 2)
-                    pick.pnl = round(pick.profit_units * 100, 0)
+                        profit_units = round(actual_odds / 100, 2)
+                    pnl = round(profit_units * 100, 0)
                 else:
-                    pick.result = 'loss'
-                    pick.result_ats = 'L'
-                    pick.profit_units = -1.0
-                    pick.pnl = -100
+                    result_ats = 'L'
+                    profit_units = -1.0
+                    pnl = -100
 
-                pick.result_resolved_at = datetime.now()
+                is_revoked = pick.result == 'revoked'
 
-                print(f"[Auto-grade] {pick.game_date}: {pick.side} -> {pick.result} (score: {home_score}-{away_score})")
+                if not is_revoked:
+                    pick.home_score = home_score
+                    pick.away_score = away_score
+                    pick.result = 'push' if result_ats == 'P' else ('win' if result_ats == 'W' else 'loss')
+                    pick.result_ats = result_ats
+                    pick.profit_units = profit_units
+                    pick.pnl = pnl
+                    pick.result_resolved_at = datetime.now()
 
-                try:
-                    from notification_service import send_result_notification
-                    send_result_notification(pick, pick.result)
-                except Exception as e:
-                    print(f"[Auto-grade] Result notification error: {e}")
+                    print(f"[Auto-grade] {pick.game_date}: {pick.side} -> {pick.result} (score: {home_score}-{away_score})")
 
-                try:
-                    from notification_events import dispatch_result_emails
-                    dispatch_result_emails(pick)
-                except Exception as e:
-                    print(f"[Auto-grade] Result email dispatch error: {e}")
+                    try:
+                        from notification_service import send_result_notification
+                        send_result_notification(pick, pick.result)
+                    except Exception as e:
+                        print(f"[Auto-grade] Result notification error: {e}")
+
+                    try:
+                        from notification_events import dispatch_result_emails
+                        dispatch_result_emails(pick)
+                    except Exception as e:
+                        print(f"[Auto-grade] Result email dispatch error: {e}")
+                else:
+                    print(f"[Auto-grade] Revoked pick (score: {home_score}-{away_score}): grading {result_ats} for linked tracked bets only")
 
                 linked_bets = TrackedBet.query.filter_by(pick_id=pick.id, result=None).all()
                 for tb in linked_bets:
-                    tb.result = pick.result_ats
-                    if pick.result_ats == 'W':
+                    tb.result = result_ats
+                    if result_ats == 'W':
                         if tb.odds < 0:
                             tb.profit = round(tb.bet_amount * (100 / abs(tb.odds)), 2)
                         else:
                             tb.profit = round(tb.bet_amount * (tb.odds / 100), 2)
-                    elif pick.result_ats == 'P':
+                    elif result_ats == 'P':
                         tb.profit = 0.0
                     else:
                         tb.profit = -tb.bet_amount
-                    print(f"[Auto-grade] Tracked bet #{tb.id} for user {tb.user_id} -> {pick.result_ats}")
+                    print(f"[Auto-grade] Tracked bet #{tb.id} for user {tb.user_id} -> {result_ats}")
 
             if sqlite_conn:
                 sqlite_conn.close()
@@ -2722,6 +2803,23 @@ def cron_run_model():
         results = {}
         for sport in get_live_sports():
             results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override)
+        # Morning market intelligence: push + daily Market Note
+        today_str = date_override or _get_et_today()
+        live = get_live_sports()
+        primary_sport = live[0] if live else 'nba'
+        try:
+            from public_api import build_market_report_dict
+            from notification_service import send_market_scan_push
+            report = build_market_report_dict(today_str, primary_sport)
+            if report.get('available'):
+                send_market_scan_push(report)
+                note = _upsert_market_note_insight(report)
+                if note:
+                    from notification_service import send_market_note_notification
+                    send_market_note_notification(note)
+        except Exception as e:
+            import logging
+            logging.exception("Market scan push / market note: %s", e)
         return results
     return log_cron('run_model', _run, skip_throttle=force)
 

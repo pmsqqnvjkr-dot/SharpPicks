@@ -139,15 +139,25 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
         padding: 'var(--space-md)',
         marginTop: 'var(--space-sm)',
       }}>
-        <div style={{ ...label, color: 'var(--color-signal)', marginBottom: 'var(--space-sm)' }}>
-          Signal Published
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 800,
+          letterSpacing: '0.14em', textTransform: 'uppercase',
+          color: 'var(--color-signal)', opacity: 0.9, marginBottom: 'var(--space-sm)',
+        }}>
+          Signal
         </div>
         <div style={{
-          ...label, fontSize: '11px', color: 'var(--text-secondary)', marginBottom: 'var(--space-xs)',
+          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)', marginBottom: 'var(--space-sm)',
         }}>
-          {pick.away_team} @ {pick.home_team}
+          {(pick.sport || 'nba').toUpperCase()} — {pick.away_team} vs {pick.home_team}
         </div>
-        <PickMeta gameDate={pick.game_date} startTime={pick.start_time} publishedAt={pick.published_at} />
+        <div style={{
+          fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: 'var(--space-md)',
+        }}>
+          {fmtGameTime(pick.start_time, pick.game_date) && `Tip ${fmtGameTime(pick.start_time, pick.game_date)}`}
+        </div>
         <div style={{
           background: 'rgba(255,255,255,0.02)',
           border: '1px dashed var(--stroke-muted)',
@@ -202,96 +212,118 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
       }}>
         <div style={{ padding: 'var(--space-lg) var(--space-md) var(--space-md)' }}>
 
-          {/* ── Status Badge + Share ── */}
+          {/* ── SIGNAL tag ── */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
             <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              padding: '4px 10px', borderRadius: '999px',
-              fontSize: '10px', fontWeight: 800,
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-              border: `1px solid var(--color-signal-border)`,
-              background: 'var(--color-signal-bg)',
-              color: 'var(--color-signal)',
+              fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 800,
+              letterSpacing: '0.14em', textTransform: 'uppercase',
+              color: 'var(--color-signal)', opacity: 0.9,
             }}>
-              <span style={{
-                width: '6px', height: '6px', borderRadius: '50%',
-                background: 'var(--color-signal)',
-                boxShadow: `0 0 6px var(--color-signal-glow)`,
-                display: 'inline-block', flexShrink: 0,
-                ...((!isSettled && !isRevoked) ? { animation: 'live-pulse 2s ease-in-out infinite' } : {}),
-              }} />
-              {isSettled ? `Outcome: ${pick.result === 'win' ? 'Win' : pick.result === 'push' ? 'Push' : 'Loss'}` : 'Qualified Signal'}
+              Signal
             </span>
-          </div>
-
-          {/* ── PRIMARY: Team + Spread ── */}
-          <div style={{
-            ...label, fontSize: '11px', color: 'var(--text-secondary)',
-            marginBottom: '2px',
-          }}>
-            {pick.away_team} @ {pick.home_team}
-          </div>
-
-          <SignalTimestamp publishedAt={pick.published_at} gameFmt={gameFmt} />
-
-          <div style={{
-            marginBottom: 'var(--space-md)',
-            display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap',
-          }}>
-            <span style={{
-              fontSize: '30px', fontWeight: 800, lineHeight: 1,
-              letterSpacing: '-0.5px', color: 'var(--text-primary)',
-            }}>{teamPart}</span>
-            {spreadPart && (
+            {isSettled && (
               <span style={{
-                ...metric, fontSize: 'var(--text-hero)',
-                color: 'var(--color-signal)',
-              }}>{spreadPart}</span>
+                ...label, fontSize: '10px', marginBottom: 0,
+                color: pick.result === 'win' ? 'var(--color-signal)' : pick.result === 'push' ? 'var(--text-secondary)' : 'var(--color-loss)',
+              }}>
+                {pick.result === 'win' ? 'Win' : pick.result === 'push' ? 'Push' : 'Loss'}
+              </span>
             )}
           </div>
 
-          {/* ── EDGE ANALYSIS section ── */}
+          {/* ── League — Matchup ── */}
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '4px',
+          }}>
+            {(pick.sport || 'nba').toUpperCase()} — {pick.away_team} vs {pick.home_team}
+          </div>
+
+          {/* ── MODEL EDGE (headline) ── */}
+          <div style={{
+            marginBottom: 'var(--space-md)',
+            padding: '14px 0 4px',
+          }}>
+            <div style={{
+              ...label, fontSize: '9px', letterSpacing: '0.12em',
+              color: 'var(--text-tertiary)', marginBottom: '4px',
+            }}>Model Edge</div>
+            <div style={{
+              ...metric, fontSize: '32px', lineHeight: 1,
+              color: 'var(--color-signal)',
+              textShadow: `0 0 20px var(--color-signal-glow)`,
+            }}>
+              {fmtEdge(pick.edge_pct)}
+            </div>
+          </div>
+
+          {/* ── Model vs Market ── */}
           <section style={{
-            margin: `0 0 var(--space-sm)`,
-            padding: 'var(--space-md) var(--space-md) var(--space-sm)',
+            margin: '0 0 var(--space-md)',
+            padding: 'var(--space-md)',
             borderRadius: '12px',
             border: '1px solid var(--color-border)',
             background: 'rgba(0,0,0,0.18)',
           }}>
-            <SectionLabel>Edge Analysis</SectionLabel>
-            <div style={{ marginBottom: 'var(--space-sm)' }}>
-              <div style={{
-                ...metric, fontSize: 'var(--text-hero)', color: 'var(--color-signal)',
-                textShadow: `0 0 20px var(--color-signal-glow)`,
-              }}>
-                {fmtEdge(pick.edge_pct)}
-              </div>
-              <div style={{
-                ...label, fontSize: '9px', color: 'var(--text-tertiary)', marginTop: '3px',
-              }}>Calibrated Edge</div>
-            </div>
-
-            <div style={divider} />
-
-            <SectionLabel>Model Signal Data</SectionLabel>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
-            }}>
-              <div style={{ flex: 1 }}>
-                <span style={{ ...metric, fontSize: 'var(--text-metric)', color: 'var(--text-primary)' }}>
-                  {pick.cover_prob ? fmtProb(pick.cover_prob) : pick.model_confidence ? fmtProb(pick.model_confidence) : '--'}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ ...label, fontSize: '10px', marginBottom: 0, color: 'var(--text-tertiary)' }}>Market Line</span>
+                <span style={{ ...metric, fontSize: '15px', color: 'var(--text-primary)' }}>
+                  {pick.market_line != null ? fmtSpread(pick.market_line) : fmtSpread(pick.line)}
                 </span>
-                <span style={{ ...label, fontSize: '9px', marginLeft: '5px' }}>Model Prob</span>
               </div>
-              <div style={{ width: '1px', height: '16px', background: 'var(--color-border)' }} />
-              <div style={{ flex: 1 }}>
-                <span style={{ ...metric, fontSize: 'var(--text-metric)', color: 'var(--text-secondary)' }}>
-                  {pick.implied_prob ? fmtProb(pick.implied_prob) : '--'}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ ...label, fontSize: '10px', marginBottom: 0, color: 'var(--text-tertiary)' }}>Model Line</span>
+                <span style={{ ...metric, fontSize: '15px', color: 'var(--color-signal)' }}>
+                  {pick.model_projection != null ? fmtSpread(pick.model_projection) : '--'}
                 </span>
-                <span style={{ ...label, fontSize: '9px', marginLeft: '5px' }}>Market Prob</span>
               </div>
             </div>
           </section>
+
+          {/* ── Price / Tipoff ── */}
+          <div style={{
+            display: 'flex', flexDirection: 'column', gap: '6px',
+            marginBottom: pick.market_context ? 'var(--space-md)' : 'var(--space-sm)',
+            padding: 'var(--space-sm) 0',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ ...label, fontSize: '10px', marginBottom: 0, color: 'var(--text-tertiary)' }}>Price</span>
+              <span style={{ ...metric, fontSize: '14px', color: 'var(--text-primary)' }}>
+                {pick.market_odds != null ? pick.market_odds : '-110'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ ...label, fontSize: '10px', marginBottom: 0, color: 'var(--text-tertiary)' }}>Tipoff</span>
+              <span style={{ ...metric, fontSize: '14px', color: 'var(--text-secondary)' }}>
+                {gameFmt || '--'}
+              </span>
+            </div>
+          </div>
+
+          {/* ── Market Context (optional) ── */}
+          {pick.market_context && (
+            <div style={{
+              padding: 'var(--space-sm) var(--space-md)',
+              borderRadius: '12px',
+              border: '1px solid var(--color-border)',
+              background: 'rgba(0,0,0,0.10)',
+              marginBottom: 'var(--space-sm)',
+            }}>
+              <div style={{
+                ...label, fontSize: '9px', letterSpacing: '0.08em',
+                color: 'var(--text-tertiary)', marginBottom: '4px',
+              }}>Market Context</div>
+              <div style={{
+                fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4,
+              }}>
+                {pick.market_context}
+              </div>
+            </div>
+          )}
+
+          <SignalTimestamp publishedAt={pick.published_at} gameFmt={null} />
 
           {/* ── EDGE STRENGTH bar ── */}
           {pick.edge_pct != null && (
@@ -353,22 +385,6 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
               )}
             </section>
           )}
-
-          {/* ── LINE DATA section ── */}
-          <div style={{
-            display: 'flex',
-            borderRadius: '12px',
-            border: '1px solid var(--color-border)',
-            background: 'rgba(0,0,0,0.14)',
-            overflow: 'hidden',
-            marginBottom: 'var(--space-sm)',
-          }}>
-            <MetricCell label="Margin" value={fmtMargin(pick.predicted_margin)} />
-            <div style={{ width: '1px', background: 'var(--color-border)', margin: '6px 0', flexShrink: 0 }} />
-            <MetricCell label="Spread" value={fmtSpread(pick.line)} />
-            <div style={{ width: '1px', background: 'var(--color-border)', margin: '6px 0', flexShrink: 0 }} />
-            <MetricCell label={pick.best_book || 'Best Price'} value={pick.market_odds || '-110'} />
-          </div>
 
           {/* ── Position Size ── */}
           {pick.stake_guidance && (
@@ -510,20 +526,6 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
           <span style={{ color: 'var(--color-info)', marginLeft: '5px', fontSize: '12px' }}>&rarr;</span>
         </button>
       )}
-    </div>
-  );
-}
-
-function MetricCell({ label: labelText, value }) {
-  return (
-    <div style={{ flex: 1, padding: '7px 8px 6px', textAlign: 'center' }}>
-      <div style={{
-        ...label, fontSize: '8px', marginBottom: '3px',
-      }}>{labelText}</div>
-      <div style={{
-        ...metric, fontSize: '15px', color: 'var(--text-primary)',
-        fontVariantNumeric: 'tabular-nums',
-      }}>{value}</div>
     </div>
   );
 }

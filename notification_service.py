@@ -145,6 +145,51 @@ def send_revoke_notification(pick, reason):
         return False
 
 
+def send_market_scan_push(report):
+    """Send morning market scan push after run-model. report = build_market_report_dict(...)."""
+    send_push_to_all, _, _ = _get_push_functions()
+    if not send_push_to_all or not report.get('available'):
+        return False
+    try:
+        title = "Market Scan Complete"
+        edges = report.get('edges_detected', 0)
+        top = report.get('largest_edge')
+        regime = report.get('regime', '')
+        signals = report.get('qualified_signals', 0)
+        markets = report.get('games_analyzed', 0)
+        if edges == 0:
+            body = "No edge, no pick."
+        else:
+            if top is not None and top > 0:
+                body = f"{edges} edge{'s' if edges != 1 else ''} detected · Top edge +{top:.0f}%"
+            else:
+                body = f"Market Regime: {regime} — {signals} signal{'s' if signals != 1 else ''} across {markets} market{'s' if markets != 1 else ''}"
+        data = {'type': 'market_scan', 'date': report.get('date', ''), 'deep_link': '/market'}
+        sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='market_scan')
+        logging.info(f"Market scan push sent to {sent} device(s)")
+        return sent > 0
+    except Exception as e:
+        logging.error(f"Market scan push failed: {e}")
+        return False
+
+
+def send_market_note_notification(insight):
+    """Notify users when a new Market Note is published (daily market intelligence)."""
+    send_push_to_all, _, _ = _get_push_functions()
+    if not send_push_to_all:
+        return False
+    try:
+        title = "New Market Note"
+        body = (insight.title or insight.excerpt or '')[:80]
+        data = {'type': 'market_note', 'insight_id': str(insight.id), 'slug': insight.slug or '', 'deep_link': f'/insights/{insight.slug or ""}'}
+        sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='market_note')
+        logging.info(f"Market note notification sent to {sent} device(s)")
+        return sent > 0
+    except Exception as e:
+        logging.error(f"Market note notification failed: {e}")
+        return False
+
+
 def send_journal_notification(insight):
     """Notify users when a new journal article is published."""
     send_push_to_all, _, _ = _get_push_functions()

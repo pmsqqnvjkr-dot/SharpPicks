@@ -27,6 +27,36 @@ def _empty_record():
     })
 
 
+def _record_pick_to_dict(p):
+    """Serialize a pick for public record with model vs market fields."""
+    market_line = round(p.line, 1) if p.line is not None else None
+    model_projection = round(-float(p.predicted_margin), 1) if p.predicted_margin is not None else None
+    CALIBRATION_DATE = datetime(2026, 2, 12)
+    return {
+        'id': p.id,
+        'published_at': (p.published_at.isoformat() + 'Z') if p.published_at else None,
+        'game_date': p.game_date,
+        'side': p.side,
+        'line': p.line,
+        'edge_pct': p.edge_pct,
+        'result': p.result,
+        'pnl': p.pnl,
+        'profit_units': p.profit_units if p.profit_units is not None else (round(p.pnl / 100, 2) if p.pnl else None),
+        'away_team': p.away_team,
+        'home_team': p.home_team,
+        'clv': p.clv,
+        'closing_spread': p.closing_spread,
+        'home_score': p.home_score,
+        'away_score': p.away_score,
+        'pre_calibration': p.published_at < CALIBRATION_DATE if p.published_at else False,
+        'market_line': market_line,
+        'model_projection': model_projection,
+        'market_odds': p.market_odds,
+        'start_time': p.start_time,
+        'sport': p.sport,
+    }
+
+
 @public_bp.route('/record')
 def record():
     sport = _get_sport_filter()
@@ -62,24 +92,7 @@ def record():
     return jsonify({
         'calibration_note': 'Model calibrated Feb 12, 2026. Prior picks used raw predictions without market-aware shrinkage.',
         'calibration_date': '2026-02-12',
-        'picks': [{
-            'id': p.id,
-            'published_at': (p.published_at.isoformat() + 'Z') if p.published_at else None,
-            'game_date': p.game_date,
-            'side': p.side,
-            'line': p.line,
-            'edge_pct': p.edge_pct,
-            'result': p.result,
-            'pnl': p.pnl,
-            'profit_units': p.profit_units if p.profit_units is not None else (round(p.pnl / 100, 2) if p.pnl else None),
-            'away_team': p.away_team,
-            'home_team': p.home_team,
-            'clv': p.clv,
-            'closing_spread': p.closing_spread,
-            'home_score': p.home_score,
-            'away_score': p.away_score,
-            'pre_calibration': p.published_at < CALIBRATION_DATE if p.published_at else False,
-        } for p in picks],
+        'picks': [_record_pick_to_dict(p) for p in picks],
         'passes': [{
             'id': p.id,
             'date': p.date,
@@ -840,21 +853,16 @@ def kill_switch_status():
     return jsonify(result)
 
 
-@public_bp.route('/market-report')
-def market_report():
+def build_market_report_dict(date_param, sport=None):
+    """Build the daily market report dict for a given date and optional sport. Used by /market-report and cron."""
     import json
-    sport = _get_sport_filter()
-    et = ZoneInfo('America/New_York')
-    today = datetime.now(et).strftime('%Y-%m-%d')
-    date_param = request.args.get('date', today)
-
     query = ModelRun.query.filter_by(date=date_param)
     if sport:
         query = query.filter_by(sport=sport)
     run = query.order_by(ModelRun.created_at.desc()).first()
 
     if not run:
-        return jsonify({'available': False, 'date': date_param})
+        return {'available': False, 'date': date_param}
 
     games_analyzed = run.games_analyzed or 0
     edges_detected = 0
@@ -905,37 +913,41 @@ def market_report():
     no_edge_count = games_analyzed - edges_detected
     efficiency = round(no_edge_count / games_analyzed * 100, 0) if games_analyzed > 0 else 100
 
-    # Market regime — signature SharpPicks classification
-    if sport == 'mlb':
-        if efficiency <= 33:
-            regime = 'Mispriced Board'
-        elif efficiency <= 60:
-            regime = 'Active Board'
-        elif efficiency <= 80:
-            regime = 'Moderate Board'
-        else:
-            regime = 'Tight Board'
-    else:
-        if efficiency <= 33:
-            regime = 'Exploitable'
-        elif efficiency <= 60:
-            regime = 'Active'
-        elif efficiency <= 80:
-            regime = 'Moderate'
-        else:
-            regime = 'Efficient'
-
-    if efficiency >= 90:
-        assessment = 'Highly efficient market today. Passing is a position.'
-    elif efficiency >= 75:
-        assessment = 'Low inefficiency today. Expect fewer opportunities.'
-    elif efficiency >= 60:
-        assessment = 'Moderate inefficiency. Some edges detected.'
-    else:
-        assessment = 'Multiple inefficiencies detected. Expect several signals.'
-
-    # Signal density
+    # Signal density (0-100)
     signal_density = round(qualified_signals / games_analyzed * 100, 0) if games_analyzed > 0 else 0
+
+    # Market Efficiency Index (MEI): 0-100, higher = more inefficient (more opportunity)
+    edge_count_score = min(edges_detected * 12, 100)
+    avg_edge = sum(all_edges) / len(all_edges) if all_edges else 0
+    avg_edge_score = min(avg_edge * 10, 100)
+    signal_density_score = min(signal_density, 100)  # already 0-100
+    top_edge_score = min(largest_edge_val * 10, 100) if largest_edge_val else 0
+    mei_raw = (
+        edge_count_score * 0.35
+        + avg_edge_score * 0.35
+        + signal_density_score * 0.20
+        + top_edge_score * 0.10
+    )
+    market_efficiency_index = max(0, min(round(mei_raw, 0), 100))
+
+    # Market regime from MEI (0-30 QUIET, 30-50 NORMAL, 50-70 ACTIVE, 70-85 HIGH OPPORTUNITY, 85+ RARE INEFFICIENCY)
+    if market_efficiency_index >= 85:
+        regime = 'RARE INEFFICIENCY'
+        regime_micro = 'Unusual market opportunity detected'
+    elif market_efficiency_index >= 70:
+        regime = 'HIGH OPPORTUNITY'
+        regime_micro = 'Strong opportunity detected'
+    elif market_efficiency_index >= 50:
+        regime = 'ACTIVE'
+        regime_micro = 'Moderate opportunity detected'
+    elif market_efficiency_index >= 30:
+        regime = 'NORMAL'
+        regime_micro = 'Typical market conditions'
+    else:
+        regime = 'QUIET'
+        regime_micro = 'Markets priced efficiently. Passing is a position.'
+
+    assessment = regime_micro
 
     # Daily briefing narrative (rule-based, multi-line)
     briefing_lines = []
@@ -1020,14 +1032,40 @@ def market_report():
         elif market_stability['level'] == 'high' and edges_detected > 0:
             briefing_lines.append('Lines are stable across the board. Remaining edges may hold through tip-off.')
 
-    return jsonify({
+    # Market Board: all analyzed games with market line, model line, edge, signal (for Market page)
+    board = []
+    for g in detail:
+        away = g.get('away_team') or g.get('away', '?')
+        home = g.get('home_team') or g.get('home', '?')
+        market_line = round(g.get('line', 0), 1) if g.get('line') is not None else None
+        pm = g.get('predicted_margin')
+        if pm is not None:
+            model_line = round(-float(pm), 1) if g.get('pick_side') == 'home' else round(float(pm), 1)
+        else:
+            model_line = None
+        edge_val = g.get('edge', 0) or 0
+        pick_label = g.get('pick') or (f"{home} {market_line}" if market_line is not None else f'{away} vs {home}')
+        board.append({
+            'game': f'{away} vs {home}',
+            'away_team': away,
+            'home_team': home,
+            'pick_label': pick_label,
+            'market_line': market_line,
+            'model_line': model_line,
+            'edge': round(edge_val, 1) if edge_val is not None else None,
+            'signal': bool(g.get('passes', False)),
+        })
+
+    return {
         'available': True,
         'date': date_param,
         'games_analyzed': games_analyzed,
         'edges_detected': edges_detected,
         'qualified_signals': qualified_signals,
         'market_efficiency_pct': efficiency,
+        'market_efficiency_index': int(market_efficiency_index),
         'regime': regime,
+        'regime_micro': regime_micro,
         'assessment': assessment,
         'signal_density': signal_density,
         'largest_edge': round(largest_edge_val, 1) if largest_edge_val > 0 else None,
@@ -1048,7 +1086,17 @@ def market_report():
         'insight': insight,
         'briefing': briefing_lines,
         'last_updated': updated_at,
-    })
+        'board': board,
+    }
+
+
+@public_bp.route('/market-report')
+def market_report():
+    sport = _get_sport_filter()
+    et = ZoneInfo('America/New_York')
+    today = datetime.now(et).strftime('%Y-%m-%d')
+    date_param = request.args.get('date', today)
+    return jsonify(build_market_report_dict(date_param, sport))
 
 
 @public_bp.route('/discipline')

@@ -308,8 +308,23 @@ def today():
                 else:
                     model_signals.append(s)
 
-        model_line = pick.line
-        market_line = round(pick.line + (pick.edge_pct * 0.3 if pick.edge_pct else 0), 1) if pick.line else None
+        # Model vs Market: market_line = spread we're betting at; model_projection = model's fair spread
+        market_line = round(pick.line, 1) if pick.line is not None else None
+        if pick.predicted_margin is not None:
+            # predicted_margin = home - away; our side's fair spread = -predicted_margin (home or away)
+            model_projection = round(-float(pick.predicted_margin), 1)
+        else:
+            model_projection = None
+
+        # Daily market context (today's signal from market report) for this pick's date/sport
+        market_context = None
+        try:
+            from public_api import build_market_report_dict
+            report = build_market_report_dict(pick.game_date, pick.sport)
+            if report.get('available') and report.get('insight'):
+                market_context = report['insight']
+        except Exception:
+            pass
 
         actual_odds = pick.market_odds or -110
         stake = calculate_stake_guidance(pick.edge_pct or 0, pick.model_confidence or 0.5, actual_odds)
@@ -335,8 +350,9 @@ def today():
             'closing_spread': pick.closing_spread,
             'clv': pick.clv,
             'position_size_pct': pick.position_size_pct or 100,
-            'model_line': model_line,
             'market_line': market_line,
+            'model_projection': model_projection,
+            'market_context': market_context,
             'model_signals': model_signals,
             'start_time': pick.start_time,
             'result': pick.result,
@@ -367,8 +383,9 @@ def today():
             pick_data['cover_prob'] = None
             pick_data['implied_prob'] = None
             pick_data['model_signals'] = []
-            pick_data['model_line'] = None
             pick_data['market_line'] = None
+            pick_data['model_projection'] = None
+            pick_data['market_context'] = None
             pick_data['stake_guidance'] = None
             pick_data['locked'] = True
         else:

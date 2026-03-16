@@ -60,11 +60,11 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
 
         <CLVTracker clv={clvStats} />
 
+        <DisciplineScore discipline={discipline} />
+
         <LatestResultCard picks={recentPicks} />
 
         <RecentPickLog picks={recentPicks} />
-
-        <DisciplineScore discipline={discipline} />
 
         <ModelTrustStack />
 

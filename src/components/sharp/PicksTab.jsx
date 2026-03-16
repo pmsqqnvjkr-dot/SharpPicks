@@ -6,6 +6,7 @@ import PullToRefresh from '../shared/PullToRefresh';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
 import DailyInsightCard from './DailyInsightCard';
+import DailyMarketReport from './DailyMarketReport';
 import AuthModal from './AuthModal';
 import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
@@ -67,6 +68,8 @@ export default function PicksTab({ onNavigate }) {
         await Promise.all([refetchToday(true), refetchStats(true), refetchRecord(true)]);
       }}>
       <div style={{ padding: '20px 20px 0' }}>
+        <DailyMarketReport />
+
         {user && user.subscription_status === 'trial' && user.trial_end_date && (() => {
           const daysLeft = Math.max(0, Math.ceil((new Date(user.trial_end_date) - new Date()) / (1000 * 60 * 60 * 24)));
           return daysLeft > 0 ? (

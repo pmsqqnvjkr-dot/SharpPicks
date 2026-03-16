@@ -3,54 +3,41 @@ import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 
 const REGIME_STYLES = {
-  Exploitable: {
+  'RARE INEFFICIENCY': {
+    color: '#34D399',
+    glow: 'rgba(52, 211, 153, 0.15)',
+    border: 'rgba(52, 211, 153, 0.4)',
+    accent: 'rgba(52, 211, 153, 0.1)',
+  },
+  'HIGH OPPORTUNITY': {
     color: '#34D399',
     glow: 'rgba(52, 211, 153, 0.12)',
     border: 'rgba(52, 211, 153, 0.35)',
     accent: 'rgba(52, 211, 153, 0.08)',
   },
-  Active: {
+  ACTIVE: {
     color: '#FBBF24',
     glow: 'rgba(251, 191, 36, 0.12)',
     border: 'rgba(251, 191, 36, 0.30)',
     accent: 'rgba(251, 191, 36, 0.06)',
   },
-  Moderate: {
+  NORMAL: {
     color: 'var(--text-secondary)',
     glow: 'rgba(148, 163, 184, 0.08)',
     border: 'var(--color-border)',
     accent: 'rgba(148, 163, 184, 0.04)',
   },
-  Efficient: {
+  QUIET: {
     color: 'var(--text-tertiary)',
     glow: 'rgba(100, 116, 139, 0.06)',
     border: 'var(--color-border)',
     accent: 'rgba(100, 116, 139, 0.03)',
   },
-  'Mispriced Board': {
-    color: '#34D399',
-    glow: 'rgba(52, 211, 153, 0.12)',
-    border: 'rgba(52, 211, 153, 0.35)',
-    accent: 'rgba(52, 211, 153, 0.08)',
-  },
-  'Active Board': {
-    color: '#FBBF24',
-    glow: 'rgba(251, 191, 36, 0.12)',
-    border: 'rgba(251, 191, 36, 0.30)',
-    accent: 'rgba(251, 191, 36, 0.06)',
-  },
-  'Moderate Board': {
-    color: 'var(--text-secondary)',
-    glow: 'rgba(148, 163, 184, 0.08)',
-    border: 'var(--color-border)',
-    accent: 'rgba(148, 163, 184, 0.04)',
-  },
-  'Tight Board': {
-    color: 'var(--text-tertiary)',
-    glow: 'rgba(100, 116, 139, 0.06)',
-    border: 'var(--color-border)',
-    accent: 'rgba(100, 116, 139, 0.03)',
-  },
+  // Legacy keys for backward compat
+  Exploitable: { color: '#34D399', glow: 'rgba(52, 211, 153, 0.12)', border: 'rgba(52, 211, 153, 0.35)', accent: 'rgba(52, 211, 153, 0.08)' },
+  Active: { color: '#FBBF24', glow: 'rgba(251, 191, 36, 0.12)', border: 'rgba(251, 191, 36, 0.30)', accent: 'rgba(251, 191, 36, 0.06)' },
+  Moderate: { color: 'var(--text-secondary)', glow: 'rgba(148, 163, 184, 0.08)', border: 'var(--color-border)', accent: 'rgba(148, 163, 184, 0.04)' },
+  Efficient: { color: 'var(--text-tertiary)', glow: 'rgba(100, 116, 139, 0.06)', border: 'var(--color-border)', accent: 'rgba(100, 116, 139, 0.03)' },
 };
 
 const label = {
@@ -70,12 +57,13 @@ const divider = {
   margin: 'var(--space-md) 0',
 };
 
-export default function DailyMarketReport() {
+export default function DailyMarketReport({ report: reportProp }) {
   const { sport } = useSport();
-  const { data, loading } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
+  const { data: fetchedData, loading } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
+  const data = reportProp ?? fetchedData;
   const [expanded, setExpanded] = useState(false);
 
-  if (loading || !data || !data.available) return null;
+  if (reportProp ? !data?.available : (loading || !data || !data.available)) return null;
 
   const today = new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', timeZone: 'America/New_York',
@@ -118,13 +106,13 @@ export default function DailyMarketReport() {
           marginBottom: '16px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ ...label, marginBottom: 0, fontSize: '10px' }}>Market Intelligence</span>
+            <span style={{ ...label, marginBottom: 0, fontSize: 'var(--text-label-size)' }}>Market Intelligence</span>
             <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px',
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)',
               color: 'var(--text-tertiary)',
             }}>&mdash;</span>
             <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 600,
               color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase',
             }}>{today}</span>
           </div>
@@ -137,67 +125,91 @@ export default function DailyMarketReport() {
           </svg>
         </div>
 
-        {/* Regime — the hero */}
+        {/* 1) Market score */}
+        {data.market_efficiency_index != null && (
+          <div style={{
+            marginBottom: 0, padding: '14px 16px',
+            borderRadius: '10px', background: 'rgba(255,255,255,0.03)',
+            border: '1px solid var(--color-border)',
+          }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '6px', lineHeight: 1,
+          }}>Market Efficiency Index</div>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-hero)', fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums', color: rs.color, lineHeight: 1,
+            }}>{data.market_efficiency_index}</div>
+          </div>
+        )}
+
+        {/* Divider */}
         <div style={{
-          textAlign: 'center',
-          padding: '18px 0 20px',
+          height: '1px', background: 'var(--color-border)',
+          margin: '14px 0', opacity: 0.8,
+        }} />
+
+        {/* 2) Market Regime */}
+        <div style={{
+          padding: '12px 14px 14px',
           marginBottom: '16px',
           borderRadius: '10px',
           background: rs.glow,
+          border: `1px solid ${rs.border}`,
         }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
             letterSpacing: '0.12em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: '8px',
+            color: 'var(--text-tertiary)', marginBottom: '6px', lineHeight: 1,
           }}>Market Regime</div>
           <div style={{
-            fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 700,
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-hero)', fontWeight: 700,
             color: rs.color, letterSpacing: '0.02em', textTransform: 'uppercase',
-            lineHeight: 1,
+            lineHeight: 1.2,
           }}>{regime}</div>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '11px',
-            color: 'var(--text-secondary)', marginTop: '8px',
-            letterSpacing: '0.02em',
-          }}>{
+            fontFamily: 'var(--font-sans)', fontSize: '13px',
+            color: 'var(--text-secondary)', marginTop: '6px',
+            letterSpacing: '0.02em', lineHeight: 1.3,
+          }}>{data.regime_micro || (
             regime === 'Exploitable' ? 'High opportunity detected' :
             regime === 'Active' ? 'Moderate opportunity detected' :
             regime === 'Moderate' ? 'Limited opportunity today' :
             'Market priced efficiently'
-          }</div>
+          )}</div>
         </div>
 
-        {/* Key stats — two columns: Edges + Efficiency */}
+        {/* Edges detected / Efficiency — label left, value right */}
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr',
-          gap: '1px', marginBottom: data.largest_edge != null ? '14px' : 0,
+          display: 'flex', flexDirection: 'column', gap: '8px',
+          marginBottom: data.largest_edge != null ? '14px' : 0,
         }}>
           <div style={{
-            textAlign: 'center', padding: '8px 0',
-            borderRight: '1px solid var(--color-border)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 700,
-              fontVariantNumeric: 'tabular-nums', lineHeight: 1,
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)',
+              color: 'var(--text-secondary)', letterSpacing: '0.02em',
+            }}>Edges detected</span>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-metric)', fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums',
               color: data.edges_detected > 0 ? rs.color : 'var(--text-primary)',
-            }}>{data.edges_detected}</div>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-              color: 'var(--text-tertiary)', marginTop: '5px',
-            }}>Edges Detected</div>
+            }}>{data.edges_detected}</span>
           </div>
-          <div style={{ textAlign: 'center', padding: '8px 0' }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 700,
-              fontVariantNumeric: 'tabular-nums', lineHeight: 1,
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)',
+              color: 'var(--text-secondary)', letterSpacing: '0.02em',
+            }}>Efficiency</span>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-metric)', fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums',
               color: data.market_efficiency_pct <= 50 ? rs.color : 'var(--text-primary)',
-            }}>{data.market_efficiency_pct}%</div>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-              color: 'var(--text-tertiary)', marginTop: '5px',
-            }}>Efficiency</div>
+            }}>{data.market_efficiency_pct}%</span>
           </div>
         </div>
 
@@ -241,18 +253,18 @@ export default function DailyMarketReport() {
         {/* Today's Top Edge */}
         {data.largest_edge != null && (
           <div style={{
-            textAlign: 'center', padding: '12px 0 4px',
+            padding: '12px 0 4px',
             borderTop: '1px solid var(--color-border)',
             marginTop: '4px',
           }}>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
               letterSpacing: '0.12em', textTransform: 'uppercase',
               color: 'var(--text-tertiary)', marginBottom: '6px',
             }}>Today&apos;s Top Edge</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
               <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: '24px', fontWeight: 700,
+                fontFamily: 'var(--font-mono)', fontSize: 'var(--text-metric)', fontWeight: 700,
                 fontVariantNumeric: 'tabular-nums',
                 color: rs.color,
               }}>+{data.largest_edge}%</span>
@@ -266,7 +278,7 @@ export default function DailyMarketReport() {
           </div>
         )}
 
-        {/* Today's Market Insight — always visible */}
+        {/* Today's Market Signal — always visible */}
         {(data.briefing?.length > 0 || data.insight) && (
           <div style={{
             padding: '10px 0 2px',
@@ -274,12 +286,12 @@ export default function DailyMarketReport() {
             marginTop: '8px',
           }}>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
               letterSpacing: '0.1em', textTransform: 'uppercase',
               color: 'var(--text-tertiary)', marginBottom: '6px',
-            }}>Today&apos;s Market Insight</div>
+            }}>Today&apos;s Market Signal</div>
             <div style={{
-              fontSize: '13px', color: 'var(--text-secondary)',
+              fontFamily: 'var(--font-sans)', fontSize: '13px', color: 'var(--text-secondary)',
               lineHeight: 1.5,
             }}>
               {data.briefing?.[0] || data.insight}
@@ -401,12 +413,12 @@ export default function DailyMarketReport() {
             <>
               <div style={divider} />
               <div style={{ marginBottom: 'var(--space-md)' }}>
-                <div style={{ ...label, marginBottom: '8px', fontSize: '10px' }}>Today&apos;s Briefing</div>
+                <div style={{ ...label, marginBottom: '8px', fontSize: 'var(--text-label-size)' }}>Today&apos;s Briefing</div>
                 {data.briefing?.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     {data.briefing.map((line, i) => (
                       <div key={i} style={{
-                        fontSize: '13px', color: 'var(--text-secondary)',
+                        fontFamily: 'var(--font-sans)', fontSize: '13px', color: 'var(--text-secondary)',
                         lineHeight: 1.5, display: 'flex', gap: '6px',
                       }}>
                         <span style={{ color: 'var(--color-signal)', flexShrink: 0, fontSize: '11px', marginTop: '2px' }}>›</span>
@@ -416,7 +428,7 @@ export default function DailyMarketReport() {
                   </div>
                 ) : (
                   <p style={{
-                    fontSize: '13px', fontStyle: 'italic',
+                    fontFamily: 'var(--font-sans)', fontSize: '13px', fontStyle: 'italic',
                     color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0,
                   }}>{data.insight}</p>
                 )}
@@ -437,9 +449,8 @@ export default function DailyMarketReport() {
           )}
 
           <div style={{
-            fontSize: '11px', color: 'var(--text-tertiary)',
-            fontFamily: 'var(--font-mono)', lineHeight: 1.5,
-            fontStyle: 'italic',
+            fontFamily: 'var(--font-sans)', fontSize: '11px', color: 'var(--text-tertiary)',
+            lineHeight: 1.5, fontStyle: 'italic',
           }}>
             Selective by design. Only qualified edges become signals.
           </div>
@@ -455,7 +466,8 @@ function MetricRow({ label: labelText, value, highlight }) {
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     }}>
       <span style={{
-        fontSize: 'var(--text-metric)', color: 'var(--text-secondary)',
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)',
+        color: 'var(--text-secondary)',
       }}>{labelText}</span>
       <span style={{
         ...metricNum,
@@ -469,17 +481,17 @@ function EdgeCategory({ label: labelText, count, threshold }) {
   return (
     <div>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700,
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-metric)', fontWeight: 700,
         fontVariantNumeric: 'tabular-nums',
         color: count > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)',
       }}>{count}</div>
       <div style={{
-        fontSize: '11px', color: 'var(--text-secondary)',
-        fontFamily: 'var(--font-mono)', marginTop: '2px',
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)',
+        color: 'var(--text-secondary)', marginTop: '2px',
       }}>{labelText}</div>
       <div style={{
-        fontSize: '10px', color: 'var(--text-tertiary)',
-        fontFamily: 'var(--font-mono)', marginTop: '1px',
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)',
+        color: 'var(--text-tertiary)', marginTop: '1px',
       }}>{threshold}</div>
     </div>
   );

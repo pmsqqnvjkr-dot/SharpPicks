@@ -1354,11 +1354,18 @@ function TableView({ games, isPro, onLineHistory, sport }) {
   );
 }
 
+function fmtEdgePct(val) {
+  if (val == null) return '—';
+  const n = parseFloat(val);
+  return `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
+}
+
 export default function MarketView({ onBack }) {
   const { user } = useAuth();
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const { sport } = useSport();
   const { data, loading, refetch: refetchMarket } = useApi(sportQuery('/picks/market', sport));
+  const { data: reportData } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
   const { data: watchedData, refetch: refetchWatched } = useApi('/picks/watched');
   const [filter, setFilter] = useState('All');
   const [sort, setSort] = useState('time');
@@ -1538,7 +1545,105 @@ export default function MarketView({ onBack }) {
 
       {/* Body */}
       <div style={{ padding: '14px 12px 100px' }}>
-        <DailyMarketReport />
+        {/* 1. Daily Market Brief */}
+        <section style={{ marginBottom: '24px' }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '10px',
+          }}>Daily Market Brief</div>
+          <DailyMarketReport report={reportData} />
+        </section>
+
+        {/* 2. Market Board — full slate */}
+        {reportData?.board?.length > 0 && (
+          <section style={{ marginBottom: '24px' }}>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)', marginBottom: '10px',
+            }}>Market Board</div>
+            <div style={{
+              backgroundColor: 'var(--surface-1)',
+              borderRadius: '14px',
+              border: '1px solid var(--color-border)',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr auto 56px',
+                gap: '8px 12px',
+                padding: '10px 12px',
+                borderBottom: '1px solid var(--color-border)',
+                fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                color: 'var(--text-tertiary)',
+              }}>
+                <span>Game</span>
+                <span>Market</span>
+                <span>Model</span>
+                <span>Edge</span>
+                <span style={{ textAlign: 'center' }}>Signal</span>
+              </div>
+              {reportData.board.map((row, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr 1fr auto 56px',
+                    gap: '8px 12px',
+                    padding: '10px 12px',
+                    borderBottom: i < reportData.board.length - 1 ? '1px solid var(--color-border)' : 'none',
+                    alignItems: 'center',
+                    fontFamily: 'var(--font-mono)', fontSize: '12px',
+                    color: row.signal ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  }}
+                >
+                  <span style={{ fontWeight: 600, minWidth: 0 }}>{row.game}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{row.market_line != null ? fmtSpread(row.market_line) : '—'}</span>
+                  <span style={{ color: row.signal ? 'var(--color-signal)' : 'var(--text-secondary)' }}>{row.model_line != null ? fmtSpread(row.model_line) : '—'}</span>
+                  <span style={{ color: (row.edge || 0) >= 3 ? 'var(--color-signal)' : 'var(--text-secondary)' }}>{row.edge != null ? fmtEdgePct(row.edge) : '—'}</span>
+                  <span style={{ textAlign: 'center', color: row.signal ? 'var(--color-signal)' : 'var(--text-tertiary)' }}>{row.signal ? '✓' : '–'}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 3. Signal Board — qualified signals only */}
+        {reportData?.board?.length > 0 && reportData.board.some(r => r.signal) && (
+          <section style={{ marginBottom: '24px' }}>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)', marginBottom: '10px',
+            }}>Signals</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {reportData.board.filter(r => r.signal).map((row, i) => (
+                <div
+                  key={i}
+                  style={{
+                    backgroundColor: 'var(--surface-1)',
+                    borderRadius: '12px',
+                    border: '1px solid var(--color-signal-border)',
+                    padding: '12px 14px',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    flexWrap: 'wrap', gap: '8px',
+                  }}
+                >
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+                    color: 'var(--text-primary)',
+                  }}>{row.pick_label || row.game}</span>
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+                    color: 'var(--color-signal)',
+                  }}>Edge {row.edge != null ? fmtEdgePct(row.edge) : '—'}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Discipline Filter summary */}
         {hasModelData && passedGames.length > 0 && (
