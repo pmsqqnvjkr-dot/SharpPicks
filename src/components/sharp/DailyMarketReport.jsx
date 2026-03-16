@@ -16,10 +16,10 @@ const REGIME_STYLES = {
     accent: 'rgba(52, 211, 153, 0.08)',
   },
   ACTIVE: {
-    color: '#FBBF24',
-    glow: 'rgba(251, 191, 36, 0.12)',
-    border: 'rgba(251, 191, 36, 0.30)',
-    accent: 'rgba(251, 191, 36, 0.06)',
+    color: 'var(--text-secondary)',
+    glow: 'rgba(79, 134, 247, 0.08)',
+    border: 'rgba(79, 134, 247, 0.18)',
+    accent: 'rgba(79, 134, 247, 0.04)',
   },
   NORMAL: {
     color: 'var(--text-secondary)',
@@ -35,7 +35,7 @@ const REGIME_STYLES = {
   },
   // Legacy keys for backward compat
   Exploitable: { color: '#34D399', glow: 'rgba(52, 211, 153, 0.12)', border: 'rgba(52, 211, 153, 0.35)', accent: 'rgba(52, 211, 153, 0.08)' },
-  Active: { color: '#FBBF24', glow: 'rgba(251, 191, 36, 0.12)', border: 'rgba(251, 191, 36, 0.30)', accent: 'rgba(251, 191, 36, 0.06)' },
+  Active: { color: 'var(--text-secondary)', glow: 'rgba(79, 134, 247, 0.08)', border: 'rgba(79, 134, 247, 0.18)', accent: 'rgba(79, 134, 247, 0.04)' },
   Moderate: { color: 'var(--text-secondary)', glow: 'rgba(148, 163, 184, 0.08)', border: 'var(--color-border)', accent: 'rgba(148, 163, 184, 0.04)' },
   Efficient: { color: 'var(--text-tertiary)', glow: 'rgba(100, 116, 139, 0.06)', border: 'var(--color-border)', accent: 'rgba(100, 116, 139, 0.03)' },
 };
@@ -216,7 +216,7 @@ export default function DailyMarketReport({ report: reportProp }) {
         {/* Market Stability — aggregate line confidence */}
         {data.market_stability && (() => {
           const ms = data.market_stability;
-          const stabColor = ms.level === 'low' ? '#f59e0b'
+          const stabColor = ms.level === 'low' ? 'var(--text-secondary)'
             : ms.level === 'high' ? 'var(--green-profit, #10b981)' : 'var(--text-secondary)';
           return (
             <div style={{
@@ -374,11 +374,11 @@ export default function DailyMarketReport({ report: reportProp }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                       <span style={{
                         fontFamily: 'var(--font-mono)', fontSize: '11px',
-                        color: '#FBBF24', fontWeight: 600,
+                        color: 'var(--text-secondary)', fontWeight: 600,
                       }}>Underdogs</span>
                       <span style={{
                         fontFamily: 'var(--font-mono)', fontSize: '11px',
-                        color: '#FBBF24', fontWeight: 700,
+                        color: 'var(--text-secondary)', fontWeight: 700,
                         fontVariantNumeric: 'tabular-nums',
                       }}>{data.market_lean.underdog_pct}%</span>
                     </div>
@@ -386,7 +386,7 @@ export default function DailyMarketReport({ report: reportProp }) {
                       <div style={{
                         width: `${data.market_lean.underdog_pct}%`,
                         height: '100%', borderRadius: 3,
-                        background: 'rgba(251,191,36,0.7)',
+                        background: 'rgba(148, 163, 184, 0.5)',
                         transition: 'width 0.3s ease',
                       }} />
                     </div>
