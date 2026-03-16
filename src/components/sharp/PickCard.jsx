@@ -98,6 +98,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
   const [trackedBetId, setTrackedBetId] = useState(pick.tracked_bet_id || null);
   const [trackError, setTrackError] = useState(null);
   const [signalsOpen, setSignalsOpen] = useState(false);
+  const [expanded, setExpanded] = useState(!isSettled);
 
   const handleTrackPick = async () => {
     setTracking(true);
@@ -205,88 +206,103 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
         border: isSettled
           ? `1px solid var(--color-border)`
           : '1px solid rgba(79,134,247,0.16)',
-        borderLeft: isSettled ? undefined : `3px solid var(--color-signal)`,
+        borderTop: isSettled ? undefined : `2px solid var(--color-signal)`,
         boxShadow: isSettled ? 'none' : 'var(--shadow-signal)',
         overflow: 'hidden',
         opacity: settledOpacity,
       }}>
         <div style={{ padding: 'var(--space-lg) var(--space-md) var(--space-md)' }}>
 
-          {/* ── SIGNAL tag ── */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 800,
-              letterSpacing: '0.14em', textTransform: 'uppercase',
-              color: 'var(--color-signal)', opacity: 0.9,
-            }}>
-              Signal
-            </span>
-            {isSettled && (
-              <span style={{
-                ...label, fontSize: '10px', marginBottom: 0,
-                color: pick.result === 'win' ? 'var(--color-signal)' : pick.result === 'push' ? 'var(--text-secondary)' : 'var(--color-loss)',
-              }}>
-                {pick.result === 'win' ? 'Win' : pick.result === 'push' ? 'Push' : 'Loss'}
-              </span>
-            )}
-          </div>
-
-          {/* ── League — Matchup ── */}
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: '10px',
-          }}>
-            {(pick.sport || 'nba').toUpperCase()} — {pick.away_team} vs {pick.home_team}
-          </div>
-
-          {/* ── THE PICK (headline) ── */}
-          <div style={{
-            marginBottom: 'var(--space-md)',
-            padding: '14px 16px',
-            borderRadius: '12px',
-            background: 'rgba(0,0,0,0.22)',
-            border: '1px solid rgba(79,134,247,0.12)',
-          }}>
-            <div style={{
-              fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
-              color: 'var(--text-primary)', lineHeight: 1.2,
-              display: 'flex', alignItems: 'baseline', gap: '8px',
-            }}>
-              <span>{teamPart}</span>
-              {spreadPart && (
+          {/* ── Collapsed header (always visible, clickable) ── */}
+          <button
+            onClick={() => setExpanded(e => !e)}
+            style={{
+              width: '100%', background: 'none', border: 'none', padding: 0,
+              cursor: 'pointer', textAlign: 'left',
+            }}
+          >
+            {/* SIGNAL tag */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '24px', fontWeight: 800,
-                  color: '#4F86F7',
-                }}>{spreadPart}</span>
-              )}
-            </div>
-            {gameFmt && (
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
-                color: 'var(--text-tertiary)', marginTop: '6px',
-              }}>
-                {gameFmt}
+                  fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 800,
+                  letterSpacing: '0.14em', textTransform: 'uppercase',
+                  color: 'var(--color-signal)', opacity: 0.9,
+                }}>
+                  Signal
+                </span>
+                {isSettled && (
+                  <span style={{
+                    ...label, fontSize: '10px', marginBottom: 0,
+                    color: pick.result === 'win' ? 'var(--color-signal)' : pick.result === 'push' ? 'var(--text-secondary)' : 'var(--color-loss)',
+                  }}>
+                    {pick.result === 'win' ? 'Win' : pick.result === 'push' ? 'Push' : 'Loss'}
+                  </span>
+                )}
               </div>
-            )}
-          </div>
-
-          {/* ── MODEL EDGE ── */}
-          <div style={{
-            marginBottom: 'var(--space-md)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div style={{
-              ...label, fontSize: '9px', letterSpacing: '0.12em',
-              color: 'var(--text-tertiary)', marginBottom: 0,
-            }}>Model Edge</div>
-            <div style={{
-              ...metric, fontSize: '24px', lineHeight: 1,
-              color: '#34D399',
-            }}>
-              {fmtEdge(pick.edge_pct)}
+              <svg
+                width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round"
+                style={{ transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
             </div>
-          </div>
+
+            {/* League — Matchup */}
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)', marginBottom: '10px',
+            }}>
+              {(pick.sport || 'nba').toUpperCase()} — {pick.away_team} vs {pick.home_team}
+            </div>
+
+            {/* THE PICK (headline) */}
+            <div style={{
+              marginBottom: expanded ? 'var(--space-md)' : 0,
+              padding: '14px 16px',
+              borderRadius: '12px',
+              background: 'rgba(0,0,0,0.22)',
+              border: '1px solid rgba(79,134,247,0.12)',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-sans)', fontSize: '22px', fontWeight: 700,
+                color: 'var(--text-primary)', lineHeight: 1.2,
+                display: 'flex', alignItems: 'baseline', gap: '8px',
+              }}>
+                <span>{teamPart}</span>
+                {spreadPart && (
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '24px', fontWeight: 800,
+                    color: '#4F86F7',
+                  }}>{spreadPart}</span>
+                )}
+              </div>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                marginTop: '8px',
+              }}>
+                {gameFmt && (
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
+                    color: 'var(--text-tertiary)',
+                  }}>
+                    {gameFmt}
+                  </span>
+                )}
+                <span style={{
+                  ...metric, fontSize: '18px', lineHeight: 1,
+                  color: '#34D399',
+                }}>
+                  {fmtEdge(pick.edge_pct)}
+                </span>
+              </div>
+            </div>
+          </button>
+
+          {/* ── Expanded detail ── */}
+          {expanded && (<>
 
           {/* ── Model vs Market ── */}
           <section style={{
@@ -540,6 +556,8 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
               {pick.disclaimer}
             </div>
           )}
+
+          </>)}
         </div>
       </article>
 
