@@ -7,6 +7,8 @@ providers = ["node", "python"]
 
 [variables]
 NIXPACKS_NODE_VERSION = "22"
+# Force fresh installs every deploy (no cached layers) so packages are never stale
+NIXPACKS_NO_CACHE = "1"
 
 [phases.install]
 cmds = [
