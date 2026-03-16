@@ -215,6 +215,14 @@ export default function PicksTab({ onNavigate }) {
           <RevokedPassCard pick={todayData} onViewDetails={() => { setResolutionPick(todayData); setShowResolution(true); }} />
         )}
 
+        {todayData?.type === 'pick' && !isResolved && !isRevoked && (
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '10px',
+          }}>Daily Top Signal</div>
+        )}
+
         {todayData?.type === 'pick' && !isResolved && !isRevoked && isPro && (
           <PickCard pick={todayData} isPro={isPro} onUpgrade={() => setShowAuth(true)} onNavigate={onNavigate} onTrack={() => {
             if (onNavigate) onNavigate('profile', 'bets', {

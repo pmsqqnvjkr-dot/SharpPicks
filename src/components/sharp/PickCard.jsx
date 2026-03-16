@@ -99,7 +99,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
   const [trackError, setTrackError] = useState(null);
   const [signalsOpen, setSignalsOpen] = useState(false);
   const settled = pick.result && pick.result !== 'pending' && pick.result !== 'revoked';
-  const [expanded, setExpanded] = useState(!settled);
+  const [expanded, setExpanded] = useState(false);
 
   const handleTrackPick = async () => {
     setTracking(true);
