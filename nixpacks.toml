@@ -11,6 +11,7 @@ NIXPACKS_NODE_VERSION = "22"
 [phases.install]
 cmds = [
   "npm ci || npm install",
+  "cd emails && npm install && cd ..",
   "uv sync --no-dev --no-install-project"
 ]
 

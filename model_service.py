@@ -577,6 +577,17 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                         import logging
                         logging.error(f"No-eligible pass notification failed: {notif_err}")
 
+                    try:
+                        from notification_events import dispatch_no_signal_emails
+                        dispatch_no_signal_emails(
+                            games_analyzed=diag['games_with_spreads'],
+                            edges_detected=0,
+                            efficiency=100,
+                        )
+                    except Exception as email_err:
+                        import logging
+                        logging.error(f"No-signal email dispatch failed: {email_err}")
+
                     return {
                         'status': 'pass',
                         'reason': 'no_eligible',
@@ -671,6 +682,13 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                     except Exception as notif_err:
                         import logging
                         logging.error(f"Pick notification failed: {notif_err}")
+
+                    try:
+                        from notification_events import dispatch_signal_emails
+                        dispatch_signal_emails(pick)
+                    except Exception as email_err:
+                        import logging
+                        logging.error(f"Signal email dispatch failed: {email_err}")
 
                     print(f"[model-run] Published: {pick.side} | Edge: {pick.edge_pct}% | {best['away_team']} @ {best['home_team']}")
                     return {
@@ -784,6 +802,19 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                 except Exception as notif_err:
                     import logging
                     logging.error(f"Pass notification failed: {notif_err}")
+
+                try:
+                    from notification_events import dispatch_no_signal_emails
+                    n_edges = sum(1 for p in predictions if (p.get('adjusted_edge') or 0) > 0)
+                    eff = round(100 * (1 - n_edges / max(len(predictions), 1)))
+                    dispatch_no_signal_emails(
+                        games_analyzed=len(predictions),
+                        edges_detected=n_edges,
+                        efficiency=eff,
+                    )
+                except Exception as email_err:
+                    import logging
+                    logging.error(f"No-signal email dispatch failed: {email_err}")
 
                 print(f"[model-run] Pass: {top_pass_reason} | Max edge: {closest_edge:+.1f}% | {len(predictions)} games")
                 return {

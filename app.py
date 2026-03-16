@@ -1880,6 +1880,12 @@ def grade_pending_picks():
                 except Exception as e:
                     print(f"[Auto-grade] Result notification error: {e}")
 
+                try:
+                    from notification_events import dispatch_result_emails
+                    dispatch_result_emails(pick)
+                except Exception as e:
+                    print(f"[Auto-grade] Result email dispatch error: {e}")
+
                 linked_bets = TrackedBet.query.filter_by(pick_id=pick.id, result=None).all()
                 for tb in linked_bets:
                     tb.result = pick.result_ats
@@ -3326,6 +3332,13 @@ def maybe_assign_founding(user_id):
         user.founding_member = True
         user.founding_number = new_count
         db.session.commit()
+
+        try:
+            from notification_events import dispatch_founding_member_email
+            dispatch_founding_member_email(user)
+        except Exception as email_err:
+            logging.error(f"Founding member email failed: {email_err}")
+
     except Exception as e:
         db.session.rollback()
         logging.error(f"Founding assignment error: {e}")
@@ -3638,7 +3651,13 @@ def start_trial():
     db.session.add(user)
     db.session.commit()
     login_user(user, remember=True)
-    
+
+    try:
+        from notification_events import dispatch_trial_started_email
+        dispatch_trial_started_email(user)
+    except Exception as e:
+        logging.error(f"Trial started email failed: {e}")
+
     return jsonify({
         'success': True,
         'user': {
