@@ -30,7 +30,7 @@ export default function PicksTab({ onNavigate }) {
   const { data: todayData, loading, error, refetch: refetchToday } = useApi(sportQuery('/picks/today', sport));
   const { data: stats, refetch: refetchStats } = useApi(sportQuery('/public/stats', sport));
   const { data: historyData, loading: historyLoading, refetch: refetchRecord } = useApi(sportQuery('/public/record', sport));
-  const { data: marketReport, loading: marketReportLoading, refetch: refetchMarketReport } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
+  const { data: marketReport, loading: marketReportLoading, error: marketReportError, refetch: refetchMarketReport } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const { data: lastResolved } = useApi('/picks/last-resolved', { skip: !isPro });
   const [showAuth, setShowAuth] = useState(false);
@@ -82,14 +82,18 @@ export default function PicksTab({ onNavigate }) {
               border: '1px solid var(--color-border)',
               padding: '20px',
               textAlign: 'center',
-            }}>
+            }} data-section="daily-market-brief">
               <div style={{
-                fontSize: '13px', color: 'var(--text-secondary)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '13px',
+                color: 'var(--text-secondary)',
                 marginBottom: '4px',
-              }}>{marketReportLoading ? 'Loading market scan…' : 'Market scan runs daily.'}</div>
+              }}>{marketReportLoading ? 'Loading market scan…' : marketReportError ? 'Couldn’t load market scan.' : 'Market scan runs daily.'}</div>
               <div style={{
-                fontSize: '12px', color: 'var(--text-tertiary)',
-              }}>{marketReportLoading ? '' : 'No report yet for today. Check back after 10:15 AM or 2:15 PM ET when the market scan runs.'}</div>
+                fontFamily: 'var(--font-sans)',
+                fontSize: '12px',
+                color: 'var(--text-tertiary)',
+              }}>{marketReportLoading ? '' : marketReportError ? 'Pull down to refresh.' : 'No report yet for today. Check back after 10:15 AM or 2:15 PM ET when the market scan runs.'}</div>
             </div>
           ) : (
             <DailyMarketReport report={marketReport} />
