@@ -1399,6 +1399,371 @@ The window between when an edge appears and when it closes is shrinking. The mod
 Founder, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 22), reading_time_minutes=3,
                 ))
+            # --- Publishing Calendar: Mar-May 2026 ---
+            if 'the-model-doesnt-watch-the-game' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="The Model Doesn't Watch the Game",
+                    slug="the-model-doesnt-watch-the-game",
+                    category="philosophy",
+                    excerpt="Sharp Picks doesn't know about momentum or vibes. It knows 56 features and a discipline filter that has no feelings about your favorite team.",
+                    content="""There's a moment every bettor knows. You're watching a team that "feels" right. They're moving the ball, their energy is up, the crowd is into it. You pull out your phone and put money down.
+
+That feeling is real. It's also irrelevant.
+
+Sharp Picks doesn't watch the game. It doesn't know about momentum or vibes or that one announcer who keeps saying a team "wants it more." It knows 56 features, a 3.5% minimum edge threshold, and a discipline filter that has no feelings about your favorite team.
+
+This is the hardest thing for new users to understand. You're not signing up for hot takes. You're signing up for a system that will, on most nights, tell you to do nothing. And that's the point.
+
+---
+
+## The Discipline Gap
+
+I built Sharp Picks because I was tired of my own brain. I'd do the research, find the edge, and then talk myself out of it because of something I saw in pregame warmups. Or I'd skip the research entirely because I "knew" a team was due.
+
+The model doesn't have a "due" detector. It has a four-model ensemble that asks a simple question: is the market's price wrong by enough to matter? If yes, signal. If no, pass. Every time, no exceptions.
+
+The gap between knowing this and living it is what I call the discipline gap. Closing it is the entire product.
+
+---
+
+## What This Means for You
+
+When you open the app and see zero signals, that's not a bug. It's the model doing exactly what it's supposed to do. The nights it passes are just as important as the nights it picks.
+
+If you want someone to tell you who to bet on every night, this isn't the product. If you want a system that only speaks when the math says something, welcome.""",
+                    status="scheduled", publish_date=datetime(2026, 3, 24, 15, 0),
+                    reading_time_minutes=4,
+                ))
+            if 'why-the-best-nights-are-the-ones-you-sit-out' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="Why the Best Nights Are the Ones You Sit Out",
+                    slug="why-the-best-nights-are-the-ones-you-sit-out",
+                    category="discipline",
+                    excerpt="Last Tuesday: 9 games analyzed. 0 signals. A user asked if something was broken. Nothing was broken.",
+                    content="""Last Tuesday, the model analyzed nine games and generated zero signals. The app showed a clean slate: 9 analyzed, 0 signals, 9 passed. No edge. No pick.
+
+I got a message from a user asking if something was broken.
+
+Nothing was broken. That was the system working perfectly.
+
+---
+
+## The Action Trap
+
+Sports betting has a built-in psychological trap: there are games every night. Unlike the stock market, where you can tell yourself "I'm a long-term investor," betting gives you a fresh slate of opportunities every 24 hours. The temptation to act is constant.
+
+Most bettors lose money not because they're bad at picking winners, but because they bet too often. They turn a 55% edge into a 48% edge by diluting it with action on games where they have no advantage.
+
+Sharp Picks solves this by making inaction the default. The discipline filter doesn't ask "which game should we bet on?" It asks "is there any game worth betting on?" Most nights, the answer is no. And that's fine.
+
+---
+
+## Reframing the Zero
+
+A zero-signal night isn't a failure. It's information. It tells you the market is priced efficiently, that the sportsbooks have the lines right, that there's no gap to exploit. Acting on that information - by doing nothing - is the most disciplined move you can make.
+
+Over a full season, the nights you sit out contribute to your ROI just as much as the nights you bet. They're the denominator that makes the numerator work.
+
+If you're uncomfortable with inaction, this is the first thing to work on. Not your pick strategy. Not your bankroll management. Your relationship with doing nothing.""",
+                    status="scheduled", publish_date=datetime(2026, 3, 27, 15, 0),
+                    reading_time_minutes=3,
+                ))
+            if 'what-happens-between-the-lines-and-your-phone' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="What Happens Between the Lines and Your Phone",
+                    slug="what-happens-between-the-lines-and-your-phone",
+                    category="how_it_works",
+                    excerpt="Three times a day, Sharp Picks pulls lines from six sportsbooks. Here's what happens next.",
+                    content="""Every morning, Sharp Picks wakes up before you do. By the time you check the app, the system has already pulled fresh lines from six major sportsbooks, run them through a four-model ensemble, and decided whether any game on tonight's slate is worth your attention.
+
+Here's what that actually looks like, step by step.
+
+---
+
+## Step 1: Line Collection
+
+Three times a day, the system pulls the best available spread, total, and moneyline from DraftKings, FanDuel, BetMGM, Caesars, PointsBet, and BetRivers. It doesn't use an average - it uses the best available number for each market. If DraftKings has +7.5 and FanDuel has +8, the system uses +8. You should too.
+
+---
+
+## Step 2: Feature Engineering
+
+Each game gets analyzed across 56 features. These include scoring differentials, defensive efficiency, pace, rest days, home/away splits, and recent form windows. None of these features are exotic. The edge isn't in having secret data - it's in how the models weight them together.
+
+---
+
+## Step 3: The Ensemble
+
+Four models vote: Gradient Boosting, Random Forest, XGBoost, and AdaBoost. Each one sees the same features but processes them differently. The ensemble blends their outputs, then applies a 30/70 shrinkage toward the market line. This is important - the model respects the market. It just thinks the market is sometimes wrong by a few points.
+
+---
+
+## Step 4: The Discipline Filter
+
+Raw edges pass through the filter. Anything below 3.5% adjusted edge gets cut. Spread magnitude caps are enforced regardless of edge size. What survives is a signal. What doesn't is labeled "passed" and shown on the Market Board so you can see exactly what the model considered and rejected.
+
+---
+
+## Step 5: Your Phone Buzzes
+
+If signals survive the filter, you get a push notification. Open the app, and you see the pick, the edge, the quant reasoning, and the cover probability. No fluff, no narrative, no "lock of the day." Just the math and what it says.
+
+The entire pipeline runs without human intervention. I don't override it. I don't add picks. I don't remove picks. The system is the system.""",
+                    status="scheduled", publish_date=datetime(2026, 3, 31, 14, 0),
+                    reading_time_minutes=5,
+                ))
+            if 'clv-is-the-only-scoreboard-that-matters-early' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="CLV Is the Only Scoreboard That Matters Early",
+                    slug="clv-is-the-only-scoreboard-that-matters-early",
+                    category="philosophy",
+                    excerpt="You're 5-7 on the season. You think the model is broken. It's not. You just don't have enough data yet.",
+                    content="""You're 12 picks into the season. You're 5-7. You're wondering if the model is broken.
+
+It's not. You just don't have enough data yet.
+
+---
+
+## The Sample Size Problem
+
+At 12 picks, your record is mostly noise. A fair coin flipped 12 times can easily come up 5-7. Or 8-4. Or 3-9. The variance in small samples is enormous, and your emotional reaction to a 5-7 start will mislead you far more than the record itself.
+
+This is why Sharp Picks tracks Closing Line Value as the primary early performance metric. CLV answers a different question than your record does: not "did the bet win?" but "was the bet smart?"
+
+---
+
+## What CLV Actually Tells You
+
+If the model takes a team at +7.5 and the line closes at +6, that's 1.5 points of CLV. The market moved toward the model's position. Regardless of whether that specific bet won or lost, the model identified value that the broader market eventually agreed with.
+
+Sustained positive CLV is the single best predictor of long-term profitability in sports betting. It's not a guarantee - nothing is - but it's the closest thing to a leading indicator that exists.
+
+---
+
+## The 50-Pick Gate
+
+I've set a personal rule: no meaningful model adjustments before 50 picks. Before that threshold, I'm watching CLV trends, checking that the pipeline is functioning correctly, and resisting the urge to tinker. After 50 picks, the data starts to mean something and adjustments become rational rather than reactive.
+
+If you're a new user, I'd encourage the same patience. Don't judge the model on your first two weeks. Judge it on your first two months. And in the meantime, watch the CLV.""",
+                    status="scheduled", publish_date=datetime(2026, 4, 7, 14, 0),
+                    reading_time_minutes=4,
+                ))
+            if 'losing-streaks-are-part-of-the-math' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="Losing Streaks Are Part of the Math",
+                    slug="losing-streaks-are-part-of-the-math",
+                    category="discipline",
+                    excerpt="If you bet long enough with a 54% edge, you will lose seven in a row. That's not a prediction. It's a mathematical certainty.",
+                    content="""If you bet long enough with a legitimate 54% edge, you will at some point lose seven in a row. This isn't a prediction. It's a mathematical certainty.
+
+The question isn't whether it will happen. It's what you'll do when it does.
+
+---
+
+## Expected Drawdowns
+
+A 54% win rate over 200 picks will produce multiple 4-5 game losing streaks and at least one 6-7 game streak. That's just how probability works. The variance band around a 54% true rate is wide enough to produce stretches that feel catastrophic in real time but are completely normal in hindsight.
+
+The bettors who survive are the ones who sized their bets correctly before the streak started and who don't change their process during it. The bettors who blow up are the ones who double down, chase losses, or abandon the system entirely.
+
+---
+
+## What Sharp Picks Does During a Streak
+
+Nothing different. The model doesn't know it's on a losing streak. It doesn't have a "get back to even" mode. It analyzes the next slate the same way it analyzed the last one: 56 features, four models, discipline filter, 3.5% threshold. Same inputs, same process, same outputs.
+
+That's not a limitation. That's the entire point.
+
+---
+
+## Your Job During a Streak
+
+Don't increase your unit size. Don't add picks the model didn't generate. Don't skip picks the model did generate because you've "lost faith." The model hasn't changed. Only your feelings have.
+
+If after 50+ picks the CLV is negative and the record is meaningfully below expectation, that's a signal worth examining. Seven losses in a row after 30 picks is not. Trust the math. That's what you signed up for.""",
+                    status="scheduled", publish_date=datetime(2026, 4, 10, 14, 0),
+                    reading_time_minutes=3,
+                ))
+            if 'why-the-model-respects-the-market' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="Why the Model Respects the Market",
+                    slug="why-the-model-respects-the-market",
+                    category="how_it_works",
+                    excerpt="Our model is 30% model, 70% market. That sounds like the model barely has an opinion. That's exactly right. And that's why it works.",
+                    content="""Sharp Picks uses a 30/70 model-to-market shrinkage blend. That means the system's final output is 30% model prediction and 70% market line. On first glance, that sounds like the model barely has an opinion.
+
+That's exactly right. And that's why it works.
+
+---
+
+## The Market Is Good
+
+NBA betting lines are set by sharp oddsmakers and shaped by millions of dollars in public and professional money. By the time you see a line, it's already incorporated an enormous amount of information. The market isn't always right, but it's right more often than any individual model.
+
+A model that ignores the market is a model that thinks it's smarter than the collective intelligence of every bettor, oddsmaker, and syndicate in the world. That's arrogance, not edge.
+
+---
+
+## Where the Edge Lives
+
+The model's value isn't in bold disagreements with the market. It's in small, systematic corrections. When the model says a team should be -6 and the line is -4.5, that 1.5-point gap is the edge. It's not dramatic. It's not exciting. But over hundreds of picks, those small corrections compound.
+
+The 30/70 blend ensures the model stays humble. It anchors to the market and only deviates when its features justify a correction. This prevents overfitting, reduces variance, and keeps the model from chasing phantom edges that disappear out of sample.
+
+---
+
+## When the Market MAE Still Wins
+
+Right now, the market's mean absolute error is still lower than the model's on raw predictions. This is expected and normal. The model isn't trying to be more accurate than the market on every game - it's trying to find the specific games where the market is most wrong. The 30/70 blend is correctly calibrated for this reality.
+
+If the model ever becomes more accurate than the market on raw MAE, we'd shift the blend. Until then, 30/70 is the honest ratio.""",
+                    status="scheduled", publish_date=datetime(2026, 4, 14, 14, 0),
+                    reading_time_minutes=3,
+                ))
+            if 'we-dont-sell-picks-we-sell-process' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="We Don't Sell Picks. We Sell Process.",
+                    slug="we-dont-sell-picks-we-sell-process",
+                    category="philosophy",
+                    excerpt="The next time someone offers you a lock, ask three questions: methodology, full-season record, CLV. If they can't answer all three, they're selling hope.",
+                    content="""The sports betting internet is full of people selling picks. They'll tell you they're up 40 units this month. They'll show you a screenshot of a winning ticket. They'll charge you $99 for a "VIP package" that gives you access to their "lock of the day."
+
+Sharp Picks is not that.
+
+---
+
+## The Tout Problem
+
+Touts survive by exploiting two things: selection bias and short memories. They post their winners publicly and their losers quietly. They reframe 52% seasons as dominant runs. And they know that most of their customers will churn within 60 days, replaced by new ones who only saw the highlight reel.
+
+This business model requires opacity. If you showed the full record, the full methodology, and the full variance, most people would realize the tout has no edge. So touts never show you the full picture.
+
+---
+
+## Radical Transparency
+
+Sharp Picks shows you everything. Every game analyzed. Every edge detected. Every pick passed on. The discipline filter is visible. The quant reasoning is visible. The model's track record - wins and losses - is visible. The CLV is visible.
+
+I don't cherry-pick winning nights for marketing. I don't hide losing streaks. The Results tab shows every pick the model has ever made, in order, with the outcome. If the model is performing, you'll see it. If it's not, you'll see that too.
+
+This is what selling process looks like. You're not paying for a guy's gut feeling with a confidence score attached. You're paying for a system with a defined methodology, a visible track record, and a discipline framework that tells you when not to bet.
+
+---
+
+## Why This Matters for You
+
+The next time someone offers you a lock, ask them three questions: What's your methodology? What's your full-season record? What's your CLV? If they can't answer all three, they're not selling you an edge. They're selling you hope.
+
+Hope doesn't have a positive expected value. Process does.""",
+                    status="scheduled", publish_date=datetime(2026, 4, 21, 14, 0),
+                    reading_time_minutes=4,
+                ))
+            if 'what-march-madness-silence-taught-us' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="What March Madness Silence Taught Us About Our Own Model",
+                    slug="what-march-madness-silence-taught-us",
+                    category="market_notes",
+                    excerpt="March Madness came and went. We didn't publish a single pick. That was one of the hardest decisions I've made as a founder.",
+                    content="""March Madness came and went. Sharp Picks didn't publish a single tournament pick. Not because we didn't want to - because the model isn't built for it.
+
+This was one of the hardest decisions I've made as a founder, and one of the most important.
+
+---
+
+## The Temptation
+
+Every sports betting product on the planet publishes March Madness content. Brackets, upset specials, first-round locks. It's the highest-traffic period of the year. From a marketing perspective, staying silent is insane.
+
+But Sharp Picks is an NBA spread model. The features are tuned for NBA matchups, NBA pace, NBA rest patterns, NBA scoring distributions. College basketball is a fundamentally different sport with 350+ teams, wildly inconsistent data quality, and a tournament format that amplifies variance to absurd levels.
+
+---
+
+## What We Did Instead
+
+We used March as a content moment. We wrote about why we were sitting out. We talked about the difference between having an opinion and having an edge. We showed the discipline filter doing its job at the macro level - not just passing on individual games, but passing on an entire sport.
+
+The response was interesting. We lost some followers who wanted bracket advice. We gained others who said the silence was what convinced them we were serious.
+
+---
+
+## The Lesson
+
+Your model is defined as much by what it refuses to do as by what it does. If we'd published March Madness picks to chase traffic, we'd have undermined every claim we make about discipline and process. One month of engagement metrics isn't worth a permanent credibility hit.
+
+When we launch MLB and WNBA coverage later this year, each sport will have its own purpose-built model, its own backtesting, and its own shadow period. We won't go live until the math justifies it. That's the same standard we hold for every individual pick, applied at the product level.""",
+                    status="scheduled", publish_date=datetime(2026, 4, 24, 14, 0),
+                    reading_time_minutes=5,
+                ))
+            if 'shadow-mode-how-we-test-a-model' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="Shadow Mode: How We Test a Model Before You See It",
+                    slug="shadow-mode-how-we-test-a-model",
+                    category="how_it_works",
+                    excerpt="Before any model goes live on Sharp Picks, it runs in shadow mode - generating picks against real lines that no user ever sees. Here's why.",
+                    content="""Before any model goes live on Sharp Picks, it runs in shadow mode. Shadow mode means the model generates picks in real time against real lines, but those picks are never shown to users. They're graded silently in the background.
+
+This is how we're preparing for MLB and WNBA.
+
+---
+
+## Why Shadow Mode Exists
+
+Backtesting is necessary but not sufficient. A model that looks great on historical data can fall apart in production for dozens of reasons: data pipeline delays, line movement it didn't train on, feature drift, or simply overfitting to the past. Shadow mode catches these problems before they affect your bankroll.
+
+---
+
+## The Evaluation Gate
+
+For WNBA, we're running shadow mode for the entire 2025 season. The model has to demonstrate profitability across that sample before going live. The gate is strict: we need to see positive CLV, a reasonable win rate, and no systematic blind spots in specific game types.
+
+For MLB, the shadow period will cover the first portion of the 2026 season. Same evaluation criteria, applied to a larger sample given MLB's 162-game schedule.
+
+---
+
+## What You'll See
+
+When a new sport goes live, it'll show up in the app alongside NBA with its own signal feed, its own discipline filter stats, and its own track record starting from day one of live picks. The shadow period record won't be published as the official track record - it's testing data, not live performance.
+
+This process isn't fast. That's intentional. We'd rather launch late with a validated model than launch early with a guess.""",
+                    status="scheduled", publish_date=datetime(2026, 5, 5, 14, 0),
+                    reading_time_minutes=3,
+                ))
+            if 'the-anti-parlay-manifesto' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="The Anti-Parlay Manifesto",
+                    slug="the-anti-parlay-manifesto",
+                    category="philosophy",
+                    excerpt="A six-leg parlay has a higher house edge than most casino table games. Sharp Picks will never generate a parlay. Here's the math.",
+                    content="""Parlays are the sports betting industry's most effective tool for separating you from your money. Sportsbooks love them. Social media loves them. Your bankroll does not.
+
+Sharp Picks will never generate a parlay. Here's why.
+
+---
+
+## The Math Against You
+
+A two-leg parlay at standard -110 juice requires you to win both bets to collect. If each leg has a 54% true probability, your parlay has a 29.2% chance of winning. The book pays you as if it's 27.8%. That's a 1.4% edge to the house on every two-leg parlay - worse than your edge on either individual bet.
+
+Add a third leg and the house edge widens further. By the time you're building five and six-leg parlays - the kind that go viral on social media - you're playing a lottery with a 25%+ house edge. The sportsbook's margin on a six-leg parlay is higher than most casino table games.
+
+---
+
+## The Social Media Effect
+
+Parlays go viral because they produce dramatic outcomes. A $10 bet that pays $850 makes for a great screenshot. What you don't see is the 84 times that same person lost $10. The expected value of that $850 ticket was about -$40.
+
+This is the same selection bias that makes touts look profitable. The wins are public, the losses are private, and the math is invisible.
+
+---
+
+## What We Do Instead
+
+Sharp Picks generates flat-stake, single-game signals. One pick at a time, each with its own independent edge. If you want to bet three signals in one night, bet them as three separate bets. Your expected value is the same, but your variance is dramatically lower and the house takes less off the top.
+
+Boring? Yes. Profitable? That's the plan.""",
+                    status="scheduled", publish_date=datetime(2026, 5, 8, 14, 0),
+                    reading_time_minutes=4,
+                ))
             # --- MLB articles temporarily disabled until rolling deployment ---
             if False and 'why-mlb-is-a-quant-market' not in existing_slugs:
                 incremental_insights.append(Insight(
