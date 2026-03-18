@@ -213,7 +213,7 @@ function StartHereCard({ onTap }) {
             fontSize: '11px',
             color: 'var(--text-secondary)',
             marginTop: '3px',
-          }}>Founder Letter &mdash; Evan Cole</div>
+          }}>Founder Letter - Evan Cole</div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
           <polyline points="9 18 15 12 9 6"/>
@@ -281,7 +281,7 @@ function InsightCard({ insight, onTap }) {
         marginBottom: '6px',
         lineHeight: '1.4',
       }}>
-        {insight.title}
+        {(insight.title || '').replace(/—/g, '-')}
       </h3>
 
       <p style={{
@@ -319,8 +319,9 @@ function parseMarketNote(content) {
     }
   }
 
-  const obs = (sections['observation'] || '').trim();
-  const impl = (sections['implication'] || '').trim();
+  const obs = (sections['observation'] || '').trim().replace(/—/g, '-');
+  const rawImpl = (sections['implication'] || '').trim();
+  const impl = rawImpl.replace(/\*?—\s*Evan\s*Cole\*?/gi, '').replace(/—/g, '-').trim();
 
   let edges = 0, signals = 0, density = 0;
   const struct = sections['market structure'] || '';
@@ -338,7 +339,7 @@ function parseMarketNote(content) {
   if (favM) favEdges = parseInt(favM[1]);
   if (dogM) dogEdges = parseInt(dogM[1]);
 
-  const whyText = (sections['why this matters'] || '').trim();
+  const whyText = (sections['why this matters'] || '').trim().replace(/—/g, '-');
 
   return { obs, impl, edges, signals, density, favEdges, dogEdges, whyText };
 }
@@ -400,7 +401,7 @@ function MarketNoteContent({ insight }) {
       <h1 style={{
         fontFamily: serifFont, fontSize: '26px', fontWeight: 600,
         lineHeight: 1.25, color: textPrimary, marginBottom: '6px',
-      }}>{insight.title}</h1>
+      }}>{(insight.title || '').replace(/—/g, '-')}</h1>
 
       {/* Date */}
       <div style={{
@@ -684,7 +685,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
               marginBottom: '12px',
               letterSpacing: '-0.01em',
             }}>
-              {insight.title}
+              {(insight.title || '').replace(/—/g, '-')}
             </h1>
 
             <div style={{
@@ -917,7 +918,7 @@ function SharpPrincipleBlock({ text, label }) {
 function WhyThisMatters({ insight }) {
   const mattersMap = {
     'discipline': 'This is why Sharp Picks passes most games. The goal is not activity. The goal is capital preservation. Discipline compounds. Impulse erodes.',
-    'philosophy': 'This principle shapes every decision the model makes. It is not strategy — it is structure.',
+    'philosophy': 'This principle shapes every decision the model makes. It is not strategy - it is structure.',
     'how_it_works': 'Understanding how the system works builds the trust needed to follow it through variance.',
     'market_notes': 'The market is your competition. Understanding it is the first step toward finding real edge.',
     'founder_note': 'These are the convictions behind the code. The model is a reflection of these beliefs.',
@@ -1125,7 +1126,7 @@ export function InsightPassDayCTA({ onTap }) {
             color: 'var(--text-primary)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
-            {insight.title}
+            {(insight.title || '').replace(/—/g, '-')}
           </div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">

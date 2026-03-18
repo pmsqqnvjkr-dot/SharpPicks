@@ -161,17 +161,18 @@ export default function DailyMarketReport({ report: reportProp }) {
         {/* Market Signal */}
         {(data.briefing?.[0] || data.insight) && (
           <div style={{
-            background: bgInner, border: `1px solid ${border}`,
-            borderRadius: '6px', padding: '10px 12px', marginTop: '12px',
+            background: '#141A2E', border: `1px solid ${border}`,
+            borderLeft: `3px solid ${green}`,
+            borderRadius: '6px', padding: '14px', marginTop: '12px',
           }}>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '8.5px', fontWeight: 500,
-              letterSpacing: '1px', color: green, textTransform: 'uppercase',
-              marginBottom: '4px',
+              fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 500,
+              letterSpacing: '1.5px', color: green, textTransform: 'uppercase',
+              marginBottom: '6px',
             }}>Market Signal</div>
             <div style={{
-              fontFamily: 'var(--font-sans)', fontSize: '12px',
-              color: textSec, lineHeight: 1.4,
+              fontFamily: "'IBM Plex Serif', var(--font-serif), serif", fontSize: '13px',
+              color: textSec, lineHeight: 1.5,
             }}>{data.briefing?.[0] || data.insight}</div>
           </div>
         )}
