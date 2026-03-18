@@ -879,12 +879,14 @@ def build_market_report_dict(date_param, sport=None):
     all_edges = []
     largest_edge_val = 0
     largest_edge_game = None
+    largest_edge_team = None
     strong_edges = 0
     moderate_edges = 0
     weak_edges = 0
     underdog_edges = 0
     favorite_edges = 0
     totals_efficient = True
+    edge_spread_mags = []
 
     for g in detail:
         edge = abs(g.get('edge', 0) or 0)
@@ -898,6 +900,7 @@ def build_market_report_dict(date_param, sport=None):
             else:
                 weak_edges += 1
             spread = g.get('spread') or g.get('line') or 0
+            edge_spread_mags.append(abs(spread))
             if spread > 0:
                 underdog_edges += 1
             else:
@@ -907,8 +910,17 @@ def build_market_report_dict(date_param, sport=None):
                 away = g.get('away_team', '')
                 home = g.get('home_team', '')
                 largest_edge_game = f'{away} @ {home}' if away and home else None
+                pick_side = g.get('pick_side', '')
+                if pick_side == 'home':
+                    largest_edge_team = home or largest_edge_game
+                elif pick_side == 'away':
+                    largest_edge_team = away or largest_edge_game
+                else:
+                    largest_edge_team = g.get('pick', largest_edge_game)
         if g.get('passes'):
             qualified_signals += 1
+
+    spread_mag_avg = round(sum(edge_spread_mags) / len(edge_spread_mags), 1) if edge_spread_mags else 0.0
 
     no_edge_count = games_analyzed - edges_detected
     efficiency = round(no_edge_count / games_analyzed * 100, 0) if games_analyzed > 0 else 100
@@ -1070,6 +1082,9 @@ def build_market_report_dict(date_param, sport=None):
         'signal_density': signal_density,
         'largest_edge': round(largest_edge_val, 1) if largest_edge_val > 0 else None,
         'largest_edge_game': largest_edge_game,
+        'top_edge_team': largest_edge_team,
+        'top_edge_pct': round(largest_edge_val, 1) if largest_edge_val > 0 else 0,
+        'spread_mag_avg': spread_mag_avg,
         'market_stability': market_stability,
         'edge_distribution': {
             'strong': strong_edges,

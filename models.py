@@ -247,6 +247,7 @@ class Insight(db.Model):
     publish_date = db.Column(db.DateTime, nullable=True)
     featured = db.Column(db.Boolean, default=False)
     pass_day = db.Column(db.Boolean, default=False)
+    story_type = db.Column(db.String, nullable=True)
     reading_time_minutes = db.Column(db.Integer, default=2)
     related_pick_ids = db.Column(JSONB, default=list)
     date_range_start = db.Column(db.String, nullable=True)

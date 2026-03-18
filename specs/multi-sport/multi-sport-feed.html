@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sharp Picks — Multi-Sport Unified Feed</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0E1A;
+    --bg-card: #0F1424;
+    --bg-elevated: #141A2E;
+    --bg-surface: #111728;
+    --border: rgba(255,255,255,0.06);
+    --text-primary: #E8ECF4;
+    --text-secondary: #7A8494;
+    --text-muted: #4A5568;
+    --brand-green: #5A9E72;
+    --brand-green-dim: rgba(90,158,114,0.15);
+    --brand-red: #C4686B;
+    --brand-red-dim: rgba(196,104,107,0.12);
+    --accent-blue: #4A7FBA;
+    --accent-yellow: #D4A843;
+    --accent-orange: #D48A43;
+
+    /* Sport accent colors */
+    --nba-color: #F97316;
+    --nba-dim: rgba(249,115,22,0.12);
+    --mlb-color: #3B82F6;
+    --mlb-dim: rgba(59,130,246,0.12);
+    --wnba-color: #EC4899;
+    --wnba-dim: rgba(236,72,153,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #060810;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .page-subtitle {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 20px;
+    color: var(--text-primary);
+    margin-bottom: 32px;
+  }
+
+  .frames-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 40px;
+  }
+
+  .frame-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .frame-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--brand-green);
+    background: var(--brand-green-dim);
+    padding: 4px 12px;
+    border-radius: 3px;
+  }
+
+  .phone {
+    width: 375px;
+    background: var(--bg);
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ============== */
+  /* TOP BAR        */
+  /* ============== */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sp-icon {
+    width: 20px; height: 20px; border-radius: 4px;
+    background: linear-gradient(135deg, var(--brand-green), #4A8A62);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace; font-size: 8px; font-weight: 700; color: white;
+  }
+
+  .top-bar-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 500; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--text-secondary);
+  }
+
+  .top-bar-right {
+    font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text-muted);
+  }
+
+  /* ============== */
+  /* PAGE HEADER    */
+  /* ============== */
+  .page-header {
+    padding: 16px 20px 12px;
+  }
+
+  .page-header h1 {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 22px; font-weight: 600; color: var(--text-primary);
+  }
+
+  .page-header-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--text-muted); margin-top: 4px;
+  }
+
+  .page-header-meta .active-badge { color: var(--brand-green); }
+
+  .page-header-tagline {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--text-muted); font-style: italic; margin-top: 2px;
+  }
+
+  /* ===================== */
+  /* SPORT FILTER ROW      */
+  /* ===================== */
+  .sport-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 20px;
+    margin-bottom: 14px;
+  }
+
+  .sport-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .sport-pill .sport-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+
+  .sport-pill.all-active {
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    border-color: rgba(255,255,255,0.1);
+  }
+
+  /* NBA pill active */
+  .sport-pill.nba-active {
+    color: var(--nba-color);
+    background: var(--nba-dim);
+    border-color: rgba(249,115,22,0.3);
+  }
+  .sport-pill.nba-active .sport-dot { background: var(--nba-color); box-shadow: 0 0 6px rgba(249,115,22,0.4); }
+  .sport-pill .sport-dot.nba { background: var(--nba-color); }
+
+  /* MLB pill active */
+  .sport-pill.mlb-active {
+    color: var(--mlb-color);
+    background: var(--mlb-dim);
+    border-color: rgba(59,130,246,0.3);
+  }
+  .sport-pill.mlb-active .sport-dot { background: var(--mlb-color); box-shadow: 0 0 6px rgba(59,130,246,0.4); }
+  .sport-pill .sport-dot.mlb { background: var(--mlb-color); }
+
+  /* WNBA pill active */
+  .sport-pill.wnba-active {
+    color: var(--wnba-color);
+    background: var(--wnba-dim);
+    border-color: rgba(236,72,153,0.3);
+  }
+  .sport-pill.wnba-active .sport-dot { background: var(--wnba-color); box-shadow: 0 0 6px rgba(236,72,153,0.4); }
+  .sport-pill .sport-dot.wnba { background: var(--wnba-color); }
+
+  /* Inactive sport pills */
+  .sport-pill.inactive .sport-dot { opacity: 0.4; }
+
+  .sport-pill .sport-count {
+    font-size: 9px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  /* Off-season label */
+  .sport-pill.off-season {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .sport-pill .off-label {
+    font-size: 8px;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+  }
+
+  /* ===================== */
+  /* COMBINED DISCIPLINE   */
+  /* ===================== */
+  .discipline-bar {
+    margin: 0 16px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+
+  .discipline-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .discipline-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .discipline-scope {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+
+  .discipline-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    margin-bottom: 14px;
+  }
+
+  .discipline-stat {
+    text-align: center;
+    position: relative;
+  }
+
+  .discipline-stat:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 4px; bottom: 4px;
+    width: 1px; background: var(--border);
+  }
+
+  .discipline-stat-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 26px; font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .discipline-stat-value.green { color: var(--brand-green); }
+
+  .discipline-stat-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Per-sport breakdown row */
+  .discipline-breakdown {
+    display: flex;
+    gap: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .breakdown-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .breakdown-item .breakdown-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+  }
+
+  .breakdown-item .breakdown-dot.nba { background: var(--nba-color); }
+  .breakdown-item .breakdown-dot.mlb { background: var(--mlb-color); }
+  .breakdown-item .breakdown-dot.wnba { background: var(--wnba-color); }
+
+  .breakdown-signals {
+    color: var(--brand-green);
+    font-weight: 500;
+  }
+
+  .discipline-tagline {
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--text-muted);
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    margin-top: 12px;
+  }
+
+  /* ===================== */
+  /* STATUS FILTER PILLS   */
+  /* ===================== */
+  .filter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    margin-bottom: 8px;
+  }
+
+  .pills {
+    display: flex;
+    gap: 6px;
+  }
+
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    padding: 6px 14px; border-radius: 6px;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .pill.active {
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    border-color: rgba(255,255,255,0.1);
+  }
+
+  .pill.inactive {
+    border-color: var(--border);
+    color: var(--text-secondary);
+  }
+
+  .sort-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 4px 20px 10px;
+  }
+
+  .sort-option {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; letter-spacing: 0.8px;
+    color: var(--text-muted); cursor: pointer;
+  }
+
+  .sort-option.active {
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    padding: 3px 8px; border-radius: 3px;
+  }
+
+  /* ===================== */
+  /* SPORT GROUP HEADER    */
+  /* ===================== */
+  .sport-group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 20px 8px;
+    margin-top: 4px;
+  }
+
+  .sport-group-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+
+  .sport-group-dot.nba { background: var(--nba-color); }
+  .sport-group-dot.mlb { background: var(--mlb-color); }
+  .sport-group-dot.wnba { background: var(--wnba-color); }
+
+  .sport-group-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .sport-group-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .sport-group-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    margin-left: 8px;
+  }
+
+  /* ===================== */
+  /* GAME CARDS            */
+  /* ===================== */
+  .game-list {
+    padding: 0 16px;
+  }
+
+  .game-row {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+
+  .game-row.has-edge { border-left: 3px solid var(--brand-green); }
+  .game-row.no-edge { opacity: 0.55; }
+
+  /* Sport badge on card */
+  .game-sport-badge {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .game-sport-badge.nba {
+    color: var(--nba-color);
+    background: var(--nba-dim);
+  }
+
+  .game-sport-badge.mlb {
+    color: var(--mlb-color);
+    background: var(--mlb-dim);
+  }
+
+  .game-sport-badge.wnba {
+    color: var(--wnba-color);
+    background: var(--wnba-dim);
+  }
+
+  .game-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .game-teams { flex: 1; }
+
+  .team-line {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 3px;
+  }
+
+  .team-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .team-record {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-muted);
+  }
+
+  .game-time {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .game-edge-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    padding-top: 18px; /* clear the sport badge */
+  }
+
+  .edge-pct {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px; font-weight: 500;
+    color: var(--brand-green);
+  }
+
+  .edge-strength-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 2px 6px; border-radius: 3px;
+  }
+
+  .edge-strength-label.strong { color: var(--brand-green); background: var(--brand-green-dim); }
+  .edge-strength-label.moderate { color: var(--accent-yellow); background: rgba(212,168,67,0.12); }
+
+  .no-edge-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-muted);
+  }
+
+  /* Data strip */
+  .game-data {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 0;
+    background: var(--bg-elevated);
+    border-radius: 6px;
+    padding: 8px 0;
+  }
+
+  .game-data-item {
+    text-align: center;
+    position: relative;
+  }
+
+  .game-data-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 2px; bottom: 2px;
+    width: 1px; background: var(--border);
+  }
+
+  .game-data-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+
+  .game-data-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .game-data-value.green { color: var(--brand-green); }
+  .game-data-value.red { color: var(--brand-red); }
+
+  .game-data-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; color: var(--text-muted);
+  }
+
+  .game-data-sub.green { color: var(--brand-green); }
+  .game-data-sub.red { color: var(--brand-red); }
+
+  /* Quant hint */
+  .quant-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 8px;
+    background: rgba(90,158,114,0.06);
+    border: 1px solid rgba(90,158,114,0.12);
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .quant-hint-icon {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1.5px solid var(--brand-green);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; color: var(--brand-green);
+  }
+
+  .quant-hint-text {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.5px;
+    color: var(--brand-green);
+  }
+
+  /* ============== */
+  /* MLB GAME DATA  */
+  /* ============== */
+  .game-data.mlb-data {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+
+  /* Pitcher line */
+  .pitcher-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+
+  .pitcher-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+
+  .pitcher-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px; color: var(--text-secondary);
+  }
+
+  .pitcher-era {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-muted);
+  }
+
+  /* ============== */
+  /* BOTTOM NAV     */
+  /* ============== */
+  .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 12px 0 8px;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+  }
+
+  .nav-item {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; letter-spacing: 0.5px;
+    color: var(--text-muted);
+  }
+
+  .nav-item.active { color: var(--accent-blue); }
+  .nav-icon { font-size: 16px; }
+
+  /* ============== */
+  /* SIGNALS FEED   */
+  /* ============== */
+  .signals-section {
+    padding: 0 16px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+
+  .signals-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px; padding: 0 4px;
+  }
+
+  .signal-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--brand-green);
+    border-radius: 8px;
+    margin-bottom: 6px;
+  }
+
+  .signal-card-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .signal-card-team {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .signal-card-edge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .signal-card-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--brand-green);
+    background: var(--brand-green-dim);
+    padding: 3px 8px; border-radius: 3px;
+  }
+
+  .signal-card-pct {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; font-weight: 500;
+    color: var(--brand-green);
+  }
+
+  /* Footer */
+  .footer-disclaimer {
+    text-align: center;
+    padding: 12px 20px 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; line-height: 1.6;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">Sharp Picks — Multi-Sport Market Tab</div>
+<div class="page-subtitle">Unified Feed Reference for Cursor</div>
+
+<div class="frames-row">
+
+<!-- ================================ -->
+<!-- FRAME 1: ALL SPORTS — JULY VIEW  -->
+<!-- ================================ -->
+<div class="frame-wrapper">
+<span class="frame-label">All Sports — Peak Overlap (July)</span>
+<div class="phone">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <div class="sp-icon">SP</div>
+      <span class="top-bar-title">Sharp || Picks</span>
+    </div>
+    <span class="top-bar-right">Welcome back, Evan</span>
+  </div>
+
+  <div class="page-header">
+    <h1>Market Intelligence</h1>
+    <div class="page-header-meta">2026-07-15 · 21 games · <span class="active-badge">3 models active</span></div>
+    <div class="page-header-tagline">Selective by design.</div>
+  </div>
+
+  <!-- Sport filter pills -->
+  <div class="sport-filter-row">
+    <div class="sport-pill all-active">All <span class="sport-count">21</span></div>
+    <div class="sport-pill inactive">
+      <span class="sport-dot nba" style="width:6px;height:6px;border-radius:50%;background:var(--nba-color);opacity:0.4;"></span>
+      NBA <span class="sport-count" style="opacity:0.4;">OFF</span>
+    </div>
+    <div class="sport-pill mlb-active">
+      <span class="sport-dot mlb" style="width:6px;height:6px;border-radius:50%;background:var(--mlb-color);box-shadow:0 0 6px rgba(59,130,246,0.4);"></span>
+      MLB <span class="sport-count">15</span>
+    </div>
+    <div class="sport-pill wnba-active">
+      <span class="sport-dot wnba" style="width:6px;height:6px;border-radius:50%;background:var(--wnba-color);box-shadow:0 0 6px rgba(236,72,153,0.4);"></span>
+      WNBA <span class="sport-count">6</span>
+    </div>
+  </div>
+
+  <!-- Discipline Filter — combined -->
+  <div class="discipline-bar">
+    <div class="discipline-top">
+      <span class="discipline-label">Discipline Filter</span>
+      <span class="discipline-scope">All Sports</span>
+    </div>
+    <div class="discipline-stats">
+      <div class="discipline-stat">
+        <div class="discipline-stat-value">21</div>
+        <div class="discipline-stat-label">Analyzed</div>
+      </div>
+      <div class="discipline-stat">
+        <div class="discipline-stat-value green">5</div>
+        <div class="discipline-stat-label">Signals</div>
+      </div>
+      <div class="discipline-stat">
+        <div class="discipline-stat-value">16</div>
+        <div class="discipline-stat-label">Passed</div>
+      </div>
+    </div>
+    <div class="discipline-breakdown">
+      <div class="breakdown-item">
+        <span class="breakdown-dot mlb"></span>
+        MLB: 15 games, <span class="breakdown-signals">3 signals</span>
+      </div>
+    </div>
+    <div class="discipline-breakdown" style="margin-top:4px;">
+      <div class="breakdown-item">
+        <span class="breakdown-dot wnba"></span>
+        WNBA: 6 games, <span class="breakdown-signals">2 signals</span>
+      </div>
+    </div>
+    <div class="discipline-tagline">No edge. No pick.</div>
+  </div>
+
+  <!-- Status pills -->
+  <div class="filter-row">
+    <div class="pills">
+      <div class="pill active">All</div>
+      <div class="pill inactive">Upcoming</div>
+      <div class="pill inactive">Final</div>
+      <div class="pill inactive">Passed</div>
+    </div>
+  </div>
+
+  <div class="sort-row">
+    <span class="sort-option">Time</span>
+    <span class="sort-option">Spread</span>
+    <span class="sort-option active">Edge</span>
+  </div>
+
+  <!-- Signals summary -->
+  <div class="signals-section">
+    <div class="signals-header">Today's Signals</div>
+    <div class="signal-card">
+      <div class="signal-card-left">
+        <span class="game-sport-badge mlb" style="position:static;">MLB</span>
+        <span class="signal-card-team">Yankees -1.5</span>
+      </div>
+      <div class="signal-card-edge">
+        <span class="signal-card-badge">Edge</span>
+        <span class="signal-card-pct">+6.2%</span>
+      </div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-card-left">
+        <span class="game-sport-badge mlb" style="position:static;">MLB</span>
+        <span class="signal-card-team">Padres +1.5</span>
+      </div>
+      <div class="signal-card-edge">
+        <span class="signal-card-badge">Edge</span>
+        <span class="signal-card-pct">+5.8%</span>
+      </div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-card-left">
+        <span class="game-sport-badge wnba" style="position:static;">WNBA</span>
+        <span class="signal-card-team">Aces -4.5</span>
+      </div>
+      <div class="signal-card-edge">
+        <span class="signal-card-badge">Edge</span>
+        <span class="signal-card-pct">+5.1%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sport group: MLB -->
+  <div class="sport-group-header">
+    <span class="sport-group-dot mlb"></span>
+    <span class="sport-group-name">MLB</span>
+    <span class="sport-group-line"></span>
+    <span class="sport-group-count">15 games · 3 signals</span>
+  </div>
+
+  <div class="game-list">
+    <!-- MLB Signal game -->
+    <div class="game-row has-edge">
+      <span class="game-sport-badge mlb">MLB</span>
+      <div class="game-row-top">
+        <div class="game-teams">
+          <div class="team-line">
+            <span class="team-name">New York Yankees</span>
+            <span class="team-record">52-38</span>
+          </div>
+          <div class="team-line">
+            <span class="team-name">Boston Red Sox</span>
+            <span class="team-record">45-44</span>
+          </div>
+          <div class="pitcher-line">
+            <span class="pitcher-label">SP</span>
+            <span class="pitcher-name">Cole</span>
+            <span class="pitcher-era">2.89</span>
+            <span style="color:var(--text-muted);font-size:10px;margin:0 4px;">vs</span>
+            <span class="pitcher-name">Houck</span>
+            <span class="pitcher-era">3.42</span>
+          </div>
+        </div>
+        <div class="game-edge-badge">
+          <span class="edge-pct">+6.2%</span>
+          <span class="edge-strength-label moderate">Moderate</span>
+        </div>
+      </div>
+      <div class="game-data mlb-data">
+        <div class="game-data-item">
+          <div class="game-data-label">Run Line</div>
+          <div class="game-data-value">-1.5</div>
+          <div class="game-data-sub">+1.5</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">Total</div>
+          <div class="game-data-value">8.5</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">ML</div>
+          <div class="game-data-value red">-155</div>
+          <div class="game-data-sub green">+135</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">Edge</div>
+          <div class="game-data-value green">+6.2%</div>
+        </div>
+      </div>
+      <div class="quant-hint">
+        <div class="quant-hint-icon">Q</div>
+        <span class="quant-hint-text">View quant analysis</span>
+      </div>
+    </div>
+
+    <!-- MLB no-edge game -->
+    <div class="game-row no-edge">
+      <span class="game-sport-badge mlb">MLB</span>
+      <div class="game-row-top">
+        <div class="game-teams">
+          <div class="team-line">
+            <span class="team-name">Chicago Cubs</span>
+          </div>
+          <div class="team-line">
+            <span class="team-name">St. Louis Cardinals</span>
+          </div>
+          <div class="game-time">7:15 PM</div>
+        </div>
+        <div class="game-edge-badge">
+          <span class="no-edge-label">+1.8%</span>
+        </div>
+      </div>
+      <div class="game-data">
+        <div class="game-data-item">
+          <div class="game-data-label">Run Line</div>
+          <div class="game-data-value">+1.5</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">Total</div>
+          <div class="game-data-value">9.0</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">ML</div>
+          <div class="game-data-value">+120</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">Edge</div>
+          <div class="game-data-value">+1.8%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sport group: WNBA -->
+  <div class="sport-group-header">
+    <span class="sport-group-dot wnba"></span>
+    <span class="sport-group-name">WNBA</span>
+    <span class="sport-group-line"></span>
+    <span class="sport-group-count">6 games · 2 signals</span>
+  </div>
+
+  <div class="game-list">
+    <div class="game-row has-edge">
+      <span class="game-sport-badge wnba">WNBA</span>
+      <div class="game-row-top">
+        <div class="game-teams">
+          <div class="team-line">
+            <span class="team-name">Las Vegas Aces</span>
+            <span class="team-record">14-5</span>
+          </div>
+          <div class="team-line">
+            <span class="team-name">Chicago Sky</span>
+            <span class="team-record">8-11</span>
+          </div>
+          <div class="game-time">8:00 PM</div>
+        </div>
+        <div class="game-edge-badge">
+          <span class="edge-pct">+5.1%</span>
+          <span class="edge-strength-label moderate">Moderate</span>
+        </div>
+      </div>
+      <div class="game-data">
+        <div class="game-data-item">
+          <div class="game-data-label">Spread</div>
+          <div class="game-data-value">-4.5</div>
+          <div class="game-data-sub">+4.5</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">Total</div>
+          <div class="game-data-value">168.5</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">ML</div>
+          <div class="game-data-value red">-210</div>
+          <div class="game-data-sub green">+175</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">Edge</div>
+          <div class="game-data-value green">+5.1%</div>
+        </div>
+      </div>
+      <div class="quant-hint">
+        <div class="quant-hint-icon">Q</div>
+        <span class="quant-hint-text">View quant analysis</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-disclaimer">
+    Lines sourced from DraftKings, FanDuel, BetMGM, Caesars, PointsBet, BetRivers.
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item"><span class="nav-icon">◎</span>Signals</div>
+    <div class="nav-item active"><span class="nav-icon">⊞</span>Market</div>
+    <div class="nav-item"><span class="nav-icon">↗</span>Results</div>
+    <div class="nav-item"><span class="nav-icon">☐</span>Insights</div>
+    <div class="nav-item"><span class="nav-icon">◯</span>Account</div>
+  </div>
+</div>
+</div>
+
+<!-- ================================ -->
+<!-- FRAME 2: SINGLE SPORT FILTERED   -->
+<!-- ================================ -->
+<div class="frame-wrapper">
+<span class="frame-label">MLB Only — Filtered View</span>
+<div class="phone">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <div class="sp-icon">SP</div>
+      <span class="top-bar-title">Sharp || Picks</span>
+    </div>
+    <span class="top-bar-right">Welcome back, Evan</span>
+  </div>
+
+  <div class="page-header">
+    <h1>Market Intelligence</h1>
+    <div class="page-header-meta">2026-07-15 · 15 games · <span class="active-badge">Model active</span></div>
+    <div class="page-header-tagline">Selective by design.</div>
+  </div>
+
+  <!-- Sport filter pills — MLB selected -->
+  <div class="sport-filter-row">
+    <div class="sport-pill inactive">All <span class="sport-count">21</span></div>
+    <div class="sport-pill inactive" style="opacity:0.35;">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--nba-color);opacity:0.4;"></span>
+      NBA <span class="sport-count" style="opacity:0.5;">OFF</span>
+    </div>
+    <div class="sport-pill mlb-active">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--mlb-color);box-shadow:0 0 6px rgba(59,130,246,0.4);"></span>
+      MLB <span class="sport-count">15</span>
+    </div>
+    <div class="sport-pill inactive">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--wnba-color);opacity:0.4;"></span>
+      WNBA <span class="sport-count">6</span>
+    </div>
+  </div>
+
+  <!-- Discipline — MLB only -->
+  <div class="discipline-bar">
+    <div class="discipline-top">
+      <span class="discipline-label">Discipline Filter</span>
+      <span class="discipline-scope" style="color:var(--mlb-color);background:var(--mlb-dim);">MLB</span>
+    </div>
+    <div class="discipline-stats">
+      <div class="discipline-stat">
+        <div class="discipline-stat-value">15</div>
+        <div class="discipline-stat-label">Analyzed</div>
+      </div>
+      <div class="discipline-stat">
+        <div class="discipline-stat-value green">3</div>
+        <div class="discipline-stat-label">Signals</div>
+      </div>
+      <div class="discipline-stat">
+        <div class="discipline-stat-value">12</div>
+        <div class="discipline-stat-label">Passed</div>
+      </div>
+    </div>
+    <div class="discipline-tagline">No edge. No pick.</div>
+  </div>
+
+  <!-- Status pills -->
+  <div class="filter-row">
+    <div class="pills">
+      <div class="pill active">All</div>
+      <div class="pill inactive">Upcoming</div>
+      <div class="pill inactive">Final</div>
+      <div class="pill inactive">Passed</div>
+    </div>
+  </div>
+
+  <div class="sort-row">
+    <span class="sort-option">Time</span>
+    <span class="sort-option active">Edge</span>
+  </div>
+
+  <!-- Signals -->
+  <div class="signals-section">
+    <div class="signals-header">MLB Signals</div>
+    <div class="signal-card">
+      <div class="signal-card-left">
+        <span class="signal-card-team">Yankees -1.5</span>
+      </div>
+      <div class="signal-card-edge">
+        <span class="signal-card-badge">Edge</span>
+        <span class="signal-card-pct">+6.2%</span>
+      </div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-card-left">
+        <span class="signal-card-team">Padres +1.5</span>
+      </div>
+      <div class="signal-card-edge">
+        <span class="signal-card-badge">Edge</span>
+        <span class="signal-card-pct">+5.8%</span>
+      </div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-card-left">
+        <span class="signal-card-team">Dodgers -1.5</span>
+      </div>
+      <div class="signal-card-edge">
+        <span class="signal-card-badge">Edge</span>
+        <span class="signal-card-pct">+4.1%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MLB games only, no group header needed -->
+  <div class="game-list">
+    <div class="game-row has-edge">
+      <div class="game-row-top">
+        <div class="game-teams">
+          <div class="team-line">
+            <span class="team-name">New York Yankees</span>
+            <span class="team-record">52-38</span>
+          </div>
+          <div class="team-line">
+            <span class="team-name">Boston Red Sox</span>
+            <span class="team-record">45-44</span>
+          </div>
+          <div class="pitcher-line">
+            <span class="pitcher-label">SP</span>
+            <span class="pitcher-name">Cole</span>
+            <span class="pitcher-era">2.89</span>
+            <span style="color:var(--text-muted);font-size:10px;margin:0 4px;">vs</span>
+            <span class="pitcher-name">Houck</span>
+            <span class="pitcher-era">3.42</span>
+          </div>
+        </div>
+        <div class="game-edge-badge" style="padding-top:0;">
+          <span class="edge-pct">+6.2%</span>
+          <span class="edge-strength-label moderate">Moderate</span>
+        </div>
+      </div>
+      <div class="game-data mlb-data">
+        <div class="game-data-item">
+          <div class="game-data-label">Run Line</div>
+          <div class="game-data-value">-1.5</div>
+          <div class="game-data-sub">+1.5</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">Total</div>
+          <div class="game-data-value">8.5</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">ML</div>
+          <div class="game-data-value red">-155</div>
+          <div class="game-data-sub green">+135</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">Edge</div>
+          <div class="game-data-value green">+6.2%</div>
+        </div>
+      </div>
+      <div class="quant-hint">
+        <div class="quant-hint-icon">Q</div>
+        <span class="quant-hint-text">View quant analysis</span>
+      </div>
+    </div>
+
+    <div class="game-row has-edge">
+      <div class="game-row-top">
+        <div class="game-teams">
+          <div class="team-line">
+            <span class="team-name">San Diego Padres</span>
+            <span class="team-record">48-41</span>
+          </div>
+          <div class="team-line">
+            <span class="team-name">San Francisco Giants</span>
+            <span class="team-record">40-50</span>
+          </div>
+          <div class="pitcher-line">
+            <span class="pitcher-label">SP</span>
+            <span class="pitcher-name">King</span>
+            <span class="pitcher-era">3.15</span>
+            <span style="color:var(--text-muted);font-size:10px;margin:0 4px;">vs</span>
+            <span class="pitcher-name">Webb</span>
+            <span class="pitcher-era">3.68</span>
+          </div>
+        </div>
+        <div class="game-edge-badge" style="padding-top:0;">
+          <span class="edge-pct">+5.8%</span>
+          <span class="edge-strength-label moderate">Moderate</span>
+        </div>
+      </div>
+      <div class="game-data mlb-data">
+        <div class="game-data-item">
+          <div class="game-data-label">Run Line</div>
+          <div class="game-data-value">+1.5</div>
+          <div class="game-data-sub">-1.5</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">Total</div>
+          <div class="game-data-value">7.5</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">ML</div>
+          <div class="game-data-value green">+125</div>
+          <div class="game-data-sub red">-145</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">Edge</div>
+          <div class="game-data-value green">+5.8%</div>
+        </div>
+      </div>
+      <div class="quant-hint">
+        <div class="quant-hint-icon">Q</div>
+        <span class="quant-hint-text">View quant analysis</span>
+      </div>
+    </div>
+
+    <div class="game-row no-edge">
+      <div class="game-row-top">
+        <div class="game-teams">
+          <div class="team-line"><span class="team-name">Chicago Cubs</span></div>
+          <div class="team-line"><span class="team-name">St. Louis Cardinals</span></div>
+          <div class="game-time">7:15 PM</div>
+        </div>
+        <div class="game-edge-badge" style="padding-top:0;">
+          <span class="no-edge-label">+1.8%</span>
+        </div>
+      </div>
+      <div class="game-data">
+        <div class="game-data-item">
+          <div class="game-data-label">Run Line</div>
+          <div class="game-data-value">+1.5</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">Total</div>
+          <div class="game-data-value">9.0</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">ML</div>
+          <div class="game-data-value">+120</div>
+        </div>
+        <div class="game-data-item">
+          <div class="game-data-label">Edge</div>
+          <div class="game-data-value">+1.8%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-disclaimer">
+    Lines sourced from DraftKings, FanDuel, BetMGM, Caesars, PointsBet, BetRivers.
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item"><span class="nav-icon">◎</span>Signals</div>
+    <div class="nav-item active"><span class="nav-icon">⊞</span>Market</div>
+    <div class="nav-item"><span class="nav-icon">↗</span>Results</div>
+    <div class="nav-item"><span class="nav-icon">☐</span>Insights</div>
+    <div class="nav-item"><span class="nav-icon">◯</span>Account</div>
+  </div>
+</div>
+</div>
+
+</div><!-- end frames-row -->
+</body>
+</html>

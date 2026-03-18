@@ -4,6 +4,7 @@ Flask server with API endpoints, dashboard, authentication, and scheduled tasks
 """
 
 import os
+import re
 import sys
 import logging
 import threading
@@ -90,22 +91,59 @@ def _get_et_today():
 
 def _upsert_market_note_insight(report):
     """Create or update the daily Market Note insight from the market report dict."""
+    from market_note_templates import generate_market_note
+
     if not report.get('available'):
         return None
     date_str = report.get('date', '')
     if not date_str or len(date_str) != 10:
         return None
     slug = f"market-note-{date_str}"
-    title = (report.get('insight') or report.get('briefing', [None])[0] or 'Market Note')[:200]
-    if title and not title[0].isupper():
-        title = title[0].upper() + title[1:]
+
+    prev_note_title = None
+    consecutive_same_bias = 0
+    try:
+        prev_note = (Insight.query
+                     .filter_by(category='market_notes')
+                     .filter(Insight.slug != slug)
+                     .order_by(Insight.publish_date.desc())
+                     .first())
+        if prev_note:
+            prev_note_title = prev_note.title
+
+        lean = report.get('market_lean') or {}
+        today_bias = 'underdog' if lean.get('underdogs', 0) > lean.get('favorites', 0) else 'favorite'
+        recent_notes = (Insight.query
+                        .filter_by(category='market_notes')
+                        .filter(Insight.slug != slug)
+                        .order_by(Insight.publish_date.desc())
+                        .limit(7)
+                        .all())
+        for note in recent_notes:
+            note_content = note.content or ''
+            fav_m = re.search(r'(\d+)\s*favorite\s*edge', note_content)
+            dog_m = re.search(r'(\d+)\s*underdog\s*edge', note_content)
+            n_fav = int(fav_m.group(1)) if fav_m else 0
+            n_dog = int(dog_m.group(1)) if dog_m else 0
+            note_bias = 'underdog' if n_dog > n_fav else 'favorite'
+            if note_bias == today_bias:
+                consecutive_same_bias += 1
+            else:
+                break
+    except Exception:
+        pass
+
+    title, body, wim, story_type = generate_market_note(
+        report, prev_note_title=prev_note_title,
+        consecutive_same_bias=consecutive_same_bias,
+    )
+
     lean = report.get('market_lean') or {}
     fav = lean.get('favorites', 0)
     udog = lean.get('underdogs', 0)
-    observation = report.get('insight') or 'No exploitable inefficiencies detected.'
     content_parts = [
         '## Observation',
-        observation,
+        body,
         '',
         '## Market Structure',
         f"- Edges detected: {report.get('edges_detected', 0)}",
@@ -118,21 +156,25 @@ def _upsert_market_note_insight(report):
         '## Implication',
         report.get('assessment', ''),
         '',
-        '*— Evan Cole*',
+        '## Why This Matters',
+        wim,
     ]
     content = '\n'.join(content_parts)
-    excerpt = (observation or title)[:160]
+    excerpt = body[:160] if body else title[:160]
+
     try:
         from zoneinfo import ZoneInfo
         et = ZoneInfo('America/New_York')
         pub = datetime.strptime(date_str, '%Y-%m-%d').replace(tzinfo=et)
     except Exception:
         pub = datetime.utcnow()
+
     existing = Insight.query.filter_by(slug=slug).first()
     if existing:
         existing.title = title
         existing.excerpt = excerpt
         existing.content = content
+        existing.story_type = story_type
         existing.updated_at = datetime.utcnow()
         db.session.commit()
         return existing
@@ -142,6 +184,7 @@ def _upsert_market_note_insight(report):
         category='market_notes',
         excerpt=excerpt,
         content=content,
+        story_type=story_type,
         status='published',
         publish_date=pub,
         pass_day=report.get('edges_detected', 0) == 0,
