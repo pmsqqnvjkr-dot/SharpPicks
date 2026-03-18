@@ -478,6 +478,7 @@ def seed_database():
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS date_range_end VARCHAR"))
                 db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS bet_type VARCHAR DEFAULT 'spread'"))
                 db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS parlay_legs INTEGER"))
+                db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS story_type VARCHAR"))
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
