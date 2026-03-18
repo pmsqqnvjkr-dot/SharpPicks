@@ -1997,6 +1997,14 @@ Founder, SharpPicks""",
                 db.session.commit()
                 logging.info(f"Added {len(incremental_insights)} new insights")
 
+            stale_note_slugs = ['market-note-2026-03-17', 'market-note-2026-03-18']
+            stale_notes = Insight.query.filter(Insight.slug.in_(stale_note_slugs)).all()
+            for sn in stale_notes:
+                db.session.delete(sn)
+            if stale_notes:
+                db.session.commit()
+                logging.info(f"Removed {len(stale_notes)} stale market notes")
+
             mlb_slugs = [
                 'why-mlb-is-a-quant-market',
                 'why-sharp-bettors-focus-on-price',
