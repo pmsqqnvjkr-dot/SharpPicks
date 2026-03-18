@@ -2,6 +2,7 @@ import { useApi } from '../../hooks/useApi';
 
 export default function FreeTierDashboard({ onUpgrade }) {
   const { data: todayData } = useApi('/picks/today');
+  const { data: stats } = useApi('/public/stats');
   const todayIsPick = todayData?.type === 'pick';
   const todayIsPass = todayData?.type === 'pass';
 
@@ -23,13 +24,27 @@ export default function FreeTierDashboard({ onUpgrade }) {
             marginBottom: '16px',
           }}>Model Performance</div>
 
-          <StepChart />
+          {stats ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <ModelStat label="Record" value={stats.record || `${stats.wins}-${stats.losses}`} />
+              <ModelStat label="Win Rate" value={stats.win_rate ? `${stats.win_rate}%` : '-'} />
+              <ModelStat label="ROI" value={stats.roi != null ? `${stats.roi > 0 ? '+' : ''}${stats.roi}%` : '-'}
+                color={stats.roi > 0 ? 'var(--green-profit)' : stats.roi < 0 ? '#C4686B' : undefined} />
+              <ModelStat label="P&L (units)" value={stats.pnl != null ? `${stats.pnl > 0 ? '+' : ''}${stats.pnl}` : '-'}
+                color={stats.pnl > 0 ? 'var(--green-profit)' : stats.pnl < 0 ? '#C4686B' : undefined} />
+              <ModelStat label="CLV" value={stats.avg_clv != null ? `${stats.avg_clv > 0 ? '+' : ''}${stats.avg_clv}` : '-'}
+                color={stats.avg_clv > 0 ? 'var(--green-profit)' : undefined} />
+              <ModelStat label="Selectivity" value={stats.selectivity ? `${stats.selectivity}%` : '-'} />
+            </div>
+          ) : (
+            <StepChart />
+          )}
 
           <p style={{
             fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
             marginTop: '16px',
           }}>
-            The Sharp Picks model prioritizes restraint over volume. Full performance metrics are available for{' '}
+            Per-pick breakdowns, equity curve, and personal tracking available for{' '}
             <span onClick={onUpgrade} style={{
               color: 'var(--blue-primary)', cursor: 'pointer', textDecoration: 'underline',
             }}>Pro members</span>.
@@ -216,6 +231,27 @@ function DisciplineBullet({ text }) {
         marginTop: '6px', flexShrink: 0,
       }} />
       <span style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: '1.5' }}>{text}</span>
+    </div>
+  );
+}
+
+function ModelStat({ label, value, color }) {
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.02)',
+      border: '1px solid var(--stroke-subtle)',
+      borderRadius: '10px', padding: '10px', textAlign: 'center',
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+        letterSpacing: '0.06em', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', marginBottom: '4px',
+      }}>{label}</div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 700,
+        color: color || 'var(--text-primary)',
+        fontVariantNumeric: 'tabular-nums',
+      }}>{value}</div>
     </div>
   );
 }

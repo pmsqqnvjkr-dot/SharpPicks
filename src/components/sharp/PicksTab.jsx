@@ -1,7 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
+
+const PT_API_BASE = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' : '';
 import PullToRefresh from '../shared/PullToRefresh';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
@@ -31,6 +34,7 @@ export default function PicksTab({ onNavigate }) {
   const { data: stats, refetch: refetchStats } = useApi(sportQuery('/public/stats', sport));
   const { data: historyData, loading: historyLoading, refetch: refetchRecord } = useApi(sportQuery('/public/record', sport));
   const { data: marketReport, loading: marketReportLoading, error: marketReportError, refetch: refetchMarketReport } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
+  const { data: killSwitch } = useApi(sportQuery('/public/kill-switch', sport), { pollInterval: 600000 });
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const { data: lastResolved } = useApi('/picks/last-resolved', { skip: !isPro });
   const [showAuth, setShowAuth] = useState(false);
@@ -39,11 +43,34 @@ export default function PicksTab({ onNavigate }) {
   const [filter, setFilter] = useState('all');
   const [showAllPicks, setShowAllPicks] = useState(false);
   const [dismissedResolutionId, setDismissedResolutionId] = useState(() => localStorage.getItem('sp_dismissed_resolution'));
+  const [liveScore, setLiveScore] = useState(null);
 
   const handleDismissResolution = (pickId) => {
     setDismissedResolutionId(pickId);
     localStorage.setItem('sp_dismissed_resolution', pickId);
   };
+
+  const fetchLiveForPick = useCallback(async () => {
+    if (!todayData || todayData.type !== 'pick' || !todayData.home_team) return;
+    try {
+      const resp = await fetch(`${PT_API_BASE}/api/picks/live-scores?sport=${sport}`);
+      const json = await resp.json();
+      if (json.scores) {
+        const normalize = s => s.toLowerCase().replace(/[^a-z]/g, '');
+        const homeKey = normalize(todayData.home_team);
+        const match = json.scores.find(s => normalize(s.home) === homeKey);
+        if (match && (match.state === 'STATUS_IN_PROGRESS' || match.state === 'STATUS_HALFTIME' || match.state === 'STATUS_FINAL')) {
+          setLiveScore(match);
+        }
+      }
+    } catch {}
+  }, [todayData, sport]);
+
+  useEffect(() => {
+    fetchLiveForPick();
+    const interval = setInterval(fetchLiveForPick, 60000);
+    return () => clearInterval(interval);
+  }, [fetchLiveForPick]);
 
   if (loading || authLoading) {
     return <LoadingState />;
@@ -69,6 +96,32 @@ export default function PicksTab({ onNavigate }) {
         await Promise.all([refetchToday(true), refetchStats(true), refetchRecord(true), refetchMarketReport(true)]);
       }}>
       <div style={{ padding: '20px 20px 0' }}>
+
+        {killSwitch?.active && isPro && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '10px 14px', marginBottom: '14px',
+            borderRadius: '10px',
+            background: 'rgba(251,191,36,0.06)',
+            border: '1px solid rgba(251,191,36,0.2)',
+          }}>
+            <div style={{
+              width: '6px', height: '6px', borderRadius: '50%',
+              backgroundColor: '#FBBF24', flexShrink: 0,
+            }} />
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
+                color: '#FBBF24', marginBottom: '2px',
+              }}>Reduced Exposure Mode</div>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px',
+                color: 'var(--text-tertiary)',
+              }}>Position sizing adjusted to {killSwitch.position_size_pct}%. Circuit breaker active.</div>
+            </div>
+          </div>
+        )}
+
         <section style={{ marginBottom: '16px' }}>
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
@@ -234,7 +287,7 @@ export default function PicksTab({ onNavigate }) {
         )}
 
         {todayData?.type === 'pick' && !isResolved && !isRevoked && isPro && (
-          <PickCard pick={todayData} isPro={isPro} onUpgrade={() => setShowAuth(true)} onNavigate={onNavigate} onTrack={() => {
+          <PickCard pick={todayData} isPro={isPro} liveScore={liveScore} onUpgrade={() => setShowAuth(true)} onNavigate={onNavigate} onTrack={() => {
             if (onNavigate) onNavigate('profile', 'bets', {
               pickToTrack: {
                 id: todayData.id,

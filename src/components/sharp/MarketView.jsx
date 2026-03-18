@@ -834,8 +834,19 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
               {game.home_record && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.home_record}</span>}
               {showScores && <span style={{ fontFamily: mono, fontSize: '13px', fontWeight: 700, color: textPrimary, marginLeft: 'auto' }}>{game.home_score}</span>}
             </div>
-            {/* Game time */}
-            {game.time && <div style={{ fontFamily: mono, fontSize: '10px', color: textMuted, marginTop: 2 }}>{game.time}</div>}
+            {/* Game time + sport badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              {game.time && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.time}</span>}
+              {game.sport && game.sport !== 'nba' && (
+                <span style={{
+                  fontFamily: mono, fontSize: '8px', fontWeight: 700,
+                  padding: '1px 5px', borderRadius: '3px',
+                  textTransform: 'uppercase', letterSpacing: '0.04em',
+                  backgroundColor: game.sport === 'mlb' ? 'rgba(59,130,246,0.12)' : game.sport === 'wnba' ? 'rgba(236,72,153,0.12)' : 'rgba(249,115,22,0.12)',
+                  color: game.sport === 'mlb' ? '#3B82F6' : game.sport === 'wnba' ? '#EC4899' : '#F97316',
+                }}>{game.sport}</span>
+              )}
+            </div>
           </div>
 
           {/* Edge badge */}

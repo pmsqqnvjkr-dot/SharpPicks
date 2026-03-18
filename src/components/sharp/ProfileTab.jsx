@@ -11,6 +11,7 @@ import CancelScreen from './CancelScreen';
 import AnnualConversion from './AnnualConversion';
 import WeeklySummary from './WeeklySummary';
 import ResolutionScreen from './ResolutionScreen';
+import ReferralScreen from './ReferralScreen';
 
 const isNative = Capacitor.isNativePlatform();
 const WEB_BILLING_URL = 'https://app.sharppicks.ai/upgrade';
@@ -47,6 +48,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
   if (screen === 'annual') return <AnnualConversion onBack={() => navigate(null)} user={user} />;
   if (screen === 'weekly') return <WeeklySummary onBack={() => navigate(null)} stats={null} weekData={activeScreenData} />;
   if (screen === 'resolution') return <ResolutionScreen onBack={() => navigate(null)} pick={activeScreenData} />;
+  if (screen === 'referral') return <ReferralScreen onBack={() => navigate(null)} />;
 
   const handleSubscribe = async (plan) => {
     if (isNative) {
@@ -924,6 +926,7 @@ function ControlsSection({ user, onNavigate, isPro, foundingData, onSubscribe, c
   const menuItems = [
     ...(isPro ? [{ id: 'notifications', label: 'Signal Alerts', subtitle: 'Pick delivery and result notifications' }] : []),
     { id: 'how', label: 'Model Architecture', subtitle: 'Edge logic, filters, and methodology' },
+    ...(user ? [{ id: 'referral', label: 'Referral Program', subtitle: 'Share your link, earn free access' }] : []),
     ...(!isPro && user ? [{ id: 'upgrade', label: isNative ? 'Unlock Pro Features' : 'Upgrade to Pro', subtitle: 'Unlock full decision visibility', badge: 'Pro' }] : []),
     ...(!isNative && isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
     ...(isPro ? [{ id: 'cancel', label: 'Allocation & Access', subtitle: isNative ? 'Plan and membership' : 'Billing, plan, and membership' }] : []),

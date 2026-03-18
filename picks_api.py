@@ -425,6 +425,11 @@ def today():
             whatif = {
                 'side': pass_entry.whatif_side,
                 'edge_pct': pass_entry.whatif_edge,
+                'home_team': pass_entry.whatif_home_team,
+                'away_team': pass_entry.whatif_away_team,
+                'pick_side': pass_entry.whatif_pick_side,
+                'line': pass_entry.whatif_line,
+                'cover_prob': pass_entry.whatif_cover_prob,
             }
 
         return jsonify({

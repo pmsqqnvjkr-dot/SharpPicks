@@ -1991,6 +1991,230 @@ SharpPicks automates that process across every game on the board, every day. Whe
 Founder, SharpPicks""",
                     status="published", publish_date=datetime(2026, 3, 5), reading_time_minutes=5,
                 ))
+            # --- Batch 2: May-July 2026 ---
+            if 'what-100-picks-taught-us' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="What 100 Picks Taught Us",
+                    slug="what-100-picks-taught-us",
+                    category="how_it_works",
+                    excerpt="After 100 graded signals, we have enough data to separate real patterns from noise. Here's what the model's track record actually shows.",
+                    content="""After 100 graded signals, the data set is large enough to mean something. Not large enough to prove everything, but large enough to separate real patterns from noise.
+
+---
+
+## The Numbers
+
+We track every signal publicly. No deletions. No revisions. Every win, loss, and push sits in the record alongside the edge percentage, the closing line value, and the model's confidence at the time of publication.
+
+At 100 picks, sample size concerns start to fade. You can calculate meaningful win rates, ROI, and CLV averages. You can segment by edge strength, by conference, by spread size. You can ask whether the model's 7%+ edges actually hit more often than the 3.5% threshold picks. (They do.)
+
+---
+
+## What We Got Right
+
+The discipline filter works. Nights where the model passed had an average closest-edge below 2.5% - meaning the filter isn't just withholding picks arbitrarily, it's correctly identifying low-value slates.
+
+CLV has been consistently positive. The model is beating the closing line more often than not, which is the single best predictor of long-term profitability in sports betting. You can win bets through variance. You can't beat the close through variance.
+
+---
+
+## What We Got Wrong
+
+Early-season calibration was rough. The first 15-20 picks ran on a model that hadn't yet incorporated market-aware shrinkage. The raw predictions were overconfident, and a few edges that looked large at noon had evaporated by tip-off.
+
+We addressed this with the February calibration update. Since then, edge persistence has improved and revocation rates dropped. The pre-tip validation cron catches most of the decay before you're exposed to it.
+
+---
+
+## What Comes Next
+
+More data means better segmentation. We're building toward sport-specific reporting (NBA, MLB, WNBA) and position-level analysis. The model retrains weekly on Sundays - same 56 features, same walk-forward methodology - but the coefficients sharpen as the sample grows.
+
+100 picks is a milestone, not a destination. The process continues.""",
+                    status="scheduled", publish_date=datetime(2026, 5, 15, 14, 0),
+                    reading_time_minutes=4,
+                ))
+            if 'the-playoff-edge-problem' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="The Playoff Edge Problem",
+                    slug="the-playoff-edge-problem",
+                    category="market_notes",
+                    excerpt="Playoff markets are tighter, more efficient, and harder to beat. Here's how the model adapts - and why you should expect fewer signals in May.",
+                    content="""Playoff markets are different. More money flows into fewer games. Lines are sharper. Public attention concentrates on a handful of matchups instead of spreading across a twelve-game slate.
+
+---
+
+## Why Edges Shrink
+
+During the regular season, the model finds actionable edges on roughly 30% of slates. In the playoffs, that number drops. Not because the model gets worse, but because the market gets better.
+
+Sportsbooks dedicate more resources to playoff pricing. Sharp money arrives earlier. The window between line release and market efficiency narrows from hours to minutes. Edges that would have persisted until tip-off during a February Tuesday disappear by mid-afternoon in May.
+
+---
+
+## How the Model Handles It
+
+The qualification threshold doesn't change. 3% is 3% regardless of the calendar. What changes is how often games clear that threshold. Fewer games, tighter markets, fewer qualifying edges.
+
+This is the discipline filter working exactly as designed. If the edge isn't there, the model passes. In a seven-game playoff series, you might see one or two signals across the entire series. That feels wrong to anyone conditioned by the volume of the regular season. It's not wrong. It's correct.
+
+---
+
+## What This Means for You
+
+Expect quieter weeks in the playoffs. Fewer signals. More pass days. The app will feel less active, and the temptation to seek action elsewhere will be real. Resist it. The same discipline that generated positive CLV over 100+ picks doesn't stop applying because the games feel more important.
+
+The model doesn't know it's the playoffs. It sees numbers, spreads, and probabilities. That's a feature.""",
+                    status="scheduled", publish_date=datetime(2026, 5, 22, 14, 0),
+                    reading_time_minutes=4,
+                ))
+            if 'bankroll-management-is-boring-on-purpose' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="Bankroll Management Is Boring on Purpose",
+                    slug="bankroll-management-is-boring-on-purpose",
+                    category="discipline",
+                    excerpt="Flat stakes, fixed sizing, no chasing. It's not exciting. That's the point.",
+                    content="""Nobody ever got a dopamine hit from flat-stake sizing. Nobody ever posted a bankroll management chart on social media. Nobody's replying to a tweet about unit discipline.
+
+That's exactly why it works.
+
+---
+
+## The Compounding Trap
+
+The most common bankroll mistake isn't betting too much on one game. It's increasing bet size after wins and failing to decrease after losses. This asymmetry - known as gambler's ruin in probability theory - means that even a positive-EV bettor can go broke through poor sizing.
+
+Sharp Picks uses flat stakes for a reason. Every signal gets the same allocation regardless of edge size or confidence level. A 7% edge and a 3.5% edge get the same bet. This feels suboptimal. It isn't.
+
+---
+
+## Why Not Scale With Edge Size?
+
+Because edge estimates have uncertainty. A 7% edge isn't exactly 7%. It's a point estimate with a confidence interval. Betting more on "bigger" edges amplifies the variance without proportionally amplifying the expected value, because the estimation error is larger on extreme values.
+
+Flat stakes neutralize this. You capture the edge across many bets, and the law of large numbers does the heavy lifting. No single pick can wreck your bankroll. No single win can inflate your confidence into a larger next bet.
+
+---
+
+## The Kill Switch Connection
+
+Our kill switch system reduces position sizing during model underperformance. This is dynamic bankroll management at the system level - the one place where sizing should adjust. When the model's rolling ROI drops or CLV turns persistently negative, exposure decreases automatically.
+
+You don't make that decision. The system does. And when conditions recover, sizing returns to normal. Boring, automated, effective.""",
+                    status="scheduled", publish_date=datetime(2026, 6, 2, 14, 0),
+                    reading_time_minutes=4,
+                ))
+            if 'mlb-shadow-mode-what-we-learned' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="MLB Shadow Mode: What We Learned",
+                    slug="mlb-shadow-mode-what-we-learned",
+                    category="how_it_works",
+                    excerpt="The MLB model has been running in shadow mode since late March. Here's what two months of silent predictions revealed about baseball markets.",
+                    content="""Since late March, the Sharp Picks MLB model has been running in shadow mode. Every day, it analyzes the full slate of games, generates predictions, and records what it would have signaled. No picks go live. No money on the line. Just data.
+
+---
+
+## What Shadow Mode Tests
+
+Shadow mode validates three things: prediction accuracy, edge persistence, and market alignment. The model needs to demonstrate that its run line and total projections are calibrated, that edges identified at line release still exist near first pitch, and that the overall framework translates from basketball to baseball.
+
+Baseball is a different animal. Starting pitchers matter more than any single factor in basketball. Bullpen usage patterns create multi-game dependencies. Weather, park factors, and altitude affect totals in ways that don't exist in the NBA. The model accounts for all of this, but theory and practice are different things.
+
+---
+
+## Early Results
+
+The good news: calibration looks reasonable. The model's predicted margins are tracking within acceptable ranges of actual outcomes. Run line accuracy is comparable to where the NBA model was after the same number of games.
+
+The cautionary news: edge decay is higher in baseball. A lot of early-day edges disappear by first pitch, particularly in nationally televised games. The pre-tip validation cron, which works well for NBA, needs tighter thresholds for MLB to prevent acting on stale edges.
+
+---
+
+## What's Next
+
+Shadow mode continues through at least June. We need more data, especially on bullpen-heavy situations and weather-affected games. If the model passes internal validation, MLB signals will launch alongside NBA for the 2026-27 season - or potentially sooner if the data supports it.
+
+You'll see it in the app when it happens. Until then, the shadow continues.""",
+                    status="scheduled", publish_date=datetime(2026, 6, 12, 14, 0),
+                    reading_time_minutes=4,
+                ))
+            if 'the-off-season-isnt-off' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="The Off-Season Isn't Off",
+                    slug="the-off-season-isnt-off",
+                    category="philosophy",
+                    excerpt="When the NBA season ends, the model doesn't stop. Here's what happens between June and October.",
+                    content="""The NBA Finals end. The confetti falls. And then, from a betting perspective, silence. No games to analyze. No edges to find. No signals to publish.
+
+But the model doesn't stop.
+
+---
+
+## What Happens in the Off-Season
+
+Between seasons, we do three things: retrain, research, and rebuild.
+
+Retraining means running the full walk-forward optimization on the complete season's data. Every game from October through June gets incorporated. Feature weights adjust. The model learns which of its 56 inputs mattered most in the season that just ended and which were noise. This annual recalibration is how the model stays current without chasing trends.
+
+Research means investigating new features. Did any new data sources become available? Are there team-level metrics we're not capturing? Is the market systematically mispricing any specific game contexts (back-to-backs, altitude, rest days) that the model could exploit more effectively?
+
+Rebuilding means infrastructure. The shadow mode systems for MLB and WNBA run year-round. App improvements, new dashboards, and refinements to the signal generation pipeline all happen between seasons.
+
+---
+
+## Why This Matters to You
+
+You won't see picks during the off-season. But the app doesn't go dark. Market notes continue for any active sport (MLB, WNBA). Journal articles continue. The model's historical record stays accessible. And when next season starts, the model that generates your first signal will be meaningfully better than the one that generated your last.
+
+---
+
+## The Discipline Parallel
+
+Just as pass days during the season are the discipline working, the off-season is the discipline working at a macro level. We don't force-generate signals when there's nothing to signal on. We don't pivot to sports we haven't validated. We wait, prepare, and come back sharper.
+
+The off-season is not downtime. It's the opposite.""",
+                    status="scheduled", publish_date=datetime(2026, 6, 23, 14, 0),
+                    reading_time_minutes=4,
+                ))
+            if 'why-we-show-you-the-losses' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="Why We Show You the Losses",
+                    slug="why-we-show-you-the-losses",
+                    category="philosophy",
+                    excerpt="Every losing pick stays in the record. Every revoked signal is visible. This isn't an accident - it's the entire point.",
+                    content="""Every betting service shows you the wins. The screenshots. The green. The "another one cashes" posts. What they don't show you is the full picture.
+
+Sharp Picks shows you everything.
+
+---
+
+## The Full Record
+
+Every signal we've ever published is in the app. Wins, losses, pushes, and revocations. The edge at publication, the closing line value, and the final score. Nothing gets deleted. Nothing gets hidden. Nothing gets quietly removed after a bad week.
+
+This is unusual. Most services curate their history. They show the 11-3 run but not the 4-7 stretch that preceded it. They screenshot the winning week but not the losing month. They have "premium records" that somehow look better than their free records.
+
+We don't do that. Our record is one record. The same one you see is the same one we see. The same one anyone can verify.
+
+---
+
+## Why Transparency Builds Trust
+
+A model that loses 45% of its bets can still be highly profitable if it's beating the closing line and sizing correctly. Understanding this requires seeing the losses. If we only showed you the wins, you'd develop an unrealistic expectation of what disciplined betting looks like.
+
+Disciplined betting includes losing streaks. It includes weeks where the record is 1-3 and the CLV is still positive. It includes nights where the signal gets revoked because the edge decayed. All of that is normal, and hiding it would be a disservice.
+
+---
+
+## The Anti-Tout Standard
+
+In an industry built on selective disclosure, full transparency is a competitive advantage. Not because it looks good in marketing - it often doesn't - but because it builds the kind of trust that survives a losing week.
+
+If you can look at our full record, see the losses, and still understand why the process works, then you understand what Sharp Picks is. If you can't, then we need to explain it better. Either way, the data stays visible.""",
+                    status="scheduled", publish_date=datetime(2026, 7, 7, 14, 0),
+                    reading_time_minutes=4,
+                ))
+
             if incremental_insights:
                 for ins in incremental_insights:
                     db.session.add(ins)

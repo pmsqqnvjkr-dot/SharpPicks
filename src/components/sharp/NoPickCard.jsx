@@ -40,17 +40,6 @@ export default function NoPickCard({ data, onInsightTap }) {
             ? `All ${data.games_analyzed} games evaluated · No edge above threshold`
             : 'Model analysis complete.'}
         </p>
-        {((data.whatif?.side && data.whatif?.edge_pct != null) || (data.closest_edge_pct != null && data.closest_edge_pct > 0)) && (
-          <p style={{
-            fontSize: '13px',
-            color: 'var(--text-tertiary)',
-            lineHeight: '1.55', marginBottom: 'var(--space-sm)',
-            fontFamily: 'var(--font-mono)',
-            fontVariantNumeric: 'tabular-nums',
-          }}>
-            Closest edge: {data.whatif?.side ? `${data.whatif.side} at ${data.whatif.edge_pct}%` : `${data.closest_edge_pct}%`} — below 3% threshold.
-          </p>
-        )}
         <p style={{
           fontSize: 'var(--text-caption)',
           color: 'var(--text-tertiary)',
@@ -59,6 +48,10 @@ export default function NoPickCard({ data, onInsightTap }) {
           Next scan: Tomorrow 10:00 AM EST
         </p>
       </div>
+
+      {data.whatif?.side && data.whatif?.edge_pct != null && (
+        <ClosestMiss whatif={data.whatif} />
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: 'var(--space-xl)' }}>
         <InsightCard
@@ -145,6 +138,70 @@ function NopickStat({ value, label }) {
         textTransform: 'uppercase',
         color: 'var(--text-tertiary)',
       }}>{label}</div>
+    </div>
+  );
+}
+
+function ClosestMiss({ whatif }) {
+  const mono = 'var(--font-mono)';
+  const matchup = whatif.away_team && whatif.home_team
+    ? `${whatif.away_team} @ ${whatif.home_team}` : null;
+  const lineFmt = whatif.line != null
+    ? (whatif.line > 0 ? `+${whatif.line}` : String(whatif.line)) : null;
+
+  return (
+    <div style={{
+      backgroundColor: 'var(--surface-1)',
+      border: '1px solid var(--color-border)',
+      borderRadius: '14px',
+      padding: 'var(--space-md)',
+      marginBottom: 'var(--space-lg)',
+    }}>
+      <div style={{
+        fontFamily: mono, fontSize: '10px', fontWeight: 700,
+        letterSpacing: '0.08em', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', marginBottom: '10px',
+      }}>Closest Miss</div>
+
+      {matchup && (
+        <div style={{
+          fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
+          color: 'var(--text-primary)', marginBottom: '6px',
+        }}>{matchup}</div>
+      )}
+
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+        <MissStat label="Side" value={whatif.pick_side || whatif.side} />
+        {lineFmt && <MissStat label="Line" value={lineFmt} />}
+        <MissStat label="Edge" value={`${whatif.edge_pct}%`} accent />
+        {whatif.cover_prob != null && (
+          <MissStat label="Cover Prob" value={`${(whatif.cover_prob * 100).toFixed(0)}%`} />
+        )}
+      </div>
+
+      <div style={{
+        fontFamily: mono, fontSize: '12px', color: 'var(--text-tertiary)',
+        lineHeight: '1.5',
+      }}>
+        Below the 3% qualification threshold. The filter did its job.
+      </div>
+    </div>
+  );
+}
+
+function MissStat({ label, value, accent }) {
+  return (
+    <div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+        letterSpacing: '0.06em', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', marginBottom: '2px',
+      }}>{label}</div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700,
+        color: accent ? '#D4A843' : 'var(--text-primary)',
+        fontVariantNumeric: 'tabular-nums',
+      }}>{value}</div>
     </div>
   );
 }

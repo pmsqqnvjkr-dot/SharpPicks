@@ -65,7 +65,7 @@ const labelStyle = {
   color: textLabel,
 };
 
-export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }) {
+export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, onNavigate }) {
   const isLocked = pick.locked && !isPro;
   const [tracking, setTracking] = useState(false);
   const [tracked, setTracked] = useState(pick.already_tracked || false);
@@ -105,6 +105,23 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
       setTrackedBetId(null);
     } catch { setTrackError('Failed to untrack'); }
     finally { setTracking(false); }
+  };
+
+  const handleShare = async () => {
+    const cardUrl = `/api/cards/result/${pick.id}`;
+    try {
+      const res = await fetch(cardUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `sharppicks-result-${pick.id}.png`, { type: 'image/png' });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], text: 'Sharp Picks result' });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = file.name; a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch {}
   };
 
   if (isLocked) {
@@ -185,6 +202,27 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
         }}>
           {(pick.sport || 'nba').toUpperCase()} — {pick.away_team} vs {pick.home_team}
         </div>
+
+        {liveScore && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '6px 10px', marginBottom: '10px',
+            borderRadius: '6px', background: 'rgba(255,255,255,0.03)',
+            border: `1px solid ${borderColor}`,
+          }}>
+            {liveScore.state === 'STATUS_FINAL' ? (
+              <span style={{ fontFamily: mono, fontSize: '10px', fontWeight: 700, color: textSec, textTransform: 'uppercase' }}>Final</span>
+            ) : (
+              <span style={{
+                fontFamily: mono, fontSize: '10px', fontWeight: 700, color: '#34d399', textTransform: 'uppercase',
+                animation: 'live-pulse 2s ease-in-out infinite',
+              }}>Live{liveScore.period ? ` ${liveScore.clock || ''}` : ''}</span>
+            )}
+            <span style={{ fontFamily: mono, fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+              {pick.away_team} {liveScore.away_score} - {liveScore.home_score} {pick.home_team}
+            </span>
+          </div>
+        )}
 
         {/* Pick row: team + spread + edge */}
         <div style={{
@@ -542,6 +580,15 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
               )
             )}
 
+            {settled && isPro && (
+              <button onClick={handleShare} style={{
+                width: '100%', borderRadius: '6px', padding: '10px', marginTop: '8px',
+                fontFamily: mono, fontWeight: 600, fontSize: '12px',
+                color: textSec, background: 'rgba(255,255,255,0.03)',
+                border: `1px solid ${borderColor}`, cursor: 'pointer',
+              }}>Share Result</button>
+            )}
+
             {pick.disclaimer && (
               <div style={{
                 marginTop: '6px', fontSize: '10px', lineHeight: '1.3',
@@ -608,7 +655,7 @@ function EdgeTrackerDetail({ signalLine, currentLine, clv }) {
             lineHeight: 1, marginBottom: '3px',
           }}>{clvVal > 0 ? '+' : ''}{clvVal.toFixed(1)}</div>
           <div style={{
-            fontFamily: mono, fontSize: '8px', color: textDim, textTransform: 'uppercase',
+            fontFamily: mono, fontSize: '10px', color: textDim, textTransform: 'uppercase',
             letterSpacing: '0.5px',
           }}>
             {clvVal > 0 ? 'Beat the close' : clvVal < 0 ? 'Behind the close' : 'Matched the close'}

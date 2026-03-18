@@ -6,7 +6,7 @@ import { useSport } from '../../hooks/useSport';
 const PROD_URL = 'https://app.sharppicks.ai';
 const NATIVE_API = Capacitor.isNativePlatform() ? PROD_URL : '';
 
-export default function AppHeader({ onNavigate, showSportToggle }) {
+export default function AppHeader({ onNavigate }) {
   const { user, logout } = useAuth();
   const { sport, setSport } = useSport();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -137,39 +137,64 @@ export default function AppHeader({ onNavigate, showSportToggle }) {
         )}
       </div>
 
-      {showSportToggle && (
-        <div style={{
-          display: 'flex',
-          backgroundColor: 'var(--surface-1)',
-          borderRadius: '8px',
-          padding: '2px',
-          border: '1px solid var(--stroke-subtle)',
-          marginLeft: 'auto',
-        }}>
-          {['nba', 'mlb', 'wnba'].map(s => (
-            <button
-              key={s}
-              onClick={() => setSport(s)}
-              style={{
-                padding: '4px 12px',
-                fontSize: '11px',
-                fontWeight: 600,
-                fontFamily: 'var(--font-mono)',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                backgroundColor: sport === s ? 'var(--blue-primary)' : 'transparent',
-                color: sport === s ? '#fff' : 'var(--text-tertiary)',
-                transition: 'all 0.2s',
-              }}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
+      <SportFilterPills sport={sport} setSport={setSport} />
+    </div>
+  );
+}
+
+const SPORT_CONFIG = {
+  nba: { label: 'NBA', color: '#F97316', active: true },
+  mlb: { label: 'MLB', color: '#3B82F6', active: false },
+  wnba: { label: 'WNBA', color: '#EC4899', active: false },
+};
+
+function SportFilterPills({ sport, setSport }) {
+  const pills = ['nba', 'mlb', 'wnba'];
+  return (
+    <div style={{
+      display: 'flex', gap: '6px', padding: '0 20px 8px',
+      borderBottom: '1px solid var(--stroke-subtle)',
+    }}>
+      {pills.map(key => {
+        const cfg = SPORT_CONFIG[key];
+        const selected = sport === key;
+        const comingSoon = !cfg.active;
+        return (
+          <button
+            key={key}
+            onClick={() => { if (!comingSoon) setSport(key); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '5px 12px', borderRadius: '20px',
+              fontSize: '11px', fontWeight: 700,
+              fontFamily: 'var(--font-mono)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              border: selected ? `1px solid ${cfg.color}` : '1px solid var(--stroke-subtle)',
+              backgroundColor: selected ? `${cfg.color}15` : 'transparent',
+              color: comingSoon ? 'var(--text-tertiary)' : selected ? cfg.color : 'var(--text-secondary)',
+              cursor: comingSoon ? 'default' : 'pointer',
+              opacity: comingSoon ? 0.5 : 1,
+              transition: 'all 0.2s',
+            }}
+          >
+            <span style={{
+              width: '6px', height: '6px', borderRadius: '50%',
+              backgroundColor: selected ? cfg.color : comingSoon ? 'var(--text-tertiary)' : 'var(--text-secondary)',
+            }} />
+            {cfg.label}
+            {comingSoon && (
+              <span style={{
+                fontSize: '8px', fontWeight: 600,
+                padding: '1px 4px', borderRadius: '4px',
+                backgroundColor: 'rgba(255,255,255,0.06)',
+                color: 'var(--text-tertiary)',
+                letterSpacing: '0',
+              }}>SOON</span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
