@@ -961,33 +961,38 @@ def build_market_report_dict(date_param, sport=None):
 
     assessment = regime_micro
 
-    # Daily briefing narrative (rule-based, multi-line)
-    briefing_lines = []
-    if edges_detected == 0:
-        briefing_lines.append('No exploitable inefficiencies detected. Markets are pricing correctly today.')
-        briefing_lines.append('Passing is a position.')
-    else:
-        if underdog_edges > favorite_edges and underdog_edges >= 2:
-            briefing_lines.append(f'Underdogs showing unusual value — {underdog_edges} edges on dogs today.')
-        elif favorite_edges > underdog_edges and favorite_edges >= 2:
-            briefing_lines.append(f'Spread inflation detected on favorites — {favorite_edges} edges on chalk.')
-        if strong_edges >= 2:
-            briefing_lines.append(f'{strong_edges} strong edges detected. High-conviction environment.')
-        elif strong_edges == 1:
-            briefing_lines.append('One strong edge identified in today\'s slate.')
-        if qualified_signals > 0:
+    # Dynamic briefing via template system
+    try:
+        from market_note_templates import generate_market_note
+        _temp_report = {
+            'edges_detected': edges_detected,
+            'qualified_signals': qualified_signals,
+            'signal_density': signal_density,
+            'games_analyzed': games_analyzed,
+            'top_edge_pct': round(largest_edge_val, 1) if largest_edge_val > 0 else 0,
+            'top_edge_team': largest_edge_team,
+            'largest_edge_game': largest_edge_game,
+            'market_efficiency_index': int(market_efficiency_index),
+            'regime': regime,
+            'regime_micro': regime_micro,
+            'spread_mag_avg': spread_mag_avg,
+            'market_lean': {
+                'favorites': favorite_edges,
+                'underdogs': underdog_edges,
+            },
+        }
+        _title, _body, _wim, _story = generate_market_note(_temp_report)
+        briefing_lines = [_body]
+        insight = _title
+    except Exception:
+        briefing_lines = []
+        if edges_detected == 0:
+            briefing_lines.append('No exploitable inefficiencies detected. Markets are pricing correctly today.')
+        elif qualified_signals > 0:
             briefing_lines.append(f'{qualified_signals} signal{"s" if qualified_signals != 1 else ""} generated across {games_analyzed} markets.')
-        elif edges_detected > 0:
-            briefing_lines.append('Edges detected but none passed qualification filters.')
-        if signal_density >= 50:
-            briefing_lines.append('High signal density. Market is unusually inefficient today.')
-        if largest_edge_game and largest_edge_val > 0:
-            briefing_lines.append(f'Largest edge: {largest_edge_game} at +{largest_edge_val:.1f}%.')
-
-    if not briefing_lines:
-        briefing_lines.append('Mixed edge profile across today\'s slate.')
-
-    insight = briefing_lines[0]
+        else:
+            briefing_lines.append('Mixed edge profile across today\'s slate.')
+        insight = briefing_lines[0]
 
     updated_at = run.created_at.isoformat() + 'Z' if run.created_at else None
 
