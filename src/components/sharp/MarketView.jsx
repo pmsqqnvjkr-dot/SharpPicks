@@ -346,50 +346,13 @@ function QuantExpandedPanel({ game, model, lineStability }) {
             fontFamily: mono, fontSize: '10px', fontWeight: 500,
             letterSpacing: '1.5px', textTransform: 'uppercase', color: textSec,
           }}>Quant Analysis</span>
-        </div>
-        {strength && (
-          <span style={{
-            fontFamily: mono, fontSize: '9px', fontWeight: 500,
-            letterSpacing: '1px', textTransform: 'uppercase',
-            color: brandGreen, border: '1px solid rgba(90,158,114,0.3)',
-            padding: '3px 8px', borderRadius: '4px',
-          }}>{strength}</span>
-        )}
-      </div>
-
-      {/* Teams */}
-      {game && (
-        <div style={{ padding: '14px 16px', borderBottom: `1px solid ${border}` }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontFamily: sans, fontSize: '13px', fontWeight: 600, color: textPrimary }}>{game.away}</span>
-            {game.away_record && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.away_record}</span>}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-            <span style={{ fontFamily: sans, fontSize: '13px', fontWeight: 600, color: textPrimary }}>{game.home}</span>
-            {game.home_record && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.home_record}</span>}
-          </div>
-          {game.consensus_spread != null && (
-            <div style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>
-              Consensus {fmtSpread(game.consensus_spread)}
-            </div>
+          {game?.consensus_spread != null && (
+            <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted, marginLeft: 4 }}>
+              · Consensus {fmtSpread(game.consensus_spread)}
+            </span>
           )}
         </div>
-      )}
-
-      {/* Edge strength bar */}
-      {model.edge != null && (
-        <div style={{ padding: '14px 16px', borderBottom: `1px solid ${border}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontFamily: mono, fontSize: '9px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted }}>Edge Strength</span>
-            <span style={{ fontFamily: mono, fontSize: '13px', fontWeight: 500, color: brandGreen }}>
-              +{model.edge}% {strength}
-            </span>
-          </div>
-          <div style={{ height: 6, background: '#0A0E1A', borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${edgePct}%`, borderRadius: 3, background: `linear-gradient(90deg, ${brandGreen}, #6DB882)` }} />
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Stats row 1 */}
       <div style={{
