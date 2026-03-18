@@ -44,97 +44,100 @@ export default function AppHeader({ onNavigate }) {
 
   return (
     <div style={{
-      padding: '16px 20px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
       background: 'linear-gradient(to bottom, #0E1A2B, #08121F)',
       borderBottom: '1px solid rgba(255,255,255,0.06)',
     }}>
-      <div
-        onClick={() => onNavigate('picks')}
-        style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-      >
-        <img src="/images/crest.png" alt="" width="26" height="26" style={{ display: 'block', marginRight: '16px', flexShrink: 0, objectFit: 'contain' }} />
-        <span style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: '13px',
-          fontWeight: 600,
-          color: '#F2F4F8',
-          letterSpacing: '3.9px',
-          textTransform: 'uppercase',
-          lineHeight: 1,
-        }}>SHARP<span style={{ opacity: 0.65, margin: '0 0.45em', fontWeight: 500, letterSpacing: '0.18em' }}>||</span>PICKS</span>
-      </div>
-
-      <div style={{ position: 'relative' }} ref={menuRef}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {greeting && (
-            <span style={{
-              fontSize: '11px', color: 'rgba(255,255,255,0.55)',
-              fontFamily: 'var(--font-sans)', fontWeight: 400,
-            }}>
-              Welcome back, {greeting}
-            </span>
-          )}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '6px', display: 'flex', alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round">
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
+      <div style={{
+        padding: '16px 20px 10px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <div
+          onClick={() => onNavigate('picks')}
+          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+        >
+          <img src="/images/crest.png" alt="" width="26" height="26" style={{ display: 'block', marginRight: '16px', flexShrink: 0, objectFit: 'contain' }} />
+          <span style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: '#F2F4F8',
+            letterSpacing: '3.9px',
+            textTransform: 'uppercase',
+            lineHeight: 1,
+          }}>SHARP<span style={{ opacity: 0.65, margin: '0 0.45em', fontWeight: 500, letterSpacing: '0.18em' }}>||</span>PICKS</span>
         </div>
 
-        {menuOpen && (
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            marginTop: '8px',
-            backgroundColor: 'var(--surface-1)',
-            border: '1px solid var(--stroke-subtle)',
-            borderRadius: '12px',
-            padding: '6px',
-            minWidth: '180px',
-            zIndex: 50,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          }}>
-            {menuItems.map((item, i) =>
-              item.type === 'divider' ? (
-                <div key={i} style={{ height: '1px', backgroundColor: 'var(--stroke-muted)', margin: '4px 8px' }} />
-              ) : (
-                <button
-                  key={i}
-                  onClick={item.action}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    width: '100%', padding: '10px 12px',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    borderRadius: '8px',
-                    color: item.danger ? 'var(--red-loss)' : 'var(--text-secondary)',
-                    fontSize: '14px', fontFamily: 'var(--font-sans)',
-                    textAlign: 'left',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-2)'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d={item.icon}/>
-                  </svg>
-                  {item.label}
-                </button>
-              )
+        <div style={{ position: 'relative' }} ref={menuRef}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {greeting && (
+              <span style={{
+                fontSize: '11px', color: 'rgba(255,255,255,0.55)',
+                fontFamily: 'var(--font-sans)', fontWeight: 400,
+              }}>
+                Welcome back, {greeting}
+              </span>
             )}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '6px', display: 'flex', alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
           </div>
-        )}
+
+          {menuOpen && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: '8px',
+              backgroundColor: 'var(--surface-1)',
+              border: '1px solid var(--stroke-subtle)',
+              borderRadius: '12px',
+              padding: '6px',
+              minWidth: '180px',
+              zIndex: 50,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            }}>
+              {menuItems.map((item, i) =>
+                item.type === 'divider' ? (
+                  <div key={i} style={{ height: '1px', backgroundColor: 'var(--stroke-muted)', margin: '4px 8px' }} />
+                ) : (
+                  <button
+                    key={i}
+                    onClick={item.action}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      width: '100%', padding: '10px 12px',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      borderRadius: '8px',
+                      color: item.danger ? 'var(--red-loss)' : 'var(--text-secondary)',
+                      fontSize: '14px', fontFamily: 'var(--font-sans)',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-2)'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d={item.icon}/>
+                    </svg>
+                    {item.label}
+                  </button>
+                )
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <SportFilterPills sport={sport} setSport={setSport} />
@@ -152,8 +155,7 @@ function SportFilterPills({ sport, setSport }) {
   const pills = ['nba', 'mlb', 'wnba'];
   return (
     <div style={{
-      display: 'flex', gap: '6px', padding: '0 20px 8px',
-      borderBottom: '1px solid var(--stroke-subtle)',
+      display: 'flex', gap: '8px', padding: '0 20px 10px',
     }}>
       {pills.map(key => {
         const cfg = SPORT_CONFIG[key];
