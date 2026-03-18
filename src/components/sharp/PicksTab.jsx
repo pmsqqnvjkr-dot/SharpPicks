@@ -216,11 +216,21 @@ export default function PicksTab({ onNavigate }) {
         )}
 
         {todayData?.type === 'pick' && !isResolved && !isRevoked && (
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-            letterSpacing: '0.12em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: '10px',
-          }}>Daily Top Signal</div>
+          <>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
+              letterSpacing: '1.5px', textTransform: 'uppercase',
+              color: '#556677', marginBottom: '8px',
+            }}>Daily Top Signal</div>
+            {marketReport?.available && (marketReport.qualified_signals != null || marketReport.games_analyzed != null) && (
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px',
+                color: '#8899aa', letterSpacing: '0.3px', marginBottom: '10px',
+              }}>
+                {marketReport.qualified_signals ?? 0} signals across {marketReport.games_analyzed ?? 0} markets{marketReport.signal_density != null ? ` · ${marketReport.signal_density}% density` : ''}
+              </div>
+            )}
+          </>
         )}
 
         {todayData?.type === 'pick' && !isResolved && !isRevoked && isPro && (
