@@ -307,11 +307,259 @@ function InsightCard({ insight, onTap }) {
   );
 }
 
+function parseMarketNote(content) {
+  const sections = {};
+  let currentSection = '';
+  for (const line of (content || '').split('\n')) {
+    if (line.startsWith('## ')) {
+      currentSection = line.replace('## ', '').trim().toLowerCase();
+      sections[currentSection] = '';
+    } else if (currentSection) {
+      sections[currentSection] += (sections[currentSection] ? '\n' : '') + line;
+    }
+  }
+
+  const obs = (sections['observation'] || '').trim();
+  const impl = (sections['implication'] || '').trim();
+
+  let edges = 0, signals = 0, density = 0;
+  const struct = sections['market structure'] || '';
+  const edgesM = struct.match(/Edges detected:\s*(\d+)/);
+  const signalsM = struct.match(/Signals generated:\s*(\d+)/);
+  const densityM = struct.match(/Signal density:\s*([\d.]+)/);
+  if (edgesM) edges = parseInt(edgesM[1]);
+  if (signalsM) signals = parseInt(signalsM[1]);
+  if (densityM) density = parseFloat(densityM[1]);
+
+  let favEdges = 0, dogEdges = 0;
+  const bias = sections['bias'] || '';
+  const favM = bias.match(/(\d+)\s*favorite/);
+  const dogM = bias.match(/(\d+)\s*underdog/);
+  if (favM) favEdges = parseInt(favM[1]);
+  if (dogM) dogEdges = parseInt(dogM[1]);
+
+  const whyText = (sections['why this matters'] || '').trim();
+
+  return { obs, impl, edges, signals, density, favEdges, dogEdges, whyText };
+}
+
+function MarketNoteContent({ insight }) {
+  const data = parseMarketNote(insight.content);
+  const total = data.favEdges + data.dogEdges;
+  const favPct = total > 0 ? Math.round(data.favEdges / total * 100) : 50;
+  const dogPct = total > 0 ? 100 - favPct : 50;
+  const densityStr = data.density % 1 === 0 ? `${Math.round(data.density)}%` : `${data.density}%`;
+
+  const brandGreen = '#5A9E72';
+  const brandRed = '#C4686B';
+  const textMuted = '#4A5568';
+  const textSecondary = '#7A8494';
+  const textPrimary = '#E8ECF4';
+  const bgCard = '#0F1424';
+  const border = 'rgba(255,255,255,0.06)';
+  const greenDim = 'rgba(90,158,114,0.15)';
+  const accentBlue = '#4A7FBA';
+
+  const sectionLabel = {
+    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
+    fontSize: '9px', fontWeight: 500, letterSpacing: '2px',
+    textTransform: 'uppercase', color: brandGreen, marginBottom: '8px',
+  };
+
+  const mono = "'IBM Plex Mono', var(--font-mono), monospace";
+  const serifFont = "'IBM Plex Serif', var(--font-serif), serif";
+  const sans = "'Inter', var(--font-sans), sans-serif";
+
+  return (
+    <>
+      {/* Meta row */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '10px',
+        marginBottom: '16px', flexWrap: 'wrap',
+      }}>
+        <span style={{
+          fontFamily: mono, fontSize: '10px', fontWeight: 500,
+          letterSpacing: '1.5px', textTransform: 'uppercase',
+          color: accentBlue, background: 'rgba(74,127,186,0.1)',
+          border: '1px solid rgba(74,127,186,0.2)',
+          padding: '4px 10px', borderRadius: '3px',
+        }}>Market Notes</span>
+        <span style={{ fontSize: '10px', color: textMuted }}>·</span>
+        <span style={{
+          fontFamily: mono, fontSize: '10px', letterSpacing: '1px',
+          textTransform: 'uppercase', color: textMuted,
+        }}>Founder Journal</span>
+        <span style={{ fontSize: '10px', color: textMuted }}>·</span>
+        <span style={{
+          fontFamily: mono, fontSize: '10px', letterSpacing: '1px',
+          textTransform: 'uppercase', color: textMuted,
+        }}>{insight.reading_time_minutes || 2} min read</span>
+      </div>
+
+      {/* Title */}
+      <h1 style={{
+        fontFamily: serifFont, fontSize: '26px', fontWeight: 600,
+        lineHeight: 1.25, color: textPrimary, marginBottom: '6px',
+      }}>{insight.title}</h1>
+
+      {/* Date */}
+      <div style={{
+        fontFamily: mono, fontSize: '11px', color: textMuted,
+        letterSpacing: '0.5px', marginBottom: '6px',
+      }}>{formatDate(insight.publish_date)}</div>
+
+      {/* Byline */}
+      <div style={{
+        fontFamily: sans, fontSize: '13px', fontWeight: 500,
+        color: textSecondary, marginBottom: '28px',
+      }}>
+        Evan Cole <span style={{ fontWeight: 400, color: textMuted }}>· Founder, Sharp Picks</span>
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: '1px', background: border, marginBottom: '28px' }} />
+
+      {/* Observation */}
+      {data.obs && (
+        <div style={{ marginBottom: '28px' }}>
+          <div style={sectionLabel}>Observation</div>
+          <p style={{
+            fontFamily: serifFont, fontSize: '17px', lineHeight: 1.55,
+            color: textPrimary, margin: 0,
+          }}>{data.obs}</p>
+        </div>
+      )}
+
+      {/* Market Structure — Stat Grid */}
+      <div style={{
+        background: bgCard, border: `1px solid ${border}`,
+        borderRadius: '8px', padding: '20px', marginBottom: '24px',
+      }}>
+        <div style={{ ...sectionLabel, marginBottom: '16px' }}>Market Structure</div>
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0,
+        }}>
+          <StatItem value={data.edges} label="Edges" isLast={false} />
+          <StatItem value={data.signals} label="Signals" isLast={false} />
+          <StatItem value={densityStr} label="Density" isLast={true} />
+        </div>
+      </div>
+
+      {/* Bias — Visual Bar */}
+      {total > 0 && (
+        <div style={{
+          background: bgCard, border: `1px solid ${border}`,
+          borderRadius: '8px', padding: '20px', marginBottom: '24px',
+        }}>
+          <div style={sectionLabel}>Bias</div>
+          <div style={{ marginTop: '14px' }}>
+            {/* Labels row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: brandRed }} />
+                <span style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '0.5px', color: textSecondary }}>Favorites</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '0.5px', color: textSecondary }}>Underdogs</span>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: brandGreen }} />
+              </div>
+            </div>
+            {/* Bar */}
+            <div style={{
+              height: '4px', background: '#141A2E', borderRadius: '2px',
+              overflow: 'hidden', display: 'flex',
+            }}>
+              <div style={{ height: '100%', width: `${favPct}%`, background: brandRed, borderRadius: '2px 0 0 2px' }} />
+              <div style={{ height: '100%', width: `${dogPct}%`, background: brandGreen, borderRadius: '0 2px 2px 0' }} />
+            </div>
+            {/* Counts */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+              <span style={{ fontFamily: mono, fontSize: '11px', color: textSecondary }}>
+                {data.favEdges} edge{data.favEdges !== 1 ? 's' : ''}
+              </span>
+              <span style={{ fontFamily: mono, fontSize: '11px', color: textSecondary }}>
+                {data.dogEdges} edge{data.dogEdges !== 1 ? 's' : ''}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Implication — Callout */}
+      {data.impl && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: '12px',
+          marginBottom: '28px', padding: '16px',
+          background: greenDim, borderLeft: `3px solid ${brandGreen}`,
+          borderRadius: '0 6px 6px 0',
+        }}>
+          <div style={{
+            width: '8px', height: '8px', borderRadius: '50%',
+            background: brandGreen, marginTop: '5px', flexShrink: 0,
+            boxShadow: '0 0 8px rgba(90,158,114,0.4)',
+          }} />
+          <div>
+            <div style={{
+              fontFamily: mono, fontSize: '9px', fontWeight: 500,
+              letterSpacing: '2px', textTransform: 'uppercase',
+              color: brandGreen, marginBottom: '4px',
+            }}>Implication</div>
+            <div style={{
+              fontFamily: sans, fontSize: '14px', fontWeight: 500,
+              color: textPrimary,
+            }}>{data.impl}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Why This Matters */}
+      <div style={{
+        borderTop: `1px solid ${border}`,
+        borderBottom: `1px solid ${border}`,
+        padding: '20px 0', marginBottom: '40px',
+      }}>
+        <div style={{
+          fontFamily: mono, fontSize: '9px', fontWeight: 500,
+          letterSpacing: '2px', textTransform: 'uppercase',
+          color: textMuted, marginBottom: '10px',
+        }}>Why This Matters</div>
+        <p style={{
+          fontFamily: serifFont, fontSize: '14px', lineHeight: 1.6,
+          color: textSecondary, margin: 0,
+        }}>
+          {data.whyText || 'The market is your competition. Understanding it is the first step toward finding real edge.'}
+        </p>
+      </div>
+    </>
+  );
+}
+
+function StatItem({ value, label, isLast }) {
+  return (
+    <div style={{
+      textAlign: 'center', position: 'relative',
+      borderRight: isLast ? 'none' : '1px solid rgba(255,255,255,0.06)',
+    }}>
+      <div style={{
+        fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
+        fontSize: '28px', fontWeight: 500, color: '#E8ECF4',
+        lineHeight: 1, marginBottom: '6px',
+      }}>{value}</div>
+      <div style={{
+        fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
+        fontSize: '9px', letterSpacing: '1.2px', textTransform: 'uppercase',
+        color: '#4A5568',
+      }}>{label}</div>
+    </div>
+  );
+}
+
 function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNavigate }) {
   const scrollRef = useRef(null);
   const contentRef = useRef(null);
   const [fadeIn, setFadeIn] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const isMarketNote = insight.category === 'market_notes';
 
   useEffect(() => {
     setFadeIn(false);
@@ -361,6 +609,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
       </div>
 
       <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+      {/* Header */}
       <div style={{
         position: 'sticky', top: '2px', zIndex: 1,
         backgroundColor: 'var(--bg-primary)',
@@ -373,7 +622,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
           aria-label="Go back"
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-secondary)', padding: '4px',
+            color: '#4A5568', padding: '4px',
             minWidth: '44px', minHeight: '44px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
@@ -383,10 +632,10 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
           </svg>
         </button>
         <span style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '10px', fontWeight: 600,
-          letterSpacing: '2px', textTransform: 'uppercase',
-          color: 'var(--text-tertiary)',
+          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
+          fontSize: '11px', fontWeight: 500,
+          letterSpacing: '2.5px', textTransform: 'uppercase',
+          color: '#7A8494',
         }}>Sharp Journal</span>
       </div>
 
@@ -397,152 +646,160 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
         transform: fadeIn ? 'translateY(0)' : 'translateY(12px)',
         transition: 'opacity 0.4s ease, transform 0.4s ease',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <span style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '10px', fontWeight: 600,
-            letterSpacing: '0.05em', textTransform: 'uppercase',
-            color: 'var(--blue-primary)',
-            backgroundColor: 'rgba(79, 134, 247, 0.1)',
-            padding: '3px 8px', borderRadius: '4px',
-          }}>
-            {CATEGORY_LABELS[insight.category] || insight.category}
-          </span>
-          <span style={{
-            fontSize: '10px', color: 'var(--text-tertiary)',
-            fontFamily: 'var(--font-mono)', letterSpacing: '0.05em',
-          }}>·</span>
-          <span style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '10px', fontWeight: 500,
-            letterSpacing: '0.05em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)',
-          }}>Founder Journal</span>
-          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-            {insight.reading_time_minutes} min read
-          </span>
-        </div>
+        {isMarketNote ? (
+          <MarketNoteContent insight={insight} />
+        ) : (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px', fontWeight: 600,
+                letterSpacing: '0.05em', textTransform: 'uppercase',
+                color: 'var(--blue-primary)',
+                backgroundColor: 'rgba(79, 134, 247, 0.1)',
+                padding: '3px 8px', borderRadius: '4px',
+              }}>
+                {CATEGORY_LABELS[insight.category] || insight.category}
+              </span>
+              <span style={{
+                fontSize: '10px', color: 'var(--text-tertiary)',
+                fontFamily: 'var(--font-mono)', letterSpacing: '0.05em',
+              }}>·</span>
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px', fontWeight: 500,
+                letterSpacing: '0.05em', textTransform: 'uppercase',
+                color: 'var(--text-tertiary)',
+              }}>Founder Journal</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                {insight.reading_time_minutes} min read
+              </span>
+            </div>
 
-        <h1 style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '27px', fontWeight: 700,
-          color: 'var(--text-primary)',
-          lineHeight: '1.3',
-          marginBottom: '12px',
-          letterSpacing: '-0.01em',
-        }}>
-          {insight.title}
-        </h1>
+            <h1 style={{
+              fontFamily: 'var(--font-serif)',
+              fontSize: '27px', fontWeight: 700,
+              color: 'var(--text-primary)',
+              lineHeight: '1.3',
+              marginBottom: '12px',
+              letterSpacing: '-0.01em',
+            }}>
+              {insight.title}
+            </h1>
 
-        <div style={{
-          fontSize: '12px', color: 'var(--text-tertiary)',
-          marginBottom: '28px',
-          paddingBottom: '20px',
-          borderBottom: '1px solid var(--stroke-subtle)',
-        }}>
-          {formatDate(insight.publish_date)}
-        </div>
+            <div style={{
+              fontSize: '12px', color: 'var(--text-tertiary)',
+              marginBottom: '28px',
+              paddingBottom: '20px',
+              borderBottom: '1px solid var(--stroke-subtle)',
+            }}>
+              {formatDate(insight.publish_date)}
+            </div>
 
-        <div style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: '15.5px',
-          color: 'var(--text-secondary)',
-          lineHeight: '1.85',
-          letterSpacing: '0.01em',
-        }}>
-          {paragraphs.map((p, i) => {
-            if (p.trim() === '---') {
-              return <div key={i} style={{ margin: '24px 0', borderTop: '1px solid var(--stroke-subtle)' }} />;
-            }
-            if (p.startsWith('## ')) {
-              return (
-                <h2 key={i} style={{
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: '17px', fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  margin: '28px 0 12px',
-                }}>
-                  {parseInlineMarkdown(p.replace('## ', ''))}
-                </h2>
-              );
-            }
-            if (p.startsWith('> ')) {
-              const quoteText = p.split('\n').map(line => line.replace(/^>\s*/, '')).join('\n');
-              const labelMatch = quoteText.match(/^\*\*(.+?)\*\*\n?([\s\S]*)/);
-              if (labelMatch) {
-                return <SharpPrincipleBlock key={i} label={labelMatch[1]} text={labelMatch[2].trim()} />;
-              }
-              return <SharpPrincipleBlock key={i} text={quoteText} />;
-            }
-            if (p.startsWith('– ') || p.startsWith('— ')) {
-              return (
-                <div key={i}>
-                  <div style={{
-                    margin: '28px 0 16px',
-                    borderTop: '1px solid var(--stroke-subtle)',
-                  }} />
-                  <p style={{
-                    margin: '0',
-                    fontSize: '14px',
+            <div style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: '15.5px',
+              color: 'var(--text-secondary)',
+              lineHeight: '1.85',
+              letterSpacing: '0.01em',
+            }}>
+              {paragraphs.map((p, i) => {
+                if (p.trim() === '---') {
+                  return <div key={i} style={{ margin: '24px 0', borderTop: '1px solid var(--stroke-subtle)' }} />;
+                }
+                if (p.startsWith('## ')) {
+                  return (
+                    <h2 key={i} style={{
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: '17px', fontWeight: 600,
+                      color: 'var(--text-primary)',
+                      margin: '28px 0 12px',
+                    }}>
+                      {parseInlineMarkdown(p.replace('## ', ''))}
+                    </h2>
+                  );
+                }
+                if (p.startsWith('> ')) {
+                  const quoteText = p.split('\n').map(line => line.replace(/^>\s*/, '')).join('\n');
+                  const labelMatch = quoteText.match(/^\*\*(.+?)\*\*\n?([\s\S]*)/);
+                  if (labelMatch) {
+                    return <SharpPrincipleBlock key={i} label={labelMatch[1]} text={labelMatch[2].trim()} />;
+                  }
+                  return <SharpPrincipleBlock key={i} text={quoteText} />;
+                }
+                if (p.startsWith('– ') || p.startsWith('— ')) {
+                  return (
+                    <div key={i}>
+                      <div style={{
+                        margin: '28px 0 16px',
+                        borderTop: '1px solid var(--stroke-subtle)',
+                      }} />
+                      <p style={{
+                        margin: '0',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: 'var(--text-primary)',
+                        fontFamily: 'var(--font-serif)',
+                        fontStyle: 'italic',
+                      }}>
+                        {parseInlineMarkdown(p)}
+                      </p>
+                    </div>
+                  );
+                }
+                const trimmed = p.trim();
+                if (/^\*[A-Z][a-z]+\*$/.test(trimmed)) {
+                  return null;
+                }
+                const isClosingPunch = p === 'Discipline compounds. Impulse erodes.' ||
+                  p === 'Fewer bets. Higher quality.\nThat is how ROI survives.' ||
+                  p === 'Short term streaks are noise.\nLong term expectancy is signal.' ||
+                  p === 'Survival is step one.\nCompounding is step two.';
+                if (isClosingPunch) {
+                  return <p key={i} style={{
+                    margin: '4px 0 16px',
+                    fontSize: '16px',
                     fontWeight: 600,
                     color: 'var(--text-primary)',
-                    fontFamily: 'var(--font-serif)',
-                    fontStyle: 'italic',
-                  }}>
-                    {parseInlineMarkdown(p)}
-                  </p>
-                </div>
-              );
-            }
-            const trimmed = p.trim();
-            if (/^\*[A-Z][a-z]+\*$/.test(trimmed)) {
-              return null;
-            }
-            const isClosingPunch = p === 'Discipline compounds. Impulse erodes.' ||
-              p === 'Fewer bets. Higher quality.\nThat is how ROI survives.' ||
-              p === 'Short term streaks are noise.\nLong term expectancy is signal.' ||
-              p === 'Survival is step one.\nCompounding is step two.';
-            if (isClosingPunch) {
-              return <p key={i} style={{
-                margin: '4px 0 16px',
-                fontSize: '16px',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                lineHeight: '1.7',
-              }}>{parseInlineMarkdown(p)}</p>;
-            }
-            return <p key={i} style={{ margin: '0 0 20px' }}>{parseInlineMarkdown(p)}</p>;
-          })}
-        </div>
+                    lineHeight: '1.7',
+                  }}>{parseInlineMarkdown(p)}</p>;
+                }
+                return <p key={i} style={{ margin: '0 0 20px' }}>{parseInlineMarkdown(p)}</p>;
+              })}
+            </div>
 
-        <WhyThisMatters insight={insight} />
+            <WhyThisMatters insight={insight} />
 
-        <FounderSignature />
+            <FounderSignature />
+          </>
+        )}
 
-        <div style={{
-          margin: '32px 0',
-          padding: '16px 18px',
-          background: 'var(--surface-1)',
-          border: '1px solid var(--stroke-subtle)',
-          borderRadius: '12px',
-          textAlign: 'center',
-          cursor: 'pointer',
-          transition: 'border-color 0.2s ease',
-        }}
-          onClick={() => onNavigate && onNavigate('performance', 'model')}
-          onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(79, 134, 247, 0.3)'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--stroke-subtle)'}
-        >
-          <p style={{
-            fontSize: '13px',
-            color: 'var(--text-secondary)',
-            margin: 0,
-            lineHeight: '1.5',
-          }}>
-            See how this discipline performs in real picks{' '}
-            <span style={{ color: 'var(--blue-primary)', fontWeight: 500 }}>&rarr;</span>
-          </p>
-        </div>
+        {!isMarketNote && (
+          <div style={{
+            margin: '32px 0',
+            padding: '16px 18px',
+            background: 'var(--surface-1)',
+            border: '1px solid var(--stroke-subtle)',
+            borderRadius: '12px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'border-color 0.2s ease',
+          }}
+            onClick={() => onNavigate && onNavigate('performance', 'model')}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(79, 134, 247, 0.3)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--stroke-subtle)'}
+          >
+            <p style={{
+              fontSize: '13px',
+              color: 'var(--text-secondary)',
+              margin: 0,
+              lineHeight: '1.5',
+            }}>
+              See how this discipline performs in real picks{' '}
+              <span style={{ color: 'var(--blue-primary)', fontWeight: 500 }}>&rarr;</span>
+            </p>
+          </div>
+        )}
 
         {insight.has_related_picks && (
           <RelatedPicksSection insightId={insight.id} />
