@@ -179,7 +179,7 @@ export default function PicksTab({ onNavigate }) {
                 marginTop: '8px',
                 fontFamily: 'var(--font-sans)',
                 fontSize: '11px',
-                color: 'rgba(255,255,255,0.25)',
+                color: 'rgba(255,255,255,0.6)',
                 letterSpacing: '0.02em',
               }}>Full decision visibility ends after trial.</div>
             </div>
@@ -220,12 +220,12 @@ export default function PicksTab({ onNavigate }) {
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
               letterSpacing: '1.5px', textTransform: 'uppercase',
-              color: '#556677', marginBottom: '8px',
+              color: '#7A8494', marginBottom: '8px',
             }}>Daily Top Signal</div>
             {marketReport?.available && (marketReport.qualified_signals != null || marketReport.games_analyzed != null) && (
               <div style={{
                 fontFamily: 'var(--font-mono)', fontSize: '10px',
-                color: '#8899aa', letterSpacing: '0.3px', marginBottom: '10px',
+                color: '#9EAAB8', letterSpacing: '0.3px', marginBottom: '10px',
               }}>
                 {marketReport.qualified_signals ?? 0} signals across {marketReport.games_analyzed ?? 0} markets{marketReport.signal_density != null ? ` · ${marketReport.signal_density}% density` : ''}
               </div>
@@ -417,7 +417,7 @@ function StatusBadge({ result }) {
     win:     { label: 'W',  bg: '#5A9E72', color: '#FFFFFF' },
     loss:    { label: 'L',  bg: '#9E7A7C', color: '#FFFFFF' },
     pending: { label: 'P',  bg: '#2A2A2A', color: '#AAAAAA' },
-    revoked: { label: 'WD', bg: '#2A2A2A', color: '#666666' },
+    revoked: { label: 'WD', bg: '#2A2A2A', color: '#8B8B8B' },
     push:    { label: 'PU', bg: '#2A2A2A', color: '#AAAAAA' },
   };
   const c = config[result] || config.pending;

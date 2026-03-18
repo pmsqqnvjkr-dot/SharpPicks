@@ -2,16 +2,16 @@ import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 
 const green = '#5A9E72';
-const greenDim = 'rgba(90, 158, 114, 0.6)';
+const greenDim = '#5A9E72';
 const blue = '#4A8EC2';
 const border = 'rgba(90, 158, 114, 0.12)';
 const bgInner = '#131f36';
-const textLabel = '#6b7f94';
-const textSec = '#8899aa';
-const textDim = '#556677';
+const textLabel = '#8899AA';
+const textSec = '#9EAAB8';
+const textDim = '#7A8494';
 
 const labelStyle = {
-  fontFamily: 'var(--font-mono)', fontSize: '8.5px', fontWeight: 500,
+  fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
   letterSpacing: '1px', textTransform: 'uppercase', color: textLabel,
 };
 
@@ -126,7 +126,7 @@ export default function DailyMarketReport({ report: reportProp }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.5px',
+                  fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.5px',
                   textTransform: 'uppercase', padding: '2px 5px', borderRadius: '3px',
                   color: textSec, background: 'rgba(255,255,255,0.04)',
                 }}>Favorites</span>
@@ -149,7 +149,7 @@ export default function DailyMarketReport({ report: reportProp }) {
                   color: green,
                 }}>{lean.underdog_pct || 0}%</span>
                 <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.5px',
+                  fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.5px',
                   textTransform: 'uppercase', padding: '2px 5px', borderRadius: '3px',
                   color: green, background: 'rgba(90, 158, 114, 0.1)',
                 }}>Underdogs</span>
@@ -166,7 +166,7 @@ export default function DailyMarketReport({ report: reportProp }) {
             borderRadius: '6px', padding: '14px', marginTop: '12px',
           }}>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 500,
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
               letterSpacing: '1.5px', color: green, textTransform: 'uppercase',
               marginBottom: '6px',
             }}>Market Signal</div>
@@ -181,7 +181,7 @@ export default function DailyMarketReport({ report: reportProp }) {
       {/* Timestamp */}
       {scanTime && (
         <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: '9px',
+          fontFamily: 'var(--font-mono)', fontSize: '10px',
           color: textDim, textAlign: 'center',
           marginTop: '20px', letterSpacing: '0.5px',
         }}>
@@ -216,7 +216,7 @@ function EdgeDot({ color, count, label }) {
         color: 'var(--text-primary)',
       }}>{count}</span>
       <span style={{
-        fontFamily: 'var(--font-mono)', fontSize: '9px',
+        fontFamily: 'var(--font-mono)', fontSize: '10px',
         color: textDim, textTransform: 'uppercase', letterSpacing: '0.5px',
       }}>{label}</span>
     </div>

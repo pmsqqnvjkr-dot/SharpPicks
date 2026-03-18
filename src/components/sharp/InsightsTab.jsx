@@ -79,7 +79,7 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
         <div style={{
           fontFamily: 'var(--font-mono)',
           fontSize: '10px', fontWeight: 600,
-          letterSpacing: '2px', textTransform: 'uppercase',
+          letterSpacing: '1.5px', textTransform: 'uppercase',
           color: 'var(--text-tertiary)',
           marginBottom: '16px',
         }}>Sharp Journal</div>
@@ -198,7 +198,7 @@ function StartHereCard({ onTap }) {
           <div style={{
             fontFamily: 'var(--font-mono)',
             fontSize: '10px', fontWeight: 700,
-            letterSpacing: '2px', textTransform: 'uppercase',
+            letterSpacing: '1.5px', textTransform: 'uppercase',
             color: 'var(--blue-primary)',
             marginBottom: '4px',
           }}>Start Here</div>
@@ -353,8 +353,8 @@ function MarketNoteContent({ insight }) {
 
   const brandGreen = '#5A9E72';
   const brandRed = '#C4686B';
-  const textMuted = '#4A5568';
-  const textSecondary = '#7A8494';
+  const textMuted = '#7A8494';
+  const textSecondary = '#9EAAB8';
   const textPrimary = '#E8ECF4';
   const bgCard = '#0F1424';
   const border = 'rgba(255,255,255,0.06)';
@@ -363,7 +363,7 @@ function MarketNoteContent({ insight }) {
 
   const sectionLabel = {
     fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-    fontSize: '9px', fontWeight: 500, letterSpacing: '2px',
+    fontSize: '10px', fontWeight: 500, letterSpacing: '1.5px',
     textTransform: 'uppercase', color: brandGreen, marginBottom: '8px',
   };
 
@@ -501,8 +501,8 @@ function MarketNoteContent({ insight }) {
           }} />
           <div>
             <div style={{
-              fontFamily: mono, fontSize: '9px', fontWeight: 500,
-              letterSpacing: '2px', textTransform: 'uppercase',
+              fontFamily: mono, fontSize: '10px', fontWeight: 500,
+              letterSpacing: '1.5px', textTransform: 'uppercase',
               color: brandGreen, marginBottom: '4px',
             }}>Implication</div>
             <div style={{
@@ -520,8 +520,8 @@ function MarketNoteContent({ insight }) {
         padding: '20px 0', marginBottom: '40px',
       }}>
         <div style={{
-          fontFamily: mono, fontSize: '9px', fontWeight: 500,
-          letterSpacing: '2px', textTransform: 'uppercase',
+          fontFamily: mono, fontSize: '10px', fontWeight: 500,
+          letterSpacing: '1.5px', textTransform: 'uppercase',
           color: textMuted, marginBottom: '10px',
         }}>Why This Matters</div>
         <p style={{
@@ -548,8 +548,8 @@ function StatItem({ value, label, isLast }) {
       }}>{value}</div>
       <div style={{
         fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-        fontSize: '9px', letterSpacing: '1.2px', textTransform: 'uppercase',
-        color: '#4A5568',
+        fontSize: '10px', letterSpacing: '1.2px', textTransform: 'uppercase',
+        color: '#7A8494',
       }}>{label}</div>
     </div>
   );
@@ -623,7 +623,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
           aria-label="Go back"
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: '#4A5568', padding: '4px',
+            color: '#7A8494', padding: '4px',
             minWidth: '44px', minHeight: '44px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
@@ -838,8 +838,8 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
             <div style={{ flex: 1 }}>
               <div style={{
                 fontFamily: 'var(--font-mono)',
-                fontSize: '9px', fontWeight: 700,
-                letterSpacing: '2px', textTransform: 'uppercase',
+                fontSize: '10px', fontWeight: 700,
+                letterSpacing: '1.5px', textTransform: 'uppercase',
                 color: 'var(--text-tertiary)',
                 marginBottom: '6px',
               }}>Next Read</div>
@@ -900,7 +900,7 @@ function SharpPrincipleBlock({ text, label }) {
     }}>
       <div style={{
         fontFamily: 'var(--font-mono)',
-        fontSize: '9px', fontWeight: 700,
+        fontSize: '10px', fontWeight: 700,
         letterSpacing: '2.5px', textTransform: 'uppercase',
         color: 'var(--green-profit)',
         marginBottom: '14px',
@@ -938,8 +938,8 @@ function WhyThisMatters({ insight }) {
     }}>
       <div style={{
         fontFamily: 'var(--font-mono)',
-        fontSize: '9px', fontWeight: 700,
-        letterSpacing: '2px', textTransform: 'uppercase',
+        fontSize: '10px', fontWeight: 700,
+        letterSpacing: '1.5px', textTransform: 'uppercase',
         color: 'var(--text-tertiary)',
         marginBottom: '10px',
       }}>Why This Matters</div>
@@ -1156,8 +1156,8 @@ function RelatedPicksSection({ insightId }) {
       marginBottom: '16px',
     }}>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
-        letterSpacing: '2px', textTransform: 'uppercase',
+        fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+        letterSpacing: '1.5px', textTransform: 'uppercase',
         color: 'var(--text-tertiary)', marginBottom: '12px',
       }}>Related Picks</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

@@ -67,7 +67,7 @@ function Sparkline({ snapshots, field = 'spread', width = 48, height = 16 }) {
 const SHARP_CONF = {
   high:     { color: '#f59e0b', bg: 'rgba(251,191,36,0.06)', border: 'rgba(251,191,36,0.20)', label: 'HIGH', fill: 1.0 },
   moderate: { color: '#d4a24a', bg: 'rgba(251,191,36,0.04)', border: 'rgba(251,191,36,0.12)', label: 'MED',  fill: 0.6 },
-  low:      { color: '#8a7a5e', bg: 'rgba(251,191,36,0.02)', border: 'rgba(251,191,36,0.08)', label: 'LOW',  fill: 0.3 },
+  low:      { color: '#A89A7A', bg: 'rgba(251,191,36,0.02)', border: 'rgba(251,191,36,0.08)', label: 'LOW',  fill: 0.3 },
 };
 
 function RLMBadge({ sharpAction }) {
@@ -81,7 +81,7 @@ function RLMBadge({ sharpAction }) {
       border: `1px solid ${cfg.border}`,
       display: 'inline-flex', alignItems: 'center', gap: 3,
     }}>
-      <span style={{ fontSize: '0.6rem' }}>⚡</span>RLM{sharpAction.move ? ` ${sharpAction.move}pts` : ''}
+      <span style={{ fontSize: '0.625rem' }}>⚡</span>RLM{sharpAction.move ? ` ${sharpAction.move}pts` : ''}
     </span>
   );
 }
@@ -134,7 +134,7 @@ function EdgeBadge({ model, isPro }) {
       </span>
       {strength && (
         <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 700,
+          fontFamily: 'var(--font-mono)', fontSize: '0.625rem', fontWeight: 700,
           letterSpacing: '0.08em', color,
         }}>{strength}</span>
       )}
@@ -159,7 +159,7 @@ function StatCell({ label, value, color, sub }) {
         fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 600,
         color: color || 'var(--text-primary)',
       }}>{value}</div>
-      {sub && <div style={{ fontSize: '0.58rem', color: 'var(--text-tertiary)', marginTop: 1 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: '0.625rem', color: 'var(--text-tertiary)', marginTop: 1 }}>{sub}</div>}
     </div>
   );
 }
@@ -209,7 +209,7 @@ function MarketConfidence({ stability, edge }) {
       </div>
 
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '0.6rem',
+        fontFamily: 'var(--font-mono)', fontSize: '0.625rem',
         color: 'var(--text-secondary)', lineHeight: 1.45,
       }}>
         {cfg.desc}
@@ -221,17 +221,17 @@ function MarketConfidence({ stability, edge }) {
         borderTop: '1px solid rgba(255,255,255,0.04)',
       }}>
         {stability.total_move > 0 && (
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.58rem', color: 'var(--text-tertiary)' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.625rem', color: 'var(--text-tertiary)' }}>
             Moved {stability.total_move}pts
           </span>
         )}
         {stability.changes > 0 && (
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.58rem', color: 'var(--text-tertiary)' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.625rem', color: 'var(--text-tertiary)' }}>
             {stability.changes} change{stability.changes !== 1 ? 's' : ''}
           </span>
         )}
         {stability.spread_range != null && (
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.58rem', color: 'var(--text-tertiary)' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.625rem', color: 'var(--text-tertiary)' }}>
             {stability.spread_range}pt book spread
           </span>
         )}
@@ -241,7 +241,7 @@ function MarketConfidence({ stability, edge }) {
         <div style={{
           marginTop: 8, padding: '4px 8px', borderRadius: 4,
           background: 'rgba(251,191,36,0.08)',
-          fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 600,
+          fontFamily: 'var(--font-mono)', fontSize: '0.625rem', fontWeight: 600,
           color: '#f59e0b',
         }}>
           Edge + low stability: market may be moving toward model price
@@ -276,7 +276,7 @@ function ValueRange({ pickLine, playableTo, currentLine }) {
         }}>Value Range</span>
         {atRisk && (
           <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 700,
+            fontFamily: 'var(--font-mono)', fontSize: '0.625rem', fontWeight: 700,
             color: '#f59e0b', letterSpacing: '0.04em',
           }}>EDGE THINNING</span>
         )}
@@ -305,7 +305,7 @@ function ValueRange({ pickLine, playableTo, currentLine }) {
         }}>{fmtSpread(playableTo)}</span>
       </div>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '0.6rem',
+        fontFamily: 'var(--font-mono)', fontSize: '0.625rem',
         color: 'var(--text-secondary)',
       }}>
         Playable {isUnderdog ? 'down' : 'up'} to {fmtSpread(playableTo)} &mdash; edge invalidates beyond
@@ -324,13 +324,13 @@ function QuantExpandedPanel({ game, model, lineStability }) {
   const sans = "'Inter', var(--font-sans), sans-serif";
   const brandGreen = '#5A9E72';
   const brandRed = '#C4686B';
-  const textMuted = '#4A5568';
-  const textSec = '#7A8494';
+  const textMuted = '#7A8494';
+  const textSec = '#9EAAB8';
   const textPrimary = '#E8ECF4';
   const border = 'rgba(255,255,255,0.06)';
   const bgElevated = '#141A2E';
 
-  const qStatLabel = { fontFamily: mono, fontSize: '8px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: '4px' };
+  const qStatLabel = { fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: '4px' };
   const qStatVal = { fontFamily: mono, fontSize: '16px', fontWeight: 500, color: textPrimary };
 
   return (
@@ -369,7 +369,7 @@ function QuantExpandedPanel({ game, model, lineStability }) {
           <div style={{ textAlign: 'center', position: 'relative', borderRight: `1px solid ${border}` }}>
             <div style={qStatLabel}>Cover Prob</div>
             <div style={qStatVal}>{probPct}%</div>
-            {impliedFromLine && <div style={{ fontFamily: mono, fontSize: '9px', color: textMuted, marginTop: 2 }}>vs {impliedFromLine.toFixed(1)}% implied</div>}
+            {impliedFromLine && <div style={{ fontFamily: mono, fontSize: '10px', color: textMuted, marginTop: 2 }}>vs {impliedFromLine.toFixed(1)}% implied</div>}
           </div>
         )}
         {model.predicted_margin != null && (
@@ -420,7 +420,7 @@ function QuantExpandedPanel({ game, model, lineStability }) {
             {model.pick}
           </span>
           <span style={{
-            fontFamily: mono, fontSize: '9px', letterSpacing: '1px', textTransform: 'uppercase',
+            fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase',
             padding: '3px 8px', borderRadius: 3,
             ...(model.passes
               ? { color: brandGreen, background: 'rgba(90,158,114,0.15)' }
@@ -452,7 +452,7 @@ function QuantExpandedPanel({ game, model, lineStability }) {
           background: bgElevated, borderRadius: 6, border: `1px solid ${border}`,
         }}>
           <div style={{
-            fontFamily: mono, fontSize: '9px', letterSpacing: '1.5px',
+            fontFamily: mono, fontSize: '10px', letterSpacing: '1.5px',
             textTransform: 'uppercase', color: textMuted, marginBottom: 10,
           }}>Quant Reasoning</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -635,10 +635,10 @@ function SharpMoneyIndicator({ game }) {
             ))}
           </div>
           <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.56rem', fontWeight: 700,
+            fontFamily: 'var(--font-mono)', fontSize: '0.625rem', fontWeight: 700,
             color: cfg.color, letterSpacing: '0.06em',
           }}>{cfg.label}</span>
-          <span style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
+          <span style={{ fontSize: '0.625rem', color: 'var(--text-tertiary)', transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
         </div>
       </div>
       <div style={{
@@ -646,7 +646,7 @@ function SharpMoneyIndicator({ game }) {
       }}>
         <div>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 600,
+            fontFamily: 'var(--font-mono)', fontSize: '0.625rem', fontWeight: 600,
             color: 'var(--text-tertiary)', letterSpacing: '0.04em', marginBottom: 2,
           }}>PUBLIC SIDE</div>
           <div style={{
@@ -655,20 +655,20 @@ function SharpMoneyIndicator({ game }) {
           }}>{publicSide}</div>
         </div>
         <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: '0.6rem',
+          fontFamily: 'var(--font-mono)', fontSize: '0.625rem',
           color: 'var(--text-tertiary)', textAlign: 'center',
         }}>
           <div>Line moved</div>
           <div style={{ color: cfg.color, fontWeight: 700, fontSize: '0.72rem' }}>
             {sa.move}pts
           </div>
-          <div style={{ fontSize: '0.52rem', color: 'var(--text-tertiary)', marginTop: 1 }}>
+          <div style={{ fontSize: '0.625rem', color: 'var(--text-tertiary)', marginTop: 1 }}>
             {sa.spread_open > 0 ? '+' : ''}{sa.spread_open} → {sa.spread_now > 0 ? '+' : ''}{sa.spread_now}
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 600,
+            fontFamily: 'var(--font-mono)', fontSize: '0.625rem', fontWeight: 600,
             color: cfg.color, letterSpacing: '0.04em', marginBottom: 2,
           }}>SHARP SIDE</div>
           <div style={{
@@ -681,7 +681,7 @@ function SharpMoneyIndicator({ game }) {
         <div style={{ marginTop: 8, paddingTop: 6, borderTop: `1px solid ${cfg.border}` }}>
           {sa.evidence.map((e, i) => (
             <div key={i} style={{
-              fontFamily: 'var(--font-mono)', fontSize: '0.58rem',
+              fontFamily: 'var(--font-mono)', fontSize: '0.625rem',
               color: 'var(--text-tertiary)', lineHeight: 1.5,
               paddingLeft: 8, position: 'relative',
             }}>
@@ -720,7 +720,7 @@ function ConsensusBar({ consensus, current }) {
         }}>Consensus {fmtSpread(consensus)}</span>
         {isSignificant && (
           <span style={{
-            fontSize: '0.58rem', fontWeight: 700, padding: '1px 6px',
+            fontSize: '0.625rem', fontWeight: 700, padding: '1px 6px',
             borderRadius: 3, background: 'rgba(251,191,36,0.1)',
             color: '#f59e0b', letterSpacing: '0.04em',
             border: '1px solid rgba(251,191,36,0.2)',
@@ -787,8 +787,8 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
   const brandRed = '#C4686B';
   const accentYellow = '#D4A843';
   const textPrimary = '#E8ECF4';
-  const textSec = '#7A8494';
-  const textMuted = '#4A5568';
+  const textSec = '#9EAAB8';
+  const textMuted = '#7A8494';
   const bgCard = '#0F1424';
   const bgElevated = '#141A2E';
   const border = 'rgba(255,255,255,0.06)';
@@ -847,7 +847,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
               }}>+{edge}%</span>
               {strengthStyle && (
                 <span style={{
-                  fontFamily: mono, fontSize: '8px', letterSpacing: '1px',
+                  fontFamily: mono, fontSize: '10px', letterSpacing: '1px',
                   textTransform: 'uppercase', padding: '2px 6px', borderRadius: 3,
                   ...strengthStyle,
                 }}>{strength}</span>
@@ -863,7 +863,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
             fontFamily: mono, fontSize: '10px', color: textMuted,
           }}>
             <span style={{ fontWeight: 700, letterSpacing: '0.06em' }}>SP</span>
-            {game.away_pitcher || 'TBD'} <span style={{ color: textMuted, fontSize: '9px' }}>vs</span> {game.home_pitcher || 'TBD'}
+            {game.away_pitcher || 'TBD'} <span style={{ color: textMuted, fontSize: '10px' }}>vs</span> {game.home_pitcher || 'TBD'}
           </div>
         )}
 
@@ -875,24 +875,24 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
         }}>
           {/* Spread */}
           <div style={{ textAlign: 'center', position: 'relative' }}>
-            <div style={{ fontFamily: mono, fontSize: '8px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>
+            <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>
               {sport === 'mlb' ? 'RL' : 'Spread'}
             </div>
             <div style={{ fontFamily: mono, fontSize: '13px', fontWeight: 500, color: textSec }}>
               {fmtSpread(game.spread_away)}
             </div>
-            <div style={{ fontFamily: mono, fontSize: '9px', color: textMuted }}>{fmtSpread(game.spread_home)}</div>
+            <div style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{fmtSpread(game.spread_home)}</div>
             <div style={{ position: 'absolute', right: 0, top: 2, bottom: 2, width: 1, background: border }} />
           </div>
 
           {/* Total */}
           <div style={{ textAlign: 'center', position: 'relative' }}>
-            <div style={{ fontFamily: mono, fontSize: '8px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>Total</div>
+            <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>Total</div>
             <div style={{ fontFamily: mono, fontSize: '13px', fontWeight: 500, color: textSec }}>
               {totalDisplay || '—'}
             </div>
             {game.total != null && game.total_open != null && Math.abs(parseFloat(game.total) - parseFloat(game.total_open)) >= 0.25 && (
-              <div style={{ fontFamily: mono, fontSize: '9px', color: accentYellow }}>
+              <div style={{ fontFamily: mono, fontSize: '10px', color: accentYellow }}>
                 {parseFloat(game.total) > parseFloat(game.total_open) ? '▲' : '▼'}
                 {Math.abs(parseFloat(game.total) - parseFloat(game.total_open)).toFixed(1)}
               </div>
@@ -902,13 +902,13 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
 
           {/* ML */}
           <div style={{ textAlign: 'center', position: 'relative' }}>
-            <div style={{ fontFamily: mono, fontSize: '8px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>ML</div>
+            <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>ML</div>
             <div style={{
               fontFamily: mono, fontSize: '13px', fontWeight: 500,
               color: parseFloat(game.away_ml) > 0 ? brandGreen : brandRed,
             }}>{fmtML(game.away_ml)}</div>
             <div style={{
-              fontFamily: mono, fontSize: '9px',
+              fontFamily: mono, fontSize: '10px',
               color: parseFloat(game.home_ml) > 0 ? brandGreen : brandRed,
             }}>{fmtML(game.home_ml)}</div>
             <div style={{ position: 'absolute', right: 0, top: 2, bottom: 2, width: 1, background: border }} />
@@ -916,7 +916,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
 
           {/* Edge */}
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: mono, fontSize: '8px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>Edge</div>
+            <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>Edge</div>
             <div style={{
               fontFamily: mono, fontSize: '13px', fontWeight: 500,
               color: hasSignalEdge ? brandGreen : textSec,
@@ -937,7 +937,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
               width: 14, height: 14, borderRadius: '50%',
               border: `1.5px solid ${brandGreen}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: mono, fontSize: '8px', color: brandGreen,
+              fontFamily: mono, fontSize: '10px', color: brandGreen,
             }}>Q</div>
             <span style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '0.5px', color: brandGreen }}>
               View quant analysis
@@ -996,7 +996,7 @@ function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch,
         <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
         <span style={{
           fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-          fontSize: '10px', color: '#4A5568',
+          fontSize: '10px', color: '#7A8494',
         }}>
           {games.length} {games.length === 1 ? 'game' : 'games'}
         </span>
@@ -1059,11 +1059,11 @@ function SortPicker({ active, onChange, isPro }) {
         return (
           <button key={opt.key} onClick={() => onChange(opt.key)} style={{
             fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-            fontSize: '9px', fontWeight: 500, letterSpacing: '0.8px',
+            fontSize: '10px', fontWeight: 500, letterSpacing: '0.8px',
             padding: '3px 8px', borderRadius: 3, cursor: 'pointer',
             border: 'none',
             background: isActive ? '#141A2E' : 'transparent',
-            color: isActive ? '#E8ECF4' : '#4A5568',
+            color: isActive ? '#E8ECF4' : '#7A8494',
           }}>{opt.label}</button>
         );
       })}
@@ -1193,7 +1193,7 @@ function TableView({ games, isPro, onLineHistory, sport }) {
                           color: 'var(--text-secondary)',
                           overflow: 'hidden', textOverflow: 'ellipsis',
                         }}>{g.away}</span>
-                        {g.sharp_action && <span style={{ fontSize: '0.5rem', color: (SHARP_CONF[g.sharp_action.confidence] || SHARP_CONF.low).color }}>⚡</span>}
+                        {g.sharp_action && <span style={{ fontSize: '0.625rem', color: (SHARP_CONF[g.sharp_action.confidence] || SHARP_CONF.low).color }}>⚡</span>}
                       </div>
                       <span style={{
                         fontSize: '0.72rem', fontWeight: 700,
@@ -1230,7 +1230,7 @@ function TableView({ games, isPro, onLineHistory, sport }) {
                   {isPro && (
                     <td style={{ ...tdStyle }}>
                       <span style={{
-                        fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 700,
+                        fontFamily: 'var(--font-mono)', fontSize: '0.625rem', fontWeight: 700,
                         letterSpacing: '0.04em',
                         padding: '2px 6px', borderRadius: 3,
                         background: isSignal ? 'rgba(52,211,153,0.12)' : status.label === 'WATCH' ? 'rgba(251,191,36,0.10)' : 'rgba(100,116,139,0.08)',
@@ -1418,7 +1418,7 @@ export default function MarketView({ onBack }) {
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6, marginLeft: 36,
           fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-          fontSize: '11px', color: '#4A5568',
+          fontSize: '11px', color: '#7A8494',
         }}>
           <span>{data?.date || 'Today'}</span>
           <span>&middot;</span>
@@ -1434,7 +1434,7 @@ export default function MarketView({ onBack }) {
           marginLeft: 36, marginTop: 2,
           fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
           fontSize: '11px', fontStyle: 'italic',
-          color: '#4A5568',
+          color: '#7A8494',
         }}>Selective by design.</div>
       </div>
 
@@ -1470,7 +1470,7 @@ export default function MarketView({ onBack }) {
                 gap: '8px 12px',
                 padding: '10px 12px',
                 borderBottom: '1px solid var(--color-border)',
-                fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
                 letterSpacing: '0.08em', textTransform: 'uppercase',
                 color: 'var(--text-tertiary)',
               }}>
@@ -1562,10 +1562,10 @@ export default function MarketView({ onBack }) {
                 onClick={() => setFilter(filter === 'Passed' ? 'All' : 'Passed')}
                 style={{
                   fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                  fontSize: '9px', letterSpacing: '1px', textTransform: 'uppercase',
+                  fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase',
                   padding: '4px 10px', borderRadius: 4, cursor: 'pointer',
                   border: '1px solid rgba(255,255,255,0.06)',
-                  background: 'transparent', color: '#4A5568',
+                  background: 'transparent', color: '#7A8494',
                 }}
               >
                 {filter === 'Passed' ? 'Show All' : 'View Passed'}
@@ -1582,8 +1582,8 @@ export default function MarketView({ onBack }) {
                 }}>{games.filter(g => g.model).length}</div>
                 <div style={{
                   fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                  fontSize: '8px', letterSpacing: '1.2px', textTransform: 'uppercase',
-                  color: '#4A5568', marginTop: 2,
+                  fontSize: '10px', letterSpacing: '1.2px', textTransform: 'uppercase',
+                  color: '#7A8494', marginTop: 2,
                 }}>Analyzed</div>
                 <div style={{ position: 'absolute', right: 0, top: 4, bottom: 4, width: 1, background: 'rgba(255,255,255,0.06)' }} />
               </div>
@@ -1594,8 +1594,8 @@ export default function MarketView({ onBack }) {
                 }}>{signalGames.length}</div>
                 <div style={{
                   fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                  fontSize: '8px', letterSpacing: '1.2px', textTransform: 'uppercase',
-                  color: '#4A5568', marginTop: 2,
+                  fontSize: '10px', letterSpacing: '1.2px', textTransform: 'uppercase',
+                  color: '#7A8494', marginTop: 2,
                 }}>Signals</div>
                 <div style={{ position: 'absolute', right: 0, top: 4, bottom: 4, width: 1, background: 'rgba(255,255,255,0.06)' }} />
               </div>
@@ -1606,8 +1606,8 @@ export default function MarketView({ onBack }) {
                 }}>{passedGames.length}</div>
                 <div style={{
                   fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                  fontSize: '8px', letterSpacing: '1.2px', textTransform: 'uppercase',
-                  color: '#4A5568', marginTop: 2,
+                  fontSize: '10px', letterSpacing: '1.2px', textTransform: 'uppercase',
+                  color: '#7A8494', marginTop: 2,
                 }}>Passed</div>
               </div>
             </div>
@@ -1618,7 +1618,7 @@ export default function MarketView({ onBack }) {
               <div style={{
                 fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
                 fontSize: '12px', fontWeight: 500, letterSpacing: '3px',
-                textTransform: 'uppercase', color: '#4A5568',
+                textTransform: 'uppercase', color: '#7A8494',
               }}>No edge. No pick.</div>
             </div>
           </div>
@@ -1641,7 +1641,7 @@ export default function MarketView({ onBack }) {
                     background: viewMode === mode ? 'rgba(255,255,255,0.08)' : 'transparent',
                     border: 'none', borderRadius: 4, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: viewMode === mode ? '#E8ECF4' : '#4A5568',
+                    color: viewMode === mode ? '#E8ECF4' : '#7A8494',
                     fontSize: '12px',
                   }} aria-label={mode === 'board' ? 'List view' : 'Table view'}>
                     {mode === 'table' ? '⊞' : '☰'}
@@ -1739,7 +1739,7 @@ export default function MarketView({ onBack }) {
 
         <p style={{
           fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-          fontSize: '9px', color: '#4A5568',
+          fontSize: '10px', color: '#7A8494',
           textAlign: 'center', marginTop: 20, lineHeight: 1.6,
         }}>
           Lines sourced from DraftKings, FanDuel, BetMGM, Caesars, PointsBet, BetRivers.

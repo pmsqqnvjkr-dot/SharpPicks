@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { apiPost, apiDelete } from '../../hooks/useApi';
 
 const green = '#5A9E72';
-const greenDim = 'rgba(90, 158, 114, 0.6)';
+const greenDim = '#5A9E72';
 const blue = '#4A8EC2';
 const borderColor = 'rgba(90, 158, 114, 0.12)';
 const bgCard = '#0f1d33';
 const bgInner = '#131f36';
-const textSec = '#8899aa';
-const textDim = '#556677';
-const textLabel = '#6b7f94';
+const textSec = '#9EAAB8';
+const textDim = '#7A8494';
+const textLabel = '#8899AA';
 
 function fmtGameTime(startTime, gameDate) {
   if (startTime && startTime.includes('T')) {
@@ -60,7 +60,7 @@ const serif = "'IBM Plex Serif', var(--font-serif), serif";
 const sans = "'Inter', var(--font-sans), sans-serif";
 
 const labelStyle = {
-  fontFamily: mono, fontSize: '7.5px', fontWeight: 500,
+  fontFamily: mono, fontSize: '10px', fontWeight: 500,
   letterSpacing: '0.8px', textTransform: 'uppercase',
   color: textLabel,
 };
@@ -270,7 +270,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
             borderRadius: '5px', padding: '8px 10px', marginBottom: '12px',
           }}>
             <div style={{
-              fontFamily: mono, fontSize: '7.5px', fontWeight: 500,
+              fontFamily: mono, fontSize: '10px', fontWeight: 500,
               letterSpacing: '0.8px', color: greenDim, textTransform: 'uppercase',
               marginBottom: '3px',
             }}>Why this signal</div>
@@ -293,7 +293,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
             display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px',
           }}>
             <span style={{
-              fontFamily: mono, fontSize: '8.5px', letterSpacing: '0.8px',
+              fontFamily: mono, fontSize: '10px', letterSpacing: '0.8px',
               color: textLabel, textTransform: 'uppercase', whiteSpace: 'nowrap',
             }}>Edge</span>
             <div style={{
@@ -320,7 +320,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
               display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px',
             }}>
               <span style={{
-                fontFamily: mono, fontSize: '8.5px', letterSpacing: '0.8px',
+                fontFamily: mono, fontSize: '10px', letterSpacing: '0.8px',
                 color: textLabel, textTransform: 'uppercase', whiteSpace: 'nowrap',
               }}>Value</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
@@ -354,7 +354,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
             {flatStake != null && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span style={{
-                  fontFamily: mono, fontSize: '8.5px', letterSpacing: '0.5px',
+                  fontFamily: mono, fontSize: '10px', letterSpacing: '0.5px',
                   color: textDim, textTransform: 'uppercase',
                 }}>Flat</span>
                 <span style={{
@@ -366,7 +366,7 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
             {kellyStake != null && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span style={{
-                  fontFamily: mono, fontSize: '8.5px', letterSpacing: '0.5px',
+                  fontFamily: mono, fontSize: '10px', letterSpacing: '0.5px',
                   color: textDim, textTransform: 'uppercase',
                 }}>Kelly</span>
                 <span style={{
@@ -544,8 +544,8 @@ export default function PickCard({ pick, isPro, onUpgrade, onTrack, onNavigate }
 
             {pick.disclaimer && (
               <div style={{
-                marginTop: '6px', fontSize: '9px', lineHeight: '1.3',
-                color: textDim, opacity: 0.5, textAlign: 'center',
+                marginTop: '6px', fontSize: '10px', lineHeight: '1.3',
+                color: textDim, textAlign: 'center',
               }}>{pick.disclaimer}</div>
             )}
           </div>
@@ -576,7 +576,7 @@ function StatCell({ label, value, valueColor }) {
       borderRadius: '5px', padding: '8px', textAlign: 'center',
     }}>
       <div style={{
-        fontFamily: mono, fontSize: '7.5px', fontWeight: 500,
+        fontFamily: mono, fontSize: '10px', fontWeight: 500,
         letterSpacing: '0.8px', color: textLabel, textTransform: 'uppercase',
         marginBottom: '3px',
       }}>{label}</div>
