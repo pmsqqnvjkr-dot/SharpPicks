@@ -321,7 +321,7 @@ function parseMarketNote(content) {
 
   const obs = (sections['observation'] || '').trim().replace(/—/g, '-');
   const rawImpl = (sections['implication'] || '').trim();
-  const impl = rawImpl.replace(/\*?—\s*Evan\s*Cole\*?/gi, '').replace(/—/g, '-').trim();
+  const impl = rawImpl.replace(/\*?[-–—]\s*Evan\s*Cole\*?/gi, '').replace(/—/g, '-').trim();
 
   let edges = 0, signals = 0, density = 0;
   const struct = sections['market structure'] || '';
@@ -729,6 +729,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                   return <SharpPrincipleBlock key={i} text={quoteText} />;
                 }
                 if (p.startsWith('– ') || p.startsWith('— ')) {
+                  if (/Evan\s*Cole/i.test(p)) return null;
                   return (
                     <div key={i}>
                       <div style={{
@@ -749,7 +750,10 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                   );
                 }
                 const trimmed = p.trim();
-                if (/^\*[A-Z][a-z]+\*$/.test(trimmed)) {
+                if (/^\*[A-Z][a-z]+(\s+[A-Z][a-z]+)*\*$/.test(trimmed)) {
+                  return null;
+                }
+                if (/^\*?[-–—]?\s*Evan\s*Cole/i.test(trimmed) || /^Evan Cole/i.test(trimmed) || /^Founder,?\s*Sharp\s*Picks$/i.test(trimmed)) {
                   return null;
                 }
                 const isClosingPunch = p === 'Discipline compounds. Impulse erodes.' ||
@@ -844,7 +848,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                 color: 'var(--text-primary)',
                 lineHeight: '1.4',
               }}>
-                {nextInsight.title}
+                {(nextInsight.title || '').replace(/—/g, '-')}
               </div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary)" strokeWidth="2">
