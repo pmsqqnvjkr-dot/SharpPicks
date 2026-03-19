@@ -2,6 +2,7 @@ import os
 import base64
 import logging
 import resend
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
 
@@ -9,6 +10,11 @@ FROM_EMAIL = "SharpPicks <info@sharppicks.ai>"
 FOUNDER_EMAIL = "Evan Cole <evan@sharppicks.ai>"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+_jinja_env = Environment(
+    loader=FileSystemLoader(os.path.join(SCRIPT_DIR, 'templates', 'emails')),
+    autoescape=select_autoescape(['html']),
+)
 
 def get_base_url():
     custom = os.environ.get('APP_BASE_URL', '')
@@ -100,6 +106,47 @@ def _render(template_name, props):
     except Exception as e:
         logging.warning(f"React Email render failed for '{template_name}', will use legacy: {e}")
         return None
+
+
+def _render_jinja(template_name, context):
+    """Render a Jinja2 email template from templates/emails/."""
+    try:
+        tpl = _jinja_env.get_template(template_name)
+        return tpl.render(**context)
+    except Exception as e:
+        logging.warning(f"Jinja2 render failed for '{template_name}': {e}")
+        return None
+
+
+def _get_shared_email_context():
+    """Build shared template variables: logo, season record, last 10 picks."""
+    from utils.email_helpers import get_logo_base64
+    ctx = {'logo_base64': get_logo_base64()}
+    try:
+        from models import Pick
+        settled = Pick.query.filter(
+            Pick.result.in_(['win', 'loss'])
+        ).all()
+        ctx['season_record_wins'] = sum(1 for p in settled if p.result == 'win')
+        ctx['season_record_losses'] = sum(1 for p in settled if p.result == 'loss')
+
+        clv_vals = [p.clv for p in settled if p.clv is not None]
+        clv_pos = sum(1 for v in clv_vals if v > 0)
+        ctx['season_clv'] = round(clv_pos / len(clv_vals) * 100, 1) if clv_vals else 0
+
+        recent = Pick.query.filter(
+            Pick.result.in_(['win', 'loss'])
+        ).order_by(Pick.game_date.desc()).limit(10).all()
+        ctx['last_10_picks'] = [
+            {'result': 'W' if p.result == 'win' else 'L'} for p in reversed(recent)
+        ]
+    except Exception as e:
+        logging.warning(f"Failed to load shared email context: {e}")
+        ctx.setdefault('season_record_wins', 0)
+        ctx.setdefault('season_record_losses', 0)
+        ctx.setdefault('season_clv', 0)
+        ctx.setdefault('last_10_picks', [])
+    return ctx
 
 
 # ── Legacy base template (kept as fallback) ──
@@ -405,59 +452,69 @@ def send_signal_email(to, pick):
         logging.info(f"Skipping signal email to {to} — unsubscribed")
         return False
     base = get_base_url()
-    side = pick.get('side', '') if isinstance(pick, dict) else (pick.side or '')
-    edge = pick.get('edge_pct', 0) if isinstance(pick, dict) else (pick.edge_pct or 0)
-    model_prob = pick.get('cover_prob') or pick.get('model_confidence', 0) if isinstance(pick, dict) else (pick.cover_prob or pick.model_confidence or 0)
-    market_prob = pick.get('implied_prob', 0) if isinstance(pick, dict) else (pick.implied_prob or 0)
-    margin = pick.get('predicted_margin') if isinstance(pick, dict) else getattr(pick, 'predicted_margin', None)
-    sportsbook = pick.get('sportsbook', 'DraftKings') if isinstance(pick, dict) else (pick.sportsbook or 'DraftKings')
-    sport = pick.get('sport', 'NBA') if isinstance(pick, dict) else getattr(pick, 'sport', 'NBA')
+    d = pick if isinstance(pick, dict) else None
 
-    matchup = ''
-    if isinstance(pick, dict):
-        matchup = pick.get('matchup', '') or f"{pick.get('away_team', '')} vs {pick.get('home_team', '')}"
-    else:
-        matchup = getattr(pick, 'matchup', '') or f"{getattr(pick, 'away_team', '')} vs {getattr(pick, 'home_team', '')}"
+    side = (d.get('side', '') if d else (pick.side or ''))
+    edge = float(d.get('edge_pct', 0) if d else (pick.edge_pct or 0))
+    model_prob_raw = (d.get('cover_prob') or d.get('model_confidence', 0)) if d else (pick.cover_prob or getattr(pick, 'model_confidence', 0) or 0)
+    market_prob_raw = float(d.get('implied_prob', 0) if d else (pick.implied_prob or 0))
+    margin = d.get('predicted_margin') if d else getattr(pick, 'predicted_margin', None)
+    sportsbook = (d.get('sportsbook', 'DraftKings') if d else (pick.sportsbook or 'DraftKings'))
 
-    html = _render('signal', {
-        'sport': sport.upper() if sport else 'NBA',
-        'matchup': matchup,
-        'market': side,
-        'edge': f'+{edge:.1f}%',
-        'price': sportsbook,
-        'startTime': '',
-        'modelPct': round(model_prob * 100, 1),
-        'marketPct': round(market_prob * 100, 1),
-        'margin': round(margin, 1) if margin is not None else None,
-        'appUrl': f'{base}/',
-        'unsubscribeUrl': _make_unsub_url(to, 'email_signals'),
+    home_team = (d.get('home_team', '') if d else getattr(pick, 'home_team', ''))
+    away_team = (d.get('away_team', '') if d else getattr(pick, 'away_team', ''))
+
+    model_prob = round(float(model_prob_raw) * 100, 1)
+    market_prob = round(float(market_prob_raw) * 100, 1)
+
+    from utils.email_helpers import get_edge_strength, fmt_line
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    now_et = datetime.now(ZoneInfo('America/New_York'))
+
+    away_parts = away_team.rsplit(' ', 1) if away_team else ['', '']
+    home_parts = home_team.rsplit(' ', 1) if home_team else ['', '']
+
+    ctx = _get_shared_email_context()
+    ctx.update({
+        'away_team_abbr': (d.get('away_abbr', '') if d else getattr(pick, 'away_abbr', '')) or away_team[:3].upper(),
+        'away_team_city': away_parts[0] if len(away_parts) > 1 else '',
+        'away_team_name': away_parts[-1] if away_parts else '',
+        'home_team_abbr': (d.get('home_abbr', '') if d else getattr(pick, 'home_abbr', '')) or home_team[:3].upper(),
+        'home_team_city': home_parts[0] if len(home_parts) > 1 else '',
+        'home_team_name': home_parts[-1] if home_parts else '',
+        'game_time': d.get('game_time', '') if d else getattr(pick, 'game_time', ''),
+        'pick_team': side,
+        'pick_line': fmt_line(d.get('line') if d else getattr(pick, 'line', None)),
+        'edge_pct': round(edge, 1),
+        'model_prob': model_prob,
+        'market_prob': market_prob,
+        'calibrated_edge': round(edge, 1),
+        'margin_projection': round(float(margin), 1) if margin is not None else None,
+        'sportsbook': sportsbook,
+        'edge_strength': get_edge_strength(edge),
+        'signal_date': now_et.strftime('%b %d, %Y').upper(),
+        'signal_time': now_et.strftime('%-I:%M %p EST'),
+        'app_url': f'{base}/',
+        'unsubscribe_url': _make_unsub_url(to, 'email_signals'),
     })
+
+    html = _render_jinja('signal.html', ctx)
     if not html:
-        margin_line = ''
-        if margin is not None:
-            margin_line = f'''
-            <tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#AAAAAA;">
-              Margin Projection: {"+" if margin > 0 else ""}{margin:.1f}
-            </td></tr>'''
+        html = _render('signal', {
+            'sport': 'NBA', 'matchup': f'{away_team} vs {home_team}',
+            'market': side, 'edge': f'+{edge:.1f}%', 'price': sportsbook,
+            'startTime': '', 'modelPct': model_prob, 'marketPct': market_prob,
+            'margin': round(float(margin), 1) if margin is not None else None,
+            'appUrl': f'{base}/', 'unsubscribeUrl': _make_unsub_url(to, 'email_signals'),
+        })
+    if not html:
         body = f'''
         <p style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:bold;color:#FFFFFF;margin:0 0 8px;">{side}</p>
         <p style="font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:bold;color:#5A9E72;margin:0 0 20px;">Edge: +{edge:.1f}%</p>
         <table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
-          <tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;">
-            Model: {model_prob * 100:.1f}%
-          </td></tr>
-          <tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;">
-            Market: {market_prob * 100:.1f}%
-          </td></tr>
-        </table>
-        <table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
-          <tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#AAAAAA;">
-            Calibrated Edge: +{edge:.1f}%
-          </td></tr>
-          {margin_line}
-          <tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#AAAAAA;">
-            Sportsbook: {sportsbook}
-          </td></tr>
+          <tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;">Model: {model_prob:.1f}%</td></tr>
+          <tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;">Market: {market_prob:.1f}%</td></tr>
         </table>'''
         html = _base_template(
             'SIGNAL GENERATED', body,
@@ -475,49 +532,75 @@ def send_result_email(to, pick):
         logging.info(f"Skipping result email to {to} — unsubscribed")
         return False
     base = get_base_url()
-    side = pick.get('side', '') if isinstance(pick, dict) else (pick.side or '')
-    result = pick.get('result', '') if isinstance(pick, dict) else (pick.result or '')
-    units = pick.get('profit_units') if isinstance(pick, dict) else getattr(pick, 'profit_units', None)
-    signal_line = pick.get('line') if isinstance(pick, dict) else getattr(pick, 'line', None)
-    closing = pick.get('closing_spread') if isinstance(pick, dict) else getattr(pick, 'closing_spread', None)
-    clv = pick.get('clv') if isinstance(pick, dict) else getattr(pick, 'clv', None)
+    d = pick if isinstance(pick, dict) else None
 
-    matchup = ''
-    if isinstance(pick, dict):
-        matchup = pick.get('matchup', '') or f"{pick.get('away_team', '')} vs {pick.get('home_team', '')}"
-    else:
-        matchup = getattr(pick, 'matchup', '') or f"{getattr(pick, 'away_team', '')} vs {getattr(pick, 'home_team', '')}"
+    side = (d.get('side', '') if d else (pick.side or ''))
+    result = (d.get('result', '') if d else (pick.result or ''))
+    signal_line = d.get('line') if d else getattr(pick, 'line', None)
+    closing = d.get('closing_spread') if d else getattr(pick, 'closing_spread', None)
+    clv_val = d.get('clv') if d else getattr(pick, 'clv', None)
+    edge = float(d.get('edge_pct', 0) if d else (pick.edge_pct or 0))
+    model_prob_raw = (d.get('cover_prob') or d.get('model_confidence', 0)) if d else (pick.cover_prob or getattr(pick, 'model_confidence', 0) or 0)
+    home_score = d.get('home_score') if d else getattr(pick, 'home_score', None)
+    away_score = d.get('away_score') if d else getattr(pick, 'away_score', None)
+    line_open = d.get('line_open') if d else getattr(pick, 'line_open', None)
 
     is_win = result == 'win'
     is_push = result == 'push'
+    result_letter = 'W' if is_win else ('L' if result == 'loss' else 'P')
     result_label = result.upper() if result else 'PENDING'
 
-    units_str = ''
-    if units is not None:
-        u = float(units)
-        units_str = f'{"+" if u > 0 else ""}{u:.1f}u'
+    from utils.email_helpers import fmt_line
 
-    close_str = None
-    if closing is not None:
-        cl = float(closing)
-        cl_s = f'{int(cl)}' if cl == int(cl) else f'{cl:.1f}'
-        close_str = f'+{cl_s}' if cl > 0 else cl_s
+    opening_line_fmt = fmt_line(line_open if line_open is not None else signal_line)
+    closing_line_fmt = fmt_line(closing)
+    clv_points = round(float(clv_val), 1) if clv_val is not None else 0
+    model_prob = round(float(model_prob_raw) * 100, 1) if model_prob_raw else 0
 
-    clv_str = None
-    if clv is not None:
-        cv = float(clv)
-        clv_str = f'{"+" if cv > 0 else ""}{cv:.1f}'
+    cover_margin = None
+    if home_score is not None and away_score is not None and signal_line is not None:
+        spread = float(signal_line)
+        actual_margin = float(away_score) - float(home_score)
+        cover_margin = round(actual_margin + spread, 1)
 
-    html = _render('result', {
-        'matchup': matchup,
-        'market': side,
-        'closeLine': close_str,
-        'clv': clv_str,
-        'result': result_label if result_label in ('WIN', 'LOSS', 'PUSH') else 'PUSH',
-        'units': units_str or '0u',
-        'appUrl': f'{base}/',
-        'unsubscribeUrl': _make_unsub_url(to, 'email_results'),
+    try:
+        from models import Pick
+        all_settled = Pick.query.filter(Pick.result.in_(['win', 'loss'])).all()
+        updated_wins = sum(1 for p in all_settled if p.result == 'win')
+        updated_losses = sum(1 for p in all_settled if p.result == 'loss')
+        decided = updated_wins + updated_losses
+        pnl = sum(p.profit_units or 0 for p in all_settled)
+        updated_roi = round((pnl / decided) * 100, 1) if decided else 0
+
+        clv_vals = [p.clv for p in all_settled if p.clv is not None]
+        clv_pos = sum(1 for v in clv_vals if v > 0)
+        updated_clv = round(clv_pos / len(clv_vals) * 100, 1) if clv_vals else 0
+    except Exception:
+        updated_wins = updated_losses = 0
+        updated_roi = updated_clv = 0
+
+    ctx = _get_shared_email_context()
+    ctx.update({
+        'result': result_letter,
+        'pick_team': side,
+        'pick_line': fmt_line(signal_line),
+        'final_score_away': away_score if away_score is not None else '--',
+        'final_score_home': home_score if home_score is not None else '--',
+        'cover_margin': cover_margin,
+        'opening_line': opening_line_fmt,
+        'closing_line': closing_line_fmt,
+        'clv_points': clv_points,
+        'edge_at_entry': round(edge, 1),
+        'model_prob': model_prob,
+        'updated_wins': updated_wins,
+        'updated_losses': updated_losses,
+        'updated_clv': updated_clv,
+        'updated_roi': updated_roi,
+        'app_url': f'{base}/',
+        'unsubscribe_url': _make_unsub_url(to, 'email_results'),
     })
+
+    html = _render_jinja('grading.html', ctx)
     if not html:
         result_color = '#5A9E72' if is_win else ('#CC3333' if result == 'loss' else '#666666')
         icon = '&#x2714;' if is_win else ('&#x2014;' if is_push else '&#x2718;')
@@ -526,7 +609,7 @@ def send_result_email(to, pick):
           {side} &nbsp;<span style="color:{result_color};">{icon}</span>
         </p>
         <p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;color:{result_color};font-weight:bold;margin:0 0 20px;">
-          Result: {result_label}{f" &middot; {units_str}" if units_str else ""}
+          Result: {result_label}
         </p>'''
         html = _base_template(
             'SIGNAL RESULT', body,
@@ -556,21 +639,84 @@ def send_weekly_summary(to, first_name=None, stats=None):
     avg_edge = s.get('avg_edge', 0)
 
     record_str = f'{wins}-{losses}'
-    roi_str = f'{roi:+.1f}%'
     units_str = f'{"+" if units >= 0 else ""}{units:.1f}u'
 
-    html = _render('weekly-summary', {
-        'firstName': first_name,
-        'record': record_str,
-        'roi': roi_str,
-        'units': units_str,
-        'passes': passes,
-        'avgEdge': f'+{avg_edge:.1f}%' if avg_edge else None,
-        'totalRecord': total_record or None,
-        'periodLabel': 'This Week',
-        'appUrl': f'{base}/',
-        'unsubscribeUrl': _make_unsub_url(to, 'email_weekly'),
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+    now_et = datetime.now(ZoneInfo('America/New_York'))
+    today = now_et.date()
+    days_since_monday = today.weekday()
+    ws = today - timedelta(days=days_since_monday + 7)
+    we = ws + timedelta(days=6)
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    week_start_fmt = f"{months[ws.month - 1]} {ws.day}"
+    week_end_fmt = f"{months[we.month - 1]} {we.day}, {we.year}"
+
+    weekly_picks_list = []
+    weekly_clv = 0
+    season_win_pct = 0
+    season_roi = 0
+    try:
+        from models import Pick
+        week_picks = Pick.query.filter(
+            Pick.game_date >= ws.strftime('%Y-%m-%d'),
+            Pick.game_date <= we.strftime('%Y-%m-%d'),
+            Pick.result.in_(['win', 'loss']),
+        ).order_by(Pick.game_date).all()
+
+        clv_vals_week = [p.clv for p in week_picks if p.clv is not None]
+        weekly_clv = round(sum(clv_vals_week) / len(clv_vals_week), 1) if clv_vals_week else 0
+
+        for p in week_picks:
+            from utils.email_helpers import fmt_line
+            weekly_picks_list.append({
+                'result': 'W' if p.result == 'win' else 'L',
+                'team': (p.side or '').split(' ')[-1] if p.side else '',
+                'line': fmt_line(p.line),
+                'score_away': p.away_score if p.away_score is not None else '--',
+                'score_home': p.home_score if p.home_score is not None else '--',
+                'cover_margin': round(float(p.away_score or 0) - float(p.home_score or 0) + float(p.line or 0), 1) if p.away_score is not None and p.home_score is not None else None,
+                'edge': round(p.edge_pct or 0, 1),
+                'clv': round(float(p.clv), 1) if p.clv is not None else None,
+            })
+
+        all_settled = Pick.query.filter(Pick.result.in_(['win', 'loss'])).all()
+        s_wins = sum(1 for p in all_settled if p.result == 'win')
+        s_losses = sum(1 for p in all_settled if p.result == 'loss')
+        s_decided = s_wins + s_losses
+        season_win_pct = round(s_wins / s_decided * 100, 1) if s_decided else 0
+        s_pnl = sum(p.profit_units or 0 for p in all_settled)
+        season_roi = round((s_pnl / s_decided) * 100, 1) if s_decided else 0
+
+        clv_all = [p.clv for p in all_settled if p.clv is not None]
+        clv_pos = sum(1 for v in clv_all if v > 0)
+        season_clv_pct = round(clv_pos / len(clv_all) * 100, 1) if clv_all else 0
+    except Exception as e:
+        logging.warning(f"Weekly recap enrichment failed: {e}")
+        s_wins = s_losses = 0
+        season_clv_pct = 0
+
+    ctx = _get_shared_email_context()
+    ctx.update({
+        'week_start': week_start_fmt,
+        'week_end': week_end_fmt,
+        'weekly_wins': wins,
+        'weekly_losses': losses,
+        'weekly_units': round(units, 1),
+        'weekly_roi': round(roi, 1),
+        'weekly_avg_edge': round(avg_edge, 1),
+        'weekly_clv': weekly_clv,
+        'picks': weekly_picks_list,
+        'season_wins': ctx.get('season_record_wins', s_wins),
+        'season_losses': ctx.get('season_record_losses', s_losses),
+        'season_win_pct': season_win_pct,
+        'season_clv': season_clv_pct if season_clv_pct else ctx.get('season_clv', 0),
+        'season_roi': season_roi,
+        'app_url': f'{base}/',
+        'unsubscribe_url': _make_unsub_url(to, 'email_weekly'),
     })
+
+    html = _render_jinja('weekly_recap.html', ctx)
     if not html:
         roi_color = '#5A9E72' if roi >= 0 else '#CC3333'
         body = f'''

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { apiPost, apiDelete } from '../../hooks/useApi';
+import { Capacitor } from '@capacitor/core';
+import { apiPost, apiDelete, getAuthToken } from '../../hooks/useApi';
 
 const green = '#5A9E72';
 const greenDim = '#5A9E72';
@@ -108,18 +109,39 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
   };
 
   const handleShare = async () => {
-    const cardUrl = `/api/cards/result/${pick.id}`;
+    const apiRoot = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' : '';
+    const cardUrl = `${apiRoot}/api/cards/result/${pick.id}`;
+    const filename = `sharppicks-result-${pick.id}.png`;
     try {
-      const res = await fetch(cardUrl);
+      const token = getAuthToken();
+      const headers = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(cardUrl, { headers, credentials: 'include' });
+      if (!res.ok) return;
       const blob = await res.blob();
-      const file = new File([blob], `sharppicks-result-${pick.id}.png`, { type: 'image/png' });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], text: 'Sharp Picks result' });
+
+      if (Capacitor.isNativePlatform()) {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+        const reader = new FileReader();
+        const base64 = await new Promise((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        const file = await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache });
+        await Share.share({ title: 'Sharp Picks Result', text: 'sharppicks.ai', url: file.uri });
+        try { await Filesystem.deleteFile({ path: filename, directory: Directory.Cache }); } catch {}
       } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = file.name; a.click();
-        URL.revokeObjectURL(url);
+        const file = new File([blob], filename, { type: 'image/png' });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], text: 'Sharp Picks result' });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = filename; a.click();
+          URL.revokeObjectURL(url);
+        }
       }
     } catch {}
   };

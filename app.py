@@ -3515,6 +3515,27 @@ def cron_retrain_model():
     return log_cron('retrain_model', _retrain, skip_throttle=force)
 
 
+@app.route('/api/cron/generate-weekly-card', methods=['GET', 'POST'])
+@verify_cron
+def cron_generate_weekly_card():
+    """Pre-generate weekly recap card PNG and save to static/cards/weekly-latest.png."""
+    def _generate():
+        from routes.card_routes import _compute_weekly_data
+        data = _compute_weekly_data()
+        html_string = render_template('recap_card.html', **data)
+
+        from services.card_generator import generate_card_png
+        png_bytes = generate_card_png(html_string)
+
+        cards_dir = os.path.join(os.path.dirname(__file__), 'static', 'cards')
+        os.makedirs(cards_dir, exist_ok=True)
+        out_path = os.path.join(cards_dir, 'weekly-latest.png')
+        with open(out_path, 'wb') as f:
+            f.write(png_bytes)
+        return {'path': out_path, 'size_bytes': len(png_bytes)}
+    return log_cron('generate_weekly_card', _generate)
+
+
 def start_background_services():
     import time
     time.sleep(5)
@@ -6217,6 +6238,14 @@ def serve_manifest():
 def firebase_sw():
     dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
     return send_from_directory(dist_dir, 'firebase-messaging-sw.js')
+
+@app.route('/static/cards/<path:filename>')
+def serve_static_card(filename):
+    cards_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'cards')
+    from flask import make_response
+    resp = make_response(send_from_directory(cards_dir, filename))
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
 
 @app.route('/<path:path>')
 def serve_spa(path):
