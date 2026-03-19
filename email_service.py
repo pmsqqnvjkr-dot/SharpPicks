@@ -151,6 +151,18 @@ def _get_shared_email_context():
 
 # ── Legacy base template (kept as fallback) ──
 
+def _brand_header_html():
+    """Inline brand header used by all email templates: crest logo + SHARP || PICKS text."""
+    from utils.email_helpers import get_logo_base64
+    logo = get_logo_base64()
+    if logo:
+        img = f'<img src="data:image/png;base64,{logo}" alt="SP" width="28" height="28" style="display:inline-block;vertical-align:middle;margin-right:12px;" />'
+    else:
+        img = ''
+    return f'''{img}<!--
+            --><span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#FFFFFF;vertical-align:middle;">SHARP<span style="opacity:0.5;margin:0 0.35em;font-weight:500;letter-spacing:0.15em;">||</span>PICKS</span>'''
+
+
 def _base_template(type_label, body_html, cta_text=None, cta_url=None,
                    fine_print=None, to_email=None, unsub_category='all'):
     base = get_base_url()
@@ -178,6 +190,8 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
         fine_html = f'''
         <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#666666;line-height:1.6;margin:0 0 24px;">{fine_print}</p>'''
 
+    brand = _brand_header_html()
+
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -189,8 +203,7 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
       <tr><td style="padding:32px 32px 0;">
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
           <tr><td align="center" style="padding:0 0 16px;">
-            <img src="{base}/images/crest.png" alt="" width="28" height="28" style="display:inline-block;vertical-align:middle;margin-right:12px;" /><!--
-            --><span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#FFFFFF;vertical-align:middle;">SHARP<span style="opacity:0.5;margin:0 0.35em;font-weight:500;letter-spacing:0.15em;">||</span>PICKS</span>
+            {brand}
           </td></tr>
         </table>
         <hr style="border:none;border-top:1px solid #2A2A2A;margin:0 0 24px;">
@@ -834,8 +847,7 @@ def send_welcome(to, first_name=None):
     html = f"""
     <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 20px 24px 48px; color: #e0e0e0; background-color: #0A0D14;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <img src="{dashboard_url}/images/crest.png" alt="" width="28" height="28" style="display:inline-block;vertical-align:middle;margin-right:12px;" /><!--
-        --><span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#FFFFFF;vertical-align:middle;">SHARP<span style="opacity:0.5;margin:0 0.35em;font-weight:500;letter-spacing:0.15em;">||</span>PICKS</span>
+        {_brand_header_html()}
       </div>
 
       <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px; margin-top: 0;">Hi {name},</p>
