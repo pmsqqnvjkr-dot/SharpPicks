@@ -74,7 +74,7 @@ export default function OnboardingFlow({ onComplete }) {
           color: 'rgba(255,255,255,0.45)',
           marginBottom: '20px',
         }}>
-          SHARP<span style={{ opacity: 0.4, margin: '0 0.25em' }}>||</span>PICKS
+          SHARP<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, margin: '0 0.3em' }}><span style={{ width: 2, height: 11, backgroundColor: 'currentColor', opacity: 0.4, borderRadius: 1 }} /><span style={{ width: 2, height: 11, backgroundColor: 'currentColor', opacity: 0.4, borderRadius: 1 }} /></span>PICKS
         </div>
 
         <h1 style={{

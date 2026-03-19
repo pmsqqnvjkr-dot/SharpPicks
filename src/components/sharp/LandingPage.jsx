@@ -234,7 +234,7 @@ export default function LandingPage() {
             <span style={{
               fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
               color: '#F2F4F8', letterSpacing: '3.9px', textTransform: 'uppercase', lineHeight: 1,
-            }}>SHARP<span style={{ opacity: 0.5, margin: '0 0.4em', fontWeight: 500, letterSpacing: '0.18em' }}>||</span>PICKS</span>
+            }}>SHARP<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, margin: '0 0.4em' }}><span style={{ width: 2, height: 11, backgroundColor: 'currentColor', opacity: 0.5, borderRadius: 1 }} /><span style={{ width: 2, height: 11, backgroundColor: 'currentColor', opacity: 0.5, borderRadius: 1 }} /></span>PICKS</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={openLogin} style={{
@@ -630,7 +630,7 @@ export default function LandingPage() {
             <span style={{
               fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600,
               color: 'var(--text-tertiary)', letterSpacing: '2.5px', textTransform: 'uppercase',
-            }}>SHARP<span style={{ opacity: 0.45, margin: '0 0.35em' }}>||</span>PICKS</span>
+            }}>SHARP<span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, margin: '0 0.35em' }}><span style={{ width: 2, height: 9, backgroundColor: 'currentColor', opacity: 0.45, borderRadius: 1 }} /><span style={{ width: 2, height: 9, backgroundColor: 'currentColor', opacity: 0.45, borderRadius: 1 }} /></span>PICKS</span>
           </div>
 
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.6, maxWidth: 420, margin: '0 auto 12px' }}>

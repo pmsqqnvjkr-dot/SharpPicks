@@ -159,8 +159,10 @@ def _brand_header_html():
         img = f'<img src="data:image/png;base64,{logo}" alt="SP" width="28" height="28" style="display:inline-block;vertical-align:middle;margin-right:12px;" />'
     else:
         img = ''
+    bars = ('<span style="display:inline-block;width:2px;height:11px;background-color:#FFFFFF;opacity:0.5;vertical-align:middle;border-radius:1px;margin-right:3px;"></span>'
+             '<span style="display:inline-block;width:2px;height:11px;background-color:#FFFFFF;opacity:0.5;vertical-align:middle;border-radius:1px;"></span>')
     return f'''{img}<!--
-            --><span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#FFFFFF;vertical-align:middle;">SHARP<span style="opacity:0.5;margin:0 0.35em;font-weight:500;letter-spacing:0.15em;">||</span>PICKS</span>'''
+            --><span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#FFFFFF;vertical-align:middle;">SHARP<span style="margin:0 0.35em;vertical-align:middle;">{bars}</span>PICKS</span>'''
 
 
 def _base_template(type_label, body_html, cta_text=None, cta_url=None,

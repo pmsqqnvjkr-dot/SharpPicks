@@ -47,7 +47,7 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
               fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 600,
               color: '#F2F4F8', letterSpacing: '3.9px', textTransform: 'uppercase',
               lineHeight: 1,
-            }}>SHARP<span style={{ opacity: 0.65, margin: '0 0.45em', fontWeight: 500, letterSpacing: '0.18em' }}>||</span>PICKS</span>
+            }}>SHARP<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, margin: '0 0.4em' }}><span style={{ width: 2, height: 11, backgroundColor: 'currentColor', opacity: 0.5, borderRadius: 1 }} /><span style={{ width: 2, height: 11, backgroundColor: 'currentColor', opacity: 0.5, borderRadius: 1 }} /></span>PICKS</span>
           </div>
           <ModelHealthBadge health={health} />
         </div>
