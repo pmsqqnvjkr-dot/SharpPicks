@@ -156,61 +156,78 @@ def signal_card(signal_id):
 
 @cards_bp.route('/result/<signal_id>')
 def result_card(signal_id):
+    from flask import render_template
+    from routes.card_routes import _get_logo_base64
+
     pick = Pick.query.get(signal_id)
     if not pick:
         return jsonify({'error': 'Not found'}), 404
 
-    img, draw = _new_card()
-    fonts = _fonts()
-    _draw_wordmark(draw, 'SHARPPICKS RESULT')
-
-    y = 80
-    side = pick.side or ''
     is_win = pick.result == 'win'
-    is_push = pick.result == 'push'
-    icon = '\u2714' if is_win else ('\u2014' if is_push else '\u2718')
-    icon_color = GREEN if is_win else (GRAY if is_push else RED)
+    is_loss = pick.result == 'loss'
 
-    draw.text((32, y), side, fill=WHITE, font=fonts['hero'])
-    side_bbox = fonts['hero'].getbbox(side)
-    side_w = (side_bbox[2] - side_bbox[0]) if side_bbox else 300
-    draw.text((42 + side_w, y + 6), f'  {icon}', fill=icon_color, font=fonts['large'])
+    units_val = pick.profit_units or 0
+    if units_val > 0:
+        units_fmt = f'+{units_val:.1f}u'
+    elif units_val < 0:
+        units_fmt = f'\u2212{abs(units_val):.1f}u'
+    else:
+        units_fmt = '0.0u'
 
-    y += 60
-    if pick.closing_spread is not None:
-        draw.text((32, y), f'Closing Line: {_fmt_spread(pick.closing_spread)}', fill=WHITE, font=fonts['medium'])
-        y += 30
-    if pick.clv is not None:
-        clv_color = GREEN if pick.clv > 0 else (RED if pick.clv < 0 else GRAY)
-        clv_sign = '+' if pick.clv > 0 else ''
-        draw.text((32, y), f'CLV: {clv_sign}{pick.clv:.1f}', fill=clv_color, font=fonts['medium'])
-        y += 30
+    clv_val = pick.clv
+    if clv_val is not None:
+        clv_sign = '+' if clv_val > 0 else ''
+        clv_fmt = f'{clv_sign}{clv_val:.1f}'
+    else:
+        clv_fmt = '--'
 
-    y += 10
-    if pick.edge_pct:
-        draw.text((32, y), f'Model Edge: +{pick.edge_pct:.1f}%', fill=WHITE, font=fonts['medium'])
-        y += 30
+    all_decided = Pick.query.filter(Pick.result.in_(['win', 'loss', 'push'])).all()
+    s_wins = sum(1 for p in all_decided if p.result == 'win')
+    s_losses = sum(1 for p in all_decided if p.result == 'loss')
+    s_decided = s_wins + s_losses
+    s_win_pct = round(s_wins / s_decided * 100, 1) if s_decided > 0 else 0
+    clv_values = [p.clv for p in all_decided if p.clv is not None]
+    clv_positive = sum(1 for v in clv_values if v > 0)
+    s_clv = round(clv_positive / len(clv_values) * 100, 1) if clv_values else 0
 
-    result_text = pick.result.upper() if pick.result else 'PENDING'
-    result_color = GREEN if is_win else (RED if pick.result == 'loss' else GRAY)
-    draw.text((32, y), f'Result: {result_text}', fill=result_color, font=fonts['medium'])
-    if pick.profit_units is not None:
-        units_sign = '+' if pick.profit_units > 0 else ''
-        units_text = f'{units_sign}{pick.profit_units:.1f}u'
-        bbox = fonts['medium'].getbbox(units_text)
-        tw = bbox[2] - bbox[0] if bbox else 80
-        units_color = GREEN if pick.profit_units > 0 else (RED if pick.profit_units < 0 else GRAY)
-        draw.text((W - 32 - tw, y), units_text, fill=units_color, font=fonts['medium'])
+    matchup = f'{pick.away_team} @ {pick.home_team}' if pick.away_team and pick.home_team else ''
 
-    _draw_footer(draw, _date_label(pick))
-    return Response(_to_png(img).read(), mimetype='image/png',
-                    headers={'Cache-Control': 'public, max-age=86400'})
+    data = {
+        'logo_base64': _get_logo_base64(),
+        'game_date': _date_label(pick),
+        'matchup': matchup,
+        'side': pick.side or '',
+        'result_label': (pick.result or 'pending').upper(),
+        'result_color': 'green' if is_win else ('red' if is_loss else 'white'),
+        'accent_color': '#5A9E72' if is_win else ('#C4686B' if is_loss else '#5A9E72'),
+        'units_fmt': units_fmt,
+        'units_color': 'green' if units_val > 0 else ('red' if units_val < 0 else 'white'),
+        'edge_pct': f'{pick.edge_pct:.1f}' if pick.edge_pct else '0.0',
+        'clv_fmt': clv_fmt,
+        'clv_color': 'green' if (clv_val or 0) > 0 else ('red' if (clv_val or 0) < 0 else 'white'),
+        'line_fmt': _fmt_spread(pick.line),
+        'season_wins': s_wins,
+        'season_losses': s_losses,
+        'season_win_pct': s_win_pct,
+        'season_clv': s_clv,
+    }
+
+    html_string = render_template('result_card.html', **data)
+
+    try:
+        from services.card_generator import generate_card_png
+        png_bytes = generate_card_png(html_string)
+        return Response(png_bytes, mimetype='image/png',
+                        headers={'Cache-Control': 'public, max-age=86400'})
+    except Exception:
+        return _result_card_fallback(pick)
 
 
 @cards_bp.route('/user-results')
 def user_results_card():
+    from flask import render_template
     from public_api import _get_sport_filter
-    from sqlalchemy import func
+    from routes.card_routes import _get_logo_base64
 
     sport = _get_sport_filter()
     pick_q = Pick.query
@@ -225,9 +242,15 @@ def user_results_card():
     total_pnl = sum((p.profit_units or 0) for p in decided)
     total_decided = len(decided)
     roi = round((sum((p.pnl or 0) for p in decided) / (total_decided * 110)) * 100, 1) if total_decided > 0 else 0
+    win_pct = round(wins / (wins + losses) * 100, 1) if (wins + losses) > 0 else 0
     total_passes = pass_q.count()
+    total_picks = pick_q.count()
     total_games = total_decided + total_passes
     selectivity = round(total_decided / total_games * 100, 1) if total_games > 0 else 0
+
+    clv_values = [p.clv for p in decided if p.clv is not None]
+    clv_positive = sum(1 for v in clv_values if v > 0)
+    clv_beat_rate = round(clv_positive / len(clv_values) * 100, 1) if clv_values else 0
 
     if selectivity < 20:
         grade = 'A+'
@@ -242,34 +265,36 @@ def user_results_card():
     else:
         grade = 'D'
 
-    img, draw = _new_card()
-    fonts = _fonts()
-    _draw_wordmark(draw, 'SHARPPICKS USER RESULTS')
+    pnl_sign = '+' if total_pnl >= 0 else '\u2212'
+    pnl_fmt = f'{pnl_sign}{abs(total_pnl):.1f}'
+    roi_sign = '+' if roi >= 0 else '\u2212'
+    roi_fmt = f'{roi_sign}{abs(roi)}%'
 
-    y = 80
-    pnl_color = GREEN if total_pnl >= 0 else RED
-    pnl_sign = '+' if total_pnl >= 0 else ''
-    draw.text((32, y), f'Profit: {pnl_sign}{total_pnl:.1f}u', fill=pnl_color, font=fonts['hero'])
+    data = {
+        'logo_base64': _get_logo_base64(),
+        'wins': wins,
+        'losses': losses,
+        'pnl_fmt': pnl_fmt,
+        'pnl_color': 'green' if total_pnl >= 0 else 'red',
+        'roi_fmt': roi_fmt,
+        'roi_color': 'green' if roi >= 0 else 'red',
+        'win_pct': win_pct,
+        'grade': grade,
+        'selectivity': selectivity,
+        'clv_beat_rate': clv_beat_rate,
+        'total_passes': total_passes,
+        'total_picks': total_picks,
+    }
 
-    roi_text = f'ROI: {roi}%'
-    bbox = fonts['large'].getbbox(roi_text)
-    tw = bbox[2] - bbox[0] if bbox else 200
-    draw.text((W - 32 - tw, y + 4), roi_text, fill=pnl_color, font=fonts['large'])
+    html_string = render_template('user_results_card.html', **data)
 
-    y += 55
-    draw.text((32, y), f'Record: {wins}\u2013{losses}', fill=WHITE, font=fonts['medium'])
-
-    y += 50
-    draw.line([(32, y), (W - 32, y)], fill=DIVIDER, width=1)
-
-    y += 25
-    draw.text((32, y), f'Discipline Score: {grade}', fill=WHITE, font=fonts['medium'])
-    y += 30
-    draw.text((32, y), f'Selectivity: {selectivity}%', fill=WHITE, font=fonts['medium'])
-
-    _draw_footer(draw, None)
-    return Response(_to_png(img).read(), mimetype='image/png',
-                    headers={'Cache-Control': 'public, max-age=300'})
+    try:
+        from services.card_generator import generate_card_png
+        png_bytes = generate_card_png(html_string)
+        return Response(png_bytes, mimetype='image/png',
+                        headers={'Cache-Control': 'public, max-age=300'})
+    except Exception:
+        return _user_results_fallback(wins, losses, total_pnl, roi, grade, selectivity)
 
 
 @cards_bp.route('/market-report')
@@ -332,80 +357,58 @@ def market_report_card():
 
 @cards_bp.route('/weekly-report')
 def weekly_report_card():
-    from datetime import datetime, timedelta
-    from zoneinfo import ZoneInfo
-    et = ZoneInfo('America/New_York')
-    now = datetime.now(et)
+    from flask import render_template
+    from routes.card_routes import _get_logo_base64, _compute_weekly_data
 
-    end = now - timedelta(days=now.weekday() + 1)
-    start = end - timedelta(days=6)
-    start_str = start.strftime('%Y-%m-%d')
-    end_str = end.strftime('%Y-%m-%d')
+    try:
+        data = _compute_weekly_data()
+        html_string = render_template('recap_card.html', **data)
+        from services.card_generator import generate_card_png
+        png_bytes = generate_card_png(html_string)
+        return Response(png_bytes, mimetype='image/png',
+                        headers={'Cache-Control': 'public, max-age=300'})
+    except Exception:
+        return _weekly_report_fallback()
 
-    sport = request.args.get('sport')
-    pick_q = Pick.query.filter(Pick.game_date >= start_str, Pick.game_date <= end_str)
-    pass_q = Pass.query.filter(Pass.date >= start_str, Pass.date <= end_str)
-    if sport:
-        pick_q = pick_q.filter_by(sport=sport)
-        pass_q = pass_q.filter_by(sport=sport)
 
-    picks = pick_q.all()
-    decided = [p for p in picks if p.result in ('win', 'loss', 'push')]
-    wins = sum(1 for p in decided if p.result == 'win')
-    losses = sum(1 for p in decided if p.result == 'loss')
-    total_units = sum((p.profit_units or 0) for p in decided)
-    total_decided = len(decided)
-    roi = round((sum((p.pnl or 0) for p in decided) / (total_decided * 110)) * 100, 1) if total_decided > 0 else 0
-    avg_edge = round(sum((p.edge_pct or 0) for p in picks) / len(picks), 1) if picks else 0
-    days_passed = pass_q.count()
+def _result_card_fallback(pick):
+    """PIL fallback if Playwright is unavailable."""
+    img, draw = _new_card()
+    fonts = _fonts()
+    _draw_wordmark(draw, 'SHARPPICKS RESULT')
+    is_win = pick.result == 'win'
+    y = 80
+    draw.text((32, y), pick.side or '', fill=WHITE, font=fonts['hero'])
+    y += 60
+    result_text = (pick.result or 'pending').upper()
+    result_color = GREEN if is_win else (RED if pick.result == 'loss' else GRAY)
+    draw.text((32, y), f'Result: {result_text}', fill=result_color, font=fonts['large'])
+    _draw_footer(draw, _date_label(pick))
+    return Response(_to_png(img).read(), mimetype='image/png',
+                    headers={'Cache-Control': 'public, max-age=86400'})
 
-    all_picks = Pick.query
-    all_passes = Pass.query
-    if sport:
-        all_picks = all_picks.filter_by(sport=sport)
-        all_passes = all_passes.filter_by(sport=sport)
-    season_decided = all_picks.filter(Pick.result.in_(['win', 'loss', 'push'])).all()
-    season_wins = sum(1 for p in season_decided if p.result == 'win')
-    season_losses = sum(1 for p in season_decided if p.result == 'loss')
-    clv_pos = sum(1 for p in season_decided if (p.clv or 0) > 0)
-    clv_pct = round(clv_pos / len(season_decided) * 100, 1) if season_decided else 0
 
+def _user_results_fallback(wins, losses, total_pnl, roi, grade, selectivity):
+    """PIL fallback if Playwright is unavailable."""
+    img, draw = _new_card()
+    fonts = _fonts()
+    _draw_wordmark(draw, 'SHARPPICKS RESULTS')
+    pnl_color = GREEN if total_pnl >= 0 else RED
+    pnl_sign = '+' if total_pnl >= 0 else ''
+    draw.text((32, 80), f'Profit: {pnl_sign}{total_pnl:.1f}u', fill=pnl_color, font=fonts['hero'])
+    draw.text((32, 135), f'Record: {wins}\u2013{losses}', fill=WHITE, font=fonts['medium'])
+    _draw_footer(draw, None)
+    return Response(_to_png(img).read(), mimetype='image/png',
+                    headers={'Cache-Control': 'public, max-age=300'})
+
+
+def _weekly_report_fallback():
+    """PIL fallback if Playwright is unavailable."""
     img, draw = _new_card()
     fonts = _fonts()
     _draw_wordmark(draw, 'SHARPPICKS WEEKLY REPORT')
-
-    y = 56
-    range_label = f'{start.strftime("%b %-d")}\u2013{end.strftime("%b %-d, %Y")}'
-    draw.text((32, y), range_label, fill=LIGHT_GRAY, font=fonts['small'])
-
-    y = 100
-    draw.text((32, y), f'Record: {wins}\u2013{losses}', fill=WHITE, font=fonts['medium'])
-    roi_text = f'ROI: {roi:+.1f}%'
-    bbox = fonts['medium'].getbbox(roi_text)
-    tw = bbox[2] - bbox[0] if bbox else 120
-    draw.text((W - 32 - tw, y), roi_text, fill=GREEN if roi >= 0 else RED, font=fonts['medium'])
-
-    y += 32
-    units_sign = '+' if total_units >= 0 else ''
-    draw.text((32, y), f'Units: {units_sign}{total_units:.1f}u', fill=WHITE, font=fonts['medium'])
-    edge_text = f'Avg Edge: +{avg_edge:.1f}%'
-    bbox2 = fonts['medium'].getbbox(edge_text)
-    tw2 = bbox2[2] - bbox2[0] if bbox2 else 160
-    draw.text((W - 32 - tw2, y), edge_text, fill=WHITE, font=fonts['medium'])
-
-    y += 50
-    draw.line([(32, y), (W - 32, y)], fill=DIVIDER, width=1)
-
-    y += 25
-    draw.text((32, y), f'Season: {season_wins}\u2013{season_losses}', fill=WHITE, font=fonts['medium'])
-    clv_text = f'CLV+: {clv_pct}%'
-    bbox3 = fonts['medium'].getbbox(clv_text)
-    tw3 = bbox3[2] - bbox3[0] if bbox3 else 100
-    draw.text((W - 32 - tw3, y), clv_text, fill=WHITE, font=fonts['medium'])
-
-    y += 32
-    draw.text((32, y), f'Days passed: {days_passed}', fill=WHITE, font=fonts['medium'])
-
+    draw.text((32, 80), 'Weekly report', fill=WHITE, font=fonts['hero'])
+    draw.text((32, 135), 'Card generation unavailable', fill=GRAY, font=fonts['medium'])
     _draw_footer(draw, None)
     return Response(_to_png(img).read(), mimetype='image/png',
                     headers={'Cache-Control': 'public, max-age=300'})
