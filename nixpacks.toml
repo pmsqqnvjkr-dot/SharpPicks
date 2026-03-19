@@ -12,7 +12,8 @@ NIXPACKS_NODE_VERSION = "22"
 cmds = [
   "npm ci || npm install",
   "cd emails && npm install && cd ..",
-  "uv sync --no-dev --no-install-project"
+  "uv sync --no-dev --no-install-project",
+  "uv run playwright install --with-deps chromium"
 ]
 
 [phases.build]
