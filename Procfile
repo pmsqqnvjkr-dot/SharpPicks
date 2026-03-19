@@ -1,1 +1,1 @@
-web: gunicorn app:app --timeout 120 --workers 3
+web: playwright install chromium && gunicorn app:app --timeout 120 --workers 3
