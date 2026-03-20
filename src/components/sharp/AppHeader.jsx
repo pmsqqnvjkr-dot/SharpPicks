@@ -66,7 +66,7 @@ export default function AppHeader({ onNavigate }) {
             letterSpacing: '3.9px',
             textTransform: 'uppercase',
             lineHeight: 1,
-          }}>SHARP<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, margin: '0 0.4em' }}><span style={{ width: 2, height: 11, backgroundColor: 'currentColor', opacity: 0.5, borderRadius: 1 }} /><span style={{ width: 2, height: 11, backgroundColor: 'currentColor', opacity: 0.5, borderRadius: 1 }} /></span>PICKS</span>
+          }}>SHARP<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, margin: '0 0.5em 0 0.2em' }}><span style={{ width: 2, height: 11, backgroundColor: 'currentColor', opacity: 0.5, borderRadius: 1 }} /><span style={{ width: 2, height: 11, backgroundColor: 'currentColor', opacity: 0.5, borderRadius: 1 }} /></span>PICKS</span>
         </div>
 
         <div style={{ position: 'relative' }} ref={menuRef}>
