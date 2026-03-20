@@ -1,7 +1,7 @@
 {
   "name": "SharpPicks",
   "short_name": "SharpPicks",
-  "description": "Disciplined NBA analytics. One pick per day, maximum.",
+  "description": "One pick beats five. Sports market intelligence.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
