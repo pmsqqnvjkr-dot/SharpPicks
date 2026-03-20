@@ -708,7 +708,12 @@ def collect_yesterdays_scores():
     print("📊 COLLECTING YESTERDAY'S FINAL SCORES")
     print("="*60 + "\n")
     
-    yesterday = datetime.now() - timedelta(days=1)
+    try:
+        from zoneinfo import ZoneInfo
+        now_et = datetime.now(ZoneInfo('America/New_York'))
+    except ImportError:
+        now_et = datetime.utcnow() - timedelta(hours=5)
+    yesterday = now_et - timedelta(days=1)
     date_str = yesterday.strftime('%Y%m%d')
     display_date = yesterday.strftime('%B %d, %Y')
     
@@ -2431,7 +2436,12 @@ def collect_wnba_scores(date_offset=1):
     from sport_config import get_sport_config
     cfg = get_sport_config('wnba')
 
-    target = datetime.now() - timedelta(days=date_offset)
+    try:
+        from zoneinfo import ZoneInfo
+        now_et = datetime.now(ZoneInfo('America/New_York'))
+    except ImportError:
+        now_et = datetime.utcnow() - timedelta(hours=5)
+    target = now_et - timedelta(days=date_offset)
     date_str = target.strftime('%Y%m%d')
     display_date = target.strftime('%B %d, %Y')
 

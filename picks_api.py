@@ -408,7 +408,12 @@ def today():
     pass_entry = Pass.query.filter_by(date=today_str, sport=sport).first()
     if pass_entry:
         from datetime import timedelta
-        week_start = (datetime.now() - timedelta(days=datetime.now().weekday())).strftime('%Y-%m-%d')
+        try:
+            from zoneinfo import ZoneInfo
+            _now_et = datetime.now(ZoneInfo('America/New_York'))
+        except ImportError:
+            _now_et = datetime.utcnow() - timedelta(hours=5)
+        week_start = (_now_et - timedelta(days=_now_et.weekday())).strftime('%Y-%m-%d')
         picks_this_week = Pick.query.filter(Pick.game_date >= week_start).count()
         passes_this_week = Pass.query.filter(Pass.date >= week_start).count()
         total_picks = Pick.query.count()

@@ -6,7 +6,7 @@ Real-time predictions based on in-game data
 import requests
 import sqlite3
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 from db_path import get_sqlite_path
 
 
@@ -112,7 +112,11 @@ class LiveGamePredictor:
             conn = sqlite3.connect(get_sqlite_path())
             cursor = conn.cursor()
             
-            today = datetime.now().strftime('%Y-%m-%d')
+            try:
+                from zoneinfo import ZoneInfo
+                today = datetime.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d')
+            except ImportError:
+                today = (datetime.utcnow() - timedelta(hours=5)).strftime('%Y-%m-%d')
             
             cursor.execute('''
                 SELECT spread_home, spread_home_open, total
