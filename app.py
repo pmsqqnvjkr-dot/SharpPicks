@@ -2528,6 +2528,7 @@ def grade_pending_picks():
                                 FROM {table_name}
                                 WHERE home_team = ? AND away_team = ? AND game_date LIKE ?
                                 AND home_score IS NOT NULL AND away_score IS NOT NULL
+                                AND (home_score > 0 OR away_score > 0)
                             ''', (pick.home_team, pick.away_team, f'{check_date}%'))
                             row = sqlite_cursor.fetchone()
                             if row:
