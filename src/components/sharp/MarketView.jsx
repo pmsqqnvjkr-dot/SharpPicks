@@ -1434,16 +1434,6 @@ export default function MarketView({ onBack }) {
     } catch { /* silent */ }
   }, [sport]);
 
-  useEffect(() => {
-    fetchLiveScores();
-  }, [fetchLiveScores]);
-
-  useEffect(() => {
-    if (!hasLive) return;
-    const interval = setInterval(fetchLiveScores, 60000);
-    return () => clearInterval(interval);
-  }, [hasLive, fetchLiveScores]);
-
   const games = useMemo(() => {
     let merged = rawGames.map(g => {
       const baseStatus = g.status === 'in_progress' ? 'live' : (g.status || 'scheduled');
@@ -1473,6 +1463,16 @@ export default function MarketView({ onBack }) {
   }, [rawGames, liveScores]);
 
   const hasLive = games.some(g => g.status === 'live');
+
+  useEffect(() => {
+    fetchLiveScores();
+  }, [fetchLiveScores]);
+
+  useEffect(() => {
+    if (!hasLive) return;
+    const interval = setInterval(fetchLiveScores, 60000);
+    return () => clearInterval(interval);
+  }, [hasLive, fetchLiveScores]);
 
   const filtered = useMemo(() => {
     if (filter === 'All') return games;
