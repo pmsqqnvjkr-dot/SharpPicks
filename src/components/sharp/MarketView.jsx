@@ -859,16 +859,22 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
             )}
           </div>
 
-          {/* Edge badge or Result badge */}
-          {isFinal && pickResult ? (
-            <div style={{ marginLeft: 12 }}>
-              {pickResult.result === 'win' || pickResult.result === 'W' ? (
+          {/* Edge + badge */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, marginLeft: 12 }}>
+            {edge != null && (
+              <span style={{
+                fontFamily: mono, fontSize: '14px', fontWeight: 500,
+                color: hasSignalEdge ? brandGreen : textMuted,
+              }}>+{edge}%</span>
+            )}
+            {isFinal && pickResult ? (
+              (pickResult.result === 'win' || pickResult.result === 'W') ? (
                 <span style={{
                   fontFamily: mono, fontSize: '11px', fontWeight: 700,
                   padding: '3px 8px', borderRadius: 4,
                   background: 'rgba(90,158,114,0.12)', color: brandGreen,
                 }}>Win {pickResult.units != null ? `+${Math.abs(pickResult.units).toFixed(1)}u` : ''}</span>
-              ) : pickResult.result === 'loss' || pickResult.result === 'L' ? (
+              ) : (pickResult.result === 'loss' || pickResult.result === 'L') ? (
                 <span style={{
                   fontFamily: mono, fontSize: '11px', fontWeight: 700,
                   padding: '3px 8px', borderRadius: 4,
@@ -880,23 +886,16 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
                   padding: '3px 8px', borderRadius: 4,
                   background: 'rgba(74,85,104,0.15)', color: '#6b7a8d',
                 }}>Push</span>
-              ) : null}
-            </div>
-          ) : edge != null ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, marginLeft: 12 }}>
+              ) : null
+            ) : hasSignal && !isFinal ? (
               <span style={{
-                fontFamily: mono, fontSize: '14px', fontWeight: 500,
-                color: hasSignalEdge ? brandGreen : textMuted,
-              }}>+{edge}%</span>
-              {strengthStyle && (
-                <span style={{
-                  fontFamily: mono, fontSize: '10px', letterSpacing: '1px',
-                  textTransform: 'uppercase', padding: '2px 6px', borderRadius: 3,
-                  ...strengthStyle,
-                }}>{strength}</span>
-              )}
-            </div>
-          ) : null}
+                fontFamily: mono, fontSize: '10px', fontWeight: 700,
+                letterSpacing: '1px', textTransform: 'uppercase',
+                padding: '2px 6px', borderRadius: 3,
+                color: brandGreen, background: 'rgba(90,158,114,0.15)',
+              }}>Signal</span>
+            ) : null}
+          </div>
         </div>
 
         {/* Probable pitchers (MLB) */}
@@ -1047,40 +1046,15 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
           </div>
         </div>
 
-        {/* Quant hint — signal games only, collapsed */}
-        {hasSignalEdge && hasModel && !expanded && (
+        {/* View quant analysis — all model cards when collapsed */}
+        {hasModel && !expanded && (
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 6, marginTop: 10, padding: 8,
-            background: 'rgba(90,158,114,0.06)',
-            border: '1px solid rgba(90,158,114,0.12)',
-            borderRadius: 5,
+            marginTop: 10, padding: '8px 0',
+            textAlign: 'center',
+            fontFamily: mono, fontSize: '10px', fontWeight: 500,
+            letterSpacing: '0.5px', color: textMuted,
           }}>
-            <div style={{
-              width: 14, height: 14, borderRadius: '50%',
-              border: `1.5px solid ${brandGreen}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: mono, fontSize: '10px', color: brandGreen,
-            }}>Q</div>
-            <span style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '0.5px', color: brandGreen }}>
-              View quant analysis
-            </span>
-            <span style={{ fontSize: '10px', color: brandGreen }}>›</span>
-          </div>
-        )}
-
-        {/* No-signal tap for quant (below threshold but has model) — only pre-game */}
-        {hasModel && !hasSignalEdge && !expanded && !isFinal && (
-          <div style={{
-            marginTop: 8, padding: '4px 0', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', gap: 6,
-          }}>
-            <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>
-              {isPro ? 'Tap for quant view' : 'Pro: quant analysis'}
-            </span>
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={textMuted} strokeWidth="2">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
+            View quant analysis
           </div>
         )}
 
@@ -1152,7 +1126,7 @@ function TimeSlotGroup({ time, games, expandedId, onToggle, watchedIds, onWatch,
 }
 
 function FilterTabs({ active, onChange, hasLive, hasModel }) {
-  let tabs = hasLive ? ['All', 'Live', 'Upcoming', 'Final'] : ['All', 'Upcoming', 'Final'];
+  let tabs = hasLive ? ['All', 'Upcoming', 'Live', 'Final'] : ['All', 'Upcoming', 'Final'];
   if (hasModel) tabs = [...tabs, 'Passed'];
   return (
     <div style={{ display: 'flex', gap: 6 }}>
