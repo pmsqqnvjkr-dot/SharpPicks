@@ -3085,6 +3085,126 @@ def cron_refresh_lines():
     return log_cron('refresh_lines', collect_todays_games, skip_throttle=force)
 
 
+@app.route('/api/cron/live-scores', methods=['GET', 'POST'])
+@verify_cron
+def cron_live_scores():
+    """Poll ESPN for live scores every 5 min during game windows. Persists to SQLite."""
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+    from sport_config import get_active_sports, get_espn_scoreboard_url
+    from main import setup_database
+    import requests as http_requests
+
+    setup_database()
+
+    et = ZoneInfo('America/New_York')
+    now_et = datetime.now(et)
+    updated_total = 0
+
+    for sport in get_active_sports():
+        table = 'games' if sport == 'nba' else f'{sport}_games'
+        conn = sqlite3.connect(get_sqlite_path())
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(f"SELECT id, home_team, away_team, game_time, commence_time, game_status FROM {table} WHERE game_date = ?",
+                           (now_et.strftime('%Y-%m-%d'),))
+        except Exception:
+            cursor.execute(f"SELECT id, home_team, away_team, game_time, commence_time FROM {table} WHERE game_date = ?",
+                           (now_et.strftime('%Y-%m-%d'),))
+        today_games = cursor.fetchall()
+
+        if not today_games:
+            conn.close()
+            continue
+
+        has_active = True
+        try:
+            has_active = any(r['game_status'] in (None, 'scheduled', 'in_progress') for r in today_games)
+        except (KeyError, IndexError):
+            pass
+        if not has_active:
+            conn.close()
+            continue
+
+        try:
+            espn_url = get_espn_scoreboard_url(sport)
+            resp = http_requests.get(espn_url, timeout=10)
+            resp.raise_for_status()
+            espn_data = resp.json()
+        except Exception as e:
+            logging.warning(f"Live scores ESPN fetch failed for {sport}: {e}")
+            conn.close()
+            continue
+
+        espn_games = {}
+        for event in espn_data.get('events', []):
+            comp = event.get('competitions', [{}])[0]
+            status = comp.get('status', {})
+            status_type = status.get('type', {})
+            competitors = comp.get('competitors', [])
+            home = away = None
+            for c in competitors:
+                if c.get('homeAway') == 'home':
+                    home = c
+                else:
+                    away = c
+            if not home or not away:
+                continue
+            home_name = home.get('team', {}).get('displayName', '')
+            away_name = away.get('team', {}).get('displayName', '')
+            key = home_name.lower().replace(' ', '')
+            espn_games[key] = {
+                'home_score': int(home.get('score', 0)),
+                'away_score': int(away.get('score', 0)),
+                'state': status_type.get('name', ''),
+                'period': status.get('period', 0),
+                'clock': status.get('displayClock', ''),
+            }
+
+        updated = 0
+        for row in today_games:
+            game_id, home_team, away_team = row['id'], row['home_team'], row['away_team']
+            key = home_team.lower().replace(' ', '')
+            live = espn_games.get(key)
+            if not live:
+                continue
+
+            state = live['state']
+            if state == 'STATUS_FINAL':
+                game_status = 'final'
+            elif state in ('STATUS_IN_PROGRESS', 'STATUS_HALFTIME'):
+                game_status = 'in_progress'
+            else:
+                game_status = 'scheduled'
+
+            period_str = None
+            if live['period'] > 0:
+                if sport == 'mlb':
+                    half = 'Top' if live['clock'] == '' else 'Bot'
+                    period_str = f"{half} {live['period']}"
+                else:
+                    period_str = f"Q{live['period']}" if live['period'] <= 4 else f"OT{live['period'] - 4}"
+
+            cursor.execute(f"""UPDATE {table} SET
+                game_status = ?, current_period = ?, game_clock = ?,
+                home_score = ?, away_score = ?, scores_updated_at = ?
+                WHERE id = ?""",
+                (game_status, period_str, live['clock'],
+                 live['home_score'], live['away_score'],
+                 now_et.isoformat(), game_id))
+            updated += 1
+
+        conn.commit()
+        conn.close()
+        updated_total += updated
+        if updated:
+            logging.info(f"Live scores: updated {updated} {sport} games")
+
+    return jsonify({'ok': True, 'updated': updated_total})
+
+
 @app.route('/api/cron/closing-lines', methods=['GET', 'POST'])
 @verify_cron
 def cron_closing_lines():

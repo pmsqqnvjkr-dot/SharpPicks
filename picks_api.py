@@ -781,6 +781,7 @@ def market_view():
     sport = request.args.get('sport', 'nba')
     games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
 
+    _live_cols = ', game_status, current_period, game_clock'
     if sport == 'mlb':
         _select_cols = """id, home_team, away_team, game_time,
                     spread_home, spread_away, total, home_ml, away_ml,
@@ -806,10 +807,16 @@ def market_view():
         conn = sqlite3.connect(get_sqlite_path())
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
-        cur.execute(
-            f"SELECT {_select_cols} FROM {games_table} WHERE game_date = ? ORDER BY game_time",
-            (today_str,)
-        )
+        try:
+            cur.execute(
+                f"SELECT {_select_cols}{_live_cols} FROM {games_table} WHERE game_date = ? ORDER BY game_time",
+                (today_str,)
+            )
+        except Exception:
+            cur.execute(
+                f"SELECT {_select_cols} FROM {games_table} WHERE game_date = ? ORDER BY game_time",
+                (today_str,)
+            )
         rows = cur.fetchall()
 
         active_date = today_str
@@ -821,10 +828,16 @@ def market_view():
             next_date = cur.fetchone()[0]
             if next_date:
                 active_date = next_date
-                cur.execute(
-                    f"SELECT {_select_cols} FROM {games_table} WHERE game_date = ? ORDER BY game_time",
-                    (next_date,)
-                )
+                try:
+                    cur.execute(
+                        f"SELECT {_select_cols}{_live_cols} FROM {games_table} WHERE game_date = ? ORDER BY game_time",
+                        (next_date,)
+                    )
+                except Exception:
+                    cur.execute(
+                        f"SELECT {_select_cols} FROM {games_table} WHERE game_date = ? ORDER BY game_time",
+                        (next_date,)
+                    )
                 rows = cur.fetchall()
     except Exception:
         active_date = today_str
@@ -842,6 +855,20 @@ def market_view():
             return et.strftime('%-I:%M %p')
         except Exception:
             return None
+
+    pick_results = {}
+    try:
+        today_picks = Pick.query.filter_by(game_date=active_date, sport=sport).all()
+        for p in today_picks:
+            pk = (p.away_team, p.home_team)
+            pick_results[pk] = {
+                'result': p.result,
+                'units': p.profit_units,
+                'side': p.side,
+                'line': p.line,
+            }
+    except Exception:
+        pass
 
     # Load model analysis if available
     model_analysis = {}
@@ -896,8 +923,25 @@ def market_view():
             continue
         seen.add(key)
 
-        is_live = r['home_score'] is not None and r['away_score'] is not None
-        status = 'final' if is_live else 'scheduled'
+        db_status = None
+        try:
+            db_status = r['game_status']
+        except (KeyError, IndexError):
+            pass
+        if db_status in ('in_progress', 'final'):
+            status = db_status
+        elif r['home_score'] is not None and r['away_score'] is not None and db_status != 'in_progress':
+            status = 'final'
+        else:
+            status = 'scheduled'
+
+        current_period = None
+        game_clock = None
+        try:
+            current_period = r['current_period']
+            game_clock = r['game_clock']
+        except (KeyError, IndexError):
+            pass
 
         spread_open = r['spread_home_open']
         spread_now = r['spread_home']
@@ -908,6 +952,8 @@ def market_view():
             'home': r['home_team'],
             'time': _fmt_time(r['game_time']),
             'status': status,
+            'current_period': current_period,
+            'game_clock': game_clock,
             'spread_home': r['spread_home'],
             'spread_away': r['spread_away'],
             'spread_home_open': spread_open,
@@ -971,6 +1017,29 @@ def market_view():
         )
         game_data['rlm'] = sharp['side'] if sharp else None
         game_data['sharp_action'] = sharp
+
+        pr = pick_results.get(key)
+        if pr and status == 'final':
+            game_data['pick_result'] = pr
+
+        if status == 'in_progress' and ma and ma.get('passes'):
+            pick_side = ma.get('pick_side', '')
+            h_score = r['home_score'] or 0
+            a_score = r['away_score'] or 0
+            spread_val = ma.get('line') or r['spread_home']
+            if spread_val is not None:
+                is_home_pick = 'home' in pick_side.lower() if pick_side else False
+                if is_home_pick:
+                    margin = h_score - a_score
+                    adjusted = margin + spread_val
+                else:
+                    margin = a_score - h_score
+                    adjusted = margin + (r['spread_away'] or -spread_val if r['spread_away'] else -spread_val)
+
+                game_data['cover'] = {
+                    'status': 'covering' if adjusted > 0 else 'not_covering',
+                    'margin': round(abs(adjusted), 1),
+                }
 
         games.append(game_data)
 

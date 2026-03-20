@@ -1073,6 +1073,128 @@ def build_market_report_dict(date_param, sport=None):
             'signal': bool(g.get('passes', False)),
         })
 
+    # Persist MEI to daily_market_reports for sparkline history
+    try:
+        import sqlite3 as _sq_persist
+        from db_path import get_sqlite_path as _get_sq_persist
+        _conn_p = _sq_persist.connect(_get_sq_persist())
+        _cur_p = _conn_p.cursor()
+        _s_p = sport or 'nba'
+        _cur_p.execute(
+            """INSERT INTO daily_market_reports (date, sport, mei_value, regime, games_analyzed, edges_detected, qualified_signals, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(date, sport) DO UPDATE SET
+                 mei_value = excluded.mei_value, regime = excluded.regime,
+                 games_analyzed = excluded.games_analyzed, edges_detected = excluded.edges_detected,
+                 qualified_signals = excluded.qualified_signals""",
+            (date_param, _s_p, market_efficiency_index, regime, games_analyzed, edges_detected, qualified_signals,
+             datetime.now(ZoneInfo('America/New_York')).isoformat())
+        )
+        _conn_p.commit()
+        _conn_p.close()
+    except Exception:
+        pass
+
+    # MEI sparkline: last 7 days of MEI values
+    mei_sparkline = []
+    mei_7d_avg = None
+    mei_season_avg = None
+    try:
+        import sqlite3 as _sq
+        from db_path import get_sqlite_path as _get_sq
+        _conn = _sq.connect(_get_sq())
+        _conn.row_factory = _sq.Row
+        _cur = _conn.cursor()
+
+        _s = sport or 'nba'
+        _cur.execute("SELECT date, mei_value FROM daily_market_reports WHERE sport = ? ORDER BY date DESC LIMIT 7", (_s,))
+        mei_rows = _cur.fetchall()
+        mei_sparkline = [r['mei_value'] for r in reversed(mei_rows) if r['mei_value'] is not None]
+        if mei_sparkline:
+            mei_7d_avg = round(sum(mei_sparkline) / len(mei_sparkline), 0)
+        _cur.execute("SELECT AVG(mei_value) as avg_mei FROM daily_market_reports WHERE sport = ?", (_s,))
+        avg_row = _cur.fetchone()
+        if avg_row and avg_row['avg_mei'] is not None:
+            mei_season_avg = round(avg_row['avg_mei'], 0)
+        _conn.close()
+    except Exception:
+        pass
+
+    # Line movement and model-market delta
+    line_movement_data = {'toward_model': 0, 'away_from_model': 0, 'no_movement': 0, 'games': []}
+    model_market_delta_data = {'avg_delta': 0, 'games': []}
+    try:
+        import sqlite3 as _sq2
+        from db_path import get_sqlite_path as _get_sq2
+        _conn2 = _sq2.connect(_get_sq2())
+        _conn2.row_factory = _sq2.Row
+        _cur2 = _conn2.cursor()
+        _tbl = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
+        _cur2.execute(
+            f"SELECT home_team, away_team, spread_home, spread_home_open FROM {_tbl} WHERE game_date = ?",
+            (date_param,)
+        )
+        game_rows = _cur2.fetchall()
+        _conn2.close()
+
+        deltas = []
+        for gr in game_rows:
+            away = gr['away_team']
+            home = gr['home_team']
+            spread_now = gr['spread_home']
+            spread_open = gr['spread_home_open']
+            matchup = f"{away} @ {home}"
+
+            ga = None
+            for g in detail:
+                if g.get('away_team') == away or g.get('away') == away:
+                    ga = g
+                    break
+
+            if spread_open is not None and spread_now is not None:
+                mvmt = round(spread_now - spread_open, 1)
+                if ga and ga.get('pick_side'):
+                    model_favors_home = ga['pick_side'] == 'home'
+                    if model_favors_home:
+                        moved_toward = mvmt < 0
+                    else:
+                        moved_toward = mvmt > 0
+                    if mvmt == 0:
+                        direction = 'flat'
+                        line_movement_data['no_movement'] += 1
+                    elif moved_toward:
+                        direction = 'toward'
+                        line_movement_data['toward_model'] += 1
+                    else:
+                        direction = 'away'
+                        line_movement_data['away_from_model'] += 1
+                else:
+                    direction = 'flat' if mvmt == 0 else ('toward' if mvmt != 0 else 'flat')
+                    if mvmt == 0:
+                        line_movement_data['no_movement'] += 1
+
+                line_movement_data['games'].append({
+                    'matchup': matchup, 'movement': abs(mvmt), 'direction': direction,
+                })
+
+            if ga:
+                pm = ga.get('predicted_margin')
+                line_val = ga.get('line') or spread_now
+                if pm is not None and line_val is not None:
+                    model_spread = -float(pm) if ga.get('pick_side') == 'home' else float(pm)
+                    delta = round(abs(model_spread - (line_val or 0)), 1)
+                    pick_label = ga.get('pick') or matchup
+                    deltas.append(delta)
+                    model_market_delta_data['games'].append({
+                        'side': pick_label, 'delta': delta,
+                    })
+
+        model_market_delta_data['games'].sort(key=lambda x: x['delta'], reverse=True)
+        if deltas:
+            model_market_delta_data['avg_delta'] = round(sum(deltas) / len(deltas), 1)
+    except Exception:
+        pass
+
     return {
         'available': True,
         'date': date_param,
@@ -1103,6 +1225,14 @@ def build_market_report_dict(date_param, sport=None):
             'favorite_pct': round(favorite_edges / edges_detected * 100) if edges_detected > 0 else 0,
             'underdog_pct': round(underdog_edges / edges_detected * 100) if edges_detected > 0 else 0,
         },
+        'mei': {
+            'current': int(market_efficiency_index),
+            'seven_day_avg': int(mei_7d_avg) if mei_7d_avg is not None else None,
+            'season_avg': int(mei_season_avg) if mei_season_avg is not None else None,
+            'sparkline': mei_sparkline,
+        },
+        'line_movement': line_movement_data,
+        'model_market_delta': model_market_delta_data,
         'insight': insight,
         'briefing': briefing_lines,
         'last_updated': updated_at,

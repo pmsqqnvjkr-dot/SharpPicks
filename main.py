@@ -354,6 +354,9 @@ def setup_database():
         ('commence_time', 'TEXT'),
         ('spread_h1_home_close', 'REAL'),
         ('total_h1_close', 'REAL'),
+        ('game_status', 'TEXT DEFAULT "scheduled"'),
+        ('current_period', 'TEXT'),
+        ('game_clock', 'TEXT'),
     ]
     
     for col_name, col_type in new_columns:
@@ -391,6 +394,19 @@ def setup_database():
         book TEXT,
         collected_at TEXT,
         UNIQUE(game_id, player_name, market, book)
+    )''')
+
+    cursor.execute('''CREATE TABLE IF NOT EXISTS daily_market_reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        sport TEXT NOT NULL DEFAULT 'nba',
+        mei_value REAL,
+        regime TEXT,
+        games_analyzed INTEGER,
+        edges_detected INTEGER,
+        qualified_signals INTEGER,
+        created_at TEXT,
+        UNIQUE(date, sport)
     )''')
 
     conn.commit()
@@ -2398,6 +2414,9 @@ def setup_wnba_table(cursor):
         ('away_spread_odds_open', 'INTEGER'),
         ('home_spread_odds_close', 'INTEGER'),
         ('away_spread_odds_close', 'INTEGER'),
+        ('game_status', 'TEXT DEFAULT "scheduled"'),
+        ('current_period', 'TEXT'),
+        ('game_clock', 'TEXT'),
     ]
 
     for col_name, col_type in new_columns:
@@ -3365,6 +3384,9 @@ def setup_mlb_table(cursor):
         ('game_time', 'TEXT'), ('commence_time', 'TEXT'),
         ('spread_result', 'TEXT'), ('total_result', 'TEXT'),
         ('scores_updated_at', 'TEXT'),
+        ('game_status', 'TEXT DEFAULT "scheduled"'),
+        ('current_period', 'TEXT'),
+        ('game_clock', 'TEXT'),
     ]:
         try:
             cursor.execute(f'ALTER TABLE mlb_games ADD COLUMN {col} {ctype}')
