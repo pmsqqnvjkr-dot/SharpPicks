@@ -6,6 +6,9 @@ PODS:
   - CapacitorBrowser (8.0.2):
     - Capacitor
   - CapacitorCordova (8.2.0)
+  - CapacitorFilesystem (8.1.2):
+    - Capacitor
+    - IONFilesystemLib (~> 1.1.1)
   - CapacitorHaptics (8.0.1):
     - Capacitor
   - CapacitorKeyboard (8.0.1):
@@ -20,18 +23,20 @@ PODS:
     - Capacitor
   - CapacitorStatusBar (8.0.1):
     - Capacitor
-  - PurchasesHybridCommon (17.42.0):
-    - RevenueCat (= 5.60.0)
-  - RevenueCat (5.60.0)
-  - RevenuecatPurchasesCapacitor (12.2.2):
+  - IONFilesystemLib (1.1.2)
+  - PurchasesHybridCommon (17.47.0):
+    - RevenueCat (= 5.63.0)
+  - RevenueCat (5.63.0)
+  - RevenuecatPurchasesCapacitor (12.2.4):
     - Capacitor
-    - PurchasesHybridCommon (= 17.42.0)
+    - PurchasesHybridCommon (= 17.47.0)
 
 DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
   - "CapacitorBrowser (from `../../node_modules/@capacitor/browser`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorFilesystem (from `../../node_modules/@capacitor/filesystem`)"
   - "CapacitorHaptics (from `../../node_modules/@capacitor/haptics`)"
   - "CapacitorKeyboard (from `../../node_modules/@capacitor/keyboard`)"
   - "CapacitorNetwork (from `../../node_modules/@capacitor/network`)"
@@ -43,6 +48,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - IONFilesystemLib
     - PurchasesHybridCommon
     - RevenueCat
 
@@ -55,6 +61,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/browser"
   CapacitorCordova:
     :path: "../../node_modules/@capacitor/ios"
+  CapacitorFilesystem:
+    :path: "../../node_modules/@capacitor/filesystem"
   CapacitorHaptics:
     :path: "../../node_modules/@capacitor/haptics"
   CapacitorKeyboard:
@@ -77,6 +85,7 @@ SPEC CHECKSUMS:
   CapacitorApp: 942306cd1acf7774a00e89a3986af3a67c8cad7a
   CapacitorBrowser: 76847841b74c11ccac0a1afae18cf06e3bd59044
   CapacitorCordova: a9ac88d84a1f5280f33b349fe50fce1902683ac0
+  CapacitorFilesystem: 2db285a1ac6e475cc27cae2e1bea999000f9e2be
   CapacitorHaptics: 4df2c625445cef39b67ea635a21802bc92df3b82
   CapacitorKeyboard: 867eb4b3c901d9bb5c3d0c93b546185d52484e19
   CapacitorNetwork: 8812ce60d11fb63d8f2e4ba51a49b2e59892ebe2
@@ -84,10 +93,11 @@ SPEC CHECKSUMS:
   CapacitorShare: 0c58305114538568059bfc07111f22dcb9cb2a82
   CapacitorSplashScreen: 4b46c72298db552b3c57ce021ef028b6dc7f1fa7
   CapacitorStatusBar: 32206abd53b14f339763da26f71286deaa891e16
-  PurchasesHybridCommon: c0a62a03bd15e40af1c3cd111f5f4f50cac751c7
-  RevenueCat: 88010b2d5fc8fb7405d2e11dacd65ac74c9d21d1
-  RevenuecatPurchasesCapacitor: 2d80de10a66dc38f2ab040f130d0cbcb58922135
+  IONFilesystemLib: 21a63377696b2d8fab5632ecfb7d2ac67bddb68a
+  PurchasesHybridCommon: 7794f8a04e50265d595b695d49b8fc212e138d1f
+  RevenueCat: c7310bad19cb96a1551c68045303e1faaa1942a5
+  RevenuecatPurchasesCapacitor: 6b652e6e001224841fbfb9a97322c46f14d32504
 
-PODFILE CHECKSUM: fee9d47cb42e7adb1778fe201b04482b8dff48f0
+PODFILE CHECKSUM: cc72cf10755c29a64f55c8d0deb8f44240070c01
 
 COCOAPODS: 1.16.2
