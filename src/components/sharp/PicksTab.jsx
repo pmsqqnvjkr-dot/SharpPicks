@@ -9,7 +9,6 @@ import PullToRefresh from '../shared/PullToRefresh';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
 import DailyInsightCard from './DailyInsightCard';
-import DailyMarketReport from './DailyMarketReport';
 import AuthModal from './AuthModal';
 import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
@@ -39,7 +38,7 @@ export default function PicksTab({ onNavigate }) {
   const { data: todayData, loading, error, refetch: refetchToday } = useApi(sportQuery('/picks/today', sport));
   const { data: stats, refetch: refetchStats } = useApi(sportQuery('/public/stats', sport));
   const { data: historyData, loading: historyLoading, refetch: refetchRecord } = useApi(sportQuery('/public/record', sport));
-  const { data: marketReport, loading: marketReportLoading, error: marketReportError, refetch: refetchMarketReport } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
+  const { data: marketReport, refetch: refetchMarketReport } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
   const { data: killSwitch } = useApi(sportQuery('/public/kill-switch', sport), { pollInterval: 600000 });
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const { data: lastResolved } = useApi('/picks/last-resolved', { skip: !isPro });
@@ -163,36 +162,7 @@ export default function PicksTab({ onNavigate }) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A8494" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
 
-        <section style={{ marginBottom: '16px' }}>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-            letterSpacing: '0.12em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: '10px',
-          }}>Daily Market Brief</div>
-          {marketReportLoading || !marketReport?.available ? (
-            <div style={{
-              backgroundColor: 'var(--surface-1)',
-              borderRadius: '14px',
-              border: '1px solid var(--color-border)',
-              padding: '20px',
-              textAlign: 'center',
-            }} data-section="daily-market-brief">
-              <div style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '13px',
-                color: 'var(--text-secondary)',
-                marginBottom: '4px',
-              }}>{marketReportLoading ? 'Loading market scan…' : marketReportError ? 'Couldn’t load market scan.' : 'Market scan runs daily.'}</div>
-              <div style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: '12px',
-                color: 'var(--text-tertiary)',
-              }}>{marketReportLoading ? '' : marketReportError ? 'Pull down to refresh.' : 'No report yet for today. Check back after 10:15 AM or 2:15 PM ET when the market scan runs.'}</div>
-            </div>
-          ) : (
-            <DailyMarketReport report={marketReport} />
-          )}
-        </section>
+
 
         {user && user.subscription_status === 'trial' && user.trial_end_date && (() => {
           const daysLeft = Math.max(0, Math.ceil((new Date(user.trial_end_date) - new Date()) / (1000 * 60 * 60 * 24)));
@@ -310,21 +280,24 @@ export default function PicksTab({ onNavigate }) {
         )}
 
         {todayData?.type === 'pick' && !isResolved && !isRevoked && (
-          <>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
-              letterSpacing: '1.5px', textTransform: 'uppercase',
-              color: '#7A8494', marginBottom: '8px',
-            }}>Daily Top Signal</div>
-            {marketReport?.available && (marketReport.qualified_signals != null || marketReport.games_analyzed != null) && (
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '10px',
-                color: '#9EAAB8', letterSpacing: '0.3px', marginBottom: '10px',
-              }}>
-                {marketReport.qualified_signals ?? 0} signals across {marketReport.games_analyzed ?? 0} markets{marketReport.signal_density != null ? ` · ${marketReport.signal_density}% density` : ''}
-              </div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
+            letterSpacing: '1.5px', textTransform: 'uppercase',
+            color: '#7A8494', marginBottom: '8px',
+            display: 'flex', alignItems: 'center', gap: '8px',
+          }}>
+            Daily Top Signal
+            {liveScore && (liveScore.state === 'STATUS_IN_PROGRESS' || liveScore.state === 'STATUS_HALFTIME') && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#5A9E72' }}>
+                <span style={{ fontSize: '10px' }}>&middot;</span>
+                <span style={{
+                  width: 5, height: 5, borderRadius: '50%', backgroundColor: '#5A9E72',
+                  animation: 'live-pulse 2s ease-in-out infinite', display: 'inline-block',
+                }} />
+                Live
+              </span>
             )}
-          </>
+          </div>
         )}
 
         {todayData?.type === 'pick' && !isResolved && !isRevoked && isPro && (
@@ -491,17 +464,18 @@ export default function PicksTab({ onNavigate }) {
 function StatusBadge({ result }) {
   const config = {
     win:     { label: 'W',  bg: '#5A9E72', color: '#FFFFFF' },
-    loss:    { label: 'L',  bg: '#9E7A7C', color: '#FFFFFF' },
-    pending: { label: 'P',  bg: '#2A2A2A', color: '#AAAAAA' },
-    revoked: { label: 'WD', bg: '#2A2A2A', color: '#8B8B8B' },
-    push:    { label: 'PU', bg: '#2A2A2A', color: '#AAAAAA' },
+    loss:    { label: 'L',  bg: '#C4686B', color: '#FFFFFF' },
+    pending: { label: 'P',  bg: 'rgba(212,162,78,0.15)', color: '#d4a24e' },
+    revoked: { label: 'WD', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
+    push:    { label: 'PU', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
   };
   const c = config[result] || config.pending;
   const isWide = c.label.length > 1;
   return (
     <span style={{
       fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
-      width: isWide ? '32px' : '24px', height: '24px', borderRadius: '6px',
+      width: isWide ? '28px' : '24px', height: '24px',
+      borderRadius: isWide ? '12px' : '50%',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       flexShrink: 0, backgroundColor: c.bg, color: c.color,
       letterSpacing: isWide ? '-0.02em' : '0',
@@ -876,25 +850,17 @@ function RecordStrip({ stats }) {
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', alignItems: 'center' }}>
-          <MiniStat label="Win Rate" value={stats.win_rate != null ? `${stats.win_rate}%` : '--'} />
-          <MiniStat label="ROI" value={stats.roi != null ? `${stats.roi >= 0 ? '+' : ''}${stats.roi}%` : '--'} highlight={stats.roi >= 0} />
-          {hasClv && (
-            <MiniStat
-              label="Avg CLV"
-              value={`${stats.avg_clv > 0 ? '+' : ''}${stats.avg_clv.toFixed(1)}`}
-              highlight={stats.avg_clv > 0}
-            />
-          )}
-          <MiniStat label="Signals" value={stats.total_picks} />
-        </div>
-        <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 700,
-          fontVariantNumeric: 'tabular-nums',
-          color: stats.pnl >= 0 ? 'var(--color-signal)' : 'var(--color-loss)',
-        }}>
-          {stats.pnl >= 0 ? '+' : ''}{Number(stats.pnl).toFixed(1)}u
-        </div>
+        <MiniStat label="Win Rate" value={stats.win_rate != null ? `${stats.win_rate}%` : '--'} />
+        <MiniStat label="ROI" value={stats.roi != null ? `${stats.roi >= 0 ? '+' : ''}${stats.roi}%` : '--'} highlight={stats.roi >= 0} />
+        {hasClv && (
+          <MiniStat
+            label="Avg CLV"
+            value={`${stats.avg_clv > 0 ? '+' : ''}${stats.avg_clv.toFixed(1)}`}
+            highlight={stats.avg_clv > 0}
+          />
+        )}
+        <MiniStat label="Signals" value={stats.total_picks} />
+        <MiniStat label="Units" value={`${stats.pnl >= 0 ? '+' : ''}${Number(stats.pnl).toFixed(1)}u`} highlight={stats.pnl >= 0} />
       </div>
     </div>
   );
