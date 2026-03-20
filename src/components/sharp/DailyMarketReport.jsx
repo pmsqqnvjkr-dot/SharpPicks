@@ -47,27 +47,27 @@ export default function DailyMarketReport({ report: reportProp }) {
 
   return (
     <div>
+      {/* Header — outside card */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: '10px',
+      }}>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
+          letterSpacing: '1.2px', color: green, textTransform: 'uppercase',
+        }}>Market Intelligence</span>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '10px',
+          color: textDim, letterSpacing: '0.5px',
+        }}>{today}</span>
+      </div>
+
       <div style={{
         background: 'var(--bg-card, #0f1d33)',
         border: `1px solid ${border}`,
         borderRadius: '8px',
         padding: '14px 16px',
       }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: '14px',
-        }}>
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
-            letterSpacing: '1.2px', color: green, textTransform: 'uppercase',
-          }}>Market Intelligence</span>
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px',
-            color: textDim, letterSpacing: '0.5px',
-          }}>{today}</span>
-        </div>
-
         {/* 3-column metric grid */}
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
@@ -87,7 +87,7 @@ export default function DailyMarketReport({ report: reportProp }) {
               <div style={{
                 fontFamily: 'var(--font-sans)', fontSize: '10px',
                 color: textSec, marginTop: '3px',
-              }}>{regimeSub.length > 20 ? regimeSub.slice(0, 20) + '…' : regimeSub}</div>
+              }}>{regimeSub}</div>
             )}
           </div>
           <MetricCell
@@ -98,7 +98,7 @@ export default function DailyMarketReport({ report: reportProp }) {
         </div>
 
         {/* MEI Historical Context */}
-        {data.mei && data.mei.sparkline && data.mei.sparkline.length > 1 && (
+        {data.mei && (data.mei.seven_day_avg != null || data.mei.season_avg != null || (data.mei.sparkline && data.mei.sparkline.length > 1)) && (
           <div style={{
             borderTop: '0.5px solid #1e3050', paddingTop: 10, marginBottom: 10,
           }}>
@@ -139,81 +139,26 @@ export default function DailyMarketReport({ report: reportProp }) {
           );
         })()}
 
-        {/* Edges detected row */}
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '3px 0',
-        }}>
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '11px', color: textSec,
-          }}>Edges detected</span>
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-            color: green,
-          }}>{data.edges_detected}</span>
-        </div>
-
-        {/* Model Favoring */}
-        {lean.total_edges > 0 && (
-          <div style={{
-            marginTop: '12px', paddingTop: '12px',
-            borderTop: '1px solid rgba(255,255,255,0.04)',
-          }}>
-            <div style={{ ...labelStyle, marginBottom: '8px' }}>Model Favoring</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.5px',
-                  textTransform: 'uppercase', padding: '2px 5px', borderRadius: '3px',
-                  color: textSec, background: 'rgba(255,255,255,0.04)',
-                }}>Favorites</span>
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-                  color: textSec,
-                }}>{lean.favorite_pct || 0}%</span>
-              </div>
-              <div style={{
-                flex: 1, height: '4px', borderRadius: '2px',
-                display: 'flex', overflow: 'hidden',
-                background: 'rgba(255,255,255,0.03)',
-              }}>
-                <div style={{ height: '100%', width: `${lean.favorite_pct || 0}%`, background: textDim }} />
-                <div style={{ height: '100%', width: `${lean.underdog_pct || 0}%`, background: green, opacity: 0.6 }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-                  color: green,
-                }}>{lean.underdog_pct || 0}%</span>
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.5px',
-                  textTransform: 'uppercase', padding: '2px 5px', borderRadius: '3px',
-                  color: green, background: 'rgba(90, 158, 114, 0.1)',
-                }}>Underdogs</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Market Signal */}
-        {(data.briefing?.[0] || data.insight) && (
-          <div style={{
-            background: '#141A2E', border: `1px solid ${border}`,
-            borderLeft: `3px solid ${green}`,
-            borderRadius: '6px', padding: '14px', marginTop: '12px',
-          }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
-              letterSpacing: '1.5px', color: green, textTransform: 'uppercase',
-              marginBottom: '6px',
-            }}>Market Signal</div>
-            <div style={{
-              fontFamily: "'IBM Plex Serif', var(--font-serif), serif", fontSize: '13px',
-              color: textSec, lineHeight: 1.5,
-            }}>{data.briefing?.[0] || data.insight}</div>
-          </div>
-        )}
       </div>
+
+      {/* Market Signal — standalone callout */}
+      {(data.briefing?.[0] || data.insight) && (
+        <div style={{
+          background: '#141A2E', border: `1px solid ${border}`,
+          borderLeft: `3px solid ${green}`,
+          borderRadius: '6px', padding: '14px', marginTop: '10px',
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
+            letterSpacing: '1.5px', color: green, textTransform: 'uppercase',
+            marginBottom: '6px',
+          }}>Market Signal</div>
+          <div style={{
+            fontFamily: "'IBM Plex Serif', var(--font-serif), serif", fontSize: '13px',
+            color: textSec, lineHeight: 1.5,
+          }}>{data.briefing?.[0] || data.insight}</div>
+        </div>
+      )}
 
       {/* Line Movement Rollup */}
       {data.line_movement && data.line_movement.games && data.line_movement.games.length > 0 && (
@@ -235,7 +180,7 @@ export default function DailyMarketReport({ report: reportProp }) {
               padding: '6px 0',
               borderBottom: i < data.line_movement.games.length - 1 ? '0.5px solid #1e3050' : 'none',
             }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: textSec }}>
+              <span style={{ fontFamily: "'IBM Plex Sans', var(--font-sans), sans-serif", fontSize: '12px', fontWeight: 500, color: '#E8ECF4' }}>
                 {g.matchup}
               </span>
               <span style={{
@@ -284,8 +229,8 @@ export default function DailyMarketReport({ report: reportProp }) {
                   borderBottom: i < data.model_market_delta.games.length - 1 ? '0.5px solid #1e3050' : 'none',
                 }}>
                   <span style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#c8cdd4',
-                    minWidth: 80, flexShrink: 0,
+                    fontFamily: "'IBM Plex Sans', var(--font-sans), sans-serif", fontSize: '12px', fontWeight: 500,
+                    color: '#E8ECF4', minWidth: 80, flexShrink: 0,
                   }}>{g.side}</span>
                   <div style={{
                     flex: 1, height: 6, background: '#1a2a42', borderRadius: 3,

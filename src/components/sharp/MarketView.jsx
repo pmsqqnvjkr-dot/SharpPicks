@@ -1374,7 +1374,6 @@ export default function MarketView({ onBack }) {
   const [liveScores, setLiveScores] = useState({});
   const [watchedIds, setWatchedIds] = useState(new Set());
   const [lineHistoryGame, setLineHistoryGame] = useState(null);
-  const [viewMode, setViewMode] = useState(() => localStorage.getItem('sp_market_view') || 'board');
 
   const rawGames = data?.games || [];
 
@@ -1563,7 +1562,7 @@ export default function MarketView({ onBack }) {
 
       {/* Body */}
       <div style={{ padding: '14px 12px 100px' }}>
-        {/* 1. Daily Market Brief */}
+        {/* Daily Market Brief */}
         <section style={{ marginBottom: '24px' }}>
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
@@ -1573,180 +1572,6 @@ export default function MarketView({ onBack }) {
           <DailyMarketReport report={reportData} />
         </section>
 
-        {/* 2. Market Board — full slate */}
-        {reportData?.board?.length > 0 && (
-          <section style={{ marginBottom: '24px' }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-              letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: 'var(--text-tertiary)', marginBottom: '10px',
-            }}>Market Board</div>
-            <div style={{
-              backgroundColor: 'var(--surface-1)',
-              borderRadius: '14px',
-              border: '1px solid var(--color-border)',
-              overflow: 'hidden',
-            }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr auto 56px',
-                gap: '8px 12px',
-                padding: '10px 12px',
-                borderBottom: '1px solid var(--color-border)',
-                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-                letterSpacing: '0.08em', textTransform: 'uppercase',
-                color: 'var(--text-tertiary)',
-              }}>
-                <span>Game</span>
-                <span>Market</span>
-                <span>Model</span>
-                <span>Edge</span>
-                <span style={{ textAlign: 'center' }}>Signal</span>
-              </div>
-              {reportData.board.map((row, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr 1fr auto 56px',
-                    gap: '8px 12px',
-                    padding: '10px 12px',
-                    borderBottom: i < reportData.board.length - 1 ? '1px solid var(--color-border)' : 'none',
-                    alignItems: 'center',
-                    fontFamily: 'var(--font-mono)', fontSize: '12px',
-                    color: row.signal ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  }}
-                >
-                  <span style={{ fontWeight: 600, minWidth: 0 }}>{row.game}</span>
-                  <span style={{ color: 'var(--text-secondary)' }}>{row.market_line != null ? fmtSpread(row.market_line) : '—'}</span>
-                  <span style={{ color: row.signal ? 'var(--color-signal)' : 'var(--text-secondary)' }}>{row.model_line != null ? fmtSpread(row.model_line) : '—'}</span>
-                  <span style={{ color: (row.edge || 0) >= 3 ? 'var(--color-signal)' : 'var(--text-secondary)' }}>{row.edge != null ? fmtEdgePct(row.edge) : '—'}</span>
-                  <span style={{ textAlign: 'center', color: row.signal ? 'var(--color-signal)' : 'var(--text-tertiary)' }}>{row.signal ? '✓' : '–'}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* 3. Signal Board — qualified signals only */}
-        {reportData?.board?.length > 0 && reportData.board.some(r => r.signal) && (
-          <section style={{ marginBottom: '24px' }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-              letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: 'var(--text-tertiary)', marginBottom: '10px',
-            }}>Signals</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {reportData.board.filter(r => r.signal).map((row, i) => (
-                <div
-                  key={i}
-                  style={{
-                    backgroundColor: 'var(--surface-1)',
-                    borderRadius: '12px',
-                    border: '1px solid var(--color-signal-border)',
-                    padding: '12px 14px',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    flexWrap: 'wrap', gap: '8px',
-                  }}
-                >
-                  <span style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
-                    color: 'var(--text-primary)',
-                  }}>{row.pick_label || row.game}</span>
-                  <span style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
-                    color: 'var(--color-signal)',
-                  }}>Edge {row.edge != null ? fmtEdgePct(row.edge) : '—'}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Discipline Filter summary */}
-        {hasModelData && passedGames.length > 0 && (
-          <div style={{
-            backgroundColor: '#0F1424',
-            borderRadius: 10,
-            border: '1px solid rgba(255,255,255,0.06)',
-            padding: '16px 18px',
-            marginBottom: 16,
-          }}>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              marginBottom: 14,
-            }}>
-              <span style={{
-                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                fontSize: '10px', fontWeight: 500, letterSpacing: '1.5px',
-                textTransform: 'uppercase', color: '#7A8494',
-              }}>Discipline Filter</span>
-              <button
-                onClick={() => setFilter(filter === 'Passed' ? 'All' : 'Passed')}
-                style={{
-                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                  fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase',
-                  padding: '4px 10px', borderRadius: 4, cursor: 'pointer',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  background: 'transparent', color: '#7A8494',
-                }}
-              >
-                {filter === 'Passed' ? 'Show All' : 'View Passed'}
-              </button>
-            </div>
-            <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0,
-              marginBottom: 14,
-            }}>
-              <div style={{ textAlign: 'center', position: 'relative' }}>
-                <div style={{
-                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                  fontSize: '26px', fontWeight: 500, color: '#E8ECF4',
-                }}>{games.filter(g => g.model).length}</div>
-                <div style={{
-                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                  fontSize: '10px', letterSpacing: '1.2px', textTransform: 'uppercase',
-                  color: '#7A8494', marginTop: 2,
-                }}>Analyzed</div>
-                <div style={{ position: 'absolute', right: 0, top: 4, bottom: 4, width: 1, background: 'rgba(255,255,255,0.06)' }} />
-              </div>
-              <div style={{ textAlign: 'center', position: 'relative' }}>
-                <div style={{
-                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                  fontSize: '26px', fontWeight: 500, color: signalGames.length > 0 ? '#5A9E72' : '#E8ECF4',
-                }}>{signalGames.length}</div>
-                <div style={{
-                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                  fontSize: '10px', letterSpacing: '1.2px', textTransform: 'uppercase',
-                  color: '#7A8494', marginTop: 2,
-                }}>Signals</div>
-                <div style={{ position: 'absolute', right: 0, top: 4, bottom: 4, width: 1, background: 'rgba(255,255,255,0.06)' }} />
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{
-                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                  fontSize: '26px', fontWeight: 500, color: '#E8ECF4',
-                }}>{passedGames.length}</div>
-                <div style={{
-                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                  fontSize: '10px', letterSpacing: '1.2px', textTransform: 'uppercase',
-                  color: '#7A8494', marginTop: 2,
-                }}>Passed</div>
-              </div>
-            </div>
-            <div style={{
-              paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)',
-              textAlign: 'center',
-            }}>
-              <div style={{
-                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                fontSize: '12px', fontWeight: 500, letterSpacing: '3px',
-                textTransform: 'uppercase', color: '#7A8494',
-              }}>No edge. No pick.</div>
-            </div>
-          </div>
-        )}
-
         {games.length > 0 && (
           <div style={{ marginBottom: 18 }}>
             <div style={{
@@ -1754,29 +1579,10 @@ export default function MarketView({ onBack }) {
               gap: 8, marginBottom: 8,
             }}>
               <FilterTabs active={filter} onChange={setFilter} hasLive={hasLive} hasModel={hasModelData} />
-              <div style={{
-                display: 'flex', gap: 2, background: '#141A2E',
-                borderRadius: 6, padding: 2,
-              }}>
-                {['table', 'board'].map(mode => (
-                  <button key={mode} onClick={() => { setViewMode(mode); localStorage.setItem('sp_market_view', mode); }} style={{
-                    width: 28, height: 24,
-                    background: viewMode === mode ? 'rgba(255,255,255,0.08)' : 'transparent',
-                    border: 'none', borderRadius: 4, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: viewMode === mode ? '#E8ECF4' : '#7A8494',
-                    fontSize: '12px',
-                  }} aria-label={mode === 'board' ? 'List view' : 'Table view'}>
-                    {mode === 'table' ? '⊞' : '☰'}
-                  </button>
-                ))}
-              </div>
             </div>
-            {viewMode === 'board' && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <SortPicker active={sort} onChange={setSort} isPro={isPro} />
-              </div>
-            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <SortPicker active={sort} onChange={setSort} isPro={isPro} />
+            </div>
           </div>
         )}
 
@@ -1825,8 +1631,6 @@ export default function MarketView({ onBack }) {
               {games.length === 0 ? 'Check back tomorrow for the next slate.' : filter === 'Passed' ? 'Every game passed qualification filters today. Rare, but it happens.' : 'Try a different filter to see more games.'}
             </div>
           </div>
-        ) : viewMode === 'table' ? (
-          <TableView games={sorted} isPro={isPro} onLineHistory={setLineHistoryGame} sport={sport} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {(stateSorted.finals.length > 0 || stateSorted.live.length > 0) ? (
