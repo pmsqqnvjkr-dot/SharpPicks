@@ -34,7 +34,7 @@ def result_color(result):
     if result in ('W', 'win', 'WIN'):
         return '#5A9E72'
     elif result in ('L', 'loss', 'LOSS'):
-        return '#C4686B'
+        return '#9E7A7C'
     return '#666666'
 
 

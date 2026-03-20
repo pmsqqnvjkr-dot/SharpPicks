@@ -617,7 +617,7 @@ def send_result_email(to, pick):
 
     html = _render_jinja('grading.html', ctx)
     if not html:
-        result_color = '#5A9E72' if is_win else ('#CC3333' if result == 'loss' else '#666666')
+        result_color = '#5A9E72' if is_win else ('#9E7A7C' if result == 'loss' else '#666666')
         icon = '&#x2714;' if is_win else ('&#x2014;' if is_push else '&#x2718;')
         body = f'''
         <p style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:bold;color:#FFFFFF;margin:0 0 8px;">
@@ -741,7 +741,7 @@ def send_weekly_summary(to, first_name=None, stats=None):
 
     html = _render_jinja('weekly_recap.html', ctx)
     if not html:
-        roi_color = '#5A9E72' if roi >= 0 else '#CC3333'
+        roi_color = '#5A9E72' if roi >= 0 else '#9E7A7C'
         body = f'''
         <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 8px;">
           <tr>
