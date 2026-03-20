@@ -47,27 +47,27 @@ export default function DailyMarketReport({ report: reportProp }) {
 
   return (
     <div>
-      {/* Header — outside card */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: '10px',
-      }}>
-        <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
-          letterSpacing: '1.2px', color: green, textTransform: 'uppercase',
-        }}>Market Intelligence</span>
-        <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '10px',
-          color: textDim, letterSpacing: '0.5px',
-        }}>{today}</span>
-      </div>
-
       <div style={{
         background: 'var(--bg-card, #0f1d33)',
         border: `1px solid ${border}`,
         borderRadius: '8px',
         padding: '14px 16px',
       }}>
+        {/* Header — inside card */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginBottom: '14px',
+        }}>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
+            letterSpacing: '1.2px', color: green, textTransform: 'uppercase',
+          }}>Market Intelligence</span>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px',
+            color: textDim, letterSpacing: '0.5px',
+          }}>{today}</span>
+        </div>
+
         {/* 3-column metric grid */}
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
@@ -97,19 +97,29 @@ export default function DailyMarketReport({ report: reportProp }) {
           />
         </div>
 
-        {/* MEI Historical Context */}
-        {data.mei && (data.mei.seven_day_avg != null || data.mei.season_avg != null || (data.mei.sparkline && data.mei.sparkline.length > 1)) && (
+        {/* MEI Explanation */}
+        {data.market_efficiency_index != null && (
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', lineHeight: 1.5,
+            color: textDim, marginBottom: 6,
+          }}>
+            MEI (Market Efficiency Index) measures how much opportunity the model detects across today's slate. Higher = more mispricing. Below 30 is quiet; above 70 is rare.
+          </div>
+        )}
+
+        {/* MEI Historical Context — always show when MEI exists */}
+        {data.market_efficiency_index != null && (
           <div style={{
             borderTop: '0.5px solid #1e3050', paddingTop: 10, marginBottom: 10,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{
                 fontFamily: 'var(--font-mono)', fontSize: '10px', color: textDim,
-              }}>7d avg: <span style={{ color: '#c8cdd4' }}>{data.mei.seven_day_avg ?? '—'}</span></span>
-              <MeiSparkline data={data.mei.sparkline} />
+              }}>7d avg: <span style={{ color: '#c8cdd4' }}>{data.mei?.seven_day_avg ?? data.market_efficiency_index}</span></span>
+              <MeiSparkline data={data.mei?.sparkline} current={data.market_efficiency_index} />
               <span style={{
                 fontFamily: 'var(--font-mono)', fontSize: '10px', color: textDim,
-              }}>Szn avg: <span style={{ color: '#c8cdd4' }}>{data.mei.season_avg ?? '—'}</span></span>
+              }}>Szn avg: <span style={{ color: '#c8cdd4' }}>{data.mei?.season_avg ?? data.market_efficiency_index}</span></span>
             </div>
           </div>
         )}
@@ -305,9 +315,29 @@ function EdgeDot({ color, count, label }) {
   );
 }
 
-function MeiSparkline({ data }) {
-  if (!data || data.length < 2) return null;
+function MeiSparkline({ data, current }) {
   const w = 160, h = 28, pad = 4;
+  if (!data || data.length === 0) {
+    if (current == null) return null;
+    const cy = h / 2;
+    const dotColor = current >= 50 ? amber : green;
+    return (
+      <svg width={w} height={h} style={{ display: 'block' }}>
+        <line x1={pad} y1={cy} x2={w - pad} y2={cy} stroke="#1e3050" strokeWidth="1" strokeDasharray="3,3" />
+        <circle cx={w / 2} cy={cy} r="3.5" fill={dotColor} />
+      </svg>
+    );
+  }
+  if (data.length === 1) {
+    const cy = h / 2;
+    const dotColor = data[0] >= 50 ? amber : green;
+    return (
+      <svg width={w} height={h} style={{ display: 'block' }}>
+        <line x1={pad} y1={cy} x2={w - pad} y2={cy} stroke="#1e3050" strokeWidth="1" strokeDasharray="3,3" />
+        <circle cx={w / 2} cy={cy} r="3.5" fill={dotColor} />
+      </svg>
+    );
+  }
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
@@ -317,7 +347,7 @@ function MeiSparkline({ data }) {
     return `${x},${y}`;
   });
   const last = data[data.length - 1];
-  const lastX = pad + ((data.length - 1) / (data.length - 1)) * (w - pad * 2);
+  const lastX = w - pad;
   const lastY = pad + (h - pad * 2) - ((last - min) / range) * (h - pad * 2);
   const dotColor = last >= 50 ? amber : green;
   return (

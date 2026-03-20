@@ -258,10 +258,11 @@ export default function PicksTab({ onNavigate }) {
           />
         )}
 
-        {todayData?.type === 'pick' && isResolved && isPro && (
+        {todayData?.type === 'pick' && isResolved && isPro && dismissedResolutionId !== todayData.id && (
           <ResolvedPickBanner
             pick={todayData}
             onViewDetails={() => { setResolutionPick(todayData); setShowResolution(true); }}
+            onDismiss={() => handleDismissResolution(todayData.id)}
           />
         )}
 
