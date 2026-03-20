@@ -15,14 +15,14 @@ from markupsafe import escape
 cards_bp = Blueprint('cards', __name__)
 
 W, H = 1200, 675
-BG = (13, 13, 13)
-GREEN = (52, 211, 153)
-RED = (204, 51, 51)
-WHITE = (255, 255, 255)
-GRAY = (102, 102, 102)
+BG = (10, 22, 40)
+GREEN = (90, 158, 114)
+RED = (196, 104, 107)
+WHITE = (232, 236, 241)
+GRAY = (106, 122, 141)
 LIGHT_GRAY = (170, 170, 170)
-BORDER = (34, 34, 34)
-DIVIDER = (51, 51, 51)
+BORDER = (30, 48, 80)
+DIVIDER = (30, 48, 80)
 
 
 @lru_cache(maxsize=1)
@@ -485,7 +485,7 @@ def og_result(signal_id):
 
     return Response(
         _og_html(
-            f'SharpPicks Result: {pick.side or ""} — {result_label}{units}',
+            f'SharpPicks Result: {pick.side or ""} · {result_label}{units}',
             ' | '.join(filter(None, [clv, edge])) or 'Signal outcome',
             f'{BASE_URL}/api/cards/result/{signal_id}',
         ),
