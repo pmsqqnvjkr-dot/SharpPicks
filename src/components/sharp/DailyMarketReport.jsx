@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 
@@ -73,7 +74,7 @@ export default function DailyMarketReport({ report: reportProp }) {
           display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
           gap: '12px', marginBottom: '14px',
         }}>
-          <MetricCell label="MEI" value={data.market_efficiency_index} green />
+          <MetricCell label="MEI" value={data.market_efficiency_index} green tooltip="Market Efficiency Index measures how much opportunity the model detects across today's slate. Higher = more mispricing. Below 30 is quiet; above 70 is rare." />
           <div style={{
             background: bgInner, border: `1px solid ${border}`,
             borderRadius: '6px', padding: '10px',
@@ -96,16 +97,6 @@ export default function DailyMarketReport({ report: reportProp }) {
             green
           />
         </div>
-
-        {/* MEI Explanation */}
-        {data.market_efficiency_index != null && (
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', lineHeight: 1.5,
-            color: textDim, marginBottom: 6,
-          }}>
-            MEI (Market Efficiency Index) measures how much opportunity the model detects across today's slate. Higher = more mispricing. Below 30 is quiet; above 70 is rare.
-          </div>
-        )}
 
         {/* MEI Historical Context — always show when MEI exists */}
         {data.market_efficiency_index != null && (
@@ -284,18 +275,57 @@ export default function DailyMarketReport({ report: reportProp }) {
   );
 }
 
-function MetricCell({ label, value, green: isGreen }) {
+function MetricCell({ label, value, green: isGreen, tooltip }) {
   return (
     <div style={{
       background: bgInner, border: `1px solid ${border}`,
       borderRadius: '6px', padding: '10px',
     }}>
-      <div style={{ ...labelStyle, marginBottom: '4px' }}>{label}</div>
+      <div style={{ ...labelStyle, marginBottom: '4px', display: 'flex', alignItems: 'center' }}>
+        {label}
+        {tooltip && <InfoTooltip text={tooltip} />}
+      </div>
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 600,
         color: isGreen ? green : 'var(--text-primary)', lineHeight: 1,
       }}>{value}</div>
     </div>
+  );
+}
+
+function InfoTooltip({ text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          width: '16px', height: '16px', borderRadius: '50%',
+          backgroundColor: open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
+          border: '1px solid var(--stroke-subtle)',
+          color: 'var(--text-tertiary)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 0, fontSize: '9px', fontFamily: 'var(--font-sans)', fontWeight: 600,
+          lineHeight: 1, transition: 'background-color 0.15s ease',
+        }}
+        aria-label="More info"
+      >i</button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '22px', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+          borderRadius: '10px', padding: '10px 12px',
+          width: '200px', zIndex: 10,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        }}>
+          <p style={{
+            fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+            fontSize: '11px', color: 'var(--text-secondary)',
+            lineHeight: '1.5', margin: 0,
+          }}>{text}</p>
+        </div>
+      )}
+    </span>
   );
 }
 
