@@ -15,165 +15,34 @@ const sectionStyle = {
   padding: `0 ${GRID_PAD}`,
 };
 
-/* ─── Regime Pill (mock) ─── */
-function RegimeBadge({ label = 'ACTIVE', color = '#FBBF24' }) {
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
-      letterSpacing: '0.1em', color,
-    }}>
-      <span style={{
-        width: 7, height: 7, borderRadius: '50%',
-        background: color, boxShadow: `0 0 8px ${color}55`,
-      }} />
-      {label}
-    </span>
-  );
-}
-
-/* ─── Mock Game Card ─── */
-function MockGameCard() {
+/* ─── Phone Frame for screenshots ─── */
+function PhoneFrame({ src, alt, maxWidth = 280 }) {
   return (
     <div style={{
-      background: 'var(--surface-1)',
-      border: '1px solid var(--stroke-subtle)',
-      borderRadius: 10, overflow: 'hidden',
+      position: 'relative',
+      width: '100%',
+      maxWidth,
+      margin: '0 auto',
+      borderRadius: 28,
+      overflow: 'hidden',
+      border: '2px solid rgba(255,255,255,0.08)',
+      boxShadow: '0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)',
+      background: '#0a1628',
     }}>
-      {/* Header row */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 72px 56px 64px',
-        padding: '6px 14px 2px', gap: 6,
-      }}>
-        <div />
-        {['Spread', 'Total', 'ML'].map(h => (
-          <span key={h} style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 700,
-            letterSpacing: '0.08em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', textAlign: 'center',
-          }}>{h}</span>
-        ))}
-      </div>
-      {/* Away */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 72px 56px 64px',
-        padding: '5px 14px', alignItems: 'center', gap: 6,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Dallas Mavericks
-          </span>
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>30-28</span>
-        </div>
-        <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>+13.5</div>
-        <div style={{
-          textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
-          color: 'var(--text-primary)', background: 'rgba(100,116,139,0.08)', borderRadius: 4, padding: '2px 0',
-        }}>236.5</div>
-        <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: '#FBBF24', fontWeight: 600 }}>+480</div>
-      </div>
-      <div style={{ height: 1, background: 'var(--stroke-subtle)', margin: '0 14px' }} />
-      {/* Home */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 72px 56px 64px',
-        padding: '5px 14px 8px', alignItems: 'center', gap: 6,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Cleveland Cavaliers
-          </span>
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>48-9</span>
-        </div>
-        <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>-13.5</div>
-        <div />
-        <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'rgba(96,165,250,0.85)', fontWeight: 600 }}>-650</div>
-      </div>
-      {/* Edge strip */}
-      <div style={{
-        borderTop: '1px solid var(--stroke-subtle)',
-        padding: '8px 14px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700,
-            color: '#34D399', letterSpacing: '0.02em',
-          }}>EDGE +8%</span>
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 700,
-            letterSpacing: '0.06em', color: 'var(--color-signal)',
-            padding: '2px 6px', borderRadius: 3,
-            background: 'var(--color-signal-bg)', border: '1px solid var(--color-signal-border)',
-          }}>SIGNAL</span>
-        </div>
-        <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '0.62rem', fontWeight: 600,
-          color: 'var(--text-tertiary)',
-        }}>STRONG</span>
-      </div>
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        style={{ display: 'block', width: '100%', height: 'auto' }}
+      />
     </div>
   );
 }
+
+ 
 
 /* ─── Quant Analysis Mock ─── */
-function MockQuantCard() {
-  const bullets = [
-    'Rest advantage: Dallas off 2d rest vs Cleveland 1d (+1d advantage)',
-    'Defensive mismatch: Cleveland allows 116.8 PPG (Bottom 8 NBA)',
-    'Market movement: line opened -14, steamed to -13.5 — buying below market',
-  ];
-  return (
-    <div style={{
-      background: 'var(--surface-1)',
-      border: '1px solid var(--stroke-subtle)',
-      borderRadius: 10, padding: '16px 18px',
-    }}>
-      <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
-        letterSpacing: '0.1em', color: 'var(--text-tertiary)',
-        marginBottom: 14, textTransform: 'uppercase',
-      }}>Quant Analysis</div>
-
-      {/* Edge bar */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, color: '#34D399' }}>+8%</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: '#34D399' }}>STRONG</span>
-        </div>
-        <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-          <div style={{ width: '80%', height: '100%', borderRadius: 3, background: 'linear-gradient(90deg, #34D399, #5A9E72)' }} />
-        </div>
-      </div>
-
-      {/* Probabilities */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-        <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-tertiary)', marginBottom: 3, textTransform: 'uppercase' }}>Cover Prob</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>71.6%</div>
-        </div>
-        <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-tertiary)', marginBottom: 3, textTransform: 'uppercase' }}>Implied Prob</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 700, color: 'var(--text-secondary)' }}>47.6%</div>
-        </div>
-      </div>
-
-      {/* Reasoning */}
-      <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700,
-        letterSpacing: '0.08em', color: 'var(--text-tertiary)',
-        marginBottom: 8, textTransform: 'uppercase',
-      }}>Quant Reasoning</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {bullets.map((b, i) => (
-          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-signal)', flexShrink: 0, marginTop: 2 }}>▸</span>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{b}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+ 
 
 /* ─── Pillar Card ─── */
 function PillarCard({ icon, title, description }) {
@@ -320,44 +189,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right — Mock UI */}
-          <div style={{
-            display: 'flex', flexDirection: 'column', gap: 14,
-            position: 'relative',
-          }}>
-            {/* Regime header */}
-            <div style={{
-              background: 'var(--surface-1)', border: '1px solid rgba(251,191,36,0.25)',
-              borderRadius: 10, padding: '16px 20px',
-            }}>
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700,
-                letterSpacing: '0.12em', color: 'var(--text-tertiary)', marginBottom: 10,
-                textTransform: 'uppercase',
-              }}>Market Regime</div>
-              <RegimeBadge />
-              <div style={{
-                display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 14,
-              }}>
-                {[
-                  { label: 'Analyzed', value: '8' },
-                  { label: 'Edges', value: '4', color: '#FBBF24' },
-                  { label: 'Signals', value: '3', color: '#34D399' },
-                ].map(m => (
-                  <div key={m.label} style={{ textAlign: 'center' }}>
-                    <div style={{
-                      fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700,
-                      color: m.color || 'var(--text-primary)',
-                    }}>{m.value}</div>
-                    <div style={{
-                      fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 600,
-                      letterSpacing: '0.06em', color: 'var(--text-tertiary)', textTransform: 'uppercase',
-                    }}>{m.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <MockGameCard />
+          {/* Right — App Screenshot */}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <PhoneFrame src="/images/screenshot-signals.png" alt="SharpPicks Signals" maxWidth={300} />
           </div>
         </div>
       </section>
@@ -445,19 +279,19 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── PRODUCT SCREENSHOT — Quant Analysis ─── */}
+      {/* ─── PRODUCT SCREENSHOTS ─── */}
       <section style={{
         padding: '80px 0',
         background: 'linear-gradient(180deg, var(--bg-primary) 0%, #0E1220 50%, var(--bg-primary) 100%)',
         borderBottom: '1px solid rgba(255,255,255,0.04)',
       }}>
-        <div className="landing-product-grid" style={sectionStyle}>
-          <div>
+        <div style={sectionStyle}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
               letterSpacing: '0.14em', color: 'var(--text-tertiary)',
               textTransform: 'uppercase', marginBottom: 12,
-            }}>Inside The Signal</div>
+            }}>Inside The App</div>
             <h2 style={{
               fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px, 2.8vw, 34px)',
               fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16,
@@ -465,21 +299,54 @@ export default function LandingPage() {
               Every signal shows its work.
             </h2>
             <p style={{
-              fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--text-secondary)',
-              lineHeight: 1.7, marginBottom: 24, maxWidth: 440,
+              fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--text-secondary)',
+              lineHeight: 1.7, maxWidth: 520, margin: '0 auto',
             }}>
               No black boxes. Each qualified signal surfaces the edge percentage,
               cover probability, implied probability gap, and the specific quantitative
               reasoning behind the pick.
             </p>
-            <p style={{
-              fontFamily: 'var(--font-serif)', fontSize: 15, fontStyle: 'italic',
-              color: 'var(--text-tertiary)',
-            }}>
-              Transparency isn't a feature. It's the product.
-            </p>
           </div>
-          <MockQuantCard />
+
+          <div className="landing-screenshots-row" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 24,
+            alignItems: 'center',
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <PhoneFrame src="/images/screenshot-signal-detail.png" alt="Signal detail with full analysis" maxWidth={240} />
+              <p style={{
+                fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
+                letterSpacing: '0.1em', color: 'var(--text-tertiary)',
+                textTransform: 'uppercase', marginTop: 16,
+              }}>Signal Detail</p>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <PhoneFrame src="/images/screenshot-market.png" alt="Market Intelligence dashboard" maxWidth={240} />
+              <p style={{
+                fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
+                letterSpacing: '0.1em', color: 'var(--text-tertiary)',
+                textTransform: 'uppercase', marginTop: 16,
+              }}>Market Intelligence</p>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <PhoneFrame src="/images/screenshot-market-games.png" alt="Market board with game odds" maxWidth={240} />
+              <p style={{
+                fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
+                letterSpacing: '0.1em', color: 'var(--text-tertiary)',
+                textTransform: 'uppercase', marginTop: 16,
+              }}>Market Board</p>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <PhoneFrame src="/images/screenshot-results.png" alt="Results and performance tracking" maxWidth={240} />
+              <p style={{
+                fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
+                letterSpacing: '0.1em', color: 'var(--text-tertiary)',
+                textTransform: 'uppercase', marginTop: 16,
+              }}>Results Tracker</p>
+            </div>
+          </div>
         </div>
       </section>
 

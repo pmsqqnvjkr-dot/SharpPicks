@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SharpPicks — Sports Market Intelligence</title>
+  <meta name="description" content="SharpPicks analyzes sports betting markets like a trading desk — identifying pricing inefficiencies, measuring probability gaps, and generating signals only when real edges appear." />
+  <meta property="og:title" content="SharpPicks — Sports Market Intelligence" />
+  <meta property="og:description" content="Beat the market, not the scoreboard. Quantitative sports betting signals powered by data." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://sharppicks.ai" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-primary: #0A0D14;
+      --surface-0: #0D1017;
+      --surface-1: #121725;
+      --surface-2: #161C2E;
+      --text-primary: #EEF2FF;
+      --text-secondary: #9AA3B2;
+      --text-tertiary: #6B7280;
+      --color-signal: #5A9E72;
+      --color-signal-bg: rgba(90, 158, 114, 0.08);
+      --color-signal-border: rgba(90, 158, 114, 0.22);
+      --blue-primary: #4F7DF3;
+      --stroke-subtle: rgba(255, 255, 255, 0.08);
+      --stroke-muted: rgba(255, 255, 255, 0.12);
+      --font-serif: 'IBM Plex Serif', Georgia, serif;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      color: var(--text-primary);
+      background-color: var(--bg-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-width: 320px;
+    }
+
+    .section-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 clamp(20px, 5vw, 64px);
+    }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(10, 13, 20, 0.85);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .nav-inner {
+      max-width: 1080px; margin: 0 auto;
+      padding: 0 clamp(20px, 5vw, 64px);
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .nav-brand img { display: block; object-fit: contain; }
+    .nav-brand-text {
+      font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+      color: #F2F4F8; letter-spacing: 3.9px; text-transform: uppercase; line-height: 1;
+    }
+    .brand-sep {
+      display: inline-flex; align-items: center; gap: 3px; margin: 0 0.5em 0 0.2em;
+    }
+    .brand-sep span {
+      width: 2px; height: 11px; background-color: currentColor; opacity: 0.5; border-radius: 1px;
+    }
+    .nav-actions { display: flex; align-items: center; gap: 12px; }
+    .btn-signin {
+      padding: 7px 16px; background: transparent; color: var(--text-secondary);
+      border: 1px solid var(--stroke-muted); border-radius: 8px;
+      font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--font-sans);
+      text-decoration: none; display: inline-flex; align-items: center;
+    }
+    .btn-trial {
+      padding: 7px 18px; background: var(--blue-primary); color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font-sans);
+      text-decoration: none; display: inline-flex; align-items: center;
+    }
+
+    /* HERO */
+    .hero {
+      position: relative; overflow: hidden;
+      background: linear-gradient(180deg, #0E1A2B 0%, #0A0D14 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .hero-crest {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 480px; height: 480px; opacity: 0.025; pointer-events: none;
+      background-image: url(images/crest.png);
+      background-size: contain; background-repeat: no-repeat; background-position: center;
+    }
+    .hero-grid {
+      display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+      gap: 48px; align-items: center;
+      padding: 80px clamp(20px, 5vw, 64px);
+      max-width: 1080px; margin: 0 auto;
+    }
+    .hero-eyebrow {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--text-tertiary); margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-family: var(--font-serif); font-size: clamp(32px, 4.5vw, 52px);
+      font-weight: 700; line-height: 1.1; color: #FFFFFF; margin-bottom: 20px;
+    }
+    .hero-desc {
+      font-family: var(--font-sans); font-size: clamp(15px, 1.4vw, 18px);
+      color: var(--text-secondary); line-height: 1.7; margin-bottom: 10px; max-width: 480px;
+    }
+    .hero-tagline {
+      font-family: var(--font-serif); font-size: clamp(14px, 1.2vw, 16px);
+      font-style: italic; color: var(--text-tertiary); margin-bottom: 36px;
+    }
+    .hero-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn-primary {
+      padding: 14px 32px; background: var(--blue-primary); color: #fff;
+      border: none; border-radius: 10px; font-size: 15px; font-weight: 700;
+      cursor: pointer; font-family: var(--font-sans);
+      box-shadow: 0 4px 24px rgba(79,125,243,0.30);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      text-decoration: none; display: inline-block; text-align: center;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 32px rgba(79,125,243,0.40); }
+    .btn-secondary {
+      padding: 14px 28px; background: transparent; color: var(--text-secondary);
+      border: 1px solid var(--stroke-muted); border-radius: 10px;
+      font-size: 15px; font-weight: 500; cursor: pointer; font-family: var(--font-sans);
+      transition: border-color 0.15s ease;
+      text-decoration: none; display: inline-block; text-align: center;
+    }
+    .btn-secondary:hover { border-color: rgba(255,255,255,0.25); }
+
+    /* PHONE FRAME */
+    .phone-frame {
+      position: relative; width: 100%; margin: 0 auto;
+      border-radius: 28px; overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.08);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+      background: #0a1628;
+    }
+    .phone-frame img { display: block; width: 100%; height: auto; }
+
+    /* DISCIPLINE FILTER */
+    .discipline {
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      background: var(--surface-0); padding: 48px 0;
+    }
+    .discipline-stats {
+      display: flex; justify-content: center; gap: clamp(24px, 5vw, 64px);
+      flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .discipline-stat-value {
+      font-family: var(--font-mono); font-size: clamp(28px, 3vw, 40px); font-weight: 700;
+      color: var(--text-primary);
+    }
+    .discipline-stat-value.green { color: #34D399; }
+    .discipline-stat-label {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+      letter-spacing: 0.06em; color: var(--text-tertiary); text-transform: uppercase;
+    }
+    .discipline-quote {
+      font-family: var(--font-serif); font-size: clamp(16px, 1.5vw, 20px);
+      font-weight: 500; font-style: italic; color: var(--text-secondary);
+    }
+
+    /* HOW IT WORKS */
+    .how-section { padding: 80px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .section-eyebrow {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; color: var(--text-tertiary);
+      text-transform: uppercase; margin-bottom: 12px;
+    }
+    .section-heading {
+      font-family: var(--font-serif); font-size: clamp(24px, 3vw, 36px);
+      font-weight: 700; color: var(--text-primary);
+    }
+    .pillar-grid { display: flex; gap: 20px; flex-wrap: wrap; }
+    .pillar-card {
+      background: var(--surface-1); border: 1px solid var(--stroke-subtle);
+      border-radius: 12px; padding: 28px 24px;
+      flex: 1 1 280px; min-width: 240px;
+    }
+    .pillar-icon { font-size: 28px; margin-bottom: 16px; line-height: 1; filter: grayscale(0.3); }
+    .pillar-card h3 {
+      font-family: var(--font-serif); font-size: 18px; font-weight: 600;
+      color: var(--text-primary); margin-bottom: 10px;
+    }
+    .pillar-card p {
+      font-family: var(--font-sans); font-size: 14px; color: var(--text-secondary); line-height: 1.65;
+    }
+
+    /* SCREENSHOTS */
+    .screenshots-section {
+      padding: 80px 0;
+      background: linear-gradient(180deg, var(--bg-primary) 0%, #0E1220 50%, var(--bg-primary) 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .screenshots-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 24px; align-items: start;
+    }
+    .screenshot-item { text-align: center; }
+    .screenshot-label {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.1em; color: var(--text-tertiary);
+      text-transform: uppercase; margin-top: 16px;
+    }
+
+    /* MODEL PERFORMANCE */
+    .metrics-section { padding: 64px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .metrics-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;
+    }
+    .metric-card {
+      background: var(--surface-1); border: 1px solid var(--stroke-subtle);
+      border-radius: 10px; padding: 24px 20px; text-align: center;
+    }
+    .metric-value {
+      font-family: var(--font-mono); font-size: 28px; font-weight: 700;
+      color: var(--text-primary); margin-bottom: 4px;
+    }
+    .metric-label {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.08em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 2px;
+    }
+    .metric-sub { font-family: var(--font-sans); font-size: 11px; color: var(--text-tertiary); }
+
+    /* FOUNDING MEMBERS */
+    .founding-section { padding: 48px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .founding-card {
+      display: inline-block;
+      background: rgba(79, 134, 247, 0.06); border: 1px solid rgba(79, 134, 247, 0.15);
+      border-radius: 14px; padding: 28px 40px;
+    }
+    .founding-card h3 {
+      font-family: var(--font-sans); font-size: 18px; font-weight: 700;
+      color: var(--text-primary); margin-bottom: 8px;
+    }
+    .founding-card p { font-size: 14px; color: var(--text-secondary); margin-bottom: 6px; }
+    .founding-count {
+      font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--blue-primary);
+    }
+
+    /* CTA */
+    .cta-section {
+      padding: 80px 0;
+      background: linear-gradient(180deg, var(--bg-primary) 0%, #0E1A2B 100%);
+    }
+    .cta-section h2 {
+      font-family: var(--font-serif); font-size: clamp(24px, 3vw, 36px);
+      font-weight: 700; color: #FFFFFF; margin-bottom: 20px;
+    }
+    .cta-desc {
+      font-family: var(--font-sans); font-size: 16px; color: var(--text-secondary);
+      max-width: 440px; margin: 0 auto 32px;
+    }
+    .cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    /* FOOTER */
+    .footer {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 48px 0 40px;
+    }
+    .footer-quotes {
+      display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 28px;
+    }
+    .footer-quotes span {
+      font-family: var(--font-serif); font-size: 14px; font-weight: 500;
+      font-style: italic; color: var(--text-tertiary);
+    }
+    .footer-brand {
+      display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;
+    }
+    .footer-brand img { opacity: 0.4; object-fit: contain; }
+    .footer-brand-text {
+      font-family: var(--font-sans); font-size: 11px; font-weight: 600;
+      color: var(--text-tertiary); letter-spacing: 2.5px; text-transform: uppercase;
+    }
+    .footer-brand-sep {
+      display: inline-flex; align-items: center; gap: 2px; margin: 0 0.35em;
+    }
+    .footer-brand-sep span {
+      width: 2px; height: 9px; background-color: currentColor; opacity: 0.45; border-radius: 1px;
+    }
+    .footer-disclaimer {
+      font-size: 11px; color: var(--text-tertiary); line-height: 1.6;
+      max-width: 420px; margin: 0 auto 12px;
+    }
+    .footer-links { display: flex; justify-content: center; gap: 16px; margin-bottom: 12px; }
+    .footer-links a { font-size: 11px; color: var(--text-tertiary); text-decoration: none; }
+    .footer-links a:hover { color: var(--text-secondary); }
+    .footer-email { font-size: 12px; color: var(--text-secondary); text-decoration: none; }
+    .footer-email:hover { color: var(--text-primary); }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+      .screenshots-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
+    }
+    @media (max-width: 480px) {
+      .screenshots-grid { grid-template-columns: 1fr !important; gap: 32px !important; max-width: 280px; margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a href="https://app.sharppicks.ai" class="nav-brand">
+        <img src="images/crest.png" alt="SharpPicks" width="26" height="26" />
+        <span class="nav-brand-text">SHARP<span class="brand-sep"><span></span><span></span></span>PICKS</span>
+      </a>
+      <div class="nav-actions">
+        <a href="https://app.sharppicks.ai" class="btn-signin">Sign in</a>
+        <a href="https://app.sharppicks.ai" class="btn-trial">Start Free Trial</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-crest"></div>
+    <div class="hero-grid">
+      <div>
+        <div class="hero-eyebrow">Sports Market Intelligence</div>
+        <h1>Beat the market,<br>not the scoreboard.</h1>
+        <p class="hero-desc">
+          SharpPicks analyzes sports betting markets like a trading desk &mdash; identifying pricing
+          inefficiencies, measuring probability gaps, and generating signals only when real edges appear.
+        </p>
+        <p class="hero-tagline">Selective by design.</p>
+        <div class="hero-buttons">
+          <a href="https://app.sharppicks.ai" class="btn-primary">View Today's Market</a>
+          <a href="#how-it-works" class="btn-secondary">See How It Works</a>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:center;align-items:center;">
+        <div class="phone-frame" style="max-width:300px;">
+          <img src="images/screenshot-signals.png" alt="SharpPicks Signals" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DISCIPLINE FILTER -->
+  <section class="discipline">
+    <div class="section-inner" style="text-align:center;">
+      <div class="section-eyebrow">Discipline Filter</div>
+      <div class="discipline-stats">
+        <div>
+          <div class="discipline-stat-value">15</div>
+          <div class="discipline-stat-label">Games Analyzed</div>
+        </div>
+        <div>
+          <div class="discipline-stat-value green">3</div>
+          <div class="discipline-stat-label">Signals Generated</div>
+        </div>
+        <div>
+          <div class="discipline-stat-value">12</div>
+          <div class="discipline-stat-label">Games Passed</div>
+        </div>
+      </div>
+      <p class="discipline-quote">One pick beats five.</p>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works" class="how-section">
+    <div class="section-inner">
+      <div style="text-align:center;margin-bottom:48px;">
+        <div class="section-eyebrow">How SharpPicks Works</div>
+        <h2 class="section-heading">From market scan to signal.</h2>
+      </div>
+      <div class="pillar-grid">
+        <div class="pillar-card">
+          <div class="pillar-icon">&#9678;</div>
+          <h3>Market Intelligence</h3>
+          <p>SharpPicks scans every game across multiple sportsbooks to detect pricing discrepancies and measure market efficiency in real time.</p>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-icon">&#9651;</div>
+          <h3>Quantitative Analysis</h3>
+          <p>Each game is evaluated using statistical models, probability gaps, and market signals &mdash; 50+ features per game, no narratives.</p>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-icon">&#9671;</div>
+          <h3>Discipline Filter</h3>
+          <p>Only the strongest edges become signals. Most games are passed. No edge, no pick.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCT SCREENSHOTS -->
+  <section class="screenshots-section">
+    <div class="section-inner">
+      <div style="text-align:center;margin-bottom:48px;">
+        <div class="section-eyebrow">Inside The App</div>
+        <h2 class="section-heading" style="margin-bottom:16px;">Every signal shows its work.</h2>
+        <p style="font-family:var(--font-sans);font-size:16px;color:var(--text-secondary);line-height:1.7;max-width:520px;margin:0 auto;">
+          No black boxes. Each qualified signal surfaces the edge percentage,
+          cover probability, implied probability gap, and the specific quantitative
+          reasoning behind the pick.
+        </p>
+      </div>
+      <div class="screenshots-grid">
+        <div class="screenshot-item">
+          <div class="phone-frame" style="max-width:240px;">
+            <img src="images/screenshot-signal-detail.png" alt="Signal detail with full analysis" loading="lazy" />
+          </div>
+          <p class="screenshot-label">Signal Detail</p>
+        </div>
+        <div class="screenshot-item">
+          <div class="phone-frame" style="max-width:240px;">
+            <img src="images/screenshot-market.png" alt="Market Intelligence dashboard" loading="lazy" />
+          </div>
+          <p class="screenshot-label">Market Intelligence</p>
+        </div>
+        <div class="screenshot-item">
+          <div class="phone-frame" style="max-width:240px;">
+            <img src="images/screenshot-market-games.png" alt="Market board with game odds" loading="lazy" />
+          </div>
+          <p class="screenshot-label">Market Board</p>
+        </div>
+        <div class="screenshot-item">
+          <div class="phone-frame" style="max-width:240px;">
+            <img src="images/screenshot-results.png" alt="Results and performance tracking" loading="lazy" />
+          </div>
+          <p class="screenshot-label">Results Tracker</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODEL PERFORMANCE -->
+  <section class="metrics-section">
+    <div class="section-inner">
+      <div style="text-align:center;margin-bottom:36px;">
+        <div class="section-eyebrow">Model Performance</div>
+        <h2 class="section-heading">The numbers are public.</h2>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-value">26</div>
+          <div class="metric-label">Total Picks</div>
+          <div class="metric-sub">All time</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">53.8%</div>
+          <div class="metric-label">Selectivity</div>
+          <div class="metric-sub">Signal rate</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">22</div>
+          <div class="metric-label">Total Passes</div>
+          <div class="metric-sub">Games skipped</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">0</div>
+          <div class="metric-label">Picks Deleted</div>
+          <div class="metric-sub">Full transparency</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOUNDING MEMBERS -->
+  <section class="founding-section">
+    <div class="section-inner" style="text-align:center;">
+      <div class="founding-card">
+        <h3>Founding Members</h3>
+        <p>The first 50 members lock in the lowest rate permanently. Once it's gone, it's gone.</p>
+        <p class="founding-count">47 of 50 spots remaining</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="section-inner" style="text-align:center;">
+      <h2>Start scanning the market.</h2>
+      <p class="cta-desc">Create a free account and see the model at work. Upgrade anytime.</p>
+      <div class="cta-buttons">
+        <a href="https://app.sharppicks.ai" class="btn-primary" style="padding:14px 36px;">Start Free Trial</a>
+        <a href="https://app.sharppicks.ai" class="btn-secondary">Create Free Account</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="section-inner" style="text-align:center;">
+      <div class="footer-quotes">
+        <span>Beat the market, not the scoreboard.</span>
+        <span>One pick beats five.</span>
+        <span>No edge, no pick.</span>
+      </div>
+      <div class="footer-brand">
+        <img src="images/crest.png" alt="" width="18" height="18" />
+        <span class="footer-brand-text">SHARP<span class="footer-brand-sep"><span></span><span></span></span>PICKS</span>
+      </div>
+      <p class="footer-disclaimer">
+        SharpPicks provides sports analytics and model-based insights only. Not financial advice. Not a sportsbook.
+      </p>
+      <div class="footer-links">
+        <a href="https://app.sharppicks.ai/privacy">Privacy</a>
+        <a href="https://app.sharppicks.ai/terms">Terms</a>
+        <a href="https://app.sharppicks.ai/disclaimer">Disclaimer</a>
+      </div>
+      <a href="mailto:support@sharppicks.ai" class="footer-email">support@sharppicks.ai</a>
+    </div>
+  </footer>
+
+</body>
+</html>

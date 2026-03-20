@@ -115,6 +115,18 @@ input, button, textarea, select {
     grid-template-columns: 1fr;
     gap: 32px;
   }
+  .landing-screenshots-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px !important;
+  }
+}
+@media (max-width: 480px) {
+  .landing-screenshots-row {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+    max-width: 280px;
+    margin: 0 auto;
+  }
 }
 
 /* ── LIVE pulse animation ── */

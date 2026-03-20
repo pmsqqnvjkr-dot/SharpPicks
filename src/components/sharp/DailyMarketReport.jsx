@@ -296,9 +296,9 @@ function MetricCell({ label, value, green: isGreen, tooltip }) {
 function InfoTooltip({ text }) {
   const [open, setOpen] = useState(false);
   return (
-    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle' }}>
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: '6px' }}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
         style={{
           width: '16px', height: '16px', borderRadius: '50%',
           backgroundColor: open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
@@ -307,23 +307,30 @@ function InfoTooltip({ text }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: 0, fontSize: '9px', fontFamily: 'var(--font-sans)', fontWeight: 600,
           lineHeight: 1, transition: 'background-color 0.15s ease',
+          flexShrink: 0,
         }}
         aria-label="More info"
       >i</button>
       {open && (
-        <div style={{
-          position: 'absolute', top: '22px', left: '50%', transform: 'translateX(-50%)',
-          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
-          borderRadius: '10px', padding: '10px 12px',
-          width: '200px', zIndex: 10,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-        }}>
-          <p style={{
-            fontFamily: 'var(--font-serif)', fontStyle: 'italic',
-            fontSize: '11px', color: 'var(--text-secondary)',
-            lineHeight: '1.5', margin: 0,
-          }}>{text}</p>
-        </div>
+        <>
+          <div
+            onClick={() => setOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+          />
+          <div style={{
+            position: 'absolute', bottom: '24px', left: 0,
+            backgroundColor: '#1a2744', border: '1px solid var(--stroke-subtle)',
+            borderRadius: '8px', padding: '10px 12px',
+            width: '220px', zIndex: 100,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          }}>
+            <p style={{
+              fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+              fontSize: '11px', color: 'var(--text-secondary)',
+              lineHeight: '1.5', margin: 0,
+            }}>{text}</p>
+          </div>
+        </>
       )}
     </span>
   );
