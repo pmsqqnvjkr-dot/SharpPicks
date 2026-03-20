@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { apiPost, apiDelete, getAuthToken } from '../../hooks/useApi';
 
@@ -226,24 +226,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
         </div>
 
         {liveScore && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '6px 10px', marginBottom: '10px',
-            borderRadius: '6px', background: 'rgba(255,255,255,0.03)',
-            border: `1px solid ${borderColor}`,
-          }}>
-            {liveScore.state === 'STATUS_FINAL' ? (
-              <span style={{ fontFamily: mono, fontSize: '10px', fontWeight: 700, color: textSec, textTransform: 'uppercase' }}>Final</span>
-            ) : (
-              <span style={{
-                fontFamily: mono, fontSize: '10px', fontWeight: 700, color: '#34d399', textTransform: 'uppercase',
-                animation: 'live-pulse 2s ease-in-out infinite',
-              }}>Live{liveScore.period ? ` ${liveScore.clock || ''}` : ''}</span>
-            )}
-            <span style={{ fontFamily: mono, fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-              {pick.away_team} {liveScore.away_score} - {liveScore.home_score} {pick.home_team}
-            </span>
-          </div>
+          <LiveBarBlock liveScore={liveScore} pick={pick} />
         )}
 
         {/* Pick row: team + spread + edge */}
@@ -269,11 +252,15 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
           }}>{fmtEdge(pick.edge_pct)}</span>
         </div>
 
-        {/* Time + price */}
+        {/* Time + price + countdown */}
         <div style={{
           fontFamily: mono, fontSize: '10px', color: textDim, marginBottom: '12px',
+          display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
         }}>
-          {gameFmt}{pick.market_odds != null ? ` · ${pick.market_odds}` : ''}
+          <span>{gameFmt}{pick.market_odds != null ? ` · ${pick.market_odds}` : ''}</span>
+          {!settled && !isRevoked && !liveScore && pick.start_time && (
+            <CountdownPill startTime={pick.start_time} />
+          )}
         </div>
 
         {/* Settled banner */}
@@ -566,42 +553,6 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
               </div>
             )}
 
-            {/* Track / Outcome actions */}
-            {!settled && !isRevoked && (
-              tracked ? (
-                <button onClick={handleUntrack} disabled={tracking} style={{
-                  width: '100%', borderRadius: '6px', padding: '10px',
-                  fontFamily: mono, fontWeight: 600, fontSize: '12px',
-                  color: green, background: 'rgba(90,158,114,0.08)',
-                  border: `1px solid rgba(90,158,114,0.2)`,
-                  textAlign: 'center', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                }}>
-                  <span style={{ fontSize: '12px', lineHeight: 1 }}>✓</span>
-                  {tracking ? 'Removing...' : 'Tracked'}
-                </button>
-              ) : (
-                <>
-                  <button onClick={handleTrackPick} disabled={tracking} style={{
-                    width: '100%', borderRadius: '6px', padding: '10px',
-                    fontFamily: mono, fontWeight: 600, fontSize: '12px',
-                    color: tracking ? textDim : 'var(--text-primary, #e2e8f0)',
-                    background: 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${borderColor}`,
-                    cursor: tracking ? 'default' : 'pointer',
-                    opacity: tracking ? 0.7 : 1,
-                  }}>
-                    {tracking ? 'Tracking...' : 'Track Outcome'}
-                  </button>
-                  {trackError && (
-                    <div style={{ marginTop: '4px', fontFamily: mono, fontSize: '11px', color: '#C4686B', textAlign: 'center' }}>
-                      {trackError}
-                    </div>
-                  )}
-                </>
-              )
-            )}
-
             {settled && isPro && (
               <button onClick={handleShare} style={{
                 width: '100%', borderRadius: '6px', padding: '10px', marginTop: '8px',
@@ -619,6 +570,20 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
             )}
           </div>
         )}
+
+        <TrackBetButton
+          pick={pick}
+          tracked={tracked}
+          tracking={tracking}
+          trackedBetId={trackedBetId}
+          trackError={trackError}
+          settled={settled}
+          isRevoked={isRevoked}
+          flatStake={flatStake}
+          onTrack={handleTrackPick}
+          onUntrack={handleUntrack}
+          onNavigate={onNavigate}
+        />
       </div>
 
       {onNavigate && !pick.result && (
@@ -654,6 +619,239 @@ function StatCell({ label, value, valueColor }) {
         color: valueColor || 'var(--text-primary, #e2e8f0)',
       }}>{value}</div>
     </div>
+  );
+}
+
+function LiveBarBlock({ liveScore, pick }) {
+  const isFinal = liveScore.state === 'STATUS_FINAL';
+  const isLive = !isFinal;
+  const awayAbbr = (pick.away_team || '').split(' ').pop()?.substring(0, 3).toUpperCase() || 'AWY';
+  const homeAbbr = (pick.home_team || '').split(' ').pop()?.substring(0, 3).toUpperCase() || 'HME';
+
+  const periodDisplay = liveScore.period
+    ? (liveScore.period <= 4 ? `Q${liveScore.period}` : `OT${liveScore.period - 4}`)
+    : '';
+  const clockDisplay = liveScore.clock || '';
+
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <style>{`@keyframes sp-pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '8px 10px', borderRadius: 5,
+        background: isLive ? 'rgba(90,158,114,0.06)' : 'rgba(74,85,104,0.1)',
+        border: isLive ? '0.5px solid rgba(90,158,114,0.15)' : '0.5px solid rgba(74,85,104,0.2)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {isLive && (
+            <span style={{
+              width: 5, height: 5, borderRadius: '50%', backgroundColor: '#5A9E72',
+              display: 'inline-block', animation: 'sp-pulse 2s ease-in-out infinite',
+            }} />
+          )}
+          <span style={{
+            fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+            fontSize: '10px', fontWeight: 600, color: isLive ? '#5A9E72' : '#4a5568',
+            textTransform: 'uppercase',
+          }}>
+            {isLive ? `${periodDisplay}${clockDisplay ? ` · ${clockDisplay}` : ''}` : 'FINAL'}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontFamily: "'JetBrains Mono', var(--font-mono)", fontSize: 10, color: '#6b7a8d' }}>{awayAbbr}</span>
+          <span style={{ fontFamily: "'JetBrains Mono', var(--font-mono)", fontSize: 15, fontWeight: 500, color: '#e8ecf0' }}>{liveScore.away_score}</span>
+          <span style={{ fontFamily: "'JetBrains Mono', var(--font-mono)", fontSize: 10, color: '#4a5568', margin: '0 2px' }}>·</span>
+          <span style={{ fontFamily: "'JetBrains Mono', var(--font-mono)", fontSize: 10, color: '#6b7a8d' }}>{homeAbbr}</span>
+          <span style={{ fontFamily: "'JetBrains Mono', var(--font-mono)", fontSize: 15, fontWeight: 500, color: '#e8ecf0' }}>{liveScore.home_score}</span>
+        </div>
+      </div>
+
+      {isLive && pick.line != null && pick.side && (
+        <CoverTracker pick={pick} liveScore={liveScore} />
+      )}
+    </div>
+  );
+}
+
+function CoverTracker({ pick, liveScore }) {
+  const spread = parseFloat(pick.line);
+  const sideStr = pick.side || '';
+  const isHomeSide = sideStr.toLowerCase().includes(pick.home_team?.toLowerCase()?.split(' ').pop() || '____');
+
+  const signalScore = isHomeSide ? (liveScore.home_score || 0) : (liveScore.away_score || 0);
+  const oppScore = isHomeSide ? (liveScore.away_score || 0) : (liveScore.home_score || 0);
+  const currentMargin = signalScore - oppScore;
+  const adjustedMargin = currentMargin + spread;
+
+  const covering = adjustedMargin > 0;
+  const marginAbs = Math.abs(adjustedMargin).toFixed(1);
+  const statusColor = covering ? '#5A9E72' : '#C4686B';
+
+  const sideAbbr = sideStr.match(/^(.*?)(\s[+-]?\d+)/)?.[1]?.split(' ').pop() || sideStr.split(' ')[0];
+  const spreadStr = spread > 0 ? `+${spread}` : `${spread}`;
+
+  const barFill = Math.min(100, Math.max(5, (Math.abs(adjustedMargin) / (Math.abs(spread) + 10)) * 100));
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4,
+      }}>
+        <span style={{
+          fontFamily: "'JetBrains Mono', var(--font-mono)", fontSize: 10,
+          color: '#4a5568', textTransform: 'uppercase', letterSpacing: '1px',
+        }}>COVER TRACKER</span>
+        <span style={{
+          fontFamily: "'JetBrains Mono', var(--font-mono)", fontSize: 10,
+          color: statusColor,
+        }}>
+          {sideAbbr} {spreadStr} · {covering ? 'covering' : 'not covering'} by {marginAbs}
+        </span>
+      </div>
+      <div style={{
+        height: 3, background: '#1a2a42', borderRadius: 2, position: 'relative', overflow: 'visible',
+      }}>
+        <div style={{
+          height: '100%', borderRadius: 2,
+          width: `${barFill}%`,
+          background: statusColor,
+          transition: 'width 0.5s ease',
+        }} />
+        <div style={{
+          position: 'absolute', top: -3, bottom: -3,
+          left: '50%', width: '1.5px',
+          background: '#e8ecf0', borderRadius: 1,
+        }} />
+      </div>
+    </div>
+  );
+}
+
+function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, settled, isRevoked, flatStake, onTrack, onUntrack, onNavigate }) {
+  if (isRevoked) return null;
+
+  const sideStr = pick.side || '';
+  const sideAbbr = sideStr.match(/^(.*?)(\s[+-]?\d+)/)?.[1]?.split(' ').pop()?.toUpperCase() || sideStr.split(' ')[0]?.toUpperCase() || '';
+  const spreadPart = pick.line != null ? (pick.line > 0 ? `+${pick.line}` : `${pick.line}`) : '';
+  const shortSide = `${sideAbbr} ${spreadPart}`.trim();
+  const units = flatStake ?? '1.0';
+
+  if (settled && tracked) {
+    const pnl = pick.profit_units ?? (pick.pnl != null ? pick.pnl / 100 : null);
+    const isWin = pick.result === 'win';
+    const isLoss = pick.result === 'loss';
+    const isPush = pick.result === 'push';
+    const resultLabel = isWin ? 'WON' : isLoss ? 'LOST' : 'PUSH';
+    const unitsLabel = isWin ? `+${Math.abs(pnl ?? 0).toFixed(1)}u`
+      : isLoss ? `-${Math.abs(pnl ?? 0).toFixed(1)}u`
+      : '0u';
+    const resultColor = isWin ? green : isLoss ? '#C4686B' : '#6b7a8d';
+
+    return (
+      <button
+        onClick={() => onNavigate && onNavigate('profile', 'bets')}
+        style={{
+          width: '100%', borderRadius: 6, padding: 10, marginTop: 10,
+          fontFamily: mono, fontWeight: 600, fontSize: '11px',
+          letterSpacing: '1px', textTransform: 'uppercase',
+          color: resultColor,
+          background: isWin ? 'rgba(90,158,114,0.06)' : isLoss ? 'rgba(196,104,107,0.06)' : 'rgba(74,85,104,0.06)',
+          border: `0.5px solid ${isWin ? 'rgba(90,158,114,0.2)' : isLoss ? 'rgba(196,104,107,0.2)' : 'rgba(74,85,104,0.2)'}`,
+          cursor: 'pointer', textAlign: 'center',
+        }}
+      >
+        {resultLabel} · {shortSide} · {unitsLabel}
+      </button>
+    );
+  }
+
+  if (settled && !tracked) return null;
+
+  if (tracked) {
+    return (
+      <button
+        onClick={() => onNavigate && onNavigate('profile', 'bets')}
+        style={{
+          width: '100%', borderRadius: 6, padding: 10, marginTop: 10,
+          fontFamily: mono, fontWeight: 600, fontSize: '11px',
+          letterSpacing: '1px', textTransform: 'uppercase',
+          color: 'rgba(90,158,114,0.7)',
+          background: 'rgba(90,158,114,0.06)',
+          border: '0.5px solid rgba(90,158,114,0.2)',
+          cursor: 'pointer', textAlign: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        }}
+      >
+        <span style={{ fontSize: 11, lineHeight: 1 }}>✓</span>
+        TRACKING · {shortSide} · {units}u
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      <button
+        onClick={onTrack}
+        disabled={tracking}
+        style={{
+          width: '100%', borderRadius: 6, padding: 10,
+          fontFamily: mono, fontWeight: 600, fontSize: '11px',
+          letterSpacing: '1px', textTransform: 'uppercase',
+          color: tracking ? textDim : green,
+          background: 'transparent',
+          border: '0.5px solid rgba(90,158,114,0.3)',
+          cursor: tracking ? 'default' : 'pointer',
+          opacity: tracking ? 0.7 : 1,
+          textAlign: 'center',
+          transition: 'background 0.15s',
+        }}
+        onMouseEnter={e => { if (!tracking) e.currentTarget.style.background = 'rgba(90,158,114,0.06)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+      >
+        {tracking ? 'TRACKING...' : 'TRACK THIS BET'}
+      </button>
+      {trackError && (
+        <div style={{ marginTop: 4, fontFamily: mono, fontSize: '11px', color: '#C4686B', textAlign: 'center' }}>
+          {trackError}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CountdownPill({ startTime }) {
+  const [label, setLabel] = useState('');
+  useEffect(() => {
+    function calc() {
+      if (!startTime || !startTime.includes('T')) { setLabel(''); return; }
+      const tip = new Date(startTime);
+      if (isNaN(tip.getTime())) { setLabel(''); return; }
+      const diff = tip - Date.now();
+      if (diff <= 0) { setLabel(''); return; }
+      const mins = Math.floor(diff / 60000);
+      const hrs = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      if (mins < 5) setLabel('Tips soon');
+      else if (hrs < 1) setLabel(`Tips in ${mins}m`);
+      else if (hrs < 24) setLabel(`Tips in ${hrs}h ${remMins}m`);
+      else setLabel('Tips tomorrow');
+    }
+    calc();
+    const id = setInterval(calc, 60000);
+    return () => clearInterval(id);
+  }, [startTime]);
+
+  if (!label) return null;
+  const isSoon = label === 'Tips soon';
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      background: isSoon ? 'rgba(212,162,78,0.15)' : 'rgba(212,162,78,0.1)',
+      border: '0.5px solid rgba(212,162,78,0.2)',
+      borderRadius: 4, padding: '2px 8px',
+      fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+      fontSize: '10px', color: '#d4a24e',
+    }}>{label}</span>
   );
 }
 

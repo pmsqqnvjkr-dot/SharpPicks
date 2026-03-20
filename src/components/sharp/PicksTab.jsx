@@ -17,6 +17,12 @@ import { InlineError } from './ErrorStates';
 
 const HISTORY_DEFAULT_LIMIT = 6;
 
+function isTodayGame(gameDate) {
+  if (!gameDate) return false;
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  return gameDate.startsWith(today);
+}
+
 function formatDateShort(isoStr) {
   if (!isoStr) return '';
   if (typeof isoStr === 'string' && isoStr.match(/^\d{4}-\d{2}-\d{2}/)) {
@@ -44,6 +50,7 @@ export default function PicksTab({ onNavigate }) {
   const [showAllPicks, setShowAllPicks] = useState(false);
   const [dismissedResolutionId, setDismissedResolutionId] = useState(() => localStorage.getItem('sp_dismissed_resolution'));
   const [liveScore, setLiveScore] = useState(null);
+  const [allLiveScores, setAllLiveScores] = useState([]);
 
   const handleDismissResolution = (pickId) => {
     setDismissedResolutionId(pickId);
@@ -56,6 +63,7 @@ export default function PicksTab({ onNavigate }) {
       const resp = await fetch(`${PT_API_BASE}/api/picks/live-scores?sport=${sport}`);
       const json = await resp.json();
       if (json.scores) {
+        setAllLiveScores(json.scores);
         const normalize = s => s.toLowerCase().replace(/[^a-z]/g, '');
         const homeKey = normalize(todayData.home_team);
         const match = json.scores.find(s => normalize(s.home) === homeKey);
@@ -121,6 +129,39 @@ export default function PicksTab({ onNavigate }) {
             </div>
           </div>
         )}
+
+        {/* Market Intelligence link — top of tab */}
+        <button
+          onClick={() => onNavigate && onNavigate('market')}
+          style={{
+            width: '100%', padding: '12px 16px', marginBottom: '16px',
+            background: '#111e33', border: '0.5px solid #1e3050',
+            borderLeft: '3px solid #5A9E72',
+            borderRadius: '10px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 6,
+              background: 'rgba(90,158,114,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A9E72" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/>
+              </svg>
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#E8ECF4' }}>Market Intelligence</div>
+              <div style={{ fontSize: '11px', color: '#7A8494', marginTop: '1px' }}>
+                {marketReport?.available
+                  ? `${marketReport.games_analyzed || 0} games · ${(marketReport.edge_distribution?.strong || 0) + (marketReport.edge_distribution?.moderate || 0) + (marketReport.edge_distribution?.weak || 0)} edges · ${marketReport.qualified_signals || 0} signals · ${marketReport.signal_density || 0}% density`
+                  : "Today's report, lines, totals & moneylines"}
+              </div>
+            </div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A8494" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
 
         <section style={{ marginBottom: '16px' }}>
           <div style={{
@@ -335,29 +376,7 @@ export default function PicksTab({ onNavigate }) {
 
         {stats && <RecordStrip stats={stats} />}
 
-        <button
-          onClick={() => onNavigate && onNavigate('market')}
-          style={{
-            width: '100%', padding: '12px 16px', marginTop: '16px',
-            background: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
-            borderRadius: '12px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            transition: 'border-color 0.2s ease',
-          }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(79, 134, 247, 0.3)'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--stroke-subtle)'}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/>
-            </svg>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Market Insights &amp; Scan</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '1px' }}>Today&apos;s report, lines, totals &amp; moneylines</div>
-            </div>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
+        {/* Market Intelligence link moved to top of tab */}
       </div>
 
       <div style={{ padding: '0 20px', marginTop: '32px' }}>
@@ -386,6 +405,9 @@ export default function PicksTab({ onNavigate }) {
             </div>
           )}
         </div>
+
+        {/* Streak Indicator */}
+        {picks.length > 0 && <StreakDots picks={picks} />}
 
         {/* Filter Tabs */}
         <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
@@ -429,6 +451,7 @@ export default function PicksTab({ onNavigate }) {
                 pick={pick}
                 isPro={isPro}
                 isLast={i === displayPicks.length - 1}
+                allLiveScores={allLiveScores}
                 onView={() => { setResolutionPick(pick); setShowResolution(true); }}
               />
             ))}
@@ -488,12 +511,24 @@ function StatusBadge({ result }) {
   );
 }
 
-function SignalHistoryRow({ pick, isPro, isLast, onView }) {
+function SignalHistoryRow({ pick, isPro, isLast, allLiveScores, onView }) {
   const isSettled = pick.result === 'win' || pick.result === 'loss' || pick.result === 'push';
   const isPending = pick.result === 'pending';
   const isRevoked = pick.result === 'revoked';
   const hideLine = !isPro && isPending;
   const canView = isPro && (isSettled || isRevoked);
+
+  const liveMatch = (() => {
+    if (!isPending || !allLiveScores?.length || !pick.home_team) return null;
+    const normalize = s => s.toLowerCase().replace(/[^a-z]/g, '');
+    const homeKey = normalize(pick.home_team);
+    const found = allLiveScores.find(s => normalize(s.home) === homeKey);
+    if (found && (found.state === 'STATUS_IN_PROGRESS' || found.state === 'STATUS_HALFTIME')) return found;
+    return null;
+  })();
+  const liveLabel = liveMatch
+    ? `Live${liveMatch.period ? ` Q${liveMatch.period}` : ''}`
+    : null;
 
   const units = pick.profit_units != null ? pick.profit_units : (pick.pnl != null ? pick.pnl / 100 : null);
   const unitsStr = (() => {
@@ -507,8 +542,10 @@ function SignalHistoryRow({ pick, isPro, isLast, onView }) {
     : pick.result === 'loss' ? 'var(--color-loss)'
     : 'var(--text-tertiary)';
 
-  const rightLine1 = isSettled ? unitsStr : (isPending ? 'Pending' : isRevoked ? 'Withdrawn' : null);
+  const pendingLabel = isPending ? 'Pending' : null;
+  const rightLine1 = isSettled ? unitsStr : (isPending ? pendingLabel : isRevoked ? 'Withdrawn' : null);
   const rightLine1Color = isSettled ? unitsColor : 'var(--text-tertiary)';
+  const showCountdown = isPending && pick.start_time && pick.start_time.includes('T') && isTodayGame(pick.game_date);
 
   const clvVal = pick.clv != null ? parseFloat(pick.clv) : null;
   const hasCLV = isSettled && clvVal != null;
@@ -553,19 +590,22 @@ function SignalHistoryRow({ pick, isPro, isLast, onView }) {
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {pick.away_team} @ {pick.home_team} &middot; {formatDateShort(pick.game_date)}
+          {liveLabel && <span style={{ color: '#5A9E72' }}> · {liveLabel}</span>}
         </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
         <div style={{ textAlign: 'right' }}>
-          {rightLine1 && (
+          {showCountdown ? (
+            <CountdownLabel startTime={pick.start_time} />
+          ) : rightLine1 ? (
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: isSettled ? '14px' : '12px',
               fontWeight: isSettled ? 600 : 500,
               fontVariantNumeric: 'tabular-nums',
               color: rightLine1Color,
             }}>{rightLine1}</div>
-          )}
+          ) : null}
           {isPro && rightLine2 && (
             <div style={{
               fontFamily: 'var(--font-mono)',
@@ -965,6 +1005,106 @@ function ResolvedPickBanner({ pick, onViewDetails, onDismiss }) {
           <path d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
       </div>
+    </div>
+  );
+}
+
+function CountdownLabel({ startTime }) {
+  const [label, setLabel] = useState('');
+  useEffect(() => {
+    function calc() {
+      if (!startTime || !startTime.includes('T')) { setLabel('Pending'); return; }
+      const tip = new Date(startTime);
+      if (isNaN(tip.getTime())) { setLabel('Pending'); return; }
+      const diff = tip - Date.now();
+      if (diff <= 0) { setLabel('Pending'); return; }
+      const mins = Math.floor(diff / 60000);
+      const hrs = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      if (mins < 5) setLabel('Tips soon');
+      else if (hrs < 1) setLabel(`Tips in ${mins}m`);
+      else if (hrs < 24) setLabel(`Tips in ${hrs}h ${remMins}m`);
+      else setLabel('Tips tomorrow');
+    }
+    calc();
+    const id = setInterval(calc, 60000);
+    return () => clearInterval(id);
+  }, [startTime]);
+
+  return (
+    <div style={{
+      fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500,
+      fontVariantNumeric: 'tabular-nums',
+      color: '#d4a24e',
+    }}>{label}</div>
+  );
+}
+
+function StreakDots({ picks }) {
+  const last7 = picks.slice(0, 7);
+  const dotConfig = {
+    win:     { label: 'W',  bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
+    loss:    { label: 'L',  bg: 'rgba(196,104,107,0.15)', color: '#C4686B' },
+    revoked: { label: 'WD', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
+    pending: { label: 'P',  bg: 'rgba(212,162,78,0.15)',  color: '#d4a24e' },
+    push:    { label: 'PU', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
+  };
+
+  let streakCount = 0;
+  let streakType = null;
+  for (const p of picks) {
+    if (p.result === 'win' || p.result === 'loss') {
+      if (!streakType) {
+        streakType = p.result;
+        streakCount = 1;
+      } else if (p.result === streakType) {
+        streakCount++;
+      } else {
+        break;
+      }
+    } else if (p.result === 'pending' || p.result === 'revoked') {
+      if (!streakType) continue;
+      break;
+    } else {
+      if (!streakType) continue;
+      break;
+    }
+  }
+
+  const streakLabel = streakType === 'win'
+    ? `W${streakCount} streak` : streakType === 'loss'
+    ? `L${streakCount} streak` : '';
+  const streakColor = streakType === 'win' ? '#5A9E72' : streakType === 'loss' ? '#C4686B' : '#6b7a8d';
+
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      marginBottom: 10,
+    }}>
+      <div style={{ display: 'flex', gap: 4 }}>
+        {[...last7].reverse().map((p, i) => {
+          const cfg = dotConfig[p.result] || dotConfig.pending;
+          const isWide = cfg.label.length > 1;
+          return (
+            <div key={i} style={{
+              minWidth: isWide ? 26 : 22, height: 22, borderRadius: '50%',
+              background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              ...(isWide ? { borderRadius: 11, padding: '0 2px' } : {}),
+            }}>
+              <span style={{
+                fontFamily: "var(--font-mono)", fontSize: '9px', fontWeight: 500,
+                color: cfg.color,
+              }}>{cfg.label}</span>
+            </div>
+          );
+        })}
+      </div>
+      {streakLabel && (
+        <span style={{
+          fontFamily: "var(--font-mono)", fontSize: '11px', fontWeight: 500,
+          color: streakColor,
+        }}>{streakLabel}</span>
+      )}
     </div>
   );
 }
