@@ -2503,7 +2503,14 @@ def grade_pending_picks():
                             espn_away = next((t for t in teams if t['homeAway'] == 'away'), None)
                             if not espn_home or not espn_away:
                                 continue
-                            if espn_home['team']['displayName'] == pick.home_team and espn_away['team']['displayName'] == pick.away_team:
+                            def _team_match(espn_name, pick_name):
+                                if espn_name == pick_name:
+                                    return True
+                                aliases = {
+                                    'LA Clippers': 'Los Angeles Clippers',
+                                }
+                                return aliases.get(espn_name) == pick_name or aliases.get(pick_name) == espn_name
+                            if _team_match(espn_home['team']['displayName'], pick.home_team) and _team_match(espn_away['team']['displayName'], pick.away_team):
                                 game = {
                                     'home_score': int(espn_home.get('score', 0)),
                                     'away_score': int(espn_away.get('score', 0)),
