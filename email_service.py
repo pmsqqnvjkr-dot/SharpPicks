@@ -159,10 +159,10 @@ def _brand_header_html():
         img = f'<img src="data:image/png;base64,{logo}" alt="SP" width="28" height="28" style="display:inline-block;vertical-align:middle;margin-right:12px;" />'
     else:
         img = ''
-    bars = ('<span style="display:inline-block;width:2px;height:11px;background-color:#FFFFFF;opacity:0.5;vertical-align:middle;border-radius:1px;margin-right:3px;"></span>'
-             '<span style="display:inline-block;width:2px;height:11px;background-color:#FFFFFF;opacity:0.5;vertical-align:middle;border-radius:1px;"></span>')
+    bars = ('<span style="display:inline-block;width:2px;height:14px;background-color:#E8EAED;opacity:0.85;vertical-align:middle;border-radius:99px;margin-right:3px;"></span>'
+             '<span style="display:inline-block;width:2px;height:14px;background-color:#E8EAED;opacity:0.85;vertical-align:middle;border-radius:99px;"></span>')
     return f'''{img}<!--
-            --><span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#FFFFFF;vertical-align:middle;">SHARP<span style="margin:0 0.35em;vertical-align:middle;">{bars}</span>PICKS</span>'''
+            --><span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:500;letter-spacing:0.25em;text-transform:uppercase;color:#E8EAED;vertical-align:middle;">SHARP<span style="margin:0 0.4em;vertical-align:middle;">{bars}</span>PICKS</span>'''
 
 
 def _base_template(type_label, body_html, cta_text=None, cta_url=None,

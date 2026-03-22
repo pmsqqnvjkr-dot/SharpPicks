@@ -65,6 +65,7 @@ export default function OnboardingFlow({ onComplete }) {
             objectFit: 'contain',
             opacity: 0.07,
             marginBottom: '12px', marginTop: '8px',
+            borderRadius: 12,
           }}
         />
 

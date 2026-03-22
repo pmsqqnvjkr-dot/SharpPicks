@@ -11,13 +11,13 @@
   "plugins": {
     "SplashScreen": {
       "launchAutoHide": true,
-      "backgroundColor": "#0A0D14",
+      "backgroundColor": "#111827",
       "showSpinner": false,
       "launchShowDuration": 2000
     },
     "StatusBar": {
       "style": "Dark",
-      "backgroundColor": "#0A0D14"
+      "backgroundColor": "#111827"
     },
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]
@@ -27,6 +27,6 @@
     "contentInset": "always"
   },
   "android": {
-    "backgroundColor": "#0A0D14"
+    "backgroundColor": "#111827"
   }
 }

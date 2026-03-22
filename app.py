@@ -1408,12 +1408,12 @@ Founder, SharpPicks""",
                     title="The Model Doesn't Watch the Game",
                     slug="the-model-doesnt-watch-the-game",
                     category="philosophy",
-                    excerpt="Sharp Picks doesn't know about momentum or vibes. It knows 56 features and a discipline filter that has no feelings about your favorite team.",
+                    excerpt="SharpPicks doesn't know about momentum or vibes. It knows 56 features and a discipline filter that has no feelings about your favorite team.",
                     content="""There's a moment every bettor knows. You're watching a team that "feels" right. They're moving the ball, their energy is up, the crowd is into it. You pull out your phone and put money down.
 
 That feeling is real. It's also irrelevant.
 
-Sharp Picks doesn't watch the game. It doesn't know about momentum or vibes or that one announcer who keeps saying a team "wants it more." It knows 56 features, a 3.5% minimum edge threshold, and a discipline filter that has no feelings about your favorite team.
+SharpPicks doesn't watch the game. It doesn't know about momentum or vibes or that one announcer who keeps saying a team "wants it more." It knows 56 features, a 3.5% minimum edge threshold, and a discipline filter that has no feelings about your favorite team.
 
 This is the hardest thing for new users to understand. You're not signing up for hot takes. You're signing up for a system that will, on most nights, tell you to do nothing. And that's the point.
 
@@ -1421,7 +1421,7 @@ This is the hardest thing for new users to understand. You're not signing up for
 
 ## The Discipline Gap
 
-I built Sharp Picks because I was tired of my own brain. I'd do the research, find the edge, and then talk myself out of it because of something I saw in pregame warmups. Or I'd skip the research entirely because I "knew" a team was due.
+I built SharpPicks because I was tired of my own brain. I'd do the research, find the edge, and then talk myself out of it because of something I saw in pregame warmups. Or I'd skip the research entirely because I "knew" a team was due.
 
 The model doesn't have a "due" detector. It has a four-model ensemble that asks a simple question: is the market's price wrong by enough to matter? If yes, signal. If no, pass. Every time, no exceptions.
 
@@ -1457,7 +1457,7 @@ Sports betting has a built-in psychological trap: there are games every night. U
 
 Most bettors lose money not because they're bad at picking winners, but because they bet too often. They turn a 55% edge into a 48% edge by diluting it with action on games where they have no advantage.
 
-Sharp Picks solves this by making inaction the default. The discipline filter doesn't ask "which game should we bet on?" It asks "is there any game worth betting on?" Most nights, the answer is no. And that's fine.
+SharpPicks solves this by making inaction the default. The discipline filter doesn't ask "which game should we bet on?" It asks "is there any game worth betting on?" Most nights, the answer is no. And that's fine.
 
 ---
 
@@ -1476,8 +1476,8 @@ If you're uncomfortable with inaction, this is the first thing to work on. Not y
                     title="What Happens Between the Lines and Your Phone",
                     slug="what-happens-between-the-lines-and-your-phone",
                     category="how_it_works",
-                    excerpt="Three times a day, Sharp Picks pulls lines from six sportsbooks. Here's what happens next.",
-                    content="""Every morning, Sharp Picks wakes up before you do. By the time you check the app, the system has already pulled fresh lines from six major sportsbooks, run them through a four-model ensemble, and decided whether any game on tonight's slate is worth your attention.
+                    excerpt="Three times a day, SharpPicks pulls lines from six sportsbooks. Here's what happens next.",
+                    content="""Every morning, SharpPicks wakes up before you do. By the time you check the app, the system has already pulled fresh lines from six major sportsbooks, run them through a four-model ensemble, and decided whether any game on tonight's slate is worth your attention.
 
 Here's what that actually looks like, step by step.
 
@@ -1531,7 +1531,7 @@ It's not. You just don't have enough data yet.
 
 At 12 picks, your record is mostly noise. A fair coin flipped 12 times can easily come up 5-7. Or 8-4. Or 3-9. The variance in small samples is enormous, and your emotional reaction to a 5-7 start will mislead you far more than the record itself.
 
-This is why Sharp Picks tracks Closing Line Value as the primary early performance metric. CLV answers a different question than your record does: not "did the bet win?" but "was the bet smart?"
+This is why SharpPicks tracks Closing Line Value as the primary early performance metric. CLV answers a different question than your record does: not "did the bet win?" but "was the bet smart?"
 
 ---
 
@@ -1571,7 +1571,7 @@ The bettors who survive are the ones who sized their bets correctly before the s
 
 ---
 
-## What Sharp Picks Does During a Streak
+## What SharpPicks Does During a Streak
 
 Nothing different. The model doesn't know it's on a losing streak. It doesn't have a "get back to even" mode. It analyzes the next slate the same way it analyzed the last one: 56 features, four models, discipline filter, 3.5% threshold. Same inputs, same process, same outputs.
 
@@ -1593,7 +1593,7 @@ If after 50+ picks the CLV is negative and the record is meaningfully below expe
                     slug="why-the-model-respects-the-market",
                     category="how_it_works",
                     excerpt="Our model is 30% model, 70% market. That sounds like the model barely has an opinion. That's exactly right. And that's why it works.",
-                    content="""Sharp Picks uses a 30/70 model-to-market shrinkage blend. That means the system's final output is 30% model prediction and 70% market line. On first glance, that sounds like the model barely has an opinion.
+                    content="""SharpPicks uses a 30/70 model-to-market shrinkage blend. That means the system's final output is 30% model prediction and 70% market line. On first glance, that sounds like the model barely has an opinion.
 
 That's exactly right. And that's why it works.
 
@@ -1631,7 +1631,7 @@ If the model ever becomes more accurate than the market on raw MAE, we'd shift t
                     excerpt="The next time someone offers you a lock, ask three questions: methodology, full-season record, CLV. If they can't answer all three, they're selling hope.",
                     content="""The sports betting internet is full of people selling picks. They'll tell you they're up 40 units this month. They'll show you a screenshot of a winning ticket. They'll charge you $99 for a "VIP package" that gives you access to their "lock of the day."
 
-Sharp Picks is not that.
+SharpPicks is not that.
 
 ---
 
@@ -1645,7 +1645,7 @@ This business model requires opacity. If you showed the full record, the full me
 
 ## Radical Transparency
 
-Sharp Picks shows you everything. Every game analyzed. Every edge detected. Every pick passed on. The discipline filter is visible. The quant reasoning is visible. The model's track record - wins and losses - is visible. The CLV is visible.
+SharpPicks shows you everything. Every game analyzed. Every edge detected. Every pick passed on. The discipline filter is visible. The quant reasoning is visible. The model's track record - wins and losses - is visible. The CLV is visible.
 
 I don't cherry-pick winning nights for marketing. I don't hide losing streaks. The Results tab shows every pick the model has ever made, in order, with the outcome. If the model is performing, you'll see it. If it's not, you'll see that too.
 
@@ -1667,7 +1667,7 @@ Hope doesn't have a positive expected value. Process does.""",
                     slug="what-march-madness-silence-taught-us",
                     category="market_notes",
                     excerpt="March Madness came and went. We didn't publish a single pick. That was one of the hardest decisions I've made as a founder.",
-                    content="""March Madness came and went. Sharp Picks didn't publish a single tournament pick. Not because we didn't want to - because the model isn't built for it.
+                    content="""March Madness came and went. SharpPicks didn't publish a single tournament pick. Not because we didn't want to - because the model isn't built for it.
 
 This was one of the hardest decisions I've made as a founder, and one of the most important.
 
@@ -1677,7 +1677,7 @@ This was one of the hardest decisions I've made as a founder, and one of the mos
 
 Every sports betting product on the planet publishes March Madness content. Brackets, upset specials, first-round locks. It's the highest-traffic period of the year. From a marketing perspective, staying silent is insane.
 
-But Sharp Picks is an NBA spread model. The features are tuned for NBA matchups, NBA pace, NBA rest patterns, NBA scoring distributions. College basketball is a fundamentally different sport with 350+ teams, wildly inconsistent data quality, and a tournament format that amplifies variance to absurd levels.
+But SharpPicks is an NBA spread model. The features are tuned for NBA matchups, NBA pace, NBA rest patterns, NBA scoring distributions. College basketball is a fundamentally different sport with 350+ teams, wildly inconsistent data quality, and a tournament format that amplifies variance to absurd levels.
 
 ---
 
@@ -1702,8 +1702,8 @@ When we launch MLB and WNBA coverage later this year, each sport will have its o
                     title="Shadow Mode: How We Test a Model Before You See It",
                     slug="shadow-mode-how-we-test-a-model",
                     category="how_it_works",
-                    excerpt="Before any model goes live on Sharp Picks, it runs in shadow mode - generating picks against real lines that no user ever sees. Here's why.",
-                    content="""Before any model goes live on Sharp Picks, it runs in shadow mode. Shadow mode means the model generates picks in real time against real lines, but those picks are never shown to users. They're graded silently in the background.
+                    excerpt="Before any model goes live on SharpPicks, it runs in shadow mode - generating picks against real lines that no user ever sees. Here's why.",
+                    content="""Before any model goes live on SharpPicks, it runs in shadow mode. Shadow mode means the model generates picks in real time against real lines, but those picks are never shown to users. They're graded silently in the background.
 
 This is how we're preparing for MLB and WNBA.
 
@@ -1736,10 +1736,10 @@ This process isn't fast. That's intentional. We'd rather launch late with a vali
                     title="The Anti-Parlay Manifesto",
                     slug="the-anti-parlay-manifesto",
                     category="philosophy",
-                    excerpt="A six-leg parlay has a higher house edge than most casino table games. Sharp Picks will never generate a parlay. Here's the math.",
+                    excerpt="A six-leg parlay has a higher house edge than most casino table games. SharpPicks will never generate a parlay. Here's the math.",
                     content="""Parlays are the sports betting industry's most effective tool for separating you from your money. Sportsbooks love them. Social media loves them. Your bankroll does not.
 
-Sharp Picks will never generate a parlay. Here's why.
+SharpPicks will never generate a parlay. Here's why.
 
 ---
 
@@ -1761,7 +1761,7 @@ This is the same selection bias that makes touts look profitable. The wins are p
 
 ## What We Do Instead
 
-Sharp Picks generates flat-stake, single-game signals. One pick at a time, each with its own independent edge. If you want to bet three signals in one night, bet them as three separate bets. Your expected value is the same, but your variance is dramatically lower and the house takes less off the top.
+SharpPicks generates flat-stake, single-game signals. One pick at a time, each with its own independent edge. If you want to bet three signals in one night, bet them as three separate bets. Your expected value is the same, but your variance is dramatically lower and the house takes less off the top.
 
 Boring? Yes. Profitable? That's the plan.""",
                     status="scheduled", publish_date=datetime(2026, 5, 8, 14, 0),
@@ -2087,7 +2087,7 @@ That's exactly why it works.
 
 The most common bankroll mistake isn't betting too much on one game. It's increasing bet size after wins and failing to decrease after losses. This asymmetry - known as gambler's ruin in probability theory - means that even a positive-EV bettor can go broke through poor sizing.
 
-Sharp Picks uses flat stakes for a reason. Every signal gets the same allocation regardless of edge size or confidence level. A 7% edge and a 3.5% edge get the same bet. This feels suboptimal. It isn't.
+SharpPicks uses flat stakes for a reason. Every signal gets the same allocation regardless of edge size or confidence level. A 7% edge and a 3.5% edge get the same bet. This feels suboptimal. It isn't.
 
 ---
 
@@ -2113,7 +2113,7 @@ You don't make that decision. The system does. And when conditions recover, sizi
                     slug="mlb-shadow-mode-what-we-learned",
                     category="how_it_works",
                     excerpt="The MLB model has been running in shadow mode since late March. Here's what two months of silent predictions revealed about baseball markets.",
-                    content="""Since late March, the Sharp Picks MLB model has been running in shadow mode. Every day, it analyzes the full slate of games, generates predictions, and records what it would have signaled. No picks go live. No money on the line. Just data.
+                    content="""Since late March, the SharpPicks MLB model has been running in shadow mode. Every day, it analyzes the full slate of games, generates predictions, and records what it would have signaled. No picks go live. No money on the line. Just data.
 
 ---
 
@@ -2187,7 +2187,7 @@ The off-season is not downtime. It's the opposite.""",
                     excerpt="Every losing pick stays in the record. Every revoked signal is visible. This isn't an accident - it's the entire point.",
                     content="""Every betting service shows you the wins. The screenshots. The green. The "another one cashes" posts. What they don't show you is the full picture.
 
-Sharp Picks shows you everything.
+SharpPicks shows you everything.
 
 ---
 
@@ -2213,7 +2213,7 @@ Disciplined betting includes losing streaks. It includes weeks where the record 
 
 In an industry built on selective disclosure, full transparency is a competitive advantage. Not because it looks good in marketing - it often doesn't - but because it builds the kind of trust that survives a losing week.
 
-If you can look at our full record, see the losses, and still understand why the process works, then you understand what Sharp Picks is. If you can't, then we need to explain it better. Either way, the data stays visible.""",
+If you can look at our full record, see the losses, and still understand why the process works, then you understand what SharpPicks is. If you can't, then we need to explain it better. Either way, the data stays visible.""",
                     status="scheduled", publish_date=datetime(2026, 7, 7, 14, 0),
                     reading_time_minutes=4,
                 ))

@@ -48,9 +48,9 @@ def main():
         import resend
         resend.api_key = api_key
         r = resend.Emails.send({
-            "from": "Sharp Picks <info@sharppicks.ai>",
+            "from": "SharpPicks <info@sharppicks.ai>",
             "to": [to_email],
-            "subject": "Resend test — Sharp Picks",
+            "subject": "Resend test — SharpPicks",
             "html": "<p>This is a test. Your Resend key works.</p>",
         })
         print(f"SUCCESS: Test email sent to {to_email} (id={r.get('id', 'N/A')})")

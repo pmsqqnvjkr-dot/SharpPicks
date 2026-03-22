@@ -259,7 +259,7 @@ def api_index():
     """API health check"""
     return jsonify({
         'status': 'ok',
-        'service': 'Sharp Picks Dashboard API',
+        'service': 'SharpPicks Dashboard API',
         'endpoints': [
             '/api/admin/stats',
             '/api/admin/stats/live',

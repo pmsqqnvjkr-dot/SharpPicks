@@ -42,12 +42,12 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/images/crest.png" alt="" width="26" height="26" style={{ display: 'block', marginRight: '16px', flexShrink: 0, objectFit: 'contain' }} />
+            <img src="/images/crest.png" alt="" width="24" height="24" style={{ display: 'block', marginRight: '14px', flexShrink: 0, objectFit: 'contain', borderRadius: 5 }} />
             <span style={{
-              fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 600,
-              color: '#F2F4F8', letterSpacing: '3.9px', textTransform: 'uppercase',
-              lineHeight: 1,
-            }}>SHARP<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, margin: '0 0.4em' }}><span style={{ width: 2, height: 11, backgroundColor: 'currentColor', opacity: 0.5, borderRadius: 1 }} /><span style={{ width: 2, height: 11, backgroundColor: 'currentColor', opacity: 0.5, borderRadius: 1 }} /></span>PICKS</span>
+              fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 500,
+              color: '#E8EAED', letterSpacing: '0.25em', textTransform: 'uppercase',
+              lineHeight: 1, display: 'inline-flex', alignItems: 'center',
+            }}>SHARP<span style={{ display: 'inline-flex', gap: '0.18em', margin: '0 0.4em', alignSelf: 'center' }}><span style={{ display: 'block', width: '0.08em', height: '1.24em', background: 'currentColor', borderRadius: 999 }} /><span style={{ display: 'block', width: '0.08em', height: '1.24em', background: 'currentColor', borderRadius: 999 }} /></span>PICKS</span>
           </div>
           <ModelHealthBadge health={health} />
         </div>

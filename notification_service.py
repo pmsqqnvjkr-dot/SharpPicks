@@ -215,7 +215,7 @@ def send_trial_expiring_notification(user, days_remaining):
         return False
     try:
         title = "Trial Expires Tomorrow"
-        body = "Your Sharp Picks trial ends tomorrow. Lock in your subscription."
+        body = "Your SharpPicks trial ends tomorrow. Lock in your subscription."
         data = {'type': 'trial_expiring', 'days_remaining': str(days_remaining)}
         sent = send_push_notification(user.id, title, body, data)
         logging.info(f"Trial expiring notification sent to user {user.id} ({days_remaining}d)")

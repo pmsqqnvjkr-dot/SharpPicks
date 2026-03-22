@@ -69,8 +69,8 @@ export const sharedStyles = {
   logoText: {
     fontFamily: "Arial, Helvetica, sans-serif",
     fontSize: "13px",
-    fontWeight: 800,
-    letterSpacing: "0.3em",
+    fontWeight: 500,
+    letterSpacing: "0.25em",
     textTransform: "uppercase" as const,
     color: brand.text,
     verticalAlign: "middle" as const,
@@ -230,7 +230,7 @@ export function BaseEmail({
                   style={sharedStyles.logoImg}
                 />
                 <Text style={sharedStyles.logoText}>
-                  SHARP<span style={{ opacity: 0.5, margin: "0 0.35em", fontWeight: 500, letterSpacing: "0.15em" }}>||</span>PICKS
+                  SHARP<span style={{ opacity: 0.85, margin: "0 0.4em", fontWeight: 500, letterSpacing: "0.18em" }}>||</span>PICKS
                 </Text>
               </Section>
               <Hr style={sharedStyles.logoDivider} />
