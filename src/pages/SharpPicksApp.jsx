@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 import { useNetwork } from '../hooks/useNetwork';
 import { SportProvider } from '../hooks/useSport';
+import { apiGet } from '../hooks/useApi';
 
 const PROD_URL = 'https://app.sharppicks.ai';
 const NATIVE_API = Capacitor.isNativePlatform() ? PROD_URL : '';
@@ -234,21 +235,48 @@ function AppContent() {
     localStorage.setItem('sp_onboarded', '1');
   };
 
+  const [verifyTimedOut, setVerifyTimedOut] = useState(false);
+  const verifyStartRef = useRef(null);
+
   useEffect(() => {
-    if (user && user.subscription_status === 'pending_verification') {
-      const poll = setInterval(async () => {
-        try { await checkAuth(); } catch {}
-      }, 5000);
-      const onFocus = () => { checkAuth(); };
-      window.addEventListener('focus', onFocus);
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') checkAuth();
-      });
-      return () => {
-        clearInterval(poll);
-        window.removeEventListener('focus', onFocus);
-      };
+    if (!(user && user.subscription_status === 'pending_verification')) return;
+    if (!verifyStartRef.current) verifyStartRef.current = Date.now();
+    setVerifyTimedOut(false);
+
+    const POLL_MS = 4000;
+    const TIMEOUT_MS = 5 * 60 * 1000;
+
+    const checkVerification = async () => {
+      try {
+        const data = await apiGet('/check-verification-status');
+        if (data?.verified) { await checkAuth(); return; }
+      } catch { /* ignore */ }
+      if (Date.now() - verifyStartRef.current > TIMEOUT_MS) {
+        setVerifyTimedOut(true);
+      }
+    };
+
+    const poll = setInterval(checkVerification, POLL_MS);
+
+    const onFocus = () => checkVerification();
+    window.addEventListener('focus', onFocus);
+    const onVisibility = () => { if (document.visibilityState === 'visible') checkVerification(); };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    let appListener;
+    if (Capacitor.isNativePlatform()) {
+      import('@capacitor/app').then(({ App }) => {
+        App.addListener('appStateChange', ({ isActive }) => { if (isActive) checkVerification(); })
+          .then(l => { appListener = l; });
+      }).catch(() => {});
     }
+
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+      appListener?.remove?.();
+    };
   }, [user?.subscription_status]);
 
   if (loading) {
@@ -317,10 +345,35 @@ function AppContent() {
         <p style={{
           fontSize: '13px', color: 'var(--text-tertiary)', marginBottom: '28px',
         }}>Check your spam folder if you don't see it.</p>
+        {!verifyTimedOut && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            justifyContent: 'center', marginBottom: '20px',
+            color: 'var(--text-tertiary)', fontSize: '12px',
+            fontFamily: 'var(--font-mono)',
+          }}>
+            <div style={{
+              width: '14px', height: '14px', borderRadius: '50%',
+              border: '2px solid var(--stroke-subtle)', borderTopColor: 'var(--blue-primary)',
+              animation: 'spin 1s linear infinite',
+            }} />
+            Waiting for verification...
+          </div>
+        )}
+        {verifyTimedOut && (
+          <p style={{
+            fontSize: '13px', color: 'var(--text-tertiary)', marginBottom: '12px',
+            fontFamily: 'var(--font-sans)',
+          }}>
+            Didn't get it? Tap below to resend.
+          </p>
+        )}
         <button
           onClick={async () => {
             try {
               await fetch(`${NATIVE_API}/api/auth/resend-verification`, { method: 'POST', credentials: 'include' });
+              verifyStartRef.current = Date.now();
+              setVerifyTimedOut(false);
             } catch {}
           }}
           style={{
@@ -397,6 +450,7 @@ function AppContent() {
         {activeTab === 'performance' && <PerformanceTab onNavigate={navigateTo} initialView={perfView} onViewConsumed={() => setPerfView(null)} />}
         {activeTab === 'profile' && <ProfileTab initialScreen={profileScreen} onScreenChange={setProfileScreen} pickToTrack={pickToTrack} onPickTracked={() => setPickToTrack(null)} screenData={profileScreenData} />}
       </div>
+      <ScrollToTopButton />
       <TabNav activeTab={activeTab} onTabChange={(tab) => {
         if (tab === activeTab && tab === 'picks') {
           setPicksResetKey(k => k + 1);
@@ -404,6 +458,43 @@ function AppContent() {
         setActiveTab(tab);
       }} />
     </div>
+  );
+}
+
+function ScrollToTopButton() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 300);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      aria-label="Scroll to top"
+      style={{
+        position: 'fixed',
+        bottom: 'calc(20px + 60px + env(safe-area-inset-bottom, 0px))',
+        right: '20px',
+        width: '44px', height: '44px',
+        borderRadius: '50%',
+        backgroundColor: 'var(--surface-1)',
+        border: '1px solid var(--stroke-subtle)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer',
+        zIndex: 90,
+        transition: 'opacity 0.2s',
+      }}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="18 15 12 9 6 15"/>
+      </svg>
+    </button>
   );
 }
 

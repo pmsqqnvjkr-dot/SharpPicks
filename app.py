@@ -3705,6 +3705,17 @@ def get_current_user():
         return jsonify({'authenticated': True, 'user': user_dict, 'token': token})
     return jsonify({'authenticated': False, 'user': None})
 
+@app.route('/api/check-verification-status')
+def check_verification_status():
+    """Lightweight poll endpoint for email verification state"""
+    user_dict = get_current_user_from_session()
+    if not user_dict:
+        return jsonify({'verified': False}), 401
+    user = db.session.get(User, user_dict['id'])
+    if not user:
+        return jsonify({'verified': False}), 401
+    return jsonify({'verified': bool(user.email_verified)})
+
 @app.route('/api/auth/register', methods=['POST'])
 @limiter.limit("5 per minute")
 def register():

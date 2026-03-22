@@ -85,8 +85,9 @@ export default function AppHeader({ onNavigate }) {
               onClick={() => setMenuOpen(!menuOpen)}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                padding: '6px', display: 'flex', alignItems: 'center',
-                justifyContent: 'center',
+                padding: '12px', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', minWidth: '44px', minHeight: '44px',
+                margin: '-6px',
               }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round">
@@ -169,7 +170,8 @@ function SportFilterPills({ sport, setSport }) {
             onClick={() => { if (!comingSoon) setSport(key); }}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '5px 12px', borderRadius: '20px',
+              padding: '10px 16px', borderRadius: '20px',
+              minHeight: '40px',
               fontSize: '11px', fontWeight: 700,
               fontFamily: 'var(--font-mono)',
               textTransform: 'uppercase',

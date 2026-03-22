@@ -1129,14 +1129,14 @@ function FilterTabs({ active, onChange, hasLive, hasModel }) {
   let tabs = hasLive ? ['All', 'Upcoming', 'Live', 'Final'] : ['All', 'Upcoming', 'Final'];
   if (hasModel) tabs = [...tabs, 'Passed'];
   return (
-    <div style={{ display: 'flex', gap: 6 }}>
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
       {tabs.map(tab => {
         const isActive = active === tab;
         return (
           <button key={tab} onClick={() => onChange(tab)} style={{
             fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
             fontSize: '11px', fontWeight: 500,
-            padding: '6px 14px', borderRadius: 6, cursor: 'pointer',
+            padding: '10px 16px', minHeight: '40px', borderRadius: 6, cursor: 'pointer',
             transition: 'all 0.15s ease',
             border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.06)',
             background: isActive ? '#141A2E' : 'transparent',
@@ -1158,14 +1158,14 @@ const SORT_OPTIONS = [
 function SortPicker({ active, onChange, isPro }) {
   const opts = isPro ? SORT_OPTIONS : SORT_OPTIONS.filter(o => o.key !== 'edge');
   return (
-    <div style={{ display: 'flex', gap: 4 }}>
+    <div style={{ display: 'flex', gap: 6 }}>
       {opts.map(opt => {
         const isActive = active === opt.key;
         return (
           <button key={opt.key} onClick={() => onChange(opt.key)} style={{
             fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
             fontSize: '10px', fontWeight: 500, letterSpacing: '0.8px',
-            padding: '3px 8px', borderRadius: 3, cursor: 'pointer',
+            padding: '8px 12px', minHeight: '36px', borderRadius: 3, cursor: 'pointer',
             border: 'none',
             background: isActive ? '#141A2E' : 'transparent',
             color: isActive ? '#E8ECF4' : '#7A8494',

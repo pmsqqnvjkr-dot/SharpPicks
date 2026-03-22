@@ -384,7 +384,7 @@ export default function PicksTab({ onNavigate }) {
         {picks.length > 0 && <StreakDots picks={picks} />}
 
         {/* Filter Tabs */}
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
           {[
             { key: 'all', label: 'All' },
             { key: 'wins', label: 'Wins' },
@@ -393,7 +393,7 @@ export default function PicksTab({ onNavigate }) {
             { key: 'other', label: 'Other' },
           ].map(f => (
             <button key={f.key} onClick={() => { setFilter(f.key); setShowAllPicks(false); }} style={{
-              padding: '6px 14px', borderRadius: '4px', fontSize: '13px',
+              padding: '10px 16px', minHeight: '40px', borderRadius: '6px', fontSize: '13px',
               fontWeight: filter === f.key ? 600 : 400, cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
               backgroundColor: filter === f.key ? 'var(--color-signal)' : 'transparent',
