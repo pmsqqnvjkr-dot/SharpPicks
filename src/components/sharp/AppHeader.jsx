@@ -148,7 +148,7 @@ export default function AppHeader({ onNavigate }) {
 }
 
 const SPORT_CONFIG = {
-  nba: { label: 'NBA', color: '#F97316', active: true },
+  nba: { label: 'NBA', color: '#d4874d', active: true },
   mlb: { label: 'MLB', color: '#3B82F6', active: false },
   wnba: { label: 'WNBA', color: '#EC4899', active: false },
 };
