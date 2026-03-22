@@ -396,7 +396,6 @@ function DashHeader() {
       borderBottom: '1px solid rgba(255,255,255,0.06)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <img src="/images/crest.png" alt="" width="24" height="24" style={{ display: 'block', marginRight: '14px', flexShrink: 0, objectFit: 'contain', borderRadius: 5 }} />
         <span style={{
           fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 500,
           letterSpacing: '0.25em', textTransform: 'uppercase',

@@ -57,7 +57,6 @@ export default function AppHeader({ onNavigate }) {
           onClick={() => onNavigate('picks')}
           style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
         >
-          <img src="/images/crest.png" alt="" width="24" height="24" style={{ display: 'block', marginRight: '14px', flexShrink: 0, objectFit: 'contain', borderRadius: 5 }} />
           <span style={{
             fontFamily: 'var(--font-sans)',
             fontSize: '13px',
