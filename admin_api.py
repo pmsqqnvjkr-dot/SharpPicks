@@ -2465,12 +2465,19 @@ def admin_engagement():
         return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
     cutoff = datetime.utcnow() - timedelta(days=7)
+
+    first_event = UserEvent.query.order_by(UserEvent.created_at.asc()).first()
+    tracking_since = first_event.created_at.isoformat() if first_event else None
+    total_event_count = UserEvent.query.count()
+
     events = UserEvent.query.filter(UserEvent.created_at >= cutoff).all()
 
     dau_by_day = {}
     page_stats = {}
     session_durations = []
     feature_users = {'view_market_scan': set(), 'view_article': set(), 'tap_bet_link': set()}
+    all_active_users_7d = set()
+    total_sessions_7d = set()
 
     for ev in events:
         d = _utc_naive_to_et_date(ev.created_at)
@@ -2479,6 +2486,10 @@ def admin_engagement():
                 dau_by_day[d] = set()
             if ev.user_id:
                 dau_by_day[d].add(ev.user_id)
+                all_active_users_7d.add(ev.user_id)
+
+        if ev.session_id:
+            total_sessions_7d.add(ev.session_id)
 
         pkey = ev.page if ev.page else ''
         if pkey not in page_stats:
@@ -2498,11 +2509,22 @@ def admin_engagement():
         if ev.event_type in feature_users and ev.user_id:
             feature_users[ev.event_type].add(ev.user_id)
 
-    dau = sorted(
-        [{'date': d.isoformat(), 'active_users': len(users)} for d, users in dau_by_day.items()],
-        key=lambda x: x['date'],
-    )
+    today_et = datetime.now(ET).date()
+    dau = []
+    for i in range(7):
+        d = today_et - timedelta(days=6 - i)
+        active = len(dau_by_day.get(d, set()))
+        dau.append({'date': d.isoformat(), 'active_users': active})
+
     avg_session_duration = round(sum(session_durations) / len(session_durations), 2) if session_durations else None
+    active_user_count = len(all_active_users_7d)
+    avg_sessions_per_user = round(len(total_sessions_7d) / active_user_count, 1) if active_user_count else None
+    page_view_events = [ev for ev in events if ev.event_type == 'page_view']
+    pages_per_session = {}
+    for ev in page_view_events:
+        sid = ev.session_id or '_'
+        pages_per_session[sid] = pages_per_session.get(sid, 0) + 1
+    avg_pages_per_session = round(sum(pages_per_session.values()) / len(pages_per_session), 1) if pages_per_session else None
 
     top_pages_raw = sorted(
         page_stats.items(),
@@ -2515,48 +2537,54 @@ def admin_engagement():
         'distinct_users': len(st['users']),
     } for name, st in top_pages_raw]
 
-    feature_adoption = {k: len(v) for k, v in feature_users.items()}
+    feature_adoption = {}
+    for k, v in feature_users.items():
+        user_count = len(v)
+        pct = round(user_count / active_user_count * 100, 1) if active_user_count else 0
+        feature_adoption[k] = {'users': user_count, 'pct_of_active': pct}
 
     d1_eligible = d1_returned = 0
     d7_eligible = d7_returned = 0
-    all_users = User.query.filter(User.created_at.isnot(None)).all()
     event_user_days = {}
-    try:
-        day_rows = db.session.execute(text("""
-            SELECT DISTINCT user_id,
-                   (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')::date AS d
-            FROM user_events
-            WHERE user_id IS NOT NULL
-        """)).fetchall()
-        for uid, d in day_rows:
-            if uid and d:
-                event_user_days.setdefault(uid, set()).add(d)
-    except Exception as e:
-        logging.warning('engagement retention day query failed, falling back to ORM scan: %s', e)
-        for ev in UserEvent.query.filter(UserEvent.user_id.isnot(None)).yield_per(2000):
-            dd = _utc_naive_to_et_date(ev.created_at)
-            if dd:
-                event_user_days.setdefault(ev.user_id, set()).add(dd)
+    if total_event_count > 0:
+        try:
+            day_rows = db.session.execute(text("""
+                SELECT DISTINCT user_id,
+                       (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')::date AS d
+                FROM user_events
+                WHERE user_id IS NOT NULL
+            """)).fetchall()
+            for uid, d in day_rows:
+                if uid and d:
+                    event_user_days.setdefault(uid, set()).add(d)
+        except Exception as e:
+            logging.warning('engagement retention day query failed: %s', e)
 
-    today_et = datetime.now(ET).date()
-    for u in all_users:
-        signup_d = _utc_naive_to_et_date(u.created_at)
-        if signup_d is None:
-            continue
-        udays = event_user_days.get(u.id, set())
-        if signup_d + timedelta(days=1) <= today_et:
-            d1_eligible += 1
-            if (signup_d + timedelta(days=1)) in udays:
-                d1_returned += 1
-        if signup_d + timedelta(days=7) <= today_et:
-            d7_eligible += 1
-            if (signup_d + timedelta(days=7)) in udays:
-                d7_returned += 1
+        tracking_start_d = _utc_naive_to_et_date(first_event.created_at) if first_event else today_et
+        for uid in all_active_users_7d:
+            udays = event_user_days.get(uid, set())
+            first_seen = min(udays) if udays else None
+            if not first_seen:
+                continue
+            if first_seen + timedelta(days=1) <= today_et:
+                d1_eligible += 1
+                if (first_seen + timedelta(days=1)) in udays:
+                    d1_returned += 1
+            if first_seen + timedelta(days=7) <= today_et:
+                d7_eligible += 1
+                if (first_seen + timedelta(days=7)) in udays:
+                    d7_returned += 1
 
     return jsonify({
         'period_days': 7,
+        'tracking_since': tracking_since,
+        'total_events': total_event_count,
+        'active_users_7d': active_user_count,
+        'total_sessions_7d': len(total_sessions_7d),
         'dau': dau,
         'avg_session_duration': avg_session_duration,
+        'avg_sessions_per_user': avg_sessions_per_user,
+        'avg_pages_per_session': avg_pages_per_session,
         'top_pages': top_pages,
         'feature_adoption': feature_adoption,
         'retention': {

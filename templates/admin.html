@@ -1096,23 +1096,37 @@ body { font-family: var(--sans); color: var(--text); background: var(--bg); min-
   <!-- TAB: ENGAGEMENT -->
   <div class="tab-content" id="tab-engagement">
 
-  <div class="section-label">Engagement — Last 7 Days</div>
+  <div class="section-label">Engagement — Last 7 Days <span id="eng-tracking-since" style="font-weight:400;font-size:10px;color:var(--text-dim);margin-left:8px"></span></div>
 
-  <div class="panel wide-2">
-    <div class="panel-label">Daily Active Users</div>
-    <div id="dau-chart" style="height:80px;display:flex;align-items:flex-end;gap:3px;margin:8px 0"></div>
-    <div class="metric-sub" id="dau-sub">--</div>
+  <div class="panel">
+    <div class="panel-label">Active Users (7d)</div>
+    <div class="metric-val green" id="eng-active-users">--</div>
+    <div class="metric-sub" id="eng-total-events">--</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Sessions (7d)</div>
+    <div class="metric-val blue" id="eng-total-sessions">--</div>
+    <div class="metric-sub" id="eng-sessions-per-user">--</div>
   </div>
 
   <div class="panel">
     <div class="panel-label">Session Metrics</div>
     <div class="stat-row"><span class="label">Avg Duration</span><span class="value" id="eng-avg-duration">--</span></div>
+    <div class="stat-row"><span class="label">Avg Pages/Session</span><span class="value" id="eng-pages-per-session">--</span></div>
   </div>
 
   <div class="panel">
     <div class="panel-label">Retention</div>
     <div class="stat-row"><span class="label">D1</span><span class="value" id="eng-d1">--</span></div>
     <div class="stat-row"><span class="label">D7</span><span class="value" id="eng-d7">--</span></div>
+    <div class="metric-sub" style="margin-top:6px;font-size:10px;color:var(--text-dim)">Based on first event seen per user</div>
+  </div>
+
+  <div class="panel wide-4">
+    <div class="panel-label">Daily Active Users</div>
+    <div id="dau-chart" style="height:80px;display:flex;align-items:flex-end;gap:3px;margin:8px 0"></div>
+    <div class="metric-sub" id="dau-sub">--</div>
   </div>
 
   <div class="panel wide-2">
@@ -2325,6 +2339,20 @@ async function loadEngagement() {
     const res = await adminFetch('/api/admin/engagement');
     if (!res.ok) return;
     const d = await res.json();
+
+    const sinceEl = document.getElementById('eng-tracking-since');
+    if (sinceEl) sinceEl.textContent = d.tracking_since ? '· Tracking since ' + fmtET(d.tracking_since) : '· No events yet';
+
+    const activeEl = document.getElementById('eng-active-users');
+    if (activeEl) activeEl.textContent = d.active_users_7d ?? 0;
+    const evtsEl = document.getElementById('eng-total-events');
+    if (evtsEl) evtsEl.textContent = (d.total_events ?? 0).toLocaleString() + ' total events recorded';
+
+    const sessEl = document.getElementById('eng-total-sessions');
+    if (sessEl) sessEl.textContent = d.total_sessions_7d ?? 0;
+    const spuEl = document.getElementById('eng-sessions-per-user');
+    if (spuEl) spuEl.textContent = d.avg_sessions_per_user != null ? d.avg_sessions_per_user + ' per user' : '--';
+
     const dauEl = document.getElementById('dau-chart');
     if (dauEl && d.dau && d.dau.length) {
       const max = Math.max(...d.dau.map(x => x.active_users), 1);
@@ -2341,6 +2369,7 @@ async function loadEngagement() {
       const sub = document.getElementById('dau-sub');
       if (sub) sub.textContent = 'Avg: ' + avg + ' DAU · Peak: ' + peak;
     }
+
     const durEl = document.getElementById('eng-avg-duration');
     if (durEl) {
       if (d.avg_session_duration != null) {
@@ -2349,31 +2378,48 @@ async function loadEngagement() {
         durEl.textContent = m + 'm ' + (s < 10 ? '0' : '') + s + 's';
       } else { durEl.textContent = '--'; }
     }
+    const ppsEl = document.getElementById('eng-pages-per-session');
+    if (ppsEl) ppsEl.textContent = d.avg_pages_per_session != null ? d.avg_pages_per_session : '--';
+
     const d1 = document.getElementById('eng-d1');
-    if (d1 && d.retention) d1.textContent = d.retention.d1_rate_pct + '% (' + d.retention.d1_returned + '/' + d.retention.d1_eligible + ')';
-    const d7 = document.getElementById('eng-d7');
-    if (d7 && d.retention) d7.textContent = d.retention.d7_rate_pct + '% (' + d.retention.d7_returned + '/' + d.retention.d7_eligible + ')';
+    if (d1 && d.retention) {
+      if (d.retention.d1_eligible > 0) {
+        d1.textContent = d.retention.d1_rate_pct + '% (' + d.retention.d1_returned + '/' + d.retention.d1_eligible + ')';
+      } else { d1.textContent = 'Needs 2+ days of data'; d1.style.color = 'var(--text-dim)'; }
+    }
+    const d7El = document.getElementById('eng-d7');
+    if (d7El && d.retention) {
+      if (d.retention.d7_eligible > 0) {
+        d7El.textContent = d.retention.d7_rate_pct + '% (' + d.retention.d7_returned + '/' + d.retention.d7_eligible + ')';
+      } else { d7El.textContent = 'Needs 8+ days of data'; d7El.style.color = 'var(--text-dim)'; }
+    }
+
     const featEl = document.getElementById('feature-bars');
     if (featEl && d.feature_adoption) {
       const labels = { view_market_scan: 'Market Scan', view_article: 'Journal Articles', tap_bet_link: 'Bet Link Taps' };
-      const maxF = Math.max(...Object.values(d.feature_adoption), 1);
+      const maxF = Math.max(...Object.values(d.feature_adoption).map(v => v.users || v), 1);
       featEl.innerHTML = Object.entries(d.feature_adoption).map(([k, v]) => {
-        const pct = Math.round(v / maxF * 100);
+        const users = typeof v === 'object' ? v.users : v;
+        const pct_active = typeof v === 'object' ? v.pct_of_active : 0;
+        const barPct = Math.round(users / maxF * 100);
         return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
           + '<span style="width:100px;font-size:11px;color:var(--text-dim)">' + (labels[k] || k) + '</span>'
-          + '<div style="flex:1;height:14px;background:var(--panel);border-radius:2px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:var(--green);border-radius:2px"></div></div>'
-          + '<span style="font-family:var(--mono);font-size:11px;color:var(--text-bright);width:28px;text-align:right">' + v + '</span>'
+          + '<div style="flex:1;height:14px;background:var(--panel);border-radius:2px;overflow:hidden"><div style="height:100%;width:' + barPct + '%;background:var(--green);border-radius:2px"></div></div>'
+          + '<span style="font-family:var(--mono);font-size:11px;color:var(--text-bright);width:60px;text-align:right">' + users + ' <span style="color:var(--text-dim)">(' + pct_active + '%)</span></span>'
           + '</div>';
       }).join('');
     }
+
     const tpEl = document.getElementById('top-pages-list');
-    if (tpEl && d.top_pages) {
+    if (tpEl && d.top_pages && d.top_pages.length) {
       tpEl.innerHTML = d.top_pages.slice(0, 8).map((p, i) =>
         '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">'
         + '<span style="color:var(--text)">' + (i + 1) + '. ' + (p.page || '/') + '</span>'
         + '<span style="font-family:var(--mono);color:var(--text-bright)">' + p.views + ' views <span style="color:var(--text-dim)">(' + p.distinct_users + ' users)</span></span>'
         + '</div>'
       ).join('');
+    } else if (tpEl) {
+      tpEl.innerHTML = '<span style="color:var(--text-dim);font-size:11px">No page data yet. Events will populate as users browse the app.</span>';
     }
   } catch (e) { console.error('loadEngagement:', e); }
 }
