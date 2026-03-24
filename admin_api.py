@@ -2093,101 +2093,130 @@ def sync_from_prod():
 
 @admin_bp.route('/api/admin/cf-analytics')
 def cf_analytics():
-    """Cloudflare traffic analytics for both zones (7-day window)."""
+    """Cloudflare Web Analytics (RUM beacon) for sharppicks.ai marketing site."""
     admin, err_code = require_superuser()
     if not admin:
         return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
     token = os.environ.get('CF_API_TOKEN')
-    zones = {
-        'marketing': os.environ.get('CF_ZONE_MARKETING'),
-        'app': os.environ.get('CF_ZONE_APP'),
-    }
-    if not token:
-        return jsonify({'error': 'CF_API_TOKEN not configured'}), 503
+    account_id = os.environ.get('CF_ACCOUNT_ID')
+    site_tag = os.environ.get('CF_WEB_ANALYTICS_SITE_TAG')
+
+    if not token or not account_id:
+        return jsonify({'error': 'CF_API_TOKEN or CF_ACCOUNT_ID not configured'}), 503
 
     today = datetime.now(ET).date()
-    since = (today - timedelta(days=7)).isoformat()
-    until = today.isoformat()
+    since_date = today - timedelta(days=7)
+    since_dt = f'{since_date}T00:00:00Z'
+    until_dt = f'{today}T23:59:59Z'
 
     CF_GQL = 'https://api.cloudflare.com/client/v4/graphql'
     headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
 
     query = """
-    query($zoneTag: String!, $since: Date!, $until: Date!) {
+    query($accountTag: String!, $since: String!, $until: String!, $siteTag: String!) {
       viewer {
-        zones(filter: {zoneTag: $zoneTag}) {
-          totals: httpRequests1dGroups(
+        accounts(filter: {accountTag: $accountTag}) {
+          totals: rumPageloadEventsAdaptiveGroups(
             limit: 1
-            filter: {date_geq: $since, date_leq: $until}
-          ) {
-            sum { requests pageViews }
-            uniq { uniques }
-          }
-          daily: httpRequests1dGroups(
-            limit: 7
-            orderBy: [date_ASC]
-            filter: {date_geq: $since, date_leq: $until}
-          ) {
-            dimensions { date }
-            sum { requests pageViews }
-            uniq { uniques }
-          }
-          topPaths: httpRequestsAdaptiveGroups(
-            limit: 10
-            orderBy: [count_DESC]
-            filter: {date_geq: $since, date_leq: $until}
+            filter: {
+              AND: [
+                {datetime_geq: $since, datetime_leq: $until}
+                {OR: [{siteTag: $siteTag}]}
+              ]
+            }
           ) {
             count
-            dimensions { clientRequestPath }
+            sum { visits }
+          }
+          daily: rumPageloadEventsAdaptiveGroups(
+            limit: 8
+            orderBy: [date_ASC]
+            filter: {
+              AND: [
+                {datetime_geq: $since, datetime_leq: $until}
+                {OR: [{siteTag: $siteTag}]}
+              ]
+            }
+          ) {
+            count
+            sum { visits }
+            dimensions { date: date }
+          }
+          topPaths: rumPageloadEventsAdaptiveGroups(
+            limit: 10
+            orderBy: [count_DESC]
+            filter: {
+              AND: [
+                {datetime_geq: $since, datetime_leq: $until}
+                {OR: [{siteTag: $siteTag}]}
+              ]
+            }
+          ) {
+            count
+            dimensions { path: requestPath }
           }
         }
       }
     }
     """
 
-    def fetch_zone(name, zone_id):
-        if not zone_id:
-            return name, {'error': f'CF_ZONE_{name.upper()} not configured'}
-        try:
-            resp = requests.post(CF_GQL, headers=headers, json={
-                'query': query,
-                'variables': {'zoneTag': zone_id, 'since': since, 'until': until},
-            }, timeout=15)
-            data = resp.json()
-            if data.get('errors'):
-                return name, {'error': data['errors'][0].get('message', 'Unknown CF error')}
-            z = data.get('data', {}).get('viewer', {}).get('zones', [{}])[0]
-            totals = z.get('totals', [{}])[0] if z.get('totals') else {}
-            return name, {
-                'requests': (totals.get('sum') or {}).get('requests', 0),
-                'pageViews': (totals.get('sum') or {}).get('pageViews', 0),
-                'uniques': (totals.get('uniq') or {}).get('uniques', 0),
-                'daily': [
-                    {
-                        'date': d['dimensions']['date'],
-                        'views': d['sum']['pageViews'],
-                        'uniques': d['uniq']['uniques'],
-                    }
-                    for d in z.get('daily', [])
-                ],
-                'topPaths': [
-                    {'path': p['dimensions']['clientRequestPath'], 'count': p['count']}
-                    for p in z.get('topPaths', [])
-                ],
-            }
-        except Exception as e:
-            return name, {'error': str(e)}
+    try:
+        resp = requests.post(CF_GQL, headers=headers, json={
+            'query': query,
+            'variables': {
+                'accountTag': account_id,
+                'since': since_dt,
+                'until': until_dt,
+                'siteTag': site_tag or '',
+            },
+        }, timeout=15)
+        data = resp.json()
+        if data.get('errors'):
+            err_msg = data['errors'][0].get('message', 'Unknown CF error')
+            logging.error(f'CF Web Analytics error: {err_msg}')
+            return jsonify({'error': err_msg, 'marketing': {'error': err_msg}}), 200
 
-    result = {}
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        futures = [pool.submit(fetch_zone, n, zid) for n, zid in zones.items()]
-        for f in as_completed(futures):
-            name, data = f.result()
-            result[name] = data
+        accts = data.get('data', {}).get('viewer', {}).get('accounts', [{}])
+        acct = accts[0] if accts else {}
+        totals_list = acct.get('totals', [{}])
+        totals = totals_list[0] if totals_list else {}
+        total_views = totals.get('count', 0)
+        total_visits = (totals.get('sum') or {}).get('visits', 0)
 
-    result['period'] = {'since': since, 'until': until}
-    return jsonify(result)
+        daily = []
+        for d in acct.get('daily', []):
+            dims = d.get('dimensions', {})
+            daily.append({
+                'date': dims.get('date', ''),
+                'views': d.get('count', 0),
+                'uniques': (d.get('sum') or {}).get('visits', 0),
+            })
+
+        top_paths = []
+        for p in acct.get('topPaths', []):
+            dims = p.get('dimensions', {})
+            top_paths.append({
+                'path': dims.get('path', '/'),
+                'count': p.get('count', 0),
+            })
+
+        marketing = {
+            'pageViews': total_views,
+            'uniques': total_visits,
+            'requests': total_views,
+            'daily': daily,
+            'topPaths': top_paths,
+        }
+
+        return jsonify({
+            'marketing': marketing,
+            'period': {'since': since_date.isoformat(), 'until': today.isoformat()},
+        })
+
+    except Exception as e:
+        logging.error(f'CF analytics error: {e}')
+        return jsonify({'error': str(e), 'marketing': {'error': str(e)}}), 200
 
 
 @admin_bp.route('/api/admin/app-analytics')
