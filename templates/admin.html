@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SharpPicks — Command Center</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=IBM+Plex+Serif:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700;800&family=IBM+Plex+Serif:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #0a0e17;
@@ -25,12 +25,13 @@
   --blue-dim: rgba(79,134,247,0.15);
   --cyan: #45aaf2;
   --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --serif: 'IBM Plex Serif', serif;
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
 html { background: var(--bg); }
-body { font-family: var(--mono); color: var(--text); background: var(--bg); min-height:100vh; }
+body { font-family: var(--sans); color: var(--text); background: var(--bg); min-height:100vh; font-size: 12px; }
 ::selection { background: rgba(79,134,247,0.3); }
 
 .dashboard {
@@ -135,6 +136,7 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
 }
 
 .panel-label {
+  font-family: var(--mono);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 2px;
@@ -157,6 +159,7 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
 .status-dot.amber { background: var(--amber); }
 
 .metric-val {
+  font-family: var(--mono);
   font-size: 28px;
   font-weight: 800;
   color: var(--text-bright);
@@ -171,6 +174,7 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
 .metric-val.blue { color: var(--blue); }
 
 .metric-sub {
+  font-family: var(--mono);
   font-size: 10px;
   color: var(--text-dim);
   font-weight: 400;
@@ -197,7 +201,7 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
 .stat-row:last-child { border-bottom: none; }
 
 .stat-row .label { color: var(--text-dim); }
-.stat-row .value { color: var(--text-bright); font-weight: 600; }
+.stat-row .value { color: var(--text-bright); font-weight: 600; font-family: var(--mono); }
 .stat-row .value.green { color: var(--green); }
 .stat-row .value.red { color: var(--red); }
 .stat-row .value.amber { color: var(--amber); }
@@ -374,6 +378,7 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
 .progress-bar .fill.amber { background: var(--amber); }
 
 .section-label {
+  font-family: var(--mono);
   grid-column: 1 / -1;
   background: var(--bg);
   padding: 8px 20px;
@@ -577,6 +582,7 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <button class="tab-btn" onclick="switchTab('infra')">Infrastructure</button>
     <button class="tab-btn" onclick="switchTab('model')">Model</button>
     <button class="tab-btn" onclick="switchTab('revenue')">Revenue &amp; Users</button>
+    <button class="tab-btn" onclick="switchTab('engagement')">Engagement</button>
     <button class="tab-btn" onclick="switchTab('control')">Control Room</button>
   </div>
 
@@ -1000,13 +1006,23 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
   <!-- TAB: REVENUE & USERS -->
   <div class="tab-content" id="tab-revenue">
 
+  <!-- ALERTS FEED -->
+  <div class="section-label">Alerts</div>
+  <div class="panel wide-4" id="alerts-panel">
+    <div class="panel-label">Revenue Events</div>
+    <div id="alerts-feed" style="max-height:160px;overflow-y:auto;font-size:11px;color:var(--text)">
+      <span style="color:var(--text-dim)">Loading...</span>
+    </div>
+  </div>
+
   <!-- REVENUE & SALES -->
   <div class="section-label">Revenue & Sales</div>
 
-  <div class="panel">
+  <div class="panel wide-2">
     <div class="panel-label">Monthly Recurring Revenue</div>
     <div class="metric-val green" id="mrr">--</div>
-    <div class="metric-sub">MRR</div>
+    <div class="metric-sub" id="mrr-change">MRR</div>
+    <div id="mrr-sparkline" style="height:48px;display:flex;align-items:flex-end;gap:1px;margin-top:8px"></div>
   </div>
 
   <div class="panel">
@@ -1020,6 +1036,38 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div class="metric-val blue" id="total-subs">--</div>
     <div class="metric-sub" id="sub-breakdown">-- annual · -- monthly · -- trial</div>
   </div>
+
+  <!-- CONVERSION FUNNEL -->
+  <div class="section-label">Conversion Funnel</div>
+
+  <div class="panel wide-4" id="funnel-panel">
+    <div class="panel-label">Signup → Trial → Paid</div>
+    <div id="funnel-flow" style="display:flex;align-items:center;gap:8px;margin:10px 0;flex-wrap:wrap">
+      <span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text-bright)" id="fn-signups">--</span>
+      <span style="color:var(--text-dim);font-size:11px">signups</span>
+      <span style="color:var(--text-dim);font-size:14px">→</span>
+      <span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--blue)" id="fn-trials">--</span>
+      <span style="color:var(--text-dim);font-size:11px" id="fn-s2t-rate">(--%) trials</span>
+      <span style="color:var(--text-dim);font-size:14px">→</span>
+      <span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--green)" id="fn-paid">--</span>
+      <span style="color:var(--text-dim);font-size:11px" id="fn-t2p-rate">(--%) paid</span>
+    </div>
+    <div style="display:flex;gap:20px;font-size:11px;color:var(--text-dim)">
+      <span id="fn-avg-s2t">Avg signup→trial: --</span>
+      <span id="fn-avg-t2p">Avg trial→paid: --</span>
+    </div>
+  </div>
+
+  <div class="panel wide-4" id="funnel-weekly-panel" style="max-height:200px;overflow-y:auto">
+    <div class="panel-label">Weekly Cohort Trend</div>
+    <table class="user-table" style="font-size:11px">
+      <thead><tr><th>Week</th><th>Signups</th><th>Trials</th><th>Conversions</th></tr></thead>
+      <tbody id="funnel-weekly-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- SUBSCRIBERS & DISTRIBUTION -->
+  <div class="section-label">Subscribers & Distribution</div>
 
   <div class="panel">
     <div class="panel-label">Founding Members</div>
@@ -1037,15 +1085,6 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div class="stat-row"><span class="label">Founding Members</span><span class="value amber" id="founding-users">--</span></div>
   </div>
 
-  <div class="panel">
-    <div class="panel-label">Funnel &amp; Conversion</div>
-    <div class="stat-row"><span class="label">Trial → Paid Rate</span><span class="value" id="trial-conversion-rate">--</span></div>
-    <div class="stat-row"><span class="label">Signups (7d)</span><span class="value" id="signups-7d">--</span></div>
-    <div class="stat-row"><span class="label">Signups (30d)</span><span class="value" id="signups-30d">--</span></div>
-    <div class="stat-row"><span class="label">Active Trials</span><span class="value blue" id="active-trials-count">--</span></div>
-    <div class="stat-row"><span class="label">Trials Expiring (7d)</span><span class="value amber" id="trials-expiring-7d">--</span></div>
-  </div>
-
   <div class="panel wide-2">
     <div class="panel-label">User Growth</div>
     <div id="user-growth-chart" style="height:80px;display:flex;align-items:flex-end;gap:2px;margin:8px 0"></div>
@@ -1053,6 +1092,40 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
   </div>
 
   </div><!-- /tab-revenue -->
+
+  <!-- TAB: ENGAGEMENT -->
+  <div class="tab-content" id="tab-engagement">
+
+  <div class="section-label">Engagement — Last 7 Days</div>
+
+  <div class="panel wide-2">
+    <div class="panel-label">Daily Active Users</div>
+    <div id="dau-chart" style="height:80px;display:flex;align-items:flex-end;gap:3px;margin:8px 0"></div>
+    <div class="metric-sub" id="dau-sub">--</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Session Metrics</div>
+    <div class="stat-row"><span class="label">Avg Duration</span><span class="value" id="eng-avg-duration">--</span></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Retention</div>
+    <div class="stat-row"><span class="label">D1</span><span class="value" id="eng-d1">--</span></div>
+    <div class="stat-row"><span class="label">D7</span><span class="value" id="eng-d7">--</span></div>
+  </div>
+
+  <div class="panel wide-2">
+    <div class="panel-label">Feature Usage</div>
+    <div id="feature-bars" style="margin:8px 0"></div>
+  </div>
+
+  <div class="panel wide-2">
+    <div class="panel-label">Top Pages</div>
+    <div id="top-pages-list" style="font-size:11px"></div>
+  </div>
+
+  </div><!-- /tab-engagement -->
 
   <!-- TAB: CONTROL ROOM -->
   <div class="tab-content" id="tab-control">
@@ -1167,6 +1240,16 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
 
 </div>
 
+<!-- User Activity Drawer -->
+<div id="user-drawer-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000" onclick="closeUserDrawer()"></div>
+<div id="user-drawer" style="display:none;position:fixed;top:0;right:0;bottom:0;width:420px;max-width:90vw;background:var(--bg);border-left:1px solid var(--border);z-index:1001;overflow-y:auto;padding:20px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-bright)">User Activity</span>
+    <button onclick="closeUserDrawer()" style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--text-dim);cursor:pointer;padding:4px 8px;font-size:11px">✕</button>
+  </div>
+  <div id="user-drawer-content" style="font-size:12px;color:var(--text)">Loading...</div>
+</div>
+
 <script>
 function fmtET(date) {
   if (!date) return '—';
@@ -1212,7 +1295,54 @@ function switchTab(tabId) {
 }
 
 function viewUserProfile(userId) {
-  alert('User profile view for ID: ' + userId + '\n\n(Full profile screen coming soon)');
+  document.getElementById('user-drawer-overlay').style.display = 'block';
+  document.getElementById('user-drawer').style.display = 'block';
+  document.getElementById('user-drawer-content').innerHTML = '<span style="color:var(--text-dim)">Loading activity...</span>';
+  adminFetch('/api/admin/user-activity/' + userId)
+    .then(r => r.json())
+    .then(d => {
+      if (d.error) { document.getElementById('user-drawer-content').textContent = d.error; return; }
+      const u = d.user || {};
+      let html = '<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">';
+      html += '<div style="font-family:var(--sans);font-weight:600;color:var(--text-bright);font-size:14px">' + (u.email || '--') + '</div>';
+      html += '<div style="margin-top:4px;color:var(--text-dim);font-size:11px">' + (u.tier || 'free') + (u.founding_member ? ' · founding' : '') + ' · Joined ' + fmtDateET(u.created_at) + '</div>';
+      if (d.last_active) html += '<div style="margin-top:2px;color:var(--text-dim);font-size:11px">Last active: ' + fmtET(d.last_active) + '</div>';
+      html += '</div>';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">';
+      html += '<div style="background:var(--panel);padding:8px;border-radius:4px;text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text-bright)">' + (d.total_sessions || 0) + '</div><div style="font-size:10px;color:var(--text-dim)">Sessions</div></div>';
+      html += '<div style="background:var(--panel);padding:8px;border-radius:4px;text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text-bright)">' + (d.total_events || 0) + '</div><div style="font-size:10px;color:var(--text-dim)">Events</div></div>';
+      html += '<div style="background:var(--panel);padding:8px;border-radius:4px;text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text-bright)">' + (d.articles_read || 0) + '</div><div style="font-size:10px;color:var(--text-dim)">Articles</div></div>';
+      html += '</div>';
+      const pv = d.pages_visited || {};
+      const pvKeys = Object.keys(pv).filter(k => k).sort((a,b) => pv[b] - pv[a]).slice(0, 8);
+      if (pvKeys.length) {
+        html += '<div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.5px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px">Pages Visited</div>';
+        pvKeys.forEach(k => {
+          html += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);font-size:11px"><span style="color:var(--text)">' + k + '</span><span style="font-family:var(--mono);color:var(--text-bright)">' + pv[k] + '</span></div>';
+        });
+        html += '<div style="margin-bottom:14px"></div>';
+      }
+      const tl = d.activity_timeline || [];
+      if (tl.length) {
+        html += '<div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.5px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px">Activity Timeline (14d)</div>';
+        const maxEv = Math.max(...tl.map(t => t.events), 1);
+        tl.forEach(t => {
+          const pct = Math.round(t.events / maxEv * 100);
+          html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">';
+          html += '<span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);width:60px;flex-shrink:0">' + t.date.slice(5) + '</span>';
+          html += '<div style="flex:1;height:12px;background:var(--panel);border-radius:2px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:var(--green);border-radius:2px"></div></div>';
+          html += '<span style="font-family:var(--mono);font-size:10px;color:var(--text-bright);width:28px;text-align:right">' + t.events + '</span>';
+          html += '</div>';
+        });
+      }
+      document.getElementById('user-drawer-content').innerHTML = html;
+    })
+    .catch(e => { document.getElementById('user-drawer-content').textContent = 'Error: ' + e.message; });
+}
+
+function closeUserDrawer() {
+  document.getElementById('user-drawer-overlay').style.display = 'none';
+  document.getElementById('user-drawer').style.display = 'none';
 }
 
 function extendTrial(userId, email) {
@@ -1261,7 +1391,7 @@ function loadPipeline() {
         passBox.style.display = 'none';
         pickBox.innerHTML =
           '<div style="font-size:11px;font-weight:600;color:var(--green);margin-bottom:6px">' + data.pick.side + ' ' + (data.pick.line != null ? (data.pick.line > 0 ? '+' : '') + data.pick.line : '') + '</div>' +
-          '<div style="font-size:10px;color:var(--text-dim)">' + data.pick.away_team + ' @ ' + data.pick.home_team + '</div>' +
+          '<div style="font-family:var(--sans);font-size:10px;color:var(--text-dim)">' + data.pick.away_team + ' @ ' + data.pick.home_team + '</div>' +
           '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;font-size:10px">' +
             '<div><span style="color:var(--text-dim)">Edge</span><br><span style="color:var(--green)">' + data.pick.edge_pct + '%</span></div>' +
             '<div><span style="color:var(--text-dim)">Cover</span><br>' + (data.pick.cover_prob != null ? (data.pick.cover_prob * 100).toFixed(1) + '%' : '--') + '</div>' +
@@ -1314,7 +1444,7 @@ function loadPipeline() {
           var rowBg = g.passes ? 'rgba(34,197,94,0.04)' : 'transparent';
           var reason = !g.passes && g.reason ? ' title="' + g.reason.replace(/"/g, '&quot;') + '"' : '';
           return '<div style="display:grid;grid-template-columns:2fr 1.2fr 0.8fr 0.8fr;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);background:' + rowBg + '"' + reason + '>' +
-            '<span style="color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + g.away + ' @ ' + g.home + '</span>' +
+            '<span style="font-family:var(--sans);color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + g.away + ' @ ' + g.home + '</span>' +
             '<span style="color:var(--text-dim)">' + (g.pick || '--') + ' ' + lineStr + '</span>' +
             '<span style="text-align:right;color:' + edgeColor + ';font-family:var(--mono)">' + edgeStr + '</span>' +
             '<span style="text-align:right;color:var(--text-dim);font-family:var(--mono)">' + coverStr + '</span>' +
@@ -2106,6 +2236,148 @@ async function loadCfAnalytics() {
   }
 }
 
+async function loadAlerts() {
+  try {
+    const res = await adminFetch('/api/admin/alerts?limit=20');
+    if (!res.ok) return;
+    const d = await res.json();
+    const feed = document.getElementById('alerts-feed');
+    if (!feed) return;
+    const alerts = d.alerts || [];
+    if (!alerts.length) { feed.innerHTML = '<span style="color:var(--text-dim)">No recent alerts</span>'; return; }
+    const icons = { subscription_created: '🟢', subscription_deleted: '🔴', payment_failed: '⚠️', subscription_updated: '🔄' };
+    feed.innerHTML = alerts.map(a => {
+      const icon = icons[a.event_type] || '📋';
+      const acked = a.acknowledged ? 'opacity:0.4;' : '';
+      return '<div style="display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);' + acked + '">'
+        + '<span>' + icon + '</span>'
+        + '<div style="flex:1"><span style="color:var(--text-dim);font-family:var(--mono);font-size:10px">' + fmtET(a.created_at) + '</span> '
+        + '<span style="color:var(--text)">' + (a.detail || a.event_type) + '</span></div>'
+        + (a.acknowledged ? '' : '<button onclick="ackAlert(' + a.id + ',this)" style="background:none;border:1px solid var(--border);border-radius:3px;color:var(--text-dim);cursor:pointer;padding:2px 6px;font-size:10px">✓</button>')
+        + '</div>';
+    }).join('');
+  } catch (e) { console.error('loadAlerts:', e); }
+}
+
+async function ackAlert(id, btn) {
+  try {
+    await adminFetch('/api/admin/alerts/' + id + '/acknowledge', { method: 'PATCH' });
+    btn.parentElement.style.opacity = '0.4';
+    btn.remove();
+  } catch (e) { console.error('ackAlert:', e); }
+}
+
+async function loadMrrHistory() {
+  try {
+    const res = await adminFetch('/api/admin/mrr-history');
+    if (!res.ok) return;
+    const d = await res.json();
+    const el = document.getElementById('mrr');
+    if (el) el.textContent = '$' + d.mrr_dollars;
+    const arrEl = document.getElementById('arr');
+    if (arrEl) arrEl.textContent = '$' + d.arr_dollars;
+    const sub = document.getElementById('mrr-change');
+    if (sub) {
+      const c = d.net_change_30d_cents;
+      const cStr = (c >= 0 ? '+' : '') + '$' + (Math.abs(c) / 100).toFixed(2);
+      sub.textContent = 'MRR · ' + cStr + ' vs 30d ago';
+      sub.style.color = c > 0 ? 'var(--green)' : c < 0 ? 'var(--red)' : 'var(--text-dim)';
+    }
+    const spark = document.getElementById('mrr-sparkline');
+    if (spark && d.history && d.history.length > 1) {
+      const vals = d.history.map(h => h.mrr_cents);
+      const max = Math.max(...vals, 1);
+      spark.innerHTML = vals.map(v => {
+        const pct = Math.round(v / max * 100);
+        return '<div style="flex:1;background:var(--green);border-radius:1px;min-width:2px;height:' + Math.max(pct, 2) + '%"></div>';
+      }).join('');
+    } else if (spark) {
+      spark.innerHTML = '<span style="color:var(--text-dim);font-size:10px">Collecting data...</span>';
+    }
+  } catch (e) { console.error('loadMrrHistory:', e); }
+}
+
+async function loadFunnelMetrics() {
+  try {
+    const res = await adminFetch('/api/admin/funnel-metrics');
+    if (!res.ok) return;
+    const d = await res.json();
+    const s = id => document.getElementById(id);
+    if (s('fn-signups')) s('fn-signups').textContent = d.total_signups;
+    if (s('fn-trials')) s('fn-trials').textContent = d.total_trials;
+    if (s('fn-paid')) s('fn-paid').textContent = d.total_paid;
+    if (s('fn-s2t-rate')) s('fn-s2t-rate').textContent = '(' + d.signup_to_trial_rate + '%) trials';
+    if (s('fn-t2p-rate')) s('fn-t2p-rate').textContent = '(' + d.trial_to_paid_rate + '%) paid';
+    if (s('fn-avg-s2t')) s('fn-avg-s2t').textContent = 'Avg signup→trial: ' + (d.avg_days_signup_to_trial != null ? d.avg_days_signup_to_trial + 'd' : '--');
+    if (s('fn-avg-t2p')) s('fn-avg-t2p').textContent = 'Avg trial→paid: ' + (d.avg_days_trial_to_paid != null ? d.avg_days_trial_to_paid + 'd' : '--');
+    const tbody = document.getElementById('funnel-weekly-tbody');
+    if (tbody && d.weekly_trend) {
+      tbody.innerHTML = d.weekly_trend.map(w =>
+        '<tr><td style="font-family:var(--mono);font-size:10px">' + w.week_start + '</td>'
+        + '<td>' + w.signups + '</td><td>' + w.trials + '</td><td>' + w.conversions + '</td></tr>'
+      ).join('');
+    }
+  } catch (e) { console.error('loadFunnelMetrics:', e); }
+}
+
+async function loadEngagement() {
+  try {
+    const res = await adminFetch('/api/admin/engagement');
+    if (!res.ok) return;
+    const d = await res.json();
+    const dauEl = document.getElementById('dau-chart');
+    if (dauEl && d.dau && d.dau.length) {
+      const max = Math.max(...d.dau.map(x => x.active_users), 1);
+      const avg = (d.dau.reduce((s, x) => s + x.active_users, 0) / d.dau.length).toFixed(1);
+      const peak = Math.max(...d.dau.map(x => x.active_users));
+      dauEl.innerHTML = d.dau.map(x => {
+        const pct = Math.round(x.active_users / max * 100);
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
+          + '<span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">' + x.active_users + '</span>'
+          + '<div style="width:100%;background:var(--green);border-radius:2px;height:' + Math.max(pct, 4) + '%"></div>'
+          + '<span style="font-family:var(--mono);font-size:8px;color:var(--text-dim)">' + x.date.slice(5) + '</span>'
+          + '</div>';
+      }).join('');
+      const sub = document.getElementById('dau-sub');
+      if (sub) sub.textContent = 'Avg: ' + avg + ' DAU · Peak: ' + peak;
+    }
+    const durEl = document.getElementById('eng-avg-duration');
+    if (durEl) {
+      if (d.avg_session_duration != null) {
+        const m = Math.floor(d.avg_session_duration / 60);
+        const s = Math.round(d.avg_session_duration % 60);
+        durEl.textContent = m + 'm ' + (s < 10 ? '0' : '') + s + 's';
+      } else { durEl.textContent = '--'; }
+    }
+    const d1 = document.getElementById('eng-d1');
+    if (d1 && d.retention) d1.textContent = d.retention.d1_rate_pct + '% (' + d.retention.d1_returned + '/' + d.retention.d1_eligible + ')';
+    const d7 = document.getElementById('eng-d7');
+    if (d7 && d.retention) d7.textContent = d.retention.d7_rate_pct + '% (' + d.retention.d7_returned + '/' + d.retention.d7_eligible + ')';
+    const featEl = document.getElementById('feature-bars');
+    if (featEl && d.feature_adoption) {
+      const labels = { view_market_scan: 'Market Scan', view_article: 'Journal Articles', tap_bet_link: 'Bet Link Taps' };
+      const maxF = Math.max(...Object.values(d.feature_adoption), 1);
+      featEl.innerHTML = Object.entries(d.feature_adoption).map(([k, v]) => {
+        const pct = Math.round(v / maxF * 100);
+        return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+          + '<span style="width:100px;font-size:11px;color:var(--text-dim)">' + (labels[k] || k) + '</span>'
+          + '<div style="flex:1;height:14px;background:var(--panel);border-radius:2px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:var(--green);border-radius:2px"></div></div>'
+          + '<span style="font-family:var(--mono);font-size:11px;color:var(--text-bright);width:28px;text-align:right">' + v + '</span>'
+          + '</div>';
+      }).join('');
+    }
+    const tpEl = document.getElementById('top-pages-list');
+    if (tpEl && d.top_pages) {
+      tpEl.innerHTML = d.top_pages.slice(0, 8).map((p, i) =>
+        '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">'
+        + '<span style="color:var(--text)">' + (i + 1) + '. ' + (p.page || '/') + '</span>'
+        + '<span style="font-family:var(--mono);color:var(--text-bright)">' + p.views + ' views <span style="color:var(--text-dim)">(' + p.distinct_users + ' users)</span></span>'
+        + '</div>'
+      ).join('');
+    }
+  } catch (e) { console.error('loadEngagement:', e); }
+}
+
 function refreshAll() {
   _refreshSecondsLeft = 30;
   const btn = document.getElementById('refresh-btn');
@@ -2119,6 +2391,10 @@ function refreshAll() {
   loadCronHealth();
   loadControlRoom();
   loadCfAnalytics();
+  loadAlerts();
+  loadMrrHistory();
+  loadFunnelMetrics();
+  loadEngagement();
   setTimeout(() => {
     btn.style.color = 'var(--text-dim)';
     btn.querySelector('svg').style.transform = 'rotate(0deg)';
@@ -2130,6 +2406,10 @@ ensureAdminToken().then(() => {
   loadPipeline();
   loadDashboard();
   loadCfAnalytics();
+  loadAlerts();
+  loadMrrHistory();
+  loadFunnelMetrics();
+  loadEngagement();
 });
 
 function hcStatusClass(s) { return s === 'ok' ? 'ok' : s === 'warn' ? 'warn' : 'err'; }

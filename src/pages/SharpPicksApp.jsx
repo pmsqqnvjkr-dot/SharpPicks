@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from '../hooks/useAuth';
 import { useNetwork } from '../hooks/useNetwork';
 import { SportProvider } from '../hooks/useSport';
 import { apiGet } from '../hooks/useApi';
+import { trackPageView, trackEvent } from '../utils/eventTracker';
 
 const PROD_URL = 'https://app.sharppicks.ai';
 const NATIVE_API = Capacitor.isNativePlatform() ? PROD_URL : '';
@@ -158,6 +159,11 @@ function AppContent() {
 
   const [initialInsight, setInitialInsight] = useState(null);
 
+  useEffect(() => {
+    const tabToPage = { picks: '/picks', market: '/market-scan', insights: '/journal', performance: '/performance', profile: '/profile' };
+    trackPageView(tabToPage[activeTab] || `/${activeTab}`);
+  }, [activeTab]);
+
   const navigateTo = (tab, screen, data) => {
     setActiveTab(tab);
     if (tab === 'performance' && screen) {
@@ -195,6 +201,7 @@ function AppContent() {
   useEffect(() => {
     const handlePushNav = (e) => {
       const data = e.detail || {};
+      trackEvent('notification_opened', { notification_type: data.type || 'unknown', notification_id: data.id || null });
       if (data.type === 'weekly_summary') {
         setActiveTab('profile');
         setProfileScreen('weekly');

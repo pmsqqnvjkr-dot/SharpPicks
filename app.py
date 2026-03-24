@@ -112,7 +112,7 @@ import sqlite3
 import subprocess
 from db_path import get_sqlite_path
 import requests as http_requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 def _get_et_today():
     """Get current Eastern Time date string (YYYY-MM-DD)."""
@@ -229,7 +229,7 @@ def _upsert_market_note_insight(report):
     return insight
 
 
-from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent, CronLog, PageView
+from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent, CronLog, PageView, UserEvent, AdminAlert, MrrSnapshot
 from picks_api import picks_bp
 from public_api import public_bp
 from insights_api import insights_bp
@@ -3115,6 +3115,84 @@ def log_cron(job_name, fn, skip_throttle=False):
             _cron_locks[job_name] = (_time.time(), False)
 
 
+@app.route('/api/events', methods=['POST'])
+def post_user_events():
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    try:
+        body = request.get_json(force=True)
+    except Exception:
+        return jsonify({'error': 'Invalid JSON'}), 400
+    if body is None or not isinstance(body, dict):
+        return jsonify({'error': 'Expected JSON object'}), 400
+    events = body.get('events')
+    if not isinstance(events, list):
+        return jsonify({'error': 'events must be an array'}), 400
+    if len(events) > 100:
+        return jsonify({'error': 'Maximum 100 events per request'}), 400
+
+    user_id = user['id']
+    rows = []
+    for i, ev in enumerate(events):
+        if not isinstance(ev, dict):
+            return jsonify({'error': f'events[{i}] must be an object'}), 400
+        et = ev.get('event_type')
+        if not isinstance(et, str) or not et.strip():
+            return jsonify({'error': f'events[{i}].event_type required'}), 400
+        et = et.strip()
+        if len(et) > 50:
+            return jsonify({'error': f'events[{i}].event_type too long (max 50)'}), 400
+        ed = ev.get('event_data', {})
+        if ed is None:
+            ed = {}
+        if not isinstance(ed, dict):
+            return jsonify({'error': f'events[{i}].event_data must be an object'}), 400
+        page = ev.get('page')
+        if page is not None and not isinstance(page, str):
+            return jsonify({'error': f'events[{i}].page must be a string'}), 400
+        if page:
+            page = page[:100]
+        sid = ev.get('session_id')
+        if sid is not None and not isinstance(sid, str):
+            return jsonify({'error': f'events[{i}].session_id must be a string'}), 400
+        if sid:
+            sid = sid[:64]
+        created_kw = {}
+        ts_raw = ev.get('timestamp')
+        if ts_raw is not None:
+            if not isinstance(ts_raw, str):
+                return jsonify({'error': f'events[{i}].timestamp must be a string'}), 400
+            s = ts_raw.strip()
+            if s.endswith('Z'):
+                s = s[:-1] + '+00:00'
+            try:
+                ca = datetime.fromisoformat(s)
+            except ValueError:
+                return jsonify({'error': f'events[{i}].timestamp invalid ISO format'}), 400
+            if ca.tzinfo is not None:
+                ca = ca.astimezone(timezone.utc).replace(tzinfo=None)
+            created_kw['created_at'] = ca
+        rows.append(UserEvent(
+            user_id=user_id,
+            event_type=et,
+            event_data=ed,
+            page=page or None,
+            session_id=sid or None,
+            **created_kw,
+        ))
+
+    try:
+        db.session.add_all(rows)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logging.exception('post_user_events failed')
+        return jsonify({'error': 'Failed to save events'}), 500
+
+    return jsonify({'success': True, 'count': len(rows)})
+
+
 @app.route('/api/cron/collect-games', methods=['GET', 'POST'])
 @verify_cron
 def cron_collect_games():
@@ -3697,6 +3775,56 @@ def cron_generate_weekly_card():
             f.write(png_bytes)
         return {'path': out_path, 'size_bytes': len(png_bytes)}
     return log_cron('generate_weekly_card', _generate)
+
+
+@app.route('/api/cron/mrr-snapshot', methods=['GET', 'POST'])
+@verify_cron
+def cron_mrr_snapshot():
+    """Nightly MRR snapshot. Calculates current MRR from active subscriptions and stores in mrr_daily_snapshots."""
+    def _snapshot():
+        from datetime import date
+        today = date.today()
+        existing = MrrSnapshot.query.filter_by(snapshot_date=today).first()
+        if existing:
+            return {'skipped': True, 'date': today.isoformat()}
+        MONTHLY_CENTS = 2999
+        ANNUAL_MONTHLY_CENTS = round(9900 / 12)
+        active_users = User.query.filter_by(subscription_status='active').all()
+        mrr = 0
+        monthly = 0
+        annual = 0
+        founding = 0
+        for u in active_users:
+            plan = (u.subscription_plan or '').lower()
+            if 'annual' in plan:
+                mrr += ANNUAL_MONTHLY_CENTS
+                annual += 1
+                if u.founding_member:
+                    founding += 1
+            elif 'month' in plan:
+                mrr += MONTHLY_CENTS
+                monthly += 1
+        snap = MrrSnapshot(
+            snapshot_date=today, mrr_cents=mrr,
+            active_monthly=monthly, active_annual=annual,
+            founding_members=founding, total_subscribers=monthly + annual,
+        )
+        db.session.add(snap)
+        db.session.commit()
+        return {'date': today.isoformat(), 'mrr_cents': mrr, 'subs': monthly + annual}
+    return log_cron('mrr_snapshot', _snapshot)
+
+
+@app.route('/api/cron/cleanup-events', methods=['GET', 'POST'])
+@verify_cron
+def cron_cleanup_events():
+    """Weekly cleanup: purge user_events older than 90 days."""
+    def _cleanup():
+        cutoff = datetime.now() - timedelta(days=90)
+        deleted = UserEvent.query.filter(UserEvent.created_at < cutoff).delete()
+        db.session.commit()
+        return {'deleted': deleted, 'cutoff': cutoff.isoformat()}
+    return log_cron('cleanup_events', _cleanup)
 
 
 def start_background_services():
@@ -4329,6 +4457,20 @@ def stripe_webhook():
                 logging.info(f'Skipping duplicate webhook event: {event_id}')
                 return jsonify({'success': True, 'duplicate': True}), 200
 
+        def _log_revenue_alert(alert_type, email, detail, stripe_eid=None):
+            try:
+                db.session.add(AdminAlert(
+                    event_type=alert_type, user_email=email,
+                    detail=detail, stripe_event_id=stripe_eid or event_id,
+                ))
+                db.session.flush()
+            except Exception:
+                pass
+            try:
+                send_admin_alert(alert_type, detail)
+            except Exception:
+                pass
+
         if event_type == 'checkout.session.completed':
             user_id = data_obj.get('client_reference_id') or data_obj.get('metadata', {}).get('user_id')
             plan = data_obj.get('metadata', {}).get('plan', 'monthly')
@@ -4366,7 +4508,6 @@ def stripe_webhook():
                         maybe_assign_founding(user_id)
 
         elif event_type == 'customer.subscription.created':
-            # Handle same as updated for new subscriptions
             cust_id = data_obj.get('customer')
             status = data_obj.get('status')
             if cust_id:
@@ -4388,6 +4529,8 @@ def stripe_webhook():
                     if period_end:
                         user.current_period_end = datetime.fromtimestamp(period_end)
                     db.session.commit()
+                    _log_revenue_alert('subscription_created', user.email,
+                        f'New subscriber: {user.email} — {plan_meta or status}')
 
         elif event_type == 'customer.subscription.updated':
             cust_id = data_obj.get('customer')
@@ -4395,6 +4538,7 @@ def stripe_webhook():
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
+                    old_status = user.subscription_status
                     plan_meta = data_obj.get('metadata', {}).get('plan')
                     if plan_meta:
                         user.subscription_plan = plan_meta
@@ -4411,7 +4555,6 @@ def stripe_webhook():
                         user.subscription_status = 'cancelled'
                         user.is_premium = False
                     elif status in ('unpaid', 'incomplete_expired'):
-                        # Trial ended without payment or payment never completed
                         user.subscription_status = 'expired'
                         user.is_premium = False
                     elif status == 'past_due':
@@ -4420,6 +4563,8 @@ def stripe_webhook():
                     if period_end:
                         user.current_period_end = datetime.fromtimestamp(period_end)
                     db.session.commit()
+                    _log_revenue_alert('subscription_updated', user.email,
+                        f'Plan change: {user.email} — {old_status} → {status}')
 
         elif event_type == 'customer.subscription.deleted':
             cust_id = data_obj.get('customer')
@@ -4430,6 +4575,8 @@ def stripe_webhook():
                     user.is_premium = False
                     db.session.commit()
                     logging.info(f'Subscription cancelled for user {user.email}')
+                    _log_revenue_alert('subscription_deleted', user.email,
+                        f'Churn: {user.email} canceled')
                     try:
                         from email_service import send_cancellation_email
                         send_cancellation_email(user.email, user.first_name, user.current_period_end, user.founding_member)
@@ -4460,18 +4607,13 @@ def stripe_webhook():
                     user.subscription_status = 'past_due'
                     db.session.commit()
                     logging.warning(f'Payment failed for user {user.email}')
+                    _log_revenue_alert('payment_failed', user.email,
+                        f'Failed payment: {user.email} ({user.subscription_plan})')
                     try:
                         from email_service import send_payment_failed_email
                         send_payment_failed_email(user.email, user.first_name)
                     except Exception as e:
                         logging.error(f"Payment failed email error: {e}")
-                    try:
-                        send_admin_alert(
-                            "Payment Failed",
-                            f"Payment failed for {user.email} ({user.subscription_plan})",
-                        )
-                    except Exception:
-                        pass
 
         db.session.commit()
 

@@ -341,3 +341,37 @@ class PageView(db.Model):
     ip_hash = db.Column(db.String(64), index=True)
     user_agent = db.Column(db.String(512), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now, index=True)
+
+
+class UserEvent(db.Model):
+    __tablename__ = 'user_events'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True, index=True)
+    event_type = db.Column(db.String(50), nullable=False, index=True)
+    event_data = db.Column(JSONB, default=dict)
+    page = db.Column(db.String(100), nullable=True)
+    session_id = db.Column(db.String(64), nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.now, index=True)
+
+
+class AdminAlert(db.Model):
+    __tablename__ = 'admin_alerts'
+    id = db.Column(db.Integer, primary_key=True)
+    event_type = db.Column(db.String(50), nullable=False, index=True)
+    user_email = db.Column(db.String(255), nullable=True)
+    detail = db.Column(db.Text, nullable=True)
+    stripe_event_id = db.Column(db.String(255), nullable=True)
+    acknowledged = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now, index=True)
+
+
+class MrrSnapshot(db.Model):
+    __tablename__ = 'mrr_daily_snapshots'
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.Date, unique=True, nullable=False)
+    mrr_cents = db.Column(db.Integer, nullable=False)
+    active_monthly = db.Column(db.Integer, default=0)
+    active_annual = db.Column(db.Integer, default=0)
+    founding_members = db.Column(db.Integer, default=0)
+    total_subscribers = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.now)

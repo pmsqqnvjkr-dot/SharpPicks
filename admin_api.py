@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
-from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog, FCMToken, KillSwitch, UserBet, PageView
-from datetime import datetime, timedelta
+from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog, FCMToken, KillSwitch, UserBet, PageView, UserEvent, AdminAlert, MrrSnapshot
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, text
 from zoneinfo import ZoneInfo
 import os
@@ -2247,3 +2247,359 @@ def app_analytics():
     except Exception as e:
         logging.error(f'App analytics error: {e}')
         return jsonify({'error': str(e)}), 500
+
+
+def _utc_naive_to_et_date(dt):
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(ET).date()
+
+
+@admin_bp.route('/api/admin/alerts')
+def admin_alerts_list():
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    try:
+        limit = int(request.args.get('limit', 20))
+    except (TypeError, ValueError):
+        limit = 20
+    limit = max(1, min(limit, 200))
+
+    rows = AdminAlert.query.order_by(AdminAlert.created_at.desc()).limit(limit).all()
+    return jsonify({
+        'alerts': [{
+            'id': r.id,
+            'event_type': r.event_type,
+            'user_email': r.user_email,
+            'detail': r.detail,
+            'acknowledged': bool(r.acknowledged),
+            'created_at': r.created_at.isoformat() if r.created_at else None,
+        } for r in rows],
+    })
+
+
+@admin_bp.route('/api/admin/alerts/<int:alert_id>/acknowledge', methods=['PATCH'])
+def admin_alert_acknowledge(alert_id):
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    alert = db.session.get(AdminAlert, alert_id)
+    if not alert:
+        return jsonify({'error': 'Alert not found'}), 404
+    alert.acknowledged = True
+    db.session.commit()
+    return jsonify({'success': True, 'id': alert_id, 'acknowledged': True})
+
+
+@admin_bp.route('/api/admin/mrr-history')
+def admin_mrr_history():
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    MONTHLY_CENTS = 2999
+    ANNUAL_MONTHLY_CENTS = round(9900 / 12)
+
+    active_users = User.query.filter_by(subscription_status='active').all()
+    active_monthly = 0
+    active_annual = 0
+    founding_count = 0
+    current_mrr_cents = 0
+
+    for u in active_users:
+        plan = (u.subscription_plan or '').lower()
+        if 'annual' in plan:
+            current_mrr_cents += ANNUAL_MONTHLY_CENTS
+            active_annual += 1
+            if u.founding_member:
+                founding_count += 1
+        elif 'month' in plan:
+            current_mrr_cents += MONTHLY_CENTS
+            active_monthly += 1
+
+    today_et = datetime.now(ET).date()
+    cutoff_hist = today_et - timedelta(days=90)
+    snap_rows = MrrSnapshot.query.filter(
+        MrrSnapshot.snapshot_date >= cutoff_hist
+    ).order_by(MrrSnapshot.snapshot_date.asc()).all()
+    history = [{'date': s.snapshot_date.isoformat(), 'mrr_cents': s.mrr_cents} for s in snap_rows]
+
+    target = today_et - timedelta(days=30)
+    old_snap = MrrSnapshot.query.filter(
+        MrrSnapshot.snapshot_date <= target
+    ).order_by(MrrSnapshot.snapshot_date.desc()).first()
+    net_change_30d_cents = current_mrr_cents - (old_snap.mrr_cents if old_snap else current_mrr_cents)
+
+    mrr_dollars = f'{current_mrr_cents / 100:.2f}'
+    arr_dollars = f'{current_mrr_cents * 12 / 100:.2f}'
+
+    return jsonify({
+        'current_mrr_cents': current_mrr_cents,
+        'mrr_dollars': mrr_dollars,
+        'arr_dollars': arr_dollars,
+        'active_monthly': active_monthly,
+        'active_annual': active_annual,
+        'founding_count': founding_count,
+        'history': history,
+        'net_change_30d_cents': net_change_30d_cents,
+    })
+
+
+def _week_start_monday_et(d):
+    return d - timedelta(days=d.weekday())
+
+
+@admin_bp.route('/api/admin/funnel-metrics')
+def admin_funnel_metrics():
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    users = User.query.all()
+    total_signups = len(users)
+    with_trial = [u for u in users if u.trial_start_date is not None]
+    total_trials = len(with_trial)
+    paid = [u for u in users if u.subscription_status == 'active']
+    total_paid = len(paid)
+
+    signup_to_trial_rate = round(total_trials / total_signups * 100, 2) if total_signups else 0.0
+    trial_to_paid_rate = round(total_paid / total_trials * 100, 2) if total_trials else 0.0
+    signup_to_paid_rate = round(total_paid / total_signups * 100, 2) if total_signups else 0.0
+
+    days_s2t = []
+    for u in with_trial:
+        if u.created_at and u.trial_start_date:
+            c = _utc_naive_to_et_date(u.created_at)
+            t = _utc_naive_to_et_date(u.trial_start_date)
+            if c is not None and t is not None:
+                days_s2t.append((t - c).days)
+    avg_days_signup_to_trial = round(sum(days_s2t) / len(days_s2t), 2) if days_s2t else None
+
+    days_t2p = []
+    for u in paid:
+        if u.trial_start_date and u.subscription_start_date:
+            t0 = _utc_naive_to_et_date(u.trial_start_date)
+            t1 = _utc_naive_to_et_date(u.subscription_start_date)
+            if t0 is not None and t1 is not None:
+                days_t2p.append((t1 - t0).days)
+    avg_days_trial_to_paid = round(sum(days_t2p) / len(days_t2p), 2) if days_t2p else None
+
+    today_et = datetime.now(ET).date()
+    current_week_start = _week_start_monday_et(today_et)
+    week_keys = [current_week_start - timedelta(weeks=i) for i in range(7, -1, -1)]
+    trend_map = {wk: {'week_start': wk.isoformat(), 'signups': 0, 'trials': 0, 'conversions': 0} for wk in week_keys}
+
+    for u in users:
+        if u.created_at:
+            cd = _utc_naive_to_et_date(u.created_at)
+            if cd:
+                ws = _week_start_monday_et(cd)
+                if ws in trend_map:
+                    trend_map[ws]['signups'] += 1
+        if u.trial_start_date:
+            td = _utc_naive_to_et_date(u.trial_start_date)
+            if td:
+                ws = _week_start_monday_et(td)
+                if ws in trend_map:
+                    trend_map[ws]['trials'] += 1
+        if u.subscription_status == 'active' and u.subscription_start_date:
+            pd = _utc_naive_to_et_date(u.subscription_start_date)
+            if pd:
+                ws = _week_start_monday_et(pd)
+                if ws in trend_map:
+                    trend_map[ws]['conversions'] += 1
+
+    weekly_trend = [trend_map[wk] for wk in week_keys]
+
+    return jsonify({
+        'total_signups': total_signups,
+        'total_trials': total_trials,
+        'total_paid': total_paid,
+        'signup_to_trial_rate': signup_to_trial_rate,
+        'trial_to_paid_rate': trial_to_paid_rate,
+        'signup_to_paid_rate': signup_to_paid_rate,
+        'avg_days_signup_to_trial': avg_days_signup_to_trial,
+        'avg_days_trial_to_paid': avg_days_trial_to_paid,
+        'weekly_trend': weekly_trend,
+    })
+
+
+@admin_bp.route('/api/admin/engagement')
+def admin_engagement():
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    cutoff = datetime.utcnow() - timedelta(days=7)
+    events = UserEvent.query.filter(UserEvent.created_at >= cutoff).all()
+
+    dau_by_day = {}
+    page_stats = {}
+    session_durations = []
+    feature_users = {'view_market_scan': set(), 'view_article': set(), 'tap_bet_link': set()}
+
+    for ev in events:
+        d = _utc_naive_to_et_date(ev.created_at)
+        if d:
+            if d not in dau_by_day:
+                dau_by_day[d] = set()
+            if ev.user_id:
+                dau_by_day[d].add(ev.user_id)
+
+        pkey = ev.page if ev.page else ''
+        if pkey not in page_stats:
+            page_stats[pkey] = {'views': 0, 'users': set()}
+        page_stats[pkey]['views'] += 1
+        if ev.user_id:
+            page_stats[pkey]['users'].add(ev.user_id)
+
+        if ev.event_type == 'session_end' and isinstance(ev.event_data, dict):
+            ds = ev.event_data.get('duration_seconds')
+            if ds is not None:
+                try:
+                    session_durations.append(float(ds))
+                except (TypeError, ValueError):
+                    pass
+
+        if ev.event_type in feature_users and ev.user_id:
+            feature_users[ev.event_type].add(ev.user_id)
+
+    dau = sorted(
+        [{'date': d.isoformat(), 'active_users': len(users)} for d, users in dau_by_day.items()],
+        key=lambda x: x['date'],
+    )
+    avg_session_duration = round(sum(session_durations) / len(session_durations), 2) if session_durations else None
+
+    top_pages_raw = sorted(
+        page_stats.items(),
+        key=lambda x: x[1]['views'],
+        reverse=True,
+    )[:10]
+    top_pages = [{
+        'page': name or None,
+        'views': st['views'],
+        'distinct_users': len(st['users']),
+    } for name, st in top_pages_raw]
+
+    feature_adoption = {k: len(v) for k, v in feature_users.items()}
+
+    d1_eligible = d1_returned = 0
+    d7_eligible = d7_returned = 0
+    all_users = User.query.filter(User.created_at.isnot(None)).all()
+    event_user_days = {}
+    try:
+        day_rows = db.session.execute(text("""
+            SELECT DISTINCT user_id,
+                   (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')::date AS d
+            FROM user_events
+            WHERE user_id IS NOT NULL
+        """)).fetchall()
+        for uid, d in day_rows:
+            if uid and d:
+                event_user_days.setdefault(uid, set()).add(d)
+    except Exception as e:
+        logging.warning('engagement retention day query failed, falling back to ORM scan: %s', e)
+        for ev in UserEvent.query.filter(UserEvent.user_id.isnot(None)).yield_per(2000):
+            dd = _utc_naive_to_et_date(ev.created_at)
+            if dd:
+                event_user_days.setdefault(ev.user_id, set()).add(dd)
+
+    today_et = datetime.now(ET).date()
+    for u in all_users:
+        signup_d = _utc_naive_to_et_date(u.created_at)
+        if signup_d is None:
+            continue
+        udays = event_user_days.get(u.id, set())
+        if signup_d + timedelta(days=1) <= today_et:
+            d1_eligible += 1
+            if (signup_d + timedelta(days=1)) in udays:
+                d1_returned += 1
+        if signup_d + timedelta(days=7) <= today_et:
+            d7_eligible += 1
+            if (signup_d + timedelta(days=7)) in udays:
+                d7_returned += 1
+
+    return jsonify({
+        'period_days': 7,
+        'dau': dau,
+        'avg_session_duration': avg_session_duration,
+        'top_pages': top_pages,
+        'feature_adoption': feature_adoption,
+        'retention': {
+            'd1_eligible': d1_eligible,
+            'd1_returned': d1_returned,
+            'd1_rate_pct': round(d1_returned / d1_eligible * 100, 2) if d1_eligible else 0.0,
+            'd7_eligible': d7_eligible,
+            'd7_returned': d7_returned,
+            'd7_rate_pct': round(d7_returned / d7_eligible * 100, 2) if d7_eligible else 0.0,
+        },
+    })
+
+
+@admin_bp.route('/api/admin/user-activity/<user_id>')
+def admin_user_activity(user_id):
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    fourteen_ago = datetime.utcnow() - timedelta(days=14)
+    evs_14d = UserEvent.query.filter(
+        UserEvent.user_id == user_id,
+        UserEvent.created_at >= fourteen_ago,
+    ).order_by(UserEvent.created_at.asc()).all()
+
+    pages_visited = {}
+    articles_read = 0
+    per_day = {}
+    session_ids = set()
+    total_events_all = 0
+    for ev in UserEvent.query.filter_by(user_id=user_id).yield_per(500):
+        total_events_all += 1
+        if ev.session_id:
+            session_ids.add(ev.session_id)
+        pk = ev.page if ev.page else ''
+        pages_visited[pk] = pages_visited.get(pk, 0) + 1
+        if ev.event_type in ('view_article', 'article_read_complete'):
+            articles_read += 1
+
+    for ev in evs_14d:
+        d = _utc_naive_to_et_date(ev.created_at)
+        if d:
+            per_day[d] = per_day.get(d, 0) + 1
+
+    last_ev = UserEvent.query.filter_by(user_id=user_id).order_by(UserEvent.created_at.desc()).first()
+    last_active = last_ev.created_at.isoformat() if last_ev and last_ev.created_at else None
+
+    timeline_start = datetime.now(ET).date() - timedelta(days=13)
+    activity_timeline = []
+    for i in range(14):
+        d = timeline_start + timedelta(days=i)
+        activity_timeline.append({
+            'date': d.isoformat(),
+            'events': per_day.get(d, 0),
+        })
+
+    return jsonify({
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'tier': user.subscription_status,
+            'founding_member': bool(user.founding_member),
+            'created_at': user.created_at.isoformat() if user.created_at else None,
+        },
+        'total_sessions': len(session_ids),
+        'total_events': total_events_all,
+        'pages_visited': pages_visited,
+        'articles_read': articles_read,
+        'activity_timeline': activity_timeline,
+        'last_active': last_active,
+    })

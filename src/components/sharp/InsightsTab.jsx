@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { apiGet } from '../../hooks/useApi';
+import { trackEvent } from '../../utils/eventTracker';
 
 const CATEGORIES = [
   { id: 'all', label: 'All' },
@@ -31,9 +32,14 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
   const [selectedInsight, setSelectedInsight] = useState(null);
   const [animateIn, setAnimateIn] = useState(false);
 
+  const selectAndTrack = (insight) => {
+    setSelectedInsight(insight);
+    if (insight) trackEvent('view_article', { article_slug: insight.slug, category: insight.category });
+  };
+
   useEffect(() => {
     if (initialInsight) {
-      setSelectedInsight(initialInsight);
+      selectAndTrack(initialInsight);
       if (onInitialInsightConsumed) onInitialInsightConsumed();
     }
   }, [initialInsight]);
@@ -67,7 +73,7 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
         insight={selectedInsight}
         allInsights={insights}
         onBack={() => setSelectedInsight(null)}
-        onSelectInsight={(insight) => { setSelectedInsight(insight); }}
+        onSelectInsight={(insight) => { selectAndTrack(insight); }}
         onNavigate={onNavigate}
       />
     );
@@ -142,13 +148,13 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {activeCategory === 'all' && <StartHereCard onTap={() => {
               const manifesto = insights.find(i => i.slug === 'the-sharp-manifesto') || insights.find(i => i.category === 'philosophy') || insights[0];
-              if (manifesto) setSelectedInsight(manifesto);
+              if (manifesto) selectAndTrack(manifesto);
             }} />}
             {insights.map(insight => (
               <InsightCard
                 key={insight.id}
                 insight={insight}
-                onTap={() => setSelectedInsight(insight)}
+                onTap={() => selectAndTrack(insight)}
               />
             ))}
           </div>

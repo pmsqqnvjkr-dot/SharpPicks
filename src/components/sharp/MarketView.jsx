@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import PullToRefresh from '../shared/PullToRefresh';
 import DailyMarketReport from './DailyMarketReport';
+import { trackEvent } from '../../utils/eventTracker';
 
 const PROD_URL = 'https://app.sharppicks.ai';
 const MV_API_BASE = Capacitor.isNativePlatform() ? PROD_URL : '';
@@ -1373,6 +1374,8 @@ export default function MarketView({ onBack }) {
   const [liveScores, setLiveScores] = useState({});
   const [watchedIds, setWatchedIds] = useState(new Set());
   const [lineHistoryGame, setLineHistoryGame] = useState(null);
+
+  useEffect(() => { trackEvent('view_market_scan', { sport }); }, [sport]);
 
   const rawGames = data?.games || [];
 

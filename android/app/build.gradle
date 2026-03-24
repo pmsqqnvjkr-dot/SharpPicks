@@ -17,8 +17,8 @@ android {
         applicationId "ai.sharppicks.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 7
-        versionName "1.0.6"
+        versionCode 8
+        versionName "1.0.7"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -61,7 +61,13 @@ configurations.all {
     resolutionStrategy {
         force "androidx.core:core-ktx:$androidxCoreVersion"
         force "androidx.core:core:$androidxCoreVersion"
+        force "androidx.activity:activity:$androidxActivityVersion"
+        force "androidx.activity:activity-ktx:$androidxActivityVersion"
+        force "androidx.fragment:fragment:$androidxFragmentVersion"
+        force "androidx.fragment:fragment-ktx:$androidxFragmentVersion"
     }
+    exclude group: 'androidx.activity', module: 'activity-ktx'
+    exclude group: 'androidx.fragment', module: 'fragment-ktx'
 }
 
 apply from: 'capacitor.build.gradle'

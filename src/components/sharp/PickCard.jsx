@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { apiPost, apiDelete, getAuthToken } from '../../hooks/useApi';
+import { trackEvent } from '../../utils/eventTracker';
 
 const green = '#5A9E72';
 const greenDim = '#5A9E72';
@@ -80,6 +81,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
   const handleTrackPick = async () => {
     setTracking(true);
     setTrackError(null);
+    trackEvent('tap_bet_link', { game_id: pick.id, pick_type: 'spread', sportsbook: pick.sportsbook || 'unknown' });
     try {
       const res = await apiPost('/bets', {
         pick_id: pick.id, bet_amount: 100, odds: pick.market_odds || -110,
@@ -424,7 +426,11 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
             )}
           </div>
           <button
-            onClick={() => setExpanded(e => !e)}
+            onClick={() => {
+              const next = !expanded;
+              setExpanded(next);
+              if (next) trackEvent('view_pick', { game_id: pick.id, pick_type: 'spread', edge: pick.edge_pct });
+            }}
             style={{
               fontFamily: mono, fontSize: '10px', fontWeight: 500,
               letterSpacing: '0.8px', color: green, textTransform: 'uppercase',

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../hooks/useAuth';
 import { getAuthToken } from '../../hooks/useApi';
+import { trackEvent } from '../../utils/eventTracker';
 import UnifiedDashboard from './UnifiedDashboard';
 import DashboardTab from './DashboardTab';
 import FreeTierDashboard from './FreeTierDashboard';
@@ -72,6 +73,8 @@ export default function PerformanceTab({ onNavigate, initialView, onViewConsumed
   const [view, setView] = useState(initialView || (isPro ? 'yours' : 'model'));
   const [sharePreview, setSharePreview] = useState(null);
   const [shareLoading, setShareLoading] = useState(null);
+
+  useEffect(() => { trackEvent('view_model_performance'); }, []);
 
   useEffect(() => {
     if (initialView) {
