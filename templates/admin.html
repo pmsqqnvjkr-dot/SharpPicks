@@ -652,38 +652,38 @@ body { font-family: var(--mono); color: var(--text); background: var(--bg); min-
     <div class="metric-sub" id="ov-cron-sub">--</div>
   </div>
 
-  <!-- CLOUDFLARE ANALYTICS -->
-  <div class="section-label">Site Analytics <span style="font-size:8px;letter-spacing:1px;color:var(--blue);margin-left:8px">CLOUDFLARE</span></div>
+  <!-- SITE ANALYTICS -->
+  <div class="section-label">Site Analytics</div>
 
   <div class="panel">
-    <div class="panel-label">sharppicks.ai — Visitors (7d)</div>
+    <div class="panel-label">sharppicks.ai — Visitors (7d) <span style="font-size:8px;letter-spacing:1px;color:var(--blue)">CF</span></div>
     <div class="metric-val blue" id="cf-mkt-uniques">--</div>
     <div class="metric-sub" id="cf-mkt-uniques-sub">Unique visitors</div>
   </div>
   <div class="panel">
-    <div class="panel-label">sharppicks.ai — Page Views (7d)</div>
+    <div class="panel-label">sharppicks.ai — Page Views (7d) <span style="font-size:8px;letter-spacing:1px;color:var(--blue)">CF</span></div>
     <div class="metric-val" id="cf-mkt-views">--</div>
     <div class="metric-sub" id="cf-mkt-requests-sub">--</div>
   </div>
   <div class="panel">
-    <div class="panel-label">app.sharppicks.ai — Visitors (7d)</div>
+    <div class="panel-label">app — Visitors (7d) <span style="font-size:8px;letter-spacing:1px;color:var(--green)">SERVER</span></div>
     <div class="metric-val blue" id="cf-app-uniques">--</div>
     <div class="metric-sub" id="cf-app-uniques-sub">Unique visitors</div>
   </div>
   <div class="panel">
-    <div class="panel-label">app.sharppicks.ai — Page Views (7d)</div>
+    <div class="panel-label">app — Page Views (7d) <span style="font-size:8px;letter-spacing:1px;color:var(--green)">SERVER</span></div>
     <div class="metric-val" id="cf-app-views">--</div>
     <div class="metric-sub" id="cf-app-requests-sub">--</div>
   </div>
 
   <div class="panel wide-2">
-    <div class="panel-label">sharppicks.ai — Top Pages (7d)</div>
+    <div class="panel-label">sharppicks.ai — Top Pages (7d) <span style="font-size:8px;letter-spacing:1px;color:var(--blue)">CF</span></div>
     <div id="cf-mkt-top-paths" style="max-height:220px;overflow-y:auto">
       <div class="metric-sub">Loading...</div>
     </div>
   </div>
   <div class="panel wide-2">
-    <div class="panel-label">app.sharppicks.ai — Top Pages (7d)</div>
+    <div class="panel-label">app — Top Paths (7d) <span style="font-size:8px;letter-spacing:1px;color:var(--green)">SERVER</span></div>
     <div id="cf-app-top-paths" style="max-height:220px;overflow-y:auto">
       <div class="metric-sub">Loading...</div>
     </div>
@@ -2009,83 +2009,100 @@ function updateKillSwitchBadge(ks) {
 }
 
 async function loadCfAnalytics() {
+  const fmt = (n) => n != null ? n.toLocaleString() : '—';
+  function renderZone(prefix, z) {
+    if (!z || z.error) {
+      document.getElementById(prefix + '-uniques').textContent = '—';
+      document.getElementById(prefix + '-uniques').nextElementSibling.textContent = z?.error || 'No data';
+      document.getElementById(prefix + '-views').textContent = '—';
+      return null;
+    }
+    document.getElementById(prefix + '-uniques').textContent = fmt(z.uniques);
+    document.getElementById(prefix + '-views').textContent = fmt(z.pageViews);
+    document.getElementById(prefix + '-requests-sub').textContent = fmt(z.requests) + ' total requests';
+    const container = document.getElementById(prefix + '-top-paths');
+    if (z.topPaths && z.topPaths.length) {
+      container.innerHTML = z.topPaths.map((p, i) =>
+        `<div class="stat-row"><span class="label" style="display:flex;gap:6px;align-items:center"><span style="color:var(--text-dim);min-width:16px">${i+1}.</span>${p.path}</span><span class="value">${fmt(p.count)}</span></div>`
+      ).join('');
+    } else {
+      container.innerHTML = '<div class="metric-sub">No data</div>';
+    }
+    return z;
+  }
+
+  // Fetch server-side app analytics
+  let appDaily = [];
   try {
-    const res = await adminFetch('/api/admin/cf-analytics');
-    const d = await res.json();
-    if (d.error) {
-      document.getElementById('cf-mkt-uniques').textContent = '—';
-      document.getElementById('cf-mkt-uniques').nextElementSibling.textContent = d.error;
-      return;
-    }
-    function fmt(n) { return n != null ? n.toLocaleString() : '—'; }
-    function renderZone(prefix, z) {
-      if (!z || z.error) {
-        document.getElementById(prefix + '-uniques').textContent = '—';
-        document.getElementById(prefix + '-uniques').nextElementSibling.textContent = z?.error || 'No data';
-        document.getElementById(prefix + '-views').textContent = '—';
-        return;
-      }
-      document.getElementById(prefix + '-uniques').textContent = fmt(z.uniques);
-      document.getElementById(prefix + '-views').textContent = fmt(z.pageViews);
-      document.getElementById(prefix + '-requests-sub').textContent = fmt(z.requests) + ' total requests';
-      const container = document.getElementById(prefix + '-top-paths');
-      if (z.topPaths && z.topPaths.length) {
-        container.innerHTML = z.topPaths.map((p, i) =>
-          `<div class="stat-row"><span class="label" style="display:flex;gap:6px;align-items:center"><span style="color:var(--text-dim);min-width:16px">${i+1}.</span>${p.path}</span><span class="value">${fmt(p.count)}</span></div>`
-        ).join('');
-      } else {
-        container.innerHTML = '<div class="metric-sub">No data</div>';
-      }
-    }
-    renderZone('cf-mkt', d.marketing);
-    renderZone('cf-app', d.app);
-    if (d.period) {
-      document.getElementById('cf-period-label').textContent = d.period.since + ' → ' + d.period.until;
-    }
-    // Daily sparkline chart
-    const mktDaily = d.marketing?.daily || [];
-    const appDaily = d.app?.daily || [];
-    const allVals = [...mktDaily.map(x => x.uniques), ...appDaily.map(x => x.uniques)].filter(Boolean);
-    if (allVals.length) {
-      const maxV = Math.max(...allVals, 1);
-      const W = 800, H = 120, pad = 18;
-      function toPath(pts, close) {
-        if (!pts.length) return '';
-        const step = pts.length > 1 ? (W - 40) / (pts.length - 1) : 0;
-        let d = pts.map((v, i) => {
-          const x = 20 + i * step;
-          const y = pad + (H - 2 * pad) * (1 - v / maxV);
-          return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
-        }).join(' ');
-        if (close && pts.length) {
-          const lastX = 20 + (pts.length - 1) * step;
-          d += ' L' + lastX.toFixed(1) + ',' + H + ' L20,' + H + ' Z';
-        }
-        return d;
-      }
-      document.getElementById('cf-mkt-line').setAttribute('d', toPath(mktDaily.map(x => x.uniques), false));
-      document.getElementById('cf-mkt-area').setAttribute('d', toPath(mktDaily.map(x => x.uniques), true));
-      document.getElementById('cf-app-line').setAttribute('d', toPath(appDaily.map(x => x.uniques), false));
-      document.getElementById('cf-app-area').setAttribute('d', toPath(appDaily.map(x => x.uniques), true));
-      const labels = document.getElementById('cf-x-labels');
-      labels.innerHTML = '';
-      const longest = mktDaily.length >= appDaily.length ? mktDaily : appDaily;
-      const step = longest.length > 1 ? (W - 40) / (longest.length - 1) : 0;
-      longest.forEach((pt, i) => {
-        const x = 20 + i * step;
-        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        t.setAttribute('x', x);
-        t.setAttribute('y', H - 2);
-        t.setAttribute('text-anchor', 'middle');
-        t.setAttribute('fill', 'var(--text-dim)');
-        t.setAttribute('font-size', '9');
-        t.setAttribute('font-family', 'var(--font)');
-        t.textContent = pt.date.slice(5);
-        labels.appendChild(t);
-      });
+    const appRes = await adminFetch('/api/admin/app-analytics');
+    const appData = await appRes.json();
+    if (!appData.error) {
+      renderZone('cf-app', appData);
+      appDaily = appData.daily || [];
+    } else {
+      renderZone('cf-app', { error: appData.error });
     }
   } catch (e) {
-    console.warn('CF analytics error:', e);
+    renderZone('cf-app', { error: 'Failed to load' });
+  }
+
+  // Fetch Cloudflare zone analytics for marketing site
+  let mktDaily = [];
+  try {
+    const cfRes = await adminFetch('/api/admin/cf-analytics');
+    const cfData = await cfRes.json();
+    if (!cfData.error && cfData.marketing) {
+      renderZone('cf-mkt', cfData.marketing);
+      mktDaily = cfData.marketing?.daily || [];
+      if (cfData.period) {
+        document.getElementById('cf-period-label').textContent = cfData.period.since + ' → ' + cfData.period.until;
+      }
+    } else {
+      renderZone('cf-mkt', cfData.marketing || { error: cfData.error || 'CF not configured' });
+    }
+  } catch (e) {
+    renderZone('cf-mkt', { error: 'CF API not configured' });
+  }
+
+  // Daily sparkline chart
+  const allVals = [...mktDaily.map(x => x.uniques), ...appDaily.map(x => x.uniques)].filter(Boolean);
+  if (allVals.length) {
+    const maxV = Math.max(...allVals, 1);
+    const W = 800, H = 120, pad = 18;
+    function toPath(pts, close) {
+      if (!pts.length) return '';
+      const step = pts.length > 1 ? (W - 40) / (pts.length - 1) : 0;
+      let d = pts.map((v, i) => {
+        const x = 20 + i * step;
+        const y = pad + (H - 2 * pad) * (1 - v / maxV);
+        return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+      }).join(' ');
+      if (close && pts.length) {
+        const lastX = 20 + (pts.length - 1) * step;
+        d += ' L' + lastX.toFixed(1) + ',' + H + ' L20,' + H + ' Z';
+      }
+      return d;
+    }
+    document.getElementById('cf-mkt-line').setAttribute('d', toPath(mktDaily.map(x => x.uniques), false));
+    document.getElementById('cf-mkt-area').setAttribute('d', toPath(mktDaily.map(x => x.uniques), true));
+    document.getElementById('cf-app-line').setAttribute('d', toPath(appDaily.map(x => x.uniques), false));
+    document.getElementById('cf-app-area').setAttribute('d', toPath(appDaily.map(x => x.uniques), true));
+    const labels = document.getElementById('cf-x-labels');
+    labels.innerHTML = '';
+    const longest = mktDaily.length >= appDaily.length ? mktDaily : appDaily;
+    const step = longest.length > 1 ? (W - 40) / (longest.length - 1) : 0;
+    longest.forEach((pt, i) => {
+      const x = 20 + i * step;
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', x);
+      t.setAttribute('y', H - 2);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('fill', 'var(--text-dim)');
+      t.setAttribute('font-size', '9');
+      t.setAttribute('font-family', 'var(--font)');
+      t.textContent = pt.date.slice(5);
+      labels.appendChild(t);
+    });
   }
 }
 

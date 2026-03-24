@@ -37,6 +37,8 @@ self.addEventListener('notificationclick', (event) => {
     urlPath = data.pick_id ? '/?push=picks&pick_id=' + encodeURIComponent(data.pick_id) : '/?push=picks';
   } else if (data.type === 'pass') {
     urlPath = '/?push=picks';
+  } else if (data.type === 'journal' || data.type === 'market_note') {
+    urlPath = '/?push=journal';
   }
 
   event.waitUntil(

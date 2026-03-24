@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog, FCMToken, KillSwitch, UserBet
+from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog, FCMToken, KillSwitch, UserBet, PageView
 from datetime import datetime, timedelta
 from sqlalchemy import func, text
 from zoneinfo import ZoneInfo
@@ -2188,3 +2188,62 @@ def cf_analytics():
 
     result['period'] = {'since': since, 'until': until}
     return jsonify(result)
+
+
+@admin_bp.route('/api/admin/app-analytics')
+def app_analytics():
+    """Server-side request analytics for app.sharppicks.ai (7-day window)."""
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    try:
+        PageView.__table__
+    except Exception:
+        return jsonify({'error': 'PageView table not available'}), 503
+
+    today = datetime.now(ET).date()
+    since = today - timedelta(days=7)
+    since_dt = datetime(since.year, since.month, since.day)
+
+    try:
+        total_views = PageView.query.filter(PageView.created_at >= since_dt).count()
+        unique_visitors = db.session.query(
+            func.count(func.distinct(PageView.ip_hash))
+        ).filter(PageView.created_at >= since_dt).scalar() or 0
+
+        api_requests = PageView.query.filter(
+            PageView.created_at >= since_dt,
+            PageView.path.like('/api/%')
+        ).count()
+
+        daily_rows = db.session.query(
+            func.date(PageView.created_at).label('day'),
+            func.count().label('views'),
+            func.count(func.distinct(PageView.ip_hash)).label('uniques'),
+        ).filter(
+            PageView.created_at >= since_dt
+        ).group_by(func.date(PageView.created_at)).order_by(func.date(PageView.created_at)).all()
+
+        daily = [{'date': str(r.day), 'views': r.views, 'uniques': r.uniques} for r in daily_rows]
+
+        top_paths_rows = db.session.query(
+            PageView.path,
+            func.count().label('cnt'),
+        ).filter(
+            PageView.created_at >= since_dt
+        ).group_by(PageView.path).order_by(func.count().desc()).limit(10).all()
+
+        top_paths = [{'path': r.path, 'count': r.cnt} for r in top_paths_rows]
+
+        return jsonify({
+            'pageViews': total_views,
+            'uniques': unique_visitors,
+            'requests': api_requests,
+            'daily': daily,
+            'topPaths': top_paths,
+            'period': {'since': since.isoformat(), 'until': today.isoformat()},
+        })
+    except Exception as e:
+        logging.error(f'App analytics error: {e}')
+        return jsonify({'error': str(e)}), 500

@@ -85,7 +85,7 @@ export default function TodayTab({ onNavigate }) {
           }} />
         )}
 
-        {todayData?.type === 'pass' && <NoPickCard data={todayData} />}
+        {todayData?.type === 'pass' && <NoPickCard data={todayData} onInsightTap={() => { if (onNavigate) onNavigate('insights'); }} />}
         {todayData?.type === 'off_day' && <OffDayCard />}
         {todayData?.type === 'waiting' && <DailyInsightCard data={todayData} onNavigate={onNavigate} />}
 

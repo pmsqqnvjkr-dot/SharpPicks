@@ -3,12 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SharpPicks — Sports Market Intelligence</title>
-  <meta name="description" content="SharpPicks analyzes sports betting markets like a trading desk — identifying pricing inefficiencies, measuring probability gaps, and generating signals only when real edges appear." />
-  <meta property="og:title" content="SharpPicks — Sports Market Intelligence" />
-  <meta property="og:description" content="Beat the market, not the scoreboard. Quantitative sports betting signals powered by data." />
+  <title>SharpPicks - Sports Market Intelligence</title>
+  <meta name="description" content="SharpPicks is the first sports market intelligence platform. AI-powered edge detection across NBA, MLB, and WNBA. One pick beats five." />
+  <meta property="og:title" content="SharpPicks - Sports Market Intelligence" />
+  <meta property="og:description" content="Market intelligence for sports. AI edge detection. NBA, MLB, WNBA. One pick beats five." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://sharppicks.ai" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="preload" href="images/crest.png" as="image" />
+  <link rel="preload" href="images/screenshot-signals.png" as="image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -21,9 +27,9 @@
       --text-primary: #EEF2FF;
       --text-secondary: #9AA3B2;
       --text-tertiary: #6B7280;
-      --color-signal: #5A9E72;
-      --color-signal-bg: rgba(90, 158, 114, 0.08);
-      --color-signal-border: rgba(90, 158, 114, 0.22);
+      --green: #5A9E72;
+      --green-bg: rgba(90, 158, 114, 0.08);
+      --green-border: rgba(90, 158, 114, 0.22);
       --blue-primary: #4F7DF3;
       --stroke-subtle: rgba(255, 255, 255, 0.08);
       --stroke-muted: rgba(255, 255, 255, 0.12);
@@ -50,6 +56,21 @@
       padding: 0 clamp(20px, 5vw, 64px);
     }
 
+    .section-label {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--green); display: block; margin-bottom: 14px;
+    }
+
+    /* FADE-IN ANIMATION */
+    .fade-section {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-section.visible {
+      opacity: 1; transform: translateY(0);
+    }
+
     /* NAV */
     nav {
       position: sticky; top: 0; z-index: 50;
@@ -66,15 +87,25 @@
     .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
     .nav-brand img { display: block; object-fit: contain; }
     .nav-brand-text {
-      font-family: var(--font-sans); font-size: 13px; font-weight: 600;
-      color: #F2F4F8; letter-spacing: 3.9px; text-transform: uppercase; line-height: 1;
+      font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+      color: #E8EAED; letter-spacing: 0.25em; text-transform: uppercase; line-height: 1;
+      display: inline-flex; align-items: center;
     }
-    .brand-sep {
-      display: inline-flex; align-items: center; gap: 3px; margin: 0 0.5em 0 0.2em;
+    .brand-bar {
+      display: inline-flex; gap: 0.18em; margin: 0 0.4em; align-self: center;
     }
-    .brand-sep span {
-      width: 2px; height: 11px; background-color: currentColor; opacity: 0.5; border-radius: 1px;
+    .brand-bar span {
+      display: block; width: 0.08em; height: 1.24em;
+      background: currentColor; border-radius: 999px;
     }
+    .nav-links {
+      display: flex; align-items: center; gap: 24px;
+    }
+    .nav-links a {
+      font-size: 13px; color: var(--text-secondary); text-decoration: none;
+      font-weight: 500; transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--text-primary); }
     .nav-actions { display: flex; align-items: center; gap: 12px; }
     .btn-signin {
       padding: 7px 16px; background: transparent; color: var(--text-secondary);
@@ -88,6 +119,24 @@
       font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font-sans);
       text-decoration: none; display: inline-flex; align-items: center;
     }
+
+    /* HAMBURGER */
+    .hamburger {
+      display: none; background: none; border: none; cursor: pointer; padding: 8px;
+      color: var(--text-secondary);
+    }
+    .mobile-menu {
+      display: none; position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
+      background: rgba(10, 13, 20, 0.97); backdrop-filter: blur(20px);
+      z-index: 49; flex-direction: column; align-items: center;
+      justify-content: center; gap: 32px;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      font-family: var(--font-sans); font-size: 18px; font-weight: 500;
+      color: var(--text-secondary); text-decoration: none;
+    }
+    .mobile-menu a:hover { color: var(--text-primary); }
 
     /* HERO */
     .hero {
@@ -107,11 +156,6 @@
       gap: 48px; align-items: center;
       padding: 80px clamp(20px, 5vw, 64px);
       max-width: 1080px; margin: 0 auto;
-    }
-    .hero-eyebrow {
-      font-family: var(--font-mono); font-size: 11px; font-weight: 700;
-      letter-spacing: 0.16em; text-transform: uppercase;
-      color: var(--text-tertiary); margin-bottom: 16px;
     }
     .hero h1 {
       font-family: var(--font-serif); font-size: clamp(32px, 4.5vw, 52px);
@@ -177,16 +221,46 @@
       font-weight: 500; font-style: italic; color: var(--text-secondary);
     }
 
+    /* WHAT SETS US APART */
+    .apart-section { padding: 80px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .apart-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .apart-card {
+      background: var(--surface-1); border: 1px solid var(--stroke-subtle);
+      border-radius: 12px; padding: 28px 24px;
+      border-top: 2px solid var(--green);
+    }
+    .apart-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--green-bg); border: 1px solid var(--green-border);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+    }
+    .apart-icon svg { width: 20px; height: 20px; stroke: var(--green); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .apart-card h3 {
+      font-family: var(--font-serif); font-size: 17px; font-weight: 600;
+      color: var(--text-primary); margin-bottom: 10px;
+    }
+    .apart-card p {
+      font-family: var(--font-sans); font-size: 14px; color: var(--text-secondary); line-height: 1.65;
+    }
+
     /* HOW IT WORKS */
     .how-section { padding: 80px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
     .section-eyebrow {
       font-family: var(--font-mono); font-size: 10px; font-weight: 700;
-      letter-spacing: 0.14em; color: var(--text-tertiary);
+      letter-spacing: 0.14em; color: var(--green);
       text-transform: uppercase; margin-bottom: 12px;
     }
     .section-heading {
       font-family: var(--font-serif); font-size: clamp(24px, 3vw, 36px);
       font-weight: 700; color: var(--text-primary);
+    }
+    .section-subtitle {
+      font-family: var(--font-serif); font-size: 16px; font-style: italic;
+      color: var(--text-tertiary); margin-top: 8px;
     }
     .pillar-grid { display: flex; gap: 20px; flex-wrap: wrap; }
     .pillar-card {
@@ -220,6 +294,103 @@
       text-transform: uppercase; margin-top: 16px;
     }
 
+    /* QUANT CARD */
+    .quant-section { padding: 80px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .quant-card {
+      background: var(--surface-1); border: 1px solid var(--stroke-subtle);
+      border-radius: 16px; padding: 32px; max-width: 560px; margin: 0 auto;
+    }
+    .quant-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .signal-badge {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      background: var(--green-bg); color: var(--green);
+      border: 1px solid var(--green-border);
+      padding: 4px 10px; border-radius: 4px;
+    }
+    .quant-matchup {
+      font-family: var(--font-sans); font-size: 15px; font-weight: 600;
+      color: var(--text-primary);
+    }
+    .quant-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px; margin-bottom: 20px;
+    }
+    .quant-stat {
+      background: var(--surface-2); border-radius: 8px; padding: 12px; text-align: center;
+    }
+    .quant-stat-value {
+      font-family: var(--font-mono); font-size: 20px; font-weight: 700; color: var(--green);
+    }
+    .quant-stat-label {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+      letter-spacing: 0.08em; color: var(--text-tertiary); text-transform: uppercase; margin-top: 4px;
+    }
+    .quant-value-range {
+      margin-bottom: 20px; padding: 14px; background: var(--surface-2);
+      border-radius: 8px; border-left: 3px solid var(--green);
+    }
+    .quant-value-range-label {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      color: var(--text-tertiary); letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .quant-value-range-text {
+      font-family: var(--font-sans); font-size: 13px; color: var(--text-secondary);
+    }
+    .quant-value-range-text strong { color: var(--green); }
+    .quant-value-bar {
+      height: 6px; border-radius: 3px; margin-top: 8px;
+      background: linear-gradient(90deg, var(--green) 0%, var(--green) 60%, #C4686B 100%);
+      position: relative;
+    }
+    .quant-value-bar::after {
+      content: ''; position: absolute; top: -3px; left: 60%;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--text-primary); border: 2px solid var(--green);
+    }
+    .quant-reasoning { list-style: none; }
+    .quant-reasoning li {
+      font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);
+      padding: 6px 0; border-bottom: 1px solid var(--stroke-subtle);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .quant-reasoning li:last-child { border-bottom: none; }
+    .quant-reasoning li::before {
+      content: ''; width: 4px; height: 4px; border-radius: 50%;
+      background: var(--green); flex-shrink: 0;
+    }
+
+    /* BEHAVIORAL EDGE */
+    .behavioral-section { padding: 80px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .behavioral-card {
+      background: var(--surface-1); border: 1px solid var(--stroke-subtle);
+      border-radius: 16px; padding: 32px; max-width: 520px; margin: 0 auto;
+    }
+    .behavioral-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px;
+    }
+    .behavioral-stat {
+      text-align: center; padding: 16px 8px;
+      background: var(--surface-2); border-radius: 8px;
+    }
+    .behavioral-stat-value {
+      font-family: var(--font-mono); font-size: 24px; font-weight: 700; color: var(--green);
+    }
+    .behavioral-stat-label {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+      letter-spacing: 0.08em; color: var(--text-tertiary); text-transform: uppercase; margin-top: 4px;
+    }
+    .behavioral-insight {
+      font-family: var(--font-serif); font-size: 14px; font-style: italic;
+      color: var(--text-secondary); line-height: 1.6; text-align: center;
+      padding: 16px; background: var(--surface-2); border-radius: 8px;
+      border-left: 3px solid var(--green);
+    }
+
     /* MODEL PERFORMANCE */
     .metrics-section { padding: 64px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
     .metrics-grid {
@@ -239,20 +410,73 @@
     }
     .metric-sub { font-family: var(--font-sans); font-size: 11px; color: var(--text-tertiary); }
 
-    /* FOUNDING MEMBERS */
-    .founding-section { padding: 48px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
-    .founding-card {
-      display: inline-block;
-      background: rgba(79, 134, 247, 0.06); border: 1px solid rgba(79, 134, 247, 0.15);
-      border-radius: 14px; padding: 28px 40px;
+    /* PRICING */
+    .pricing-section { padding: 80px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 20px; align-items: start;
     }
-    .founding-card h3 {
-      font-family: var(--font-sans); font-size: 18px; font-weight: 700;
-      color: var(--text-primary); margin-bottom: 8px;
+    .pricing-card {
+      background: var(--surface-1); border: 1px solid var(--stroke-subtle);
+      border-radius: 14px; padding: 28px 24px; text-align: center;
     }
-    .founding-card p { font-size: 14px; color: var(--text-secondary); margin-bottom: 6px; }
-    .founding-count {
-      font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--blue-primary);
+    .pricing-card-highlight {
+      border-color: var(--green-border);
+      background: linear-gradient(180deg, rgba(90,158,114,0.06) 0%, var(--surface-1) 100%);
+      position: relative;
+    }
+    .pricing-tier {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-tertiary); margin-bottom: 8px;
+    }
+    .pricing-price {
+      font-family: var(--font-mono); font-size: 40px; font-weight: 800;
+      color: var(--text-primary); line-height: 1;
+    }
+    .pricing-period {
+      font-family: var(--font-sans); font-size: 13px; color: var(--text-tertiary);
+      margin-bottom: 20px; margin-top: 4px;
+    }
+    .pricing-features {
+      list-style: none; text-align: left; margin-bottom: 24px;
+    }
+    .pricing-features li {
+      font-family: var(--font-sans); font-size: 13px; color: var(--text-secondary);
+      padding: 6px 0; border-bottom: 1px solid var(--stroke-subtle);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pricing-features li:last-child { border-bottom: none; }
+    .pricing-features li::before {
+      content: ''; width: 5px; height: 5px; border-radius: 50%;
+      background: var(--green); flex-shrink: 0;
+    }
+    .pricing-btn {
+      display: block; width: 100%; padding: 12px 20px;
+      border-radius: 10px; font-size: 14px; font-weight: 600;
+      font-family: var(--font-sans); text-decoration: none;
+      text-align: center; cursor: pointer; transition: all 0.15s;
+    }
+    .pricing-btn-primary {
+      background: var(--blue-primary); color: #fff; border: none;
+      box-shadow: 0 2px 12px rgba(79,125,243,0.25);
+    }
+    .pricing-btn-primary:hover { box-shadow: 0 4px 20px rgba(79,125,243,0.35); transform: translateY(-1px); }
+    .pricing-btn-outline {
+      background: transparent; color: var(--text-secondary);
+      border: 1px solid var(--stroke-muted);
+    }
+    .pricing-btn-outline:hover { border-color: rgba(255,255,255,0.25); }
+    .pricing-badge {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      background: var(--green-bg); color: var(--green);
+      border: 1px solid var(--green-border);
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .pricing-spots {
+      font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+      color: var(--green); margin-top: 12px;
     }
 
     /* CTA */
@@ -283,18 +507,17 @@
       font-style: italic; color: var(--text-tertiary);
     }
     .footer-brand {
-      display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;
+      display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px;
     }
     .footer-brand img { opacity: 0.4; object-fit: contain; }
     .footer-brand-text {
-      font-family: var(--font-sans); font-size: 11px; font-weight: 600;
-      color: var(--text-tertiary); letter-spacing: 2.5px; text-transform: uppercase;
+      font-family: var(--font-sans); font-size: 11px; font-weight: 500;
+      color: var(--text-tertiary); letter-spacing: 0.25em; text-transform: uppercase;
+      display: inline-flex; align-items: center;
     }
-    .footer-brand-sep {
-      display: inline-flex; align-items: center; gap: 2px; margin: 0 0.35em;
-    }
-    .footer-brand-sep span {
-      width: 2px; height: 9px; background-color: currentColor; opacity: 0.45; border-radius: 1px;
+    .footer-tagline {
+      font-family: var(--font-serif); font-size: 12px; font-style: italic;
+      color: var(--text-tertiary); margin-bottom: 20px; opacity: 0.7;
     }
     .footer-disclaimer {
       font-size: 11px; color: var(--text-tertiary); line-height: 1.6;
@@ -307,12 +530,26 @@
     .footer-email:hover { color: var(--text-primary); }
 
     /* RESPONSIVE */
+    @media (max-width: 900px) {
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+    }
+    @media (min-width: 901px) {
+      .hamburger { display: none; }
+      .mobile-menu { display: none !important; }
+    }
     @media (max-width: 768px) {
       .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+      .apart-grid { grid-template-columns: 1fr; }
       .screenshots-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
+      .quant-stats { grid-template-columns: repeat(3, 1fr); }
+      .behavioral-grid { grid-template-columns: repeat(3, 1fr); }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+      .pricing-card-highlight { order: -1; }
     }
     @media (max-width: 480px) {
       .screenshots-grid { grid-template-columns: 1fr !important; gap: 32px !important; max-width: 280px; margin: 0 auto; }
+      .nav-actions .btn-signin { display: none; }
     }
   </style>
 </head>
@@ -323,25 +560,43 @@
     <div class="nav-inner">
       <a href="https://app.sharppicks.ai" class="nav-brand">
         <img src="images/crest.png" alt="SharpPicks" width="26" height="26" />
-        <span class="nav-brand-text">SHARP<span class="brand-sep"><span></span><span></span></span>PICKS</span>
+        <span class="nav-brand-text">SHARP<span class="brand-bar"><span></span><span></span></span>PICKS</span>
       </a>
+      <div class="nav-links">
+        <a href="#how-it-works">How It Works</a>
+        <a href="#performance">Performance</a>
+        <a href="#pricing">Pricing</a>
+        <a href="/support">Support</a>
+      </div>
       <div class="nav-actions">
         <a href="https://app.sharppicks.ai" class="btn-signin">Sign in</a>
         <a href="https://app.sharppicks.ai" class="btn-trial">Start Free Trial</a>
+        <button class="hamburger" onclick="document.getElementById('mobile-menu').classList.toggle('open')" aria-label="Menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
       </div>
     </div>
   </nav>
+  <div id="mobile-menu" class="mobile-menu">
+    <a href="#how-it-works" onclick="document.getElementById('mobile-menu').classList.remove('open')">How It Works</a>
+    <a href="#performance" onclick="document.getElementById('mobile-menu').classList.remove('open')">Performance</a>
+    <a href="#pricing" onclick="document.getElementById('mobile-menu').classList.remove('open')">Pricing</a>
+    <a href="/support" onclick="document.getElementById('mobile-menu').classList.remove('open')">Support</a>
+    <a href="https://app.sharppicks.ai">Sign In</a>
+    <a href="https://app.sharppicks.ai" style="color:var(--blue-primary);font-weight:700;">Start Free Trial</a>
+  </div>
 
   <!-- HERO -->
   <section class="hero">
     <div class="hero-crest"></div>
     <div class="hero-grid">
       <div>
-        <div class="hero-eyebrow">Sports Market Intelligence</div>
-        <h1>Beat the market,<br>not the scoreboard.</h1>
+        <span class="section-label">Sports Market Intelligence</span>
+        <h1>One pick beats five.</h1>
         <p class="hero-desc">
-          SharpPicks analyzes sports betting markets like a trading desk &mdash; identifying pricing
-          inefficiencies, measuring probability gaps, and generating signals only when real edges appear.
+          Market intelligence across NBA, MLB, and WNBA. A four-model ensemble scans every game,
+          detects pricing inefficiencies, and surfaces signals only when real edge appears.
+          Most days, the answer is pass. That's the product.
         </p>
         <p class="hero-tagline">Selective by design.</p>
         <div class="hero-buttons">
@@ -358,7 +613,7 @@
   </section>
 
   <!-- DISCIPLINE FILTER -->
-  <section class="discipline">
+  <section class="discipline fade-section">
     <div class="section-inner" style="text-align:center;">
       <div class="section-eyebrow">Discipline Filter</div>
       <div class="discipline-stats">
@@ -375,39 +630,12 @@
           <div class="discipline-stat-label">Games Passed</div>
         </div>
       </div>
-      <p class="discipline-quote">One pick beats five.</p>
-    </div>
-  </section>
-
-  <!-- HOW IT WORKS -->
-  <section id="how-it-works" class="how-section">
-    <div class="section-inner">
-      <div style="text-align:center;margin-bottom:48px;">
-        <div class="section-eyebrow">How SharpPicks Works</div>
-        <h2 class="section-heading">From market scan to signal.</h2>
-      </div>
-      <div class="pillar-grid">
-        <div class="pillar-card">
-          <div class="pillar-icon">&#9678;</div>
-          <h3>Market Intelligence</h3>
-          <p>SharpPicks scans every game across multiple sportsbooks to detect pricing discrepancies and measure market efficiency in real time.</p>
-        </div>
-        <div class="pillar-card">
-          <div class="pillar-icon">&#9651;</div>
-          <h3>Quantitative Analysis</h3>
-          <p>Each game is evaluated using statistical models, probability gaps, and market signals &mdash; 50+ features per game, no narratives.</p>
-        </div>
-        <div class="pillar-card">
-          <div class="pillar-icon">&#9671;</div>
-          <h3>Discipline Filter</h3>
-          <p>Only the strongest edges become signals. Most games are passed. No edge, no pick.</p>
-        </div>
-      </div>
+      <p class="discipline-quote">If it's not sharp, it's not sent.</p>
     </div>
   </section>
 
   <!-- PRODUCT SCREENSHOTS -->
-  <section class="screenshots-section">
+  <section class="screenshots-section fade-section">
     <div class="section-inner">
       <div style="text-align:center;margin-bottom:48px;">
         <div class="section-eyebrow">Inside The App</div>
@@ -447,12 +675,157 @@
     </div>
   </section>
 
+  <!-- WHAT SETS US APART -->
+  <section class="apart-section fade-section">
+    <div class="section-inner">
+      <div style="text-align:center;margin-bottom:48px;">
+        <div class="section-eyebrow">What Sets Us Apart</div>
+        <h2 class="section-heading">Four layers of intelligence.</h2>
+        <p class="section-subtitle">Not a picks service. An intelligence platform.</p>
+      </div>
+      <div class="apart-grid">
+        <div class="apart-card">
+          <div class="apart-icon">
+            <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/></svg>
+          </div>
+          <h3>Daily market briefing before you bet</h3>
+          <p>MEI score, regime classification, market signal narrative, and line movement tracking. Know the market before you see a single pick.</p>
+        </div>
+        <div class="apart-card">
+          <div class="apart-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          </div>
+          <h3>See where the edge disappears</h3>
+          <p>Cover probability, adjusted edge, value range, and the exact line where it stops being worth it. If the model finds less than 3.5% edge, nothing gets sent.</p>
+        </div>
+        <div class="apart-card">
+          <div class="apart-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Your discipline is your edge</h3>
+          <p>Discipline score, selectivity rate, and capital preserved. SharpPicks tracks the bets you didn't take and shows you how that restraint compounds.</p>
+        </div>
+        <div class="apart-card">
+          <div class="apart-icon">
+            <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <h3>Intelligence, not tips</h3>
+          <p>Market notes, model philosophy, and founder analysis. Content designed to make you a better bettor by helping you understand when not to bet.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works" class="how-section fade-section">
+    <div class="section-inner">
+      <div style="text-align:center;margin-bottom:48px;">
+        <div class="section-eyebrow">How SharpPicks Works</div>
+        <h2 class="section-heading">From market scan to signal.</h2>
+        <p class="section-subtitle">Not a picks service. An intelligence platform.</p>
+      </div>
+      <div class="pillar-grid">
+        <div class="pillar-card">
+          <div class="pillar-icon">&#9678;</div>
+          <h3>Market Intelligence</h3>
+          <p>SharpPicks scans every game across multiple sportsbooks to detect pricing discrepancies and measure market efficiency in real time.</p>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-icon">&#9651;</div>
+          <h3>Quantitative Analysis</h3>
+          <p>Each game is evaluated using statistical models, probability gaps, and market signals. 56 features per game, no narratives.</p>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-icon">&#9671;</div>
+          <h3>Discipline Filter</h3>
+          <p>Only the strongest edges become signals. Most games are passed. No edge, no pick.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUANT CARD -->
+  <section class="quant-section fade-section">
+    <div class="section-inner">
+      <div style="text-align:center;margin-bottom:48px;">
+        <div class="section-eyebrow">The Model Shows Its Work</div>
+        <h2 class="section-heading">Full transparency on every signal.</h2>
+        <p class="section-subtitle">56 features. Four models. Full reasoning.</p>
+      </div>
+      <div class="quant-card">
+        <div class="quant-header">
+          <div>
+            <div class="quant-matchup">Minnesota Timberwolves +10.0</div>
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);margin-top:4px;">MIN @ BOS &middot; 7:10 PM ET</div>
+          </div>
+          <span class="signal-badge">Signal</span>
+        </div>
+        <div class="quant-stats">
+          <div class="quant-stat">
+            <div class="quant-stat-value">+8.0%</div>
+            <div class="quant-stat-label">Edge</div>
+          </div>
+          <div class="quant-stat">
+            <div class="quant-stat-value">61.6%</div>
+            <div class="quant-stat-label">Cover Prob</div>
+          </div>
+          <div class="quant-stat">
+            <div class="quant-stat-value">+7.1</div>
+            <div class="quant-stat-label">Proj Margin</div>
+          </div>
+        </div>
+        <div class="quant-value-range">
+          <div class="quant-value-range-label">Value Range</div>
+          <div class="quant-value-range-text">Playable down to <strong>+8</strong>. Edge invalidates beyond.</div>
+          <div class="quant-value-bar"></div>
+        </div>
+        <ul class="quant-reasoning">
+          <li>MIN 118.7 PPG vs BOS DEF 107.1 allowed</li>
+          <li>Rest advantage: MIN 2 days vs BOS back-to-back</li>
+          <li>Spread-adjusted scoring margin: +3.6</li>
+          <li>Model consensus: 4/4 models agree (GBM, RF, XGB, ADA)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- BEHAVIORAL EDGE -->
+  <section class="behavioral-section fade-section">
+    <div class="section-inner">
+      <div style="text-align:center;margin-bottom:48px;">
+        <div class="section-eyebrow">Behavioral Edge</div>
+        <h2 class="section-heading">The bets you don't take matter too.</h2>
+        <p class="section-subtitle">SharpPicks is the only platform that tracks your discipline.</p>
+      </div>
+      <div class="behavioral-card">
+        <div class="behavioral-grid">
+          <div class="behavioral-stat">
+            <div class="behavioral-stat-value">54%</div>
+            <div class="behavioral-stat-label">Selectivity</div>
+          </div>
+          <div class="behavioral-stat">
+            <div class="behavioral-stat-value">+$52</div>
+            <div class="behavioral-stat-label">Capital Preserved</div>
+          </div>
+          <div class="behavioral-stat">
+            <div class="behavioral-stat-value">B</div>
+            <div class="behavioral-stat-label">Discipline Score</div>
+          </div>
+        </div>
+        <div class="behavioral-insight">
+          You bet on 54% of opportunities. The industry average is 78%.
+          Fewer decisions, better decisions. Money saved compounds too.
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- MODEL PERFORMANCE -->
-  <section class="metrics-section">
+  <section id="performance" class="metrics-section fade-section">
     <div class="section-inner">
       <div style="text-align:center;margin-bottom:36px;">
         <div class="section-eyebrow">Model Performance</div>
-        <h2 class="section-heading">The numbers are public.</h2>
+        <h2 class="section-heading">Verified. Public. No exceptions.</h2>
       </div>
       <div class="metrics-grid">
         <div class="metric-card">
@@ -479,25 +852,74 @@
     </div>
   </section>
 
-  <!-- FOUNDING MEMBERS -->
-  <section class="founding-section">
-    <div class="section-inner" style="text-align:center;">
-      <div class="founding-card">
-        <h3>Founding Members</h3>
-        <p>The first 50 members lock in the lowest rate permanently. Once it's gone, it's gone.</p>
-        <p class="founding-count">47 of 50 spots remaining</p>
+  <!-- PRICING -->
+  <section id="pricing" class="pricing-section fade-section">
+    <div class="section-inner">
+      <div style="text-align:center;margin-bottom:48px;">
+        <div class="section-eyebrow">Pricing</div>
+        <h2 class="section-heading">Simple, transparent plans.</h2>
+        <p class="section-subtitle">14-day free trial on all paid plans. Cancel anytime.</p>
       </div>
+      <div class="pricing-grid">
+        <!-- FREE -->
+        <div class="pricing-card">
+          <div class="pricing-tier">Free</div>
+          <div class="pricing-price">$0</div>
+          <div class="pricing-period">Forever</div>
+          <ul class="pricing-features">
+            <li>See if a pick exists today</li>
+            <li>Public record access</li>
+            <li>Market overview</li>
+          </ul>
+          <a href="https://app.sharppicks.ai" class="pricing-btn pricing-btn-outline">Sign Up Free</a>
+        </div>
+        <!-- MONTHLY -->
+        <div class="pricing-card">
+          <div class="pricing-tier">Monthly</div>
+          <div class="pricing-price">$29<span style="font-size:16px;font-weight:400;color:var(--text-tertiary);">.99</span></div>
+          <div class="pricing-period">per month</div>
+          <ul class="pricing-features">
+            <li>Full pick details and edge analysis</li>
+            <li>Real-time signal alerts</li>
+            <li>Pick history and bet tracking</li>
+            <li>Quant reasoning on every signal</li>
+          </ul>
+          <a href="https://app.sharppicks.ai" class="pricing-btn pricing-btn-primary">Start 14-Day Free Trial</a>
+        </div>
+        <!-- ANNUAL / FOUNDING -->
+        <div class="pricing-card pricing-card-highlight">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div class="pricing-tier">Annual</div>
+            <span class="pricing-badge" id="founding-badge">Founding Rate</span>
+          </div>
+          <div class="pricing-price">$99</div>
+          <div class="pricing-period">per year <span style="color:var(--green);font-weight:600;">&middot; save 72%</span></div>
+          <ul class="pricing-features">
+            <li>Everything in Monthly</li>
+            <li>Founding member badge (limited)</li>
+            <li>Locked-in rate for life</li>
+            <li>Priority support</li>
+            <li>Behavioral edge analytics</li>
+          </ul>
+          <a href="https://app.sharppicks.ai" class="pricing-btn pricing-btn-primary">Claim Founding Spot</a>
+          <p class="pricing-spots" id="founding-spots">Loading...</p>
+        </div>
+      </div>
+      <p style="text-align:center;font-size:12px;color:var(--text-tertiary);margin-top:24px;font-family:var(--font-sans);max-width:480px;margin-left:auto;margin-right:auto;line-height:1.6;">
+        All subscriptions include a 14-day free trial. Cancel anytime before trial ends and you won't be charged.
+        Founding member rate locks in for the duration of an active, uninterrupted subscription.
+      </p>
     </div>
   </section>
 
   <!-- CTA -->
-  <section class="cta-section">
+  <section class="cta-section fade-section">
     <div class="section-inner" style="text-align:center;">
       <h2>Start scanning the market.</h2>
       <p class="cta-desc">Create a free account and see the model at work. Upgrade anytime.</p>
       <div class="cta-buttons">
-        <a href="https://app.sharppicks.ai" class="btn-primary" style="padding:14px 36px;">Start Free Trial</a>
-        <a href="https://app.sharppicks.ai" class="btn-secondary">Create Free Account</a>
+        <a href="https://app.sharppicks.ai" class="btn-primary" style="padding:14px 36px;">Start 14-Day Free Trial</a>
+        <a href="https://app.sharppicks.ai" class="btn-secondary">Sign Up Free</a>
       </div>
     </div>
   </section>
@@ -512,19 +934,60 @@
       </div>
       <div class="footer-brand">
         <img src="images/crest.png" alt="" width="18" height="18" />
-        <span class="footer-brand-text">SHARP<span class="footer-brand-sep"><span></span><span></span></span>PICKS</span>
+        <span class="footer-brand-text">SHARP<span class="brand-bar"><span></span><span></span></span>PICKS</span>
       </div>
+      <p class="footer-tagline">Market intelligence for sports.</p>
       <p class="footer-disclaimer">
         SharpPicks provides sports analytics and model-based insights only. Not financial advice. Not a sportsbook.
       </p>
       <div class="footer-links">
+        <a href="/support">Support</a>
         <a href="https://app.sharppicks.ai/privacy">Privacy</a>
         <a href="https://app.sharppicks.ai/terms">Terms</a>
         <a href="https://app.sharppicks.ai/disclaimer">Disclaimer</a>
       </div>
-      <a href="mailto:support@sharppicks.ai" class="footer-email">support@sharppicks.ai</a>
     </div>
   </footer>
+
+  <!-- SCROLL ANIMATIONS + LIVE STATS -->
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-section').forEach(el => observer.observe(el));
+
+    async function loadStats() {
+      try {
+        const res = await fetch('https://app.sharppicks.ai/api/public/founding-count');
+        const data = await res.json();
+        const remaining = data.remaining != null ? data.remaining : Math.max(0, 50 - (data.current || 0));
+        const spotsEl = document.getElementById('founding-spots');
+        const badgeEl = document.getElementById('founding-badge');
+        if (data.open === false || remaining <= 0) {
+          if (spotsEl) spotsEl.textContent = 'Founding spots are full';
+          if (badgeEl) badgeEl.textContent = 'Sold Out';
+        } else {
+          if (spotsEl) spotsEl.textContent = remaining + ' of 50 founding spots remaining';
+        }
+      } catch {
+        const el = document.getElementById('founding-spots');
+        if (el) el.textContent = '47 of 50 spots remaining';
+      }
+    }
+    loadStats();
+
+    // Mobile menu
+    const hamburger = document.querySelector('.hamburger');
+    const mobileMenu = document.querySelector('.mobile-menu');
+    if (hamburger && mobileMenu) {
+      hamburger.addEventListener('click', () => {
+        mobileMenu.style.display = mobileMenu.style.display === 'flex' ? 'none' : 'flex';
+      });
+      mobileMenu.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => { mobileMenu.style.display = 'none'; });
+      });
+    }
+  </script>
 
 </body>
 </html>

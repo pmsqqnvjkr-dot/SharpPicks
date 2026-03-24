@@ -279,7 +279,7 @@ def generate_market_note(report, prev_note_title=None, consecutive_same_bias=0):
         "favorite_edges": fav,
         "underdog_edges": udog,
         "top_edge_pct": float(report.get('top_edge_pct', 0)),
-        "top_edge_team": report.get('top_edge_team') or report.get('largest_edge_game') or 'N/A',
+        "top_edge_team": report.get('top_edge_team') or report.get('largest_edge_game') or 'the top edge game',
         "regime": report.get('regime', 'NORMAL'),
         "nei": report.get('market_efficiency_index', 0),
         "implication": report.get('regime_micro', ''),

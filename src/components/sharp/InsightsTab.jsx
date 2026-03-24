@@ -414,7 +414,7 @@ function MarketNoteContent({ insight }) {
         fontFamily: sans, fontSize: '13px', fontWeight: 500,
         color: textSecondary, marginBottom: '28px',
       }}>
-        Evan Cole <span style={{ fontWeight: 400, color: textMuted }}>· Founder, Sharp Picks</span>
+        Evan Cole <span style={{ fontWeight: 400, color: textMuted }}>· Founder, SharpPicks</span>
       </div>
 
       {/* Divider */}
@@ -921,7 +921,7 @@ function SharpPrincipleBlock({ text, label }) {
 
 function WhyThisMatters({ insight }) {
   const mattersMap = {
-    'discipline': 'This is why Sharp Picks passes most games. The goal is not activity. The goal is capital preservation. Discipline compounds. Impulse erodes.',
+    'discipline': 'This is why SharpPicks passes most games. The goal is not activity. The goal is capital preservation. Discipline compounds. Impulse erodes.',
     'philosophy': 'This principle shapes every decision the model makes. It is not strategy - it is structure.',
     'how_it_works': 'Understanding how the system works builds the trust needed to follow it through variance.',
     'market_notes': 'The market is your competition. Understanding it is the first step toward finding real edge.',
@@ -1004,7 +1004,7 @@ function FounderSignature() {
             color: 'var(--text-tertiary)',
             fontFamily: 'var(--font-mono)',
             letterSpacing: '0.03em',
-          }}>Founder, Sharp Picks</div>
+          }}>Founder, SharpPicks</div>
         </div>
       </div>
     </div>

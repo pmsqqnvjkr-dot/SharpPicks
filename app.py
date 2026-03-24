@@ -68,6 +68,41 @@ def set_cache_headers(response):
         response.headers['Pragma'] = 'no-cache'
     return response
 
+import hashlib
+import threading
+
+_SKIP_TRACKING_PREFIXES = ('/assets/', '/favicon', '/health', '/api/admin/app-analytics')
+_SKIP_TRACKING_EXTENSIONS = ('.png', '.jpg', '.ico', '.js', '.css', '.map', '.woff', '.woff2', '.svg')
+
+@app.after_request
+def track_page_view(response):
+    path = request.path
+    if any(path.startswith(p) for p in _SKIP_TRACKING_PREFIXES):
+        return response
+    if any(path.endswith(e) for e in _SKIP_TRACKING_EXTENSIONS):
+        return response
+    try:
+        ip = request.remote_addr or ''
+        ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
+        ua = (request.headers.get('User-Agent') or '')[:512]
+        method = request.method
+        status = response.status_code
+
+        def _insert():
+            try:
+                with app.app_context():
+                    pv = PageView(path=path[:512], method=method, status_code=status,
+                                  ip_hash=ip_hash, user_agent=ua)
+                    db.session.add(pv)
+                    db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+        threading.Thread(target=_insert, daemon=True).start()
+    except Exception:
+        pass
+    return response
+
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -194,7 +229,7 @@ def _upsert_market_note_insight(report):
     return insight
 
 
-from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent, CronLog
+from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent, CronLog, PageView
 from picks_api import picks_bp
 from public_api import public_bp
 from insights_api import insights_bp

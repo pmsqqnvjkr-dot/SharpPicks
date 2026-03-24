@@ -202,6 +202,8 @@ function AppContent() {
         setActiveTab('picks');
       } else if (data.type === 'pass') {
         setActiveTab('picks');
+      } else if (data.type === 'journal' || data.type === 'market_note') {
+        setActiveTab('insights');
       }
     };
     window.addEventListener('sp-push-navigate', handlePushNav);
@@ -221,6 +223,9 @@ function AppContent() {
       window.history.replaceState({}, '', '/');
     } else if (pushParam === 'picks') {
       setActiveTab('picks');
+      window.history.replaceState({}, '', '/');
+    } else if (pushParam === 'journal' || pushParam === 'market_note') {
+      setActiveTab('insights');
       window.history.replaceState({}, '', '/');
     }
 

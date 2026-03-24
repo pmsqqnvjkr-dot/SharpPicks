@@ -330,3 +330,14 @@ class KillSwitch(db.Model):
     clv_negative_streak = db.Column(db.Integer, nullable=True)
     edge_decay_signal = db.Column(db.String(20), nullable=True)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class PageView(db.Model):
+    __tablename__ = 'page_views'
+    id = db.Column(db.Integer, primary_key=True)
+    path = db.Column(db.String(512), nullable=False, index=True)
+    method = db.Column(db.String(10), default='GET')
+    status_code = db.Column(db.Integer)
+    ip_hash = db.Column(db.String(64), index=True)
+    user_agent = db.Column(db.String(512), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now, index=True)

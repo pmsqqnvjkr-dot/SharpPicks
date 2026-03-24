@@ -816,9 +816,8 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
     ? { color: textMuted, background: 'rgba(255,255,255,0.04)' }
     : null;
 
-  const leftBorder = isLive ? `3px solid ${brandGreen}`
+  const leftBorder = hasSignal ? `3px solid ${brandGreen}`
     : isFinal ? `3px solid ${grayBorder}`
-    : hasSignalEdge ? `3px solid ${brandGreen}`
     : `3px solid #1e3050`;
 
   const awayAbbr = (game.away || '').split(' ').pop()?.substring(0, 3).toUpperCase() || game.away;

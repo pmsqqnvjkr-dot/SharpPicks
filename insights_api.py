@@ -38,6 +38,7 @@ def insight_to_dict(insight):
         'related_pick_ids': insight.related_pick_ids or [],
         'date_range_start': insight.date_range_start,
         'date_range_end': insight.date_range_end,
+        'story_type': getattr(insight, 'story_type', None),
         'has_related_picks': bool(insight.related_pick_ids) or bool(insight.date_range_start),
         'created_at': insight.created_at.isoformat() if insight.created_at else None,
     }
