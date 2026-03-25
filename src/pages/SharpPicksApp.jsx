@@ -188,6 +188,9 @@ function AppContent() {
       setProfileScreen('upgrade');
       navigate('/', { replace: true });
     }
+    if ((location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/register') && !user) {
+      navigate('/' + location.search, { replace: true });
+    }
     const params = new URLSearchParams(location.search);
     const verifyStatus = params.get('verify');
     if (verifyStatus === 'success') {

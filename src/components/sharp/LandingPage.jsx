@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { Capacitor } from '@capacitor/core';
 import AuthModal from './AuthModal';
@@ -81,6 +81,18 @@ export default function LandingPage() {
 
   const openRegister = () => { setAuthMode('register'); setAccountType(isNative ? 'free' : 'trial'); setShowAuth(true); };
   const openLogin = () => { setAuthMode('login'); setShowAuth(true); };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view');
+    if (view === 'signup' || view === 'register') {
+      openRegister();
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (view === 'signin' || view === 'login') {
+      openLogin();
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const spotsLeft = founding ? (founding.remaining != null ? founding.remaining : Math.max(0, 50 - (founding.current || 0))) : null;
 
