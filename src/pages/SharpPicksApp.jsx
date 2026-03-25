@@ -188,8 +188,13 @@ function AppContent() {
       setProfileScreen('upgrade');
       navigate('/', { replace: true });
     }
-    if ((location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/register') && !user) {
-      navigate('/' + location.search, { replace: true });
+    if (!user) {
+      if (location.pathname === '/signup' || location.pathname === '/register') {
+        navigate('/?view=signup', { replace: true });
+      } else if (location.pathname === '/login') {
+        const view = new URLSearchParams(location.search).get('view') || 'signin';
+        navigate('/?view=' + view, { replace: true });
+      }
     }
     const params = new URLSearchParams(location.search);
     const verifyStatus = params.get('verify');
