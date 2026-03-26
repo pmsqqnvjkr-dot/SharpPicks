@@ -3058,6 +3058,8 @@ CRON_MIN_INTERVAL = {
     'mlb_run_model': 600,
     'mlb_grade': 300,
     'mlb_retrain': 86400,
+    'mlb_backfill': 0,
+    'mlb_validate': 0,
     'retrain_model': 86400,
 }
 
@@ -3585,6 +3587,49 @@ def retrain_mlb_model_job():
 @verify_cron
 def cron_mlb_retrain():
     return log_cron('mlb_retrain', retrain_mlb_model_job, skip_throttle=True)
+
+
+@app.route('/api/cron/mlb-backfill', methods=['GET', 'POST'])
+@verify_cron
+def cron_mlb_backfill():
+    """Backfill MLB historical data with Rundown odds, then validate."""
+    def _backfill_and_validate():
+        import threading
+        def _run():
+            try:
+                from validate_mlb import run_backfill, compute_spread_results, data_summary
+                print(f"[{datetime.now()}] Starting MLB backfill...")
+                run_backfill(seasons=[2023, 2024, 2025])
+                compute_spread_results()
+                print(f"[{datetime.now()}] Backfill complete.")
+                data_summary()
+            except Exception as e:
+                print(f"[{datetime.now()}] MLB backfill error: {e}")
+                import traceback
+                traceback.print_exc()
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        return "MLB backfill started in background"
+    return log_cron('mlb_backfill', _backfill_and_validate, skip_throttle=True)
+
+
+@app.route('/api/cron/mlb-validate', methods=['GET', 'POST'])
+@verify_cron
+def cron_mlb_validate():
+    """Run walk-forward validation on existing MLB data."""
+    def _validate():
+        from model import EnsemblePredictor
+        predictor = EnsemblePredictor(sport='mlb')
+        result = predictor.walk_forward_validate()
+        if result:
+            predictor.calibration_check(result['all_bets'])
+            total_bets = sum(r['n_bets'] for r in result['seasons'])
+            total_wins = sum(r['wins'] for r in result['seasons'])
+            total_profit = sum(r['total_profit'] for r in result['seasons'])
+            roi = (total_profit / total_bets * 100) if total_bets > 0 else 0
+            return f"Walk-forward: {total_bets} bets, {total_wins}W, ROI {roi:+.1f}%"
+        return "Walk-forward returned no results"
+    return log_cron('mlb_validate', _validate, skip_throttle=True)
 
 
 @app.route('/api/cron/player-props', methods=['GET', 'POST'])
