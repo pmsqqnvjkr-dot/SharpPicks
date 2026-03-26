@@ -297,6 +297,15 @@ class EnsemblePredictor:
                 g.home_pitcher_losses, g.away_pitcher_losses,
                 g.home_pitcher_ip, g.away_pitcher_ip"""
 
+        bdl_cols = ""
+        if self.sport != 'mlb':
+            bdl_cols = """,
+                g.bdl_home_win_pct, g.bdl_away_win_pct,
+                g.bdl_home_conf_rank, g.bdl_away_conf_rank,
+                g.bdl_home_scoring_margin, g.bdl_away_scoring_margin,
+                g.bdl_home_avg_pts, g.bdl_away_avg_pts,
+                g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against"""
+
         query = f'''
             SELECT 
                 g.home_team, g.away_team, g.game_date,
@@ -310,12 +319,7 @@ class EnsemblePredictor:
                 g.line_movement,
                 g.spread_result, g.home_score, g.away_score{ratings_cols},
                 g.rundown_spread_consensus, g.rundown_spread_std,
-                g.rundown_spread_range, g.rundown_num_books,
-                g.bdl_home_win_pct, g.bdl_away_win_pct,
-                g.bdl_home_conf_rank, g.bdl_away_conf_rank,
-                g.bdl_home_scoring_margin, g.bdl_away_scoring_margin,
-                g.bdl_home_avg_pts, g.bdl_away_avg_pts,
-                g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against,
+                g.rundown_spread_range, g.rundown_num_books{bdl_cols},
                 g.home_spread_odds, g.away_spread_odds,
                 g.home_spread_book, g.away_spread_book{pitcher_cols}
             FROM {games_tbl} g{ratings_join}
@@ -857,6 +861,15 @@ class EnsemblePredictor:
                 g.home_pitcher_losses, g.away_pitcher_losses,
                 g.home_pitcher_ip, g.away_pitcher_ip"""
 
+        bdl_cols = ""
+        if self.sport != 'mlb':
+            bdl_cols = """,
+                g.bdl_home_win_pct, g.bdl_away_win_pct,
+                g.bdl_home_conf_rank, g.bdl_away_conf_rank,
+                g.bdl_home_scoring_margin, g.bdl_away_scoring_margin,
+                g.bdl_home_avg_pts, g.bdl_away_avg_pts,
+                g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against"""
+
         query = f'''
             SELECT
                 g.id, g.home_team, g.away_team, g.game_date, g.game_time,
@@ -869,12 +882,7 @@ class EnsemblePredictor:
                 g.home_rest_days, g.away_rest_days,
                 g.line_movement{ratings_cols},
                 g.rundown_spread_consensus, g.rundown_spread_std,
-                g.rundown_spread_range, g.rundown_num_books,
-                g.bdl_home_win_pct, g.bdl_away_win_pct,
-                g.bdl_home_conf_rank, g.bdl_away_conf_rank,
-                g.bdl_home_scoring_margin, g.bdl_away_scoring_margin,
-                g.bdl_home_avg_pts, g.bdl_away_avg_pts,
-                g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against,
+                g.rundown_spread_range, g.rundown_num_books{bdl_cols},
                 g.home_spread_odds, g.away_spread_odds,
                 g.home_spread_book, g.away_spread_book{pitcher_cols}
             FROM {games_tbl} g{ratings_join}
@@ -1585,9 +1593,12 @@ class EnsemblePredictor:
         df = df[df['spread_result'] != 'PUSH'].copy()
         df['game_date_parsed'] = pd.to_datetime(df['game_date'].str[:10], errors='coerce')
         df = df.dropna(subset=['game_date_parsed'])
-        df['season'] = df['game_date_parsed'].apply(
-            lambda d: d.year if d.month >= 10 else d.year - 1
-        )
+        if self.sport == 'mlb':
+            df['season'] = df['game_date_parsed'].apply(lambda d: d.year)
+        else:
+            df['season'] = df['game_date_parsed'].apply(
+                lambda d: d.year if d.month >= 10 else d.year - 1
+            )
 
         if 'home_rest_days' not in df.columns or df['home_rest_days'].isna().sum() > len(df) * 0.5:
             team_last = {}
@@ -1781,7 +1792,7 @@ class EnsemblePredictor:
                 mask = (edge_arr >= low) & (edge_arr < high)
                 cal_buckets.append(f"{low:.0f}-{high:.0f}%: {mask.sum()}")
 
-            season_label = f"{test_season}-{test_season+1}"
+            season_label = str(test_season) if self.sport == 'mlb' else f"{test_season}-{test_season+1}"
             results.append({
                 'season': season_label,
                 'train_games': len(train_df),
@@ -1921,7 +1932,10 @@ class EnsemblePredictor:
         df = df[df['spread_result'] != 'PUSH'].copy()
         df['game_date_parsed'] = pd.to_datetime(df['game_date'].str[:10], errors='coerce')
         df = df.dropna(subset=['game_date_parsed'])
-        df['season'] = df['game_date_parsed'].apply(lambda d: d.year if d.month >= 10 else d.year - 1)
+        if self.sport == 'mlb':
+            df['season'] = df['game_date_parsed'].apply(lambda d: d.year)
+        else:
+            df['season'] = df['game_date_parsed'].apply(lambda d: d.year if d.month >= 10 else d.year - 1)
 
         margin_target = (df['home_score'] - df['away_score']).astype(float)
         seasons = sorted(df['season'].unique())

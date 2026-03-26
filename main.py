@@ -3507,26 +3507,24 @@ def get_mlb_team_schedule(team_abbr):
 def _extract_pitcher_stats(prob):
     """Extract pitcher stats from ESPN probables data."""
     stats = {'era': None, 'whip': None, 'wins': None, 'losses': None, 'ip': None}
-    # ESPN probables may include 'statistics' array on the probable object
-    for stat_group in prob.get('statistics', []):
-        for stat in stat_group.get('stats', []):
-            name = stat.get('name', '').lower()
-            val = stat.get('value')
-            if val is None:
-                try:
-                    val = float(stat.get('displayValue', '0'))
-                except (ValueError, TypeError):
-                    continue
-            if name == 'era' or name == 'earnedrunaverage':
-                stats['era'] = float(val)
-            elif name == 'whip':
-                stats['whip'] = float(val)
-            elif name == 'wins':
-                stats['wins'] = int(val)
-            elif name == 'losses':
-                stats['losses'] = int(val)
-            elif name in ('inningspitched', 'ip'):
-                stats['ip'] = float(val)
+    for stat in prob.get('statistics', []):
+        name = (stat.get('name') or stat.get('abbreviation') or '').lower()
+        val = stat.get('value')
+        if val is None:
+            try:
+                val = float(stat.get('displayValue', '0'))
+            except (ValueError, TypeError):
+                continue
+        if name in ('era', 'earnedrunaverage'):
+            stats['era'] = float(val)
+        elif name == 'whip':
+            stats['whip'] = float(val)
+        elif name in ('wins', 'w'):
+            stats['wins'] = int(val)
+        elif name in ('losses', 'l'):
+            stats['losses'] = int(val)
+        elif name in ('inningspitched', 'ip'):
+            stats['ip'] = float(val)
     # Also check athlete.statistics if present
     athlete = prob.get('athlete', {})
     for stat_group in athlete.get('statistics', []):

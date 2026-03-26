@@ -118,23 +118,22 @@ def parse_espn_games(data, date_str_iso):
                     if prob.get('abbreviation') == 'SP' or 'starter' in prob.get('name', '').lower() or prob.get('name') == 'probableStartingPitcher':
                         athlete = prob.get('athlete', {})
                         game[f'{prefix}_pitcher'] = athlete.get('fullName') or athlete.get('displayName')
-                        for stat_group in prob.get('statistics', []):
-                            for stat in stat_group.get('stats', []):
-                                sname = stat.get('name', '').lower()
-                                try:
-                                    val = float(stat.get('value', stat.get('displayValue', 0)))
-                                except (ValueError, TypeError):
-                                    continue
-                                if sname in ('era', 'earnedrunaverage'):
-                                    game[f'{prefix}_pitcher_era'] = val
-                                elif sname == 'whip':
-                                    game[f'{prefix}_pitcher_whip'] = val
-                                elif sname == 'wins':
-                                    game[f'{prefix}_pitcher_wins'] = int(val)
-                                elif sname == 'losses':
-                                    game[f'{prefix}_pitcher_losses'] = int(val)
-                                elif sname in ('inningspitched', 'ip'):
-                                    game[f'{prefix}_pitcher_ip'] = val
+                        for stat in prob.get('statistics', []):
+                            sname = (stat.get('name') or stat.get('abbreviation') or '').lower()
+                            try:
+                                val = float(stat.get('value', stat.get('displayValue', 0)))
+                            except (ValueError, TypeError):
+                                continue
+                            if sname in ('era', 'earnedrunaverage'):
+                                game[f'{prefix}_pitcher_era'] = val
+                            elif sname == 'whip':
+                                game[f'{prefix}_pitcher_whip'] = val
+                            elif sname in ('wins', 'w'):
+                                game[f'{prefix}_pitcher_wins'] = int(val)
+                            elif sname in ('losses', 'l'):
+                                game[f'{prefix}_pitcher_losses'] = int(val)
+                            elif sname in ('inningspitched', 'ip'):
+                                game[f'{prefix}_pitcher_ip'] = val
                         break
 
             games.append(game)
