@@ -76,17 +76,20 @@ SPORT_CONFIG = {
         'active': True,
         'live': False,
 
-        'sigma': 1.65,
+        # Walk-forward raw sigma: 4.4 runs. Previous ceiling of 2.5 inflated
+        # z-scores by 1.76x, causing overconfidence in 55-65% buckets.
+        'sigma': 4.0,
         'model_weight': 0.3,
-        'edge_threshold_pct': 3.5,
-        'max_edge_pct': 10.0,
-        'margin_std_floor': 1.2,
-        'margin_std_ceiling': 2.5,
+        'edge_threshold_pct': 4.5,
+        'max_edge_pct': 8.0,
+        'margin_std_floor': 3.5,
+        'margin_std_ceiling': 5.5,
         'standard_odds': -130,
 
         'spread_edge_curve': [
-            (0, 1.5, 3.5),
-            (1.5, float('inf'), 5.0),
+            (0, 1.5, 4.5),
+            (1.5, 2.5, 5.5),
+            (2.5, float('inf'), 7.0),
         ],
 
         'max_daily_picks': 1,
