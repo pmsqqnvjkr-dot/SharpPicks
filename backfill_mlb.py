@@ -1,8 +1,9 @@
 """
 MLB Historical Data Backfill
-Populates mlb_games table with 2024 + 2025 regular season data from ESPN + The Rundown API.
-Run locally: python3 backfill_mlb.py [--season 2024] [--season 2025] [--no-rundown]
-Default: backfills both 2024 and 2025.
+Populates mlb_games table with 2023-2025 regular season data from ESPN + The Rundown API.
+2023 is the earliest useful season (pitch clock introduced, extra-inning runner permanent).
+Run locally: python3 backfill_mlb.py [--season 2023] [--season 2024] [--season 2025] [--no-rundown]
+Default: backfills 2023, 2024, and 2025.
 """
 
 import sqlite3
@@ -20,6 +21,7 @@ ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/sc
 ABBR_TO_FULL = {v: k for k, v in MLB_TEAM_ABBR_MAP.items()}
 
 SEASON_DATES = {
+    2023: (datetime(2023, 3, 30), datetime(2023, 10, 1)),
     2024: (datetime(2024, 3, 28), datetime(2024, 9, 29)),
     2025: (datetime(2025, 3, 27), datetime(2025, 9, 28)),
 }
@@ -351,7 +353,7 @@ def backfill(start_date=None, end_date=None, use_rundown=True):
 
 if __name__ == '__main__':
     print("=" * 60)
-    print("MLB HISTORICAL BACKFILL (2024 + 2025)")
+    print("MLB HISTORICAL BACKFILL (2023 + 2024 + 2025)")
     print("=" * 60)
 
     use_rd = '--no-rundown' not in sys.argv
@@ -362,7 +364,7 @@ if __name__ == '__main__':
             seasons_arg.append(int(sys.argv[i + 1]))
 
     if not seasons_arg:
-        seasons_arg = [2024, 2025]
+        seasons_arg = [2023, 2024, 2025]
 
     conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
