@@ -3397,6 +3397,11 @@ def setup_mlb_table(cursor):
         ('game_status', 'TEXT DEFAULT "scheduled"'),
         ('current_period', 'TEXT'),
         ('game_clock', 'TEXT'),
+        ('rundown_spread_consensus', 'REAL'),
+        ('rundown_spread_std', 'REAL'),
+        ('rundown_spread_range', 'REAL'),
+        ('rundown_best_book', 'TEXT'),
+        ('rundown_num_books', 'INTEGER'),
     ]:
         try:
             cursor.execute(f'ALTER TABLE mlb_games ADD COLUMN {col} {ctype}')
@@ -3828,6 +3833,35 @@ def collect_mlb_odds():
             if home_pitcher or away_pitcher:
                 print(f"   ⚾ Probables: {away_pitcher or 'TBD'} vs {home_pitcher or 'TBD'}")
             print()
+
+        # Enrich with Rundown multi-book consensus
+        try:
+            from rundown_api import fetch_rundown_mlb_data
+            rd_mlb = fetch_rundown_mlb_data()
+            if rd_mlb:
+                rd_map = {}
+                for g in rd_mlb:
+                    key = f"{g['away_team']}@{g['home_team']}"
+                    rd_map[key] = g
+                enriched = 0
+                for key, rg in rd_map.items():
+                    parts = key.split('@', 1)
+                    if len(parts) != 2:
+                        continue
+                    away_t, home_t = parts
+                    cursor.execute(
+                        '''UPDATE mlb_games SET
+                            rundown_spread_consensus = COALESCE(?, rundown_spread_consensus),
+                            rundown_spread_std = COALESCE(?, rundown_spread_std),
+                            rundown_num_books = COALESCE(?, rundown_num_books)
+                        WHERE home_team = ? AND away_team = ? AND game_date = ?''',
+                        (rg.get('consensus_spread'), rg.get('spread_std'), rg.get('num_books'),
+                         home_t, away_t, today_str))
+                    if cursor.rowcount > 0:
+                        enriched += 1
+                print(f"   Rundown MLB: enriched {enriched}/{len(rd_map)} games with consensus data")
+        except Exception as e:
+            print(f"   Rundown MLB skipped: {e}")
 
         conn.commit()
         conn.close()

@@ -287,6 +287,10 @@ class EnsemblePredictor:
             LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team_abbr
             LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_abbr"""
 
+        pitcher_cols = ""
+        if self.sport == 'mlb':
+            pitcher_cols = ",\n                g.home_pitcher, g.away_pitcher"
+
         query = f'''
             SELECT 
                 g.home_team, g.away_team, g.game_date,
@@ -307,7 +311,7 @@ class EnsemblePredictor:
                 g.bdl_home_avg_pts, g.bdl_away_avg_pts,
                 g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against,
                 g.home_spread_odds, g.away_spread_odds,
-                g.home_spread_book, g.away_spread_book
+                g.home_spread_book, g.away_spread_book{pitcher_cols}
             FROM {games_tbl} g{ratings_join}
             WHERE g.home_score IS NOT NULL
             AND g.away_score IS NOT NULL
@@ -341,7 +345,10 @@ class EnsemblePredictor:
                 recency = 1 - (days_ago / date_range)
                 weights = 1.0 + recency
                 
-                current_season_start = datetime(max_date.year if max_date.month >= 10 else max_date.year - 1, 10, 1)
+                if self.sport == 'mlb':
+                    current_season_start = datetime(max_date.year if max_date.month >= 3 else max_date.year - 1, 3, 20)
+                else:
+                    current_season_start = datetime(max_date.year if max_date.month >= 10 else max_date.year - 1, 10, 1)
                 current_season_mask = dates >= current_season_start
                 weights = np.where(current_season_mask, weights * 1.5, weights)
             
@@ -754,6 +761,10 @@ class EnsemblePredictor:
         cutoff_et = now_et + timedelta(minutes=min_minutes_to_tip)
         cutoff_utc_iso = cutoff_et.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
         # Include NULL/empty game_time as upcoming; otherwise require game_time > cutoff
+        pitcher_cols = ""
+        if self.sport == 'mlb':
+            pitcher_cols = ",\n                g.home_pitcher, g.away_pitcher"
+
         query = f'''
             SELECT
                 g.id, g.home_team, g.away_team, g.game_date, g.game_time,
@@ -773,7 +784,7 @@ class EnsemblePredictor:
                 g.bdl_home_avg_pts, g.bdl_away_avg_pts,
                 g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against,
                 g.home_spread_odds, g.away_spread_odds,
-                g.home_spread_book, g.away_spread_book
+                g.home_spread_book, g.away_spread_book{pitcher_cols}
             FROM {games_tbl} g{ratings_join}
             WHERE g.game_date = ?
             AND g.home_score IS NULL

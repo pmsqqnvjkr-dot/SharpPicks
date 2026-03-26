@@ -1,10 +1,11 @@
 """
-🏀 THE RUNDOWN API INTEGRATION
-Fetches NBA odds from The Rundown via RapidAPI
+THE RUNDOWN API INTEGRATION
+Fetches NBA and MLB odds from The Rundown via RapidAPI
 """
 
 import requests
 import os
+import statistics
 from datetime import datetime, timedelta, timezone
 
 RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY')
@@ -30,7 +31,9 @@ def _get_rundown_session():
         })
     return _rundown_session
 
-SPORT_ID = 4  # NBA
+NBA_SPORT_ID = 4
+MLB_SPORT_ID = 3
+SPORT_ID = NBA_SPORT_ID
 
 TEAM_NAME_MAP = {
     'ATL': 'Atlanta Hawks',
@@ -142,8 +145,6 @@ def parse_rundown_games(data):
     if not data:
         return []
     
-    import statistics
-    
     games = []
     events = data.get('events', [])
     
@@ -250,55 +251,246 @@ def fetch_rundown_data():
         return []
 
 
+MLB_TEAM_NAME_MAP = {
+    'Arizona Diamondbacks': 'Arizona Diamondbacks',
+    'Atlanta Braves': 'Atlanta Braves',
+    'Baltimore Orioles': 'Baltimore Orioles',
+    'Boston Red Sox': 'Boston Red Sox',
+    'Chicago Cubs': 'Chicago Cubs',
+    'Chicago White Sox': 'Chicago White Sox',
+    'Cincinnati Reds': 'Cincinnati Reds',
+    'Cleveland Guardians': 'Cleveland Guardians',
+    'Colorado Rockies': 'Colorado Rockies',
+    'Detroit Tigers': 'Detroit Tigers',
+    'Houston Astros': 'Houston Astros',
+    'Kansas City Royals': 'Kansas City Royals',
+    'Los Angeles Angels': 'Los Angeles Angels',
+    'Los Angeles Dodgers': 'Los Angeles Dodgers',
+    'Miami Marlins': 'Miami Marlins',
+    'Milwaukee Brewers': 'Milwaukee Brewers',
+    'Minnesota Twins': 'Minnesota Twins',
+    'New York Mets': 'New York Mets',
+    'New York Yankees': 'New York Yankees',
+    'Oakland Athletics': 'Oakland Athletics',
+    'Philadelphia Phillies': 'Philadelphia Phillies',
+    'Pittsburgh Pirates': 'Pittsburgh Pirates',
+    'San Diego Padres': 'San Diego Padres',
+    'San Francisco Giants': 'San Francisco Giants',
+    'Seattle Mariners': 'Seattle Mariners',
+    'St. Louis Cardinals': 'St. Louis Cardinals',
+    'Tampa Bay Rays': 'Tampa Bay Rays',
+    'Texas Rangers': 'Texas Rangers',
+    'Toronto Blue Jays': 'Toronto Blue Jays',
+    'Washington Nationals': 'Washington Nationals',
+}
+
+MLB_RUNDOWN_NAME_FIX = {
+    'Arizona': 'Arizona Diamondbacks',
+    'Atlanta': 'Atlanta Braves',
+    'Baltimore': 'Baltimore Orioles',
+    'Boston': 'Boston Red Sox',
+    'Chi Cubs': 'Chicago Cubs',
+    'Chi Sox': 'Chicago White Sox',
+    'Chicago': 'Chicago Cubs',
+    'Cincinnati': 'Cincinnati Reds',
+    'Cleveland': 'Cleveland Guardians',
+    'Colorado': 'Colorado Rockies',
+    'Detroit': 'Detroit Tigers',
+    'Houston': 'Houston Astros',
+    'Kansas City': 'Kansas City Royals',
+    'LA Angels': 'Los Angeles Angels',
+    'LA Dodgers': 'Los Angeles Dodgers',
+    'Miami': 'Miami Marlins',
+    'Milwaukee': 'Milwaukee Brewers',
+    'Minnesota': 'Minnesota Twins',
+    'NY Mets': 'New York Mets',
+    'NY Yankees': 'New York Yankees',
+    'Oakland': 'Oakland Athletics',
+    'Philadelphia': 'Philadelphia Phillies',
+    'Pittsburgh': 'Pittsburgh Pirates',
+    'San Diego': 'San Diego Padres',
+    'San Francisco': 'San Francisco Giants',
+    'St Louis': 'St. Louis Cardinals',
+    'St. Louis': 'St. Louis Cardinals',
+    'Tampa Bay': 'Tampa Bay Rays',
+    'Texas': 'Texas Rangers',
+    'Toronto': 'Toronto Blue Jays',
+    'Washington': 'Washington Nationals',
+}
+
+
+def normalize_mlb_team_name(name):
+    """Normalize Rundown MLB team name to full canonical name."""
+    if name in MLB_RUNDOWN_NAME_FIX:
+        return MLB_RUNDOWN_NAME_FIX[name]
+    if name in MLB_TEAM_NAME_MAP:
+        return name
+    for full_name in MLB_TEAM_NAME_MAP.values():
+        if name in full_name or full_name.startswith(name):
+            return full_name
+    return name
+
+
+def get_mlb_events(date_str=None):
+    """Fetch MLB events from The Rundown for a given date."""
+    if not RAPIDAPI_KEY:
+        print("   No RAPIDAPI_KEY found")
+        return None
+
+    if date_str is None:
+        date_str = _get_et_date_str()
+
+    try:
+        response = _get_rundown_session().get(
+            f"https://therundown-therundown-v1.p.rapidapi.com/sports/{MLB_SPORT_ID}/events/{date_str}",
+            timeout=15
+        )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"   Rundown MLB API error: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"   Rundown MLB API exception: {e}")
+        return None
+
+
+def parse_rundown_mlb_games(data):
+    """Parse Rundown API MLB response into standardized format with multi-book consensus."""
+    if not data:
+        return []
+
+    games = []
+    events = data.get('events', [])
+
+    for event in events:
+        try:
+            event_id = event.get('event_id', '')
+            event_date = event.get('event_date', '')[:10]
+
+            teams = event.get('teams_normalized', [])
+            if len(teams) < 2:
+                teams = event.get('teams', [])
+            if len(teams) < 2:
+                continue
+
+            away_team = normalize_mlb_team_name(
+                teams[0].get('name', '') if isinstance(teams[0], dict) else teams[0]
+            )
+            home_team = normalize_mlb_team_name(
+                teams[1].get('name', '') if isinstance(teams[1], dict) else teams[1]
+            )
+
+            lines = event.get('lines', {})
+            all_spreads = []
+            all_totals = []
+            spread_home = None
+            total = None
+            home_ml = None
+            away_ml = None
+
+            for book_id, book_lines in lines.items():
+                if not book_lines:
+                    continue
+
+                spread_data = book_lines.get('spread', {})
+                if spread_data:
+                    s = spread_data.get('point_spread_home')
+                    if s is not None and abs(s) > 0.01 and abs(s) < 10:
+                        all_spreads.append(s)
+                        if spread_home is None:
+                            spread_home = s
+
+                total_data = book_lines.get('total', {})
+                if total_data:
+                    t = total_data.get('total_over')
+                    if t is not None and 3 < t < 20:
+                        all_totals.append(t)
+                        if total is None:
+                            total = t
+
+                ml_data = book_lines.get('moneyline', {})
+                if ml_data:
+                    hm = ml_data.get('moneyline_home')
+                    am = ml_data.get('moneyline_away')
+                    if hm and abs(hm) > 1:
+                        home_ml = hm
+                        away_ml = am
+
+            consensus_spread = None
+            spread_std = None
+            num_books = len(all_spreads)
+
+            if all_spreads:
+                consensus_spread = round(statistics.mean(all_spreads), 1)
+                spread_std = round(statistics.stdev(all_spreads), 2) if len(all_spreads) >= 2 else 0.0
+
+            games.append({
+                'id': event_id,
+                'game_date': event_date,
+                'home_team': home_team,
+                'away_team': away_team,
+                'spread_home': spread_home or consensus_spread,
+                'total': total,
+                'home_ml': home_ml,
+                'away_ml': away_ml,
+                'consensus_spread': consensus_spread,
+                'spread_std': spread_std,
+                'num_books': num_books,
+                'source': 'rundown'
+            })
+
+        except Exception:
+            continue
+
+    return games
+
+
+def fetch_rundown_mlb_data(date_str=None):
+    """Fetch and parse Rundown MLB data for a given date."""
+    if not RAPIDAPI_KEY:
+        return []
+
+    data = get_mlb_events(date_str)
+    if data:
+        games = parse_rundown_mlb_games(data)
+        return games
+    return []
+
+
 def test_connection():
     """Test The Rundown API connection"""
     print("\n" + "="*50)
-    print("🔌 TESTING THE RUNDOWN API CONNECTION")
+    print("TESTING THE RUNDOWN API CONNECTION")
     print("="*50 + "\n")
-    
+
     if not RAPIDAPI_KEY:
-        print("❌ RAPIDAPI_KEY not found in environment")
-        print("\nTo fix:")
-        print("  1. Go to RapidAPI dashboard")
-        print("  2. Copy your API key")
-        print("  3. Add it as RAPIDAPI_KEY secret")
+        print("RAPIDAPI_KEY not found in environment")
         return False
-    
-    print(f"✅ API Key found: {RAPIDAPI_KEY[:10]}...")
-    
+
+    print(f"API Key found: {RAPIDAPI_KEY[:10]}...")
+
     today = _get_et_date_str()
-    
+
     try:
         response = _get_rundown_session().get(
             f"https://therundown-therundown-v1.p.rapidapi.com/sports/{SPORT_ID}/events/{today}",
             timeout=15
         )
-        
-        print(f"📊 Response status: {response.status_code}")
-        
+
+        print(f"Response status: {response.status_code}")
+
         if response.status_code == 200:
             data = response.json()
             events = data.get('events', [])
-            print(f"✅ Connection successful!")
-            print(f"   Found {len(events)} NBA events")
-            
-            if events:
-                print("\n📅 Today's games:")
-                for event in events[:5]:
-                    teams = event.get('teams_normalized', event.get('teams', []))
-                    if len(teams) >= 2:
-                        away = teams[0].get('name', teams[0]) if isinstance(teams[0], dict) else teams[0]
-                        home = teams[1].get('name', teams[1]) if isinstance(teams[1], dict) else teams[1]
-                        print(f"   🏀 {away} @ {home}")
-            
+            print(f"Connection successful! Found {len(events)} NBA events")
             return True
         else:
-            print(f"❌ API Error: {response.status_code}")
-            print(f"   Response: {response.text[:200]}")
+            print(f"API Error: {response.status_code}")
             return False
-            
+
     except Exception as e:
-        print(f"❌ Connection error: {e}")
+        print(f"Connection error: {e}")
         return False
 
 

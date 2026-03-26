@@ -3057,6 +3057,7 @@ CRON_MIN_INTERVAL = {
     'mlb_closing_lines': 60,
     'mlb_run_model': 600,
     'mlb_grade': 300,
+    'mlb_retrain': 86400,
     'retrain_model': 86400,
 }
 
@@ -3560,6 +3561,30 @@ def cron_mlb_run_model():
 @verify_cron
 def cron_mlb_grade():
     return log_cron('mlb_grade', grade_mlb_picks_job)
+
+
+def retrain_mlb_model_job():
+    """Retrain the MLB ensemble model."""
+    print(f"[{datetime.now()}] Retraining MLB model...")
+    with app.app_context():
+        try:
+            from model import EnsemblePredictor
+            predictor = EnsemblePredictor(sport='mlb')
+            result = predictor.train()
+            if result:
+                print(f"[{datetime.now()}] MLB model retrained successfully!")
+            else:
+                print(f"[{datetime.now()}] MLB model training failed (not enough data?)")
+        except Exception as e:
+            print(f"[{datetime.now()}] MLB retrain error: {e}")
+            import traceback
+            traceback.print_exc()
+
+
+@app.route('/api/cron/mlb-retrain', methods=['GET', 'POST'])
+@verify_cron
+def cron_mlb_retrain():
+    return log_cron('mlb_retrain', retrain_mlb_model_job, skip_throttle=True)
 
 
 @app.route('/api/cron/player-props', methods=['GET', 'POST'])
