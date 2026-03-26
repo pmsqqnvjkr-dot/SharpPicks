@@ -1,7 +1,8 @@
 """
 MLB Historical Data Backfill
-Populates mlb_games table with 2025 regular season data from ESPN + The Rundown API.
-Run locally: python backfill_mlb.py
+Populates mlb_games table with 2024 + 2025 regular season data from ESPN + The Rundown API.
+Run locally: python3 backfill_mlb.py [--season 2024] [--season 2025] [--no-rundown]
+Default: backfills both 2024 and 2025.
 """
 
 import sqlite3
@@ -13,17 +14,17 @@ from datetime import datetime, timedelta, timezone
 
 from db_path import get_sqlite_path
 from main import setup_mlb_table, MLB_TEAM_ABBR_MAP
-from rundown_api import fetch_rundown_mlb_data, normalize_mlb_team_name
 
 ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
 
 ABBR_TO_FULL = {v: k for k, v in MLB_TEAM_ABBR_MAP.items()}
 
-# 2025 MLB regular season: March 27 - September 28
-SEASON_START = datetime(2025, 3, 27)
-SEASON_END = datetime(2025, 9, 28)
+SEASON_DATES = {
+    2024: (datetime(2024, 3, 28), datetime(2024, 9, 29)),
+    2025: (datetime(2025, 3, 27), datetime(2025, 9, 28)),
+}
 
-RUNDOWN_DELAY = 1.2  # seconds between Rundown API calls (rate limit)
+RUNDOWN_DELAY = 1.2
 ESPN_DELAY = 0.3
 
 
@@ -40,7 +41,7 @@ def fetch_espn_scoreboard(date_str):
 
 
 def parse_espn_games(data, date_str_iso):
-    """Parse ESPN scoreboard response into game dicts."""
+    """Parse ESPN scoreboard response into game dicts with pitcher info."""
     if not data:
         return []
 
@@ -82,7 +83,7 @@ def parse_espn_games(data, date_str_iso):
 
             game_time = event.get('date', '')
 
-            games.append({
+            game = {
                 'espn_id': event.get('id', ''),
                 'game_date': date_str_iso,
                 'game_time': game_time,
@@ -95,15 +96,53 @@ def parse_espn_games(data, date_str_iso):
                 'home_home_record': home_home_record,
                 'away_away_record': away_away_record,
                 'status': status_type,
-            })
-        except Exception as e:
+                'home_pitcher': None,
+                'away_pitcher': None,
+                'home_pitcher_era': None,
+                'away_pitcher_era': None,
+                'home_pitcher_whip': None,
+                'away_pitcher_whip': None,
+                'home_pitcher_wins': None,
+                'away_pitcher_wins': None,
+                'home_pitcher_losses': None,
+                'away_pitcher_losses': None,
+                'home_pitcher_ip': None,
+                'away_pitcher_ip': None,
+            }
+
+            for comp_data, prefix in [(home_comp, 'home'), (away_comp, 'away')]:
+                probables = comp_data.get('probables', [])
+                for prob in probables:
+                    if prob.get('abbreviation') == 'SP' or 'starter' in prob.get('name', '').lower() or prob.get('name') == 'probableStartingPitcher':
+                        athlete = prob.get('athlete', {})
+                        game[f'{prefix}_pitcher'] = athlete.get('fullName') or athlete.get('displayName')
+                        for stat_group in prob.get('statistics', []):
+                            for stat in stat_group.get('stats', []):
+                                sname = stat.get('name', '').lower()
+                                try:
+                                    val = float(stat.get('value', stat.get('displayValue', 0)))
+                                except (ValueError, TypeError):
+                                    continue
+                                if sname in ('era', 'earnedrunaverage'):
+                                    game[f'{prefix}_pitcher_era'] = val
+                                elif sname == 'whip':
+                                    game[f'{prefix}_pitcher_whip'] = val
+                                elif sname == 'wins':
+                                    game[f'{prefix}_pitcher_wins'] = int(val)
+                                elif sname == 'losses':
+                                    game[f'{prefix}_pitcher_losses'] = int(val)
+                                elif sname in ('inningspitched', 'ip'):
+                                    game[f'{prefix}_pitcher_ip'] = val
+                        break
+
+            games.append(game)
+        except Exception:
             continue
 
     return games
 
 
 def compute_spread_result(home_score, away_score, spread_home):
-    """Determine spread result: W/L/P from home perspective."""
     if home_score is None or away_score is None or spread_home is None:
         return None
     margin = home_score - away_score
@@ -127,11 +166,11 @@ def compute_total_result(home_score, away_score, total):
 
 
 def backfill(start_date=None, end_date=None, use_rundown=True):
-    """Main backfill loop. Iterates each day, fetches ESPN + Rundown, inserts into mlb_games."""
+    """Main backfill loop."""
     if start_date is None:
-        start_date = SEASON_START
+        start_date = SEASON_DATES[2024][0]
     if end_date is None:
-        end_date = SEASON_END
+        end_date = SEASON_DATES[2025][1]
 
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     if end_date > today:
@@ -142,12 +181,23 @@ def backfill(start_date=None, end_date=None, use_rundown=True):
     setup_mlb_table(cursor)
     conn.commit()
 
+    if use_rundown:
+        try:
+            from rundown_api import fetch_rundown_mlb_data
+        except ImportError:
+            print("Warning: rundown_api not available, continuing without Rundown data")
+            use_rundown = False
+            fetch_rundown_mlb_data = None
+    else:
+        fetch_rundown_mlb_data = None
+
     total_inserted = 0
     total_updated = 0
     total_days = (end_date - start_date).days + 1
 
     current = start_date
     day_count = 0
+    pitcher_stats_found = 0
 
     while current <= end_date:
         day_count += 1
@@ -206,19 +256,41 @@ def backfill(start_date=None, end_date=None, use_rundown=True):
 
             spread_result = compute_spread_result(eg['home_score'], eg['away_score'], spread_home)
             total_result = compute_total_result(eg['home_score'], eg['away_score'], total)
-            line_movement = 0.0
 
             game_id = f"backfill_{away.replace(' ', '_')}_{home.replace(' ', '_')}_{date_iso}".lower()
+
+            if eg.get('home_pitcher_era') is not None:
+                pitcher_stats_found += 1
 
             cursor.execute('SELECT id FROM mlb_games WHERE id = ?', (game_id,))
             if cursor.fetchone():
                 cursor.execute('''UPDATE mlb_games SET
-                    home_score = ?, away_score = ?,
-                    spread_result = ?, total_result = ?,
+                    home_score = COALESCE(?, home_score),
+                    away_score = COALESCE(?, away_score),
+                    spread_result = COALESCE(?, spread_result),
+                    total_result = COALESCE(?, total_result),
+                    home_pitcher = COALESCE(?, home_pitcher),
+                    away_pitcher = COALESCE(?, away_pitcher),
+                    home_pitcher_era = COALESCE(?, home_pitcher_era),
+                    away_pitcher_era = COALESCE(?, away_pitcher_era),
+                    home_pitcher_whip = COALESCE(?, home_pitcher_whip),
+                    away_pitcher_whip = COALESCE(?, away_pitcher_whip),
+                    home_pitcher_wins = COALESCE(?, home_pitcher_wins),
+                    away_pitcher_wins = COALESCE(?, away_pitcher_wins),
+                    home_pitcher_losses = COALESCE(?, home_pitcher_losses),
+                    away_pitcher_losses = COALESCE(?, away_pitcher_losses),
+                    home_pitcher_ip = COALESCE(?, home_pitcher_ip),
+                    away_pitcher_ip = COALESCE(?, away_pitcher_ip),
                     scores_updated_at = ?
-                    WHERE id = ? AND home_score IS NULL''',
+                    WHERE id = ?''',
                     (eg['home_score'], eg['away_score'],
                      spread_result, total_result,
+                     eg.get('home_pitcher'), eg.get('away_pitcher'),
+                     eg.get('home_pitcher_era'), eg.get('away_pitcher_era'),
+                     eg.get('home_pitcher_whip'), eg.get('away_pitcher_whip'),
+                     eg.get('home_pitcher_wins'), eg.get('away_pitcher_wins'),
+                     eg.get('home_pitcher_losses'), eg.get('away_pitcher_losses'),
+                     eg.get('home_pitcher_ip'), eg.get('away_pitcher_ip'),
                      datetime.now().isoformat(), game_id))
                 updated += 1
                 continue
@@ -235,8 +307,15 @@ def backfill(start_date=None, end_date=None, use_rundown=True):
                  scores_updated_at,
                  line_movement,
                  commence_time,
-                 rundown_spread_consensus, rundown_spread_std, rundown_num_books)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                 rundown_spread_consensus, rundown_spread_std, rundown_num_books,
+                 home_pitcher, away_pitcher,
+                 home_pitcher_era, away_pitcher_era,
+                 home_pitcher_whip, away_pitcher_whip,
+                 home_pitcher_wins, away_pitcher_wins,
+                 home_pitcher_losses, away_pitcher_losses,
+                 home_pitcher_ip, away_pitcher_ip)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                 (game_id, date_iso, eg.get('game_time'), home, away,
                  spread_home, -spread_home if spread_home else None, total, home_ml, away_ml,
                  datetime.now().isoformat(),
@@ -247,9 +326,15 @@ def backfill(start_date=None, end_date=None, use_rundown=True):
                  eg['home_score'], eg['away_score'],
                  spread_result, total_result,
                  datetime.now().isoformat(),
-                 line_movement,
+                 0.0,
                  eg.get('game_time', ''),
-                 consensus, spread_std, num_books))
+                 consensus, spread_std, num_books,
+                 eg.get('home_pitcher'), eg.get('away_pitcher'),
+                 eg.get('home_pitcher_era'), eg.get('away_pitcher_era'),
+                 eg.get('home_pitcher_whip'), eg.get('away_pitcher_whip'),
+                 eg.get('home_pitcher_wins'), eg.get('away_pitcher_wins'),
+                 eg.get('home_pitcher_losses'), eg.get('away_pitcher_losses'),
+                 eg.get('home_pitcher_ip'), eg.get('away_pitcher_ip')))
             inserted += 1
 
         conn.commit()
@@ -260,39 +345,42 @@ def backfill(start_date=None, end_date=None, use_rundown=True):
 
     conn.close()
     print(f"\nBackfill complete: {total_inserted} inserted, {total_updated} updated across {day_count} days")
+    print(f"Games with pitcher stats from ESPN: {pitcher_stats_found}")
     return total_inserted
-
-
-def add_rundown_columns(cursor):
-    """Ensure rundown columns exist on mlb_games (for older table schemas)."""
-    for col, ctype in [
-        ('rundown_spread_consensus', 'REAL'),
-        ('rundown_spread_std', 'REAL'),
-        ('rundown_spread_range', 'REAL'),
-        ('rundown_best_book', 'TEXT'),
-        ('rundown_num_books', 'INTEGER'),
-    ]:
-        try:
-            cursor.execute(f'ALTER TABLE mlb_games ADD COLUMN {col} {ctype}')
-        except Exception:
-            pass
 
 
 if __name__ == '__main__':
     print("=" * 60)
-    print("MLB HISTORICAL BACKFILL")
+    print("MLB HISTORICAL BACKFILL (2024 + 2025)")
     print("=" * 60)
 
     use_rd = '--no-rundown' not in sys.argv
 
+    seasons_arg = []
+    for i, arg in enumerate(sys.argv):
+        if arg == '--season' and i + 1 < len(sys.argv):
+            seasons_arg.append(int(sys.argv[i + 1]))
+
+    if not seasons_arg:
+        seasons_arg = [2024, 2025]
+
     conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
     setup_mlb_table(cursor)
-    add_rundown_columns(cursor)
     conn.commit()
     conn.close()
 
     if not use_rd:
         print("Rundown API disabled (--no-rundown flag). ESPN scores only.")
 
-    backfill(use_rundown=use_rd)
+    print(f"Seasons: {seasons_arg}")
+
+    for season in sorted(seasons_arg):
+        if season not in SEASON_DATES:
+            print(f"Unknown season {season}, skipping")
+            continue
+        start, end = SEASON_DATES[season]
+        print(f"\n{'='*40}")
+        print(f"SEASON {season}: {start.strftime('%Y-%m-%d')} to {end.strftime('%Y-%m-%d')}")
+        print(f"{'='*40}")
+        backfill(start_date=start, end_date=end, use_rundown=use_rd)

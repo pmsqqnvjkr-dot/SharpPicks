@@ -289,7 +289,13 @@ class EnsemblePredictor:
 
         pitcher_cols = ""
         if self.sport == 'mlb':
-            pitcher_cols = ",\n                g.home_pitcher, g.away_pitcher"
+            pitcher_cols = """,
+                g.home_pitcher, g.away_pitcher,
+                g.home_pitcher_era, g.away_pitcher_era,
+                g.home_pitcher_whip, g.away_pitcher_whip,
+                g.home_pitcher_wins, g.away_pitcher_wins,
+                g.home_pitcher_losses, g.away_pitcher_losses,
+                g.home_pitcher_ip, g.away_pitcher_ip"""
 
         query = f'''
             SELECT 
@@ -464,6 +470,87 @@ class EnsemblePredictor:
         features['home_injury_impact'] = df.get('home_injuries', pd.Series(['']*len(df))).apply(parse_injury_impact)
         features['away_injury_impact'] = df.get('away_injuries', pd.Series(['']*len(df))).apply(parse_injury_impact)
         features['injury_diff'] = features['away_injury_impact'] - features['home_injury_impact']
+
+        if self.sport == 'mlb':
+            league_avg_era = 4.20
+            league_avg_whip = 1.28
+
+            features['home_pitcher_era'] = pd.to_numeric(
+                df.get('home_pitcher_era', pd.Series([league_avg_era]*len(df))),
+                errors='coerce').fillna(league_avg_era)
+            features['away_pitcher_era'] = pd.to_numeric(
+                df.get('away_pitcher_era', pd.Series([league_avg_era]*len(df))),
+                errors='coerce').fillna(league_avg_era)
+            features['era_diff'] = features['away_pitcher_era'] - features['home_pitcher_era']
+
+            features['home_pitcher_whip'] = pd.to_numeric(
+                df.get('home_pitcher_whip', pd.Series([league_avg_whip]*len(df))),
+                errors='coerce').fillna(league_avg_whip)
+            features['away_pitcher_whip'] = pd.to_numeric(
+                df.get('away_pitcher_whip', pd.Series([league_avg_whip]*len(df))),
+                errors='coerce').fillna(league_avg_whip)
+            features['whip_diff'] = features['away_pitcher_whip'] - features['home_pitcher_whip']
+
+            hp_wins = pd.to_numeric(
+                df.get('home_pitcher_wins', pd.Series([0]*len(df))),
+                errors='coerce').fillna(0)
+            hp_losses = pd.to_numeric(
+                df.get('home_pitcher_losses', pd.Series([0]*len(df))),
+                errors='coerce').fillna(0)
+            ap_wins = pd.to_numeric(
+                df.get('away_pitcher_wins', pd.Series([0]*len(df))),
+                errors='coerce').fillna(0)
+            ap_losses = pd.to_numeric(
+                df.get('away_pitcher_losses', pd.Series([0]*len(df))),
+                errors='coerce').fillna(0)
+            features['home_pitcher_win_pct'] = hp_wins / (hp_wins + hp_losses).replace(0, 1)
+            features['away_pitcher_win_pct'] = ap_wins / (ap_wins + ap_losses).replace(0, 1)
+            features['pitcher_win_pct_diff'] = features['home_pitcher_win_pct'] - features['away_pitcher_win_pct']
+
+            features['home_pitcher_ip'] = pd.to_numeric(
+                df.get('home_pitcher_ip', pd.Series([0]*len(df))),
+                errors='coerce').fillna(0)
+            features['away_pitcher_ip'] = pd.to_numeric(
+                df.get('away_pitcher_ip', pd.Series([0]*len(df))),
+                errors='coerce').fillna(0)
+            features['pitcher_ip_diff'] = features['home_pitcher_ip'] - features['away_pitcher_ip']
+
+            def ml_to_implied_prob(ml):
+                ml = pd.to_numeric(ml, errors='coerce').fillna(0)
+                pos_mask = ml > 0
+                neg_mask = ml < 0
+                prob = pd.Series(0.5, index=ml.index)
+                prob[pos_mask] = 100.0 / (ml[pos_mask] + 100.0)
+                prob[neg_mask] = ml[neg_mask].abs() / (ml[neg_mask].abs() + 100.0)
+                return prob
+
+            features['home_ml_implied'] = ml_to_implied_prob(df.get('home_ml', pd.Series([0]*len(df))))
+            features['away_ml_implied'] = ml_to_implied_prob(df.get('away_ml', pd.Series([0]*len(df))))
+            features['ml_implied_diff'] = features['home_ml_implied'] - features['away_ml_implied']
+
+            fav_ml = pd.concat([features['home_ml'], features['away_ml']], axis=1).min(axis=1)
+            features['chalk_level'] = fav_ml.abs()
+            features['is_heavy_chalk'] = (fav_ml < -180).astype(int)
+
+            features['home_back_to_back'] = (features['home_rest'] == 0).astype(int)
+            features['away_back_to_back'] = (features['away_rest'] == 0).astype(int)
+            features['b2b_advantage'] = features['away_back_to_back'] - features['home_back_to_back']
+
+            home_pitcher_present = df.get('home_pitcher', pd.Series([None]*len(df)))
+            away_pitcher_present = df.get('away_pitcher', pd.Series([None]*len(df)))
+            features['home_pitcher_listed'] = home_pitcher_present.apply(
+                lambda x: 0 if pd.isna(x) or x is None or str(x).strip().upper() in ('', 'TBD', 'NONE') else 1
+            )
+            features['away_pitcher_listed'] = away_pitcher_present.apply(
+                lambda x: 0 if pd.isna(x) or x is None or str(x).strip().upper() in ('', 'TBD', 'NONE') else 1
+            )
+            features['both_pitchers_listed'] = (features['home_pitcher_listed'] & features['away_pitcher_listed']).astype(int)
+
+            spread = features['spread_home']
+            home_implied = features['home_ml_implied']
+            spread_implies_home = (spread < 0).astype(float)
+            ml_implies_home = (home_implied > 0.5).astype(float)
+            features['rl_ml_agree'] = (spread_implies_home == ml_implies_home).astype(int)
 
         return features
     
@@ -760,10 +847,15 @@ class EnsemblePredictor:
         now_et = datetime.now(et)
         cutoff_et = now_et + timedelta(minutes=min_minutes_to_tip)
         cutoff_utc_iso = cutoff_et.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-        # Include NULL/empty game_time as upcoming; otherwise require game_time > cutoff
         pitcher_cols = ""
         if self.sport == 'mlb':
-            pitcher_cols = ",\n                g.home_pitcher, g.away_pitcher"
+            pitcher_cols = """,
+                g.home_pitcher, g.away_pitcher,
+                g.home_pitcher_era, g.away_pitcher_era,
+                g.home_pitcher_whip, g.away_pitcher_whip,
+                g.home_pitcher_wins, g.away_pitcher_wins,
+                g.home_pitcher_losses, g.away_pitcher_losses,
+                g.home_pitcher_ip, g.away_pitcher_ip"""
 
         query = f'''
             SELECT
@@ -1401,15 +1493,30 @@ class EnsemblePredictor:
             implied = abs(std_odds) / (abs(std_odds) + 100) if std_odds < 0 else 100 / (std_odds + 100)
             candidates.append(('line_value', 2, f"Model confidence {confidence:.0%} vs implied {implied:.0%} — {(confidence - implied) * 100:.1f}pp probability edge"))
 
-        # Pitcher context
         home_pitcher = row.get('home_pitcher')
         away_pitcher = row.get('away_pitcher')
         pick_pitcher = home_pitcher if pick_home else away_pitcher
         opp_pitcher = away_pitcher if pick_home else home_pitcher
+        pick_era = row.get('home_pitcher_era' if pick_home else 'away_pitcher_era')
+        opp_era = row.get('away_pitcher_era' if pick_home else 'home_pitcher_era')
         if pick_pitcher and opp_pitcher:
-            candidates.append(('pitcher', 2, f"Probables: {away_pitcher} vs {home_pitcher} — pitching matchup factored into model projection"))
+            if pick_era is not None and opp_era is not None:
+                try:
+                    p_era, o_era = float(pick_era), float(opp_era)
+                    era_diff = o_era - p_era
+                    if era_diff > 1.0:
+                        candidates.append(('pitcher', 3, f"Pitching edge: {pick_pitcher} ({p_era:.2f} ERA) vs {opp_pitcher} ({o_era:.2f} ERA) — {era_diff:.2f} ERA advantage"))
+                    elif era_diff > 0:
+                        candidates.append(('pitcher', 2, f"Probables: {pick_pitcher} ({p_era:.2f} ERA) vs {opp_pitcher} ({o_era:.2f} ERA)"))
+                    else:
+                        candidates.append(('pitcher', 1, f"Pitching disadvantage: {pick_pitcher} ({p_era:.2f} ERA) vs {opp_pitcher} ({o_era:.2f} ERA) — edge sustains despite matchup"))
+                except (ValueError, TypeError):
+                    candidates.append(('pitcher', 2, f"Probables: {away_pitcher} vs {home_pitcher} — pitching matchup factored into model"))
+            else:
+                candidates.append(('pitcher', 2, f"Probables: {away_pitcher} vs {home_pitcher} — pitching matchup factored into model"))
         elif pick_pitcher:
-            candidates.append(('pitcher', 2, f"Starting pitcher: {pick_pitcher} on the mound for {pick_team}"))
+            era_str = f" ({float(pick_era):.2f} ERA)" if pick_era is not None else ""
+            candidates.append(('pitcher', 2, f"Starting pitcher: {pick_pitcher}{era_str} on the mound for {pick_team}"))
 
         # Market note: detect public favorite inflation, form mismatch
         try:

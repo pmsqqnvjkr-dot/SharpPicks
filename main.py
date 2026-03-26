@@ -3402,6 +3402,16 @@ def setup_mlb_table(cursor):
         ('rundown_spread_range', 'REAL'),
         ('rundown_best_book', 'TEXT'),
         ('rundown_num_books', 'INTEGER'),
+        ('home_pitcher_era', 'REAL'),
+        ('away_pitcher_era', 'REAL'),
+        ('home_pitcher_whip', 'REAL'),
+        ('away_pitcher_whip', 'REAL'),
+        ('home_pitcher_wins', 'INTEGER'),
+        ('away_pitcher_wins', 'INTEGER'),
+        ('home_pitcher_losses', 'INTEGER'),
+        ('away_pitcher_losses', 'INTEGER'),
+        ('home_pitcher_ip', 'REAL'),
+        ('away_pitcher_ip', 'REAL'),
     ]:
         try:
             cursor.execute(f'ALTER TABLE mlb_games ADD COLUMN {col} {ctype}')
@@ -3494,53 +3504,113 @@ def get_mlb_team_schedule(team_abbr):
         return None, None
 
 
-def get_mlb_probable_pitchers():
-    """Fetch probable starting pitchers from ESPN scoreboard."""
+def _extract_pitcher_stats(prob):
+    """Extract pitcher stats from ESPN probables data."""
+    stats = {'era': None, 'whip': None, 'wins': None, 'losses': None, 'ip': None}
+    # ESPN probables may include 'statistics' array on the probable object
+    for stat_group in prob.get('statistics', []):
+        for stat in stat_group.get('stats', []):
+            name = stat.get('name', '').lower()
+            val = stat.get('value')
+            if val is None:
+                try:
+                    val = float(stat.get('displayValue', '0'))
+                except (ValueError, TypeError):
+                    continue
+            if name == 'era' or name == 'earnedrunaverage':
+                stats['era'] = float(val)
+            elif name == 'whip':
+                stats['whip'] = float(val)
+            elif name == 'wins':
+                stats['wins'] = int(val)
+            elif name == 'losses':
+                stats['losses'] = int(val)
+            elif name in ('inningspitched', 'ip'):
+                stats['ip'] = float(val)
+    # Also check athlete.statistics if present
+    athlete = prob.get('athlete', {})
+    for stat_group in athlete.get('statistics', []):
+        splits = stat_group.get('splits', [])
+        for split in splits:
+            for stat in split.get('stats', []):
+                name = stat.get('name', '').lower()
+                try:
+                    val = float(stat.get('value', stat.get('displayValue', 0)))
+                except (ValueError, TypeError):
+                    continue
+                if name == 'era' or name == 'earnedrunaverage':
+                    stats['era'] = val
+                elif name == 'whip':
+                    stats['whip'] = val
+    return stats
+
+
+def get_mlb_probable_pitchers(date_compact=None):
+    """Fetch probable starting pitchers and their stats from ESPN scoreboard."""
     from sport_config import get_sport_config
     cfg = get_sport_config('mlb')
     pitchers = {}
     try:
-        try:
-            from zoneinfo import ZoneInfo
-        except ImportError:
-            from backports.zoneinfo import ZoneInfo
-        et = ZoneInfo('America/New_York')
-        today_compact = datetime.now(et).strftime('%Y%m%d')
-        url = f"{cfg['espn_scoreboard']}?dates={today_compact}"
+        if date_compact is None:
+            try:
+                from zoneinfo import ZoneInfo
+            except ImportError:
+                from backports.zoneinfo import ZoneInfo
+            et = ZoneInfo('America/New_York')
+            date_compact = datetime.now(et).strftime('%Y%m%d')
+        url = f"{cfg['espn_scoreboard']}?dates={date_compact}"
         resp = api_request_with_retry(url)
         if resp and resp.status_code == 200:
             for event in resp.json().get('events', []):
                 comp = event.get('competitions', [{}])[0]
                 home_pitcher = None
                 away_pitcher = None
+                home_stats = {}
+                away_stats = {}
                 home_team = None
                 away_team = None
                 for competitor in comp.get('competitors', []):
                     team_name = competitor.get('team', {}).get('displayName', '')
                     probables = competitor.get('probables', [])
                     pitcher_name = None
+                    pitcher_stats = {}
                     for prob in probables:
                         if prob.get('abbreviation') == 'SP' or 'starter' in prob.get('name', '').lower() or prob.get('name') == 'probableStartingPitcher':
                             athlete = prob.get('athlete', {})
                             pitcher_name = athlete.get('fullName') or athlete.get('displayName')
+                            pitcher_stats = _extract_pitcher_stats(prob)
                             break
                     if not pitcher_name and probables:
                         athlete = probables[0].get('athlete', {})
                         pitcher_name = athlete.get('fullName') or athlete.get('displayName')
+                        pitcher_stats = _extract_pitcher_stats(probables[0])
                     if competitor.get('homeAway') == 'home':
                         home_team = team_name
                         home_pitcher = pitcher_name
+                        home_stats = pitcher_stats
                     else:
                         away_team = team_name
                         away_pitcher = pitcher_name
+                        away_stats = pitcher_stats
                 if home_team and away_team:
                     pitchers[(away_team, home_team)] = {
                         'home_pitcher': home_pitcher,
                         'away_pitcher': away_pitcher,
+                        'home_pitcher_era': home_stats.get('era'),
+                        'away_pitcher_era': away_stats.get('era'),
+                        'home_pitcher_whip': home_stats.get('whip'),
+                        'away_pitcher_whip': away_stats.get('whip'),
+                        'home_pitcher_wins': home_stats.get('wins'),
+                        'away_pitcher_wins': away_stats.get('wins'),
+                        'home_pitcher_losses': home_stats.get('losses'),
+                        'away_pitcher_losses': away_stats.get('losses'),
+                        'home_pitcher_ip': home_stats.get('ip'),
+                        'away_pitcher_ip': away_stats.get('ip'),
                     }
-            print(f"   ⚾ Probable pitchers found for {len(pitchers)} games")
+            with_stats = sum(1 for p in pitchers.values() if p.get('home_pitcher_era') is not None)
+            print(f"   Probable pitchers found for {len(pitchers)} games ({with_stats} with stats)")
     except Exception as e:
-        print(f"⚠️ MLB probable pitchers error: {e}")
+        print(f"MLB probable pitchers error: {e}")
     return pitchers
 
 
@@ -3749,6 +3819,16 @@ def collect_mlb_odds():
             pitcher_info = pitchers.get((away, home), {})
             home_pitcher = pitcher_info.get('home_pitcher')
             away_pitcher = pitcher_info.get('away_pitcher')
+            hp_era = pitcher_info.get('home_pitcher_era')
+            ap_era = pitcher_info.get('away_pitcher_era')
+            hp_whip = pitcher_info.get('home_pitcher_whip')
+            ap_whip = pitcher_info.get('away_pitcher_whip')
+            hp_wins = pitcher_info.get('home_pitcher_wins')
+            ap_wins = pitcher_info.get('away_pitcher_wins')
+            hp_losses = pitcher_info.get('home_pitcher_losses')
+            ap_losses = pitcher_info.get('away_pitcher_losses')
+            hp_ip = pitcher_info.get('home_pitcher_ip')
+            ap_ip = pitcher_info.get('away_pitcher_ip')
 
             cursor.execute('SELECT id, spread_home_open FROM mlb_games WHERE id = ?', (game_id,))
             existing = cursor.fetchone()
@@ -3767,8 +3847,14 @@ def collect_mlb_odds():
                      home_spread_odds, away_spread_odds,
                      home_spread_odds_open, away_spread_odds_open,
                      home_spread_book, away_spread_book,
-                     commence_time, home_pitcher, away_pitcher)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                     commence_time, home_pitcher, away_pitcher,
+                     home_pitcher_era, away_pitcher_era,
+                     home_pitcher_whip, away_pitcher_whip,
+                     home_pitcher_wins, away_pitcher_wins,
+                     home_pitcher_losses, away_pitcher_losses,
+                     home_pitcher_ip, away_pitcher_ip)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                     (game_id, commence_time or today_str, game_time, home, away,
                      spread_home, spread_away, total, home_ml, away_ml,
                      datetime.now().isoformat(),
@@ -3779,7 +3865,10 @@ def collect_mlb_odds():
                      best_home_odds, best_away_odds,
                      best_home_odds, best_away_odds,
                      best_home_book, best_away_book,
-                     game.get('commence_time', ''), home_pitcher, away_pitcher))
+                     game.get('commence_time', ''), home_pitcher, away_pitcher,
+                     hp_era, ap_era, hp_whip, ap_whip,
+                     hp_wins, ap_wins, hp_losses, ap_losses,
+                     hp_ip, ap_ip))
                 line_status = "📌 OPENING"
             else:
                 cursor.execute('''UPDATE mlb_games SET
@@ -3794,7 +3883,17 @@ def collect_mlb_odds():
                     home_spread_odds = ?, away_spread_odds = ?,
                     home_spread_book = ?, away_spread_book = ?,
                     home_pitcher = COALESCE(?, home_pitcher),
-                    away_pitcher = COALESCE(?, away_pitcher)
+                    away_pitcher = COALESCE(?, away_pitcher),
+                    home_pitcher_era = COALESCE(?, home_pitcher_era),
+                    away_pitcher_era = COALESCE(?, away_pitcher_era),
+                    home_pitcher_whip = COALESCE(?, home_pitcher_whip),
+                    away_pitcher_whip = COALESCE(?, away_pitcher_whip),
+                    home_pitcher_wins = COALESCE(?, home_pitcher_wins),
+                    away_pitcher_wins = COALESCE(?, away_pitcher_wins),
+                    home_pitcher_losses = COALESCE(?, home_pitcher_losses),
+                    away_pitcher_losses = COALESCE(?, away_pitcher_losses),
+                    home_pitcher_ip = COALESCE(?, home_pitcher_ip),
+                    away_pitcher_ip = COALESCE(?, away_pitcher_ip)
                     WHERE id = ?''',
                     (spread_home, spread_away, total,
                      home_ml, away_ml, datetime.now().isoformat(),
@@ -3805,6 +3904,9 @@ def collect_mlb_odds():
                      best_home_odds, best_away_odds,
                      best_home_book, best_away_book,
                      home_pitcher, away_pitcher,
+                     hp_era, ap_era, hp_whip, ap_whip,
+                     hp_wins, ap_wins, hp_losses, ap_losses,
+                     hp_ip, ap_ip,
                      game_id))
 
                 if has_opening:
