@@ -188,14 +188,6 @@ function AppContent() {
       setProfileScreen('upgrade');
       navigate('/', { replace: true });
     }
-    if (!user) {
-      if (location.pathname === '/signup' || location.pathname === '/register') {
-        navigate('/?view=signup', { replace: true });
-      } else if (location.pathname === '/login') {
-        const view = new URLSearchParams(location.search).get('view') || 'signin';
-        navigate('/?view=' + view, { replace: true });
-      }
-    }
     const params = new URLSearchParams(location.search);
     const verifyStatus = params.get('verify');
     if (verifyStatus === 'success') {
@@ -326,7 +318,12 @@ function AppContent() {
   }
 
   if (!user) {
-    return <LandingPage />;
+    const p = location.pathname;
+    const q = new URLSearchParams(location.search).get('view');
+    const autoView = (p === '/signup' || p === '/register' || q === 'signup') ? 'signup'
+                   : (p === '/login' || q === 'signin' || q === 'login') ? 'signin'
+                   : null;
+    return <LandingPage autoView={autoView} />;
   }
 
   if (showOnboarding) {

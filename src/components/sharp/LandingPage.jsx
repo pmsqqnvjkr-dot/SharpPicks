@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { Capacitor } from '@capacitor/core';
 import AuthModal from './AuthModal';
@@ -72,27 +72,15 @@ function PillarCard({ icon, title, description }) {
 /* ═══════════════════════════════════════
    LANDING PAGE
    ═══════════════════════════════════════ */
-export default function LandingPage() {
+export default function LandingPage({ autoView }) {
   const { data: stats } = useApi('/public/stats');
   const { data: founding } = useApi('/public/founding-count');
-  const [showAuth, setShowAuth] = useState(false);
-  const [authMode, setAuthMode] = useState('register');
-  const [accountType, setAccountType] = useState(null);
+  const [showAuth, setShowAuth] = useState(autoView === 'signup' || autoView === 'signin');
+  const [authMode, setAuthMode] = useState(autoView === 'signin' ? 'login' : 'register');
+  const [accountType, setAccountType] = useState(autoView === 'signup' ? (isNative ? 'free' : 'trial') : null);
 
   const openRegister = () => { setAuthMode('register'); setAccountType(isNative ? 'free' : 'trial'); setShowAuth(true); };
   const openLogin = () => { setAuthMode('login'); setShowAuth(true); };
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const view = params.get('view');
-    if (view === 'signup' || view === 'register') {
-      openRegister();
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (view === 'signin' || view === 'login') {
-      openLogin();
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, []);
 
   const spotsLeft = founding ? (founding.remaining != null ? founding.remaining : Math.max(0, 50 - (founding.current || 0))) : null;
 
