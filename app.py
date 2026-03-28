@@ -3213,6 +3213,112 @@ def cron_refresh_lines():
     return log_cron('refresh_lines', collect_todays_games, skip_throttle=force)
 
 
+def _grade_picks_for_final_games(final_games):
+    """Immediately grade pending picks for games that just went final.
+    Called from the live-scores cron when a game transitions to STATUS_FINAL."""
+    from sqlalchemy import or_, and_
+    with app.app_context():
+        graded = 0
+        for fg in final_games:
+            sport, home_team, away_team = fg['sport'], fg['home_team'], fg['away_team']
+            home_score, away_score = fg['home_score'], fg['away_score']
+
+            revoked_with_bets = db.session.query(Pick.id).join(
+                TrackedBet, TrackedBet.pick_id == Pick.id
+            ).filter(Pick.result == 'revoked', TrackedBet.result.is_(None),
+                     Pick.home_team == home_team, Pick.away_team == away_team).distinct().subquery()
+
+            picks = Pick.query.filter(
+                Pick.home_team == home_team,
+                Pick.away_team == away_team,
+                or_(
+                    Pick.result == 'pending',
+                    Pick.id.in_(db.session.query(revoked_with_bets.c.id))
+                )
+            ).all()
+
+            for pick in picks:
+                spread_result = home_score - away_score
+                line_value = pick.line if pick.line and abs(pick.line) < 50 else 0
+
+                if sport == 'mlb':
+                    is_home_pick = pick.side == 'home'
+                else:
+                    side_lower = pick.side.lower()
+                    home_lower = pick.home_team.lower()
+                    away_lower = pick.away_team.lower()
+                    is_home_pick = home_lower in side_lower or any(
+                        word in side_lower for word in home_lower.split() if len(word) > 3
+                    )
+                    is_away_pick = away_lower in side_lower or any(
+                        word in side_lower for word in away_lower.split() if len(word) > 3
+                    )
+                    if not is_home_pick and not is_away_pick:
+                        logging.warning(f"[Live-grade] Cannot determine side: {pick.side}")
+                        continue
+
+                if is_home_pick:
+                    ats_margin = spread_result + line_value
+                else:
+                    ats_margin = -spread_result + line_value
+
+                if ats_margin == 0:
+                    result_ats, profit_units, pnl = 'P', 0.0, 0
+                elif ats_margin > 0:
+                    result_ats = 'W'
+                    actual_odds = pick.market_odds or -110
+                    if actual_odds < 0:
+                        profit_units = round(100 / abs(actual_odds), 2)
+                    else:
+                        profit_units = round(actual_odds / 100, 2)
+                    pnl = round(profit_units * 100, 0)
+                else:
+                    result_ats, profit_units, pnl = 'L', -1.0, -100
+
+                is_revoked = pick.result == 'revoked'
+
+                if not is_revoked:
+                    pick.home_score = home_score
+                    pick.away_score = away_score
+                    pick.result = 'push' if result_ats == 'P' else ('win' if result_ats == 'W' else 'loss')
+                    pick.result_ats = result_ats
+                    pick.profit_units = profit_units
+                    pick.pnl = pnl
+                    pick.result_resolved_at = datetime.now()
+                    logging.info(f"[Live-grade] {pick.side} → {pick.result} ({away_team} {away_score} @ {home_team} {home_score})")
+
+                    try:
+                        from notification_service import send_result_notification
+                        send_result_notification(pick, pick.result)
+                    except Exception as e:
+                        logging.error(f"[Live-grade] Notification error: {e}")
+
+                    try:
+                        from notification_events import dispatch_result_emails
+                        dispatch_result_emails(pick)
+                    except Exception as e:
+                        logging.error(f"[Live-grade] Email error: {e}")
+
+                linked_bets = TrackedBet.query.filter_by(pick_id=pick.id, result=None).all()
+                for tb in linked_bets:
+                    tb.result = result_ats
+                    if result_ats == 'W':
+                        if tb.odds < 0:
+                            tb.profit = round(tb.bet_amount * (100 / abs(tb.odds)), 2)
+                        else:
+                            tb.profit = round(tb.bet_amount * (tb.odds / 100), 2)
+                    elif result_ats == 'P':
+                        tb.profit = 0.0
+                    else:
+                        tb.profit = -tb.bet_amount
+
+                graded += 1
+
+        if graded:
+            db.session.commit()
+            logging.info(f"[Live-grade] Graded {graded} picks from {len(final_games)} final games")
+
+
 @app.route('/api/cron/live-scores', methods=['GET', 'POST'])
 @verify_cron
 def cron_live_scores():
@@ -3284,6 +3390,8 @@ def cron_live_scores():
             away_name = away.get('team', {}).get('displayName', '')
             key = home_name.lower().replace(' ', '')
             espn_games[key] = {
+                'home_name': home_name,
+                'away_name': away_name,
                 'home_score': int(home.get('score', 0)),
                 'away_score': int(away.get('score', 0)),
                 'state': status_type.get('name', ''),
@@ -3292,6 +3400,7 @@ def cron_live_scores():
             }
 
         updated = 0
+        newly_final = []
         for row in today_games:
             game_id, home_team, away_team = row['id'], row['home_team'], row['away_team']
             key = home_team.lower().replace(' ', '')
@@ -3306,6 +3415,20 @@ def cron_live_scores():
                 game_status = 'in_progress'
             else:
                 game_status = 'scheduled'
+
+            prev_status = None
+            try:
+                prev_status = row['game_status']
+            except (KeyError, IndexError):
+                pass
+            if game_status == 'final' and prev_status != 'final':
+                newly_final.append({
+                    'sport': sport,
+                    'home_team': home_team,
+                    'away_team': away_team,
+                    'home_score': live['home_score'],
+                    'away_score': live['away_score'],
+                })
 
             period_str = None
             if live['period'] > 0:
@@ -3329,6 +3452,12 @@ def cron_live_scores():
         updated_total += updated
         if updated:
             logging.info(f"Live scores: updated {updated} {sport} games")
+
+        if newly_final:
+            try:
+                _grade_picks_for_final_games(newly_final)
+            except Exception as e:
+                logging.error(f"Live auto-grade error: {e}")
 
     return jsonify({'ok': True, 'updated': updated_total})
 
