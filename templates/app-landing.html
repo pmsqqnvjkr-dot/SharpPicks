@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" style="background:#0c1018;color-scheme:dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0c1018">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>SharpPicks</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--navy:#0c1018;--navy-mid:#111827;--navy-light:#0f1520;--border:#1e2a3a;--border-light:#2a3654;--text-primary:#e8eaf0;--text-secondary:#9098b3;--text-tertiary:#616a8a;--text-dim:#4a5274;--green:#5A9E72;--green-dim:rgba(90,158,114,.10);--serif:'IBM Plex Serif',Georgia,serif;--sans:'Inter',-apple-system,sans-serif;--mono:'JetBrains Mono','Menlo',monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+html{background:#0c1018 !important}
+body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit-font-smoothing:antialiased;overflow-x:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+
+.hdr{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.wm{font-family:var(--sans);font-size:14px;font-weight:500;letter-spacing:.25em;color:var(--text-primary);text-transform:uppercase;display:inline-flex;align-items:center;line-height:1}
+.wm .sig{display:inline-flex;gap:0.18em;margin:0 0.4em;align-self:center}
+.wm .sig span{display:block;width:0.08em;height:1.24em;background:currentColor;border-radius:999px}
+.hdr-b{display:flex;gap:8px}
+.bs{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:8px 16px;border-radius:6px;text-decoration:none;cursor:pointer;transition:all .2s;border:none}
+.bs.gh{color:var(--text-secondary);background:none;border:1px solid var(--border)}
+.bs.gh:hover{color:var(--text-primary);border-color:var(--border-light)}
+.bs.gr{color:#fff;background:var(--green)}
+.bs.gr:hover{background:#4e8c64}
+
+.hero{padding:48px 24px 40px;text-align:center;position:relative}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 400px 300px at 50% 40%,rgba(90,158,114,.05),transparent);pointer-events:none}
+.h-eye{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:16px}
+.hero h1{font-family:var(--serif);font-size:28px;font-weight:500;line-height:1.2;margin-bottom:16px}
+.hero p{font-size:14px;line-height:1.7;color:var(--text-secondary);max-width:380px;margin:0 auto 16px}
+.h-it{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--text-dim);margin-bottom:20px}
+.pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:24px}
+.pill{font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:4px 12px;border-radius:16px;text-transform:uppercase}
+.pill.on{background:var(--green-dim);color:var(--green);border:1px solid rgba(90,158,114,.2)}
+.pill.soon{background:var(--navy-mid);color:var(--text-dim);border:1px solid var(--border)}
+
+.h-cta{display:flex;flex-direction:column;align-items:center;gap:8px}
+.btn-big{font-family:var(--mono);font-size:13px;letter-spacing:.04em;padding:14px 36px;border-radius:8px;text-decoration:none;cursor:pointer;transition:all .2s;border:none;display:inline-block;color:#fff;background:var(--green)}
+.btn-big:hover{background:#4e8c64}
+.btn-alt{font-family:var(--mono);font-size:11px;color:var(--text-dim);text-decoration:none;transition:color .2s}
+.btn-alt:hover{color:var(--text-secondary)}
+
+.live{display:flex;justify-content:center;gap:32px;padding:24px 20px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.ls{text-align:center}
+.ls-v{font-family:var(--mono);font-size:20px;font-weight:500}
+.ls-v.g{color:var(--green)}
+.ls-l{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary);margin-top:2px}
+
+.sec{padding:32px 20px}
+.sec-t{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:20px}
+
+.cd{background:var(--navy-mid);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:12px}
+.cd h3{font-family:var(--serif);font-size:15px;font-weight:500;margin-bottom:6px}
+.cd p{font-size:13px;line-height:1.6;color:var(--text-secondary)}
+
+.sig{background:var(--navy-mid);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.sig-top{padding:16px 18px 12px;border-bottom:1px solid var(--border)}
+.sig-m{font-family:var(--serif);font-size:16px;font-weight:500;margin-bottom:2px}
+.sig-meta{font-family:var(--mono);font-size:10px;color:var(--text-tertiary);letter-spacing:.04em}
+.sig-nums{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--border)}
+.sig-n{padding:14px;text-align:center;border-right:1px solid var(--border)}
+.sig-n:last-child{border-right:none}
+.sig-n .l{font-family:var(--mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px}
+.sig-n .v{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--green)}
+.sig-bot{padding:14px 18px}
+.sig-r{font-family:var(--serif);font-style:italic;font-size:12px;color:var(--text-secondary)}
+
+.tier{background:var(--navy-mid);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:12px}
+.tier.hl{border-color:var(--green)}
+.tier-n{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:6px}
+.tier.hl .tier-n{color:var(--green)}
+.tl{list-style:none}
+.tl li{font-size:13px;color:var(--text-secondary);padding:4px 0;display:flex;align-items:center;gap:8px}
+.tl li .ic{font-family:var(--mono);font-size:10px;color:var(--green);width:14px;text-align:center;flex-shrink:0}
+.tl li.lk .ic{color:var(--text-dim)}
+.tl li.lk{color:var(--text-dim)}
+
+.bot{padding:32px 20px 48px;text-align:center;border-top:1px solid var(--border)}
+.bot h2{font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:8px}
+.bot p{font-size:13px;color:var(--text-secondary);margin-bottom:24px}
+.bot-cta{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:24px}
+.bot-m{font-family:var(--serif);font-style:italic;font-size:12px;color:var(--text-dim);line-height:1.8}
+
+.legal{padding:20px;text-align:center;border-top:1px solid var(--border)}
+.legal p{font-size:10px;color:var(--text-dim);line-height:1.7;max-width:360px;margin:0 auto}
+.legal a{color:var(--text-tertiary);text-decoration:none}
+
+@keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.fi{opacity:0;animation:fu .5s ease forwards}
+.fi1{animation-delay:.1s}.fi2{animation-delay:.2s}.fi3{animation-delay:.3s}.fi4{animation-delay:.4s}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <span class="wm">SHARP<span class="sig"><span></span><span></span></span>PICKS</span>
+  <div class="hdr-b">
+    <a href="/login" class="bs gh">Sign In</a>
+    <a href="/signup" class="bs gr">Get Started</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="h-eye fi fi1">SPORTS MARKET INTELLIGENCE</div>
+  <h1 class="fi fi2">One pick beats five.</h1>
+  <p class="fi fi3">A four-model ensemble scans every game, detects pricing inefficiencies, and surfaces signals only when real edge appears.</p>
+  <div class="h-it fi fi3">Selective by design.</div>
+  <div class="pills fi fi3">
+    <span class="pill on">NBA</span>
+    <span class="pill on">MLB</span>
+    <span class="pill soon">WNBA &mdash; Soon</span>
+  </div>
+  <div class="h-cta fi fi4">
+    <a href="/signup" class="btn-big">Create Account</a>
+    <a href="/login" class="btn-alt">or sign in</a>
+  </div>
+</div>
+
+<div class="live">
+  <div class="ls"><div class="ls-v" id="r">&mdash;</div><div class="ls-l">Record</div></div>
+  <div class="ls"><div class="ls-v g" id="roi">&mdash;</div><div class="ls-l">ROI</div></div>
+  <div class="ls"><div class="ls-v g" id="u">&mdash;</div><div class="ls-l">Units</div></div>
+  <div class="ls"><div class="ls-v" id="sel">&mdash;</div><div class="ls-l">Selectivity</div></div>
+</div>
+
+<div class="sec">
+  <div class="sec-t">What SharpPicks Does</div>
+  <div class="cd"><h3>Daily market brief</h3><p>MEI score, regime classification, top edge, signal density, line movement tracking, and a market narrative &mdash; before tip-off.</p></div>
+  <div class="cd"><h3>Full market board &mdash; signals + passes</h3><p>Every game analyzed with edge sorting. See which qualified, which were passed, spread vs model line, moneyline, and quant analysis behind each.</p></div>
+  <div class="cd"><h3>Track your bets. See your portfolio.</h3><p>Log wagers at actual stakes, track results, and see your total P/L with an equity curve. ROI, record, units &mdash; all from your real bets.</p></div>
+  <div class="cd"><h3>Discipline score + behavioral insights</h3><p>Selectivity rate, picks followed vs passed, and a discipline grade. The only platform that measures the bets you don't take.</p></div>
+  <div class="cd"><h3>Sharp Journal</h3><p>Founder letters, market notes, and discipline essays. Content designed to make you a sharper bettor by understanding when not to bet.</p></div>
+  <div class="cd"><h3>Live tracking + public record</h3><p>Watch picks play out in real time. Every result graded against the closing line and permanently published. Zero picks deleted.</p></div>
+</div>
+
+<div class="sec">
+  <div class="sec-t">Sample Signal</div>
+  <div class="sig">
+    <div class="sig-top"><div class="sig-m">Minnesota Timberwolves +10.0</div><div class="sig-meta">MIN @ BOS &middot; 7:10 PM ET</div></div>
+    <div class="sig-nums">
+      <div class="sig-n"><div class="l">Edge</div><div class="v">+8.0%</div></div>
+      <div class="sig-n"><div class="l">Cover</div><div class="v">61.6%</div></div>
+      <div class="sig-n"><div class="l">Margin</div><div class="v">+7.1</div></div>
+    </div>
+    <div class="sig-bot"><div class="sig-r">Playable down to +8. Edge invalidates beyond.</div></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t">Free vs Pro</div>
+  <div class="tier"><div class="tier-n">Free</div>
+    <ul class="tl">
+      <li><span class="ic">&rarr;</span>See if a signal was generated today</li>
+      <li><span class="ic">&rarr;</span>Public performance record</li>
+      <li><span class="ic">&rarr;</span>Market overview</li>
+      <li class="lk"><span class="ic">&mdash;</span>Pick details locked</li>
+      <li class="lk"><span class="ic">&mdash;</span>Bet tracking locked</li>
+    </ul>
+  </div>
+  <div class="tier hl"><div class="tier-n">Pro</div>
+    <ul class="tl">
+      <li><span class="ic">&rarr;</span>Daily market brief with MEI score</li>
+      <li><span class="ic">&rarr;</span>Full pick details, edge %, side, line</li>
+      <li><span class="ic">&rarr;</span>Full market board &mdash; signals + passes</li>
+      <li><span class="ic">&rarr;</span>Bet tracking &amp; portfolio P/L</li>
+      <li><span class="ic">&rarr;</span>Discipline score &amp; behavioral insights</li>
+      <li><span class="ic">&rarr;</span>Sharp Journal &mdash; market notes &amp; philosophy</li>
+      <li><span class="ic">&rarr;</span>Live tracking &amp; real-time alerts</li>
+    </ul>
+  </div>
+</div>
+
+<div class="bot">
+  <h2>See the model at work.</h2>
+  <p>Create a free account to see model activity, pass-day context, and the public record.</p>
+  <div class="bot-cta">
+    <a href="/signup" class="btn-big">Create Account</a>
+    <a href="/login" class="btn-alt">or sign in</a>
+  </div>
+  <div class="bot-m">One pick beats five.<br>No edge, no pick.</div>
+</div>
+
+<div class="legal">
+  <p>SharpPicks provides sports analytics and model-based insights only. Not financial advice. Not a sportsbook.<br>
+  <a href="/support">Support</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a></p>
+</div>
+
+<script>
+async function load(){try{const r=await fetch('/api/public/stats');if(!r.ok)return;const d=await r.json();if(d.record)document.getElementById('r').textContent=d.record;if(d.roi!==undefined)document.getElementById('roi').textContent=(d.roi>0?'+':'')+d.roi+'%';if(d.units!==undefined)document.getElementById('u').textContent=(d.units>0?'+':'')+d.units+'u';if(d.selectivity!==undefined)document.getElementById('sel').textContent=d.selectivity+'%'}catch(e){}}
+load();
+</script>
+</body>
+</html>

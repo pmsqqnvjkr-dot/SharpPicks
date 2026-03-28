@@ -318,6 +318,12 @@ function AppContent() {
   }
 
   if (!user) {
+    if (!Capacitor.isNativePlatform()) {
+      const target = (location.pathname === '/signup' || location.pathname === '/register')
+        ? '/signup' : '/login';
+      window.location.href = target;
+      return null;
+    }
     const p = location.pathname;
     const q = new URLSearchParams(location.search).get('view');
     const autoView = (p === '/signup' || p === '/register' || q === 'signup') ? 'signup'

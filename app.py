@@ -517,6 +517,8 @@ def seed_database():
                 db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS bet_type VARCHAR DEFAULT 'spread'"))
                 db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS parlay_legs INTEGER"))
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS story_type VARCHAR"))
+                db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(20)"))
+                db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_id VARCHAR(255)"))
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
@@ -4189,6 +4191,185 @@ def logout():
     return jsonify({'success': True, 'message': 'Logged out'})
 
 
+# ── Google & Apple OAuth ──────────────────────────────────────────────
+
+_google_client_id = os.environ.get('GOOGLE_CLIENT_ID')
+_google_client_secret = os.environ.get('GOOGLE_CLIENT_SECRET')
+_apple_client_id = os.environ.get('APPLE_CLIENT_ID')
+_apple_team_id = os.environ.get('APPLE_TEAM_ID')
+_apple_key_id = os.environ.get('APPLE_KEY_ID')
+_apple_private_key = os.environ.get('APPLE_PRIVATE_KEY', '')
+
+_oauth_ready = bool(_google_client_id or _apple_client_id)
+
+if _oauth_ready:
+    from authlib.integrations.flask_client import OAuth as AuthlibOAuth
+    _oauth = AuthlibOAuth(app)
+
+    if _google_client_id:
+        _oauth.register(
+            name='google',
+            client_id=_google_client_id,
+            client_secret=_google_client_secret,
+            server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+            client_kwargs={'scope': 'openid email profile'},
+        )
+
+    if _apple_client_id:
+        def _generate_apple_client_secret():
+            import jwt as pyjwt, time as _t
+            headers = {'kid': _apple_key_id, 'alg': 'ES256'}
+            payload = {
+                'iss': _apple_team_id,
+                'iat': int(_t.time()),
+                'exp': int(_t.time()) + 86400 * 180,
+                'aud': 'https://appleid.apple.com',
+                'sub': _apple_client_id,
+            }
+            pk = _apple_private_key.replace('\\n', '\n')
+            return pyjwt.encode(payload, pk, algorithm='ES256', headers=headers)
+
+        _oauth.register(
+            name='apple',
+            client_id=_apple_client_id,
+            client_secret=_generate_apple_client_secret(),
+            authorize_url='https://appleid.apple.com/auth/authorize',
+            access_token_url='https://appleid.apple.com/auth/token',
+            client_kwargs={'scope': 'name email', 'response_mode': 'form_post'},
+        )
+
+
+def _oauth_find_or_create(email, provider, provider_id, first_name=None, plan='trial'):
+    """Find existing user by email or OAuth ID, or create a new one."""
+    from models import normalize_email
+    from werkzeug.security import generate_password_hash
+    import secrets
+
+    user = None
+    if provider_id:
+        user = User.query.filter_by(oauth_provider=provider, oauth_id=provider_id).first()
+    if not user and email:
+        user = User.query.filter(func.lower(User.email) == email.lower()).first()
+
+    if user:
+        if provider_id and not user.oauth_id:
+            user.oauth_provider = provider
+            user.oauth_id = provider_id
+            db.session.commit()
+        return user
+
+    is_free = plan == 'free'
+    norm = normalize_email(email) if email else None
+
+    user = User(
+        id=str(uuid.uuid4()),
+        email=email.lower() if email else f'{provider}_{provider_id}@private.sharppicks.ai',
+        email_normalized=norm,
+        first_name=first_name or '',
+        display_name=first_name or (email.split('@')[0] if email else ''),
+        password_hash=generate_password_hash(secrets.token_urlsafe(32)),
+        oauth_provider=provider,
+        oauth_id=provider_id,
+        is_premium=not is_free,
+        email_verified=True,
+        subscription_status='free' if is_free else 'trial',
+        trial_end_date=datetime.now() + timedelta(days=14) if not is_free else None,
+    )
+    db.session.add(user)
+    db.session.commit()
+
+    try:
+        send_admin_alert(
+            "New OAuth Signup",
+            f"{first_name or 'User'} ({user.email}) joined via {provider} as {plan}",
+            {'type': 'new_signup', 'email': user.email, 'provider': provider, 'account_type': plan}
+        )
+    except Exception as e:
+        logging.error(f"Admin OAuth signup alert failed: {e}")
+
+    return user
+
+
+@app.route('/auth/google')
+def google_login():
+    if not _oauth_ready or not _google_client_id:
+        return jsonify({'error': 'Google sign-in not configured'}), 501
+    session['oauth_plan'] = request.args.get('plan', 'trial')
+    base = os.environ.get('APP_BASE_URL', request.host_url.rstrip('/'))
+    redirect_uri = f"{base}/auth/google/callback"
+    return _oauth.google.authorize_redirect(redirect_uri)
+
+
+@app.route('/auth/google/callback')
+def google_callback():
+    try:
+        token = _oauth.google.authorize_access_token()
+        user_info = token.get('userinfo') or _oauth.google.parse_id_token(token, nonce=None)
+    except Exception as e:
+        logging.error(f"Google OAuth failed: {e}")
+        return redirect('/login?error=google_failed')
+
+    email = (user_info.get('email') or '').lower().strip()
+    if not email:
+        return redirect('/login?error=no_email')
+
+    plan = session.pop('oauth_plan', 'trial')
+    given_name = user_info.get('given_name') or user_info.get('name', '').split()[0] if user_info.get('name') else ''
+    user = _oauth_find_or_create(email, 'google', user_info.get('sub'), first_name=given_name, plan=plan)
+
+    login_user(user, remember=True)
+    session.permanent = True
+    session['user_id'] = user.id
+    session['session_token'] = user.session_token
+    return redirect('/')
+
+
+@app.route('/auth/apple')
+def apple_login():
+    if not _oauth_ready or not _apple_client_id:
+        return jsonify({'error': 'Apple sign-in not configured'}), 501
+    session['oauth_plan'] = request.args.get('plan', 'trial')
+    base = os.environ.get('APP_BASE_URL', request.host_url.rstrip('/'))
+    redirect_uri = f"{base}/auth/apple/callback"
+    return _oauth.apple.authorize_redirect(redirect_uri)
+
+
+@app.route('/auth/apple/callback', methods=['POST'])
+def apple_callback():
+    try:
+        token = _oauth.apple.authorize_access_token()
+        id_token = _oauth.apple.parse_id_token(token, nonce=None)
+    except Exception as e:
+        logging.error(f"Apple OAuth failed: {e}")
+        return redirect('/login?error=apple_failed')
+
+    email = (id_token.get('email') or '').lower().strip()
+    apple_sub = id_token.get('sub')
+    if not email and not apple_sub:
+        return redirect('/login?error=no_email')
+
+    plan = session.pop('oauth_plan', 'trial')
+
+    first_name = None
+    user_data = request.form.get('user')
+    if user_data:
+        import json as _json
+        try:
+            ud = _json.loads(user_data)
+            name = ud.get('name', {})
+            first_name = name.get('firstName') or name.get('givenName')
+        except Exception:
+            pass
+
+    user = _oauth_find_or_create(email, 'apple', apple_sub, first_name=first_name, plan=plan)
+
+    login_user(user, remember=True)
+    session.permanent = True
+    session['user_id'] = user.id
+    session['session_token'] = user.session_token
+    return redirect('/')
+
+
 @app.route('/api/auth/forgot-password', methods=['POST'])
 @limiter.limit("3 per minute")
 def forgot_password():
@@ -6632,6 +6813,13 @@ def serve_static_card(filename):
     resp = make_response(send_from_directory(cards_dir, filename))
     resp.headers['Cache-Control'] = 'public, max-age=3600'
     return resp
+
+@app.route('/login')
+@app.route('/signup')
+@app.route('/register')
+def auth_page():
+    templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+    return send_from_directory(templates_dir, 'auth.html')
 
 @app.route('/<path:path>')
 def serve_spa(path):
