@@ -1133,6 +1133,7 @@ def watch_game():
 
     data = request.get_json() or {}
     game_id = data.get('game_id')
+    sport = data.get('sport', 'nba')
     if not game_id:
         return jsonify({'error': 'game_id required'}), 400
 
@@ -1148,6 +1149,7 @@ def watch_game():
         game_date=data.get('game_date', ''),
         home_team=data.get('home', ''),
         away_team=data.get('away', ''),
+        sport=sport,
         line_at_watch=data.get('spread_home'),
     )
     db.session.add(wg)
@@ -1164,5 +1166,6 @@ def get_watched_games():
         return jsonify({'game_ids': []})
 
     today_str = _get_et_date()
-    watched = WatchedGame.query.filter_by(user_id=user.id, game_date=today_str).all()
+    sport = request.args.get('sport', 'nba')
+    watched = WatchedGame.query.filter_by(user_id=user.id, game_date=today_str, sport=sport).all()
     return jsonify({'game_ids': [w.game_id for w in watched]})

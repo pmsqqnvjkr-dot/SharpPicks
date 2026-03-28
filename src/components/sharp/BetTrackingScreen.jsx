@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
+import { useSport, sportQuery } from '../../hooks/useSport';
 
 export default function BetTrackingScreen({ onBack, pickToTrack }) {
   const { user } = useAuth();
+  const { sport } = useSport();
   const [bets, setBets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
@@ -27,8 +29,8 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
   const loadBets = async () => {
     try {
       const [betsData, statsData] = await Promise.all([
-        apiGet('/bets'),
-        apiGet('/user/stats'),
+        apiGet(sportQuery('/bets', sport)),
+        apiGet(sportQuery('/user/stats', sport)),
       ]);
       setBets(betsData.bets || []);
       setStats(statsData);
@@ -529,7 +531,7 @@ export function TrackBetModal({ initialPick, onClose, onSubmit }) {
 
   const loadTrackablePicks = async () => {
     try {
-      const data = await apiGet('/bets/trackable');
+      const data = await apiGet(sportQuery('/bets/trackable', sport));
       setPicks(data.picks || []);
     } catch (e) {
       console.error(e);

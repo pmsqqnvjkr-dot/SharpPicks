@@ -94,7 +94,7 @@ function RLMBadge({ sharpAction }) {
       border: `1px solid ${cfg.border}`,
       display: 'inline-flex', alignItems: 'center', gap: 3,
     }}>
-      <span style={{ fontSize: '0.625rem' }}>⚡</span>RLM{sharpAction.move ? ` ${sharpAction.move}pts` : ''}
+      <span style={{ fontSize: '0.625rem' }}>⚡</span>RLM{sharpAction.move ? ` ${sharpAction.move}` : ''}
     </span>
   );
 }
@@ -235,7 +235,7 @@ function MarketConfidence({ stability, edge }) {
       }}>
         {stability.total_move > 0 && (
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.625rem', color: 'var(--text-tertiary)' }}>
-            Moved {stability.total_move}pts
+            Moved {stability.total_move}
           </span>
         )}
         {stability.changes > 0 && (
@@ -245,7 +245,7 @@ function MarketConfidence({ stability, edge }) {
         )}
         {stability.spread_range != null && (
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.625rem', color: 'var(--text-tertiary)' }}>
-            {stability.spread_range}pt book spread
+            {stability.spread_range} book range
           </span>
         )}
       </div>
@@ -673,7 +673,7 @@ function SharpMoneyIndicator({ game }) {
         }}>
           <div>Line moved</div>
           <div style={{ color: cfg.color, fontWeight: 700, fontSize: '0.72rem' }}>
-            {sa.move}pts
+            {sa.move}
           </div>
           <div style={{ fontSize: '0.625rem', color: 'var(--text-tertiary)', marginTop: 1 }}>
             {sa.spread_open > 0 ? '+' : ''}{sa.spread_open} → {sa.spread_now > 0 ? '+' : ''}{sa.spread_now}
@@ -739,7 +739,7 @@ function ConsensusBar({ consensus, current }) {
             border: '1px solid rgba(251,191,36,0.2)',
             display: 'inline-flex', alignItems: 'center', gap: 3,
           }}>
-            {absDiff}pts off
+            {absDiff} off
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
               <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
             </svg>
@@ -754,7 +754,7 @@ function ConsensusBar({ consensus, current }) {
           fontSize: '0.68rem', lineHeight: 1.45,
           color: 'var(--text-secondary)',
         }}>
-          The current line is <strong style={{ color: '#f59e0b' }}>{absDiff} points</strong> away from the
+          The current line is <strong style={{ color: '#f59e0b' }}>{absDiff}</strong> away from the
           market consensus ({fmtSpread(consensus)}). Large deviations can signal sharp action or book-specific
           positioning.
         </div>
@@ -1155,8 +1155,10 @@ const SORT_OPTIONS = [
   { key: 'edge', label: 'Edge' },
 ];
 
-function SortPicker({ active, onChange, isPro }) {
-  const opts = isPro ? SORT_OPTIONS : SORT_OPTIONS.filter(o => o.key !== 'edge');
+function SortPicker({ active, onChange, isPro, sport }) {
+  const opts = (isPro ? SORT_OPTIONS : SORT_OPTIONS.filter(o => o.key !== 'edge')).map(o =>
+    o.key === 'spread' && sport === 'mlb' ? { ...o, label: 'RL' } : o
+  );
   return (
     <div style={{ display: 'flex', gap: 6 }}>
       {opts.map(opt => {
@@ -1366,7 +1368,7 @@ export default function MarketView({ onBack }) {
   const { sport } = useSport();
   const { data, loading, refetch: refetchMarket } = useApi(sportQuery('/picks/market', sport));
   const { data: reportData } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
-  const { data: watchedData, refetch: refetchWatched } = useApi('/picks/watched');
+  const { data: watchedData, refetch: refetchWatched } = useApi(sportQuery('/picks/watched', sport));
   const [filter, setFilter] = useState('All');
   const [sort, setSort] = useState('time');
   const [autoSorted, setAutoSorted] = useState(false);
@@ -1494,6 +1496,7 @@ export default function MarketView({ onBack }) {
           home: game.home,
           away: game.away,
           spread_home: game.spread_home,
+          sport,
         }),
       });
       const result = await resp.json();
@@ -1583,7 +1586,7 @@ export default function MarketView({ onBack }) {
               <FilterTabs active={filter} onChange={setFilter} hasLive={hasLive} hasModel={hasModelData} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <SortPicker active={sort} onChange={setSort} isPro={isPro} />
+              <SortPicker active={sort} onChange={setSort} isPro={isPro} sport={sport} />
             </div>
           </div>
         )}

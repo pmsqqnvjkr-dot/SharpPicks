@@ -521,6 +521,7 @@ def seed_database():
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS story_type VARCHAR"))
                 db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(20)"))
                 db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_id VARCHAR(255)"))
+                db.session.execute(db.text("ALTER TABLE watched_games ADD COLUMN IF NOT EXISTS sport VARCHAR(10) DEFAULT 'nba'"))
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
@@ -5445,7 +5446,13 @@ def get_user_bets():
     user = get_current_user_obj()
     if not user:
         return jsonify({'error': 'Login required'}), 401
-    bets = TrackedBet.query.filter_by(user_id=user.id).order_by(TrackedBet.created_at.desc()).all()
+    sport = request.args.get('sport')
+    q = TrackedBet.query.filter_by(user_id=user.id)
+    if sport:
+        q = q.outerjoin(Pick, TrackedBet.pick_id == Pick.id).filter(
+            db.or_(TrackedBet.pick_id.is_(None), Pick.sport == sport)
+        )
+    bets = q.order_by(TrackedBet.created_at.desc()).all()
     tracked_pick_ids = set()
     bet_list = []
     for b in bets:
@@ -5514,7 +5521,8 @@ def get_trackable_picks():
     ).all()
     tracked_ids = {t[0] for t in already_tracked}
 
-    recent_picks = Pick.query.order_by(Pick.published_at.desc()).limit(30).all()
+    sport = request.args.get('sport', 'nba')
+    recent_picks = Pick.query.filter(Pick.sport == sport).order_by(Pick.published_at.desc()).limit(30).all()
     trackable = []
     for p in recent_picks:
         trackable.append({

@@ -319,6 +319,7 @@ class WatchedGame(db.Model):
     game_date = db.Column(db.String(10), nullable=False)
     home_team = db.Column(db.String, nullable=False)
     away_team = db.Column(db.String, nullable=False)
+    sport = db.Column(db.String(10), nullable=False, default='nba')
     line_at_watch = db.Column(db.Float, nullable=True)
     notified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now)

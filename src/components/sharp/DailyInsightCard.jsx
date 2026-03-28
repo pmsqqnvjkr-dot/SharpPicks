@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiGet } from '../../hooks/useApi';
+import { useSport, sportQuery } from '../../hooks/useSport';
 
 const CATEGORY_LABELS = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Founder Notes' };
 
@@ -62,6 +63,7 @@ function MatchupRow({ away, home, time }) {
 }
 
 export default function DailyInsightCard({ data, onNavigate }) {
+  const { sport } = useSport();
   const [insight, setInsight] = useState(null);
   const countdown = useCountdownTo(10);
   const gamesScheduled = data?.games_scheduled ?? 0;
@@ -73,11 +75,11 @@ export default function DailyInsightCard({ data, onNavigate }) {
   });
 
   useEffect(() => {
-    apiGet('/insights?limit=20').then((res) => {
+    apiGet(sportQuery('/insights?limit=20', sport)).then((res) => {
       const list = res?.insights || [];
       if (list.length) setInsight(list[Math.floor(Math.random() * list.length)]);
     }).catch(() => {});
-  }, []);
+  }, [sport]);
 
   return (
     <div style={{ padding: '0 4px 24px' }}>

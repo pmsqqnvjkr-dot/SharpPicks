@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { apiGet } from '../../hooks/useApi';
+import { useSport, sportQuery } from '../../hooks/useSport';
 import { trackEvent } from '../../utils/eventTracker';
 
 const CATEGORIES = [
@@ -26,6 +27,7 @@ function formatDate(dateStr) {
 }
 
 export default function InsightsTab({ onNavigate, initialInsight, onInitialInsightConsumed }) {
+  const { sport } = useSport();
   const [insights, setInsights] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -46,7 +48,7 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
 
   useEffect(() => {
     loadInsights();
-  }, [activeCategory]);
+  }, [activeCategory, sport]);
 
   useEffect(() => {
     setAnimateIn(false);
@@ -57,8 +59,8 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
   const loadInsights = async () => {
     setLoading(true);
     try {
-      const params = activeCategory !== 'all' ? `?category=${activeCategory}` : '';
-      const data = await apiGet(`/insights${params}`);
+      const base = activeCategory !== 'all' ? `/insights?category=${activeCategory}` : '/insights';
+      const data = await apiGet(sportQuery(base, sport));
       setInsights(data.insights || []);
     } catch (e) {
       console.error('Failed to load insights:', e);
@@ -1085,13 +1087,14 @@ function EmptyInsights() {
 }
 
 export function InsightPassDayCTA({ onTap }) {
+  const { sport } = useSport();
   const [insight, setInsight] = useState(null);
 
   useEffect(() => {
-    apiGet('/insights/latest?pass_day=true')
+    apiGet(sportQuery('/insights/latest?pass_day=true', sport))
       .then(data => { if (data && !data.error) setInsight(data); })
       .catch(() => {});
-  }, []);
+  }, [sport]);
 
   if (!insight) return null;
 
@@ -1148,10 +1151,11 @@ export function InsightPassDayCTA({ onTap }) {
 }
 
 function RelatedPicksSection({ insightId }) {
+  const { sport } = useSport();
   const [data, setData] = useState(null);
   useEffect(() => {
-    apiGet(`/insights/${insightId}/picks`).then(setData).catch(() => {});
-  }, [insightId]);
+    apiGet(sportQuery(`/insights/${insightId}/picks`, sport)).then(setData).catch(() => {});
+  }, [insightId, sport]);
 
   if (!data || !data.picks?.length) return null;
 

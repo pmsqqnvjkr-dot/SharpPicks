@@ -196,7 +196,7 @@ function CLVTracker({ clv }) {
               fontFamily: 'var(--font-mono)', fontSize: '10px',
               color: 'var(--text-tertiary)', letterSpacing: '0.5px',
             }}>
-              Points vs closing line · {clv.total_tracked} pick{clv.total_tracked !== 1 ? 's' : ''} tracked
+              Edge vs closing line · {clv.total_tracked} pick{clv.total_tracked !== 1 ? 's' : ''} tracked
             </div>
             {avgClv != null && (
               <div style={{
@@ -557,7 +557,7 @@ function ModelHealthBadge({ health }) {
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '10px',
           color: 'var(--text-tertiary)',
-        }}>{health.sigma}pt</span>
+        }}>σ {health.sigma}</span>
       )}
     </div>
   );

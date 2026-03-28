@@ -246,7 +246,7 @@ export default function DailyMarketReport({ report: reportProp }) {
                   <span style={{
                     fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
                     color: barColor, minWidth: 48, textAlign: 'right',
-                  }}>{g.delta} pts</span>
+                  }}>{g.delta}</span>
                 </div>
               );
             });
@@ -255,7 +255,7 @@ export default function DailyMarketReport({ report: reportProp }) {
             borderTop: '0.5px solid #1e3050', paddingTop: 8, marginTop: 4,
           }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: textSec }}>
-              Avg model-market delta: <span style={{ color: green, fontWeight: 600 }}>{data.model_market_delta.avg_delta} pts</span>
+              Avg model-market delta: <span style={{ color: green, fontWeight: 600 }}>{data.model_market_delta.avg_delta}</span>
             </span>
           </div>
         </div>
