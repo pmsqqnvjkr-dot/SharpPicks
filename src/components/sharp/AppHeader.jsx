@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../hooks/useAuth';
 import { useSport } from '../../hooks/useSport';
+import Wordmark from './Wordmark';
 
 const PROD_URL = 'https://app.sharppicks.ai';
 const NATIVE_API = Capacitor.isNativePlatform() ? PROD_URL : '';
@@ -57,7 +58,7 @@ export default function AppHeader({ onNavigate }) {
           onClick={() => onNavigate('picks')}
           style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
         >
-          <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 30, width: 'auto' }} />
+          <Wordmark size={16} />
         </div>
 
         <div style={{ position: 'relative' }} ref={menuRef}>

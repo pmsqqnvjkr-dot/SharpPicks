@@ -3,6 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import ResolutionScreen from './ResolutionScreen';
+import Wordmark from './Wordmark';
 import { TrackBetModal } from './BetTrackingScreen';
 
 export default function UnifiedDashboard({ embedded = false }) {
@@ -396,7 +397,7 @@ function DashHeader() {
       borderBottom: '1px solid rgba(255,255,255,0.06)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 30, width: 'auto' }} />
+        <Wordmark size={16} />
       </div>
       <div style={{
         width: '32px', height: '32px', borderRadius: '50%',

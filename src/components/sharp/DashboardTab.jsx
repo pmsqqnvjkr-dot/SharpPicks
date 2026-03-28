@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi, apiGet } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
+import Wordmark from './Wordmark';
 function SectionLabel({ children }) {
   return (
     <div style={{
@@ -42,7 +43,7 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 30, width: 'auto' }} />
+            <Wordmark size={16} />
           </div>
           <ModelHealthBadge health={health} />
         </div>

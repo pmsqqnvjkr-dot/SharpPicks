@@ -75,7 +75,7 @@ export default function OnboardingFlow({ onComplete }) {
           color: 'rgba(255,255,255,0.45)',
           marginBottom: '20px',
         }}>
-          <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 20, width: 'auto', opacity: 0.45 }} />
+          <Wordmark size={13} opacity={0.45} />
         </div>
 
         <h1 style={{

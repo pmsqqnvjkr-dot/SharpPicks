@@ -3,6 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
+import Wordmark from './Wordmark';
 import DailyInsightCard from './DailyInsightCard';
 import AuthModal from './AuthModal';
 import LoadingState from './LoadingState';
@@ -109,7 +110,7 @@ function Header({ user, onAuthClick }) {
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 30, width: 'auto' }} />
+        <Wordmark size={16} />
       </div>
       {!user && (
         <button onClick={onAuthClick} style={{
