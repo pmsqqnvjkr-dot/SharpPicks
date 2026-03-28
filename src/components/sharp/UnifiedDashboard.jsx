@@ -396,7 +396,7 @@ function DashHeader() {
       borderBottom: '1px solid rgba(255,255,255,0.06)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 16, width: 'auto' }} />
+        <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 30, width: 'auto' }} />
       </div>
       <div style={{
         width: '32px', height: '32px', borderRadius: '50%',

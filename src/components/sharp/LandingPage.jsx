@@ -98,7 +98,7 @@ export default function LandingPage({ autoView }) {
           ...sectionStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           height: 56,
         }}>
-          <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 16, width: 'auto' }} />
+          <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 28, width: 'auto' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={openLogin} style={{
               padding: '7px 16px', backgroundColor: 'transparent',
@@ -488,7 +488,7 @@ export default function LandingPage({ autoView }) {
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 20 }}>
             <img src="/images/crest.png" alt="" width={16} height={16} style={{ opacity: 0.4, objectFit: 'contain', borderRadius: 3 }} />
-            <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 14, width: 'auto', opacity: 0.5 }} />
+            <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 20, width: 'auto', opacity: 0.5 }} />
           </div>
 
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.6, maxWidth: 420, margin: '0 auto 12px' }}>

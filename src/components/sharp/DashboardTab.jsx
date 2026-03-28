@@ -42,7 +42,7 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 16, width: 'auto' }} />
+            <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 30, width: 'auto' }} />
           </div>
           <ModelHealthBadge health={health} />
         </div>

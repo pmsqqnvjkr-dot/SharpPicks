@@ -57,7 +57,7 @@ export default function AppHeader({ onNavigate }) {
           onClick={() => onNavigate('picks')}
           style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
         >
-          <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 16, width: 'auto' }} />
+          <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 30, width: 'auto' }} />
         </div>
 
         <div style={{ position: 'relative' }} ref={menuRef}>
