@@ -526,6 +526,33 @@ def seed_database():
                 db.session.rollback()
                 logging.warning(f"Column migration note: {e}")
 
+            # One-time: dedup FCM tokens so each user keeps only the most recent
+            # token per platform (fixes Safari + PWA double-notification).
+            try:
+                from models import FCMToken
+                from sqlalchemy import func
+                subq = db.session.query(
+                    FCMToken.user_id, FCMToken.platform,
+                    func.max(FCMToken.last_seen_at).label('latest')
+                ).filter(FCMToken.enabled == True).group_by(
+                    FCMToken.user_id, FCMToken.platform
+                ).subquery()
+                dupes = FCMToken.query.filter(
+                    FCMToken.enabled == True
+                ).join(subq, db.and_(
+                    FCMToken.user_id == subq.c.user_id,
+                    FCMToken.platform == subq.c.platform,
+                    FCMToken.last_seen_at < subq.c.latest,
+                )).all()
+                for d in dupes:
+                    d.enabled = False
+                if dupes:
+                    db.session.commit()
+                    logging.info("[FCM] Deduped %d stale tokens", len(dupes))
+            except Exception as e:
+                db.session.rollback()
+                logging.warning("[FCM] dedup migration note: %s", e)
+
             null_unit_picks = Pick.query.filter(
                 Pick.result.in_(['win', 'loss']),
                 Pick.profit_units.is_(None)
@@ -5752,8 +5779,22 @@ def save_fcm_token():
     else:
         new_token = FCMToken(user_id=user.id, fcm_token=token, platform=platform)
         db.session.add(new_token)
+
+    # Disable other tokens on the same platform for this user to prevent
+    # duplicate notifications (e.g. Safari + PWA home-screen on iOS both
+    # register separate tokens for the same physical device).
+    FCMToken.query.filter(
+        FCMToken.user_id == user.id,
+        FCMToken.platform == platform,
+        FCMToken.fcm_token != token,
+        FCMToken.enabled == True,
+    ).update({'enabled': False})
+
     db.session.commit()
-    logging.info("[FCM] token registered: user=%s platform=%s", user.email, platform)
+    logging.info("[FCM] token registered: user=%s platform=%s (disabled %d old %s tokens)",
+                 user.email, platform,
+                 FCMToken.query.filter_by(user_id=user.id, platform=platform, enabled=False).count(),
+                 platform)
     return jsonify({'success': True})
 
 
