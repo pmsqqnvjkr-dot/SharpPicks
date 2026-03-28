@@ -4229,14 +4229,19 @@ if _oauth_ready:
             pk = _apple_private_key.replace('\\n', '\n')
             return pyjwt.encode(payload, pk, algorithm='ES256', headers=headers)
 
-        _oauth.register(
-            name='apple',
-            client_id=_apple_client_id,
-            client_secret=_generate_apple_client_secret(),
-            authorize_url='https://appleid.apple.com/auth/authorize',
-            access_token_url='https://appleid.apple.com/auth/token',
-            client_kwargs={'scope': 'name email', 'response_mode': 'form_post'},
-        )
+        try:
+            _apple_secret = _generate_apple_client_secret()
+            _oauth.register(
+                name='apple',
+                client_id=_apple_client_id,
+                client_secret=_apple_secret,
+                authorize_url='https://appleid.apple.com/auth/authorize',
+                access_token_url='https://appleid.apple.com/auth/token',
+                client_kwargs={'scope': 'name email', 'response_mode': 'form_post'},
+            )
+        except Exception as e:
+            logging.error(f"Apple OAuth setup failed (PEM key issue?): {e}")
+            _apple_client_id = None
 
 
 def _oauth_find_or_create(email, provider, provider_id, first_name=None, plan='trial'):
