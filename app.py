@@ -27,15 +27,17 @@ def health():
     return {'status': 'ok'}, 200
 
 @app.route('/')
-def root_health():
-    dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
-    index_path = os.path.join(dist_dir, 'index.html')
-    if os.path.isfile(index_path):
-        from flask import send_from_directory, make_response
-        resp = make_response(send_from_directory(dist_dir, 'index.html'))
-        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        return resp
-    return 'ok', 200
+def root_landing():
+    from flask import send_from_directory, make_response
+    if session.get('user_id') or (hasattr(current_user, 'is_authenticated') and current_user.is_authenticated):
+        dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
+        index_path = os.path.join(dist_dir, 'index.html')
+        if os.path.isfile(index_path):
+            resp = make_response(send_from_directory(dist_dir, 'index.html'))
+            resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            return resp
+    templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+    return send_from_directory(templates_dir, 'app-landing.html')
 
 is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
 
