@@ -1,12 +1,15 @@
 import { InsightPassDayCTA } from './InsightsTab';
 
-export default function NoPickCard({ data, onInsightTap }) {
+export default function NoPickCard({ data, sport, modelPhase, onInsightTap }) {
+  const isCal = modelPhase === 'calibration';
+  const sportName = (sport || 'nba').toUpperCase();
+
   return (
     <div style={{ padding: '0 4px' }}>
       <div style={{ textAlign: 'center', padding: '24px 0 32px' }}>
         <div style={{
           width: '6px', height: '6px', borderRadius: '50%',
-          background: 'var(--text-tertiary)', opacity: 0.5,
+          background: isCal ? '#3B82F6' : 'var(--text-tertiary)', opacity: isCal ? 0.8 : 0.5,
           margin: '0 auto 24px',
         }} />
 
@@ -28,7 +31,7 @@ export default function NoPickCard({ data, onInsightTap }) {
           color: 'var(--text-primary)',
           marginBottom: '12px',
         }}>
-          No Qualifying Signal
+          {isCal ? `No Qualifying ${sportName} Edge` : 'No Qualifying Signal'}
         </h2>
 
         <p style={{
@@ -36,9 +39,11 @@ export default function NoPickCard({ data, onInsightTap }) {
           color: 'var(--text-secondary)',
           lineHeight: '1.55', marginBottom: '4px',
         }}>
-          {data.games_analyzed > 0
-            ? `All ${data.games_analyzed} games evaluated · No edge above threshold`
-            : 'Model analysis complete.'}
+          {isCal
+            ? `${data.games_analyzed || 0} games analyzed. Market is efficient. We wait.`
+            : data.games_analyzed > 0
+              ? `All ${data.games_analyzed} games evaluated · No edge above threshold`
+              : 'Model analysis complete.'}
         </p>
         <p style={{
           fontSize: 'var(--text-caption)',
@@ -54,18 +59,37 @@ export default function NoPickCard({ data, onInsightTap }) {
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: 'var(--space-xl)' }}>
-        <InsightCard
-          title="Restraint is a feature"
-          desc="Quiet days are intentional. Market efficient — no action required."
-        />
-        <InsightCard
-          title="Selectivity beats volume"
-          desc="Industry average: 78% of slates get action. SharpPicks: ~30%. That difference is the edge."
-        />
-        <InsightCard
-          title="Process over outcomes"
-          desc="All signals tracked publicly. No deletes. Confidence calibrated, not exaggerated."
-        />
+        {isCal ? (
+          <>
+            <InsightCard
+              title="Restraint builds the edge"
+              desc="Early-phase discipline. No forced edges. The model earns trust through selectivity."
+            />
+            <InsightCard
+              title="Building the edge in public"
+              desc="Every signal tracked from Day 1. No resets, no hiding. Full transparency."
+            />
+            <InsightCard
+              title="Process over outcomes"
+              desc="Calibration means proving the model before scaling it. This is how real edges are built."
+            />
+          </>
+        ) : (
+          <>
+            <InsightCard
+              title="Restraint is a feature"
+              desc="Quiet days are intentional. Market efficient — no action required."
+            />
+            <InsightCard
+              title="Selectivity beats volume"
+              desc="Industry average: 78% of slates get action. SharpPicks: ~30%. That difference is the edge."
+            />
+            <InsightCard
+              title="Process over outcomes"
+              desc="All signals tracked publicly. No deletes. Confidence calibrated, not exaggerated."
+            />
+          </>
+        )}
       </div>
 
       <div style={{

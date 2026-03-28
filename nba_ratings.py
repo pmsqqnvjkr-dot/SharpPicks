@@ -36,6 +36,15 @@ TEAM_ID_MAP = {
 
 CACHE_FILE = 'ratings_cache.json'
 
+# NBA API TEAM_NAME -> ESPN displayName (only mismatches)
+NBA_TO_ESPN_NAME = {
+    'LA Clippers': 'Los Angeles Clippers',
+}
+
+def _espn_team_name(nba_name):
+    """Convert NBA API team name to ESPN displayName format."""
+    return NBA_TO_ESPN_NAME.get(nba_name, nba_name)
+
 
 def create_retry_session(max_retries=3, backoff_factor=2):
     """Create requests session with retry logic and exponential backoff"""
@@ -91,6 +100,7 @@ def ensure_ratings_table():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS team_ratings (
             team_abbr TEXT PRIMARY KEY,
+            team_name TEXT,
             team_id INTEGER,
             pace REAL,
             off_rating REAL,
@@ -102,6 +112,12 @@ def ensure_ratings_table():
         )
     ''')
     
+    # Add team_name column if table was created without it
+    try:
+        cursor.execute("ALTER TABLE team_ratings ADD COLUMN team_name TEXT")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+
     conn.commit()
     conn.close()
 
@@ -196,12 +212,14 @@ def save_team_ratings(team_stats):
     now = datetime.now().isoformat()
     
     for team in team_stats:
+        espn_name = _espn_team_name(team.get('team_name', ''))
         cursor.execute('''
             INSERT OR REPLACE INTO team_ratings 
-            (team_abbr, team_id, pace, off_rating, def_rating, net_rating, wins, losses, last_updated)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (team_abbr, team_name, team_id, pace, off_rating, def_rating, net_rating, wins, losses, last_updated)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             team['team_abbr'],
+            espn_name,
             team['team_id'],
             team['pace'],
             team['off_rating'],

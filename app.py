@@ -3889,6 +3889,17 @@ def cron_backup():
     return log_cron('backup', _backup)
 
 
+@app.route('/api/cron/update-ratings', methods=['GET', 'POST'])
+@verify_cron
+def cron_update_ratings():
+    """Refresh NBA team ratings from stats.nba.com. Schedule daily before model run."""
+    def _update():
+        from nba_ratings import update_ratings
+        success = update_ratings()
+        return {'updated': success}
+    return log_cron('update_ratings', _update)
+
+
 @app.route('/api/cron/run-model', methods=['GET', 'POST'])
 @verify_cron
 def cron_run_model():
@@ -3915,6 +3926,12 @@ def cron_run_model():
                     db.session.delete(stale_pass)
                     db.session.commit()
                     print(f"[model-run] Force: cleared stale pass for {today_str}/{sport}")
+        try:
+            from nba_ratings import update_ratings
+            if 'nba' in get_live_sports():
+                update_ratings()
+        except Exception as e:
+            print(f"[model-run] Ratings refresh failed (non-fatal): {e}")
         results = {}
         for sport in get_live_sports():
             results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override)

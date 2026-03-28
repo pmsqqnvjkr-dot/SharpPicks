@@ -16,12 +16,21 @@ def send_pick_notification(pick):
     if not send_push_to_all:
         return False
     try:
+        from sport_config import get_sport_config, get_phase_label
         edge = round(pick.edge_pct, 1) if pick.edge_pct is not None else 0
         confidence = pick.model_confidence or 0
         rating = "STRONG" if confidence >= 0.60 else "LEAN"
+        sport = getattr(pick, 'sport', 'nba') or 'nba'
+        cfg = get_sport_config(sport)
+        phase = cfg.get('model_phase', 'deployment')
 
-        title = f"{rating} Pick \u00b7 {edge}% Edge"
-        body = f"{pick.side} ({pick.away_team} @ {pick.home_team}). Model confidence: {confidence * 100:.0f}%. Tap for full analysis."
+        if phase == 'calibration':
+            sport_tag = cfg.get('name', sport.upper())
+            title = f"{rating} {sport_tag} Signal \u00b7 {edge}% Edge"
+            body = f"{pick.side} ({pick.away_team} @ {pick.home_team}). Model confidence: {confidence * 100:.0f}%. Model Phase: Calibration."
+        else:
+            title = f"{rating} Pick \u00b7 {edge}% Edge"
+            body = f"{pick.side} ({pick.away_team} @ {pick.home_team}). Model confidence: {confidence * 100:.0f}%. Tap for full analysis."
         data = {'type': 'pick', 'pick_id': str(pick.id)}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pick')
         logging.info(f"Pick notification sent to {sent} device(s)")
@@ -36,14 +45,24 @@ def send_pass_notification(pass_entry):
     if not send_push_to_all:
         return False
     try:
+        from sport_config import get_sport_config
         games_analyzed = pass_entry.games_analyzed or 0
         closest_edge = getattr(pass_entry, 'closest_edge_pct', None)
+        sport = getattr(pass_entry, 'sport', 'nba') or 'nba'
+        cfg = get_sport_config(sport)
+        phase = cfg.get('model_phase', 'deployment')
+        threshold = cfg.get('edge_threshold_pct', 3.5)
 
-        title = "Pass Day \u00b7 No Qualifying Edge"
-        if closest_edge and closest_edge > 0:
-            body = f"{games_analyzed} games analyzed. Closest edge: {closest_edge:.1f}% (need 3%+). Restraint is the edge."
+        if phase == 'calibration':
+            sport_tag = cfg.get('name', sport.upper())
+            title = f"{sport_tag} Pass \u00b7 No Qualifying Edge"
+            body = f"{games_analyzed} games analyzed. Market is efficient. We wait."
         else:
-            body = f"{games_analyzed} games analyzed, none above threshold. Capital preserved for a better spot."
+            title = "Pass Day \u00b7 No Qualifying Edge"
+            if closest_edge and closest_edge > 0:
+                body = f"{games_analyzed} games analyzed. Closest edge: {closest_edge:.1f}% (need {threshold}%+). Restraint is the edge."
+            else:
+                body = f"{games_analyzed} games analyzed, none above threshold. Capital preserved for a better spot."
         data = {'type': 'pass', 'date': str(pass_entry.date)}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pass')
         logging.info(f"Pass notification sent to {sent} device(s)")

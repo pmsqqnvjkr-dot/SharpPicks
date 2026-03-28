@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from models import db, Pick, Pass, ModelRun, UserBet, TrackedBet, WatchedGame
 from datetime import datetime, timedelta, timezone
+from sport_config import get_sport_config, get_phase_label
 import sqlite3
 
 picks_bp = Blueprint('picks', __name__)
@@ -329,10 +330,14 @@ def today():
         actual_odds = pick.market_odds or -110
         stake = calculate_stake_guidance(pick.edge_pct or 0, pick.model_confidence or 0.5, actual_odds)
 
+        cfg = get_sport_config(sport)
+        phase = cfg.get('model_phase', 'deployment')
         pick_data = {
             'type': 'pick',
             'id': pick.id,
             'sport': pick.sport,
+            'model_phase': phase,
+            'phase_label': get_phase_label(phase),
             'away_team': pick.away_team,
             'home_team': pick.home_team,
             'game_date': pick.game_date,
@@ -437,8 +442,12 @@ def today():
                 'cover_prob': pass_entry.whatif_cover_prob,
             }
 
+        cfg = get_sport_config(sport)
+        phase = cfg.get('model_phase', 'deployment')
         return jsonify({
             'type': pass_type,
+            'model_phase': phase,
+            'phase_label': get_phase_label(phase),
             'date': pass_entry.date,
             'games_analyzed': pass_entry.games_analyzed,
             'closest_edge_pct': pass_entry.closest_edge_pct,

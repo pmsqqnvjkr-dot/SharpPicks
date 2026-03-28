@@ -15,7 +15,7 @@ import os
 from scipy.stats import norm
 from sport_config import get_sport_config
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier, AdaBoostClassifier
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 from sklearn.metrics import accuracy_score, classification_report, brier_score_loss
@@ -40,7 +40,7 @@ SFS_SPREAD_WEIGHT = 0.25
 SFS_DISPERSION_WEIGHT = 0.40
 SFS_MAX = 0.60
 SFS_MIN = 0.0
-MODEL_WEIGHT = 0.3
+MODEL_WEIGHT = 0.45
 MAX_EDGE_PCT = 15.0
 
 SPREAD_EDGE_BASE = 3.0
@@ -284,8 +284,8 @@ class EnsemblePredictor:
                 ar.pace as away_pace, ar.off_rating as away_off_rtg,
                 ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg"""
             ratings_join = f"""
-            LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team_abbr
-            LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_abbr"""
+            LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team_name
+            LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_name"""
 
         pitcher_cols = ""
         if self.sport == 'mlb':
@@ -321,7 +321,8 @@ class EnsemblePredictor:
                 g.rundown_spread_consensus, g.rundown_spread_std,
                 g.rundown_spread_range, g.rundown_num_books{bdl_cols},
                 g.home_spread_odds, g.away_spread_odds,
-                g.home_spread_book, g.away_spread_book{pitcher_cols}
+                g.home_spread_book, g.away_spread_book,
+                g.home_injuries, g.away_injuries{pitcher_cols}
             FROM {games_tbl} g{ratings_join}
             WHERE g.home_score IS NOT NULL
             AND g.away_score IS NOT NULL
@@ -606,8 +607,11 @@ class EnsemblePredictor:
         self.feature_names = X.columns.tolist()
         print(f"   📋 Using {len(self.feature_names)} features\n")
         
-        indices = np.arange(len(X))
-        train_idx, test_idx = train_test_split(indices, test_size=0.2, random_state=42)
+        # Temporal split: sort by date, use most recent 20% as test to avoid data leakage
+        sort_order = np.argsort(df['game_date'].values)
+        split_point = int(len(sort_order) * 0.8)
+        train_idx = sort_order[:split_point]
+        test_idx = sort_order[split_point:]
         
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
@@ -838,8 +842,8 @@ class EnsemblePredictor:
                 ar.pace as away_pace, ar.off_rating as away_off_rtg,
                 ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg"""
             ratings_join = f"""
-            LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team_abbr
-            LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_abbr"""
+            LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team_name
+            LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_name"""
 
         # Time filter: America/New_York. Eligible until min_minutes_to_tip before tip (0 = all unscored).
         try:
@@ -884,7 +888,8 @@ class EnsemblePredictor:
                 g.rundown_spread_consensus, g.rundown_spread_std,
                 g.rundown_spread_range, g.rundown_num_books{bdl_cols},
                 g.home_spread_odds, g.away_spread_odds,
-                g.home_spread_book, g.away_spread_book{pitcher_cols}
+                g.home_spread_book, g.away_spread_book,
+                g.home_injuries, g.away_injuries{pitcher_cols}
             FROM {games_tbl} g{ratings_join}
             WHERE g.game_date = ?
             AND g.home_score IS NULL
@@ -948,13 +953,18 @@ class EnsemblePredictor:
             
             pred_margin_raw = predicted_margins[idx] if predicted_margins is not None else None
             
+            # Spread-dependent sigma: higher variance for large spreads
+            spread_abs = abs(spread) if spread is not None else 0
+            spread_factor = 1.0 + 0.02 * max(0, spread_abs - 5)
+            game_sigma = sigma * spread_factor
+
             used_fallback = False
             model_only_home_cover = None
             if pred_margin_raw is not None and spread is not None:
                 market_margin = -spread
                 pred_margin = self.model_weight * pred_margin_raw + (1 - self.model_weight) * market_margin
-                home_cover_prob = float(norm.cdf((pred_margin + spread) / sigma))
-                model_only_home_cover = float(norm.cdf((pred_margin_raw + spread) / sigma))
+                home_cover_prob = float(norm.cdf((pred_margin + spread) / game_sigma))
+                model_only_home_cover = float(norm.cdf((pred_margin_raw + spread) / game_sigma))
             else:
                 used_fallback = True
                 pred_margin = pred_margin_raw
@@ -1112,7 +1122,7 @@ class EnsemblePredictor:
             
             z_score_val = None
             if pred_margin is not None and spread is not None:
-                z_score_val = (pred_margin + spread) / sigma
+                z_score_val = (pred_margin + spread) / game_sigma
                 if pick_side == 'away':
                     z_score_val = -z_score_val
 
@@ -1693,7 +1703,10 @@ class EnsemblePredictor:
 
                 market_margin = -spread
                 pred_margin = self.model_weight * pred_margin_raw + (1 - self.model_weight) * market_margin
-                z_score = (pred_margin + spread) / sigma
+                spread_abs_wf = abs(spread)
+                spread_factor_wf = 1.0 + 0.02 * max(0, spread_abs_wf - 5)
+                game_sigma_wf = sigma * spread_factor_wf
+                z_score = (pred_margin + spread) / game_sigma_wf
                 home_cover_prob = float(norm.cdf(z_score))
 
                 if home_cover_prob >= 0.5:
@@ -1996,7 +2009,10 @@ class EnsemblePredictor:
                 pred_margin_raw = margin_preds[j]
                 market_margin = -spread
                 pred_margin = self.model_weight * pred_margin_raw + (1 - self.model_weight) * market_margin
-                z_score = (pred_margin + spread) / sigma
+                spread_abs_wf2 = abs(spread)
+                spread_factor_wf2 = 1.0 + 0.02 * max(0, spread_abs_wf2 - 5)
+                game_sigma_wf2 = sigma * spread_factor_wf2
+                z_score = (pred_margin + spread) / game_sigma_wf2
                 home_cover_prob = float(norm.cdf(z_score))
 
                 if home_cover_prob >= 0.5:

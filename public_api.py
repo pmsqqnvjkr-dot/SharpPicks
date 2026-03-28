@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, KillSwitch
 from sqlalchemy import func
 from sqlalchemy.exc import ProgrammingError, OperationalError
-from sport_config import get_active_sports
+from sport_config import get_active_sports, get_sport_config, get_phase_label
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import logging
@@ -89,9 +89,13 @@ def record():
 
     CALIBRATION_DATE = datetime(2026, 2, 12)
 
+    cfg = get_sport_config(sport or 'nba')
+    phase = cfg.get('model_phase', 'deployment')
     return jsonify({
         'calibration_note': 'Model calibrated Feb 12, 2026. Prior picks used raw predictions without market-aware shrinkage.',
         'calibration_date': '2026-02-12',
+        'model_phase': phase,
+        'phase_label': get_phase_label(phase),
         'picks': [_record_pick_to_dict(p) for p in picks],
         'passes': [{
             'id': p.id,
@@ -151,6 +155,8 @@ def stats():
     avg_clv = round(sum(clv_values) / len(clv_values), 2) if clv_values else None
     clv_beat_rate = round(clv_positive / len(clv_values) * 100, 1) if clv_values else 0
 
+    cfg = get_sport_config(sport or 'nba')
+    phase = cfg.get('model_phase', 'deployment')
     return jsonify({
         'record': f'{wins}-{losses}',
         'wins': wins,
@@ -165,6 +171,8 @@ def stats():
         'capital_preserved_days': total_passes,
         'avg_clv': avg_clv,
         'clv_beat_rate': clv_beat_rate,
+        'model_phase': phase,
+        'phase_label': get_phase_label(phase),
     })
 
 
@@ -437,7 +445,11 @@ def dashboard_stats():
             'pnl': p.pnl,
         })
 
+    cfg = get_sport_config(sport or 'nba')
+    phase = cfg.get('model_phase', 'deployment')
     return jsonify({
+        'model_phase': phase,
+        'phase_label': get_phase_label(phase),
         'performance': {
             'total_pnl': round(total_pnl, 2),
             'roi': roi,

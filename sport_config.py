@@ -1,17 +1,24 @@
+PHASE_LABELS = {
+    'calibration': 'Beta',
+    'validation': 'Validation',
+    'deployment': None,
+}
+
+
+def get_phase_label(phase):
+    return PHASE_LABELS.get(phase)
+
+
 SPORT_CONFIG = {
     'nba': {
         'name': 'NBA',
         'display_name': 'NBA Basketball',
         'active': True,
         'live': True,
+        'model_phase': 'deployment',
 
         'sigma': 11.7,
-        # Reviewed 2026-03-07: kept at 0.3. Only 2 CLV data points (avg -6.75),
-        # post-calibration record 2-2. Increase to 0.35 when:
-        # (a) 30+ post-cal picks with CLV data, AND
-        # (b) CLV positive on >55% of those picks, AND
-        # (c) post-cal ROI is positive
-        'model_weight': 0.3,
+        'model_weight': 0.45,
         'edge_threshold_pct': 3.5,
         'max_edge_pct': 15.0,
         'margin_std_floor': 8.0,
@@ -43,9 +50,10 @@ SPORT_CONFIG = {
         'display_name': 'WNBA Basketball',
         'active': True,
         'live': False,
+        'model_phase': 'calibration',
 
         'sigma': 10.5,
-        'model_weight': 0.4,
+        'model_weight': 0.45,
         'edge_threshold_pct': 3.5,
         'max_edge_pct': 15.0,
         'margin_std_floor': 7.0,
@@ -74,12 +82,13 @@ SPORT_CONFIG = {
         'name': 'MLB',
         'display_name': 'MLB Baseball',
         'active': True,
-        'live': False,
+        'live': True,
+        'model_phase': 'calibration',
 
         # Walk-forward raw sigma: 4.4 runs. Previous ceiling of 2.5 inflated
         # z-scores by 1.76x, causing overconfidence in 55-65% buckets.
         'sigma': 4.0,
-        'model_weight': 0.3,
+        'model_weight': 0.45,
         'edge_threshold_pct': 4.5,
         'max_edge_pct': 15.0,
         'margin_std_floor': 3.5,

@@ -223,8 +223,19 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
         <div style={{
           fontFamily: mono, fontSize: '9px', letterSpacing: '1px',
           color: textDim, textTransform: 'uppercase', marginBottom: '8px',
+          display: 'flex', alignItems: 'center', gap: '6px',
         }}>
-          {(pick.sport || 'nba').toUpperCase()} — {pick.away_team} vs {pick.home_team}
+          <span>{(pick.sport || 'nba').toUpperCase()}</span>
+          {pick.phase_label && (
+            <span style={{
+              fontSize: '8px', fontWeight: 700,
+              padding: '1px 4px', borderRadius: '3px',
+              backgroundColor: 'rgba(59,130,246,0.15)',
+              color: '#3B82F6',
+              letterSpacing: '0.04em',
+            }}>{pick.phase_label.toUpperCase()}</span>
+          )}
+          <span>— {pick.away_team} vs {pick.home_team}</span>
         </div>
 
         {liveScore && (
@@ -360,6 +371,16 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
               color: green, whiteSpace: 'nowrap',
             }}>+{edgeNum.toFixed(1)}pp</span>
           </div>
+        )}
+
+        {/* Calibration phase context */}
+        {pick.model_phase === 'calibration' && !settled && !isRevoked && (
+          <div style={{
+            fontFamily: mono, fontSize: '10px',
+            color: '#3B82F6', opacity: 0.7,
+            marginBottom: '12px',
+            letterSpacing: '0.04em',
+          }}>Early-stage signal. Full transparency.</div>
         )}
 
         {/* Value range (compact inline) */}

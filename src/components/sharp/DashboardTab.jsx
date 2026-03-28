@@ -49,8 +49,18 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
         </div>
       )}
 
+      {!embedded && dashData?.model_phase === 'calibration' && (
+        <div style={{ padding: '0 20px' }}>
+          <PhaseTimeline phase={dashData.model_phase} />
+        </div>
+      )}
+
       <div style={{ padding: '0 20px' }}>
         {embedded && <ModelHealthBadge health={health} />}
+
+        {embedded && dashData?.model_phase === 'calibration' && (
+          <PhaseTimeline phase={dashData.model_phase} />
+        )}
 
         <PerformanceCore perf={perf} equityCurve={equityCurve} />
 
@@ -549,6 +559,77 @@ function ModelHealthBadge({ health }) {
           color: 'var(--text-tertiary)',
         }}>{health.sigma}pt</span>
       )}
+    </div>
+  );
+}
+
+
+function PhaseTimeline({ phase }) {
+  const steps = [
+    { key: 'calibration', label: 'Calibration' },
+    { key: 'validation', label: 'Validation' },
+    { key: 'deployment', label: 'Deployment' },
+  ];
+  const activeIdx = steps.findIndex(s => s.key === phase);
+  const blue = '#3B82F6';
+
+  return (
+    <div style={{
+      backgroundColor: 'var(--surface-1)',
+      border: '1px solid var(--stroke-subtle)',
+      borderRadius: '12px',
+      padding: '14px 16px',
+      marginBottom: '14px',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0',
+      }}>
+        {steps.map((step, i) => {
+          const isActive = i <= activeIdx;
+          const isCurrent = i === activeIdx;
+          return (
+            <div key={step.key} style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                <div style={{
+                  width: isCurrent ? '10px' : '8px',
+                  height: isCurrent ? '10px' : '8px',
+                  borderRadius: '50%',
+                  backgroundColor: isActive ? blue : 'var(--text-tertiary)',
+                  opacity: isActive ? 1 : 0.3,
+                  boxShadow: isCurrent ? `0 0 8px ${blue}` : 'none',
+                  transition: 'all 0.3s',
+                }} />
+                <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '9px',
+                  fontWeight: isCurrent ? 700 : 500,
+                  color: isActive ? blue : 'var(--text-tertiary)',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  opacity: isActive ? 1 : 0.5,
+                }}>{step.label}</span>
+              </div>
+              {i < steps.length - 1 && (
+                <div style={{
+                  width: '32px', height: '1px',
+                  backgroundColor: i < activeIdx ? blue : 'var(--text-tertiary)',
+                  opacity: i < activeIdx ? 0.5 : 0.15,
+                  margin: '0 6px',
+                  marginBottom: '16px',
+                }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-mono)',
+        fontSize: '10px',
+        color: 'var(--text-tertiary)',
+        textAlign: 'center',
+        marginTop: '8px',
+        letterSpacing: '0.04em',
+      }}>Tracking from Day 1. No resets.</div>
     </div>
   );
 }

@@ -129,6 +129,31 @@ export default function PicksTab({ onNavigate }) {
           </div>
         )}
 
+        {todayData?.model_phase === 'calibration' && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '10px 14px', marginBottom: '14px',
+            borderRadius: '10px',
+            background: 'rgba(59,130,246,0.06)',
+            border: '1px solid rgba(59,130,246,0.2)',
+          }}>
+            <div style={{
+              width: '6px', height: '6px', borderRadius: '50%',
+              backgroundColor: '#3B82F6', flexShrink: 0,
+            }} />
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
+                color: '#3B82F6', marginBottom: '2px',
+              }}>Model Phase: Calibration</div>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px',
+                color: 'var(--text-tertiary)',
+              }}>Edges are being tracked live. Early signals, full transparency.</div>
+            </div>
+          </div>
+        )}
+
         {/* Market Intelligence link — top of tab */}
         <button
           onClick={() => onNavigate && onNavigate('market')}
@@ -329,7 +354,7 @@ export default function PicksTab({ onNavigate }) {
         )}
 
         {todayData?.type === 'pass' && (
-          <NoPickCard data={todayData} onInsightTap={() => onNavigate('insights')} />
+          <NoPickCard data={todayData} sport={sport} modelPhase={todayData?.model_phase} onInsightTap={() => onNavigate('insights')} />
         )}
 
         {todayData?.type === 'waiting' && (
@@ -837,6 +862,7 @@ function Stat({ label, value }) {
 
 function RecordStrip({ stats }) {
   const hasClv = stats.avg_clv != null;
+  const phaseLabel = stats.phase_label;
   return (
     <div style={{
       backgroundColor: 'var(--surface-1)', borderRadius: '12px',
@@ -844,10 +870,24 @@ function RecordStrip({ stats }) {
       border: '1px solid var(--color-border)',
     }}>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
-        letterSpacing: '0.08em', textTransform: 'uppercase',
-        color: 'var(--text-tertiary)', marginBottom: 'var(--space-sm)',
-      }}>Season Performance</div>
+        display: 'flex', alignItems: 'center', gap: '6px',
+        marginBottom: 'var(--space-sm)',
+      }}>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)',
+        }}>
+          {phaseLabel ? `${phaseLabel} — ` : ''}Season Performance
+        </span>
+        {phaseLabel && (
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '9px',
+            color: 'var(--text-tertiary)', opacity: 0.6,
+            letterSpacing: '0.04em',
+          }}>Tracked from Day 1</span>
+        )}
+      </div>
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
