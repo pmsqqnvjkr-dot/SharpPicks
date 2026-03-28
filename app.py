@@ -4216,6 +4216,16 @@ if _oauth_ready:
         )
 
     if _apple_client_id:
+        def _normalize_pem(raw):
+            """Reconstruct a valid PEM even if newlines were stripped."""
+            raw = raw.replace('\\n', '\n').strip()
+            if '\n' in raw and raw.startswith('-----'):
+                return raw
+            raw = raw.replace('-----BEGIN PRIVATE KEY-----', '').replace('-----END PRIVATE KEY-----', '')
+            raw = raw.replace(' ', '').replace('\n', '').replace('\r', '')
+            lines = [raw[i:i+64] for i in range(0, len(raw), 64)]
+            return '-----BEGIN PRIVATE KEY-----\n' + '\n'.join(lines) + '\n-----END PRIVATE KEY-----\n'
+
         def _generate_apple_client_secret():
             import jwt as pyjwt, time as _t
             headers = {'kid': _apple_key_id, 'alg': 'ES256'}
@@ -4226,7 +4236,7 @@ if _oauth_ready:
                 'aud': 'https://appleid.apple.com',
                 'sub': _apple_client_id,
             }
-            pk = _apple_private_key.replace('\\n', '\n')
+            pk = _normalize_pem(_apple_private_key)
             return pyjwt.encode(payload, pk, algorithm='ES256', headers=headers)
 
         try:
