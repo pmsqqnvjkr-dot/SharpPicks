@@ -5,7 +5,7 @@ export default function Wordmark({ size = 16, opacity = 1, style = {} }) {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: size * 0.2,
+        gap: size * 0.4,
         fontFamily: 'var(--font-mono)',
         fontSize: size,
         fontWeight: 700,
