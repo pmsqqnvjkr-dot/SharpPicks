@@ -22,7 +22,7 @@ export default function Wordmark({ size = 16, opacity = 1, style = {} }) {
       <span
         style={{
           display: 'inline-flex',
-          gap: 2,
+          gap: Math.max(3, size * 0.2),
           flexShrink: 0,
         }}
       >
