@@ -1,0 +1,94 @@
+SHARPPICKS IG CONTENT SERIES
+Captions for Instagram Posts
+========================================
+
+
+POST 1 - BRAND INTRO
+01-brand-intro.png
+
+One pick beats five. That's not a slogan, it's math. SharpPicks uses machine learning to find the signals the market misses. No gut. No hype. Just edge.
+
+sharppicks.ai
+
+#SharpPicks #SportsBetting #NBABetting #AIBetting #SportsBettingAnalytics #MLBetting #BettingEdge
+
+
+----------------------------------------
+
+
+POST 2 - WHAT IS SHARPPICKS
+02-what-is-sharppicks.png
+
+SharpPicks is an AI-powered sports analytics platform. Four ML models. 56 features per game. Market-blended signals. We built it to answer one question: where does the market have it wrong?
+
+NBA is live. MLB and WNBA are coming.
+
+#SharpPicks #MachineLearning #NBAAnalytics #SportsBettingStrategy #DataDriven #AIAnalytics
+
+
+----------------------------------------
+
+
+POST 3 - THE ENSEMBLE
+03-the-ensemble.png
+
+One model can overfit. Four models vote. Our ensemble (Gradient Boosting, Random Forest, XGBoost, and AdaBoost) runs independently, then blends into a single prediction. Consensus over conviction.
+
+#SharpPicks #MLEnsemble #NBABetting #SportsAnalytics #GradientBoosting #XGBoost #DataScience
+
+
+----------------------------------------
+
+
+POST 4 - FEATURE DEPTH
+04-feature-depth.png
+
+56 features. Every game. Pace, efficiency, rest, travel, referee tendencies, line movement. Every signal that moves the number. Nothing decorative. Nothing redundant.
+
+#SharpPicks #FeatureEngineering #NBAData #SportsBettingEdge #MachineLearning #DataDriven
+
+
+----------------------------------------
+
+
+POST 5 - EDGE THRESHOLD
+05-edge-threshold.png
+
+Most games don't have an edge. We don't pretend they do. SharpPicks requires a 3.5% minimum edge before any signal fires. About 65% of games get rejected. That's the point.
+
+#SharpPicks #SelectiveByDesign #BettingDiscipline #NBABetting #EdgeThreshold #QualityOverQuantity
+
+
+----------------------------------------
+
+
+POST 6 - CLV EXPLAINED
+06-clv-explained.png
+
+Win rate lies. Closing Line Value doesn't. If we're consistently grabbing numbers the market corrects toward, the edge is real, regardless of short-term variance. CLV+ is how we know.
+
+#SharpPicks #CLV #ClosingLineValue #SportsBettingEducation #NBABetting #SharpMoney #BettingEdge
+
+
+----------------------------------------
+
+
+POST 7 - SELECTIVE BY DESIGN
+07-selective-by-design.png
+
+Selective by design. We don't pick every game. We don't chase volume. Every signal passes through four models, 56 features, and a minimum edge gate before it reaches you. Less noise. More signal.
+
+#SharpPicks #SelectiveByDesign #SignalOverNoise #SportsBetting #BettingPhilosophy #Discipline
+
+
+----------------------------------------
+
+
+POST 8 - CTA
+08-cta.png
+
+One pick beats five. NBA is live. MLB is next. WNBA is loading. Start your free trial and see what the models see.
+
+sharppicks.ai
+
+#SharpPicks #SportsBetting #NBABetting #MLBBetting #WNBA #FreeTrial #AIBetting #OneBeatsFive
