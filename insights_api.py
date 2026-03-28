@@ -22,6 +22,10 @@ def get_current_user():
     return get_current_user_obj()
 
 
+def _get_sport():
+    return request.args.get('sport', 'nba')
+
+
 def insight_to_dict(insight):
     return {
         'id': insight.id,
@@ -39,6 +43,7 @@ def insight_to_dict(insight):
         'date_range_start': insight.date_range_start,
         'date_range_end': insight.date_range_end,
         'story_type': getattr(insight, 'story_type', None),
+        'sport': getattr(insight, 'sport', 'nba') or 'nba',
         'has_related_picks': bool(insight.related_pick_ids) or bool(insight.date_range_start),
         'created_at': insight.created_at.isoformat() if insight.created_at else None,
     }
@@ -48,10 +53,12 @@ def insight_to_dict(insight):
 @insights_bp.route('/', methods=['GET'])
 def get_insights():
     category = request.args.get('category')
+    sport = _get_sport()
     limit = request.args.get('limit', 20, type=int)
     offset = request.args.get('offset', 0, type=int)
 
     query = Insight.query.filter(_visible_filter())
+    query = query.filter(db.or_(Insight.sport == sport, Insight.sport.is_(None)))
 
     if category and category != 'all':
         query = query.filter_by(category=category)
@@ -70,16 +77,19 @@ def get_insights():
 @insights_bp.route('/latest', methods=['GET'])
 def get_latest():
     pass_day_param = request.args.get('pass_day')
+    sport = _get_sport()
+
+    sport_filter = db.or_(Insight.sport == sport, Insight.sport.is_(None))
 
     if pass_day_param == 'true':
         insight = Insight.query.filter(
-            _visible_filter(), Insight.pass_day == True
+            _visible_filter(), Insight.pass_day == True, sport_filter
         ).order_by(Insight.publish_date.desc()).first()
         if insight:
             return jsonify(insight_to_dict(insight))
 
     insight = Insight.query.filter(
-        _visible_filter()
+        _visible_filter(), sport_filter
     ).order_by(Insight.publish_date.desc()).first()
 
     if not insight:
@@ -194,6 +204,7 @@ def create_insight():
         publish_date=datetime.now(ET).replace(tzinfo=None) if data.get('status') == 'published' else None,
         featured=data.get('featured', False),
         pass_day=data.get('pass_day', False),
+        sport=data.get('sport', 'nba'),
         reading_time_minutes=data.get('reading_time_minutes', reading_time),
         related_pick_ids=data.get('related_pick_ids', []),
         date_range_start=data.get('date_range_start'),
@@ -219,7 +230,7 @@ def update_insight(insight_id):
     data = request.json
 
     for field in ['title', 'slug', 'category', 'excerpt', 'content', 'status', 'featured', 'pass_day',
-                   'reading_time_minutes', 'related_pick_ids', 'date_range_start', 'date_range_end']:
+                   'reading_time_minutes', 'related_pick_ids', 'date_range_start', 'date_range_end', 'sport']:
         if field in data:
             setattr(insight, field, data[field])
 

@@ -126,7 +126,7 @@ def _get_et_today():
     return now_et.strftime('%Y-%m-%d')
 
 
-def _upsert_market_note_insight(report):
+def _upsert_market_note_insight(report, sport='nba'):
     """Create or update the daily Market Note insight from the market report dict."""
     from market_note_templates import generate_market_note
 
@@ -135,13 +135,13 @@ def _upsert_market_note_insight(report):
     date_str = report.get('date', '')
     if not date_str or len(date_str) != 10:
         return None
-    slug = f"market-note-{date_str}"
+    slug = f"market-note-{sport}-{date_str}" if sport != 'nba' else f"market-note-{date_str}"
 
     prev_note_title = None
     consecutive_same_bias = 0
     try:
         prev_note = (Insight.query
-                     .filter_by(category='market_notes')
+                     .filter_by(category='market_notes', sport=sport)
                      .filter(Insight.slug != slug)
                      .order_by(Insight.publish_date.desc())
                      .first())
@@ -151,7 +151,7 @@ def _upsert_market_note_insight(report):
         lean = report.get('market_lean') or {}
         today_bias = 'underdog' if lean.get('underdogs', 0) > lean.get('favorites', 0) else 'favorite'
         recent_notes = (Insight.query
-                        .filter_by(category='market_notes')
+                        .filter_by(category='market_notes', sport=sport)
                         .filter(Insight.slug != slug)
                         .order_by(Insight.publish_date.desc())
                         .limit(7)
@@ -212,6 +212,7 @@ def _upsert_market_note_insight(report):
         existing.excerpt = excerpt
         existing.content = content
         existing.story_type = story_type
+        existing.sport = sport
         existing.updated_at = datetime.utcnow()
         db.session.commit()
         return existing
@@ -222,6 +223,7 @@ def _upsert_market_note_insight(report):
         excerpt=excerpt,
         content=content,
         story_type=story_type,
+        sport=sport,
         status='published',
         publish_date=pub,
         pass_day=report.get('edges_detected', 0) == 0,
@@ -522,6 +524,7 @@ def seed_database():
                 db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(20)"))
                 db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_id VARCHAR(255)"))
                 db.session.execute(db.text("ALTER TABLE watched_games ADD COLUMN IF NOT EXISTS sport VARCHAR(10) DEFAULT 'nba'"))
+                db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS sport VARCHAR(10) DEFAULT 'nba'"))
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
@@ -1874,7 +1877,7 @@ Baseball is a quant market. SharpPicks is a quant product. The fit is natural.
 
 *Evan Cole*
 Founder, SharpPicks""",
-                    status="published", publish_date=datetime(2026, 3, 1), reading_time_minutes=4,
+                    status="published", publish_date=datetime(2026, 3, 1), reading_time_minutes=4, sport='mlb',
                 ))
             if 'why-sharp-bettors-focus-on-price' not in existing_slugs:
                 incremental_insights.append(Insight(
@@ -1920,7 +1923,7 @@ SharpPicks enforces this automatically. The model doesn't know team names. It kn
 
 *Evan Cole*
 Founder, SharpPicks""",
-                    status="published", publish_date=datetime(2026, 3, 2), reading_time_minutes=4,
+                    status="published", publish_date=datetime(2026, 3, 2), reading_time_minutes=4, sport='mlb',
                 ))
             if 'the-problem-with-betting-big-favorites' not in existing_slugs:
                 incremental_insights.append(Insight(
@@ -1966,7 +1969,7 @@ That doesn't mean every underdog is a bet. Most aren't. But the ones where the g
 
 *Evan Cole*
 Founder, SharpPicks""",
-                    status="published", publish_date=datetime(2026, 3, 3), reading_time_minutes=4,
+                    status="published", publish_date=datetime(2026, 3, 3), reading_time_minutes=4, sport='mlb',
                 ))
             if 'why-bullpen-fatigue-creates-hidden-value' not in existing_slugs:
                 incremental_insights.append(Insight(
@@ -2008,7 +2011,7 @@ The best edges aren't the ones that make headlines. They're the ones nobody else
 
 *Evan Cole*
 Founder, SharpPicks""",
-                    status="published", publish_date=datetime(2026, 3, 4), reading_time_minutes=4,
+                    status="published", publish_date=datetime(2026, 3, 4), reading_time_minutes=4, sport='mlb',
                 ))
             if 'what-makes-an-mlb-moneyline-mispriced' not in existing_slugs:
                 incremental_insights.append(Insight(
@@ -2058,7 +2061,7 @@ SharpPicks automates that process across every game on the board, every day. Whe
 
 *Evan Cole*
 Founder, SharpPicks""",
-                    status="published", publish_date=datetime(2026, 3, 5), reading_time_minutes=5,
+                    status="published", publish_date=datetime(2026, 3, 5), reading_time_minutes=5, sport='mlb',
                 ))
             # --- Batch 2: May-July 2026 ---
             if 'what-100-picks-taught-us' not in existing_slugs:
@@ -2289,6 +2292,21 @@ If you can look at our full record, see the losses, and still understand why the
                     db.session.add(ins)
                 db.session.commit()
                 logging.info(f"Added {len(incremental_insights)} new insights")
+
+            mlb_insight_slugs = [
+                'why-mlb-is-a-quant-market', 'why-sharp-bettors-focus-on-price',
+                'the-problem-with-betting-big-favorites', 'why-bullpen-fatigue-creates-hidden-value',
+                'what-makes-an-mlb-moneyline-mispriced',
+            ]
+            mlb_insights_to_fix = Insight.query.filter(
+                Insight.slug.in_(mlb_insight_slugs),
+                db.or_(Insight.sport != 'mlb', Insight.sport.is_(None))
+            ).all()
+            for mi in mlb_insights_to_fix:
+                mi.sport = 'mlb'
+            if mlb_insights_to_fix:
+                db.session.commit()
+                logging.info(f"Tagged {len(mlb_insights_to_fix)} insights as sport=mlb")
 
             stale_note_slugs = ['market-note-2026-03-17', 'market-note-2026-03-18']
             stale_notes = Insight.query.filter(Insight.slug.in_(stale_note_slugs)).all()
@@ -3921,20 +3939,26 @@ def cron_run_model():
         results = {}
         for sport in get_live_sports():
             results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override)
-        # Morning market intelligence: push + daily Market Note
+        # Morning market intelligence: push + daily Market Note per sport
         today_str = date_override or _get_et_today()
         live = get_live_sports()
         primary_sport = live[0] if live else 'nba'
         try:
             from public_api import build_market_report_dict
             from notification_service import send_market_scan_push
+            # Push notification only for primary sport to avoid duplicates
             report = build_market_report_dict(today_str, primary_sport)
             if report.get('available'):
                 send_market_scan_push(report)
-                note = _upsert_market_note_insight(report)
-                if note:
-                    from notification_service import send_market_note_notification
-                    send_market_note_notification(note)
+            # Generate market note insight for each live sport
+            for mi_sport in live:
+                try:
+                    mi_report = build_market_report_dict(today_str, mi_sport) if mi_sport != primary_sport else report
+                    if mi_report.get('available'):
+                        _upsert_market_note_insight(mi_report, sport=mi_sport)
+                except Exception:
+                    import logging
+                    logging.exception("Market note for %s: failed", mi_sport)
         except Exception as e:
             import logging
             logging.exception("Market scan push / market note: %s", e)
@@ -6584,6 +6608,22 @@ def get_performance():
         'closing_line': closing_line_stats,
         'source': 'published_picks',
     })
+
+
+@app.route('/api/admin/generate-market-note', methods=['POST'])
+@verify_cron
+def admin_generate_market_note():
+    """Generate (or regenerate) the daily market note for a given sport and date."""
+    sport = request.args.get('sport', 'mlb')
+    date_str = request.args.get('date', _get_et_today())
+    from public_api import build_market_report_dict
+    report = build_market_report_dict(date_str, sport)
+    if not report.get('available'):
+        return jsonify({'error': 'No model run data available', 'sport': sport, 'date': date_str}), 404
+    note = _upsert_market_note_insight(report, sport=sport)
+    if note:
+        return jsonify({'success': True, 'slug': note.slug, 'title': note.title, 'sport': sport, 'date': date_str})
+    return jsonify({'error': 'Failed to generate market note'}), 500
 
 
 @app.route('/api/admin/stats')
