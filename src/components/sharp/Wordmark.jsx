@@ -21,14 +21,14 @@ export default function Wordmark({ size = 16, opacity = 1, style = {} }) {
       SHARP
       <span
         style={{
-          display: 'inline-block',
-          width: 2,
-          height: barH,
-          backgroundColor: 'currentColor',
-          borderRadius: 1,
+          display: 'inline-flex',
+          gap: 2,
           flexShrink: 0,
         }}
-      />
+      >
+        <span style={{ display: 'inline-block', width: 1.5, height: barH, backgroundColor: 'currentColor', borderRadius: 1 }} />
+        <span style={{ display: 'inline-block', width: 1.5, height: barH, backgroundColor: 'currentColor', borderRadius: 1 }} />
+      </span>
       PICKS
     </span>
   );
