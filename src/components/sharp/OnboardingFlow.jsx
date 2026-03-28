@@ -1,3 +1,5 @@
+import Wordmark from './Wordmark';
+
 const TRUST_STACK = [
   {
     label: 'Market Regime',
