@@ -6969,19 +6969,21 @@ def auth_page():
 
 @app.route('/<path:path>')
 def serve_spa(path):
-    dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
-    full_path = os.path.join(dist_dir, path)
-    if os.path.isfile(full_path):
-        from flask import send_from_directory, make_response
-        resp = make_response(send_from_directory(dist_dir, path))
-        if path.startswith('assets/'):
-            resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
-        else:
-            resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        return resp
+    from flask import send_from_directory, make_response
+    base = os.path.dirname(os.path.abspath(__file__))
+    dist_dir = os.path.join(base, 'dist')
+    public_dir = os.path.join(base, 'public')
+    for d in (dist_dir, public_dir):
+        full_path = os.path.join(d, path)
+        if os.path.isfile(full_path):
+            resp = make_response(send_from_directory(d, path))
+            if path.startswith('assets/'):
+                resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+            else:
+                resp.headers['Cache-Control'] = 'public, max-age=86400'
+            return resp
     index_path = os.path.join(dist_dir, 'index.html')
     if os.path.isfile(index_path):
-        from flask import send_from_directory, make_response
         resp = make_response(send_from_directory(dist_dir, 'index.html'))
         resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return resp
