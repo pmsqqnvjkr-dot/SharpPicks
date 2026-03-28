@@ -3904,6 +3904,84 @@ def cron_update_ratings():
     return log_cron('update_ratings', _update)
 
 
+def _send_consolidated_model_notification(results, live_sports):
+    """Send a single push notification summarizing all sport model results."""
+    from sport_config import get_sport_config
+    parts = []
+    has_pick = False
+    pick_sport = None
+    pick_result = None
+
+    for sport in live_sports:
+        r = results.get(sport, {})
+        status = r.get('status', '')
+        cfg = get_sport_config(sport)
+        tag = cfg.get('name', sport.upper())
+
+        if status == 'pick':
+            has_pick = True
+            pick_sport = sport
+            pick_result = r
+            edge = r.get('edge', 0)
+            parts.append(f"{tag}: Signal · {edge}% edge")
+        elif status == 'paper_trade':
+            edge = r.get('edge', 0)
+            parts.append(f"{tag}: Paper signal · {edge}% edge")
+        elif status == 'pass':
+            games = r.get('games_analyzed', 0)
+            parts.append(f"{tag}: Pass · {games} games, no edge")
+        elif status in ('already_run',):
+            continue
+        elif status in ('data_failure', 'no_spreads', 'inactive'):
+            continue
+        else:
+            continue
+
+    if not parts:
+        return
+
+    if has_pick and len(parts) == 1:
+        title = f"New Signal · {get_sport_config(pick_sport).get('name', pick_sport.upper())}"
+        body = f"{pick_result.get('side', 'Pick available')}. Tap for full analysis."
+        data = {'type': 'pick', 'pick_id': str(pick_result.get('pick_id', ''))}
+    elif has_pick:
+        title = "Today's Model Results"
+        body = ' | '.join(parts)
+        data = {'type': 'pick', 'pick_id': str(pick_result.get('pick_id', ''))}
+    else:
+        title = "Pass Day"
+        body = ' | '.join(parts)
+        data = {'type': 'pass', 'date': results.get(live_sports[0], {}).get('date', '')}
+
+    try:
+        sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pick' if has_pick else 'pass')
+        import logging
+        logging.info(f"Consolidated model notification sent to {sent} device(s): {title}")
+    except Exception as e:
+        import logging
+        logging.error(f"Consolidated notification send failed: {e}")
+
+    # Also send emails for each sport individually
+    for sport in live_sports:
+        r = results.get(sport, {})
+        status = r.get('status', '')
+        try:
+            if status == 'pick':
+                pick = Pick.query.get(r.get('pick_id'))
+                if pick:
+                    from notification_events import dispatch_signal_emails
+                    dispatch_signal_emails(pick)
+            elif status == 'pass':
+                from notification_events import dispatch_no_signal_emails
+                dispatch_no_signal_emails(
+                    games_analyzed=r.get('games_analyzed', 0),
+                    edges_detected=0,
+                    efficiency=100,
+                )
+        except Exception:
+            pass
+
+
 @app.route('/api/cron/run-model', methods=['GET', 'POST'])
 @verify_cron
 def cron_run_model():
@@ -3937,23 +4015,24 @@ def cron_run_model():
         except Exception as e:
             print(f"[model-run] Ratings refresh failed (non-fatal): {e}")
         results = {}
-        for sport in get_live_sports():
-            results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override)
-        # Morning market intelligence: push + daily Market Note per sport
-        today_str = date_override or _get_et_today()
         live = get_live_sports()
-        primary_sport = live[0] if live else 'nba'
+        for sport in live:
+            results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override, send_notifications=False)
+
+        # Single consolidated push notification for all sports
+        try:
+            _send_consolidated_model_notification(results, live)
+        except Exception as e:
+            import logging
+            logging.exception("Consolidated notification failed: %s", e)
+
+        # Generate market note insight for each live sport (no push)
+        today_str = date_override or _get_et_today()
         try:
             from public_api import build_market_report_dict
-            from notification_service import send_market_scan_push
-            # Push notification only for primary sport to avoid duplicates
-            report = build_market_report_dict(today_str, primary_sport)
-            if report.get('available'):
-                send_market_scan_push(report)
-            # Generate market note insight for each live sport
             for mi_sport in live:
                 try:
-                    mi_report = build_market_report_dict(today_str, mi_sport) if mi_sport != primary_sport else report
+                    mi_report = build_market_report_dict(today_str, mi_sport)
                     if mi_report.get('available'):
                         _upsert_market_note_insight(mi_report, sport=mi_sport)
                 except Exception:
@@ -3961,7 +4040,7 @@ def cron_run_model():
                     logging.exception("Market note for %s: failed", mi_sport)
         except Exception as e:
             import logging
-            logging.exception("Market scan push / market note: %s", e)
+            logging.exception("Market note generation: %s", e)
         return results
     return log_cron('run_model', _run, skip_throttle=force)
 

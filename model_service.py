@@ -419,9 +419,10 @@ def pretip_revalidate(app, sport='nba'):
             return {'status': 'error', 'error': str(e)}
 
 
-def run_model_and_log(app, sport='nba', force=False, date_override=None):
+def run_model_and_log(app, sport='nba', force=False, date_override=None, send_notifications=True):
     """Run the model for today and log either a pick or pass.
     date_override: optional YYYY-MM-DD to force a specific date (e.g. tomorrow for tonight's games).
+    send_notifications: if False, skip push notifications (caller handles them).
     """
     cfg = get_sport_config(sport)
 
@@ -570,23 +571,24 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                     db.session.add(model_run)
                     db.session.commit()
 
-                    try:
-                        from notification_service import send_pass_notification
-                        send_pass_notification(pass_entry)
-                    except Exception as notif_err:
-                        import logging
-                        logging.error(f"No-eligible pass notification failed: {notif_err}")
+                    if send_notifications:
+                        try:
+                            from notification_service import send_pass_notification
+                            send_pass_notification(pass_entry)
+                        except Exception as notif_err:
+                            import logging
+                            logging.error(f"No-eligible pass notification failed: {notif_err}")
 
-                    try:
-                        from notification_events import dispatch_no_signal_emails
-                        dispatch_no_signal_emails(
-                            games_analyzed=diag['games_with_spreads'],
-                            edges_detected=0,
-                            efficiency=100,
-                        )
-                    except Exception as email_err:
-                        import logging
-                        logging.error(f"No-signal email dispatch failed: {email_err}")
+                        try:
+                            from notification_events import dispatch_no_signal_emails
+                            dispatch_no_signal_emails(
+                                games_analyzed=diag['games_with_spreads'],
+                                edges_detected=0,
+                                efficiency=100,
+                            )
+                        except Exception as email_err:
+                            import logging
+                            logging.error(f"No-signal email dispatch failed: {email_err}")
 
                     return {
                         'status': 'pass',
@@ -676,19 +678,20 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                     except Exception:
                         pass
 
-                    try:
-                        from notification_service import send_pick_notification
-                        send_pick_notification(pick)
-                    except Exception as notif_err:
-                        import logging
-                        logging.error(f"Pick notification failed: {notif_err}")
+                    if send_notifications:
+                        try:
+                            from notification_service import send_pick_notification
+                            send_pick_notification(pick)
+                        except Exception as notif_err:
+                            import logging
+                            logging.error(f"Pick notification failed: {notif_err}")
 
-                    try:
-                        from notification_events import dispatch_signal_emails
-                        dispatch_signal_emails(pick)
-                    except Exception as email_err:
-                        import logging
-                        logging.error(f"Signal email dispatch failed: {email_err}")
+                        try:
+                            from notification_events import dispatch_signal_emails
+                            dispatch_signal_emails(pick)
+                        except Exception as email_err:
+                            import logging
+                            logging.error(f"Signal email dispatch failed: {email_err}")
 
                     print(f"[model-run] Published: {pick.side} | Edge: {pick.edge_pct}% | {best['away_team']} @ {best['home_team']}")
                     return {
@@ -726,12 +729,13 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                     db.session.add(model_run)
                     db.session.commit()
 
-                    try:
-                        from notification_service import send_pass_notification
-                        send_pass_notification(pass_entry)
-                    except Exception as notif_err:
-                        import logging
-                        logging.error(f"Paper trade pass notification failed: {notif_err}")
+                    if send_notifications:
+                        try:
+                            from notification_service import send_pass_notification
+                            send_pass_notification(pass_entry)
+                        except Exception as notif_err:
+                            import logging
+                            logging.error(f"Paper trade pass notification failed: {notif_err}")
 
                     return {
                         'status': 'paper_trade',
@@ -796,25 +800,26 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
                 db.session.add(model_run)
                 db.session.commit()
 
-                try:
-                    from notification_service import send_pass_notification
-                    send_pass_notification(pass_entry)
-                except Exception as notif_err:
-                    import logging
-                    logging.error(f"Pass notification failed: {notif_err}")
+                if send_notifications:
+                    try:
+                        from notification_service import send_pass_notification
+                        send_pass_notification(pass_entry)
+                    except Exception as notif_err:
+                        import logging
+                        logging.error(f"Pass notification failed: {notif_err}")
 
-                try:
-                    from notification_events import dispatch_no_signal_emails
-                    n_edges = sum(1 for p in predictions if (p.get('adjusted_edge') or 0) > 0)
-                    eff = round(100 * (1 - n_edges / max(len(predictions), 1)))
-                    dispatch_no_signal_emails(
-                        games_analyzed=len(predictions),
-                        edges_detected=n_edges,
-                        efficiency=eff,
-                    )
-                except Exception as email_err:
-                    import logging
-                    logging.error(f"No-signal email dispatch failed: {email_err}")
+                    try:
+                        from notification_events import dispatch_no_signal_emails
+                        n_edges = sum(1 for p in predictions if (p.get('adjusted_edge') or 0) > 0)
+                        eff = round(100 * (1 - n_edges / max(len(predictions), 1)))
+                        dispatch_no_signal_emails(
+                            games_analyzed=len(predictions),
+                            edges_detected=n_edges,
+                            efficiency=eff,
+                        )
+                    except Exception as email_err:
+                        import logging
+                        logging.error(f"No-signal email dispatch failed: {email_err}")
 
                 print(f"[model-run] Pass: {top_pass_reason} | Max edge: {closest_edge:+.1f}% | {len(predictions)} games")
                 return {
