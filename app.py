@@ -6610,7 +6610,7 @@ def get_performance():
     })
 
 
-@app.route('/api/admin/generate-market-note', methods=['POST'])
+@app.route('/api/admin/generate-market-note', methods=['GET', 'POST'])
 @verify_cron
 def admin_generate_market_note():
     """Generate (or regenerate) the daily market note for a given sport and date."""
