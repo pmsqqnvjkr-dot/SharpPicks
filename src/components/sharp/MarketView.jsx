@@ -923,7 +923,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
                 animation: 'pulse 2s ease-in-out infinite',
               }} />
               <span style={{ fontFamily: mono, fontSize: '10px', color: brandGreen, fontWeight: 600, letterSpacing: '0.5px' }}>
-                {game.current_period || (game.live_period ? (game.live_period <= 4 ? `Q${game.live_period}` : `OT${game.live_period - 4}`) : '')}
+                {game.current_period || (game.live_period ? (sport === 'mlb' ? `Inn ${game.live_period}` : (game.live_period <= 4 ? `Q${game.live_period}` : `OT${game.live_period - 4}`)) : '')}
                 {(game.game_clock || game.live_clock) ? ` · ${game.game_clock || game.live_clock}` : ''}
               </span>
             </div>
@@ -1195,7 +1195,7 @@ function normalizeTeam(name) {
   return name.toLowerCase().replace(/[^a-z]/g, '');
 }
 
-function LiveBadge({ state, period, clock }) {
+function LiveBadge({ state, period, clock, sport }) {
   if (state === 'STATUS_FINAL') {
     return (
       <span style={{
@@ -1206,7 +1206,7 @@ function LiveBadge({ state, period, clock }) {
     );
   }
   if (state === 'STATUS_IN_PROGRESS') {
-    const qLabel = period <= 4 ? `Q${period}` : `OT${period - 4}`;
+    const periodLabel = sport === 'mlb' ? `Inn ${period}` : (period <= 4 ? `Q${period}` : `OT${period - 4}`);
     return (
       <span style={{
         fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
@@ -1218,7 +1218,7 @@ function LiveBadge({ state, period, clock }) {
           width: 4, height: 4, borderRadius: '50%',
           background: '#ef4444', animation: 'pulse 2s infinite',
         }} />
-        {qLabel} {clock}
+        {periodLabel} {clock}
       </span>
     );
   }
@@ -1228,7 +1228,7 @@ function LiveBadge({ state, period, clock }) {
         fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
         padding: '1px 5px', borderRadius: 3,
         background: 'rgba(251,191,36,0.12)', color: '#f59e0b',
-      }}>HALF</span>
+      }}>{sport === 'mlb' ? 'BREAK' : 'HALF'}</span>
     );
   }
   return null;

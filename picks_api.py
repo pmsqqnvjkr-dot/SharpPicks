@@ -492,7 +492,12 @@ def today():
         except Exception:
             return None
 
-    espn_sport = 'womens-basketball/wnba' if sport == 'wnba' else 'basketball/nba'
+    espn_sport_map = {
+        'nba': 'basketball/nba',
+        'wnba': 'womens-basketball/wnba',
+        'mlb': 'baseball/mlb',
+    }
+    espn_sport = espn_sport_map.get(sport, 'basketball/nba')
     try:
         import requests as _req
         espn_date = today_str.replace('-', '')
@@ -550,9 +555,11 @@ def today():
 def last_resolved():
     """Return the most recently graded pick (win/loss/push) for resolution banner"""
     today_str = _get_et_date()
+    sport = request.args.get('sport', 'nba')
     pick = Pick.query.filter(
         Pick.result.in_(['win', 'loss', 'push']),
-        Pick.game_date != today_str
+        Pick.game_date != today_str,
+        Pick.sport == sport,
     ).order_by(Pick.published_at.desc()).first()
 
     if not pick:
@@ -1067,9 +1074,12 @@ def live_scores():
     import requests as http_requests
     sport = request.args.get('sport', 'nba')
 
-    espn_url = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard'
-    if sport == 'wnba':
-        espn_url = 'https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard'
+    espn_sport_paths = {
+        'nba': 'basketball/nba',
+        'wnba': 'basketball/wnba',
+        'mlb': 'baseball/mlb',
+    }
+    espn_url = f"https://site.api.espn.com/apis/site/v2/sports/{espn_sport_paths.get(sport, 'basketball/nba')}/scoreboard"
 
     try:
         resp = http_requests.get(espn_url, timeout=10)

@@ -31,8 +31,12 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
 
 .logo{text-align:center;margin-bottom:36px}
 .logo a{text-decoration:none;display:inline-block}
-.logo img{height:32px;width:auto}
 .logo .tag{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);margin-top:8px}
+.css-wm{display:inline-flex;align-items:center;font-family:var(--mono);font-weight:500;letter-spacing:.2em;color:#fff;line-height:1;white-space:nowrap;user-select:none}
+.css-wm .wm-bars{display:inline-flex;flex-direction:column;align-items:center;flex-shrink:0}
+.css-wm .wm-bars-row{display:inline-flex}
+.css-wm .wm-bar{display:inline-block;background:currentColor}
+.css-wm .wm-ul{display:inline-block;background:#5A9E72;border-radius:1px}
 
 .card{background:var(--navy-mid);border:1px solid var(--border);border-radius:12px;overflow:hidden}
 
@@ -117,7 +121,7 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
   <div class="ctr">
 
     <div class="logo">
-      <a href="https://sharppicks.ai"><img src="/wordmark-white.png" alt="SharpPicks" /></a>
+      <a href="https://sharppicks.ai" class="css-wm" style="font-size:16px"><span style="margin-right:5.6px">SHARP</span><span class="wm-bars" style="gap:2.4px"><span class="wm-bars-row" style="gap:1.9px"><span class="wm-bar" style="width:2px;height:20px;border-radius:1.2px"></span><span class="wm-bar" style="width:2px;height:20px;border-radius:1.2px"></span></span><span class="wm-ul" style="width:5.9px;height:1.5px"></span></span><span style="margin-left:7.2px">PICKS</span></a>
       <span class="tag">Market Intelligence for Sports</span>
     </div>
 

@@ -120,15 +120,11 @@
     gap: 4px;
   }
 
-  .brand-name {
-    font-family: 'Inter', 'Arial', sans-serif;
-    font-weight: 500;
-    font-size: 26px;
-    color: #E8ECF1;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-  }
-  .brand-sep { color: #5A9E72; }
+  .css-wm{display:inline-flex;align-items:center;font-family:'JetBrains Mono',monospace;font-weight:500;letter-spacing:.2em;color:#E8ECF1;line-height:1;white-space:nowrap}
+  .css-wm .wm-bars{display:inline-flex;flex-direction:column;align-items:center;flex-shrink:0}
+  .css-wm .wm-bars-row{display:inline-flex}
+  .css-wm .wm-bar{display:inline-block;background:currentColor}
+  .css-wm .wm-ul{display:inline-block;background:#5A9E72;border-radius:1px}
 
   .brand-tagline {
     font-family: 'JetBrains Mono', monospace;
@@ -524,11 +520,7 @@
 
     <div class="header">
       <div class="brand">
-        {% if wordmark_base64 %}
-        <img src="data:image/png;base64,{{ wordmark_base64 }}" style="height:32px;width:auto;" alt="SharpPicks" />
-        {% else %}
-        <div class="brand-name">SHARP <span class="brand-sep">||</span> PICKS</div>
-        {% endif %}
+        <span class="css-wm" style="font-size:20px"><span style="margin-right:7px">SHARP</span><span class="wm-bars" style="gap:3px"><span class="wm-bars-row" style="gap:2.4px"><span class="wm-bar" style="width:2.5px;height:25px;border-radius:1.5px"></span><span class="wm-bar" style="width:2.5px;height:25px;border-radius:1.5px"></span></span><span class="wm-ul" style="width:7.4px;height:2px"></span></span><span style="margin-left:9px">PICKS</span></span>
       </div>
       <div class="date-block">
         <div class="date-label">Weekly Report</div>

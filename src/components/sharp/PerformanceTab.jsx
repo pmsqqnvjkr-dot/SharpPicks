@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../hooks/useAuth';
 import { getAuthToken } from '../../hooks/useApi';
+import { useSport } from '../../hooks/useSport';
 import { trackEvent } from '../../utils/eventTracker';
 import UnifiedDashboard from './UnifiedDashboard';
 import DashboardTab from './DashboardTab';
@@ -69,6 +70,7 @@ function webShare(blob, filename) {
 
 export default function PerformanceTab({ onNavigate, initialView, onViewConsumed }) {
   const { user } = useAuth();
+  const { sport } = useSport();
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const [view, setView] = useState(initialView || (isPro ? 'yours' : 'model'));
   const [sharePreview, setSharePreview] = useState(null);
@@ -151,12 +153,12 @@ export default function PerformanceTab({ onNavigate, initialView, onViewConsumed
         <ShareButton
           label="Share Results"
           loading={shareLoading === '/api/cards/user-results'}
-          onClick={() => handleShareTap('/api/cards/user-results', 'sharppicks-results.png')}
+          onClick={() => handleShareTap(`/api/cards/user-results?sport=${sport}`, 'sharppicks-results.png')}
         />
         <ShareButton
           label="Share Weekly"
-          loading={shareLoading === '/api/cards/weekly-report'}
-          onClick={() => handleShareTap('/api/cards/weekly-report', 'sharppicks-weekly.png')}
+          loading={shareLoading === `/api/cards/weekly-report?sport=${sport}`}
+          onClick={() => handleShareTap(`/api/cards/weekly-report?sport=${sport}`, 'sharppicks-weekly.png')}
         />
       </div>
 

@@ -1,8 +1,10 @@
 import { useApi } from '../../hooks/useApi';
+import { useSport, sportQuery } from '../../hooks/useSport';
 
 export default function FreeTierDashboard({ onUpgrade }) {
-  const { data: todayData } = useApi('/picks/today');
-  const { data: stats } = useApi('/public/stats');
+  const { sport } = useSport();
+  const { data: todayData } = useApi(sportQuery('/picks/today', sport));
+  const { data: stats } = useApi(sportQuery('/public/stats', sport));
   const todayIsPick = todayData?.type === 'pick';
   const todayIsPass = todayData?.type === 'pass';
 

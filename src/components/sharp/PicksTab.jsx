@@ -41,7 +41,7 @@ export default function PicksTab({ onNavigate }) {
   const { data: marketReport, refetch: refetchMarketReport } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
   const { data: killSwitch } = useApi(sportQuery('/public/kill-switch', sport), { pollInterval: 600000 });
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
-  const { data: lastResolved } = useApi('/picks/last-resolved', { skip: !isPro });
+  const { data: lastResolved } = useApi(sportQuery('/picks/last-resolved', sport), { skip: !isPro });
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
   const [resolutionPick, setResolutionPick] = useState(null);
@@ -400,7 +400,7 @@ export default function PicksTab({ onNavigate }) {
               color: 'var(--text-tertiary)', marginTop: '4px',
               fontVariantNumeric: 'tabular-nums',
             }}>
-              Season 2025-26 &middot; {stats.record || `${stats.wins || 0}-${stats.losses || 0}`} &middot; {stats.pnl >= 0 ? '+' : ''}{Number(stats.pnl || 0).toFixed(1)}u
+              {sport === 'mlb' ? '2026 Season' : 'Season 2025-26'} &middot; {stats.record || `${stats.wins || 0}-${stats.losses || 0}`} &middot; {stats.pnl >= 0 ? '+' : ''}{Number(stats.pnl || 0).toFixed(1)}u
             </div>
           )}
         </div>
@@ -527,7 +527,7 @@ function SignalHistoryRow({ pick, isPro, isLast, allLiveScores, onView }) {
     return null;
   })();
   const liveLabel = liveMatch
-    ? `Live${liveMatch.period ? ` Q${liveMatch.period}` : ''}`
+    ? `Live${liveMatch.period ? ` ${sport === 'mlb' ? `Inn ${liveMatch.period}` : `Q${liveMatch.period}`}` : ''}`
     : null;
 
   const units = pick.profit_units != null ? pick.profit_units : (pick.pnl != null ? pick.pnl / 100 : null);
@@ -731,7 +731,7 @@ function RevokedPassCard({ pick, onViewDetails }) {
         fontFamily: 'var(--font-mono)', fontSize: '11px',
         color: 'var(--text-tertiary)',
       }}>
-        {pick.edge_pct ? `${pick.edge_pct}% edge at entry · ` : ''}Withdrawn pre-tip
+        {pick.edge_pct ? `${pick.edge_pct}% edge at entry · ` : ''}Withdrawn pre-game
       </div>
 
       <div style={{
@@ -1028,10 +1028,10 @@ function CountdownLabel({ startTime }) {
       const mins = Math.floor(diff / 60000);
       const hrs = Math.floor(mins / 60);
       const remMins = mins % 60;
-      if (mins < 5) setLabel('Tips soon');
-      else if (hrs < 1) setLabel(`Tips in ${mins}m`);
-      else if (hrs < 24) setLabel(`Tips in ${hrs}h ${remMins}m`);
-      else setLabel('Tips tomorrow');
+      if (mins < 5) setLabel('Starting soon');
+      else if (hrs < 1) setLabel(`Starts in ${mins}m`);
+      else if (hrs < 24) setLabel(`Starts in ${hrs}h ${remMins}m`);
+      else setLabel('Starts tomorrow');
     }
     calc();
     const id = setInterval(calc, 60000);

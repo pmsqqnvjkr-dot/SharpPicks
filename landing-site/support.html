@@ -24,8 +24,11 @@ html{scroll-behavior:smooth;background:#0c1018 !important}
 body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 
 nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,16,24,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(16px,4vw,48px)}
-.wm{text-decoration:none;display:inline-flex;align-items:center}
-.wm img{height:28px;width:auto}
+.css-wm{display:inline-flex;align-items:center;font-family:var(--mono);font-weight:500;letter-spacing:.2em;color:#fff;line-height:1;white-space:nowrap;user-select:none;text-decoration:none}
+.css-wm .wm-bars{display:inline-flex;flex-direction:column;align-items:center;flex-shrink:0}
+.css-wm .wm-bars-row{display:inline-flex}
+.css-wm .wm-bar{display:inline-block;background:currentColor}
+.css-wm .wm-ul{display:inline-block;background:var(--green);border-radius:1px}
 .nav-r{display:flex;gap:8px;align-items:center}
 .b{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:8px 18px;border-radius:6px;text-decoration:none;cursor:pointer;transition:all .2s;border:none;display:inline-block}
 .b.gh{color:var(--text-secondary);background:none;border:1px solid var(--border)}
@@ -60,7 +63,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,16,24,.88
 
 footer{border-top:1px solid var(--border);padding:48px 24px;text-align:center;margin-top:56px}
 .f-wm{margin-bottom:6px}
-.f-wm img{height:22px;width:auto;opacity:0.5}
 .f-tg{font-size:12px;color:var(--text-dim);margin-bottom:12px}
 .f-d{font-size:11px;color:var(--text-dim);max-width:480px;margin:0 auto 16px;line-height:1.6}
 .f-l{display:flex;justify-content:center;gap:20px}
@@ -71,7 +73,7 @@ footer{border-top:1px solid var(--border);padding:48px 24px;text-align:center;ma
 <body>
 
 <nav>
-  <a href="/" class="wm"><img src="/wordmark-white.png" alt="SharpPicks" /></a>
+  <a href="/" class="css-wm" style="font-size:15px"><span style="margin-right:5.25px">SHARP</span><span class="wm-bars" style="gap:2.25px"><span class="wm-bars-row" style="gap:1.8px"><span class="wm-bar" style="width:2px;height:18.75px;border-radius:1.2px"></span><span class="wm-bar" style="width:2px;height:18.75px;border-radius:1.2px"></span></span><span class="wm-ul" style="width:5.8px;height:1.5px"></span></span><span style="margin-left:6.75px">PICKS</span></a>
   <div class="nav-r">
     <a href="https://app.sharppicks.ai/login" class="b gh">Sign In</a>
     <a href="https://app.sharppicks.ai/signup?plan=annual" class="b gr">Try Free for 14 Days</a>
@@ -101,7 +103,7 @@ footer{border-top:1px solid var(--border);padding:48px 24px;text-align:center;ma
 </div>
 
 <footer>
-  <div class="f-wm"><img src="/wordmark-white.png" alt="SharpPicks" /></div>
+  <div class="f-wm"><span class="css-wm" style="font-size:12px;opacity:.5"><span style="margin-right:4.2px">SHARP</span><span class="wm-bars" style="gap:1.8px"><span class="wm-bars-row" style="gap:1.44px"><span class="wm-bar" style="width:2px;height:15px;border-radius:1.2px"></span><span class="wm-bar" style="width:2px;height:15px;border-radius:1.2px"></span></span><span class="wm-ul" style="width:5.44px;height:1.5px"></span></span><span style="margin-left:5.4px">PICKS</span></span></div>
   <div class="f-tg">Market intelligence for sports.</div>
   <div class="f-d">SharpPicks provides sports analytics and model-based insights only. Not financial advice. Not a sportsbook.</div>
   <div class="f-l">
