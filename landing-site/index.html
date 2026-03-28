@@ -30,8 +30,8 @@ body{font-family:var(--sn);background:#0c1018 !important;color:#e8eaf0;-webkit-f
 
 /* ─── NAV ─── */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,16,24,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--bdr);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(16px,4vw,48px)}
-.wm{font-family:var(--mn);font-size:14px;font-weight:500;letter-spacing:.25em;color:var(--t1);text-decoration:none;text-transform:uppercase}
-.wm .s{color:var(--grn);letter-spacing:0;margin:0 2px}
+.wm{text-decoration:none;display:inline-flex;align-items:center}
+.wm img{height:16px;width:auto}
 .nav-r{display:flex;gap:8px;align-items:center}
 .b{font-family:var(--mn);font-size:11px;letter-spacing:.04em;padding:8px 18px;border-radius:6px;text-decoration:none;cursor:pointer;transition:all .2s;border:none;display:inline-block}
 .b.gh{color:var(--t2);background:none;border:1px solid var(--bdr)}
@@ -210,7 +210,7 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
 <body>
 
 <nav>
-  <a href="/" class="wm">SHARP<span class="s">‖</span>PICKS</a>
+  <a href="/" class="wm"><img src="/wordmark-white.png" alt="SharpPicks" /></a>
   <div class="nav-r">
     <a href="https://app.sharppicks.ai/login" class="b gh">Sign In</a>
     <a href="https://app.sharppicks.ai/signup?plan=annual" class="b gr">Start Free Trial</a>

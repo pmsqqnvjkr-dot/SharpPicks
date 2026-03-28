@@ -23,9 +23,8 @@ html{background:#0c1018 !important}
 body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit-font-smoothing:antialiased;overflow-x:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
 
 .hdr{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-.wm{font-family:var(--sans);font-size:14px;font-weight:500;letter-spacing:.25em;color:var(--text-primary);text-transform:uppercase;display:inline-flex;align-items:center;line-height:1}
-.wm .sig{display:inline-flex;gap:0.18em;margin:0 0.4em;align-self:center}
-.wm .sig span{display:block;width:0.08em;height:1.24em;background:currentColor;border-radius:999px}
+.wm{display:inline-flex;align-items:center;line-height:1}
+.wm img{height:16px;width:auto}
 .hdr-b{display:flex;gap:8px}
 .bs{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:8px 16px;border-radius:6px;text-decoration:none;cursor:pointer;transition:all .2s;border:none}
 .bs.gh{color:var(--text-secondary);background:none;border:1px solid var(--border)}
@@ -103,7 +102,7 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
 <body>
 
 <div class="hdr">
-  <span class="wm">SHARP<span class="sig"><span></span><span></span></span>PICKS</span>
+  <span class="wm"><img src="/wordmark-white.png" alt="SharpPicks" /></span>
   <div class="hdr-b">
     <a href="/login" class="bs gh">Sign In</a>
     <a href="/signup" class="bs gr">Get Started</a>
