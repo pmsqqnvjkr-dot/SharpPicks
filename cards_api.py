@@ -157,7 +157,7 @@ def signal_card(signal_id):
 @cards_bp.route('/result/<signal_id>')
 def result_card(signal_id):
     from flask import render_template
-    from routes.card_routes import _get_logo_base64
+    from routes.card_routes import _get_logo_base64, _get_wordmark_base64
 
     pick = Pick.query.get(signal_id)
     if not pick:
@@ -194,6 +194,7 @@ def result_card(signal_id):
 
     data = {
         'logo_base64': _get_logo_base64(),
+        'wordmark_base64': _get_wordmark_base64(),
         'game_date': _date_label(pick),
         'matchup': matchup,
         'side': pick.side or '',
@@ -227,7 +228,7 @@ def result_card(signal_id):
 def user_results_card():
     from flask import render_template
     from public_api import _get_sport_filter
-    from routes.card_routes import _get_logo_base64
+    from routes.card_routes import _get_logo_base64, _get_wordmark_base64
 
     sport = _get_sport_filter()
     pick_q = Pick.query
@@ -272,6 +273,7 @@ def user_results_card():
 
     data = {
         'logo_base64': _get_logo_base64(),
+        'wordmark_base64': _get_wordmark_base64(),
         'wins': wins,
         'losses': losses,
         'pnl_fmt': pnl_fmt,
@@ -358,7 +360,7 @@ def market_report_card():
 @cards_bp.route('/weekly-report')
 def weekly_report_card():
     from flask import render_template
-    from routes.card_routes import _get_logo_base64, _compute_weekly_data
+    from routes.card_routes import _get_logo_base64, _get_wordmark_base64, _compute_weekly_data
 
     try:
         data = _compute_weekly_data()

@@ -42,11 +42,7 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{
-              fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 500,
-              color: '#E8EAED', letterSpacing: '0.25em', textTransform: 'uppercase',
-              lineHeight: 1, display: 'inline-flex', alignItems: 'center',
-            }}>SHARP<span style={{ display: 'inline-flex', gap: '0.18em', margin: '0 0.4em', alignSelf: 'center' }}><span style={{ display: 'block', width: '0.08em', height: '1.24em', background: 'currentColor', borderRadius: 999 }} /><span style={{ display: 'block', width: '0.08em', height: '1.24em', background: 'currentColor', borderRadius: 999 }} /></span>PICKS</span>
+            <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 16, width: 'auto' }} />
           </div>
           <ModelHealthBadge health={health} />
         </div>

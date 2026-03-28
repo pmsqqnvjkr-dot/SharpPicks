@@ -4,8 +4,10 @@ import os
 
 SCRIPT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOGO_PATH = os.path.join(SCRIPT_DIR, 'brand', 'images', 'crest.png')
+WORDMARK_PATH = os.path.join(SCRIPT_DIR, 'public', 'wordmark-white.png')
 
 _logo_b64_cache = None
+_wordmark_b64_cache = None
 
 
 def get_logo_base64():
@@ -19,6 +21,19 @@ def get_logo_base64():
         logging.error(f"Logo not found at {LOGO_PATH} — emails will render without logo")
         _logo_b64_cache = ""
     return _logo_b64_cache
+
+
+def get_wordmark_base64():
+    global _wordmark_b64_cache
+    if _wordmark_b64_cache is not None:
+        return _wordmark_b64_cache
+    try:
+        with open(WORDMARK_PATH, 'rb') as f:
+            _wordmark_b64_cache = base64.b64encode(f.read()).decode('utf-8')
+    except FileNotFoundError:
+        logging.error(f"Wordmark not found at {WORDMARK_PATH}")
+        _wordmark_b64_cache = ""
+    return _wordmark_b64_cache
 
 
 def get_edge_strength(edge_pct):

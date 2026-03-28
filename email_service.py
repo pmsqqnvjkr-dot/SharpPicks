@@ -119,9 +119,9 @@ def _render_jinja(template_name, context):
 
 
 def _get_shared_email_context():
-    """Build shared template variables: logo, season record, last 10 picks."""
-    from utils.email_helpers import get_logo_base64
-    ctx = {'logo_base64': get_logo_base64()}
+    """Build shared template variables: logo, wordmark, season record, last 10 picks."""
+    from utils.email_helpers import get_logo_base64, get_wordmark_base64
+    ctx = {'logo_base64': get_logo_base64(), 'wordmark_base64': get_wordmark_base64()}
     try:
         from models import Pick
         settled = Pick.query.filter(
@@ -152,17 +152,12 @@ def _get_shared_email_context():
 # ── Legacy base template (kept as fallback) ──
 
 def _brand_header_html():
-    """Inline brand header used by all email templates: crest logo + SHARP || PICKS text."""
-    from utils.email_helpers import get_logo_base64
-    logo = get_logo_base64()
-    if logo:
-        img = f'<img src="data:image/png;base64,{logo}" alt="SP" width="28" height="28" style="display:inline-block;vertical-align:middle;margin-right:12px;" />'
-    else:
-        img = ''
-    bars = ('<span style="display:inline-block;width:2px;height:14px;background-color:#E8EAED;opacity:0.85;vertical-align:middle;border-radius:99px;margin-right:3px;"></span>'
-             '<span style="display:inline-block;width:2px;height:14px;background-color:#E8EAED;opacity:0.85;vertical-align:middle;border-radius:99px;"></span>')
-    return f'''{img}<!--
-            --><span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:500;letter-spacing:0.25em;text-transform:uppercase;color:#E8EAED;vertical-align:middle;">SHARP<span style="margin:0 0.4em;vertical-align:middle;">{bars}</span>PICKS</span>'''
+    """Inline brand header: wordmark image with text fallback."""
+    from utils.email_helpers import get_wordmark_base64
+    wm = get_wordmark_base64()
+    if wm:
+        return f'<img src="data:image/png;base64,{wm}" alt="SharpPicks" height="22" style="height:22px;width:auto;" />'
+    return '<span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:500;letter-spacing:0.25em;text-transform:uppercase;color:#E8EAED;">SHARP PICKS</span>'
 
 
 def _base_template(type_label, body_html, cta_text=None, cta_url=None,

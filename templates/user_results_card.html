@@ -102,11 +102,11 @@
   <div class="card-inner">
     <div class="header">
       <div class="brand">
-        <img src="data:image/png;base64,{{ logo_base64 }}" class="logo-mark" />
-        <div class="brand-text">
-          <div class="brand-name">SHARP <span class="brand-sep">||</span> PICKS</div>
-          <div class="brand-tagline">Selective by Design</div>
-        </div>
+        {% if wordmark_base64 %}
+        <img src="data:image/png;base64,{{ wordmark_base64 }}" style="height:32px;width:auto;" alt="SharpPicks" />
+        {% else %}
+        <div class="brand-name">SHARP <span class="brand-sep">||</span> PICKS</div>
+        {% endif %}
       </div>
       <div class="date-block">
         <div class="date-label">Model Results</div>

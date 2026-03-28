@@ -5720,8 +5720,8 @@ def _unsub_html(message, success=True, email=None):
 <title>SharpPicks &mdash; Unsubscribe</title></head>
 <body style="margin:0;padding:0;background:#0D0D0D;font-family:Arial,Helvetica,sans-serif;">
 <div style="max-width:480px;margin:80px auto;text-align:center;padding:40px 24px;">
-  <p style="font-size:13px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#FFFFFF;margin:0 0 32px;">
-    SHARP<span style="opacity:0.5;margin:0 0.35em;font-weight:500;letter-spacing:0.15em;">||</span>PICKS
+  <p style="margin:0 0 32px;">
+    <img src="https://app.sharppicks.ai/wordmark-white.png" alt="SharpPicks" style="height:22px;width:auto;" />
   </p>
   <div style="font-size:36px;color:{color};margin:0 0 16px;">{icon}</div>
   <p style="font-size:16px;color:#FFFFFF;margin:0 0 12px;">{message}</p>

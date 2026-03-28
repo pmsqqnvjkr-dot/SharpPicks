@@ -13,8 +13,10 @@ weekly_card_bp = Blueprint('weekly_card', __name__)
 ET = ZoneInfo('America/New_York')
 
 LOGO_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'brand', 'images', 'crest.png')
+WORDMARK_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'public', 'wordmark-white.png')
 
 _logo_b64_cache = None
+_wordmark_b64_cache = None
 
 def _get_logo_base64():
     global _logo_b64_cache
@@ -27,6 +29,18 @@ def _get_logo_base64():
         logging.warning(f"Logo not found at {LOGO_PATH}")
         _logo_b64_cache = ""
     return _logo_b64_cache
+
+def _get_wordmark_base64():
+    global _wordmark_b64_cache
+    if _wordmark_b64_cache:
+        return _wordmark_b64_cache
+    try:
+        with open(WORDMARK_PATH, 'rb') as f:
+            _wordmark_b64_cache = base64.b64encode(f.read()).decode()
+    except FileNotFoundError:
+        logging.warning(f"Wordmark not found at {WORDMARK_PATH}")
+        _wordmark_b64_cache = ""
+    return _wordmark_b64_cache
 
 
 def _compute_weekly_data(week_start_str=None, week_end_str=None):
@@ -114,6 +128,7 @@ def _compute_weekly_data(week_start_str=None, week_end_str=None):
         'season_days_passed': total_passes,
         'season_total_picks': total_picks,
         'logo_base64': _get_logo_base64(),
+        'wordmark_base64': _get_wordmark_base64(),
     }
 
 

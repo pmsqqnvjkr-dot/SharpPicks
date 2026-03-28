@@ -98,14 +98,7 @@ export default function LandingPage({ autoView }) {
           ...sectionStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           height: 56,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <img src="/images/crest.png" alt="" width={24} height={24} style={{ display: 'block', objectFit: 'contain', borderRadius: 5 }} />
-            <span style={{
-              fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 500,
-              color: '#E8EAED', letterSpacing: '0.25em', textTransform: 'uppercase', lineHeight: 1,
-              display: 'inline-flex', alignItems: 'center',
-            }}>SHARP<span style={{ display: 'inline-flex', gap: '0.18em', margin: '0 0.4em', alignSelf: 'center' }}><span style={{ display: 'block', width: '0.08em', height: '1.24em', background: 'currentColor', borderRadius: 999 }} /><span style={{ display: 'block', width: '0.08em', height: '1.24em', background: 'currentColor', borderRadius: 999 }} /></span>PICKS</span>
-          </div>
+          <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 16, width: 'auto' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={openLogin} style={{
               padding: '7px 16px', backgroundColor: 'transparent',
@@ -495,11 +488,7 @@ export default function LandingPage({ autoView }) {
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 20 }}>
             <img src="/images/crest.png" alt="" width={16} height={16} style={{ opacity: 0.4, objectFit: 'contain', borderRadius: 3 }} />
-            <span style={{
-              fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 500,
-              color: 'var(--text-tertiary)', letterSpacing: '0.25em', textTransform: 'uppercase',
-              display: 'inline-flex', alignItems: 'center',
-            }}>SHARP<span style={{ display: 'inline-flex', gap: '0.18em', margin: '0 0.4em', alignSelf: 'center' }}><span style={{ display: 'block', width: '0.08em', height: '1.24em', background: 'currentColor', borderRadius: 999 }} /><span style={{ display: 'block', width: '0.08em', height: '1.24em', background: 'currentColor', borderRadius: 999 }} /></span>PICKS</span>
+            <img src="/wordmark-white.png" alt="SharpPicks" style={{ height: 14, width: 'auto', opacity: 0.5 }} />
           </div>
 
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.6, maxWidth: 420, margin: '0 auto 12px' }}>
