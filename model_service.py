@@ -616,13 +616,13 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None):
             print(f"[model-run] Eligible: {len(qualified)}, Max edge: {closest_edge:+.1f}%, Duration: {duration_ms}ms, Max picks/day: {max_picks}")
 
             if len(qualified) > max_picks:
-                ranked = sorted(qualified, key=lambda p: p.get('adjusted_edge', 0), reverse=True)
+                ranked = sorted(qualified, key=lambda p: p.get('risk_weighted_edge', p.get('adjusted_edge', 0)), reverse=True)
                 unpublished = ranked[max_picks:]
                 for up in unpublished:
                     print(f"[model-run] Qualified but unpublished: {up.get('away_team')} @ {up.get('home_team')} edge={up.get('adjusted_edge', 0):+.1f}%")
 
             if qualified:
-                best = max(qualified, key=lambda p: p.get('adjusted_edge', 0))
+                best = max(qualified, key=lambda p: p.get('risk_weighted_edge', p.get('adjusted_edge', 0)))
 
                 home_cover_prob = best.get('cover_prob', 0.5)
                 is_home_pick = best.get('pick_side') == 'home'
