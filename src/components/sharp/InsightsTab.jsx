@@ -609,28 +609,35 @@ function JournalTermCard({ name, definition }) {
   );
 }
 
-function JournalScreenshotPlaceholder({ tabName, description }) {
+function JournalScreenshot({ tabName, description, src }) {
   return (
-    <div style={{
-      margin: '20px 0', borderRadius: 12,
-      border: '1px dashed rgba(90,158,114,0.2)',
-      padding: '40px 20px', textAlign: 'center',
-      background: 'rgba(90,158,114,0.03)',
-    }}>
+    <div style={{ margin: '24px 0', textAlign: 'center' }}>
+      <img
+        src={src}
+        alt={`${tabName} screenshot`}
+        loading="lazy"
+        style={{
+          width: '100%', maxWidth: 320,
+          borderRadius: 12,
+          border: '1px solid rgba(90,158,114,0.15)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+        }}
+      />
       <div style={{
-        fontFamily: "'JetBrains Mono', monospace", fontSize: 14,
-        fontWeight: 500, color: '#5A9E72', marginBottom: 8,
+        marginTop: 10,
+        fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+        fontWeight: 500, color: '#5A9E72', letterSpacing: '0.5px',
       }}>{tabName}</div>
-      <div style={{ fontSize: 13, color: 'rgba(232,234,237,0.35)' }}>{description}</div>
+      <div style={{ fontSize: 12, color: 'rgba(232,234,237,0.35)', marginTop: 2 }}>{description}</div>
     </div>
   );
 }
 
 const SCREENSHOT_META = {
-  signals: { name: 'Signals Tab', desc: 'Your daily dashboard with live signal, edge %, and tier badge' },
-  market: { name: 'Market Tab', desc: 'Full slate overview with MEI score, edges, and model vs. market deltas' },
-  results: { name: 'Results Tab', desc: 'Personal scoreboard with equity curve and discipline score' },
-  insights: { name: 'Insights Tab', desc: 'Sharp Journal articles organized by category' },
+  signals: { name: 'Signals Tab', desc: 'Your daily dashboard with live signal, edge %, and tier badge', src: '/journal/signals.png' },
+  market: { name: 'Market Tab', desc: 'Full slate overview with MEI score, edges, and model vs. market deltas', src: '/journal/market.png' },
+  results: { name: 'Results Tab', desc: 'Personal scoreboard with equity curve and discipline score', src: '/journal/results.png' },
+  insights: { name: 'Insights Tab', desc: 'Sharp Journal articles organized by category', src: '/journal/insights.png' },
 };
 
 function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNavigate }) {
@@ -813,7 +820,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                 if (/^\[screenshot:\s*(.+?)\]$/.test(trimmed)) {
                   const id = trimmed.match(/^\[screenshot:\s*(.+?)\]$/)[1].toLowerCase();
                   const meta = SCREENSHOT_META[id];
-                  if (meta) return <JournalScreenshotPlaceholder key={i} tabName={meta.name} description={meta.desc} />;
+                  if (meta) return <JournalScreenshot key={i} tabName={meta.name} description={meta.desc} src={meta.src} />;
                   return null;
                 }
 
