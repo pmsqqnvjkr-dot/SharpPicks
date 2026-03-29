@@ -645,7 +645,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
   const contentRef = useRef(null);
   const [fadeIn, setFadeIn] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const isMarketNote = insight.category === 'market_notes';
+  const isMarketNote = insight.category === 'market_notes' && /^market-note-\d{4}/.test(insight.slug);
 
   useEffect(() => {
     setFadeIn(false);
