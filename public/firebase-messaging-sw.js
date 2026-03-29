@@ -14,11 +14,16 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const { title, body } = payload.notification || {};
+  // Firebase auto-displays notifications that have a 'notification' field.
+  // Only manually show for data-only messages to avoid duplicate banners.
+  if (payload.notification) return;
+
   const data = payload.data || {};
+  const title = data.title || 'SharpPicks';
+  const body = data.body || '';
   if (title) {
     self.registration.showNotification(title, {
-      body: body || '',
+      body,
       icon: '/icon-192x192.png',
       badge: '/favicon-32x32.png',
       data: data

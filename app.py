@@ -3114,8 +3114,11 @@ def log_cron(job_name, fn, skip_throttle=False):
         if job_name in _cron_locks:
             lock_time, running = _cron_locks[job_name]
             if running:
-                return jsonify({'status': 'skipped', 'job': job_name,
-                                'reason': 'already running'}), 200
+                stale_seconds = now - lock_time
+                if stale_seconds < 600:
+                    return jsonify({'status': 'skipped', 'job': job_name,
+                                    'reason': f'already running ({int(stale_seconds)}s)'}), 200
+                logging.warning(f"[cron] Force-clearing stale lock for {job_name} (held {int(stale_seconds)}s)")
         _cron_locks[job_name] = (now, True)
 
     start = _time.time()
@@ -3707,14 +3710,11 @@ def cron_mlb_closing_lines():
 def run_mlb_model_job():
     """Run the MLB model to generate picks."""
     print(f"[{datetime.now()}] Running MLB model...")
-    with app.app_context():
-        try:
-            from model_service import run_model_and_log
-            force = request.args.get('force', 'false').lower() == 'true'
-            run_model_and_log(app, sport='mlb', force=force)
-            print(f"[{datetime.now()}] MLB model run completed!")
-        except Exception as e:
-            print(f"[{datetime.now()}] MLB model error: {e}")
+    from model_service import run_model_and_log
+    force = request.args.get('force', 'false').lower() == 'true'
+    result = run_model_and_log(app, sport='mlb', force=force)
+    print(f"[{datetime.now()}] MLB model run completed: {result.get('status', '?')}")
+    return result
 
 
 @app.route('/api/cron/mlb-run-model', methods=['GET', 'POST'])
@@ -4019,12 +4019,13 @@ def cron_run_model():
         for sport in live:
             results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override, send_notifications=False)
 
-        # Single consolidated push notification for all sports
-        try:
-            _send_consolidated_model_notification(results, live)
-        except Exception as e:
-            import logging
-            logging.exception("Consolidated notification failed: %s", e)
+        # Single consolidated push notification for all sports (with timeout)
+        import threading
+        notif_thread = threading.Thread(target=_send_consolidated_model_notification, args=(results, live))
+        notif_thread.start()
+        notif_thread.join(timeout=60)
+        if notif_thread.is_alive():
+            logging.warning("[cron] Consolidated notification still running after 60s — continuing without waiting")
 
         # Generate market note insight for each live sport (no push)
         today_str = date_override or _get_et_today()
@@ -6099,13 +6100,18 @@ def _get_firebase_service_info():
     return None
 
 
+_firebase_creds_cache = {'creds': None, 'project_id': None, 'expires_at': 0}
+
 def _get_firebase_credentials_and_project():
-    """Get (credentials, project_id) or raise. Tries file-based load first (most reliable), then dict-based."""
+    """Get (credentials, project_id) or raise. Caches credentials until they expire."""
     import json
     import tempfile
     import google.auth.transport.requests
     from google.oauth2 import service_account
-    from models import FCMToken  # noqa: F401 - for imports
+
+    now = _time.time()
+    if _firebase_creds_cache['creds'] and now < _firebase_creds_cache['expires_at']:
+        return _firebase_creds_cache['creds'], _firebase_creds_cache['project_id']
 
     service_info = _get_firebase_service_info()
     if not service_info:
@@ -6124,6 +6130,7 @@ def _get_firebase_credentials_and_project():
                 scopes=['https://www.googleapis.com/auth/firebase.messaging']
             )
             creds.refresh(google.auth.transport.requests.Request())
+            _firebase_creds_cache.update({'creds': creds, 'project_id': project_id, 'expires_at': now + 3000})
             return creds, project_id
         finally:
             try:
@@ -6140,6 +6147,7 @@ def _get_firebase_credentials_and_project():
             scopes=['https://www.googleapis.com/auth/firebase.messaging']
         )
         creds.refresh(google.auth.transport.requests.Request())
+        _firebase_creds_cache.update({'creds': creds, 'project_id': project_id, 'expires_at': now + 3000})
         return creds, project_id
     except Exception as e2:
         raise ValueError(
@@ -6172,13 +6180,19 @@ def send_push_notification(user_id, title, body, data=None):
         payload = {
             'message': {
                 'token': token,
-                'notification': {'title': title or ' ', 'body': body or ' '}
+                'notification': {'title': title or ' ', 'body': body or ' '},
+                'webpush': {
+                    'notification': {
+                        'icon': 'https://app.sharppicks.ai/icon-192x192.png',
+                        'badge': 'https://app.sharppicks.ai/favicon-32x32.png',
+                    }
+                },
             }
         }
         if data:
             payload['message']['data'] = {str(k): str(v) for k, v in data.items()}
         try:
-            resp = http_requests.post(url, json=payload, headers=headers, timeout=10)
+            resp = http_requests.post(url, json=payload, headers=headers, timeout=5)
             if resp.status_code == 200:
                 sent += 1
             elif resp.status_code in (404, 410):

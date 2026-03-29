@@ -59,6 +59,8 @@ async function requestNativePush() {
     return null;
   }
 
+  await PushNotifications.removeAllListeners();
+
   return new Promise((resolve) => {
     PushNotifications.addListener('registration', async (token) => {
       console.log("[Push] native token:", token.value.substring(0, 20) + "...");
