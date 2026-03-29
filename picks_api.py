@@ -991,8 +991,8 @@ def market_view():
             'spread_h1_home': r['spread_h1_home'] if sport != 'mlb' else None,
             'spread_h1_away': r['spread_h1_away'] if sport != 'mlb' else None,
             'total_h1': r['total_h1'] if sport != 'mlb' else None,
-            'home_record': r['home_record'],
-            'away_record': r['away_record'],
+            'home_record': r['home_record'] if r['home_record'] and r['home_record'] != 'N/A' else None,
+            'away_record': r['away_record'] if r['away_record'] and r['away_record'] != 'N/A' else None,
             'home_score': r['home_score'],
             'away_score': r['away_score'],
             'snapshots': line_snapshots.get(key, []),
@@ -1068,11 +1068,18 @@ def market_view():
     return jsonify({'games': games, 'date': active_date, 'count': len(games)})
 
 
+_live_scores_cache = {}
+
 @picks_bp.route('/live-scores')
 def live_scores():
     """Poll ESPN scoreboard for live game data (scores, quarter, clock)."""
+    import time as _time
     import requests as http_requests
     sport = request.args.get('sport', 'nba')
+
+    cached = _live_scores_cache.get(sport)
+    if cached and (_time.time() - cached['ts']) < 10:
+        return jsonify({'scores': cached['scores']})
 
     espn_sport_paths = {
         'nba': 'basketball/nba',
@@ -1086,6 +1093,8 @@ def live_scores():
         resp.raise_for_status()
         data = resp.json()
     except Exception:
+        if cached:
+            return jsonify({'scores': cached['scores']})
         return jsonify({'scores': [], 'error': 'ESPN unavailable'})
 
     scores = []
@@ -1110,6 +1119,11 @@ def live_scores():
         home_name = home.get('team', {}).get('displayName', '')
         away_name = away.get('team', {}).get('displayName', '')
 
+        home_records = home.get('records', [])
+        away_records = away.get('records', [])
+        home_record = next((r.get('summary') for r in home_records if r.get('type') == 'total'), None)
+        away_record = next((r.get('summary') for r in away_records if r.get('type') == 'total'), None)
+
         scores.append({
             'home': home_name,
             'away': away_name,
@@ -1118,8 +1132,11 @@ def live_scores():
             'clock': clock,
             'period': period,
             'state': state,
+            'home_record': home_record,
+            'away_record': away_record,
         })
 
+    _live_scores_cache[sport] = {'scores': scores, 'ts': _time.time()}
     return jsonify({'scores': scores})
 
 

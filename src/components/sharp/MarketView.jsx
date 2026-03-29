@@ -6,6 +6,7 @@ import { useSport, sportQuery } from '../../hooks/useSport';
 import PullToRefresh from '../shared/PullToRefresh';
 import DailyMarketReport from './DailyMarketReport';
 import { trackEvent } from '../../utils/eventTracker';
+import teamAbbr from '../../utils/teamAbbr';
 
 const PROD_URL = 'https://app.sharppicks.ai';
 const MV_API_BASE = Capacitor.isNativePlatform() ? PROD_URL : '';
@@ -821,8 +822,8 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
     : isFinal ? `3px solid ${grayBorder}`
     : `3px solid #1e3050`;
 
-  const awayAbbr = (game.away || '').split(' ').pop()?.substring(0, 3).toUpperCase() || game.away;
-  const homeAbbr = (game.home || '').split(' ').pop()?.substring(0, 3).toUpperCase() || game.home;
+  const awayAbbr = teamAbbr(game.away);
+  const homeAbbr = teamAbbr(game.home);
 
   return (
     <div style={{
@@ -844,12 +845,12 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
             {/* Away team */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
               <span style={{ fontFamily: sans, fontSize: '13px', fontWeight: 600, color: textPrimary }}>{game.away}</span>
-              {game.away_record && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.away_record}</span>}
+              {game.away_record && game.away_record !== 'N/A' && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.away_record}</span>}
             </div>
             {/* Home team */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
               <span style={{ fontFamily: sans, fontSize: '13px', fontWeight: 600, color: textPrimary }}>{game.home}</span>
-              {game.home_record && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.home_record}</span>}
+              {game.home_record && game.home_record !== 'N/A' && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.home_record}</span>}
             </div>
             {/* Game time (scheduled only) */}
             {!isLive && !isFinal && (
@@ -924,7 +925,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
               }} />
               <span style={{ fontFamily: mono, fontSize: '10px', color: brandGreen, fontWeight: 600, letterSpacing: '0.5px' }}>
                 {game.current_period || (game.live_period ? (sport === 'mlb' ? `Inn ${game.live_period}` : (game.live_period <= 4 ? `Q${game.live_period}` : `OT${game.live_period - 4}`)) : '')}
-                {(game.game_clock || game.live_clock) ? ` · ${game.game_clock || game.live_clock}` : ''}
+                {sport !== 'mlb' && (game.game_clock || game.live_clock) ? ` · ${game.game_clock || game.live_clock}` : ''}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1220,7 +1221,7 @@ function LiveBadge({ state, period, clock, sport }) {
           width: 4, height: 4, borderRadius: '50%',
           background: '#ef4444', animation: 'pulse 2s infinite',
         }} />
-        {periodLabel} {clock}
+        {periodLabel}{sport !== 'mlb' && clock ? ` ${clock}` : ''}
       </span>
     );
   }
@@ -1424,9 +1425,12 @@ export default function MarketView({ onBack }) {
         if (!live) return g;
         const isLive = live.state === 'STATUS_IN_PROGRESS' || live.state === 'STATUS_HALFTIME';
         const isFinal = live.state === 'STATUS_FINAL';
-        if (!isLive && !isFinal) return g;
+        const updated = { ...g };
+        if (live.home_record && (!g.home_record || g.home_record === 'N/A')) updated.home_record = live.home_record;
+        if (live.away_record && (!g.away_record || g.away_record === 'N/A')) updated.away_record = live.away_record;
+        if (!isLive && !isFinal) return updated;
         return {
-          ...g,
+          ...updated,
           home_score: live.home_score,
           away_score: live.away_score,
           status: isFinal ? 'final' : 'live',
@@ -1447,7 +1451,7 @@ export default function MarketView({ onBack }) {
 
   useEffect(() => {
     if (!hasLive) return;
-    const interval = setInterval(fetchLiveScores, 60000);
+    const interval = setInterval(fetchLiveScores, 15000);
     return () => clearInterval(interval);
   }, [hasLive, fetchLiveScores]);
 

@@ -3320,7 +3320,7 @@ def collect_wnba_odds():
 MLB_TEAM_ABBR_MAP = {
     'Arizona Diamondbacks': 'ARI', 'Atlanta Braves': 'ATL',
     'Baltimore Orioles': 'BAL', 'Boston Red Sox': 'BOS',
-    'Chicago Cubs': 'CHC', 'Chicago White Sox': 'CHW',
+    'Chicago Cubs': 'CHC', 'Chicago White Sox': 'CWS',
     'Cincinnati Reds': 'CIN', 'Cleveland Guardians': 'CLE',
     'Colorado Rockies': 'COL', 'Detroit Tigers': 'DET',
     'Houston Astros': 'HOU', 'Kansas City Royals': 'KC',

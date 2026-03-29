@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { apiPost, apiDelete, getAuthToken } from '../../hooks/useApi';
 import { trackEvent } from '../../utils/eventTracker';
+import teamAbbr from '../../utils/teamAbbr';
 
 const green = '#5A9E72';
 const greenDim = '#5A9E72';
@@ -12,6 +13,7 @@ const bgInner = '#131f36';
 const textSec = '#9EAAB8';
 const textDim = '#7A8494';
 const textLabel = '#8899AA';
+
 
 function fmtGameTime(startTime, gameDate) {
   if (startTime && startTime.includes('T')) {
@@ -168,7 +170,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
         <div style={{
           fontFamily: mono, fontSize: '10px', color: textDim, marginBottom: '12px',
         }}>
-          {fmtGameTime(pick.start_time, pick.game_date) && `Tip ${fmtGameTime(pick.start_time, pick.game_date)}`}
+          {fmtGameTime(pick.start_time, pick.game_date) && `${(pick.sport || 'nba').toLowerCase() === 'mlb' ? 'First pitch' : 'Tip'} ${fmtGameTime(pick.start_time, pick.game_date)}`}
         </div>
         <div style={{
           background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)',
@@ -272,7 +274,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
         }}>
           <span>{gameFmt}{pick.market_odds != null ? ` · ${pick.market_odds}` : ''}</span>
           {!settled && !isRevoked && !liveScore && pick.start_time && (
-            <CountdownPill startTime={pick.start_time} />
+            <CountdownPill startTime={pick.start_time} sport={pick.sport} />
           )}
         </div>
 
@@ -502,7 +504,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ ...labelStyle, marginBottom: 0 }}>Tipoff</span>
+                <span style={{ ...labelStyle, marginBottom: 0 }}>{(pick.sport || 'nba').toLowerCase() === 'mlb' ? 'First Pitch' : 'Tipoff'}</span>
                 <span style={{ fontFamily: mono, fontSize: '14px', fontWeight: 600, color: textSec }}>
                   {gameFmt || '--'}
                 </span>
@@ -652,13 +654,16 @@ function StatCell({ label, value, valueColor }) {
 function LiveBarBlock({ liveScore, pick }) {
   const isFinal = liveScore.state === 'STATUS_FINAL';
   const isLive = !isFinal;
-  const awayAbbr = (pick.away_team || '').split(' ').pop()?.substring(0, 3).toUpperCase() || 'AWY';
-  const homeAbbr = (pick.home_team || '').split(' ').pop()?.substring(0, 3).toUpperCase() || 'HME';
+  const awayAbbr = teamAbbr(pick.away_team);
+  const homeAbbr = teamAbbr(pick.home_team);
 
+  const sport = (pick.sport || 'nba').toLowerCase();
   const periodDisplay = liveScore.period
-    ? (liveScore.period <= 4 ? `Q${liveScore.period}` : `OT${liveScore.period - 4}`)
+    ? sport === 'mlb'
+      ? `Inn ${liveScore.period}`
+      : (liveScore.period <= 4 ? `Q${liveScore.period}` : `OT${liveScore.period - 4}`)
     : '';
-  const clockDisplay = liveScore.clock || '';
+  const clockDisplay = sport === 'mlb' ? '' : (liveScore.clock || '');
 
   return (
     <div style={{ marginBottom: 10 }}>
@@ -714,7 +719,8 @@ function CoverTracker({ pick, liveScore }) {
   const marginAbs = Math.abs(adjustedMargin).toFixed(1);
   const statusColor = covering ? '#5A9E72' : '#C4686B';
 
-  const sideAbbr = sideStr.match(/^(.*?)(\s[+-]?\d+)/)?.[1]?.split(' ').pop() || sideStr.split(' ')[0];
+  const sideTeamName = sideStr.match(/^(.*?)(\s[+-]?\d+)/)?.[1] || sideStr.split(' ').slice(0, -1).join(' ');
+  const sideAbbr = teamAbbr(sideTeamName) || sideStr.split(' ')[0];
   const spreadStr = spread > 0 ? `+${spread}` : `${spread}`;
 
   const barFill = Math.min(100, Math.max(5, (Math.abs(adjustedMargin) / (Math.abs(spread) + 10)) * 100));
@@ -758,9 +764,10 @@ function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, set
   if (isRevoked) return null;
 
   const sideStr = pick.side || '';
-  const sideAbbr = sideStr.match(/^(.*?)(\s[+-]?\d+)/)?.[1]?.split(' ').pop()?.toUpperCase() || sideStr.split(' ')[0]?.toUpperCase() || '';
+  const sideTeamFull = sideStr.match(/^(.*?)(\s[+-]?\d+)/)?.[1] || sideStr.split(' ').slice(0, -1).join(' ');
+  const sideAbbrTB = teamAbbr(sideTeamFull);
   const spreadPart = pick.line != null ? (pick.line > 0 ? `+${pick.line}` : `${pick.line}`) : '';
-  const shortSide = `${sideAbbr} ${spreadPart}`.trim();
+  const shortSide = `${sideAbbrTB} ${spreadPart}`.trim();
   const units = flatStake ?? '1.0';
 
   if (settled && tracked) {
@@ -846,30 +853,32 @@ function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, set
   );
 }
 
-function CountdownPill({ startTime }) {
+function CountdownPill({ startTime, sport }) {
   const [label, setLabel] = useState('');
+  const isMLB = (sport || 'nba').toLowerCase() === 'mlb';
   useEffect(() => {
     function calc() {
       if (!startTime || !startTime.includes('T')) { setLabel(''); return; }
-      const tip = new Date(startTime);
-      if (isNaN(tip.getTime())) { setLabel(''); return; }
-      const diff = tip - Date.now();
+      const start = new Date(startTime);
+      if (isNaN(start.getTime())) { setLabel(''); return; }
+      const diff = start - Date.now();
       if (diff <= 0) { setLabel(''); return; }
       const mins = Math.floor(diff / 60000);
       const hrs = Math.floor(mins / 60);
       const remMins = mins % 60;
-      if (mins < 5) setLabel('Tips soon');
-      else if (hrs < 1) setLabel(`Tips in ${mins}m`);
-      else if (hrs < 24) setLabel(`Tips in ${hrs}h ${remMins}m`);
-      else setLabel('Tips tomorrow');
+      const verb = isMLB ? 'First pitch' : 'Tips';
+      if (mins < 5) setLabel(`${verb} soon`);
+      else if (hrs < 1) setLabel(`${verb} in ${mins}m`);
+      else if (hrs < 24) setLabel(`${verb} in ${hrs}h ${remMins}m`);
+      else setLabel(isMLB ? 'Tomorrow' : 'Tips tomorrow');
     }
     calc();
     const id = setInterval(calc, 60000);
     return () => clearInterval(id);
-  }, [startTime]);
+  }, [startTime, isMLB]);
 
   if (!label) return null;
-  const isSoon = label === 'Tips soon';
+  const isSoon = label.endsWith('soon');
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center',

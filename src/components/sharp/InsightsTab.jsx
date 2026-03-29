@@ -148,11 +148,8 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
           <EmptyInsights />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {activeCategory === 'all' && <StartHereCard onTap={() => {
-              const guide = insights.find(i => i.slug === 'beginners-guide')
-                || insights.find(i => i.slug === 'the-sharp-manifesto')
-                || insights.find(i => i.category === 'philosophy')
-                || insights[0];
+            {(activeCategory === 'all' || activeCategory === 'how_it_works') && <StartHereCard onTap={() => {
+              const guide = insights.find(i => i.slug === 'beginners-guide');
               if (guide) selectAndTrack(guide);
             }} />}
             {insights.map(insight => (
@@ -259,6 +256,17 @@ function InsightCard({ insight, onTap }) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+        {insight.slug === 'beginners-guide' && (
+          <span style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '10px', fontWeight: 700,
+            letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: '#5A9E72',
+            backgroundColor: 'rgba(90,158,114,0.12)',
+            border: '1px solid rgba(90,158,114,0.2)',
+            padding: '3px 8px', borderRadius: '4px',
+          }}>Start Here</span>
+        )}
         <span style={{
           fontFamily: 'var(--font-mono)',
           fontSize: '10px', fontWeight: 600,
@@ -566,6 +574,65 @@ function StatItem({ value, label, isLast }) {
   );
 }
 
+function JournalTermCard({ name, definition }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      onClick={() => setOpen(!open)}
+      style={{
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 10, padding: '14px 18px', margin: '8px 0',
+        cursor: 'pointer', transition: 'border-color 0.2s ease',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{
+          fontFamily: "'JetBrains Mono', monospace", fontSize: 14,
+          fontWeight: 600, color: '#5A9E72',
+        }}>{name}</span>
+        <span style={{
+          fontSize: 10, color: 'rgba(232,234,237,0.3)',
+          transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+          transition: 'transform 0.2s ease',
+        }}>▼</span>
+      </div>
+      <div style={{
+        fontSize: 14, color: 'rgba(232,234,237,0.5)', lineHeight: 1.6,
+        marginTop: open ? 8 : 0,
+        maxHeight: open ? 200 : 0, overflow: 'hidden',
+        transition: 'max-height 0.3s ease, margin-top 0.2s ease',
+      }}>
+        {parseInlineMarkdown(definition)}
+      </div>
+    </div>
+  );
+}
+
+function JournalScreenshotPlaceholder({ tabName, description }) {
+  return (
+    <div style={{
+      margin: '20px 0', borderRadius: 12,
+      border: '1px dashed rgba(90,158,114,0.2)',
+      padding: '40px 20px', textAlign: 'center',
+      background: 'rgba(90,158,114,0.03)',
+    }}>
+      <div style={{
+        fontFamily: "'JetBrains Mono', monospace", fontSize: 14,
+        fontWeight: 500, color: '#5A9E72', marginBottom: 8,
+      }}>{tabName}</div>
+      <div style={{ fontSize: 13, color: 'rgba(232,234,237,0.35)' }}>{description}</div>
+    </div>
+  );
+}
+
+const SCREENSHOT_META = {
+  signals: { name: 'Signals Tab', desc: 'Your daily dashboard with live signal, edge %, and tier badge' },
+  market: { name: 'Market Tab', desc: 'Full slate overview with MEI score, edges, and model vs. market deltas' },
+  results: { name: 'Results Tab', desc: 'Personal scoreboard with equity curve and discipline score' },
+  insights: { name: 'Insights Tab', desc: 'Sharp Journal articles organized by category' },
+};
+
 function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNavigate }) {
   const scrollRef = useRef(null);
   const contentRef = useRef(null);
@@ -662,14 +729,28 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
           <MarketNoteContent insight={insight} />
         ) : (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              {insight.slug === 'beginners-guide' && (
+                <span style={{
+                  display: 'inline-block',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '11px', fontWeight: 700,
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  color: '#E8EAED',
+                  backgroundColor: 'rgba(90,158,114,0.25)',
+                  border: '1px solid rgba(90,158,114,0.35)',
+                  padding: '4px 12px', borderRadius: '5px',
+                }}>Start Here</span>
+              )}
               <span style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '10px', fontWeight: 600,
-                letterSpacing: '0.05em', textTransform: 'uppercase',
-                color: 'var(--blue-primary)',
-                backgroundColor: 'rgba(79, 134, 247, 0.1)',
-                padding: '3px 8px', borderRadius: '4px',
+                display: 'inline-block',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '11px', fontWeight: 600,
+                letterSpacing: '0.12em', textTransform: 'uppercase',
+                color: '#5A9E72',
+                backgroundColor: 'rgba(90,158,114,0.12)',
+                border: '1px solid rgba(90,158,114,0.2)',
+                padding: '4px 12px', borderRadius: '5px',
               }}>
                 {CATEGORY_LABELS[insight.category] || insight.category}
               </span>
@@ -716,9 +797,79 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
               letterSpacing: '0.01em',
             }}>
               {paragraphs.map((p, i) => {
-                if (p.trim() === '---') {
-                  return <div key={i} style={{ margin: '24px 0', borderTop: '1px solid var(--stroke-subtle)' }} />;
+                const trimmed = p.trim();
+                const isHowItWorks = insight.category === 'how_it_works' || insight.story_type === 'how_it_works';
+                const isGlossarySection = isHowItWorks && /^## Key Concepts/.test(trimmed);
+
+                if (trimmed === '---') {
+                  return (
+                    <div key={i} style={{
+                      border: 'none', height: 1, margin: '32px 0',
+                      background: 'linear-gradient(to right, transparent, rgba(90,158,114,0.3), transparent)',
+                    }} />
+                  );
                 }
+
+                if (/^\[screenshot:\s*(.+?)\]$/.test(trimmed)) {
+                  const id = trimmed.match(/^\[screenshot:\s*(.+?)\]$/)[1].toLowerCase();
+                  const meta = SCREENSHOT_META[id];
+                  if (meta) return <JournalScreenshotPlaceholder key={i} tabName={meta.name} description={meta.desc} />;
+                  return null;
+                }
+
+                if (/^\[term:\s*(.+?)\]\s*([\s\S]*)/.test(trimmed)) {
+                  const m = trimmed.match(/^\[term:\s*(.+?)\]\s*([\s\S]*)/);
+                  return <JournalTermCard key={i} name={m[1]} definition={m[2].trim()} />;
+                }
+
+                if (isHowItWorks && isGlossarySection) {
+                  return (
+                    <h2 key={i} style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: '18px', fontWeight: 600,
+                      color: 'var(--text-primary)',
+                      margin: '36px 0 16px',
+                      paddingTop: 24,
+                      borderTop: '1px solid rgba(90,158,114,0.15)',
+                    }}>
+                      {parseInlineMarkdown(trimmed.replace('## ', ''))}
+                    </h2>
+                  );
+                }
+
+                if (isHowItWorks && /^\*\*(.+?):\*\*\s(.+)/.test(trimmed)) {
+                  const inGlossary = paragraphs.slice(0, i).some(pp => /^## Key Concepts/.test(pp.trim()));
+                  if (inGlossary) {
+                    const m = trimmed.match(/^\*\*(.+?):\*\*\s([\s\S]+)/);
+                    return <JournalTermCard key={i} name={m[1]} definition={m[2].trim()} />;
+                  }
+                }
+
+                const tabMatch = trimmed.match(/^## (\d+)\.\s+(.+)/);
+                if (isHowItWorks && tabMatch) {
+                  return (
+                    <div key={i} style={{
+                      borderTop: '1px solid rgba(90,158,114,0.15)',
+                      paddingTop: 24, marginTop: 32,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                        <div style={{
+                          width: 28, height: 28, borderRadius: 8,
+                          background: 'rgba(90,158,114,0.1)', color: '#5A9E72',
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontSize: 13, fontWeight: 600,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>{tabMatch[1]}</div>
+                        <span style={{
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontSize: 18, fontWeight: 600,
+                          color: '#E8EAED',
+                        }}>{tabMatch[2]}</span>
+                      </div>
+                    </div>
+                  );
+                }
+
                 if (p.startsWith('## ')) {
                   return (
                     <h2 key={i} style={{
@@ -731,14 +882,27 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                     </h2>
                   );
                 }
+
                 if (p.startsWith('> ')) {
                   const quoteText = p.split('\n').map(line => line.replace(/^>\s*/, '')).join('\n');
                   const labelMatch = quoteText.match(/^\*\*(.+?)\*\*\n?([\s\S]*)/);
                   if (labelMatch) {
                     return <SharpPrincipleBlock key={i} label={labelMatch[1]} text={labelMatch[2].trim()} />;
                   }
-                  return <SharpPrincipleBlock key={i} text={quoteText} />;
+                  return (
+                    <div key={i} style={{
+                      borderLeft: '2px solid rgba(90,158,114,0.4)',
+                      padding: '16px 20px', margin: '24px 0',
+                      fontSize: 15, color: 'rgba(232,234,237,0.55)',
+                      lineHeight: 1.6,
+                      fontFamily: "'IBM Plex Serif', Georgia, serif",
+                      fontStyle: 'italic',
+                    }}>
+                      {parseInlineMarkdown(quoteText)}
+                    </div>
+                  );
                 }
+
                 if (p.startsWith('– ') || p.startsWith('— ')) {
                   if (/Evan\s*Cole/i.test(p)) return null;
                   return (
@@ -748,38 +912,30 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                         borderTop: '1px solid var(--stroke-subtle)',
                       }} />
                       <p style={{
-                        margin: '0',
-                        fontSize: '14px',
-                        fontWeight: 600,
+                        margin: '0', fontSize: '14px', fontWeight: 600,
                         color: 'var(--text-primary)',
-                        fontFamily: 'var(--font-serif)',
-                        fontStyle: 'italic',
+                        fontFamily: 'var(--font-serif)', fontStyle: 'italic',
                       }}>
                         {parseInlineMarkdown(p)}
                       </p>
                     </div>
                   );
                 }
-                const trimmed = p.trim();
-                if (/^\*[A-Z][a-z]+(\s+[A-Z][a-z]+)*\*$/.test(trimmed)) {
-                  return null;
-                }
-                if (/^\*?[-–—]?\s*Evan\s*Cole/i.test(trimmed) || /^Evan Cole/i.test(trimmed) || /^Founder,?\s*Sharp\s*Picks$/i.test(trimmed)) {
-                  return null;
-                }
+
+                if (/^\*[A-Z][a-z]+(\s+[A-Z][a-z]+)*\*$/.test(trimmed)) return null;
+                if (/^\*?[-–—]?\s*Evan\s*Cole/i.test(trimmed) || /^Evan Cole/i.test(trimmed) || /^Founder,?\s*Sharp\s*Picks$/i.test(trimmed)) return null;
+
                 const isClosingPunch = p === 'Discipline compounds. Impulse erodes.' ||
                   p === 'Fewer bets. Higher quality.\nThat is how ROI survives.' ||
                   p === 'Short term streaks are noise.\nLong term expectancy is signal.' ||
                   p === 'Survival is step one.\nCompounding is step two.';
                 if (isClosingPunch) {
                   return <p key={i} style={{
-                    margin: '4px 0 16px',
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    lineHeight: '1.7',
+                    margin: '4px 0 16px', fontSize: '16px', fontWeight: 600,
+                    color: 'var(--text-primary)', lineHeight: '1.7',
                   }}>{parseInlineMarkdown(p)}</p>;
                 }
+
                 return <p key={i} style={{ margin: '0 0 20px' }}>{parseInlineMarkdown(p)}</p>;
               })}
             </div>
@@ -876,24 +1032,35 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
 function parseInlineMarkdown(text) {
   if (!text) return text;
   const parts = [];
-  let remaining = text;
   let key = 0;
-  const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)/g;
+  const regex = /(\[stat:\s*(.+?)\s*\/\s*(.+?)\])|(\*\*(.+?)\*\*)|(\*(.+?)\*)/g;
   let lastIndex = 0;
   let match;
-  while ((match = regex.exec(remaining)) !== null) {
+  while ((match = regex.exec(text)) !== null) {
     if (match.index > lastIndex) {
-      parts.push(remaining.slice(lastIndex, match.index));
+      parts.push(text.slice(lastIndex, match.index));
     }
     if (match[1]) {
-      parts.push(<strong key={key++} style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{match[2]}</strong>);
-    } else if (match[3]) {
-      parts.push(<em key={key++} style={{ fontStyle: 'italic' }}>{match[4]}</em>);
+      parts.push(
+        <span key={key++} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          background: 'rgba(255,255,255,0.04)', borderRadius: 8,
+          padding: '6px 14px', fontFamily: "'JetBrains Mono', monospace",
+          margin: '0 4px', verticalAlign: 'middle',
+        }}>
+          <span style={{ fontSize: 16, fontWeight: 600, color: '#5A9E72' }}>{match[2]}</span>
+          <span style={{ fontSize: 12, color: 'rgba(232,234,237,0.4)' }}>{match[3]}</span>
+        </span>
+      );
+    } else if (match[4]) {
+      parts.push(<strong key={key++} style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{match[5]}</strong>);
+    } else if (match[6]) {
+      parts.push(<em key={key++} style={{ fontStyle: 'italic' }}>{match[7]}</em>);
     }
     lastIndex = match.index + match[0].length;
   }
-  if (lastIndex < remaining.length) {
-    parts.push(remaining.slice(lastIndex));
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
   }
   return parts.length > 0 ? parts : text;
 }

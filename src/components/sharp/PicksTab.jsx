@@ -84,9 +84,10 @@ export default function PicksTab({ onNavigate }) {
 
   useEffect(() => {
     fetchLiveForPick();
-    const interval = setInterval(fetchLiveForPick, 60000);
+    const fast = liveScore && (liveScore.state === 'STATUS_IN_PROGRESS' || liveScore.state === 'STATUS_HALFTIME');
+    const interval = setInterval(fetchLiveForPick, fast ? 15000 : 60000);
     return () => clearInterval(interval);
-  }, [fetchLiveForPick]);
+  }, [fetchLiveForPick, liveScore]);
 
   if (loading || authLoading) {
     return <LoadingState />;

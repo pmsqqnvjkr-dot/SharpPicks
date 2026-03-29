@@ -16,7 +16,9 @@ EXCERPT = (
 
 CONTENT = r"""## What Is SharpPicks?
 
-SharpPicks is a sports betting analytics app. It uses a mathematical model to identify games where it believes the betting market — the odds set by sportsbooks — has gotten the number wrong. When the model finds a big enough difference, it generates a **signal**: essentially a recommendation worth considering. It currently covers the NBA (with MLB in beta and WNBA coming soon).
+SharpPicks is a sports betting analytics app. It uses a mathematical model to identify games where it believes the betting market (the odds set by sportsbooks) has gotten the number wrong. When the model finds a big enough difference, it generates a **signal**: essentially a recommendation worth considering. It currently covers the NBA (with MLB in beta and WNBA coming soon).
+
+> A low density number means the model is being very selective.
 
 ---
 
@@ -28,23 +30,25 @@ SharpPicks is a sports betting analytics app. It uses a mathematical model to id
 
 This is your daily dashboard. Here's what you'll see:
 
-**Market Intelligence Banner** — A quick summary of the day's landscape. For example, "9 games · 6 edges · 2 signals · 22% density" means: out of 9 NBA games today, the model found 6 where it disagrees with the market, but only 2 were strong enough to become official signals. The 22% density tells you how active the model is — a low number means it's being very selective.
+[screenshot: signals]
 
-**Outcome Resolved** — This shows the result of the most recent signal. It tells you the pick, the final score, and a brief mindset note (like "No revenge bets. Next signal when the edge is there.") to encourage disciplined thinking.
+**Market Intelligence Banner:** A quick summary of the day's landscape. For example, "9 games · 6 edges · 2 signals · 22% density" means: out of 9 NBA games today, the model found 6 where it disagrees with the market, but only 2 were strong enough to become official signals. The 22% density tells you how active the model is. A low number means it's being very selective.
 
-**Daily Top Signal** — The main event. This is the app's strongest pick for the day. Here's what each piece means:
+**Outcome Resolved:** This shows the result of the most recent signal. It tells you the pick, the final score, and a brief mindset note (like "No revenge bets. Next signal when the edge is there.") to encourage disciplined thinking.
+
+**Daily Top Signal:** The main event. This is the app's strongest pick for the day. Here's what each piece means:
 
 **Team Name + Number (e.g., Oklahoma City Thunder -8.5):** The "-8.5" is the spread. It means the model is recommending OKC, but they need to win by more than 8.5 points for the bet to pay out. A minus spread means the team is favored; a plus spread means they're the underdog.
 
-**+12.8% (Edge):** This is the edge — the percentage difference between where the market has the line and where the model thinks it should be. Bigger = better.
+**+12.8% (Edge):** This is the edge, the percentage difference between where the market has the line and where the model thinks it should be. Bigger = better.
 
-**-105 (Price/Odds):** This tells you the cost of the bet. At -105, you'd risk $105 to win $100. Standard American odds — negative numbers mean you lay more than you win, positive numbers mean you win more than you lay.
+**-105 (Price/Odds):** This tells you the cost of the bet. At -105, you'd risk $105 to win $100. Standard American odds: negative numbers mean you lay more than you win, positive numbers mean you win more than you lay.
 
-**Tips in 6h 13m:** Countdown to game tipoff.
+**Countdown:** Time remaining until game start.
 
 **Market vs. Model:** The market line is -8.5 (what sportsbooks are offering). The model line is -13 (what the model thinks the line should be). That gap is where the value comes from.
 
-**Tier (STR):** Signal strength. "STR" stands for Strong — the model's highest conviction level.
+**Tier (STR):** Signal strength. "STR" stands for Strong, the model's highest conviction level.
 
 **Size (2u):** The recommended bet size in units. A "unit" is your standard bet amount (e.g., if your unit is $50, a 2u bet means $100). This keeps things relative to your bankroll rather than fixed dollar amounts.
 
@@ -52,29 +56,31 @@ This is your daily dashboard. Here's what you'll see:
 
 **Value line ("Playable down to -12"):** If the spread moves, this tells you the worst number at which the bet is still worth taking. If it moves past -12, the value is gone.
 
-**Flat 2u vs. Kelly 5u:** Two bet-sizing strategies. "Flat" means bet the same amount every time (the conservative approach). "Kelly" is a mathematical formula that sizes bets proportional to the edge — higher confidence = bigger bet. The Kelly suggestion of 5u is more aggressive.
+**Flat 2u vs. Kelly 5u:** Two bet-sizing strategies. "Flat" means bet the same amount every time (the conservative approach). "Kelly" is a mathematical formula that sizes bets proportional to the edge: higher confidence = bigger bet. The Kelly suggestion of 5u is more aggressive.
 
 **Tracking button:** Tap this to log the bet in your personal tracker so you can follow your results.
 
-**Season Performance** — A snapshot of the model's overall track record:
+**Season Performance:** A snapshot of the model's overall track record:
 
 **Win Rate:** Percentage of signals that won.
 
-**ROI:** Return on Investment — for every dollar wagered following the signals, you'd be up by that percentage.
+**ROI:** Return on Investment. For every dollar wagered following the signals, you'd be up by that percentage.
 
-**Avg CLV:** Closing Line Value — on average, how much the line moved in the model's direction after the signal was released. This is a key indicator that the model is finding real value.
+**Avg CLV:** Closing Line Value. On average, how much the line moved in the model's direction after the signal was released. This is a key indicator that the model is finding real value.
 
 **Signals:** Total number of picks made this season.
 
 **Units:** Net profit in units across all signals.
 
-**Signal History** — A scrollable list of every past signal with win/loss results, units gained or lost, and CLV for each.
+**Signal History:** A scrollable list of every past signal with win/loss results, units gained or lost, and CLV for each.
 
 ---
 
 ## 2. Market
 
 A deeper look at the day's full slate of games.
+
+[screenshot: market]
 
 **MEI (Market Efficiency Index):** A score from 0-100 measuring how much opportunity the model sees across all games today. Higher = more opportunities.
 
@@ -86,7 +92,7 @@ A deeper look at the day's full slate of games.
 
 **Line Movement:** Shows how the betting line for each game has moved, and whether it's moving toward or away from the model's prediction. "Toward model" is a positive validation sign.
 
-**Model vs. Market Delta:** A ranked list showing the gap between the model's line and the market line for every game. The biggest gaps are at the top — these are where the model sees the most disagreement with the market.
+**Model vs. Market Delta:** A ranked list showing the gap between the model's line and the market line for every game. The biggest gaps are at the top: these are where the model sees the most disagreement with the market.
 
 ---
 
@@ -94,11 +100,13 @@ A deeper look at the day's full slate of games.
 
 Your personal scoreboard.
 
+[screenshot: results]
+
 **Your Results:** Shows your actual profit/loss if you've been tracking bets.
 
 **ROI:** Your personal return on investment across tracked bets.
 
-**Equity Curve:** The line chart showing your profit over time — ideally trending upward.
+**Equity Curve:** The line chart showing your profit over time, ideally trending upward.
 
 **Track a Bet:** Button to manually log a bet you've placed.
 
@@ -114,7 +122,9 @@ Your personal scoreboard.
 
 ## 4. Insights (Sharp Journal)
 
-Educational content and daily commentary from the founder. Articles are tagged by category: **Philosophy** (the thinking behind the approach), **Discipline** (mindset and bankroll management), **Market Notes** (daily analysis), and **How It Works** (technical explanations). There's also a "Sharp Manifesto" — a good starting point that explains the overall philosophy.
+[screenshot: insights]
+
+Educational content and daily commentary from the founder. Articles are tagged by category: **Philosophy** (the thinking behind the approach), **Discipline** (mindset and bankroll management), **Market Notes** (daily analysis), and **How It Works** (technical explanations).
 
 ---
 
@@ -126,13 +136,13 @@ Your personal settings and subscription management.
 
 ## Key Concepts Glossary
 
-**Spread:** The number of points a team is expected to win or lose by. Betting the spread means you're not just picking a winner — you're picking whether a team will win by more (or lose by less) than the number.
+**Spread:** The number of points a team is expected to win or lose by. Betting the spread means you're not just picking a winner, you're picking whether a team will win by more (or lose by less) than the number.
 
 **Edge:** The difference between what the model predicts and what the market offers. A bigger edge means more potential value.
 
 **Unit (u):** A standardized bet size relative to your bankroll. Most people set 1 unit at 1-2% of their total bankroll.
 
-**CLV (Closing Line Value):** How much the line moved in your favor between when you placed the bet and when it closed. Consistently beating the closing line is the gold standard of sharp betting — it means you're getting better numbers than the final market price.
+**CLV (Closing Line Value):** How much the line moved in your favor between when you placed the bet and when it closed. Consistently beating the closing line is the gold standard of sharp betting: it means you're getting better numbers than the final market price.
 
 **ROI (Return on Investment):** Your profit as a percentage of total money wagered.
 
