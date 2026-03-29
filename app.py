@@ -4011,7 +4011,12 @@ def cron_run_model():
         try:
             from nba_ratings import update_ratings
             if 'nba' in get_live_sports():
-                update_ratings()
+                import threading
+                ratings_thread = threading.Thread(target=update_ratings)
+                ratings_thread.start()
+                ratings_thread.join(timeout=20)
+                if ratings_thread.is_alive():
+                    print("[model-run] Ratings refresh timed out after 20s — continuing")
         except Exception as e:
             print(f"[model-run] Ratings refresh failed (non-fatal): {e}")
         results = {}

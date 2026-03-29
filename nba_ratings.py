@@ -46,7 +46,7 @@ def _espn_team_name(nba_name):
     return NBA_TO_ESPN_NAME.get(nba_name, nba_name)
 
 
-def create_retry_session(max_retries=3, backoff_factor=2):
+def create_retry_session(max_retries=2, backoff_factor=1):
     """Create requests session with retry logic and exponential backoff"""
     session = requests.Session()
     retry = Retry(
@@ -162,9 +162,9 @@ def fetch_team_stats(season='2025-26'):
     }
     
     try:
-        session = create_retry_session(max_retries=3, backoff_factor=2)
-        print(f"   🔄 Connecting with retry logic (3 attempts, exponential backoff)...")
-        response = session.get(url, headers=NBA_STATS_HEADERS, params=params, timeout=30)
+        session = create_retry_session(max_retries=2, backoff_factor=1)
+        print(f"   🔄 Connecting with retry logic (2 attempts, exponential backoff)...")
+        response = session.get(url, headers=NBA_STATS_HEADERS, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
         
