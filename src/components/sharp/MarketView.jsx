@@ -7,6 +7,7 @@ import PullToRefresh from '../shared/PullToRefresh';
 import DailyMarketReport from './DailyMarketReport';
 import { trackEvent } from '../../utils/eventTracker';
 import teamAbbr from '../../utils/teamAbbr';
+import sportDisplay from '../../utils/sportDisplay';
 
 const PROD_URL = 'https://app.sharppicks.ai';
 const MV_API_BASE = Capacitor.isNativePlatform() ? PROD_URL : '';
@@ -924,8 +925,8 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
                 animation: 'pulse 2s ease-in-out infinite',
               }} />
               <span style={{ fontFamily: mono, fontSize: '10px', color: brandGreen, fontWeight: 600, letterSpacing: '0.5px' }}>
-                {game.current_period || (game.live_period ? (sport === 'mlb' ? `Inn ${game.live_period}` : (game.live_period <= 4 ? `Q${game.live_period}` : `OT${game.live_period - 4}`)) : '')}
-                {sport !== 'mlb' && (game.game_clock || game.live_clock) ? ` · ${game.game_clock || game.live_clock}` : ''}
+                {game.current_period || sportDisplay(sport).periodLabel(game.live_period)}
+                {sportDisplay(sport).showClock && (game.game_clock || game.live_clock) ? ` · ${game.game_clock || game.live_clock}` : ''}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -999,7 +1000,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
           {/* Spread */}
           <div style={{ textAlign: 'center', position: 'relative' }}>
             <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>
-              {sport === 'mlb' ? 'RL' : 'Spread'}
+              {sportDisplay(sport).spreadLabel}
             </div>
             <div style={{ fontFamily: mono, fontSize: '13px', fontWeight: 500, color: textSec }}>
               {fmtSpread(game.spread_away)}
@@ -1158,7 +1159,7 @@ const SORT_OPTIONS = [
 
 function SortPicker({ active, onChange, isPro, sport }) {
   const opts = (isPro ? SORT_OPTIONS : SORT_OPTIONS.filter(o => o.key !== 'edge')).map(o =>
-    o.key === 'spread' && sport === 'mlb' ? { ...o, label: 'RL' } : o
+    o.key === 'spread' ? { ...o, label: sportDisplay(sport).spreadLabel } : o
   );
   return (
     <div style={{ display: 'flex', gap: 6 }}>
@@ -1199,6 +1200,7 @@ function normalizeTeam(name) {
 }
 
 function LiveBadge({ state, period, clock, sport }) {
+  const cfg = sportDisplay(sport);
   if (state === 'STATUS_FINAL') {
     return (
       <span style={{
@@ -1209,7 +1211,6 @@ function LiveBadge({ state, period, clock, sport }) {
     );
   }
   if (state === 'STATUS_IN_PROGRESS') {
-    const periodLabel = sport === 'mlb' ? `Inn ${period}` : (period <= 4 ? `Q${period}` : `OT${period - 4}`);
     return (
       <span style={{
         fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
@@ -1221,7 +1222,7 @@ function LiveBadge({ state, period, clock, sport }) {
           width: 4, height: 4, borderRadius: '50%',
           background: '#ef4444', animation: 'pulse 2s infinite',
         }} />
-        {periodLabel}{sport !== 'mlb' && clock ? ` ${clock}` : ''}
+        {cfg.periodLabel(period)}{cfg.showClock && clock ? ` ${clock}` : ''}
       </span>
     );
   }
@@ -1231,7 +1232,7 @@ function LiveBadge({ state, period, clock, sport }) {
         fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
         padding: '1px 5px', borderRadius: 3,
         background: 'rgba(251,191,36,0.12)', color: '#f59e0b',
-      }}>{sport === 'mlb' ? 'BREAK' : 'HALF'}</span>
+      }}>{cfg.halftimeLabel}</span>
     );
   }
   return null;
@@ -1275,7 +1276,7 @@ function TableView({ games, isPro, onLineHistory, sport }) {
           <thead>
             <tr>
               <th style={{ ...thStyle, textAlign: 'left', minWidth: 120 }}>Game</th>
-              <th style={thStyle}>{sport === 'mlb' ? 'RL' : 'Spread'}</th>
+              <th style={thStyle}>{sportDisplay(sport).spreadLabel}</th>
               <th style={thStyle}>Total</th>
               <th style={thStyle}>ML</th>
               {isPro && <th style={thStyle}>Edge</th>}

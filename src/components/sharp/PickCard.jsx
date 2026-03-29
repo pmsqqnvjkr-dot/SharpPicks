@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { apiPost, apiDelete, getAuthToken } from '../../hooks/useApi';
 import { trackEvent } from '../../utils/eventTracker';
 import teamAbbr from '../../utils/teamAbbr';
+import sportDisplay from '../../utils/sportDisplay';
 
 const green = '#5A9E72';
 const greenDim = '#5A9E72';
@@ -170,7 +171,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
         <div style={{
           fontFamily: mono, fontSize: '10px', color: textDim, marginBottom: '12px',
         }}>
-          {fmtGameTime(pick.start_time, pick.game_date) && `${(pick.sport || 'nba').toLowerCase() === 'mlb' ? 'First pitch' : 'Tip'} ${fmtGameTime(pick.start_time, pick.game_date)}`}
+          {fmtGameTime(pick.start_time, pick.game_date) && `${sportDisplay(pick.sport).tipLabel} ${fmtGameTime(pick.start_time, pick.game_date)}`}
         </div>
         <div style={{
           background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)',
@@ -504,7 +505,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ ...labelStyle, marginBottom: 0 }}>{(pick.sport || 'nba').toLowerCase() === 'mlb' ? 'First Pitch' : 'Tipoff'}</span>
+                <span style={{ ...labelStyle, marginBottom: 0 }}>{sportDisplay(pick.sport).tipoffLabel}</span>
                 <span style={{ fontFamily: mono, fontSize: '14px', fontWeight: 600, color: textSec }}>
                   {gameFmt || '--'}
                 </span>
@@ -657,13 +658,9 @@ function LiveBarBlock({ liveScore, pick }) {
   const awayAbbr = teamAbbr(pick.away_team);
   const homeAbbr = teamAbbr(pick.home_team);
 
-  const sport = (pick.sport || 'nba').toLowerCase();
-  const periodDisplay = liveScore.period
-    ? sport === 'mlb'
-      ? `Inn ${liveScore.period}`
-      : (liveScore.period <= 4 ? `Q${liveScore.period}` : `OT${liveScore.period - 4}`)
-    : '';
-  const clockDisplay = sport === 'mlb' ? '' : (liveScore.clock || '');
+  const cfg = sportDisplay(pick.sport);
+  const periodDisplay = cfg.periodLabel(liveScore.period);
+  const clockDisplay = cfg.showClock ? (liveScore.clock || '') : '';
 
   return (
     <div style={{ marginBottom: 10 }}>
@@ -855,7 +852,7 @@ function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, set
 
 function CountdownPill({ startTime, sport }) {
   const [label, setLabel] = useState('');
-  const isMLB = (sport || 'nba').toLowerCase() === 'mlb';
+  const cfg = sportDisplay(sport);
   useEffect(() => {
     function calc() {
       if (!startTime || !startTime.includes('T')) { setLabel(''); return; }
@@ -866,16 +863,15 @@ function CountdownPill({ startTime, sport }) {
       const mins = Math.floor(diff / 60000);
       const hrs = Math.floor(mins / 60);
       const remMins = mins % 60;
-      const verb = isMLB ? 'First pitch' : 'Tips';
-      if (mins < 5) setLabel(`${verb} soon`);
-      else if (hrs < 1) setLabel(`${verb} in ${mins}m`);
-      else if (hrs < 24) setLabel(`${verb} in ${hrs}h ${remMins}m`);
-      else setLabel(isMLB ? 'Tomorrow' : 'Tips tomorrow');
+      if (mins < 5) setLabel(`${cfg.preGameVerb} soon`);
+      else if (hrs < 1) setLabel(`${cfg.preGameVerb} in ${mins}m`);
+      else if (hrs < 24) setLabel(`${cfg.preGameVerb} in ${hrs}h ${remMins}m`);
+      else setLabel(cfg.tomorrowLabel);
     }
     calc();
     const id = setInterval(calc, 60000);
     return () => clearInterval(id);
-  }, [startTime, isMLB]);
+  }, [startTime, cfg]);
 
   if (!label) return null;
   const isSoon = label.endsWith('soon');
