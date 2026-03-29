@@ -149,8 +149,11 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {activeCategory === 'all' && <StartHereCard onTap={() => {
-              const manifesto = insights.find(i => i.slug === 'the-sharp-manifesto') || insights.find(i => i.category === 'philosophy') || insights[0];
-              if (manifesto) selectAndTrack(manifesto);
+              const guide = insights.find(i => i.slug === 'beginners-guide')
+                || insights.find(i => i.slug === 'the-sharp-manifesto')
+                || insights.find(i => i.category === 'philosophy')
+                || insights[0];
+              if (guide) selectAndTrack(guide);
             }} />}
             {insights.map(insight => (
               <InsightCard
@@ -215,13 +218,13 @@ function StartHereCard({ onTap }) {
             fontSize: '16px', fontWeight: 600,
             color: 'var(--text-primary)',
             lineHeight: '1.3',
-          }}>The Sharp Manifesto</div>
+          }}>A Beginner's Guide to SharpPicks</div>
           <div style={{
             fontFamily: 'var(--font-mono)',
             fontSize: '11px',
             color: 'var(--text-secondary)',
             marginTop: '3px',
-          }}>Founder Letter - Evan Cole</div>
+          }}>5 min read &middot; Evan Cole</div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
           <polyline points="9 18 15 12 9 6"/>

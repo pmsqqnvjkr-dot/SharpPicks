@@ -279,10 +279,23 @@ def send_welcome_email(to, first_name=None):
     html = _render('welcome', {
         'firstName': first_name,
         'appUrl': f'{base}/',
+        'guideUrl': 'https://sharppicks.ai/guide.html',
         'unsubscribeUrl': _make_unsub_url(to),
     })
     if not html:
-        body = '''
+        guide_section = '''
+        <div style="margin:24px 0;padding:20px 24px;border:1px solid rgba(90,158,114,0.18);border-radius:10px;background:rgba(90,158,114,0.04);">
+          <p style="font-family:'JetBrains Mono','Courier New',monospace;font-size:13px;color:rgba(232,234,237,0.5);letter-spacing:0.04em;text-transform:uppercase;margin:0 0 8px;">
+            New to sports betting analytics?
+          </p>
+          <p style="font-family:'JetBrains Mono','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);line-height:1.65;margin:0 0 16px;">
+            We wrote a 5-minute guide that explains every number, tab, and metric in the app. No jargon, no assumptions.
+          </p>
+          <a href="https://sharppicks.ai/guide.html" style="display:inline-block;font-family:'JetBrains Mono','Courier New',monospace;font-size:12px;letter-spacing:0.04em;color:#5A9E72;border:1px solid #5A9E72;padding:10px 24px;border-radius:6px;text-decoration:none;text-transform:uppercase;">
+            Read the Beginner&#8217;s Guide
+          </a>
+        </div>'''
+        body = f'''
         <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
           Your account is active.
         </p>
@@ -291,7 +304,8 @@ def send_welcome_email(to, first_name=None):
         </p>
         <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 24px;">
           That&rsquo;s by design.
-        </p>'''
+        </p>
+        {guide_section}'''
         html = _base_template(
             'ACCOUNT STATUS', body,
             cta_text='ENTER MARKET VIEW', cta_url=f'{base}/',
