@@ -15,7 +15,7 @@ from markupsafe import escape
 cards_bp = Blueprint('cards', __name__)
 
 W, H = 1200, 675
-BG = (10, 22, 40)
+BG = (10, 13, 20)
 GREEN = (90, 158, 114)
 RED = (196, 104, 107)
 WHITE = (232, 236, 241)
@@ -75,7 +75,7 @@ def _new_card():
     return img, draw
 
 
-def _draw_wordmark(draw, text='SHARPPICKS SIGNAL'):
+def _draw_wordmark(draw, text='SHARP ‖ PICKS'):
     fonts = _fonts()
     draw.text((32, 32), text.upper(), fill=GREEN, font=fonts['wordmark'])
 
@@ -124,13 +124,13 @@ def signal_card(signal_id):
 
     img, draw = _new_card()
     fonts = _fonts()
-    _draw_wordmark(draw, 'SHARPPICKS SIGNAL')
+    _draw_wordmark(draw, 'SHARP \u2016 PICKS')
 
     y = 80
     side = pick.side or ''
     draw.text((32, y), side, fill=WHITE, font=fonts['hero'])
 
-    edge_text = f'Edge: +{pick.edge_pct:.1f}%' if pick.edge_pct else ''
+    edge_text = f'+{pick.edge_pct:.1f}% Edge' if pick.edge_pct else ''
     if edge_text:
         bbox = fonts['large'].getbbox(edge_text)
         tw = bbox[2] - bbox[0] if bbox else 200
@@ -145,9 +145,9 @@ def signal_card(signal_id):
         draw.text((32, y), f'Market: {pick.implied_prob * 100:.1f}%', fill=WHITE, font=fonts['medium'])
 
     y += 50
-    draw.text((32, y), '\u2714  Qualified Signal', fill=GREEN, font=fonts['small'])
+    draw.text((32, y), 'Qualified Signal', fill=GREEN, font=fonts['small'])
     y += 28
-    draw.text((32, y), 'Selective by design', fill=GRAY, font=fonts['small'])
+    draw.text((32, y), 'Selective by design.', fill=GRAY, font=fonts['small'])
 
     _draw_footer(draw, _date_label(pick))
     return Response(_to_png(img).read(), mimetype='image/png',
@@ -332,17 +332,17 @@ def market_report_card():
 
     img, draw = _new_card()
     fonts = _fonts()
-    _draw_wordmark(draw, 'SHARPPICKS MARKET REPORT')
+    _draw_wordmark(draw, 'SHARP \u2016 PICKS')
 
     y = 80
-    draw.text((32, y), f'{games_analyzed} games analyzed', fill=WHITE, font=fonts['medium'])
+    draw.text((32, y), f'{games_analyzed} games scanned', fill=WHITE, font=fonts['medium'])
     y += 32
     draw.text((32, y), f'{edges_detected} edges detected', fill=WHITE, font=fonts['medium'])
     y += 32
     draw.text((32, y), f'{qualified_signals} signal{"s" if qualified_signals != 1 else ""}', fill=WHITE, font=fonts['medium'])
 
     y += 60
-    tagline = 'Passing is a position.' if qualified_signals == 0 else 'Selective by design.'
+    tagline = 'If it\u2019s not sharp, it\u2019s not sent.' if qualified_signals == 0 else 'Selective by design.'
     draw.text((32, y), tagline, fill=GREEN, font=fonts['large'])
 
     try:
@@ -377,7 +377,7 @@ def _result_card_fallback(pick):
     """PIL fallback if Playwright is unavailable."""
     img, draw = _new_card()
     fonts = _fonts()
-    _draw_wordmark(draw, 'SHARPPICKS RESULT')
+    _draw_wordmark(draw, 'SHARP \u2016 PICKS')
     is_win = pick.result == 'win'
     y = 80
     draw.text((32, y), pick.side or '', fill=WHITE, font=fonts['hero'])
@@ -394,7 +394,7 @@ def _user_results_fallback(wins, losses, total_pnl, roi, grade, selectivity):
     """PIL fallback if Playwright is unavailable."""
     img, draw = _new_card()
     fonts = _fonts()
-    _draw_wordmark(draw, 'SHARPPICKS RESULTS')
+    _draw_wordmark(draw, 'SHARP \u2016 PICKS')
     pnl_color = GREEN if total_pnl >= 0 else RED
     pnl_sign = '+' if total_pnl >= 0 else ''
     draw.text((32, 80), f'Profit: {pnl_sign}{total_pnl:.1f}u', fill=pnl_color, font=fonts['hero'])
@@ -408,7 +408,7 @@ def _weekly_report_fallback():
     """PIL fallback if Playwright is unavailable."""
     img, draw = _new_card()
     fonts = _fonts()
-    _draw_wordmark(draw, 'SHARPPICKS WEEKLY REPORT')
+    _draw_wordmark(draw, 'SHARP \u2016 PICKS')
     draw.text((32, 80), 'Weekly report', fill=WHITE, font=fonts['hero'])
     draw.text((32, 135), 'Card generation unavailable', fill=GRAY, font=fonts['medium'])
     _draw_footer(draw, None)
