@@ -119,9 +119,8 @@ def _render_jinja(template_name, context):
 
 
 def _get_shared_email_context():
-    """Build shared template variables: logo, wordmark, season record, last 10 picks."""
-    from utils.email_helpers import get_logo_base64, get_wordmark_base64
-    ctx = {'logo_base64': get_logo_base64(), 'wordmark_base64': get_wordmark_base64()}
+    """Build shared template variables: season record, last 10 picks."""
+    ctx = {}
     try:
         from models import Pick
         settled = Pick.query.filter(
@@ -152,12 +151,8 @@ def _get_shared_email_context():
 # ── Legacy base template (kept as fallback) ──
 
 def _brand_header_html():
-    """Inline brand header: wordmark image with text fallback."""
-    from utils.email_helpers import get_wordmark_base64
-    wm = get_wordmark_base64()
-    if wm:
-        return f'<img src="data:image/png;base64,{wm}" alt="SharpPicks" height="22" style="height:22px;width:auto;" />'
-    return '<span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:500;letter-spacing:0.25em;text-transform:uppercase;color:#E8EAED;">SHARP PICKS</span>'
+    """Inline brand header: pure CSS wordmark, no images (Gmail strips base64)."""
+    return '<span style="font-family:\'Courier New\',Courier,monospace;font-size:14px;font-weight:500;letter-spacing:0.25em;color:#E8EAED;white-space:nowrap;">SHARP<span style="color:#5A9E72;margin:0 2px;letter-spacing:0;">&thinsp;&#x2016;&thinsp;</span>PICKS</span>'
 
 
 def _base_template(type_label, body_html, cta_text=None, cta_url=None,
