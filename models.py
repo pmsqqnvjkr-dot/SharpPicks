@@ -98,6 +98,8 @@ class User(UserMixin, db.Model):
     def is_pro(self):
         if self.is_superuser:
             return True
+        if self.founding_member:
+            return True
         if self.subscription_status == 'pending_verification':
             return False
         if self.subscription_status in ('active', 'trial'):
