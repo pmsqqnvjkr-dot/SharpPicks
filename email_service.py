@@ -473,6 +473,7 @@ def send_signal_email(to, pick):
     market_prob = round(float(market_prob_raw) * 100, 1)
 
     from utils.email_helpers import get_edge_strength, fmt_line
+    from notification_service import _abbr
     from datetime import datetime
     from zoneinfo import ZoneInfo
     now_et = datetime.now(ZoneInfo('America/New_York'))
@@ -482,10 +483,10 @@ def send_signal_email(to, pick):
 
     ctx = _get_shared_email_context()
     ctx.update({
-        'away_team_abbr': (d.get('away_abbr', '') if d else getattr(pick, 'away_abbr', '')) or away_team[:3].upper(),
+        'away_team_abbr': (d.get('away_abbr', '') if d else getattr(pick, 'away_abbr', '')) or _abbr(away_team),
         'away_team_city': away_parts[0] if len(away_parts) > 1 else '',
         'away_team_name': away_parts[-1] if away_parts else '',
-        'home_team_abbr': (d.get('home_abbr', '') if d else getattr(pick, 'home_abbr', '')) or home_team[:3].upper(),
+        'home_team_abbr': (d.get('home_abbr', '') if d else getattr(pick, 'home_abbr', '')) or _abbr(home_team),
         'home_team_city': home_parts[0] if len(home_parts) > 1 else '',
         'home_team_name': home_parts[-1] if home_parts else '',
         'game_time': d.get('game_time', '') if d else getattr(pick, 'game_time', ''),
@@ -584,11 +585,22 @@ def send_result_email(to, pick):
         updated_wins = updated_losses = 0
         updated_roi = updated_clv = 0
 
+    home_team = (d.get('home_team', '') if d else getattr(pick, 'home_team', ''))
+    away_team = (d.get('away_team', '') if d else getattr(pick, 'away_team', ''))
+    profit = d.get('profit_units') if d else getattr(pick, 'profit_units', None)
+
+    from notification_service import _abbr
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    now_et = datetime.now(ZoneInfo('America/New_York'))
+
     ctx = _get_shared_email_context()
     ctx.update({
         'result': result_letter,
         'pick_team': side,
         'pick_line': fmt_line(signal_line),
+        'away_team_abbr': _abbr(away_team),
+        'home_team_abbr': _abbr(home_team),
         'final_score_away': away_score if away_score is not None else '--',
         'final_score_home': home_score if home_score is not None else '--',
         'cover_margin': cover_margin,
@@ -597,10 +609,12 @@ def send_result_email(to, pick):
         'clv_points': clv_points,
         'edge_at_entry': round(edge, 1),
         'model_prob': model_prob,
+        'profit_units': round(float(profit), 2) if profit is not None else None,
         'updated_wins': updated_wins,
         'updated_losses': updated_losses,
         'updated_clv': updated_clv,
         'updated_roi': updated_roi,
+        'signal_date': now_et.strftime('%b %d, %Y'),
         'app_url': f'{base}/',
         'unsubscribe_url': _make_unsub_url(to, 'email_results'),
     })
@@ -725,6 +739,8 @@ def send_weekly_summary(to, first_name=None, stats=None):
         'season_win_pct': season_win_pct,
         'season_clv': season_clv_pct if season_clv_pct else ctx.get('season_clv', 0),
         'season_roi': season_roi,
+        'pass_days': passes,
+        'selectivity': round((picks_made / 7) * 100) if picks_made else 0,
         'app_url': f'{base}/',
         'unsubscribe_url': _make_unsub_url(to, 'email_weekly'),
     })
@@ -796,31 +812,42 @@ def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0):
         return False
     base = get_base_url()
 
-    html = _render('no-signal', {
-        'gamesAnalyzed': games_analyzed,
-        'edgesDetected': edges_detected,
-        'qualifiedSignals': 0,
-        'efficiency': f'{efficiency:.0f}%' if efficiency else None,
-        'appUrl': f'{base}/',
-        'unsubscribeUrl': _make_unsub_url(to, 'email_marketing'),
+    ctx = _get_shared_email_context()
+    s_wins = ctx.get('season_record_wins', 0)
+    s_losses = ctx.get('season_record_losses', 0)
+    decided = s_wins + s_losses
+
+    try:
+        from models import Pick, ModelRun
+        pass_count = ModelRun.query.filter(ModelRun.status == 'pass').count()
+    except Exception:
+        pass_count = 0
+
+    try:
+        from models import Pick
+        all_settled = Pick.query.filter(Pick.result.in_(['win', 'loss'])).all()
+        pnl = sum(p.profit_units or 0 for p in all_settled)
+        s_roi = round((pnl / decided) * 100, 1) if decided else 0
+    except Exception:
+        s_roi = 0
+
+    ctx.update({
+        'games_analyzed': games_analyzed,
+        'closest_edge': round(efficiency * 0.035, 1) if efficiency and efficiency < 100 else None,
+        'season_record': f'{s_wins}-{s_losses}',
+        'season_roi': s_roi,
+        'pass_days': pass_count,
+        'app_url': f'{base}/',
+        'unsubscribe_url': _make_unsub_url(to, 'email_marketing'),
     })
+
+    html = _render_jinja('no_signal.html', ctx)
     if not html:
-        body = f'''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
-          Today&rsquo;s market was analyzed. No edge exceeded the qualification threshold.
-        </p>
-        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;">
-          <tr><td style="padding:16px;background-color:#1A1A1A;border-radius:6px;">
-            <table cellpadding="0" cellspacing="0" border="0" width="100%">
-              <tr><td style="font-family:'Courier New',Courier,monospace;font-size:15px;color:#FFFFFF;padding:4px 0;">Games analyzed: {games_analyzed}</td></tr>
-              <tr><td style="font-family:'Courier New',Courier,monospace;font-size:15px;color:#FFFFFF;padding:4px 0;">Edges detected: {edges_detected}</td></tr>
-              <tr><td style="font-family:'Courier New',Courier,monospace;font-size:15px;color:#FFFFFF;padding:4px 0;">Qualified signals: 0</td></tr>
-              <tr><td style="font-family:'Courier New',Courier,monospace;font-size:15px;color:#FFFFFF;padding:4px 0;">Market efficiency: {efficiency:.0f}%</td></tr>
-            </table>
-          </td></tr>
-        </table>'''
         html = _base_template(
-            'MARKET SCAN', body,
+            'NO SIGNAL', f'''
+            <p style="font-family:'Courier New',Courier,monospace;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
+              {games_analyzed} games scanned, none above threshold.
+            </p>''',
             cta_text='VIEW MARKET REPORT', cta_url=f'{base}/',
             to_email=to, unsub_category='email_marketing',
         )
