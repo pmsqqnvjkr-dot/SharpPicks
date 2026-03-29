@@ -1379,7 +1379,10 @@ export default function MarketView({ onBack }) {
   const [watchedIds, setWatchedIds] = useState(new Set());
   const [lineHistoryGame, setLineHistoryGame] = useState(null);
 
-  useEffect(() => { trackEvent('view_market_scan', { sport }); }, [sport]);
+  useEffect(() => {
+    trackEvent('view_market_scan', { sport });
+    setLiveScores({});
+  }, [sport]);
 
   const rawGames = data?.games || [];
 

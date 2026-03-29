@@ -53,6 +53,11 @@ export default function PicksTab({ onNavigate }) {
   const [allLiveScores, setAllLiveScores] = useState([]);
 
   useEffect(() => {
+    setLiveScore(null);
+    setAllLiveScores([]);
+  }, [sport]);
+
+  useEffect(() => {
     if (initialFilterSet.current || !historyData?.picks?.length) return;
     initialFilterSet.current = true;
     const hasWins = historyData.picks.some(p => p.result === 'win');
@@ -66,7 +71,10 @@ export default function PicksTab({ onNavigate }) {
   };
 
   const fetchLiveForPick = useCallback(async () => {
-    if (!todayData || todayData.type !== 'pick' || !todayData.home_team) return;
+    if (!todayData || todayData.type !== 'pick' || !todayData.home_team) {
+      setLiveScore(null);
+      return;
+    }
     try {
       const resp = await fetch(`${PT_API_BASE}/api/picks/live-scores?sport=${sport}`);
       const json = await resp.json();
@@ -77,6 +85,8 @@ export default function PicksTab({ onNavigate }) {
         const match = json.scores.find(s => normalize(s.home) === homeKey);
         if (match && (match.state === 'STATUS_IN_PROGRESS' || match.state === 'STATUS_HALFTIME' || match.state === 'STATUS_FINAL')) {
           setLiveScore(match);
+        } else {
+          setLiveScore(null);
         }
       }
     } catch {}
