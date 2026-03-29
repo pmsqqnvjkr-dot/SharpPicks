@@ -1,10 +1,22 @@
-"""Seed 6 MLB Sharp Journal articles."""
+"""Seed 6 MLB Sharp Journal articles.
+
+Publishing calendar: Tuesdays & Fridays at 10 AM ET.
+  1. Apr  3 (Fri) — 162 Games and the Luxury of Sample Size
+  2. Apr  7 (Tue) — What Calibration Phase Means
+  3. Apr 10 (Fri) — The Starting Pitcher Problem
+  4. Apr 14 (Tue) — Run Lines Are Not Spreads
+  5. Apr 17 (Fri) — 15 Games a Day and the Discipline to Pass on 14
+  6. May  1 (Fri) — Coors Field, Wind, and the Variables the Market Underprices
+"""
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 ET = ZoneInfo('America/New_York')
+
+def et_date(year, month, day, hour=10):
+    return datetime(year, month, day, hour, 0, 0, tzinfo=ET).replace(tzinfo=None)
 
 ARTICLES = [
     {
@@ -14,7 +26,7 @@ ARTICLES = [
         'story_type': 'how_it_works',
         'sport': 'mlb',
         'reading_time_minutes': 3,
-        'publish_offset_days': 0,
+        'publish_date': et_date(2026, 4, 3),
         'excerpt': (
             'MLB gives us 2,430 regular season games. More opportunities to find edges. '
             'More opportunities to do nothing.'
@@ -46,7 +58,7 @@ The edge threshold is still 3.5%. The four-model ensemble still runs the same wa
         'story_type': 'how_it_works',
         'sport': 'mlb',
         'reading_time_minutes': 3,
-        'publish_offset_days': -3,
+        'publish_date': et_date(2026, 4, 7),
         'excerpt': (
             'Calibration phase means the model is publishing real picks against real lines '
             'and grading every one. The track record builds in front of you.'
@@ -80,7 +92,7 @@ We have internal criteria for promotion to deployment phase. Those criteria are 
         'story_type': 'market_notes',
         'sport': 'mlb',
         'reading_time_minutes': 3,
-        'publish_offset_days': -7,
+        'publish_date': et_date(2026, 4, 10),
         'excerpt': (
             'In MLB, the starting pitcher can shift run expectation by 2-3 runs. '
             'No other sport has a single variable with that much influence.'
@@ -112,7 +124,7 @@ When a starting pitcher is scratched late, the line moves fast. Our pre-tip vali
         'story_type': 'how_it_works',
         'sport': 'mlb',
         'reading_time_minutes': 3,
-        'publish_offset_days': -10,
+        'publish_date': et_date(2026, 4, 14),
         'excerpt': (
             'NBA edges live in the number. MLB edges live in the price. '
             'Same math, different expression.'
@@ -146,7 +158,7 @@ The MLB model also evaluates moneyline odds (straight win/loss, no spread). Some
         'story_type': 'philosophy',
         'sport': 'mlb',
         'reading_time_minutes': 3,
-        'publish_offset_days': -14,
+        'publish_date': et_date(2026, 4, 17),
         'excerpt': (
             'MLB has 15 games a day, six months straight. If none of that math '
             'produces an edge above 3.5%, you get a pass notification. That is the product.'
@@ -180,7 +192,7 @@ In the NBA, we act on roughly 40-50% of slates. In MLB, the selectivity rate may
         'story_type': 'market_notes',
         'sport': 'mlb',
         'reading_time_minutes': 3,
-        'publish_offset_days': -17,
+        'publish_date': et_date(2026, 5, 1),
         'excerpt': (
             'The market prices Coors Field. It is less efficient at pricing the interaction '
             'between a ground ball pitcher, a flyball-averse lineup, and 12 mph wind blowing in.'
@@ -215,12 +227,11 @@ def seed():
     from models import Insight
 
     with app.app_context():
-        now = datetime.now(ET).replace(tzinfo=None)
         for art in ARTICLES:
-            pub_date = now + timedelta(days=art['publish_offset_days'])
+            pub_date = art['publish_date']
             existing = Insight.query.filter_by(slug=art['slug']).first()
             if existing:
-                print(f"Updating '{art['slug']}' (id={existing.id})")
+                print(f"Updating '{art['slug']}' → {pub_date.strftime('%b %d %Y %I %p ET')}")
                 existing.title = art['title']
                 existing.category = art['category']
                 existing.excerpt = art['excerpt']
@@ -247,9 +258,9 @@ def seed():
                     related_pick_ids=[],
                 )
                 db.session.add(insight)
-                print(f"Created '{art['slug']}'")
+                print(f"Created '{art['slug']}' → {pub_date.strftime('%b %d %Y %I %p ET')}")
         db.session.commit()
-        print(f"\nDone. {len(ARTICLES)} MLB articles seeded.")
+        print(f"\nDone. {len(ARTICLES)} MLB articles updated.")
 
 
 if __name__ == '__main__':
