@@ -39,10 +39,8 @@ export default function NoPickCard({ data, sport, modelPhase, onInsightTap }) {
           color: 'var(--text-secondary)',
           lineHeight: '1.55', marginBottom: '4px',
         }}>
-          {isCal
-            ? `${data.games_analyzed || 0} games analyzed. Market is efficient. We wait.`
-            : data.games_analyzed > 0
-              ? `All ${data.games_analyzed} games evaluated · No edge above threshold`
+          {data.games_analyzed > 0
+              ? `${data.games_analyzed} games scanned, none above threshold.`
               : 'Model analysis complete.'}
         </p>
         <p style={{
@@ -111,7 +109,7 @@ export default function NoPickCard({ data, sport, modelPhase, onInsightTap }) {
         textAlign: 'center',
         marginTop: 'var(--space-lg)',
         letterSpacing: '0.04em',
-      }}>Discipline is the product.</p>
+      }}>Selective by design.</p>
     </div>
   );
 }

@@ -1298,7 +1298,7 @@ A service that says \u201cno pick today\u201d looks like it\u2019s not working. 
 
 The tout model rewards the appearance of effort. The sharp model rewards the absence of it.
 
-> **Most of our value comes from the days we don\u2019t publish. Restraint is the edge nobody wants to sell.**
+> **Most of our value comes from the days we don\u2019t publish. If it\u2019s not sharp, it\u2019s not sent.**
 
 ---
 
@@ -3923,13 +3923,13 @@ def _send_consolidated_model_notification(results, live_sports):
             pick_sport = sport
             pick_result = r
             edge = r.get('edge', 0)
-            parts.append(f"{tag}: Signal · {edge}% edge")
+            parts.append(f"{tag}: Signal \u00b7 {edge}% edge")
         elif status == 'paper_trade':
             edge = r.get('edge', 0)
-            parts.append(f"{tag}: Paper signal · {edge}% edge")
+            parts.append(f"{tag}: Paper signal \u00b7 {edge}% edge")
         elif status == 'pass':
             games = r.get('games_analyzed', 0)
-            parts.append(f"{tag}: Pass · {games} games, no edge")
+            parts.append(f"{tag}: No edge \u00b7 {games} games scanned")
         elif status in ('already_run',):
             continue
         elif status in ('data_failure', 'no_spreads', 'inactive'):
@@ -3941,16 +3941,25 @@ def _send_consolidated_model_notification(results, live_sports):
         return
 
     if has_pick and len(parts) == 1:
-        title = f"New Signal · {get_sport_config(pick_sport).get('name', pick_sport.upper())}"
-        body = f"{pick_result.get('side', 'Pick available')}. Tap for full analysis."
+        title = f"New Signal \u00b7 {get_sport_config(pick_sport).get('name', pick_sport.upper())}"
+        edge = pick_result.get('edge', 0)
+        body = f"{pick_result.get('side', 'Pick available')} \u00b7 {edge}% edge. Open to view."
         data = {'type': 'pick', 'pick_id': str(pick_result.get('pick_id', ''))}
     elif has_pick:
         title = "Today's Model Results"
         body = ' | '.join(parts)
         data = {'type': 'pick', 'pick_id': str(pick_result.get('pick_id', ''))}
     else:
-        title = "Pass Day"
-        body = ' | '.join(parts)
+        title = "No Edge Today"
+        all_pass_parts = []
+        for sport in live_sports:
+            r = results.get(sport, {})
+            if r.get('status') == 'pass':
+                cfg = get_sport_config(sport)
+                tag = cfg.get('name', sport.upper())
+                games = r.get('games_analyzed', 0)
+                all_pass_parts.append(f"{tag}: {games} games, no qualifying edge")
+        body = ' | '.join(all_pass_parts) if all_pass_parts else ' | '.join(parts)
         data = {'type': 'pass', 'date': results.get(live_sports[0], {}).get('date', '')}
 
     try:

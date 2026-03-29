@@ -11,12 +11,50 @@ def _get_push_functions():
         return None, None, None
 
 
+_TEAM_ABBR = {
+    'Atlanta Hawks': 'ATL', 'Boston Celtics': 'BOS', 'Brooklyn Nets': 'BKN',
+    'Charlotte Hornets': 'CHA', 'Chicago Bulls': 'CHI', 'Cleveland Cavaliers': 'CLE',
+    'Dallas Mavericks': 'DAL', 'Denver Nuggets': 'DEN', 'Detroit Pistons': 'DET',
+    'Golden State Warriors': 'GSW', 'Houston Rockets': 'HOU', 'Indiana Pacers': 'IND',
+    'Los Angeles Clippers': 'LAC', 'LA Clippers': 'LAC',
+    'Los Angeles Lakers': 'LAL', 'LA Lakers': 'LAL',
+    'Memphis Grizzlies': 'MEM', 'Miami Heat': 'MIA', 'Milwaukee Bucks': 'MIL',
+    'Minnesota Timberwolves': 'MIN', 'New Orleans Pelicans': 'NOP',
+    'New York Knicks': 'NYK', 'Oklahoma City Thunder': 'OKC',
+    'Orlando Magic': 'ORL', 'Philadelphia 76ers': 'PHI', 'Phoenix Suns': 'PHX',
+    'Portland Trail Blazers': 'POR', 'Sacramento Kings': 'SAC',
+    'San Antonio Spurs': 'SAS', 'Toronto Raptors': 'TOR',
+    'Utah Jazz': 'UTA', 'Washington Wizards': 'WAS',
+    'Arizona Diamondbacks': 'ARI', 'Atlanta Braves': 'ATL',
+    'Baltimore Orioles': 'BAL', 'Boston Red Sox': 'BOS',
+    'Chicago Cubs': 'CHC', 'Chicago White Sox': 'CWS',
+    'Cincinnati Reds': 'CIN', 'Cleveland Guardians': 'CLE',
+    'Colorado Rockies': 'COL', 'Detroit Tigers': 'DET',
+    'Houston Astros': 'HOU', 'Kansas City Royals': 'KC',
+    'Los Angeles Angels': 'LAA', 'Los Angeles Dodgers': 'LAD',
+    'Miami Marlins': 'MIA', 'Milwaukee Brewers': 'MIL',
+    'Minnesota Twins': 'MIN', 'New York Mets': 'NYM', 'New York Yankees': 'NYY',
+    'Athletics': 'OAK', 'Oakland Athletics': 'OAK',
+    'Philadelphia Phillies': 'PHI', 'Pittsburgh Pirates': 'PIT',
+    'San Diego Padres': 'SD', 'San Francisco Giants': 'SF',
+    'Seattle Mariners': 'SEA', 'St. Louis Cardinals': 'STL',
+    'Tampa Bay Rays': 'TB', 'Texas Rangers': 'TEX',
+    'Toronto Blue Jays': 'TOR', 'Washington Nationals': 'WSH',
+}
+
+
+def _abbr(team_name):
+    if not team_name:
+        return '???'
+    return _TEAM_ABBR.get(team_name, team_name.split()[-1][:3].upper())
+
+
 def send_pick_notification(pick):
     send_push_to_all, _, _ = _get_push_functions()
     if not send_push_to_all:
         return False
     try:
-        from sport_config import get_sport_config, get_phase_label
+        from sport_config import get_sport_config
         edge = round(pick.edge_pct, 1) if pick.edge_pct is not None else 0
         confidence = pick.model_confidence or 0
         rating = "STRONG" if confidence >= 0.60 else "LEAN"
@@ -27,10 +65,10 @@ def send_pick_notification(pick):
         if phase == 'calibration':
             sport_tag = cfg.get('name', sport.upper())
             title = f"{rating} {sport_tag} Signal \u00b7 {edge}% Edge"
-            body = f"{pick.side} ({pick.away_team} @ {pick.home_team}). Model confidence: {confidence * 100:.0f}%. Model Phase: Calibration."
+            body = f"{pick.side} \u00b7 {_abbr(pick.away_team)} @ {_abbr(pick.home_team)} \u00b7 Calibration phase"
         else:
-            title = f"{rating} Pick \u00b7 {edge}% Edge"
-            body = f"{pick.side} ({pick.away_team} @ {pick.home_team}). Model confidence: {confidence * 100:.0f}%. Tap for full analysis."
+            title = f"{rating} Signal \u00b7 {edge}% Edge"
+            body = f"{pick.side} \u00b7 {_abbr(pick.away_team)} @ {_abbr(pick.home_team)} \u00b7 {confidence * 100:.0f}% model confidence"
         data = {'type': 'pick', 'pick_id': str(pick.id)}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pick')
         logging.info(f"Pick notification sent to {sent} device(s)")
@@ -55,14 +93,15 @@ def send_pass_notification(pass_entry):
 
         if phase == 'calibration':
             sport_tag = cfg.get('name', sport.upper())
-            title = f"{sport_tag} Pass \u00b7 No Qualifying Edge"
-            body = f"{games_analyzed} games analyzed. Market is efficient. We wait."
+            title = f"{sport_tag} \u00b7 No Qualifying Edge"
         else:
-            title = "Pass Day \u00b7 No Qualifying Edge"
-            if closest_edge and closest_edge > 0:
-                body = f"{games_analyzed} games analyzed. Closest edge: {closest_edge:.1f}% (need {threshold}%+). Restraint is the edge."
-            else:
-                body = f"{games_analyzed} games analyzed, none above threshold. Capital preserved for a better spot."
+            title = "No Qualifying Edge"
+
+        if closest_edge and closest_edge > 0:
+            body = f"{games_analyzed} games scanned. Closest edge: {closest_edge:.1f}% (threshold: {threshold}%)."
+        else:
+            body = f"{games_analyzed} games scanned, none above threshold."
+
         data = {'type': 'pass', 'date': str(pass_entry.date)}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pass')
         logging.info(f"Pass notification sent to {sent} device(s)")
@@ -79,16 +118,24 @@ def send_result_notification(pick, result):
     try:
         pnl = pick.profit_units
         pnl_str = f"+{pnl:.2f}u" if pnl and pnl > 0 else f"{pnl:.2f}u" if pnl else ""
+        away = _abbr(pick.away_team)
+        home = _abbr(pick.home_team)
+
+        clv_line = ""
+        opening = getattr(pick, 'line', None)
+        closing = getattr(pick, 'closing_spread', None)
+        if opening is not None and closing is not None and opening != closing:
+            clv_line = f" Line moved {opening:+g} to {closing:+g}."
 
         if result == 'win':
             title = f"Win {pnl_str} \u00b7 {pick.side}"
-            body = f"{pick.away_team} @ {pick.home_team} covered. The edge was real. Same process tomorrow."
+            body = f"{away} @ {home} covered.{clv_line}"
         elif result == 'loss':
             title = f"Loss {pnl_str} \u00b7 {pick.side}"
-            body = f"{pick.away_team} @ {pick.home_team} didn't cover. Variance, not a broken process. No adjustments needed."
+            body = f"{away} @ {home} did not cover. Process unchanged."
         else:
             title = f"Push \u00b7 {pick.side}"
-            body = f"{pick.away_team} @ {pick.home_team} landed on the number. Stake returned. On to the next."
+            body = f"{away} @ {home} landed on the number. Stake returned."
 
         data = {'type': 'result', 'pick_id': str(pick.id), 'result': result}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='result')
@@ -104,9 +151,17 @@ def send_pretip_reminder(pick, minutes_until=60):
     if not send_push_to_all:
         return False
     try:
-        time_label = f"{minutes_until} min" if minutes_until < 60 else f"{minutes_until // 60}h"
-        title = f"Tip-off in {time_label}"
-        body = f"{pick.side} \u00b7 {pick.away_team} @ {pick.home_team}. Make sure your bet is placed."
+        time_label = f"{minutes_until}m" if minutes_until < 60 else f"{minutes_until // 60}h"
+        title = f"{pick.side} \u00b7 {time_label} to tip"
+
+        away = _abbr(pick.away_team)
+        home = _abbr(pick.home_team)
+        game_time = getattr(pick, 'game_time', '') or ''
+        edge = pick.edge_pct if pick.edge_pct is not None else None
+        edge_part = f" Edge holds at {edge:.1f}%." if edge else ""
+        time_part = f" {game_time}." if game_time else ""
+        body = f"{away} @ {home} \u00b7{time_part}{edge_part}"
+
         data = {'type': 'pretip', 'pick_id': str(pick.id)}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pretip')
         logging.info(f"Pre-tip reminder sent to {sent} device(s)")
@@ -126,18 +181,16 @@ def send_weekly_summary_notification(stats):
         losses = stats.get('losses', 0)
         roi = stats.get('roi', 0)
         pass_days = stats.get('passes', 0)
+        units = stats.get('units', 0)
         total_picks = wins + losses
 
-        title = f"Week {week_num} Recap"
-
         if total_picks == 0:
-            body = f"Zero picks, full restraint. {pass_days} pass days — capital preserved for the week ahead."
-        elif wins > 0 and losses == 0:
-            body = f"Clean {wins}-0 week ({roi:+.1f}% ROI). {pass_days} pass days. The process held."
-        elif losses > 0 and wins == 0:
-            body = f"Tough 0-{losses} week. Variance within parameters. {pass_days} pass days of discipline still count."
+            title = f"Week {week_num} \u00b7 All Pass"
+            body = f"7 slates scanned, 0 qualifying edges."
         else:
-            body = f"{wins}W-{losses}L ({roi:+.1f}% ROI). Acted on {total_picks} of 7 slates. Tap for the full narrative."
+            units_str = f"+{units:.1f}u" if units >= 0 else f"{units:.1f}u"
+            title = f"Week {week_num} \u00b7 {wins}-{losses} \u00b7 {units_str}"
+            body = f"{total_picks} {'pick' if total_picks == 1 else 'picks'}, {pass_days} pass days. {roi:+.1f}% ROI."
 
         data = {'type': 'weekly_summary'}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='weekly_summary')
@@ -153,8 +206,15 @@ def send_revoke_notification(pick, reason):
     if not send_push_to_all:
         return False
     try:
-        title = "Pick Withdrawn"
-        body = f"{pick.away_team} @ {pick.home_team} \u00b7 edge dropped below threshold before tip."
+        from sport_config import get_sport_config
+        sport = getattr(pick, 'sport', 'nba') or 'nba'
+        cfg = get_sport_config(sport)
+        threshold = cfg.get('edge_threshold_pct', 3.5)
+        away = _abbr(pick.away_team)
+        home = _abbr(pick.home_team)
+
+        title = f"Pick Withdrawn \u00b7 {pick.side}"
+        body = f"{away} @ {home} \u00b7 edge dropped below {threshold}% threshold before tip."
         data = {'type': 'revoke', 'pick_id': str(pick.id)}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='revoke')
         logging.info(f"Revoke notification sent to {sent} device(s)")
@@ -173,16 +233,14 @@ def send_market_scan_push(report):
         title = "Market Scan Complete"
         edges = report.get('edges_detected', 0)
         top = report.get('largest_edge')
-        regime = report.get('regime', '')
-        signals = report.get('qualified_signals', 0)
         markets = report.get('games_analyzed', 0)
         if edges == 0:
-            body = "No edge, no pick."
+            body = f"{markets} games scanned, no qualifying edge."
         else:
             if top is not None and top > 0:
-                body = f"{edges} edge{'s' if edges != 1 else ''} detected · Top edge +{top:.0f}%"
+                body = f"{edges} edge{'s' if edges != 1 else ''} detected. Top edge +{top:.0f}%."
             else:
-                body = f"Market Regime: {regime} — {signals} signal{'s' if signals != 1 else ''} across {markets} market{'s' if markets != 1 else ''}"
+                body = f"{markets} games scanned, {edges} edge{'s' if edges != 1 else ''} detected."
         data = {'type': 'market_scan', 'date': report.get('date', ''), 'deep_link': '/market'}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='market_scan')
         logging.info(f"Market scan push sent to {sent} device(s)")
@@ -193,7 +251,7 @@ def send_market_scan_push(report):
 
 
 def send_market_note_notification(insight):
-    """Notify users when a new Market Note is published (daily market intelligence)."""
+    """Notify users when a new Market Note is published."""
     send_push_to_all, _, _ = _get_push_functions()
     if not send_push_to_all:
         return False
@@ -216,8 +274,7 @@ def send_journal_notification(insight):
         return False
     try:
         title = "New Insight"
-        excerpt = (insight.excerpt or insight.title or '')[:80]
-        body = f"{insight.title}" if insight.title else excerpt
+        body = (insight.title or '')[:80]
         data = {'type': 'journal', 'insight_id': str(insight.id), 'slug': insight.slug or ''}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='journal')
         logging.info(f"Journal notification sent to {sent} device(s)")

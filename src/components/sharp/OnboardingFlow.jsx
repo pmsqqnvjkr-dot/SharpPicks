@@ -175,7 +175,7 @@ export default function OnboardingFlow({ onComplete }) {
           fontStyle: 'italic', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6,
           textAlign: 'center', margin: '0 0 16px',
         }}>
-          Discipline is the product.<br />
+          One pick beats five.<br />
           Selective by design.
         </p>
       </div>

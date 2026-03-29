@@ -235,49 +235,29 @@ function WeeklyNarrative({ wins, losses, passDays, pnl, selectivity, days }) {
 
   if (totalPicks === 0) {
     paragraphs.push(
-      'The model found no qualifying edges this week. Seven days, zero action. ' +
-      'That\u2019s not a failure \u2014 it\u2019s the discipline working exactly as designed. ' +
-      'Capital was preserved for the week ahead.'
+      `7 slates scanned, 0 qualifying edges. ${passDays} pass days.`
     );
   } else {
-    const actionRate = Math.round((totalPicks / 7) * 100);
     paragraphs.push(
-      `This week the model acted on ${totalPicks} of 7 slate${totalPicks > 1 ? 's' : ''} (${actionRate}% action rate), ` +
-      `passing on ${passDays} day${passDays !== 1 ? 's' : ''} where the edge wasn\u2019t there. ` +
-      (selectivity <= 30
-        ? 'That selectivity is well below the industry average of 78% \u2014 the kind of restraint that compounds.'
-        : 'Staying selective is what separates process from impulse.')
+      `${totalPicks} pick${totalPicks !== 1 ? 's' : ''} from ${totalPicks + passDays} slates. ` +
+      `${passDays} pass day${passDays !== 1 ? 's' : ''}.`
     );
 
     if (wins > 0 && losses === 0) {
       paragraphs.push(
-        `A clean ${wins}-0 week. But the correct response is the same as any other result: ` +
-        'no expanding criteria, no chasing higher volume. The edge threshold doesn\u2019t change because of a good week.'
+        `${wins}-0 week. ${pnl >= 0 ? `+${pnl.toFixed(2)}u` : `${pnl.toFixed(2)}u`}.`
       );
     } else if (losses > 0 && wins === 0) {
       paragraphs.push(
-        `An 0-${losses} week. Variance like this is within expected parameters for any calibrated model. ` +
-        'The picks met the edge threshold. The outcomes simply fell on the wrong side of probability. ' +
-        'No adjustments needed.'
+        `0-${losses} week. Variance within parameters.`
       );
     } else if (wins > 0 && losses > 0) {
       paragraphs.push(
-        `Finished ${wins}-${losses}` +
-        (pnl >= 0 ? `, netting +${pnl.toFixed(2)}u. ` : `, at ${pnl.toFixed(2)}u. `) +
-        (maxWinStreak >= 2 ? `Built a ${maxWinStreak}-game win streak mid-week. ` : '') +
-        'Each pick cleared the minimum edge threshold before qualifying. ' +
-        'The process doesn\u2019t guarantee outcomes \u2014 it guarantees discipline.'
+        `${wins}-${losses}` +
+        (pnl >= 0 ? `, +${pnl.toFixed(2)}u.` : `, ${pnl.toFixed(2)}u.`)
       );
     }
   }
-
-  paragraphs.push(
-    pnl > 0
-      ? 'Positive weeks are a byproduct of process, not a cause for celebration. The model\u2019s job is to find edge. Your job is to follow the process.'
-      : pnl < 0
-      ? 'Negative weeks are part of any probabilistic system. What matters is whether each pick had a genuine edge at the time it was made. This week, they did.'
-      : 'A flat week means capital was protected while the model waited for real opportunities. That patience has value.'
-  );
 
   return (
     <div style={{

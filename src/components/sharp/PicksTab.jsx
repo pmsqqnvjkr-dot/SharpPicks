@@ -47,9 +47,18 @@ export default function PicksTab({ onNavigate }) {
   const [resolutionPick, setResolutionPick] = useState(null);
   const [filter, setFilter] = useState('all');
   const [showAllPicks, setShowAllPicks] = useState(false);
+  const initialFilterSet = useRef(false);
   const [dismissedResolutionId, setDismissedResolutionId] = useState(() => localStorage.getItem('sp_dismissed_resolution'));
   const [liveScore, setLiveScore] = useState(null);
   const [allLiveScores, setAllLiveScores] = useState([]);
+
+  useEffect(() => {
+    if (initialFilterSet.current || !historyData?.picks?.length) return;
+    initialFilterSet.current = true;
+    const hasWins = historyData.picks.some(p => p.result === 'win');
+    const hasPending = historyData.picks.some(p => p.result === 'pending');
+    setFilter(hasWins ? 'wins' : hasPending ? 'active' : 'all');
+  }, [historyData]);
 
   const handleDismissResolution = (pickId) => {
     setDismissedResolutionId(pickId);
