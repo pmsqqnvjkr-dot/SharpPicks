@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, KillSwitch
+from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, KillSwitch, User
 from sqlalchemy import func
 from sqlalchemy.exc import ProgrammingError, OperationalError
 from sport_config import get_active_sports, get_sport_config, get_phase_label
@@ -158,6 +158,9 @@ def stats():
 
     cfg = get_sport_config(sport or 'nba')
     phase = cfg.get('model_phase', 'deployment')
+
+    founding_claimed = User.query.filter_by(founding_member=True).count()
+
     return jsonify({
         'record': f'{wins}-{losses}',
         'wins': wins,
@@ -166,6 +169,7 @@ def stats():
         'total_picks': total_picks,
         'total_passes': total_passes,
         'pnl': round(total_pnl_units, 2),
+        'units': round(total_pnl_units, 2),
         'roi': roi,
         'win_rate': round(wins / total_decided * 100, 1) if total_decided > 0 else 0,
         'selectivity': round(total_picks / (total_picks + total_passes) * 100, 1) if (total_picks + total_passes) > 0 else 0,
@@ -174,6 +178,7 @@ def stats():
         'clv_beat_rate': clv_beat_rate,
         'model_phase': phase,
         'phase_label': get_phase_label(phase),
+        'founding_spots_claimed': founding_claimed,
     })
 
 

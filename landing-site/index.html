@@ -244,16 +244,16 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
     <div class="proof-item"><div class="proof-v" id="p-rec">—</div><div class="proof-l">Record</div></div>
     <div class="proof-item"><div class="proof-v g" id="p-roi">—</div><div class="proof-l">ROI</div></div>
     <div class="proof-item"><div class="proof-v g" id="p-units">—</div><div class="proof-l">Units</div></div>
-    <div class="proof-item"><div class="proof-v" id="p-spots">—</div><div class="proof-l">Founding Spots Left</div></div>
+    <div class="proof-item"><div class="proof-v" id="p-spots">45</div><div class="proof-l">Founding Spots Left</div></div>
   </div>
 </section>
 
 <!-- ═══ DISCIPLINE STRIP ═══ -->
 <div class="strip">
   <div class="strip-in">
-    <div class="strip-stat"><div class="strip-n">15</div><div class="strip-l">Games Analyzed</div></div>
-    <div class="strip-stat"><div class="strip-n g">3</div><div class="strip-l">Signals Generated</div></div>
-    <div class="strip-stat"><div class="strip-n">12</div><div class="strip-l">Games Passed</div></div>
+    <div class="strip-stat"><div class="strip-n" id="s-analyzed">—</div><div class="strip-l">Games Analyzed</div></div>
+    <div class="strip-stat"><div class="strip-n g" id="s-signals">—</div><div class="strip-l">Signals Generated</div></div>
+    <div class="strip-stat"><div class="strip-n" id="s-passed">—</div><div class="strip-l">Games Passed</div></div>
     <div class="strip-tag">If it's not sharp, it's not sent.</div>
   </div>
 </div>
@@ -374,9 +374,9 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
   <h2>Verified. Public. No exceptions.</h2>
   <p class="sub">Watch picks play out live. Every result graded against the closing line.</p>
   <div class="perf">
-    <div class="pi"><div class="v">26</div><div class="l">Total Picks</div><div class="sub-l">All time</div></div>
-    <div class="pi"><div class="v g">53.8%</div><div class="l">Selectivity</div><div class="sub-l">Signal rate</div></div>
-    <div class="pi"><div class="v">22</div><div class="l">Total Passes</div><div class="sub-l">Games skipped</div></div>
+    <div class="pi"><div class="v" id="perf-picks">—</div><div class="l">Total Picks</div><div class="sub-l">All time</div></div>
+    <div class="pi"><div class="v g" id="perf-sel">—</div><div class="l">Selectivity</div><div class="sub-l">Signal rate</div></div>
+    <div class="pi"><div class="v" id="perf-pass">—</div><div class="l">Total Passes</div><div class="sub-l">Games skipped</div></div>
     <div class="pi"><div class="v">0</div><div class="l">Picks Deleted</div><div class="sub-l">Full transparency</div></div>
   </div>
 </section>
@@ -426,7 +426,7 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
       <a href="https://app.sharppicks.ai/signup?plan=annual" class="pc-cta gr">Claim Founding Spot</a>
     </div>
   </div>
-  <div class="fctr"><span class="n" id="f-num">—</span> of 50 founding spots remaining</div>
+  <div class="fctr"><span class="n" id="f-num">45</span> of 50 founding spots remaining</div>
   <p class="pfine">All subscriptions include a 14-day free trial. Cancel anytime before trial ends and you won't be charged. Founding member rate locks in for the duration of an active, uninterrupted subscription.</p>
 </section>
 
@@ -470,7 +470,26 @@ document.querySelectorAll('.app-tab').forEach(tab=>{
 });
 
 // Load live stats
-async function loadStats(){try{const r=await fetch('https://app.sharppicks.ai/api/public/stats');if(!r.ok)return;const d=await r.json();if(d.record){const e=document.getElementById('p-rec');if(e)e.textContent=d.record}if(d.roi!==undefined){const e=document.getElementById('p-roi');if(e)e.textContent=(d.roi>0?'+':'')+d.roi+'%'}if(d.units!==undefined){const e=document.getElementById('p-units');if(e)e.textContent=(d.units>0?'+':'')+d.units+'u'}if(d.founding_spots_claimed!==undefined){const n=50-d.founding_spots_claimed;const e=document.getElementById('p-spots');if(e)e.textContent=n;const f=document.getElementById('f-num');if(f)f.textContent=n}}catch(e){}}
+async function loadStats(){try{const r=await fetch('https://app.sharppicks.ai/api/public/stats');if(!r.ok)return;const d=await r.json();
+// Hero proof bar
+if(d.record){const e=document.getElementById('p-rec');if(e)e.textContent=d.record}
+if(d.roi!==undefined){const e=document.getElementById('p-roi');if(e)e.textContent=(d.roi>0?'+':'')+d.roi+'%'}
+const units=d.units!==undefined?d.units:d.pnl;if(units!==undefined){const e=document.getElementById('p-units');if(e)e.textContent=(units>0?'+':'')+units+'u'}
+const spots=d.founding_spots_claimed!==undefined?50-d.founding_spots_claimed:45;const ps=document.getElementById('p-spots');if(ps)ps.textContent=spots;const fn=document.getElementById('f-num');if(fn)fn.textContent=spots;
+// Discipline strip
+const tp=d.total_picks||0;const tpa=d.total_passes||0;
+const sa=document.getElementById('s-analyzed');if(sa)sa.textContent=tp+tpa;
+const ss=document.getElementById('s-signals');if(ss)ss.textContent=tp;
+const sp=document.getElementById('s-passed');if(sp)sp.textContent=tpa;
+// Performance section
+const pp=document.getElementById('perf-picks');if(pp)pp.textContent=tp;
+const pse=document.getElementById('perf-sel');if(pse)pse.textContent=(d.selectivity||0)+'%';
+const ppa=document.getElementById('perf-pass');if(ppa)ppa.textContent=tpa;
+}catch(e){
+// Fallback founding spots
+const ps=document.getElementById('p-spots');if(ps&&ps.textContent==='—')ps.textContent='45';
+const fn=document.getElementById('f-num');if(fn&&fn.textContent==='—')fn.textContent='45';
+}}
 loadStats();
 
 // Smooth scroll
