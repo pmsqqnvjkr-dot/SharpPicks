@@ -61,10 +61,35 @@ async function requestNativePush() {
 
   await PushNotifications.removeAllListeners();
 
+  const platform = Capacitor.getPlatform();
+  const isIOS = platform === 'ios';
+
+  let fcmTokenFromNative = null;
+  if (isIOS) {
+    const fcmReady = new Promise((res) => {
+      const handler = (e) => {
+        window.removeEventListener('native-fcm-token', handler);
+        res(e.detail);
+      };
+      window.addEventListener('native-fcm-token', handler);
+      setTimeout(() => { window.removeEventListener('native-fcm-token', handler); res(null); }, 10000);
+    });
+    fcmTokenFromNative = fcmReady;
+  }
+
   return new Promise((resolve) => {
     PushNotifications.addListener('registration', async (token) => {
+      if (isIOS) {
+        const fcm = await fcmTokenFromNative;
+        if (fcm) {
+          console.log("[Push] FCM token (via Firebase):", fcm.substring(0, 20) + "...");
+          await sendTokenToServer(fcm, 'ios');
+          resolve(fcm);
+          return;
+        }
+        console.warn("[Push] FCM token not received from native, falling back to APNs token");
+      }
       console.log("[Push] native token:", token.value.substring(0, 20) + "...");
-      const platform = Capacitor.getPlatform();
       await sendTokenToServer(token.value, platform);
       resolve(token.value);
     });

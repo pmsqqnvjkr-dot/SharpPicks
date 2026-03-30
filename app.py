@@ -6205,21 +6205,32 @@ def send_push_notification(user_id, title, body, data=None):
     sent = 0
     for t in tokens:
         token = (t.fcm_token or '').strip()
-        if not token or len(token) < 100:
+        if not token or len(token) < 20:
             logging.warning(f"Skipping invalid FCM token (too short or empty) for user {user_id}")
             continue
-        payload = {
-            'message': {
-                'token': token,
-                'notification': {'title': title or ' ', 'body': body or ' '},
-                'webpush': {
-                    'notification': {
-                        'icon': 'https://app.sharppicks.ai/icon-192x192.png',
-                        'badge': 'https://app.sharppicks.ai/favicon-32x32.png',
-                    }
-                },
-            }
+        is_ios = (t.platform or '').lower() == 'ios'
+        msg = {
+            'token': token,
+            'notification': {'title': title or ' ', 'body': body or ' '},
         }
+        if is_ios:
+            msg['apns'] = {
+                'payload': {
+                    'aps': {
+                        'alert': {'title': title or ' ', 'body': body or ' '},
+                        'sound': 'default',
+                        'badge': 1,
+                    }
+                }
+            }
+        else:
+            msg['webpush'] = {
+                'notification': {
+                    'icon': 'https://app.sharppicks.ai/icon-192x192.png',
+                    'badge': 'https://app.sharppicks.ai/favicon-32x32.png',
+                }
+            }
+        payload = {'message': msg}
         if data:
             payload['message']['data'] = {str(k): str(v) for k, v in data.items()}
         try:

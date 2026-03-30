@@ -17,6 +17,13 @@ export function AuthProvider({ children }) {
     })();
   }, []);
 
+  useEffect(() => {
+    if (!user || pushStatus !== 'granted') return;
+    requestNotificationPermission().then(token => {
+      if (token) console.log("[Push] token refreshed on visit");
+    }).catch(() => {});
+  }, [user, pushStatus]);
+
   const enablePush = async () => {
     const token = await requestNotificationPermission();
     const status = await getNativePermissionStatus();

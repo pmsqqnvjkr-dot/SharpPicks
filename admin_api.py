@@ -2676,3 +2676,48 @@ def admin_user_activity(user_id):
         'activity_timeline': activity_timeline,
         'last_active': last_active,
     })
+
+
+@admin_bp.route('/api/admin/push-tokens', methods=['GET'])
+@admin_required
+def admin_push_tokens():
+    from models import FCMToken
+    tokens = FCMToken.query.all()
+    result = []
+    for t in tokens:
+        result.append({
+            'id': t.id,
+            'user_id': t.user_id,
+            'platform': t.platform,
+            'enabled': t.enabled,
+            'token_prefix': (t.fcm_token or '')[:30] + '...',
+            'token_len': len(t.fcm_token or ''),
+            'created_at': t.created_at.isoformat() if t.created_at else None,
+            'last_seen_at': t.last_seen_at.isoformat() if t.last_seen_at else None,
+        })
+    return jsonify({'tokens': result})
+
+
+@admin_bp.route('/api/admin/test-push', methods=['POST'])
+@admin_required
+def admin_test_push():
+    from app import send_push_notification
+    from models import FCMToken
+    data = request.get_json() or {}
+    user_id = data.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'user_id required'}), 400
+    tokens = FCMToken.query.filter_by(user_id=user_id, enabled=True).all()
+    if not tokens:
+        return jsonify({'error': 'No enabled tokens for user', 'token_count': 0}), 404
+    sent = send_push_notification(
+        user_id,
+        'SharpPicks Test',
+        'If you see this, push notifications are working.',
+        {'type': 'test'}
+    )
+    return jsonify({
+        'sent': sent,
+        'total_enabled_tokens': len(tokens),
+        'platforms': [t.platform for t in tokens],
+    })
