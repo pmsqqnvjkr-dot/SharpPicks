@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 
 export default function BetTrackingScreen({ onBack, pickToTrack }) {
@@ -1022,6 +1022,12 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
 function PendingBetCard({ bet, onGraded }) {
   const [grading, setGrading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editAmt, setEditAmt] = useState(String(bet.bet_amount || 100));
+  const [editOdds, setEditOdds] = useState(String(bet.odds ?? -110));
+  const [editPick, setEditPick] = useState(bet.pick || '');
+  const [editGame, setEditGame] = useState(bet.game || '');
+  const [saving, setSaving] = useState(false);
   const isManual = !bet.pick_id;
   const betTypeMeta = bet.bet_type === 'parlay'
     ? { label: `${bet.parlay_legs || ''}L Parlay`, color: '#a855f7', bg: 'rgba(168,85,247,0.15)' }
@@ -1040,10 +1046,27 @@ function PendingBetCard({ bet, onGraded }) {
     setGrading(false);
   };
 
+  const handleSaveEdit = async () => {
+    setSaving(true);
+    try {
+      const res = await apiPut(`/bets/${bet.id}`, {
+        bet_amount: parseInt(editAmt) || bet.bet_amount,
+        odds: parseInt(editOdds) || bet.odds,
+        pick: editPick,
+        game: editGame,
+      });
+      if (res.success) {
+        setEditing(false);
+        onGraded();
+      }
+    } catch { /* silent */ }
+    setSaving(false);
+  };
+
   return (
     <div style={{
       padding: '12px 14px', backgroundColor: 'var(--surface-2)', borderRadius: '10px',
-      border: `1px solid ${grading ? 'rgba(79,134,247,0.3)' : 'rgba(79, 134, 247, 0.15)'}`,
+      border: `1px solid ${(grading || editing) ? 'rgba(79,134,247,0.3)' : 'rgba(79, 134, 247, 0.15)'}`,
       transition: 'border-color 0.15s',
     }}>
       <div style={{
@@ -1073,22 +1096,39 @@ function PendingBetCard({ bet, onGraded }) {
             ${bet.bet_amount} at {bet.odds != null ? (bet.odds > 0 ? `+${bet.odds}` : bet.odds) : '-110'} · to win ${bet.to_win || '—'}
           </div>
         </div>
-        {!grading && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
-            onClick={() => setGrading(true)}
+            onClick={() => { setEditing(!editing); setGrading(false); }}
             style={{
-              fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-              padding: '4px 10px', borderRadius: '6px',
-              backgroundColor: isManual ? 'rgba(251,191,36,0.12)' : 'rgba(79, 134, 247, 0.12)',
-              color: isManual ? '#f59e0b' : 'var(--blue-primary)',
-              letterSpacing: '0.3px', border: 'none', cursor: 'pointer',
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '4px', color: editing ? 'var(--blue-primary)' : 'var(--text-tertiary)',
+              opacity: 0.7, transition: 'color 0.15s',
             }}
+            title="Edit bet"
           >
-            {isManual ? 'Grade' : 'Awaiting'}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
           </button>
-        )}
+          {!grading && !editing && (
+            <button
+              onClick={() => setGrading(true)}
+              style={{
+                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+                padding: '4px 10px', borderRadius: '6px',
+                backgroundColor: isManual ? 'rgba(251,191,36,0.12)' : 'rgba(79, 134, 247, 0.12)',
+                color: isManual ? '#f59e0b' : 'var(--blue-primary)',
+                letterSpacing: '0.3px', border: 'none', cursor: 'pointer',
+              }}
+            >
+              {isManual ? 'Grade' : 'Awaiting'}
+            </button>
+          )}
+        </div>
       </div>
-      {grading && (
+
+      {grading && !editing && (
         <div style={{
           marginTop: '10px', paddingTop: '10px',
           borderTop: '1px solid var(--stroke-subtle)',
@@ -1121,6 +1161,71 @@ function PendingBetCard({ bet, onGraded }) {
               color: 'var(--text-tertiary)', fontSize: '12px',
             }}
           >✕</button>
+        </div>
+      )}
+
+      {editing && (
+        <div style={{
+          marginTop: '10px', paddingTop: '10px',
+          borderTop: '1px solid var(--stroke-subtle)',
+        }}>
+          {!bet.pick_id && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Game</label>
+                <input value={editGame} onChange={e => setEditGame(e.target.value)} style={{
+                  width: '100%', padding: '8px 10px', backgroundColor: 'var(--surface-1)',
+                  border: '1px solid var(--stroke-subtle)', borderRadius: '8px',
+                  color: 'var(--text-primary)', fontSize: '13px', fontFamily: 'var(--font-sans)',
+                  outline: 'none', boxSizing: 'border-box',
+                }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Pick</label>
+                <input value={editPick} onChange={e => setEditPick(e.target.value)} style={{
+                  width: '100%', padding: '8px 10px', backgroundColor: 'var(--surface-1)',
+                  border: '1px solid var(--stroke-subtle)', borderRadius: '8px',
+                  color: 'var(--text-primary)', fontSize: '13px', fontFamily: 'var(--font-sans)',
+                  outline: 'none', boxSizing: 'border-box',
+                }} />
+              </div>
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Wager ($)</label>
+              <input type="number" value={editAmt} onChange={e => setEditAmt(e.target.value)} style={{
+                width: '100%', padding: '8px 10px', backgroundColor: 'var(--surface-1)',
+                border: '1px solid var(--stroke-subtle)', borderRadius: '8px',
+                color: 'var(--text-primary)', fontSize: '13px', fontFamily: 'var(--font-mono)',
+                outline: 'none', boxSizing: 'border-box',
+              }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Odds</label>
+              <input type="number" value={editOdds} onChange={e => setEditOdds(e.target.value)} style={{
+                width: '100%', padding: '8px 10px', backgroundColor: 'var(--surface-1)',
+                border: '1px solid var(--stroke-subtle)', borderRadius: '8px',
+                color: 'var(--text-primary)', fontSize: '13px', fontFamily: 'var(--font-mono)',
+                outline: 'none', boxSizing: 'border-box',
+              }} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleSaveEdit} disabled={saving} style={{
+              flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
+              backgroundColor: 'var(--blue-primary)', color: '#fff',
+              fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              opacity: saving ? 0.5 : 1,
+            }}>{saving ? 'Saving...' : 'Save'}</button>
+            <button onClick={() => setEditing(false)} style={{
+              padding: '8px 12px', borderRadius: '8px', border: 'none',
+              backgroundColor: 'var(--surface-1)', color: 'var(--text-tertiary)',
+              fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+            }}>Cancel</button>
+          </div>
         </div>
       )}
     </div>
@@ -1189,6 +1294,13 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
   const [showConfirm, setShowConfirm] = useState(false);
   const [grading, setGrading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editAmt, setEditAmt] = useState(String(bet.bet_amount || 100));
+  const [editOdds, setEditOdds] = useState(String(bet.odds ?? -110));
+  const [editResult, setEditResult] = useState(bet.result || '');
+  const [editPick, setEditPick] = useState(bet.pick || '');
+  const [editGame, setEditGame] = useState(bet.game || '');
+  const [saving, setSaving] = useState(false);
   const deleteThreshold = 80;
 
   const handleGrade = async (result) => {
@@ -1200,6 +1312,24 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
     } catch { /* silent */ }
     setSubmitting(false);
     setGrading(false);
+  };
+
+  const handleSaveEdit = async () => {
+    setSaving(true);
+    try {
+      const res = await apiPut(`/bets/${bet.id}`, {
+        bet_amount: parseInt(editAmt) || bet.bet_amount,
+        odds: parseInt(editOdds) || bet.odds,
+        result: editResult || null,
+        pick: editPick,
+        game: editGame,
+      });
+      if (res.success) {
+        setEditing(false);
+        if (onGraded) onGraded();
+      }
+    } catch { /* silent */ }
+    setSaving(false);
   };
 
   const onTouchStart = useCallback((e) => {
@@ -1330,7 +1460,21 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
               )}
             </div>
           </div>
-          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditing(!editing); setGrading(false); }}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '4px', color: editing ? 'var(--blue-primary)' : 'var(--text-tertiary)',
+                opacity: 0.7, transition: 'color 0.15s',
+              }}
+              title="Edit bet"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
             {bet.result ? (
               <div style={{
                 fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
@@ -1340,7 +1484,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
               </div>
             ) : (
               <button
-                onClick={(e) => { e.stopPropagation(); setGrading(!grading); }}
+                onClick={(e) => { e.stopPropagation(); setGrading(!grading); setEditing(false); }}
                 style={{
                   fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
                   padding: '4px 10px', borderRadius: '6px',
@@ -1352,7 +1496,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
             )}
           </div>
         </div>
-        {!bet.result && grading && (
+        {!bet.result && grading && !editing && (
           <div style={{
             marginTop: '10px', paddingTop: '10px',
             borderTop: '1px solid var(--stroke-subtle)',
@@ -1385,6 +1529,94 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
                 color: 'var(--text-tertiary)', fontSize: '12px',
               }}
             >✕</button>
+          </div>
+        )}
+
+        {editing && (
+          <div style={{
+            marginTop: '10px', paddingTop: '10px',
+            borderTop: '1px solid var(--stroke-subtle)',
+          }}>
+            {!bet.pick_id && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Game</label>
+                  <input value={editGame} onChange={e => setEditGame(e.target.value)} style={{
+                    width: '100%', padding: '8px 10px', backgroundColor: 'var(--surface-2)',
+                    border: '1px solid var(--stroke-subtle)', borderRadius: '8px',
+                    color: 'var(--text-primary)', fontSize: '13px', fontFamily: 'var(--font-sans)',
+                    outline: 'none', boxSizing: 'border-box',
+                  }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Pick</label>
+                  <input value={editPick} onChange={e => setEditPick(e.target.value)} style={{
+                    width: '100%', padding: '8px 10px', backgroundColor: 'var(--surface-2)',
+                    border: '1px solid var(--stroke-subtle)', borderRadius: '8px',
+                    color: 'var(--text-primary)', fontSize: '13px', fontFamily: 'var(--font-sans)',
+                    outline: 'none', boxSizing: 'border-box',
+                  }} />
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Wager ($)</label>
+                <input type="number" value={editAmt} onChange={e => setEditAmt(e.target.value)} style={{
+                  width: '100%', padding: '8px 10px', backgroundColor: 'var(--surface-2)',
+                  border: '1px solid var(--stroke-subtle)', borderRadius: '8px',
+                  color: 'var(--text-primary)', fontSize: '13px', fontFamily: 'var(--font-mono)',
+                  outline: 'none', boxSizing: 'border-box',
+                }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Odds</label>
+                <input type="number" value={editOdds} onChange={e => setEditOdds(e.target.value)} style={{
+                  width: '100%', padding: '8px 10px', backgroundColor: 'var(--surface-2)',
+                  border: '1px solid var(--stroke-subtle)', borderRadius: '8px',
+                  color: 'var(--text-primary)', fontSize: '13px', fontFamily: 'var(--font-mono)',
+                  outline: 'none', boxSizing: 'border-box',
+                }} />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Result</label>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {[
+                  { val: '', label: 'Pending', color: 'var(--text-tertiary)', bg: 'rgba(100,116,139,0.12)' },
+                  { val: 'W', label: 'Win', color: 'var(--green-profit)', bg: 'rgba(52,211,153,0.12)' },
+                  { val: 'L', label: 'Loss', color: 'var(--red-loss)', bg: 'rgba(239,68,68,0.12)' },
+                  { val: 'P', label: 'Push', color: 'var(--text-tertiary)', bg: 'rgba(100,116,139,0.12)' },
+                ].map(opt => (
+                  <button key={opt.val} type="button" onClick={() => setEditResult(opt.val)} style={{
+                    flex: 1, padding: '6px 8px', borderRadius: '6px',
+                    fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                    fontFamily: 'var(--font-mono)', border: 'none',
+                    backgroundColor: editResult === opt.val ? opt.bg : 'var(--surface-2)',
+                    color: editResult === opt.val ? opt.color : 'var(--text-tertiary)',
+                    opacity: editResult === opt.val ? 1 : 0.6,
+                    transition: 'all 0.15s',
+                  }}>{opt.label}</button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={handleSaveEdit} disabled={saving} style={{
+                flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
+                backgroundColor: 'var(--blue-primary)', color: '#fff',
+                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+                opacity: saving ? 0.5 : 1,
+              }}>{saving ? 'Saving...' : 'Save'}</button>
+              <button onClick={() => setEditing(false)} style={{
+                padding: '8px 12px', borderRadius: '8px', border: 'none',
+                backgroundColor: 'var(--surface-2)', color: 'var(--text-tertiary)',
+                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+              }}>Cancel</button>
+            </div>
           </div>
         )}
       </div>

@@ -5787,6 +5787,61 @@ def update_bet_result(bet_id):
     
     return jsonify({'success': True})
 
+@app.route('/api/bets/<int:bet_id>', methods=['PUT'])
+def edit_bet(bet_id):
+    """Edit a tracked bet's details"""
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+    bet = TrackedBet.query.filter_by(id=bet_id, user_id=user.id).first()
+    if not bet:
+        return jsonify({'error': 'Bet not found'}), 404
+
+    data = request.get_json() or {}
+
+    if 'bet_amount' in data:
+        bet.bet_amount = max(1, int(data['bet_amount']))
+    if 'odds' in data:
+        bet.odds = int(data['odds'])
+    if 'pick' in data:
+        bet.pick = data['pick']
+    if 'game' in data:
+        bet.game = data['game']
+    if 'result' in data:
+        val = data['result']
+        if val and val not in ('W', 'L', 'P'):
+            return jsonify({'error': 'Invalid result. Use W, L, or P.'}), 400
+        bet.result = val if val else None
+
+    odds_val = bet.odds or -110
+    amt = bet.bet_amount or 100
+    if odds_val < 0:
+        bet.to_win = round(amt * (100 / abs(odds_val)), 2)
+    else:
+        bet.to_win = round(amt * (odds_val / 100), 2)
+
+    if bet.result == 'W':
+        bet.profit = bet.to_win
+    elif bet.result == 'L':
+        bet.profit = -amt
+    elif bet.result == 'P':
+        bet.profit = 0
+    else:
+        bet.profit = 0
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'bet': {
+            'id': bet.id, 'pick': bet.pick, 'game': bet.game,
+            'bet_amount': bet.bet_amount, 'odds': bet.odds,
+            'to_win': bet.to_win, 'result': bet.result,
+            'profit': bet.profit,
+        }
+    })
+
+
 @app.route('/api/bets/<int:bet_id>', methods=['DELETE'])
 def delete_bet(bet_id):
     """Delete/untrack a bet"""

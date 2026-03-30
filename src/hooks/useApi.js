@@ -115,6 +115,30 @@ export async function apiGet(endpoint) {
   }
 }
 
+export async function apiPut(endpoint, body) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'PUT',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      credentials: 'include',
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const json = await res.json();
+    if (json.token) setAuthToken(json.token);
+    return json;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return { error: 'Request timed out. Please try again.' };
+    }
+    return { error: 'Network error. Please check your connection.' };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function apiDelete(endpoint) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
