@@ -132,7 +132,7 @@ export default function UnifiedDashboard({ embedded = false }) {
   const avgDays = behavioral.avg_days_between || 0;
   const capitalPreserved = behavioral.capital_preserved || 0;
   const picksPassed = behavioral.picks_passed || 0;
-  const industryAvg = behavioral.industry_avg || 15;
+  const industryAvg = behavioral.industry_avg || 78;
   const hasBets = stats?.totalBets > 0 || bets.length > 0;
 
   const pendingBets = bets.filter(b => !b.result);
@@ -193,7 +193,7 @@ export default function UnifiedDashboard({ embedded = false }) {
                   }}>{stats.behavioral.selectivity || 0}%</span>
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                  Industry Avg: {stats.behavioral.industry_avg || 15}%
+                  Industry Avg: {stats.behavioral.industry_avg || 78}%
                 </div>
               </div>
               <div style={{
@@ -231,12 +231,12 @@ export default function UnifiedDashboard({ embedded = false }) {
                 transform: 'translateX(-50%)',
               }} />
               <div style={{
-                position: 'absolute', left: `${stats.behavioral.industry_avg || 15}%`,
+                position: 'absolute', left: `${stats.behavioral.industry_avg || 78}%`,
                 top: 0, transform: 'translateX(-50%)',
                 fontSize: '8px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap',
-              }}>Industry ({stats.behavioral.industry_avg || 15}%)</div>
+              }}>Industry ({stats.behavioral.industry_avg || 78}%)</div>
               <div style={{
-                position: 'absolute', left: `${stats.behavioral.industry_avg || 15}%`,
+                position: 'absolute', left: `${stats.behavioral.industry_avg || 78}%`,
                 top: '11px', width: '1px', height: '6px',
                 backgroundColor: 'var(--text-tertiary)', opacity: 0.5,
               }} />

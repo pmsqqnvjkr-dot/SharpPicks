@@ -298,7 +298,7 @@ function DisciplineScore({ discipline }) {
             </div>
             <div style={{
               fontSize: '12px', color: 'var(--text-tertiary)',
-            }}>Industry Avg: {discipline.industry_avg || 15}%</div>
+            }}>Industry Avg: {discipline.industry_avg || 78}%</div>
           </div>
           <div style={{
             width: '56px', height: '56px', borderRadius: '14px',
@@ -317,7 +317,7 @@ function DisciplineScore({ discipline }) {
           </div>
         </div>
 
-        <SelectivityBar selectivity={discipline.selectivity_rate || 0} industryAvg={discipline.industry_avg || 15} />
+        <SelectivityBar selectivity={discipline.selectivity_rate || 0} industryAvg={discipline.industry_avg || 78} />
 
         <div style={{
           marginTop: '16px', paddingTop: '14px',

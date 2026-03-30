@@ -19,21 +19,6 @@ def _get_sport_filter():
     return 'nba'
 
 
-def _calc_selectivity(total_picks, sport=None):
-    """Selectivity = picks / total games scanned. 1 pick out of a full slate."""
-    mr_q = db.session.query(func.coalesce(func.sum(ModelRun.games_analyzed), 0))
-    if sport:
-        mr_q = mr_q.filter(ModelRun.sport == sport)
-    total_games = mr_q.scalar() or 0
-    if not total_games:
-        pass_q = db.session.query(func.coalesce(func.sum(Pass.games_analyzed), 0))
-        if sport:
-            pass_q = pass_q.filter(Pass.sport == sport)
-        total_games = (pass_q.scalar() or 0) + total_picks * 10
-    if total_games <= 0:
-        return 0
-    return round(total_picks / total_games * 100, 1)
-
 
 def _empty_record():
     return jsonify({
@@ -127,7 +112,7 @@ def record():
             'total_passes': len(passes),
             'pnl': round(total_pnl_units, 2),
             'win_rate': round(wins / (wins + losses) * 100, 1) if (wins + losses) > 0 else 0,
-            'selectivity': _calc_selectivity(len(picks)),
+            'selectivity': round(len(picks) / (len(picks) + len(passes)) * 100, 1) if (len(picks) + len(passes)) > 0 else 0,
         }
     })
 
@@ -183,7 +168,7 @@ def stats():
         'pnl': round(total_pnl_units, 2),
         'roi': roi,
         'win_rate': round(wins / total_decided * 100, 1) if total_decided > 0 else 0,
-        'selectivity': _calc_selectivity(total_picks, sport),
+        'selectivity': round(total_picks / (total_picks + total_passes) * 100, 1) if (total_picks + total_passes) > 0 else 0,
         'capital_preserved_days': total_passes,
         'avg_clv': avg_clv,
         'clv_beat_rate': clv_beat_rate,
@@ -407,17 +392,17 @@ def dashboard_stats():
     avg_clv = round(sum(clv_values) / len(clv_values), 2) if clv_values else None
     clv_beat_rate = round(clv_positive / len(clv_values) * 100, 1) if clv_values else 0
 
-    selectivity = _calc_selectivity(total_picks)
+    selectivity = round((total_picks / total_days) * 100, 1) if total_days > 0 else 0
 
     capital_preserved = round(total_passes * 110 * 0.04, 0)
 
-    if selectivity <= 5:
+    if selectivity <= 20:
         restraint_grade = 'A+'
-    elif selectivity <= 10:
+    elif selectivity <= 30:
         restraint_grade = 'A'
-    elif selectivity <= 15:
+    elif selectivity <= 40:
         restraint_grade = 'B+'
-    elif selectivity <= 25:
+    elif selectivity <= 50:
         restraint_grade = 'B'
     else:
         restraint_grade = 'C'
@@ -499,7 +484,7 @@ def dashboard_stats():
         },
         'discipline': {
             'selectivity_rate': selectivity,
-            'industry_avg': 15,
+            'industry_avg': 78,
             'restraint_grade': restraint_grade,
             'capital_preserved': capital_preserved,
             'total_passes': total_passes,
@@ -1289,23 +1274,22 @@ def discipline_score():
 
     total_picks = pick_q.filter(Pick.result != 'revoked').count()
     total_passes = pass_q.count()
+    total_games = total_picks + total_passes
 
-    selectivity = _calc_selectivity(total_picks, sport)
+    if total_games == 0:
+        selectivity = 0
+    else:
+        selectivity = round(total_picks / total_games * 100, 1)
 
-    mr_q = db.session.query(func.coalesce(func.sum(ModelRun.games_analyzed), 0))
-    if sport:
-        mr_q = mr_q.filter(ModelRun.sport == sport)
-    total_games_scanned = mr_q.scalar() or 0
-
-    if selectivity <= 5:
+    if selectivity < 20:
         grade = 'A+'
-    elif selectivity <= 10:
+    elif selectivity < 30:
         grade = 'A'
-    elif selectivity <= 15:
+    elif selectivity < 40:
         grade = 'B+'
-    elif selectivity <= 25:
+    elif selectivity < 50:
         grade = 'B'
-    elif selectivity <= 40:
+    elif selectivity < 70:
         grade = 'C'
     else:
         grade = 'D'
@@ -1316,9 +1300,9 @@ def discipline_score():
     return jsonify({
         'grade': grade,
         'selectivity': selectivity,
-        'industry_avg': 15,
+        'industry_avg': 78,
         'capital_preserved': capital_preserved,
         'games_passed': total_passes,
         'games_bet': total_picks,
-        'total_games': total_games_scanned,
+        'total_games': total_games,
     })

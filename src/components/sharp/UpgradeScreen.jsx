@@ -155,7 +155,7 @@ export default function UpgradeScreen({ onBack, user }) {
                   fontFamily: 'var(--font-sans)', fontSize: '10px',
                   color: 'var(--text-tertiary)', textTransform: 'uppercase',
                   letterSpacing: '0.08em', marginTop: '2px',
-                }}>Select. (vs 15% avg)</div>
+                }}>Select. (vs 78% avg)</div>
               </div>
             )}
           </div>
