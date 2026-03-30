@@ -2679,8 +2679,12 @@ def admin_user_activity(user_id):
 
 
 @admin_bp.route('/api/admin/push-tokens', methods=['GET'])
-@admin_required
 def admin_push_tokens():
+    admin, err_code = require_superuser()
+    if not admin:
+        cron_secret = os.environ.get('CRON_SECRET', '')
+        if not (cron_secret and request.headers.get('X-Cron-Secret') == cron_secret):
+            return jsonify({'error': 'Unauthorized'}), err_code or 403
     from models import FCMToken
     tokens = FCMToken.query.all()
     result = []
@@ -2699,8 +2703,12 @@ def admin_push_tokens():
 
 
 @admin_bp.route('/api/admin/test-push', methods=['POST'])
-@admin_required
 def admin_test_push():
+    admin, err_code = require_superuser()
+    if not admin:
+        cron_secret = os.environ.get('CRON_SECRET', '')
+        if not (cron_secret and request.headers.get('X-Cron-Secret') == cron_secret):
+            return jsonify({'error': 'Unauthorized'}), err_code or 403
     from app import send_push_notification
     from models import FCMToken
     data = request.get_json() or {}
