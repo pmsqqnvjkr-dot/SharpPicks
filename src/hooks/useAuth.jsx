@@ -98,8 +98,16 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const setUnitSize = async (size) => {
+    const val = Math.max(1, Math.round(size));
+    try {
+      await apiPost('/auth/unit-size', { unit_size: val });
+      setUser(prev => prev ? { ...prev, unit_size: val } : prev);
+    } catch {}
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth, resendVerification, enablePush, pushStatus }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth, resendVerification, enablePush, pushStatus, setUnitSize }}>
       {children}
     </AuthContext.Provider>
   );

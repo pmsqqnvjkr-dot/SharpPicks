@@ -70,7 +70,7 @@ const labelStyle = {
   color: textLabel,
 };
 
-export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, onNavigate }) {
+export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, onNavigate, unitSize = 100 }) {
   const isLocked = pick.locked && !isPro;
   const [tracking, setTracking] = useState(false);
   const [tracked, setTracked] = useState(pick.already_tracked || false);
@@ -87,7 +87,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
     trackEvent('tap_bet_link', { game_id: pick.id, pick_type: 'spread', sportsbook: pick.sportsbook || 'unknown' });
     try {
       const res = await apiPost('/bets', {
-        pick_id: pick.id, bet_amount: 100, odds: pick.market_odds || -110,
+        pick_id: pick.id, bet_amount: unitSize || 100, odds: pick.market_odds || -110,
       });
       if (res.success) {
         setTracked(true);
@@ -613,6 +613,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
           onTrack={handleTrackPick}
           onUntrack={handleUntrack}
           onNavigate={onNavigate}
+          unitSize={unitSize}
         />
       </div>
 
@@ -757,7 +758,7 @@ function CoverTracker({ pick, liveScore }) {
   );
 }
 
-function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, settled, isRevoked, flatStake, onTrack, onUntrack, onNavigate }) {
+function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, settled, isRevoked, flatStake, onTrack, onUntrack, onNavigate, unitSize = 100 }) {
   if (isRevoked) return null;
 
   const sideStr = pick.side || '';
@@ -839,7 +840,7 @@ function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, set
         onMouseEnter={e => { if (!tracking) e.currentTarget.style.background = 'rgba(90,158,114,0.06)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
       >
-        {tracking ? 'TRACKING...' : 'TRACK THIS BET'}
+        {tracking ? 'TRACKING...' : `TRACK · 1u · $${unitSize}`}
       </button>
       {trackError && (
         <div style={{ marginTop: 4, fontFamily: mono, fontSize: '11px', color: '#C4686B', textAlign: 'center' }}>

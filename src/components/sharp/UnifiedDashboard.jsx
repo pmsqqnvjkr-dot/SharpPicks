@@ -7,7 +7,7 @@ import Wordmark from './Wordmark';
 import { TrackBetModal } from './BetTrackingScreen';
 
 export default function UnifiedDashboard({ embedded = false }) {
-  const { user } = useAuth();
+  const { user, setUnitSize } = useAuth();
   const { sport } = useSport();
   const [stats, setStats] = useState(null);
   const [bets, setBets] = useState([]);
@@ -380,6 +380,8 @@ export default function UnifiedDashboard({ embedded = false }) {
           initialPick={selectedPick}
           onClose={() => { setShowTrackModal(false); setSelectedPick(null); }}
           onSubmit={handleSubmitBet}
+          unitSize={user?.unit_size || 100}
+          onSetDefault={setUnitSize}
         />
       )}
     </div>

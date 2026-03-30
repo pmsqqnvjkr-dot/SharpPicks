@@ -5224,12 +5224,15 @@ def list_products():
 
 @app.route('/api/auth/unit-size', methods=['POST'])
 def set_unit_size():
-    """Set user's unit size"""
-    from flask import request
+    """Set user's unit size (dollars per 1u)"""
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
     data = request.get_json() or {}
-    unit_size = data.get('unit_size', 100)
-    test_user.unit_size = unit_size
-    return jsonify({'success': True, 'unit_size': unit_size})
+    unit_size = max(1, int(data.get('unit_size', 100)))
+    user.unit_size = unit_size
+    db.session.commit()
+    return jsonify({'success': True, 'unit_size': user.unit_size})
 
 @app.route('/api/auth/trial', methods=['POST'])
 def start_trial():

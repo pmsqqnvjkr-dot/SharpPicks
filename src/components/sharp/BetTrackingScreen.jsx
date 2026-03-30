@@ -4,7 +4,7 @@ import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 
 export default function BetTrackingScreen({ onBack, pickToTrack }) {
-  const { user } = useAuth();
+  const { user, setUnitSize } = useAuth();
   const { sport } = useSport();
   const [bets, setBets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -499,19 +499,23 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
           initialPick={selectedPick}
           onClose={() => { setShowTrackModal(false); setSelectedPick(null); }}
           onSubmit={handleSubmitBet}
+          unitSize={user?.unit_size || 100}
+          onSetDefault={setUnitSize}
         />
       )}
     </div>
   );
 }
 
-export function TrackBetModal({ initialPick, onClose, onSubmit }) {
+export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, onSetDefault }) {
+  const defaultAmt = String(unitSize || 100);
   const [step, setStep] = useState(initialPick ? 'wager' : 'picks');
   const [mode, setMode] = useState('model');
   const [picks, setPicks] = useState([]);
   const [loadingPicks, setLoadingPicks] = useState(!initialPick);
   const [selected, setSelected] = useState(initialPick || null);
-  const [amount, setAmount] = useState('100');
+  const [amount, setAmount] = useState(defaultAmt);
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
   const [odds, setOdds] = useState(initialPick?.market_odds != null ? String(initialPick.market_odds) : '-110');
   const [followType, setFollowType] = useState('exact');
   const [submitting, setSubmitting] = useState(false);
@@ -555,6 +559,10 @@ export function TrackBetModal({ initialPick, onClose, onSubmit }) {
       if (manualBetType !== 'parlay' && (!manualGame.trim() || !manualPick.trim())) return;
     }
     setSubmitting(true);
+    const parsedAmt = parseInt(amount) || unitSize || 100;
+    if (saveAsDefault && onSetDefault && parsedAmt !== unitSize) {
+      onSetDefault(parsedAmt);
+    }
     const userOdds = parseInt(odds) || -110;
 
     if (mode === 'model') {
@@ -913,9 +921,25 @@ export function TrackBetModal({ initialPick, onClose, onSubmit }) {
 
             <form onSubmit={handleSubmit}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <FormField label="Wager ($)" placeholder="100" value={amount} onChange={setAmount} type="number" />
+                <FormField label="Wager ($)" placeholder={defaultAmt} value={amount} onChange={setAmount} type="number" />
                 <FormField label="Odds" placeholder="-110" value={odds} onChange={setOdds} type="number" />
               </div>
+
+              {onSetDefault && (
+                <label style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  fontSize: '12px', color: 'var(--text-tertiary)',
+                  marginBottom: '12px', cursor: 'pointer',
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={saveAsDefault}
+                    onChange={e => setSaveAsDefault(e.target.checked)}
+                    style={{ accentColor: 'var(--blue-primary)' }}
+                  />
+                  Set ${amount || defaultAmt} as my default wager
+                </label>
+              )}
 
               {mode === 'model' && (
                 <div style={{ marginBottom: '12px' }}>
@@ -954,13 +978,27 @@ export function TrackBetModal({ initialPick, onClose, onSubmit }) {
               <div style={{
                 backgroundColor: 'var(--surface-1)', borderRadius: '10px',
                 padding: '12px 16px', marginBottom: '16px',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
-                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>To win</span>
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '16px',
-                  fontWeight: 600, color: 'var(--green-profit)',
-                }}>${toWin}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>To win</span>
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '16px',
+                    fontWeight: 600, color: 'var(--green-profit)',
+                  }}>${toWin}</span>
+                </div>
+                {unitSize > 0 && (
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    marginTop: '6px', paddingTop: '6px',
+                    borderTop: '1px solid var(--stroke-subtle)',
+                  }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Risk</span>
+                    <span style={{
+                      fontFamily: 'var(--font-mono)', fontSize: '13px',
+                      color: 'var(--text-secondary)',
+                    }}>${amount || defaultAmt} ({((parseInt(amount) || unitSize) / unitSize).toFixed(1)}u)</span>
+                  </div>
+                )}
               </div>
 
               <button type="submit" disabled={submitting} style={{

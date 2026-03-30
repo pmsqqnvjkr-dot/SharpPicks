@@ -357,7 +357,7 @@ export default function PicksTab({ onNavigate }) {
         )}
 
         {todayData?.type === 'pick' && !isResolved && !isRevoked && isPro && (
-          <PickCard pick={todayData} isPro={isPro} liveScore={liveScore} onUpgrade={() => setShowAuth(true)} onNavigate={onNavigate} onTrack={() => {
+          <PickCard pick={todayData} isPro={isPro} liveScore={liveScore} onUpgrade={() => setShowAuth(true)} onNavigate={onNavigate} unitSize={user?.unit_size || 100} onTrack={() => {
             if (onNavigate) onNavigate('profile', 'bets', {
               pickToTrack: {
                 id: todayData.id,
