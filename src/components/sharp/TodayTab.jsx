@@ -19,7 +19,12 @@ export default function TodayTab({ onNavigate }) {
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
   const [resolutionPick, setResolutionPick] = useState(null);
-  const [dismissedResolutionId, setDismissedResolutionId] = useState(null);
+  const [dismissedOutcomes, setDismissedOutcomes] = useState(() => {
+    try {
+      const raw = localStorage.getItem('sp_dismissed_outcomes');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch { return new Set(); }
+  });
 
   if (loading || authLoading) {
     return <LoadingState />;
@@ -29,7 +34,13 @@ export default function TodayTab({ onNavigate }) {
   const isResolved = todayData?.type === 'pick' && todayData?.result && todayData.result !== 'pending' && todayData.result !== 'revoked';
 
   const handleDismissResolution = (pickId) => {
-    setDismissedResolutionId(pickId);
+    setDismissedOutcomes(prev => {
+      const next = new Set(prev);
+      next.add(pickId);
+      const arr = [...next].slice(-50);
+      localStorage.setItem('sp_dismissed_outcomes', JSON.stringify(arr));
+      return new Set(arr);
+    });
   };
 
   if (showResolution && resolutionPick) {
@@ -41,7 +52,7 @@ export default function TodayTab({ onNavigate }) {
       <Header user={user} onAuthClick={() => setShowAuth(true)} />
 
       <div style={{ padding: '0 20px' }}>
-        {lastResolved && lastResolved.id && !isResolved && dismissedResolutionId !== lastResolved.id && (
+        {lastResolved && lastResolved.id && !isResolved && !dismissedOutcomes.has(lastResolved.id) && (
           <ResolvedPickBanner
             pick={lastResolved}
             onViewDetails={() => { setResolutionPick(lastResolved); setShowResolution(true); }}
@@ -346,119 +357,104 @@ function RevokedPassCard({ pick, onViewDetails }) {
 function ResolvedPickBanner({ pick, onViewDetails, onDismiss }) {
   const isWin = pick.result === 'win';
   const isPush = pick.result === 'push';
-  const pnlColor = isPush ? 'var(--text-secondary)' : isWin ? 'var(--color-signal)' : 'var(--color-loss)';
+  const accentColor = isWin ? '#5A9E72' : '#2a3654';
+  const dotColor = isWin ? '#5A9E72' : '#616a8a';
+  const labelColor = isWin ? '#5A9E72' : '#616a8a';
+  const statValColor = isWin ? '#5A9E72' : '#9098b3';
+
   const profitDisplay = pick.profit_units != null
     ? `${pick.profit_units >= 0 ? '+' : ''}${Number(pick.profit_units).toFixed(1)}u`
     : isPush ? '0.0u' : isWin ? '+0.9u' : '-1.0u';
+  const edgePct = pick.edge_pct || '--';
+  const modelProb = pick.edge_pct ? `${Math.round(50 + pick.edge_pct)}%` : '--';
+
+  const sideDisplay = pick.side && pick.line != null && pick.side.includes(String(Math.abs(pick.line)))
+    ? pick.side
+    : `${pick.side} ${pick.line > 0 ? '+' : ''}${pick.line}`;
 
   const scoreDisplay = (pick.home_score != null && pick.away_score != null)
-    ? `${pick.away_team} ${pick.away_score}, ${pick.home_team} ${pick.home_score}`
+    ? `Final: ${pick.away_team} ${pick.away_score}, ${pick.home_team} ${pick.home_score}`
     : null;
 
+  const resultLabel = isPush ? 'OUTCOME RESOLVED \u00B7 PUSH' : isWin ? 'OUTCOME RESOLVED \u00B7 WIN' : 'OUTCOME RESOLVED';
+  const reviewText = isPush
+    ? 'Push. The spread landed on the number. Next signal when the edge is there.'
+    : isWin
+    ? 'Process unchanged. Next signal when the edge is there.'
+    : 'Correct process, wrong outcome. Variance is part of the model.';
+
   return (
-    <div onClick={onViewDetails} style={{
-      backgroundColor: 'var(--surface-1)',
-      borderRadius: '16px',
+    <div style={{
+      background: 'var(--surface-1)',
       border: '1px solid var(--color-border)',
-      padding: 'var(--space-lg)',
-      marginBottom: 'var(--space-md)',
-      cursor: 'pointer',
-      opacity: 0.85,
+      borderRadius: '12px',
+      overflow: 'hidden',
       position: 'relative',
+      marginBottom: 'var(--space-md)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 'var(--space-md)' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', borderRadius: '12px 12px 0 0', background: accentColor }} />
+
+      <div style={{ padding: '20px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{
-          width: '44px', height: '44px', borderRadius: '50%',
-          backgroundColor: isWin ? 'var(--color-signal-bg)' : isPush ? 'rgba(255,255,255,0.04)' : 'rgba(196,104,107,0.08)',
-          border: `1px solid ${isWin ? 'var(--color-signal-border)' : isPush ? 'var(--color-border)' : 'rgba(196,104,107,0.22)'}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
+          fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.12em',
+          textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', color: labelColor,
         }}>
-          {isPush ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="6" y1="12" x2="18" y2="12"/>
-            </svg>
-          ) : isWin ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-signal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-loss)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          )}
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+          {resultLabel}
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
-            letterSpacing: '0.08em', textTransform: 'uppercase',
-            color: pnlColor, marginBottom: '4px',
-          }}>
-            {isPush ? 'Outcome: Push' : isWin ? 'Outcome: Win' : 'Outcome: Loss'}
-          </div>
-          <div style={{
-            fontFamily: 'var(--font-sans)', fontSize: 'var(--text-card-title)', fontWeight: 600,
-            color: 'var(--text-primary)',
-          }}>
-            {pick.side} {pick.line > 0 ? `+${pick.line}` : pick.line}
-          </div>
-        </div>
-        <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700,
-          fontVariantNumeric: 'tabular-nums', color: pnlColor,
-        }}>
-          {profitDisplay}
-        </div>
+        {onDismiss && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+            style={{ background: 'none', border: 'none', color: '#4a5274', cursor: 'pointer', fontSize: '16px', padding: '4px', lineHeight: 1 }}
+            aria-label="Dismiss"
+          >&times;</button>
+        )}
+      </div>
+
+      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', padding: '8px 20px 0' }}>
+        {sideDisplay}
       </div>
 
       {scoreDisplay && (
-        <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: '13px',
-          fontVariantNumeric: 'tabular-nums',
-          color: 'var(--text-secondary)', marginBottom: '12px',
-        }}>
-          Final: {scoreDisplay}
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#9098b3', padding: '6px 20px 0', lineHeight: 1.5 }}>
+          {scoreDisplay}
         </div>
       )}
 
-      <div style={{
-        fontSize: '13px', color: 'var(--text-tertiary)', lineHeight: '1.6',
-        marginBottom: 'var(--space-md)',
-      }}>
-        {isPush
-          ? "Push. Spread landed on the number. Next signal when the edge is there."
-          : isWin
-          ? "Process unchanged. Next signal when the edge is there."
-          : "Process unchanged. No revenge bets. Next signal when the edge is there."
-        }
+      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: '#616a8a', padding: '8px 20px 0', lineHeight: 1.55, fontStyle: 'italic' }}>
+        {reviewText}
       </div>
 
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-        fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 500,
-        color: 'var(--color-info)',
-      }}>
-        View outcome log
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
+      <div style={{ display: 'flex', margin: '16px 20px 0', border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden' }}>
+        {[
+          { val: profitDisplay, lbl: 'P&L' },
+          { val: typeof edgePct === 'number' ? `${edgePct}%` : edgePct, lbl: 'Edge at Entry' },
+          { val: modelProb, lbl: 'Model Prob' },
+        ].map((s, i) => (
+          <div key={i} style={{
+            flex: 1, padding: '10px 12px', textAlign: 'center',
+            borderRight: i < 2 ? '1px solid var(--color-border)' : 'none',
+          }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500, color: statValColor }}>{s.val}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#4a5274', marginTop: '2px' }}>{s.lbl}</div>
+          </div>
+        ))}
       </div>
 
-      {onDismiss && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onDismiss(); }}
-          style={{
-            display: 'block', margin: '12px auto 0', background: 'none',
-            border: 'none', cursor: 'pointer',
-            fontFamily: 'var(--font-sans)', fontSize: '12px',
-            color: 'var(--text-tertiary)',
-            minHeight: '44px', minWidth: '44px',
-          }}
-        >
-          Dismiss
-        </button>
-      )}
+      <div
+        onClick={onViewDetails}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+          padding: '14px 20px', marginTop: '16px',
+          borderTop: '1px solid var(--color-border)',
+          fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.04em',
+          color: '#5A9E72', cursor: 'pointer', transition: 'background 0.15s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(90,158,114,0.10)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      >
+        View outcome log &rarr;
+      </div>
     </div>
   );
 }

@@ -22,9 +22,21 @@ All times **Eastern (ET)**. Use `X-Cron-Secret` header with your `CRON_SECRET` v
 | weekly_summary | `https://app.sharppicks.ai/api/cron/weekly-summary` | Mon 6:30 AM |
 | admin_alert | `https://app.sharppicks.ai/api/cron/admin-alert` | Every 2–4 hours (sends push to admins when issues detected) |
 
+### MLB-Specific Jobs
+
+| Job | URL | Schedule (ET) |
+|-----|-----|---------------|
+| mlb_collect | `https://app.sharppicks.ai/api/cron/mlb-collect` | 9:00 AM, 12:00 PM |
+| mlb_run_model | `https://app.sharppicks.ai/api/cron/mlb-run-model?force=true` | 11:00 AM (standalone if needed) |
+| mlb_closing_lines | `https://app.sharppicks.ai/api/cron/mlb-closing-lines` | Every 1 min, 11 AM–1 AM |
+| mlb_grade | `https://app.sharppicks.ai/api/cron/mlb-grade` | 3:30 AM, 11:00 AM |
+
+> **Note:** `run-model?force=true` now automatically collects MLB games when MLB is live, so a separate `mlb-collect` cron is optional but recommended for data freshness before the combined model run.
+
 ## Why run-model?force=true?
-- **force=true** runs collect (games + lines) immediately before the model, so you always get fresh data
-- Lines post 8–10 AM ET; 10:15 AM and 2:15 PM ensure odds are live before first tip-offs (~7 PM ET)
+- **force=true** runs collect (games + lines) immediately before the model — including MLB collection when MLB is live — so you always get fresh data
+- NBA lines post 8–10 AM ET; 10:15 AM ensures odds are live before first tip-offs (~7 PM ET)
+- MLB model runs at 11:00 AM ET; first pitches are typically ~1 PM ET
 - No need for separate collect_games crons — the pipeline is self-contained
 - Manual collect still available: `POST /api/cron/collect-games` or `refresh-lines?force=true`
 

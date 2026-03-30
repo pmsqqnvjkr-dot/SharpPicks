@@ -476,7 +476,9 @@ def today():
 
     # Enrich waiting state with today's slate info for daily insight screen
     games_preview = []
-    model_runs_at = '10:00 AM ET'
+    cfg_wait = get_sport_config(sport)
+    model_run_hour = cfg_wait.get('model_run_hour', 10)
+    model_runs_at = f'{model_run_hour}:00 AM ET' if model_run_hour <= 12 else f'{model_run_hour - 12}:00 PM ET'
 
     def _format_utc_to_et(utc_str):
         """Convert UTC ISO timestamp to ET display string like '7:30 PM ET'."""
@@ -548,6 +550,7 @@ def today():
         'games_scheduled': len(games_preview),
         'games_preview': games_preview,
         'model_runs_at': model_runs_at,
+        'model_run_hour': model_run_hour,
     })
 
 

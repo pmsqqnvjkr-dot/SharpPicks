@@ -566,14 +566,23 @@ body { font-family: var(--sans); color: var(--text); background: var(--bg); min-
     <div id="status-alert-count" style="font-size:11px;color:var(--text-dim);white-space:nowrap"></div>
   </div>
 
-  <!-- KEY ACTIONS (always visible at top) -->
+  <!-- KEY ACTIONS — NBA (always visible at top) -->
   <div class="panel wide-4" style="padding:12px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--border)">
-    <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);white-space:nowrap">Actions</span>
+    <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);white-space:nowrap">NBA</span>
     <button id="top-get-games-btn" onclick="triggerGetGames()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--panel-hover);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:var(--mono)">Get Games</button>
     <button id="top-get-lines-btn" onclick="triggerGetLines()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--panel-hover);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:var(--mono)">Get Lines</button>
     <button id="top-clear-btn" onclick="triggerClearToday()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--red-dim);color:var(--red);border:1px solid rgba(255,71,87,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Clear</button>
     <button id="top-run-model-btn" onclick="triggerModel()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--blue-dim);color:var(--blue);border:1px solid rgba(79,134,247,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Run Model</button>
     <button id="top-grade-btn" onclick="triggerGrade()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,214,143,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Grade</button>
+  </div>
+
+  <!-- KEY ACTIONS — MLB -->
+  <div class="panel wide-4" style="padding:12px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--border)">
+    <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--amber);white-space:nowrap">MLB</span>
+    <button id="top-mlb-collect-btn" onclick="triggerMlbCollect()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--panel-hover);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:var(--mono)">Collect Games</button>
+    <button id="top-mlb-clear-btn" onclick="triggerMlbClear()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--red-dim);color:var(--red);border:1px solid rgba(255,71,87,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Clear</button>
+    <button id="top-mlb-run-model-btn" onclick="triggerMlbModel()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--blue-dim);color:var(--blue);border:1px solid rgba(79,134,247,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Run Model</button>
+    <button id="top-mlb-grade-btn" onclick="triggerMlbGrade()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,214,143,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Grade</button>
   </div>
 
   <!-- ALERTS (only shown when issues exist) -->
@@ -1945,6 +1954,65 @@ async function triggerGrade() {
     alert('Error: ' + e.message);
   }
   setTimeout(() => { btns.forEach(b => { if (b) { b.disabled = false; b.textContent = 'Grade'; } }); }, 2000);
+}
+
+// ─── MLB Actions ───
+
+async function triggerMlbCollect() {
+  const btn = document.getElementById('top-mlb-collect-btn');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const res = await adminFetch('/api/admin/mlb-collect', { method: 'POST' });
+    const data = await res.json();
+    btn.textContent = (res.ok && data.success) ? 'Done' : 'Error';
+    if (!res.ok) alert(data.error || 'Failed');
+    else { loadPipeline(); loadDashboard(); }
+  } catch (e) { btn.textContent = 'Error'; alert('Error: ' + e.message); }
+  setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = 'Collect Games'; } }, 2000);
+}
+
+async function triggerMlbClear() {
+  const btn = document.getElementById('top-mlb-clear-btn');
+  if (!btn || btn.disabled) return;
+  if (!confirm('Clear today\'s MLB pick/pass? Run model after to regenerate.')) return;
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const res = await adminFetch('/api/admin/clear-today', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sport: 'mlb' }) });
+    const data = await res.json();
+    btn.textContent = res.ok ? 'Done' : 'Error';
+    if (!res.ok) alert(data.error || 'Failed');
+    else { loadPipeline(); loadDashboard(); }
+  } catch (e) { btn.textContent = 'Error'; alert('Error: ' + e.message); }
+  setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = 'Clear'; } }, 2000);
+}
+
+async function triggerMlbModel() {
+  const btn = document.getElementById('top-mlb-run-model-btn');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true; btn.textContent = 'Running...';
+  try {
+    const res = await adminFetch('/api/admin/trigger-model', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sport: 'mlb', force: false }) });
+    const data = await res.json();
+    btn.textContent = res.ok ? 'Done' : 'Error';
+    if (!res.ok) alert(data.error || 'Failed');
+    else { loadPipeline(); loadDashboard(); }
+  } catch (e) { btn.textContent = 'Error'; alert('Error: ' + e.message); }
+  setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = 'Run Model'; } }, 2000);
+}
+
+async function triggerMlbGrade() {
+  const btn = document.getElementById('top-mlb-grade-btn');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true; btn.textContent = 'Grading...';
+  try {
+    const res = await adminFetch('/api/admin/trigger-grade', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sport: 'mlb' }) });
+    const data = await res.json();
+    btn.textContent = (res.ok && data.success) ? 'Done' : 'Error';
+    if (!(res.ok && data.success)) alert(data.error || 'Failed');
+    else { loadPipeline(); loadDashboard(); }
+  } catch (e) { btn.textContent = 'Error'; alert('Error: ' + e.message); }
+  setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = 'Grade'; } }, 2000);
 }
 
 async function sendTestPush() {

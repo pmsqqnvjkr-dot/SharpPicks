@@ -16,6 +16,7 @@ SPORT_CONFIG = {
         'active': True,
         'live': True,
         'model_phase': 'deployment',
+        'model_run_hour': 10,
 
         'sigma': 11.7,
         'model_weight': 0.45,
@@ -84,6 +85,7 @@ SPORT_CONFIG = {
         'active': True,
         'live': True,
         'model_phase': 'calibration',
+        'model_run_hour': 11,
 
         # Walk-forward raw sigma: 4.4 runs. Previous ceiling of 2.5 inflated
         # z-scores by 1.76x, causing overconfidence in 55-65% buckets.

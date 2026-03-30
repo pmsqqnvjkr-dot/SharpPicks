@@ -446,6 +446,22 @@ def admin_refresh_lines():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@admin_bp.route('/api/admin/mlb-collect', methods=['POST'])
+def admin_mlb_collect():
+    """Collect MLB games + odds (admin auth)."""
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    from app import collect_mlb_games_job
+    try:
+        collect_mlb_games_job()
+        return jsonify({'success': True, 'message': 'MLB games collected'})
+    except Exception as e:
+        logging.error(f"Admin mlb-collect error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 def run_admin_alert_check(include_health=True):
     """
     Check for issues (cron, model, kill switch, optional health).

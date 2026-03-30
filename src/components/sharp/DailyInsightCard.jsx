@@ -65,7 +65,8 @@ function MatchupRow({ away, home, time }) {
 export default function DailyInsightCard({ data, onNavigate }) {
   const { sport } = useSport();
   const [insight, setInsight] = useState(null);
-  const countdown = useCountdownTo(10);
+  const runHour = data?.model_run_hour ?? 10;
+  const countdown = useCountdownTo(runHour);
   const gamesScheduled = data?.games_scheduled ?? 0;
   const gamesPreview = data?.games_preview ?? [];
   const modelRunsAt = data?.model_runs_at ?? '10:00 AM ET';

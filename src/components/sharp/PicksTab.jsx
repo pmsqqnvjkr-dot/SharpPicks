@@ -48,7 +48,12 @@ export default function PicksTab({ onNavigate }) {
   const [filter, setFilter] = useState('all');
   const [showAllPicks, setShowAllPicks] = useState(false);
   const initialFilterSet = useRef(false);
-  const [dismissedResolutionId, setDismissedResolutionId] = useState(() => localStorage.getItem('sp_dismissed_resolution'));
+  const [dismissedOutcomes, setDismissedOutcomes] = useState(() => {
+    try {
+      const raw = localStorage.getItem('sp_dismissed_outcomes');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch { return new Set(); }
+  });
   const [liveScore, setLiveScore] = useState(null);
   const [allLiveScores, setAllLiveScores] = useState([]);
 
@@ -66,8 +71,13 @@ export default function PicksTab({ onNavigate }) {
   }, [historyData]);
 
   const handleDismissResolution = (pickId) => {
-    setDismissedResolutionId(pickId);
-    localStorage.setItem('sp_dismissed_resolution', pickId);
+    setDismissedOutcomes(prev => {
+      const next = new Set(prev);
+      next.add(pickId);
+      const arr = [...next].slice(-50);
+      localStorage.setItem('sp_dismissed_outcomes', JSON.stringify(arr));
+      return new Set(arr);
+    });
   };
 
   const fetchLiveForPick = useCallback(async () => {
@@ -295,7 +305,7 @@ export default function PicksTab({ onNavigate }) {
           ) : null;
         })()}
 
-        {lastResolved && lastResolved.id && !isResolved && dismissedResolutionId !== lastResolved.id && (
+        {lastResolved && lastResolved.id && !isResolved && !dismissedOutcomes.has(lastResolved.id) && (
           <ResolvedPickBanner
             pick={lastResolved}
             onViewDetails={() => { setResolutionPick(lastResolved); setShowResolution(true); }}
@@ -303,7 +313,7 @@ export default function PicksTab({ onNavigate }) {
           />
         )}
 
-        {todayData?.type === 'pick' && isResolved && isPro && dismissedResolutionId !== todayData.id && (
+        {todayData?.type === 'pick' && isResolved && isPro && !dismissedOutcomes.has(todayData.id) && (
           <ResolvedPickBanner
             pick={todayData}
             onViewDetails={() => { setResolutionPick(todayData); setShowResolution(true); }}
@@ -946,91 +956,103 @@ function MiniStat({ label, value, highlight }) {
 function ResolvedPickBanner({ pick, onViewDetails, onDismiss }) {
   const isWin = pick.result === 'win';
   const isPush = pick.result === 'push';
+  const accentColor = isWin ? '#5A9E72' : '#2a3654';
+  const dotColor = isWin ? '#5A9E72' : '#616a8a';
+  const labelColor = isWin ? '#5A9E72' : '#616a8a';
+  const statValColor = isWin ? '#5A9E72' : '#9098b3';
+
+  const profitDisplay = pick.profit_units != null
+    ? `${pick.profit_units >= 0 ? '+' : ''}${Number(pick.profit_units).toFixed(1)}u`
+    : isPush ? '0.0u' : isWin ? '+0.9u' : '-1.0u';
+  const edgePct = pick.edge_pct || '--';
+  const modelProb = pick.edge_pct ? `${Math.round(50 + pick.edge_pct)}%` : '--';
+
+  const sideDisplay = pick.side && pick.line != null && pick.side.includes(String(Math.abs(pick.line)))
+    ? pick.side
+    : `${pick.side} ${pick.line > 0 ? '+' : ''}${pick.line}`;
 
   const scoreDisplay = (pick.home_score != null && pick.away_score != null)
-    ? `${pick.away_team} ${pick.away_score}, ${pick.home_team} ${pick.home_score}`
+    ? `Final: ${pick.away_team} ${pick.away_score}, ${pick.home_team} ${pick.home_score}`
     : null;
 
-  return (
-    <div
-      onClick={onViewDetails}
-      style={{
-        backgroundColor: 'var(--surface-1)',
-        borderRadius: '16px',
-        border: '1px solid var(--color-border)',
-        padding: 'var(--space-lg)',
-        marginBottom: 'var(--space-md)',
-        cursor: 'pointer',
-        position: 'relative',
-        opacity: 0.85,
-      }}
-    >
-      {onDismiss && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onDismiss(); }}
-          style={{
-            position: 'absolute', top: '12px', right: '12px',
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-tertiary)', padding: '4px',
-            minWidth: '44px', minHeight: '44px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-          aria-label="Dismiss"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      )}
+  const resultLabel = isPush ? 'OUTCOME RESOLVED \u00B7 PUSH' : isWin ? 'OUTCOME RESOLVED \u00B7 WIN' : 'OUTCOME RESOLVED';
+  const reviewText = isPush
+    ? 'Push. The spread landed on the number. Next signal when the edge is there.'
+    : isWin
+    ? 'Process unchanged. Next signal when the edge is there.'
+    : 'Correct process, wrong outcome. Variance is part of the model.';
 
-      <div style={{ marginBottom: '14px' }}>
+  return (
+    <div style={{
+      background: 'var(--surface-1)',
+      border: '1px solid var(--color-border)',
+      borderRadius: '12px',
+      overflow: 'hidden',
+      position: 'relative',
+      marginBottom: 'var(--space-md)',
+    }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', borderRadius: '12px 12px 0 0', background: accentColor }} />
+
+      <div style={{ padding: '20px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
-          letterSpacing: '0.08em', textTransform: 'uppercase',
-          color: 'var(--text-tertiary)', marginBottom: '6px',
-        }}>Outcome Resolved</div>
-        <div style={{
-          fontFamily: 'var(--font-sans)', fontSize: '17px', fontWeight: 600,
-          color: 'var(--text-primary)',
+          fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.12em',
+          textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', color: labelColor,
         }}>
-          {pick.side && pick.line != null && pick.side.includes(String(Math.abs(pick.line)))
-            ? pick.side
-            : `${pick.side} ${pick.line > 0 ? '+' : ''}${pick.line}`}
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+          {resultLabel}
         </div>
+        {onDismiss && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+            style={{ background: 'none', border: 'none', color: '#4a5274', cursor: 'pointer', fontSize: '16px', padding: '4px', lineHeight: 1 }}
+            aria-label="Dismiss"
+          >&times;</button>
+        )}
+      </div>
+
+      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', padding: '8px 20px 0' }}>
+        {sideDisplay}
       </div>
 
       {scoreDisplay && (
-        <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: '13px',
-          fontVariantNumeric: 'tabular-nums',
-          color: 'var(--text-secondary)', marginBottom: '10px',
-        }}>
-          Final: {scoreDisplay}
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#9098b3', padding: '6px 20px 0', lineHeight: 1.5 }}>
+          {scoreDisplay}
         </div>
       )}
 
-      <div style={{
-        fontSize: '13px',
-        color: 'var(--text-tertiary)', lineHeight: '1.6',
-        marginBottom: 'var(--space-md)',
-      }}>
-        {isPush
-          ? "Push. The spread landed on the number. Next signal when the edge is there."
-          : isWin
-          ? "Process unchanged. Next signal when the edge is there."
-          : "Process unchanged. No revenge bets. Next signal when the edge is there."
-        }
+      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: '#616a8a', padding: '8px 20px 0', lineHeight: 1.55, fontStyle: 'italic' }}>
+        {reviewText}
       </div>
 
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-        fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 500,
-        color: 'var(--color-info)',
-      }}>
-        View outcome log
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
+      <div style={{ display: 'flex', margin: '16px 20px 0', border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden' }}>
+        {[
+          { val: profitDisplay, lbl: 'P&L' },
+          { val: typeof edgePct === 'number' ? `${edgePct}%` : edgePct, lbl: 'Edge at Entry' },
+          { val: modelProb, lbl: 'Model Prob' },
+        ].map((s, i) => (
+          <div key={i} style={{
+            flex: 1, padding: '10px 12px', textAlign: 'center',
+            borderRight: i < 2 ? '1px solid var(--color-border)' : 'none',
+          }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500, color: statValColor }}>{s.val}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#4a5274', marginTop: '2px' }}>{s.lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      <div
+        onClick={onViewDetails}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+          padding: '14px 20px', marginTop: '16px',
+          borderTop: '1px solid var(--color-border)',
+          fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.04em',
+          color: '#5A9E72', cursor: 'pointer', transition: 'background 0.15s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(90,158,114,0.10)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      >
+        View outcome log &rarr;
       </div>
     </div>
   );
