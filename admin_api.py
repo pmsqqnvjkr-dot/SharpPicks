@@ -1888,8 +1888,11 @@ def _diagnose_signal(n, blended_wr, model_wr, blended_roi, model_roi, corr):
 
 @admin_bp.route('/api/admin/test-push', methods=['POST'])
 def test_push():
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+
     user, when_err = require_superuser()
-    if when_err:
+    if when_err and not cron_auth:
         return jsonify({'error': 'Unauthorized'}), when_err
     from models import FCMToken
     from app import send_push_notification, _get_firebase_service_info
@@ -1898,9 +1901,17 @@ def test_push():
     title = (data.get('title') or 'SharpPicks Test').strip()
     body = (data.get('body') or 'Push notifications are working.').strip()
 
-    tokens = FCMToken.query.filter_by(user_id=user.id, enabled=True).all()
+    target_user_id = data.get('user_id')
+    if cron_auth and target_user_id:
+        push_user_id = target_user_id
+    elif user:
+        push_user_id = user.id
+    else:
+        return jsonify({'error': 'user_id required for cron auth'}), 400
+
+    tokens = FCMToken.query.filter_by(user_id=push_user_id, enabled=True).all()
     if not tokens:
-        return jsonify({'error': f'No enabled FCM tokens for your account ({user.email})', 'sent': 0}), 400
+        return jsonify({'error': f'No enabled FCM tokens for user {push_user_id}', 'sent': 0}), 400
 
     if not _get_firebase_service_info():
         return jsonify({
@@ -1909,7 +1920,7 @@ def test_push():
         }), 500
 
     try:
-        sent = send_push_notification(user.id, title, body)
+        sent = send_push_notification(push_user_id, title, body)
         if sent == 0 and any(getattr(t, 'platform', '') == 'ios' for t in tokens):
             return jsonify({
                 'sent': 0,
@@ -2702,30 +2713,3 @@ def admin_push_tokens():
     return jsonify({'tokens': result})
 
 
-@admin_bp.route('/api/admin/test-push', methods=['POST'])
-def admin_test_push():
-    admin, err_code = require_superuser()
-    if not admin:
-        cron_secret = os.environ.get('CRON_SECRET', '')
-        if not (cron_secret and request.headers.get('X-Cron-Secret') == cron_secret):
-            return jsonify({'error': 'Unauthorized'}), err_code or 403
-    from app import send_push_notification
-    from models import FCMToken
-    data = request.get_json() or {}
-    user_id = data.get('user_id')
-    if not user_id:
-        return jsonify({'error': 'user_id required'}), 400
-    tokens = FCMToken.query.filter_by(user_id=user_id, enabled=True).all()
-    if not tokens:
-        return jsonify({'error': 'No enabled tokens for user', 'token_count': 0}), 404
-    sent = send_push_notification(
-        user_id,
-        'SharpPicks Test',
-        'If you see this, push notifications are working.',
-        {'type': 'test'}
-    )
-    return jsonify({
-        'sent': sent,
-        'total_enabled_tokens': len(tokens),
-        'platforms': [t.platform for t in tokens],
-    })
