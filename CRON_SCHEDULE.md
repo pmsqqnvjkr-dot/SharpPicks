@@ -3,8 +3,10 @@
 All times **Eastern (ET)**. Use `X-Cron-Secret` header with your `CRON_SECRET` value.
 
 ## Pipeline Order (Critical)
-1. **run_model?force=true** runs collect **then** model in one request — use this for the pick pipeline
-2. **grade_picks** runs **after** games finish (overnight + late West Coast)
+1. **run_model?force=true** runs NBA collect + MLB collect + NBA model (does **not** run MLB model — that has its own schedule)
+2. **mlb-run-model?force=true** runs the MLB model independently at 11:00 AM
+3. **grade_picks** runs **after** games finish (overnight + late West Coast) — grades all sports
+4. **mlb-grade** grades MLB picks specifically from ESPN scores
 
 ## Recommended Schedule
 
@@ -27,18 +29,18 @@ All times **Eastern (ET)**. Use `X-Cron-Secret` header with your `CRON_SECRET` v
 | Job | URL | Schedule (ET) |
 |-----|-----|---------------|
 | mlb_collect | `https://app.sharppicks.ai/api/cron/mlb-collect` | 9:00 AM, 12:00 PM |
-| mlb_run_model | `https://app.sharppicks.ai/api/cron/mlb-run-model?force=true` | 11:00 AM (standalone if needed) |
+| mlb_run_model | `https://app.sharppicks.ai/api/cron/mlb-run-model?force=true` | 11:00 AM |
 | mlb_closing_lines | `https://app.sharppicks.ai/api/cron/mlb-closing-lines` | Every 1 min, 11 AM–1 AM |
 | mlb_grade | `https://app.sharppicks.ai/api/cron/mlb-grade` | 3:30 AM, 11:00 AM |
 
-> **Note:** `run-model?force=true` now automatically collects MLB games when MLB is live, so a separate `mlb-collect` cron is optional but recommended for data freshness before the combined model run.
+> **Note:** `run-model?force=true` at 10:15 AM collects MLB game data but does NOT run the MLB model. The MLB model runs independently at 11:00 AM via `mlb-run-model`. This prevents the two sports from interfering with each other.
 
-## Why run-model?force=true?
-- **force=true** runs collect (games + lines) immediately before the model — including MLB collection when MLB is live — so you always get fresh data
-- NBA lines post 8–10 AM ET; 10:15 AM ensures odds are live before first tip-offs (~7 PM ET)
-- MLB model runs at 11:00 AM ET; first pitches are typically ~1 PM ET
-- No need for separate collect_games crons — the pipeline is self-contained
-- Manual collect still available: `POST /api/cron/collect-games` or `refresh-lines?force=true`
+## How NBA and MLB stay separated
+- **10:15 AM** — `run-model?force=true` collects NBA games + MLB games, then runs **only the NBA model**
+- **11:00 AM** — `mlb-run-model?force=true` runs **only the MLB model** (data already collected at 10:15)
+- **Closing lines** — NBA uses `closing-lines` (queries `games` table), MLB uses `mlb-closing-lines` (queries `mlb_games` table)
+- **Grading** — `grade-picks` grades all pending picks across sports; `mlb-grade` is MLB-specific (harmless overlap)
+- Each sport has its own throttle keys (`run_model` vs `mlb_run_model`) and cron locks, so they never block each other
 
 ## Throttling
 - run_model, collect_games: 10 min min interval (skip if run again within 10 min)

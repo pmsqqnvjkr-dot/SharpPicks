@@ -3708,12 +3708,21 @@ def cron_mlb_closing_lines():
 
 
 def run_mlb_model_job():
-    """Run the MLB model to generate picks."""
+    """Run the MLB model to generate picks, then generate market note."""
     print(f"[{datetime.now()}] Running MLB model...")
     from model_service import run_model_and_log
     force = request.args.get('force', 'false').lower() == 'true'
     result = run_model_and_log(app, sport='mlb', force=force)
     print(f"[{datetime.now()}] MLB model run completed: {result.get('status', '?')}")
+    try:
+        from public_api import build_market_report_dict
+        today_str = _get_et_today()
+        mi_report = build_market_report_dict(today_str, 'mlb')
+        if mi_report.get('available'):
+            _upsert_market_note_insight(mi_report, sport='mlb')
+            print(f"[{datetime.now()}] MLB market note generated")
+    except Exception as e:
+        print(f"[{datetime.now()}] MLB market note failed (non-fatal): {e}")
     return result
 
 
@@ -4036,12 +4045,14 @@ def cron_run_model():
             print(f"[model-run] Ratings refresh failed (non-fatal): {e}")
         results = {}
         live = get_live_sports()
-        for sport in live:
+        sports_with_own_cron = {'mlb'}
+        run_sports = [s for s in live if s not in sports_with_own_cron]
+        for sport in run_sports:
             results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override, send_notifications=False)
 
         # Single consolidated push notification for all sports (with timeout)
         import threading
-        notif_thread = threading.Thread(target=_send_consolidated_model_notification, args=(results, live))
+        notif_thread = threading.Thread(target=_send_consolidated_model_notification, args=(results, run_sports))
         notif_thread.start()
         notif_thread.join(timeout=60)
         if notif_thread.is_alive():
