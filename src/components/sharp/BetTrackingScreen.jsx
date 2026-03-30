@@ -326,7 +326,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                         }}>{stats.behavioral.selectivity || 0}%</span>
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                        Industry Avg: {stats.behavioral.industry_avg || 78}%
+                        Industry Avg: {stats.behavioral.industry_avg || 15}%
                       </div>
                     </div>
                     <div style={{
@@ -364,12 +364,12 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                       transform: 'translateX(-50%)',
                     }} />
                     <div style={{
-                      position: 'absolute', left: `${stats.behavioral.industry_avg || 78}%`,
+                      position: 'absolute', left: `${stats.behavioral.industry_avg || 15}%`,
                       top: 0, transform: 'translateX(-50%)',
                       fontSize: '8px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap',
-                    }}>Industry ({stats.behavioral.industry_avg || 78}%)</div>
+                    }}>Industry ({stats.behavioral.industry_avg || 15}%)</div>
                     <div style={{
-                      position: 'absolute', left: `${stats.behavioral.industry_avg || 78}%`,
+                      position: 'absolute', left: `${stats.behavioral.industry_avg || 15}%`,
                       top: '11px', width: '1px', height: '6px',
                       backgroundColor: 'var(--text-tertiary)', opacity: 0.5,
                     }} />

@@ -424,7 +424,10 @@ def today():
         total_picks = Pick.query.count()
         total_passes = Pass.query.count()
         total_days = total_picks + total_passes
-        selectivity = round((total_picks / total_days) * 100) if total_days > 0 else 0
+        total_games_scanned = db.session.query(db.func.coalesce(db.func.sum(ModelRun.games_analyzed), 0)).scalar()
+        if not total_games_scanned:
+            total_games_scanned = db.session.query(db.func.coalesce(db.func.sum(Pass.games_analyzed), 0)).scalar() + total_picks * 10
+        selectivity = round((total_picks / total_games_scanned) * 100, 1) if total_games_scanned > 0 else 0
         days_per_bet = round(total_days / total_picks, 1) if total_picks > 0 else 0
 
         pass_type = 'pass'

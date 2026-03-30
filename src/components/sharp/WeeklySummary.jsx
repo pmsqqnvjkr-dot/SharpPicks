@@ -95,7 +95,8 @@ export default function WeeklySummary({ onBack, stats, weekData: initialWeekData
   const [wins, losses] = record.split('-').map(Number);
   const totalPicks = (wins || 0) + (losses || 0);
   const passDays = weekData?.passes || 7 - totalPicks;
-  const selectivity = totalPicks > 0 ? Math.round((totalPicks / 7) * 100) : 0;
+  const gamesScanned = weekData?.games_scanned || (7 * 12);
+  const selectivity = gamesScanned > 0 ? Math.round((totalPicks / gamesScanned) * 100) : 0;
   const pnl = weekData?.pnl || 0;
 
   return (

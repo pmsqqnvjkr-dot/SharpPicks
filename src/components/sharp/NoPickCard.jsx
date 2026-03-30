@@ -80,7 +80,7 @@ export default function NoPickCard({ data, sport, modelPhase, onInsightTap }) {
             />
             <InsightCard
               title="Selectivity beats volume"
-              desc="Industry average: 78% of slates get action. SharpPicks: ~30%. That difference is the edge."
+              desc="Typical bettors act on ~15% of available games. SharpPicks targets under 5%. Fewer decisions, better decisions."
             />
             <InsightCard
               title="Process over outcomes"
