@@ -87,7 +87,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
     trackEvent('tap_bet_link', { game_id: pick.id, pick_type: 'spread', sportsbook: pick.sportsbook || 'unknown' });
     try {
       const res = await apiPost('/bets', {
-        pick_id: pick.id, bet_amount: unitSize || 100, odds: pick.market_odds || -110,
+        pick_id: pick.id, units_wagered: 1, odds: pick.market_odds || -110,
       });
       if (res.success) {
         setTracked(true);

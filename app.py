@@ -520,6 +520,7 @@ def seed_database():
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS date_range_end VARCHAR"))
                 db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS bet_type VARCHAR DEFAULT 'spread'"))
                 db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS parlay_legs INTEGER"))
+                db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS units_wagered FLOAT"))
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS story_type VARCHAR"))
                 db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(20)"))
                 db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_id VARCHAR(255)"))
@@ -5478,8 +5479,12 @@ def get_user_stats():
     else:
         avg_days_between = 0
 
+    unit_size = user.get('unit_size') or 100
+    total_units_profit = round(total_profit / unit_size, 2) if unit_size else 0
+
     return jsonify({
         'totalProfit': round(total_profit, 2),
+        'totalUnitsProfit': total_units_profit,
         'roi': round(roi, 1),
         'totalBets': len(settled),
         'pendingBets': len(bets) - len(settled),
@@ -5610,6 +5615,8 @@ def get_user_bets():
                 'profit_units': linked.profit_units if linked.profit_units is not None else (round(linked.pnl / 100, 2) if linked.pnl is not None else None),
                 'published_at': linked.published_at.isoformat() if linked.published_at else None,
             }
+        unit_size = user.unit_size or 100
+        inferred_units = b.units_wagered if b.units_wagered else (round(b.bet_amount / unit_size, 2) if b.bet_amount and unit_size else 1.0)
         bet_list.append({
             'id': b.id,
             'pick_id': b.pick_id,
@@ -5620,6 +5627,8 @@ def get_user_bets():
             'to_win': b.to_win,
             'result': b.result,
             'profit': b.profit,
+            'units_wagered': inferred_units,
+            'profit_units': round(b.profit / unit_size, 2) if b.profit and unit_size else 0,
             'pick_result': pick_result,
             'source': b.source or 'sharp_pick',
             'follow_type': b.follow_type or 'exact',
@@ -5634,7 +5643,7 @@ def get_user_bets():
 
 @app.route('/api/bets/trackable', methods=['GET'])
 def get_trackable_picks():
-    """Get recent picks the user hasn't tracked yet"""
+    """Get season picks the user can track, with pagination and search"""
     user = get_current_user_obj()
     if not user:
         return jsonify({'error': 'Login required'}), 401
@@ -5645,9 +5654,28 @@ def get_trackable_picks():
     tracked_ids = {t[0] for t in already_tracked}
 
     sport = request.args.get('sport', 'nba')
-    recent_picks = Pick.query.filter(Pick.sport == sport).order_by(Pick.published_at.desc()).limit(30).all()
+    page = max(1, int(request.args.get('page', 1)))
+    per_page = min(100, max(10, int(request.args.get('per_page', 50))))
+    search = (request.args.get('q') or '').strip().lower()
+
+    season_starts = {'nba': '2025-10-01', 'mlb': '2026-03-20', 'wnba': '2026-05-01'}
+    season_start = season_starts.get(sport, '2025-10-01')
+
+    q = Pick.query.filter(
+        Pick.sport == sport,
+        Pick.published_at >= season_start,
+    )
+    if search:
+        q = q.filter(db.or_(
+            func.lower(Pick.home_team).contains(search),
+            func.lower(Pick.away_team).contains(search),
+            func.lower(Pick.side).contains(search),
+        ))
+    total = q.count()
+    picks_page = q.order_by(Pick.published_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+
     trackable = []
-    for p in recent_picks:
+    for p in picks_page:
         trackable.append({
             'id': p.id,
             'away_team': p.away_team,
@@ -5661,7 +5689,13 @@ def get_trackable_picks():
             'published_at': p.published_at.isoformat() if p.published_at else None,
             'already_tracked': p.id in tracked_ids,
         })
-    return jsonify({'picks': trackable})
+    return jsonify({
+        'picks': trackable,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'has_more': page * per_page < total,
+    })
 
 @app.route('/api/bets', methods=['POST'])
 def track_bet():
@@ -5692,10 +5726,17 @@ def track_bet():
         if not pick_label or not game_label:
             return jsonify({'success': False, 'error': 'Pick and game required'}), 400
 
-    bet_amount = data.get('bet_amount', 100)
+    units_wagered = data.get('units_wagered')
+    unit_size = user.unit_size or 100
+    if units_wagered is not None:
+        units_wagered = max(0.1, float(units_wagered))
+        bet_amount = round(units_wagered * unit_size)
+    else:
+        bet_amount = data.get('bet_amount', unit_size)
+        units_wagered = round(bet_amount / unit_size, 2) if unit_size else 1.0
+
     odds = data.get('odds', -110)
 
-    # Use pick's live market odds when tracking a Sharp Pick (not generic -110)
     if pick_id and sp_pick and sp_pick.market_odds is not None and odds == -110:
         odds = int(sp_pick.market_odds)
 
@@ -5742,6 +5783,7 @@ def track_bet():
         odds_at_publish=odds_at_publish_val,
         bet_type=bet_type,
         parlay_legs=parlay_legs,
+        units_wagered=units_wagered,
     )
     db.session.add(bet)
     db.session.commit()
@@ -5757,6 +5799,7 @@ def track_bet():
             'odds': bet.odds,
             'to_win': bet.to_win,
             'result': bet.result,
+            'units_wagered': bet.units_wagered,
             'created_at': bet.created_at.isoformat()
         }
     })
@@ -5799,14 +5842,21 @@ def edit_bet(bet_id):
 
     data = request.get_json() or {}
 
-    if 'bet_amount' in data:
+    unit_size = user.unit_size or 100
+    if 'units_wagered' in data:
+        bet.units_wagered = max(0.1, float(data['units_wagered']))
+        bet.bet_amount = round(bet.units_wagered * unit_size)
+    elif 'bet_amount' in data:
         bet.bet_amount = max(1, int(data['bet_amount']))
+        bet.units_wagered = round(bet.bet_amount / unit_size, 2) if unit_size else 1.0
     if 'odds' in data:
         bet.odds = int(data['odds'])
     if 'pick' in data:
         bet.pick = data['pick']
     if 'game' in data:
         bet.game = data['game']
+    if 'line_at_bet' in data:
+        bet.line_at_bet = float(data['line_at_bet']) if data['line_at_bet'] is not None else None
     if 'result' in data:
         val = data['result']
         if val and val not in ('W', 'L', 'P'):
@@ -5837,7 +5887,8 @@ def edit_bet(bet_id):
             'id': bet.id, 'pick': bet.pick, 'game': bet.game,
             'bet_amount': bet.bet_amount, 'odds': bet.odds,
             'to_win': bet.to_win, 'result': bet.result,
-            'profit': bet.profit,
+            'profit': bet.profit, 'units_wagered': bet.units_wagered,
+            'line_at_bet': bet.line_at_bet,
         }
     })
 

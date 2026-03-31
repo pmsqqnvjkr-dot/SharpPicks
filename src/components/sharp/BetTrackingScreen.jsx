@@ -142,6 +142,10 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                   <StatCard
                     label="P&L"
                     value={`${stats.totalProfit >= 0 ? '+' : ''}$${Math.abs(stats.totalProfit).toFixed(0)}`}
+                    sub={(() => {
+                      const unitPnl = bets.filter(b => b.result).reduce((s, b) => s + (b.profit_units || 0), 0);
+                      return `${unitPnl >= 0 ? '+' : ''}${unitPnl.toFixed(1)}u`;
+                    })()}
                     color={stats.totalProfit >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'}
                     large
                   />
@@ -241,6 +245,59 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                   </div>
                 )}
               </SectionCard>
+
+              {bets.filter(b => b.result).length > 0 && (
+                <SectionCard title="Bet Log">
+                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--stroke-subtle)' }}>
+                          {['Date', 'Game', 'Side', 'Line', 'Units', '', 'P&L'].map(h => (
+                            <th key={h} style={{
+                              padding: '6px 4px', color: 'var(--text-tertiary)', fontWeight: 600,
+                              textAlign: h === 'P&L' || h === 'Units' || h === '' ? 'right' : 'left',
+                              fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.5px',
+                            }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bets.filter(b => b.result).map(b => (
+                          <tr key={b.id} style={{ borderBottom: '1px solid var(--stroke-subtle)' }}>
+                            <td style={{ padding: '6px 4px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                              {b.created_at ? new Date(b.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                            </td>
+                            <td style={{ padding: '6px 4px', color: 'var(--text-secondary)', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {b.game}
+                            </td>
+                            <td style={{ padding: '6px 4px', color: 'var(--text-primary)', fontWeight: 600 }}>
+                              {b.pick}
+                            </td>
+                            <td style={{ padding: '6px 4px', color: 'var(--text-secondary)' }}>
+                              {b.line_at_bet != null ? (b.line_at_bet > 0 ? `+${b.line_at_bet}` : b.line_at_bet) : '—'}
+                            </td>
+                            <td style={{ padding: '6px 4px', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                              {b.units_wagered || '1'}u
+                            </td>
+                            <td style={{ padding: '6px 4px', textAlign: 'right' }}>
+                              <span style={{
+                                fontWeight: 700, fontSize: '10px',
+                                color: b.result === 'W' ? 'var(--green-profit)' : b.result === 'L' ? 'var(--red-loss)' : 'var(--text-tertiary)',
+                              }}>{b.result}</span>
+                            </td>
+                            <td style={{
+                              padding: '6px 4px', textAlign: 'right', fontWeight: 600,
+                              color: (b.profit || 0) >= 0 ? 'var(--green-profit)' : 'var(--red-loss)',
+                            }}>
+                              {(b.profit || 0) >= 0 ? '+' : ''}{b.profit_units != null ? `${b.profit_units}u` : `$${Math.abs(b.profit || 0).toFixed(0)}`}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </SectionCard>
+              )}
 
               <SectionCard title="Streak">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
@@ -508,35 +565,48 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
 }
 
 export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, onSetDefault }) {
-  const defaultAmt = String(unitSize || 100);
   const [step, setStep] = useState(initialPick ? 'wager' : 'picks');
   const [mode, setMode] = useState('model');
   const [picks, setPicks] = useState([]);
   const [loadingPicks, setLoadingPicks] = useState(!initialPick);
   const [selected, setSelected] = useState(initialPick || null);
-  const [amount, setAmount] = useState(defaultAmt);
-  const [saveAsDefault, setSaveAsDefault] = useState(false);
+  const [units, setUnits] = useState('1');
+  const [lineBought, setLineBought] = useState('');
   const [odds, setOdds] = useState(initialPick?.market_odds != null ? String(initialPick.market_odds) : '-110');
   const [followType, setFollowType] = useState('exact');
   const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(1);
 
   const [manualGame, setManualGame] = useState('');
   const [manualPick, setManualPick] = useState('');
   const [manualLine, setManualLine] = useState('');
   const [manualBetType, setManualBetType] = useState('spread');
+  const [manualUnits, setManualUnits] = useState('1');
   const [parlayLegs, setParlayLegs] = useState('2');
   const [parlayDesc, setParlayDesc] = useState('');
 
+  const searchTimeoutRef = useRef(null);
+
   useEffect(() => {
     if (!initialPick) {
-      loadTrackablePicks();
+      loadTrackablePicks(1, '');
     }
   }, []);
 
-  const loadTrackablePicks = async () => {
+  const loadTrackablePicks = async (pg = 1, q = searchQuery) => {
+    if (pg === 1) setLoadingPicks(true);
     try {
-      const data = await apiGet(sportQuery('/bets/trackable', sport));
-      setPicks(data.picks || []);
+      const params = `?per_page=50&page=${pg}${q ? `&q=${encodeURIComponent(q)}` : ''}`;
+      const data = await apiGet(sportQuery('/bets/trackable' + params, sport));
+      if (pg === 1) {
+        setPicks(data.picks || []);
+      } else {
+        setPicks(prev => [...prev, ...(data.picks || [])]);
+      }
+      setHasMore(data.has_more || false);
+      setPage(pg);
     } catch (e) {
       console.error(e);
     } finally {
@@ -544,12 +614,22 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
     }
   };
 
+  const handleSearch = (val) => {
+    setSearchQuery(val);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => loadTrackablePicks(1, val), 300);
+  };
+
   const handleSelectPick = (pick) => {
     if (pick.already_tracked) return;
     setSelected(pick);
+    setLineBought(pick.line != null ? String(pick.line) : '');
     setOdds(pick.market_odds != null ? String(pick.market_odds) : '-110');
     setStep('wager');
   };
+
+  const dollarAmount = Math.round((parseFloat(units) || 1) * (unitSize || 100));
+  const manualDollarAmount = Math.round((parseFloat(manualUnits) || 1) * (unitSize || 100));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -559,19 +639,15 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
       if (manualBetType !== 'parlay' && (!manualGame.trim() || !manualPick.trim())) return;
     }
     setSubmitting(true);
-    const parsedAmt = parseInt(amount) || unitSize || 100;
-    if (saveAsDefault && onSetDefault && parsedAmt !== unitSize) {
-      onSetDefault(parsedAmt);
-    }
     const userOdds = parseInt(odds) || -110;
 
     if (mode === 'model') {
       await onSubmit({
         pick_id: selected.id,
-        bet_amount: parseInt(amount) || 100,
+        units_wagered: parseFloat(units) || 1,
         odds: userOdds,
         follow_type: followType,
-        line_at_bet: selected.line,
+        line_at_bet: parseFloat(lineBought) || selected.line,
         bet_type: 'spread',
       });
     } else if (manualBetType === 'parlay') {
@@ -579,7 +655,7 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
       await onSubmit({
         game: `${legs}-Leg Parlay`,
         pick: parlayDesc.trim(),
-        bet_amount: parseInt(amount) || 100,
+        units_wagered: parseFloat(manualUnits) || 1,
         odds: userOdds,
         bet_type: 'parlay',
         parlay_legs: legs,
@@ -595,7 +671,7 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
       await onSubmit({
         game: manualGame.trim(),
         pick: pickLabel,
-        bet_amount: parseInt(amount) || 100,
+        units_wagered: parseFloat(manualUnits) || 1,
         odds: userOdds,
         line_at_bet: (manualBetType === 'moneyline' || manualBetType === 'prop') ? null : lineVal,
         bet_type: manualBetType,
@@ -605,11 +681,18 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
   };
 
   const toWin = (() => {
-    const amt = parseInt(amount) || 100;
+    const amt = mode === 'model' ? dollarAmount : manualDollarAmount;
     const o = parseInt(odds) || -110;
     if (o < 0) return (amt * (100 / Math.abs(o))).toFixed(2);
     return (amt * (o / 100)).toFixed(2);
   })();
+
+  const groupedPicks = picks.reduce((acc, p) => {
+    const d = p.game_date || 'Unknown';
+    if (!acc[d]) acc[d] = [];
+    acc[d].push(p);
+    return acc;
+  }, {});
 
   const stepTitle = step === 'picks'
     ? 'Track a Bet'
@@ -680,6 +763,19 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
 
             {mode === 'model' ? (
               <>
+                <input
+                  type="text"
+                  placeholder="Search by team..."
+                  value={searchQuery}
+                  onChange={e => handleSearch(e.target.value)}
+                  style={{
+                    width: '100%', padding: '10px 14px', marginBottom: '12px',
+                    backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+                    borderRadius: '10px', color: 'var(--text-primary)',
+                    fontSize: '13px', fontFamily: 'var(--font-sans)',
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
                 {loadingPicks ? (
                   <div style={{ padding: '40px 0', textAlign: 'center' }}>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Loading picks...</p>
@@ -687,67 +783,81 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
                 ) : picks.length === 0 ? (
                   <div style={{ padding: '40px 0', textAlign: 'center' }}>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6' }}>
-                      No picks available to track yet. Picks appear here when the model publishes them.
+                      {searchQuery ? 'No picks match your search.' : 'No picks available to track yet.'}
                     </p>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {picks.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => handleSelectPick(p)}
-                        disabled={p.already_tracked}
-                        style={{
-                          width: '100%', textAlign: 'left',
-                          padding: '14px 16px',
-                          backgroundColor: p.already_tracked ? 'var(--surface-2)' : 'var(--surface-1)',
-                          border: '1px solid var(--stroke-subtle)',
-                          borderRadius: '12px', cursor: p.already_tracked ? 'default' : 'pointer',
-                          opacity: p.already_tracked ? 0.5 : 1,
-                          transition: 'background-color 0.15s',
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <div style={{
-                              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-                              letterSpacing: '1.2px', textTransform: 'uppercase',
-                              color: 'var(--text-tertiary)', marginBottom: '4px',
-                            }}>
-                              {p.game_date}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {Object.entries(groupedPicks).map(([date, datePicks]) => (
+                      <div key={date}>
+                        <div style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                          letterSpacing: '1.2px', textTransform: 'uppercase',
+                          color: 'var(--text-tertiary)', padding: '8px 4px 4px',
+                        }}>{date}</div>
+                        {datePicks.map(p => (
+                          <button
+                            key={p.id}
+                            onClick={() => handleSelectPick(p)}
+                            disabled={p.already_tracked}
+                            style={{
+                              width: '100%', textAlign: 'left',
+                              padding: '12px 14px', marginBottom: '4px',
+                              backgroundColor: p.already_tracked ? 'var(--surface-2)' : 'var(--surface-1)',
+                              border: '1px solid var(--stroke-subtle)',
+                              borderRadius: '10px', cursor: p.already_tracked ? 'default' : 'pointer',
+                              opacity: p.already_tracked ? 0.5 : 1,
+                              transition: 'background-color 0.15s',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                                  {p.away_team} @ {p.home_team}
+                                </div>
+                                <div style={{
+                                  fontSize: '12px', color: 'var(--blue-primary)', fontWeight: 600, marginTop: '3px',
+                                }}>
+                                  {p.side} {p.line > 0 ? `+${p.line}` : p.line}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                {p.already_tracked ? (
+                                  <span style={{
+                                    fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                                    color: 'var(--text-tertiary)', textTransform: 'uppercase',
+                                  }}>Tracked</span>
+                                ) : p.result && p.result !== 'pending' ? (
+                                  <span style={{
+                                    fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700,
+                                    color: p.result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
+                                  }}>{p.result}</span>
+                                ) : (
+                                  <span style={{
+                                    fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
+                                    color: 'var(--text-tertiary)',
+                                  }}>
+                                    {typeof p.edge_pct === 'number' ? `${p.edge_pct.toFixed(1)}% edge` : '—'}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                              {p.away_team} @ {p.home_team}
-                            </div>
-                            <div style={{
-                              fontSize: '13px', color: 'var(--blue-primary)', fontWeight: 600, marginTop: '4px',
-                            }}>
-                              {p.side} {p.line > 0 ? `+${p.line}` : p.line}
-                            </div>
-                          </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            {p.already_tracked ? (
-                              <span style={{
-                                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-                                color: 'var(--text-tertiary)', textTransform: 'uppercase',
-                              }}>Tracked</span>
-                            ) : p.result && p.result !== 'pending' ? (
-                              <span style={{
-                                fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700,
-                                color: p.result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
-                              }}>{p.result}</span>
-                            ) : (
-                              <span style={{
-                                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
-                                color: 'var(--text-tertiary)',
-                              }}>
-                                {p.edge_pct.toFixed(1)}% edge
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </button>
+                          </button>
+                        ))}
+                      </div>
                     ))}
+                    {hasMore && (
+                      <button
+                        onClick={() => loadTrackablePicks(page + 1)}
+                        style={{
+                          width: '100%', padding: '12px', marginTop: '4px',
+                          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
+                          borderRadius: '10px', color: 'var(--text-secondary)',
+                          fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                          fontFamily: 'var(--font-sans)',
+                        }}
+                      >Load more picks</button>
+                    )}
                   </div>
                 )}
               </>
@@ -920,25 +1030,23 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
             </div>
 
             <form onSubmit={handleSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <FormField label="Wager ($)" placeholder={defaultAmt} value={amount} onChange={setAmount} type="number" />
-                <FormField label="Odds" placeholder="-110" value={odds} onChange={setOdds} type="number" />
-              </div>
+              {mode === 'model' && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <FormField label="Line Bought" placeholder={lineBought || '—'} value={lineBought} onChange={setLineBought} type="number" />
+                    <FormField label="Units" placeholder="1" value={units} onChange={setUnits} type="number" />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', marginBottom: '0' }}>
+                    <FormField label="Odds at Your Book" placeholder="-110" value={odds} onChange={setOdds} type="number" />
+                  </div>
+                </>
+              )}
 
-              {onSetDefault && (
-                <label style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  fontSize: '12px', color: 'var(--text-tertiary)',
-                  marginBottom: '12px', cursor: 'pointer',
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={saveAsDefault}
-                    onChange={e => setSaveAsDefault(e.target.checked)}
-                    style={{ accentColor: 'var(--blue-primary)' }}
-                  />
-                  Set ${amount || defaultAmt} as my default wager
-                </label>
+              {mode === 'manual' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <FormField label="Units" placeholder="1" value={manualUnits} onChange={setManualUnits} type="number" />
+                  <FormField label="Odds" placeholder="-110" value={odds} onChange={setOdds} type="number" />
+                </div>
               )}
 
               {mode === 'model' && (
@@ -980,25 +1088,23 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
                 padding: '12px 16px', marginBottom: '16px',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Risk</span>
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '14px',
+                    fontWeight: 600, color: 'var(--text-primary)',
+                  }}>{mode === 'model' ? units || '1' : manualUnits || '1'}u · ${mode === 'model' ? dollarAmount : manualDollarAmount}</span>
+                </div>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  marginTop: '6px', paddingTop: '6px',
+                  borderTop: '1px solid var(--stroke-subtle)',
+                }}>
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>To win</span>
                   <span style={{
                     fontFamily: 'var(--font-mono)', fontSize: '16px',
                     fontWeight: 600, color: 'var(--green-profit)',
                   }}>${toWin}</span>
                 </div>
-                {unitSize > 0 && (
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    marginTop: '6px', paddingTop: '6px',
-                    borderTop: '1px solid var(--stroke-subtle)',
-                  }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Risk</span>
-                    <span style={{
-                      fontFamily: 'var(--font-mono)', fontSize: '13px',
-                      color: 'var(--text-secondary)',
-                    }}>${amount || defaultAmt} ({((parseInt(amount) || unitSize) / unitSize).toFixed(1)}u)</span>
-                  </div>
-                )}
               </div>
 
               <button type="submit" disabled={submitting} style={{
@@ -1023,7 +1129,7 @@ function PendingBetCard({ bet, onGraded }) {
   const [grading, setGrading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editAmt, setEditAmt] = useState(String(bet.bet_amount || 100));
+  const [editUnits, setEditUnits] = useState(String(bet.units_wagered || 1));
   const [editOdds, setEditOdds] = useState(String(bet.odds ?? -110));
   const [editPick, setEditPick] = useState(bet.pick || '');
   const [editGame, setEditGame] = useState(bet.game || '');
@@ -1050,7 +1156,7 @@ function PendingBetCard({ bet, onGraded }) {
     setSaving(true);
     try {
       const res = await apiPut(`/bets/${bet.id}`, {
-        bet_amount: parseInt(editAmt) || bet.bet_amount,
+        units_wagered: parseFloat(editUnits) || 1,
         odds: parseInt(editOdds) || bet.odds,
         pick: editPick,
         game: editGame,
@@ -1093,7 +1199,7 @@ function PendingBetCard({ bet, onGraded }) {
             fontFamily: 'var(--font-mono)', fontSize: '11px',
             color: 'var(--text-tertiary)', marginTop: '4px',
           }}>
-            ${bet.bet_amount} at {bet.odds != null ? (bet.odds > 0 ? `+${bet.odds}` : bet.odds) : '-110'} · to win ${bet.to_win || '—'}
+            {bet.units_wagered ? `${bet.units_wagered}u · ` : ''}${bet.bet_amount} at {bet.odds != null ? (bet.odds > 0 ? `+${bet.odds}` : bet.odds) : '-110'}{bet.line_at_bet != null ? ` (${bet.line_at_bet > 0 ? '+' : ''}${bet.line_at_bet})` : ''} · to win ${bet.to_win || '—'}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1193,8 +1299,8 @@ function PendingBetCard({ bet, onGraded }) {
           )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Wager ($)</label>
-              <input type="number" value={editAmt} onChange={e => setEditAmt(e.target.value)} style={{
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Units</label>
+              <input type="number" step="0.5" min="0.1" value={editUnits} onChange={e => setEditUnits(e.target.value)} style={{
                 width: '100%', padding: '8px 10px', backgroundColor: 'var(--surface-1)',
                 border: '1px solid var(--stroke-subtle)', borderRadius: '8px',
                 color: 'var(--text-primary)', fontSize: '13px', fontFamily: 'var(--font-mono)',
@@ -1295,7 +1401,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
   const [grading, setGrading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editAmt, setEditAmt] = useState(String(bet.bet_amount || 100));
+  const [editUnits, setEditUnits] = useState(String(bet.units_wagered || 1));
   const [editOdds, setEditOdds] = useState(String(bet.odds ?? -110));
   const [editResult, setEditResult] = useState(bet.result || '');
   const [editPick, setEditPick] = useState(bet.pick || '');
@@ -1318,7 +1424,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
     setSaving(true);
     try {
       const res = await apiPut(`/bets/${bet.id}`, {
-        bet_amount: parseInt(editAmt) || bet.bet_amount,
+        units_wagered: parseFloat(editUnits) || 1,
         odds: parseInt(editOdds) || bet.odds,
         result: editResult || null,
         pick: editPick,
@@ -1448,7 +1554,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
               fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px',
               fontFamily: 'var(--font-mono)',
             }}>
-              ${bet.bet_amount} at {bet.odds != null ? (bet.odds > 0 ? `+${bet.odds}` : bet.odds) : '-110'} · to win ${bet.to_win || '—'}
+              {bet.units_wagered ? `${bet.units_wagered}u` : ''} · ${bet.bet_amount} at {bet.odds != null ? (bet.odds > 0 ? `+${bet.odds}` : bet.odds) : '-110'}{bet.line_at_bet != null ? ` (${bet.line_at_bet > 0 ? '+' : ''}${bet.line_at_bet})` : ''} · to win ${bet.to_win || '—'}
               {pickResultLabel && (
                 <span style={{
                   marginLeft: '8px',
@@ -1561,8 +1667,8 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
             )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Wager ($)</label>
-                <input type="number" value={editAmt} onChange={e => setEditAmt(e.target.value)} style={{
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Units</label>
+                <input type="number" step="0.5" min="0.1" value={editUnits} onChange={e => setEditUnits(e.target.value)} style={{
                   width: '100%', padding: '8px 10px', backgroundColor: 'var(--surface-2)',
                   border: '1px solid var(--stroke-subtle)', borderRadius: '8px',
                   color: 'var(--text-primary)', fontSize: '13px', fontFamily: 'var(--font-mono)',
@@ -1805,15 +1911,23 @@ function SectionCard({ title, children }) {
   );
 }
 
-function StatCard({ label, value, color, large }) {
+function StatCard({ label, value, sub, color, large }) {
   return (
     <div style={{
       backgroundColor: 'var(--surface-2)', borderRadius: '10px', padding: large ? '16px' : '12px',
     }}>
-      <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: large ? '22px' : '16px',
-        fontWeight: 500, color: color || 'var(--text-primary)',
-      }}>{value}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: large ? '22px' : '16px',
+          fontWeight: 500, color: color || 'var(--text-primary)',
+        }}>{value}</div>
+        {sub && (
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '12px',
+            color: 'var(--text-tertiary)', fontWeight: 500,
+          }}>{sub}</div>
+        )}
+      </div>
       <div style={{
         fontSize: '10px', color: 'var(--text-tertiary)',
         textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '4px',
