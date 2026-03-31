@@ -15,7 +15,8 @@ from difflib import SequenceMatcher
 
 BDL_API_KEY = os.environ.get('BALLDONTLIE_API_KEY', '')
 BDL_BASE = "https://api.balldontlie.io"
-DB_PATH = os.environ.get('DATABASE_PATH', 'sharppicks.db')
+
+from db_path import get_sqlite_path as _get_sqlite_path
 
 STATUS_MULTIPLIER = {
     'out': 1.0,
@@ -70,7 +71,7 @@ def _bdl_headers():
 
 
 def _get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(_get_sqlite_path())
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -119,6 +120,11 @@ def _populate_team_maps():
 
 ESPN_STATS_URL = "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/statistics/byathlete"
 
+_ESPN_ABBREV_FIX = {
+    'GS': 'GSW', 'NO': 'NOP', 'NY': 'NYK',
+    'SA': 'SAS', 'UTAH': 'UTA', 'WSH': 'WAS',
+}
+
 
 def refresh_player_impact_cache(season=None):
     """
@@ -158,7 +164,8 @@ def refresh_player_impact_cache(season=None):
                 name = athlete.get('displayName', '')
                 espn_id = int(athlete.get('id', 0))
                 teams = athlete.get('teams', [])
-                team_abbrev = teams[0].get('abbreviation', '') if teams else ''
+                raw_abbrev = teams[0].get('abbreviation', '') if teams else ''
+                team_abbrev = _ESPN_ABBREV_FIX.get(raw_abbrev, raw_abbrev)
 
                 cats = entry.get('categories', [])
                 gp = 0
@@ -295,7 +302,8 @@ def parse_injury_string(injury_text):
         return []
 
     entries = []
-    for segment in injury_text.split(','):
+    raw = injury_text.replace(';', ',')
+    for segment in raw.split(','):
         segment = segment.strip()
         if not segment:
             continue
@@ -394,13 +402,36 @@ def compute_weighted_injury_impact(injury_string, team_abbrev, season=None):
     return result
 
 
+_FULL_NAME_TO_ABBREV = {
+    'Atlanta Hawks': 'ATL', 'Boston Celtics': 'BOS', 'Brooklyn Nets': 'BKN',
+    'Charlotte Hornets': 'CHA', 'Chicago Bulls': 'CHI', 'Cleveland Cavaliers': 'CLE',
+    'Dallas Mavericks': 'DAL', 'Denver Nuggets': 'DEN', 'Detroit Pistons': 'DET',
+    'Golden State Warriors': 'GSW', 'Houston Rockets': 'HOU', 'Indiana Pacers': 'IND',
+    'LA Clippers': 'LAC', 'Los Angeles Clippers': 'LAC', 'Los Angeles Lakers': 'LAL',
+    'Memphis Grizzlies': 'MEM', 'Miami Heat': 'MIA', 'Milwaukee Bucks': 'MIL',
+    'Minnesota Timberwolves': 'MIN', 'New Orleans Pelicans': 'NOP',
+    'New York Knicks': 'NYK', 'Oklahoma City Thunder': 'OKC', 'Orlando Magic': 'ORL',
+    'Philadelphia 76ers': 'PHI', 'Phoenix Suns': 'PHX', 'Portland Trail Blazers': 'POR',
+    'Sacramento Kings': 'SAC', 'San Antonio Spurs': 'SAS', 'Toronto Raptors': 'TOR',
+    'Utah Jazz': 'UTA', 'Washington Wizards': 'WAS',
+}
+
+
+def _resolve_abbrev(team_str):
+    """Convert full team name to 3-letter abbreviation if needed."""
+    s = str(team_str).strip()
+    if len(s) <= 4 and s == s.upper():
+        return s
+    return _FULL_NAME_TO_ABBREV.get(s, s)
+
+
 def compute_game_injury_features(home_injuries, away_injuries, home_abbrev, away_abbrev, season=None):
     """
     Compute all 10 injury features for a single game.
     Returns a dict ready to merge into the game DataFrame row.
     """
-    home = compute_weighted_injury_impact(home_injuries, home_abbrev, season)
-    away = compute_weighted_injury_impact(away_injuries, away_abbrev, season)
+    home = compute_weighted_injury_impact(home_injuries, _resolve_abbrev(home_abbrev), season)
+    away = compute_weighted_injury_impact(away_injuries, _resolve_abbrev(away_abbrev), season)
 
     return {
         'home_mpg_at_risk': home['mpg_at_risk'],

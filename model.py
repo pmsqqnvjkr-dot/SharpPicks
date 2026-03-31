@@ -505,16 +505,18 @@ class EnsemblePredictor:
             features['injury_diff'] = features['away_injury_impact'] - features['home_injury_impact']
 
         if self.sport != 'mlb':
-            from nba_schedule import calculate_distance, get_timezone_change, get_altitude_factor
+            from nba_schedule import calculate_distance, get_timezone_change, get_altitude_factor, get_team_abbrev
             def _safe_travel(row):
                 ht = str(row.get('home_team', '')) if hasattr(row, 'get') else ''
                 at = str(row.get('away_team', '')) if hasattr(row, 'get') else ''
                 if not ht or not at or len(ht) < 2 or len(at) < 2:
                     return 0.0, 0, 0.0
                 try:
-                    miles = calculate_distance(at, ht)
-                    tz = get_timezone_change(at, ht)
-                    alt = get_altitude_factor(ht)
+                    ht_abbr = get_team_abbrev(ht) or ht
+                    at_abbr = get_team_abbrev(at) or at
+                    miles = calculate_distance(at_abbr, ht_abbr)
+                    tz = get_timezone_change(at_abbr, ht_abbr)
+                    alt = get_altitude_factor(ht_abbr)
                 except Exception:
                     return 0.0, 0, 0.0
                 return float(miles), int(tz), float(alt)
@@ -620,6 +622,7 @@ class EnsemblePredictor:
             try:
                 if 'game_date' in df.columns:
                     from nba_referees import fetch_ref_assignments, get_crew_features
+                    from nba_schedule import get_team_abbrev as _ref_abbrev
                     unique_dates = df['game_date'].dropna().unique()
                     all_ref_assignments = {}
                     for d in unique_dates:
@@ -628,7 +631,9 @@ class EnsemblePredictor:
                         for idx, row in df.iterrows():
                             ht = str(row.get('home_team', '')).strip()
                             at = str(row.get('away_team', '')).strip()
-                            refs = all_ref_assignments.get((ht, at), [])
+                            ht_a = _ref_abbrev(ht) or ht
+                            at_a = _ref_abbrev(at) or at
+                            refs = all_ref_assignments.get((ht_a, at_a), [])
                             if refs:
                                 af, fd, pi = get_crew_features(refs)
                                 features.at[idx, 'crew_avg_fouls'] = af
