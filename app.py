@@ -3879,7 +3879,7 @@ def retrain_mlb_model_job():
 @app.route('/api/cron/mlb-retrain', methods=['GET', 'POST'])
 @verify_cron
 def cron_mlb_retrain():
-    return log_cron('mlb_retrain', retrain_mlb_model_job, skip_throttle=True)
+    return log_cron_async('mlb_retrain', retrain_mlb_model_job, skip_throttle=True)
 
 
 @app.route('/api/cron/mlb-backfill', methods=['GET', 'POST'])
@@ -4241,7 +4241,7 @@ def cron_retrain_model():
                 'previous_age_days': age,
             }
         return results
-    return log_cron('retrain_model', _retrain, skip_throttle=force)
+    return log_cron_async('retrain_model', _retrain, skip_throttle=force)
 
 
 @app.route('/api/cron/generate-weekly-card', methods=['GET', 'POST'])

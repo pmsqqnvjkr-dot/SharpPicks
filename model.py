@@ -2557,11 +2557,12 @@ class EnsemblePredictor:
         return {'all_results': sweep_results, 'brand_matches': brand_matches, 'best': best}
 
     def _default_filepath(self):
-        if self.sport == 'wnba':
-            return 'sharp_picks_wnba_model.pkl'
-        elif self.sport == 'mlb':
-            return 'sharp_picks_mlb_model.pkl'
-        return 'sharp_picks_model.pkl'
+        names = {'wnba': 'sharp_picks_wnba_model.pkl', 'mlb': 'sharp_picks_mlb_model.pkl'}
+        fname = names.get(self.sport, 'sharp_picks_model.pkl')
+        vol = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+        if vol:
+            return os.path.join(vol.rstrip('/'), fname)
+        return fname
 
     def save(self, filepath=None):
         """Save the trained model"""
