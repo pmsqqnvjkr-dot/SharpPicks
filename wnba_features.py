@@ -42,6 +42,23 @@ WNBA_TEAM_ABBREVS = [
     'NYL', 'PHO', 'SEA', 'WAS', 'GSV', 'POR',
 ]
 
+WNBA_NAME_TO_ABBREV = {
+    'Atlanta Dream': 'ATL', 'Chicago Sky': 'CHI', 'Connecticut Sun': 'CON',
+    'Dallas Wings': 'DAL', 'Indiana Fever': 'IND', 'Las Vegas Aces': 'LVA',
+    'Los Angeles Sparks': 'LAS', 'Minnesota Lynx': 'MIN',
+    'New York Liberty': 'NYL', 'Phoenix Mercury': 'PHO',
+    'Seattle Storm': 'SEA', 'Washington Mystics': 'WAS',
+    'Golden State Valkyries': 'GSV', 'Portland Expansion': 'POR',
+}
+
+
+def _wnba_abbrev(team_name):
+    """Convert WNBA full team name to abbreviation."""
+    s = str(team_name).strip()
+    if len(s) <= 4:
+        return s
+    return WNBA_NAME_TO_ABBREV.get(s, s)
+
 
 def ensure_continuity_table():
     conn = _get_db()
@@ -169,11 +186,12 @@ def get_team_continuity(team_abbrev, season=None):
     """Get cached roster continuity for a team. Returns returning_minutes_pct (0-1)."""
     if season is None:
         season = datetime.now().year
+    abbrev = _wnba_abbrev(team_abbrev)
     try:
         conn = _get_db()
         row = conn.execute(
             "SELECT returning_minutes_pct FROM wnba_roster_continuity WHERE team = ? AND season = ?",
-            (team_abbrev, season)
+            (abbrev, season)
         ).fetchone()
         conn.close()
         if row:
@@ -287,7 +305,10 @@ def get_team_hca(team_abbrev, season=None):
         _hca_cache = compute_team_hca(season)
         _hca_cache_time = datetime.now()
 
-    return _hca_cache.get(team_abbrev, 2.5)
+    val = _hca_cache.get(team_abbrev)
+    if val is not None:
+        return val
+    return _hca_cache.get(_wnba_abbrev(team_abbrev), 2.5)
 
 
 # ---------------------------------------------------------------------------

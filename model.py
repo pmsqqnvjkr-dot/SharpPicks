@@ -58,6 +58,28 @@ LONG_REST_PENALTY_PER_DAY = 0.3
 
 LEAGUE_AVG_FOULS_DEFAULT = 42.0
 
+MLB_NAME_TO_ABBREV = {
+    'Arizona Diamondbacks': 'ARI', 'Atlanta Braves': 'ATL', 'Baltimore Orioles': 'BAL',
+    'Boston Red Sox': 'BOS', 'Chicago Cubs': 'CHC', 'Chicago White Sox': 'CHW',
+    'Cincinnati Reds': 'CIN', 'Cleveland Guardians': 'CLE', 'Colorado Rockies': 'COL',
+    'Detroit Tigers': 'DET', 'Houston Astros': 'HOU', 'Kansas City Royals': 'KC',
+    'Los Angeles Angels': 'LAA', 'Los Angeles Dodgers': 'LAD', 'Miami Marlins': 'MIA',
+    'Milwaukee Brewers': 'MIL', 'Minnesota Twins': 'MIN', 'New York Mets': 'NYM',
+    'New York Yankees': 'NYY', 'Oakland Athletics': 'OAK', 'Philadelphia Phillies': 'PHI',
+    'Pittsburgh Pirates': 'PIT', 'San Diego Padres': 'SD', 'San Francisco Giants': 'SF',
+    'Seattle Mariners': 'SEA', 'St. Louis Cardinals': 'STL', 'Tampa Bay Rays': 'TB',
+    'Texas Rangers': 'TEX', 'Toronto Blue Jays': 'TOR', 'Washington Nationals': 'WSH',
+}
+
+
+def _mlb_abbrev(team_name):
+    """Convert MLB full team name to abbreviation."""
+    s = str(team_name).strip()
+    if len(s) <= 4:
+        return s
+    return MLB_NAME_TO_ABBREV.get(s, s)
+
+
 ASB_SPREAD_THRESHOLD = 8.0
 ASB_PENALTY_PCT = 3.0
 
@@ -195,12 +217,12 @@ def check_star_injury_risk(home_injuries, away_injuries, pick_side, spread_abs,
                            sport='nba', home_team=None, away_team=None):
     """Weighted injury edge penalty using mpg_at_risk for NBA, keyword fallback for MLB."""
     if sport != 'mlb':
-        from player_impact import compute_weighted_injury_impact, mpg_at_risk_edge_penalty
+        from player_impact import compute_weighted_injury_impact, mpg_at_risk_edge_penalty, _resolve_abbrev
         fav_injuries = home_injuries if pick_side == 'home' else away_injuries
         fav_team = home_team if pick_side == 'home' else away_team
         if not fav_injuries or not isinstance(fav_injuries, str):
             return 0.0, None
-        impact = compute_weighted_injury_impact(fav_injuries, fav_team or '')
+        impact = compute_weighted_injury_impact(fav_injuries, _resolve_abbrev(fav_team or ''))
         risk = impact['mpg_at_risk']
         penalty = mpg_at_risk_edge_penalty(risk)
         if penalty > 0:
@@ -798,13 +820,13 @@ class EnsemblePredictor:
             }
             _neutral = {'factor': 1.0, 'runs': 1.0, 'outdoor': 1}
             features['park_factor'] = df['home_team'].apply(
-                lambda t: MLB_PARK_FACTORS.get(str(t).strip(), _neutral)['factor']
+                lambda t: MLB_PARK_FACTORS.get(_mlb_abbrev(t), _neutral)['factor']
             ).astype(float)
             features['park_factor_runs'] = df['home_team'].apply(
-                lambda t: MLB_PARK_FACTORS.get(str(t).strip(), _neutral)['runs']
+                lambda t: MLB_PARK_FACTORS.get(_mlb_abbrev(t), _neutral)['runs']
             ).astype(float)
             features['park_is_outdoor'] = df['home_team'].apply(
-                lambda t: MLB_PARK_FACTORS.get(str(t).strip(), _neutral)['outdoor']
+                lambda t: MLB_PARK_FACTORS.get(_mlb_abbrev(t), _neutral)['outdoor']
             ).astype(float)
 
             league_avg_era = 4.20
@@ -899,8 +921,8 @@ class EnsemblePredictor:
                         all_assignments.update(fetch_umpire_assignments(str(d)))
                     if all_assignments:
                         for idx, row in df.iterrows():
-                            ht = str(row.get('home_team', '')).strip()
-                            at = str(row.get('away_team', '')).strip()
+                            ht = _mlb_abbrev(str(row.get('home_team', '')).strip())
+                            at = _mlb_abbrev(str(row.get('away_team', '')).strip())
                             ump = all_assignments.get((ht, at), '')
                             if ump:
                                 rpgi, rd, kd = get_umpire_features(ump)
@@ -918,8 +940,8 @@ class EnsemblePredictor:
                 if 'game_date' in df.columns:
                     from mlb_bullpen import get_team_bullpen_fatigue
                     for idx, row in df.iterrows():
-                        ht = str(row.get('home_team', '')).strip()
-                        at = str(row.get('away_team', '')).strip()
+                        ht = _mlb_abbrev(str(row.get('home_team', '')).strip())
+                        at = _mlb_abbrev(str(row.get('away_team', '')).strip())
                         gd = str(row.get('game_date', ''))
                         if ht and at and gd:
                             h_fat, h_heavy = get_team_bullpen_fatigue(ht, gd)
