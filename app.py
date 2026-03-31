@@ -3118,29 +3118,8 @@ CRON_MIN_INTERVAL = {
     'retrain_model': 86400,
 }
 
-def log_cron(job_name, fn, skip_throttle=False):
-    min_interval = CRON_MIN_INTERVAL.get(job_name, 0)
-    if min_interval and not skip_throttle:
-        last_ok = CronLog.query.filter_by(job_name=job_name, status='ok')\
-            .order_by(CronLog.executed_at.desc()).first()
-        if last_ok:
-            seconds_since = (datetime.utcnow() - last_ok.executed_at).total_seconds()
-            if seconds_since < min_interval:
-                return jsonify({'status': 'skipped', 'job': job_name,
-                                'reason': f'throttled ({int(seconds_since)}s since last run, min {min_interval}s)'}), 200
-
-    with _cron_lock_mutex:
-        now = _time.time()
-        if job_name in _cron_locks:
-            lock_time, running = _cron_locks[job_name]
-            if running:
-                stale_seconds = now - lock_time
-                if stale_seconds < 600:
-                    return jsonify({'status': 'skipped', 'job': job_name,
-                                    'reason': f'already running ({int(stale_seconds)}s)'}), 200
-                logging.warning(f"[cron] Force-clearing stale lock for {job_name} (held {int(stale_seconds)}s)")
-        _cron_locks[job_name] = (now, True)
-
+def _run_cron_sync(job_name, fn):
+    """Execute cron job synchronously, log result. Used by both sync and async paths."""
     start = _time.time()
     try:
         result = fn()
@@ -3149,10 +3128,8 @@ def log_cron(job_name, fn, skip_throttle=False):
                       message=str(result) if result else None)
         db.session.add(log)
         db.session.commit()
-        resp = {'status': 'done', 'job': job_name, 'duration_ms': dur}
-        if isinstance(result, dict):
-            resp.update(result)
-        return jsonify(resp)
+        logging.info(f"[cron] {job_name} completed in {dur}ms")
+        return {'status': 'done', 'job': job_name, 'duration_ms': dur, **(result if isinstance(result, dict) else {})}
     except Exception as e:
         dur = int((_time.time() - start) * 1000)
         log = CronLog(job_name=job_name, status='error', duration_ms=dur,
@@ -3170,10 +3147,67 @@ def log_cron(job_name, fn, skip_throttle=False):
             )
         except Exception:
             logging.error(f"Failed to send admin alert for cron error: {job_name}")
-        return jsonify({'status': 'error', 'job': job_name, 'message': str(e)}), 500
+        logging.error(f"[cron] {job_name} failed after {dur}ms: {e}")
+        return {'status': 'error', 'job': job_name, 'message': str(e)}
     finally:
         with _cron_lock_mutex:
             _cron_locks[job_name] = (_time.time(), False)
+
+
+def _check_throttle_and_lock(job_name, skip_throttle=False):
+    """Check throttle and acquire lock. Returns (ok, response) — if ok is False, return response."""
+    min_interval = CRON_MIN_INTERVAL.get(job_name, 0)
+    if min_interval and not skip_throttle:
+        last_ok = CronLog.query.filter_by(job_name=job_name, status='ok')\
+            .order_by(CronLog.executed_at.desc()).first()
+        if last_ok:
+            seconds_since = (datetime.utcnow() - last_ok.executed_at).total_seconds()
+            if seconds_since < min_interval:
+                return False, jsonify({'status': 'skipped', 'job': job_name,
+                                'reason': f'throttled ({int(seconds_since)}s since last run, min {min_interval}s)'}), 200
+
+    with _cron_lock_mutex:
+        now = _time.time()
+        if job_name in _cron_locks:
+            lock_time, running = _cron_locks[job_name]
+            if running:
+                stale_seconds = now - lock_time
+                if stale_seconds < 600:
+                    return False, jsonify({'status': 'skipped', 'job': job_name,
+                                    'reason': f'already running ({int(stale_seconds)}s)'}), 200
+                logging.warning(f"[cron] Force-clearing stale lock for {job_name} (held {int(stale_seconds)}s)")
+        _cron_locks[job_name] = (now, True)
+
+    return True, None
+
+
+def log_cron(job_name, fn, skip_throttle=False):
+    ok, resp = _check_throttle_and_lock(job_name, skip_throttle)
+    if not ok:
+        return resp
+
+    result = _run_cron_sync(job_name, fn)
+    if result.get('status') == 'error':
+        return jsonify(result), 500
+    return jsonify(result)
+
+
+def log_cron_async(job_name, fn, skip_throttle=False):
+    """Fire-and-forget: return 202 immediately, run job in background thread.
+    Use for endpoints that take >30s (collection jobs hitting external APIs)."""
+    import threading
+
+    ok, resp = _check_throttle_and_lock(job_name, skip_throttle)
+    if not ok:
+        return resp
+
+    def _background():
+        with app.app_context():
+            _run_cron_sync(job_name, fn)
+
+    t = threading.Thread(target=_background, daemon=True)
+    t.start()
+    return jsonify({'status': 'accepted', 'job': job_name, 'message': 'Running in background'}), 202
 
 
 @app.route('/api/events', methods=['POST'])
@@ -3257,14 +3291,14 @@ def post_user_events():
 @app.route('/api/cron/collect-games', methods=['GET', 'POST'])
 @verify_cron
 def cron_collect_games():
-    return log_cron('collect_games', collect_todays_games)
+    return log_cron_async('collect_games', collect_todays_games)
 
 
 @app.route('/api/cron/refresh-lines', methods=['GET', 'POST'])
 @verify_cron
 def cron_refresh_lines():
     force = request.args.get('force', '').lower() == 'true'
-    return log_cron('refresh_lines', collect_todays_games, skip_throttle=force)
+    return log_cron_async('refresh_lines', collect_todays_games, skip_throttle=force)
 
 
 def _grade_picks_for_final_games(final_games):
@@ -3519,7 +3553,7 @@ def cron_live_scores():
 @app.route('/api/cron/closing-lines', methods=['GET', 'POST'])
 @verify_cron
 def cron_closing_lines():
-    return log_cron('closing_lines', collect_closing_lines)
+    return log_cron_async('closing_lines', collect_closing_lines)
 
 
 @app.route('/api/cron/refresh-player-impact', methods=['GET', 'POST'])
@@ -3528,19 +3562,19 @@ def cron_refresh_player_impact():
     def _run():
         from player_impact import refresh_player_impact_cache
         return refresh_player_impact_cache()
-    return log_cron('refresh_player_impact', _run)
+    return log_cron_async('refresh_player_impact', _run)
 
 
 @app.route('/api/cron/wnba-collect', methods=['GET', 'POST'])
 @verify_cron
 def cron_wnba_collect():
-    return log_cron('wnba_collect', collect_wnba_games_job)
+    return log_cron_async('wnba_collect', collect_wnba_games_job)
 
 
 @app.route('/api/cron/wnba-closing-lines', methods=['GET', 'POST'])
 @verify_cron
 def cron_wnba_closing_lines():
-    return log_cron('wnba_closing_lines', collect_wnba_closing_lines_job)
+    return log_cron_async('wnba_closing_lines', collect_wnba_closing_lines_job)
 
 
 def run_wnba_shadow_job():
@@ -3736,13 +3770,13 @@ def grade_mlb_picks_job():
 @app.route('/api/cron/mlb-collect', methods=['GET', 'POST'])
 @verify_cron
 def cron_mlb_collect():
-    return log_cron('mlb_collect', collect_mlb_games_job)
+    return log_cron_async('mlb_collect', collect_mlb_games_job)
 
 
 @app.route('/api/cron/mlb-closing-lines', methods=['GET', 'POST'])
 @verify_cron
 def cron_mlb_closing_lines():
-    return log_cron('mlb_closing_lines', collect_mlb_closing_lines_job)
+    return log_cron_async('mlb_closing_lines', collect_mlb_closing_lines_job)
 
 
 def run_mlb_model_job():
@@ -3767,7 +3801,7 @@ def run_mlb_model_job():
 @app.route('/api/cron/mlb-run-model', methods=['GET', 'POST'])
 @verify_cron
 def cron_mlb_run_model():
-    return log_cron('mlb_run_model', run_mlb_model_job, skip_throttle=True)
+    return log_cron_async('mlb_run_model', run_mlb_model_job, skip_throttle=True)
 
 
 @app.route('/api/cron/mlb-grade', methods=['GET', 'POST'])
@@ -4112,7 +4146,7 @@ def cron_run_model():
             import logging
             logging.exception("Market note generation: %s", e)
         return results
-    return log_cron('run_model', _run, skip_throttle=force)
+    return log_cron_async('run_model', _run, skip_throttle=force)
 
 
 @app.route('/api/cron/pretip-validate', methods=['GET', 'POST'])
