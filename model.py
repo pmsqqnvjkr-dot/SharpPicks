@@ -567,6 +567,30 @@ class EnsemblePredictor:
                                 all_team_dates.setdefault(ht, []).append(d)
                             if at:
                                 all_team_dates.setdefault(at, []).append(d)
+
+                        unique_dates = dates.dropna().unique()
+                        if len(unique_dates) <= 2:
+                            try:
+                                ref_date = unique_dates.max()
+                                start_date = (pd.Timestamp(ref_date) - pd.Timedelta(days=8)).strftime('%Y-%m-%d')
+                                end_date = pd.Timestamp(ref_date).strftime('%Y-%m-%d')
+                                tbl = self._games_table()
+                                hist_conn = sqlite3.connect(get_sqlite_path())
+                                hist_rows = hist_conn.execute(
+                                    f"SELECT game_date, home_team, away_team FROM {tbl} "
+                                    f"WHERE game_date >= ? AND game_date < ? AND home_score IS NOT NULL",
+                                    (start_date, end_date)
+                                ).fetchall()
+                                hist_conn.close()
+                                for gd_str, ht, at in hist_rows:
+                                    gd = pd.Timestamp(gd_str)
+                                    if ht:
+                                        all_team_dates.setdefault(ht, []).append(gd)
+                                    if at:
+                                        all_team_dates.setdefault(at, []).append(gd)
+                            except Exception:
+                                pass
+
                         for team in all_team_dates:
                             all_team_dates[team].sort()
 
@@ -597,11 +621,12 @@ class EnsemblePredictor:
             try:
                 if 'game_date' in df.columns and 'home_team' in df.columns:
                     dates = pd.to_datetime(df['game_date'], errors='coerce')
+                    ratings_tbl = 'wnba_rolling_ratings' if self.sport == 'wnba' else 'team_ratings'
                     team_ratings = {}
                     try:
                         rat_conn = sqlite3.connect(get_sqlite_path())
-                        if self._has_table(rat_conn, 'team_ratings'):
-                            rat_rows = rat_conn.execute("SELECT team_abbr, team_name, net_rating FROM team_ratings").fetchall()
+                        if self._has_table(rat_conn, ratings_tbl):
+                            rat_rows = rat_conn.execute(f"SELECT team_abbr, team_name, net_rating FROM {ratings_tbl}").fetchall()
                             for r in rat_rows:
                                 val = float(r[2]) if r[2] else 0.0
                                 team_ratings[r[0]] = val
@@ -620,6 +645,27 @@ class EnsemblePredictor:
                             at = row.get('away_team', '')
                             if ht and at:
                                 game_log.append((d, ht, at))
+
+                        unique_dates = dates.dropna().unique()
+                        if len(unique_dates) <= 2:
+                            try:
+                                ref_date = unique_dates.max()
+                                start_date = (pd.Timestamp(ref_date) - pd.Timedelta(days=21)).strftime('%Y-%m-%d')
+                                end_date = pd.Timestamp(ref_date).strftime('%Y-%m-%d')
+                                tbl = self._games_table()
+                                hist_conn = sqlite3.connect(get_sqlite_path())
+                                hist_rows = hist_conn.execute(
+                                    f"SELECT game_date, home_team, away_team FROM {tbl} "
+                                    f"WHERE game_date >= ? AND game_date < ? AND home_score IS NOT NULL",
+                                    (start_date, end_date)
+                                ).fetchall()
+                                hist_conn.close()
+                                for gd_str, ht, at in hist_rows:
+                                    if ht and at:
+                                        game_log.append((pd.Timestamp(gd_str), ht, at))
+                            except Exception:
+                                pass
+
                         game_log.sort(key=lambda x: x[0])
                         team_recent_opponents = {}
                         for gd, ht, at in game_log:

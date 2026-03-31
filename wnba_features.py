@@ -24,7 +24,7 @@ def _get_sqlite_path():
         from db_path import get_sqlite_path
         return get_sqlite_path()
     except Exception:
-        return 'sharppicks.db'
+        return 'sharp_picks.db'
 
 
 def _get_db():

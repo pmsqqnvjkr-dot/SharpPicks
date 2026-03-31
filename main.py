@@ -1526,7 +1526,6 @@ def collect_todays_games():
             print()
         
         conn.commit()
-        conn.close()
 
         with_spreads = sum(1 for gp in games_to_process if gp.get('spread_home') is not None)
         print(f"   Games stored for today: {len(games_to_process)} ({with_spreads} with spreads from Odds API)")
@@ -1549,6 +1548,8 @@ def collect_todays_games():
             print(f"   📸 Line snapshot saved ({len(games_to_process)} games)")
         except Exception as snap_err:
             print(f"   ⚠️ Snapshot failed: {snap_err}")
+
+        conn.close()
 
         print("="*60)
         show_stats()
