@@ -3163,8 +3163,8 @@ def _check_throttle_and_lock(job_name, skip_throttle=False):
         if last_ok:
             seconds_since = (datetime.utcnow() - last_ok.executed_at).total_seconds()
             if seconds_since < min_interval:
-                return False, jsonify({'status': 'skipped', 'job': job_name,
-                                'reason': f'throttled ({int(seconds_since)}s since last run, min {min_interval}s)'}), 200
+                return False, (jsonify({'status': 'skipped', 'job': job_name,
+                                'reason': f'throttled ({int(seconds_since)}s since last run, min {min_interval}s)'}), 200)
 
     with _cron_lock_mutex:
         now = _time.time()
@@ -3173,8 +3173,8 @@ def _check_throttle_and_lock(job_name, skip_throttle=False):
             if running:
                 stale_seconds = now - lock_time
                 if stale_seconds < 600:
-                    return False, jsonify({'status': 'skipped', 'job': job_name,
-                                    'reason': f'already running ({int(stale_seconds)}s)'}), 200
+                    return False, (jsonify({'status': 'skipped', 'job': job_name,
+                                    'reason': f'already running ({int(stale_seconds)}s)'}), 200)
                 logging.warning(f"[cron] Force-clearing stale lock for {job_name} (held {int(stale_seconds)}s)")
         _cron_locks[job_name] = (now, True)
 
@@ -3779,11 +3779,10 @@ def cron_mlb_closing_lines():
     return log_cron_async('mlb_closing_lines', collect_mlb_closing_lines_job)
 
 
-def run_mlb_model_job():
+def run_mlb_model_job(force=False):
     """Run the MLB model to generate picks, then generate market note."""
-    print(f"[{datetime.now()}] Running MLB model...")
+    print(f"[{datetime.now()}] Running MLB model (force={force})...")
     from model_service import run_model_and_log
-    force = request.args.get('force', 'false').lower() == 'true'
     result = run_model_and_log(app, sport='mlb', force=force)
     print(f"[{datetime.now()}] MLB model run completed: {result.get('status', '?')}")
     try:
@@ -3801,7 +3800,8 @@ def run_mlb_model_job():
 @app.route('/api/cron/mlb-run-model', methods=['GET', 'POST'])
 @verify_cron
 def cron_mlb_run_model():
-    return log_cron_async('mlb_run_model', run_mlb_model_job, skip_throttle=True)
+    force = request.args.get('force', 'false').lower() == 'true'
+    return log_cron_async('mlb_run_model', lambda: run_mlb_model_job(force=force), skip_throttle=True)
 
 
 @app.route('/api/cron/mlb-grade', methods=['GET', 'POST'])
