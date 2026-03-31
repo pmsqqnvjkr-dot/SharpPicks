@@ -644,6 +644,7 @@ function PerformanceCard({ totalPnl, roi, record, equityCurve }) {
 
 function BloombergChart({ data, color, isPositive }) {
   const [activeIdx, setActiveIdx] = useState(null);
+  const pinnedRef = useRef(false);
   const height = 220;
   const width = 400;
   const padL = 48;
@@ -749,8 +750,13 @@ function BloombergChart({ data, color, isPositive }) {
       <svg
         viewBox={`0 0 ${width} ${height}`}
         style={{ width: '100%', display: 'block' }}
-        onMouseLeave={() => setActiveIdx(null)}
-        onTouchEnd={() => setTimeout(() => setActiveIdx(null), 2000)}
+        onMouseLeave={() => { if (!pinnedRef.current) setActiveIdx(null); }}
+        onClick={(e) => {
+          if (e.target.tagName === 'svg' || e.target.dataset.bg) {
+            pinnedRef.current = false;
+            setActiveIdx(null);
+          }
+        }}
       >
         <defs>
           <linearGradient id="bbgGrad" x1="0" y1="0" x2="0" y2="1">
@@ -759,6 +765,7 @@ function BloombergChart({ data, color, isPositive }) {
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
+        <rect x="0" y="0" width={width} height={height} fill="transparent" data-bg="1" />
 
         {ticks.map((t, i) => (
           <g key={i}>
@@ -801,8 +808,18 @@ function BloombergChart({ data, color, isPositive }) {
             cx={p.x} cy={p.y} r="12"
             fill="transparent"
             style={{ cursor: 'pointer' }}
-            onClick={() => setActiveIdx(activeIdx === i ? null : i)}
-            onMouseEnter={() => setActiveIdx(i)}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (activeIdx === i) {
+                pinnedRef.current = false;
+                setActiveIdx(null);
+              } else {
+                pinnedRef.current = true;
+                setActiveIdx(i);
+              }
+            }}
+            onMouseEnter={() => { if (!pinnedRef.current) setActiveIdx(i); }}
+            onMouseLeave={() => { if (!pinnedRef.current) setActiveIdx(null); }}
           />
         ))}
 
