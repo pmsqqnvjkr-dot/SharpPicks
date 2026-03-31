@@ -4053,6 +4053,26 @@ def collect_mlb_odds():
             print(f"   Umpire enrichment skipped: {e}")
 
         conn.commit()
+
+        try:
+            snap_time = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            snap_rows = cursor.execute(
+                '''SELECT game_date, home_team, away_team, spread_home, total, home_ml, away_ml
+                   FROM mlb_games WHERE game_date = ? AND spread_home IS NOT NULL''',
+                (today_str,)
+            ).fetchall()
+            for r in snap_rows:
+                cursor.execute(
+                    '''INSERT INTO line_snapshots
+                       (game_date, home_team, away_team, spread_home, total, home_ml, away_ml, snapped_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (r[0], r[1], r[2], r[3], r[4], r[5], r[6], snap_time)
+                )
+            conn.commit()
+            print(f"   📸 MLB line snapshot saved ({len(snap_rows)} games)")
+        except Exception as snap_err:
+            print(f"   ⚠️ MLB snapshot failed: {snap_err}")
+
         conn.close()
         print(f"\n✅ Stored {stored} MLB games\n")
 

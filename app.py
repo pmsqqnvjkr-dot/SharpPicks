@@ -3345,11 +3345,9 @@ def cron_diagnostic():
                 diag['player_impact_cache'] = {'count': pic_count}
             else:
                 diag['player_impact_cache'] = {'error': 'table does not exist'}
-            snap_count = 0
             if cur.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='line_snapshots'").fetchone():
-                snap_count = cur.execute("SELECT COUNT(*) FROM line_snapshots WHERE date = ?", (today_str,)).fetchone()[0]
-                mlb_snaps = cur.execute("SELECT COUNT(*) FROM line_snapshots WHERE date = ? AND game_id LIKE 'mlb_%'", (today_str,)).fetchone()[0]
-                diag['line_snapshots'] = {'today_total': snap_count, 'today_mlb': mlb_snaps}
+                snap_count = cur.execute("SELECT COUNT(*) FROM line_snapshots WHERE game_date = ?", (today_str,)).fetchone()[0]
+                diag['line_snapshots'] = {'today_total': snap_count}
             else:
                 diag['line_snapshots'] = {'error': 'table does not exist'}
             conn.close()
