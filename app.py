@@ -1878,7 +1878,7 @@ Baseball is a quant market. SharpPicks is a quant product. The fit is natural.
 
 *Evan Cole*
 Founder, SharpPicks""",
-                    status="published", publish_date=datetime(2026, 3, 1), reading_time_minutes=4, sport='mlb',
+                    status="scheduled", publish_date=datetime(2026, 3, 20, 14, 0), reading_time_minutes=4, sport='mlb',
                 ))
             if 'why-sharp-bettors-focus-on-price' not in existing_slugs:
                 incremental_insights.append(Insight(
@@ -1924,7 +1924,7 @@ SharpPicks enforces this automatically. The model doesn't know team names. It kn
 
 *Evan Cole*
 Founder, SharpPicks""",
-                    status="published", publish_date=datetime(2026, 3, 2), reading_time_minutes=4, sport='mlb',
+                    status="scheduled", publish_date=datetime(2026, 3, 23, 14, 0), reading_time_minutes=4, sport='mlb',
                 ))
             if 'the-problem-with-betting-big-favorites' not in existing_slugs:
                 incremental_insights.append(Insight(
@@ -1970,7 +1970,7 @@ That doesn't mean every underdog is a bet. Most aren't. But the ones where the g
 
 *Evan Cole*
 Founder, SharpPicks""",
-                    status="published", publish_date=datetime(2026, 3, 3), reading_time_minutes=4, sport='mlb',
+                    status="scheduled", publish_date=datetime(2026, 3, 26, 14, 0), reading_time_minutes=4, sport='mlb',
                 ))
             if 'why-bullpen-fatigue-creates-hidden-value' not in existing_slugs:
                 incremental_insights.append(Insight(
@@ -2012,7 +2012,7 @@ The best edges aren't the ones that make headlines. They're the ones nobody else
 
 *Evan Cole*
 Founder, SharpPicks""",
-                    status="published", publish_date=datetime(2026, 3, 4), reading_time_minutes=4, sport='mlb',
+                    status="scheduled", publish_date=datetime(2026, 3, 28, 14, 0), reading_time_minutes=4, sport='mlb',
                 ))
             if 'what-makes-an-mlb-moneyline-mispriced' not in existing_slugs:
                 incremental_insights.append(Insight(
@@ -2062,7 +2062,7 @@ SharpPicks automates that process across every game on the board, every day. Whe
 
 *Evan Cole*
 Founder, SharpPicks""",
-                    status="published", publish_date=datetime(2026, 3, 5), reading_time_minutes=5, sport='mlb',
+                    status="scheduled", publish_date=datetime(2026, 3, 30, 14, 0), reading_time_minutes=5, sport='mlb',
                 ))
             # --- Batch 2: May-July 2026 ---
             if 'what-100-picks-taught-us' not in existing_slugs:
@@ -2308,6 +2308,25 @@ If you can look at our full record, see the losses, and still understand why the
             if mlb_insights_to_fix:
                 db.session.commit()
                 logging.info(f"Tagged {len(mlb_insights_to_fix)} insights as sport=mlb")
+
+            mlb_calendar_fixes = {
+                'why-mlb-is-a-quant-market': datetime(2026, 3, 20, 14, 0),
+                'why-sharp-bettors-focus-on-price': datetime(2026, 3, 23, 14, 0),
+                'the-problem-with-betting-big-favorites': datetime(2026, 3, 26, 14, 0),
+                'why-bullpen-fatigue-creates-hidden-value': datetime(2026, 3, 28, 14, 0),
+                'what-makes-an-mlb-moneyline-mispriced': datetime(2026, 3, 30, 14, 0),
+            }
+            mlb_premature = Insight.query.filter(
+                Insight.slug.in_(list(mlb_calendar_fixes.keys())),
+                Insight.status == 'published',
+                Insight.publish_date < datetime(2026, 3, 20),
+            ).all()
+            for mi in mlb_premature:
+                mi.status = 'scheduled'
+                mi.publish_date = mlb_calendar_fixes[mi.slug]
+            if mlb_premature:
+                db.session.commit()
+                logging.info(f"Reverted {len(mlb_premature)} prematurely published MLB articles to scheduled")
 
             stale_note_slugs = ['market-note-2026-03-17', 'market-note-2026-03-18']
             stale_notes = Insight.query.filter(Insight.slug.in_(stale_note_slugs)).all()
