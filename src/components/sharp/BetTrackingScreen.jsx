@@ -565,6 +565,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
 }
 
 export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, onSetDefault }) {
+  const { sport } = useSport();
   const [mode, setMode] = useState('model');
   const [picks, setPicks] = useState([]);
   const [loadingPicks, setLoadingPicks] = useState(!initialPick);
