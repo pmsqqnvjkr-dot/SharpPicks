@@ -638,20 +638,25 @@ def get_injuries():
         data = response.json()
         
         for team_data in data.get('injuries', []):
-            team_name = team_data.get('team', {}).get('displayName', '')
+            team_name = (
+                team_data.get('team', {}).get('displayName', '')
+                or team_data.get('displayName', '')
+            )
             
             team_injuries = []
             for injury in team_data.get('injuries', []):
                 player = injury.get('athlete', {}).get('displayName', 'Unknown')
                 status = injury.get('status', 'Unknown')
                 injury_type = injury.get('type', {}).get('description', '')
+
+                if not team_name:
+                    team_name = injury.get('athlete', {}).get('team', {}).get('displayName', '')
                 
-                # Only include significant injuries (Out, Doubtful, Questionable)
                 if status.lower() in ['out', 'doubtful', 'questionable', 'day-to-day']:
                     team_injuries.append(f"{player} ({status})")
             
-            if team_injuries:
-                injuries[team_name] = "; ".join(team_injuries[:5])  # Top 5 injuries
+            if team_injuries and team_name:
+                injuries[team_name] = "; ".join(team_injuries[:5])
         
         print(f"   ✅ Loaded injuries for {len(injuries)} teams")
         
@@ -680,7 +685,10 @@ def get_wnba_injuries():
         data = response.json()
 
         for team_data in data.get('injuries', []):
-            team_name = team_data.get('team', {}).get('displayName', '')
+            team_name = (
+                team_data.get('team', {}).get('displayName', '')
+                or team_data.get('displayName', '')
+            )
 
             team_injuries = []
             for injury in team_data.get('injuries', []):
@@ -688,10 +696,13 @@ def get_wnba_injuries():
                 status = injury.get('status', 'Unknown')
                 injury_type = injury.get('type', {}).get('description', '')
 
+                if not team_name:
+                    team_name = injury.get('athlete', {}).get('team', {}).get('displayName', '')
+
                 if status.lower() in ['out', 'doubtful', 'questionable', 'day-to-day']:
                     team_injuries.append(f"{player} ({status})")
 
-            if team_injuries:
+            if team_injuries and team_name:
                 injuries[team_name] = "; ".join(team_injuries[:5])
 
         print(f"   ✅ Loaded WNBA injuries for {len(injuries)} teams")
@@ -3515,14 +3526,20 @@ def get_mlb_injuries():
         resp = api_request_with_retry(cfg['espn_injuries'])
         if resp and resp.status_code == 200:
             for team_block in resp.json().get('injuries', []):
-                team_name = team_block.get('team', {}).get('displayName', '')
+                team_name = (
+                    team_block.get('team', {}).get('displayName', '')
+                    or team_block.get('displayName', '')
+                )
                 names = []
                 for item in team_block.get('injuries', []):
                     pname = item.get('athlete', {}).get('displayName', '')
                     status = item.get('status', '')
+                    if not team_name:
+                        team_name = item.get('athlete', {}).get('team', {}).get('displayName', '')
                     if pname:
                         names.append(f"{pname} ({status})")
-                injuries[team_name] = ', '.join(names[:5]) if names else ''
+                if team_name and names:
+                    injuries[team_name] = ', '.join(names[:5])
     except Exception as e:
         print(f"⚠️ MLB injuries error: {e}")
     return injuries
