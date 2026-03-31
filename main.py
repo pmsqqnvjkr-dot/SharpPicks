@@ -2857,6 +2857,17 @@ def setup_wnba_shadow_table(cursor):
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(game_id)
     )''')
+    for col, ctype in [
+        ('home_continuity', 'REAL'),
+        ('away_continuity', 'REAL'),
+        ('home_density_5d', 'INTEGER'),
+        ('away_density_5d', 'INTEGER'),
+        ('team_hca', 'REAL'),
+    ]:
+        try:
+            cursor.execute(f'ALTER TABLE wnba_shadow_picks ADD COLUMN {col} {ctype}')
+        except Exception:
+            pass
 
 
 def run_wnba_shadow_predictions():
@@ -2901,6 +2912,12 @@ def run_wnba_shadow_predictions():
     shadow_count = 0
     pick_count = 0
 
+    try:
+        from wnba_features import get_wnba_game_features, get_team_hca
+        _wnba_features_available = True
+    except Exception:
+        _wnba_features_available = False
+
     for game in upcoming:
         game_id = game['id']
         game_date = game['game_date']
@@ -2933,10 +2950,31 @@ def run_wnba_shadow_predictions():
         h_nrtg, h_ortg, h_drtg, h_margin, h_std, h_wpct, h_gp = h_rating
         a_nrtg, a_ortg, a_drtg, a_margin, a_std, a_wpct, a_gp = a_rating
 
-        hca = 2.5
+        wf = {}
+        if _wnba_features_available:
+            try:
+                wf = get_wnba_game_features(home, away, game_date)
+            except Exception:
+                wf = {}
+
+        hca = wf.get('team_hca', 2.5)
+
+        fatigue_adj = 0.0
+        h_density = wf.get('home_games_last_5d', 0)
+        a_density = wf.get('away_games_last_5d', 0)
+        if h_density >= 3:
+            fatigue_adj -= 0.8
+        if a_density >= 3:
+            fatigue_adj += 0.8
+
+        continuity_adj = 0.0
+        cont_diff = wf.get('continuity_diff', 0)
+        if abs(cont_diff) > 0.15:
+            continuity_adj = cont_diff * 2.0
+
         model_margin = (h_margin - a_margin) / 2.0 + hca
         nrtg_margin = ((h_nrtg - a_nrtg) / 2.0) * 0.8 + hca
-        raw_margin = (model_margin + nrtg_margin) / 2.0
+        raw_margin = (model_margin + nrtg_margin) / 2.0 + fatigue_adj + continuity_adj
 
         market_margin = -spread_home
         blended_margin = SHRINKAGE * raw_margin + (1 - SHRINKAGE) * market_margin
@@ -2977,8 +3015,10 @@ def run_wnba_shadow_predictions():
              home_nrtg, away_nrtg,
              home_star_available, away_star_available,
              ppg_at_risk_home, ppg_at_risk_away,
-             shrinkage, edge_threshold, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+             shrinkage, edge_threshold,
+             home_continuity, away_continuity, home_density_5d, away_density_5d, team_hca,
+             created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
             (game_id, game_date, home, away, spread_home,
              round(blended_margin, 2), round(edge, 4), round(edge, 4),
              round(cover_prob, 4), round(sigma, 2),
@@ -2988,7 +3028,10 @@ def run_wnba_shadow_predictions():
              1 if avail['away'].get('star1_available', True) else 0,
              avail['home'].get('ppg_at_risk', 0),
              avail['away'].get('ppg_at_risk', 0),
-             SHRINKAGE, req_edge, datetime.now().isoformat()))
+             SHRINKAGE, req_edge,
+             wf.get('home_continuity', 0.5), wf.get('away_continuity', 0.5),
+             h_density, a_density, hca,
+             datetime.now().isoformat()))
 
         shadow_count += 1
         if would_pick:
@@ -3000,6 +3043,16 @@ def run_wnba_shadow_predictions():
         print(f"     NRtg: {home} {h_nrtg:+.1f} vs {away} {a_nrtg:+.1f}")
         if avail['home'].get('ppg_at_risk', 0) > 0 or avail['away'].get('ppg_at_risk', 0) > 0:
             print(f"     ⚠️  PPG at risk: {home} {avail['home'].get('ppg_at_risk', 0):.1f} | {away} {avail['away'].get('ppg_at_risk', 0):.1f}")
+        if wf:
+            parts = []
+            if hca != 2.5:
+                parts.append(f"HCA={hca:+.1f}")
+            if h_density >= 2 or a_density >= 2:
+                parts.append(f"density: {home}={h_density}g/5d, {away}={a_density}g/5d")
+            if abs(cont_diff) > 0.1:
+                parts.append(f"continuity: {home}={wf.get('home_continuity', 0.5):.0%}, {away}={wf.get('away_continuity', 0.5):.0%}")
+            if parts:
+                print(f"     📊 {' | '.join(parts)}")
         print()
 
     conn.commit()

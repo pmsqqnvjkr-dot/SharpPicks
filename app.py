@@ -3547,6 +3547,15 @@ def grade_wnba_shadow_job():
         print(f"[{datetime.now()}] WNBA shadow grading error: {e}")
 
 
+@app.route('/api/cron/wnba-roster-continuity', methods=['GET', 'POST'])
+@verify_cron
+def cron_wnba_roster_continuity():
+    def _run():
+        from wnba_features import compute_roster_continuity
+        return compute_roster_continuity()
+    return log_cron('wnba_roster_continuity', _run)
+
+
 @app.route('/api/cron/wnba-shadow', methods=['GET', 'POST'])
 @verify_cron
 def cron_wnba_shadow():

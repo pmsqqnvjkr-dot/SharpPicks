@@ -637,6 +637,30 @@ class EnsemblePredictor:
             except Exception as e:
                 print(f"   ⚠️ NBA referee feature error: {e}")
 
+        if self.sport == 'wnba':
+            features['home_continuity'] = pd.Series(0.5, index=df.index)
+            features['away_continuity'] = pd.Series(0.5, index=df.index)
+            features['continuity_diff'] = pd.Series(0.0, index=df.index)
+            features['team_hca'] = pd.Series(2.5, index=df.index)
+            try:
+                from wnba_features import get_team_continuity, get_team_hca
+                if 'home_team' in df.columns:
+                    for idx, row in df.iterrows():
+                        ht = str(row.get('home_team', '')).strip()
+                        at = str(row.get('away_team', '')).strip()
+                        gd = str(row.get('game_date', ''))
+                        season = int(gd[:4]) if gd and len(gd) >= 4 else None
+                        if ht:
+                            hc = get_team_continuity(ht, season)
+                            features.at[idx, 'home_continuity'] = hc
+                            features.at[idx, 'team_hca'] = get_team_hca(ht, season)
+                        if at:
+                            ac = get_team_continuity(at, season)
+                            features.at[idx, 'away_continuity'] = ac
+                        features.at[idx, 'continuity_diff'] = features.at[idx, 'home_continuity'] - features.at[idx, 'away_continuity']
+            except Exception as e:
+                print(f"   ⚠️ WNBA continuity/HCA feature error: {e}")
+
         features['profile_historical_clv'] = pd.Series(0.0, index=df.index)
         features['profile_clv_sample_size'] = pd.Series(0.0, index=df.index)
         try:
