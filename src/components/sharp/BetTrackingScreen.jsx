@@ -565,34 +565,35 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
 }
 
 export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, onSetDefault }) {
-  const [step, setStep] = useState(initialPick ? 'wager' : 'picks');
   const [mode, setMode] = useState('model');
   const [picks, setPicks] = useState([]);
   const [loadingPicks, setLoadingPicks] = useState(!initialPick);
-  const [selected, setSelected] = useState(initialPick || null);
-  const [units, setUnits] = useState('1');
-  const [lineBought, setLineBought] = useState('');
-  const [odds, setOdds] = useState(initialPick?.market_odds != null ? String(initialPick.market_odds) : '-110');
-  const [followType, setFollowType] = useState('exact');
+  const [expandedId, setExpandedId] = useState(initialPick?.id || null);
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
 
+  const [cardLine, setCardLine] = useState(initialPick?.line != null ? String(initialPick.line) : '');
+  const [cardUnits, setCardUnits] = useState('1');
+  const [cardWager, setCardWager] = useState(String(unitSize || 100));
+  const unitsLastEdited = useRef(true);
+
   const [manualGame, setManualGame] = useState('');
   const [manualPick, setManualPick] = useState('');
   const [manualLine, setManualLine] = useState('');
+  const [manualOdds, setManualOdds] = useState('-110');
   const [manualBetType, setManualBetType] = useState('spread');
   const [manualUnits, setManualUnits] = useState('1');
+  const [manualWager, setManualWager] = useState(String(unitSize || 100));
+  const manualUnitsLastEdited = useRef(true);
   const [parlayLegs, setParlayLegs] = useState('2');
   const [parlayDesc, setParlayDesc] = useState('');
 
   const searchTimeoutRef = useRef(null);
 
   useEffect(() => {
-    if (!initialPick) {
-      loadTrackablePicks(1, '');
-    }
+    if (!initialPick) loadTrackablePicks(1, '');
   }, []);
 
   const loadTrackablePicks = async (pg = 1, q = searchQuery) => {
@@ -600,18 +601,12 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
     try {
       const params = `?per_page=50&page=${pg}${q ? `&q=${encodeURIComponent(q)}` : ''}`;
       const data = await apiGet(sportQuery('/bets/trackable' + params, sport));
-      if (pg === 1) {
-        setPicks(data.picks || []);
-      } else {
-        setPicks(prev => [...prev, ...(data.picks || [])]);
-      }
+      if (pg === 1) setPicks(data.picks || []);
+      else setPicks(prev => [...prev, ...(data.picks || [])]);
       setHasMore(data.has_more || false);
       setPage(pg);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoadingPicks(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoadingPicks(false); }
   };
 
   const handleSearch = (val) => {
@@ -620,45 +615,68 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
     searchTimeoutRef.current = setTimeout(() => loadTrackablePicks(1, val), 300);
   };
 
-  const handleSelectPick = (pick) => {
-    if (pick.already_tracked) return;
-    setSelected(pick);
-    setLineBought(pick.line != null ? String(pick.line) : '');
-    setOdds(pick.market_odds != null ? String(pick.market_odds) : '-110');
-    setStep('wager');
+  const handleExpandPick = (p) => {
+    if (p.already_tracked) return;
+    if (expandedId === p.id) { setExpandedId(null); return; }
+    setExpandedId(p.id);
+    setCardLine(p.line != null ? String(p.line) : '');
+    setCardUnits('1');
+    setCardWager(String(unitSize || 100));
+    unitsLastEdited.current = true;
   };
 
-  const dollarAmount = Math.round((parseFloat(units) || 1) * (unitSize || 100));
-  const manualDollarAmount = Math.round((parseFloat(manualUnits) || 1) * (unitSize || 100));
+  const handleCardUnitsChange = (val) => {
+    setCardUnits(val);
+    unitsLastEdited.current = true;
+    const u = parseFloat(val) || 1;
+    setCardWager(String(Math.round(u * (unitSize || 100))));
+  };
+  const handleCardWagerChange = (val) => {
+    setCardWager(val);
+    unitsLastEdited.current = false;
+    const w = parseFloat(val) || unitSize || 100;
+    setCardUnits(String(parseFloat((w / (unitSize || 100)).toFixed(2))));
+  };
+  const handleManualUnitsChange = (val) => {
+    setManualUnits(val);
+    manualUnitsLastEdited.current = true;
+    const u = parseFloat(val) || 1;
+    setManualWager(String(Math.round(u * (unitSize || 100))));
+  };
+  const handleManualWagerChange = (val) => {
+    setManualWager(val);
+    manualUnitsLastEdited.current = false;
+    const w = parseFloat(val) || unitSize || 100;
+    setManualUnits(String(parseFloat((w / (unitSize || 100)).toFixed(2))));
+  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (mode === 'model' && !selected) return;
-    if (mode === 'manual') {
-      if (manualBetType === 'parlay' && !parlayDesc.trim()) return;
-      if (manualBetType !== 'parlay' && (!manualGame.trim() || !manualPick.trim())) return;
-    }
+  const handleTrackModelPick = async (pick) => {
     setSubmitting(true);
-    const userOdds = parseInt(odds) || -110;
+    await onSubmit({
+      pick_id: pick.id,
+      units_wagered: parseFloat(cardUnits) || 1,
+      bet_amount: parseInt(cardWager) || unitSize || 100,
+      odds: pick.market_odds || -110,
+      line_at_bet: parseFloat(cardLine) || pick.line,
+      bet_type: 'spread',
+    });
+    setSubmitting(false);
+  };
 
-    if (mode === 'model') {
-      await onSubmit({
-        pick_id: selected.id,
-        units_wagered: parseFloat(units) || 1,
-        odds: userOdds,
-        follow_type: followType,
-        line_at_bet: parseFloat(lineBought) || selected.line,
-        bet_type: 'spread',
-      });
-    } else if (manualBetType === 'parlay') {
+  const handleManualSubmit = async (e) => {
+    e.preventDefault();
+    if (manualBetType !== 'parlay' && (!manualGame.trim() || !manualPick.trim())) return;
+    if (manualBetType === 'parlay' && !parlayDesc.trim()) return;
+    setSubmitting(true);
+    const userOdds = parseInt(manualOdds) || -110;
+
+    if (manualBetType === 'parlay') {
       const legs = parseInt(parlayLegs) || 2;
       await onSubmit({
-        game: `${legs}-Leg Parlay`,
-        pick: parlayDesc.trim(),
+        game: `${legs}-Leg Parlay`, pick: parlayDesc.trim(),
         units_wagered: parseFloat(manualUnits) || 1,
-        odds: userOdds,
-        bet_type: 'parlay',
-        parlay_legs: legs,
+        bet_amount: parseInt(manualWager) || unitSize || 100,
+        odds: userOdds, bet_type: 'parlay', parlay_legs: legs,
       });
     } else {
       const lineVal = parseFloat(manualLine) || 0;
@@ -667,11 +685,10 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
       else if (manualBetType === 'total') pickLabel = manualPick.trim();
       else if (manualBetType === 'prop') pickLabel = manualPick.trim();
       else pickLabel = `${manualPick.trim()} ${lineVal >= 0 ? '+' : ''}${lineVal}`;
-
       await onSubmit({
-        game: manualGame.trim(),
-        pick: pickLabel,
+        game: manualGame.trim(), pick: pickLabel,
         units_wagered: parseFloat(manualUnits) || 1,
+        bet_amount: parseInt(manualWager) || unitSize || 100,
         odds: userOdds,
         line_at_bet: (manualBetType === 'moneyline' || manualBetType === 'prop') ? null : lineVal,
         bet_type: manualBetType,
@@ -680,13 +697,6 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
     setSubmitting(false);
   };
 
-  const toWin = (() => {
-    const amt = mode === 'model' ? dollarAmount : manualDollarAmount;
-    const o = parseInt(odds) || -110;
-    if (o < 0) return (amt * (100 / Math.abs(o))).toFixed(2);
-    return (amt * (o / 100)).toFixed(2);
-  })();
-
   const groupedPicks = picks.reduce((acc, p) => {
     const d = p.game_date || 'Unknown';
     if (!acc[d]) acc[d] = [];
@@ -694,9 +704,48 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
     return acc;
   }, {});
 
-  const stepTitle = step === 'picks'
-    ? 'Track a Bet'
-    : 'Enter Your Wager';
+  const resultBadge = (p) => {
+    if (p.already_tracked) return (
+      <span style={{
+        fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+        letterSpacing: '0.06em', color: 'var(--text-tertiary)',
+      }}>TRACKED</span>
+    );
+    if (p.result && p.result !== 'pending') {
+      const cfg = p.result === 'W'
+        ? { color: '#5A9E72', bg: 'rgba(90,158,114,0.12)' }
+        : p.result === 'P'
+        ? { color: '#8B8E96', bg: 'rgba(139,142,150,0.1)' }
+        : { color: '#C4686B', bg: 'rgba(196,104,107,0.12)' };
+      return (
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+          letterSpacing: '0.06em', padding: '2px 8px', borderRadius: '4px',
+          color: cfg.color, backgroundColor: cfg.bg,
+        }}>{p.result}</span>
+      );
+    }
+    if (!p.result || p.result === 'pending') return (
+      <span style={{
+        fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
+        color: '#D4A843', backgroundColor: 'rgba(212,168,67,0.1)',
+        padding: '2px 8px', borderRadius: '4px',
+      }}>{typeof p.edge_pct === 'number' ? `${p.edge_pct.toFixed(1)}%` : 'LIVE'}</span>
+    );
+  };
+
+  const inputStyle = {
+    background: 'var(--surface-0)', border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '8px', padding: '10px 12px',
+    fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500,
+    color: 'var(--text-primary)', outline: 'none', width: '100%',
+    boxSizing: 'border-box',
+  };
+  const labelStyle = {
+    fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
+    color: 'var(--text-tertiary)', letterSpacing: '0.1em',
+    textTransform: 'uppercase', marginBottom: '4px',
+  };
 
   return (
     <div style={{
@@ -706,417 +755,276 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
     }} onClick={onClose}>
       <div style={{
         backgroundColor: 'var(--surface-0)', borderRadius: '20px 20px 0 0',
-        padding: '24px 20px 32px', width: '100%', maxWidth: '480px',
-        maxHeight: '80vh', overflowY: 'auto',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        padding: '24px 16px 32px', width: '100%', maxWidth: '480px',
+        maxHeight: '85vh', display: 'flex', flexDirection: 'column',
       }} onClick={e => e.stopPropagation()}>
+
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {step === 'wager' && !initialPick && (
-              <button onClick={() => { setStep('picks'); setSelected(null); }} style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--text-tertiary)', padding: '4px',
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="15 18 9 12 15 6"/>
-                </svg>
-              </button>
-            )}
-            <h2 style={{
-              fontFamily: 'var(--font-serif)', fontSize: '20px',
-              fontWeight: 600, color: 'var(--text-primary)',
-            }}>{stepTitle}</h2>
-          </div>
+          <h2 style={{
+            fontFamily: 'var(--font-mono)', fontSize: '20px',
+            fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em',
+          }}>Track a Bet</h2>
           <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-tertiary)', padding: '4px',
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+            width: '32px', height: '32px', background: 'none', border: 'none',
+            color: 'var(--text-tertiary)', fontSize: '20px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: '8px',
+          }}>&times;</button>
         </div>
 
-        {step === 'picks' ? (
-          <div>
-            {/* Mode toggle */}
-            <div style={{
-              display: 'flex', gap: '4px', marginBottom: '16px',
-              backgroundColor: 'var(--surface-2)', borderRadius: '10px', padding: '3px',
-            }}>
-              <button onClick={() => setMode('model')} style={{
-                flex: 1, padding: '9px 12px', borderRadius: '8px', border: 'none',
-                fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-                fontFamily: 'var(--font-mono)', transition: 'all 0.15s',
-                backgroundColor: mode === 'model' ? 'var(--blue-primary)' : 'transparent',
-                color: mode === 'model' ? '#fff' : 'var(--text-tertiary)',
-              }}>Model Pick</button>
-              <button onClick={() => setMode('manual')} style={{
-                flex: 1, padding: '9px 12px', borderRadius: '8px', border: 'none',
-                fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-                fontFamily: 'var(--font-mono)', transition: 'all 0.15s',
-                backgroundColor: mode === 'manual' ? '#f59e0b' : 'transparent',
-                color: mode === 'manual' ? '#fff' : 'var(--text-tertiary)',
-              }}>My Own Bet</button>
-            </div>
+        <div style={{
+          display: 'flex', backgroundColor: 'var(--surface-2)', borderRadius: '10px',
+          padding: '3px', marginBottom: '16px',
+        }}>
+          <button onClick={() => setMode('model')} style={{
+            flex: 1, padding: '10px 0', textAlign: 'center', borderRadius: '8px', border: 'none',
+            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
+            letterSpacing: '0.04em', cursor: 'pointer', transition: 'all 0.2s',
+            backgroundColor: mode === 'model' ? 'var(--blue-primary)' : 'transparent',
+            color: mode === 'model' ? '#fff' : 'var(--text-tertiary)',
+          }}>Model Pick</button>
+          <button onClick={() => setMode('manual')} style={{
+            flex: 1, padding: '10px 0', textAlign: 'center', borderRadius: '8px', border: 'none',
+            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
+            letterSpacing: '0.04em', cursor: 'pointer', transition: 'all 0.2s',
+            backgroundColor: mode === 'manual' ? 'var(--blue-primary)' : 'transparent',
+            color: mode === 'manual' ? '#fff' : 'var(--text-tertiary)',
+          }}>My Own Bet</button>
+        </div>
 
-            {mode === 'model' ? (
-              <>
-                <input
-                  type="text"
-                  placeholder="Search by team..."
-                  value={searchQuery}
-                  onChange={e => handleSearch(e.target.value)}
-                  style={{
-                    width: '100%', padding: '10px 14px', marginBottom: '12px',
-                    backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
-                    borderRadius: '10px', color: 'var(--text-primary)',
-                    fontSize: '13px', fontFamily: 'var(--font-sans)',
-                    outline: 'none', boxSizing: 'border-box',
-                  }}
-                />
-                {loadingPicks ? (
-                  <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Loading picks...</p>
-                  </div>
-                ) : picks.length === 0 ? (
-                  <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6' }}>
-                      {searchQuery ? 'No picks match your search.' : 'No picks available to track yet.'}
-                    </p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    {Object.entries(groupedPicks).map(([date, datePicks]) => (
-                      <div key={date}>
-                        <div style={{
-                          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-                          letterSpacing: '1.2px', textTransform: 'uppercase',
-                          color: 'var(--text-tertiary)', padding: '8px 4px 4px',
-                        }}>{date}</div>
-                        {datePicks.map(p => (
-                          <button
-                            key={p.id}
-                            onClick={() => handleSelectPick(p)}
-                            disabled={p.already_tracked}
-                            style={{
-                              width: '100%', textAlign: 'left',
-                              padding: '12px 14px', marginBottom: '4px',
-                              backgroundColor: p.already_tracked ? 'var(--surface-2)' : 'var(--surface-1)',
-                              border: '1px solid var(--stroke-subtle)',
-                              borderRadius: '10px', cursor: p.already_tracked ? 'default' : 'pointer',
-                              opacity: p.already_tracked ? 0.5 : 1,
-                              transition: 'background-color 0.15s',
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div>
-                                <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                                  {p.away_team} @ {p.home_team}
-                                </div>
-                                <div style={{
-                                  fontSize: '12px', color: 'var(--blue-primary)', fontWeight: 600, marginTop: '3px',
-                                }}>
-                                  {p.side} {p.line > 0 ? `+${p.line}` : p.line}
-                                </div>
-                              </div>
-                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                {p.already_tracked ? (
-                                  <span style={{
-                                    fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-                                    color: 'var(--text-tertiary)', textTransform: 'uppercase',
-                                  }}>Tracked</span>
-                                ) : p.result && p.result !== 'pending' ? (
-                                  <span style={{
-                                    fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700,
-                                    color: p.result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
-                                  }}>{p.result}</span>
-                                ) : (
-                                  <span style={{
-                                    fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
-                                    color: 'var(--text-tertiary)',
-                                  }}>
-                                    {typeof p.edge_pct === 'number' ? `${p.edge_pct.toFixed(1)}% edge` : '—'}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    ))}
-                    {hasMore && (
-                      <button
-                        onClick={() => loadTrackablePicks(page + 1)}
-                        style={{
-                          width: '100%', padding: '12px', marginTop: '4px',
-                          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
-                          borderRadius: '10px', color: 'var(--text-secondary)',
-                          fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-                          fontFamily: 'var(--font-sans)',
-                        }}
-                      >Load more picks</button>
-                    )}
-                  </div>
-                )}
-              </>
-            ) : (
-              /* Manual bet entry form */
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                if (manualBetType === 'parlay' && parlayDesc.trim()) setStep('wager');
-                else if (manualBetType !== 'parlay' && manualGame.trim() && manualPick.trim()) setStep('wager');
-              }}>
-                <div style={{ marginBottom: '12px' }}>
-                  <div style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-                    letterSpacing: '1.2px', textTransform: 'uppercase',
-                    color: 'var(--text-tertiary)', marginBottom: '6px',
-                  }}>Bet Type</div>
-                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                    {[
-                      { value: 'spread', label: 'Spread' },
-                      { value: 'total', label: 'Total' },
-                      { value: 'moneyline', label: 'ML' },
-                      { value: 'prop', label: 'Prop' },
-                      { value: 'parlay', label: 'Parlay' },
-                    ].map(opt => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setManualBetType(opt.value)}
-                        style={{
-                          padding: '6px 12px', borderRadius: '8px',
-                          fontSize: '12px', fontWeight: 600,
-                          fontFamily: 'var(--font-mono)', cursor: 'pointer',
-                          backgroundColor: manualBetType === opt.value ? 'var(--blue-primary)' : 'var(--surface-1)',
-                          color: manualBetType === opt.value ? '#fff' : 'var(--text-secondary)',
-                          border: `1px solid ${manualBetType === opt.value ? 'var(--blue-primary)' : 'var(--stroke-subtle)'}`,
-                          transition: 'all 0.15s',
-                        }}
-                      >{opt.label}</button>
-                    ))}
-                  </div>
+        {mode === 'model' ? (
+          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <input
+              type="text"
+              placeholder="Search by team..."
+              value={searchQuery}
+              onChange={e => handleSearch(e.target.value)}
+              style={{
+                width: '100%', padding: '12px 14px 12px 14px', marginBottom: '12px',
+                backgroundColor: 'var(--surface-1)', border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '10px', color: 'var(--text-primary)',
+                fontSize: '13px', fontFamily: 'var(--font-mono)',
+                outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px', paddingRight: '4px' }}>
+              {loadingPicks ? (
+                <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Loading picks...</p>
                 </div>
+              ) : picks.length === 0 ? (
+                <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                    {searchQuery ? 'No picks match your search.' : 'No picks available to track yet.'}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {Object.entries(groupedPicks).map(([date, datePicks]) => (
+                    <div key={date}>
+                      <div style={{
+                        fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
+                        color: 'var(--text-tertiary)', letterSpacing: '0.1em',
+                        textTransform: 'uppercase', padding: '8px 0 4px',
+                      }}>{date}</div>
+                      {datePicks.map(p => {
+                        const isExpanded = expandedId === p.id;
+                        return (
+                          <div
+                            key={p.id}
+                            style={{
+                              backgroundColor: 'var(--surface-1)',
+                              border: `1px solid ${isExpanded ? 'rgba(90,158,114,0.3)' : 'rgba(255,255,255,0.04)'}`,
+                              borderRadius: '12px', padding: '14px 16px', marginBottom: '6px',
+                              cursor: p.already_tracked ? 'default' : 'pointer',
+                              opacity: p.already_tracked ? 0.45 : 1,
+                              transition: 'all 0.2s',
+                            }}
+                            onClick={() => handleExpandPick(p)}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                              <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                                {p.away_team} @ {p.home_team}
+                              </span>
+                              {resultBadge(p)}
+                            </div>
+                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                {p.side} {p.line > 0 ? `+${p.line}` : p.line}
+                              </span>
+                              {p.market_odds != null && (
+                                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                                  ML {p.market_odds > 0 ? `+${p.market_odds}` : p.market_odds}
+                                </span>
+                              )}
+                              {typeof p.edge_pct === 'number' && (
+                                <span style={{ fontSize: '11px', color: '#5A9E72', fontWeight: 500 }}>
+                                  {p.edge_pct.toFixed(1)}% edge
+                                </span>
+                              )}
+                              {p.already_tracked && (
+                                <span style={{
+                                  fontSize: '10px', color: 'var(--text-tertiary)',
+                                  letterSpacing: '0.06em', marginLeft: 'auto',
+                                }}>TRACKED</span>
+                              )}
+                            </div>
 
-                {manualBetType === 'parlay' ? (
-                  <>
-                    <FormField label="Number of Legs" placeholder="2" value={parlayLegs} onChange={setParlayLegs} type="number" />
-                    <div style={{ marginBottom: '12px' }}>
-                      <label style={{
-                        display: 'block', fontSize: '12px', fontWeight: 600,
-                        color: 'var(--text-tertiary)', textTransform: 'uppercase',
-                        letterSpacing: '0.05em', marginBottom: '6px',
-                      }}>Parlay Legs</label>
-                      <textarea
-                        placeholder={"e.g.\nLakers -3.5\nCeltics ML\nOver 218.5"}
-                        value={parlayDesc}
-                        onChange={e => setParlayDesc(e.target.value)}
-                        rows={3}
-                        style={{
-                          width: '100%', padding: '12px 14px',
-                          backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
-                          borderRadius: '10px', color: 'var(--text-primary)',
-                          fontSize: '14px', fontFamily: 'var(--font-sans)',
-                          outline: 'none', boxSizing: 'border-box', resize: 'vertical',
-                        }}
-                      />
+                            {isExpanded && !p.already_tracked && (
+                              <div
+                                style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.05)' }}
+                                onClick={e => e.stopPropagation()}
+                              >
+                                <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={labelStyle}>Line bought</div>
+                                    <input type="text" value={cardLine} onChange={e => setCardLine(e.target.value)}
+                                      style={inputStyle} onClick={e => e.stopPropagation()} />
+                                  </div>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={labelStyle}>Units</div>
+                                    <input type="text" value={cardUnits} onChange={e => handleCardUnitsChange(e.target.value)}
+                                      style={inputStyle} onClick={e => e.stopPropagation()} />
+                                  </div>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={labelStyle}>Wager ($)</div>
+                                    <input type="text" value={cardWager} onChange={e => handleCardWagerChange(e.target.value)}
+                                      style={{ ...inputStyle, color: '#5A9E72' }} onClick={e => e.stopPropagation()} />
+                                  </div>
+                                </div>
+                                <button
+                                  disabled={submitting}
+                                  onClick={() => handleTrackModelPick(p)}
+                                  style={{
+                                    width: '100%', padding: '12px', border: 'none', borderRadius: '10px',
+                                    fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
+                                    color: '#fff', backgroundColor: 'var(--blue-primary)',
+                                    cursor: 'pointer', letterSpacing: '0.02em',
+                                    opacity: submitting ? 0.5 : 1,
+                                  }}
+                                >{submitting ? 'Tracking...' : 'Track This Bet'}</button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  </>
-                ) : (
-                  <>
-                    <FormField label="Game" placeholder="e.g. Lakers @ Celtics" value={manualGame} onChange={setManualGame} />
-                    <FormField
-                      label={
-                        manualBetType === 'prop' ? 'Prop (e.g. LeBron Over 25.5 pts)'
-                        : manualBetType === 'total' ? 'Pick (e.g. Over 218.5)'
-                        : manualBetType === 'moneyline' ? 'Pick (e.g. Lakers)'
-                        : 'Pick (e.g. Lakers)'
-                      }
-                      placeholder={
-                        manualBetType === 'prop' ? 'LeBron Over 25.5 pts'
-                        : manualBetType === 'total' ? 'Over 218.5'
-                        : manualBetType === 'moneyline' ? 'Lakers'
-                        : 'Lakers'
-                      }
-                      value={manualPick}
-                      onChange={setManualPick}
-                    />
-                    {manualBetType === 'spread' && (
-                      <FormField label="Spread" placeholder="-3.5" value={manualLine} onChange={setManualLine} type="number" />
-                    )}
-                    {manualBetType === 'total' && (
-                      <FormField label="Line" placeholder="218.5" value={manualLine} onChange={setManualLine} type="number" />
-                    )}
-                  </>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={manualBetType === 'parlay' ? !parlayDesc.trim() : (!manualGame.trim() || !manualPick.trim())}
-                  style={{
-                    width: '100%', padding: '14px',
-                    backgroundColor: 'var(--blue-primary)', color: '#fff',
-                    border: 'none', borderRadius: '12px',
-                    fontSize: '15px', fontWeight: 600, cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    opacity: (manualBetType === 'parlay' ? !parlayDesc.trim() : (!manualGame.trim() || !manualPick.trim())) ? 0.4 : 1,
-                  }}
-                >Next: Enter Wager</button>
-              </form>
-            )}
+                  ))}
+                  {hasMore && (
+                    <button
+                      onClick={() => loadTrackablePicks(page + 1)}
+                      style={{
+                        width: '100%', padding: '12px', marginTop: '4px',
+                        backgroundColor: 'var(--surface-1)', border: '1px solid rgba(255,255,255,0.06)',
+                        borderRadius: '10px', color: 'var(--text-secondary)',
+                        fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                        fontFamily: 'var(--font-mono)',
+                      }}
+                    >Load more picks</button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         ) : (
-          <div>
-            <div style={{
-              backgroundColor: 'var(--surface-1)', borderRadius: '12px',
-              padding: '14px 16px', marginBottom: '16px',
-              border: '1px solid var(--stroke-subtle)',
-            }}>
-              {mode === 'model' ? (
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleManualSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <div style={labelStyle}>Bet type</div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {[
+                    { value: 'spread', label: 'Spread' },
+                    { value: 'total', label: 'Total' },
+                    { value: 'moneyline', label: 'ML' },
+                    { value: 'prop', label: 'Prop' },
+                    { value: 'parlay', label: 'Parlay' },
+                  ].map(opt => (
+                    <button key={opt.value} type="button" onClick={() => setManualBetType(opt.value)} style={{
+                      padding: '8px 16px', borderRadius: '8px',
+                      fontFamily: 'var(--font-mono)', fontSize: '12px',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                      backgroundColor: manualBetType === opt.value ? 'rgba(90,158,114,0.08)' : 'var(--surface-1)',
+                      color: manualBetType === opt.value ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                      border: `1px solid ${manualBetType === opt.value ? 'rgba(90,158,114,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                    }}>{opt.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {manualBetType === 'parlay' ? (
                 <>
-                  <div style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-                    letterSpacing: '1.2px', textTransform: 'uppercase',
-                    color: 'var(--text-tertiary)', marginBottom: '4px',
-                  }}>{selected?.game_date}</div>
-                  <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {selected?.away_team} @ {selected?.home_team}
+                  <div>
+                    <div style={labelStyle}>Number of Legs</div>
+                    <input type="number" value={parlayLegs} onChange={e => setParlayLegs(e.target.value)}
+                      placeholder="2" style={inputStyle} />
                   </div>
-                  <div style={{
-                    fontSize: '15px', color: 'var(--blue-primary)', fontWeight: 700, marginTop: '6px',
-                  }}>
-                    {selected?.side} {selected?.line > 0 ? `+${selected.line}` : selected?.line}
+                  <div>
+                    <div style={labelStyle}>Parlay Legs</div>
+                    <textarea
+                      placeholder={"e.g.\nLakers -3.5\nCeltics ML\nOver 218.5"}
+                      value={parlayDesc} onChange={e => setParlayDesc(e.target.value)}
+                      rows={3}
+                      style={{ ...inputStyle, resize: 'vertical', fontFamily: 'var(--font-sans)', fontSize: '13px' }}
+                    />
                   </div>
                 </>
               ) : (
                 <>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px',
-                  }}>
-                    <span style={{
-                      fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 700,
-                      padding: '2px 6px', borderRadius: '4px',
-                      backgroundColor: manualBetType === 'parlay' ? 'rgba(168,85,247,0.12)'
-                        : manualBetType === 'prop' ? 'rgba(59,130,246,0.12)'
-                        : 'rgba(251,191,36,0.12)',
-                      color: manualBetType === 'parlay' ? '#a855f7'
-                        : manualBetType === 'prop' ? '#3b82f6'
-                        : '#f59e0b',
-                      textTransform: 'uppercase', letterSpacing: '0.5px',
-                    }}>{manualBetType === 'parlay' ? `${parlayLegs}-Leg Parlay` : manualBetType === 'prop' ? 'Player Prop' : 'Personal'}</span>
+                  <div>
+                    <div style={labelStyle}>Game</div>
+                    <input type="text" placeholder="e.g. Lakers @ Celtics" value={manualGame}
+                      onChange={e => setManualGame(e.target.value)} style={inputStyle} />
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {manualBetType === 'parlay' ? `${parlayLegs}-Leg Parlay` : manualGame}
+                  <div>
+                    <div style={labelStyle}>{
+                      manualBetType === 'prop' ? 'Prop' : manualBetType === 'total' ? 'Pick' : 'Pick'
+                    }</div>
+                    <input type="text"
+                      placeholder={manualBetType === 'prop' ? 'LeBron Over 25.5 pts' : manualBetType === 'total' ? 'Over 218.5' : 'e.g. Lakers'}
+                      value={manualPick} onChange={e => setManualPick(e.target.value)} style={inputStyle} />
                   </div>
-                  <div style={{
-                    fontSize: manualBetType === 'parlay' ? '13px' : '15px',
-                    color: manualBetType === 'parlay' ? '#a855f7'
-                      : manualBetType === 'prop' ? '#3b82f6'
-                      : '#f59e0b',
-                    fontWeight: 700, marginTop: '6px',
-                    whiteSpace: manualBetType === 'parlay' ? 'pre-line' : 'normal',
-                    lineHeight: manualBetType === 'parlay' ? '1.5' : 'inherit',
-                  }}>
-                    {manualBetType === 'parlay' ? parlayDesc
-                      : manualBetType === 'moneyline' ? `${manualPick} ML`
-                      : manualBetType === 'prop' ? manualPick
-                      : manualBetType === 'total' ? manualPick
-                      : `${manualPick} ${parseFloat(manualLine) >= 0 ? '+' : ''}${manualLine || '0'}`}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              {mode === 'model' && (
-                <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <FormField label="Line Bought" placeholder={lineBought || '—'} value={lineBought} onChange={setLineBought} type="number" />
-                    <FormField label="Units" placeholder="1" value={units} onChange={setUnits} type="number" />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', marginBottom: '0' }}>
-                    <FormField label="Odds at Your Book" placeholder="-110" value={odds} onChange={setOdds} type="number" />
-                  </div>
+                  {(manualBetType === 'spread' || manualBetType === 'total') && (
+                    <div>
+                      <div style={labelStyle}>{manualBetType === 'spread' ? 'Line' : 'Line'}</div>
+                      <input type="text" placeholder="-3.5" value={manualLine}
+                        onChange={e => setManualLine(e.target.value)} style={inputStyle} />
+                    </div>
+                  )}
                 </>
               )}
 
-              {mode === 'manual' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <FormField label="Units" placeholder="1" value={manualUnits} onChange={setManualUnits} type="number" />
-                  <FormField label="Odds" placeholder="-110" value={odds} onChange={setOdds} type="number" />
-                </div>
-              )}
-
-              {mode === 'model' && (
-                <div style={{ marginBottom: '12px' }}>
-                  <div style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-                    letterSpacing: '1.2px', textTransform: 'uppercase',
-                    color: 'var(--text-tertiary)', marginBottom: '6px',
-                  }}>How did you follow this pick?</div>
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {[
-                      { value: 'exact', label: 'Exact' },
-                      { value: 'partial', label: 'Partial' },
-                      { value: 'late_line', label: 'Late Line' },
-                      { value: 'parlayed', label: 'Parlayed' },
-                    ].map(opt => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setFollowType(opt.value)}
-                        style={{
-                          padding: '6px 12px', borderRadius: '8px',
-                          fontSize: '12px', fontWeight: 600,
-                          fontFamily: 'var(--font-mono)',
-                          cursor: 'pointer',
-                          backgroundColor: followType === opt.value ? 'var(--blue-primary)' : 'var(--surface-1)',
-                          color: followType === opt.value ? '#fff' : 'var(--text-secondary)',
-                          border: `1px solid ${followType === opt.value ? 'var(--blue-primary)' : 'var(--stroke-subtle)'}`,
-                          transition: 'all 0.15s',
-                        }}
-                      >{opt.label}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div style={{
-                backgroundColor: 'var(--surface-1)', borderRadius: '10px',
-                padding: '12px 16px', marginBottom: '16px',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Risk</span>
-                  <span style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '14px',
-                    fontWeight: 600, color: 'var(--text-primary)',
-                  }}>{mode === 'model' ? units || '1' : manualUnits || '1'}u · ${mode === 'model' ? dollarAmount : manualDollarAmount}</span>
-                </div>
-                <div style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  marginTop: '6px', paddingTop: '6px',
-                  borderTop: '1px solid var(--stroke-subtle)',
-                }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>To win</span>
-                  <span style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '16px',
-                    fontWeight: 600, color: 'var(--green-profit)',
-                  }}>${toWin}</span>
-                </div>
+              <div>
+                <div style={labelStyle}>Odds</div>
+                <input type="text" placeholder="-110" value={manualOdds}
+                  onChange={e => setManualOdds(e.target.value)} style={inputStyle} />
               </div>
 
-              <button type="submit" disabled={submitting} style={{
-                width: '100%', padding: '14px',
-                backgroundColor: 'var(--blue-primary)', color: '#fff',
-                border: 'none', borderRadius: '12px',
-                fontSize: '15px', fontWeight: 600, cursor: 'pointer',
-                fontFamily: 'var(--font-sans)',
-                opacity: submitting ? 0.5 : 1,
-              }}>
-                {submitting ? 'Tracking...' : 'Track This Bet'}
-              </button>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={labelStyle}>Units</div>
+                  <input type="text" value={manualUnits} onChange={e => handleManualUnitsChange(e.target.value)} style={inputStyle} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={labelStyle}>Wager ($)</div>
+                  <input type="text" value={manualWager} onChange={e => handleManualWagerChange(e.target.value)}
+                    style={{ ...inputStyle, color: '#5A9E72' }} />
+                </div>
+              </div>
+              <div style={{
+                fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '-8px',
+                fontFamily: 'var(--font-mono)',
+              }}>Based on your unit size of ${unitSize || 100}</div>
+
+              <button type="submit" disabled={submitting || (manualBetType === 'parlay' ? !parlayDesc.trim() : (!manualGame.trim() || !manualPick.trim()))} style={{
+                width: '100%', padding: '14px', border: 'none', borderRadius: '10px',
+                fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
+                color: '#fff', backgroundColor: 'var(--blue-primary)',
+                cursor: 'pointer', letterSpacing: '0.02em', marginTop: '4px',
+                opacity: (submitting || (manualBetType === 'parlay' ? !parlayDesc.trim() : (!manualGame.trim() || !manualPick.trim()))) ? 0.4 : 1,
+              }}>{submitting ? 'Tracking...' : 'Track Bet'}</button>
             </form>
           </div>
         )}
