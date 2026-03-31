@@ -3288,6 +3288,49 @@ def post_user_events():
     return jsonify({'success': True, 'count': len(rows)})
 
 
+@app.route('/api/cron/diagnostic', methods=['GET'])
+@verify_cron
+def cron_diagnostic():
+    """Quick diagnostic: recent cron logs + game counts. Protected by cron secret."""
+    today_str = _get_et_today()
+    diag = {}
+
+    # Recent cron logs
+    logs = CronLog.query.order_by(CronLog.executed_at.desc()).limit(20).all()
+    diag['cron_logs'] = [{
+        'job': l.job_name, 'status': l.status, 'dur_ms': l.duration_ms,
+        'at': l.executed_at.isoformat() if l.executed_at else None,
+        'msg': (l.message or '')[:200],
+    } for l in logs]
+
+    # Game counts
+    try:
+        conn = sqlite3.connect(get_sqlite_path())
+        cur = conn.cursor()
+        for tbl in ['games', 'mlb_games', 'wnba_games']:
+            try:
+                total = cur.execute(f"SELECT COUNT(*) FROM {tbl} WHERE game_date = ?", (today_str,)).fetchone()[0]
+                with_spread = cur.execute(f"SELECT COUNT(*) FROM {tbl} WHERE game_date = ? AND spread_home IS NOT NULL", (today_str,)).fetchone()[0]
+                diag[tbl] = {'date': today_str, 'total': total, 'with_spreads': with_spread}
+            except Exception as e:
+                diag[tbl] = {'error': str(e)}
+        conn.close()
+    except Exception as e:
+        diag['sqlite_error'] = str(e)
+
+    # Existing picks/passes
+    from models import Pick, Pass
+    for sport in ['nba', 'mlb']:
+        pick = Pick.query.filter_by(game_date=today_str, sport=sport).first()
+        pass_entry = Pass.query.filter_by(date=today_str, sport=sport).first()
+        diag[f'{sport}_today'] = {
+            'pick': {'id': pick.id, 'side': pick.side, 'edge': pick.edge_pct} if pick else None,
+            'pass': {'id': pass_entry.id, 'reason': pass_entry.pass_reason[:100] if pass_entry.pass_reason else None} if pass_entry else None,
+        }
+
+    return jsonify(diag)
+
+
 @app.route('/api/cron/collect-games', methods=['GET', 'POST'])
 @verify_cron
 def cron_collect_games():
