@@ -3331,6 +3331,31 @@ def cron_diagnostic():
         except Exception as e:
             diag['picks_error'] = str(e)
 
+        try:
+            conn = sqlite3.connect(get_sqlite_path())
+            cur = conn.cursor()
+            if cur.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='team_ratings'").fetchone():
+                count = cur.execute("SELECT COUNT(*) FROM team_ratings").fetchone()[0]
+                sample = cur.execute("SELECT team_abbr, net_rating, pace, last_updated FROM team_ratings ORDER BY net_rating DESC LIMIT 3").fetchall()
+                diag['team_ratings'] = {'count': count, 'top_3': [{'abbr': r[0], 'net': r[1], 'pace': r[2], 'updated': r[3]} for r in sample]}
+            else:
+                diag['team_ratings'] = {'error': 'table does not exist'}
+            if cur.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='player_impact_cache'").fetchone():
+                pic_count = cur.execute("SELECT COUNT(*) FROM player_impact_cache").fetchone()[0]
+                diag['player_impact_cache'] = {'count': pic_count}
+            else:
+                diag['player_impact_cache'] = {'error': 'table does not exist'}
+            snap_count = 0
+            if cur.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='line_snapshots'").fetchone():
+                snap_count = cur.execute("SELECT COUNT(*) FROM line_snapshots WHERE date = ?", (today_str,)).fetchone()[0]
+                mlb_snaps = cur.execute("SELECT COUNT(*) FROM line_snapshots WHERE date = ? AND game_id LIKE 'mlb_%'", (today_str,)).fetchone()[0]
+                diag['line_snapshots'] = {'today_total': snap_count, 'today_mlb': mlb_snaps}
+            else:
+                diag['line_snapshots'] = {'error': 'table does not exist'}
+            conn.close()
+        except Exception as e:
+            diag['cache_check_error'] = str(e)
+
         return jsonify(diag)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
