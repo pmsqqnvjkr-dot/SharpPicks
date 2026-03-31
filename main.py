@@ -3412,6 +3412,8 @@ def setup_mlb_table(cursor):
         ('away_pitcher_losses', 'INTEGER'),
         ('home_pitcher_ip', 'REAL'),
         ('away_pitcher_ip', 'REAL'),
+        ('home_plate_umpire', 'TEXT'),
+        ('ump_rpgi', 'REAL'),
     ]:
         try:
             cursor.execute(f'ALTER TABLE mlb_games ADD COLUMN {col} {ctype}')
@@ -3962,6 +3964,23 @@ def collect_mlb_odds():
                 print(f"   Rundown MLB: enriched {enriched}/{len(rd_map)} games with consensus data")
         except Exception as e:
             print(f"   Rundown MLB skipped: {e}")
+
+        try:
+            from mlb_umpires import fetch_umpire_assignments, get_umpire_features
+            ump_map = fetch_umpire_assignments(today_str)
+            ump_enriched = 0
+            for (ht, at), ump_name in ump_map.items():
+                rpgi, rd, kd = get_umpire_features(ump_name)
+                cursor.execute(
+                    '''UPDATE mlb_games SET home_plate_umpire = ?, ump_rpgi = ?
+                    WHERE home_team = ? AND away_team = ? AND game_date = ?''',
+                    (ump_name, rpgi, ht, at, today_str))
+                if cursor.rowcount > 0:
+                    ump_enriched += 1
+            if ump_map:
+                print(f"   ⚖️ Umpire assignments: enriched {ump_enriched}/{len(ump_map)} games")
+        except Exception as e:
+            print(f"   Umpire enrichment skipped: {e}")
 
         conn.commit()
         conn.close()

@@ -56,6 +56,8 @@ LONG_REST_THRESHOLD = 5
 LONG_REST_SPREAD_THRESHOLD = 8.0
 LONG_REST_PENALTY_PER_DAY = 0.3
 
+LEAGUE_AVG_FOULS_DEFAULT = 42.0
+
 ASB_SPREAD_THRESHOLD = 8.0
 ASB_PENALTY_PCT = 3.0
 
@@ -502,7 +504,280 @@ class EnsemblePredictor:
             features['away_injury_impact'] = df.get('away_injuries', pd.Series(['']*len(df))).apply(parse_injury_impact)
             features['injury_diff'] = features['away_injury_impact'] - features['home_injury_impact']
 
+        if self.sport != 'mlb':
+            from nba_schedule import calculate_distance, get_timezone_change, get_altitude_factor
+            def _safe_travel(row):
+                ht = str(row.get('home_team', '')) if hasattr(row, 'get') else ''
+                at = str(row.get('away_team', '')) if hasattr(row, 'get') else ''
+                if not ht or not at or len(ht) < 2 or len(at) < 2:
+                    return 0.0, 0, 0.0
+                try:
+                    miles = calculate_distance(at, ht)
+                    tz = get_timezone_change(at, ht)
+                    alt = get_altitude_factor(ht)
+                except Exception:
+                    return 0.0, 0, 0.0
+                return float(miles), int(tz), float(alt)
+            travel_data = [_safe_travel(row) for _, row in df.iterrows()]
+            features['away_travel_miles'] = pd.Series([t[0] for t in travel_data], index=df.index, dtype=float)
+            features['away_tz_change'] = pd.Series([t[1] for t in travel_data], index=df.index, dtype=float)
+            features['home_altitude_factor'] = pd.Series([t[2] for t in travel_data], index=df.index, dtype=float)
+
+        if self.sport != 'mlb':
+            features['home_games_last_5d'] = pd.Series(0.0, index=df.index)
+            features['away_games_last_5d'] = pd.Series(0.0, index=df.index)
+            features['home_games_last_7d'] = pd.Series(0.0, index=df.index)
+            features['away_games_last_7d'] = pd.Series(0.0, index=df.index)
+            try:
+                if 'game_date' in df.columns and 'home_team' in df.columns:
+                    dates = pd.to_datetime(df['game_date'], errors='coerce')
+                    if dates.notna().sum() > 0:
+                        all_team_dates = {}
+                        for idx, row in df.iterrows():
+                            d = dates.get(idx)
+                            if pd.isna(d):
+                                continue
+                            ht = row.get('home_team', '')
+                            at = row.get('away_team', '')
+                            if ht:
+                                all_team_dates.setdefault(ht, []).append(d)
+                            if at:
+                                all_team_dates.setdefault(at, []).append(d)
+                        for team in all_team_dates:
+                            all_team_dates[team].sort()
+
+                        h5, a5, h7, a7 = [], [], [], []
+                        for idx, row in df.iterrows():
+                            d = dates.get(idx)
+                            if pd.isna(d):
+                                h5.append(0); a5.append(0); h7.append(0); a7.append(0)
+                                continue
+                            ht = row.get('home_team', '')
+                            at = row.get('away_team', '')
+                            hg = all_team_dates.get(ht, [])
+                            ag = all_team_dates.get(at, [])
+                            h5.append(sum(1 for gd in hg if pd.Timedelta(0) < (d - gd) <= pd.Timedelta(days=5)))
+                            a5.append(sum(1 for gd in ag if pd.Timedelta(0) < (d - gd) <= pd.Timedelta(days=5)))
+                            h7.append(sum(1 for gd in hg if pd.Timedelta(0) < (d - gd) <= pd.Timedelta(days=7)))
+                            a7.append(sum(1 for gd in ag if pd.Timedelta(0) < (d - gd) <= pd.Timedelta(days=7)))
+                        features['home_games_last_5d'] = pd.Series(h5, index=df.index, dtype=float)
+                        features['away_games_last_5d'] = pd.Series(a5, index=df.index, dtype=float)
+                        features['home_games_last_7d'] = pd.Series(h7, index=df.index, dtype=float)
+                        features['away_games_last_7d'] = pd.Series(a7, index=df.index, dtype=float)
+            except Exception as e:
+                print(f"   ⚠️ Schedule density error: {e}")
+
+        if self.sport != 'mlb':
+            features['home_form_strength'] = pd.Series(0.0, index=df.index)
+            features['away_form_strength'] = pd.Series(0.0, index=df.index)
+            try:
+                if 'game_date' in df.columns and 'home_team' in df.columns:
+                    dates = pd.to_datetime(df['game_date'], errors='coerce')
+                    team_ratings = {}
+                    try:
+                        rat_conn = sqlite3.connect(get_sqlite_path())
+                        if self._has_table(rat_conn, 'team_ratings'):
+                            rat_rows = rat_conn.execute("SELECT team, net_rating FROM team_ratings").fetchall()
+                            for r in rat_rows:
+                                team_ratings[r[0]] = float(r[1]) if r[1] else 0.0
+                        rat_conn.close()
+                    except Exception:
+                        pass
+                    if team_ratings and dates.notna().sum() > 0:
+                        game_log = []
+                        for idx, row in df.iterrows():
+                            d = dates.get(idx)
+                            if pd.isna(d):
+                                continue
+                            ht = row.get('home_team', '')
+                            at = row.get('away_team', '')
+                            if ht and at:
+                                game_log.append((d, ht, at))
+                        game_log.sort(key=lambda x: x[0])
+                        team_recent_opponents = {}
+                        for gd, ht, at in game_log:
+                            team_recent_opponents.setdefault(ht, []).append((gd, at))
+                            team_recent_opponents.setdefault(at, []).append((gd, ht))
+                        for idx, row in df.iterrows():
+                            d = dates.get(idx)
+                            if pd.isna(d):
+                                continue
+                            ht = row.get('home_team', '')
+                            at = row.get('away_team', '')
+                            for team, col in [(ht, 'home_form_strength'), (at, 'away_form_strength')]:
+                                opps = team_recent_opponents.get(team, [])
+                                recent = [opp for (gd, opp) in opps if gd < d][-5:]
+                                if recent:
+                                    avg_rtg = sum(team_ratings.get(o, 0.0) for o in recent) / len(recent)
+                                    features.at[idx, col] = avg_rtg
+            except Exception as e:
+                print(f"   ⚠️ Opponent-adjusted form error: {e}")
+
+        if self.sport != 'mlb':
+            features['crew_avg_fouls'] = pd.Series(LEAGUE_AVG_FOULS_DEFAULT, index=df.index)
+            features['crew_foul_delta'] = pd.Series(0.0, index=df.index)
+            features['crew_pace_impact'] = pd.Series(0.0, index=df.index)
+            try:
+                if 'game_date' in df.columns:
+                    from nba_referees import fetch_ref_assignments, get_crew_features
+                    unique_dates = df['game_date'].dropna().unique()
+                    all_ref_assignments = {}
+                    for d in unique_dates:
+                        all_ref_assignments.update(fetch_ref_assignments(str(d)))
+                    if all_ref_assignments:
+                        for idx, row in df.iterrows():
+                            ht = str(row.get('home_team', '')).strip()
+                            at = str(row.get('away_team', '')).strip()
+                            refs = all_ref_assignments.get((ht, at), [])
+                            if refs:
+                                af, fd, pi = get_crew_features(refs)
+                                features.at[idx, 'crew_avg_fouls'] = af
+                                features.at[idx, 'crew_foul_delta'] = fd
+                                features.at[idx, 'crew_pace_impact'] = pi
+            except Exception as e:
+                print(f"   ⚠️ NBA referee feature error: {e}")
+
+        features['profile_historical_clv'] = pd.Series(0.0, index=df.index)
+        features['profile_clv_sample_size'] = pd.Series(0.0, index=df.index)
+        try:
+            db_url = os.environ.get('SQLALCHEMY_DATABASE_URI') or os.environ.get('DATABASE_URL') or ''
+            if db_url and 'game_date' in df.columns:
+                if db_url.startswith('postgres://'):
+                    db_url = 'postgresql://' + db_url[len('postgres://'):]
+                from sqlalchemy import create_engine, text
+                pg_engine = create_engine(db_url)
+                sport_filter = self.sport if self.sport else 'nba'
+                with pg_engine.connect() as pg_conn:
+                    pick_rows = pg_conn.execute(text(
+                        "SELECT game_date, line, clv FROM picks "
+                        "WHERE sport = :sport AND clv IS NOT NULL AND result IS NOT NULL "
+                        "ORDER BY game_date"
+                    ), {"sport": sport_filter}).fetchall()
+                pg_engine.dispose()
+                if pick_rows:
+                    def _spread_bucket(line_val):
+                        s = abs(float(line_val)) if line_val else 0
+                        if s <= 3: return 'small'
+                        if s <= 6: return 'mid'
+                        if s <= 10: return 'large'
+                        return 'xlarge'
+                    def _rest_bucket(rest_adv):
+                        if rest_adv > 0: return 'pos'
+                        if rest_adv < 0: return 'neg'
+                        return 'neutral'
+                    clv_by_bin = {}
+                    for pr in pick_rows:
+                        gd, line, clv_val = str(pr[0]), pr[1], pr[2]
+                        bucket = _spread_bucket(line)
+                        key = (bucket, gd)
+                        clv_by_bin.setdefault(bucket, []).append((gd, float(clv_val)))
+                    dates = pd.to_datetime(df['game_date'], errors='coerce')
+                    rest_adv = features.get('rest_advantage', pd.Series(0.0, index=df.index))
+                    for idx, row in df.iterrows():
+                        d = dates.get(idx)
+                        if pd.isna(d):
+                            continue
+                        spread_val = row.get('spread_home', 0) or 0
+                        sb = _spread_bucket(spread_val)
+                        ra = rest_adv.get(idx, 0)
+                        rb = _rest_bucket(ra)
+                        full_key = f"{sb}_{rb}"
+                        history = clv_by_bin.get(sb, [])
+                        prior = [c for (gd, c) in history if str(gd) < str(d)]
+                        if len(prior) >= 10:
+                            features.at[idx, 'profile_historical_clv'] = sum(prior[-50:]) / len(prior[-50:])
+                            features.at[idx, 'profile_clv_sample_size'] = float(len(prior))
+        except Exception as e:
+            print(f"   ⚠️ CLV calibration error: {e}")
+
+        features['line_velocity'] = pd.Series(0.0, index=df.index)
+        features['line_velocity_early'] = pd.Series(0.0, index=df.index)
+        features['snap_count'] = pd.Series(0.0, index=df.index)
+        try:
+            if 'game_date' in df.columns and 'home_team' in df.columns:
+                snap_conn = sqlite3.connect(get_sqlite_path())
+                game_dates = df['game_date'].dropna().unique().tolist()
+                if game_dates:
+                    placeholders = ','.join('?' * len(game_dates))
+                    snap_df = pd.read_sql_query(
+                        f"SELECT game_date, home_team, away_team, spread_home, snapped_at "
+                        f"FROM line_snapshots WHERE game_date IN ({placeholders}) ORDER BY snapped_at",
+                        snap_conn, params=game_dates
+                    )
+                    snap_conn.close()
+                    if len(snap_df) > 0:
+                        snap_df['snapped_at_dt'] = pd.to_datetime(snap_df['snapped_at'], errors='coerce')
+                        for idx, row in df.iterrows():
+                            gd = str(row.get('game_date', ''))
+                            ht = str(row.get('home_team', ''))
+                            at = str(row.get('away_team', ''))
+                            match = snap_df[
+                                (snap_df['game_date'] == gd) &
+                                (snap_df['home_team'] == ht) &
+                                (snap_df['away_team'] == at)
+                            ].sort_values('snapped_at_dt')
+                            n = len(match)
+                            features.at[idx, 'snap_count'] = float(n)
+                            if n >= 2:
+                                spreads = match['spread_home'].values
+                                times = match['snapped_at_dt']
+                                total_hours = (times.iloc[-1] - times.iloc[0]).total_seconds() / 3600.0
+                                if total_hours > 0:
+                                    features.at[idx, 'line_velocity'] = abs(spreads[-1] - spreads[0]) / total_hours
+                                mid = n // 2
+                                if mid >= 1:
+                                    early_hours = (times.iloc[mid] - times.iloc[0]).total_seconds() / 3600.0
+                                    if early_hours > 0:
+                                        features.at[idx, 'line_velocity_early'] = abs(spreads[mid] - spreads[0]) / early_hours
+                else:
+                    snap_conn.close()
+        except Exception as e:
+            print(f"   ⚠️ Line velocity error: {e}")
+
         if self.sport == 'mlb':
+            MLB_PARK_FACTORS = {
+                'COL': {'factor': 1.38, 'runs': 1.32, 'outdoor': 1},
+                'ARI': {'factor': 1.12, 'runs': 1.08, 'outdoor': 0},
+                'TEX': {'factor': 1.10, 'runs': 1.07, 'outdoor': 0},
+                'BOS': {'factor': 1.08, 'runs': 1.06, 'outdoor': 1},
+                'CIN': {'factor': 1.07, 'runs': 1.05, 'outdoor': 1},
+                'PHI': {'factor': 1.05, 'runs': 1.04, 'outdoor': 1},
+                'CHC': {'factor': 1.05, 'runs': 1.04, 'outdoor': 1},
+                'MIL': {'factor': 1.04, 'runs': 1.03, 'outdoor': 0},
+                'ATL': {'factor': 1.03, 'runs': 1.02, 'outdoor': 1},
+                'LAA': {'factor': 1.02, 'runs': 1.01, 'outdoor': 1},
+                'MIN': {'factor': 1.02, 'runs': 1.01, 'outdoor': 1},
+                'TOR': {'factor': 1.01, 'runs': 1.00, 'outdoor': 0},
+                'CLE': {'factor': 1.00, 'runs': 1.00, 'outdoor': 1},
+                'BAL': {'factor': 1.00, 'runs': 1.00, 'outdoor': 1},
+                'DET': {'factor': 0.99, 'runs': 0.99, 'outdoor': 1},
+                'WSH': {'factor': 0.99, 'runs': 0.99, 'outdoor': 1},
+                'NYY': {'factor': 0.98, 'runs': 0.99, 'outdoor': 1},
+                'HOU': {'factor': 0.98, 'runs': 0.98, 'outdoor': 0},
+                'KC':  {'factor': 0.97, 'runs': 0.98, 'outdoor': 1},
+                'LAD': {'factor': 0.97, 'runs': 0.97, 'outdoor': 1},
+                'PIT': {'factor': 0.96, 'runs': 0.97, 'outdoor': 1},
+                'STL': {'factor': 0.96, 'runs': 0.97, 'outdoor': 1},
+                'SF':  {'factor': 0.95, 'runs': 0.95, 'outdoor': 1},
+                'CHW': {'factor': 0.95, 'runs': 0.96, 'outdoor': 1},
+                'SEA': {'factor': 0.94, 'runs': 0.95, 'outdoor': 0},
+                'TB':  {'factor': 0.93, 'runs': 0.94, 'outdoor': 0},
+                'SD':  {'factor': 0.93, 'runs': 0.94, 'outdoor': 1},
+                'NYM': {'factor': 0.92, 'runs': 0.93, 'outdoor': 1},
+                'OAK': {'factor': 0.89, 'runs': 0.91, 'outdoor': 1},
+                'MIA': {'factor': 0.88, 'runs': 0.90, 'outdoor': 0},
+            }
+            _neutral = {'factor': 1.0, 'runs': 1.0, 'outdoor': 1}
+            features['park_factor'] = df['home_team'].apply(
+                lambda t: MLB_PARK_FACTORS.get(str(t).strip(), _neutral)['factor']
+            ).astype(float)
+            features['park_factor_runs'] = df['home_team'].apply(
+                lambda t: MLB_PARK_FACTORS.get(str(t).strip(), _neutral)['runs']
+            ).astype(float)
+            features['park_is_outdoor'] = df['home_team'].apply(
+                lambda t: MLB_PARK_FACTORS.get(str(t).strip(), _neutral)['outdoor']
+            ).astype(float)
+
             league_avg_era = 4.20
             league_avg_whip = 1.28
 
@@ -582,6 +857,50 @@ class EnsemblePredictor:
             spread_implies_home = (spread < 0).astype(float)
             ml_implies_home = (home_implied > 0.5).astype(float)
             features['rl_ml_agree'] = (spread_implies_home == ml_implies_home).astype(int)
+
+            features['ump_runs_per_game'] = pd.Series(8.8, index=df.index)
+            features['ump_runs_delta'] = pd.Series(0.0, index=df.index)
+            features['ump_k_rate_delta'] = pd.Series(0.0, index=df.index)
+            try:
+                if 'game_date' in df.columns:
+                    from mlb_umpires import fetch_umpire_assignments, get_umpire_features
+                    unique_dates = df['game_date'].dropna().unique()
+                    all_assignments = {}
+                    for d in unique_dates:
+                        all_assignments.update(fetch_umpire_assignments(str(d)))
+                    if all_assignments:
+                        for idx, row in df.iterrows():
+                            ht = str(row.get('home_team', '')).strip()
+                            at = str(row.get('away_team', '')).strip()
+                            ump = all_assignments.get((ht, at), '')
+                            if ump:
+                                rpgi, rd, kd = get_umpire_features(ump)
+                                features.at[idx, 'ump_runs_per_game'] = rpgi
+                                features.at[idx, 'ump_runs_delta'] = rd
+                                features.at[idx, 'ump_k_rate_delta'] = kd
+            except Exception as e:
+                print(f"   ⚠️ MLB umpire feature error: {e}")
+
+            features['home_bullpen_fatigue'] = pd.Series(0.0, index=df.index)
+            features['away_bullpen_fatigue'] = pd.Series(0.0, index=df.index)
+            features['bullpen_fatigue_diff'] = pd.Series(0.0, index=df.index)
+            features['bullpen_usage_yesterday'] = pd.Series(0.0, index=df.index)
+            try:
+                if 'game_date' in df.columns:
+                    from mlb_bullpen import get_team_bullpen_fatigue
+                    for idx, row in df.iterrows():
+                        ht = str(row.get('home_team', '')).strip()
+                        at = str(row.get('away_team', '')).strip()
+                        gd = str(row.get('game_date', ''))
+                        if ht and at and gd:
+                            h_fat, h_heavy = get_team_bullpen_fatigue(ht, gd)
+                            a_fat, a_heavy = get_team_bullpen_fatigue(at, gd)
+                            features.at[idx, 'home_bullpen_fatigue'] = h_fat
+                            features.at[idx, 'away_bullpen_fatigue'] = a_fat
+                            features.at[idx, 'bullpen_fatigue_diff'] = a_fat - h_fat
+                            features.at[idx, 'bullpen_usage_yesterday'] = float(max(h_heavy, a_heavy))
+            except Exception as e:
+                print(f"   ⚠️ MLB bullpen fatigue error: {e}")
 
         return features
     
