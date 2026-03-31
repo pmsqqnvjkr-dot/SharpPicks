@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">SharpPicks</string>
     <string name="title_activity_main">SharpPicks</string>
-    <string name="package_name">ai.sharppicks.app</string>
-    <string name="custom_url_scheme">ai.sharppicks.app</string>
+    <string name="package_name">com.sharppicksllc.app</string>
+    <string name="custom_url_scheme">com.sharppicksllc.app</string>
 </resources>

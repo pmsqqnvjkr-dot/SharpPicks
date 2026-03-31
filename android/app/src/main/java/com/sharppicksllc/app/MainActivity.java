@@ -1,4 +1,4 @@
-package ai.sharppicks.app;
+package com.sharppicksllc.app;
 
 import com.getcapacitor.BridgeActivity;
 

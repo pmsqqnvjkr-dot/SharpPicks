@@ -315,11 +315,18 @@ def pretip_revalidate(app, sport='nba'):
             return {'status': 'no_pick', 'date': today_str, 'sport': sport}
 
         try:
-            from main import collect_todays_games
-            collect_todays_games()
+            if sport == 'mlb':
+                from main import collect_mlb_odds
+                collect_mlb_odds()
+            elif sport == 'wnba':
+                from main import collect_wnba_odds
+                collect_wnba_odds()
+            else:
+                from main import collect_todays_games
+                collect_todays_games()
         except Exception as e:
             import logging
-            logging.error(f"Pre-tip data refresh failed: {e}")
+            logging.error(f"Pre-tip data refresh failed ({sport}): {e}")
 
         try:
             from model import EnsemblePredictor
