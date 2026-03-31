@@ -601,9 +601,12 @@ class EnsemblePredictor:
                     try:
                         rat_conn = sqlite3.connect(get_sqlite_path())
                         if self._has_table(rat_conn, 'team_ratings'):
-                            rat_rows = rat_conn.execute("SELECT team, net_rating FROM team_ratings").fetchall()
+                            rat_rows = rat_conn.execute("SELECT team_abbr, team_name, net_rating FROM team_ratings").fetchall()
                             for r in rat_rows:
-                                team_ratings[r[0]] = float(r[1]) if r[1] else 0.0
+                                val = float(r[2]) if r[2] else 0.0
+                                team_ratings[r[0]] = val
+                                if r[1]:
+                                    team_ratings[r[1]] = val
                         rat_conn.close()
                     except Exception:
                         pass
