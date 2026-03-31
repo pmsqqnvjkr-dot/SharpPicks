@@ -866,12 +866,6 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
                                   {p.edge_pct.toFixed(1)}% edge
                                 </span>
                               )}
-                              {p.already_tracked && (
-                                <span style={{
-                                  fontSize: '10px', color: 'var(--text-tertiary)',
-                                  letterSpacing: '0.06em', marginLeft: 'auto',
-                                }}>TRACKED</span>
-                              )}
                             </div>
 
                             {isExpanded && !p.already_tracked && (
