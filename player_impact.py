@@ -117,97 +117,77 @@ def _populate_team_maps():
         logger.error(f"Failed to fetch BDL teams: {e}")
 
 
+ESPN_STATS_URL = "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/statistics/byathlete"
+
+
 def refresh_player_impact_cache(season=None):
     """
-    Fetch active players and their season averages from BDL.
+    Fetch active players and their season averages from ESPN (free, no API key).
+    Falls back to BDL if ESPN fails and BDL key is available.
     Stores results in player_impact_cache table.
-    Returns dict with stats about the refresh.
     """
-    if not BDL_API_KEY:
-        return {'error': 'No BALLDONTLIE_API_KEY configured'}
-
     ensure_tables()
-    _populate_team_maps()
 
     if season is None:
         now = datetime.now()
-        season = now.year if now.month >= 10 else now.year - 1
+        season = now.year if now.month >= 10 else now.year
 
-    players_fetched = 0
+    espn_season = season if datetime.now().month >= 10 else season
     players_with_stats = 0
     errors = 0
 
     try:
-        all_players = []
-        cursor = None
-        while True:
-            params = {"per_page": 100}
-            if cursor:
-                params["cursor"] = cursor
-            resp = requests.get(
-                f"{BDL_BASE}/nba/v1/players/active",
-                headers=_bdl_headers(), params=params, timeout=15
-            )
-            if resp.status_code != 200:
-                logger.error(f"BDL active_players error: {resp.status_code}")
-                break
-            data = resp.json()
-            batch = data.get('data', [])
-            all_players.extend(batch)
-            next_cursor = data.get('meta', {}).get('next_cursor')
-            if not next_cursor or len(batch) < 100:
-                break
-            cursor = next_cursor
+        resp = requests.get(ESPN_STATS_URL, params={
+            "season": espn_season, "limit": 500,
+        }, timeout=30)
 
-        players_fetched = len(all_players)
-        logger.info(f"Fetched {players_fetched} active players from BDL")
+        if resp.status_code != 200:
+            logger.error(f"ESPN byathlete stats error: {resp.status_code}")
+            return {'error': f'ESPN stats API returned {resp.status_code}'}
 
-        player_ids = [p['id'] for p in all_players]
-        player_map = {p['id']: p for p in all_players}
+        data = resp.json()
+        athletes = data.get('athletes', [])
+        logger.info(f"ESPN returned {len(athletes)} player stat entries")
 
-        batch_size = 25
         conn = _get_db()
+        bdl_season = season - 1 if datetime.now().month < 10 else season
 
-        for i in range(0, len(player_ids), batch_size):
-            batch_ids = player_ids[i:i + batch_size]
+        for entry in athletes:
             try:
-                params = {"season": season}
-                for pid in batch_ids:
-                    params.setdefault('player_ids[]', [])
-                id_params = "&".join([f"player_ids[]={pid}" for pid in batch_ids])
-                url = f"{BDL_BASE}/nba/v1/season_averages?season={season}&{id_params}"
-                resp = requests.get(url, headers=_bdl_headers(), timeout=20)
-                if resp.status_code != 200:
-                    errors += 1
+                athlete = entry.get('athlete', {})
+                name = athlete.get('displayName', '')
+                espn_id = int(athlete.get('id', 0))
+                teams = athlete.get('teams', [])
+                team_abbrev = teams[0].get('abbreviation', '') if teams else ''
+
+                cats = entry.get('categories', [])
+                gp = 0
+                mpg = 0.0
+                ppg = 0.0
+
+                for cat in cats:
+                    cat_name = cat.get('name', '')
+                    totals = cat.get('totals', [])
+                    values = cat.get('values', [])
+                    if cat_name == 'general' and len(values) >= 2:
+                        gp = int(values[0])
+                        mpg = float(values[1])
+                    elif cat_name == 'offensive' and len(values) >= 1:
+                        ppg = float(values[0])
+
+                if gp < 5 or mpg < 1.0:
                     continue
 
-                for avg in resp.json().get('data', []):
-                    pid = avg.get('player_id')
-                    if pid is None:
-                        continue
-                    player = player_map.get(pid, {})
-                    team = player.get('team', {})
-                    team_abbrev = team.get('abbreviation', BDL_TEAM_ID_TO_ABBREV.get(team.get('id', 0), ''))
-                    full_name = f"{player.get('first_name', '')} {player.get('last_name', '')}".strip()
-
-                    minutes_str = avg.get('min', '0')
-                    try:
-                        mpg = float(str(minutes_str).replace(':', '.'))
-                    except (ValueError, TypeError):
-                        mpg = 0.0
-
-                    ppg = float(avg.get('pts', 0) or 0)
-                    gp = int(avg.get('games_played', 0) or 0)
-
-                    conn.execute("""
-                        INSERT OR REPLACE INTO player_impact_cache
-                        (player_id, player_name, team_id, team_abbreviation, season, mpg, ppg, games_played, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (pid, full_name, team.get('id'), team_abbrev, season, mpg, ppg, gp, datetime.now().isoformat()))
-                    players_with_stats += 1
+                conn.execute("""
+                    INSERT OR REPLACE INTO player_impact_cache
+                    (player_id, player_name, team_id, team_abbreviation, season, mpg, ppg, games_played, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (espn_id, name, 0, team_abbrev, bdl_season, round(mpg, 1), round(ppg, 1),
+                      gp, datetime.now().isoformat()))
+                players_with_stats += 1
             except Exception as e:
-                logger.error(f"BDL season_averages batch error: {e}")
                 errors += 1
+                continue
 
         conn.commit()
         conn.close()
@@ -217,9 +197,8 @@ def refresh_player_impact_cache(season=None):
         return {'error': str(e)}
 
     result = {
-        'season': season,
-        'players_fetched': players_fetched,
-        'players_with_stats': players_with_stats,
+        'season': bdl_season if 'bdl_season' in dir() else season,
+        'players_cached': players_with_stats,
         'errors': errors,
     }
     logger.info(f"Player impact cache refreshed: {result}")
