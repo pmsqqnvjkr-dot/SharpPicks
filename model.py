@@ -189,20 +189,34 @@ def spread_risk_adjusted_edge(adjusted_edge, spread_abs):
     return adjusted_edge * discount
 
 
-def check_star_injury_risk(home_injuries, away_injuries, pick_side, spread_abs):
-    star_keywords = ['questionable', 'doubtful', 'game-time decision']
-    penalty = 0.0
-    reason = None
-
-    fav_injuries = home_injuries if pick_side == 'home' else away_injuries
-    if fav_injuries and isinstance(fav_injuries, str):
-        injury_lower = fav_injuries.lower()
-        star_flags = sum(1 for kw in star_keywords if kw in injury_lower)
-        if star_flags > 0 and spread_abs >= STAR_QUESTIONABLE_SPREAD_THRESHOLD:
-            penalty = STAR_QUESTIONABLE_EDGE_PENALTY * star_flags
-            reason = f"Star questionable on {spread_abs:.0f}pt spread — edge penalized {penalty:+.1f}%"
-
-    return penalty, reason
+def check_star_injury_risk(home_injuries, away_injuries, pick_side, spread_abs,
+                           sport='nba', home_team=None, away_team=None):
+    """Weighted injury edge penalty using mpg_at_risk for NBA, keyword fallback for MLB."""
+    if sport != 'mlb':
+        from player_impact import compute_weighted_injury_impact, mpg_at_risk_edge_penalty
+        fav_injuries = home_injuries if pick_side == 'home' else away_injuries
+        fav_team = home_team if pick_side == 'home' else away_team
+        if not fav_injuries or not isinstance(fav_injuries, str):
+            return 0.0, None
+        impact = compute_weighted_injury_impact(fav_injuries, fav_team or '')
+        risk = impact['mpg_at_risk']
+        penalty = mpg_at_risk_edge_penalty(risk)
+        if penalty > 0:
+            reason = f"Injury risk: {risk:.0f} mpg at risk on {spread_abs:.0f}pt fav (-{penalty:.1f}% edge)"
+            return penalty, reason
+        return 0.0, None
+    else:
+        star_keywords = ['questionable', 'doubtful', 'game-time decision']
+        penalty = 0.0
+        reason = None
+        fav_injuries = home_injuries if pick_side == 'home' else away_injuries
+        if fav_injuries and isinstance(fav_injuries, str):
+            injury_lower = fav_injuries.lower()
+            star_flags = sum(1 for kw in star_keywords if kw in injury_lower)
+            if star_flags > 0 and spread_abs >= STAR_QUESTIONABLE_SPREAD_THRESHOLD:
+                penalty = STAR_QUESTIONABLE_EDGE_PENALTY * star_flags
+                reason = f"Star questionable on {spread_abs:.0f}pt spread — edge penalized {penalty:+.1f}%"
+        return penalty, reason
 
 
 class EnsemblePredictor:
@@ -464,17 +478,29 @@ class EnsemblePredictor:
         features['bdl_away_avg_pts'] = pd.to_numeric(df.get('bdl_away_avg_pts', pd.Series([110]*len(df))), errors='coerce').fillna(110)
         features['bdl_projected_total'] = features['bdl_home_avg_pts'] + features['bdl_away_avg_pts']
 
-        def parse_injury_impact(injury_text):
-            if pd.isna(injury_text) or not injury_text or injury_text == '':
-                return 0.0
-            text = str(injury_text)
-            out_count = text.lower().count('out')
-            questionable_count = text.lower().count('questionable') + text.lower().count('doubtful')
-            return float(out_count * 5.0 + questionable_count * 2.0)
-
-        features['home_injury_impact'] = df.get('home_injuries', pd.Series(['']*len(df))).apply(parse_injury_impact)
-        features['away_injury_impact'] = df.get('away_injuries', pd.Series(['']*len(df))).apply(parse_injury_impact)
-        features['injury_diff'] = features['away_injury_impact'] - features['home_injury_impact']
+        if self.sport != 'mlb':
+            from player_impact import compute_game_injury_features
+            inj_features_list = []
+            for _, row in df.iterrows():
+                hi = row.get('home_injuries', '') or ''
+                ai = row.get('away_injuries', '') or ''
+                ht = row.get('home_team', '') or ''
+                at = row.get('away_team', '') or ''
+                inj_features_list.append(compute_game_injury_features(hi, ai, ht, at))
+            inj_df = pd.DataFrame(inj_features_list, index=df.index)
+            for col in inj_df.columns:
+                features[col] = inj_df[col].astype(float)
+        else:
+            def parse_injury_impact(injury_text):
+                if pd.isna(injury_text) or not injury_text or injury_text == '':
+                    return 0.0
+                text = str(injury_text)
+                out_count = text.lower().count('out')
+                questionable_count = text.lower().count('questionable') + text.lower().count('doubtful')
+                return float(out_count * 5.0 + questionable_count * 2.0)
+            features['home_injury_impact'] = df.get('home_injuries', pd.Series(['']*len(df))).apply(parse_injury_impact)
+            features['away_injury_impact'] = df.get('away_injuries', pd.Series(['']*len(df))).apply(parse_injury_impact)
+            features['injury_diff'] = features['away_injury_impact'] - features['home_injury_impact']
 
         if self.sport == 'mlb':
             league_avg_era = 4.20
@@ -1059,7 +1085,8 @@ class EnsemblePredictor:
             away_injuries = row.get('away_injuries', None) if hasattr(row, 'get') else None
 
             injury_penalty, injury_reason = check_star_injury_risk(
-                home_injuries, away_injuries, pick_side, spread_abs
+                home_injuries, away_injuries, pick_side, spread_abs,
+                sport=self.sport, home_team=home, away_team=away
             )
             if injury_penalty > 0:
                 adjusted_edge -= injury_penalty

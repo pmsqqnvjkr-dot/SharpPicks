@@ -3503,6 +3503,15 @@ def cron_closing_lines():
     return log_cron('closing_lines', collect_closing_lines)
 
 
+@app.route('/api/cron/refresh-player-impact', methods=['GET', 'POST'])
+@verify_cron
+def cron_refresh_player_impact():
+    def _run():
+        from player_impact import refresh_player_impact_cache
+        return refresh_player_impact_cache()
+    return log_cron('refresh_player_impact', _run)
+
+
 @app.route('/api/cron/wnba-collect', methods=['GET', 'POST'])
 @verify_cron
 def cron_wnba_collect():
