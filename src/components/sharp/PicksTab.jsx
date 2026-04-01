@@ -359,9 +359,9 @@ export default function PicksTab({ onNavigate }) {
 
 
         {/* ═══════════════ STATE 2: PICK DAY ═══════════════ */}
-        {pageState === 'pick' && !isResolved && !isRevoked && (
+        {pageState === 'pick' && (
           <>
-            {/* MI Card — collapsed/expandable */}
+            {/* MI Card — collapsed/expandable (always visible on pick day) */}
             <button
               onClick={() => setMiExpanded(!isMiExpanded)}
               style={{
@@ -398,31 +398,35 @@ export default function PicksTab({ onNavigate }) {
               </div>
             )}
 
-            {/* Section: DAILY TOP SIGNAL */}
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
-              letterSpacing: '1.5px', textTransform: 'uppercase',
-              color: '#7A8494', marginBottom: '8px',
-              display: 'flex', alignItems: 'center', gap: '8px',
-            }}>
-              Daily Top Signal
-              {liveScore && (liveScore.state === 'STATUS_IN_PROGRESS' || liveScore.state === 'STATUS_HALFTIME') && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#5A9E72' }}>
-                  <span style={{ fontSize: '10px' }}>&middot;</span>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: '#5A9E72', animation: 'live-pulse 2s ease-in-out infinite', display: 'inline-block' }} />
-                  Live
-                </span>
-              )}
-            </div>
+            {/* Signal card (only when not revoked/resolved — those have their own cards above) */}
+            {!isResolved && !isRevoked && (
+              <>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
+                  letterSpacing: '1.5px', textTransform: 'uppercase',
+                  color: '#7A8494', marginBottom: '8px',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                }}>
+                  Daily Top Signal
+                  {liveScore && (liveScore.state === 'STATUS_IN_PROGRESS' || liveScore.state === 'STATUS_HALFTIME') && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#5A9E72' }}>
+                      <span style={{ fontSize: '10px' }}>&middot;</span>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: '#5A9E72', animation: 'live-pulse 2s ease-in-out infinite', display: 'inline-block' }} />
+                      Live
+                    </span>
+                  )}
+                </div>
 
-            {isPro ? (
-              <PickCard pick={todayData} isPro={isPro} liveScore={liveScore} onUpgrade={() => setShowAuth(true)} onNavigate={onNavigate} unitSize={user?.unit_size || 100} onTrack={() => {
-                if (onNavigate) onNavigate('profile', 'bets', {
-                  pickToTrack: { id: todayData.id, away_team: todayData.away_team, home_team: todayData.home_team, game_date: todayData.game_date, side: todayData.side, line: todayData.line, edge_pct: todayData.edge_pct, market_odds: todayData.market_odds }
-                });
-              }} />
-            ) : (
-              <FreePickNotice onUpgrade={() => { if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); } else { setShowAuth(true); } }} />
+                {isPro ? (
+                  <PickCard pick={todayData} isPro={isPro} liveScore={liveScore} onUpgrade={() => setShowAuth(true)} onNavigate={onNavigate} unitSize={user?.unit_size || 100} onTrack={() => {
+                    if (onNavigate) onNavigate('profile', 'bets', {
+                      pickToTrack: { id: todayData.id, away_team: todayData.away_team, home_team: todayData.home_team, game_date: todayData.game_date, side: todayData.side, line: todayData.line, edge_pct: todayData.edge_pct, market_odds: todayData.market_odds }
+                    });
+                  }} />
+                ) : (
+                  <FreePickNotice onUpgrade={() => { if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); } else { setShowAuth(true); } }} />
+                )}
+              </>
             )}
 
             {/* Section: TODAY'S SLATE */}
@@ -773,26 +777,34 @@ function MiniEquityCurve({ stats }) {
 }
 
 function RevokedPassCard({ pick, onViewDetails }) {
+  const sideLabel = pick.side && pick.line != null && pick.side.includes(String(Math.abs(pick.line)))
+    ? pick.side
+    : `${pick.side} ${pick.line > 0 ? '+' : ''}${pick.line}`;
   return (
-    <div onClick={onViewDetails} style={{ backgroundColor: 'var(--surface-1)', borderRadius: '16px', border: '1px solid var(--color-border)', padding: 'var(--space-lg)', marginBottom: 'var(--space-md)', cursor: 'pointer' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-        <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: 'rgba(142,154,175,0.08)', border: '1px solid rgba(142,154,175,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="var(--withdrawn)" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--withdrawn)', marginBottom: '4px' }}>Signal Withdrawn</div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-card-title)', fontWeight: 600, color: 'var(--text-primary)' }}>
-            {pick.side && pick.line != null && pick.side.includes(String(Math.abs(pick.line))) ? pick.side : `${pick.side} ${pick.line > 0 ? '+' : ''}${pick.line}`}
+    <div onClick={onViewDetails} style={{
+      background: '#0F1424',
+      border: '1px solid rgba(142,154,175,0.15)',
+      borderLeft: '3px solid #7A8494',
+      borderRadius: '10px',
+      padding: '12px 16px',
+      marginBottom: '14px',
+      cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="#7A8494" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494', marginBottom: '2px' }}>Signal Withdrawn</div>
+          <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '13px', fontWeight: 600, color: '#E8ECF4', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {sideLabel} <span style={{ color: '#7A8494', fontWeight: 400, fontSize: '11px' }}>&middot; {pick.away_team} @ {pick.home_team}</span>
           </div>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)' }}>0.0u</div>
       </div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>{pick.away_team} @ {pick.home_team}</div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-tertiary)' }}>{pick.edge_pct ? `${pick.edge_pct}% edge at entry · ` : ''}Withdrawn pre-game</div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: 'var(--space-md)', paddingTop: '14px', borderTop: '1px solid var(--color-border)' }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>View Details</span>
-        <svg viewBox="0 0 24 24" width="14" height="14" stroke="var(--text-tertiary)" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>
+      <svg viewBox="0 0 24 24" width="14" height="14" stroke="#7A8494" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginLeft: 8 }}>
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
     </div>
   );
 }
