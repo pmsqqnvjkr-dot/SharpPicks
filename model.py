@@ -510,12 +510,13 @@ class EnsemblePredictor:
         features['rundown_spread_std'] = pd.to_numeric(df.get('rundown_spread_std', pd.Series([0]*len(df))), errors='coerce').fillna(0)
         features['rundown_num_books'] = pd.to_numeric(df.get('rundown_num_books', pd.Series([0]*len(df))), errors='coerce').fillna(0)
 
-        features['bdl_home_win_pct'] = pd.to_numeric(df.get('bdl_home_win_pct', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
-        features['bdl_away_win_pct'] = pd.to_numeric(df.get('bdl_away_win_pct', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
-        features['bdl_win_pct_diff'] = features['bdl_home_win_pct'] - features['bdl_away_win_pct']
-        features['bdl_home_conf_rank'] = pd.to_numeric(df.get('bdl_home_conf_rank', pd.Series([15]*len(df))), errors='coerce').fillna(15)
-        features['bdl_away_conf_rank'] = pd.to_numeric(df.get('bdl_away_conf_rank', pd.Series([15]*len(df))), errors='coerce').fillna(15)
-        features['bdl_conf_rank_diff'] = features['bdl_away_conf_rank'] - features['bdl_home_conf_rank']
+        if self.sport != 'mlb':
+            features['bdl_home_win_pct'] = pd.to_numeric(df.get('bdl_home_win_pct', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
+            features['bdl_away_win_pct'] = pd.to_numeric(df.get('bdl_away_win_pct', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
+            features['bdl_win_pct_diff'] = features['bdl_home_win_pct'] - features['bdl_away_win_pct']
+            features['bdl_home_conf_rank'] = pd.to_numeric(df.get('bdl_home_conf_rank', pd.Series([15]*len(df))), errors='coerce').fillna(15)
+            features['bdl_away_conf_rank'] = pd.to_numeric(df.get('bdl_away_conf_rank', pd.Series([15]*len(df))), errors='coerce').fillna(15)
+            features['bdl_conf_rank_diff'] = features['bdl_away_conf_rank'] - features['bdl_home_conf_rank']
 
         if self.sport != 'mlb':
             from player_impact import compute_game_injury_features
@@ -904,28 +905,8 @@ class EnsemblePredictor:
             ml_implies_home = (home_implied > 0.5).astype(float)
             features['rl_ml_agree'] = (spread_implies_home == ml_implies_home).astype(int)
 
-            features['ump_runs_per_game'] = pd.Series(8.8, index=df.index)
-            features['ump_runs_delta'] = pd.Series(0.0, index=df.index)
-            features['ump_k_rate_delta'] = pd.Series(0.0, index=df.index)
-            try:
-                if 'game_date' in df.columns:
-                    from mlb_umpires import fetch_umpire_assignments, get_umpire_features
-                    unique_dates = df['game_date'].dropna().unique()
-                    all_assignments = {}
-                    for d in unique_dates:
-                        all_assignments.update(fetch_umpire_assignments(str(d)))
-                    if all_assignments:
-                        for idx, row in df.iterrows():
-                            ht = _mlb_abbrev(str(row.get('home_team', '')).strip())
-                            at = _mlb_abbrev(str(row.get('away_team', '')).strip())
-                            ump = all_assignments.get((ht, at), '')
-                            if ump:
-                                rpgi, rd, kd = get_umpire_features(ump)
-                                features.at[idx, 'ump_runs_per_game'] = rpgi
-                                features.at[idx, 'ump_runs_delta'] = rd
-                                features.at[idx, 'ump_k_rate_delta'] = kd
-            except Exception as e:
-                print(f"   ⚠️ MLB umpire feature error: {e}")
+            # GATED: umpire features disabled — historical data unavailable for training.
+            # Re-enable when umpire assignment history can be backfilled.
 
             features['home_bullpen_fatigue'] = pd.Series(0.0, index=df.index)
             features['away_bullpen_fatigue'] = pd.Series(0.0, index=df.index)
@@ -995,6 +976,11 @@ class EnsemblePredictor:
             sample_weights = np.ones(len(df))
         
         X = X.fillna(0)
+        variances = X.var()
+        zero_var = variances[variances < 1e-10].index.tolist()
+        if zero_var:
+            print(f"   🗑️  Dropping {len(zero_var)} zero-variance features: {zero_var}")
+            X = X.drop(columns=zero_var)
         self.feature_names = X.columns.tolist()
         print(f"   📋 Using {len(self.feature_names)} features\n")
         
