@@ -725,6 +725,17 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                         'side': pick.side,
                         'edge': pick.edge_pct,
                         'date': today_str,
+                        'model_debug': {
+                            'cached': was_cached,
+                            'trained': bool(model.trained),
+                            'n_models': len(model.models),
+                            'n_features': len(model.feature_names),
+                            'margin_std': float(getattr(model, 'margin_std', 0) or 0),
+                            'file_kb': file_kb,
+                            'trained_at': getattr(model, 'trained_at', None),
+                            'cover_prob': round(best.get('cover_prob', 0), 4),
+                            'raw_edge': round(best.get('raw_edge', 0), 2),
+                        },
                         'sport': sport,
                     }
                 else:
