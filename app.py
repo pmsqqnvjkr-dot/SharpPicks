@@ -3401,8 +3401,10 @@ def cron_diagnostic():
 def cron_model_audit():
     """Deep model diagnostic: sigma, edges, cover probs, feature counts for all live sports."""
     from model import EnsemblePredictor
+    only_sport = request.args.get('sport', '').lower() or None
     audit = {}
-    for sport in get_live_sports():
+    target_sports = [only_sport] if only_sport else get_live_sports()
+    for sport in target_sports:
         try:
             model = EnsemblePredictor(sport=sport)
             model.load_model()
