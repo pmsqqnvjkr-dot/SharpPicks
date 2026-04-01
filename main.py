@@ -713,10 +713,10 @@ def get_wnba_injuries():
     return injuries
 
 
-def collect_yesterdays_scores():
-    """Fetch yesterday's final scores from ESPN API"""
+def collect_yesterdays_scores(date_offset=1):
+    """Fetch final scores from ESPN API for a given date offset (1=yesterday, 2=day before, etc.)"""
     print("\n" + "="*60)
-    print("📊 COLLECTING YESTERDAY'S FINAL SCORES")
+    print("📊 COLLECTING NBA FINAL SCORES")
     print("="*60 + "\n")
     
     try:
@@ -724,9 +724,9 @@ def collect_yesterdays_scores():
         now_et = datetime.now(ZoneInfo('America/New_York'))
     except ImportError:
         now_et = datetime.utcnow() - timedelta(hours=5)
-    yesterday = now_et - timedelta(days=1)
-    date_str = yesterday.strftime('%Y%m%d')
-    display_date = yesterday.strftime('%B %d, %Y')
+    target = now_et - timedelta(days=date_offset)
+    date_str = target.strftime('%Y%m%d')
+    display_date = target.strftime('%B %d, %Y')
     
     print(f"📅 Fetching scores for: {display_date}\n")
     

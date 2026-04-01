@@ -2518,8 +2518,12 @@ def collect_todays_games():
     """Run data collection in-process — same env, shared SQLite path, no subprocess fragility."""
     logging.info(f"[collect] Starting (db={get_sqlite_path()})")
     try:
-        from main import collect_todays_games as _collect
+        from main import collect_todays_games as _collect, collect_yesterdays_scores
         _collect()
+        try:
+            collect_yesterdays_scores(date_offset=1)
+        except Exception as e:
+            logging.warning(f"[collect] Yesterday's scores failed (non-fatal): {e}")
         logging.info("[collect] Completed")
     except Exception as e:
         logging.error(f"[collect] Error: {e}")
@@ -3390,6 +3394,29 @@ def cron_diagnostic():
         return jsonify(diag)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cron/backfill-nba-scores', methods=['GET', 'POST'])
+@verify_cron
+def cron_backfill_nba_scores():
+    """Backfill NBA scores for the last N days (default 200). Run once to fill historical gaps."""
+    days = int(request.args.get('days', '200'))
+    sync = request.args.get('sync', '').lower() == 'true'
+    def _backfill():
+        from main import collect_yesterdays_scores
+        filled = 0
+        errors = 0
+        for offset in range(1, days + 1):
+            try:
+                collect_yesterdays_scores(date_offset=offset)
+                filled += 1
+            except Exception as e:
+                errors += 1
+                logging.warning(f"[backfill] day-{offset} error: {e}")
+        return {'filled_days': filled, 'errors': errors, 'range_days': days}
+    if sync:
+        return log_cron('backfill_nba_scores', _backfill, skip_throttle=True)
+    return log_cron_async('backfill_nba_scores', _backfill, skip_throttle=True)
 
 
 @app.route('/api/cron/collect-games', methods=['GET', 'POST'])
