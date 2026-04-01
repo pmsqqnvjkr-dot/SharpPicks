@@ -3400,6 +3400,7 @@ def cron_diagnostic():
 @verify_cron
 def cron_model_audit():
     """Deep model diagnostic: sigma, edges, cover probs, feature counts for all live sports."""
+    import traceback as _tb
     from model import EnsemblePredictor
     only_sport = request.args.get('sport', '').lower() or None
     audit = {}
@@ -3453,10 +3454,11 @@ def cron_model_audit():
                     info['games_above_threshold'] = len(above_thresh)
                 except Exception as e:
                     info['predict_error'] = str(e)
+                    info['predict_traceback'] = _tb.format_exc()[-800:]
 
             audit[sport] = info
         except Exception as e:
-            audit[sport] = {'error': str(e)}
+            audit[sport] = {'error': str(e), 'traceback': _tb.format_exc()[-800:]}
     return jsonify(audit)
 
 
