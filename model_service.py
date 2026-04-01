@@ -480,12 +480,20 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
             from model import EnsemblePredictor
 
             model = _get_cached_model(sport)
+            was_cached = model is not None
             if model is None:
                 model = EnsemblePredictor(sport=sport)
                 if not model.load_model():
                     print(f"[model-run] ERROR: Model not trained for {sport}")
                     return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
                 _cache_model(sport, model, model._default_filepath())
+
+            filepath = model._default_filepath()
+            file_kb = round(os.path.getsize(filepath) / 1024, 1) if os.path.exists(filepath) else 0
+            print(f"[model-run] Model state: cached={was_cached} trained={model.trained} "
+                  f"n_models={len(model.models)} features={len(model.feature_names)} "
+                  f"margin_std={getattr(model, 'margin_std', None)} file={file_kb}KB "
+                  f"trained_at={getattr(model, 'trained_at', 'unknown')}")
 
             age = model.model_age_days()
             if age is not None:
