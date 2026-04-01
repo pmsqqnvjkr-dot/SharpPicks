@@ -3664,6 +3664,18 @@ def cron_live_scores():
         cursor = conn.cursor()
 
         try:
+            cursor.execute(f"""UPDATE {table} SET game_status = NULL, home_score = NULL, away_score = NULL
+                              WHERE game_date = ? AND game_status IN ('final', 'in_progress')
+                              AND game_time > ?""",
+                           (now_et.strftime('%Y-%m-%d'), now_et.astimezone(ZoneInfo('UTC')).strftime('%Y-%m-%dT%H:%M:%SZ')))
+            cleaned = cursor.rowcount
+            if cleaned > 0:
+                conn.commit()
+                logging.info(f"Live scores: reset {cleaned} stale {sport} games that haven't started yet")
+        except Exception as e:
+            logging.warning(f"Live scores stale cleanup error for {sport}: {e}")
+
+        try:
             cursor.execute(f"SELECT id, home_team, away_team, game_time, commence_time, game_status FROM {table} WHERE game_date = ?",
                            (now_et.strftime('%Y-%m-%d'),))
         except Exception:
