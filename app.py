@@ -4022,6 +4022,9 @@ def cron_mlb_closing_lines():
 def run_mlb_model_job(force=False):
     """Run the MLB model to generate picks, then generate market note."""
     print(f"[{datetime.now()}] Running MLB model (force={force})...")
+    if force:
+        from model_service import invalidate_model_cache
+        invalidate_model_cache('mlb')
     from model_service import run_model_and_log
     result = run_model_and_log(app, sport='mlb', force=force)
     print(f"[{datetime.now()}] MLB model run completed: {result.get('status', '?')}")
@@ -4326,6 +4329,9 @@ def cron_run_model():
 
     def _run():
         if force:
+            from model_service import invalidate_model_cache
+            invalidate_model_cache()
+            print(f"[model-run] Force: all model caches invalidated")
             today_str = date_override or _get_et_today()
             print(f"[model-run] Force mode: collecting games + clearing stale passes for {today_str}")
             try:
