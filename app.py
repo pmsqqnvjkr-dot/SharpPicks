@@ -2612,7 +2612,7 @@ def grade_pending_picks():
 
                 if not game and sqlite_cursor:
                     try:
-                        table_name = 'wnba_games' if pick.sport == 'wnba' else 'games'
+                        table_name = 'wnba_games' if pick.sport == 'wnba' else ('mlb_games' if pick.sport == 'mlb' else 'games')
                         try:
                             pd_date = datetime.strptime(pick_date, '%Y-%m-%d').date()
                             next_day = (pd_date + timedelta(days=1)).strftime('%Y-%m-%d')
@@ -2912,37 +2912,48 @@ def check_data_quality():
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         today_str = _get_et_today()
-        
-        cursor.execute('''
-            SELECT COUNT(*) as cnt FROM games
-            WHERE game_date LIKE ? AND spread_home IS NULL
-        ''', (f'{today_str}%',))
-        missing_spreads = cursor.fetchone()['cnt']
-        if missing_spreads > 0:
-            issues.append(f"WARN: {missing_spreads} games today missing spread data")
-        
-        cursor.execute('''
-            SELECT home_team, away_team, COUNT(*) as cnt
-            FROM games WHERE game_date LIKE ?
-            GROUP BY home_team, away_team HAVING cnt > 1
-        ''', (f'{today_str}%',))
-        dupes = cursor.fetchall()
-        if dupes:
+
+        from sport_config import get_live_sports
+        sport_tables = {'nba': 'games', 'mlb': 'mlb_games', 'wnba': 'wnba_games'}
+
+        for sport in get_live_sports():
+            tbl = sport_tables.get(sport)
+            if not tbl:
+                continue
+            label = sport.upper()
+
+            cursor.execute(f'''
+                SELECT COUNT(*) as cnt FROM {tbl}
+                WHERE game_date LIKE ? AND spread_home IS NULL
+            ''', (f'{today_str}%',))
+            missing_spreads = cursor.fetchone()['cnt']
+            if missing_spreads > 0:
+                issues.append(f"WARN: {label} — {missing_spreads} games today missing spread data")
+
+            cursor.execute(f'''
+                SELECT home_team, away_team, COUNT(*) as cnt
+                FROM {tbl} WHERE game_date LIKE ?
+                GROUP BY home_team, away_team HAVING cnt > 1
+            ''', (f'{today_str}%',))
+            dupes = cursor.fetchall()
             for d in dupes:
-                issues.append(f"WARN: Duplicate game {d['away_team']}@{d['home_team']} ({d['cnt']}x)")
-        
-        cursor.execute('''
-            SELECT collected_at FROM games
-            WHERE game_date LIKE ?
-            ORDER BY collected_at DESC LIMIT 1
-        ''', (f'{today_str}%',))
-        latest = cursor.fetchone()
-        if latest and latest['collected_at']:
-            from datetime import datetime as dt
-            collected = dt.fromisoformat(latest['collected_at'])
-            hours_old = (datetime.now() - collected).total_seconds() / 3600
-            if hours_old > 6:
-                issues.append(f"WARN: Lines are {hours_old:.1f}h old — may be stale")
+                issues.append(f"WARN: {label} duplicate {d['away_team']}@{d['home_team']} ({d['cnt']}x)")
+
+            cursor.execute(f'''
+                SELECT collected_at FROM {tbl}
+                WHERE game_date LIKE ?
+                ORDER BY collected_at DESC LIMIT 1
+            ''', (f'{today_str}%',))
+            latest = cursor.fetchone()
+            if latest and latest['collected_at']:
+                from datetime import datetime as dt
+                try:
+                    collected = dt.fromisoformat(latest['collected_at'])
+                    hours_old = (datetime.now() - collected).total_seconds() / 3600
+                    if hours_old > 6:
+                        issues.append(f"WARN: {label} lines are {hours_old:.1f}h old — may be stale")
+                except Exception:
+                    pass
         
         conn.close()
         
@@ -2991,9 +3002,10 @@ def grade_whatif_passes():
 
             graded = 0
             for p in ungraded:
-                cursor.execute('''
+                tbl = 'wnba_games' if p.sport == 'wnba' else ('mlb_games' if p.sport == 'mlb' else 'games')
+                cursor.execute(f'''
                     SELECT home_score, away_score, spread_home
-                    FROM games
+                    FROM {tbl}
                     WHERE game_date LIKE ?
                     AND home_team = ?
                     AND away_team = ?
@@ -3006,7 +3018,11 @@ def grade_whatif_passes():
 
                 home_margin = game['home_score'] - game['away_score']
                 spread = p.whatif_line if p.whatif_line is not None else 0
-                is_home_pick = p.whatif_pick_side == 'home'
+                side_str = (p.whatif_pick_side or '').lower()
+                home_str = (p.whatif_home_team or '').lower()
+                is_home_pick = home_str in side_str or any(
+                    word in side_str for word in home_str.split() if len(word) > 3
+                )
 
                 ats_margin = home_margin + spread if is_home_pick else -(home_margin + spread)
                 if ats_margin > 0:
@@ -3400,21 +3416,18 @@ def _grade_picks_for_final_games(final_games):
                 spread_result = home_score - away_score
                 line_value = pick.line if pick.line and abs(pick.line) < 50 else 0
 
-                if sport == 'mlb':
-                    is_home_pick = pick.side == 'home'
-                else:
-                    side_lower = pick.side.lower()
-                    home_lower = pick.home_team.lower()
-                    away_lower = pick.away_team.lower()
-                    is_home_pick = home_lower in side_lower or any(
-                        word in side_lower for word in home_lower.split() if len(word) > 3
-                    )
-                    is_away_pick = away_lower in side_lower or any(
-                        word in side_lower for word in away_lower.split() if len(word) > 3
-                    )
-                    if not is_home_pick and not is_away_pick:
-                        logging.warning(f"[Live-grade] Cannot determine side: {pick.side}")
-                        continue
+                side_lower = (pick.side or '').lower()
+                home_lower = (pick.home_team or '').lower()
+                away_lower = (pick.away_team or '').lower()
+                is_home_pick = home_lower in side_lower or any(
+                    word in side_lower for word in home_lower.split() if len(word) > 3
+                )
+                is_away_pick = away_lower in side_lower or any(
+                    word in side_lower for word in away_lower.split() if len(word) > 3
+                )
+                if not is_home_pick and not is_away_pick:
+                    logging.warning(f"[Live-grade] Cannot determine side: {pick.side}")
+                    continue
 
                 if is_home_pick:
                     ats_margin = spread_result + line_value
@@ -3807,7 +3820,13 @@ def grade_mlb_picks_job():
                 run_diff = home_score - away_score
                 line_val = pick.line or 0
 
-                if pick.side == 'home':
+                side_lower = (pick.side or '').lower()
+                home_lower = (pick.home_team or '').lower()
+                is_home_pick = home_lower in side_lower or any(
+                    word in side_lower for word in home_lower.split() if len(word) > 3
+                )
+
+                if is_home_pick:
                     ats_margin = run_diff + line_val
                 else:
                     ats_margin = -run_diff + line_val
@@ -4246,7 +4265,10 @@ def cron_retrain_model():
     def _retrain():
         from model import EnsemblePredictor
         results = {}
+        sports_with_own_cron = {'mlb'}
         for sport in get_live_sports():
+            if not force and sport in sports_with_own_cron:
+                continue
             model = EnsemblePredictor(sport=sport)
             model.load_model()
             age = model.model_age_days()
