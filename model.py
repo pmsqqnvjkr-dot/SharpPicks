@@ -257,26 +257,31 @@ class EnsemblePredictor:
         self.edge_threshold_pct = self.cfg.get('edge_threshold_pct', EDGE_THRESHOLD_PCT)
         self.base_models = {
             'gradient_boosting': GradientBoostingClassifier(
-                n_estimators=100,
-                max_depth=5,
-                learning_rate=0.1,
+                n_estimators=50,
+                max_depth=3,
+                learning_rate=0.05,
+                min_samples_leaf=10,
                 random_state=42
             ),
             'random_forest': RandomForestClassifier(
-                n_estimators=100,
-                max_depth=10,
+                n_estimators=50,
+                max_depth=5,
+                min_samples_leaf=10,
                 random_state=42
             ),
             'xgboost': xgb.XGBClassifier(
-                n_estimators=100,
-                max_depth=5,
-                learning_rate=0.1,
+                n_estimators=50,
+                max_depth=3,
+                learning_rate=0.05,
+                min_child_weight=10,
+                reg_alpha=1.0,
+                reg_lambda=2.0,
                 random_state=42,
                 eval_metric='logloss'
             ),
             'adaboost': AdaBoostClassifier(
-                n_estimators=100,
-                learning_rate=0.1,
+                n_estimators=50,
+                learning_rate=0.05,
                 random_state=42
             )
         }
@@ -304,6 +309,20 @@ class EnsemblePredictor:
     def _has_table(self, conn, table_name):
         cur = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
         return cur.fetchone() is not None
+
+    def _has_ratings_data(self):
+        """Check if team_ratings table has real data (not just schema)."""
+        try:
+            conn = sqlite3.connect(get_sqlite_path())
+            tbl = self._ratings_table()
+            if not self._has_table(conn, tbl):
+                conn.close()
+                return False
+            count = conn.execute(f"SELECT COUNT(*) FROM {tbl}").fetchone()[0]
+            conn.close()
+            return count >= 10
+        except Exception:
+            return False
 
     def load_data(self):
         """Load training data from database with team ratings"""
@@ -466,27 +485,29 @@ class EnsemblePredictor:
         features['spread_abs'] = features['spread_home'].abs()
         features['is_favorite'] = (features['spread_home'] < 0).astype(int)
         
-        features['home_pace'] = pd.to_numeric(df.get('home_pace', pd.Series([100.0]*len(df))), errors='coerce').fillna(100.0)
-        features['away_pace'] = pd.to_numeric(df.get('away_pace', pd.Series([100.0]*len(df))), errors='coerce').fillna(100.0)
-        features['pace_diff'] = features['home_pace'] - features['away_pace']
-        features['combined_pace'] = (features['home_pace'] + features['away_pace']) / 2
-        
-        features['home_off_rtg'] = pd.to_numeric(df.get('home_off_rtg', pd.Series([110.0]*len(df))), errors='coerce').fillna(110.0)
-        features['home_def_rtg'] = pd.to_numeric(df.get('home_def_rtg', pd.Series([110.0]*len(df))), errors='coerce').fillna(110.0)
-        features['away_off_rtg'] = pd.to_numeric(df.get('away_off_rtg', pd.Series([110.0]*len(df))), errors='coerce').fillna(110.0)
-        features['away_def_rtg'] = pd.to_numeric(df.get('away_def_rtg', pd.Series([110.0]*len(df))), errors='coerce').fillna(110.0)
-        
-        features['home_net_rtg'] = pd.to_numeric(df.get('home_net_rtg', pd.Series([0.0]*len(df))), errors='coerce').fillna(0.0)
-        features['away_net_rtg'] = pd.to_numeric(df.get('away_net_rtg', pd.Series([0.0]*len(df))), errors='coerce').fillna(0.0)
-        features['net_rtg_diff'] = features['home_net_rtg'] - features['away_net_rtg']
-        
-        features['off_matchup'] = features['home_off_rtg'] - features['away_def_rtg']
-        features['def_matchup'] = features['away_off_rtg'] - features['home_def_rtg']
+        # GATED: pace/ratings features require populated team_ratings table.
+        # Re-enable when team_ratings has real data (not defaults).
+        if self._has_ratings_data():
+            features['home_pace'] = pd.to_numeric(df.get('home_pace', pd.Series([100.0]*len(df))), errors='coerce').fillna(100.0)
+            features['away_pace'] = pd.to_numeric(df.get('away_pace', pd.Series([100.0]*len(df))), errors='coerce').fillna(100.0)
+            features['pace_diff'] = features['home_pace'] - features['away_pace']
+            features['combined_pace'] = (features['home_pace'] + features['away_pace']) / 2
+
+            features['home_off_rtg'] = pd.to_numeric(df.get('home_off_rtg', pd.Series([110.0]*len(df))), errors='coerce').fillna(110.0)
+            features['home_def_rtg'] = pd.to_numeric(df.get('home_def_rtg', pd.Series([110.0]*len(df))), errors='coerce').fillna(110.0)
+            features['away_off_rtg'] = pd.to_numeric(df.get('away_off_rtg', pd.Series([110.0]*len(df))), errors='coerce').fillna(110.0)
+            features['away_def_rtg'] = pd.to_numeric(df.get('away_def_rtg', pd.Series([110.0]*len(df))), errors='coerce').fillna(110.0)
+
+            features['home_net_rtg'] = pd.to_numeric(df.get('home_net_rtg', pd.Series([0.0]*len(df))), errors='coerce').fillna(0.0)
+            features['away_net_rtg'] = pd.to_numeric(df.get('away_net_rtg', pd.Series([0.0]*len(df))), errors='coerce').fillna(0.0)
+            features['net_rtg_diff'] = features['home_net_rtg'] - features['away_net_rtg']
+
+            features['off_matchup'] = features['home_off_rtg'] - features['away_def_rtg']
+            features['def_matchup'] = features['away_off_rtg'] - features['home_def_rtg']
 
         features['rundown_consensus'] = pd.to_numeric(df.get('rundown_spread_consensus', pd.Series([0]*len(df))), errors='coerce').fillna(features['spread_home'])
         features['spread_vs_consensus'] = features['spread_home'] - features['rundown_consensus']
         features['rundown_spread_std'] = pd.to_numeric(df.get('rundown_spread_std', pd.Series([0]*len(df))), errors='coerce').fillna(0)
-        features['rundown_spread_range'] = pd.to_numeric(df.get('rundown_spread_range', pd.Series([0]*len(df))), errors='coerce').fillna(0)
         features['rundown_num_books'] = pd.to_numeric(df.get('rundown_num_books', pd.Series([0]*len(df))), errors='coerce').fillna(0)
 
         features['bdl_home_win_pct'] = pd.to_numeric(df.get('bdl_home_win_pct', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
@@ -495,12 +516,6 @@ class EnsemblePredictor:
         features['bdl_home_conf_rank'] = pd.to_numeric(df.get('bdl_home_conf_rank', pd.Series([15]*len(df))), errors='coerce').fillna(15)
         features['bdl_away_conf_rank'] = pd.to_numeric(df.get('bdl_away_conf_rank', pd.Series([15]*len(df))), errors='coerce').fillna(15)
         features['bdl_conf_rank_diff'] = features['bdl_away_conf_rank'] - features['bdl_home_conf_rank']
-        features['bdl_home_scoring_margin'] = pd.to_numeric(df.get('bdl_home_scoring_margin', pd.Series([0]*len(df))), errors='coerce').fillna(0)
-        features['bdl_away_scoring_margin'] = pd.to_numeric(df.get('bdl_away_scoring_margin', pd.Series([0]*len(df))), errors='coerce').fillna(0)
-        features['bdl_scoring_margin_diff'] = features['bdl_home_scoring_margin'] - features['bdl_away_scoring_margin']
-        features['bdl_home_avg_pts'] = pd.to_numeric(df.get('bdl_home_avg_pts', pd.Series([110]*len(df))), errors='coerce').fillna(110)
-        features['bdl_away_avg_pts'] = pd.to_numeric(df.get('bdl_away_avg_pts', pd.Series([110]*len(df))), errors='coerce').fillna(110)
-        features['bdl_projected_total'] = features['bdl_home_avg_pts'] + features['bdl_away_avg_pts']
 
         if self.sport != 'mlb':
             from player_impact import compute_game_injury_features
@@ -512,8 +527,11 @@ class EnsemblePredictor:
                 at = row.get('away_team', '') or ''
                 inj_features_list.append(compute_game_injury_features(hi, ai, ht, at))
             inj_df = pd.DataFrame(inj_features_list, index=df.index)
+            keep_inj = ['injury_ppg_diff', 'home_ppg_at_risk', 'away_ppg_at_risk',
+                         'home_star_out', 'away_star_out', 'home_rotation_out', 'away_rotation_out']
             for col in inj_df.columns:
-                features[col] = inj_df[col].astype(float)
+                if col in keep_inj:
+                    features[col] = inj_df[col].astype(float)
         else:
             def parse_injury_impact(injury_text):
                 if pd.isna(injury_text) or not injury_text or injury_text == '':
@@ -615,7 +633,9 @@ class EnsemblePredictor:
             except Exception as e:
                 print(f"   ⚠️ Schedule density error: {e}")
 
-        if self.sport != 'mlb':
+        # GATED: opponent-adjusted form strength depends on team_ratings data.
+        # Re-enable when team_ratings is populated.
+        if self._has_ratings_data():
             features['home_form_strength'] = pd.Series(0.0, index=df.index)
             features['away_form_strength'] = pd.Series(0.0, index=df.index)
             try:
@@ -686,32 +706,8 @@ class EnsemblePredictor:
             except Exception as e:
                 print(f"   ⚠️ Opponent-adjusted form error: {e}")
 
-        if self.sport != 'mlb':
-            features['crew_avg_fouls'] = pd.Series(LEAGUE_AVG_FOULS_DEFAULT, index=df.index)
-            features['crew_foul_delta'] = pd.Series(0.0, index=df.index)
-            features['crew_pace_impact'] = pd.Series(0.0, index=df.index)
-            try:
-                if 'game_date' in df.columns:
-                    from nba_referees import fetch_ref_assignments, get_crew_features
-                    from nba_schedule import get_team_abbrev as _ref_abbrev
-                    unique_dates = df['game_date'].dropna().unique()
-                    all_ref_assignments = {}
-                    for d in unique_dates:
-                        all_ref_assignments.update(fetch_ref_assignments(str(d)))
-                    if all_ref_assignments:
-                        for idx, row in df.iterrows():
-                            ht = str(row.get('home_team', '')).strip()
-                            at = str(row.get('away_team', '')).strip()
-                            ht_a = _ref_abbrev(ht) or ht
-                            at_a = _ref_abbrev(at) or at
-                            refs = all_ref_assignments.get((ht_a, at_a), [])
-                            if refs:
-                                af, fd, pi = get_crew_features(refs)
-                                features.at[idx, 'crew_avg_fouls'] = af
-                                features.at[idx, 'crew_foul_delta'] = fd
-                                features.at[idx, 'crew_pace_impact'] = pi
-            except Exception as e:
-                print(f"   ⚠️ NBA referee feature error: {e}")
+        # GATED: referee crew features disabled until reliable data source confirmed.
+        # Re-enable when NBA referee API works consistently from cloud servers.
 
         if self.sport == 'wnba':
             features['home_continuity'] = pd.Series(0.5, index=df.index)
@@ -737,58 +733,8 @@ class EnsemblePredictor:
             except Exception as e:
                 print(f"   ⚠️ WNBA continuity/HCA feature error: {e}")
 
-        features['profile_historical_clv'] = pd.Series(0.0, index=df.index)
-        features['profile_clv_sample_size'] = pd.Series(0.0, index=df.index)
-        try:
-            db_url = os.environ.get('SQLALCHEMY_DATABASE_URI') or os.environ.get('DATABASE_URL') or ''
-            if db_url and 'game_date' in df.columns:
-                if db_url.startswith('postgres://'):
-                    db_url = 'postgresql://' + db_url[len('postgres://'):]
-                from sqlalchemy import create_engine, text
-                pg_engine = create_engine(db_url)
-                sport_filter = self.sport if self.sport else 'nba'
-                with pg_engine.connect() as pg_conn:
-                    pick_rows = pg_conn.execute(text(
-                        "SELECT game_date, line, clv FROM picks "
-                        "WHERE sport = :sport AND clv IS NOT NULL AND result IS NOT NULL "
-                        "ORDER BY game_date"
-                    ), {"sport": sport_filter}).fetchall()
-                pg_engine.dispose()
-                if pick_rows:
-                    def _spread_bucket(line_val):
-                        s = abs(float(line_val)) if line_val else 0
-                        if s <= 3: return 'small'
-                        if s <= 6: return 'mid'
-                        if s <= 10: return 'large'
-                        return 'xlarge'
-                    def _rest_bucket(rest_adv):
-                        if rest_adv > 0: return 'pos'
-                        if rest_adv < 0: return 'neg'
-                        return 'neutral'
-                    clv_by_bin = {}
-                    for pr in pick_rows:
-                        gd, line, clv_val = str(pr[0]), pr[1], pr[2]
-                        bucket = _spread_bucket(line)
-                        key = (bucket, gd)
-                        clv_by_bin.setdefault(bucket, []).append((gd, float(clv_val)))
-                    dates = pd.to_datetime(df['game_date'], errors='coerce')
-                    rest_adv = features.get('rest_advantage', pd.Series(0.0, index=df.index))
-                    for idx, row in df.iterrows():
-                        d = dates.get(idx)
-                        if pd.isna(d):
-                            continue
-                        spread_val = row.get('spread_home', 0) or 0
-                        sb = _spread_bucket(spread_val)
-                        ra = rest_adv.get(idx, 0)
-                        rb = _rest_bucket(ra)
-                        full_key = f"{sb}_{rb}"
-                        history = clv_by_bin.get(sb, [])
-                        prior = [c for (gd, c) in history if str(gd) < str(d)]
-                        if len(prior) >= 10:
-                            features.at[idx, 'profile_historical_clv'] = sum(prior[-50:]) / len(prior[-50:])
-                            features.at[idx, 'profile_clv_sample_size'] = float(len(prior))
-        except Exception as e:
-            print(f"   ⚠️ CLV calibration error: {e}")
+        # GATED: historical CLV profile disabled — insufficient graded picks for meaningful signal.
+        # Re-enable after 200+ graded picks with CLV data.
 
         features['line_velocity'] = pd.Series(0.0, index=df.index)
         features['line_velocity_early'] = pd.Series(0.0, index=df.index)
