@@ -1,8 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi, apiGet } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import Wordmark from './Wordmark';
+import ResolutionScreen from './ResolutionScreen';
+
+const API_ROOT = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' : '';
+const HISTORY_DEFAULT_LIMIT = 10;
 function SectionLabel({ children }) {
   return (
     <div style={{
@@ -18,7 +23,49 @@ function SectionLabel({ children }) {
 export default function DashboardTab({ onNavigate, embedded = false }) {
   const { user } = useAuth();
   const { sport } = useSport();
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const { data: dashData, loading } = useApi(sportQuery('/public/dashboard-stats', sport), { pollInterval: 60000 });
+  const { data: historyData, loading: historyLoading } = useApi(sportQuery('/public/record', sport));
+  const { data: statsData } = useApi(sportQuery('/public/stats', sport));
+  const [histFilter, setHistFilter] = useState('all');
+  const [showAllPicks, setShowAllPicks] = useState(false);
+  const initialFilterSet = useRef(false);
+  const [showResolution, setShowResolution] = useState(false);
+  const [resolutionPick, setResolutionPick] = useState(null);
+  const [allLiveScores, setAllLiveScores] = useState([]);
+
+  const fetchLiveScores = useCallback(async () => {
+    try {
+      const resp = await fetch(`${API_ROOT}/api/picks/live-scores?sport=${sport}`);
+      const json = await resp.json();
+      if (json.scores) setAllLiveScores(json.scores);
+    } catch {}
+  }, [sport]);
+
+  useEffect(() => {
+    fetchLiveScores();
+    const interval = setInterval(fetchLiveScores, 60000);
+    return () => clearInterval(interval);
+  }, [fetchLiveScores]);
+
+  useEffect(() => {
+    if (initialFilterSet.current || !historyData?.picks?.length) return;
+    initialFilterSet.current = true;
+    const hasWins = historyData.picks.some(p => p.result === 'win');
+    const hasPending = historyData.picks.some(p => p.result === 'pending');
+    setHistFilter(hasWins ? 'wins' : hasPending ? 'active' : 'all');
+  }, [historyData]);
+
+  const picks = historyData?.picks || [];
+  const filteredHist = histFilter === 'all' ? picks
+    : histFilter === 'wins' ? picks.filter(p => p.result === 'win')
+    : histFilter === 'losses' ? picks.filter(p => p.result === 'loss')
+    : histFilter === 'active' ? picks.filter(p => p.result === 'pending')
+    : picks.filter(p => p.result === 'revoked' || p.result === 'push');
+
+  if (showResolution && resolutionPick) {
+    return <ResolutionScreen pick={resolutionPick} onBack={() => { setShowResolution(false); setResolutionPick(null); }} onNavigate={onNavigate} />;
+  }
 
   if (loading) {
     return (
@@ -33,7 +80,6 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
   const discipline = dashData?.discipline || {};
   const health = dashData?.model_health || {};
   const clvStats = dashData?.clv || {};
-  const recentPicks = dashData?.recent_picks || [];
   const equityCurve = perf.equity_curve || [];
   return (
     <div style={{ padding: '0', paddingBottom: embedded ? '0' : '100px' }}>
@@ -68,9 +114,20 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
 
         <DisciplineScore discipline={discipline} />
 
-        <LatestResultCard picks={recentPicks} />
-
-        <RecentPickLog picks={recentPicks} />
+        <SignalHistory
+          picks={picks}
+          filteredHist={filteredHist}
+          histFilter={histFilter}
+          setHistFilter={setHistFilter}
+          showAllPicks={showAllPicks}
+          setShowAllPicks={setShowAllPicks}
+          historyLoading={historyLoading}
+          isPro={isPro}
+          allLiveScores={allLiveScores}
+          stats={statsData}
+          sport={sport}
+          onViewPick={(pick) => { setResolutionPick(pick); setShowResolution(true); }}
+        />
 
         <ModelTrustStack />
 
@@ -338,71 +395,221 @@ function DisciplineScore({ discipline }) {
 }
 
 
-function LatestResultCard({ picks }) {
-  if (!picks || picks.length === 0) return null;
-  const latest = picks[0];
-  if (!latest || (latest.result !== 'win' && latest.result !== 'loss' && latest.result !== 'push')) return null;
+function isTodayGame(gameDate) {
+  if (!gameDate) return false;
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  return gameDate.startsWith(today);
+}
 
-  const isWin = latest.result === 'win';
-  const isPush = latest.result === 'push';
+function formatDateShort(isoStr) {
+  if (!isoStr) return '';
+  if (typeof isoStr === 'string' && isoStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const [, m, day] = isoStr.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[parseInt(m) - 1]} ${parseInt(day)}`;
+  }
+  return isoStr;
+}
 
-  const sideDisplay = latest.side && latest.line != null && latest.side.includes(String(Math.abs(latest.line)))
-    ? latest.side
-    : `${latest.side} ${latest.line > 0 ? '+' : ''}${latest.line}`;
-
+function StatusBadge({ result }) {
+  const config = {
+    win:     { label: 'W',  bg: '#5A9E72', color: '#FFFFFF' },
+    loss:    { label: 'L',  bg: '#C4686B', color: '#FFFFFF' },
+    pending: { label: 'P',  bg: 'rgba(212,162,78,0.15)', color: '#d4a24e' },
+    revoked: { label: 'WD', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
+    push:    { label: 'PU', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
+  };
+  const c = config[result] || config.pending;
+  const isWide = c.label.length > 1;
   return (
-    <>
-      <SectionLabel>Latest Result</SectionLabel>
-      <div style={{
-        backgroundColor: 'var(--surface-1)',
-        borderRadius: '20px',
-        border: '1px solid var(--stroke-subtle)',
-        padding: '20px 24px',
-        marginBottom: '16px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ flex: 1 }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-              letterSpacing: '1.5px', textTransform: 'uppercase',
-              color: 'var(--text-tertiary)', marginBottom: '3px',
-            }}>Outcome Resolved</div>
-            <div style={{
-              fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
-              color: 'var(--text-primary)',
-            }}>
-              {sideDisplay}
-            </div>
-            {(latest.away_team || latest.home_team) && (
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '11px',
-                color: 'var(--text-secondary)', marginTop: '2px',
-              }}>
-                {latest.away_team} @ {latest.home_team}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
+    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, width: isWide ? '28px' : '24px', height: '24px', borderRadius: isWide ? '12px' : '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backgroundColor: c.bg, color: c.color, letterSpacing: isWide ? '-0.02em' : '0' }}>
+      {c.label}
+    </span>
   );
 }
 
-function RecentPickLog({ picks }) {
-  if (!picks || picks.length === 0) return null;
+function CountdownLabel({ startTime }) {
+  const [label, setLabel] = useState('');
+  useEffect(() => {
+    function calc() {
+      if (!startTime || !startTime.includes('T')) { setLabel('Pending'); return; }
+      const tip = new Date(startTime);
+      if (isNaN(tip.getTime())) { setLabel('Pending'); return; }
+      const diff = tip - Date.now();
+      if (diff <= 0) { setLabel('Pending'); return; }
+      const mins = Math.floor(diff / 60000);
+      const hrs = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      if (mins < 5) setLabel('Starting soon');
+      else if (hrs < 1) setLabel(`Starts in ${mins}m`);
+      else if (hrs < 24) setLabel(`Starts in ${hrs}h ${remMins}m`);
+      else setLabel('Starts tomorrow');
+    }
+    calc();
+    const id = setInterval(calc, 60000);
+    return () => clearInterval(id);
+  }, [startTime]);
+  return <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500, fontVariantNumeric: 'tabular-nums', color: '#d4a24e' }}>{label}</div>;
+}
+
+function StreakDots({ picks }) {
+  const last7 = picks.slice(0, 7);
+  const dotConfig = {
+    win:     { label: 'W',  bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
+    loss:    { label: 'L',  bg: 'rgba(196,104,107,0.15)', color: '#C4686B' },
+    revoked: { label: 'WD', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
+    pending: { label: 'P',  bg: 'rgba(212,162,78,0.15)',  color: '#d4a24e' },
+    push:    { label: 'PU', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
+  };
+  let streakCount = 0, streakType = null;
+  for (const p of picks) {
+    if (p.result === 'win' || p.result === 'loss') {
+      if (!streakType) { streakType = p.result; streakCount = 1; }
+      else if (p.result === streakType) streakCount++;
+      else break;
+    } else { if (streakType) break; }
+  }
+  const streakLabel = streakType === 'win' ? `W${streakCount} streak` : streakType === 'loss' ? `L${streakCount} streak` : '';
+  const streakColor = streakType === 'win' ? '#5A9E72' : streakType === 'loss' ? '#C4686B' : '#6b7a8d';
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+      <div style={{ display: 'flex', gap: 4 }}>
+        {[...last7].reverse().map((p, i) => {
+          const cfg = dotConfig[p.result] || dotConfig.pending;
+          const isWide = cfg.label.length > 1;
+          return (
+            <div key={i} style={{ minWidth: isWide ? 26 : 22, height: 22, borderRadius: isWide ? 11 : '50%', background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', ...(isWide ? { padding: '0 2px' } : {}) }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 500, color: cfg.color }}>{cfg.label}</span>
+            </div>
+          );
+        })}
+      </div>
+      {streakLabel && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500, color: streakColor }}>{streakLabel}</span>}
+    </div>
+  );
+}
+
+function SignalHistoryRow({ pick, isPro, isLast, allLiveScores, onView }) {
+  const isSettled = pick.result === 'win' || pick.result === 'loss' || pick.result === 'push';
+  const isPending = pick.result === 'pending';
+  const isRevoked = pick.result === 'revoked';
+  const hideLine = !isPro && isPending;
+  const canView = isPro && (isSettled || isRevoked);
+  const liveMatch = (() => {
+    if (!isPending || !allLiveScores?.length || !pick.home_team) return null;
+    const normalize = s => s.toLowerCase().replace(/[^a-z]/g, '');
+    const homeKey = normalize(pick.home_team);
+    const found = allLiveScores.find(s => normalize(s.home) === homeKey);
+    if (found && (found.state === 'STATUS_IN_PROGRESS' || found.state === 'STATUS_HALFTIME')) return found;
+    return null;
+  })();
+  const liveLabel = liveMatch ? `Live${liveMatch.period ? ` Q${liveMatch.period}` : ''}` : null;
+  const units = pick.profit_units != null ? pick.profit_units : (pick.pnl != null ? pick.pnl / 100 : null);
+  const unitsStr = pick.result === 'push' ? '0.0u' : pick.result === 'win' ? `+${units != null ? Math.abs(units).toFixed(1) : '0.9'}u` : pick.result === 'loss' ? `-${units != null ? Math.abs(units).toFixed(1) : '1.0'}u` : null;
+  const unitsColor = pick.result === 'win' ? 'var(--color-signal)' : pick.result === 'loss' ? 'var(--color-loss)' : 'var(--text-tertiary)';
+  const rightLine1 = isSettled ? unitsStr : (isPending ? 'Pending' : isRevoked ? 'Withdrawn' : null);
+  const rightLine1Color = isSettled ? unitsColor : 'var(--text-tertiary)';
+  const showCountdown = isPending && pick.start_time && pick.start_time.includes('T') && isTodayGame(pick.game_date);
+  const clvVal = pick.clv != null ? parseFloat(pick.clv) : null;
+  const hasCLV = isSettled && clvVal != null;
+  const rightLine2 = hasCLV ? `CLV ${clvVal >= 0 ? '+' : ''}${clvVal.toFixed(1)}` : (pick.edge_pct && !hideLine) ? `+${pick.edge_pct}% edge` : null;
+  const rightLine2Color = hasCLV ? (clvVal > 0 ? 'var(--color-signal)' : clvVal < 0 ? 'var(--color-loss)' : 'var(--text-tertiary)') : 'var(--text-tertiary)';
+  const sideDisplay = hideLine ? `${pick.away_team} @ ${pick.home_team}` : (pick.side || `${pick.away_team} @ ${pick.home_team}`);
 
   return (
+    <div onClick={() => canView && onView()} style={{ padding: '14px 16px', borderBottom: isLast ? 'none' : '1px solid var(--stroke-subtle)', display: 'flex', alignItems: 'center', gap: '8px', cursor: canView ? 'pointer' : 'default', minHeight: '60px' }}>
+      <StatusBadge result={pick.result} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sideDisplay}</div>
+        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {pick.away_team} @ {pick.home_team} &middot; {formatDateShort(pick.game_date)}
+          {liveLabel && <span style={{ color: '#5A9E72' }}> &middot; {liveLabel}</span>}
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <div style={{ textAlign: 'right' }}>
+          {showCountdown ? <CountdownLabel startTime={pick.start_time} /> : rightLine1 ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: isSettled ? '14px' : '12px', fontWeight: isSettled ? 600 : 500, fontVariantNumeric: 'tabular-nums', color: rightLine1Color }}>{rightLine1}</div> : null}
+          {isPro && rightLine2 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: hasCLV ? '12px' : '11px', fontWeight: hasCLV ? 600 : 400, fontVariantNumeric: 'tabular-nums', color: rightLine2Color, marginTop: '2px', ...(hasCLV ? { padding: '1px 5px', borderRadius: 3, background: clvVal > 0 ? 'rgba(52,211,153,0.08)' : clvVal < 0 ? 'rgba(158,122,124,0.08)' : 'transparent' } : {}) }}>{rightLine2}</div>}
+        </div>
+        {canView && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{ flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>}
+      </div>
+    </div>
+  );
+}
+
+function SignalHistoryEmpty({ filter, totalCount }) {
+  if (totalCount === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-tertiary)', fontSize: '14px', lineHeight: '1.7' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '12px' }}>No signals generated yet.</div>
+        <p style={{ maxWidth: '300px', margin: '0 auto 12px' }}>The model evaluates the full daily slate and generates signals only when a statistically significant edge is detected.</p>
+      </div>
+    );
+  }
+  const msgs = { wins: { title: 'No wins recorded.', detail: `0 of ${totalCount} signals resulted in a win.` }, losses: { title: 'No losses recorded.', detail: `0 of ${totalCount} signals resulted in a loss.` }, active: { title: 'No active signals.', detail: 'All signals have been resolved.' }, other: { title: 'No withdrawn or push signals.', detail: '' } };
+  const m = msgs[filter] || { title: 'No signals found.', detail: '' };
+  return (
+    <div style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--text-tertiary)', fontSize: '14px' }}>
+      <div style={{ color: 'var(--text-secondary)', marginBottom: '6px' }}>{m.title}</div>
+      {m.detail && <div style={{ fontSize: '13px' }}>{m.detail}</div>}
+    </div>
+  );
+}
+
+function SignalHistory({ picks, filteredHist, histFilter, setHistFilter, showAllPicks, setShowAllPicks, historyLoading, isPro, allLiveScores, stats, sport, onViewPick }) {
+  return (
     <>
-      <SectionLabel>Recent Picks</SectionLabel>
-      <div style={{
-        backgroundColor: 'var(--surface-1)', borderRadius: '20px',
-        border: '1px solid var(--stroke-subtle)',
-        marginBottom: '16px', overflow: 'hidden',
-      }}>
-        {picks.map((pick, i) => (
-          <PickLogRow key={pick.id} pick={pick} isLast={i === picks.length - 1} />
+      <div style={{ marginBottom: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <SectionLabel>Signal History</SectionLabel>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>{picks.length} signals</div>
+        </div>
+        {stats && (
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
+            {sport === 'mlb' ? '2026 Season' : 'Season 2025-26'} &middot; {stats.record || `${stats.wins || 0}-${stats.losses || 0}`} &middot; {stats.pnl >= 0 ? '+' : ''}{Number(stats.pnl || 0).toFixed(1)}u
+          </div>
+        )}
+      </div>
+
+      {picks.length > 0 && <StreakDots picks={picks} />}
+
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        {[{ key: 'all', label: 'All' }, { key: 'wins', label: 'Wins' }, { key: 'losses', label: 'Losses' }, { key: 'active', label: 'Active' }, { key: 'other', label: 'Other' }].map(f => (
+          <button key={f.key} onClick={() => { setHistFilter(f.key); setShowAllPicks(false); }} style={{
+            padding: '10px 16px', minHeight: '40px', borderRadius: '6px', fontSize: '13px',
+            fontWeight: histFilter === f.key ? 600 : 400, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+            backgroundColor: histFilter === f.key ? 'var(--color-signal)' : 'transparent',
+            color: histFilter === f.key ? '#FFFFFF' : 'var(--text-tertiary)',
+            border: histFilter === f.key ? 'none' : '1px solid var(--color-border)',
+          }}>{f.label}</button>
         ))}
       </div>
+
+      {historyLoading ? (
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '40px 0' }}>Loading...</p>
+      ) : filteredHist.length === 0 ? (
+        <SignalHistoryEmpty filter={histFilter} totalCount={picks.length} />
+      ) : (() => {
+        const isTruncated = !showAllPicks && filteredHist.length > HISTORY_DEFAULT_LIMIT;
+        const displayPicks = isTruncated ? filteredHist.slice(0, HISTORY_DEFAULT_LIMIT) : filteredHist;
+        return (
+        <>
+        <div style={{ backgroundColor: 'var(--surface-1)', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--stroke-subtle)', marginBottom: '16px' }}>
+          {displayPicks.map((pick, i) => (
+            <SignalHistoryRow key={pick.id} pick={pick} isPro={isPro} isLast={i === displayPicks.length - 1} allLiveScores={allLiveScores} onView={() => onViewPick(pick)} />
+          ))}
+        </div>
+        {isTruncated && (
+          <button onClick={() => setShowAllPicks(true)} style={{ width: '100%', padding: '14px', marginTop: '8px', marginBottom: '16px', background: 'none', borderRadius: '4px', border: '1px solid var(--color-border)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 400, fontFamily: 'var(--font-sans)', cursor: 'pointer' }}>
+            View complete signal history&nbsp;&nbsp;<span style={{ color: 'var(--text-tertiary)' }}>({filteredHist.length})</span>
+          </button>
+        )}
+        {showAllPicks && filteredHist.length > HISTORY_DEFAULT_LIMIT && (
+          <button onClick={() => setShowAllPicks(false)} style={{ width: '100%', padding: '12px', marginTop: '6px', marginBottom: '16px', background: 'none', border: 'none', color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 500, fontFamily: 'var(--font-sans)', cursor: 'pointer' }}>Show less</button>
+        )}
+        </>
+        );
+      })()}
     </>
   );
 }

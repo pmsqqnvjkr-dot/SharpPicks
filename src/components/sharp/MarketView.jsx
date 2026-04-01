@@ -785,7 +785,7 @@ function WatchButton({ watching, onWatch }) {
   );
 }
 
-function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHistory, sport }) {
+function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHistory, sport, slateDate }) {
   const totalDisplay = fmtTotal(game.total);
   const isFinal = game.status === 'final';
   const isLive = game.status === 'live' || game.status === 'in_progress';
@@ -853,9 +853,11 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
               <span style={{ fontFamily: sans, fontSize: '13px', fontWeight: 600, color: textPrimary }}>{game.home}</span>
               {game.home_record && game.home_record !== 'N/A' && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.home_record}</span>}
             </div>
-            {/* Game time (scheduled only) */}
+            {/* Game time / date */}
             {!isLive && !isFinal && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                {slateDate && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{formatSlateDate(slateDate)}</span>}
+                {slateDate && game.time && <span style={{ fontFamily: mono, fontSize: '10px', color: grayBorder }}>&middot;</span>}
                 {game.time && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.time}</span>}
               </div>
             )}
@@ -1887,29 +1889,23 @@ export function GameSlate({ preModel = false, onGameCount }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {filterTabs.map(tab => {
-              const isActive = filter === tab;
-              return (
-                <button key={tab} onClick={() => setFilter(tab)} style={{
-                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                  fontSize: '11px', fontWeight: 500,
-                  padding: '10px 16px', minHeight: '40px', borderRadius: 6, cursor: 'pointer',
-                  border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.06)',
-                  background: isActive ? '#141A2E' : 'transparent',
-                  color: isActive ? '#E8ECF4' : '#7A8494',
-                }}>{tab}</button>
-              );
-            })}
-          </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {filterTabs.map(tab => {
+            const isActive = filter === tab;
+            return (
+              <button key={tab} onClick={() => setFilter(tab)} style={{
+                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
+                fontSize: '11px', fontWeight: 500,
+                padding: '10px 16px', minHeight: '40px', borderRadius: 6, cursor: 'pointer',
+                border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.06)',
+                background: isActive ? '#141A2E' : 'transparent',
+                color: isActive ? '#E8ECF4' : '#7A8494',
+              }}>{tab}</button>
+            );
+          })}
         </div>
-        {!preModel && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <SortPicker active={sort} onChange={setSort} isPro={isPro} sport={sport} />
-          </div>
-        )}
+        {!preModel && <SortPicker active={sort} onChange={setSort} isPro={isPro} sport={sport} />}
       </div>
 
       {sorted.length === 0 ? (
