@@ -161,8 +161,8 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
 
       <!-- GET STARTED (Trial is default) -->
       <div class="panel" id="panel-signup">
-        <div class="p-title">Try it free</div>
-        <p class="p-sub">14 days free, then <span class="hl">$99/year</span>. First 50 members lock this rate in. $149/yr once spots are claimed. Cancel anytime.</p>
+        <div class="p-title">Start your 14-day trial</div>
+        <p class="p-sub">Card required to start. <span class="hl">$0 for 14 days</span>, then $99/year. First 50 members lock this rate. Cancel anytime before trial ends.</p>
         <div id="signup-alert" class="alert"></div>
 
         <div class="social-btns" id="signup-social">
@@ -182,9 +182,9 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
           <div class="field" id="snf"><label>First Name</label><input type="text" id="sn" placeholder="Your first name" required autocomplete="given-name"><div class="ferr">First name is required.</div></div>
           <div class="field" id="sef"><label>Email</label><input type="email" id="se" placeholder="you@email.com" required autocomplete="email"><div class="ferr">Please enter a valid email.</div></div>
           <div class="field" id="spf"><label>Password</label><div class="fpw"><input type="password" id="sp" placeholder="Min 8 characters" required minlength="8" autocomplete="new-password"><button type="button" class="pw-t" onclick="togglePw(this)">show</button></div><div class="ferr">Minimum 8 characters.</div></div>
-          <button type="submit" class="submit" id="sb"><span class="bt">Try Free for 14 Days</span><span class="bs"><span class="spin"></span></span></button>
+          <button type="submit" class="submit" id="sb"><span class="bt">Start 14-Day Trial</span><span class="bs"><span class="spin"></span></span></button>
         </form>
-        <div class="cancel-note">Cancel anytime. No commitment.</div>
+        <div class="cancel-note">Card collected now. You won't be charged until trial ends.</div>
         <ul class="feat-list">
           <li><span class="ic">&rarr;</span>Daily market brief + MEI score</li>
           <li><span class="ic">&rarr;</span>Full market board &mdash; signals &amp; passes</li>
@@ -192,7 +192,7 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
           <li><span class="ic">&rarr;</span>Sharp Journal + discipline insights</li>
           <li><span class="ic">&rarr;</span>$99/yr founding rate &mdash; locked while subscribed</li>
         </ul>
-        <a href="#" class="free-link" onclick="handleFreeSwitch();return false">or create a free account instead</a>
+        <a href="#" class="free-link" onclick="handleFreeSwitch();return false">or create a free account instead &mdash; no card needed</a>
         <div class="af">Already have an account? <a href="#" onclick="switchTab('login');return false">Sign in</a></div>
       </div>
     </div>
@@ -220,7 +220,7 @@ function handleFreeSwitch(){
   document.getElementById('sb').querySelector('.bt').textContent='Create Free Account';
   document.querySelector('#panel-signup .cancel-note').style.display='none';
   document.querySelector('#panel-signup .feat-list').innerHTML='<li><span class="ic">\u2192</span>Model activity feed</li><li><span class="ic">\u2192</span>Public performance record</li><li><span class="ic">\u2192</span>Pass-day summaries</li><li style="color:var(--text-dim)"><span class="ic" style="color:var(--text-dim)">\u2014</span>Pick details locked</li>';
-  document.querySelector('#panel-signup .free-link').textContent='start a 14-day trial instead';
+  document.querySelector('#panel-signup .free-link').textContent='start a 14-day trial instead \u2014 card required';
   document.querySelector('#panel-signup .free-link').setAttribute('onclick','handleTrialSwitch();return false');
   var g=document.getElementById('sg-google'),a=document.getElementById('sg-apple');
   if(g)g.href='/auth/google?plan=free';if(a)a.href='/auth/apple?plan=free';
@@ -229,12 +229,13 @@ function handleFreeSwitch(){
 function handleTrialSwitch(){
   const form=document.getElementById('signup-form');
   form.setAttribute('onsubmit',"handleSignup(event,'trial')");
-  document.querySelector('#panel-signup .p-title').textContent='Try it free';
-  document.querySelector('#panel-signup .p-sub').innerHTML='14 days free, then <span class="hl">$99/year</span>. First 50 members lock this rate in. $149/yr once spots are claimed. Cancel anytime.';
-  document.getElementById('sb').querySelector('.bt').textContent='Try Free for 14 Days';
+  document.querySelector('#panel-signup .p-title').textContent='Start your 14-day trial';
+  document.querySelector('#panel-signup .p-sub').innerHTML='Card required to start. <span class="hl">$0 for 14 days</span>, then $99/year. First 50 members lock this rate. Cancel anytime before trial ends.';
+  document.getElementById('sb').querySelector('.bt').textContent='Start 14-Day Trial';
   document.querySelector('#panel-signup .cancel-note').style.display='';
+  document.querySelector('#panel-signup .cancel-note').textContent='Card collected now. You won\u2019t be charged until trial ends.';
   document.querySelector('#panel-signup .feat-list').innerHTML='<li><span class="ic">\u2192</span>Daily market brief + MEI score</li><li><span class="ic">\u2192</span>Full market board \u2014 signals & passes</li><li><span class="ic">\u2192</span>Bet tracking & portfolio P/L</li><li><span class="ic">\u2192</span>Sharp Journal + discipline insights</li><li><span class="ic">\u2192</span>$99/yr founding rate \u2014 locked while subscribed</li>';
-  document.querySelector('#panel-signup .free-link').textContent='or create a free account instead';
+  document.querySelector('#panel-signup .free-link').textContent='or create a free account instead \u2014 no card needed';
   document.querySelector('#panel-signup .free-link').setAttribute('onclick','handleFreeSwitch();return false');
   var g=document.getElementById('sg-google'),a=document.getElementById('sg-apple');
   if(g)g.href='/auth/google?plan=trial';if(a)a.href='/auth/apple?plan=trial';

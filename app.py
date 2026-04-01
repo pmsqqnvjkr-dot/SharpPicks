@@ -4698,7 +4698,7 @@ def register():
 
 @app.route('/api/auth/verify-email')
 def verify_email():
-    """Verify email from link click — activates trial via Stripe card-on-file checkout"""
+    """Verify email from link click — redirects trial-eligible users to Stripe checkout"""
     from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
     token = request.args.get('token', '')
     if not token:
@@ -4724,6 +4724,11 @@ def verify_email():
     session.permanent = True
     session['user_id'] = user.id
     session['session_token'] = user.session_token
+
+    if not user.trial_used and not user.is_premium:
+        checkout_url = _create_trial_checkout_url(user)
+        if checkout_url:
+            return redirect(checkout_url)
 
     ua = request.headers.get('User-Agent', '').lower()
     is_mobile = any(k in ua for k in ('iphone', 'ipad', 'android', 'capacitor'))
@@ -4904,7 +4909,8 @@ if _oauth_ready:
 
 
 def _oauth_find_or_create(email, provider, provider_id, first_name=None, plan='trial'):
-    """Find existing user by email or OAuth ID, or create a new one."""
+    """Find existing user by email or OAuth ID, or create a new one.
+    Returns (user, is_new) tuple."""
     from models import normalize_email
     from werkzeug.security import generate_password_hash
     import secrets
@@ -4920,9 +4926,8 @@ def _oauth_find_or_create(email, provider, provider_id, first_name=None, plan='t
             user.oauth_provider = provider
             user.oauth_id = provider_id
             db.session.commit()
-        return user
+        return user, False
 
-    is_free = plan == 'free'
     norm = normalize_email(email) if email else None
 
     user = User(
@@ -4934,10 +4939,9 @@ def _oauth_find_or_create(email, provider, provider_id, first_name=None, plan='t
         password_hash=generate_password_hash(secrets.token_urlsafe(32)),
         oauth_provider=provider,
         oauth_id=provider_id,
-        is_premium=not is_free,
+        is_premium=False,
         email_verified=True,
-        subscription_status='free' if is_free else 'trial',
-        trial_end_date=datetime.now() + timedelta(days=14) if not is_free else None,
+        subscription_status='free',
     )
     db.session.add(user)
     db.session.commit()
@@ -4951,7 +4955,58 @@ def _oauth_find_or_create(email, provider, provider_id, first_name=None, plan='t
     except Exception as e:
         logging.error(f"Admin OAuth signup alert failed: {e}")
 
-    return user
+    return user, True
+
+
+def _create_trial_checkout_url(user):
+    """Create a Stripe Checkout session with a 14-day free trial (card required, $0 charged).
+    Returns the checkout URL or None on failure."""
+    try:
+        from stripe_client import get_stripe_client
+        stripe = get_stripe_client()
+
+        if not user.stripe_customer_id:
+            customer = stripe.Customer.create(email=user.email)
+            user.stripe_customer_id = customer.id
+            db.session.commit()
+
+        prices = stripe.Price.list(active=True, limit=20)
+        price_id = None
+        yearly_prices = []
+        for p in prices.data:
+            if p.recurring and p.recurring.interval == 'year':
+                yearly_prices.append(p)
+        founding = [p for p in yearly_prices if p.unit_amount == 9900]
+        price_id = founding[0].id if founding else (yearly_prices[0].id if yearly_prices else None)
+        if not price_id and prices.data:
+            price_id = prices.data[0].id
+        if not price_id:
+            logging.error("No Stripe prices configured for trial checkout")
+            return None
+
+        app_domain = os.environ.get('APP_DOMAIN', '')
+        if not app_domain:
+            domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+            app_domain = domains.split(',')[0]
+
+        checkout_session = stripe.checkout.Session.create(
+            mode='subscription',
+            payment_method_types=['card'],
+            line_items=[{'price': price_id, 'quantity': 1}],
+            subscription_data={
+                'trial_period_days': 14,
+                'metadata': {'plan': 'trial', 'user_id': user.id},
+            },
+            success_url=f'https://{app_domain}/welcome?session_id={{CHECKOUT_SESSION_ID}}',
+            cancel_url=f'https://{app_domain}/',
+            customer=user.stripe_customer_id,
+            client_reference_id=user.id,
+            metadata={'plan': 'trial', 'user_id': user.id},
+        )
+        return checkout_session.url
+    except Exception as e:
+        logging.error(f"Trial checkout creation failed: {e}")
+        return None
 
 
 @app.route('/auth/google')
@@ -4979,12 +5034,18 @@ def google_callback():
 
     plan = session.pop('oauth_plan', 'trial')
     given_name = user_info.get('given_name') or user_info.get('name', '').split()[0] if user_info.get('name') else ''
-    user = _oauth_find_or_create(email, 'google', user_info.get('sub'), first_name=given_name, plan=plan)
+    user, is_new = _oauth_find_or_create(email, 'google', user_info.get('sub'), first_name=given_name, plan=plan)
 
     login_user(user, remember=True)
     session.permanent = True
     session['user_id'] = user.id
     session['session_token'] = user.session_token
+
+    if is_new and plan == 'trial':
+        checkout_url = _create_trial_checkout_url(user)
+        if checkout_url:
+            return redirect(checkout_url)
+
     return redirect('/')
 
 
@@ -5025,12 +5086,18 @@ def apple_callback():
         except Exception:
             pass
 
-    user = _oauth_find_or_create(email, 'apple', apple_sub, first_name=first_name, plan=plan)
+    user, is_new = _oauth_find_or_create(email, 'apple', apple_sub, first_name=first_name, plan=plan)
 
     login_user(user, remember=True)
     session.permanent = True
     session['user_id'] = user.id
     session['session_token'] = user.session_token
+
+    if is_new and plan == 'trial':
+        checkout_url = _create_trial_checkout_url(user)
+        if checkout_url:
+            return redirect(checkout_url)
+
     return redirect('/')
 
 
@@ -5589,71 +5656,67 @@ def set_unit_size():
 
 @app.route('/api/auth/trial', methods=['POST'])
 def start_trial():
-    """Start free 14-day trial with just email - no card required"""
+    """Start 14-day trial — creates free account, returns Stripe checkout URL for card collection"""
     from flask import request
-    from datetime import timedelta
     import re
-    
+
     data = request.get_json() or {}
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
-    
+
     if not email:
         return jsonify({'error': 'Email required'}), 400
-    
+
     if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
         return jsonify({'error': 'Invalid email format'}), 400
-    
+
     user = User.query.filter(func.lower(User.email) == email.lower()).first()
-    
+
     if user:
-        if user.trial_used and user.trial_ends and datetime.now() > user.trial_ends:
+        if user.trial_used:
             return jsonify({
                 'success': False,
                 'error': 'Trial already used for this email. Subscribe to continue.',
                 'trial_expired': True
             }), 400
-        
-        if user.trial_ends and datetime.now() < user.trial_ends:
-            user.is_premium = True
-            user.subscription_status = 'trial'
-            user.trial_end_date = user.trial_ends
-            db.session.commit()
-            login_user(user, remember=True)
-        
+
+        login_user(user, remember=True)
+        session.permanent = True
+        session['user_id'] = user.id
+        session['session_token'] = user.session_token
+
+        if not user.is_premium:
+            checkout_url = _create_trial_checkout_url(user)
+            if checkout_url:
+                return jsonify({'success': True, 'needs_checkout': True, 'checkout_url': checkout_url})
+
         return jsonify({
             'success': True,
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'is_premium': user.is_premium,
-                'subscription_status': 'trial',
-                'trial_ends': user.trial_ends.isoformat() if user.trial_ends else None
-            }
+            'user': serialize_user(user),
         })
-    
+
     if not password or len(password) < 6:
         return jsonify({'error': 'Password required (6+ characters)'}), 400
-    
+
     user = User()
+    user.id = str(uuid.uuid4())
     user.email = email
     user.first_name = email.split('@')[0]
     user.set_password(password)
-    user.is_premium = True
-    user.subscription_status = 'trial'
-    user.trial_ends = datetime.now() + timedelta(days=14)
-    user.trial_end_date = user.trial_ends
-    user.trial_used = True
-    
+    user.is_premium = False
+    user.subscription_status = 'free'
+    user.email_verified = True
+
     db.session.add(user)
     db.session.commit()
     login_user(user, remember=True)
+    session.permanent = True
+    session['user_id'] = user.id
+    session['session_token'] = user.session_token
 
-    try:
-        from notification_events import dispatch_trial_started_email
-        dispatch_trial_started_email(user)
-    except Exception as e:
-        logging.error(f"Trial started email failed: {e}")
+    checkout_url = _create_trial_checkout_url(user)
+    if checkout_url:
+        return jsonify({'success': True, 'needs_checkout': True, 'checkout_url': checkout_url})
 
     return jsonify({
         'success': True,

@@ -71,7 +71,9 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
     if (result.success) {
       if (result.needs_verification) {
         setMode('verify');
-        setSuccess('Check your email for a verification link to activate your account.');
+        setSuccess(type === 'trial'
+          ? 'Check your email for a verification link. After verifying, you\'ll be taken to set up your trial.'
+          : 'Check your email for a verification link to activate your account.');
         setError('');
       } else {
         onClose();
@@ -181,7 +183,7 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
             </div>
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '24px' }}>
               Check <strong style={{ color: 'var(--text-primary)' }}>{email}</strong> for a verification link.
-              Once verified, you'll be taken to set up your 14-day trial.
+              Once verified, you'll complete setup to activate your account.
             </p>
             <button
               type="button"
@@ -378,8 +380,17 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
                   fontFamily: 'var(--font-sans)',
                 }}
               >
-                {submitting ? 'Please wait...' : 'Start Free Trial'}
+                {submitting ? 'Please wait...' : 'Start 14-Day Trial'}
               </button>
+              <p style={{
+                textAlign: 'center',
+                fontSize: '11px',
+                color: 'var(--text-tertiary)',
+                marginTop: '6px',
+                fontFamily: 'var(--font-sans)',
+              }}>
+                Card required · $0 for 14 days · Cancel anytime
+              </p>
 
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
@@ -412,12 +423,12 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
               </button>
               <p style={{
                 textAlign: 'center',
-                fontSize: '12px',
+                fontSize: '11px',
                 color: 'var(--text-tertiary)',
-                marginTop: '8px',
+                marginTop: '6px',
                 fontFamily: 'var(--font-sans)',
               }}>
-                Create your account · Upgrade anytime
+                No card needed · Limited access · Upgrade anytime
               </p>
             </>
           ) : (

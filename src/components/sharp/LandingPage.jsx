@@ -110,7 +110,7 @@ export default function LandingPage({ autoView }) {
               padding: '7px 18px', backgroundColor: 'var(--blue-primary)',
               color: '#fff', border: 'none', borderRadius: 8,
               fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-            }}>{isNative ? 'Get Started' : 'Start Free Trial'}</button>
+            }}>{isNative ? 'Get Started' : 'Start 14-Day Trial'}</button>
           </div>
         </div>
       </nav>
@@ -452,7 +452,7 @@ export default function LandingPage({ autoView }) {
               fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)',
               boxShadow: '0 4px 24px rgba(79,125,243,0.30)',
             }}>
-              {isNative ? 'Get Started' : 'Start Free Trial'}
+              {isNative ? 'Get Started' : 'Start 14-Day Trial'}
             </button>
             <button onClick={() => { setAuthMode('register'); setAccountType('free'); setShowAuth(true); }} style={{
               padding: '14px 28px', backgroundColor: 'transparent',
