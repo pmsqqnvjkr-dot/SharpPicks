@@ -514,6 +514,7 @@ def seed_database():
                 db.session.execute(db.text("ALTER TABLE picks ADD COLUMN IF NOT EXISTS steam_fragility FLOAT"))
                 db.session.execute(db.text("ALTER TABLE picks ADD COLUMN IF NOT EXISTS model_only_cover_prob FLOAT"))
                 db.session.execute(db.text("ALTER TABLE picks ADD COLUMN IF NOT EXISTS model_only_edge FLOAT"))
+                db.session.execute(db.text("ALTER TABLE picks ADD COLUMN IF NOT EXISTS model_era VARCHAR"))
                 db.session.execute(db.text("ALTER TABLE model_runs ADD COLUMN IF NOT EXISTS games_detail TEXT"))
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS related_pick_ids JSONB DEFAULT '[]'"))
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS date_range_start VARCHAR"))
@@ -3136,6 +3137,7 @@ CRON_MIN_INTERVAL = {
     'mlb_backfill': 0,
     'mlb_validate': 0,
     'retrain_model': 86400,
+    'nba_scores': 86400,
 }
 
 def _run_cron_sync(job_name, fn):
@@ -3496,6 +3498,31 @@ def cron_backfill_nba_scores():
     if sync:
         return log_cron('backfill_nba_scores', _backfill, skip_throttle=True)
     return log_cron_async('backfill_nba_scores', _backfill, skip_throttle=True)
+
+
+@app.route('/api/cron/nba-scores', methods=['GET', 'POST'])
+@verify_cron
+def cron_nba_scores():
+    """Collect yesterday's NBA scores from ESPN. Run daily at 10:00 ET."""
+    def _collect():
+        from main import collect_yesterdays_scores
+        collect_yesterdays_scores(date_offset=1)
+        return {'status': 'ok'}
+    return log_cron('nba_scores', _collect)
+
+
+@app.route('/api/cron/label-pre-training-era', methods=['GET', 'POST'])
+@verify_cron
+def cron_label_pre_training():
+    """One-time: label all picks before 2026-04-01 as pre-training era."""
+    PRE_TRAINING_CUTOFF = '2026-04-01'
+    with app.app_context():
+        updated = Pick.query.filter(
+            Pick.game_date < PRE_TRAINING_CUTOFF,
+            Pick.model_era.is_(None),
+        ).update({'model_era': 'pre-training'}, synchronize_session=False)
+        db.session.commit()
+    return jsonify({'labeled': updated, 'cutoff': PRE_TRAINING_CUTOFF})
 
 
 @app.route('/api/cron/collect-games', methods=['GET', 'POST'])
@@ -4029,10 +4056,12 @@ def retrain_mlb_model_job():
     with app.app_context():
         try:
             from model import EnsemblePredictor
+            from model_service import invalidate_model_cache
             predictor = EnsemblePredictor(sport='mlb')
             result = predictor.train()
             if result:
-                print(f"[{datetime.now()}] MLB model retrained successfully!")
+                invalidate_model_cache('mlb')
+                print(f"[{datetime.now()}] MLB model retrained successfully! Cache invalidated.")
             else:
                 print(f"[{datetime.now()}] MLB model training failed (not enough data?)")
         except Exception as e:
@@ -4419,6 +4448,9 @@ def cron_retrain_model():
                     }
                     continue
                 file_size_kb = round(os.path.getsize(filepath) / 1024, 1) if os.path.exists(filepath) else 0
+                from model_service import invalidate_model_cache
+                invalidate_model_cache(sport)
+                logging.info(f"[retrain] {sport}: cache invalidated, file={file_size_kb}KB")
                 results[sport] = {
                     'status': 'retrained',
                     'previous_age_days': age,

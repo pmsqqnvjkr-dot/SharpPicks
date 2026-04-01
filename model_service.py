@@ -18,6 +18,14 @@ PRETIP_LINE_DRIFT = 2.0     # Revoke if line moves this many points from publica
 _model_cache = {}  # sport -> (model, filepath, mtime)
 
 
+def invalidate_model_cache(sport=None):
+    """Clear cached model(s). Call after retrain to force reload from disk."""
+    if sport:
+        _model_cache.pop(sport, None)
+    else:
+        _model_cache.clear()
+
+
 def _get_cached_model(sport):
     """Return cached EnsemblePredictor if valid; else None."""
     from model import EnsemblePredictor
@@ -25,7 +33,8 @@ def _get_cached_model(sport):
         return None
     model, filepath, cached_mtime = _model_cache[sport]
     try:
-        if os.path.exists(filepath) and os.path.getmtime(filepath) == cached_mtime:
+        current_mtime = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
+        if abs(current_mtime - cached_mtime) < 0.01:
             return model
     except OSError:
         pass
@@ -665,6 +674,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                         position_size_pct=position_pct,
                         model_only_cover_prob=_to_python(round(best['model_only_cover_prob'], 4)) if best.get('model_only_cover_prob') is not None else None,
                         model_only_edge=_to_python(round(best['model_only_edge'], 2)) if best.get('model_only_edge') is not None else None,
+                        model_era='post-training',
                     )
                     db.session.add(pick)
 
