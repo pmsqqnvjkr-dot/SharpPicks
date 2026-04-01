@@ -3370,6 +3370,21 @@ def cron_diagnostic():
         except Exception as e:
             diag['cache_check_error'] = str(e)
 
+        try:
+            from model import EnsemblePredictor
+            model_files = {}
+            for sport in ['nba', 'mlb', 'wnba']:
+                m = EnsemblePredictor(sport=sport)
+                fp = m._default_filepath()
+                model_files[sport] = {
+                    'path': fp,
+                    'exists': os.path.isfile(fp),
+                    'size_kb': round(os.path.getsize(fp) / 1024, 1) if os.path.isfile(fp) else 0,
+                }
+            diag['model_files'] = model_files
+        except Exception as e:
+            diag['model_files_error'] = str(e)
+
         return jsonify(diag)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
