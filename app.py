@@ -3401,65 +3401,70 @@ def cron_diagnostic():
 def cron_model_audit():
     """Deep model diagnostic: sigma, edges, cover probs, feature counts for all live sports."""
     import traceback as _tb
-    from model import EnsemblePredictor
-    only_sport = request.args.get('sport', '').lower() or None
-    audit = {}
-    target_sports = [only_sport] if only_sport else get_live_sports()
-    for sport in target_sports:
-        try:
-            model = EnsemblePredictor(sport=sport)
-            model.load_model()
-            filepath = model._default_filepath()
-            file_size = round(os.path.getsize(filepath) / 1024, 1) if os.path.exists(filepath) else 0
+    try:
+        from model import EnsemblePredictor
+        only_sport = request.args.get('sport', '').lower() or None
+        predict = request.args.get('predict', '').lower() != 'false'
+        audit = {}
+        target_sports = [only_sport] if only_sport else get_live_sports()
+        for sport in target_sports:
+            try:
+                model = EnsemblePredictor(sport=sport)
+                model.load_model()
+                filepath = model._default_filepath()
+                file_size = round(os.path.getsize(filepath) / 1024, 1) if os.path.exists(filepath) else 0
 
-            info = {
-                'trained': model.trained,
-                'file_size_kb': file_size,
-                'n_models': len(model.models),
-                'n_features': len(model.feature_names),
-                'margin_std': getattr(model, 'margin_std', None),
-                'margin_mae': getattr(model, 'margin_mae', None),
-                'using_fallback_sigma': getattr(model, 'using_fallback_sigma', None),
-                'trained_at': getattr(model, 'trained_at', None),
-                'edge_threshold': model.edge_threshold_pct,
-                'max_edge': model.max_edge_pct,
-                'model_weight': model.model_weight,
-                'sigma_config': model.margin_std_dev,
-                'sigma_floor': model.margin_std_floor,
-                'sigma_ceiling': model.margin_std_ceiling,
-            }
+                info = {
+                    'trained': model.trained,
+                    'file_size_kb': file_size,
+                    'n_models': len(model.models),
+                    'model_names': list(model.models.keys()),
+                    'n_features': len(model.feature_names),
+                    'margin_std': getattr(model, 'margin_std', None),
+                    'margin_mae': getattr(model, 'margin_mae', None),
+                    'using_fallback_sigma': getattr(model, 'using_fallback_sigma', None),
+                    'trained_at': getattr(model, 'trained_at', None),
+                    'edge_threshold': model.edge_threshold_pct,
+                    'max_edge': model.max_edge_pct,
+                    'model_weight': model.model_weight,
+                    'sigma_config': model.margin_std_dev,
+                    'sigma_floor': model.margin_std_floor,
+                    'sigma_ceiling': model.margin_std_ceiling,
+                }
 
-            if model.trained:
-                try:
-                    preds = model.predict_games(min_confidence=0, log_predictions=False, min_minutes_to_tip=0)
-                    games = []
-                    for p in preds:
-                        games.append({
-                            'matchup': f"{p.get('away_team','')} @ {p.get('home_team','')}",
-                            'spread': p.get('spread'),
-                            'cover_prob': round(p.get('cover_prob', 0), 4),
-                            'raw_edge': round(p.get('raw_edge', 0), 2),
-                            'adjusted_edge': round(p.get('adjusted_edge', 0), 2),
-                            'z_score': p.get('z_score'),
-                            'model_margin': round(p.get('predicted_margin', 0), 1),
-                            'market_margin': round(p.get('market_margin', 0), 1) if p.get('market_margin') is not None else None,
-                            'confidence_label': p.get('confidence_label', ''),
-                        })
-                    info['predictions'] = sorted(games, key=lambda x: abs(x.get('adjusted_edge', 0)), reverse=True)
-                    info['n_games_predicted'] = len(games)
-                    edges = [g['adjusted_edge'] for g in games]
-                    info['avg_edge'] = round(sum(edges) / len(edges), 2) if edges else 0
-                    info['max_raw_edge'] = max([g['raw_edge'] for g in games], default=0)
-                    above_thresh = [g for g in games if g['adjusted_edge'] >= model.edge_threshold_pct]
-                    info['games_above_threshold'] = len(above_thresh)
-                except Exception as e:
-                    info['predict_error'] = str(e)
-                    info['predict_traceback'] = _tb.format_exc()[-800:]
+                if model.trained and predict:
+                    try:
+                        preds = model.predict_games(min_confidence=0, log_predictions=False, min_minutes_to_tip=0)
+                        games = []
+                        for p in preds:
+                            games.append({
+                                'matchup': f"{p.get('away_team','')} @ {p.get('home_team','')}",
+                                'spread': p.get('spread'),
+                                'cover_prob': round(p.get('cover_prob', 0), 4),
+                                'raw_edge': round(p.get('raw_edge', 0), 2),
+                                'adjusted_edge': round(p.get('adjusted_edge', 0), 2),
+                                'z_score': p.get('z_score'),
+                                'model_margin': round(p.get('predicted_margin', 0), 1),
+                                'market_margin': round(p.get('market_margin', 0), 1) if p.get('market_margin') is not None else None,
+                                'confidence_label': p.get('confidence_label', ''),
+                            })
+                        info['predictions'] = sorted(games, key=lambda x: abs(x.get('adjusted_edge', 0)), reverse=True)
+                        info['n_games_predicted'] = len(games)
+                        edges = [g['adjusted_edge'] for g in games]
+                        info['avg_edge'] = round(sum(edges) / len(edges), 2) if edges else 0
+                        info['max_raw_edge'] = max([g['raw_edge'] for g in games], default=0)
+                        above_thresh = [g for g in games if g['adjusted_edge'] >= model.edge_threshold_pct]
+                        info['games_above_threshold'] = len(above_thresh)
+                    except Exception as e:
+                        info['predict_error'] = str(e)
+                        info['predict_traceback'] = _tb.format_exc()[-800:]
 
-            audit[sport] = info
-        except Exception as e:
-            audit[sport] = {'error': str(e), 'traceback': _tb.format_exc()[-800:]}
-    return jsonify(audit)
+                audit[sport] = info
+            except Exception as e:
+                audit[sport] = {'error': str(e), 'traceback': _tb.format_exc()[-800:]}
+        return jsonify(audit)
+    except Exception as e:
+        return jsonify({'fatal_error': str(e), 'traceback': _tb.format_exc()[-800:]}), 500
 
 
 @app.route('/api/cron/backfill-nba-scores', methods=['GET', 'POST'])
