@@ -3685,7 +3685,8 @@ def cron_live_scores():
             continue
 
         try:
-            espn_url = get_espn_scoreboard_url(sport)
+            today_date_str = now_et.strftime('%Y%m%d')
+            espn_url = get_espn_scoreboard_url(sport, now_et.strftime('%Y-%m-%d'))
             resp = http_requests.get(espn_url, timeout=10)
             resp.raise_for_status()
             espn_data = resp.json()
@@ -3710,7 +3711,7 @@ def cron_live_scores():
                 continue
             home_name = home.get('team', {}).get('displayName', '')
             away_name = away.get('team', {}).get('displayName', '')
-            key = home_name.lower().replace(' ', '')
+            key = f"{away_name.lower().replace(' ', '')}@{home_name.lower().replace(' ', '')}"
             espn_games[key] = {
                 'home_name': home_name,
                 'away_name': away_name,
@@ -3725,7 +3726,7 @@ def cron_live_scores():
         newly_final = []
         for row in today_games:
             game_id, home_team, away_team = row['id'], row['home_team'], row['away_team']
-            key = home_team.lower().replace(' ', '')
+            key = f"{away_team.lower().replace(' ', '')}@{home_team.lower().replace(' ', '')}"
             live = espn_games.get(key)
             if not live:
                 continue

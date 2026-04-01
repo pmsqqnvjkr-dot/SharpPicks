@@ -419,10 +419,10 @@ def today():
         except ImportError:
             _now_et = datetime.utcnow() - timedelta(hours=5)
         week_start = (_now_et - timedelta(days=_now_et.weekday())).strftime('%Y-%m-%d')
-        picks_this_week = Pick.query.filter(Pick.game_date >= week_start).count()
-        passes_this_week = Pass.query.filter(Pass.date >= week_start).count()
-        total_picks = Pick.query.count()
-        total_passes = Pass.query.count()
+        picks_this_week = Pick.query.filter(Pick.game_date >= week_start, Pick.sport == sport).count()
+        passes_this_week = Pass.query.filter(Pass.date >= week_start, Pass.sport == sport).count()
+        total_picks = Pick.query.filter(Pick.sport == sport).count()
+        total_passes = Pass.query.filter(Pass.sport == sport).count()
         total_days = total_picks + total_passes
         selectivity = round((total_picks / total_days) * 100) if total_days > 0 else 0
         days_per_bet = round(total_days / total_picks, 1) if total_picks > 0 else 0
@@ -954,8 +954,6 @@ def market_view():
             pass
         if db_status in ('in_progress', 'final'):
             status = db_status
-        elif r['home_score'] is not None and r['away_score'] is not None and db_status != 'in_progress':
-            status = 'final'
         else:
             status = 'scheduled'
 
@@ -996,8 +994,8 @@ def market_view():
             'total_h1': r['total_h1'] if sport != 'mlb' else None,
             'home_record': r['home_record'] if r['home_record'] and r['home_record'] != 'N/A' else None,
             'away_record': r['away_record'] if r['away_record'] and r['away_record'] != 'N/A' else None,
-            'home_score': r['home_score'],
-            'away_score': r['away_score'],
+            'home_score': r['home_score'] if status != 'scheduled' else None,
+            'away_score': r['away_score'] if status != 'scheduled' else None,
             'snapshots': line_snapshots.get(key, []),
         }
 

@@ -418,7 +418,10 @@ def dashboard_stats():
             latest_sigma = round(p.sigma, 1)
             break
 
-    last_run = ModelRun.query.order_by(ModelRun.created_at.desc()).first()
+    last_run_q = ModelRun.query
+    if sport:
+        last_run_q = last_run_q.filter(ModelRun.sport == sport)
+    last_run = last_run_q.order_by(ModelRun.created_at.desc()).first()
     last_retrain_date = last_run.date if last_run else None
 
     using_fallback = latest_sigma is None
