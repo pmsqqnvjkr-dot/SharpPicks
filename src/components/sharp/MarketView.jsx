@@ -876,12 +876,17 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
 
           {/* Edge + badge */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, marginLeft: 12 }}>
-            {edge != null && (
+            {edge != null ? (
               <span style={{
                 fontFamily: mono, fontSize: '14px', fontWeight: 500,
                 color: hasSignalEdge ? brandGreen : textMuted,
               }}>+{edge}%</span>
-            )}
+            ) : isFinal && !pickResult ? (
+              <span style={{
+                fontFamily: mono, fontSize: '10px', fontWeight: 600,
+                letterSpacing: '0.5px', color: grayBorder,
+              }}>FINAL</span>
+            ) : null}
             {isFinal && pickResult ? (
               (pickResult.result === 'win' || pickResult.result === 'W') ? (
                 <span style={{
@@ -1434,6 +1439,14 @@ export default function MarketView({ onBack }) {
     }
   }, [isPro, loading, rawGames, autoSorted]);
 
+  const mvSlateIsToday = useMemo(() => {
+    if (!data?.date) return true;
+    const now = new Date();
+    const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const todayStr = `${et.getFullYear()}-${String(et.getMonth() + 1).padStart(2, '0')}-${String(et.getDate()).padStart(2, '0')}`;
+    return data.date === todayStr;
+  }, [data?.date]);
+
   const fetchLiveScores = useCallback(async () => {
     try {
       const resp = await fetch(`${MV_API_BASE}/api/picks/live-scores?sport=${sport}`);
@@ -1441,7 +1454,7 @@ export default function MarketView({ onBack }) {
       if (json.scores) {
         const map = {};
         json.scores.forEach(s => {
-          const key = normalizeTeam(s.home);
+          const key = `${normalizeTeam(s.away)}@${normalizeTeam(s.home)}`;
           map[key] = s;
         });
         setLiveScores(map);
@@ -1455,9 +1468,9 @@ export default function MarketView({ onBack }) {
       const updated = { ...g, status: baseStatus };
       return updated;
     });
-    if (Object.keys(liveScores).length > 0) {
+    if (mvSlateIsToday && Object.keys(liveScores).length > 0) {
       merged = merged.map(g => {
-        const key = normalizeTeam(g.home);
+        const key = `${normalizeTeam(g.away)}@${normalizeTeam(g.home)}`;
         const live = liveScores[key];
         if (!live) return g;
         const isLive = live.state === 'STATUS_IN_PROGRESS' || live.state === 'STATUS_HALFTIME';
@@ -1478,19 +1491,19 @@ export default function MarketView({ onBack }) {
       });
     }
     return merged;
-  }, [rawGames, liveScores]);
+  }, [rawGames, liveScores, mvSlateIsToday]);
 
   const hasLive = games.some(g => g.status === 'live');
 
   useEffect(() => {
-    fetchLiveScores();
-  }, [fetchLiveScores]);
+    if (mvSlateIsToday) fetchLiveScores();
+  }, [fetchLiveScores, mvSlateIsToday]);
 
   useEffect(() => {
-    if (!hasLive) return;
+    if (!hasLive || !mvSlateIsToday) return;
     const interval = setInterval(fetchLiveScores, 15000);
     return () => clearInterval(interval);
-  }, [hasLive, fetchLiveScores]);
+  }, [hasLive, fetchLiveScores, mvSlateIsToday]);
 
   const filtered = useMemo(() => {
     if (filter === 'All') return games;
@@ -1793,7 +1806,10 @@ export function GameSlate({ preModel = false, onGameCount }) {
       const json = await resp.json();
       if (json.scores) {
         const map = {};
-        json.scores.forEach(s => { map[normalizeTeam(s.home)] = s; });
+        json.scores.forEach(s => {
+          const key = `${normalizeTeam(s.away)}@${normalizeTeam(s.home)}`;
+          map[key] = s;
+        });
         setLiveScores(map);
       }
     } catch { /* silent */ }
@@ -1804,9 +1820,9 @@ export function GameSlate({ preModel = false, onGameCount }) {
       const baseStatus = g.status === 'in_progress' ? 'live' : (g.status || 'scheduled');
       return { ...g, status: baseStatus };
     });
-    if (Object.keys(liveScores).length > 0) {
+    if (isToday && Object.keys(liveScores).length > 0) {
       merged = merged.map(g => {
-        const key = normalizeTeam(g.home);
+        const key = `${normalizeTeam(g.away)}@${normalizeTeam(g.home)}`;
         const live = liveScores[key];
         if (!live) return g;
         const isLive = live.state === 'STATUS_IN_PROGRESS' || live.state === 'STATUS_HALFTIME';
@@ -1819,17 +1835,17 @@ export function GameSlate({ preModel = false, onGameCount }) {
       });
     }
     return merged;
-  }, [rawGames, liveScores]);
+  }, [rawGames, liveScores, isToday]);
 
   const hasLive = games.some(g => g.status === 'live');
   const hasModelData = games.some(g => g.model);
 
-  useEffect(() => { fetchLiveScores(); }, [fetchLiveScores]);
+  useEffect(() => { if (isToday) fetchLiveScores(); }, [fetchLiveScores, isToday]);
   useEffect(() => {
-    if (!hasLive) return;
+    if (!hasLive || !isToday) return;
     const interval = setInterval(fetchLiveScores, 15000);
     return () => clearInterval(interval);
-  }, [hasLive, fetchLiveScores]);
+  }, [hasLive, fetchLiveScores, isToday]);
 
   useEffect(() => {
     if (onGameCount && !loading) {

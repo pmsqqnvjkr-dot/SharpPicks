@@ -677,31 +677,34 @@ export default function PicksTab({ onNavigate }) {
           />
         )}
 
-        {/* Pre-model: Journal article while waiting */}
-        {pageState === 'pre-model' && insightsData?.insights?.length > 0 && (
+        {/* Recommended Reads — all non-off-day states */}
+        {pageState !== 'off-day' && insightsData?.insights?.length > 0 && (
           <div style={{ marginTop: '20px' }}>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
               letterSpacing: '0.12em', textTransform: 'uppercase',
               color: '#7A8494', marginBottom: '10px',
-            }}>WHILE YOU WAIT</div>
-            <button
-              onClick={() => onNavigate && onNavigate('insights', null, { initialInsight: insightsData.insights[0] })}
-              style={{
-                width: '100%', padding: '14px 16px',
-                background: '#0F1424',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '10px', cursor: 'pointer',
-                textAlign: 'left',
-              }}
-            >
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494', marginBottom: '6px' }}>SHARP JOURNAL</div>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600, color: '#E8ECF4', lineHeight: 1.4, marginBottom: '4px' }}>{insightsData.insights[0].title}</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#7A8494' }}>
-                {insightsData.insights[0].read_time ? `${insightsData.insights[0].read_time} min read` : '4 min read'}
-                {insightsData.insights[0].category ? ` \u00B7 ${insightsData.insights[0].category}` : ''}
-              </div>
-            </button>
+            }}>{pageState === 'pre-model' ? 'WHILE YOU WAIT' : 'RECOMMENDED READS'}</div>
+            {insightsData.insights.slice(0, 2).map((article, i) => (
+              <button
+                key={i}
+                onClick={() => onNavigate && onNavigate('insights', null, { initialInsight: article })}
+                style={{
+                  width: '100%', padding: '14px 16px', marginBottom: '8px',
+                  background: '#0F1424',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '10px', cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494', marginBottom: '6px' }}>SHARP JOURNAL</div>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600, color: '#E8ECF4', lineHeight: 1.4, marginBottom: '4px' }}>{article.title}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#7A8494' }}>
+                  {article.read_time ? `${article.read_time} min read` : '4 min read'}
+                  {article.category ? ` \u00B7 ${article.category}` : ''}
+                </div>
+              </button>
+            ))}
           </div>
         )}
 
