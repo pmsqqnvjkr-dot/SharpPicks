@@ -3329,7 +3329,9 @@ def cron_diagnostic():
                 try:
                     total = cur.execute(f"SELECT COUNT(*) FROM {tbl} WHERE game_date = ?", (today_str,)).fetchone()[0]
                     with_spread = cur.execute(f"SELECT COUNT(*) FROM {tbl} WHERE game_date = ? AND spread_home IS NOT NULL", (today_str,)).fetchone()[0]
-                    diag[tbl] = {'date': today_str, 'total': total, 'with_spreads': with_spread}
+                    scored = cur.execute(f"SELECT COUNT(*) FROM {tbl} WHERE home_score IS NOT NULL").fetchone()[0]
+                    all_rows = cur.execute(f"SELECT COUNT(*) FROM {tbl}").fetchone()[0]
+                    diag[tbl] = {'date': today_str, 'total': total, 'with_spreads': with_spread, 'all_rows': all_rows, 'scored': scored}
                 except Exception as e:
                     diag[tbl] = {'error': str(e)}
             conn.close()
