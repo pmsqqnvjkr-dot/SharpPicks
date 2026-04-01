@@ -264,6 +264,8 @@ def get_team_ratings():
 
 def update_ratings():
     """Main function to update team ratings"""
+    ensure_ratings_table()
+
     current_year = datetime.now().year
     current_month = datetime.now().month
     
