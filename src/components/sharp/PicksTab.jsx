@@ -669,17 +669,9 @@ export default function PicksTab({ onNavigate }) {
         )}
 
 
-        {/* ═══════════════ GAME SLATE (pre-model, pick, pass) ═══════════════ */}
-        {pageState !== 'off-day' && (
-          <GameSlate
-            preModel={pageState === 'pre-model'}
-            onGameCount={setGameInfo}
-          />
-        )}
-
-        {/* Recommended Reads — all non-off-day states */}
+        {/* Recommended Reads — before today's slate */}
         {pageState !== 'off-day' && insightsData?.insights?.length > 0 && (
-          <div style={{ marginTop: '20px' }}>
+          <div style={{ marginTop: '20px', marginBottom: '20px' }}>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
               letterSpacing: '0.12em', textTransform: 'uppercase',
@@ -706,6 +698,14 @@ export default function PicksTab({ onNavigate }) {
               </button>
             ))}
           </div>
+        )}
+
+        {/* ═══════════════ GAME SLATE (pre-model, pick, pass) ═══════════════ */}
+        {pageState !== 'off-day' && (
+          <GameSlate
+            preModel={pageState === 'pre-model'}
+            onGameCount={setGameInfo}
+          />
         )}
 
         {/* Portfolio Context Line (pick & pass days) */}
