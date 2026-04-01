@@ -42,6 +42,19 @@ function fmtTotal(val) {
   return Number.isInteger(n) ? `${n}` : n.toFixed(1);
 }
 
+function formatSlateDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return `${days[dt.getDay()]} ${months[dt.getMonth()]} ${dt.getDate()}`;
+  } catch {
+    return dateStr;
+  }
+}
+
 function Movement({ current, open }) {
   if (current == null || open == null) return null;
   const diff = parseFloat(current) - parseFloat(open);
@@ -853,14 +866,12 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
               <span style={{ fontFamily: sans, fontSize: '13px', fontWeight: 600, color: textPrimary }}>{game.home}</span>
               {game.home_record && game.home_record !== 'N/A' && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.home_record}</span>}
             </div>
-            {/* Game time / date */}
-            {!isLive && !isFinal && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                {slateDate && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{formatSlateDate(slateDate)}</span>}
-                {slateDate && game.time && <span style={{ fontFamily: mono, fontSize: '10px', color: grayBorder }}>&middot;</span>}
-                {game.time && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.time}</span>}
-              </div>
-            )}
+            {/* Game date / time */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              {slateDate && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{formatSlateDate(slateDate)}</span>}
+              {slateDate && game.time && !isLive && !isFinal && <span style={{ fontFamily: mono, fontSize: '10px', color: grayBorder }}>&middot;</span>}
+              {game.time && !isLive && !isFinal && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.time}</span>}
+            </div>
           </div>
 
           {/* Edge + badge */}
@@ -1828,10 +1839,21 @@ export function GameSlate({ preModel = false, onGameCount }) {
     }
   }, [games, loading, hasModelData, data?.date]);
 
+  const isToday = useMemo(() => {
+    if (!data?.date) return true;
+    const now = new Date();
+    const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const todayStr = `${et.getFullYear()}-${String(et.getMonth() + 1).padStart(2, '0')}-${String(et.getDate()).padStart(2, '0')}`;
+    return data.date === todayStr;
+  }, [data?.date]);
+
   const gamesForDisplay = useMemo(() => {
-    if (preModel) return games.map(g => ({ ...g, model: null }));
-    return games;
-  }, [games, preModel]);
+    let list = preModel ? games.map(g => ({ ...g, model: null })) : games;
+    if (!isToday) {
+      list = list.filter(g => g.status !== 'final');
+    }
+    return list;
+  }, [games, preModel, isToday]);
 
   const filtered = useMemo(() => {
     if (filter === 'All') return gamesForDisplay;
@@ -1864,7 +1886,13 @@ export function GameSlate({ preModel = false, onGameCount }) {
     } catch { /* silent */ }
   };
 
-  const filterTabs = preModel ? ['All', 'Upcoming', 'Final'] : (hasLive ? ['All', 'Edges', 'Upcoming', 'Live', 'Final'] : ['All', 'Edges', 'Upcoming', 'Final']);
+  const filterTabs = useMemo(() => {
+    if (preModel) return isToday ? ['All', 'Upcoming', 'Final'] : ['All', 'Upcoming'];
+    const tabs = ['All', 'Edges', 'Upcoming'];
+    if (hasLive) tabs.push('Live');
+    if (isToday) tabs.push('Final');
+    return tabs;
+  }, [preModel, hasLive, isToday]);
 
   if (loading) {
     return (
@@ -1889,23 +1917,22 @@ export function GameSlate({ preModel = false, onGameCount }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {filterTabs.map(tab => {
-            const isActive = filter === tab;
-            return (
-              <button key={tab} onClick={() => setFilter(tab)} style={{
-                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
-                fontSize: '11px', fontWeight: 500,
-                padding: '10px 16px', minHeight: '40px', borderRadius: 6, cursor: 'pointer',
-                border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.06)',
-                background: isActive ? '#141A2E' : 'transparent',
-                color: isActive ? '#E8ECF4' : '#7A8494',
-              }}>{tab}</button>
-            );
-          })}
-        </div>
-        {!preModel && <SortPicker active={sort} onChange={setSort} isPro={isPro} sport={sport} />}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        {filterTabs.map(tab => {
+          const isActive = filter === tab;
+          return (
+            <button key={tab} onClick={() => setFilter(tab)} style={{
+              flex: 1,
+              fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
+              fontSize: '11px', fontWeight: 500,
+              padding: '10px 0', minHeight: '40px', borderRadius: 6, cursor: 'pointer',
+              border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.06)',
+              background: isActive ? '#141A2E' : 'transparent',
+              color: isActive ? '#E8ECF4' : '#7A8494',
+              textAlign: 'center',
+            }}>{tab}</button>
+          );
+        })}
       </div>
 
       {sorted.length === 0 ? (
@@ -1922,7 +1949,7 @@ export function GameSlate({ preModel = false, onGameCount }) {
                 <>
                   <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568', padding: '8px 2px 4px' }}>FINAL</div>
                   {stateSorted.finals.map(g => (
-                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} />
+                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} slateDate={data?.date} />
                   ))}
                 </>
               )}
@@ -1930,7 +1957,7 @@ export function GameSlate({ preModel = false, onGameCount }) {
                 <>
                   <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: '#5A9E72', padding: '8px 2px 4px' }}>LIVE</div>
                   {stateSorted.live.map(g => (
-                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} />
+                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} slateDate={data?.date} />
                   ))}
                 </>
               )}
@@ -1938,14 +1965,14 @@ export function GameSlate({ preModel = false, onGameCount }) {
                 <>
                   <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568', padding: '8px 2px 4px' }}>UPCOMING</div>
                   {stateSorted.upcoming.map(g => (
-                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} />
+                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} slateDate={data?.date} />
                   ))}
                 </>
               )}
             </>
           ) : (
             sorted.map(g => (
-              <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} />
+              <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} slateDate={data?.date} />
             ))
           )}
         </div>

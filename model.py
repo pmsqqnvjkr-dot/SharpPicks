@@ -994,6 +994,9 @@ class EnsemblePredictor:
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
         weights_train = sample_weights[train_idx]
         
+        self.feature_means = X_train.mean().to_dict()
+        self.feature_stds = X_train.std().to_dict()
+        
         X_train_scaled = self.scaler.fit_transform(X_train)
         X_test_scaled = self.scaler.transform(X_test)
         
@@ -1150,6 +1153,57 @@ class EnsemblePredictor:
         else:
             print("⚠️ Fair calibration - probabilities may need adjustment")
     
+    def get_top_features(self, X_game_row, n_top=5):
+        """Return top N features for a single game ranked by global importance * local deviation.
+        
+        Args:
+            X_game_row: 1-D array-like of feature values (unscaled) for one game,
+                        ordered by self.feature_names
+            n_top: how many features to return
+        
+        Returns:
+            list of (feature_name, combined_score, raw_value) sorted descending
+        """
+        feature_names = self.feature_names
+        n_features = len(feature_names)
+
+        importances = np.zeros(n_features)
+        count = 0
+        for name, calibrated in self.models.items():
+            try:
+                base = calibrated.calibrated_classifiers_[0].estimator
+                if hasattr(base, 'feature_importances_'):
+                    imp = base.feature_importances_
+                    if len(imp) == n_features:
+                        importances += imp
+                        count += 1
+            except (AttributeError, IndexError):
+                continue
+
+        if count > 0:
+            importances /= count
+
+        means = self.feature_means or {}
+        stds = self.feature_stds or {}
+        vals = np.array(X_game_row, dtype=float)
+
+        deviation = np.ones(n_features)
+        for i, fname in enumerate(feature_names):
+            m = means.get(fname, 0.0)
+            s = stds.get(fname, 1.0)
+            if s > 1e-8:
+                deviation[i] = abs(vals[i] - m) / s
+            else:
+                deviation[i] = 0.0
+
+        combined = importances * deviation
+        top_idx = np.argsort(combined)[::-1][:n_top]
+
+        return [
+            (feature_names[i], float(combined[i]), float(vals[i]))
+            for i in top_idx
+        ]
+
     def predict_proba(self, X):
         """Get averaged probability predictions from all models"""
         if isinstance(X, pd.DataFrame):
@@ -1473,7 +1527,7 @@ class EnsemblePredictor:
 
             risk_weighted_edge = spread_risk_adjusted_edge(adjusted_edge, spread_abs)
 
-            explanation = self._generate_explanation(row, proba, confidence, adjusted_edge, pred_margin)
+            explanation = self._generate_signal_reasoning(row, X, idx, proba, confidence, adjusted_edge, pred_margin)
             
             if confidence >= STRONG_CONFIDENCE_THRESHOLD:
                 rating = "STRONG"
@@ -1640,6 +1694,60 @@ class EnsemblePredictor:
         else:
             playable = spread - pts_cushion
         return round(playable * 2) / 2
+
+    def _generate_signal_reasoning(self, row, X_features, game_idx, proba, confidence, edge, pred_margin=None):
+        """Generate 3 dynamic reasoning bullets using feature-importance-driven templates.
+        Falls back to _generate_explanation on any error."""
+        try:
+            from reasoning_templates import generate_reasoning_bullets
+
+            feature_row = X_features.iloc[game_idx].values
+            top_features = self.get_top_features(feature_row, n_top=8)
+
+            home = row['home_team']
+            away = row['away_team']
+            pick_home = proba >= 0.5
+            pick_team = home if pick_home else away
+            opp_team = away if pick_home else home
+
+            game_context = {
+                'pick_team': pick_team,
+                'opp_team': opp_team,
+                'home_team': home,
+                'away_team': away,
+                'is_pick_home': pick_home,
+                'spread': row.get('spread_home', 0) or 0,
+                'edge': edge,
+                'home_rest': float(row.get('home_rest_days', 1) or 1),
+                'away_rest': float(row.get('away_rest_days', 1) or 1),
+                'home_pace': float(row.get('home_pace', 100) or 100),
+                'away_pace': float(row.get('away_pace', 100) or 100),
+            }
+
+            feat_dict = dict(zip(self.feature_names, feature_row))
+            for key in ('home_form', 'away_form', 'home_win_pct', 'away_win_pct',
+                        'home_home_pct', 'away_away_pct', 'bdl_home_win_pct',
+                        'bdl_away_win_pct'):
+                if key in feat_dict:
+                    game_context[key] = feat_dict[key]
+
+            market_data = {
+                'line_movement': float(row.get('line_movement', 0) or 0),
+                'spread_home_open': row.get('spread_home_open'),
+                'spread_home': float(row.get('spread_home', 0) or 0),
+                'rundown_spread_std': float(row.get('rundown_spread_std', 0) or 0),
+                'rundown_spread_range': row.get('rundown_spread_range', 0),
+                'rundown_num_books': float(row.get('rundown_num_books', 0) or 0),
+                'spread_vs_consensus': feat_dict.get('spread_vs_consensus', 0),
+            }
+
+            bullets = generate_reasoning_bullets(top_features, game_context, market_data)
+            if bullets and len(bullets) == 3 and all(bullets):
+                return bullets
+        except Exception as e:
+            print(f"[reasoning] Fallback for {row.get('home_team', '?')}: {e}")
+
+        return self._generate_explanation(row, proba, confidence, edge, pred_margin)
 
     def _generate_explanation(self, row, proba, confidence, edge, pred_margin=None):
         """Generate exactly 3 structured reasoning bullets from data.
@@ -2561,6 +2669,8 @@ class EnsemblePredictor:
             'margin_mae': getattr(self, 'margin_mae', None),
             'using_fallback_sigma': getattr(self, 'using_fallback_sigma', None),
             'trained_at': datetime.utcnow().isoformat(),
+            'feature_means': getattr(self, 'feature_means', None),
+            'feature_stds': getattr(self, 'feature_stds', None),
         }
         
         with open(filepath, 'wb') as f:
@@ -2589,6 +2699,8 @@ class EnsemblePredictor:
             self.margin_mae = model_data.get('margin_mae', None)
             self.using_fallback_sigma = model_data.get('using_fallback_sigma', None)
             self.trained_at = model_data.get('trained_at', None)
+            self.feature_means = model_data.get('feature_means', None)
+            self.feature_stds = model_data.get('feature_stds', None)
             
             return True
         except:
