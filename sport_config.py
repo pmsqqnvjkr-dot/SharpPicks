@@ -21,7 +21,7 @@ SPORT_CONFIG = {
         'sigma': 11.7,
         'model_weight': 0.45,
         'edge_threshold_pct': 3.5,
-        'max_edge_pct': 15.0,
+        'max_edge_pct': 8.0,
         'margin_std_floor': 8.0,
         'margin_std_ceiling': 15.0,
         'standard_odds': -110,
@@ -54,9 +54,9 @@ SPORT_CONFIG = {
         'model_phase': 'calibration',
 
         'sigma': 10.5,
-        'model_weight': 0.45,
+        'model_weight': 0.35,
         'edge_threshold_pct': 3.5,
-        'max_edge_pct': 15.0,
+        'max_edge_pct': 8.0,
         'margin_std_floor': 7.0,
         'margin_std_ceiling': 13.0,
         'standard_odds': -110,
@@ -90,9 +90,9 @@ SPORT_CONFIG = {
         # Walk-forward raw sigma: 4.4 runs. Previous ceiling of 2.5 inflated
         # z-scores by 1.76x, causing overconfidence in 55-65% buckets.
         'sigma': 4.0,
-        'model_weight': 0.45,
+        'model_weight': 0.30,
         'edge_threshold_pct': 4.5,
-        'max_edge_pct': 15.0,
+        'max_edge_pct': 6.0,
         'margin_std_floor': 3.5,
         'margin_std_ceiling': 5.5,
         'standard_odds': -130,
