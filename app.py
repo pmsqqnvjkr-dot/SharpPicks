@@ -4278,13 +4278,15 @@ def cron_retrain_model():
     """Retrain the model if it's stale (>30 days old). Schedule weekly; it no-ops when fresh."""
     force = request.args.get('force', '').lower() == 'true'
     sync = request.args.get('sync', '').lower() == 'true'
+    only_sport = request.args.get('sport', '').lower() or None
     def _retrain():
         from model import EnsemblePredictor
         import traceback
         results = {}
         sports_with_own_cron = {'mlb'}
-        for sport in get_live_sports():
-            if not force and sport in sports_with_own_cron:
+        target_sports = [only_sport] if only_sport else get_live_sports()
+        for sport in target_sports:
+            if not only_sport and sport in sports_with_own_cron:
                 continue
             try:
                 model = EnsemblePredictor(sport=sport)
