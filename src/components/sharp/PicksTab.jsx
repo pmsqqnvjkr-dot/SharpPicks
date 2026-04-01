@@ -69,6 +69,7 @@ export default function PicksTab({ onNavigate }) {
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const { data: lastResolved } = useApi(sportQuery('/picks/last-resolved', sport), { skip: !isPro });
   const { data: insightsData } = useApi('/insights?limit=3');
+  const { data: allSportsStats } = useApi('/public/stats');
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
   const [resolutionPick, setResolutionPick] = useState(null);
@@ -515,96 +516,95 @@ export default function PicksTab({ onNavigate }) {
         {/* ═══════════════ STATE 4: OFF DAY ═══════════════ */}
         {pageState === 'off-day' && (
           <>
-            {/* Off Day Card */}
+            {/* No games header */}
             <div style={{
-              background: '#0F1424',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '10px',
-              padding: '20px',
-              marginBottom: '20px',
-              textAlign: 'center',
+              fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 700,
+              color: '#E8ECF4', marginBottom: '4px',
+            }}>No games scheduled today.</div>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '12px',
+              color: '#7A8494', marginBottom: '20px',
             }}>
-              <div style={{
-                fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 700,
-                color: '#E8ECF4', marginBottom: '6px',
-              }}>No games scheduled today</div>
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '12px',
-                color: '#7A8494',
-              }}>
-                {todayData?.resume_date
-                  ? `Next ${sportName} slate: ${new Date(todayData.resume_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`
-                  : `Next ${sportName} slate coming soon`}
-              </div>
+              {todayData?.resume_date
+                ? <>Next slate: {new Date(todayData.resume_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}{todayData.next_game_count ? ` \u00B7 ${todayData.next_game_count} games` : ''}</>
+                : `Next ${sportName} slate coming soon`}
             </div>
 
-            {/* YOUR PORTFOLIO */}
-            {stats && (
-              <>
-                <div style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-                  letterSpacing: '0.12em', textTransform: 'uppercase',
-                  color: '#7A8494', marginBottom: '10px',
-                }}>YOUR PORTFOLIO</div>
-                <div style={{
-                  background: '#0F1424',
-                  border: '1px solid rgba(90,158,114,0.12)',
-                  borderRadius: '10px',
-                  padding: '20px',
-                  marginBottom: '20px',
-                }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '16px' }}>
-                    <PortfolioStat value={`${stats.pnl >= 0 ? '+' : ''}${Number(stats.pnl || 0).toFixed(1)}u`} label="UNITS" highlight />
-                    <PortfolioStat value={stats.roi != null ? `${stats.roi >= 0 ? '+' : ''}${stats.roi}%` : '--'} label="ROI" highlight={stats.roi >= 0} />
-                    <PortfolioStat value={stats.record || `${stats.wins || 0}-${stats.losses || 0}`} label="RECORD" />
-                    <PortfolioStat value={stats.selectivity ? `${stats.selectivity}%` : `${Math.round(100 * (stats.total_picks || 0) / Math.max(stats.total_slates || 1, 1))}%`} label="SELECTIVITY" />
-                    <PortfolioStat value={stats.avg_clv != null ? `${stats.avg_clv > 0 ? '+' : ''}${Number(stats.avg_clv).toFixed(1)}` : '--'} label="AVG CLV" highlight={stats.avg_clv > 0} />
-                    <PortfolioStat value={stats.capital_preserved_value ? `$${stats.capital_preserved_value}` : `$${(stats.capital_preserved_days || 0) * 10}`} label="PRESERVED" highlight />
-                  </div>
-                  {/* Mini equity curve placeholder */}
-                  <div style={{
-                    height: 48, borderRadius: 6,
-                    background: 'rgba(90,158,114,0.04)',
-                    display: 'flex', alignItems: 'flex-end', padding: '0 4px 4px',
-                    overflow: 'hidden',
-                  }}>
-                    <MiniEquityCurve stats={stats} />
-                  </div>
-                  <button
-                    onClick={() => onNavigate && onNavigate('performance')}
-                    style={{
-                      display: 'block', width: '100%', marginTop: '12px',
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      fontFamily: 'var(--font-mono)', fontSize: '12px',
-                      color: '#5A9E72', textAlign: 'center',
-                    }}
-                  >View full results &rarr;</button>
-                </div>
-              </>
-            )}
-
-            {/* NEXT SLATE */}
-            {todayData?.resume_date && (
-              <div style={{
-                background: '#0F1424',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '10px',
-                padding: '16px 18px',
-                marginBottom: '16px',
-              }}>
-                <div style={{
-                  fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700,
-                  color: '#E8ECF4', marginBottom: '4px',
-                }}>NEXT SLATE</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#7A8494', lineHeight: 1.5 }}>
-                  {new Date(todayData.resume_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                  {todayData.next_game_count ? ` \u00B7 ${todayData.next_game_count} games scheduled` : ''}
-                </div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#7A8494' }}>
-                  Model runs at 10:00 AM ET
-                </div>
+            {/* SEASON SNAPSHOT */}
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              color: '#7A8494', marginBottom: '10px',
+            }}>SEASON SNAPSHOT</div>
+            <div style={{
+              background: '#0F1424',
+              border: '1px solid rgba(90,158,114,0.12)',
+              borderRadius: '10px',
+              padding: '20px',
+              marginBottom: '16px',
+            }}>
+              {/* Per-sport stat lines */}
+              <div style={{ marginBottom: '16px' }}>
+                {(() => {
+                  const sportStats = stats || allSportsStats;
+                  const lines = [
+                    { key: sport, data: sportStats },
+                  ];
+                  return lines.map(({ key, data }) => {
+                    if (!data) return null;
+                    const picks = data.total_picks || 0;
+                    const wr = data.win_rate || 0;
+                    const clv = data.avg_clv;
+                    const phase = data.model_phase;
+                    return (
+                      <div key={key} style={{
+                        fontFamily: 'var(--font-mono)', fontSize: '12px',
+                        color: '#E8ECF4', lineHeight: 1.8,
+                      }}>
+                        <span style={{ fontWeight: 700, color: '#5A9E72' }}>{key.toUpperCase()}</span>
+                        <span style={{ color: '#7A8494' }}>:</span>{' '}
+                        {picks} signal{picks !== 1 ? 's' : ''} &middot; {wr}% win rate &middot;{' '}
+                        {phase === 'calibration'
+                          ? <span style={{ color: '#D4A843' }}>calibrating</span>
+                          : clv != null
+                            ? <span style={{ color: clv > 0 ? '#5A9E72' : '#7A8494' }}>{clv > 0 ? '+' : ''}{Number(clv).toFixed(1)} avg CLV</span>
+                            : <span style={{ color: '#7A8494' }}>--</span>
+                        }
+                      </div>
+                    );
+                  });
+                })()}
               </div>
-            )}
+
+              {/* Stat grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                <PortfolioStat value={`${(stats?.pnl || 0) >= 0 ? '+' : ''}${Number(stats?.pnl || 0).toFixed(1)}u`} label="UNITS" highlight />
+                <PortfolioStat value={stats?.record || `${stats?.wins || 0}-${stats?.losses || 0}`} label="RECORD" />
+                <PortfolioStat value={stats?.selectivity ? `${stats.selectivity}%` : '--'} label="SELECTIVITY" />
+              </div>
+
+              {/* Mini equity curve */}
+              {stats && (
+                <div style={{
+                  height: 48, borderRadius: 6,
+                  background: 'rgba(90,158,114,0.04)',
+                  display: 'flex', alignItems: 'flex-end', padding: '0 4px 4px',
+                  overflow: 'hidden',
+                }}>
+                  <MiniEquityCurve stats={stats} />
+                </div>
+              )}
+
+              <button
+                onClick={() => onNavigate && onNavigate('performance')}
+                style={{
+                  display: 'block', width: '100%', marginTop: '12px',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontFamily: 'var(--font-mono)', fontSize: '12px',
+                  color: '#5A9E72', textAlign: 'center',
+                }}
+              >View full results &rarr;</button>
+            </div>
 
             {/* Cross-Sport Nudge */}
             {otherSports.map(otherSport => {
@@ -639,7 +639,7 @@ export default function PicksTab({ onNavigate }) {
                   letterSpacing: '0.12em', textTransform: 'uppercase',
                   color: '#7A8494', marginTop: '8px', marginBottom: '10px',
                 }}>CATCH UP</div>
-                {insightsData.insights.slice(0, 3).map((article, i) => (
+                {insightsData.insights.slice(0, 2).map((article, i) => (
                   <button
                     key={i}
                     onClick={() => onNavigate && onNavigate('insights', null, { initialInsight: article })}
@@ -656,7 +656,6 @@ export default function PicksTab({ onNavigate }) {
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#7A8494' }}>
                       {article.read_time ? `${article.read_time} min read` : '4 min read'}
                       {article.category ? ` \u00B7 ${article.category}` : ''}
-                      {article.author ? ` \u00B7 ${article.author}` : ''}
                     </div>
                   </button>
                 ))}
@@ -672,6 +671,34 @@ export default function PicksTab({ onNavigate }) {
             preModel={pageState === 'pre-model'}
             onGameCount={setGameInfo}
           />
+        )}
+
+        {/* Pre-model: Journal article while waiting */}
+        {pageState === 'pre-model' && insightsData?.insights?.length > 0 && (
+          <div style={{ marginTop: '20px' }}>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              color: '#7A8494', marginBottom: '10px',
+            }}>WHILE YOU WAIT</div>
+            <button
+              onClick={() => onNavigate && onNavigate('insights', null, { initialInsight: insightsData.insights[0] })}
+              style={{
+                width: '100%', padding: '14px 16px',
+                background: '#0F1424',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '10px', cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494', marginBottom: '6px' }}>SHARP JOURNAL</div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600, color: '#E8ECF4', lineHeight: 1.4, marginBottom: '4px' }}>{insightsData.insights[0].title}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#7A8494' }}>
+                {insightsData.insights[0].read_time ? `${insightsData.insights[0].read_time} min read` : '4 min read'}
+                {insightsData.insights[0].category ? ` \u00B7 ${insightsData.insights[0].category}` : ''}
+              </div>
+            </button>
+          </div>
         )}
 
         {/* Portfolio Context Line (pick & pass days) */}
