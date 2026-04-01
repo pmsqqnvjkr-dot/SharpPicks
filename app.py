@@ -4277,30 +4277,41 @@ def cron_data_quality():
 def cron_retrain_model():
     """Retrain the model if it's stale (>30 days old). Schedule weekly; it no-ops when fresh."""
     force = request.args.get('force', '').lower() == 'true'
+    sync = request.args.get('sync', '').lower() == 'true'
     def _retrain():
         from model import EnsemblePredictor
+        import traceback
         results = {}
         sports_with_own_cron = {'mlb'}
         for sport in get_live_sports():
             if not force and sport in sports_with_own_cron:
                 continue
-            model = EnsemblePredictor(sport=sport)
-            model.load_model()
-            age = model.model_age_days()
-            if not force and not model.is_stale():
+            try:
+                model = EnsemblePredictor(sport=sport)
+                model.load_model()
+                age = model.model_age_days()
+                if not force and not model.is_stale():
+                    results[sport] = {
+                        'status': 'fresh',
+                        'age_days': age,
+                        'threshold_days': model.MODEL_STALE_DAYS,
+                    }
+                    continue
+                model.train()
+                model.save()
                 results[sport] = {
-                    'status': 'fresh',
-                    'age_days': age,
-                    'threshold_days': model.MODEL_STALE_DAYS,
+                    'status': 'retrained',
+                    'previous_age_days': age,
                 }
-                continue
-            model.train()
-            model.save()
-            results[sport] = {
-                'status': 'retrained',
-                'previous_age_days': age,
-            }
+            except Exception as e:
+                results[sport] = {
+                    'status': 'error',
+                    'error': str(e),
+                    'traceback': traceback.format_exc()[-500:],
+                }
         return results
+    if sync:
+        return log_cron('retrain_model', _retrain, skip_throttle=force)
     return log_cron_async('retrain_model', _retrain, skip_throttle=force)
 
 
