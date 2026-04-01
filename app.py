@@ -3414,22 +3414,30 @@ def cron_model_audit():
                 filepath = model._default_filepath()
                 file_size = round(os.path.getsize(filepath) / 1024, 1) if os.path.exists(filepath) else 0
 
+                def _safe(v):
+                    import numpy as np
+                    if isinstance(v, (np.bool_, np.integer)):
+                        return int(v)
+                    if isinstance(v, np.floating):
+                        return float(v)
+                    return v
+
                 info = {
-                    'trained': model.trained,
+                    'trained': bool(model.trained),
                     'file_size_kb': file_size,
                     'n_models': len(model.models),
                     'model_names': list(model.models.keys()),
                     'n_features': len(model.feature_names),
-                    'margin_std': getattr(model, 'margin_std', None),
-                    'margin_mae': getattr(model, 'margin_mae', None),
-                    'using_fallback_sigma': getattr(model, 'using_fallback_sigma', None),
+                    'margin_std': _safe(getattr(model, 'margin_std', None)),
+                    'margin_mae': _safe(getattr(model, 'margin_mae', None)),
+                    'using_fallback_sigma': bool(getattr(model, 'using_fallback_sigma', False)),
                     'trained_at': getattr(model, 'trained_at', None),
-                    'edge_threshold': model.edge_threshold_pct,
-                    'max_edge': model.max_edge_pct,
-                    'model_weight': model.model_weight,
-                    'sigma_config': model.margin_std_dev,
-                    'sigma_floor': model.margin_std_floor,
-                    'sigma_ceiling': model.margin_std_ceiling,
+                    'edge_threshold': float(model.edge_threshold_pct),
+                    'max_edge': float(model.max_edge_pct),
+                    'model_weight': float(model.model_weight),
+                    'sigma_config': float(model.margin_std_dev),
+                    'sigma_floor': float(model.margin_std_floor),
+                    'sigma_ceiling': float(model.margin_std_ceiling),
                 }
 
                 if model.trained and predict:
