@@ -1060,13 +1060,33 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
           </div>
         )}
 
-        {/* No signal issued label for final non-signal games */}
-        {isFinal && !hasSignal && !pickResult && (
-          <div style={{
-            marginTop: 8, textAlign: 'center',
-            fontFamily: mono, fontSize: '10px', color: grayBorder,
-          }}>No signal issued</div>
-        )}
+        {/* Final non-signal: "would have covered" for edge games, plain label otherwise */}
+        {isFinal && !hasSignal && !pickResult && (() => {
+          if (hasSignalEdge && game.model?.pick && game.away_score != null && game.home_score != null) {
+            const pickStr = game.model.pick;
+            const isHomePick = pickStr.toLowerCase().includes(game.home?.toLowerCase()?.split(' ').pop() || '____');
+            const pickSpread = isHomePick ? parseFloat(game.spread_home || 0) : parseFloat(game.spread_away || 0);
+            const pickScore = isHomePick ? game.home_score : game.away_score;
+            const oppScore = isHomePick ? game.away_score : game.home_score;
+            const margin = pickScore - oppScore + pickSpread;
+            const covered = margin > 0;
+            return (
+              <div style={{
+                marginTop: 8, textAlign: 'center',
+                fontFamily: mono, fontSize: '10px', color: covered ? 'rgba(90,158,114,0.7)' : grayBorder,
+                lineHeight: 1.5,
+              }}>
+                {covered ? 'Would have covered.' : 'Would not have covered.'} Edge was real but below signal threshold.
+              </div>
+            );
+          }
+          return (
+            <div style={{
+              marginTop: 8, textAlign: 'center',
+              fontFamily: mono, fontSize: '10px', color: grayBorder,
+            }}>No signal issued</div>
+          );
+        })()}
       </div>
 
       {/* Expanded quant analysis — Pro only */}
@@ -1722,5 +1742,224 @@ export default function MarketView({ onBack }) {
       <LineHistoryModal game={lineHistoryGame} onClose={() => setLineHistoryGame(null)} />
     )}
     </PullToRefresh>
+  );
+}
+
+export function GameSlate({ preModel = false, onGameCount }) {
+  const { user } = useAuth();
+  const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
+  const { sport } = useSport();
+  const { data, loading, refetch: refetchMarket } = useApi(sportQuery('/picks/market', sport));
+  const { data: watchedData, refetch: refetchWatched } = useApi(sportQuery('/picks/watched', sport));
+  const [filter, setFilter] = useState('All');
+  const [sort, setSort] = useState('time');
+  const [autoSorted, setAutoSorted] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+  const [liveScores, setLiveScores] = useState({});
+  const [watchedIds, setWatchedIds] = useState(new Set());
+  const [lineHistoryGame, setLineHistoryGame] = useState(null);
+
+  useEffect(() => { setLiveScores({}); }, [sport]);
+
+  const rawGames = data?.games || [];
+
+  useEffect(() => {
+    if (watchedData?.game_ids) setWatchedIds(new Set(watchedData.game_ids));
+  }, [watchedData]);
+
+  useEffect(() => {
+    if (isPro && !autoSorted && !loading && rawGames.length > 0 && rawGames.some(g => g.model)) {
+      setSort('edge');
+      setAutoSorted(true);
+    }
+  }, [isPro, loading, rawGames, autoSorted]);
+
+  const fetchLiveScores = useCallback(async () => {
+    try {
+      const resp = await fetch(`${MV_API_BASE}/api/picks/live-scores?sport=${sport}`);
+      const json = await resp.json();
+      if (json.scores) {
+        const map = {};
+        json.scores.forEach(s => { map[normalizeTeam(s.home)] = s; });
+        setLiveScores(map);
+      }
+    } catch { /* silent */ }
+  }, [sport]);
+
+  const games = useMemo(() => {
+    let merged = rawGames.map(g => {
+      const baseStatus = g.status === 'in_progress' ? 'live' : (g.status || 'scheduled');
+      return { ...g, status: baseStatus };
+    });
+    if (Object.keys(liveScores).length > 0) {
+      merged = merged.map(g => {
+        const key = normalizeTeam(g.home);
+        const live = liveScores[key];
+        if (!live) return g;
+        const isLive = live.state === 'STATUS_IN_PROGRESS' || live.state === 'STATUS_HALFTIME';
+        const isFinal = live.state === 'STATUS_FINAL';
+        const updated = { ...g };
+        if (live.home_record && (!g.home_record || g.home_record === 'N/A')) updated.home_record = live.home_record;
+        if (live.away_record && (!g.away_record || g.away_record === 'N/A')) updated.away_record = live.away_record;
+        if (!isLive && !isFinal) return updated;
+        return { ...updated, home_score: live.home_score, away_score: live.away_score, status: isFinal ? 'final' : 'live', live_clock: live.clock, live_period: live.period, live_state: live.state };
+      });
+    }
+    return merged;
+  }, [rawGames, liveScores]);
+
+  const hasLive = games.some(g => g.status === 'live');
+  const hasModelData = games.some(g => g.model);
+
+  useEffect(() => { fetchLiveScores(); }, [fetchLiveScores]);
+  useEffect(() => {
+    if (!hasLive) return;
+    const interval = setInterval(fetchLiveScores, 15000);
+    return () => clearInterval(interval);
+  }, [hasLive, fetchLiveScores]);
+
+  useEffect(() => {
+    if (onGameCount && !loading) {
+      const edgeCount = games.filter(g => g.model && g.model.edge > 0).length;
+      const signalCount = games.filter(g => g.model && g.model.passes).length;
+      onGameCount({ total: games.length, edges: edgeCount, signals: signalCount, hasModel: hasModelData, date: data?.date });
+    }
+  }, [games, loading, hasModelData, data?.date]);
+
+  const gamesForDisplay = useMemo(() => {
+    if (preModel) return games.map(g => ({ ...g, model: null }));
+    return games;
+  }, [games, preModel]);
+
+  const filtered = useMemo(() => {
+    if (filter === 'All') return gamesForDisplay;
+    if (filter === 'Live') return gamesForDisplay.filter(g => g.status === 'live');
+    if (filter === 'Edges') return gamesForDisplay.filter(g => g.model && g.model.edge > 0);
+    if (filter === 'Upcoming') return gamesForDisplay.filter(g => g.status === 'scheduled');
+    if (filter === 'Final') return gamesForDisplay.filter(g => g.status === 'final');
+    if (filter === 'Passed') return gamesForDisplay.filter(g => g.model && !g.model.passes);
+    return gamesForDisplay;
+  }, [gamesForDisplay, filter]);
+
+  const sorted = useMemo(() => sortGames(filtered, sort), [filtered, sort]);
+
+  const stateSorted = useMemo(() => ({
+    finals: sorted.filter(g => g.status === 'final'),
+    live: sorted.filter(g => g.status === 'live'),
+    upcoming: sorted.filter(g => g.status === 'scheduled'),
+  }), [sorted]);
+
+  const handleToggle = (id) => setExpandedId(prev => prev === id ? null : id);
+
+  const handleWatch = async (game) => {
+    try {
+      const resp = await fetch(`${MV_API_BASE}/api/picks/watch`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ game_id: game.id, game_date: data?.date, home: game.home, away: game.away, spread_home: game.spread_home, sport }),
+      });
+      const result = await resp.json();
+      setWatchedIds(prev => { const next = new Set(prev); if (result.watching) next.add(game.id); else next.delete(game.id); return next; });
+    } catch { /* silent */ }
+  };
+
+  const filterTabs = preModel ? ['All', 'Upcoming', 'Final'] : (hasLive ? ['All', 'Edges', 'Upcoming', 'Live', 'Final'] : ['All', 'Edges', 'Upcoming', 'Final']);
+
+  if (loading) {
+    return (
+      <div>
+        {[1,2,3].map(i => (
+          <div key={i} style={{ padding: '14px 16px', marginBottom: '8px', backgroundColor: '#0F1424', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ width: '45%', height: '14px', borderRadius: '6px', background: 'linear-gradient(90deg, #141A2E 25%, rgba(255,255,255,0.06) 50%, #141A2E 75%)', backgroundSize: '200% 100%', animation: 'mktShimmer 1.8s ease-in-out infinite' }} />
+              <div style={{ width: '20%', height: '14px', borderRadius: '6px', background: 'linear-gradient(90deg, #141A2E 25%, rgba(255,255,255,0.06) 50%, #141A2E 75%)', backgroundSize: '200% 100%', animation: 'mktShimmer 1.8s ease-in-out infinite' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {[1,2,3,4].map(j => (<div key={j} style={{ flex: 1, height: '32px', borderRadius: '6px', background: 'linear-gradient(90deg, #141A2E 25%, rgba(255,255,255,0.06) 50%, #141A2E 75%)', backgroundSize: '200% 100%', animation: 'mktShimmer 1.8s ease-in-out infinite' }} />))}
+            </div>
+          </div>
+        ))}
+        <style>{`@keyframes mktShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }`}</style>
+      </div>
+    );
+  }
+
+  if (games.length === 0) return null;
+
+  return (
+    <div>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {filterTabs.map(tab => {
+              const isActive = filter === tab;
+              return (
+                <button key={tab} onClick={() => setFilter(tab)} style={{
+                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
+                  fontSize: '11px', fontWeight: 500,
+                  padding: '10px 16px', minHeight: '40px', borderRadius: 6, cursor: 'pointer',
+                  border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.06)',
+                  background: isActive ? '#141A2E' : 'transparent',
+                  color: isActive ? '#E8ECF4' : '#7A8494',
+                }}>{tab}</button>
+              );
+            })}
+          </div>
+        </div>
+        {!preModel && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <SortPicker active={sort} onChange={setSort} isPro={isPro} sport={sport} />
+          </div>
+        )}
+      </div>
+
+      {sorted.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <div style={{ fontSize: '13px', color: '#7A8494' }}>
+            {filter === 'Edges' ? 'No edges detected' : `No ${filter.toLowerCase()} games`}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {(stateSorted.finals.length > 0 || stateSorted.live.length > 0) ? (
+            <>
+              {stateSorted.finals.length > 0 && (
+                <>
+                  <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568', padding: '8px 2px 4px' }}>FINAL</div>
+                  {stateSorted.finals.map(g => (
+                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} />
+                  ))}
+                </>
+              )}
+              {stateSorted.live.length > 0 && (
+                <>
+                  <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: '#5A9E72', padding: '8px 2px 4px' }}>LIVE</div>
+                  {stateSorted.live.map(g => (
+                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} />
+                  ))}
+                </>
+              )}
+              {stateSorted.upcoming.length > 0 && (
+                <>
+                  <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568', padding: '8px 2px 4px' }}>UPCOMING</div>
+                  {stateSorted.upcoming.map(g => (
+                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} />
+                  ))}
+                </>
+              )}
+            </>
+          ) : (
+            sorted.map(g => (
+              <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} />
+            ))
+          )}
+        </div>
+      )}
+
+      <p style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', color: '#7A8494', textAlign: 'center', marginTop: 20, lineHeight: 1.6 }}>
+        Lines sourced from DraftKings, FanDuel, BetMGM, Caesars, PointsBet, BetRivers. Best available shown.
+      </p>
+
+      {lineHistoryGame && <LineHistoryModal game={lineHistoryGame} onClose={() => setLineHistoryGame(null)} />}
+    </div>
   );
 }

@@ -12,7 +12,6 @@ const NATIVE_API = Capacitor.isNativePlatform() ? PROD_URL : '';
 import TabNav from '../components/sharp/TabNav';
 import AppHeader from '../components/sharp/AppHeader';
 import PicksTab from '../components/sharp/PicksTab';
-import MarketView from '../components/sharp/MarketView';
 import InsightsTab from '../components/sharp/InsightsTab';
 import PerformanceTab from '../components/sharp/PerformanceTab';
 import ProfileTab from '../components/sharp/ProfileTab';
@@ -160,7 +159,7 @@ function AppContent() {
   const [initialInsight, setInitialInsight] = useState(null);
 
   useEffect(() => {
-    const tabToPage = { picks: '/picks', market: '/market-scan', insights: '/journal', performance: '/performance', profile: '/profile' };
+    const tabToPage = { picks: '/picks', insights: '/journal', performance: '/performance', profile: '/profile' };
     trackPageView(tabToPage[activeTab] || `/${activeTab}`);
   }, [activeTab]);
 
@@ -468,7 +467,6 @@ function AppContent() {
       )}
       <div style={{ flex: 1, paddingBottom: '60px', overflowY: 'auto' }}>
         {activeTab === 'picks' && <PicksTab key={picksResetKey} onNavigate={navigateTo} />}
-        {activeTab === 'market' && <MarketView onBack={() => setActiveTab('picks')} />}
         {activeTab === 'insights' && <InsightsTab onNavigate={navigateTo} initialInsight={initialInsight} onInitialInsightConsumed={() => setInitialInsight(null)} />}
         {activeTab === 'performance' && <PerformanceTab onNavigate={navigateTo} initialView={perfView} onViewConsumed={() => setPerfView(null)} />}
         {activeTab === 'profile' && <ProfileTab initialScreen={profileScreen} onScreenChange={setProfileScreen} pickToTrack={pickToTrack} onPickTracked={() => setPickToTrack(null)} screenData={profileScreenData} />}
