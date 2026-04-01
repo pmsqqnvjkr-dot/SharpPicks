@@ -4328,21 +4328,25 @@ def cron_retrain_model():
                         'threshold_days': model.MODEL_STALE_DAYS,
                     }
                     continue
-                df = model.load_data()
-                n_rows = len(df)
+                logging.info(f"[retrain] {sport}: starting train (force={force})")
                 train_result = model.train()
                 filepath = model._default_filepath()
-                model.save()
-                import os as _os
-                file_size_kb = round(_os.path.getsize(filepath) / 1024, 1) if _os.path.exists(filepath) else 0
+                if not model.trained:
+                    results[sport] = {
+                        'status': 'train_failed',
+                        'previous_age_days': age,
+                        'train_returned': train_result,
+                        'trained_flag': model.trained,
+                    }
+                    continue
+                file_size_kb = round(os.path.getsize(filepath) / 1024, 1) if os.path.exists(filepath) else 0
                 results[sport] = {
                     'status': 'retrained',
                     'previous_age_days': age,
-                    'training_rows': n_rows,
-                    'train_returned': train_result,
-                    'model_trained_flag': model.trained,
+                    'trained_flag': model.trained,
                     'n_models': len(model.models),
                     'file_size_kb': file_size_kb,
+                    'n_features': len(model.feature_names),
                 }
             except Exception as e:
                 results[sport] = {
