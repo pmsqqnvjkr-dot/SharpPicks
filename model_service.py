@@ -6,6 +6,7 @@ This service only: runs the model, reads outputs, stores to DB.
 """
 
 import json
+import logging
 import os
 import time
 import sqlite3
@@ -869,4 +870,5 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                 }
 
         except Exception as e:
+            logging.error(f"[{sport.upper()}] run_model_and_log failed: {e}", exc_info=True)
             return {'status': 'error', 'error': str(e), 'date': today_str}

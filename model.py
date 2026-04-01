@@ -1412,11 +1412,12 @@ class EnsemblePredictor:
             
             home_spread_book = row.get('home_spread_book', None)
             away_spread_book = row.get('away_spread_book', None)
+            sport_default_odds = self.cfg.get('standard_odds', STANDARD_ODDS)
             if pick_side == 'home':
-                market_odds = int(home_spread_odds) if home_spread_odds is not None and not pd.isna(home_spread_odds) else STANDARD_ODDS
+                market_odds = int(home_spread_odds) if home_spread_odds is not None and not pd.isna(home_spread_odds) else sport_default_odds
                 best_book = home_spread_book if home_spread_book is not None and not (isinstance(home_spread_book, float) and pd.isna(home_spread_book)) else 'DraftKings'
             else:
-                market_odds = int(away_spread_odds) if away_spread_odds is not None and not pd.isna(away_spread_odds) else STANDARD_ODDS
+                market_odds = int(away_spread_odds) if away_spread_odds is not None and not pd.isna(away_spread_odds) else sport_default_odds
                 best_book = away_spread_book if away_spread_book is not None and not (isinstance(away_spread_book, float) and pd.isna(away_spread_book)) else 'DraftKings'
             
             implied_prob = odds_to_implied_prob(market_odds)
@@ -1477,7 +1478,8 @@ class EnsemblePredictor:
                 pass_reason = f"Extreme line movement ({line_move_against:+.1f}pts against) — auto-pass unless edge >= {LINE_MOVE_HARD_STOP_MIN_EDGE}%"
             
             spread_abs = abs(spread) if spread is not None else 0
-            required_edge = get_edge_threshold_for_spread(spread_abs)
+            from sport_config import get_edge_threshold_for_spread as sport_edge_threshold
+            required_edge = sport_edge_threshold(spread_abs, self.sport)
             if adjusted_edge < required_edge:
                 if spread_abs >= 11:
                     fail_reasons.append(f'spread_too_large ({spread_abs:.1f}, need {required_edge}% edge)')
@@ -2703,7 +2705,9 @@ class EnsemblePredictor:
             self.feature_stds = model_data.get('feature_stds', None)
             
             return True
-        except:
+        except Exception as e:
+            import logging
+            logging.error(f"[{self.sport.upper()}] Model load failed from {filepath}: {e}", exc_info=True)
             return False
     
     MODEL_STALE_DAYS = 30

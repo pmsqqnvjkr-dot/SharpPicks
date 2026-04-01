@@ -1800,6 +1800,14 @@ export function GameSlate({ preModel = false, onGameCount }) {
     }
   }, [isPro, loading, rawGames, autoSorted]);
 
+  const isToday = useMemo(() => {
+    if (!data?.date) return true;
+    const now = new Date();
+    const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const todayStr = `${et.getFullYear()}-${String(et.getMonth() + 1).padStart(2, '0')}-${String(et.getDate()).padStart(2, '0')}`;
+    return data.date === todayStr;
+  }, [data?.date]);
+
   const fetchLiveScores = useCallback(async () => {
     try {
       const resp = await fetch(`${MV_API_BASE}/api/picks/live-scores?sport=${sport}`);
@@ -1854,14 +1862,6 @@ export function GameSlate({ preModel = false, onGameCount }) {
       onGameCount({ total: games.length, edges: edgeCount, signals: signalCount, hasModel: hasModelData, date: data?.date });
     }
   }, [games, loading, hasModelData, data?.date]);
-
-  const isToday = useMemo(() => {
-    if (!data?.date) return true;
-    const now = new Date();
-    const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const todayStr = `${et.getFullYear()}-${String(et.getMonth() + 1).padStart(2, '0')}-${String(et.getDate()).padStart(2, '0')}`;
-    return data.date === todayStr;
-  }, [data?.date]);
 
   const gamesForDisplay = useMemo(() => {
     let list = preModel ? games.map(g => ({ ...g, model: null })) : games;
