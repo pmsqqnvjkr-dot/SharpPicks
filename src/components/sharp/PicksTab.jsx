@@ -643,26 +643,37 @@ export default function PicksTab({ onNavigate }) {
                   letterSpacing: '0.12em', textTransform: 'uppercase',
                   color: '#7A8494', marginTop: '8px', marginBottom: '10px',
                 }}>CATCH UP</div>
-                {insightsData.insights.slice(0, 2).map((article, i) => (
-                  <button
-                    key={i}
-                    onClick={() => onNavigate && onNavigate('insights', null, { initialInsight: article })}
-                    style={{
-                      width: '100%', padding: '14px 16px', marginBottom: '8px',
-                      background: '#0F1424',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '10px', cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494', marginBottom: '6px' }}>SHARP JOURNAL</div>
-                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600, color: '#E8ECF4', lineHeight: 1.4, marginBottom: '4px' }}>{article.title}</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#7A8494' }}>
-                      {article.read_time ? `${article.read_time} min read` : '4 min read'}
-                      {article.category ? ` \u00B7 ${article.category}` : ''}
-                    </div>
-                  </button>
-                ))}
+                {insightsData.insights.slice(0, 2).map((article, i) => {
+                  const catLabels = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Founder Notes' };
+                  const catLabel = catLabels[article.category] || article.category || 'Journal';
+                  return (
+                    <button
+                      key={article.id || i}
+                      onClick={() => onNavigate && onNavigate('insights', null, { insight: article })}
+                      style={{
+                        width: '100%', padding: '16px', marginBottom: '8px',
+                        background: '#0F1424',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '12px', cursor: 'pointer',
+                        textAlign: 'left', display: 'block',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                        <span style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                          letterSpacing: '0.05em', textTransform: 'uppercase',
+                          color: '#4F86F7', backgroundColor: 'rgba(79,134,247,0.1)',
+                          padding: '3px 8px', borderRadius: '4px',
+                        }}>{catLabel}</span>
+                        <span style={{ fontSize: '10px', color: '#616A8A', fontFamily: 'var(--font-mono)' }}>&middot;</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#616A8A' }}>
+                          {article.reading_time_minutes || article.read_time || 4} min
+                        </span>
+                      </div>
+                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600, color: '#E8ECF4', lineHeight: 1.4 }}>{article.title}</div>
+                    </button>
+                  );
+                })}
               </>
             )}
           </>
@@ -677,26 +688,39 @@ export default function PicksTab({ onNavigate }) {
               letterSpacing: '0.12em', textTransform: 'uppercase',
               color: '#7A8494', marginBottom: '10px',
             }}>{pageState === 'pre-model' ? 'WHILE YOU WAIT' : 'RECOMMENDED READS'}</div>
-            {insightsData.insights.slice(0, 2).map((article, i) => (
-              <button
-                key={i}
-                onClick={() => onNavigate && onNavigate('insights', null, { initialInsight: article })}
-                style={{
-                  width: '100%', padding: '14px 16px', marginBottom: '8px',
-                  background: '#0F1424',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: '10px', cursor: 'pointer',
-                  textAlign: 'left',
-                }}
-              >
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494', marginBottom: '6px' }}>SHARP JOURNAL</div>
-                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600, color: '#E8ECF4', lineHeight: 1.4, marginBottom: '4px' }}>{article.title}</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#7A8494' }}>
-                  {article.read_time ? `${article.read_time} min read` : '4 min read'}
-                  {article.category ? ` \u00B7 ${article.category}` : ''}
-                </div>
-              </button>
-            ))}
+            {insightsData.insights.slice(0, 2).map((article, i) => {
+              const catLabels = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Founder Notes' };
+              const catLabel = catLabels[article.category] || article.category || 'Journal';
+              return (
+                <button
+                  key={article.id || i}
+                  onClick={() => {
+                    if (onNavigate) onNavigate('insights', null, { insight: article });
+                  }}
+                  style={{
+                    width: '100%', padding: '16px', marginBottom: '8px',
+                    background: '#0F1424',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '12px', cursor: 'pointer',
+                    textAlign: 'left', display: 'block',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                      letterSpacing: '0.05em', textTransform: 'uppercase',
+                      color: '#4F86F7', backgroundColor: 'rgba(79,134,247,0.1)',
+                      padding: '3px 8px', borderRadius: '4px',
+                    }}>{catLabel}</span>
+                    <span style={{ fontSize: '10px', color: '#616A8A', fontFamily: 'var(--font-mono)' }}>&middot;</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#616A8A' }}>
+                      {article.reading_time_minutes || article.read_time || 4} min
+                    </span>
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600, color: '#E8ECF4', lineHeight: 1.4 }}>{article.title}</div>
+                </button>
+              );
+            })}
           </div>
         )}
 
