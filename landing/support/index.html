@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" style="background:#0c1018;color-scheme:dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0c1018">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>SharpPicks — Support</title>
+<meta name="description" content="Get help with your SharpPicks account, billing, or technical questions.">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--navy:#0c1018;--navy-mid:#111827;--border:#1e2a3a;--border-light:#2a3654;--text-primary:#e8eaf0;--text-secondary:#9098b3;--text-tertiary:#616a8a;--text-dim:#4a5274;--green:#5A9E72;--green-dim:rgba(90,158,114,.10);--serif:'IBM Plex Serif',Georgia,serif;--sans:'Inter',-apple-system,sans-serif;--mono:'JetBrains Mono','Menlo',monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;background:#0c1018 !important}
+body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,16,24,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(16px,4vw,48px)}
+.css-wm{display:inline-flex;align-items:center;font-family:var(--mono);font-weight:500;letter-spacing:.2em;color:#fff;line-height:1;white-space:nowrap;user-select:none;text-decoration:none}
+.css-wm .wm-bars{display:inline-flex;flex-direction:column;align-items:center;flex-shrink:0}
+.css-wm .wm-bars-row{display:inline-flex}
+.css-wm .wm-bar{display:inline-block;background:currentColor}
+.css-wm .wm-ul{display:inline-block;background:var(--green);border-radius:1px}
+.nav-r{display:flex;gap:8px;align-items:center}
+.b{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:8px 18px;border-radius:6px;text-decoration:none;cursor:pointer;transition:all .2s;border:none;display:inline-block}
+.b.gh{color:var(--text-secondary);background:none;border:1px solid var(--border)}
+.b.gh:hover{color:var(--text-primary);border-color:var(--border-light)}
+.b.gr{color:#fff;background:var(--green)}
+.b.gr:hover{background:#4e8c64}
+
+.ph{padding:120px 24px 48px;text-align:center;position:relative}
+.ph::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 600px 400px at 50% 60%,rgba(90,158,114,.04),transparent);pointer-events:none}
+.ph h1{font-family:var(--serif);font-size:clamp(28px,5vw,42px);font-weight:500;margin-bottom:12px}
+.ph p{font-size:15px;color:var(--text-secondary);max-width:480px;margin:0 auto;line-height:1.6}
+
+.content{max-width:720px;margin:0 auto;padding:0 24px 80px}
+
+.contact{background:var(--navy-mid);border:1px solid var(--border);border-radius:12px;padding:32px 28px;margin-bottom:56px;text-align:center}
+.contact h2{font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:12px}
+.contact p{font-size:14px;color:var(--text-secondary);margin-bottom:20px;line-height:1.6}
+.c-email{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:14px;color:var(--green);text-decoration:none;background:var(--green-dim);border:1px solid rgba(90,158,114,.18);padding:12px 24px;border-radius:8px;transition:all .2s}
+.c-email:hover{background:rgba(90,158,114,.16)}
+.c-note{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:12px}
+
+.faq-h{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:32px}
+.faq{border-bottom:1px solid var(--border)}
+.faq:first-of-type{border-top:1px solid var(--border)}
+.faq-q{width:100%;display:flex;justify-content:space-between;align-items:center;padding:20px 0;font-family:var(--serif);font-size:16px;font-weight:500;color:var(--text-primary);background:none;border:none;cursor:pointer;text-align:left;gap:16px;transition:color .2s}
+.faq-q:hover{color:var(--green)}
+.faq-i{font-family:var(--mono);font-size:18px;color:var(--text-dim);flex-shrink:0;transition:transform .25s ease,color .2s;line-height:1}
+.faq.open .faq-i{transform:rotate(45deg);color:var(--green)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.faq.open .faq-a{max-height:400px}
+.faq-a-in{padding:0 0 20px;font-size:14px;line-height:1.75;color:var(--text-secondary)}
+
+footer{border-top:1px solid var(--border);padding:48px 24px;text-align:center;margin-top:56px}
+.f-wm{margin-bottom:6px}
+.f-tg{font-size:12px;color:var(--text-dim);margin-bottom:12px}
+.f-d{font-size:11px;color:var(--text-dim);max-width:480px;margin:0 auto 16px;line-height:1.6}
+.f-l{display:flex;justify-content:center;gap:20px}
+.f-l a{font-family:var(--mono);font-size:11px;color:var(--text-dim);text-decoration:none;transition:color .2s}
+.f-l a:hover{color:var(--text-secondary)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="css-wm" style="font-size:15px"><span style="margin-right:5.25px">SHARP</span><span class="wm-bars" style="gap:2.25px"><span class="wm-bars-row" style="gap:1.8px"><span class="wm-bar" style="width:2px;height:18.75px;border-radius:1.2px"></span><span class="wm-bar" style="width:2px;height:18.75px;border-radius:1.2px"></span></span><span class="wm-ul" style="width:5.8px;height:1.5px"></span></span><span style="margin-left:6.75px">PICKS</span></a>
+  <div class="nav-r">
+    <a href="https://app.sharppicks.ai/login" class="b gh">Sign In</a>
+    <a href="https://app.sharppicks.ai/signup?plan=annual" class="b gr">Try Free for 14 Days</a>
+  </div>
+</nav>
+
+<div class="ph"><h1>Support</h1><p>Have a question or need help? Find answers below or reach out directly.</p></div>
+
+<div class="content">
+  <div class="contact" style="background:linear-gradient(135deg,rgba(90,158,114,.06) 0%,var(--navy-mid) 100%);border-color:rgba(90,158,114,.18)">
+    <h2>Getting Started</h2>
+    <p>New to SharpPicks? Our beginner's guide walks you through every tab, metric, and concept in the app.</p>
+    <a href="/guide.html" class="c-email" style="margin-bottom:0">Read the Guide &rarr;</a>
+  </div>
+
+  <div class="contact">
+    <h2>Contact Us</h2>
+    <p>For account issues, billing questions, bug reports, or general feedback, email us directly.</p>
+    <a id="contact-link" href="#" class="c-email"><span id="contact-addr"></span></a>
+    <div class="c-note">We typically respond within 24 hours.</div>
+  </div>
+
+  <div class="faq-h">Frequently Asked Questions</div>
+
+  <div class="faq"><button class="faq-q" onclick="toggle(this)"><span>What is SharpPicks?</span><span class="faq-i">+</span></button><div class="faq-a"><div class="faq-a-in">SharpPicks is a sports market intelligence platform. We use a four-model machine learning ensemble to analyze NBA and MLB games (with WNBA coming soon), detect pricing inefficiencies, and surface signals only when a verified edge exists above our minimum threshold. We are not a sportsbook and do not accept or facilitate wagers.</div></div></div>
+  <div class="faq"><button class="faq-q" onclick="toggle(this)"><span>How does the free trial work?</span><span class="faq-i">+</span></button><div class="faq-a"><div class="faq-a-in">All paid plans include a 14-day free trial. You get full access to pick details, real-time alerts, quant reasoning, and bet tracking. If you cancel before the trial ends, you will not be charged. Cancel anytime in 2 taps from your profile. No commitment required.</div></div></div>
+  <div class="faq"><button class="faq-q" onclick="toggle(this)"><span>What does the free plan include?</span><span class="faq-i">+</span></button><div class="faq-a"><div class="faq-a-in">The free plan lets you see whether a signal was generated today, view the public performance record, and access the market overview. To see full pick details, edge analysis, quant reasoning, and real-time alerts, you need a paid subscription.</div></div></div>
+  <div class="faq"><button class="faq-q" onclick="toggle(this)"><span>What is a Founding Member?</span><span class="faq-i">+</span></button><div class="faq-a"><div class="faq-a-in">The first 50 annual subscribers are Founding Members. Founding Members lock in the $99/year rate for the duration of their subscription, receive a Founding Member badge, and get priority support. After 50 spots are claimed, the annual rate is $149/year for new members.</div></div></div>
+  <div class="faq"><button class="faq-q" onclick="toggle(this)"><span>How do I cancel my subscription?</span><span class="faq-i">+</span></button><div class="faq-a"><div class="faq-a-in">You can cancel anytime from the Profile tab inside the app under Allocation & Access. Your access continues until the end of your current billing period. There are no cancellation fees. If you subscribed through the App Store or Google Play, manage your subscription through those platforms.</div></div></div>
+  <div class="faq"><button class="faq-q" onclick="toggle(this)"><span>What sports does SharpPicks cover?</span><span class="faq-i">+</span></button><div class="faq-a"><div class="faq-a-in">SharpPicks currently covers NBA and MLB, with WNBA coming soon. The same model discipline and edge threshold applies across all sports. Additional sports may be added in future seasons.</div></div></div>
+  <div class="faq"><button class="faq-q" onclick="toggle(this)"><span>How are picks graded?</span><span class="faq-i">+</span></button><div class="faq-a"><div class="faq-a-in">All picks are graded against the closing line automatically after game completion. Results (win, loss, push) are published publicly with full transparency. No picks are deleted or hidden. The complete record is available on the Performance tab.</div></div></div>
+  <div class="faq"><button class="faq-q" onclick="toggle(this)"><span>Is SharpPicks a sportsbook?</span><span class="faq-i">+</span></button><div class="faq-a"><div class="faq-a-in">No. SharpPicks is an analytics and intelligence platform only. We do not accept, place, or facilitate any wagers. SharpPicks provides model-based insights and quantitative analysis to inform your own decision-making. Please gamble responsibly and in accordance with your local laws.</div></div></div>
+</div>
+
+<footer>
+  <div class="f-wm"><span class="css-wm" style="font-size:12px;opacity:.5"><span style="margin-right:4.2px">SHARP</span><span class="wm-bars" style="gap:1.8px"><span class="wm-bars-row" style="gap:1.44px"><span class="wm-bar" style="width:2px;height:15px;border-radius:1.2px"></span><span class="wm-bar" style="width:2px;height:15px;border-radius:1.2px"></span></span><span class="wm-ul" style="width:5.44px;height:1.5px"></span></span><span style="margin-left:5.4px">PICKS</span></span></div>
+  <div class="f-tg">Market intelligence for sports.</div>
+  <div class="f-d">SharpPicks provides sports analytics and model-based insights only. Not financial advice. Not a sportsbook.</div>
+  <div class="f-l">
+    <a href="/support.html">Support</a>
+    <a href="/guide.html">Guide</a>
+    <a href="/privacy.html">Privacy</a>
+    <a href="/terms.html">Terms</a>
+    <a href="/disclaimer.html">Disclaimer</a>
+  </div>
+</footer>
+
+<script>
+function toggle(btn){btn.parentElement.classList.toggle('open')}
+(function(){var u='support';var d='sharppicks.ai';var e=u+'@'+d;var a=document.getElementById('contact-addr');var l=document.getElementById('contact-link');if(a)a.textContent=e;if(l)l.href='mailto:'+e})();
+</script>
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "f8cfdbdd30364ac19e8ded4ed2451efd"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

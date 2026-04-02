@@ -1,0 +1,5 @@
+# Redirect www to apex
+https://www.sharppicks.ai/* https://sharppicks.ai/:splat 301
+
+# App redirect
+/app https://app.sharppicks.ai 302

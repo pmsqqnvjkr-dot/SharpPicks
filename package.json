@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "deploy:landing": "npx wrangler pages deploy landing --project-name=sharppicks"
   },
   "dependencies": {
     "@capacitor/android": "^8.1.0",

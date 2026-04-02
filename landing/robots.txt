@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /internal/
+
+Sitemap: https://sharppicks.ai/sitemap.xml
