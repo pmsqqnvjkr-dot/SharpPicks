@@ -27,7 +27,9 @@ function formatDateShort(isoStr) {
   if (typeof isoStr === 'string' && isoStr.match(/^\d{4}-\d{2}-\d{2}/)) {
     const [y, m, day] = isoStr.split('-');
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return `${months[parseInt(m) - 1]} ${parseInt(day)}`;
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const dt = new Date(parseInt(y), parseInt(m) - 1, parseInt(day));
+    return `${days[dt.getDay()]} ${months[parseInt(m) - 1]} ${parseInt(day)}`;
   }
   return isoStr;
 }
@@ -84,6 +86,7 @@ export default function PicksTab({ onNavigate }) {
   const [miExpanded, setMiExpanded] = useState(null);
   const [gameInfo, setGameInfo] = useState(null);
   const [tomorrowGames, setTomorrowGames] = useState(null);
+  const [tomorrowDate, setTomorrowDate] = useState(null);
   const [tonightBets, setTonightBets] = useState(null);
   const countdown = useCountdownTo(10);
 
@@ -191,9 +194,13 @@ export default function PicksTab({ onNavigate }) {
   const isNightMode = sameDayNight || postMidnightNight;
   const hasRecapPick = lastResolvedIsRecent && lastResolved?.result && lastResolved.result !== 'pending';
   const nightRecapPick = sameDayNight ? todayData : (hasRecapPick ? lastResolved : null);
+  const hasAnyRecapContent = !!(nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'pending')
+    || !!(tonightBets && tonightBets.length > 0)
+    || (sameDayNight && todayData?.type === 'pass')
+    || (postMidnightNight && !hasRecapPick);
 
   useEffect(() => {
-    if (!isNightMode) { setTomorrowGames(null); setTonightBets(null); return; }
+    if (!isNightMode) { setTomorrowGames(null); setTomorrowDate(null); setTonightBets(null); return; }
 
     const isPostMidnight = postMidnightNight;
     const fetchSlatePreview = async () => {
@@ -201,8 +208,8 @@ export default function PicksTab({ onNavigate }) {
         try {
           const resp = await fetch(`${PT_API_BASE}/api/picks/market?sport=${sport}`);
           const json = await resp.json();
-          if (json.games) setTomorrowGames(json.games);
-        } catch { setTomorrowGames(null); }
+          if (json.games) { setTomorrowGames(json.games); setTomorrowDate(json.date || null); }
+        } catch { setTomorrowGames(null); setTomorrowDate(null); }
       } else {
         try {
           const tomorrow = new Date();
@@ -210,8 +217,8 @@ export default function PicksTab({ onNavigate }) {
           const tStr = tomorrow.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
           const resp = await fetch(`${PT_API_BASE}/api/picks/market?sport=${sport}&date=${tStr}`);
           const json = await resp.json();
-          if (json.games) setTomorrowGames(json.games);
-        } catch { setTomorrowGames(null); }
+          if (json.games) { setTomorrowGames(json.games); setTomorrowDate(json.date || null); }
+        } catch { setTomorrowGames(null); setTomorrowDate(null); }
       }
     };
 
@@ -377,13 +384,15 @@ export default function PicksTab({ onNavigate }) {
         {pageState === 'night' && (
           <>
             {/* ── TONIGHT'S RECAP ── */}
-            <div style={{
-              fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
-              letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568',
-              padding: '0 0 8px',
-            }}>TONIGHT&apos;S RECAP</div>
+            {hasAnyRecapContent && (
+              <div style={{
+                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568',
+                padding: '0 0 8px',
+              }}>TONIGHT&apos;S RECAP</div>
+            )}
 
-            {/* Signal Result Card (uses nightRecapPick which is todayData or lastResolved) */}
+            {/* Signal Result Card */}
             {nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'pending' && nightRecapPick.result !== 'revoked' && (() => {
               const rp = nightRecapPick;
               const isWin = rp.result === 'win';
@@ -406,10 +415,10 @@ export default function PicksTab({ onNavigate }) {
                   })()
                 : null;
               return (
-                <div style={{
+                <div onClick={() => { setResolutionPick(rp); setShowResolution(true); }} style={{
                   background: '#111e33', border: '0.5px solid #1e3050',
                   borderLeft: `3px solid ${borderAccent}`,
-                  borderRadius: 8, padding: 12, marginBottom: 12,
+                  borderRadius: 8, padding: 12, marginBottom: 12, cursor: 'pointer',
                 }}>
                   <div style={{
                     fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
@@ -446,30 +455,35 @@ export default function PicksTab({ onNavigate }) {
               );
             })()}
 
-            {/* Signal Withdrawn recap */}
-            {nightRecapPick && nightRecapPick.result === 'revoked' && (
-              <div style={{
-                background: '#111e33', border: '0.5px solid #1e3050',
-                borderLeft: '3px solid #6b7a8d',
-                borderRadius: 8, padding: 12, marginBottom: 12,
-              }}>
-                <div style={{
-                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
-                  letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 8,
-                }}>SIGNAL WITHDRAWN</div>
-                <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8ECF4', marginBottom: 4 }}>
-                  {nightRecapPick.side} {nightRecapPick.line > 0 ? '+' : ''}{nightRecapPick.line}
-                </div>
-                <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#6b7a8d' }}>
-                  Withdrawn before tip. Capital preserved.
-                </div>
-                {nightRecapPick.edge_pct != null && (
-                  <div style={{ marginTop: 8 }}>
-                    <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge at entry +{Number(nightRecapPick.edge_pct).toFixed(1)}%</span>
+            {/* Signal Withdrawn recap — show from todayData OR nightRecapPick */}
+            {(() => {
+              const revokedPick = (todayData?.type === 'pick' && todayData?.result === 'revoked') ? todayData
+                : (nightRecapPick?.result === 'revoked' ? nightRecapPick : null);
+              if (!revokedPick) return null;
+              return (
+                <div onClick={() => { setResolutionPick(revokedPick); setShowResolution(true); }} style={{
+                  background: '#111e33', border: '0.5px solid #1e3050',
+                  borderLeft: '3px solid #6b7a8d',
+                  borderRadius: 8, padding: 12, marginBottom: 12, cursor: 'pointer',
+                }}>
+                  <div style={{
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 8,
+                  }}>SIGNAL WITHDRAWN</div>
+                  <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8ECF4', marginBottom: 4 }}>
+                    {revokedPick.side} {revokedPick.line > 0 ? '+' : ''}{revokedPick.line}
                   </div>
-                )}
-              </div>
-            )}
+                  <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#6b7a8d' }}>
+                    Withdrawn before tip. Capital preserved.
+                  </div>
+                  {revokedPick.edge_pct != null && (
+                    <div style={{ marginTop: 8 }}>
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge at entry +{Number(revokedPick.edge_pct).toFixed(1)}%</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Full Slate Results (tracked bets resolved tonight) */}
             {tonightBets && tonightBets.length > 0 && (() => {
@@ -531,22 +545,28 @@ export default function PicksTab({ onNavigate }) {
               );
             })()}
 
-            {/* Pass day recap */}
-            {todayData?.type === 'pass' && (
-              <div style={{
-                background: '#111e33', border: '0.5px solid #1e3050',
-                borderLeft: '3px solid #2a3a52',
-                borderRadius: 8, padding: 12, marginBottom: 12,
-              }}>
+            {/* Pass day recap — when model ran but no signal was issued */}
+            {(() => {
+              const isPassRecap = sameDayNight && todayData?.type === 'pass';
+              const isPostMidnightNoSignal = postMidnightNight && !hasRecapPick && !(todayData?.type === 'pick');
+              if (!isPassRecap && !isPostMidnightNoSignal) return null;
+              const gamesCount = todayData?.games_analyzed || totalGames || 0;
+              return (
                 <div style={{
-                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
-                  letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 8,
-                }}>PASS DAY RECAP</div>
-                <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#9aa5b4', lineHeight: 1.6 }}>
-                  {todayData.games_analyzed || 0} games analyzed. No edge above threshold. Capital preserved.
+                  background: '#111e33', border: '0.5px solid #1e3050',
+                  borderLeft: '3px solid #2a3a52',
+                  borderRadius: 8, padding: 12, marginBottom: 12,
+                }}>
+                  <div style={{
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 8,
+                  }}>PASS DAY</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#9aa5b4', lineHeight: 1.6 }}>
+                    {gamesCount > 0 ? `${gamesCount} games analyzed, none above threshold.` : 'Model analysis complete. No edge above threshold.'} Capital preserved.
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* ── UPCOMING SLATE ── */}
             <div style={{
@@ -574,10 +594,10 @@ export default function PicksTab({ onNavigate }) {
             </div>
 
             {/* MI Card */}
-            <div style={{
+            <div onClick={() => onNavigate && onNavigate('picks')} style={{
               padding: '12px 16px', marginBottom: 12,
               background: '#111e33', border: '0.5px solid #1e3050',
-              borderRadius: 10,
+              borderRadius: 10, cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 10,
             }}>
               <div style={{
@@ -598,33 +618,42 @@ export default function PicksTab({ onNavigate }) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A8494" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
 
-            {/* Compressed Game List */}
+            {/* Compressed Game List — full team names, date + time ET */}
             {tomorrowGames && tomorrowGames.length > 0 && (
               <div style={{
                 background: '#111e33', border: '0.5px solid #1e3050',
                 borderRadius: 8, padding: '8px 12px', marginBottom: 12,
               }}>
-                {[...tomorrowGames]
-                  .sort((a, b) => (a.time || a.game_time || '').localeCompare(b.time || b.game_time || ''))
-                  .map((g, i) => (
-                    <div key={g.id || i} style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '8px 0',
-                      borderBottom: i < tomorrowGames.length - 1 ? '0.5px solid rgba(30,48,80,0.5)' : 'none',
-                    }}>
-                      <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '11px', color: '#9aa5b4' }}>
-                        {teamAbbr(g.away_team || g.away)} @ {teamAbbr(g.home_team || g.home)}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', color: '#4a5568' }}>
-                          {g.time || ''}
-                        </span>
-                        <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', color: '#4a5568' }}>
-                          Pending
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                {(() => {
+                  const datePart = tomorrowDate ? formatDateShort(tomorrowDate) : '';
+                  return [...tomorrowGames]
+                    .sort((a, b) => (a.time || a.game_time || '').localeCompare(b.time || b.game_time || ''))
+                    .map((g, i) => {
+                      const away = g.away_team || g.away || '';
+                      const home = g.home_team || g.home || '';
+                      const timeStr = g.time || '';
+                      const dateTime = datePart && timeStr ? `${datePart} \u00b7 ${timeStr}` : (timeStr || datePart || 'TBD');
+                      return (
+                        <div key={g.id || i} style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '8px 0',
+                          borderBottom: i < tomorrowGames.length - 1 ? '0.5px solid rgba(30,48,80,0.5)' : 'none',
+                        }}>
+                          <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '11px', color: '#9aa5b4', flex: 1, minWidth: 0 }}>
+                            {away} @ {home}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', color: '#4a5568' }}>
+                              {dateTime}
+                            </span>
+                            <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', color: '#4a5568' }}>
+                              Pending
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    });
+                })()}
               </div>
             )}
           </>

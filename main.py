@@ -904,6 +904,7 @@ def _normalize_team(name):
 def _fetch_espn_expected_games(today_str_et):
     """Fetch ESPN scoreboard for today — source of truth for expected game count.
     Returns (count, matchups_list) or (0, []) on failure.
+    matchups_list items: (away, home, game_time_iso) — game_time_iso may be ''.
     """
     date_str = today_str_et.replace('-', '')
     url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={date_str}"
@@ -927,8 +928,9 @@ def _fetch_espn_expected_games(today_str_et):
                     home = name
                 else:
                     away = name
+            game_time = ev.get('date', '')
             if home and away:
-                matchups.append((away, home))
+                matchups.append((away, home, game_time))
         return len(matchups), matchups
     except Exception:
         return 0, []
@@ -964,7 +966,7 @@ def collect_todays_games():
     espn_expected, espn_matchups = _fetch_espn_expected_games(today_str_et)
     if espn_expected > 0:
         print(f"   ESPN (source of truth): {espn_expected} games for today {today_str_et}")
-        for away, home in espn_matchups[:5]:
+        for away, home, *_ in espn_matchups[:5]:
             print(f"      - {away} @ {home}")
         if espn_expected > 5:
             print(f"      ... and {espn_expected - 5} more")
@@ -1220,7 +1222,7 @@ def collect_todays_games():
     # ── ESPN Cross-Reference QC ──────────────────────────────────────
     if espn_matchups:
         espn_set = set()
-        for away, home in espn_matchups:
+        for away, home, *_ in espn_matchups:
             espn_set.add(_normalize_team(away) + '@' + _normalize_team(home))
 
         verified = []
@@ -1242,7 +1244,7 @@ def collect_todays_games():
         odds_set = set()
         for gp in games_to_process:
             odds_set.add(_normalize_team(gp['away']) + '@' + _normalize_team(gp['home']))
-        for away, home in espn_matchups:
+        for away, home, *_gt in espn_matchups:
             key = _normalize_team(away) + '@' + _normalize_team(home)
             if key not in odds_set:
                 missing_from_odds.append(f"{away} @ {home}")
@@ -1251,6 +1253,27 @@ def collect_todays_games():
             print(f"   ⚠️ ESPN QC: {len(missing_from_odds)} ESPN game(s) missing from odds source:")
             for m in missing_from_odds:
                 print(f"      ? {m}")
+            try:
+                _conn_espn = sqlite3.connect(get_sqlite_path())
+                _cur_espn = _conn_espn.cursor()
+                for away, home, *_espn_gt in espn_matchups:
+                    key = _normalize_team(away) + '@' + _normalize_team(home)
+                    if key not in odds_set:
+                        _cur_espn.execute('SELECT id FROM games WHERE home_team = ? AND away_team = ? AND game_date = ?',
+                                          (home, away, today_str_et))
+                        if not _cur_espn.fetchone():
+                            import uuid
+                            _espn_id = f"espn_{uuid.uuid4().hex[:12]}"
+                            _espn_time = _espn_gt[0] if _espn_gt else None
+                            _cur_espn.execute('''INSERT INTO games
+                                (id, game_date, game_time, home_team, away_team, collected_at)
+                                VALUES (?, ?, ?, ?, ?, ?)''',
+                                (_espn_id, today_str_et, _espn_time, home, away, datetime.now().isoformat()))
+                            print(f"      📋 Inserted ESPN placeholder: {away} @ {home}")
+                _conn_espn.commit()
+                _conn_espn.close()
+            except Exception as espn_ins_err:
+                print(f"      ⚠️ Failed to insert ESPN placeholders: {espn_ins_err}")
 
         print(f"   ✅ ESPN QC: {len(games_to_process)} of {espn_expected} games verified\n")
     else:
@@ -3701,12 +3724,13 @@ def collect_mlb_scores():
     et = ZoneInfo('America/New_York')
     today_str = datetime.now(et).strftime('%Y-%m-%d')
     yesterday = (datetime.now(et) - timedelta(days=1)).strftime('%Y-%m-%d')
+    tomorrow = (datetime.now(et) + timedelta(days=1)).strftime('%Y-%m-%d')
 
     conn = sqlite3.connect(get_sqlite_path())
     cursor = conn.cursor()
     setup_mlb_table(cursor)
 
-    for check_date in [yesterday, today_str]:
+    for check_date in [yesterday, today_str, tomorrow]:
         date_compact = check_date.replace('-', '')
         url = f"{cfg['espn_scoreboard']}?dates={date_compact}"
         try:
@@ -3744,7 +3768,7 @@ def collect_mlb_scores():
                             (home_score, away_score, str(spread_result),
                              datetime.now().isoformat(), row[0]))
                         print(f"   ✅ Score: {away_team} {away_score} @ {home_team} {home_score}")
-                elif not row and check_date == today_str:
+                elif not row and check_date in (today_str, tomorrow):
                     game_time = event.get('date', '')
                     home_rec = home.get('records', [{}])[0].get('summary', '') if home.get('records') else ''
                     away_rec = away.get('records', [{}])[0].get('summary', '') if away.get('records') else ''

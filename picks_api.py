@@ -805,7 +805,7 @@ def market_view():
 
     _live_cols = ', game_status, current_period, game_clock'
     if sport == 'mlb':
-        _select_cols = """id, home_team, away_team, game_time,
+        _select_cols = """id, home_team, away_team, game_time, game_date,
                     spread_home, spread_away, total, home_ml, away_ml,
                     spread_home_open, total_open, home_ml_open, away_ml_open,
                     home_spread_odds, away_spread_odds,
@@ -814,7 +814,7 @@ def market_view():
                     home_score, away_score,
                     home_pitcher, away_pitcher"""
     else:
-        _select_cols = """id, home_team, away_team, game_time,
+        _select_cols = """id, home_team, away_team, game_time, game_date,
                     spread_home, spread_away, total, home_ml, away_ml,
                     spread_home_open, total_open, home_ml_open, away_ml_open,
                     home_spread_odds, away_spread_odds,
@@ -874,7 +874,7 @@ def market_view():
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=timezone.utc)
             et = dt.astimezone(ZoneInfo('America/New_York'))
-            return et.strftime('%-I:%M %p')
+            return et.strftime('%-I:%M %p ET')
         except Exception:
             return None
 
@@ -972,6 +972,7 @@ def market_view():
             'away': r['away_team'],
             'home': r['home_team'],
             'time': _fmt_time(r['game_time']),
+            'game_date': r['game_date'] if 'game_date' in r.keys() else active_date,
             'status': status,
             'current_period': current_period,
             'game_clock': game_clock,
