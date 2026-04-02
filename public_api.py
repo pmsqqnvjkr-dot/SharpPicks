@@ -270,6 +270,7 @@ def calibration():
 
 @public_bp.route('/dashboard-stats')
 def dashboard_stats():
+    import math
     from datetime import timedelta
     from datetime import datetime as dt
 
@@ -389,7 +390,9 @@ def dashboard_stats():
     line_moves = []
     for p in picks:
         if p.line_open is not None and p.line is not None:
-            line_moves.append(abs(p.line - p.line_open))
+            mv = abs(p.line - p.line_open)
+            if not (isinstance(mv, float) and (math.isnan(mv) or math.isinf(mv))):
+                line_moves.append(mv)
     avg_line_move = round(sum(line_moves) / len(line_moves), 1) if line_moves else 0
 
     clv_values = [p.clv for p in picks if p.clv is not None]
@@ -428,11 +431,20 @@ def dashboard_stats():
 
     most_recent = sorted(picks, key=lambda p: p.game_date or '', reverse=True)[:10]
 
+    def _sanitize(v):
+        """Replace NaN/Inf with None so JSON serialization stays clean."""
+        if v is None:
+            return None
+        if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+            return None
+        return v
+
     recent_picks = []
     for p in most_recent:
         line_move = None
         if p.line_open is not None and p.line is not None:
-            line_move = round(p.line - p.line_open, 1)
+            raw = p.line - p.line_open
+            line_move = _sanitize(round(raw, 1))
         recent_picks.append({
             'id': p.id,
             'side': p.side,
@@ -442,9 +454,9 @@ def dashboard_stats():
             'model_confidence': p.model_confidence,
             'predicted_margin': p.predicted_margin,
             'cover_prob': p.cover_prob,
-            'closing_spread': p.closing_spread,
-            'line_open': p.line_open,
-            'line_close': p.line_close,
+            'closing_spread': _sanitize(p.closing_spread),
+            'line_open': _sanitize(p.line_open),
+            'line_close': _sanitize(p.line_close),
             'line_movement': line_move,
             'game_date': p.game_date,
             'start_time': p.start_time,
