@@ -2535,14 +2535,13 @@ def grade_pending_picks():
     Also grade TrackedBets linked to revoked picks (user bet before withdrawal)."""
     with app.app_context():
         from sqlalchemy import or_, and_
-        # Picks that are pending, or revoked but have at least one ungraded tracked bet
-        revoked_with_ungraded_bets = db.session.query(Pick.id).join(
+        picks_with_ungraded_bets = db.session.query(Pick.id).join(
             TrackedBet, TrackedBet.pick_id == Pick.id
-        ).filter(Pick.result == 'revoked', TrackedBet.result.is_(None)).distinct().subquery()
+        ).filter(TrackedBet.result.is_(None)).distinct().subquery()
         picks_to_grade = Pick.query.filter(
             or_(
                 Pick.result == 'pending',
-                Pick.id.in_(db.session.query(revoked_with_ungraded_bets.c.id))
+                Pick.id.in_(db.session.query(picks_with_ungraded_bets.c.id))
             )
         ).all()
         logging.info(f"[Auto-grade] Found {len(picks_to_grade)} picks to grade (pending + revoked with active bets)")
@@ -2601,10 +2600,13 @@ def grade_pending_picks():
                             def _team_match(espn_name, pick_name):
                                 if espn_name == pick_name:
                                     return True
-                                aliases = {
-                                    'LA Clippers': 'Los Angeles Clippers',
-                                }
-                                return aliases.get(espn_name) == pick_name or aliases.get(pick_name) == espn_name
+                                e = espn_name.lower().replace(' ', '')
+                                p = pick_name.lower().replace(' ', '')
+                                if e == p:
+                                    return True
+                                last_e = espn_name.split()[-1].lower()
+                                last_p = pick_name.split()[-1].lower()
+                                return last_e == last_p
                             if _team_match(espn_home['team']['displayName'], pick.home_team) and _team_match(espn_away['team']['displayName'], pick.away_team):
                                 game = {
                                     'home_score': int(espn_home.get('score', 0)),
@@ -2687,9 +2689,7 @@ def grade_pending_picks():
                     profit_units = -1.0
                     pnl = -100
 
-                is_revoked = pick.result == 'revoked'
-
-                if not is_revoked:
+                if pick.result == 'pending':
                     pick.home_score = home_score
                     pick.away_score = away_score
                     pick.result = 'push' if result_ats == 'P' else ('win' if result_ats == 'W' else 'loss')
@@ -2712,7 +2712,7 @@ def grade_pending_picks():
                     except Exception as e:
                         print(f"[Auto-grade] Result email dispatch error: {e}")
                 else:
-                    print(f"[Auto-grade] Revoked pick (score: {home_score}-{away_score}): grading {result_ats} for linked tracked bets only")
+                    print(f"[Auto-grade] Pick already {pick.result} (score: {home_score}-{away_score}): grading {result_ats} for linked tracked bets only")
 
                 linked_bets = TrackedBet.query.filter_by(pick_id=pick.id, result=None).all()
                 for tb in linked_bets:
@@ -3707,7 +3707,8 @@ def cron_live_scores():
             conn.close()
             continue
 
-        espn_games = {}
+        espn_games_by_matchup = {}
+        espn_games_by_home = {}
         for event in espn_data.get('events', []):
             comp = event.get('competitions', [{}])[0]
             status = comp.get('status', {})
@@ -3723,8 +3724,7 @@ def cron_live_scores():
                 continue
             home_name = home.get('team', {}).get('displayName', '')
             away_name = away.get('team', {}).get('displayName', '')
-            key = f"{away_name.lower().replace(' ', '')}@{home_name.lower().replace(' ', '')}"
-            espn_games[key] = {
+            game_data_espn = {
                 'home_name': home_name,
                 'away_name': away_name,
                 'home_score': int(home.get('score', 0)),
@@ -3733,13 +3733,18 @@ def cron_live_scores():
                 'period': status.get('period', 0),
                 'clock': status.get('displayClock', ''),
             }
+            matchup_key = f"{away_name.lower().replace(' ', '')}@{home_name.lower().replace(' ', '')}"
+            home_key = home_name.lower().replace(' ', '')
+            espn_games_by_matchup[matchup_key] = game_data_espn
+            espn_games_by_home[home_key] = game_data_espn
 
         updated = 0
         newly_final = []
         for row in today_games:
             game_id, home_team, away_team = row['id'], row['home_team'], row['away_team']
-            key = f"{away_team.lower().replace(' ', '')}@{home_team.lower().replace(' ', '')}"
-            live = espn_games.get(key)
+            matchup_key = f"{away_team.lower().replace(' ', '')}@{home_team.lower().replace(' ', '')}"
+            home_key = home_team.lower().replace(' ', '')
+            live = espn_games_by_matchup.get(matchup_key) or espn_games_by_home.get(home_key)
             if not live:
                 continue
 

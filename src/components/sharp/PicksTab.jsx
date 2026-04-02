@@ -184,7 +184,7 @@ export default function PicksTab({ onNavigate }) {
     'pre-model';
 
   // MI card default state: collapsed on pick day, expanded on pass day
-  const isMiExpanded = miExpanded !== null ? miExpanded : pageState === 'pass';
+  const isMiExpanded = miExpanded !== null ? miExpanded : false;
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',

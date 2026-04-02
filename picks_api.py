@@ -953,19 +953,7 @@ def market_view():
         except (KeyError, IndexError):
             pass
 
-        game_started = True
-        if r['game_time']:
-            try:
-                from zoneinfo import ZoneInfo
-                gt = datetime.fromisoformat(r['game_time'].replace('Z', '+00:00'))
-                if gt.tzinfo is None:
-                    gt = gt.replace(tzinfo=timezone.utc)
-                if gt > datetime.now(timezone.utc):
-                    game_started = False
-            except Exception:
-                pass
-
-        if db_status in ('in_progress', 'final') and game_started:
+        if db_status in ('in_progress', 'final'):
             status = db_status
         else:
             status = 'scheduled'
@@ -1054,7 +1042,7 @@ def market_view():
         game_data['sharp_action'] = sharp
 
         pr = pick_results.get(key)
-        if pr and status == 'final':
+        if pr:
             game_data['pick_result'] = pr
 
         if status == 'in_progress' and ma and ma.get('passes'):

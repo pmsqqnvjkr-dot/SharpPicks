@@ -158,6 +158,7 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
 function PerformanceCore({ perf, equityCurve }) {
   const pnl = perf.total_pnl || 0;
   const isPositive = pnl >= 0;
+  const hasPicks = (perf.total_picks || 0) > 0;
 
   return (
     <>
@@ -167,49 +168,65 @@ function PerformanceCore({ perf, equityCurve }) {
         border: '1px solid var(--stroke-subtle)', padding: '24px',
         marginBottom: '16px',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
+        {!hasPicks ? (
+          <div style={{ textAlign: 'center', padding: '16px 0' }}>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '42px', fontWeight: 600,
-              color: isPositive ? 'var(--green-profit)' : 'var(--red-loss)',
-              lineHeight: '1', marginBottom: '8px',
-            }}>
-              {isPositive ? '+' : '-'}${Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-            </div>
+              fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+              color: 'var(--text-tertiary)', letterSpacing: '0.5px',
+              marginBottom: '6px',
+            }}>Calibration in progress</div>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '10px',
-              color: 'var(--text-tertiary)', letterSpacing: '0.5px',
-              marginBottom: '10px',
-            }}>
-              Model Only · 1u Standardized · -110 Baseline
-            </div>
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              <StatChip
-                value={`${perf.roi >= 0 ? '+' : ''}${perf.roi || 0}%`}
-                label="ROI"
-                color={perf.roi >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'}
-              />
-              <InfoTooltip text="ROI measures efficiency, not streaks. Short samples swing. Long samples tell the truth." />
-              <StatChip value={perf.record || '0-0'} label="Record" />
-            </div>
+              color: 'var(--text-tertiary)',
+            }}>Results will appear after the first resolved signal.</div>
           </div>
-          {equityCurve.length > 1 && (
-            <div style={{ width: '120px', flexShrink: 0 }}>
-              <MiniEquityChart data={equityCurve} />
+        ) : (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '42px', fontWeight: 600,
+                  color: isPositive ? 'var(--green-profit)' : 'var(--red-loss)',
+                  lineHeight: '1', marginBottom: '8px',
+                }}>
+                  {isPositive ? '+' : '-'}${Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </div>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '10px',
+                  color: 'var(--text-tertiary)', letterSpacing: '0.5px',
+                  marginBottom: '10px',
+                }}>
+                  Model Only · 1u Standardized · -110 Baseline
+                </div>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                  <StatChip
+                    value={`${perf.roi >= 0 ? '+' : ''}${perf.roi || 0}%`}
+                    label="ROI"
+                    color={perf.roi >= 0 ? 'var(--green-profit)' : 'var(--red-loss)'}
+                  />
+                  <InfoTooltip text="ROI measures efficiency, not streaks. Short samples swing. Long samples tell the truth." />
+                  <StatChip value={perf.record || '0-0'} label="Record" />
+                </div>
+              </div>
+              {equityCurve.length > 1 && (
+                <div style={{ width: '120px', flexShrink: 0 }}>
+                  <MiniEquityChart data={equityCurve} />
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div style={{
-          marginTop: '16px', paddingTop: '14px',
-          borderTop: '1px solid var(--stroke-subtle)',
-          display: 'flex', gap: '6px', flexWrap: 'wrap',
-        }}>
-          <MetaTag label="Season" />
-          <MetaTag label={`${perf.total_picks || 0} Picks`} />
-          <MetaTag label={`${perf.total_passes || 0} Passes`} />
-          <MetaTag label={`${perf.selectivity || 0}% Selectivity`} />
-        </div>
+            <div style={{
+              marginTop: '16px', paddingTop: '14px',
+              borderTop: '1px solid var(--stroke-subtle)',
+              display: 'flex', gap: '6px', flexWrap: 'wrap',
+            }}>
+              <MetaTag label="Season" />
+              <MetaTag label={`${perf.total_picks || 0} Picks`} />
+              <MetaTag label={`${perf.total_passes || 0} Passes`} />
+              <MetaTag label={`${perf.selectivity || 0}% Selectivity`} />
+            </div>
+          </>
+        )}
       </div>
     </>
   );
@@ -219,8 +236,10 @@ function PerformanceCore({ perf, equityCurve }) {
 
 
 function CLVTracker({ clv }) {
-  if (!clv || clv.total_tracked === 0) return null;
+  if (!clv || !clv.total_tracked) return null;
   const avgClv = clv.avg_clv;
+  const beatRate = clv.beat_rate ?? 0;
+  const missedRate = (100 - beatRate);
   const isPositive = avgClv != null && avgClv > 0;
   const clvColor = avgClv == null ? 'var(--text-tertiary)' : isPositive ? 'var(--green-profit)' : 'var(--red-loss)';
 
@@ -277,16 +296,16 @@ function CLVTracker({ clv }) {
             }}>Beat Rate</div>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 700,
-              color: clv.beat_rate >= 50 ? 'var(--green-profit)' : 'var(--text-primary)',
+              color: beatRate >= 50 ? 'var(--green-profit)' : 'var(--text-primary)',
               lineHeight: 1,
             }}>
-              {clv.beat_rate}%
+              {beatRate}%
             </div>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '10px',
               color: 'var(--text-tertiary)', marginTop: '4px',
             }}>
-              {clv.positive}/{clv.total_tracked} picks
+              {clv.positive ?? 0}/{clv.total_tracked} picks
             </div>
           </div>
         </div>
@@ -302,12 +321,12 @@ function CLVTracker({ clv }) {
           }}>CLV Distribution</div>
           <div style={{ width: '100%', height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', display: 'flex' }}>
             <div style={{
-              width: `${clv.beat_rate}%`, height: '100%',
+              width: `${beatRate}%`, height: '100%',
               background: 'var(--green-profit)',
               transition: 'width 0.3s ease',
             }} />
             <div style={{
-              width: `${100 - clv.beat_rate}%`, height: '100%',
+              width: `${missedRate}%`, height: '100%',
               background: 'var(--red-loss)',
               opacity: 0.5,
             }} />
@@ -316,10 +335,10 @@ function CLVTracker({ clv }) {
             display: 'flex', justifyContent: 'space-between', marginTop: '4px',
           }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--green-profit)' }}>
-              Beat close {clv.beat_rate}%
+              Beat close {beatRate}%
             </span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-tertiary)' }}>
-              Missed {(100 - clv.beat_rate).toFixed(1)}%
+              Missed {missedRate.toFixed(1)}%
             </span>
           </div>
         </div>

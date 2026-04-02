@@ -808,8 +808,9 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
   const hasSignalEdge = edge != null && edge >= 3.5;
   const noEdge = hasModel && !hasSignalEdge;
   const strength = edge != null ? edgeStrength(edge) : null;
-  const hasSignal = game.model?.passes;
   const pickResult = game.pick_result;
+  const isRevoked = pickResult?.result === 'revoked';
+  const hasSignal = game.model?.passes && !isRevoked;
 
   const mono = "'IBM Plex Mono', var(--font-mono), monospace";
   const sans = "'Inter', var(--font-sans), sans-serif";
@@ -1009,62 +1010,64 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
           </div>
         )}
 
-        {/* Data strip: 4-column grid */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr',
-          background: noEdge ? '#111728' : bgElevated,
-          borderRadius: 6, padding: '8px 0',
-        }}>
-          {/* Spread */}
-          <div style={{ textAlign: 'center', position: 'relative' }}>
-            <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>
-              {sportDisplay(sport).spreadLabel}
-            </div>
-            <div style={{ fontFamily: mono, fontSize: '13px', fontWeight: 500, color: textSec }}>
-              {fmtSpread(game.spread_away)}
-            </div>
-            <div style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{fmtSpread(game.spread_home)}</div>
-            <div style={{ position: 'absolute', right: 0, top: 2, bottom: 2, width: 1, background: border }} />
-          </div>
-
-          {/* Total */}
-          <div style={{ textAlign: 'center', position: 'relative' }}>
-            <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>Total</div>
-            <div style={{ fontFamily: mono, fontSize: '13px', fontWeight: 500, color: textSec }}>
-              {totalDisplay || '—'}
-            </div>
-            {game.total != null && game.total_open != null && Math.abs(parseFloat(game.total) - parseFloat(game.total_open)) >= 0.25 && (
-              <div style={{ fontFamily: mono, fontSize: '10px', color: accentYellow }}>
-                {parseFloat(game.total) > parseFloat(game.total_open) ? '▲' : '▼'}
-                {Math.abs(parseFloat(game.total) - parseFloat(game.total_open)).toFixed(1)}
+        {/* Data strip: 4-column grid (hidden when final) */}
+        {!isFinal && (
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr',
+            background: noEdge ? '#111728' : bgElevated,
+            borderRadius: 6, padding: '8px 0',
+          }}>
+            {/* Spread */}
+            <div style={{ textAlign: 'center', position: 'relative' }}>
+              <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>
+                {sportDisplay(sport).spreadLabel}
               </div>
-            )}
-            <div style={{ position: 'absolute', right: 0, top: 2, bottom: 2, width: 1, background: border }} />
-          </div>
+              <div style={{ fontFamily: mono, fontSize: '13px', fontWeight: 500, color: textSec }}>
+                {fmtSpread(game.spread_away)}
+              </div>
+              <div style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{fmtSpread(game.spread_home)}</div>
+              <div style={{ position: 'absolute', right: 0, top: 2, bottom: 2, width: 1, background: border }} />
+            </div>
 
-          {/* ML */}
-          <div style={{ textAlign: 'center', position: 'relative' }}>
-            <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>ML</div>
-            <div style={{
-              fontFamily: mono, fontSize: '13px', fontWeight: 500,
-              color: parseFloat(game.away_ml) > 0 ? brandGreen : brandRed,
-            }}>{fmtML(game.away_ml)}</div>
-            <div style={{
-              fontFamily: mono, fontSize: '10px',
-              color: parseFloat(game.home_ml) > 0 ? brandGreen : brandRed,
-            }}>{fmtML(game.home_ml)}</div>
-            <div style={{ position: 'absolute', right: 0, top: 2, bottom: 2, width: 1, background: border }} />
-          </div>
+            {/* Total */}
+            <div style={{ textAlign: 'center', position: 'relative' }}>
+              <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>Total</div>
+              <div style={{ fontFamily: mono, fontSize: '13px', fontWeight: 500, color: textSec }}>
+                {totalDisplay || '\u2014'}
+              </div>
+              {game.total != null && game.total_open != null && Math.abs(parseFloat(game.total) - parseFloat(game.total_open)) >= 0.25 && (
+                <div style={{ fontFamily: mono, fontSize: '10px', color: accentYellow }}>
+                  {parseFloat(game.total) > parseFloat(game.total_open) ? '\u25B2' : '\u25BC'}
+                  {Math.abs(parseFloat(game.total) - parseFloat(game.total_open)).toFixed(1)}
+                </div>
+              )}
+              <div style={{ position: 'absolute', right: 0, top: 2, bottom: 2, width: 1, background: border }} />
+            </div>
 
-          {/* Edge */}
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>Edge</div>
-            <div style={{
-              fontFamily: mono, fontSize: '13px', fontWeight: 500,
-              color: hasSignalEdge ? brandGreen : textSec,
-            }}>{edge != null ? `+${edge}%` : '—'}</div>
+            {/* ML */}
+            <div style={{ textAlign: 'center', position: 'relative' }}>
+              <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>ML</div>
+              <div style={{
+                fontFamily: mono, fontSize: '13px', fontWeight: 500,
+                color: parseFloat(game.away_ml) > 0 ? brandGreen : brandRed,
+              }}>{fmtML(game.away_ml)}</div>
+              <div style={{
+                fontFamily: mono, fontSize: '10px',
+                color: parseFloat(game.home_ml) > 0 ? brandGreen : brandRed,
+              }}>{fmtML(game.home_ml)}</div>
+              <div style={{ position: 'absolute', right: 0, top: 2, bottom: 2, width: 1, background: border }} />
+            </div>
+
+            {/* Edge */}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>Edge</div>
+              <div style={{
+                fontFamily: mono, fontSize: '13px', fontWeight: 500,
+                color: hasSignalEdge ? brandGreen : textSec,
+              }}>{edge != null ? `+${edge}%` : '\u2014'}</div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* View quant analysis — all model cards when collapsed */}
         {hasModel && !expanded && (
