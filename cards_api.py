@@ -131,32 +131,27 @@ def _new_card(accent=GREEN):
 
 
 def _paste_wordmark(img, x=40, y=30, height=22):
-    wm, _ = _brand_images()
-    if wm:
-        ratio = height / wm.height
-        new_w = int(wm.width * ratio)
-        resized = wm.resize((new_w, height), Image.LANCZOS)
-        img.paste(resized, (x, y), resized)
-        return new_w
-    else:
-        draw = ImageDraw.Draw(img)
-        fonts = _fonts()
-        font = fonts['wordmark']
-        sharp_bbox = font.getbbox('SHARP')
-        sharp_w = sharp_bbox[2] - sharp_bbox[0] if sharp_bbox else 60
-        text_h = (sharp_bbox[3] - sharp_bbox[1]) if sharp_bbox else height
-        draw.text((x, y), 'SHARP', fill=WHITE, font=font)
-        bx = x + sharp_w + 6
-        bar_h = int(text_h * 1.1)
-        bar_y = y + (text_h - bar_h) // 2
-        draw.rectangle([bx, bar_y, bx + 2, bar_y + bar_h], fill=WHITE)
-        draw.rectangle([bx + 4, bar_y, bx + 6, bar_y + bar_h], fill=WHITE)
-        draw.rectangle([bx, bar_y + bar_h + 2, bx + 6, bar_y + bar_h + 4], fill=GREEN)
-        picks_x = bx + 6 + 6
-        draw.text((picks_x, y), 'PICKS', fill=WHITE, font=font)
-        picks_bbox = font.getbbox('PICKS')
-        picks_w = picks_bbox[2] - picks_bbox[0] if picks_bbox else 50
-        return (picks_x - x) + picks_w
+    """Render the SHARP || PICKS wordmark with two bars + green underline (matching app header)."""
+    draw = ImageDraw.Draw(img)
+    fonts = _fonts()
+    font = fonts['wordmark']
+    sharp_bbox = font.getbbox('SHARP')
+    sharp_w = sharp_bbox[2] - sharp_bbox[0] if sharp_bbox else 60
+    text_h = (sharp_bbox[3] - sharp_bbox[1]) if sharp_bbox else height
+    draw.text((x, y), 'SHARP', fill=WHITE, font=font)
+    bx = x + sharp_w + 8
+    bar_h = int(text_h * 1.1)
+    bar_y = y + (text_h - bar_h) // 2
+    draw.rectangle([bx, bar_y, bx + 2, bar_y + bar_h], fill=WHITE)
+    draw.rectangle([bx + 5, bar_y, bx + 7, bar_y + bar_h], fill=WHITE)
+    ul_w = 9
+    ul_x = bx + (7 - ul_w) // 2
+    draw.rectangle([ul_x, bar_y + bar_h + 2, ul_x + ul_w, bar_y + bar_h + 4], fill=GREEN)
+    picks_x = bx + 7 + 8
+    draw.text((picks_x, y), 'PICKS', fill=WHITE, font=font)
+    picks_bbox = font.getbbox('PICKS')
+    picks_w = picks_bbox[2] - picks_bbox[0] if picks_bbox else 50
+    return (picks_x - x) + picks_w
 
 
 def _draw_wordmark(draw, text=None):
