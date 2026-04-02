@@ -7848,6 +7848,80 @@ def admin_generate_market_note():
     return jsonify({'error': 'Failed to generate market note'}), 500
 
 
+@app.route('/api/admin/test-emails', methods=['GET', 'POST'])
+@verify_cron
+def admin_test_emails():
+    """Send test versions of all email types to evan@sharppicks.ai."""
+    to = 'evan@sharppicks.ai'
+    results = {}
+    from email_service import (send_signal_email, send_result_email,
+                                send_no_signal_email, send_welcome_email,
+                                send_trial_started_email)
+    from datetime import datetime, timedelta
+
+    # 1. Signal email (NBA)
+    try:
+        nba_pick = {
+            'side': 'San Antonio Spurs -4.0', 'line': -4.0, 'edge_pct': 8.0,
+            'cover_prob': 0.58, 'implied_prob': 0.52, 'predicted_margin': 10.9,
+            'sportsbook': 'DraftKings', 'home_team': 'Los Angeles Clippers',
+            'away_team': 'San Antonio Spurs', 'game_time': '10:40 PM ET',
+            'sport': 'nba',
+        }
+        results['signal_nba'] = send_signal_email(to, nba_pick)
+    except Exception as e:
+        results['signal_nba'] = str(e)
+
+    # 2. Signal email (MLB)
+    try:
+        mlb_pick = {
+            'side': 'New York Mets -1.5', 'line': -1.5, 'edge_pct': 6.0,
+            'cover_prob': 0.61, 'implied_prob': 0.55, 'predicted_margin': 2.3,
+            'sportsbook': 'FanDuel', 'home_team': 'San Francisco Giants',
+            'away_team': 'New York Mets', 'game_time': '9:45 PM ET',
+            'sport': 'mlb',
+        }
+        results['signal_mlb'] = send_signal_email(to, mlb_pick)
+    except Exception as e:
+        results['signal_mlb'] = str(e)
+
+    # 3. Result email (Win)
+    try:
+        win_pick = {
+            'side': 'Cleveland Guardians +1.5', 'line': 1.5, 'edge_pct': 6.0,
+            'result': 'win', 'cover_prob': 0.58, 'implied_prob': 0.52,
+            'home_team': 'Los Angeles Dodgers', 'away_team': 'Cleveland Guardians',
+            'home_score': 1, 'away_score': 4, 'profit_units': 1.0,
+            'sportsbook': 'DraftKings', 'sport': 'mlb',
+            'line_open': 1.5, 'closing_spread': 1.5, 'clv': 0.5,
+        }
+        results['result_win'] = send_result_email(to, win_pick)
+    except Exception as e:
+        results['result_win'] = str(e)
+
+    # 4. Result email (Loss)
+    try:
+        loss_pick = {
+            'side': 'Phoenix Suns -3.5', 'line': -3.5, 'edge_pct': 5.2,
+            'result': 'loss', 'cover_prob': 0.56, 'implied_prob': 0.52,
+            'home_team': 'Charlotte Hornets', 'away_team': 'Phoenix Suns',
+            'home_score': 112, 'away_score': 108, 'profit_units': -1.0,
+            'sportsbook': 'BetMGM', 'sport': 'nba',
+            'line_open': -4.0, 'closing_spread': -3.0, 'clv': 0.5,
+        }
+        results['result_loss'] = send_result_email(to, loss_pick)
+    except Exception as e:
+        results['result_loss'] = str(e)
+
+    # 5. No signal / pass day
+    try:
+        results['no_signal'] = send_no_signal_email(to, games_analyzed=6, edges_detected=2, efficiency=47)
+    except Exception as e:
+        results['no_signal'] = str(e)
+
+    return jsonify({'status': 'sent', 'to': to, 'results': results})
+
+
 @app.route('/api/admin/stats')
 def get_stats():
     user = get_current_user_from_session()
