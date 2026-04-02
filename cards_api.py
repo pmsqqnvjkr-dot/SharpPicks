@@ -211,6 +211,234 @@ def _date_label(pick):
     return ''
 
 
+# ── Share card (1080×1920 story format) ──
+
+SC_W, SC_H = 1080, 1920
+SC_CELL = (15, 24, 36)
+SC_GAP = (26, 34, 54)
+SC_MX = 90
+
+
+@lru_cache(maxsize=1)
+def _share_fonts():
+    """Fonts sized for the 1080×1920 story-format share card."""
+    search = [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Italic.ttf',
+        '/System/Library/Fonts/Menlo.ttc',
+    ]
+    mono = mono_b = sans = sans_b = serif_i = None
+    for p in search:
+        if not os.path.exists(p):
+            continue
+        n = os.path.basename(p).lower()
+        if 'serif' in n and ('italic' in n or 'oblique' in n):
+            serif_i = p
+        elif 'mono' in n and 'bold' in n:
+            mono_b = p
+        elif 'mono' in n or 'menlo' in n:
+            mono = p
+        elif 'bold' in n:
+            sans_b = p
+        elif 'sans' in n:
+            sans = p
+
+    def ld(path, sz):
+        if path:
+            try:
+                return ImageFont.truetype(path, sz)
+            except Exception:
+                pass
+        return ImageFont.load_default()
+
+    m5 = mono_b or mono
+    m4 = mono or mono_b
+    i5 = sans_b or sans
+    si = serif_i or sans
+
+    return {
+        'wm': ld(m5, 24), 'label': ld(m5, 16), 'label_s': ld(m4, 14),
+        'matchup': ld(m4, 16), 'pick': ld(i5, 40), 'spread': ld(m5, 40),
+        'badge': ld(m5, 20), 'units': ld(m5, 22), 'score': ld(m4, 18),
+        'glabel': ld(m4, 14), 'gval': ld(m5, 30),
+        'slabel': ld(m4, 14), 'sval': ld(m5, 28),
+        'tag': ld(si, 22), 'cta': ld(m5, 16),
+    }
+
+
+def _sc_spaced(draw, x, y, text, font, fill, spacing=3):
+    """Draw text with extra per-character spacing; returns ending x."""
+    for ch in text:
+        draw.text((x, y), ch, fill=fill, font=font)
+        bb = font.getbbox(ch)
+        x += (bb[2] - bb[0] if bb else 14) + spacing
+    return x
+
+
+def _sc_blend(c, alpha, bg=BG):
+    """Blend colour at given opacity over background."""
+    return tuple(int(c[i] * alpha + bg[i] * (1 - alpha)) for i in range(3))
+
+
+def _generate_share_card(pick):
+    """Generate 1080x1920 story-format share card for a resolved signal."""
+    fonts = _share_fonts()
+    is_win = pick.result == 'win'
+    is_loss = pick.result == 'loss'
+    is_push = pick.result == 'push'
+    is_revoked = pick.result == 'revoked'
+
+    img = Image.new('RGB', (SC_W, SC_H), BG)
+    draw = ImageDraw.Draw(img)
+
+    for px in range(SC_W):
+        a = 1.0 if px < SC_W * 0.6 else max(0, 1.0 - (px - SC_W * 0.6) / (SC_W * 0.4))
+        draw.line([(px, 0), (px, 2)], fill=_sc_blend(GREEN, a))
+
+    MX = SC_MX
+    CW = SC_W - 2 * MX
+    y = (SC_H - 700) // 2
+
+    # ── Top bar ──
+    wx = _sc_spaced(draw, MX, y, 'SHARP', fonts['wm'], GRAY, spacing=3)
+    wx += 6
+    draw.text((wx, y), '||', fill=GREEN, font=fonts['wm'])
+    bb = fonts['wm'].getbbox('||')
+    wx += (bb[2] - bb[0] if bb else 20) + 6
+    _sc_spaced(draw, wx, y, 'PICKS', fonts['wm'], GRAY, spacing=3)
+
+    lab = 'SIGNAL WITHDRAWN' if is_revoked else 'SIGNAL RESULT'
+    draw.text((SC_W - MX, y), lab, fill=MUTED, font=fonts['label'], anchor='rt')
+    dl = _date_label(pick)
+    if dl:
+        draw.text((SC_W - MX, y + 24), dl, fill=MUTED, font=fonts['label_s'], anchor='rt')
+    y += 56
+
+    # ── Matchup ──
+    mup = f'{(pick.away_team or "").upper()} @ {(pick.home_team or "").upper()}'
+    draw.text((MX, y), mup, fill=MUTED, font=fonts['matchup'])
+    y += 32
+
+    # ── Pick line ──
+    side = pick.side or ''
+    words = side.split()
+    if len(words) >= 2 and words[-1][0:1] in ('+', '-'):
+        team_text, spread_text = ' '.join(words[:-1]), words[-1]
+    else:
+        team_text, spread_text = side, ''
+    draw.text((MX, y), team_text, fill=WHITE, font=fonts['pick'])
+    if spread_text:
+        draw.text((SC_W - MX, y), spread_text, fill=GREEN, font=fonts['spread'], anchor='rt')
+    y += 58
+
+    # ── Result badge + units ──
+    if is_win:
+        rl, rc = 'WIN', GREEN
+    elif is_loss:
+        rl, rc = 'LOSS', RED
+    elif is_push:
+        rl, rc = 'PUSH', GRAY
+    else:
+        rl, rc = 'WITHDRAWN', GRAY
+
+    bb = fonts['badge'].getbbox(rl)
+    btw = bb[2] - bb[0] if bb else 80
+    bth = bb[3] - bb[1] if bb else 20
+    bx1, by1 = MX, y
+    bx2, by2 = bx1 + btw + 40, by1 + bth + 12
+    draw.rounded_rectangle([bx1, by1, bx2, by2], radius=4,
+                           fill=_sc_blend(rc, 0.12), outline=_sc_blend(rc, 0.25))
+    draw.text(((bx1 + bx2) // 2, (by1 + by2) // 2), rl,
+              fill=rc, font=fonts['badge'], anchor='mm')
+
+    uval = pick.profit_units or 0
+    if is_revoked:
+        us, uc = '0.0u', GRAY
+    elif uval > 0:
+        us, uc = f'+{uval:.1f}u', GREEN
+    elif uval < 0:
+        us, uc = f'{uval:.1f}u', RED
+    else:
+        us, uc = '+0.0u', GRAY
+    draw.text((bx2 + 12, (by1 + by2) // 2), us, fill=uc, font=fonts['units'], anchor='lm')
+    y = by2 + 20
+
+    # ── Score line ──
+    if not is_revoked and pick.home_score is not None and pick.away_score is not None:
+        sc = f'{_abbr(pick.away_team)} {pick.away_score} \u00b7 {_abbr(pick.home_team)} {pick.home_score} \u00b7 Final'
+        draw.text((MX, y), sc, fill=MUTED, font=fonts['score'])
+    elif is_revoked:
+        draw.text((MX, y), 'Withdrawn before tip. Capital preserved.', fill=MUTED, font=fonts['score'])
+    y += 36
+
+    # ── Data grid (3 columns) ──
+    gp = 2
+    cw = (CW - gp * 2) // 3
+    ch = 100
+    draw.rounded_rectangle([MX, y, MX + CW, y + ch], radius=8, fill=SC_GAP)
+
+    edge_v = f'+{pick.edge_pct:.1f}%' if pick.edge_pct else '--'
+    edge_c = GREEN if pick.edge_pct else MUTED
+    cv = pick.clv
+    if is_revoked or cv is None:
+        clv_v, clv_c = '--', MUTED
+    elif cv > 0:
+        clv_v, clv_c = f'+{cv:.1f}', GREEN
+    elif cv < 0:
+        clv_v, clv_c = f'{cv:.1f}', RED
+    else:
+        clv_v, clv_c = '0.0', GRAY
+    line_v = _fmt_spread(pick.line) if not is_revoked else '--'
+    line_c = WHITE if not is_revoked else MUTED
+
+    for i, (lb, vl, vc) in enumerate([
+        ('EDGE', edge_v, edge_c), ('CLV', clv_v, clv_c), ('LINE', line_v, line_c),
+    ]):
+        cx = MX + i * (cw + gp)
+        draw.rectangle([cx, y, cx + cw, y + ch], fill=SC_CELL)
+        draw.text((cx + cw // 2, y + 22), lb, fill=MUTED, font=fonts['glabel'], anchor='mt')
+        draw.text((cx + cw // 2, y + ch // 2 + 12), vl, fill=vc, font=fonts['gval'], anchor='mm')
+    y += ch + 30
+
+    # ── Season label ──
+    draw.text((MX, y), '2025-26 SEASON', fill=MUTED, font=fonts['slabel'])
+    y += 26
+
+    # ── Season grid (2 columns) ──
+    stats = _season_stats(pick.sport)
+    cw2 = (CW - gp) // 2
+    ch2 = 120
+    draw.rounded_rectangle([MX, y, MX + CW, y + ch2], radius=8, fill=SC_GAP)
+    for idx, (lb, vl, sub) in enumerate([
+        ('RECORD', f'{stats["wins"]} - {stats["losses"]}', f'{stats["win_pct"]}% win rate'),
+        ('BEAT THE CLOSE', f'{stats["beat_close"]}%', 'Closing line value'),
+    ]):
+        sx = MX + idx * (cw2 + gp)
+        draw.rectangle([sx, y, sx + cw2, y + ch2], fill=SC_CELL)
+        draw.text((sx + cw2 // 2, y + 22), lb, fill=MUTED, font=fonts['glabel'], anchor='mt')
+        draw.text((sx + cw2 // 2, y + ch2 // 2 + 2), vl, fill=WHITE, font=fonts['sval'], anchor='mm')
+        draw.text((sx + cw2 // 2, y + ch2 - 18), sub, fill=MUTED, font=fonts['slabel'], anchor='mb')
+    y += ch2 + 40
+
+    # ── Footer ──
+    draw.text((MX, y + 4), 'One pick beats five.', fill=MUTED, font=fonts['tag'])
+    cta_t = 'SHARPPICKS.AI'
+    cb = fonts['cta'].getbbox(cta_t)
+    ctw = cb[2] - cb[0] if cb else 160
+    cth = cb[3] - cb[1] if cb else 16
+    rx = SC_W - MX
+    lx = rx - ctw - 32
+    ty, by_ = y, y + cth + 16
+    draw.rounded_rectangle([lx, ty, rx, by_], radius=6, outline=_sc_blend(GREEN, 0.3))
+    draw.text(((lx + rx) // 2, (ty + by_) // 2), cta_t, fill=GREEN, font=fonts['cta'], anchor='mm')
+
+    return img
+
+
 @cards_bp.route('/signal/<signal_id>')
 def signal_card(signal_id):
     pick = Pick.query.get(signal_id)
@@ -251,72 +479,31 @@ def signal_card(signal_id):
 
 @cards_bp.route('/result/<signal_id>')
 def result_card(signal_id):
-    from flask import render_template
-    from routes.card_routes import _get_logo_base64, _get_wordmark_base64
-
+    """Generate and return the 1080x1920 story-format share card."""
     pick = Pick.query.get(signal_id)
     if not pick:
         return jsonify({'error': 'Not found'}), 404
 
-    is_win = pick.result == 'win'
-    is_loss = pick.result == 'loss'
+    cache_dir = os.path.join(_BASE, '.share-cache')
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_path = os.path.join(cache_dir, f'share-{signal_id}.png')
 
-    units_val = pick.profit_units or 0
-    if units_val > 0:
-        units_fmt = f'+{units_val:.1f}u'
-    elif units_val < 0:
-        units_fmt = f'\u2212{abs(units_val):.1f}u'
-    else:
-        units_fmt = '0.0u'
+    is_resolved = pick.result in ('win', 'loss', 'push', 'revoked')
+    if is_resolved and os.path.isfile(cache_path):
+        with open(cache_path, 'rb') as f:
+            return Response(f.read(), mimetype='image/png',
+                            headers={'Cache-Control': 'public, max-age=31536000, immutable'})
 
-    clv_val = pick.clv
-    if clv_val is not None:
-        clv_sign = '+' if clv_val > 0 else ''
-        clv_fmt = f'{clv_sign}{clv_val:.1f}'
-    else:
-        clv_fmt = '--'
+    img = _generate_share_card(pick)
+    buf = _to_png(img)
+    png_bytes = buf.read()
 
-    all_decided = Pick.query.filter(Pick.result.in_(['win', 'loss', 'push'])).all()
-    s_wins = sum(1 for p in all_decided if p.result == 'win')
-    s_losses = sum(1 for p in all_decided if p.result == 'loss')
-    s_decided = s_wins + s_losses
-    s_win_pct = round(s_wins / s_decided * 100, 1) if s_decided > 0 else 0
-    clv_values = [p.clv for p in all_decided if p.clv is not None]
-    clv_positive = sum(1 for v in clv_values if v > 0)
-    s_clv = round(clv_positive / len(clv_values) * 100, 1) if clv_values else 0
+    if is_resolved:
+        with open(cache_path, 'wb') as f:
+            f.write(png_bytes)
 
-    matchup = f'{pick.away_team} @ {pick.home_team}' if pick.away_team and pick.home_team else ''
-
-    data = {
-        'logo_base64': _get_logo_base64(),
-        'wordmark_base64': _get_wordmark_base64(),
-        'game_date': _date_label(pick),
-        'matchup': matchup,
-        'side': pick.side or '',
-        'result_label': (pick.result or 'pending').upper(),
-        'result_color': 'green' if is_win else ('red' if is_loss else 'white'),
-        'accent_color': '#5A9E72' if is_win else ('#C4686B' if is_loss else '#5A9E72'),
-        'units_fmt': units_fmt,
-        'units_color': 'green' if units_val > 0 else ('red' if units_val < 0 else 'white'),
-        'edge_pct': f'{pick.edge_pct:.1f}' if pick.edge_pct else '0.0',
-        'clv_fmt': clv_fmt,
-        'clv_color': 'green' if (clv_val or 0) > 0 else ('red' if (clv_val or 0) < 0 else 'white'),
-        'line_fmt': _fmt_spread(pick.line),
-        'season_wins': s_wins,
-        'season_losses': s_losses,
-        'season_win_pct': s_win_pct,
-        'season_clv': s_clv,
-    }
-
-    html_string = render_template('result_card.html', **data)
-
-    try:
-        from services.card_generator import generate_card_png
-        png_bytes = generate_card_png(html_string)
-        return Response(png_bytes, mimetype='image/png',
-                        headers={'Cache-Control': 'public, max-age=86400'})
-    except Exception:
-        return _result_card_fallback(pick)
+    ttl = 'public, max-age=31536000, immutable' if is_resolved else 'public, max-age=300'
+    return Response(png_bytes, mimetype='image/png', headers={'Cache-Control': ttl})
 
 
 @cards_bp.route('/user-results')

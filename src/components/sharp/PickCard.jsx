@@ -135,12 +135,12 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
           reader.readAsDataURL(blob);
         });
         const file = await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache });
-        await Share.share({ title: 'Sharp Picks Result', text: 'sharppicks.ai', url: file.uri });
+        await Share.share({ title: 'SharpPicks', url: file.uri });
         try { await Filesystem.deleteFile({ path: filename, directory: Directory.Cache }); } catch {}
       } else {
         const file = new File([blob], filename, { type: 'image/png' });
         if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], text: 'Sharp Picks result' });
+          await navigator.share({ files: [file] });
         } else {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -583,7 +583,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
               </div>
             )}
 
-            {settled && isPro && (
+            {(settled || isRevoked) && isPro && (
               <button onClick={handleShare} style={{
                 width: '100%', borderRadius: '6px', padding: '10px', marginTop: '8px',
                 fontFamily: mono, fontWeight: 600, fontSize: '12px',
