@@ -17,10 +17,12 @@ def _get_admin_serializer():
     secret = os.environ.get('SESSION_SECRET', os.environ.get('SECRET_KEY', 'dev'))
     return URLSafeTimedSerializer(secret)
 
+ADMIN_EMAIL = 'evan@sharppicks.ai'
+
 def require_superuser():
     from flask_login import current_user
     if current_user.is_authenticated:
-        if not current_user.is_superuser:
+        if not current_user.is_superuser or current_user.email != ADMIN_EMAIL:
             return None, 403
         return current_user, None
 
@@ -30,7 +32,7 @@ def require_superuser():
             s = _get_admin_serializer()
             data = s.loads(token, salt='admin-token', max_age=86400)
             user = db.session.get(User, data)
-            if user and user.is_superuser:
+            if user and user.is_superuser and user.email == ADMIN_EMAIL:
                 return user, None
             return None, 403
         except (SignatureExpired, BadSignature):
@@ -42,9 +44,9 @@ def require_superuser():
             s = _get_admin_serializer()
             data = s.loads(auth_header[7:], salt='auth-token', max_age=86400 * 30)
             user = db.session.get(User, data.get('uid') if isinstance(data, dict) else data)
-            if user and user.is_superuser and (not isinstance(data, dict) or user.session_token == data.get('st')):
+            if user and user.is_superuser and user.email == ADMIN_EMAIL and (not isinstance(data, dict) or user.session_token == data.get('st')):
                 return user, None
-            if user and not user.is_superuser:
+            if user and (not user.is_superuser or user.email != ADMIN_EMAIL):
                 return None, 403
         except Exception:
             pass
@@ -82,7 +84,7 @@ def get_admin_token():
 
     if not user:
         return jsonify({'error': 'Login required'}), 401
-    if not user.is_superuser:
+    if not user.is_superuser or user.email != ADMIN_EMAIL:
         return jsonify({'error': 'Unauthorized'}), 403
 
     s = _get_admin_serializer()

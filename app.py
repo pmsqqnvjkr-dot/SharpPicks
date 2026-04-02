@@ -417,7 +417,7 @@ def serialize_user(user):
         'display_name': user.first_name or user.display_name or user.username or (user.email or '').split('@')[0],
         'username': user.username,
         'is_premium': user.is_pro,
-        'is_superuser': user.is_superuser,
+        'is_superuser': user.is_superuser and user.email == 'evan@sharppicks.ai',
         'subscription_status': user.subscription_status,
         'subscription_plan': user.subscription_plan,
         'founding_member': user.founding_member,
@@ -590,7 +590,6 @@ def seed_database():
             from werkzeug.security import generate_password_hash
             admin_accounts = [
                 {'email': 'evan@sharppicks.ai', 'first_name': 'Evan', 'password': 'H@rp2019*'},
-                {'email': 'erin.m.donnelly@gmail.com', 'first_name': 'Evan', 'password': 'H@rp2019*'},
             ]
             for acct in admin_accounts:
                 existing = User.query.filter_by(email=acct['email']).first()
