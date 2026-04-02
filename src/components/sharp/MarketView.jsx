@@ -37,7 +37,7 @@ function fmtML(val) {
 }
 
 function fmtTotal(val) {
-  if (val == null || val === '') return null;
+  if (val == null || val === '') return 'Pending';
   const n = parseFloat(val);
   return Number.isInteger(n) ? `${n}` : n.toFixed(1);
 }
@@ -1280,7 +1280,7 @@ function LiveBadge({ state, period, clock, sport }) {
 }
 
 function gameStatus(game) {
-  if (!game.model) return { label: '—', color: 'var(--text-tertiary)' };
+  if (!game.model) return { label: 'Pending', color: 'var(--text-tertiary)' };
   if (game.model.passes) return { label: 'SIGNAL', color: 'var(--green-profit, #10b981)' };
   if (game.model.edge >= 5) return { label: 'WATCH', color: '#FBBF24' };
   if (game.model.edge >= 2) return { label: 'NEAR', color: 'var(--text-tertiary)' };
@@ -1361,7 +1361,7 @@ function TableView({ games, isPro, onLineHistory, sport }) {
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 400 }}>{fmtSpread(g.spread_away)}</div>
                   </td>
                   <td style={{ ...tdStyle, color: 'var(--text-primary)' }}>
-                    {fmtTotal(g.total) || '—'}
+                    {fmtTotal(g.total)}
                   </td>
                   <td style={tdStyle}>
                     <div style={{ color: awayML > 0 ? '#FBBF24' : 'rgba(96,165,250,0.85)', fontWeight: awayML > 0 ? 600 : 400 }}>{fmtML(g.away_ml)}</div>
@@ -1374,7 +1374,7 @@ function TableView({ games, isPro, onLineHistory, sport }) {
                         : g.model?.edge >= 3.5 ? '#FBBF24'
                         : 'var(--text-tertiary)',
                     }}>
-                      {g.model?.edge != null ? `+${g.model.edge}%` : '—'}
+                      {g.model?.edge != null ? `+${g.model.edge}%` : 'Pending'}
                     </td>
                   )}
                   {isPro && (
@@ -1400,7 +1400,7 @@ function TableView({ games, isPro, onLineHistory, sport }) {
 }
 
 function fmtEdgePct(val) {
-  if (val == null) return '—';
+  if (val == null) return 'Pending';
   const n = parseFloat(val);
   return `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
 }
@@ -1873,6 +1873,7 @@ export function GameSlate({ preModel = false, onGameCount }) {
     if (!isToday) {
       list = list.filter(g => g.status !== 'final');
     }
+    list = list.filter(g => g.status === 'live' || g.status === 'final' || g.spread_home != null || g.home_ml != null || g.total != null);
     return list;
   }, [games, preModel, isToday]);
 
