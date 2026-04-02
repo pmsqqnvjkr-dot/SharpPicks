@@ -158,7 +158,7 @@ export default function CancelScreen({ onBack, user }) {
           fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.6',
           textAlign: 'center', padding: '12px 0',
         }}>
-          You'll keep Pro access through the end of your billing period. Cancel anytime — no fees, no questions.
+          You'll keep Pro access through the end of your billing period. Cancel anytime. No fees, no questions.
           {user?.founding_member && (
             <span style={{ display: 'block', marginTop: '8px', color: 'var(--gold-pro)' }}>
               Note: if you cancel a founding rate plan, the rate cannot be restored.

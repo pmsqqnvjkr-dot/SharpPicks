@@ -76,7 +76,7 @@ export default function NoPickCard({ data, sport, modelPhase, onInsightTap }) {
           <>
             <InsightCard
               title="Restraint is a feature"
-              desc="Quiet days are intentional. Market efficient — no action required."
+              desc="Quiet days are intentional. Market efficient. No action required."
             />
             <InsightCard
               title="Selectivity beats volume"

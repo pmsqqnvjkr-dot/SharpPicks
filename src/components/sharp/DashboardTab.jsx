@@ -229,7 +229,7 @@ function CLVTracker({ clv }) {
       <SectionLabel>Closing Line Value</SectionLabel>
       <InfoCallout
         header="The Pro's Metric"
-        text="CLV measures whether you bet before the market moved your way. Consistently beating closing lines means the model identifies real edges — regardless of individual outcomes."
+        text="CLV measures whether you bet before the market moved your way. Consistently beating closing lines means the model identifies real edges, regardless of individual outcomes."
       />
       <div style={{
         backgroundColor: 'var(--surface-1)', borderRadius: '20px',
@@ -261,11 +261,11 @@ function CLVTracker({ clv }) {
                 color: isPositive ? 'var(--green-profit)' : 'var(--text-tertiary)',
                 marginTop: '4px', opacity: 0.8,
               }}>
-                {avgClv >= 2 ? 'Elite — consistently ahead of the market'
-                  : avgClv >= 1 ? 'Strong — model beats the close'
-                  : avgClv > 0 ? 'Positive — edge over closing lines'
-                  : avgClv === 0 ? 'Neutral — matching the market'
-                  : 'Negative — behind closing lines'}
+                {avgClv >= 2 ? 'Elite: consistently ahead of the market'
+                  : avgClv >= 1 ? 'Strong: model beats the close'
+                  : avgClv > 0 ? 'Positive: edge over closing lines'
+                  : avgClv === 0 ? 'Neutral: matching the market'
+                  : 'Negative: behind closing lines'}
               </div>
             )}
           </div>
@@ -347,15 +347,15 @@ function DisciplineScore({ discipline }) {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginBottom: '4px' }}>
               <span style={{
                 fontSize: '13px', color: 'var(--text-secondary)',
-              }}>Selectivity Rate</span>
+              }}>Model Selectivity</span>
               <span style={{
                 fontFamily: 'var(--font-mono)', fontSize: '22px',
                 color: 'var(--text-primary)', fontWeight: 700,
               }}>{discipline.selectivity_rate || 0}%</span>
             </div>
             <div style={{
-              fontSize: '12px', color: 'var(--text-tertiary)',
-            }}>Industry Avg: {discipline.industry_avg || 78}%</div>
+              fontSize: '11px', color: 'var(--text-tertiary)',
+            }}>How often the model signals on available games</div>
           </div>
           <div style={{
             width: '56px', height: '56px', borderRadius: '14px',
@@ -764,7 +764,7 @@ function ModelHealthBadge({ health }) {
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '10px',
           color: 'var(--text-tertiary)',
-        }}>σ {health.sigma}</span>
+        }}>&middot; Sigma {health.sigma}</span>
       )}
     </div>
   );
@@ -1014,10 +1014,10 @@ function MiniEquityChart({ data }) {
 
 
 const TRUST_STEPS = [
-  { label: 'Market Regime', desc: 'Classify daily market conditions — exploitable, active, moderate, or efficient.', accent: 'rgba(79,134,247,0.7)' },
+  { label: 'Market Regime', desc: 'Classify daily market conditions: exploitable, active, moderate, or efficient.', accent: 'rgba(79,134,247,0.7)' },
   { label: 'Edges Detected', desc: 'Every game on the slate scanned for pricing inefficiency vs. model projections.', accent: 'rgba(251,191,36,0.8)' },
   { label: 'Qualified Signals', desc: 'Only edges above the statistical threshold survive qualification filters.', accent: 'var(--green-profit)' },
-  { label: 'Quant Reasoning', desc: 'Full model logic, line movement, and sharp vs. public money — transparent to you.', accent: 'var(--text-secondary)' },
+  { label: 'Quant Reasoning', desc: 'Full model logic, line movement, and sharp vs. public money, transparent to you.', accent: 'var(--text-secondary)' },
   { label: 'CLV Performance', desc: 'After the game closes, did the model beat the closing line? This is the ultimate proof.', accent: 'var(--green-profit)', isFinal: true },
 ];
 

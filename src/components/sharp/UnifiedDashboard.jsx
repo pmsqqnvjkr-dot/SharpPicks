@@ -342,11 +342,6 @@ export default function UnifiedDashboard({ embedded = false }) {
               selectivity={selectivity}
               industryAvg={industryAvg}
             />
-
-            <BehavioralEdgeCard
-              selectivity={selectivity}
-              industryAvg={industryAvg}
-            />
           </>
         )}
 
@@ -1268,9 +1263,16 @@ function SelectivitySpectrum({ selectivity, industryAvg }) {
         fontFamily: 'var(--font-mono)',
         fontSize: '10px', fontWeight: 600,
         letterSpacing: '2px', textTransform: 'uppercase',
-        color: 'var(--text-tertiary)', marginBottom: '16px',
+        color: 'var(--text-tertiary)', marginBottom: '4px',
       }}>
-        SELECTIVITY SPECTRUM
+        YOUR SELECTIVITY
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-mono)',
+        fontSize: '10px', color: 'var(--text-tertiary)',
+        marginBottom: '16px',
+      }}>
+        How often you bet on model signals
       </div>
 
       <div style={{ position: 'relative', marginBottom: '12px' }}>
@@ -1333,35 +1335,6 @@ function SelectivitySpectrum({ selectivity, industryAvg }) {
         lineHeight: '1.5', margin: 0,
       }}>
         You bet on <strong style={{ color: 'var(--text-primary)' }}>{Math.round(selectivity)}%</strong> of opportunities. The industry average is {industryAvg}%. Fewer decisions, better decisions.
-      </p>
-    </div>
-  );
-}
-
-function BehavioralEdgeCard({ selectivity, industryAvg }) {
-  return (
-    <div style={{
-      backgroundColor: 'var(--surface-1)',
-      borderRadius: '16px',
-      border: '1px solid var(--stroke-subtle)',
-      padding: '20px',
-      marginBottom: '8px',
-    }}>
-      <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '10px', fontWeight: 600,
-        letterSpacing: '2px', textTransform: 'uppercase',
-        color: 'var(--green-profit)', marginBottom: '12px',
-      }}>
-        BEHAVIORAL EDGE
-      </div>
-
-      <p style={{
-        fontFamily: 'var(--font-sans)',
-        fontSize: '14px', color: 'var(--text-secondary)',
-        lineHeight: '1.5', margin: '0 0 12px 0',
-      }}>
-        Your selectivity rate is <strong style={{ color: 'var(--text-primary)' }}>{Math.round(selectivity)}%</strong> — industry average is {industryAvg}%. This restraint compounds over time.
       </p>
 
       <InfoCallout

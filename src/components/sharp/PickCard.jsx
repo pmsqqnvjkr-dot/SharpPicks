@@ -166,7 +166,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
           fontFamily: mono, fontSize: '9px', letterSpacing: '1px',
           color: textDim, textTransform: 'uppercase', marginBottom: '8px',
         }}>
-          {(pick.sport || 'nba').toUpperCase()} — {pick.away_team} vs {pick.home_team}
+          {(pick.sport || 'nba').toUpperCase()} · {pick.away_team} vs {pick.home_team}
         </div>
         <div style={{
           fontFamily: mono, fontSize: '10px', color: textDim, marginBottom: '12px',

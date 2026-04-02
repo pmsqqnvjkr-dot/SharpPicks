@@ -193,9 +193,9 @@ function StatCell({ label, value, color, sub }) {
 }
 
 const STABILITY_CONFIG = {
-  low: { color: '#f59e0b', bg: 'rgba(251,191,36,0.04)', border: 'rgba(251,191,36,0.15)', desc: 'Market still finding price — line may continue moving' },
-  medium: { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.02)', border: 'rgba(255,255,255,0.06)', desc: 'Moderate book agreement — some price discovery remaining' },
-  high: { color: 'var(--green-profit, #10b981)', bg: 'rgba(52,211,153,0.03)', border: 'rgba(52,211,153,0.12)', desc: 'Strong book consensus — line unlikely to move significantly' },
+  low: { color: '#f59e0b', bg: 'rgba(251,191,36,0.04)', border: 'rgba(251,191,36,0.15)', desc: 'Market still finding price. Line may continue moving.' },
+  medium: { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.02)', border: 'rgba(255,255,255,0.06)', desc: 'Moderate book agreement. Some price discovery remaining.' },
+  high: { color: 'var(--green-profit, #10b981)', bg: 'rgba(52,211,153,0.03)', border: 'rgba(52,211,153,0.12)', desc: 'Strong book consensus. Line unlikely to move significantly.' },
 };
 
 function MarketConfidence({ stability, edge }) {
@@ -336,7 +336,7 @@ function ValueRange({ pickLine, playableTo, currentLine }) {
         fontFamily: 'var(--font-mono)', fontSize: '0.625rem',
         color: 'var(--text-secondary)',
       }}>
-        Playable {isUnderdog ? 'down' : 'up'} to {fmtSpread(playableTo)} &mdash; edge invalidates beyond
+        Playable {isUnderdog ? 'down' : 'up'} to {fmtSpread(playableTo)}. Edge invalidates beyond.
       </div>
     </div>
   );

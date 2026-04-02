@@ -218,7 +218,7 @@ export default function UpgradeScreen({ onBack, user }) {
                 loading={checkoutLoading}
                 highlight
                 badge={`${spotsRemaining} of 50 left`}
-                savings="Best value — billed annually"
+                savings="Best value. Billed annually."
               />
             )}
             <PricingCard
@@ -264,7 +264,7 @@ export default function UpgradeScreen({ onBack, user }) {
             fontSize: '12px',
             color: 'var(--text-tertiary)',
             lineHeight: 1.5,
-          }}>Built for long-term bankroll growth — not daily action.</span>
+          }}>Built for long-term bankroll growth, not daily action.</span>
         </div>
 
         <div style={{
@@ -273,7 +273,7 @@ export default function UpgradeScreen({ onBack, user }) {
           marginBottom: '16px',
         }}>
           <SectionLabel>What Changes</SectionLabel>
-          <FeatureRow icon="unlock" text="Full pick transparency — side, line, edge %" />
+          <FeatureRow icon="unlock" text="Full pick transparency: side, line, edge %" />
           <FeatureRow icon="chart" text="Quantified performance dashboard" />
           <FeatureRow icon="bell" text="Real-time pick alerts" />
           <FeatureRow icon="track" text="Pick-linked tracking" />

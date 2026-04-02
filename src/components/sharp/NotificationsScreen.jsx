@@ -141,7 +141,7 @@ export default function NotificationsScreen({ onBack }) {
             )}
             {pushResult === 'failed' && (
               <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
-                Could not enable — your browser may not support push notifications
+                Could not enable. Your browser may not support push notifications.
               </div>
             )}
           </div>

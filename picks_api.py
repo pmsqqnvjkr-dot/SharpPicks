@@ -80,13 +80,13 @@ def _detect_sharp_action(spread_open, spread_now, snapshots, game_data, model_da
     # --- Signal 1: Spread movement magnitude ---
     if abs_move >= 2.0:
         score += 30
-        evidence.append(f"Spread moved {abs_move:.1f}pts — significant sharp pressure")
+        evidence.append(f"Spread moved {abs_move:.1f}pts. Significant sharp pressure")
     elif abs_move >= 1.0:
         score += 20
         evidence.append(f"Spread moved {abs_move:.1f}pts from open")
     else:
         score += 8
-        evidence.append(f"Spread moved {abs_move:.1f}pts — minor shift")
+        evidence.append(f"Spread moved {abs_move:.1f}pts. Minor shift")
 
     # --- Signal 2: Snapshot trend consistency ---
     if snapshots and len(snapshots) >= 3:
@@ -119,10 +119,10 @@ def _detect_sharp_action(spread_open, spread_now, snapshots, game_data, model_da
         if move_side == 'home' and juice_diff > 5:
             # Home is more expensive — books pricing against home bettors
             score += 10
-            evidence.append(f"Juice favors away side ({home_odds}/{away_odds}) — books pricing against sharp side")
+            evidence.append(f"Juice favors away side ({home_odds}/{away_odds}). Books pricing against sharp side")
         elif move_side == 'away' and juice_diff < -5:
             score += 10
-            evidence.append(f"Juice favors home side ({home_odds}/{away_odds}) — books pricing against sharp side")
+            evidence.append(f"Juice favors home side ({home_odds}/{away_odds}). Books pricing against sharp side")
         elif (move_side == 'home' and juice_diff < -10) or (move_side == 'away' and juice_diff > 10):
             score -= 5  # Juice contradicts the move direction
 
@@ -134,7 +134,7 @@ def _detect_sharp_action(spread_open, spread_now, snapshots, game_data, model_da
             sr = abs(float(parts[1]) - float(parts[0]))
             if sr >= 2.0:
                 score += 10
-                evidence.append(f"Books disagree by {sr:.1f}pts — market still adjusting")
+                evidence.append(f"Books disagree by {sr:.1f}pts. Market still adjusting")
             elif sr >= 1.0:
                 score += 5
                 evidence.append(f"Moderate book disagreement ({sr:.1f}pt range)")
@@ -149,7 +149,7 @@ def _detect_sharp_action(spread_open, spread_now, snapshots, game_data, model_da
         # the best-line book has moved further than the market — steam move
         if abs(consensus_diff) >= 0.5 and (consensus_diff * spread_move > 0):
             score += 10
-            evidence.append(f"Best line ({spread_now:+.1f}) ahead of consensus ({consensus:+.1f}) — steam detected")
+            evidence.append(f"Best line ({spread_now:+.1f}) ahead of consensus ({consensus:+.1f}). Steam detected")
 
     # --- Signal 6: Moneyline confirmation ---
     home_ml = game_data.get('home_ml')
@@ -171,10 +171,10 @@ def _detect_sharp_action(spread_open, spread_now, snapshots, game_data, model_da
             # that confirms sharps are on away
             if move_side == 'away' and ml_shift < -0.02:
                 score += 12
-                evidence.append("Moneyline confirms — home implied probability dropped")
+                evidence.append("Moneyline confirms: home implied probability dropped")
             elif move_side == 'home' and ml_shift > 0.02:
                 score += 12
-                evidence.append("Moneyline confirms — home implied probability rose")
+                evidence.append("Moneyline confirms: home implied probability rose")
             elif (move_side == 'away' and ml_shift > 0.03) or (move_side == 'home' and ml_shift < -0.03):
                 score -= 5  # ML contradicts spread direction
 
@@ -710,7 +710,7 @@ def weekly_summary():
             days.append({
                 'type': 'pick',
                 'date': day_str,
-                'summary': f"{p.away_team} @ {p.home_team} — {p.side} {p.line}",
+                'summary': f"{p.away_team} @ {p.home_team} · {p.side} {p.line}",
                 'result': p.result if p.result in ('win', 'loss', 'push') else None,
                 'pnl': p.profit_units,
             })

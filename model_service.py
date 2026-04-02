@@ -199,7 +199,7 @@ def _diagnose_no_games(today_str, sport='nba'):
                 'situation': 'data_failure',
                 'total_games': 0,
                 'games_with_spreads': 0,
-                'message': 'No games in database — data collection may have failed',
+                'message': 'No games in database. Data collection may have failed',
             }
 
         if with_spreads == 0:
@@ -207,7 +207,7 @@ def _diagnose_no_games(today_str, sport='nba'):
                 'situation': 'no_spreads',
                 'total_games': total,
                 'games_with_spreads': 0,
-                'message': f'{total} games found but none have spreads — lines may not be posted yet',
+                'message': f'{total} games found but none have spreads. Lines may not be posted yet',
             }
 
         if unscored == 0:
@@ -215,14 +215,14 @@ def _diagnose_no_games(today_str, sport='nba'):
                 'situation': 'stale_data',
                 'total_games': total,
                 'games_with_spreads': with_spreads,
-                'message': f'All {total} games already scored — data stale or not refreshed',
+                'message': f'All {total} games already scored. Data stale or not refreshed',
             }
 
         return {
             'situation': 'no_eligible',
             'total_games': total,
             'games_with_spreads': with_spreads,
-            'message': f'{total} games, {with_spreads} with spreads — model found none eligible (time filter or other)',
+            'message': f'{total} games, {with_spreads} with spreads. Model found none eligible (time filter or other)',
         }
 
     except Exception as e:
@@ -378,7 +378,7 @@ def pretip_revalidate(app, sport='nba'):
 
             if not still_passes:
                 revoke = True
-                revoke_reason = f"Pre-tip re-check: no longer passes filters — {matching.get('pass_reason', 'edge evaporated')}"
+                revoke_reason = f"Pre-tip re-check: no longer passes filters. {matching.get('pass_reason', 'edge evaporated').capitalize()}"
             elif new_edge < PRETIP_MIN_EDGE:
                 revoke = True
                 revoke_reason = f"Pre-tip re-check: edge dropped to {new_edge:+.1f}% (was {old_edge:+.1f}%)"
@@ -546,7 +546,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                         sport=sport,
                         games_analyzed=diag['games_with_spreads'],
                         closest_edge_pct=0,
-                        pass_reason=f"All {diag['total_games']} games already completed — model ran after games finished",
+                        pass_reason=f"All {diag['total_games']} games already completed. Model ran after games finished",
                     )
                     db.session.add(pass_entry)
                     games_detail = _build_games_detail_from_sqlite(today_str, sport, reason='All games already scored')
@@ -579,7 +579,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                         sport=sport,
                         games_analyzed=diag['games_with_spreads'],
                         closest_edge_pct=0,
-                        pass_reason=f"No eligible games — {diag['games_with_spreads']} analyzed, none passed filters",
+                        pass_reason=f"No eligible games. {diag['games_with_spreads']} analyzed, none passed filters",
                     )
                     db.session.add(pass_entry)
 

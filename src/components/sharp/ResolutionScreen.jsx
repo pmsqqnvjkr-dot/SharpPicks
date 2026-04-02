@@ -109,7 +109,7 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
             ? `Spread landed on the number. Wager returned. Edge was ${edgePct}% at entry. Variance within expected parameters.`
             : isWin
             ? `Outcome within expected range. Edge: ${edgePct}%. Win expected ~${modelProb} of the time. One result does not validate a model.`
-            : `Edge was ${edgePct}% at entry. Model expected a win ~${modelProb} of the time. Loss falls within expected variance. Process was correct \u2014 outcome was not.`
+            : `Edge was ${edgePct}% at entry. Model expected a win ~${modelProb} of the time. Loss falls within expected variance. Process was correct. Outcome was not.`
           }
         </div>
         <div style={{ display: 'flex', padding: '0 20px 16px' }}>
@@ -297,7 +297,7 @@ function WithdrawnDetailScreen({ pick, onBack }) {
           fontFamily: "'IBM Plex Serif',Georgia,serif", fontStyle: 'italic',
           fontSize: '14px', lineHeight: 1.6, color: C.t2,
         }}>
-          Not every signal survives. The edge decides &mdash; not emotion. A withdrawal is the system protecting capital. Next signal when the edge is there.
+          Not every signal survives. The edge decides, not emotion. A withdrawal is the system protecting capital. Next signal when the edge is there.
         </div>
       </div>
 

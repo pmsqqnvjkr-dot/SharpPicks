@@ -164,7 +164,7 @@ export default function PrivacyPolicy() {
           fontSize: '12px',
           color: 'var(--text-tertiary)',
           textAlign: 'center',
-        }}>SharpPicks — Discipline is the edge.</p>
+        }}>SharpPicks · Discipline is the edge.</p>
       </div>
     </div>
   );

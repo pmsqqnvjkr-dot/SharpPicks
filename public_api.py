@@ -401,16 +401,16 @@ def dashboard_stats():
 
     capital_preserved = round(total_passes * 110 * 0.04, 0)
 
-    if selectivity <= 20:
+    if selectivity < 25:
         restraint_grade = 'A+'
-    elif selectivity <= 30:
+    elif selectivity < 35:
         restraint_grade = 'A'
-    elif selectivity <= 40:
-        restraint_grade = 'B+'
-    elif selectivity <= 50:
+    elif selectivity < 50:
         restraint_grade = 'B'
-    else:
+    elif selectivity < 65:
         restraint_grade = 'C'
+    else:
+        restraint_grade = 'D'
 
     latest_sigma = None
     for p in reversed(picks):
@@ -1066,7 +1066,7 @@ def build_market_report_dict(date_param, sport=None):
 
     if market_stability:
         if market_stability['level'] == 'low' and edges_detected > 0:
-            briefing_lines.append('Line instability detected — markets still adjusting. Potential for further movement.')
+            briefing_lines.append('Line instability detected. Markets still adjusting. Potential for further movement.')
         elif market_stability['level'] == 'high' and edges_detected > 0:
             briefing_lines.append('Lines are stable across the board. Remaining edges may hold through tip-off.')
 
@@ -1289,15 +1289,13 @@ def discipline_score():
     else:
         selectivity = round(total_picks / total_games * 100, 1)
 
-    if selectivity < 20:
+    if selectivity < 25:
         grade = 'A+'
-    elif selectivity < 30:
+    elif selectivity < 35:
         grade = 'A'
-    elif selectivity < 40:
-        grade = 'B+'
     elif selectivity < 50:
         grade = 'B'
-    elif selectivity < 70:
+    elif selectivity < 65:
         grade = 'C'
     else:
         grade = 'D'

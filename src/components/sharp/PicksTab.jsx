@@ -347,13 +347,15 @@ export default function PicksTab({ onNavigate }) {
             </div>
 
             {/* Section: TODAY'S SLATE */}
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-              letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: '#7A8494', marginBottom: '14px',
-            }}>
-              TODAY'S SLATE &middot; {today.toUpperCase()}
-            </div>
+            {totalGames > 0 && (
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+                letterSpacing: '0.12em', textTransform: 'uppercase',
+                color: '#7A8494', marginBottom: '14px',
+              }}>
+                TODAY'S SLATE &middot; {today.toUpperCase()}
+              </div>
+            )}
           </>
         )}
 
@@ -430,11 +432,13 @@ export default function PicksTab({ onNavigate }) {
             )}
 
             {/* Section: TODAY'S SLATE */}
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-              letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: '#7A8494', marginTop: '28px', marginBottom: '14px',
-            }}>TODAY'S SLATE</div>
+            {totalGames > 0 && (
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+                letterSpacing: '0.12em', textTransform: 'uppercase',
+                color: '#7A8494', marginTop: '28px', marginBottom: '14px',
+              }}>TODAY'S SLATE</div>
+            )}
           </>
         )}
 
@@ -508,11 +512,13 @@ export default function PicksTab({ onNavigate }) {
             </div>
 
             {/* Section: TODAY'S SLATE */}
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-              letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: '#7A8494', marginBottom: '14px',
-            }}>TODAY'S SLATE</div>
+            {totalGames > 0 && (
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+                letterSpacing: '0.12em', textTransform: 'uppercase',
+                color: '#7A8494', marginBottom: '14px',
+              }}>TODAY'S SLATE</div>
+            )}
           </>
         )}
 
@@ -680,7 +686,15 @@ export default function PicksTab({ onNavigate }) {
         )}
 
 
-        {/* Recommended Reads — before today's slate */}
+        {/* ═══════════════ GAME SLATE (pre-model, pick, pass) ═══════════════ */}
+        {pageState !== 'off-day' && (
+          <GameSlate
+            preModel={pageState === 'pre-model'}
+            onGameCount={setGameInfo}
+          />
+        )}
+
+        {/* Recommended Reads — after today's slate */}
         {pageState !== 'off-day' && insightsData?.insights?.length > 0 && (
           <div style={{ marginTop: '20px', marginBottom: '20px' }}>
             <div style={{
@@ -722,14 +736,6 @@ export default function PicksTab({ onNavigate }) {
               );
             })}
           </div>
-        )}
-
-        {/* ═══════════════ GAME SLATE (pre-model, pick, pass) ═══════════════ */}
-        {pageState !== 'off-day' && (
-          <GameSlate
-            preModel={pageState === 'pre-model'}
-            onGameCount={setGameInfo}
-          />
         )}
 
         {/* Portfolio Context Line (pick & pass days) */}

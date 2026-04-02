@@ -153,7 +153,7 @@ export default function LandingPage({ autoView }) {
               color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 10,
               maxWidth: 480,
             }}>
-              SharpPicks analyzes sports betting markets like a trading desk — identifying pricing
+              SharpPicks analyzes sports betting markets like a trading desk, identifying pricing
               inefficiencies, measuring probability gaps, and generating signals only when real edges appear.
             </p>
             <p style={{
@@ -263,7 +263,7 @@ export default function LandingPage({ autoView }) {
             <PillarCard
               icon="△"
               title="Quantitative Analysis"
-              description="Each game is evaluated using statistical models, probability gaps, and market signals — 50+ features per game, no narratives."
+              description="Each game is evaluated using statistical models, probability gaps, and market signals. 50+ features per game, no narratives."
             />
             <PillarCard
               icon="◇"

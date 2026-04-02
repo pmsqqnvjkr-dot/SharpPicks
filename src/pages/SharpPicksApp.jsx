@@ -331,9 +331,9 @@ function AppContent() {
     return <LandingPage autoView={autoView} />;
   }
 
-  if (showOnboarding) {
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
-  }
+  const onboardingOverlay = showOnboarding
+    ? <OnboardingFlow onComplete={handleOnboardingComplete} />
+    : null;
 
   if (user && user.subscription_status === 'pending_verification') {
     return (
@@ -462,7 +462,7 @@ function AppContent() {
           <span style={{
             fontSize: '12px', fontWeight: 600, color: '#ef4444',
             fontFamily: 'var(--font-mono)', letterSpacing: '0.3px',
-          }}>No connection — data may be outdated</span>
+          }}>No connection. Data may be outdated.</span>
         </div>
       )}
       <div style={{ flex: 1, paddingBottom: '60px', overflowY: 'auto' }}>
@@ -478,6 +478,7 @@ function AppContent() {
         }
         setActiveTab(tab);
       }} />
+      {onboardingOverlay}
     </div>
   );
 }
