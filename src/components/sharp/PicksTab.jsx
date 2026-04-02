@@ -165,17 +165,6 @@ export default function PicksTab({ onNavigate }) {
     return () => clearInterval(interval);
   }, [fetchLiveForPick, liveScore]);
 
-  if (loading || authLoading) {
-    return <LoadingState />;
-  }
-
-  const isRevoked = todayData?.type === 'pick' && todayData?.result === 'revoked';
-  const isResolved = todayData?.type === 'pick' && todayData?.result && todayData.result !== 'pending' && todayData.result !== 'revoked';
-
-  if (showResolution && resolutionPick) {
-    return <ResolutionScreen pick={resolutionPick} onBack={() => { setShowResolution(false); setResolutionPick(null); }} onNavigate={onNavigate} />;
-  }
-
   // Night mode detection: two scenarios
   // 1) Same-day: all today's games final + model ran today (pick/pass)
   // 2) Post-midnight: today is "waiting" (model hasn't run) + we have a recent resolved pick from yesterday
@@ -198,11 +187,9 @@ export default function PicksTab({ onNavigate }) {
   useEffect(() => {
     if (!isNightMode) { setTomorrowGames(null); setTonightBets(null); return; }
 
-    // In post-midnight mode, "tomorrow's games" = today's market (already loaded by GameSlate)
-    // In same-day mode, fetch actual tomorrow
+    const isPostMidnight = todayData?.type === 'waiting' && lastResolved?.game_date && lastResolved?.result && lastResolved.result !== 'pending';
     const fetchSlatePreview = async () => {
-      if (postMidnightNight) {
-        // Today's market data is already in the GameSlate; extract from gameInfo or re-fetch
+      if (isPostMidnight) {
         try {
           const resp = await fetch(`${PT_API_BASE}/api/picks/market?sport=${sport}`);
           const json = await resp.json();
@@ -230,7 +217,9 @@ export default function PicksTab({ onNavigate }) {
         });
         const json = await resp.json();
         if (json.bets) {
-          const recapDate = postMidnightNight ? yesterdayDate : todayET;
+          const yDate = (() => { const dd = new Date(); dd.setDate(dd.getDate() - 1); return dd.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); })();
+          const tDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+          const recapDate = isPostMidnight ? yDate : tDate;
           const resolved = json.bets.filter(b =>
             b.result && b.result !== 'pending' &&
             b.linked_pick?.game_date?.startsWith(recapDate)
@@ -241,7 +230,7 @@ export default function PicksTab({ onNavigate }) {
     };
     fetchSlatePreview();
     fetchTonightBets();
-  }, [isNightMode, sport]);
+  }, [isNightMode, sport, todayData?.type, lastResolved?.game_date, lastResolved?.result]);
 
   // Determine the 5-state: night, pre-model, pick, pass, off-day
   const pageState =
@@ -252,6 +241,17 @@ export default function PicksTab({ onNavigate }) {
     (todayData?.type === 'off_day' || todayData?.type === 'allstar_break') ? 'off-day' :
     (!todayData && !error) ? 'pre-model' :
     'pre-model';
+
+  const isRevoked = todayData?.type === 'pick' && todayData?.result === 'revoked';
+  const isResolved = todayData?.type === 'pick' && todayData?.result && todayData.result !== 'pending' && todayData.result !== 'revoked';
+
+  if (loading || authLoading) {
+    return <LoadingState />;
+  }
+
+  if (showResolution && resolutionPick) {
+    return <ResolutionScreen pick={resolutionPick} onBack={() => { setShowResolution(false); setResolutionPick(null); }} onNavigate={onNavigate} />;
+  }
 
   // MI card default state: collapsed on pick day, expanded on pass day
   const isMiExpanded = miExpanded !== null ? miExpanded : false;
