@@ -1,0 +1,34 @@
+---
+description: Landing site (sharppicks.ai) infrastructure and deployment context
+globs: landing/**
+alwaysApply: false
+---
+
+# Landing Site (sharppicks.ai)
+
+## Location
+Static landing site files live in `/landing` directory.
+
+## Deployment
+- Hosted on Cloudflare Pages (project: crimson-mud-d8b4)
+- Connected to GitHub repo pmsqqnvjkr-dot/SharpPicks
+- Root directory: /landing
+- Auto-deploys on every push to main branch
+- No build step needed (static HTML)
+- Deploy command: npx wrangler pages deploy
+
+## Structure
+- /landing/index.html — main landing page
+- /landing/support/ — support page
+- /landing/sitemap.xml — SEO sitemap
+- /landing/robots.txt — crawler directives
+- /landing/_headers — Cloudflare security + cache headers
+- /landing/_redirects — www redirect, /app redirect
+- /landing/assets/ — CSS, JS, images
+
+## SEO
+- OG meta tags and Twitter Card tags on index.html
+- JSON-LD structured data on index.html
+- Default OG image: /landing/assets/images/og-default.png (1200x630)
+- Sitemap includes all public pages
+- Canonical URL: https://sharppicks.ai/
