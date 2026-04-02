@@ -352,7 +352,8 @@ class EnsemblePredictor:
                 g.home_pitcher_whip, g.away_pitcher_whip,
                 g.home_pitcher_wins, g.away_pitcher_wins,
                 g.home_pitcher_losses, g.away_pitcher_losses,
-                g.home_pitcher_ip, g.away_pitcher_ip"""
+                g.home_pitcher_ip, g.away_pitcher_ip,
+                g.ump_rpgi"""
 
         bdl_cols = ""
         if self.sport != 'mlb':
@@ -529,7 +530,8 @@ class EnsemblePredictor:
                 inj_features_list.append(compute_game_injury_features(hi, ai, ht, at))
             inj_df = pd.DataFrame(inj_features_list, index=df.index)
             keep_inj = ['injury_ppg_diff', 'home_ppg_at_risk', 'away_ppg_at_risk',
-                         'home_star_out', 'away_star_out', 'home_rotation_out', 'away_rotation_out']
+                         'home_star_out', 'away_star_out', 'home_rotation_out', 'away_rotation_out',
+                         'home_mpg_at_risk', 'away_mpg_at_risk', 'injury_mpg_diff']
             for col in inj_df.columns:
                 if col in keep_inj:
                     features[col] = inj_df[col].astype(float)
@@ -566,73 +568,72 @@ class EnsemblePredictor:
             features['away_tz_change'] = pd.Series([t[1] for t in travel_data], index=df.index, dtype=float)
             features['home_altitude_factor'] = pd.Series([t[2] for t in travel_data], index=df.index, dtype=float)
 
-        if self.sport != 'mlb':
-            features['home_games_last_5d'] = pd.Series(0.0, index=df.index)
-            features['away_games_last_5d'] = pd.Series(0.0, index=df.index)
-            features['home_games_last_7d'] = pd.Series(0.0, index=df.index)
-            features['away_games_last_7d'] = pd.Series(0.0, index=df.index)
-            try:
-                if 'game_date' in df.columns and 'home_team' in df.columns:
-                    dates = pd.to_datetime(df['game_date'], errors='coerce')
-                    if dates.notna().sum() > 0:
-                        all_team_dates = {}
-                        for idx, row in df.iterrows():
-                            d = dates.get(idx)
-                            if pd.isna(d):
-                                continue
-                            ht = row.get('home_team', '')
-                            at = row.get('away_team', '')
-                            if ht:
-                                all_team_dates.setdefault(ht, []).append(d)
-                            if at:
-                                all_team_dates.setdefault(at, []).append(d)
+        features['home_games_last_5d'] = pd.Series(0.0, index=df.index)
+        features['away_games_last_5d'] = pd.Series(0.0, index=df.index)
+        features['home_games_last_7d'] = pd.Series(0.0, index=df.index)
+        features['away_games_last_7d'] = pd.Series(0.0, index=df.index)
+        try:
+            if 'game_date' in df.columns and 'home_team' in df.columns:
+                dates = pd.to_datetime(df['game_date'], errors='coerce')
+                if dates.notna().sum() > 0:
+                    all_team_dates = {}
+                    for idx, row in df.iterrows():
+                        d = dates.get(idx)
+                        if pd.isna(d):
+                            continue
+                        ht = row.get('home_team', '')
+                        at = row.get('away_team', '')
+                        if ht:
+                            all_team_dates.setdefault(ht, []).append(d)
+                        if at:
+                            all_team_dates.setdefault(at, []).append(d)
 
-                        unique_dates = dates.dropna().unique()
-                        if len(unique_dates) <= 2:
-                            try:
-                                ref_date = unique_dates.max()
-                                start_date = (pd.Timestamp(ref_date) - pd.Timedelta(days=8)).strftime('%Y-%m-%d')
-                                end_date = pd.Timestamp(ref_date).strftime('%Y-%m-%d')
-                                tbl = self._games_table()
-                                hist_conn = sqlite3.connect(get_sqlite_path())
-                                hist_rows = hist_conn.execute(
-                                    f"SELECT game_date, home_team, away_team FROM {tbl} "
-                                    f"WHERE game_date >= ? AND game_date < ? AND home_score IS NOT NULL",
-                                    (start_date, end_date)
-                                ).fetchall()
-                                hist_conn.close()
-                                for gd_str, ht, at in hist_rows:
-                                    gd = pd.Timestamp(gd_str)
-                                    if ht:
-                                        all_team_dates.setdefault(ht, []).append(gd)
-                                    if at:
-                                        all_team_dates.setdefault(at, []).append(gd)
-                            except Exception:
-                                pass
+                    unique_dates = dates.dropna().unique()
+                    if len(unique_dates) <= 2:
+                        try:
+                            ref_date = unique_dates.max()
+                            start_date = (pd.Timestamp(ref_date) - pd.Timedelta(days=8)).strftime('%Y-%m-%d')
+                            end_date = pd.Timestamp(ref_date).strftime('%Y-%m-%d')
+                            tbl = self._games_table()
+                            hist_conn = sqlite3.connect(get_sqlite_path())
+                            hist_rows = hist_conn.execute(
+                                f"SELECT game_date, home_team, away_team FROM {tbl} "
+                                f"WHERE game_date >= ? AND game_date < ? AND home_score IS NOT NULL",
+                                (start_date, end_date)
+                            ).fetchall()
+                            hist_conn.close()
+                            for gd_str, ht, at in hist_rows:
+                                gd = pd.Timestamp(gd_str)
+                                if ht:
+                                    all_team_dates.setdefault(ht, []).append(gd)
+                                if at:
+                                    all_team_dates.setdefault(at, []).append(gd)
+                        except Exception:
+                            pass
 
-                        for team in all_team_dates:
-                            all_team_dates[team].sort()
+                    for team in all_team_dates:
+                        all_team_dates[team].sort()
 
-                        h5, a5, h7, a7 = [], [], [], []
-                        for idx, row in df.iterrows():
-                            d = dates.get(idx)
-                            if pd.isna(d):
-                                h5.append(0); a5.append(0); h7.append(0); a7.append(0)
-                                continue
-                            ht = row.get('home_team', '')
-                            at = row.get('away_team', '')
-                            hg = all_team_dates.get(ht, [])
-                            ag = all_team_dates.get(at, [])
-                            h5.append(sum(1 for gd in hg if pd.Timedelta(0) < (d - gd) <= pd.Timedelta(days=5)))
-                            a5.append(sum(1 for gd in ag if pd.Timedelta(0) < (d - gd) <= pd.Timedelta(days=5)))
-                            h7.append(sum(1 for gd in hg if pd.Timedelta(0) < (d - gd) <= pd.Timedelta(days=7)))
-                            a7.append(sum(1 for gd in ag if pd.Timedelta(0) < (d - gd) <= pd.Timedelta(days=7)))
-                        features['home_games_last_5d'] = pd.Series(h5, index=df.index, dtype=float)
-                        features['away_games_last_5d'] = pd.Series(a5, index=df.index, dtype=float)
-                        features['home_games_last_7d'] = pd.Series(h7, index=df.index, dtype=float)
-                        features['away_games_last_7d'] = pd.Series(a7, index=df.index, dtype=float)
-            except Exception as e:
-                print(f"   ⚠️ Schedule density error: {e}")
+                    h5, a5, h7, a7 = [], [], [], []
+                    for idx, row in df.iterrows():
+                        d = dates.get(idx)
+                        if pd.isna(d):
+                            h5.append(0); a5.append(0); h7.append(0); a7.append(0)
+                            continue
+                        ht = row.get('home_team', '')
+                        at = row.get('away_team', '')
+                        hg = all_team_dates.get(ht, [])
+                        ag = all_team_dates.get(at, [])
+                        h5.append(sum(1 for gd in hg if pd.Timedelta(0) < (d - gd) <= pd.Timedelta(days=5)))
+                        a5.append(sum(1 for gd in ag if pd.Timedelta(0) < (d - gd) <= pd.Timedelta(days=5)))
+                        h7.append(sum(1 for gd in hg if pd.Timedelta(0) < (d - gd) <= pd.Timedelta(days=7)))
+                        a7.append(sum(1 for gd in ag if pd.Timedelta(0) < (d - gd) <= pd.Timedelta(days=7)))
+                    features['home_games_last_5d'] = pd.Series(h5, index=df.index, dtype=float)
+                    features['away_games_last_5d'] = pd.Series(a5, index=df.index, dtype=float)
+                    features['home_games_last_7d'] = pd.Series(h7, index=df.index, dtype=float)
+                    features['away_games_last_7d'] = pd.Series(a7, index=df.index, dtype=float)
+        except Exception as e:
+            print(f"   ⚠️ Schedule density error: {e}")
 
         # GATED: opponent-adjusted form strength depends on team_ratings data.
         # Re-enable when team_ratings is populated.
@@ -781,6 +782,10 @@ class EnsemblePredictor:
         except Exception as e:
             print(f"   ⚠️ Line velocity error: {e}")
 
+        spread_close = pd.to_numeric(df.get('spread_home_close', pd.Series(dtype=float)), errors='coerce')
+        if spread_close.notna().sum() > 0:
+            features['close_vs_open_spread'] = (spread_close - features['spread_open']).fillna(0.0)
+
         if self.sport == 'mlb':
             MLB_PARK_FACTORS = {
                 'COL': {'factor': 1.38, 'runs': 1.32, 'outdoor': 1},
@@ -905,8 +910,9 @@ class EnsemblePredictor:
             ml_implies_home = (home_implied > 0.5).astype(float)
             features['rl_ml_agree'] = (spread_implies_home == ml_implies_home).astype(int)
 
-            # GATED: umpire features disabled — historical data unavailable for training.
-            # Re-enable when umpire assignment history can be backfilled.
+            league_avg_rpgi = 8.8
+            features['ump_rpgi'] = pd.to_numeric(df.get('ump_rpgi', pd.Series([league_avg_rpgi]*len(df))), errors='coerce').fillna(league_avg_rpgi)
+            features['ump_deviation'] = features['ump_rpgi'] - league_avg_rpgi
 
             features['home_bullpen_fatigue'] = pd.Series(0.0, index=df.index)
             features['away_bullpen_fatigue'] = pd.Series(0.0, index=df.index)
@@ -1294,7 +1300,8 @@ class EnsemblePredictor:
                 g.home_pitcher_whip, g.away_pitcher_whip,
                 g.home_pitcher_wins, g.away_pitcher_wins,
                 g.home_pitcher_losses, g.away_pitcher_losses,
-                g.home_pitcher_ip, g.away_pitcher_ip"""
+                g.home_pitcher_ip, g.away_pitcher_ip,
+                g.ump_rpgi"""
 
         bdl_cols = ""
         if self.sport != 'mlb':
