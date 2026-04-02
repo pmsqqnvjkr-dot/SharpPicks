@@ -292,16 +292,24 @@ def _generate_share_card(pick):
     is_push = pick.result == 'push'
     is_revoked = pick.result == 'revoked'
 
-    img = Image.new('RGB', (SC_W, SC_H), BG)
+    img = Image.new('RGB', (SC_W, SC_H), (5, 7, 10))
     draw = ImageDraw.Draw(img)
 
-    for px in range(SC_W):
-        a = 1.0 if px < SC_W * 0.6 else max(0, 1.0 - (px - SC_W * 0.6) / (SC_W * 0.4))
-        draw.line([(px, 0), (px, 5)], fill=_sc_blend(GREEN, a))
+    # Card container with rounded border
+    CARD_MX, CARD_MY = 40, 120
+    cx1, cy1, cx2, cy2 = CARD_MX, CARD_MY, SC_W - CARD_MX, SC_H - CARD_MY
+    draw.rounded_rectangle([cx1, cy1, cx2, cy2], radius=24, fill=BG, outline=SC_GAP)
 
-    MX = SC_MX
-    CW = SC_W - 2 * MX
-    y = (SC_H - 1400) // 2
+    # Green accent bar at top of card
+    for px in range(cx1 + 12, cx2 - 12):
+        frac = (px - cx1) / (cx2 - cx1)
+        a = 1.0 if frac < 0.6 else max(0, 1.0 - (frac - 0.6) / 0.4)
+        draw.line([(px, cy1), (px, cy1 + 4)], fill=_sc_blend(GREEN, a))
+
+    MX = cx1 + 60
+    MR = cx2 - 60
+    CW = MR - MX
+    y = cy1 + 60
 
     # ── Top bar ──
     wx = _sc_spaced(draw, MX, y, 'SHARP', fonts['wm'], GRAY, spacing=5)
@@ -312,10 +320,10 @@ def _generate_share_card(pick):
     _sc_spaced(draw, wx, y, 'PICKS', fonts['wm'], GRAY, spacing=5)
 
     lab = 'SIGNAL WITHDRAWN' if is_revoked else 'SIGNAL RESULT'
-    draw.text((SC_W - MX, y), lab, fill=MUTED, font=fonts['label'], anchor='rt')
+    draw.text((MR, y), lab, fill=MUTED, font=fonts['label'], anchor='rt')
     dl = _date_label(pick)
     if dl:
-        draw.text((SC_W - MX, y + 44), dl, fill=MUTED, font=fonts['label_s'], anchor='rt')
+        draw.text((MR, y + 44), dl, fill=MUTED, font=fonts['label_s'], anchor='rt')
     y += 110
 
     # ── Matchup ──
@@ -332,7 +340,7 @@ def _generate_share_card(pick):
         team_text, spread_text = side, ''
     draw.text((MX, y), team_text, fill=WHITE, font=fonts['pick'])
     if spread_text:
-        draw.text((SC_W - MX, y + 10), spread_text, fill=GREEN, font=fonts['spread'], anchor='rt')
+        draw.text((MR, y + 10), spread_text, fill=GREEN, font=fonts['spread'], anchor='rt')
     y += 110
 
     # ── Result badge + units ──
@@ -398,10 +406,10 @@ def _generate_share_card(pick):
     for i, (lb, vl, vc) in enumerate([
         ('EDGE', edge_v, edge_c), ('CLV', clv_v, clv_c), ('LINE', line_v, line_c),
     ]):
-        cx = MX + i * (cw + gp)
-        draw.rectangle([cx, y, cx + cw, y + ch], fill=SC_CELL)
-        draw.text((cx + cw // 2, y + 36), lb, fill=MUTED, font=fonts['glabel'], anchor='mt')
-        draw.text((cx + cw // 2, y + ch // 2 + 16), vl, fill=vc, font=fonts['gval'], anchor='mm')
+        gcx = MX + i * (cw + gp)
+        draw.rectangle([gcx, y, gcx + cw, y + ch], fill=SC_CELL)
+        draw.text((gcx + cw // 2, y + 36), lb, fill=MUTED, font=fonts['glabel'], anchor='mt')
+        draw.text((gcx + cw // 2, y + ch // 2 + 16), vl, fill=vc, font=fonts['gval'], anchor='mm')
     y += ch + 50
 
     # ── Season label ──
@@ -430,11 +438,10 @@ def _generate_share_card(pick):
     cb = fonts['cta'].getbbox(cta_t)
     ctw = cb[2] - cb[0] if cb else 280
     cth = cb[3] - cb[1] if cb else 32
-    rx = SC_W - MX
-    lx = rx - ctw - 56
+    lx = MR - ctw - 56
     ty, by_ = y, y + cth + 28
-    draw.rounded_rectangle([lx, ty, rx, by_], radius=8, outline=_sc_blend(GREEN, 0.3))
-    draw.text(((lx + rx) // 2, (ty + by_) // 2), cta_t, fill=GREEN, font=fonts['cta'], anchor='mm')
+    draw.rounded_rectangle([lx, ty, MR, by_], radius=8, outline=_sc_blend(GREEN, 0.3))
+    draw.text(((lx + MR) // 2, (ty + by_) // 2), cta_t, fill=GREEN, font=fonts['cta'], anchor='mm')
 
     return img
 
