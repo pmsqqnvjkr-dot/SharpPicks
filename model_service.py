@@ -344,7 +344,14 @@ def pretip_revalidate(app, sport='nba'):
             if model is None:
                 model = EnsemblePredictor(sport=sport)
                 if not model.load_model():
-                    return {'status': 'error', 'error': 'Model not trained'}
+                    print(f"[pretip] No saved model for {sport}, attempting auto-retrain...")
+                    try:
+                        model.train()
+                        if not model.trained:
+                            return {'status': 'error', 'error': 'Model not trained'}
+                        invalidate_model_cache(sport)
+                    except Exception:
+                        return {'status': 'error', 'error': 'Model not trained'}
                 _cache_model(sport, model, model._default_filepath())
 
             predictions = model.predict_games(log_predictions=False, date_str=today_str)
@@ -485,8 +492,18 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
             if model is None:
                 model = EnsemblePredictor(sport=sport)
                 if not model.load_model():
-                    print(f"[model-run] ERROR: Model not trained for {sport}")
-                    return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
+                    print(f"[model-run] No saved model for {sport}, attempting auto-retrain...")
+                    try:
+                        train_result = model.train()
+                        if model.trained:
+                            invalidate_model_cache(sport)
+                            print(f"[model-run] Auto-retrain succeeded for {sport}")
+                        else:
+                            print(f"[model-run] ERROR: Auto-retrain failed for {sport}")
+                            return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
+                    except Exception as train_err:
+                        print(f"[model-run] ERROR: Auto-retrain exception for {sport}: {train_err}")
+                        return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
                 _cache_model(sport, model, model._default_filepath())
 
             filepath = model._default_filepath()
@@ -501,7 +518,17 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                 print(f"[model-run] Model age: {age} days")
             if model.is_stale():
                 import logging
-                logging.warning(f"[model-run] {sport} model is STALE ({age}d old, threshold {model.MODEL_STALE_DAYS}d). Retrain recommended.")
+                logging.warning(f"[model-run] {sport} model is STALE ({age}d old, threshold {model.MODEL_STALE_DAYS}d). Auto-retraining...")
+                try:
+                    model.train()
+                    if model.trained:
+                        invalidate_model_cache(sport)
+                        _cache_model(sport, model, model._default_filepath())
+                        logging.info(f"[model-run] Stale model retrained for {sport}")
+                    else:
+                        logging.warning(f"[model-run] Stale retrain failed for {sport}, using existing model")
+                except Exception as retrain_err:
+                    logging.warning(f"[model-run] Stale retrain error for {sport}: {retrain_err}. Using existing model.")
 
             # When force=true, use 0 min buffer so all stored games are analyzed (useful for late runs / testing)
             min_minutes = 0 if force else 30
