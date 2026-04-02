@@ -972,6 +972,7 @@ def market_view():
             'away': r['away_team'],
             'home': r['home_team'],
             'time': _fmt_time(r['game_time']),
+            'game_time_sort': r['game_time'] or '',
             'game_date': r['game_date'] if 'game_date' in r.keys() else active_date,
             'status': status,
             'current_period': current_period,
@@ -1067,11 +1068,44 @@ def market_view():
 
     conn.close()
 
-    # ESPN enrichment: if the DB has few games, fetch the full schedule from ESPN
-    # and add placeholder entries for any games not already in the list.
-    existing_matchups = set()
+    # Team name aliases for dedup (short form → canonical ESPN form)
+    _team_aliases = {
+        'la clippers': 'los angeles clippers',
+        'la lakers': 'los angeles lakers',
+        'ny knicks': 'new york knicks',
+        'ny yankees': 'new york yankees',
+        'ny mets': 'new york mets',
+        'sf giants': 'san francisco giants',
+        'chi white sox': 'chicago white sox',
+        'chi cubs': 'chicago cubs',
+        'tb rays': 'tampa bay rays',
+        'kc royals': 'kansas city royals',
+        'sd padres': 'san diego padres',
+    }
+
+    def _norm_team(name):
+        n = (name or '').strip().lower()
+        return _team_aliases.get(n, n)
+
+    def _matchup_key(away, home):
+        return f"{_norm_team(away)}@{_norm_team(home)}"
+
+    # Dedup existing DB games first (e.g. odds API "LA Clippers" vs ESPN "Los Angeles Clippers")
+    seen_matchups = {}
+    deduped_games = []
     for g in games:
-        existing_matchups.add(f"{g['away']}@{g['home']}")
+        mk = _matchup_key(g['away'], g['home'])
+        if mk in seen_matchups:
+            existing = seen_matchups[mk]
+            if g.get('spread_home') is not None and existing.get('spread_home') is None:
+                deduped_games = [existing if x is not existing else g for x in deduped_games]
+                seen_matchups[mk] = g
+        else:
+            seen_matchups[mk] = g
+            deduped_games.append(g)
+    games = deduped_games
+
+    # ESPN enrichment: fetch the full schedule and add placeholder entries for missing games.
     espn_sport_map = {'nba': 'basketball/nba', 'mlb': 'baseball/mlb', 'wnba': 'womens-basketball/wnba'}
     espn_slug = espn_sport_map.get(sport)
     if espn_slug:
@@ -1090,14 +1124,16 @@ def market_view():
                     away_t = next((t for t in teams if t.get('homeAway') == 'away'), teams[1])
                     away_name = away_t.get('team', {}).get('displayName', '')
                     home_name = home_t.get('team', {}).get('displayName', '')
-                    mk = f"{away_name}@{home_name}"
-                    if mk not in existing_matchups and away_name and home_name:
-                        existing_matchups.add(mk)
-                        gt = _fmt_time(ev.get('date', ''))
+                    mk = _matchup_key(away_name, home_name)
+                    if mk not in seen_matchups and away_name and home_name:
+                        seen_matchups[mk] = True
+                        raw_time = ev.get('date', '')
+                        gt = _fmt_time(raw_time)
                         games.append({
                             'id': f"espn_{ev.get('id', '')}",
                             'away': away_name, 'home': home_name,
-                            'time': gt, 'game_date': active_date,
+                            'time': gt, 'game_time_sort': raw_time,
+                            'game_date': active_date,
                             'status': 'scheduled',
                             'current_period': None, 'game_clock': None,
                             'spread_home': None, 'spread_away': None,

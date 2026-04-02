@@ -32,3 +32,38 @@ export default function teamAbbr(name) {
   if (words.length >= 2) return (words[0][0] + words[words.length - 1].substring(0, 2)).toUpperCase();
   return name.substring(0, 3).toUpperCase();
 }
+
+const TEAM_CITY = {
+  'Atlanta Hawks': 'Atlanta', 'Boston Celtics': 'Boston', 'Brooklyn Nets': 'Brooklyn',
+  'Charlotte Hornets': 'Charlotte', 'Chicago Bulls': 'Chicago', 'Cleveland Cavaliers': 'Cleveland',
+  'Dallas Mavericks': 'Dallas', 'Denver Nuggets': 'Denver', 'Detroit Pistons': 'Detroit',
+  'Golden State Warriors': 'Golden State', 'Houston Rockets': 'Houston', 'Indiana Pacers': 'Indiana',
+  'LA Clippers': 'LA', 'Los Angeles Clippers': 'LA Clippers', 'Los Angeles Lakers': 'LA Lakers',
+  'Memphis Grizzlies': 'Memphis', 'Miami Heat': 'Miami', 'Milwaukee Bucks': 'Milwaukee',
+  'Minnesota Timberwolves': 'Minnesota', 'New Orleans Pelicans': 'New Orleans',
+  'New York Knicks': 'New York', 'Oklahoma City Thunder': 'Oklahoma City',
+  'Orlando Magic': 'Orlando', 'Philadelphia 76ers': 'Philadelphia', 'Phoenix Suns': 'Phoenix',
+  'Portland Trail Blazers': 'Portland', 'Sacramento Kings': 'Sacramento',
+  'San Antonio Spurs': 'San Antonio', 'Toronto Raptors': 'Toronto', 'Utah Jazz': 'Utah',
+  'Washington Wizards': 'Washington',
+  'Arizona Diamondbacks': 'Arizona', 'Atlanta Braves': 'Atlanta', 'Baltimore Orioles': 'Baltimore',
+  'Boston Red Sox': 'Boston', 'Chicago Cubs': 'Chicago', 'Chicago White Sox': 'Chicago Sox',
+  'Cincinnati Reds': 'Cincinnati', 'Cleveland Guardians': 'Cleveland', 'Colorado Rockies': 'Colorado',
+  'Detroit Tigers': 'Detroit', 'Houston Astros': 'Houston', 'Kansas City Royals': 'Kansas City',
+  'Los Angeles Angels': 'LA Angels', 'Los Angeles Dodgers': 'LA Dodgers', 'Miami Marlins': 'Miami',
+  'Milwaukee Brewers': 'Milwaukee', 'Minnesota Twins': 'Minnesota', 'New York Mets': 'NY Mets',
+  'New York Yankees': 'NY Yankees',
+  'Oakland Athletics': 'Oakland', 'Athletics': 'Oakland', 'Sacramento Athletics': 'Sacramento',
+  'Philadelphia Phillies': 'Philadelphia', 'Pittsburgh Pirates': 'Pittsburgh',
+  'San Diego Padres': 'San Diego', 'San Francisco Giants': 'San Francisco',
+  'Seattle Mariners': 'Seattle', 'St. Louis Cardinals': 'St. Louis', 'Tampa Bay Rays': 'Tampa Bay',
+  'Texas Rangers': 'Texas', 'Toronto Blue Jays': 'Toronto', 'Washington Nationals': 'Washington',
+};
+
+export function teamCity(name) {
+  if (!name) return '???';
+  if (TEAM_CITY[name]) return TEAM_CITY[name];
+  const words = name.trim().split(/\s+/);
+  if (words.length <= 2) return words[0];
+  return words.slice(0, -1).join(' ');
+}

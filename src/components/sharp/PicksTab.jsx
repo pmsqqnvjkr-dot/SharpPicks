@@ -3,7 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi, getAuthToken } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
-import teamAbbr from '../../utils/teamAbbr';
+import teamAbbr, { teamCity } from '../../utils/teamAbbr';
 
 const PT_API_BASE = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' : '';
 import PullToRefresh from '../shared/PullToRefresh';
@@ -547,16 +547,18 @@ export default function PicksTab({ onNavigate }) {
               );
             })()}
 
-            {/* Pass day recap — when model ran but no signal was issued */}
+            {/* Pass day recap — when model ran but no signal was issued, or signal was withdrawn */}
             {(() => {
               const isPassRecap = sameDayNight && todayData?.type === 'pass';
+              const isRevokedRecap = sameDayNight && todayData?.type === 'pick' && todayData?.result === 'revoked';
               const isPostMidnightNoSignal = postMidnightNight && !hasRecapPick && !(todayData?.type === 'pick');
-              if (!isPassRecap && !isPostMidnightNoSignal) return null;
+              const isPostMidnightRevoked = postMidnightNight && nightRecapPick?.result === 'revoked';
+              if (!isPassRecap && !isPostMidnightNoSignal && !isRevokedRecap && !isPostMidnightRevoked) return null;
               const gamesCount = todayData?.games_analyzed || totalGames || 0;
               return (
                 <div style={{
                   background: '#111e33', border: '0.5px solid #1e3050',
-                  borderLeft: '3px solid #2a3a52',
+                  borderLeft: '3px solid #6b7a8d',
                   borderRadius: 8, padding: 12, marginBottom: 12,
                 }}>
                   <div style={{
@@ -620,41 +622,39 @@ export default function PicksTab({ onNavigate }) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8C9AB0" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
 
-            {/* Compressed Game List — full team names, date + time ET */}
+            {/* Compressed Game List — city names, date + time ET, no badges */}
             {tomorrowGames && tomorrowGames.length > 0 && (
               <div style={{
                 background: '#111e33', border: '0.5px solid #1e3050',
                 borderRadius: 10, padding: '10px 16px', marginBottom: 12,
               }}>
+                <div style={{
+                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
+                  fontSize: '10px', color: '#8494a7', marginBottom: 8,
+                }}>Edges publish after the {modelRunLabel} model run</div>
                 {(() => {
                   const datePart = tomorrowDate ? formatDateShort(tomorrowDate) : '';
-                  return [...tomorrowGames]
-                    .sort((a, b) => (a.time || a.game_time || '').localeCompare(b.time || b.game_time || ''))
-                    .map((g, i) => {
-                      const away = g.away_team || g.away || '';
-                      const home = g.home_team || g.home || '';
-                      const timeStr = g.time || '';
-                      const dateTime = datePart && timeStr ? `${datePart} \u00b7 ${timeStr}` : (timeStr || datePart || 'TBD');
-                      return (
-                        <div key={g.id || i} style={{
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          padding: '10px 0',
-                          borderBottom: i < tomorrowGames.length - 1 ? '0.5px solid rgba(30,48,80,0.5)' : 'none',
-                        }}>
-                          <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '13px', fontWeight: 600, color: '#E8ECF4', flex: 1, minWidth: 0 }}>
-                            {away} @ {home}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                            <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#8C9AB0' }}>
-                              {dateTime}
-                            </span>
-                            <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', color: '#8494a7', background: 'rgba(132,148,167,0.1)', padding: '2px 6px', borderRadius: 4 }}>
-                              Pending
-                            </span>
-                          </div>
+                  const sorted = [...tomorrowGames].sort((a, b) => (a.game_time_sort || a.time || '').localeCompare(b.game_time_sort || b.time || ''));
+                  return sorted.map((g, i) => {
+                    const away = teamCity(g.away_team || g.away || '');
+                    const home = teamCity(g.home_team || g.home || '');
+                    const timeStr = g.time || '';
+                    const dateTime = datePart && timeStr ? `${datePart} \u00b7 ${timeStr}` : (timeStr || datePart || 'TBD');
+                    return (
+                      <div key={g.id || i} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '8px 0',
+                        borderBottom: i < sorted.length - 1 ? '0.5px solid rgba(30,48,80,0.5)' : 'none',
+                      }}>
+                        <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '13px', fontWeight: 600, color: '#E8ECF4' }}>
+                          {away} @ {home}
                         </div>
-                      );
-                    });
+                        <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#8C9AB0', flexShrink: 0 }}>
+                          {dateTime}
+                        </span>
+                      </div>
+                    );
+                  });
                 })()}
               </div>
             )}
