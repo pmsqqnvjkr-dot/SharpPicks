@@ -534,8 +534,9 @@ def send_signal_email(to, pick):
 
     html = _render_jinja('signal.html', ctx)
     if not html:
+        sport_label = (d.get('sport', 'nba') if d else getattr(pick, 'sport', 'nba') or 'nba').upper()
         html = _render('signal', {
-            'sport': 'NBA', 'matchup': f'{away_team} vs {home_team}',
+            'sport': sport_label, 'matchup': f'{away_team} vs {home_team}',
             'market': side, 'edge': f'+{edge:.1f}%', 'price': sportsbook,
             'startTime': '', 'modelPct': model_prob, 'marketPct': market_prob,
             'margin': round(float(margin), 1) if margin is not None else None,
