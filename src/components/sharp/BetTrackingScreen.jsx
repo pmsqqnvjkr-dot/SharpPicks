@@ -576,6 +576,7 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
   const [page, setPage] = useState(1);
 
   const [cardLine, setCardLine] = useState(initialPick?.line != null ? String(initialPick.line) : '');
+  const [cardOdds, setCardOdds] = useState(initialPick?.market_odds != null ? String(initialPick.market_odds) : '-110');
   const [cardUnits, setCardUnits] = useState('1');
   const [cardWager, setCardWager] = useState(String(unitSize || 100));
   const unitsLastEdited = useRef(true);
@@ -621,6 +622,7 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
     if (expandedId === p.id) { setExpandedId(null); return; }
     setExpandedId(p.id);
     setCardLine(p.line != null ? String(p.line) : '');
+    setCardOdds(p.market_odds != null ? String(p.market_odds) : '-110');
     setCardUnits('1');
     setCardWager(String(unitSize || 100));
     unitsLastEdited.current = true;
@@ -657,7 +659,7 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
       pick_id: pick.id,
       units_wagered: parseFloat(cardUnits) || 1,
       bet_amount: parseInt(cardWager) || unitSize || 100,
-      odds: pick.market_odds || -110,
+      odds: parseInt(cardOdds) || pick.market_odds || -110,
       line_at_bet: parseFloat(cardLine) || pick.line,
       bet_type: 'spread',
     });
@@ -873,18 +875,23 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
                                 style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.05)' }}
                                 onClick={e => e.stopPropagation()}
                               >
-                                <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-                                  <div style={{ flex: 1 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                                  <div>
                                     <div style={labelStyle}>Line bought</div>
                                     <input type="text" value={cardLine} onChange={e => setCardLine(e.target.value)}
                                       style={inputStyle} onClick={e => e.stopPropagation()} />
                                   </div>
-                                  <div style={{ flex: 1 }}>
+                                  <div>
+                                    <div style={labelStyle}>Price (odds)</div>
+                                    <input type="text" value={cardOdds} onChange={e => setCardOdds(e.target.value)}
+                                      style={inputStyle} onClick={e => e.stopPropagation()} placeholder="-110" />
+                                  </div>
+                                  <div>
                                     <div style={labelStyle}>Units</div>
                                     <input type="text" value={cardUnits} onChange={e => handleCardUnitsChange(e.target.value)}
                                       style={inputStyle} onClick={e => e.stopPropagation()} />
                                   </div>
-                                  <div style={{ flex: 1 }}>
+                                  <div>
                                     <div style={labelStyle}>Wager ($)</div>
                                     <input type="text" value={cardWager} onChange={e => handleCardWagerChange(e.target.value)}
                                       style={{ ...inputStyle, color: '#5A9E72' }} onClick={e => e.stopPropagation()} />
