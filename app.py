@@ -3627,6 +3627,7 @@ CRON_MIN_INTERVAL = {
     'grade_whatifs': 300,
     'pretip_validate': 300,
     'run_model': 600,
+    'model_watchdog': 300,
     'wnba_collect': 600,
     'wnba_closing_lines': 60,
     'wnba_shadow': 600,
@@ -4915,6 +4916,48 @@ def cron_run_model():
             logging.exception("Market note generation: %s", e)
         return results
     return log_cron_async('run_model', _run, skip_throttle=force)
+
+
+@app.route('/api/cron/model-watchdog', methods=['GET', 'POST'])
+@verify_cron
+def cron_model_watchdog():
+    """Safety net: if the model hasn't run today for any live sport, trigger it now."""
+    from zoneinfo import ZoneInfo
+    today_str = datetime.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d')
+    et_hour = datetime.now(ZoneInfo('America/New_York')).hour
+    results = {}
+
+    # NBA: should have run by 10 AM ET, watchdog fires at 10:30+
+    nba_run = ModelRun.query.filter_by(date=today_str, sport='nba').first()
+    if not nba_run and et_hour >= 10:
+        results['nba'] = 'triggering'
+        try:
+            run_model_and_log(app, sport='nba', force=False, send_notifications=True)
+            results['nba'] = 'triggered_and_completed'
+            try:
+                from public_api import build_market_report_dict
+                mi_report = build_market_report_dict(today_str, 'nba')
+                _upsert_market_note_insight(mi_report, sport='nba')
+            except Exception:
+                pass
+        except Exception as e:
+            results['nba'] = f'error: {str(e)[:200]}'
+    else:
+        results['nba'] = 'already_ran' if nba_run else 'not_due_yet'
+
+    # MLB: should have run by 11 AM ET
+    mlb_run = ModelRun.query.filter_by(date=today_str, sport='mlb').first()
+    if not mlb_run and et_hour >= 11:
+        results['mlb'] = 'triggering'
+        try:
+            run_mlb_model_job(force=False)
+            results['mlb'] = 'triggered_and_completed'
+        except Exception as e:
+            results['mlb'] = f'error: {str(e)[:200]}'
+    else:
+        results['mlb'] = 'already_ran' if mlb_run else 'not_due_yet'
+
+    return results
 
 
 @app.route('/api/cron/pretip-validate', methods=['GET', 'POST'])

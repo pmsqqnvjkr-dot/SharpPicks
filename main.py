@@ -3764,6 +3764,7 @@ def collect_mlb_scores():
                         spread_result = home_score - away_score
                         cursor.execute('''UPDATE mlb_games SET
                             home_score = ?, away_score = ?, spread_result = ?,
+                            status = 'final',
                             scores_updated_at = ? WHERE id = ?''',
                             (home_score, away_score, str(spread_result),
                              datetime.now().isoformat(), row[0]))
