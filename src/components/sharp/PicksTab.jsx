@@ -1007,15 +1007,18 @@ export default function PicksTab({ onNavigate }) {
               );
             })}
 
-            {/* CATCH UP — Journal articles */}
-            {insightsData?.insights?.length > 0 && (
+            {/* CATCH UP — Journal articles (exclude market notes) */}
+            {insightsData?.insights?.length > 0 && (() => {
+              const evg = insightsData.insights.filter(a => a.category !== 'market_notes');
+              if (!evg.length) return null;
+              return (
               <>
                 <div style={{
                   fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
                   letterSpacing: '0.12em', textTransform: 'uppercase',
                   color: '#7A8494', marginTop: '8px', marginBottom: '10px',
                 }}>CATCH UP</div>
-                {insightsData.insights.slice(0, 2).map((article, i) => {
+                {evg.slice(0, 2).map((article, i) => {
                   const catLabels = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Signal Notes' };
                   const catLabel = catLabels[article.category] || article.category || 'Journal';
                   return (
@@ -1047,7 +1050,8 @@ export default function PicksTab({ onNavigate }) {
                   );
                 })}
               </>
-            )}
+              );
+            })()}
           </>
         )}
 
@@ -1062,14 +1066,17 @@ export default function PicksTab({ onNavigate }) {
         </div>
 
         {/* Recommended Reads — after today's slate (all states except off-day, which has its own) */}
-        {pageState !== 'off-day' && insightsData?.insights?.length > 0 && (
+        {pageState !== 'off-day' && insightsData?.insights?.length > 0 && (() => {
+          const evergreen = insightsData.insights.filter(a => a.category !== 'market_notes');
+          if (!evergreen.length) return null;
+          return (
           <div style={{ marginTop: '20px', marginBottom: '20px' }}>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
               letterSpacing: '0.12em', textTransform: 'uppercase',
               color: '#7A8494', marginBottom: '10px',
             }}>{pageState === 'pre-model' ? 'WHILE YOU WAIT' : 'RECOMMENDED READS'}</div>
-            {insightsData.insights.slice(0, 2).map((article, i) => {
+            {evergreen.slice(0, 2).map((article, i) => {
               const catLabels = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Signal Notes' };
               const catLabel = catLabels[article.category] || article.category || 'Journal';
               return (
@@ -1103,7 +1110,8 @@ export default function PicksTab({ onNavigate }) {
               );
             })}
           </div>
-        )}
+          );
+        })()}
 
         {/* Portfolio Context Line (pick & pass days) */}
         {(pageState === 'pick' || pageState === 'pass') && stats && (
