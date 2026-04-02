@@ -186,7 +186,7 @@ export default function LandingPage({ autoView }) {
 
           {/* Right — App Screenshot */}
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <PhoneFrame src="/images/screenshot-signals.png" alt="SharpPicks Signals" maxWidth={300} />
+            <PhoneFrame src="/images/screenshot-signal-detail.png" alt="SharpPicks Signal Detail" maxWidth={300} />
           </div>
         </div>
       </section>
