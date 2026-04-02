@@ -800,8 +800,9 @@ def get_pick(pick_id):
 @picks_bp.route('/market')
 def market_view():
     """Today's game board with spreads, totals, moneylines, and 1H lines.
-    Falls back to the next upcoming date if today has no games."""
-    today_str = _get_et_date()
+    Falls back to the next upcoming date if today has no games.
+    Optional ?date=YYYY-MM-DD to fetch a specific date."""
+    today_str = request.args.get('date', '').strip() or _get_et_date()
     sport = request.args.get('sport', 'nba')
     games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
 

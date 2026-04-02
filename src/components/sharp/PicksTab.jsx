@@ -83,6 +83,8 @@ export default function PicksTab({ onNavigate }) {
   const [allLiveScores, setAllLiveScores] = useState([]);
   const [miExpanded, setMiExpanded] = useState(null);
   const [gameInfo, setGameInfo] = useState(null);
+  const [tomorrowGames, setTomorrowGames] = useState(null);
+  const [tonightBets, setTonightBets] = useState(null);
   const countdown = useCountdownTo(10);
 
   useEffect(() => {
@@ -174,8 +176,49 @@ export default function PicksTab({ onNavigate }) {
     return <ResolutionScreen pick={resolutionPick} onBack={() => { setShowResolution(false); setResolutionPick(null); }} onNavigate={onNavigate} />;
   }
 
-  // Determine the 4-state: pre-model, pick, pass, off-day
+  // Fetch tomorrow's games when night mode might be active
+  const allTodayFinal = gameInfo?.allFinal === true;
+  const todayHasEdges = gameInfo?.hasModel === true;
+  const isNightMode = allTodayFinal && todayHasEdges && (todayData?.type === 'pick' || todayData?.type === 'pass');
+
+  useEffect(() => {
+    if (!isNightMode) { setTomorrowGames(null); setTonightBets(null); return; }
+    const fetchTomorrow = async () => {
+      try {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tStr = tomorrow.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+        const resp = await fetch(`${PT_API_BASE}/api/picks/market?sport=${sport}&date=${tStr}`);
+        const json = await resp.json();
+        if (json.games) setTomorrowGames(json.games);
+      } catch { setTomorrowGames(null); }
+    };
+    const fetchTonightBets = async () => {
+      try {
+        const token = getAuthToken();
+        if (!token) { setTonightBets(null); return; }
+        const resp = await fetch(`${PT_API_BASE}/api/bets?sport=${sport}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
+        });
+        const json = await resp.json();
+        if (json.bets) {
+          const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+          const resolved = json.bets.filter(b =>
+            b.result && b.result !== 'pending' &&
+            b.linked_pick?.game_date?.startsWith(todayStr)
+          );
+          setTonightBets(resolved.length > 0 ? resolved : null);
+        }
+      } catch { setTonightBets(null); }
+    };
+    fetchTomorrow();
+    fetchTonightBets();
+  }, [isNightMode, sport]);
+
+  // Determine the 5-state: night, pre-model, pick, pass, off-day
   const pageState =
+    isNightMode ? 'night' :
     todayData?.type === 'pick' ? 'pick' :
     todayData?.type === 'pass' ? 'pass' :
     todayData?.type === 'waiting' ? 'pre-model' :
@@ -270,8 +313,8 @@ export default function PicksTab({ onNavigate }) {
           ) : null;
         })()}
 
-        {/* Resolved Pick Banner */}
-        {lastResolved && lastResolved.id && !isResolved && !dismissedOutcomes.has(lastResolved.id) && (
+        {/* Resolved Pick Banner (suppressed in night mode; recap handles it) */}
+        {!isNightMode && lastResolved && lastResolved.id && !isResolved && !dismissedOutcomes.has(lastResolved.id) && (
           <ResolvedPickBanner
             pick={lastResolved}
             onViewDetails={() => { setResolutionPick(lastResolved); setShowResolution(true); }}
@@ -279,7 +322,7 @@ export default function PicksTab({ onNavigate }) {
             onShare={isPro ? handleShareResult : undefined}
           />
         )}
-        {todayData?.type === 'pick' && isResolved && isPro && !dismissedOutcomes.has(todayData.id) && (
+        {!isNightMode && todayData?.type === 'pick' && isResolved && isPro && !dismissedOutcomes.has(todayData.id) && (
           <ResolvedPickBanner
             pick={todayData}
             onViewDetails={() => { setResolutionPick(todayData); setShowResolution(true); }}
@@ -287,13 +330,267 @@ export default function PicksTab({ onNavigate }) {
             onShare={handleShareResult}
           />
         )}
-        {todayData?.type === 'pick' && isResolved && !isPro && (
+        {!isNightMode && todayData?.type === 'pick' && isResolved && !isPro && (
           <FreePickNotice resolved onUpgrade={() => { if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); } else { setShowAuth(true); } }} />
         )}
-        {isRevoked && (
+        {!isNightMode && isRevoked && (
           <RevokedPassCard pick={todayData} onViewDetails={() => { setResolutionPick(todayData); setShowResolution(true); }} />
         )}
 
+
+        {/* ═══════════════ STATE 0: NIGHT MODE ═══════════════ */}
+        {pageState === 'night' && (
+          <>
+            {/* ── TONIGHT'S RECAP ── */}
+            <div style={{
+              fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+              letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568',
+              padding: '0 0 8px',
+            }}>TONIGHT&apos;S RECAP</div>
+
+            {/* Signal Result Card */}
+            {todayData?.type === 'pick' && isResolved && (() => {
+              const isWin = todayData.result === 'win';
+              const isPush = todayData.result === 'push';
+              const borderAccent = isWin ? '#5A9E72' : isPush ? '#6b7a8d' : '#C4686B';
+              const resultLabel = isWin ? 'WIN' : isPush ? 'PUSH' : 'LOSS';
+              const resultBg = isWin ? 'rgba(90,158,114,0.15)' : isPush ? 'rgba(107,122,141,0.15)' : 'rgba(196,104,107,0.15)';
+              const resultColor = isWin ? '#5A9E72' : isPush ? '#6b7a8d' : '#C4686B';
+              const sideLabel = todayData.side && todayData.line != null && todayData.side.includes(String(Math.abs(todayData.line)))
+                ? todayData.side : `${todayData.side} ${todayData.line > 0 ? '+' : ''}${todayData.line}`;
+              const pnl = todayData.profit_units != null ? Number(todayData.profit_units) : (isWin ? 0.9 : isPush ? 0 : -1.0);
+              const coverMargin = (todayData.home_score != null && todayData.away_score != null && todayData.line != null)
+                ? (() => {
+                    const sLow = (todayData.side || '').toLowerCase();
+                    const isHome = sLow.includes((todayData.home_team || '').split(' ').pop().toLowerCase());
+                    const margin = isHome
+                      ? (todayData.home_score - todayData.away_score) + todayData.line
+                      : (todayData.away_score - todayData.home_score) + todayData.line;
+                    return margin;
+                  })()
+                : null;
+              return (
+                <div style={{
+                  background: '#111e33', border: '0.5px solid #1e3050',
+                  borderLeft: `3px solid ${borderAccent}`,
+                  borderRadius: 8, padding: 12, marginBottom: 12,
+                }}>
+                  <div style={{
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#5A9E72', marginBottom: 8,
+                  }}>SIGNAL RESULT</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8ECF4' }}>{sideLabel}</div>
+                    <span style={{
+                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                      padding: '2px 8px', borderRadius: 4, background: resultBg, color: resultColor,
+                    }}>{resultLabel}</span>
+                  </div>
+                  {todayData.home_score != null && todayData.away_score != null && (
+                    <div style={{
+                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#9aa5b4',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
+                    }}>
+                      <span>{teamAbbr(todayData.away_team)} {todayData.away_score} &middot; {teamAbbr(todayData.home_team)} {todayData.home_score}</span>
+                      <span style={{ color: resultColor, fontWeight: 600 }}>{pnl >= 0 ? '+' : ''}{pnl.toFixed(1)}u</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {todayData.edge_pct != null && (
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge +{Number(todayData.edge_pct).toFixed(1)}%</span>
+                    )}
+                    {todayData.clv != null && (
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: parseFloat(todayData.clv) > 0 ? '#5A9E72' : '#9aa5b4' }}>CLV {parseFloat(todayData.clv) > 0 ? '+' : ''}{parseFloat(todayData.clv).toFixed(1)}</span>
+                    )}
+                    {coverMargin != null && (
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: coverMargin > 0 ? '#5A9E72' : '#C4686B' }}>Cover by {Math.abs(coverMargin).toFixed(1)}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Signal Withdrawn recap */}
+            {todayData?.type === 'pick' && isRevoked && (
+              <div style={{
+                background: '#111e33', border: '0.5px solid #1e3050',
+                borderLeft: '3px solid #6b7a8d',
+                borderRadius: 8, padding: 12, marginBottom: 12,
+              }}>
+                <div style={{
+                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                  letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 8,
+                }}>SIGNAL WITHDRAWN</div>
+                <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8ECF4', marginBottom: 4 }}>
+                  {todayData.side} {todayData.line > 0 ? '+' : ''}{todayData.line}
+                </div>
+                <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#6b7a8d' }}>
+                  Withdrawn before tip. Capital preserved.
+                </div>
+                {todayData.edge_pct != null && (
+                  <div style={{ marginTop: 8 }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge at entry +{Number(todayData.edge_pct).toFixed(1)}%</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Full Slate Results (tracked bets resolved tonight) */}
+            {tonightBets && tonightBets.length > 0 && (() => {
+              const wins = tonightBets.filter(b => b.result === 'win').length;
+              const losses = tonightBets.filter(b => b.result === 'loss').length;
+              const netUnits = tonightBets.reduce((sum, b) => sum + (b.profit_units || 0), 0);
+              return (
+                <div style={{
+                  background: '#111e33', border: '0.5px solid #1e3050',
+                  borderLeft: '3px solid #2a3a52',
+                  borderRadius: 8, padding: 12, marginBottom: 12,
+                }}>
+                  <div style={{
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 8,
+                  }}>FULL SLATE RESULTS</div>
+                  {tonightBets.map((bet, i) => {
+                    const isW = bet.result === 'win';
+                    const badgeColor = isW ? '#5A9E72' : '#C4686B';
+                    const badgeBg = isW ? 'rgba(90,158,114,0.15)' : 'rgba(196,104,107,0.15)';
+                    const label = bet.linked_pick
+                      ? `${teamAbbr(bet.linked_pick.side || bet.pick || '')} ${bet.line_at_bet != null ? (bet.line_at_bet > 0 ? '+' : '') + bet.line_at_bet : ''}`
+                      : (bet.pick || '');
+                    const units = bet.profit_units || 0;
+                    return (
+                      <div key={bet.id || i} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '4px 0',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{
+                            fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '8px', fontWeight: 700,
+                            padding: '1px 5px', borderRadius: 3, background: badgeBg, color: badgeColor,
+                          }}>{isW ? 'W' : 'L'}</span>
+                          <span style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '11px', color: '#9aa5b4' }}>{label}</span>
+                        </div>
+                        <span style={{
+                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', fontWeight: 600,
+                          color: units >= 0 ? '#5A9E72' : '#C4686B',
+                        }}>{units >= 0 ? '+' : ''}{units.toFixed(1)}u</span>
+                      </div>
+                    );
+                  })}
+                  <div style={{
+                    borderTop: '0.5px solid rgba(30,48,80,0.5)', marginTop: 8, paddingTop: 8,
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#9aa5b4' }}>
+                      {wins}-{losses} tonight
+                    </span>
+                    <span style={{
+                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', fontWeight: 600,
+                      color: netUnits >= 0 ? '#5A9E72' : '#C4686B',
+                    }}>{netUnits >= 0 ? '+' : ''}{netUnits.toFixed(1)}u</span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Pass day recap */}
+            {todayData?.type === 'pass' && (
+              <div style={{
+                background: '#111e33', border: '0.5px solid #1e3050',
+                borderLeft: '3px solid #2a3a52',
+                borderRadius: 8, padding: 12, marginBottom: 12,
+              }}>
+                <div style={{
+                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                  letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 8,
+                }}>PASS DAY RECAP</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#9aa5b4', lineHeight: 1.6 }}>
+                  {todayData.games_analyzed || 0} games analyzed. No edge above threshold. Capital preserved.
+                </div>
+              </div>
+            )}
+
+            {/* ── TOMORROW'S SLATE ── */}
+            <div style={{
+              fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+              letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568',
+              padding: '16px 0 8px',
+            }}>TOMORROW&apos;S SLATE</div>
+
+            {/* Countdown Card */}
+            <div style={{
+              background: '#111e33', border: '0.5px solid #1e3050',
+              borderRadius: 8, padding: 12, marginBottom: 12, textAlign: 'center',
+            }}>
+              <div style={{
+                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 6,
+              }}>EDGES PUBLISH AT 10:00 AM ET</div>
+              <div style={{
+                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '28px', fontWeight: 600,
+                color: '#e8ecf0', marginBottom: 6,
+              }}>{countdown}</div>
+              <div style={{
+                fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '11px', color: '#4a5568',
+              }}>Lines are live from 6 books</div>
+            </div>
+
+            {/* MI Card */}
+            <div style={{
+              padding: '12px 16px', marginBottom: 12,
+              background: '#111e33', border: '0.5px solid #1e3050',
+              borderRadius: 10,
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 6,
+                background: 'rgba(122,132,148,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A8494" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#E8ECF4' }}>Market Intelligence</div>
+                <div style={{ fontSize: '11px', color: '#7A8494', marginTop: '1px' }}>
+                  {tomorrowGames ? `${tomorrowGames.length} games on tomorrow's slate` : "Tomorrow's slate"} &middot; Analysis pending
+                </div>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A8494" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+
+            {/* Compressed Game List */}
+            {tomorrowGames && tomorrowGames.length > 0 && (
+              <div style={{
+                background: '#111e33', border: '0.5px solid #1e3050',
+                borderRadius: 8, padding: '8px 12px', marginBottom: 12,
+              }}>
+                {[...tomorrowGames]
+                  .sort((a, b) => (a.time || a.game_time || '').localeCompare(b.time || b.game_time || ''))
+                  .map((g, i) => (
+                    <div key={g.id || i} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '8px 0',
+                      borderBottom: i < tomorrowGames.length - 1 ? '0.5px solid rgba(30,48,80,0.5)' : 'none',
+                    }}>
+                      <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '11px', color: '#9aa5b4' }}>
+                        {teamAbbr(g.away_team)} @ {teamAbbr(g.home_team)}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', color: '#4a5568' }}>
+                          {g.time || ''}
+                        </span>
+                        <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', color: '#4a5568' }}>
+                          Pending
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </>
+        )}
 
         {/* ═══════════════ STATE 1: PRE-MODEL ═══════════════ */}
         {pageState === 'pre-model' && (
@@ -687,14 +984,15 @@ export default function PicksTab({ onNavigate }) {
 
 
         {/* ═══════════════ GAME SLATE (pre-model, pick, pass) ═══════════════ */}
-        {pageState !== 'off-day' && (
+        {/* Always render to drive onGameCount; hidden visually in night/off-day */}
+        <div style={pageState === 'night' || pageState === 'off-day' ? { position: 'absolute', width: 0, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none' } : undefined}>
           <GameSlate
             preModel={pageState === 'pre-model'}
             onGameCount={setGameInfo}
           />
-        )}
+        </div>
 
-        {/* Recommended Reads — after today's slate */}
+        {/* Recommended Reads — after today's slate (all states except off-day, which has its own) */}
         {pageState !== 'off-day' && insightsData?.insights?.length > 0 && (
           <div style={{ marginTop: '20px', marginBottom: '20px' }}>
             <div style={{
