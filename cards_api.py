@@ -261,12 +261,12 @@ def _share_fonts():
     si = serif_i or sans
 
     return {
-        'wm': ld(m5, 24), 'label': ld(m5, 16), 'label_s': ld(m4, 14),
-        'matchup': ld(m4, 16), 'pick': ld(i5, 40), 'spread': ld(m5, 40),
-        'badge': ld(m5, 20), 'units': ld(m5, 22), 'score': ld(m4, 18),
-        'glabel': ld(m4, 14), 'gval': ld(m5, 30),
-        'slabel': ld(m4, 14), 'sval': ld(m5, 28),
-        'tag': ld(si, 22), 'cta': ld(m5, 16),
+        'wm': ld(m5, 48), 'label': ld(m5, 32), 'label_s': ld(m4, 28),
+        'matchup': ld(m4, 32), 'pick': ld(i5, 80), 'spread': ld(m5, 80),
+        'badge': ld(m5, 40), 'units': ld(m5, 44), 'score': ld(m4, 36),
+        'glabel': ld(m4, 28), 'gval': ld(m5, 60),
+        'slabel': ld(m4, 28), 'sval': ld(m5, 56),
+        'tag': ld(si, 44), 'cta': ld(m5, 32),
     }
 
 
@@ -297,31 +297,31 @@ def _generate_share_card(pick):
 
     for px in range(SC_W):
         a = 1.0 if px < SC_W * 0.6 else max(0, 1.0 - (px - SC_W * 0.6) / (SC_W * 0.4))
-        draw.line([(px, 0), (px, 2)], fill=_sc_blend(GREEN, a))
+        draw.line([(px, 0), (px, 5)], fill=_sc_blend(GREEN, a))
 
     MX = SC_MX
     CW = SC_W - 2 * MX
-    y = (SC_H - 700) // 2
+    y = (SC_H - 1400) // 2
 
     # ── Top bar ──
-    wx = _sc_spaced(draw, MX, y, 'SHARP', fonts['wm'], GRAY, spacing=3)
-    wx += 6
+    wx = _sc_spaced(draw, MX, y, 'SHARP', fonts['wm'], GRAY, spacing=5)
+    wx += 10
     draw.text((wx, y), '||', fill=GREEN, font=fonts['wm'])
     bb = fonts['wm'].getbbox('||')
-    wx += (bb[2] - bb[0] if bb else 20) + 6
-    _sc_spaced(draw, wx, y, 'PICKS', fonts['wm'], GRAY, spacing=3)
+    wx += (bb[2] - bb[0] if bb else 40) + 10
+    _sc_spaced(draw, wx, y, 'PICKS', fonts['wm'], GRAY, spacing=5)
 
     lab = 'SIGNAL WITHDRAWN' if is_revoked else 'SIGNAL RESULT'
     draw.text((SC_W - MX, y), lab, fill=MUTED, font=fonts['label'], anchor='rt')
     dl = _date_label(pick)
     if dl:
-        draw.text((SC_W - MX, y + 24), dl, fill=MUTED, font=fonts['label_s'], anchor='rt')
-    y += 56
+        draw.text((SC_W - MX, y + 44), dl, fill=MUTED, font=fonts['label_s'], anchor='rt')
+    y += 110
 
     # ── Matchup ──
     mup = f'{(pick.away_team or "").upper()} @ {(pick.home_team or "").upper()}'
     draw.text((MX, y), mup, fill=MUTED, font=fonts['matchup'])
-    y += 32
+    y += 56
 
     # ── Pick line ──
     side = pick.side or ''
@@ -332,8 +332,8 @@ def _generate_share_card(pick):
         team_text, spread_text = side, ''
     draw.text((MX, y), team_text, fill=WHITE, font=fonts['pick'])
     if spread_text:
-        draw.text((SC_W - MX, y), spread_text, fill=GREEN, font=fonts['spread'], anchor='rt')
-    y += 58
+        draw.text((SC_W - MX, y + 10), spread_text, fill=GREEN, font=fonts['spread'], anchor='rt')
+    y += 110
 
     # ── Result badge + units ──
     if is_win:
@@ -346,11 +346,11 @@ def _generate_share_card(pick):
         rl, rc = 'WITHDRAWN', GRAY
 
     bb = fonts['badge'].getbbox(rl)
-    btw = bb[2] - bb[0] if bb else 80
-    bth = bb[3] - bb[1] if bb else 20
+    btw = bb[2] - bb[0] if bb else 120
+    bth = bb[3] - bb[1] if bb else 40
     bx1, by1 = MX, y
-    bx2, by2 = bx1 + btw + 40, by1 + bth + 12
-    draw.rounded_rectangle([bx1, by1, bx2, by2], radius=4,
+    bx2, by2 = bx1 + btw + 60, by1 + bth + 24
+    draw.rounded_rectangle([bx1, by1, bx2, by2], radius=6,
                            fill=_sc_blend(rc, 0.12), outline=_sc_blend(rc, 0.25))
     draw.text(((bx1 + bx2) // 2, (by1 + by2) // 2), rl,
               fill=rc, font=fonts['badge'], anchor='mm')
@@ -364,8 +364,8 @@ def _generate_share_card(pick):
         us, uc = f'{uval:.1f}u', RED
     else:
         us, uc = '+0.0u', GRAY
-    draw.text((bx2 + 12, (by1 + by2) // 2), us, fill=uc, font=fonts['units'], anchor='lm')
-    y = by2 + 20
+    draw.text((bx2 + 20, (by1 + by2) // 2), us, fill=uc, font=fonts['units'], anchor='lm')
+    y = by2 + 36
 
     # ── Score line ──
     if not is_revoked and pick.home_score is not None and pick.away_score is not None:
@@ -373,13 +373,13 @@ def _generate_share_card(pick):
         draw.text((MX, y), sc, fill=MUTED, font=fonts['score'])
     elif is_revoked:
         draw.text((MX, y), 'Withdrawn before tip. Capital preserved.', fill=MUTED, font=fonts['score'])
-    y += 36
+    y += 70
 
     # ── Data grid (3 columns) ──
-    gp = 2
+    gp = 3
     cw = (CW - gp * 2) // 3
-    ch = 100
-    draw.rounded_rectangle([MX, y, MX + CW, y + ch], radius=8, fill=SC_GAP)
+    ch = 180
+    draw.rounded_rectangle([MX, y, MX + CW, y + ch], radius=12, fill=SC_GAP)
 
     edge_v = f'+{pick.edge_pct:.1f}%' if pick.edge_pct else '--'
     edge_c = GREEN if pick.edge_pct else MUTED
@@ -400,40 +400,40 @@ def _generate_share_card(pick):
     ]):
         cx = MX + i * (cw + gp)
         draw.rectangle([cx, y, cx + cw, y + ch], fill=SC_CELL)
-        draw.text((cx + cw // 2, y + 22), lb, fill=MUTED, font=fonts['glabel'], anchor='mt')
-        draw.text((cx + cw // 2, y + ch // 2 + 12), vl, fill=vc, font=fonts['gval'], anchor='mm')
-    y += ch + 30
+        draw.text((cx + cw // 2, y + 36), lb, fill=MUTED, font=fonts['glabel'], anchor='mt')
+        draw.text((cx + cw // 2, y + ch // 2 + 16), vl, fill=vc, font=fonts['gval'], anchor='mm')
+    y += ch + 50
 
     # ── Season label ──
     draw.text((MX, y), '2025-26 SEASON', fill=MUTED, font=fonts['slabel'])
-    y += 26
+    y += 48
 
     # ── Season grid (2 columns) ──
     stats = _season_stats(pick.sport)
     cw2 = (CW - gp) // 2
-    ch2 = 120
-    draw.rounded_rectangle([MX, y, MX + CW, y + ch2], radius=8, fill=SC_GAP)
+    ch2 = 210
+    draw.rounded_rectangle([MX, y, MX + CW, y + ch2], radius=12, fill=SC_GAP)
     for idx, (lb, vl, sub) in enumerate([
         ('RECORD', f'{stats["wins"]} - {stats["losses"]}', f'{stats["win_pct"]}% win rate'),
         ('BEAT THE CLOSE', f'{stats["beat_close"]}%', 'Closing line value'),
     ]):
         sx = MX + idx * (cw2 + gp)
         draw.rectangle([sx, y, sx + cw2, y + ch2], fill=SC_CELL)
-        draw.text((sx + cw2 // 2, y + 22), lb, fill=MUTED, font=fonts['glabel'], anchor='mt')
-        draw.text((sx + cw2 // 2, y + ch2 // 2 + 2), vl, fill=WHITE, font=fonts['sval'], anchor='mm')
-        draw.text((sx + cw2 // 2, y + ch2 - 18), sub, fill=MUTED, font=fonts['slabel'], anchor='mb')
-    y += ch2 + 40
+        draw.text((sx + cw2 // 2, y + 36), lb, fill=MUTED, font=fonts['glabel'], anchor='mt')
+        draw.text((sx + cw2 // 2, y + ch2 // 2 + 4), vl, fill=WHITE, font=fonts['sval'], anchor='mm')
+        draw.text((sx + cw2 // 2, y + ch2 - 30), sub, fill=MUTED, font=fonts['slabel'], anchor='mb')
+    y += ch2 + 60
 
     # ── Footer ──
-    draw.text((MX, y + 4), 'One pick beats five.', fill=MUTED, font=fonts['tag'])
+    draw.text((MX, y + 8), 'One pick beats five.', fill=MUTED, font=fonts['tag'])
     cta_t = 'SHARPPICKS.AI'
     cb = fonts['cta'].getbbox(cta_t)
-    ctw = cb[2] - cb[0] if cb else 160
-    cth = cb[3] - cb[1] if cb else 16
+    ctw = cb[2] - cb[0] if cb else 280
+    cth = cb[3] - cb[1] if cb else 32
     rx = SC_W - MX
-    lx = rx - ctw - 32
-    ty, by_ = y, y + cth + 16
-    draw.rounded_rectangle([lx, ty, rx, by_], radius=6, outline=_sc_blend(GREEN, 0.3))
+    lx = rx - ctw - 56
+    ty, by_ = y, y + cth + 28
+    draw.rounded_rectangle([lx, ty, rx, by_], radius=8, outline=_sc_blend(GREEN, 0.3))
     draw.text(((lx + rx) // 2, (ty + by_) // 2), cta_t, fill=GREEN, font=fonts['cta'], anchor='mm')
 
     return img
