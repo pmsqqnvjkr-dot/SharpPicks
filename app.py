@@ -1311,7 +1311,7 @@ That silence isn\u2019t a failure. It\u2019s the system working exactly as desig
 
 Over a long enough sample, the nights you sit out contribute just as much to your ROI as the nights you fire.
 
-> **WHY THIS MATTERS**
+> **SHARP PRINCIPLE**
 >
 > This principle defines the product. SharpPicks will never pad your card to justify a subscription. If the edge isn\u2019t there, you\u2019ll hear nothing. That\u2019s the point.
 
@@ -1359,7 +1359,7 @@ What matters is calibration \u2014 does the model\u2019s probability output matc
 
 Calibrated probabilities are what allow us to calculate true expected value. And expected value is the only thing that separates sharp betting from educated guessing.
 
-> **WHY THIS MATTERS**
+> **SHARP PRINCIPLE**
 >
 > Transparency isn\u2019t a marketing angle. It\u2019s how you evaluate whether a model deserves your trust. If a service can\u2019t explain what drives its picks, that\u2019s not sophistication \u2014 it\u2019s a red flag.
 
@@ -1411,7 +1411,7 @@ If the model sees an edge above threshold, it fires. If it doesn\u2019t, it stay
 
 This is easy to say and brutally hard to do. But it\u2019s the only way compounding edge works.
 
-> **WHY THIS MATTERS**
+> **SHARP PRINCIPLE**
 >
 > SharpPicks was built to remove you from the decision loop during the moments when human judgment is at its worst. The streak is temporary. The process is permanent.
 
@@ -1465,7 +1465,7 @@ When you see a SharpPicks notification, act on it promptly. Not recklessly \u201
 
 The window between when an edge appears and when it closes is shrinking. The model finds those windows. Your job is to be ready when they open.
 
-> **WHY THIS MATTERS**
+> **SHARP PRINCIPLE**
 >
 > SharpPicks doesn\u2019t just tell you who to bet. It tells you when the bet is worth making \u2014 and when it\u2019s not, even if the pick hasn\u2019t changed. The line is the bet.
 
@@ -2286,6 +2286,433 @@ In an industry built on selective disclosure, full transparency is a competitive
 If you can look at our full record, see the losses, and still understand why the process works, then you understand what SharpPicks is. If you can't, then we need to explain it better. Either way, the data stays visible.""",
                     status="scheduled", publish_date=datetime(2026, 7, 7, 14, 0),
                     reading_time_minutes=4,
+                ))
+
+            if 'why-we-pass-more-than-we-play' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="Why We Pass More Than We Play",
+                    slug="why-we-pass-more-than-we-play",
+                    category="philosophy",
+                    excerpt="SharpPicks passes on roughly 70% of available games. That restraint is the product.",
+                    content="""The betting industry runs on volume. More picks. More action. More games. More engagement. The incentive structure is built to keep you betting. Every notification, every push alert, every "lock of the day" exists to make you feel like sitting out is falling behind.
+
+SharpPicks publishes a signal on roughly 30% of available game slates. The other 70% of the time, the system is silent.
+
+That silence is the product.
+
+---
+
+## The Volume Trap
+
+The average recreational bettor acts on roughly 78% of available slates. That number comes from industry data across major sportsbooks. Nearly four out of every five nights with games, the typical bettor places at least one wager.
+
+Professional syndicates operate at 15-25%. The sharpest money in the world sits out three or four nights for every one night it acts. This is not laziness. It is selectivity. The math is straightforward: in an efficient market, most available prices are fair. Fair prices, after accounting for the vig, produce a negative expected return. Betting on fair prices is a guaranteed way to lose slowly.
+
+The edge exists in the gaps. The games where the market has not yet corrected a mispricing. Those gaps do not appear on every slate. Some nights every game is priced efficiently. Those nights, the correct action is no action.
+
+---
+
+## Why Passes Feel Wrong
+
+There is a psychological cost to passing. You open the app. You see games. You want to have a position. Having no position feels like you are not participating. You paid for a subscription. Where are your picks?
+
+This is the same impulse that drives overtrading in financial markets. Studies consistently show that the more frequently an investor trades, the worse their returns. The urge to act is the enemy of the process.
+
+SharpPicks is designed to resist this impulse on your behalf. The model scans every game. It computes edges on every matchup. And when nothing clears the threshold, it tells you. Not with a vague "no plays today" but with data: how many games were analyzed, how many edges were detected, and why none qualified.
+
+The pass day is not empty. It is full of information. It tells you the market is efficient tonight. It tells you your capital is better served waiting for a real edge. It tells you the model is working, even when it is silent.
+
+---
+
+## The Capital Preservation Math
+
+Every bet you do not place on a sub-threshold game preserves capital for a game where the edge is real. This is not abstract. It is measurable.
+
+SharpPicks tracks a metric called "capital preserved." It calculates what you would have lost, on average, by betting on games that did not meet the edge threshold. Over a season, that number is material. The bets you did not make contribute to your ROI just as meaningfully as the bets you won.
+
+The industry does not sell restraint because restraint is not a product you can market in a tweet. But it is the behavior that separates the 5% of bettors who are profitable from the 95% who are not.
+
+---
+
+## What Selectivity Actually Costs
+
+Selectivity costs engagement. It costs the dopamine hit of having a rooting interest every night. It costs the feeling of being in the game.
+
+What it earns is a portfolio of bets where every entry was justified by a quantifiable edge. Not a gut feeling. Not a narrative. Not "the Celtics are due." A number. A threshold. A process.
+
+That process will feel boring on pass days. That boredom is the point.
+
+---
+
+> **SHARP PRINCIPLE**
+>
+> The next time SharpPicks is silent, that silence is not a gap in service. It is the service. The model scanned the full slate, found no qualifying edge, and chose restraint over noise. That choice, repeated over hundreds of nights, is the difference between a process and a habit.
+
+---
+
+*Evan Cole*
+Head of Signal Intelligence, SharpPicks""",
+                    status="published", publish_date=datetime(2026, 4, 2), reading_time_minutes=4,
+                    pass_day=True,
+                ))
+            if 'the-cost-of-a-bad-bet' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="The Cost of a Bad Bet You Didn't Need to Make",
+                    slug="the-cost-of-a-bad-bet",
+                    category="philosophy",
+                    excerpt="Every unnecessary bet has a cost beyond the dollars lost. It erodes discipline, distorts your record, and moves you further from profitability.",
+                    content="""You are having a good week. Three signals, three winners. You are up 2.8 units. It is Friday night, the model is silent, and there are nine games on the board. You look at the Hawks and the Pacers. The spread feels wrong. You place a bet.
+
+You lose. You are now up 1.8 units instead of 2.8 units. One unit gone. That unit did not disappear because of bad luck. It disappeared because you made a bet the process did not ask you to make.
+
+This is the most common and most expensive mistake in sports betting. Not the bad beat. Not the last-second cover. The bet you placed because you felt like betting.
+
+---
+
+## The Three Costs
+
+A bad bet costs more than the stake.
+
+**The financial cost** is obvious. You lose the unit. Your weekly ROI drops. Your equity curve bends downward. This is the cost everyone sees.
+
+**The behavioral cost** is less obvious but more damaging. By placing a bet outside the system, you have trained yourself to override the process. You have established a precedent: when the model is quiet, I act anyway. That precedent erodes every future pass day. Each override makes the next override easier.
+
+**The statistical cost** is the one nobody tracks. Your record now includes a bet that was never part of the process. If you lose, your win rate drops for reasons unrelated to the model's performance. If you win, you reinforce the behavior of overriding the system. Either outcome is bad. The bet pollutes your data.
+
+---
+
+## The Opportunity Cost of Tilt
+
+The sequence matters more than the individual bet. A bettor who follows the model for 10 days, goes rogue on day 11, loses, and then follows the model again on day 12 has a different psychological profile than a bettor who followed the model for 12 straight days.
+
+The rogue bet introduces doubt. Did the model miss that game? Should I be adding my own analysis? Maybe I should bet more than the model suggests on the next pick. These are not rational thoughts. They are the residue of breaking the process once.
+
+Professional poker players call this tilt. The best players recognize it and sit out. The worst players chase. Sports betting works the same way. The bet you did not need to make is the first domino.
+
+---
+
+## How SharpPicks Addresses This
+
+The discipline score in SharpPicks tracks exactly this behavior. It measures your selectivity: the percentage of available signals you act on versus the ones you pass. It includes bets you place outside the model's recommendations.
+
+A user who follows every model signal and adds no additional bets will have a selectivity rate that matches the model's. A user who adds their own bets on pass days will see their selectivity rate climb above the model's, and their discipline grade will reflect it.
+
+This is not a punishment. It is a mirror. The data tells you how often you are overriding the process and whether those overrides are helping or hurting your results.
+
+---
+
+## The Rule
+
+If the model does not signal, you do not bet. Not because the model is always right. It is not. But because the model has a defined edge threshold, a calibration process, and a track record. Your Friday-night gut feeling has none of those things.
+
+The bet you did not need to make is the most expensive bet in your portfolio. Not because it always loses. But because it always costs.
+
+---
+
+> **SHARP PRINCIPLE**
+>
+> SharpPicks tracks every bet you place, both model-recommended and self-directed. The discipline score exists to help you see the pattern. The goal is not perfection. It is awareness. Know what the process recommends. Know when you are deviating. And know what that deviation costs over time.
+
+---
+
+*Evan Cole*
+Head of Signal Intelligence, SharpPicks""",
+                    status="published", publish_date=datetime(2026, 4, 2), reading_time_minutes=4,
+                    pass_day=True,
+                ))
+            if 'what-selectivity-rate-tells-you' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="What Your Selectivity Rate Actually Tells You",
+                    slug="what-selectivity-rate-tells-you",
+                    category="discipline",
+                    excerpt="Selectivity rate measures how often you bet relative to available opportunities. It separates recreational bettors from professionals.",
+                    content="""You can tell a lot about a bettor from a single number. Not their win rate. Not their ROI. Their selectivity rate.
+
+Selectivity rate measures how often you place a bet relative to the number of available opportunities. If there are 100 game days in a season and you bet on 75 of them, your selectivity rate is 75%. If you bet on 28, your rate is 28%.
+
+That number, more than any other metric, predicts whether you will be profitable over the long term.
+
+---
+
+## The Industry Benchmark
+
+Sportsbook data consistently shows that the average recreational bettor acts on roughly 78% of available slates. This means the typical bettor finds a reason to wager nearly four out of every five nights.
+
+Professional betting syndicates operate between 15% and 30%. They watch the same games. They have access to the same lines. They simply act far less often.
+
+The gap between 78% and 25% is not a difference in information. It is a difference in discipline. The recreational bettor asks "which game should I bet?" The professional asks "is there a game worth betting?" The first question assumes action. The second question assumes inaction as the default.
+
+---
+
+## What Your Number Tells You
+
+**Above 70%**: You are betting on most available games. At this rate, you are almost certainly including bets where the edge is marginal or nonexistent. The vig will eat your margin over a full season. This is not sustainable unless you have a genuinely elite model, and the evidence suggests that elite models produce signals far less frequently than 70% of the time.
+
+**50-70%**: You are more selective than the average bettor but still acting on the majority of slates. There is room to tighten. Ask yourself: of your last 20 bets, how many were driven by a quantified edge versus a gut read?
+
+**30-50%**: You are operating in the zone where professional returns become possible. At this selectivity rate, you are passing on more than half the available action. Each bet carries more conviction. Your average edge per bet is likely higher because you are filtering out the marginal spots.
+
+**Below 30%**: You are operating at a professional selectivity level. The challenge here shifts from discipline to patience. Going five or six days without a bet is psychologically difficult. But if each bet you place has a genuine 4-6% edge, the math works decisively in your favor over a season.
+
+---
+
+## Selectivity and ROI Are Connected
+
+This is not theoretical. Across historical data, there is a consistent inverse relationship between selectivity rate and long-term ROI. Bettors who act more frequently tend to have lower ROI per unit risked. Bettors who act less frequently tend to have higher ROI.
+
+The mechanism is straightforward. More bets means more marginal bets. More marginal bets means more bets where the edge, if it exists, is smaller than the vig. Those bets are negative expected value. They dilute the bets that were genuinely sharp.
+
+A bettor with 10 sharp bets and 40 marginal bets has a blended ROI that is dragged down by the 40. A bettor with 10 sharp bets and 0 marginal bets has a clean ROI that reflects the actual quality of their process.
+
+---
+
+## How SharpPicks Grades Selectivity
+
+The discipline score in SharpPicks includes a selectivity component. It compares your personal betting rate against the model's signal rate. If the model is publishing signals on 28% of slates and you are betting on 60% of slates, the gap is visible.
+
+The grade is not a judgment. It is information. Some users choose to supplement model signals with their own analysis. The discipline score simply tracks whether those supplements are helping or hurting.
+
+Over time, the correlation between your selectivity rate and your ROI will tell you whether your additional bets are adding value or subtracting it. That feedback loop is the point.
+
+---
+
+> **SHARP PRINCIPLE**
+>
+> SharpPicks displays your selectivity rate alongside the industry average (78%) on the Results tab. The visual is immediate: a progress bar showing where you sit. Lower is better. Not because betting less is inherently virtuous, but because betting less, when the alternative is betting without an edge, is the single most reliable path to profitability.
+
+---
+
+*Evan Cole*
+Head of Signal Intelligence, SharpPicks""",
+                    status="scheduled", publish_date=datetime(2026, 4, 25), reading_time_minutes=4,
+                ))
+            if 'surviving-a-losing-streak' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="A Field Guide to Surviving a Losing Streak",
+                    slug="surviving-a-losing-streak",
+                    category="discipline",
+                    excerpt="You will lose five in a row. It is mathematically inevitable. Here is the math behind losing streaks and how to survive them.",
+                    content="""At a 56% win rate, a five-game losing streak will happen approximately once every 60 bets. Over a full NBA season of 80-100 signals, it is not a question of if. It is a question of when.
+
+This article is for that moment. Bookmark it now.
+
+---
+
+## The Math of Losing Streaks
+
+A fair coin flipped 100 times will produce a streak of 7 or more consecutive heads (or tails) roughly 50% of the time. Streaks are a feature of randomness, not evidence of something broken.
+
+Sports betting works the same way. A model with a true 56% win rate will, over any 100-bet sample, produce at least one losing streak of 5 or more bets approximately 85% of the time. A losing streak of 4 or more is nearly guaranteed.
+
+These are not edge cases. These are the expected outcomes of a profitable system operating normally.
+
+---
+
+## What a Losing Streak Does Not Mean
+
+A losing streak does not mean the model is broken. The model's edge is measured over hundreds of bets, not five. A 5-game stretch tells you nothing about the model's true win rate, just as five coin flips tell you nothing about whether the coin is fair.
+
+A losing streak does not mean the market has adapted. Markets do evolve, but they do not recalibrate overnight. If the model was profitable last month, it did not become obsolete this week. Market regime changes happen gradually, over months, and they are detectable through calibration metrics, not through short losing runs.
+
+A losing streak does not mean you should change your unit size. Reducing your bet size after losses is a form of loss aversion that reduces your exposure precisely when the model is statistically likely to revert to its mean. Increasing your bet size to "make it back" is the classic gambler's ruin scenario. The correct unit size during a losing streak is the same unit size as during a winning streak.
+
+---
+
+## What a Losing Streak Does Mean
+
+It means you are betting. That is all. A system that never loses is a system that never bets, or a system that is lying about its record.
+
+The productive response to a losing streak is to check the process, not the results. Ask these questions:
+
+**Is the model still calibrated?** Check the calibration dashboard. Are predicted probabilities matching actual outcomes across confidence buckets? If 55% predictions are hitting at 55%, the model is fine. The streak is variance.
+
+**Is CLV still positive?** If the model's picks are still beating the closing line during the losing streak, the edges are real. The outcomes are noise. Positive CLV during a losing streak is the strongest signal that the process is sound.
+
+**Has anything structural changed?** New season, major rule changes, significant market structural shifts? If no, the model's training data is still relevant.
+
+If all three answers are reassuring, the correct action is no action. Continue following the system at the same unit size. The math will revert.
+
+---
+
+## The Behavioral Traps
+
+Losing streaks trigger specific, predictable behavioral patterns. Knowing them in advance is the best defense.
+
+**The auditor**: You start second-guessing individual picks after the fact. "I knew the Celtics were too many points." You did not know that. You are constructing a narrative to explain randomness.
+
+**The adjuster**: You decide to skip the next signal or bet half units. You are now running a different system than the one with a demonstrated edge. Your future results will reflect a system that does not exist in any backtest.
+
+**The freelancer**: You stop trusting the model and start placing your own bets. Your selectivity rate spikes. Your discipline score drops. The bets you add do not have a quantified edge. They have an emotional justification.
+
+**The quitter**: You cancel your subscription. You leave during the exact period of variance that every profitable bettor experiences. You will never see the reversion.
+
+All four responses feel rational in the moment. None of them are. They are emotional reactions to a statistical certainty.
+
+---
+
+> **SHARP PRINCIPLE**
+>
+> This article exists so you can read it when the losing streak arrives. Not if. When. The process does not change during a drawdown. The unit size does not change. The threshold does not change. The only thing that changes is your emotional state. And the system is designed to outlast that.
+
+---
+
+*Evan Cole*
+Head of Signal Intelligence, SharpPicks""",
+                    status="scheduled", publish_date=datetime(2026, 4, 29), reading_time_minutes=5,
+                ))
+            if 'how-mlb-model-differs-from-nba' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="How the MLB Model Differs from NBA",
+                    slug="how-mlb-model-differs-from-nba",
+                    category="how_it_works",
+                    sport="mlb",
+                    excerpt="Baseball and basketball are different sports with different market dynamics. Here is how the SharpPicks MLB model differs from NBA.",
+                    content="""When we launched MLB on SharpPicks, the most common question was whether we just copied the NBA model and pointed it at baseball. The answer is no. The same ensemble architecture runs underneath, but nearly everything above it changed.
+
+Baseball and basketball are structurally different sports. The markets price them differently. The features that predict outcomes are different. The calibration challenges are different. Here is what we adjusted and why.
+
+---
+
+## Slate Size and Signal Frequency
+
+An NBA night typically has 5-12 games. An MLB day can have 15 or more. More games means more opportunities for the model to scan, but it does not mean more signals. In fact, MLB's larger slates make selectivity even more important. The temptation to publish multiple signals on a 15-game day is real. The discipline to filter down to the best one or two edges is what separates a signal service from a picks dump.
+
+During calibration, we cap MLB signals more conservatively than NBA. The model needs to prove itself on a smaller number of high-conviction picks before we expand the signal volume.
+
+---
+
+## The Pitching Variable
+
+The single biggest difference between MLB and NBA modeling is the role of individual players. In basketball, team-level metrics dominate. No single player changes the spread by more than a few points in most games. In baseball, the starting pitcher changes everything.
+
+A team's run expectancy with their ace on the mound versus their fifth starter can differ by 2 or more runs. That is the equivalent of a 6-point swing in basketball terms. The market knows this, which is why pitcher-specific features (ERA, WHIP, innings pitched, recent workload) are weighted heavily in the MLB model.
+
+The NBA model does not include individual player performance metrics in its core features. The MLB model cannot function without them. The starting pitcher is not a feature. It is the feature.
+
+---
+
+## Run Line vs. Spread
+
+The NBA spread is a continuous variable that moves in half-point increments. The MLB run line is typically fixed at 1.5 (the favorite at -1.5, the underdog at +1.5). This creates a fundamentally different modeling problem.
+
+In basketball, the model predicts a margin and compares it to a moving spread. The edge is the gap between the two. In baseball, the primary spread is fixed. The model's edge on the run line comes from estimating the probability of a 2+ run margin, which is a different calculation than estimating the expected margin itself.
+
+The moneyline is more important in MLB than in NBA. Because the run line is fixed, the moneyline is where the market expresses its true view of the game's competitiveness. The SharpPicks MLB model evaluates both the run line and the moneyline for each game and publishes whichever offers the better edge. In NBA, the model focuses almost exclusively on the spread.
+
+---
+
+## Market Efficiency Differences
+
+NBA lines are among the most efficient in sports betting. The market is deep, liquid, and priced by sophisticated participants. Finding consistent 5%+ edges on NBA spreads is genuinely difficult.
+
+MLB lines, particularly for early-season games and mid-week series with lower public interest, tend to be slightly less efficient. There is less betting volume on a Tuesday afternoon Pirates game than on a Friday night Lakers game. Less volume means more potential for mispricing.
+
+This does not mean MLB edges are easy to find. It means the model has a slightly wider surface area to search. The threshold for publishing is the same: the edge must clear a minimum before the signal fires. But the distribution of edges across a full MLB slate tends to have more games in the 2-4% range than a typical NBA slate.
+
+---
+
+## Calibration Differences
+
+The NBA model has been running in production since January 2026. It has published dozens of signals with tracked CLV data. The calibration is established: we know the model's sigma, we know the edge distribution, and we know the shrinkage blend that produces the most accurate predictions.
+
+The MLB model is in calibration phase. This means every signal is published, tracked, and graded, but the model's parameters are still being validated. The edge threshold, the shrinkage ratio, and the signal tier classifications will be refined as the sample grows.
+
+During calibration, the "BETA" label on MLB signals is a transparency marker. It tells you this model has not yet earned the same confidence level as the NBA model. The process is identical. The conviction is still being established.
+
+---
+
+## What Stays the Same
+
+The ensemble architecture (four models, blended output) is identical across sports. The edge threshold logic is the same. The market shrinkage principle (respecting the closing line) is the same. CLV tracking is the same. The pass-day philosophy is the same.
+
+The model does not care whether it is looking at basketball or baseball. It sees features, calculates probabilities, compares them to market prices, and either publishes or passes. The sport determines what features are available. The architecture determines how those features are processed.
+
+---
+
+> **SHARP PRINCIPLE**
+>
+> MLB on SharpPicks is not a port of the NBA model. It is a purpose-built implementation using the same principles. Calibration phase means the model is proving itself in real time, with full transparency. Every signal, every result, every pass is tracked and published. The model earns your trust over the season. It is not assumed.
+
+---
+
+*Evan Cole*
+Head of Signal Intelligence, SharpPicks""",
+                    status="scheduled", publish_date=datetime(2026, 5, 2), reading_time_minutes=5,
+                ))
+            if 'what-calibration-phase-means' not in existing_slugs:
+                incremental_insights.append(Insight(
+                    title="What Calibration Phase Means for Your Picks",
+                    slug="what-calibration-phase-means",
+                    category="how_it_works",
+                    sport="mlb",
+                    excerpt="SharpPicks MLB is in calibration phase. Here is what that means: how the model earns confidence, what we measure, and why early transparency matters.",
+                    content="""When you open the SharpPicks app and switch to MLB, you see a banner: "Model Phase: Calibration." Below it: "Edges are being tracked live. Early signals, full transparency."
+
+This is not a disclaimer. It is a statement about where the model is in its lifecycle. Here is what calibration phase means, what we are measuring, and what changes when calibration ends.
+
+---
+
+## What Calibration Is
+
+A model that has never been tested against live market data is a hypothesis. It has been trained on historical games. It has been backtested. It has shown promising results in controlled conditions. But it has not been validated in the environment that matters: real games, real lines, real outcomes, in real time.
+
+Calibration phase is the period where the model runs live, publishes real signals, and measures whether its predictions match reality. The signals are real. The picks are tracked. The results count. But the model's parameters are still subject to adjustment based on what we learn.
+
+---
+
+## What We Are Measuring
+
+Three metrics determine when calibration ends and the model moves to deployment phase.
+
+**Calibration accuracy.** When the model says a bet has a 58% chance of covering, does it cover 58% of the time over a sufficient sample? We bucket predictions into confidence ranges and compare predicted probabilities against actual outcomes. If the buckets align within acceptable tolerance, the model is well-calibrated. If they diverge, the probability conversion needs adjustment.
+
+**CLV consistency.** Are the model's picks beating the closing line? Positive average CLV over the calibration sample means the model is identifying genuine mispricings, not just generating lucky picks. This is the most important validation metric. A model can have a mediocre win rate but positive CLV and still be demonstrably sharp.
+
+**Shrinkage optimization.** The blend between model prediction and market line (the shrinkage ratio) needs live data to optimize. The ratio that worked best on historical data may not be the ratio that works best in the current market. Calibration gives us the data to fine-tune this.
+
+---
+
+## What This Means for You
+
+During calibration, every MLB signal you see is a real signal generated by the full model pipeline. It clears the edge threshold. It is sized by the same Kelly-based logic. It is tracked and graded identically to NBA signals.
+
+The difference is confidence level. NBA signals come from a model that has been validated over months of live data. MLB signals come from a model that is still establishing its track record. The "BETA" label reflects this honestly.
+
+You can act on calibration signals. Many users do. The edges are real and the process is identical. But you should understand that the model's accuracy claims are provisional until the sample reaches a statistically meaningful size.
+
+---
+
+## The Calibration Gate
+
+Calibration ends when three conditions are met: the predicted-versus-actual calibration chart shows alignment across confidence buckets, average CLV is positive over at least 50 tracked signals, and the shrinkage ratio has been optimized against live data.
+
+When all three are met, the MLB model moves to deployment phase. The "BETA" label is removed. The signal tier classifications (STRONG, LEAN) become more reliable. And the model joins NBA as a fully validated signal source.
+
+If the conditions are not met after a full season, the model returns to development. We do not promote a model that has not earned promotion. That is the same gate we applied to NBA before it launched, and it is the same gate that WNBA will face when its shadow mode data is evaluated.
+
+---
+
+## Why We Show You the Calibration
+
+Most products launch and claim accuracy from day one. They backtest on historical data, cherry-pick the best results, and present them as forward-looking proof.
+
+We chose a different approach. The model launches in public view. Every signal it generates is visible. Every win and every loss is recorded. The calibration process is not hidden in a back office. It runs in front of you.
+
+This costs us something. A model in calibration might have a rough first month. That rough month is visible to every user. We accept that tradeoff because the alternative, launching with unearned confidence, is worse.
+
+The BETA label will come off when the data supports removing it. Until then, it stays.
+
+---
+
+> **SHARP PRINCIPLE**
+>
+> Calibration phase is the model earning your trust in real time. Not claiming it. Not assuming it. Earning it, one tracked signal at a time. When the label changes from BETA to deployment, it will be because the data justified the change. That is the standard.
+
+---
+
+*Evan Cole*
+Head of Signal Intelligence, SharpPicks""",
+                    status="scheduled", publish_date=datetime(2026, 5, 5), reading_time_minutes=4,
                 ))
 
             if incremental_insights:

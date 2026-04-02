@@ -70,7 +70,7 @@ export default function PicksTab({ onNavigate }) {
   const { data: killSwitch } = useApi(sportQuery('/public/kill-switch', sport), { pollInterval: 600000 });
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const { data: lastResolved } = useApi(sportQuery('/picks/last-resolved', sport), { skip: !isPro });
-  const { data: insightsData } = useApi('/insights?limit=3');
+  const { data: insightsData } = useApi('/insights?limit=3&rotate=1');
   const { data: allSportsStats } = useApi('/public/stats');
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
@@ -388,8 +388,8 @@ export default function PicksTab({ onNavigate }) {
             {/* ── TONIGHT'S RECAP ── */}
             {hasAnyRecapContent && (
               <div style={{
-                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
-                letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568',
+                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+                letterSpacing: '2px', textTransform: 'uppercase', color: '#8494a7',
                 padding: '0 0 8px',
               }}>TONIGHT&apos;S RECAP</div>
             )}
@@ -399,10 +399,10 @@ export default function PicksTab({ onNavigate }) {
               const rp = nightRecapPick;
               const isWin = rp.result === 'win';
               const isPushR = rp.result === 'push';
-              const borderAccent = isWin ? '#5A9E72' : isPushR ? '#6b7a8d' : '#C4686B';
+              const borderAccent = isWin ? '#5A9E72' : isPushR ? '#8494a7' : '#D4787B';
               const resultLabel = isWin ? 'WIN' : isPushR ? 'PUSH' : 'LOSS';
-              const resultBg = isWin ? 'rgba(90,158,114,0.15)' : isPushR ? 'rgba(107,122,141,0.15)' : 'rgba(196,104,107,0.15)';
-              const resultColor = isWin ? '#5A9E72' : isPushR ? '#6b7a8d' : '#C4686B';
+              const resultBg = isWin ? 'rgba(90,158,114,0.15)' : isPushR ? 'rgba(132,148,167,0.15)' : 'rgba(212,120,123,0.15)';
+              const resultColor = isWin ? '#5A9E72' : isPushR ? '#8494a7' : '#D4787B';
               const sideLabel = rp.side && rp.line != null && rp.side.includes(String(Math.abs(rp.line)))
                 ? rp.side : `${rp.side} ${rp.line > 0 ? '+' : ''}${rp.line}`;
               const pnl = rp.profit_units != null ? Number(rp.profit_units) : (isWin ? 0.9 : isPushR ? 0 : -1.0);
@@ -423,13 +423,13 @@ export default function PicksTab({ onNavigate }) {
                   borderRadius: 8, padding: 12, marginBottom: 12, cursor: 'pointer',
                 }}>
                   <div style={{
-                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
                     letterSpacing: '0.1em', textTransform: 'uppercase', color: '#5A9E72', marginBottom: 8,
                   }}>SIGNAL RESULT</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                     <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8ECF4' }}>{sideLabel}</div>
                     <span style={{
-                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
                       padding: '2px 8px', borderRadius: 4, background: resultBg, color: resultColor,
                     }}>{resultLabel}</span>
                   </div>
@@ -444,13 +444,13 @@ export default function PicksTab({ onNavigate }) {
                   )}
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {rp.edge_pct != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge +{Number(rp.edge_pct).toFixed(1)}%</span>
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge +{Number(rp.edge_pct).toFixed(1)}%</span>
                     )}
                     {rp.clv != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: parseFloat(rp.clv) > 0 ? '#5A9E72' : '#9aa5b4' }}>CLV {parseFloat(rp.clv) > 0 ? '+' : ''}{parseFloat(rp.clv).toFixed(1)}</span>
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: parseFloat(rp.clv) > 0 ? '#5A9E72' : '#9aa5b4' }}>CLV {parseFloat(rp.clv) > 0 ? '+' : ''}{parseFloat(rp.clv).toFixed(1)}</span>
                     )}
                     {coverMargin != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: coverMargin > 0 ? '#5A9E72' : '#C4686B' }}>Cover by {Math.abs(coverMargin).toFixed(1)}</span>
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: coverMargin > 0 ? '#5A9E72' : '#D4787B' }}>Cover by {Math.abs(coverMargin).toFixed(1)}</span>
                     )}
                   </div>
                 </div>
@@ -465,22 +465,22 @@ export default function PicksTab({ onNavigate }) {
               return (
                 <div onClick={() => { setResolutionPick(revokedPick); setShowResolution(true); }} style={{
                   background: '#111e33', border: '0.5px solid #1e3050',
-                  borderLeft: '3px solid #6b7a8d',
+                  borderLeft: '3px solid #8494a7',
                   borderRadius: 8, padding: 12, marginBottom: 12, cursor: 'pointer',
                 }}>
                   <div style={{
-                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
-                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 8,
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494a7', marginBottom: 8,
                   }}>SIGNAL WITHDRAWN</div>
                   <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8ECF4', marginBottom: 4 }}>
                     {revokedPick.side} {revokedPick.line > 0 ? '+' : ''}{revokedPick.line}
                   </div>
-                  <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#6b7a8d' }}>
+                  <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#8494a7' }}>
                     Withdrawn before tip. Capital preserved.
                   </div>
                   {revokedPick.edge_pct != null && (
                     <div style={{ marginTop: 8 }}>
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge at entry +{Number(revokedPick.edge_pct).toFixed(1)}%</span>
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge at entry +{Number(revokedPick.edge_pct).toFixed(1)}%</span>
                     </div>
                   )}
                 </div>
@@ -499,14 +499,14 @@ export default function PicksTab({ onNavigate }) {
                   borderRadius: 8, padding: 12, marginBottom: 12,
                 }}>
                   <div style={{
-                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
-                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 8,
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494a7', marginBottom: 8,
                   }}>FULL SLATE RESULTS</div>
                   {tonightBets.map((bet, i) => {
                     const units = bet.profit_units || 0;
                     const isW = units > 0 || bet.result === 'win' || bet.pick_result === 'W';
-                    const badgeColor = isW ? '#5A9E72' : '#C4686B';
-                    const badgeBg = isW ? 'rgba(90,158,114,0.15)' : 'rgba(196,104,107,0.15)';
+                    const badgeColor = isW ? '#5A9E72' : '#D4787B';
+                    const badgeBg = isW ? 'rgba(90,158,114,0.15)' : 'rgba(212,120,123,0.15)';
                     const sideStr = bet.linked_pick?.side || bet.pick || '';
                     const sideTeam = sideStr.replace(/\s*[+-]?\d+\.?\d*$/, '');
                     const lineVal = bet.line_at_bet ?? bet.linked_pick?.line;
@@ -515,18 +515,18 @@ export default function PicksTab({ onNavigate }) {
                     return (
                       <div key={bet.id || i} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: '4px 0',
+                        padding: '5px 0',
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span style={{
-                            fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '8px', fontWeight: 700,
-                            padding: '1px 5px', borderRadius: 3, background: badgeBg, color: badgeColor,
+                            fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+                            padding: '2px 6px', borderRadius: 3, background: badgeBg, color: badgeColor,
                           }}>{isW ? 'W' : 'L'}</span>
-                          <span style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '11px', color: '#9aa5b4' }}>{label}</span>
+                          <span style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '12px', color: '#9aa5b4' }}>{label}</span>
                         </div>
                         <span style={{
-                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', fontWeight: 600,
-                          color: units >= 0 ? '#5A9E72' : '#C4686B',
+                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px', fontWeight: 600,
+                          color: units >= 0 ? '#5A9E72' : '#D4787B',
                         }}>{units >= 0 ? '+' : ''}{units.toFixed(1)}u</span>
                       </div>
                     );
@@ -535,12 +535,12 @@ export default function PicksTab({ onNavigate }) {
                     borderTop: '0.5px solid rgba(30,48,80,0.5)', marginTop: 8, paddingTop: 8,
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   }}>
-                    <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#9aa5b4' }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px', color: '#9aa5b4' }}>
                       {wins}-{losses} tonight
                     </span>
                     <span style={{
-                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', fontWeight: 600,
-                      color: netUnits >= 0 ? '#5A9E72' : '#C4686B',
+                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px', fontWeight: 600,
+                      color: netUnits >= 0 ? '#5A9E72' : '#D4787B',
                     }}>{netUnits >= 0 ? '+' : ''}{netUnits.toFixed(1)}u</span>
                   </div>
                 </div>
@@ -560,10 +560,10 @@ export default function PicksTab({ onNavigate }) {
                   borderRadius: 8, padding: 12, marginBottom: 12,
                 }}>
                   <div style={{
-                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
-                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 8,
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494a7', marginBottom: 8,
                   }}>PASS DAY</div>
-                  <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#9aa5b4', lineHeight: 1.6 }}>
+                  <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px', color: '#9aa5b4', lineHeight: 1.6 }}>
                     {gamesCount > 0 ? `${gamesCount} games analyzed, none above threshold.` : 'Model analysis complete. No edge above threshold.'} Capital preserved.
                   </div>
                 </div>
@@ -572,8 +572,8 @@ export default function PicksTab({ onNavigate }) {
 
             {/* ── UPCOMING SLATE ── */}
             <div style={{
-              fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
-              letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568',
+              fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+              letterSpacing: '2px', textTransform: 'uppercase', color: '#8494a7',
               padding: '16px 0 8px',
             }}>UPCOMING SLATE</div>
 
@@ -583,15 +583,15 @@ export default function PicksTab({ onNavigate }) {
               borderRadius: 8, padding: 12, marginBottom: 12, textAlign: 'center',
             }}>
               <div style={{
-                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
-                letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 6,
+                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+                letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494a7', marginBottom: 6,
               }}>EDGES PUBLISH AT {modelRunLabel}</div>
               <div style={{
                 fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '28px', fontWeight: 600,
                 color: '#e8ecf0', marginBottom: 6,
               }}>{countdown}</div>
               <div style={{
-                fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '11px', color: '#4a5568',
+                fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '11px', color: '#8494a7',
               }}>Lines are live from 6 books</div>
             </div>
 
@@ -607,17 +607,17 @@ export default function PicksTab({ onNavigate }) {
                 background: 'rgba(122,132,148,0.1)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A8494" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8C9AB0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/>
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#E8ECF4' }}>Market Intelligence</div>
-                <div style={{ fontSize: '11px', color: '#7A8494', marginTop: '1px' }}>
+                <div style={{ fontSize: '11px', color: '#8C9AB0', marginTop: '1px' }}>
                   {tomorrowGames ? `${tomorrowGames.length} games on the upcoming slate` : 'Upcoming slate'} &middot; Analysis pending
                 </div>
               </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A8494" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8C9AB0" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
 
             {/* Compressed Game List — full team names, date + time ET */}
@@ -645,10 +645,10 @@ export default function PicksTab({ onNavigate }) {
                             {away} @ {home}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                            <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#7A8494' }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#8C9AB0' }}>
                               {dateTime}
                             </span>
-                            <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', color: '#6b7a8d', background: 'rgba(107,122,141,0.1)', padding: '2px 6px', borderRadius: 4 }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', color: '#8494a7', background: 'rgba(132,148,167,0.1)', padding: '2px 6px', borderRadius: 4 }}>
                               Pending
                             </span>
                           </div>

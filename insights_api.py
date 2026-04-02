@@ -56,6 +56,7 @@ def get_insights():
     sport = _get_sport()
     limit = request.args.get('limit', 20, type=int)
     offset = request.args.get('offset', 0, type=int)
+    rotate = request.args.get('rotate', '') == '1'
 
     query = Insight.query.filter(_visible_filter())
     query = query.filter(db.or_(Insight.sport == sport, Insight.sport.is_(None)))
@@ -65,7 +66,20 @@ def get_insights():
 
     query = query.order_by(Insight.publish_date.desc())
     total = query.count()
-    insights = query.offset(offset).limit(limit).all()
+
+    # Daily rotation for small "recommended reads" requests:
+    # Use the day-of-year as an offset into the full article pool so
+    # different articles surface each day.
+    if rotate and limit <= 5 and offset == 0 and total > limit:
+        today_et = datetime.now(ET)
+        day_offset = (today_et.timetuple().tm_yday * 2) % max(total - limit + 1, 1)
+        insights = query.offset(day_offset).limit(limit).all()
+        # If we got fewer than requested (near the end), wrap around
+        if len(insights) < limit:
+            wrap = query.offset(0).limit(limit - len(insights)).all()
+            insights = insights + wrap
+    else:
+        insights = query.offset(offset).limit(limit).all()
 
     return jsonify({
         'insights': [insight_to_dict(i) for i in insights],

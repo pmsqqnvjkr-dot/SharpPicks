@@ -358,7 +358,7 @@ function parseMarketNote(content) {
   if (favM) favEdges = parseInt(favM[1]);
   if (dogM) dogEdges = parseInt(dogM[1]);
 
-  const whyText = (sections['why this matters'] || '').trim().replace(/—/g, '-');
+  const whyText = (sections['sharp principle'] || sections['why this matters'] || '').trim().replace(/—/g, '-');
 
   return { obs, impl, edges, signals, density, favEdges, dogEdges, whyText };
 }
