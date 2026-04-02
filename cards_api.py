@@ -484,6 +484,16 @@ def signal_card(signal_id):
                     headers={'Cache-Control': 'public, max-age=86400'})
 
 
+@cards_bp.route('/flush-share-cache')
+def flush_share_cache():
+    """Clear all cached share card images so they regenerate with current design."""
+    import shutil
+    cache_dir = os.path.join(_BASE, '.share-cache')
+    if os.path.isdir(cache_dir):
+        shutil.rmtree(cache_dir)
+    return jsonify({'status': 'ok', 'message': 'Share card cache cleared'})
+
+
 @cards_bp.route('/result/<signal_id>')
 def result_card(signal_id):
     """Generate and return the 1080x1920 story-format share card."""
@@ -493,10 +503,11 @@ def result_card(signal_id):
 
     cache_dir = os.path.join(_BASE, '.share-cache')
     os.makedirs(cache_dir, exist_ok=True)
-    cache_path = os.path.join(cache_dir, f'share-{signal_id}.png')
+    cache_path = os.path.join(cache_dir, f'share-v2-{signal_id}.png')
 
     is_resolved = pick.result in ('win', 'loss', 'push', 'revoked')
-    if is_resolved and os.path.isfile(cache_path):
+    force_refresh = request.args.get('refresh') == '1'
+    if is_resolved and os.path.isfile(cache_path) and not force_refresh:
         with open(cache_path, 'rb') as f:
             return Response(f.read(), mimetype='image/png',
                             headers={'Cache-Control': 'public, max-age=31536000, immutable'})
