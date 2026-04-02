@@ -3760,13 +3760,23 @@ def collect_mlb_scores():
                 if status_obj.get('completed'):
                     home_score = int(home.get('score', 0))
                     away_score = int(away.get('score', 0))
+                    if not row:
+                        cursor.execute(
+                            "SELECT id, game_date FROM mlb_games WHERE home_team = ? AND away_team = ? AND game_status != 'final' ORDER BY game_date DESC LIMIT 1",
+                            (home_team, away_team)
+                        )
+                        misdate = cursor.fetchone()
+                        if misdate:
+                            row = (misdate[0],)
+                            print(f"   🔧 Correcting game_date {misdate[1]} → {check_date} for {away_team} @ {home_team}")
                     if row:
                         spread_result = home_score - away_score
                         cursor.execute('''UPDATE mlb_games SET
                             home_score = ?, away_score = ?, spread_result = ?,
-                            status = 'final',
+                            game_status = 'final', game_date = ?,
                             scores_updated_at = ? WHERE id = ?''',
                             (home_score, away_score, str(spread_result),
+                             check_date,
                              datetime.now().isoformat(), row[0]))
                         print(f"   ✅ Score: {away_team} {away_score} @ {home_team} {home_score}")
                 elif not row and check_date in (today_str, tomorrow):

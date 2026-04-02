@@ -956,6 +956,18 @@ def market_view():
         else:
             status = 'scheduled'
 
+        if status == 'final' and r['game_time']:
+            try:
+                from zoneinfo import ZoneInfo as _ZI
+                _dt = datetime.fromisoformat(r['game_time'].replace('Z', '+00:00'))
+                if _dt.tzinfo is None:
+                    _dt = _dt.replace(tzinfo=timezone.utc)
+                _game_et = _dt.astimezone(_ZI('America/New_York')).strftime('%Y-%m-%d')
+                if _game_et != active_date:
+                    continue
+            except Exception:
+                pass
+
         current_period = None
         game_clock = None
         try:
