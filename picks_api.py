@@ -574,11 +574,6 @@ def last_resolved():
     if not is_pro:
         return jsonify(None)
 
-    from flask import session
-    dismissed_key = f'dismissed_resolution_{pick.id}'
-    if session.get(dismissed_key):
-        return jsonify(None)
-
     return jsonify({
         'id': pick.id,
         'type': 'resolved',
@@ -594,6 +589,8 @@ def last_resolved():
         'home_score': pick.home_score,
         'away_score': pick.away_score,
         'market_odds': pick.market_odds,
+        'clv': pick.clv,
+        'closing_spread': pick.closing_spread,
         'published_at': (pick.published_at.isoformat() + 'Z') if pick.published_at else None,
     })
 

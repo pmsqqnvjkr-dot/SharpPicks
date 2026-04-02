@@ -176,23 +176,50 @@ export default function PicksTab({ onNavigate }) {
     return <ResolutionScreen pick={resolutionPick} onBack={() => { setShowResolution(false); setResolutionPick(null); }} onNavigate={onNavigate} />;
   }
 
-  // Fetch tomorrow's games when night mode might be active
+  // Night mode detection: two scenarios
+  // 1) Same-day: all today's games final + model ran today (pick/pass)
+  // 2) Post-midnight: today is "waiting" (model hasn't run) + we have a recent resolved pick from yesterday
   const allTodayFinal = gameInfo?.allFinal === true;
   const todayHasEdges = gameInfo?.hasModel === true;
-  const isNightMode = allTodayFinal && todayHasEdges && (todayData?.type === 'pick' || todayData?.type === 'pass');
+  const sameDayNight = allTodayFinal && todayHasEdges && (todayData?.type === 'pick' || todayData?.type === 'pass');
+
+  const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const yesterdayDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  })();
+  const lastResolvedIsRecent = lastResolved?.game_date === yesterdayDate || lastResolved?.game_date === todayET;
+  const postMidnightNight = todayData?.type === 'waiting' && lastResolvedIsRecent && lastResolved?.result && lastResolved.result !== 'pending';
+
+  const isNightMode = sameDayNight || postMidnightNight;
+  const nightRecapPick = sameDayNight ? todayData : (postMidnightNight ? lastResolved : null);
 
   useEffect(() => {
     if (!isNightMode) { setTomorrowGames(null); setTonightBets(null); return; }
-    const fetchTomorrow = async () => {
-      try {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tStr = tomorrow.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-        const resp = await fetch(`${PT_API_BASE}/api/picks/market?sport=${sport}&date=${tStr}`);
-        const json = await resp.json();
-        if (json.games) setTomorrowGames(json.games);
-      } catch { setTomorrowGames(null); }
+
+    // In post-midnight mode, "tomorrow's games" = today's market (already loaded by GameSlate)
+    // In same-day mode, fetch actual tomorrow
+    const fetchSlatePreview = async () => {
+      if (postMidnightNight) {
+        // Today's market data is already in the GameSlate; extract from gameInfo or re-fetch
+        try {
+          const resp = await fetch(`${PT_API_BASE}/api/picks/market?sport=${sport}`);
+          const json = await resp.json();
+          if (json.games) setTomorrowGames(json.games);
+        } catch { setTomorrowGames(null); }
+      } else {
+        try {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const tStr = tomorrow.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+          const resp = await fetch(`${PT_API_BASE}/api/picks/market?sport=${sport}&date=${tStr}`);
+          const json = await resp.json();
+          if (json.games) setTomorrowGames(json.games);
+        } catch { setTomorrowGames(null); }
+      }
     };
+
     const fetchTonightBets = async () => {
       try {
         const token = getAuthToken();
@@ -203,16 +230,16 @@ export default function PicksTab({ onNavigate }) {
         });
         const json = await resp.json();
         if (json.bets) {
-          const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+          const recapDate = postMidnightNight ? yesterdayDate : todayET;
           const resolved = json.bets.filter(b =>
             b.result && b.result !== 'pending' &&
-            b.linked_pick?.game_date?.startsWith(todayStr)
+            b.linked_pick?.game_date?.startsWith(recapDate)
           );
           setTonightBets(resolved.length > 0 ? resolved : null);
         }
       } catch { setTonightBets(null); }
     };
-    fetchTomorrow();
+    fetchSlatePreview();
     fetchTonightBets();
   }, [isNightMode, sport]);
 
@@ -348,24 +375,25 @@ export default function PicksTab({ onNavigate }) {
               padding: '0 0 8px',
             }}>TONIGHT&apos;S RECAP</div>
 
-            {/* Signal Result Card */}
-            {todayData?.type === 'pick' && isResolved && (() => {
-              const isWin = todayData.result === 'win';
-              const isPush = todayData.result === 'push';
-              const borderAccent = isWin ? '#5A9E72' : isPush ? '#6b7a8d' : '#C4686B';
-              const resultLabel = isWin ? 'WIN' : isPush ? 'PUSH' : 'LOSS';
-              const resultBg = isWin ? 'rgba(90,158,114,0.15)' : isPush ? 'rgba(107,122,141,0.15)' : 'rgba(196,104,107,0.15)';
-              const resultColor = isWin ? '#5A9E72' : isPush ? '#6b7a8d' : '#C4686B';
-              const sideLabel = todayData.side && todayData.line != null && todayData.side.includes(String(Math.abs(todayData.line)))
-                ? todayData.side : `${todayData.side} ${todayData.line > 0 ? '+' : ''}${todayData.line}`;
-              const pnl = todayData.profit_units != null ? Number(todayData.profit_units) : (isWin ? 0.9 : isPush ? 0 : -1.0);
-              const coverMargin = (todayData.home_score != null && todayData.away_score != null && todayData.line != null)
+            {/* Signal Result Card (uses nightRecapPick which is todayData or lastResolved) */}
+            {nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'pending' && nightRecapPick.result !== 'revoked' && (() => {
+              const rp = nightRecapPick;
+              const isWin = rp.result === 'win';
+              const isPushR = rp.result === 'push';
+              const borderAccent = isWin ? '#5A9E72' : isPushR ? '#6b7a8d' : '#C4686B';
+              const resultLabel = isWin ? 'WIN' : isPushR ? 'PUSH' : 'LOSS';
+              const resultBg = isWin ? 'rgba(90,158,114,0.15)' : isPushR ? 'rgba(107,122,141,0.15)' : 'rgba(196,104,107,0.15)';
+              const resultColor = isWin ? '#5A9E72' : isPushR ? '#6b7a8d' : '#C4686B';
+              const sideLabel = rp.side && rp.line != null && rp.side.includes(String(Math.abs(rp.line)))
+                ? rp.side : `${rp.side} ${rp.line > 0 ? '+' : ''}${rp.line}`;
+              const pnl = rp.profit_units != null ? Number(rp.profit_units) : (isWin ? 0.9 : isPushR ? 0 : -1.0);
+              const coverMargin = (rp.home_score != null && rp.away_score != null && rp.line != null)
                 ? (() => {
-                    const sLow = (todayData.side || '').toLowerCase();
-                    const isHome = sLow.includes((todayData.home_team || '').split(' ').pop().toLowerCase());
+                    const sLow = (rp.side || '').toLowerCase();
+                    const isHome = sLow.includes((rp.home_team || '').split(' ').pop().toLowerCase());
                     const margin = isHome
-                      ? (todayData.home_score - todayData.away_score) + todayData.line
-                      : (todayData.away_score - todayData.home_score) + todayData.line;
+                      ? (rp.home_score - rp.away_score) + rp.line
+                      : (rp.away_score - rp.home_score) + rp.line;
                     return margin;
                   })()
                 : null;
@@ -386,21 +414,21 @@ export default function PicksTab({ onNavigate }) {
                       padding: '2px 8px', borderRadius: 4, background: resultBg, color: resultColor,
                     }}>{resultLabel}</span>
                   </div>
-                  {todayData.home_score != null && todayData.away_score != null && (
+                  {rp.home_score != null && rp.away_score != null && (
                     <div style={{
                       fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#9aa5b4',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
                     }}>
-                      <span>{teamAbbr(todayData.away_team)} {todayData.away_score} &middot; {teamAbbr(todayData.home_team)} {todayData.home_score}</span>
+                      <span>{teamAbbr(rp.away_team)} {rp.away_score} &middot; {teamAbbr(rp.home_team)} {rp.home_score}</span>
                       <span style={{ color: resultColor, fontWeight: 600 }}>{pnl >= 0 ? '+' : ''}{pnl.toFixed(1)}u</span>
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {todayData.edge_pct != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge +{Number(todayData.edge_pct).toFixed(1)}%</span>
+                    {rp.edge_pct != null && (
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge +{Number(rp.edge_pct).toFixed(1)}%</span>
                     )}
-                    {todayData.clv != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: parseFloat(todayData.clv) > 0 ? '#5A9E72' : '#9aa5b4' }}>CLV {parseFloat(todayData.clv) > 0 ? '+' : ''}{parseFloat(todayData.clv).toFixed(1)}</span>
+                    {rp.clv != null && (
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: parseFloat(rp.clv) > 0 ? '#5A9E72' : '#9aa5b4' }}>CLV {parseFloat(rp.clv) > 0 ? '+' : ''}{parseFloat(rp.clv).toFixed(1)}</span>
                     )}
                     {coverMargin != null && (
                       <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: coverMargin > 0 ? '#5A9E72' : '#C4686B' }}>Cover by {Math.abs(coverMargin).toFixed(1)}</span>
@@ -411,7 +439,7 @@ export default function PicksTab({ onNavigate }) {
             })()}
 
             {/* Signal Withdrawn recap */}
-            {todayData?.type === 'pick' && isRevoked && (
+            {nightRecapPick && nightRecapPick.result === 'revoked' && (
               <div style={{
                 background: '#111e33', border: '0.5px solid #1e3050',
                 borderLeft: '3px solid #6b7a8d',
@@ -422,14 +450,14 @@ export default function PicksTab({ onNavigate }) {
                   letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 8,
                 }}>SIGNAL WITHDRAWN</div>
                 <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8ECF4', marginBottom: 4 }}>
-                  {todayData.side} {todayData.line > 0 ? '+' : ''}{todayData.line}
+                  {nightRecapPick.side} {nightRecapPick.line > 0 ? '+' : ''}{nightRecapPick.line}
                 </div>
                 <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#6b7a8d' }}>
                   Withdrawn before tip. Capital preserved.
                 </div>
-                {todayData.edge_pct != null && (
+                {nightRecapPick.edge_pct != null && (
                   <div style={{ marginTop: 8 }}>
-                    <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge at entry +{Number(todayData.edge_pct).toFixed(1)}%</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge at entry +{Number(nightRecapPick.edge_pct).toFixed(1)}%</span>
                   </div>
                 )}
               </div>
@@ -510,12 +538,12 @@ export default function PicksTab({ onNavigate }) {
               </div>
             )}
 
-            {/* ── TOMORROW'S SLATE ── */}
+            {/* ── UPCOMING SLATE ── */}
             <div style={{
               fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
               letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568',
               padding: '16px 0 8px',
-            }}>TOMORROW&apos;S SLATE</div>
+            }}>{postMidnightNight ? "TODAY\u2019S SLATE" : "TOMORROW\u2019S SLATE"}</div>
 
             {/* Countdown Card */}
             <div style={{
@@ -554,7 +582,7 @@ export default function PicksTab({ onNavigate }) {
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#E8ECF4' }}>Market Intelligence</div>
                 <div style={{ fontSize: '11px', color: '#7A8494', marginTop: '1px' }}>
-                  {tomorrowGames ? `${tomorrowGames.length} games on tomorrow's slate` : "Tomorrow's slate"} &middot; Analysis pending
+                  {tomorrowGames ? `${tomorrowGames.length} games on ${postMidnightNight ? "today's" : "tomorrow's"} slate` : (postMidnightNight ? "Today's slate" : "Tomorrow's slate")} &middot; Analysis pending
                 </div>
               </div>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A8494" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
