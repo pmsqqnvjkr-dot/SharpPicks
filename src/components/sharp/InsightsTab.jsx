@@ -358,7 +358,7 @@ function parseMarketNote(content) {
   if (favM) favEdges = parseInt(favM[1]);
   if (dogM) dogEdges = parseInt(dogM[1]);
 
-  const whyText = (sections['sharp principle'] || sections['why this matters'] || '').trim().replace(/—/g, '-');
+  const whyText = (sections['why this matters'] || '').trim().replace(/—/g, '-');
 
   return { obs, impl, edges, signals, density, favEdges, dogEdges, whyText };
 }
@@ -532,7 +532,7 @@ function MarketNoteContent({ insight }) {
         </div>
       )}
 
-      {/* Why This Matters */}
+      {/* Sharp Principle */}
       <div style={{
         borderTop: `1px solid ${border}`,
         borderBottom: `1px solid ${border}`,
@@ -542,7 +542,7 @@ function MarketNoteContent({ insight }) {
           fontFamily: mono, fontSize: '10px', fontWeight: 500,
           letterSpacing: '1.5px', textTransform: 'uppercase',
           color: textMuted, marginBottom: '10px',
-        }}>Why This Matters</div>
+        }}>Sharp Principle</div>
         <p style={{
           fontFamily: serifFont, fontSize: '14px', lineHeight: 1.6,
           color: textSecondary, margin: 0,

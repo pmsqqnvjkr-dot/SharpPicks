@@ -469,7 +469,7 @@ SharpPicks exists to enforce that discipline.
 
 ---
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > The market rewards patience. It punishes unnecessary action. The best bettors aren\u2019t defined by how many bets they make. They\u2019re defined by the bets they refuse to make. Passing on a game is not inactivity \u2014 it\u2019s risk management.
 
@@ -1042,7 +1042,7 @@ A bet can win and still have been a bad bet. A bet can lose and still have been 
 
 CLV cuts through the noise. Consistently beating the closing line means you're identifying edges before the market prices them in. That's not luck. That's the definition of an information advantage.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 > *If you consistently get the better of the closing number, the wins will follow. Focus on the process, not the outcome.*
 
 ---
@@ -1083,7 +1083,7 @@ Our ensemble model — trained on twelve seasons of NBA data across 56 features 
 
 It processes the same inputs in the same way every single time. It doesn't get frustrated after a losing week. It doesn't press after a cold stretch. It doesn't get overconfident when it's running hot.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 > *The model's greatest advantage isn't what it knows. It's what it ignores.*
 
 ---
@@ -1128,7 +1128,7 @@ The second is abandoning process — suddenly second-guessing the model, adding 
 
 The third is quitting — walking away convinced the system doesn't work after a sample too small to mean anything. Most bettors quit their best strategies just before they would have inflected.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 > *The streak is not information. Your response to the streak is the only variable that matters.*
 
 ---
@@ -1177,7 +1177,7 @@ A bet can win and still have been a bad bet. A bet can lose and still have been 
 
 CLV cuts through the noise. Consistently beating the closing line means you're identifying edges before the market prices them in. That's not luck. That's the definition of an information advantage.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 > *If you consistently get the better of the closing number, the wins will follow. Focus on the process, not the outcome.*
 
 ---
@@ -1214,7 +1214,7 @@ Our ensemble model — trained on twelve seasons of NBA data across 56 features 
 
 It processes the same inputs in the same way every single time. It doesn't get frustrated after a losing week. It doesn't press after a cold stretch. It doesn't get overconfident when it's running hot.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 > *The model's greatest advantage isn't what it knows. It's what it ignores.*
 
 ---
@@ -1255,7 +1255,7 @@ The second is abandoning process — suddenly second-guessing the model, adding 
 
 The third is quitting — walking away convinced the system doesn't work after a sample too small to mean anything. Most bettors quit their best strategies just before they would have inflected.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 > *The streak is not information. Your response to the streak is the only variable that matters.*
 
 ---
@@ -1311,7 +1311,7 @@ That silence isn\u2019t a failure. It\u2019s the system working exactly as desig
 
 Over a long enough sample, the nights you sit out contribute just as much to your ROI as the nights you fire.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > This principle defines the product. SharpPicks will never pad your card to justify a subscription. If the edge isn\u2019t there, you\u2019ll hear nothing. That\u2019s the point.
 
@@ -1359,7 +1359,7 @@ What matters is calibration \u2014 does the model\u2019s probability output matc
 
 Calibrated probabilities are what allow us to calculate true expected value. And expected value is the only thing that separates sharp betting from educated guessing.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > Transparency isn\u2019t a marketing angle. It\u2019s how you evaluate whether a model deserves your trust. If a service can\u2019t explain what drives its picks, that\u2019s not sophistication \u2014 it\u2019s a red flag.
 
@@ -1411,7 +1411,7 @@ If the model sees an edge above threshold, it fires. If it doesn\u2019t, it stay
 
 This is easy to say and brutally hard to do. But it\u2019s the only way compounding edge works.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > SharpPicks was built to remove you from the decision loop during the moments when human judgment is at its worst. The streak is temporary. The process is permanent.
 
@@ -1465,7 +1465,7 @@ When you see a SharpPicks notification, act on it promptly. Not recklessly \u201
 
 The window between when an edge appears and when it closes is shrinking. The model finds those windows. Your job is to be ready when they open.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > SharpPicks doesn\u2019t just tell you who to bet. It tells you when the bet is worth making \u2014 and when it\u2019s not, even if the pick hasn\u2019t changed. The line is the bet.
 
@@ -1862,7 +1862,7 @@ The NBA plays 82 games. The NFL plays 17. Baseball plays 162.
 
 That volume creates two things: more data for models to learn from, and more opportunities for the market to misprice individual games. On any given Tuesday in July, there are 15 games on the board. Most of them are priced correctly. But the ones that aren't? That's where disciplined models find edge.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > Volume without discipline is just noise. But volume with selectivity is the ideal environment for quantitative edge detection. Baseball provides exactly that.
 
@@ -1908,7 +1908,7 @@ When a team is priced at -200, the market is saying they win roughly 67% of the 
 
 The team doesn't matter. The gap matters.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > Price is information. Every spread, total, and moneyline is a statement about probability. Sharp bettors don't argue with the statement — they measure whether it's accurate.
 
@@ -1944,7 +1944,7 @@ When you bet a -220 favorite, you need that team to win 68.75% of the time just 
 
 That means the market is pricing implied probabilities that frequently exceed historical reality. And every percentage point of overpricing comes directly out of your bankroll over time.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > The bigger the favorite, the smaller the margin for error. In a sport where the best teams lose 60+ games a year, laying heavy chalk is a long-term leak — not a safe play.
 
@@ -1996,7 +1996,7 @@ Consider two scenarios for the same team. In Game 1, they have a fully rested bu
 
 The starting pitcher is the same in both games. The lineup is the same. But the team's actual win probability is meaningfully different — because late-game leverage changes the equation.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > The market overweights what's visible (starting pitchers) and underweights what's hidden (bullpen fatigue, schedule density, reliever workload). Models that factor rest and usage patterns find edges the public doesn't see.
 
@@ -2036,7 +2036,7 @@ Most MLB moneyline mispricings come from three sources: public bias, pitcher rep
 
 **Situational blindness** ignores context. Schedule density, travel, bullpen state, and platoon matchups all affect game probability. The market accounts for some of this, but imperfectly — especially in the middle of long road trips or during compressed schedule stretches.
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > A mispriced moneyline isn't a broken line. It's a line that hasn't fully absorbed available information. The edge exists in the lag between reality and market adjustment.
 
@@ -2344,7 +2344,7 @@ That process will feel boring on pass days. That boredom is the point.
 
 ---
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > The next time SharpPicks is silent, that silence is not a gap in service. It is the service. The model scanned the full slate, found no qualifying edge, and chose restraint over noise. That choice, repeated over hundreds of nights, is the difference between a process and a habit.
 
@@ -2409,7 +2409,7 @@ The bet you did not need to make is the most expensive bet in your portfolio. No
 
 ---
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > SharpPicks tracks every bet you place, both model-recommended and self-directed. The discipline score exists to help you see the pattern. The goal is not perfection. It is awareness. Know what the process recommends. Know when you are deviating. And know what that deviation costs over time.
 
@@ -2476,7 +2476,7 @@ Over time, the correlation between your selectivity rate and your ROI will tell 
 
 ---
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > SharpPicks displays your selectivity rate alongside the industry average (78%) on the Results tab. The visual is immediate: a progress bar showing where you sit. Lower is better. Not because betting less is inherently virtuous, but because betting less, when the alternative is betting without an edge, is the single most reliable path to profitability.
 
@@ -2550,7 +2550,7 @@ All four responses feel rational in the moment. None of them are. They are emoti
 
 ---
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > This article exists so you can read it when the losing streak arrives. Not if. When. The process does not change during a drawdown. The unit size does not change. The threshold does not change. The only thing that changes is your emotional state. And the system is designed to outlast that.
 
@@ -2629,7 +2629,7 @@ The model does not care whether it is looking at basketball or baseball. It sees
 
 ---
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > MLB on SharpPicks is not a port of the NBA model. It is a purpose-built implementation using the same principles. Calibration phase means the model is proving itself in real time, with full transparency. Every signal, every result, every pass is tracked and published. The model earns your trust over the season. It is not assumed.
 
@@ -2704,7 +2704,7 @@ The BETA label will come off when the data supports removing it. Until then, it 
 
 ---
 
-> **SHARP PRINCIPLE**
+> **WHY THIS MATTERS**
 >
 > Calibration phase is the model earning your trust in real time. Not claiming it. Not assuming it. Earning it, one tracked signal at a time. When the label changes from BETA to deployment, it will be because the data justified the change. That is the standard.
 
