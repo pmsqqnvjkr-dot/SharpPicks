@@ -1157,6 +1157,36 @@ body { font-family: var(--sans); color: var(--text); background: var(--bg); min-
     <div id="top-pages-list" style="font-size:11px"></div>
   </div>
 
+  <div class="panel wide-4">
+    <div class="panel-label" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="toggleEngUsers('active')">
+      <span>Active Users (7d) <span id="eng-active-count-label" style="color:var(--text-dim);font-weight:400"></span></span>
+      <span id="eng-active-toggle" style="font-size:10px;color:var(--blue)">Show &darr;</span>
+    </div>
+    <div id="eng-active-user-list" style="display:none;max-height:300px;overflow-y:auto;margin-top:8px">
+      <table class="user-table" style="width:100%">
+        <thead><tr>
+          <th>Email</th><th>Name</th><th>Tier</th><th>Events (7d)</th><th>Last Seen</th>
+        </tr></thead>
+        <tbody id="eng-active-users-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel wide-4">
+    <div class="panel-label" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="toggleEngUsers('all')">
+      <span>All Users <span id="eng-all-count-label" style="color:var(--text-dim);font-weight:400"></span></span>
+      <span id="eng-all-toggle" style="font-size:10px;color:var(--blue)">Show &darr;</span>
+    </div>
+    <div id="eng-all-user-list" style="display:none;max-height:400px;overflow-y:auto;margin-top:8px">
+      <table class="user-table" style="width:100%">
+        <thead><tr>
+          <th>Email</th><th>Name</th><th>Tier</th><th>Plan</th><th>Signed Up</th>
+        </tr></thead>
+        <tbody id="eng-all-users-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
   </div><!-- /tab-engagement -->
 
   <!-- TAB: CONTROL ROOM -->
@@ -2498,7 +2528,49 @@ async function loadEngagement() {
     } else if (tpEl) {
       tpEl.innerHTML = '<span style="color:var(--text-dim);font-size:11px">No page data yet. Events will populate as users browse the app.</span>';
     }
+    const activeLabel = document.getElementById('eng-active-count-label');
+    if (activeLabel) activeLabel.textContent = '(' + (d.active_user_details ? d.active_user_details.length : 0) + ')';
+    const activeTbody = document.getElementById('eng-active-users-tbody');
+    if (activeTbody && d.active_user_details) {
+      activeTbody.innerHTML = d.active_user_details.map(u => {
+        const tierColor = u.tier === 'active' ? 'green' : u.tier === 'trial' ? 'blue' : '';
+        const tierLabel = u.founding ? 'Founding' : (u.tier || 'free');
+        return '<tr>'
+          + '<td style="font-size:11px">' + (u.email || '') + '</td>'
+          + '<td style="font-size:11px">' + (u.name || '') + '</td>'
+          + '<td><span class="' + tierColor + '" style="font-size:10px;text-transform:capitalize">' + tierLabel + '</span></td>'
+          + '<td style="font-family:var(--mono);font-size:11px">' + (u.events_7d || 0) + '</td>'
+          + '<td style="font-size:10px;color:var(--text-dim)">' + (u.last_seen ? fmtET(u.last_seen) : '--') + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    const allLabel = document.getElementById('eng-all-count-label');
+    if (allLabel) allLabel.textContent = '(' + (d.all_users ? d.all_users.length : 0) + ')';
+    const allTbody = document.getElementById('eng-all-users-tbody');
+    if (allTbody && d.all_users) {
+      allTbody.innerHTML = d.all_users.map(u => {
+        const tierColor = u.tier === 'active' ? 'green' : u.tier === 'trial' ? 'blue' : '';
+        const tierLabel = u.founding ? 'Founding' : (u.tier || 'free');
+        return '<tr>'
+          + '<td style="font-size:11px">' + (u.email || '') + '</td>'
+          + '<td style="font-size:11px">' + (u.name || '') + '</td>'
+          + '<td><span class="' + tierColor + '" style="font-size:10px;text-transform:capitalize">' + tierLabel + '</span></td>'
+          + '<td style="font-size:10px">' + (u.plan || '--') + '</td>'
+          + '<td style="font-size:10px;color:var(--text-dim)">' + (u.signed_up ? fmtET(u.signed_up) : '--') + '</td>'
+          + '</tr>';
+      }).join('');
+    }
   } catch (e) { console.error('loadEngagement:', e); }
+}
+
+function toggleEngUsers(type) {
+  const list = document.getElementById('eng-' + type + '-user-list');
+  const toggle = document.getElementById('eng-' + type + '-toggle');
+  if (!list) return;
+  const showing = list.style.display !== 'none';
+  list.style.display = showing ? 'none' : 'block';
+  if (toggle) toggle.innerHTML = showing ? 'Show &darr;' : 'Hide &uarr;';
 }
 
 function refreshAll() {

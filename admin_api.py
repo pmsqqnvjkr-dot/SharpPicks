@@ -2604,6 +2604,44 @@ def admin_engagement():
                 if (first_seen + timedelta(days=7)) in udays:
                     d7_returned += 1
 
+    active_user_details = []
+    if all_active_users_7d:
+        active_users_db = User.query.filter(User.id.in_(list(all_active_users_7d))).all()
+        user_event_counts = {}
+        user_last_seen = {}
+        for ev in events:
+            if ev.user_id:
+                user_event_counts[ev.user_id] = user_event_counts.get(ev.user_id, 0) + 1
+                prev = user_last_seen.get(ev.user_id)
+                if prev is None or (ev.created_at and ev.created_at > prev):
+                    user_last_seen[ev.user_id] = ev.created_at
+        for u in active_users_db:
+            active_user_details.append({
+                'id': u.id,
+                'email': u.email,
+                'name': u.first_name or u.display_name or u.username or '',
+                'tier': u.subscription_status or 'free',
+                'plan': u.subscription_plan or '',
+                'founding': u.founding_member or False,
+                'events_7d': user_event_counts.get(u.id, 0),
+                'last_seen': user_last_seen[u.id].isoformat() if user_last_seen.get(u.id) else None,
+                'signed_up': u.created_at.isoformat() if u.created_at else None,
+            })
+        active_user_details.sort(key=lambda x: x.get('events_7d', 0), reverse=True)
+
+    all_users = User.query.order_by(User.created_at.desc()).all()
+    all_user_details = []
+    for u in all_users:
+        all_user_details.append({
+            'id': u.id,
+            'email': u.email,
+            'name': u.first_name or u.display_name or u.username or '',
+            'tier': u.subscription_status or 'free',
+            'plan': u.subscription_plan or '',
+            'founding': u.founding_member or False,
+            'signed_up': u.created_at.isoformat() if u.created_at else None,
+        })
+
     return jsonify({
         'period_days': 7,
         'tracking_since': tracking_since,
@@ -2624,6 +2662,8 @@ def admin_engagement():
             'd7_returned': d7_returned,
             'd7_rate_pct': round(d7_returned / d7_eligible * 100, 2) if d7_eligible else 0.0,
         },
+        'active_user_details': active_user_details,
+        'all_users': all_user_details,
     })
 
 
