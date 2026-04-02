@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiGet } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 
-const CATEGORY_LABELS = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Founder Notes' };
+const CATEGORY_LABELS = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Signal Notes' };
 
 function useCountdownTo(targetHourEt = 10) {
   const [text, setText] = useState('');

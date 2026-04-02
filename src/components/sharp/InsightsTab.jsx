@@ -9,7 +9,7 @@ const CATEGORIES = [
   { id: 'discipline', label: 'Discipline' },
   { id: 'market_notes', label: 'Market Notes' },
   { id: 'how_it_works', label: 'How It Works' },
-  { id: 'founder_note', label: 'Founder Notes' },
+  { id: 'founder_note', label: 'Signal Notes' },
 ];
 
 const CATEGORY_LABELS = {
@@ -17,7 +17,7 @@ const CATEGORY_LABELS = {
   discipline: 'Discipline',
   market_notes: 'Market Notes',
   how_it_works: 'How It Works',
-  founder_note: 'Founder Notes',
+  founder_note: 'Signal Notes',
 };
 
 function formatDate(dateStr) {
@@ -283,7 +283,7 @@ function InsightCard({ insight, onTap }) {
           fontSize: '10px', fontWeight: 500,
           letterSpacing: '0.03em', textTransform: 'uppercase',
           color: 'var(--text-tertiary)',
-        }}>Founder Journal</span>
+        }}>Sharp Journal</span>
         <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>·</span>
         <span style={{
           fontSize: '10px', color: 'var(--text-tertiary)',
@@ -408,7 +408,7 @@ function MarketNoteContent({ insight }) {
         <span style={{
           fontFamily: mono, fontSize: '10px', letterSpacing: '1px',
           textTransform: 'uppercase', color: textMuted,
-        }}>Founder Journal</span>
+        }}>Sharp Journal</span>
         <span style={{ fontSize: '10px', color: textMuted }}>·</span>
         <span style={{
           fontFamily: mono, fontSize: '10px', letterSpacing: '1px',
@@ -433,7 +433,7 @@ function MarketNoteContent({ insight }) {
         fontFamily: sans, fontSize: '13px', fontWeight: 500,
         color: textSecondary, marginBottom: '28px',
       }}>
-        Evan Cole <span style={{ fontWeight: 400, color: textMuted }}>· Founder, SharpPicks</span>
+        Evan Cole <span style={{ fontWeight: 400, color: textMuted }}>· Head of Signal Intelligence</span>
       </div>
 
       {/* Divider */}
@@ -770,7 +770,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                 fontSize: '10px', fontWeight: 500,
                 letterSpacing: '0.05em', textTransform: 'uppercase',
                 color: 'var(--text-tertiary)',
-              }}>Founder Journal</span>
+              }}>Sharp Journal</span>
               <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
                 {insight.reading_time_minutes} min read
               </span>
@@ -930,7 +930,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                 }
 
                 if (/^\*[A-Z][a-z]+(\s+[A-Z][a-z]+)*\*$/.test(trimmed)) return null;
-                if (/^\*?[-–—]?\s*Evan\s*Cole/i.test(trimmed) || /^Evan Cole/i.test(trimmed) || /^Founder,?\s*Sharp\s*Picks$/i.test(trimmed)) return null;
+                if (/^\*?[-–—]?\s*Evan\s*Cole/i.test(trimmed) || /^Evan Cole/i.test(trimmed) || /^(Founder|Head of Signal Intelligence),?\s*Sharp\s*Picks$/i.test(trimmed)) return null;
 
                 const isClosingPunch = p === 'Discipline compounds. Impulse erodes.' ||
                   p === 'Fewer bets. Higher quality.\nThat is how ROI survives.' ||
@@ -1189,7 +1189,7 @@ function FounderSignature() {
             color: 'var(--text-tertiary)',
             fontFamily: 'var(--font-mono)',
             letterSpacing: '0.03em',
-          }}>Founder, SharpPicks</div>
+          }}>Head of Signal Intelligence</div>
         </div>
       </div>
     </div>

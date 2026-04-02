@@ -58,7 +58,7 @@ SharpPicks gives you four layers of intelligence that work together.
 ### 4. SHARP JOURNAL
 **The editorial layer that builds conviction and educates.**
 
-- **Founder Letters:** Written by Evan Cole (founder persona), covering model philosophy, market mechanics, and the discipline required to win long-term.
+- **Signal Notes:** Written by Evan Cole (Head of Signal Intelligence), covering model philosophy, market mechanics, and the discipline required to win long-term.
 - **Market Notes:** Same-day analysis explaining what the model saw, why certain lines moved, and what the signals mean in context.
 - **Philosophy & Discipline:** Content designed to make users better bettors - not by giving them more picks, but by helping them understand when not to bet.
 

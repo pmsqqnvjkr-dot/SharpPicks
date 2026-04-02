@@ -1316,7 +1316,7 @@ Over a long enough sample, the nights you sit out contribute just as much to you
 > This principle defines the product. SharpPicks will never pad your card to justify a subscription. If the edge isn\u2019t there, you\u2019ll hear nothing. That\u2019s the point.
 
 *Evan Cole*
-Founder, SharpPicks""",
+Head of Signal Intelligence, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 8), reading_time_minutes=3,
                 ))
             if 'what-56-features-actually-means' not in existing_slugs:
@@ -1364,7 +1364,7 @@ Calibrated probabilities are what allow us to calculate true expected value. And
 > Transparency isn\u2019t a marketing angle. It\u2019s how you evaluate whether a model deserves your trust. If a service can\u2019t explain what drives its picks, that\u2019s not sophistication \u2014 it\u2019s a red flag.
 
 *Evan Cole*
-Founder, SharpPicks""",
+Head of Signal Intelligence, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 12), reading_time_minutes=3,
                 ))
             if 'you-will-lose-five-in-a-row' not in existing_slugs:
@@ -1416,7 +1416,7 @@ This is easy to say and brutally hard to do. But it\u2019s the only way compound
 > SharpPicks was built to remove you from the decision loop during the moments when human judgment is at its worst. The streak is temporary. The process is permanent.
 
 *Evan Cole*
-Founder, SharpPicks""",
+Head of Signal Intelligence, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 17), reading_time_minutes=3,
                 ))
             if 'the-line-moved-now-what' not in existing_slugs:
@@ -1470,7 +1470,7 @@ The window between when an edge appears and when it closes is shrinking. The mod
 > SharpPicks doesn\u2019t just tell you who to bet. It tells you when the bet is worth making \u2014 and when it\u2019s not, even if the pick hasn\u2019t changed. The line is the bet.
 
 *Evan Cole*
-Founder, SharpPicks""",
+Head of Signal Intelligence, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 22), reading_time_minutes=3,
                 ))
             # --- Publishing Calendar: Mar-May 2026 ---
@@ -1877,7 +1877,7 @@ That philosophy doesn't change with the sport. It intensifies. A 15-game slate w
 Baseball is a quant market. SharpPicks is a quant product. The fit is natural.
 
 *Evan Cole*
-Founder, SharpPicks""",
+Head of Signal Intelligence, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 20, 14, 0), reading_time_minutes=4, sport='mlb',
                 ))
             if 'why-sharp-bettors-focus-on-price' not in existing_slugs:
@@ -1923,7 +1923,7 @@ That kind of discipline is uncomfortable. But it's the only approach that compou
 SharpPicks enforces this automatically. The model doesn't know team names. It knows probabilities, prices, and gaps. When the gap is large enough, it signals. When it isn't, it stays silent. No narrative. No bias. Just math.
 
 *Evan Cole*
-Founder, SharpPicks""",
+Head of Signal Intelligence, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 23, 14, 0), reading_time_minutes=4, sport='mlb',
                 ))
             if 'the-problem-with-betting-big-favorites' not in existing_slugs:
@@ -1969,7 +1969,7 @@ SharpPicks is built to detect exactly this. The model evaluates every moneyline 
 That doesn't mean every underdog is a bet. Most aren't. But the ones where the gap is real? Those are the signals worth acting on.
 
 *Evan Cole*
-Founder, SharpPicks""",
+Head of Signal Intelligence, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 26, 14, 0), reading_time_minutes=4, sport='mlb',
                 ))
             if 'why-bullpen-fatigue-creates-hidden-value' not in existing_slugs:
@@ -2011,7 +2011,7 @@ It's not glamorous analysis. Nobody tweets about bullpen availability. But it's 
 The best edges aren't the ones that make headlines. They're the ones nobody else is looking at.
 
 *Evan Cole*
-Founder, SharpPicks""",
+Head of Signal Intelligence, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 28, 14, 0), reading_time_minutes=4, sport='mlb',
                 ))
             if 'what-makes-an-mlb-moneyline-mispriced' not in existing_slugs:
@@ -2061,7 +2061,7 @@ Sharp bettors reject that framing. They ask: "What does -160 imply? Is that impl
 SharpPicks automates that process across every game on the board, every day. When the gap is there, you'll see a signal. When it's not, you'll see silence. Both outcomes are the system working.
 
 *Evan Cole*
-Founder, SharpPicks""",
+Head of Signal Intelligence, SharpPicks""",
                     status="scheduled", publish_date=datetime(2026, 3, 30, 14, 0), reading_time_minutes=5, sport='mlb',
                 ))
             # --- Batch 2: May-July 2026 ---

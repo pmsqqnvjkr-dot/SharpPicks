@@ -408,7 +408,7 @@ The feature nobody else has: it measures the bettor, not just the bet.
 
 The editorial layer that builds conviction and educates.
 
-- **Founder Letters:** Covering model philosophy, market mechanics, and discipline.
+- **Signal Notes:** Covering model philosophy, market mechanics, and discipline.
 - **Market Notes:** Same-day analysis explaining what the model saw and why.
 - **Philosophy & Discipline:** Content designed to make users better bettors by helping them understand when not to bet.
 

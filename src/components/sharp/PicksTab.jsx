@@ -1014,7 +1014,7 @@ export default function PicksTab({ onNavigate }) {
                   color: '#7A8494', marginTop: '8px', marginBottom: '10px',
                 }}>CATCH UP</div>
                 {insightsData.insights.slice(0, 2).map((article, i) => {
-                  const catLabels = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Founder Notes' };
+                  const catLabels = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Signal Notes' };
                   const catLabel = catLabels[article.category] || article.category || 'Journal';
                   return (
                     <button
@@ -1068,7 +1068,7 @@ export default function PicksTab({ onNavigate }) {
               color: '#7A8494', marginBottom: '10px',
             }}>{pageState === 'pre-model' ? 'WHILE YOU WAIT' : 'RECOMMENDED READS'}</div>
             {insightsData.insights.slice(0, 2).map((article, i) => {
-              const catLabels = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Founder Notes' };
+              const catLabels = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Signal Notes' };
               const catLabel = catLabels[article.category] || article.category || 'Journal';
               return (
                 <button

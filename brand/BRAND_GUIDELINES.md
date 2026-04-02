@@ -338,7 +338,7 @@ SharpPicks communicates with the tone of a **research desk**, not a gambling bra
 - **Restrained, not hype** — "Edge detected" not "LOCK OF THE CENTURY"
 - **Analytical, not emotional** — Data-first language
 - **Confident, not loud** — Let the numbers speak
-- **Founder voice** — Evan Cole writes journal entries as a practitioner, not a marketer
+- **Practitioner voice** — Evan Cole writes journal entries as Head of Signal Intelligence, not a marketer
 
 Never promotional. Avoid hype language. Let the numbers speak.
 
@@ -390,7 +390,7 @@ All journal content follows this template:
 - `---` horizontal rules between sections
 - `> **CALLOUT TITLE**\n>\n> Callout body text.` for blockquote callouts
 - Flowing prose paragraphs (no choppy single-line sentences)
-- Author signature: `*Evan Cole*\nFounder, SharpPicks`
+- Author signature: `*Evan Cole*\nHead of Signal Intelligence, SharpPicks`
 - Categories: `philosophy`, `discipline`, `how_it_works`, `market_notes`
 
 ---

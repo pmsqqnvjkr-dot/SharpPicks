@@ -21,7 +21,7 @@
 - Measured and confident, never loud
 - Data-first — let the numbers speak
 - Institutional-grade language, not gambling slang
-- Founder-led authenticity (Evan Cole)
+- Practitioner-led authenticity (Evan Cole)
 - Discipline over volume, always
 
 ### Key Phrases
@@ -192,14 +192,14 @@ border: 1px solid rgba(79, 134, 247, 0.15)
 3. Personal greeting
 4. Body content
 5. CTA button (centered, Signal Blue)
-6. Founder sign-off with signature image
+6. Sign-off with signature image
 7. Social links (X + Instagram)
 8. Footer: "Sharp Picks" + "Discipline is the edge."
 9. Compliance disclaimer
 
 ### From Addresses
 - **Transactional:** Sharp Picks <picks@sharppicks.ai>
-- **Founder/Welcome:** Evan Cole <evan@sharppicks.ai>
+- **Welcome:** Evan Cole <evan@sharppicks.ai>
 - **Reply-to (welcome/weekly):** evan@sharppicks.ai
 - **Support:** support@sharppicks.ai
 
@@ -220,14 +220,14 @@ border: 1px solid rgba(79, 134, 247, 0.15)
 |----------|-----|
 | App / Dashboard | https://app.sharppicks.ai |
 | Support Email | support@sharppicks.ai |
-| Founder Email | evan@sharppicks.ai |
+| Evan Cole Email | evan@sharppicks.ai |
 
 ---
 
-## Founder Identity
+## Team Identity
 
 **Name:** Evan Cole
-**Title:** Founder, Sharp Picks
+**Title:** Head of Signal Intelligence, SharpPicks
 **Avatar placeholder:** Circle, gradient background (blue-to-green), initials "EC" in Signal Blue
 **Signature:** Handwritten "Evan" script (evan-signature.png)
 

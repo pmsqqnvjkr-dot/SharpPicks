@@ -868,7 +868,7 @@ def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0):
     return send_email(to, 'SharpPicks: Market scan complete \u00b7 No qualifying signal', html)
 
 
-# ── Legacy: Founder welcome (preserving for backward compat) ──
+# ── Legacy: Welcome email (preserving for backward compat) ──
 
 def send_welcome(to, first_name=None):
     name = first_name or "there"
@@ -950,7 +950,7 @@ def send_welcome(to, first_name=None):
         </td>
         <td style="vertical-align: middle;">
           <div style="font-size: 17px; color: #ffffff; font-weight: 600; font-family: 'Inter', -apple-system, sans-serif;">Evan Cole</div>
-          <div style="font-size: 13px; color: #777; font-family: 'Inter', -apple-system, sans-serif; margin-top: 2px;">Founder, SharpPicks</div>
+          <div style="font-size: 13px; color: #777; font-family: 'Inter', -apple-system, sans-serif; margin-top: 2px;">Head of Signal Intelligence, SharpPicks</div>
         </td>
       </tr></table>
 
