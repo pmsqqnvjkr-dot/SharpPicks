@@ -536,7 +536,7 @@ export default function PicksTab({ onNavigate }) {
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   }}>
                     <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px', color: '#9aa5b4' }}>
-                      {wins}-{losses} tonight
+                      {wins}-{losses}
                     </span>
                     <span style={{
                       fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px', fontWeight: 600,
