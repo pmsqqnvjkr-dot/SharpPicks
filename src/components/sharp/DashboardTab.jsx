@@ -112,7 +112,7 @@ export default function DashboardTab({ onNavigate, embedded = false }) {
 
         <CLVTracker clv={clvStats} />
 
-        <DisciplineScore discipline={discipline} />
+        <DisciplineScore discipline={discipline} modelPhase={dashData?.model_phase} />
 
         <SignalHistory
           picks={picks}
@@ -348,7 +348,8 @@ function CLVTracker({ clv }) {
 }
 
 
-function DisciplineScore({ discipline }) {
+function DisciplineScore({ discipline, modelPhase }) {
+  const isCal = modelPhase === 'calibration';
   return (
     <>
       <SectionLabel>Discipline Score</SectionLabel>
@@ -374,23 +375,37 @@ function DisciplineScore({ discipline }) {
             </div>
             <div style={{
               fontSize: '11px', color: 'var(--text-tertiary)',
-            }}>How often the model signals on available games</div>
+            }}>{isCal ? 'Calibration mode. Selectivity filters are widened to build the dataset.' : 'How often the model signals on available games'}</div>
           </div>
-          <div style={{
-            width: '56px', height: '56px', borderRadius: '14px',
-            background: discipline.restraint_grade?.startsWith('A')
-              ? 'linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))'
-              : 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
-            border: discipline.restraint_grade?.startsWith('A')
-              ? '1px solid rgba(52,211,153,0.3)'
-              : '1px solid var(--stroke-subtle)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 600,
-              color: discipline.restraint_grade?.startsWith('A') ? 'var(--green-profit)' : 'var(--text-primary)',
-            }}>{discipline.restraint_grade || '—'}</span>
-          </div>
+          {isCal ? (
+            <div style={{
+              padding: '6px 12px', borderRadius: '8px',
+              background: 'rgba(107,122,141,0.12)',
+              border: '1px solid rgba(107,122,141,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
+                letterSpacing: '0.08em', color: '#6b7a8d',
+              }}>CAL</span>
+            </div>
+          ) : (
+            <div style={{
+              width: '56px', height: '56px', borderRadius: '14px',
+              background: discipline.restraint_grade?.startsWith('A')
+                ? 'linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))'
+                : 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+              border: discipline.restraint_grade?.startsWith('A')
+                ? '1px solid rgba(52,211,153,0.3)'
+                : '1px solid var(--stroke-subtle)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 600,
+                color: discipline.restraint_grade?.startsWith('A') ? 'var(--green-profit)' : 'var(--text-primary)',
+              }}>{discipline.restraint_grade || '—'}</span>
+            </div>
+          )}
         </div>
 
         <SelectivityBar selectivity={discipline.selectivity_rate || 0} industryAvg={discipline.industry_avg || 78} />
