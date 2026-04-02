@@ -385,13 +385,13 @@ export default function PicksTab({ onNavigate }) {
         {/* ═══════════════ STATE 0: NIGHT MODE ═══════════════ */}
         {pageState === 'night' && (
           <>
-            {/* ── TONIGHT'S RECAP ── */}
+            {/* ── DATE RECAP ── */}
             {hasAnyRecapContent && (
               <div style={{
                 fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
                 letterSpacing: '2px', textTransform: 'uppercase', color: '#8494a7',
                 padding: '0 0 8px',
-              }}>TONIGHT&apos;S RECAP</div>
+              }}>{formatDateShort(postMidnightNight ? yesterdayDate : todayET)} RECAP</div>
             )}
 
             {/* Signal Result Card */}
