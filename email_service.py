@@ -151,8 +151,21 @@ def _get_shared_email_context():
 # ── Legacy base template (kept as fallback) ──
 
 def _brand_header_html():
-    """Inline brand header: pure CSS wordmark, no images (Gmail strips base64)."""
-    return '<span style="font-family:\'Courier New\',Courier,monospace;font-size:14px;font-weight:500;letter-spacing:0.25em;color:#E8EAED;white-space:nowrap;">SHARP<span style="color:#5A9E72;margin:0 2px;letter-spacing:0;">&thinsp;&#x2016;&thinsp;</span>PICKS</span>'
+    """Inline brand header matching the app Wordmark component — two bars + green underline."""
+    return (
+        '<span style="font-family:\'Courier New\',Courier,monospace;font-size:14px;font-weight:500;'
+        'letter-spacing:0.2em;color:#E8EAED;white-space:nowrap;display:inline-flex;align-items:center;line-height:1;">'
+        'SHARP'
+        '<span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 6px;gap:2px;letter-spacing:0;">'
+        '<span style="display:inline-flex;gap:2px;">'
+        '<span style="display:inline-block;width:2px;height:18px;background:#E8EAED;border-radius:1px;"></span>'
+        '<span style="display:inline-block;width:2px;height:18px;background:#E8EAED;border-radius:1px;"></span>'
+        '</span>'
+        '<span style="display:inline-block;width:6px;height:1.5px;background:#5A9E72;border-radius:1px;"></span>'
+        '</span>'
+        'PICKS'
+        '</span>'
+    )
 
 
 def _base_template(type_label, body_html, cta_text=None, cta_url=None,

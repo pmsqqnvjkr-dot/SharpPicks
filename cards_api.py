@@ -141,13 +141,43 @@ def _paste_wordmark(img, x=40, y=30, height=22):
     else:
         draw = ImageDraw.Draw(img)
         fonts = _fonts()
-        draw.text((x, y), 'SHARP \u2016 PICKS', fill=WHITE, font=fonts['wordmark'])
-        return 150
+        font = fonts['wordmark']
+        sharp_bbox = font.getbbox('SHARP')
+        sharp_w = sharp_bbox[2] - sharp_bbox[0] if sharp_bbox else 60
+        text_h = (sharp_bbox[3] - sharp_bbox[1]) if sharp_bbox else height
+        draw.text((x, y), 'SHARP', fill=WHITE, font=font)
+        bx = x + sharp_w + 6
+        bar_h = int(text_h * 1.1)
+        bar_y = y + (text_h - bar_h) // 2
+        draw.rectangle([bx, bar_y, bx + 2, bar_y + bar_h], fill=WHITE)
+        draw.rectangle([bx + 4, bar_y, bx + 6, bar_y + bar_h], fill=WHITE)
+        draw.rectangle([bx, bar_y + bar_h + 2, bx + 6, bar_y + bar_h + 4], fill=GREEN)
+        picks_x = bx + 6 + 6
+        draw.text((picks_x, y), 'PICKS', fill=WHITE, font=font)
+        picks_bbox = font.getbbox('PICKS')
+        picks_w = picks_bbox[2] - picks_bbox[0] if picks_bbox else 50
+        return (picks_x - x) + picks_w
 
 
-def _draw_wordmark(draw, text='SHARP \u2016 PICKS'):
+def _draw_wordmark(draw, text=None):
     fonts = _fonts()
-    draw.text((32, 32), text.upper(), fill=GREEN, font=fonts['wordmark'])
+    x = 32
+    y = 32
+    font = fonts['wordmark']
+    sharp_bbox = font.getbbox('SHARP')
+    sharp_w = sharp_bbox[2] - sharp_bbox[0] if sharp_bbox else 60
+    text_h = (sharp_bbox[3] - sharp_bbox[1]) if sharp_bbox else 14
+    draw.text((x, y), 'SHARP', fill=WHITE, font=font)
+    bar_x = x + sharp_w + 8
+    bar_h = int(text_h * 1.1)
+    bar_y = y + (text_h - bar_h) // 2
+    draw.rectangle([bar_x, bar_y, bar_x + 2, bar_y + bar_h], fill=WHITE)
+    draw.rectangle([bar_x + 4, bar_y, bar_x + 6, bar_y + bar_h], fill=WHITE)
+    ul_w = 8
+    ul_x = bar_x + (6 - ul_w) // 2
+    draw.rectangle([ul_x, bar_y + bar_h + 2, ul_x + ul_w, bar_y + bar_h + 4], fill=GREEN)
+    picks_x = bar_x + 6 + 8
+    draw.text((picks_x, y), 'PICKS', fill=WHITE, font=font)
 
 
 def _draw_footer(draw, date_str=None):
@@ -194,7 +224,7 @@ def signal_card(signal_id):
 
     img, draw = _new_card()
     fonts = _fonts()
-    _draw_wordmark(draw, 'SHARP \u2016 PICKS')
+    _draw_wordmark(draw)
 
     y = 80
     side = pick.side or ''
@@ -402,7 +432,7 @@ def market_report_card():
 
     img, draw = _new_card()
     fonts = _fonts()
-    _draw_wordmark(draw, 'SHARP \u2016 PICKS')
+    _draw_wordmark(draw)
 
     y = 80
     draw.text((32, y), f'{games_analyzed} games scanned', fill=WHITE, font=fonts['medium'])
@@ -447,7 +477,7 @@ def _result_card_fallback(pick):
     """PIL fallback if Playwright is unavailable."""
     img, draw = _new_card()
     fonts = _fonts()
-    _draw_wordmark(draw, 'SHARP \u2016 PICKS')
+    _draw_wordmark(draw)
     is_win = pick.result == 'win'
     y = 80
     draw.text((32, y), pick.side or '', fill=WHITE, font=fonts['hero'])
@@ -464,7 +494,7 @@ def _user_results_fallback(wins, losses, total_pnl, roi, grade, selectivity):
     """PIL fallback if Playwright is unavailable."""
     img, draw = _new_card()
     fonts = _fonts()
-    _draw_wordmark(draw, 'SHARP \u2016 PICKS')
+    _draw_wordmark(draw)
     pnl_color = GREEN if total_pnl >= 0 else RED
     pnl_sign = '+' if total_pnl >= 0 else ''
     draw.text((32, 80), f'Profit: {pnl_sign}{total_pnl:.1f}u', fill=pnl_color, font=fonts['hero'])
@@ -478,7 +508,7 @@ def _weekly_report_fallback():
     """PIL fallback if Playwright is unavailable."""
     img, draw = _new_card()
     fonts = _fonts()
-    _draw_wordmark(draw, 'SHARP \u2016 PICKS')
+    _draw_wordmark(draw)
     draw.text((32, 80), 'Weekly report', fill=WHITE, font=fonts['hero'])
     draw.text((32, 135), 'Card generation unavailable', fill=GRAY, font=fonts['medium'])
     _draw_footer(draw, None)

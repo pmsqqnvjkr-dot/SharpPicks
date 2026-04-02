@@ -1,4 +1,13 @@
-{# Pure HTML/CSS wordmark — no images, renders in Gmail, Outlook, Apple Mail #}
+{# Pure HTML/CSS wordmark matching the app header — two bars + green underline #}
 {% macro email_wordmark(size=14) %}
-<span style="font-family:'Courier New',Courier,monospace;font-size:{{ size }}px;font-weight:500;letter-spacing:0.25em;color:#E8EAED;white-space:nowrap;">SHARP<span style="color:#5A9E72;margin:0 2px;letter-spacing:0;">&thinsp;&#x2016;&thinsp;</span>PICKS</span>
+<span style="font-family:'Courier New',Courier,monospace;font-size:{{ size }}px;font-weight:500;letter-spacing:0.2em;color:#E8EAED;white-space:nowrap;display:inline-flex;align-items:center;line-height:1;"><!--
+-->SHARP<!--
+--><span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 {{ (size * 0.45)|int }}px;gap:{{ (size * 0.12)|int }}px;letter-spacing:0;"><!--
+  --><span style="display:inline-flex;gap:{{ (size * 0.12)|int }}px;"><!--
+    --><span style="display:inline-block;width:2px;height:{{ (size * 1.25)|int }}px;background:#E8EAED;border-radius:1px;"></span><!--
+    --><span style="display:inline-block;width:2px;height:{{ (size * 1.25)|int }}px;background:#E8EAED;border-radius:1px;"></span><!--
+  --></span><!--
+  --><span style="display:inline-block;width:{{ (size * 0.38)|int }}px;height:1.5px;background:#5A9E72;border-radius:1px;"></span><!--
+--></span><!--
+-->PICKS</span>
 {% endmacro %}
