@@ -126,6 +126,11 @@ def _get_et_today():
     return now_et.strftime('%Y-%m-%d')
 
 
+def _abbr(team):
+    from cards_api import TEAM_ABBR
+    return TEAM_ABBR.get(team, team[:3].upper() if team else '???')
+
+
 def _upsert_market_note_insight(report, sport='nba'):
     """Create or update the daily Market Note insight from the market report dict."""
     from market_note_templates import generate_market_note
@@ -178,6 +183,63 @@ def _upsert_market_note_insight(report, sport='nba'):
     lean = report.get('market_lean') or {}
     fav = lean.get('favorites', 0)
     udog = lean.get('underdogs', 0)
+    board = report.get('board', [])
+    sorted_board = sorted(board, key=lambda g: abs(g.get('edge') or 0), reverse=True)
+
+    # -- Top Edge Breakdown --
+    top_edge_lines = []
+    if sorted_board:
+        top = sorted_board[0]
+        edge_val = top.get('edge', 0)
+        pick_label = top.get('pick') or top.get('pick_label') or ''
+        mkt_line = top.get('market_line')
+        mdl_line = top.get('model_line')
+        gap = round(abs((mdl_line or 0) - (mkt_line or 0)), 1) if mdl_line is not None and mkt_line is not None else None
+        status = 'Signal issued' if top.get('signal') else 'Below threshold'
+        reasoning = top.get('reasoning', [])[:3]
+
+        top_edge_lines.append(f"- pick: {pick_label}")
+        top_edge_lines.append(f"- edge: +{abs(edge_val)}%")
+        top_edge_lines.append(f"- matchup: {top.get('away_team', '?')} vs {top.get('home_team', '?')}")
+        if mdl_line is not None:
+            top_edge_lines.append(f"- model_line: {mdl_line}")
+        if mkt_line is not None:
+            top_edge_lines.append(f"- market_line: {mkt_line}")
+        if gap is not None:
+            top_edge_lines.append(f"- gap: {gap} points")
+        top_edge_lines.append(f"- status: {status}")
+        for r in reasoning:
+            top_edge_lines.append(f"- reason: {r}")
+
+    # -- Edge Map --
+    edge_map_lines = []
+    for g in sorted_board:
+        edge = g.get('edge', 0) or 0
+        away_abbr = _abbr(g.get('away_team', '?'))
+        home_abbr = _abbr(g.get('home_team', '?'))
+        if g.get('signal'):
+            status = 'Signal'
+        elif abs(edge) >= 2.0:
+            status = 'Below threshold'
+        elif edge > 0:
+            status = 'Below threshold'
+        else:
+            status = 'No edge'
+        sign = '+' if edge >= 0 else ''
+        edge_map_lines.append(f"- {away_abbr} vs {home_abbr} | {sign}{edge}% | {status}")
+
+    # -- Near Misses --
+    near_miss_lines = []
+    near_misses = [g for g in sorted_board if 2.0 <= abs(g.get('edge', 0) or 0) < 3.5 and not g.get('signal')]
+    near_misses = near_misses[:3]
+    for g in near_misses:
+        edge = g.get('edge', 0) or 0
+        away = g.get('away_team', '?')
+        home = g.get('home_team', '?')
+        reasons = g.get('fail_reasons', [])
+        reason_text = reasons[0] if reasons else 'Edge below 3.5% threshold.'
+        near_miss_lines.append(f"- {away} vs {home} | +{abs(edge)}% | {reason_text}")
+
     content_parts = [
         '## Observation',
         body,
@@ -190,12 +252,26 @@ def _upsert_market_note_insight(report, sport='nba'):
         '## Bias',
         f"Favorites vs Underdogs: {fav} favorite edges, {udog} underdog edges.",
         '',
+    ]
+    if top_edge_lines:
+        content_parts.append('## Top Edge')
+        content_parts.extend(top_edge_lines)
+        content_parts.append('')
+    if edge_map_lines:
+        content_parts.append('## Edge Map')
+        content_parts.extend(edge_map_lines)
+        content_parts.append('')
+    if near_miss_lines:
+        content_parts.append('## Near Misses')
+        content_parts.extend(near_miss_lines)
+        content_parts.append('')
+    content_parts.extend([
         '## Implication',
         report.get('assessment', ''),
         '',
         '## Why This Matters',
         wim,
-    ]
+    ])
     content = '\n'.join(content_parts)
     excerpt = body[:160] if body else title[:160]
 

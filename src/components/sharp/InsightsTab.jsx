@@ -360,7 +360,44 @@ function parseMarketNote(content) {
 
   const whyText = (sections['why this matters'] || '').trim().replace(/—/g, '-');
 
-  return { obs, impl, edges, signals, density, favEdges, dogEdges, whyText };
+  // Top Edge Breakdown
+  let topEdge = null;
+  const teSection = (sections['top edge'] || '').trim();
+  if (teSection) {
+    const field = (key) => { const m = teSection.match(new RegExp(`^- ${key}:\\s*(.+)$`, 'm')); return m ? m[1].trim() : null; };
+    const reasons = [];
+    for (const line of teSection.split('\n')) {
+      const rm = line.match(/^- reason:\s*(.+)$/);
+      if (rm) reasons.push(rm[1].trim());
+    }
+    topEdge = {
+      pick: field('pick'), edge: field('edge'), matchup: field('matchup'),
+      modelLine: field('model_line'), marketLine: field('market_line'),
+      gap: field('gap'), status: field('status'), reasons,
+    };
+  }
+
+  // Edge Map
+  let edgeMap = [];
+  const emSection = (sections['edge map'] || '').trim();
+  if (emSection) {
+    for (const line of emSection.split('\n')) {
+      const m = line.match(/^- (.+?) \| ([+-]?[\d.]+)% \| (.+)$/);
+      if (m) edgeMap.push({ game: m[1].trim(), edge: parseFloat(m[2]), status: m[3].trim() });
+    }
+  }
+
+  // Near Misses
+  let nearMisses = [];
+  const nmSection = (sections['near misses'] || '').trim();
+  if (nmSection) {
+    for (const line of nmSection.split('\n')) {
+      const m = line.match(/^- (.+?) \| \+?([\d.]+)% \| (.+)$/);
+      if (m) nearMisses.push({ game: m[1].trim(), edge: parseFloat(m[2]), reason: m[3].trim() });
+    }
+  }
+
+  return { obs, impl, edges, signals, density, favEdges, dogEdges, whyText, topEdge, edgeMap, nearMisses };
 }
 
 function MarketNoteContent({ insight }) {
@@ -502,6 +539,129 @@ function MarketNoteContent({ insight }) {
               </span>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Top Edge Breakdown */}
+      {data.topEdge && (
+        <div style={{
+          background: bgCard, border: `1px solid ${border}`,
+          borderRadius: '8px', padding: '20px', marginBottom: '24px',
+        }}>
+          <div style={sectionLabel}>Top Edge</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
+            <span style={{ fontFamily: sans, fontSize: '16px', fontWeight: 500, color: textPrimary }}>
+              {data.topEdge.pick}
+            </span>
+            <span style={{ fontFamily: mono, fontSize: '16px', fontWeight: 500, color: brandGreen }}>
+              {data.topEdge.edge}
+            </span>
+          </div>
+          <div style={{ fontFamily: mono, fontSize: '11px', color: textMuted, marginBottom: '10px' }}>
+            {data.topEdge.matchup}
+          </div>
+          {(data.topEdge.modelLine || data.topEdge.marketLine) && (
+            <div style={{ fontFamily: mono, fontSize: '11px', color: textMuted, marginBottom: '10px' }}>
+              {data.topEdge.modelLine && <span>Model: <span style={{ color: brandGreen }}>{data.topEdge.modelLine}</span></span>}
+              {data.topEdge.modelLine && data.topEdge.marketLine && <span> · </span>}
+              {data.topEdge.marketLine && <span>Market: <span style={{ color: textPrimary }}>{data.topEdge.marketLine}</span></span>}
+              {data.topEdge.gap && <span> · Gap: {data.topEdge.gap}</span>}
+            </div>
+          )}
+          {data.topEdge.status && (
+            <div style={{ marginBottom: data.topEdge.reasons.length > 0 ? '10px' : 0 }}>
+              <span style={{
+                fontFamily: mono, fontSize: '10px', fontWeight: 600,
+                padding: '3px 8px', borderRadius: '4px',
+                color: data.topEdge.status === 'Signal issued' ? brandGreen : textMuted,
+                background: data.topEdge.status === 'Signal issued' ? greenDim : 'rgba(122,132,148,0.1)',
+              }}>{data.topEdge.status}</span>
+            </div>
+          )}
+          {data.topEdge.reasons.length > 0 && (
+            <div style={{ borderLeft: '2px solid rgba(90,158,114,0.3)', paddingLeft: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {data.topEdge.reasons.map((r, i) => (
+                <div key={i} style={{ fontFamily: sans, fontSize: '12px', color: textSecondary, lineHeight: 1.5 }}>{r}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Edge Map */}
+      {data.edgeMap.length > 0 && (
+        <div style={{
+          background: bgCard, border: `1px solid ${border}`,
+          borderRadius: '8px', padding: '20px', marginBottom: '24px',
+        }}>
+          <div style={sectionLabel}>Edge Map</div>
+          {(() => {
+            const maxEdge = Math.max(...data.edgeMap.map(g => Math.abs(g.edge)), 1);
+            const thresholdPct = (3.5 / maxEdge) * 100;
+            return (
+              <div style={{ position: 'relative' }}>
+                {data.edgeMap.map((g, i) => {
+                  const barPct = Math.min((Math.abs(g.edge) / maxEdge) * 100, 100);
+                  const isPositive = g.edge >= 0;
+                  const barColor = g.status === 'Signal' ? brandGreen : isPositive ? 'rgba(90,158,114,0.5)' : brandRed;
+                  const edgeColor = g.status === 'Signal' ? brandGreen : isPositive ? '#7a9e87' : brandRed;
+                  const statusColor = g.status === 'Signal' ? brandGreen : textMuted;
+                  return (
+                    <div key={i} style={{
+                      display: 'grid', gridTemplateColumns: '100px 55px 1fr 90px',
+                      alignItems: 'center', gap: '8px', padding: '6px 0',
+                      borderBottom: i < data.edgeMap.length - 1 ? '0.5px solid rgba(30,48,80,0.3)' : 'none',
+                    }}>
+                      <span style={{ fontFamily: sans, fontSize: '12px', color: '#c8cdd4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {g.game}
+                      </span>
+                      <span style={{ fontFamily: mono, fontSize: '11px', color: edgeColor, textAlign: 'right' }}>
+                        {g.edge >= 0 ? '+' : ''}{g.edge}%
+                      </span>
+                      <div style={{ position: 'relative', height: '8px', background: 'rgba(20,26,46,0.6)', borderRadius: '2px' }}>
+                        <div style={{
+                          height: '100%', width: `${barPct}%`, background: barColor,
+                          borderRadius: '2px', transition: 'width 0.3s ease',
+                        }} />
+                        {thresholdPct <= 100 && (
+                          <div style={{
+                            position: 'absolute', left: `${thresholdPct}%`, top: -2, bottom: -2,
+                            width: '1px', borderLeft: '1px dashed rgba(90,158,114,0.4)',
+                          }} />
+                        )}
+                      </div>
+                      <span style={{ fontFamily: mono, fontSize: '9px', color: statusColor, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        {g.status}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Near Misses */}
+      {data.nearMisses.length > 0 && (
+        <div style={{
+          background: bgCard, border: `1px solid ${border}`,
+          borderLeft: '3px solid #2a3a52',
+          borderRadius: '8px', padding: '20px', marginBottom: '24px',
+        }}>
+          <div style={{ ...sectionLabel, color: textMuted }}>Near Misses</div>
+          {data.nearMisses.map((nm, i) => (
+            <div key={i} style={{
+              padding: '8px 0',
+              borderBottom: i < data.nearMisses.length - 1 ? '0.5px solid rgba(30,48,80,0.3)' : 'none',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                <span style={{ fontFamily: sans, fontSize: '13px', fontWeight: 500, color: '#c8cdd4' }}>{nm.game}</span>
+                <span style={{ fontFamily: mono, fontSize: '11px', color: '#7a9e87' }}>+{nm.edge}%</span>
+              </div>
+              <div style={{ fontFamily: sans, fontSize: '12px', color: textMuted, lineHeight: 1.5 }}>{nm.reason}</div>
+            </div>
+          ))}
         </div>
       )}
 

@@ -1104,6 +1104,11 @@ def build_market_report_dict(date_param, sport=None):
             'model_line': model_line,
             'edge': round(edge_val, 1) if edge_val is not None else None,
             'signal': bool(g.get('passes', False)),
+            'pick_side': g.get('pick_side'),
+            'pick': g.get('pick', ''),
+            'reasoning': g.get('signals', []),
+            'predicted_margin': g.get('predicted_margin'),
+            'fail_reasons': g.get('fail_reasons', []),
         })
 
     # Persist MEI to daily_market_reports for sparkline history
