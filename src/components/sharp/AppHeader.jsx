@@ -33,11 +33,20 @@ export default function AppHeader({ onNavigate }) {
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
-        <div
-          onClick={() => onNavigate('picks')}
-          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-        >
-          <Wordmark size={16} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div
+            onClick={() => onNavigate('picks')}
+            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+          >
+            <Wordmark size={16} />
+          </div>
+          {user?.first_name && (
+            <div style={{
+              fontSize: '11px', color: '#8C9AB0',
+              fontFamily: "'Inter', var(--font-sans), sans-serif",
+              paddingLeft: '1px',
+            }}>Welcome back, {user.first_name}</div>
+          )}
         </div>
 
         {isAdmin && (
