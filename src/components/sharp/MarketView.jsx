@@ -1062,9 +1062,9 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>Edge</div>
               <div style={{
-                fontFamily: mono, fontSize: '13px', fontWeight: 500,
-                color: hasSignalEdge ? brandGreen : textSec,
-              }}>{edge != null ? `+${edge}%` : '\u2014'}</div>
+                fontFamily: mono, fontSize: edge != null ? '13px' : '10px', fontWeight: 500,
+                color: hasSignalEdge ? brandGreen : (edge == null && !hasModel ? textMuted : textSec),
+              }}>{edge != null ? `+${edge}%` : (hasModel ? '\u2014' : 'Pending')}</div>
             </div>
           </div>
         )}

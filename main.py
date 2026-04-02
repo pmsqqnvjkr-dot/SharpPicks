@@ -3716,9 +3716,7 @@ def collect_mlb_scores():
             events = resp.json().get('events', [])
             for event in events:
                 comp = event.get('competitions', [{}])[0]
-                status = comp.get('status', {}).get('type', {})
-                if not status.get('completed'):
-                    continue
+                status_obj = comp.get('status', {}).get('type', {})
                 competitors = comp.get('competitors', [])
                 if len(competitors) < 2:
                     continue
@@ -3728,22 +3726,34 @@ def collect_mlb_scores():
                     continue
                 home_team = home.get('team', {}).get('displayName', '')
                 away_team = away.get('team', {}).get('displayName', '')
-                home_score = int(home.get('score', 0))
-                away_score = int(away.get('score', 0))
 
                 cursor.execute(
                     "SELECT id FROM mlb_games WHERE home_team = ? AND away_team = ? AND game_date = ?",
                     (home_team, away_team, check_date)
                 )
                 row = cursor.fetchone()
-                if row:
-                    spread_result = home_score - away_score
-                    cursor.execute('''UPDATE mlb_games SET
-                        home_score = ?, away_score = ?, spread_result = ?,
-                        scores_updated_at = ? WHERE id = ?''',
-                        (home_score, away_score, str(spread_result),
-                         datetime.now().isoformat(), row[0]))
-                    print(f"   ✅ Score: {away_team} {away_score} @ {home_team} {home_score}")
+
+                if status_obj.get('completed'):
+                    home_score = int(home.get('score', 0))
+                    away_score = int(away.get('score', 0))
+                    if row:
+                        spread_result = home_score - away_score
+                        cursor.execute('''UPDATE mlb_games SET
+                            home_score = ?, away_score = ?, spread_result = ?,
+                            scores_updated_at = ? WHERE id = ?''',
+                            (home_score, away_score, str(spread_result),
+                             datetime.now().isoformat(), row[0]))
+                        print(f"   ✅ Score: {away_team} {away_score} @ {home_team} {home_score}")
+                elif not row and check_date == today_str:
+                    game_time = event.get('date', '')
+                    home_rec = home.get('records', [{}])[0].get('summary', '') if home.get('records') else ''
+                    away_rec = away.get('records', [{}])[0].get('summary', '') if away.get('records') else ''
+                    cursor.execute('''INSERT INTO mlb_games
+                        (game_date, game_time, home_team, away_team, home_record, away_record, collected_at, commence_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                        (check_date, game_time, home_team, away_team, home_rec, away_rec,
+                         datetime.now().isoformat(), game_time))
+                    print(f"   📋 Schedule: {away_team} @ {home_team} ({check_date})")
         except Exception as e:
             print(f"   ⚠️ ESPN error for {check_date}: {e}")
 
@@ -3903,6 +3913,12 @@ def collect_mlb_odds():
 
             cursor.execute('SELECT id, spread_home_open FROM mlb_games WHERE id = ?', (game_id,))
             existing = cursor.fetchone()
+            if not existing:
+                cursor.execute('SELECT id, spread_home_open FROM mlb_games WHERE home_team = ? AND away_team = ? AND game_date = ?',
+                               (home, away, commence_time or today_str))
+                espn_row = cursor.fetchone()
+                if espn_row:
+                    cursor.execute('DELETE FROM mlb_games WHERE id = ?', (espn_row[0],))
 
             is_new_game = existing is None
             has_opening = existing and existing[1] is not None

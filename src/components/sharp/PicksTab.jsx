@@ -300,25 +300,25 @@ export default function PicksTab({ onNavigate }) {
           <>
             {/* Model Status Banner */}
             <div style={{
-              background: '#0F1424',
-              border: '1px solid rgba(212,168,67,0.2)',
-              borderLeft: '3px solid #D4A843',
+              background: '#111e33',
+              border: '0.5px solid #1e3050',
+              borderLeft: '3px solid #5A9E72',
               borderRadius: '10px',
               padding: '16px 18px',
               marginBottom: '16px',
             }}>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
                 letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: '#D4A843', marginBottom: '6px',
+                color: '#5A9E72', marginBottom: '6px',
               }}>MODEL RUNS AT 10:00 AM ET</div>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 700,
-                color: '#E8ECF4', marginBottom: '8px',
+                fontFamily: 'var(--font-mono)', fontSize: '24px', fontWeight: 600,
+                color: '#c8cdd4', marginBottom: '8px',
               }}>{countdown}</div>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '12px',
-                color: '#7A8494', lineHeight: 1.5,
+                fontFamily: 'var(--font-mono)', fontSize: '11px',
+                color: '#6b7a8d', lineHeight: 1.5,
               }}>Lines are live from 6 books. Edges publish after the run.</div>
             </div>
 
