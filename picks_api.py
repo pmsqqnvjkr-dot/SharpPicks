@@ -1066,6 +1066,53 @@ def market_view():
         games.append(game_data)
 
     conn.close()
+
+    # ESPN enrichment: if the DB has few games, fetch the full schedule from ESPN
+    # and add placeholder entries for any games not already in the list.
+    existing_matchups = set()
+    for g in games:
+        existing_matchups.add(f"{g['away']}@{g['home']}")
+    espn_sport_map = {'nba': 'basketball/nba', 'mlb': 'baseball/mlb', 'wnba': 'womens-basketball/wnba'}
+    espn_slug = espn_sport_map.get(sport)
+    if espn_slug:
+        try:
+            import requests as _req
+            espn_date = active_date.replace('-', '')
+            espn_url = f'https://site.api.espn.com/apis/site/v2/sports/{espn_slug}/scoreboard?dates={espn_date}'
+            resp = _req.get(espn_url, timeout=5)
+            if resp.status_code == 200:
+                for ev in resp.json().get('events', []):
+                    comp = ev.get('competitions', [{}])[0]
+                    teams = comp.get('competitors', [])
+                    if len(teams) < 2:
+                        continue
+                    home_t = next((t for t in teams if t.get('homeAway') == 'home'), teams[0])
+                    away_t = next((t for t in teams if t.get('homeAway') == 'away'), teams[1])
+                    away_name = away_t.get('team', {}).get('displayName', '')
+                    home_name = home_t.get('team', {}).get('displayName', '')
+                    mk = f"{away_name}@{home_name}"
+                    if mk not in existing_matchups and away_name and home_name:
+                        existing_matchups.add(mk)
+                        gt = _fmt_time(ev.get('date', ''))
+                        games.append({
+                            'id': f"espn_{ev.get('id', '')}",
+                            'away': away_name, 'home': home_name,
+                            'time': gt, 'game_date': active_date,
+                            'status': 'scheduled',
+                            'current_period': None, 'game_clock': None,
+                            'spread_home': None, 'spread_away': None,
+                            'total': None, 'home_ml': None, 'away_ml': None,
+                            'spread_home_open': None, 'total_open': None,
+                            'home_ml_open': None, 'away_ml_open': None,
+                            'home_spread_odds': None, 'away_spread_odds': None,
+                            'home_spread_book': None, 'away_spread_book': None,
+                            'home_record': None, 'away_record': None,
+                            'home_score': None, 'away_score': None,
+                            'snapshots': [],
+                        })
+        except Exception:
+            pass
+
     return jsonify({'games': games, 'date': active_date, 'count': len(games)})
 
 

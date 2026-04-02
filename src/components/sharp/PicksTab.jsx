@@ -88,7 +88,9 @@ export default function PicksTab({ onNavigate }) {
   const [tomorrowGames, setTomorrowGames] = useState(null);
   const [tomorrowDate, setTomorrowDate] = useState(null);
   const [tonightBets, setTonightBets] = useState(null);
-  const countdown = useCountdownTo(10);
+  const modelRunHour = todayData?.model_run_hour || (sport === 'mlb' ? 11 : 10);
+  const modelRunLabel = todayData?.model_runs_at || (modelRunHour <= 12 ? `${modelRunHour}:00 AM ET` : `${modelRunHour - 12}:00 PM ET`);
+  const countdown = useCountdownTo(modelRunHour);
 
   useEffect(() => {
     setLiveScore(null);
@@ -583,7 +585,7 @@ export default function PicksTab({ onNavigate }) {
               <div style={{
                 fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
                 letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7a8d', marginBottom: 6,
-              }}>EDGES PUBLISH AT 10:00 AM ET</div>
+              }}>EDGES PUBLISH AT {modelRunLabel}</div>
               <div style={{
                 fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '28px', fontWeight: 600,
                 color: '#e8ecf0', marginBottom: 6,
@@ -622,7 +624,7 @@ export default function PicksTab({ onNavigate }) {
             {tomorrowGames && tomorrowGames.length > 0 && (
               <div style={{
                 background: '#111e33', border: '0.5px solid #1e3050',
-                borderRadius: 8, padding: '8px 12px', marginBottom: 12,
+                borderRadius: 10, padding: '10px 16px', marginBottom: 12,
               }}>
                 {(() => {
                   const datePart = tomorrowDate ? formatDateShort(tomorrowDate) : '';
@@ -636,17 +638,17 @@ export default function PicksTab({ onNavigate }) {
                       return (
                         <div key={g.id || i} style={{
                           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          padding: '8px 0',
+                          padding: '10px 0',
                           borderBottom: i < tomorrowGames.length - 1 ? '0.5px solid rgba(30,48,80,0.5)' : 'none',
                         }}>
-                          <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '11px', color: '#9aa5b4', flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '13px', fontWeight: 600, color: '#E8ECF4', flex: 1, minWidth: 0 }}>
                             {away} @ {home}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                            <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', color: '#4a5568' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#7A8494' }}>
                               {dateTime}
                             </span>
-                            <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', color: '#4a5568' }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', color: '#6b7a8d', background: 'rgba(107,122,141,0.1)', padding: '2px 6px', borderRadius: 4 }}>
                               Pending
                             </span>
                           </div>
@@ -675,7 +677,7 @@ export default function PicksTab({ onNavigate }) {
                 fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
                 letterSpacing: '0.1em', textTransform: 'uppercase',
                 color: '#5A9E72', marginBottom: '6px',
-              }}>MODEL RUNS AT 10:00 AM ET</div>
+              }}>MODEL RUNS AT {modelRunLabel}</div>
               <div style={{
                 fontFamily: 'var(--font-mono)', fontSize: '24px', fontWeight: 600,
                 color: '#c8cdd4', marginBottom: '8px',
