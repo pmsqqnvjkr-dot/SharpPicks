@@ -3783,10 +3783,11 @@ def collect_mlb_scores():
                     game_time = event.get('date', '')
                     home_rec = home.get('records', [{}])[0].get('summary', '') if home.get('records') else ''
                     away_rec = away.get('records', [{}])[0].get('summary', '') if away.get('records') else ''
-                    cursor.execute('''INSERT INTO mlb_games
-                        (game_date, game_time, home_team, away_team, home_record, away_record, collected_at, commence_time)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-                        (check_date, game_time, home_team, away_team, home_rec, away_rec,
+                    espn_id = f'espn-{away_team}-{home_team}-{check_date}'.replace(' ', '-').lower()
+                    cursor.execute('''INSERT OR IGNORE INTO mlb_games
+                        (id, game_date, game_time, home_team, away_team, home_record, away_record, collected_at, commence_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                        (espn_id, check_date, game_time, home_team, away_team, home_rec, away_rec,
                          datetime.now().isoformat(), game_time))
                     print(f"   📋 Schedule: {away_team} @ {home_team} ({check_date})")
         except Exception as e:
@@ -3953,7 +3954,12 @@ def collect_mlb_odds():
                                (home, away, commence_time or today_str))
                 espn_row = cursor.fetchone()
                 if espn_row:
-                    cursor.execute('DELETE FROM mlb_games WHERE id = ?', (espn_row[0],))
+                    eid = espn_row[0]
+                    if eid is not None:
+                        cursor.execute('DELETE FROM mlb_games WHERE id = ?', (eid,))
+                    else:
+                        cursor.execute('DELETE FROM mlb_games WHERE home_team = ? AND away_team = ? AND game_date = ? AND id IS NULL',
+                                       (home, away, commence_time or today_str))
 
             is_new_game = existing is None
             has_opening = existing and existing[1] is not None
