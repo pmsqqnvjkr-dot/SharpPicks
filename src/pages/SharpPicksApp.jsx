@@ -148,7 +148,7 @@ function AppContent() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('picks');
   const [picksResetKey, setPicksResetKey] = useState(0);
-  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('sp_onboarded'));
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [profileScreen, setProfileScreen] = useState(null);
   const [profileScreenData, setProfileScreenData] = useState(null);
