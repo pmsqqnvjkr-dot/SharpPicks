@@ -3191,11 +3191,11 @@ def grade_pending_picks():
                         profit_units = round(100 / abs(actual_odds), 2)
                     else:
                         profit_units = round(actual_odds / 100, 2)
-                    pnl = round(profit_units * 100, 0)
+                    pnl = profit_units
                 else:
                     result_ats = 'L'
                     profit_units = -1.0
-                    pnl = -100
+                    pnl = -1.0
 
                 if pick.result == 'pending':
                     pick.home_score = home_score
@@ -4094,7 +4094,7 @@ def _grade_picks_for_final_games(final_games):
                     ats_margin = -spread_result + line_value
 
                 if ats_margin == 0:
-                    result_ats, profit_units, pnl = 'P', 0.0, 0
+                    result_ats, profit_units = 'P', 0.0
                 elif ats_margin > 0:
                     result_ats = 'W'
                     actual_odds = pick.market_odds or -110
@@ -4102,9 +4102,8 @@ def _grade_picks_for_final_games(final_games):
                         profit_units = round(100 / abs(actual_odds), 2)
                     else:
                         profit_units = round(actual_odds / 100, 2)
-                    pnl = round(profit_units * 100, 0)
                 else:
-                    result_ats, profit_units, pnl = 'L', -1.0, -100
+                    result_ats, profit_units = 'L', -1.0
 
                 is_revoked = pick.result == 'revoked'
 
@@ -4114,7 +4113,7 @@ def _grade_picks_for_final_games(final_games):
                     pick.result = 'push' if result_ats == 'P' else ('win' if result_ats == 'W' else 'loss')
                     pick.result_ats = result_ats
                     pick.profit_units = profit_units
-                    pick.pnl = pnl
+                    pick.pnl = profit_units
                     pick.result_resolved_at = datetime.now()
                     logging.info(f"[Live-grade] {pick.side} → {pick.result} ({away_team} {away_score} @ {home_team} {home_score})")
 
@@ -4502,6 +4501,12 @@ def grade_mlb_picks_job():
 
                 home_score = int(row['home_score'])
                 away_score = int(row['away_score'])
+
+                # Baseball can't end 0-0; skip bogus scores from in-progress polling
+                if home_score == 0 and away_score == 0:
+                    continue
+                if home_score == 0 and away_score == 0:
+                    continue
 
                 if home_score == 0 and away_score == 0:
                     continue
