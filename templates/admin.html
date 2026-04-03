@@ -51,568 +51,177 @@
     backdrop-filter: blur(12px);
   }
 
-  .topbar-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
 
-  .logo {
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 2.5px;
-    color: var(--text-primary);
-  }
-
+  .logo { font-size: 14px; font-weight: 600; letter-spacing: 2.5px; color: var(--text-primary); }
   .logo span { color: var(--green); }
 
   .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+    width: 8px; height: 8px; border-radius: 50%;
     background: var(--green);
     box-shadow: 0 0 8px rgba(90, 158, 114, 0.6);
     animation: pulse 3s ease-in-out infinite;
   }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-  .topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
+  .topbar-right { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--text-secondary); }
 
   .topbar-btn {
-    font-size: 11px;
-    padding: 6px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-family: inherit;
-    letter-spacing: 0.5px;
-    min-height: 32px;
-    display: flex;
-    align-items: center;
+    font-size: 11px; padding: 6px 10px; border-radius: 4px; cursor: pointer;
+    font-family: inherit; letter-spacing: 0.5px; min-height: 32px;
+    display: flex; align-items: center;
   }
 
-  .kill-switch {
-    border: 1px solid var(--red);
-    color: var(--red);
-    background: var(--red-dim);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 500;
-  }
+  .kill-switch { border: 1px solid var(--red); color: var(--red); background: var(--red-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
+  .refresh-btn { border: 1px solid var(--border); color: var(--text-secondary); background: transparent; }
 
-  .refresh-btn {
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    background: transparent;
-  }
-
-  .actions-bar {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-subtle);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .action-group {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .action-group-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-dim);
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    width: 36px;
-    flex-shrink: 0;
-  }
-
-  .action-read-btns {
-    display: flex;
-    gap: 6px;
-  }
-
-  .action-mutate-btns {
-    display: flex;
-    gap: 6px;
-    margin-left: auto;
-  }
+  .actions-bar { padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 10px; }
+  .action-group { display: flex; align-items: center; gap: 6px; }
+  .action-group-label { font-size: 11px; font-weight: 600; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; width: 36px; flex-shrink: 0; }
+  .action-read-btns { display: flex; gap: 6px; }
+  .action-mutate-btns { display: flex; gap: 6px; margin-left: auto; }
 
   .action-btn {
-    font-size: 12px;
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    background: var(--bg-card);
-    border-radius: 4px;
-    cursor: pointer;
-    font-family: inherit;
-    white-space: nowrap;
-    transition: all 0.15s;
-    min-height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
+    font-size: 12px; padding: 8px 14px; border: 1px solid var(--border);
+    color: var(--text-secondary); background: var(--bg-card); border-radius: 4px;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+    transition: all 0.15s; min-height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent; user-select: none;
   }
 
   .action-btn:active { transform: scale(0.97); }
-
-  .action-btn.run {
-    border-color: var(--green);
-    color: var(--green);
-    background: var(--green-dim);
-    font-weight: 500;
-  }
-
-  .action-btn.grade {
-    border-color: var(--green);
-    color: var(--green);
-    background: var(--green-dim);
-    font-weight: 500;
-  }
-
-  .action-btn.clear {
-    border-color: var(--red);
-    color: var(--red);
-    background: var(--red-dim);
-    font-size: 11px;
-    padding: 6px 10px;
-    min-height: 36px;
-  }
-
-  .action-divider-line {
-    height: 1px;
-    background: var(--border-subtle);
-    margin: 2px 0;
-  }
+  .action-btn.run { border-color: var(--green); color: var(--green); background: var(--green-dim); font-weight: 500; }
+  .action-btn.grade { border-color: var(--green); color: var(--green); background: var(--green-dim); font-weight: 500; }
+  .action-btn.clear { border-color: var(--red); color: var(--red); background: var(--red-dim); font-size: 11px; padding: 6px 10px; min-height: 36px; }
+  .action-divider-line { height: 1px; background: var(--border-subtle); margin: 2px 0; }
 
   .confirm-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 200;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
+    display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7);
+    z-index: 200; align-items: center; justify-content: center; padding: 24px;
     backdrop-filter: blur(4px);
   }
-
   .confirm-overlay.active { display: flex; }
-
-  .confirm-dialog {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 24px;
-    max-width: 320px;
-    width: 100%;
-    text-align: center;
-  }
-
-  .confirm-title {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--text-primary);
-  }
-
-  .confirm-desc {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 20px;
-    line-height: 1.5;
-  }
-
+  .confirm-dialog { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 24px; max-width: 320px; width: 100%; text-align: center; }
+  .confirm-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); }
+  .confirm-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
   .confirm-actions { display: flex; gap: 10px; }
-
-  .confirm-btn {
-    flex: 1;
-    font-family: inherit;
-    font-size: 13px;
-    padding: 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    min-height: 46px;
-    font-weight: 500;
-    border: none;
-  }
-
-  .confirm-btn.cancel {
-    background: var(--bg-card);
-    color: var(--text-secondary);
-    border: 1px solid var(--border);
-  }
-
+  .confirm-btn { flex: 1; font-family: inherit; font-size: 13px; padding: 12px; border-radius: 6px; cursor: pointer; min-height: 46px; font-weight: 500; border: none; }
+  .confirm-btn.cancel { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); }
   .confirm-btn.proceed { background: var(--green); color: var(--bg); }
   .confirm-btn.proceed.danger { background: var(--red); }
 
-  .tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border);
-    padding: 0 16px;
-  }
+  .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 16px; }
 
   .tab {
-    font-size: 13px;
-    padding: 12px 16px;
-    color: var(--text-dim);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    white-space: nowrap;
-    letter-spacing: 0.5px;
-    transition: all 0.2s;
-    font-family: inherit;
-    background: none;
-    border-top: none;
-    border-left: none;
-    border-right: none;
-    -webkit-tap-highlight-color: transparent;
-    min-height: 44px;
-    display: flex;
-    align-items: center;
+    font-size: 13px; padding: 12px 16px; color: var(--text-dim); cursor: pointer;
+    border-bottom: 2px solid transparent; white-space: nowrap; letter-spacing: 0.5px;
+    transition: all 0.2s; font-family: inherit; background: none;
+    border-top: none; border-left: none; border-right: none;
+    -webkit-tap-highlight-color: transparent; min-height: 44px;
+    display: flex; align-items: center;
   }
-
   .tab:hover { color: var(--text-secondary); }
-
-  .tab.active {
-    color: var(--green);
-    border-bottom-color: var(--green);
-    font-weight: 500;
-  }
+  .tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 500; }
 
   .content { padding: 16px; }
   .panel { display: none; }
   .panel.active { display: block; }
 
   .stat-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1px;
-    background: var(--border-subtle);
-    border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 16px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+    background: var(--border-subtle); border: 1px solid var(--border-subtle);
+    border-radius: 6px; overflow: hidden; margin-bottom: 16px;
   }
-
   .stat-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
   .stat-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
-
   .stat-cell { background: var(--bg-card); padding: 14px; }
-
-  .stat-label {
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-  }
-
+  .stat-label { font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
   .stat-value { font-size: 22px; font-weight: 600; line-height: 1.15; }
   .stat-value.green { color: var(--green); }
   .stat-value.red { color: var(--red); }
   .stat-value.yellow { color: var(--yellow); }
   .stat-value.blue { color: var(--blue); }
   .stat-value.sm { font-size: 18px; }
-
   .stat-sub { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
 
   .section-header {
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    margin: 24px 0 12px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 500;
+    font-size: 11px; letter-spacing: 2px; color: var(--text-dim);
+    text-transform: uppercase; margin: 20px 0 12px;
+    display: flex; align-items: center; gap: 10px; font-weight: 500;
   }
+  .section-header::after { content: ''; flex: 1; height: 1px; background: var(--border-subtle); }
 
-  .section-header::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border-subtle);
-  }
-
-  .pipeline-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 14px;
-    margin-bottom: 14px;
-  }
-
-  .pipeline-status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-
-  .pipeline-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--green);
-    box-shadow: 0 0 6px rgba(90, 158, 114, 0.4);
-  }
-
+  .pipeline-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 14px; margin-bottom: 14px; }
+  .pipeline-status { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .pipeline-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px rgba(90, 158, 114, 0.4); }
   .pipeline-title { font-size: 14px; font-weight: 500; }
-
-  .pipeline-time {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-left: auto;
-  }
+  .pipeline-time { font-size: 12px; color: var(--text-dim); margin-left: auto; }
 
   .pipeline-meta {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    padding: 10px 0;
-    border-top: 1px solid var(--border-subtle);
-    border-bottom: 1px solid var(--border-subtle);
-    margin-bottom: 10px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    padding: 10px 0; border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle); margin-bottom: 10px;
   }
-
   .pipeline-meta-item { text-align: center; }
+  .pipeline-meta-label { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+  .pipeline-meta-value { font-size: 16px; font-weight: 600; color: var(--green); }
 
-  .pipeline-meta-label {
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-
-  .pipeline-meta-value {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--green);
-  }
-
-  .pick-card {
-    background: var(--bg-elevated);
-    border-left: 3px solid var(--green);
-    padding: 12px 14px;
-    border-radius: 0 6px 6px 0;
-    margin-bottom: 8px;
-  }
-
+  .pick-card { background: var(--bg-elevated); border-left: 3px solid var(--green); padding: 12px 14px; border-radius: 0 6px 6px 0; margin-bottom: 8px; }
   .pick-header { font-size: 13px; font-weight: 600; color: var(--green); margin-bottom: 3px; }
   .pick-matchup { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
-
-  .pick-stats {
-    display: flex;
-    gap: 18px;
-    font-size: 12px;
-    color: var(--text-dim);
-  }
-
+  .pick-stats { display: flex; gap: 18px; font-size: 12px; color: var(--text-dim); }
   .pick-stats strong { color: var(--text-secondary); }
 
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    margin-bottom: 16px;
-  }
-
-  .data-table th {
-    font-size: 10px;
-    letter-spacing: 1px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    text-align: left;
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--border);
-    font-weight: 400;
-  }
-
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; }
+  .data-table th { font-size: 10px; letter-spacing: 1px; color: var(--text-dim); text-transform: uppercase; text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); font-weight: 400; }
   .data-table th:last-child, .data-table td:last-child { text-align: right; }
-
-  .data-table td {
-    padding: 9px 10px;
-    border-bottom: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
-  }
-
+  .data-table td { padding: 9px 10px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary); }
   .data-table tr:last-child td { border-bottom: none; }
-
   .edge-positive { color: var(--green); font-weight: 500; }
   .edge-negative { color: var(--text-dim); }
 
-  .cron-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    background: var(--border-subtle);
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 16px;
-  }
-
-  .cron-item {
-    display: grid;
-    grid-template-columns: 10px 1fr auto auto;
-    gap: 10px;
-    align-items: center;
-    background: var(--bg-card);
-    padding: 10px 12px;
-    font-size: 12px;
-  }
-
+  .cron-list { display: flex; flex-direction: column; gap: 1px; background: var(--border-subtle); border-radius: 6px; overflow: hidden; margin-bottom: 16px; }
+  .cron-item { display: grid; grid-template-columns: 10px 1fr auto auto; gap: 10px; align-items: center; background: var(--bg-card); padding: 10px 12px; font-size: 12px; }
   .cron-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
   .cron-name { color: var(--text-secondary); }
   .cron-when { color: var(--text-dim); text-align: right; font-size: 11px; }
   .cron-ago { color: var(--green); font-size: 11px; font-weight: 500; }
 
-  .service-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1px;
-    background: var(--border-subtle);
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 16px;
-  }
-
-  .service-item {
-    background: var(--bg-card);
-    padding: 12px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .service-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--green);
-    flex-shrink: 0;
-  }
-
-  .service-name {
-    font-size: 12px;
-    color: var(--text-secondary);
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
+  .service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border-subtle); border-radius: 6px; overflow: hidden; margin-bottom: 16px; }
+  .service-item { background: var(--bg-card); padding: 12px; display: flex; align-items: center; gap: 10px; }
+  .service-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .service-name { font-size: 12px; color: var(--text-secondary); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .service-latency { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
 
   .model-section { margin-bottom: 24px; }
-
-  .model-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-  }
-
-  .model-badge {
-    font-size: 10px;
-    padding: 3px 8px;
-    border-radius: 3px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-
+  .model-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .model-badge { font-size: 10px; padding: 3px 8px; border-radius: 3px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
   .model-badge.live { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
   .model-badge.beta { background: var(--yellow-dim); color: var(--yellow); border: 1px solid var(--yellow); }
   .model-badge.shadow { background: var(--blue-dim); color: var(--blue); border: 1px solid var(--blue); }
 
-  .cal-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 10px;
-    padding: 3px 8px;
-    border-radius: 3px;
-    border: 1px solid var(--green);
-    background: var(--green-dim);
-    color: var(--green);
-    letter-spacing: 0.5px;
-    font-weight: 500;
-  }
-
+  .cal-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; padding: 3px 8px; border-radius: 3px; border: 1px solid var(--green); background: var(--green-dim); color: var(--green); letter-spacing: 0.5px; font-weight: 500; }
   .cal-badge .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
 
   .bucket-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 12px; }
   .bucket-label { width: 85px; color: var(--text-dim); flex-shrink: 0; }
-
-  .bucket-bar-track {
-    flex: 1;
-    height: 6px;
-    background: var(--bg-elevated);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-
+  .bucket-bar-track { flex: 1; height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; }
   .bucket-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
   .bucket-bar-fill.green { background: var(--green); }
   .bucket-bar-fill.yellow { background: var(--yellow); }
   .bucket-bar-fill.red { background: var(--red); }
-
   .bucket-record { width: 90px; text-align: right; color: var(--text-secondary); flex-shrink: 0; }
 
-  .funnel {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 16px;
-    background: var(--bg-card);
-    border-radius: 6px;
-    margin-bottom: 16px;
-  }
-
+  .funnel { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 16px; background: var(--bg-card); border-radius: 6px; margin-bottom: 16px; }
   .funnel-step { text-align: center; flex-shrink: 0; }
   .funnel-value { font-size: 20px; font-weight: 600; color: var(--text-primary); }
-
-  .funnel-label {
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    margin-top: 2px;
-  }
-
+  .funnel-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px; }
   .funnel-arrow { color: var(--text-dim); font-size: 14px; flex-shrink: 0; }
   .funnel-rate { font-size: 10px; color: var(--yellow); flex-shrink: 0; font-weight: 500; }
 
-  .mini-pick {
-    display: grid;
-    grid-template-columns: 52px 1fr 36px 28px 48px;
-    gap: 6px;
-    align-items: center;
-    font-size: 12px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-
+  .mini-pick { display: grid; grid-template-columns: 52px 1fr 36px 28px 48px; gap: 6px; align-items: center; font-size: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
   .mini-pick:last-child { border-bottom: none; }
   .mini-pick-date { color: var(--text-dim); }
   .mini-pick-name { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -620,79 +229,33 @@
   .mini-pick-result { text-align: center; font-weight: 600; }
   .mini-pick-pnl { text-align: right; font-weight: 500; }
 
-  .user-row {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 10px;
-    align-items: center;
-    padding: 9px 0;
-    border-bottom: 1px solid var(--border-subtle);
-    font-size: 12px;
-  }
-
+  .user-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border-subtle); font-size: 12px; }
   .user-row:last-child { border-bottom: none; }
-
-  .user-email {
-    color: var(--text-secondary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .tier-badge {
-    font-size: 10px;
-    padding: 3px 7px;
-    border-radius: 3px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-
+  .user-email { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tier-badge { font-size: 10px; padding: 3px 7px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 600; }
   .tier-badge.founding { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(212, 168, 67, 0.3); }
   .tier-badge.trial { background: var(--green-dim); color: var(--green); border: 1px solid rgba(90, 158, 114, 0.3); }
   .tier-badge.free { background: rgba(122, 133, 153, 0.08); color: var(--text-dim); border: 1px solid var(--border); }
-
+  .tier-badge.pro { background: var(--green-dim); color: var(--green); border: 1px solid rgba(90, 158, 114, 0.3); }
   .user-date { font-size: 11px; color: var(--text-dim); }
 
   .feature-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px; }
   .feature-label { width: 110px; color: var(--text-secondary); flex-shrink: 0; }
-
-  .feature-track {
-    flex: 1;
-    height: 8px;
-    background: var(--bg-elevated);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-
+  .feature-track { flex: 1; height: 8px; background: var(--bg-elevated); border-radius: 4px; overflow: hidden; }
   .feature-fill { height: 100%; background: var(--green); border-radius: 4px; transition: width 0.5s ease; }
   .feature-pct { width: 44px; text-align: right; color: var(--text-dim); flex-shrink: 0; }
 
   .pipeline-sport-tab {
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 500;
-    padding: 8px 16px;
-    border: none;
-    background: var(--bg-card);
-    color: var(--text-dim);
-    cursor: pointer;
-    letter-spacing: 0.5px;
-    min-height: 38px;
-    -webkit-tap-highlight-color: transparent;
-    transition: all 0.15s;
+    font-family: inherit; font-size: 12px; font-weight: 500; padding: 8px 16px;
+    border: none; background: var(--bg-card); color: var(--text-dim); cursor: pointer;
+    letter-spacing: 0.5px; min-height: 38px;
+    -webkit-tap-highlight-color: transparent; transition: all 0.15s;
   }
-
   .pipeline-sport-tab.active { background: var(--green-dim); color: var(--green); }
-
   .pipeline-panel { display: none; }
   .pipeline-panel.active { display: block; }
 
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
   .panel.active > * { animation: fadeIn 0.2s ease-out; }
 
   .mt-12 { margin-top: 12px; }
@@ -701,7 +264,6 @@
   .text-red { color: var(--red); }
   .text-yellow { color: var(--yellow); }
   .text-dim { color: var(--text-dim); }
-
   .loading { color: var(--text-dim); text-align: center; padding: 40px; font-size: 12px; }
 </style>
 </head>
@@ -739,7 +301,6 @@
 
 <div class="content">
 
-  <!-- PULSE -->
   <div class="panel active" id="panel-pulse">
     <div id="pulseStats" class="loading">Loading...</div>
     <div class="section-header">Today's Pipeline</div>
@@ -753,12 +314,10 @@
     <div id="servicesGrid" class="loading">Loading...</div>
   </div>
 
-  <!-- MODELS -->
   <div class="panel" id="panel-models">
     <div id="modelsContent" class="loading">Loading...</div>
   </div>
 
-  <!-- INFRA -->
   <div class="panel" id="panel-infra">
     <div class="section-header">Pipeline Controls</div>
     <div class="actions-bar" style="border-bottom: none; padding: 0; margin-bottom: 20px;">
@@ -790,7 +349,6 @@
     <div id="infraContent" class="loading">Loading...</div>
   </div>
 
-  <!-- BUSINESS -->
   <div class="panel" id="panel-business">
     <div id="businessContent" class="loading">Loading...</div>
   </div>
@@ -867,183 +425,8 @@ function updateClock() {
   document.getElementById('topbarTime').textContent = et;
 }
 
-async function loadData() {
-  updateClock();
-  setInterval(updateClock, 30000);
-
-  try {
-    const [statsR, diagR, engR, usersR] = await Promise.all([
-      fetch('/api/admin/stats').then(r => r.json()).catch(() => null),
-      fetch('/api/cron/diagnostic', { headers: { 'X-Cron-Secret': CRON_SECRET } }).then(r => r.json()).catch(() => null),
-      fetch('/api/admin/engagement').then(r => r.json()).catch(() => null),
-      fetch('/api/admin/users').then(r => r.json()).catch(() => null),
-    ]);
-
-    renderPulse(statsR, diagR);
-    renderModels(statsR, diagR);
-    renderInfra(diagR);
-    renderBusiness(statsR, engR, usersR);
-  } catch (e) {
-    console.error('Load failed:', e);
-  }
-}
-
-function renderPulse(stats, diag) {
-  if (!stats && !diag) { document.getElementById('pulseStats').textContent = 'Failed to load'; return; }
-
-  const s = stats || {};
-  const nba = s.nba || {};
-  const mlb = s.mlb || {};
-  const nbaW = nba.wins || 0, nbaL = nba.losses || 0;
-  const mlbW = mlb.wins || 0, mlbL = mlb.losses || 0;
-  const nbaRoi = nba.roi != null ? nba.roi.toFixed(1) : '0';
-  const mlbRoi = mlb.roi != null ? mlb.roi.toFixed(1) : '0';
-  const users = s.totalUsers || s.total_users || 0;
-
-  document.getElementById('pulseStats').innerHTML = `
-    <div class="stat-grid cols-4">
-      <div class="stat-cell"><div class="stat-label">NBA</div><div class="stat-value green">${nbaW}-${nbaL}</div><div class="stat-sub">${nbaRoi > 0 ? '+' : ''}${nbaRoi}% ROI</div></div>
-      <div class="stat-cell"><div class="stat-label">MLB</div><div class="stat-value green">${mlbW}-${mlbL}</div><div class="stat-sub">${mlbRoi > 0 ? '+' : ''}${mlbRoi}% ROI</div></div>
-      <div class="stat-cell"><div class="stat-label">MRR</div><div class="stat-value green">$${s.mrr || 0}</div><div class="stat-sub">$${s.arr || 0} ARR</div></div>
-      <div class="stat-cell"><div class="stat-label">Users</div><div class="stat-value">${users}</div><div class="stat-sub">${s.active_7d || 0} active 7d</div></div>
-    </div>`;
-
-  const today = diag || {};
-  const todayNba = today.nba_today || today.today || {};
-  const todayMlb = today.mlb_today || {};
-
-  const nbaPick = todayNba.pick;
-  const mlbPick = todayMlb.pick;
-  const nbaGames = today.games || {};
-  const mlbGames = today.mlb_games || {};
-
-  document.getElementById('pipeline-nba').innerHTML = nbaPick
-    ? `<div class="pipeline-card">
-        <div class="pipeline-status"><div class="pipeline-dot"></div><div class="pipeline-title">Pick Published</div></div>
-        <div class="pick-card">
-          <div class="pick-header">${nbaPick.side || '--'}</div>
-          <div class="pick-stats"><span>Edge <strong class="text-green">${nbaPick.edge ? '+' + nbaPick.edge + '%' : '--'}</strong></span></div>
-        </div>
-      </div>`
-    : (todayNba.pass ? '<div class="pipeline-card"><div class="pipeline-status"><div class="pipeline-dot" style="background:var(--yellow)"></div><div class="pipeline-title">Pass Day</div></div></div>'
-    : '<div class="pipeline-card"><div class="pipeline-status"><div class="pipeline-dot" style="background:var(--text-dim)"></div><div class="pipeline-title">Awaiting Model Run</div></div></div>');
-
-  document.getElementById('pipeline-mlb').innerHTML = mlbPick
-    ? `<div class="pipeline-card">
-        <div class="pipeline-status"><div class="pipeline-dot"></div><div class="pipeline-title">Pick Published</div></div>
-        <div class="pick-card">
-          <div class="pick-header">${mlbPick.side || '--'}</div>
-          <div class="pick-stats"><span>Edge <strong class="text-green">${mlbPick.edge ? '+' + mlbPick.edge + '%' : '--'}</strong></span></div>
-        </div>
-      </div>`
-    : '<div class="pipeline-card"><div class="pipeline-status"><div class="pipeline-dot" style="background:var(--text-dim)"></div><div class="pipeline-title">Awaiting Model Run</div></div></div>';
-
-  document.getElementById('servicesGrid').innerHTML = `
-    <div class="service-grid">
-      <div class="service-item"><div class="service-dot"></div><div class="service-name">PostgreSQL</div><div class="service-latency">OK</div></div>
-      <div class="service-item"><div class="service-dot"></div><div class="service-name">Odds API</div><div class="service-latency">${nbaGames.with_spreads || 0} w/ lines</div></div>
-      <div class="service-item"><div class="service-dot"></div><div class="service-name">ESPN</div><div class="service-latency">${nbaGames.total || 0} games</div></div>
-      <div class="service-item"><div class="service-dot"></div><div class="service-name">SQLite</div><div class="service-latency">${nbaGames.all_rows || 0} rows</div></div>
-      <div class="service-item"><div class="service-dot"></div><div class="service-name">Resend</div><div class="service-latency">OK</div></div>
-      <div class="service-item"><div class="service-dot"></div><div class="service-name">Stripe</div><div class="service-latency">OK</div></div>
-    </div>`;
-}
-
-function renderModels(stats, diag) {
-  const s = stats || {};
-  const nba = s.nba || {};
-  const mlb = s.mlb || {};
-  const nbaW = nba.wins || 0, nbaL = nba.losses || 0, nbaWr = (nbaW + nbaL) > 0 ? ((nbaW / (nbaW + nbaL)) * 100).toFixed(1) : '0';
-  const mlbW = mlb.wins || 0, mlbL = mlb.losses || 0, mlbWr = (mlbW + mlbL) > 0 ? ((mlbW / (mlbW + mlbL)) * 100).toFixed(1) : '0';
-  const nbaRoi = nba.roi != null ? nba.roi.toFixed(1) : '0';
-  const mlbRoi = mlb.roi != null ? mlb.roi.toFixed(1) : '0';
-
-  document.getElementById('modelsContent').innerHTML = `
-    <div class="model-section">
-      <div class="model-header">
-        <span class="section-header" style="margin:0">NBA</span>
-        <span class="model-badge live">Live</span>
-      </div>
-      <div class="stat-grid cols-4">
-        <div class="stat-cell"><div class="stat-label">Record</div><div class="stat-value green">${nbaW}-${nbaL}</div><div class="stat-sub">${nbaWr}%</div></div>
-        <div class="stat-cell"><div class="stat-label">ROI</div><div class="stat-value green">${nbaRoi > 0 ? '+' : ''}${nbaRoi}%</div></div>
-        <div class="stat-cell"><div class="stat-label">Picks</div><div class="stat-value sm">${nba.total_picks || 0}</div></div>
-        <div class="stat-cell"><div class="stat-label">Avg Edge</div><div class="stat-value sm">${nba.avg_edge ? nba.avg_edge.toFixed(1) + '%' : '--'}</div></div>
-      </div>
-    </div>
-    <div class="model-section">
-      <div class="model-header">
-        <span class="section-header" style="margin:0">MLB</span>
-        <span class="model-badge beta">Cal Beta</span>
-      </div>
-      <div class="stat-grid cols-4">
-        <div class="stat-cell"><div class="stat-label">Record</div><div class="stat-value green">${mlbW}-${mlbL}</div><div class="stat-sub">${mlbWr}%</div></div>
-        <div class="stat-cell"><div class="stat-label">ROI</div><div class="stat-value green">${mlbRoi > 0 ? '+' : ''}${mlbRoi}%</div></div>
-        <div class="stat-cell"><div class="stat-label">Picks</div><div class="stat-value sm">${mlb.total_picks || 0}</div></div>
-        <div class="stat-cell"><div class="stat-label">Avg Edge</div><div class="stat-value sm">${mlb.avg_edge ? mlb.avg_edge.toFixed(1) + '%' : '--'}</div></div>
-      </div>
-    </div>
-    <div class="model-section">
-      <div class="model-header">
-        <span class="section-header" style="margin:0">WNBA</span>
-        <span class="model-badge shadow">Shadow</span>
-      </div>
-      <div style="padding: 24px; text-align: center; color: var(--text-dim); font-size: 13px;">No runs yet</div>
-    </div>`;
-}
-
-function renderInfra(diag) {
-  const logs = (diag && diag.cron_logs) || [];
-  const recentJobs = {};
-  for (const log of logs) {
-    if (!recentJobs[log.job]) recentJobs[log.job] = log;
-  }
-
-  let cronHtml = '<div class="section-header">Recent Cron Jobs</div><div class="cron-list">';
-  for (const [job, log] of Object.entries(recentJobs)) {
-    const ago = log.at ? timeAgo(log.at) : '--';
-    const ok = log.status === 'ok';
-    cronHtml += `<div class="cron-item">
-      <div class="cron-dot" style="background:${ok ? 'var(--green)' : 'var(--red)'}"></div>
-      <div class="cron-name">${job}</div>
-      <div class="cron-when">${log.dur_ms != null ? log.dur_ms + 'ms' : ''}</div>
-      <div class="cron-ago" style="color:${ok ? 'var(--green)' : 'var(--red)'}">${ago}</div>
-    </div>`;
-  }
-  cronHtml += '</div>';
-  document.getElementById('infraContent').innerHTML = cronHtml;
-}
-
-function renderBusiness(stats, eng, users) {
-  const s = stats || {};
-  const e = eng || {};
-  const u = (users && users.users) || [];
-
-  let usersHtml = '';
-  for (const user of u.slice(0, 10)) {
-    const tier = user.founding_member ? 'founding' : (user.subscription_status === 'trial' ? 'trial' : 'free');
-    const tierLabel = user.founding_member ? `F #${user.founding_number || ''}` : (tier === 'trial' ? 'Trial' : 'Free');
-    const date = user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-    usersHtml += `<div class="user-row"><div class="user-email">${user.email || ''}</div><div><span class="tier-badge ${tier}">${tierLabel}</span></div><div class="user-date">${date}</div></div>`;
-  }
-
-  document.getElementById('businessContent').innerHTML = `
-    <div class="stat-grid cols-3">
-      <div class="stat-cell"><div class="stat-label">MRR</div><div class="stat-value green">$${s.mrr || 0}</div></div>
-      <div class="stat-cell"><div class="stat-label">ARR</div><div class="stat-value sm">$${s.arr || 0}</div></div>
-      <div class="stat-cell"><div class="stat-label">Founding</div><div class="stat-value yellow">${s.founding_count || 0}/50</div></div>
-    </div>
-    <div class="section-header">Engagement (7d)</div>
-    <div class="stat-grid cols-3">
-      <div class="stat-cell"><div class="stat-label">Active Users</div><div class="stat-value">${e.active_7d || s.active_7d || 0}</div></div>
-      <div class="stat-cell"><div class="stat-label">Sessions</div><div class="stat-value sm">${e.sessions_7d || 0}</div></div>
-      <div class="stat-cell"><div class="stat-label">Events</div><div class="stat-value sm">${e.events_7d || 0}</div></div>
-    </div>
-    <div class="section-header">Recent Users</div>
-    ${usersHtml}`;
-}
-
 function timeAgo(isoStr) {
+  if (!isoStr) return '--';
   const d = new Date(isoStr);
   const now = new Date();
   const mins = Math.floor((now - d) / 60000);
@@ -1052,6 +435,400 @@ function timeAgo(isoStr) {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return hrs + 'h ago';
   return Math.floor(hrs / 24) + 'd ago';
+}
+
+function commaFmt(n) {
+  return (n || 0).toLocaleString();
+}
+
+function pctColor(pct) {
+  if (pct >= 65) return 'green';
+  if (pct >= 45) return 'yellow';
+  return 'red';
+}
+
+function fmtDate(d) {
+  if (!d) return '--';
+  const parts = d.split('-');
+  return parts.length >= 3 ? parts[1] + '-' + parts[2] : d;
+}
+
+function roiSign(v) {
+  return v > 0 ? '+' + v : '' + v;
+}
+
+async function loadData() {
+  updateClock();
+  setInterval(updateClock, 30000);
+
+  try {
+    const [ccR, healthR, cronR, funnelR, engR] = await Promise.all([
+      fetch('/api/admin/command-center').then(r => r.json()).catch(() => null),
+      fetch('/api/admin/health-checks').then(r => r.json()).catch(() => null),
+      fetch('/api/admin/cron-health').then(r => r.json()).catch(() => null),
+      fetch('/api/admin/funnel-metrics').then(r => r.json()).catch(() => null),
+      fetch('/api/admin/engagement').then(r => r.json()).catch(() => null),
+    ]);
+
+    renderPulse(ccR, healthR);
+    renderModels(ccR);
+    renderInfra(cronR, healthR, engR, ccR);
+    renderBusiness(ccR, funnelR, engR);
+  } catch (e) {
+    console.error('Load failed:', e);
+  }
+}
+
+function renderPulse(cc, health) {
+  if (!cc) { document.getElementById('pulseStats').textContent = 'Failed to load'; return; }
+
+  const nba = cc.model || {};
+  const mlb = cc.mlb_model || {};
+  const rev = cc.revenue || {};
+  const push = cc.push || {};
+
+  document.getElementById('pulseStats').innerHTML = `
+    <div class="stat-grid cols-4">
+      <div class="stat-cell"><div class="stat-label">NBA</div><div class="stat-value green">${nba.record || '0-0'}</div><div class="stat-sub">${roiSign(nba.roi || 0)}% ROI</div></div>
+      <div class="stat-cell"><div class="stat-label">MLB</div><div class="stat-value green">${mlb.record || '0-0'}</div><div class="stat-sub">${roiSign(mlb.roi || 0)}% ROI</div></div>
+      <div class="stat-cell"><div class="stat-label">MRR</div><div class="stat-value green">$${rev.mrr || 0}</div><div class="stat-sub">$${rev.arr || 0} ARR</div></div>
+      <div class="stat-cell"><div class="stat-label">Users</div><div class="stat-value">${cc.users?.total || 0}</div><div class="stat-sub">${push.active_7d || 0} active 7d</div></div>
+    </div>`;
+
+  renderPipelineSport('nba', nba, cc.recent_picks || []);
+  renderPipelineSport('mlb', mlb, cc.mlb_recent_picks || []);
+  renderServices(health);
+}
+
+function renderPipelineSport(sport, stats, picks) {
+  const el = document.getElementById('pipeline-' + sport);
+  const runs = (sport === 'nba' ? (stats.model_runs || []) : (stats.model_runs || []));
+  const lastRun = runs[0];
+  const todayPick = picks.length > 0 ? picks[0] : null;
+  const hasPick = todayPick && todayPick.result !== 'pass';
+
+  let pipelineHtml = '<div class="pipeline-card">';
+  if (hasPick) {
+    const dur = lastRun?.duration_ms ? (lastRun.duration_ms / 1000).toFixed(1) : '--';
+    const gamesCount = lastRun?.games_analyzed || '--';
+    const topEdge = todayPick.edge ? '+' + todayPick.edge + '%' : '--';
+    const runTime = lastRun?.date || '';
+
+    pipelineHtml += `
+      <div class="pipeline-status">
+        <div class="pipeline-dot"></div>
+        <div class="pipeline-title">Pick Published</div>
+        <div class="pipeline-time">${runTime}</div>
+      </div>
+      <div class="pipeline-meta">
+        <div class="pipeline-meta-item"><div class="pipeline-meta-label">Games</div><div class="pipeline-meta-value">${gamesCount}</div></div>
+        <div class="pipeline-meta-item"><div class="pipeline-meta-label">Result</div><div class="pipeline-meta-value">PICK</div></div>
+        <div class="pipeline-meta-item"><div class="pipeline-meta-label">Edge</div><div class="pipeline-meta-value">${topEdge}</div></div>
+        <div class="pipeline-meta-item"><div class="pipeline-meta-label">Duration</div><div class="pipeline-meta-value" style="color:var(--text-secondary)">${dur}s</div></div>
+      </div>
+      <div class="pick-card">
+        <div class="pick-header">${todayPick.side || '--'}</div>
+        <div class="pick-matchup">${sport.toUpperCase()}</div>
+        <div class="pick-stats">
+          <span>Edge <strong class="text-green">${todayPick.edge ? '+' + todayPick.edge + '%' : '--'}</strong></span>
+          <span>Book <strong>${todayPick.sportsbook || '--'}</strong></span>
+        </div>
+      </div>`;
+  } else if (lastRun && lastRun.pick_generated === false) {
+    const dur = lastRun.duration_ms ? (lastRun.duration_ms / 1000).toFixed(1) : '--';
+    const gamesCount = lastRun.games_analyzed || '--';
+    pipelineHtml += `
+      <div class="pipeline-status">
+        <div class="pipeline-dot" style="background:var(--yellow)"></div>
+        <div class="pipeline-title">Pass Day</div>
+      </div>
+      <div class="pipeline-meta">
+        <div class="pipeline-meta-item"><div class="pipeline-meta-label">Games</div><div class="pipeline-meta-value">${gamesCount}</div></div>
+        <div class="pipeline-meta-item"><div class="pipeline-meta-label">Result</div><div class="pipeline-meta-value" style="color:var(--yellow)">PASS</div></div>
+        <div class="pipeline-meta-item"><div class="pipeline-meta-label">Edge</div><div class="pipeline-meta-value" style="color:var(--text-dim)">--</div></div>
+        <div class="pipeline-meta-item"><div class="pipeline-meta-label">Duration</div><div class="pipeline-meta-value" style="color:var(--text-secondary)">${dur}s</div></div>
+      </div>`;
+  } else {
+    pipelineHtml += `
+      <div class="pipeline-status">
+        <div class="pipeline-dot" style="background:var(--text-dim)"></div>
+        <div class="pipeline-title">Awaiting Model Run</div>
+      </div>`;
+  }
+  pipelineHtml += '</div>';
+  el.innerHTML = pipelineHtml;
+}
+
+function renderServices(health) {
+  if (!health) {
+    document.getElementById('servicesGrid').innerHTML = '<div class="service-grid"><div class="service-item"><div class="service-dot" style="background:var(--text-dim)"></div><div class="service-name">Loading...</div></div></div>';
+    return;
+  }
+
+  function dot(svc) {
+    const s = health[svc];
+    if (!s) return 'var(--text-dim)';
+    return s.status === 'ok' ? 'var(--green)' : (s.status === 'warn' ? 'var(--yellow)' : 'var(--red)');
+  }
+  function lat(svc, fallback) {
+    const s = health[svc];
+    if (!s) return fallback || '--';
+    if (s.latency_ms != null) return s.latency_ms + 'ms';
+    return fallback || (s.status === 'ok' ? 'OK' : s.message || '--');
+  }
+
+  const pg = health.postgresql || {};
+  const odds = health.odds_api || {};
+  const bdl = health.balldontlie || {};
+  const espn = health.espn || {};
+  const resendH = health.resend || {};
+  const stripe = health.stripe || {};
+  const sqlite = health.sqlite || {};
+
+  document.getElementById('servicesGrid').innerHTML = `
+    <div class="service-grid">
+      <div class="service-item"><div class="service-dot" style="background:${dot('postgresql')}"></div><div class="service-name">PostgreSQL</div><div class="service-latency">${lat('postgresql')}</div></div>
+      <div class="service-item"><div class="service-dot" style="background:${dot('odds_api')}"></div><div class="service-name">Odds API</div><div class="service-latency">${odds.requests_remaining || '--'} left</div></div>
+      <div class="service-item"><div class="service-dot" style="background:${dot('balldontlie')}"></div><div class="service-name">balldontlie</div><div class="service-latency">${lat('balldontlie')}</div></div>
+      <div class="service-item"><div class="service-dot" style="background:${dot('espn')}"></div><div class="service-name">ESPN</div><div class="service-latency">${espn.games_today != null ? espn.games_today + ' games' : lat('espn')}</div></div>
+      <div class="service-item"><div class="service-dot" style="background:${dot('stripe')}"></div><div class="service-name">Stripe</div><div class="service-latency">${stripe.balance || '--'} ${stripe.mode || ''}</div></div>
+      <div class="service-item"><div class="service-dot" style="background:${dot('resend')}"></div><div class="service-name">Resend</div><div class="service-latency">${resendH.verified || '--'}/${resendH.domains || '--'} domains</div></div>
+      <div class="service-item"><div class="service-dot" style="background:${dot('sqlite')}"></div><div class="service-name">SQLite (games)</div><div class="service-latency">${sqlite.games || '--'} games</div></div>
+      <div class="service-item"><div class="service-dot" style="background:var(--green)"></div><div class="service-name">Firebase</div><div class="service-latency">--</div></div>
+    </div>`;
+}
+
+function renderModels(cc) {
+  if (!cc) { document.getElementById('modelsContent').textContent = 'Failed to load'; return; }
+
+  const nba = cc.model || {};
+  const mlb = cc.mlb_model || {};
+  const nbaW = nba.wins || 0, nbaL = nba.losses || 0;
+  const mlbW = mlb.wins || 0, mlbL = mlb.losses || 0;
+  const nbaRoi = nba.roi || 0;
+  const mlbRoi = mlb.roi || 0;
+  const nbaPnl = nba.total_pnl || 0;
+  const mlbPnl = mlb.total_pnl || 0;
+
+  const nbaBuckets = nba.bucket_rates || {};
+  const nbaBucketRecords = nba.buckets || {};
+
+  function bucketRow(label, rate, record) {
+    const color = pctColor(rate);
+    return `<div class="bucket-row"><div class="bucket-label">${label}</div><div class="bucket-bar-track"><div class="bucket-bar-fill ${color}" style="width:${rate}%"></div></div><div class="bucket-record">${record} (${rate}%)</div></div>`;
+  }
+
+  let nbaBucketsHtml = '';
+  for (const [range, rate] of Object.entries(nbaBuckets)) {
+    nbaBucketsHtml += bucketRow(range, rate, nbaBucketRecords[range] || '0-0');
+  }
+
+  let mlbPicksHtml = '';
+  const mlbPicks = cc.mlb_recent_picks || [];
+  for (const p of mlbPicks.slice(0, 6)) {
+    const isWin = p.result === 'win';
+    const isLoss = p.result === 'loss';
+    const rLabel = isWin ? 'W' : (isLoss ? 'L' : '--');
+    const rColor = isWin ? 'text-green' : (isLoss ? 'text-red' : 'text-dim');
+    const pnl = p.pnl != null ? (p.pnl > 0 ? '+' + p.pnl : '' + p.pnl) : '--';
+    const pnlColor = p.pnl > 0 ? 'text-green' : (p.pnl < 0 ? 'text-red' : 'text-dim');
+    mlbPicksHtml += `<div class="mini-pick"><span class="mini-pick-date">${fmtDate(p.date)}</span><span class="mini-pick-name">${p.side || '--'}</span><span class="mini-pick-edge text-dim">${p.edge || '--'}%</span><span class="mini-pick-result ${rColor}">${rLabel}</span><span class="mini-pick-pnl ${pnlColor}">${pnl}</span></div>`;
+  }
+
+  document.getElementById('modelsContent').innerHTML = `
+    <div class="model-section">
+      <div class="model-header">
+        <span class="section-header" style="margin:0">NBA</span>
+        <span class="model-badge live">Live</span>
+      </div>
+      <div class="stat-grid cols-4">
+        <div class="stat-cell"><div class="stat-label">Record</div><div class="stat-value green">${nba.record || '0-0'}</div><div class="stat-sub">${nba.win_rate || 0}%</div></div>
+        <div class="stat-cell"><div class="stat-label">ROI</div><div class="stat-value green">${roiSign(nbaRoi)}%</div><div class="stat-sub">+$${nbaPnl}</div></div>
+        <div class="stat-cell"><div class="stat-label">Selectivity</div><div class="stat-value sm">${nba.selectivity || 0}%</div><div class="stat-sub">${nba.total_picks || 0} pick / ${nba.total_passes || 0} pass</div></div>
+        <div class="stat-cell"><div class="stat-label">Avg Edge</div><div class="stat-value sm">${nba.avg_edge || 0}%</div><div class="stat-sub">CLV+ ${nba.clv_pct || 0}%</div></div>
+      </div>
+      ${nbaBucketsHtml ? `<div class="section-header">Confidence Buckets</div><div style="margin-bottom:16px">${nbaBucketsHtml}</div>` : ''}
+    </div>
+    <div class="model-section">
+      <div class="model-header">
+        <span class="section-header" style="margin:0">MLB</span>
+        <span class="model-badge beta">Cal Beta</span>
+      </div>
+      <div class="stat-grid cols-4">
+        <div class="stat-cell"><div class="stat-label">Record</div><div class="stat-value green">${mlb.record || '0-0'}</div><div class="stat-sub">${mlb.win_rate || 0}%</div></div>
+        <div class="stat-cell"><div class="stat-label">ROI</div><div class="stat-value green">${roiSign(mlbRoi)}%</div><div class="stat-sub">+$${mlbPnl}</div></div>
+        <div class="stat-cell"><div class="stat-label">Selectivity</div><div class="stat-value sm">${mlb.selectivity || 0}%</div><div class="stat-sub">${mlb.total_picks || 0} pick / ${mlb.total_passes || 0} pass</div></div>
+        <div class="stat-cell"><div class="stat-label">Avg Edge</div><div class="stat-value sm">${mlb.avg_edge || 0}%</div><div class="stat-sub">CLV+ ${mlb.clv_pct || 0}%</div></div>
+      </div>
+      ${mlbPicksHtml ? `<div class="section-header">Recent Picks</div>${mlbPicksHtml}` : ''}
+    </div>
+    <div class="model-section">
+      <div class="model-header">
+        <span class="section-header" style="margin:0">WNBA</span>
+        <span class="model-badge shadow">Shadow</span>
+      </div>
+      <div style="padding:24px;text-align:center;color:var(--text-dim);font-size:13px;">No runs yet</div>
+    </div>`;
+}
+
+function renderInfra(cronData, health, eng, cc) {
+  let html = '';
+
+  if (cronData && cronData.jobs) {
+    const jobs = cronData.jobs;
+    const activeCount = jobs.filter(j => j.health === 'ok').length;
+    html += `<div class="section-header">Cron Jobs &middot; ${activeCount} healthy</div><div class="cron-list">`;
+    for (const job of jobs) {
+      const dotColor = job.health === 'ok' ? 'var(--green)' : (job.health === 'warn' ? 'var(--yellow)' : 'var(--red)');
+      const agoColor = job.health === 'ok' ? 'var(--green)' : (job.health === 'error' ? 'var(--red)' : 'var(--yellow)');
+      const ago = job.hours_ago != null ? (job.hours_ago < 1 ? Math.round(job.hours_ago * 60) + 'm ago' : Math.round(job.hours_ago) + 'h ago') : 'never';
+      html += `<div class="cron-item"><div class="cron-dot" style="background:${dotColor}"></div><div class="cron-name">${job.name}</div><div class="cron-when">${job.schedule}</div><div class="cron-ago" style="color:${agoColor}">${ago}</div></div>`;
+    }
+    html += '</div>';
+  }
+
+  if (health) {
+    html += '<div class="section-header">External Services</div>';
+    function svcItem(name, svc, detail) {
+      const s = health[svc] || {};
+      const dot = s.status === 'ok' ? 'var(--green)' : (s.status === 'warn' ? 'var(--yellow)' : 'var(--red)');
+      return `<div class="service-item"><div class="service-dot" style="background:${dot}"></div><div class="service-name">${name}</div><div class="service-latency">${detail}</div></div>`;
+    }
+
+    const pg = health.postgresql || {};
+    const odds = health.odds_api || {};
+    const bdl = health.balldontlie || {};
+    const espn = health.espn || {};
+    const resendH = health.resend || {};
+    const stripe = health.stripe || {};
+    const sqlite = health.sqlite || {};
+
+    html += '<div class="service-grid">';
+    html += svcItem('PostgreSQL', 'postgresql', pg.latency_ms ? pg.latency_ms + 'ms' : '--');
+    html += svcItem('Odds API', 'odds_api', (odds.requests_remaining || '--') + ' left');
+    html += svcItem('balldontlie', 'balldontlie', bdl.latency_ms ? bdl.latency_ms + 'ms' : '--');
+    html += svcItem('ESPN', 'espn', espn.games_today != null ? espn.games_today + ' games' : '--');
+    html += svcItem('Resend', 'resend', (resendH.verified || '--') + '/' + (resendH.domains || '--') + ' domains');
+    html += svcItem('Stripe', 'stripe', (stripe.balance || '--') + ' ' + (stripe.mode || ''));
+    html += svcItem('SQLite (games)', 'sqlite', (sqlite.games || '--') + ' games');
+    html += svcItem('Firebase', '', '--');
+    html += '</div>';
+  }
+
+  const push = (cc && cc.push) || {};
+  html += `<div class="section-header">Push Notifications</div>
+    <div class="stat-grid cols-4">
+      <div class="stat-cell"><div class="stat-label">Opt-in</div><div class="stat-value sm">${push.opt_in_pct != null ? push.opt_in_pct + '%' : '--'}</div></div>
+      <div class="stat-cell"><div class="stat-label">Tokens</div><div class="stat-value sm">${push.enabled || 0}</div></div>
+      <div class="stat-cell"><div class="stat-label">Active 7d</div><div class="stat-value green sm">${push.active_7d || 0}</div></div>
+      <div class="stat-cell"><div class="stat-label">Stale</div><div class="stat-value sm">${push.stale || 0}</div></div>
+    </div>`;
+
+  if (eng && eng.top_pages && eng.top_pages.length > 0) {
+    html += '<div class="section-header">Top Paths (7d)</div><table class="data-table"><thead><tr><th>Path</th><th>Hits</th></tr></thead><tbody>';
+    for (const p of eng.top_pages.slice(0, 7)) {
+      html += `<tr><td>${p.page || '/'}</td><td>${commaFmt(p.views)}</td></tr>`;
+    }
+    html += '</tbody></table>';
+  }
+
+  document.getElementById('infraContent').innerHTML = html;
+}
+
+function renderBusiness(cc, funnel, eng) {
+  if (!cc) { document.getElementById('businessContent').textContent = 'Failed to load'; return; }
+
+  const rev = cc.revenue || {};
+  const push = cc.push || {};
+  let html = '';
+
+  html += `
+    <div class="stat-grid cols-3">
+      <div class="stat-cell"><div class="stat-label">MRR</div><div class="stat-value green">$${rev.mrr || 0}</div><div class="stat-sub">+$0 vs 30d</div></div>
+      <div class="stat-cell"><div class="stat-label">ARR</div><div class="stat-value sm">$${rev.arr || 0}</div><div class="stat-sub">projected</div></div>
+      <div class="stat-cell"><div class="stat-label">Founding</div><div class="stat-value yellow">${rev.founding_count || 0}/${rev.founding_cap || 50}</div><div class="stat-sub">${(rev.founding_cap || 50) - (rev.founding_count || 0)} remaining</div></div>
+    </div>`;
+
+  if (funnel) {
+    const s2t = funnel.signup_to_trial_rate || 0;
+    const t2p = funnel.trial_to_paid_rate || 0;
+    html += `<div class="section-header">Conversion Funnel</div>
+      <div class="funnel">
+        <div class="funnel-step"><div class="funnel-value">${funnel.total_signups || 0}</div><div class="funnel-label">Signups</div></div>
+        <div class="funnel-arrow">&rarr;</div>
+        <div class="funnel-rate">${s2t}%</div>
+        <div class="funnel-arrow">&rarr;</div>
+        <div class="funnel-step"><div class="funnel-value text-yellow">${funnel.total_trials || 0}</div><div class="funnel-label">Trial</div></div>
+        <div class="funnel-arrow">&rarr;</div>
+        <div class="funnel-rate">${t2p}%</div>
+        <div class="funnel-arrow">&rarr;</div>
+        <div class="funnel-step"><div class="funnel-value text-green">${funnel.total_paid || 0}</div><div class="funnel-label">Paid</div></div>
+      </div>`;
+  }
+
+  html += `<div class="section-header">Subscribers</div>
+    <div class="stat-grid cols-4">
+      <div class="stat-cell"><div class="stat-label">Paid</div><div class="stat-value green">${(rev.monthly_subs || 0) + (rev.annual_subs || 0)}</div></div>
+      <div class="stat-cell"><div class="stat-label">Trial</div><div class="stat-value yellow">${rev.trial_count || 0}</div></div>
+      <div class="stat-cell"><div class="stat-label">Free</div><div class="stat-value sm">${rev.free_count || 0}</div></div>
+      <div class="stat-cell"><div class="stat-label">Founding</div><div class="stat-value yellow">${rev.founding_count || 0}</div></div>
+    </div>`;
+
+  if (eng) {
+    const ret = eng.retention || {};
+    const avgDur = eng.avg_session_duration;
+    let durStr = '--';
+    if (avgDur != null) {
+      const m = Math.floor(avgDur / 60);
+      const s = Math.round(avgDur % 60);
+      durStr = m + 'm ' + s + 's';
+    }
+
+    html += `<div class="section-header">Engagement (7d)</div>
+      <div class="stat-grid cols-3">
+        <div class="stat-cell"><div class="stat-label">Active Users</div><div class="stat-value">${eng.active_users_7d || 0}</div><div class="stat-sub">${commaFmt(eng.total_events)} events</div></div>
+        <div class="stat-cell"><div class="stat-label">Sessions</div><div class="stat-value sm">${eng.total_sessions_7d || 0}</div><div class="stat-sub">${eng.avg_sessions_per_user || '--'}/user</div></div>
+        <div class="stat-cell"><div class="stat-label">Avg Duration</div><div class="stat-value sm">${durStr}</div><div class="stat-sub">${eng.avg_pages_per_session || '--'} pages</div></div>
+      </div>
+      <div class="stat-grid cols-3 mt-12">
+        <div class="stat-cell"><div class="stat-label">D1 Retention</div><div class="stat-value sm">${ret.d1_rate_pct || 0}%</div><div class="stat-sub">${ret.d1_returned || 0}/${ret.d1_eligible || 0}</div></div>
+        <div class="stat-cell"><div class="stat-label">D7 Retention</div><div class="stat-value green sm">${ret.d7_rate_pct || 0}%</div><div class="stat-sub">${ret.d7_returned || 0}/${ret.d7_eligible || 0}</div></div>
+        <div class="stat-cell"><div class="stat-label">DAU</div><div class="stat-value sm">${eng.dau && eng.dau.length > 0 ? (eng.dau.reduce((s,d) => s + d.active_users, 0) / eng.dau.length).toFixed(1) : '--'}</div><div class="stat-sub">peak: ${eng.dau ? Math.max(...eng.dau.map(d => d.active_users)) : '--'}</div></div>
+      </div>`;
+
+    if (eng.feature_adoption) {
+      const featureMap = { 'view_market_scan': 'Market Scan', 'tap_bet_link': 'Bet Link Taps', 'view_article': 'Journal' };
+      html += '<div class="section-header">Feature Usage</div><div style="margin-bottom:16px">';
+      for (const [key, label] of Object.entries(featureMap)) {
+        const f = eng.feature_adoption[key] || {};
+        const pct = f.pct_of_active || 0;
+        html += `<div class="feature-bar"><div class="feature-label">${label}</div><div class="feature-track"><div class="feature-fill" style="width:${pct}%"></div></div><div class="feature-pct">${pct}%</div></div>`;
+      }
+      html += '</div>';
+    }
+
+    if (eng.top_pages && eng.top_pages.length > 0) {
+      html += '<div class="section-header">Top Pages</div><table class="data-table"><thead><tr><th>Page</th><th>Views</th></tr></thead><tbody>';
+      for (const p of eng.top_pages.slice(0, 6)) {
+        html += `<tr><td>${p.page || '/'}</td><td>${commaFmt(p.views)} (${p.distinct_users} users)</td></tr>`;
+      }
+      html += '</tbody></table>';
+    }
+  }
+
+  const users = cc.users?.list || [];
+  if (users.length > 0) {
+    html += '<div class="section-header">Recent Users</div>';
+    for (const u of users.slice(0, 10)) {
+      const tier = u.tier || 'free';
+      let tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
+      if (tier === 'founding' && u.founding_number) tierLabel = 'F #' + u.founding_number;
+      const date = u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+      html += `<div class="user-row"><div class="user-email">${u.email || ''}</div><div><span class="tier-badge ${tier}">${tierLabel}</span></div><div class="user-date">${date}</div></div>`;
+    }
+  }
+
+  document.getElementById('businessContent').innerHTML = html;
 }
 
 document.getElementById('confirmOverlay').addEventListener('click', function(e) {
