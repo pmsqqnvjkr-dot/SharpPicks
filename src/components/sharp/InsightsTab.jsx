@@ -21,6 +21,24 @@ const CATEGORY_LABELS = {
   founder_note: 'Signal Notes',
 };
 
+const CATEGORY_ABBR = {
+  market_notes: 'MN',
+  philosophy: 'PH',
+  how_it_works: 'HW',
+  discipline: 'DI',
+  founder_note: 'SN',
+};
+
+const CATEGORY_BADGE_STYLES = {
+  market_notes: { bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
+  philosophy:   { bg: 'rgba(110,90,180,0.15)', color: '#9B8EC4' },
+  how_it_works: { bg: 'rgba(180,130,60,0.15)', color: '#C4A65E' },
+  discipline:   { bg: 'rgba(70,130,180,0.15)', color: '#6BA3C4' },
+  founder_note: { bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
+};
+
+const COMPACT_LIMIT = 8;
+
 function formatDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -82,27 +100,34 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
     );
   }
 
+  const [showAll, setShowAll] = useState(false);
+
+  const featured = insights.length > 0 ? insights[0] : null;
+  const remaining = insights.slice(1);
+  const compactList = showAll ? remaining : remaining.slice(0, COMPACT_LIMIT);
+  const hasMore = remaining.length > COMPACT_LIMIT;
+
   return (
     <div style={{ padding: '0' }}>
       <div style={{ padding: '20px 20px 0' }}>
         <OnboardingCard cardId="journal" title="THE SHARP JOURNAL">
           Articles on model philosophy, market structure, and discipline. Market Notes are daily reports for Pro members. Everything else is open to all.
         </OnboardingCard>
+
+        {/* Section label */}
         <div style={{
           fontFamily: 'var(--font-mono)',
-          fontSize: '10px', fontWeight: 600,
-          letterSpacing: '1.5px', textTransform: 'uppercase',
-          color: 'var(--text-tertiary)',
-          marginBottom: '16px',
+          fontSize: '11px',
+          letterSpacing: '0.15em', textTransform: 'uppercase',
+          color: 'rgba(232,234,237,0.35)',
+          marginBottom: '10px',
         }}>Sharp Journal</div>
 
-        <div style={{
-          position: 'relative',
-          marginBottom: '0',
-        }}>
+        {/* Category filter pills */}
+        <div style={{ position: 'relative', marginBottom: '0' }}>
           <div style={{
-            display: 'flex', gap: '8px', overflowX: 'auto',
-            paddingBottom: '16px',
+            display: 'flex', gap: '6px', overflowX: 'auto',
+            paddingBottom: '12px',
             scrollbarWidth: 'none',
           }}>
           {CATEGORIES.map(cat => {
@@ -110,20 +135,19 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
             return (
               <button
                 key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => { setActiveCategory(cat.id); setShowAll(false); }}
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: '20px',
-                  border: isActive ? '1px solid var(--blue-primary)' : '1px solid var(--stroke-subtle)',
-                  backgroundColor: isActive ? 'rgba(79, 134, 247, 0.12)' : 'transparent',
-                  color: isActive ? 'var(--blue-primary)' : 'var(--text-secondary)',
+                  padding: '5px 12px',
+                  borderRadius: '16px',
+                  border: isActive ? '1px solid rgba(90,158,114,0.2)' : '1px solid rgba(232,234,237,0.08)',
+                  backgroundColor: isActive ? 'rgba(90,158,114,0.15)' : 'transparent',
+                  color: isActive ? '#5A9E72' : 'rgba(232,234,237,0.4)',
                   fontSize: '12px', fontWeight: 500,
                   fontFamily: 'var(--font-sans)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
-                  transition: 'all 0.25s ease',
-                  boxShadow: isActive ? '0 0 12px rgba(79, 134, 247, 0.15)' : 'none',
+                  transition: 'all 0.2s ease',
                 }}
               >
                 {cat.label}
@@ -133,7 +157,7 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
           </div>
           <div style={{
             position: 'absolute',
-            top: 0, right: 0, bottom: '16px', width: '32px',
+            top: 0, right: 0, bottom: '12px', width: '32px',
             background: 'linear-gradient(to left, var(--bg-primary) 60%, transparent)',
             pointerEvents: 'none',
           }} />
@@ -141,191 +165,266 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
       </div>
 
       <div style={{
-        padding: '0 20px 100px',
+        padding: '0 0 100px',
         opacity: animateIn ? 1 : 0,
         transform: animateIn ? 'translateY(0)' : 'translateY(8px)',
         transition: 'opacity 0.35s ease, transform 0.35s ease',
       }}>
         {loading ? (
-          <InsightsSkeleton />
+          <div style={{ padding: '0 16px' }}><InsightsSkeleton /></div>
         ) : insights.length === 0 ? (
-          <EmptyInsights />
+          <div style={{ padding: '0 16px' }}>
+            <PinnedGuideCard onTap={() => {
+              loadInsights();
+            }} />
+            <EmptyInsights category={activeCategory} />
+          </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {(activeCategory === 'all' || activeCategory === 'how_it_works') && <StartHereCard onTap={() => {
+          <>
+            {/* Pinned guide - always visible */}
+            <PinnedGuideCard onTap={() => {
               const guide = insights.find(i => i.slug === 'beginners-guide');
               if (guide) selectAndTrack(guide);
-            }} />}
-            {insights.map(insight => (
-              <InsightCard
-                key={insight.id}
-                insight={insight}
-                onTap={() => selectAndTrack(insight)}
+              else {
+                setActiveCategory('all');
+                loadInsights();
+              }
+            }} />
+
+            {/* Featured card - most recent article */}
+            {featured && (
+              <FeaturedArticleCard
+                insight={featured}
+                onTap={() => selectAndTrack(featured)}
               />
-            ))}
-          </div>
+            )}
+
+            {/* Divider */}
+            {remaining.length > 0 && (
+              <div style={{
+                padding: '6px 20px 10px',
+                display: 'flex', alignItems: 'center', gap: '10px',
+              }}>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(232,234,237,0.06)' }} />
+                <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '9px',
+                  color: 'rgba(232,234,237,0.25)',
+                  letterSpacing: '1.5px',
+                }}>RECENT</span>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(232,234,237,0.06)' }} />
+              </div>
+            )}
+
+            {/* Compact article rows */}
+            {compactList.length > 0 && (
+              <div style={{ padding: '0 16px' }}>
+                {compactList.map((insight, i) => (
+                  <CompactArticleRow
+                    key={insight.id}
+                    insight={insight}
+                    isLast={i === compactList.length - 1}
+                    onTap={() => selectAndTrack(insight)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* View all link */}
+            {hasMore && !showAll && (
+              <div style={{ padding: '16px 20px 24px', textAlign: 'center' }}>
+                <button
+                  onClick={() => setShowAll(true)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '12px',
+                    color: '#5A9E72',
+                    letterSpacing: '0.5px',
+                  }}
+                >
+                  View all articles ›
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
   );
 }
 
-function StartHereCard({ onTap }) {
+function PinnedGuideCard({ onTap }) {
   return (
     <button
       onClick={onTap}
       style={{
-        width: '100%',
+        width: 'calc(100% - 32px)',
+        margin: '0 16px 12px',
         textAlign: 'left',
-        background: 'linear-gradient(135deg, rgba(79, 134, 247, 0.08) 0%, rgba(52, 211, 153, 0.06) 100%)',
-        border: '1px solid rgba(79, 134, 247, 0.2)',
-        borderRadius: '14px',
-        padding: '20px 18px',
+        background: '#111D30',
+        border: '1px solid rgba(90,158,114,0.15)',
+        borderRadius: '12px',
+        padding: '14px 16px',
         cursor: 'pointer',
-        display: 'block',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 134, 247, 0.1)';
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = 'none';
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{
-          width: '40px', height: '40px', borderRadius: '10px',
-          backgroundColor: 'rgba(79, 134, 247, 0.12)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary)" strokeWidth="1.5">
-            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-          </svg>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '10px', fontWeight: 700,
-            letterSpacing: '1.5px', textTransform: 'uppercase',
-            color: 'var(--blue-primary)',
-            marginBottom: '4px',
-          }}>Start Here</div>
-          <div style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: '16px', fontWeight: 600,
-            color: 'var(--text-primary)',
-            lineHeight: '1.3',
-          }}>A Beginner's Guide to SharpPicks</div>
-          <div style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
-            color: 'var(--text-secondary)',
-            marginTop: '3px',
-          }}>5 min read &middot; Evan Cole</div>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
-          <polyline points="9 18 15 12 9 6"/>
+      <div style={{
+        width: '36px', height: '36px', borderRadius: '8px',
+        backgroundColor: 'rgba(90,158,114,0.12)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A9E72" strokeWidth="1.5">
+          <path d="M4 19.5v-15A2.5 2.5 0 016.5 2H20v20H6.5a2.5 2.5 0 010-5H20"/>
         </svg>
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: '9px',
+          letterSpacing: '1px', textTransform: 'uppercase',
+          color: '#5A9E72',
+          marginBottom: '3px',
+        }}>Start Here</div>
+        <div style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: '14px', fontWeight: 600,
+          color: '#E8EAED',
+          marginBottom: '2px',
+        }}>A beginner's guide to SharpPicks</div>
+        <div style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: '11px',
+          color: 'rgba(232,234,237,0.35)',
+        }}>5 min read · Evan Cole</div>
+      </div>
+      <span style={{ color: 'rgba(232,234,237,0.25)', fontSize: '16px' }}>›</span>
+    </button>
+  );
+}
+
+function CategoryBadge({ category, abbreviated = false }) {
+  const style = CATEGORY_BADGE_STYLES[category] || { bg: 'rgba(232,234,237,0.08)', color: 'rgba(232,234,237,0.5)' };
+  const label = abbreviated
+    ? (CATEGORY_ABBR[category] || '??')
+    : (CATEGORY_LABELS[category] || category);
+  return (
+    <span style={{
+      fontFamily: 'var(--font-mono)',
+      fontSize: '9px',
+      letterSpacing: '0.8px',
+      textTransform: 'uppercase',
+      padding: '3px 8px',
+      borderRadius: '4px',
+      backgroundColor: style.bg,
+      color: style.color,
+      flexShrink: 0,
+    }}>
+      {label}
+    </span>
+  );
+}
+
+function FeaturedArticleCard({ insight, onTap }) {
+  return (
+    <button
+      onClick={onTap}
+      style={{
+        width: 'calc(100% - 32px)',
+        margin: '0 16px 12px',
+        textAlign: 'left',
+        background: 'rgba(232,234,237,0.04)',
+        border: '1px solid rgba(232,234,237,0.06)',
+        borderRadius: '12px',
+        padding: '16px',
+        cursor: 'pointer',
+        display: 'block',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+        <CategoryBadge category={insight.category} />
+        <span style={{ fontSize: '11px', color: 'rgba(232,234,237,0.3)' }}>
+          · SHARP JOURNAL · {insight.reading_time_minutes || 2} min
+        </span>
+      </div>
+
+      <div style={{
+        fontFamily: 'var(--font-sans)',
+        fontSize: '16px', fontWeight: 600,
+        color: '#E8EAED',
+        lineHeight: '1.35',
+        marginBottom: '6px',
+      }}>
+        {(insight.title || '').replace(/—/g, '-')}
+      </div>
+
+      {insight.excerpt && (
+        <div style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: '13px',
+          color: 'rgba(232,234,237,0.45)',
+          lineHeight: '1.5',
+          marginBottom: '8px',
+        }}>
+          {insight.excerpt}
+        </div>
+      )}
+
+      <div style={{ fontSize: '11px', color: 'rgba(232,234,237,0.25)' }}>
+        {formatDate(insight.publish_date)}
       </div>
     </button>
   );
 }
 
-function InsightCard({ insight, onTap }) {
+function formatDateShort(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function CompactArticleRow({ insight, isLast, onTap }) {
   return (
     <button
       onClick={onTap}
       style={{
         width: '100%',
-        textAlign: 'left',
-        background: 'var(--surface-1)',
-        border: '1px solid var(--stroke-subtle)',
-        borderRadius: '14px',
-        padding: '18px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '11px 0',
+        background: 'none',
+        border: 'none',
+        borderBottom: isLast ? 'none' : '1px solid rgba(232,234,237,0.04)',
         cursor: 'pointer',
-        display: 'block',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-1px)';
-        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)';
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = 'none';
+        textAlign: 'left',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-        {insight.slug === 'beginners-guide' && (
-          <span style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '10px', fontWeight: 700,
-            letterSpacing: '0.1em', textTransform: 'uppercase',
-            color: '#5A9E72',
-            backgroundColor: 'rgba(90,158,114,0.12)',
-            border: '1px solid rgba(90,158,114,0.2)',
-            padding: '3px 8px', borderRadius: '4px',
-          }}>Start Here</span>
-        )}
-        <span style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '10px', fontWeight: 600,
-          letterSpacing: '0.05em', textTransform: 'uppercase',
-          color: 'var(--blue-primary)',
-          backgroundColor: 'rgba(79, 134, 247, 0.1)',
-          padding: '3px 8px', borderRadius: '4px',
+      <CategoryBadge category={insight.category} abbreviated />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: '13px', fontWeight: 500,
+          color: 'rgba(232,234,237,0.8)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
         }}>
-          {CATEGORY_LABELS[insight.category] || insight.category}
-        </span>
-        <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>·</span>
-        <span style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '10px', fontWeight: 500,
-          letterSpacing: '0.03em', textTransform: 'uppercase',
-          color: 'var(--text-tertiary)',
-        }}>Sharp Journal</span>
-        <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>·</span>
-        <span style={{
-          fontSize: '10px', color: 'var(--text-tertiary)',
-          fontFamily: 'var(--font-mono)',
-        }}>
-          {insight.reading_time_minutes} min
-        </span>
+          {(insight.title || '').replace(/—/g, '-')}
+        </div>
       </div>
-
-      <h3 style={{
+      <span style={{
         fontFamily: 'var(--font-sans)',
-        fontSize: '15px', fontWeight: 600,
-        color: 'var(--text-primary)',
-        marginBottom: '6px',
-        lineHeight: '1.4',
+        fontSize: '11px',
+        color: 'rgba(232,234,237,0.2)',
+        flexShrink: 0,
       }}>
-        {(insight.title || '').replace(/—/g, '-')}
-      </h3>
-
-      <p style={{
-        fontSize: '13px',
-        color: 'var(--text-secondary)',
-        lineHeight: '1.5',
-        margin: 0,
-        display: '-webkit-box',
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: 'vertical',
-        overflow: 'hidden',
-      }}>
-        {insight.excerpt}
-      </p>
-
-      <div style={{
-        marginTop: '12px',
-        fontSize: '11px', color: 'var(--text-tertiary)',
-      }}>
-        {formatDate(insight.publish_date)}
-      </div>
+        {formatDateShort(insight.publish_date)}
+      </span>
     </button>
   );
 }
@@ -1388,40 +1487,24 @@ function InsightsSkeleton() {
   );
 }
 
-function EmptyInsights() {
+function EmptyInsights({ category }) {
+  const catLabel = category && category !== 'all'
+    ? CATEGORY_LABELS[category] || category
+    : null;
   return (
     <div style={{
-      backgroundColor: 'var(--surface-1)',
-      borderRadius: '16px',
-      border: '1px solid var(--stroke-subtle)',
       padding: '40px 24px',
       textAlign: 'center',
     }}>
-      <div style={{
-        width: '48px', height: '48px', borderRadius: '12px',
-        backgroundColor: 'var(--surface-2)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        margin: '0 auto 16px',
-      }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-        </svg>
-      </div>
       <p style={{
         fontFamily: 'var(--font-sans)',
-        fontSize: '16px', fontWeight: 600,
-        color: 'var(--text-primary)',
-        marginBottom: '8px',
-      }}>
-        Insights coming soon
-      </p>
-      <p style={{
-        fontSize: '13px',
-        color: 'var(--text-secondary)',
+        fontSize: '14px',
+        color: 'rgba(232,234,237,0.35)',
         lineHeight: '1.6',
       }}>
-        Educational content on betting discipline, market dynamics, and model methodology.
+        {catLabel
+          ? `No articles in ${catLabel} yet.`
+          : 'No articles yet.'}
       </p>
     </div>
   );
