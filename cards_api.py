@@ -503,7 +503,7 @@ def result_card(signal_id):
 
     cache_dir = os.path.join(_BASE, '.share-cache')
     os.makedirs(cache_dir, exist_ok=True)
-    cache_path = os.path.join(cache_dir, f'share-v2-{signal_id}.png')
+    cache_path = os.path.join(cache_dir, f'share-v3-{signal_id}.png')
 
     is_resolved = pick.result in ('win', 'loss', 'push', 'revoked')
     force_refresh = request.args.get('refresh') == '1'
