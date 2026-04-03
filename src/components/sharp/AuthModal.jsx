@@ -8,6 +8,7 @@ const API_BASE = Capacitor.isNativePlatform() ? PROD_URL + '/api' : '/api';
 
 export default function AuthModal({ onClose, initialMode, initialAccountType }) {
   const [mode, setMode] = useState(initialMode || 'login');
+  const [accountView, setAccountView] = useState(initialAccountType || 'trial');
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -84,16 +85,20 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
     setSubmitting(false);
   };
 
+  const isFreeView = accountView === 'free';
+
   const titles = {
     login: 'Welcome back',
-    register: 'Create account',
+    register: isFreeView ? 'Create free account' : 'Start your 14-day trial',
     forgot: 'Reset password',
     verify: 'Verify your email',
   };
 
   const subtitles = {
     login: 'Sign in to access your picks',
-    register: 'Choose how you want to get started',
+    register: isFreeView
+      ? 'No card needed. See the model at work.'
+      : 'Card required to start. $0 for 14 days, then $99/year. Cancel anytime.',
     forgot: 'Enter your email to receive a reset link',
     verify: 'We sent a verification link to your email',
   };
@@ -365,11 +370,11 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
               <button
                 type="button"
                 disabled={submitting}
-                onClick={(e) => handleSubmit(e, 'trial')}
+                onClick={(e) => handleSubmit(e, isFreeView ? 'free' : 'trial')}
                 style={{
                   width: '100%',
                   padding: '14px',
-                  backgroundColor: 'var(--blue-primary)',
+                  backgroundColor: isFreeView ? 'var(--green-profit, #5A9E72)' : 'var(--blue-primary)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '10px',
@@ -380,7 +385,7 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
                   fontFamily: 'var(--font-sans)',
                 }}
               >
-                {submitting ? 'Please wait...' : 'Start 14-Day Trial'}
+                {submitting ? 'Please wait...' : isFreeView ? 'Create Free Account' : 'Start 14-Day Trial'}
               </button>
               <p style={{
                 textAlign: 'center',
@@ -389,47 +394,25 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
                 marginTop: '6px',
                 fontFamily: 'var(--font-sans)',
               }}>
-                Card required · $0 for 14 days · Cancel anytime
+                {isFreeView ? 'No card needed · Limited access · Upgrade anytime' : 'Card required · $0 for 14 days · Cancel anytime'}
               </p>
-
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '12px',
-                margin: '16px 0',
-              }}>
-                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--stroke-muted)' }} />
-                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-sans)' }}>or</span>
-                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--stroke-muted)' }} />
-              </div>
 
               <button
                 type="button"
-                disabled={submitting}
-                onClick={(e) => handleSubmit(e, 'free')}
+                onClick={() => setAccountView(isFreeView ? 'trial' : 'free')}
                 style={{
-                  width: '100%',
-                  padding: '14px',
-                  backgroundColor: 'transparent',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--stroke-muted)',
-                  borderRadius: '10px',
-                  fontSize: '15px',
-                  fontWeight: 500,
+                  display: 'block',
+                  margin: '16px auto 0',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-tertiary)',
+                  fontSize: '12px',
                   cursor: 'pointer',
-                  opacity: submitting ? 0.7 : 1,
                   fontFamily: 'var(--font-sans)',
                 }}
               >
-                {submitting ? 'Please wait...' : 'Create Free Account'}
+                {isFreeView ? 'or start a 14-day trial instead' : 'or create a free account instead'}
               </button>
-              <p style={{
-                textAlign: 'center',
-                fontSize: '11px',
-                color: 'var(--text-tertiary)',
-                marginTop: '6px',
-                fontFamily: 'var(--font-sans)',
-              }}>
-                No card needed · Limited access · Upgrade anytime
-              </p>
             </>
           ) : (
             <button
