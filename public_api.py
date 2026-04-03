@@ -1159,7 +1159,11 @@ def build_market_report_dict(date_param, sport=None):
         pass
 
     # Line movement and model-market delta
-    line_movement_data = {'toward_model': 0, 'away_from_model': 0, 'no_movement': 0, 'games': []}
+    use_moneyline = sport == 'mlb'
+    line_movement_data = {
+        'toward_model': 0, 'away_from_model': 0, 'no_movement': 0, 'games': [],
+        'movement_type': 'moneyline' if use_moneyline else 'spread',
+    }
     model_market_delta_data = {'avg_delta': 0, 'games': []}
     try:
         import sqlite3 as _sq2
@@ -1168,8 +1172,9 @@ def build_market_report_dict(date_param, sport=None):
         _conn2.row_factory = _sq2.Row
         _cur2 = _conn2.cursor()
         _tbl = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
+        _ml_cols = ', home_ml, away_ml, home_ml_open, away_ml_open' if use_moneyline else ''
         _cur2.execute(
-            f"SELECT home_team, away_team, spread_home, spread_home_open FROM {_tbl} WHERE game_date = ?",
+            f"SELECT home_team, away_team, spread_home, spread_home_open{_ml_cols} FROM {_tbl} WHERE game_date = ?",
             (date_param,)
         )
         game_rows = _cur2.fetchall()
@@ -1189,31 +1194,59 @@ def build_market_report_dict(date_param, sport=None):
                     ga = g
                     break
 
-            if spread_open is not None and spread_now is not None:
-                mvmt = round(spread_now - spread_open, 1)
-                if ga and ga.get('pick_side'):
-                    model_favors_home = ga['pick_side'] == 'home'
-                    if model_favors_home:
-                        moved_toward = mvmt < 0
+            if use_moneyline:
+                home_ml = gr['home_ml']
+                home_ml_open = gr['home_ml_open']
+                if home_ml is not None and home_ml_open is not None:
+                    ml_shift = int(home_ml) - int(home_ml_open)
+                    mvmt_cents = abs(ml_shift)
+                    if ga and ga.get('pick_side'):
+                        model_favors_home = ga['pick_side'] == 'home'
+                        if model_favors_home:
+                            moved_toward = ml_shift < 0
+                        else:
+                            moved_toward = ml_shift > 0
+                        if ml_shift == 0:
+                            direction = 'flat'
+                            line_movement_data['no_movement'] += 1
+                        elif moved_toward:
+                            direction = 'toward'
+                            line_movement_data['toward_model'] += 1
+                        else:
+                            direction = 'away'
+                            line_movement_data['away_from_model'] += 1
                     else:
-                        moved_toward = mvmt > 0
-                    if mvmt == 0:
                         direction = 'flat'
                         line_movement_data['no_movement'] += 1
-                    elif moved_toward:
-                        direction = 'toward'
-                        line_movement_data['toward_model'] += 1
+                    line_movement_data['games'].append({
+                        'matchup': matchup, 'movement': mvmt_cents, 'direction': direction,
+                        'ml_open': int(home_ml_open), 'ml_now': int(home_ml),
+                    })
+            else:
+                if spread_open is not None and spread_now is not None:
+                    mvmt = round(spread_now - spread_open, 1)
+                    if ga and ga.get('pick_side'):
+                        model_favors_home = ga['pick_side'] == 'home'
+                        if model_favors_home:
+                            moved_toward = mvmt < 0
+                        else:
+                            moved_toward = mvmt > 0
+                        if mvmt == 0:
+                            direction = 'flat'
+                            line_movement_data['no_movement'] += 1
+                        elif moved_toward:
+                            direction = 'toward'
+                            line_movement_data['toward_model'] += 1
+                        else:
+                            direction = 'away'
+                            line_movement_data['away_from_model'] += 1
                     else:
-                        direction = 'away'
-                        line_movement_data['away_from_model'] += 1
-                else:
-                    direction = 'flat' if mvmt == 0 else ('toward' if mvmt != 0 else 'flat')
-                    if mvmt == 0:
+                        direction = 'flat'
                         line_movement_data['no_movement'] += 1
 
-                line_movement_data['games'].append({
-                    'matchup': matchup, 'movement': abs(mvmt), 'direction': direction,
-                })
+                    line_movement_data['games'].append({
+                        'matchup': matchup, 'movement': abs(mvmt), 'direction': direction,
+                    })
 
             if ga:
                 pm = ga.get('predicted_margin')

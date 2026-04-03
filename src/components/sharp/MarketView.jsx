@@ -1055,6 +1055,12 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
                 fontFamily: mono, fontSize: '10px',
                 color: parseFloat(game.home_ml) > 0 ? brandGreen : brandRed,
               }}>{fmtML(game.home_ml)}</div>
+              {isPro && sport === 'mlb' && game.home_ml != null && game.home_ml_open != null && Math.abs(parseInt(game.home_ml) - parseInt(game.home_ml_open)) >= 5 && (
+                <div style={{ fontFamily: mono, fontSize: '10px', color: accentYellow }}>
+                  {parseInt(game.home_ml) < parseInt(game.home_ml_open) ? '\u25BC' : '\u25B2'}
+                  {Math.abs(parseInt(game.home_ml) - parseInt(game.home_ml_open))}¢
+                </div>
+              )}
               <div style={{ position: 'absolute', right: 0, top: 2, bottom: 2, width: 1, background: border }} />
             </div>
 

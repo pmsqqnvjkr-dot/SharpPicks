@@ -174,25 +174,30 @@ export default function DailyMarketReport({ report: reportProp }) {
             fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
             letterSpacing: '2px', color: green, textTransform: 'uppercase',
             marginBottom: 10,
-          }}>LINE MOVEMENT</div>
-          {data.line_movement.games.map((g, i) => (
-            <div key={i} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '6px 0',
-              borderBottom: i < data.line_movement.games.length - 1 ? '0.5px solid #1e3050' : 'none',
-            }}>
-              <span style={{ fontFamily: "'IBM Plex Sans', var(--font-sans), sans-serif", fontSize: '12px', fontWeight: 500, color: '#E8ECF4' }}>
-                {g.matchup}
-              </span>
-              <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
-                color: g.direction === 'toward' ? green : g.direction === 'away' ? red : '#4a5568',
+          }}>{data.line_movement.movement_type === 'moneyline' ? 'MONEYLINE MOVEMENT' : 'LINE MOVEMENT'}</div>
+          {data.line_movement.games.map((g, i) => {
+            const isML = data.line_movement.movement_type === 'moneyline';
+            const fmtML = v => v > 0 ? `+${v}` : `${v}`;
+            return (
+              <div key={i} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '6px 0',
+                borderBottom: i < data.line_movement.games.length - 1 ? '0.5px solid #1e3050' : 'none',
               }}>
-                {g.direction === 'flat' ? 'No movement' :
-                  `${g.direction === 'toward' ? '+' : '-'}${g.movement} ${g.direction === 'toward' ? 'toward model' : 'away from model'}`}
-              </span>
-            </div>
-          ))}
+                <span style={{ fontFamily: "'IBM Plex Sans', var(--font-sans), sans-serif", fontSize: '12px', fontWeight: 500, color: '#E8ECF4' }}>
+                  {g.matchup}
+                </span>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500,
+                  color: g.direction === 'toward' ? green : g.direction === 'away' ? red : '#4a5568',
+                }}>
+                  {g.direction === 'flat' ? 'No movement' : isML
+                    ? `${fmtML(g.ml_open)} → ${fmtML(g.ml_now)} (${g.movement}¢ ${g.direction === 'toward' ? 'toward' : 'away'})`
+                    : `${g.direction === 'toward' ? '+' : '-'}${g.movement} ${g.direction === 'toward' ? 'toward model' : 'away from model'}`}
+                </span>
+              </div>
+            );
+          })}
           <div style={{
             borderTop: '0.5px solid #1e3050', paddingTop: 8, marginTop: 4,
           }}>
@@ -200,7 +205,7 @@ export default function DailyMarketReport({ report: reportProp }) {
               fontFamily: 'var(--font-mono)', fontSize: '11px', color: textSec,
             }}>
               <span style={{ color: green, fontWeight: 600 }}>{data.line_movement.toward_model}</span>
-              {' '}of {data.line_movement.games.length} lines moved toward model position
+              {' '}of {data.line_movement.games.length} {data.line_movement.movement_type === 'moneyline' ? 'MLs' : 'lines'} moved toward model position
             </span>
           </div>
         </div>
