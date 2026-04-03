@@ -115,7 +115,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
 
   const handleShare = async () => {
     const apiRoot = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' : '';
-    const cardUrl = `${apiRoot}/api/cards/result/${pick.id}?v=3`;
+    const cardUrl = `${apiRoot}/api/cards/result/${pick.id}?v=4`;
     const filename = `sharppicks-result-${pick.id}.png`;
     try {
       const token = getAuthToken();

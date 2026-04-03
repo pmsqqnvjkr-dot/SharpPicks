@@ -113,7 +113,7 @@ export default function PicksTab({ onNavigate }) {
 
   const handleShareResult = useCallback(async (pick) => {
     const apiRoot = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' : '';
-    const cardUrl = `${apiRoot}/api/cards/result/${pick.id}?v=3`;
+    const cardUrl = `${apiRoot}/api/cards/result/${pick.id}?v=4`;
     const filename = `sharppicks-result-${pick.id}.png`;
     try {
       const token = getAuthToken();
