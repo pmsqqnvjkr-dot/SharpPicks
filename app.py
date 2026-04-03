@@ -4154,161 +4154,172 @@ def _grade_picks_for_final_games(final_games):
 @verify_cron
 def cron_live_scores():
     """Poll ESPN for live scores every 5 min during game windows. Persists to SQLite."""
-    from datetime import datetime, timedelta
-    from zoneinfo import ZoneInfo
-    from sport_config import get_active_sports, get_espn_scoreboard_url
-    from main import setup_database
-    import requests as http_requests
+    def _poll_live():
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+        from sport_config import get_live_sports, get_espn_scoreboard_url
+        from main import setup_database
+        import requests as http_requests
 
-    setup_database()
+        setup_database()
 
-    et = ZoneInfo('America/New_York')
-    now_et = datetime.now(et)
-    updated_total = 0
+        et = ZoneInfo('America/New_York')
+        now_et = datetime.now(et)
+        updated_total = 0
+        errors = []
 
-    for sport in get_active_sports():
-        table = 'games' if sport == 'nba' else f'{sport}_games'
-        conn = sqlite3.connect(get_sqlite_path())
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        for sport in get_live_sports():
+            table = 'games' if sport == 'nba' else f'{sport}_games'
+            conn = sqlite3.connect(get_sqlite_path())
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
 
-        try:
-            cursor.execute(f"""UPDATE {table} SET game_status = NULL, home_score = NULL, away_score = NULL
-                              WHERE game_date = ? AND game_status IN ('final', 'in_progress')
-                              AND game_time > ?""",
-                           (now_et.strftime('%Y-%m-%d'), now_et.astimezone(ZoneInfo('UTC')).strftime('%Y-%m-%dT%H:%M:%SZ')))
-            cleaned = cursor.rowcount
-            if cleaned > 0:
-                conn.commit()
-                logging.info(f"Live scores: reset {cleaned} stale {sport} games that haven't started yet")
-        except Exception as e:
-            logging.warning(f"Live scores stale cleanup error for {sport}: {e}")
-
-        try:
-            cursor.execute(f"SELECT id, home_team, away_team, game_time, commence_time, game_status FROM {table} WHERE game_date = ?",
-                           (now_et.strftime('%Y-%m-%d'),))
-        except Exception:
-            cursor.execute(f"SELECT id, home_team, away_team, game_time, commence_time FROM {table} WHERE game_date = ?",
-                           (now_et.strftime('%Y-%m-%d'),))
-        today_games = cursor.fetchall()
-
-        if not today_games:
-            conn.close()
-            continue
-
-        has_active = True
-        try:
-            has_active = any(r['game_status'] in (None, 'scheduled', 'in_progress') for r in today_games)
-        except (KeyError, IndexError):
-            pass
-        if not has_active:
-            conn.close()
-            continue
-
-        try:
-            today_date_str = now_et.strftime('%Y%m%d')
-            espn_url = get_espn_scoreboard_url(sport, now_et.strftime('%Y-%m-%d'))
-            resp = http_requests.get(espn_url, timeout=10)
-            resp.raise_for_status()
-            espn_data = resp.json()
-        except Exception as e:
-            logging.warning(f"Live scores ESPN fetch failed for {sport}: {e}")
-            conn.close()
-            continue
-
-        espn_games_by_matchup = {}
-        espn_games_by_home = {}
-        for event in espn_data.get('events', []):
-            comp = event.get('competitions', [{}])[0]
-            status = comp.get('status', {})
-            status_type = status.get('type', {})
-            competitors = comp.get('competitors', [])
-            home = away = None
-            for c in competitors:
-                if c.get('homeAway') == 'home':
-                    home = c
-                else:
-                    away = c
-            if not home or not away:
-                continue
-            home_name = home.get('team', {}).get('displayName', '')
-            away_name = away.get('team', {}).get('displayName', '')
-            game_data_espn = {
-                'home_name': home_name,
-                'away_name': away_name,
-                'home_score': int(home.get('score', 0)),
-                'away_score': int(away.get('score', 0)),
-                'state': status_type.get('name', ''),
-                'period': status.get('period', 0),
-                'clock': status.get('displayClock', ''),
-            }
-            matchup_key = f"{away_name.lower().replace(' ', '')}@{home_name.lower().replace(' ', '')}"
-            home_key = home_name.lower().replace(' ', '')
-            espn_games_by_matchup[matchup_key] = game_data_espn
-            espn_games_by_home[home_key] = game_data_espn
-
-        updated = 0
-        newly_final = []
-        for row in today_games:
-            game_id, home_team, away_team = row['id'], row['home_team'], row['away_team']
-            matchup_key = f"{away_team.lower().replace(' ', '')}@{home_team.lower().replace(' ', '')}"
-            home_key = home_team.lower().replace(' ', '')
-            live = espn_games_by_matchup.get(matchup_key) or espn_games_by_home.get(home_key)
-            if not live:
-                continue
-
-            state = live['state']
-            if state == 'STATUS_FINAL':
-                game_status = 'final'
-            elif state in ('STATUS_IN_PROGRESS', 'STATUS_HALFTIME'):
-                game_status = 'in_progress'
-            else:
-                game_status = 'scheduled'
-
-            prev_status = None
             try:
-                prev_status = row['game_status']
+                cursor.execute(f"""UPDATE {table} SET game_status = NULL, home_score = NULL, away_score = NULL
+                                  WHERE game_date = ? AND game_status IN ('final', 'in_progress')
+                                  AND game_time > ?""",
+                               (now_et.strftime('%Y-%m-%d'), now_et.astimezone(ZoneInfo('UTC')).strftime('%Y-%m-%dT%H:%M:%SZ')))
+                cleaned = cursor.rowcount
+                if cleaned > 0:
+                    conn.commit()
+                    logging.info(f"Live scores: reset {cleaned} stale {sport} games that haven't started yet")
+            except Exception as e:
+                logging.warning(f"Live scores stale cleanup error for {sport}: {e}")
+
+            try:
+                cursor.execute(f"SELECT id, home_team, away_team, game_time, commence_time, game_status FROM {table} WHERE game_date = ?",
+                               (now_et.strftime('%Y-%m-%d'),))
+            except Exception:
+                cursor.execute(f"SELECT id, home_team, away_team, game_time, commence_time FROM {table} WHERE game_date = ?",
+                               (now_et.strftime('%Y-%m-%d'),))
+            today_games = cursor.fetchall()
+
+            if not today_games:
+                conn.close()
+                continue
+
+            has_active = True
+            try:
+                has_active = any(r['game_status'] in (None, 'scheduled', 'in_progress') for r in today_games)
             except (KeyError, IndexError):
                 pass
-            if game_status == 'final' and prev_status != 'final':
-                newly_final.append({
-                    'sport': sport,
-                    'home_team': home_team,
-                    'away_team': away_team,
-                    'home_score': live['home_score'],
-                    'away_score': live['away_score'],
-                })
+            if not has_active:
+                conn.close()
+                continue
 
-            period_str = None
-            if live['period'] > 0:
-                if sport == 'mlb':
-                    half = 'Top' if live['clock'] == '' else 'Bot'
-                    period_str = f"{half} {live['period']}"
-                else:
-                    period_str = f"Q{live['period']}" if live['period'] <= 4 else f"OT{live['period'] - 4}"
-
-            cursor.execute(f"""UPDATE {table} SET
-                game_status = ?, current_period = ?, game_clock = ?,
-                home_score = ?, away_score = ?, scores_updated_at = ?
-                WHERE id = ?""",
-                (game_status, period_str, live['clock'],
-                 live['home_score'], live['away_score'],
-                 now_et.isoformat(), game_id))
-            updated += 1
-
-        conn.commit()
-        conn.close()
-        updated_total += updated
-        if updated:
-            logging.info(f"Live scores: updated {updated} {sport} games")
-
-        if newly_final:
             try:
-                _grade_picks_for_final_games(newly_final)
+                espn_url = get_espn_scoreboard_url(sport, now_et.strftime('%Y-%m-%d'))
+                resp = http_requests.get(espn_url, timeout=10)
+                resp.raise_for_status()
+                espn_data = resp.json()
             except Exception as e:
-                logging.error(f"Live auto-grade error: {e}")
+                logging.warning(f"Live scores ESPN fetch failed for {sport}: {e}")
+                conn.close()
+                continue
 
-    return jsonify({'ok': True, 'updated': updated_total})
+            espn_games_by_matchup = {}
+            espn_games_by_home = {}
+            for event in espn_data.get('events', []):
+                try:
+                    comp = event.get('competitions', [{}])[0]
+                    status = comp.get('status', {})
+                    status_type = status.get('type', {})
+                    competitors = comp.get('competitors', [])
+                    home = away = None
+                    for c in competitors:
+                        if c.get('homeAway') == 'home':
+                            home = c
+                        else:
+                            away = c
+                    if not home or not away:
+                        continue
+                    home_name = home.get('team', {}).get('displayName', '')
+                    away_name = away.get('team', {}).get('displayName', '')
+                    game_data_espn = {
+                        'home_name': home_name,
+                        'away_name': away_name,
+                        'home_score': int(home.get('score', 0) or 0),
+                        'away_score': int(away.get('score', 0) or 0),
+                        'state': status_type.get('name', ''),
+                        'period': int(status.get('period', 0) or 0),
+                        'clock': status.get('displayClock', ''),
+                    }
+                    matchup_key = f"{away_name.lower().replace(' ', '')}@{home_name.lower().replace(' ', '')}"
+                    home_key = home_name.lower().replace(' ', '')
+                    espn_games_by_matchup[matchup_key] = game_data_espn
+                    espn_games_by_home[home_key] = game_data_espn
+                except Exception as e:
+                    logging.warning(f"Live scores: skipping malformed ESPN event for {sport}: {e}")
+                    continue
+
+            updated = 0
+            newly_final = []
+            for row in today_games:
+                try:
+                    game_id, home_team, away_team = row['id'], row['home_team'], row['away_team']
+                    matchup_key = f"{away_team.lower().replace(' ', '')}@{home_team.lower().replace(' ', '')}"
+                    home_key = home_team.lower().replace(' ', '')
+                    live = espn_games_by_matchup.get(matchup_key) or espn_games_by_home.get(home_key)
+                    if not live:
+                        continue
+
+                    state = live['state']
+                    if state == 'STATUS_FINAL':
+                        game_status = 'final'
+                    elif state in ('STATUS_IN_PROGRESS', 'STATUS_HALFTIME'):
+                        game_status = 'in_progress'
+                    else:
+                        game_status = 'scheduled'
+
+                    prev_status = None
+                    try:
+                        prev_status = row['game_status']
+                    except (KeyError, IndexError):
+                        pass
+                    if game_status == 'final' and prev_status != 'final':
+                        newly_final.append({
+                            'sport': sport,
+                            'home_team': home_team,
+                            'away_team': away_team,
+                            'home_score': live['home_score'],
+                            'away_score': live['away_score'],
+                        })
+
+                    period_str = None
+                    if live['period'] and live['period'] > 0:
+                        if sport == 'mlb':
+                            half = 'Top' if live['clock'] == '' else 'Bot'
+                            period_str = f"{half} {live['period']}"
+                        else:
+                            period_str = f"Q{live['period']}" if live['period'] <= 4 else f"OT{live['period'] - 4}"
+
+                    cursor.execute(f"""UPDATE {table} SET
+                        game_status = ?, current_period = ?, game_clock = ?,
+                        home_score = ?, away_score = ?, scores_updated_at = ?
+                        WHERE id = ?""",
+                        (game_status, period_str, live['clock'],
+                         live['home_score'], live['away_score'],
+                         now_et.isoformat(), game_id))
+                    updated += 1
+                except Exception as e:
+                    logging.warning(f"Live scores: error processing {sport} game {row.get('id', '?')}: {e}")
+                    errors.append(f"{sport}:{row.get('id', '?')}:{e}")
+
+            conn.commit()
+            conn.close()
+            updated_total += updated
+            if updated:
+                logging.info(f"Live scores: updated {updated} {sport} games")
+
+            if newly_final:
+                try:
+                    _grade_picks_for_final_games(newly_final)
+                except Exception as e:
+                    logging.error(f"Live auto-grade error: {e}")
+
+        return {'updated': updated_total, 'errors': errors[:5] if errors else None}
+
+    return log_cron_async('live_scores', _poll_live)
 
 
 @app.route('/api/cron/closing-lines', methods=['GET', 'POST'])
@@ -4655,7 +4666,7 @@ def cron_player_props():
     def _collect_props():
         from main import collect_player_props
         collect_player_props()
-    return log_cron('player_props', _collect_props)
+    return log_cron_async('player_props', _collect_props)
 
 
 @app.route('/api/cron/grade-picks', methods=['GET', 'POST'])
@@ -4754,7 +4765,7 @@ def cron_update_ratings():
         from nba_ratings import update_ratings
         success = update_ratings()
         return {'updated': success}
-    return log_cron('update_ratings', _update)
+    return log_cron_async('update_ratings', _update)
 
 
 def _send_consolidated_model_notification(results, live_sports):
