@@ -151,20 +151,30 @@ def _get_shared_email_context():
 # ── Legacy base template (kept as fallback) ──
 
 def _brand_header_html():
-    """Inline brand header: SHARP || PICKS with green double-bar separator."""
+    """Inline brand header: SHARP || PICKS — email-safe table-based layout."""
     return (
-        '<span style="font-family:\'SF Mono\',\'Menlo\',\'Consolas\',\'Courier New\',monospace;font-size:13px;font-weight:500;'
-        'letter-spacing:0.2em;color:#E8EAED;white-space:nowrap;display:inline-flex;align-items:center;line-height:1;">'
-        'SHARP'
-        '<span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 6px;gap:2px;letter-spacing:0;">'
-        '<span style="display:inline-flex;gap:2px;">'
-        '<span style="display:inline-block;width:2px;height:16px;background:#E8EAED;border-radius:1px;"></span>'
-        '<span style="display:inline-block;width:2px;height:16px;background:#E8EAED;border-radius:1px;"></span>'
-        '</span>'
-        '<span style="display:inline-block;width:5px;height:1.5px;background:#5A9E72;border-radius:1px;"></span>'
-        '</span>'
-        'PICKS'
-        '</span>'
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;vertical-align:middle;">'
+        '<tr>'
+        '<td style="font-family:\'SF Mono\',\'Menlo\',\'Consolas\',\'Courier New\',monospace;font-size:13px;font-weight:500;'
+        'letter-spacing:0.2em;color:#E8EAED;line-height:1;white-space:nowrap;vertical-align:middle;">SHARP</td>'
+        '<td style="vertical-align:middle;padding:0 4px;">'
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">'
+        '<tr>'
+        '<td style="width:2px;height:14px;background-color:#E8EAED;font-size:0;line-height:0;">&nbsp;</td>'
+        '<td style="width:2px;">&nbsp;</td>'
+        '<td style="width:2px;height:14px;background-color:#E8EAED;font-size:0;line-height:0;">&nbsp;</td>'
+        '</tr>'
+        '<tr>'
+        '<td colspan="3" style="padding-top:2px;">'
+        '<div style="width:100%;height:2px;background-color:#5A9E72;font-size:0;line-height:0;">&nbsp;</div>'
+        '</td>'
+        '</tr>'
+        '</table>'
+        '</td>'
+        '<td style="font-family:\'SF Mono\',\'Menlo\',\'Consolas\',\'Courier New\',monospace;font-size:13px;font-weight:500;'
+        'letter-spacing:0.2em;color:#E8EAED;line-height:1;white-space:nowrap;vertical-align:middle;">PICKS</td>'
+        '</tr>'
+        '</table>'
     )
 
 
@@ -172,10 +182,10 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
                    fine_print=None, to_email=None, unsub_category='all'):
     base = get_base_url()
     unsub_url = _make_unsub_url(to_email, unsub_category) if to_email else f'{base}/unsubscribe'
-    unsub_html = f'''
-        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:11px;color:rgba(232,234,237,0.25);text-align:center;margin:8px 0 0;">
-          <a href="{unsub_url}" style="color:rgba(232,234,237,0.25);text-decoration:underline;">Unsubscribe</a>
-        </p>'''
+
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    date_str = datetime.now(ZoneInfo('America/New_York')).strftime('%b %d, %Y').upper()
 
     cta_html = ''
     if cta_text and cta_url:
@@ -183,7 +193,7 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0 0;">
           <tr>
             <td align="center">
-              <a href="{cta_url}" style="display:block;width:100%;padding:16px 0;background-color:#5A9E72;color:#E8EAED;text-align:center;text-decoration:none;border-radius:6px;font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.08em;">{cta_text}</a>
+              <a href="{cta_url}" style="display:block;width:100%;padding:18px 0;background-color:#5A9E72;color:#E8EAED;text-align:center;text-decoration:none;border-radius:6px;font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.08em;">{cta_text}</a>
             </td>
           </tr>
         </table>'''
@@ -191,24 +201,31 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
     fine_html = ''
     if fine_print:
         fine_html = f'''
-        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;color:rgba(232,234,237,0.45);line-height:1.6;margin:16px 0 0;">{fine_print}</p>'''
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:12px;color:rgba(232,234,237,0.3);line-height:1.6;margin:16px 0 0;">{fine_print}</p>'''
 
     brand = _brand_header_html()
 
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>SharpPicks</title></head>
-<body style="margin:0;padding:0;background-color:#070B14;">
+<title>SharpPicks</title>
+<!--[if mso]><style>table,td{{font-family:Arial,Helvetica,sans-serif!important;}}</style><![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#070B14;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#070B14;">
   <tr><td align="center" style="padding:0;">
     <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;background-color:#0A0D14;">
       <tr><td style="padding:24px 28px 20px;">
-        {brand}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td>{brand}</td>
+            <td align="right" style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;color:rgba(232,234,237,0.35);letter-spacing:0.05em;">{date_str}</td>
+          </tr>
+        </table>
       </td></tr>
       <tr><td style="padding:0 28px;"><div style="border-top:1px solid rgba(255,255,255,0.06);"></div></td></tr>
       <tr><td style="padding:24px 28px 0;">
-        <p style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;letter-spacing:0.15em;text-transform:uppercase;color:rgba(232,234,237,0.4);margin:0 0 20px;">{type_label}</p>
+        <p style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;letter-spacing:0.15em;text-transform:uppercase;color:rgba(232,234,237,0.4);margin:0 0 16px;">{type_label}</p>
         {body_html}
         {cta_html}
         {fine_html}
@@ -220,7 +237,9 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
           <p style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;color:rgba(232,234,237,0.25);margin:0 0 10px;">
             <a href="{base}/" style="color:rgba(232,234,237,0.25);text-decoration:underline;">sharppicks.ai</a>
           </p>
-          {unsub_html}
+          <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:11px;color:rgba(232,234,237,0.25);margin:0;">
+            <a href="{unsub_url}" style="color:rgba(232,234,237,0.25);text-decoration:underline;">Unsubscribe</a>
+          </p>
         </div>
       </td></tr>
     </table>
@@ -232,50 +251,32 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
 # ── 1. Password Reset ──
 
 def send_password_reset(to, reset_url, first_name=None):
-    unsub_url = _make_unsub_url(to)
-    html = _render('password-reset', {
-        'firstName': first_name,
-        'resetUrl': reset_url,
-        'expiresIn': '1 hour',
-    })
-    if not html:
-        body = '''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
+    body = '''
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
           A password reset was requested for this account.
-        </p>
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 24px;">
-          Use the link below to set a new password.
         </p>'''
-        html = _base_template(
-            'ACCOUNT SECURITY', body,
-            cta_text='RESET PASSWORD', cta_url=reset_url,
-            fine_print='This link expires in 1 hour. If you did not request this, no action is needed.',
-            to_email=to,
-        )
+    html = _base_template(
+        'PASSWORD RESET', body,
+        cta_text='RESET PASSWORD', cta_url=reset_url,
+        fine_print='This link expires in 1 hour. If you did not request this, no action is needed.',
+        to_email=to,
+    )
     return send_email(to, 'SharpPicks: Password reset requested', html)
 
 
 # ── 2. Email Verification ──
 
 def send_verification_email(to, verify_url, first_name=None):
-    html = _render('verification', {
-        'firstName': first_name,
-        'verifyUrl': verify_url,
-    })
-    if not html:
-        body = '''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
-          An account was created with this email address.
-        </p>
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 24px;">
-          Verify your email to activate access.
+    body = '''
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+          An account was created with this email address. Verify your email to activate access.
         </p>'''
-        html = _base_template(
-            'ACCOUNT VERIFICATION', body,
-            cta_text='VERIFY EMAIL', cta_url=verify_url,
-            fine_print='This link expires in 24 hours. If you did not create this account, no action is needed.',
-            to_email=to,
-        )
+    html = _base_template(
+        'ACCOUNT VERIFICATION', body,
+        cta_text='VERIFY EMAIL', cta_url=verify_url,
+        fine_print='This link expires in 24 hours. If you did not create this account, no action is needed.',
+        to_email=to,
+    )
     return send_email(to, 'SharpPicks: Verify your email', html)
 
 
@@ -294,13 +295,6 @@ def send_welcome_email(to, first_name=None):
         'unsubscribe_url': _make_unsub_url(to),
     })
     if not html:
-        html = _render('welcome', {
-            'firstName': first_name,
-            'appUrl': f'{base}/',
-            'guideUrl': 'https://sharppicks.ai/guide.html',
-            'unsubscribeUrl': _make_unsub_url(to),
-        })
-    if not html:
         body = f'''
         <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:24px;font-weight:700;color:#E8EAED;margin:0 0 20px;">
           Account active.
@@ -309,7 +303,7 @@ def send_welcome_email(to, first_name=None):
           SharpPicks scans every game on the board and only sends a signal when the model finds a verified, quantified edge above 3.5%. Some days that means no pick at all. That is the product working.
         </p>'''
         html = _base_template(
-            'ACCOUNT STATUS', body,
+            'ACCOUNT ACTIVE', body,
             cta_text='OPEN SHARPPICKS', cta_url=f'{base}/',
             to_email=to,
         )
@@ -320,41 +314,20 @@ def send_welcome_email(to, first_name=None):
 
 def send_trial_started_email(to, trial_start=None, trial_end=None):
     base = get_base_url()
-    end_str = trial_end.strftime('%b %-d, %Y') if trial_end else ''
-    start_str = trial_start.strftime('%b %-d, %Y') if trial_start else ''
-
-    days = 7
+    days = 14
     if trial_start and trial_end:
         days = (trial_end - trial_start).days
 
-    html = _render('trial-started', {
-        'firstName': None,
-        'trialEndDate': end_str,
-        'trialDays': days,
-        'appUrl': f'{base}/',
-        'unsubscribeUrl': _make_unsub_url(to),
-    })
-    if not html:
-        data_block = ''
-        if start_str and end_str:
-            data_block = f'''
-            <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:16px 0 24px;">
-              <tr><td align="center" style="padding:16px;background-color:#1A1A1A;border-radius:6px;">
-                <p style="font-family:'Courier New',Courier,monospace;font-size:15px;color:#FFFFFF;margin:0;">
-                  Trial start: {start_str} &middot; Trial end: {end_str}
-                </p>
-              </td></tr>
-            </table>'''
-        body = f'''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
-          Your trial period is now active. You have full access to all signal data, edge analysis, and market intelligence for the next {days} days.
-        </p>
-        {data_block}'''
-        html = _base_template(
-            'ACCOUNT STATUS', body,
-            cta_text='VIEW TODAY\'S MARKET', cta_url=f'{base}/',
-            to_email=to,
-        )
+    body = '''
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+          Your trial is active. You will receive signals when the model finds qualifying edges.
+        </p>'''
+    html = _base_template(
+        'TRIAL ACTIVE', body,
+        cta_text='OPEN SHARPPICKS', cta_url=f'{base}/',
+        fine_print=f'Trial period: {days} days from today.',
+        to_email=to,
+    )
     return send_email(to, 'SharpPicks: Trial period active', html)
 
 
@@ -362,59 +335,48 @@ def send_trial_started_email(to, trial_start=None, trial_end=None):
 
 def send_trial_expiring_email(to, first_name=None, trial_end_date=None, picks_record=None, founding_spots=None):
     base = get_base_url()
-    end_str = trial_end_date.strftime('%b %-d, %Y') if trial_end_date else 'tomorrow'
     days_left = 1
     if trial_end_date:
         from datetime import datetime
         delta = (trial_end_date - datetime.now()).days
         days_left = max(delta, 1)
 
-    html = _render('trial-expiring', {
-        'firstName': first_name,
-        'daysLeft': days_left,
-        'trialEndDate': end_str,
-        'upgradeUrl': f'{base}/subscribe',
-        'unsubscribeUrl': _make_unsub_url(to),
-    })
-    if not html:
-        body = f'''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
-          Your trial period ends tomorrow.
-        </p>
-        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;">
-          <tr><td align="center" style="padding:16px;background-color:#1A1A1A;border-radius:6px;">
-            <p style="font-family:'Courier New',Courier,monospace;font-size:15px;color:#FFFFFF;margin:0;">
-              Trial ends: {end_str}
-            </p>
-          </td></tr>
-        </table>'''
-        html = _base_template(
-            'ACCOUNT NOTICE', body,
-            cta_text='MANAGE SUBSCRIPTION', cta_url=f'{base}/subscribe',
-            to_email=to,
-        )
-    return send_email(to, 'SharpPicks: Trial expires tomorrow', html)
+    if days_left <= 1:
+        label = 'TRIAL EXPIRES TOMORROW'
+        body_text = 'Your trial ends tomorrow. Subscribe to keep receiving signals.'
+        subject = 'SharpPicks: Trial expires tomorrow'
+    else:
+        label = f'TRIAL EXPIRES IN {days_left} DAYS'
+        body_text = f'Your trial ends in {days_left} days. Subscribe to keep receiving signals.'
+        subject = f'SharpPicks: Trial expires in {days_left} days'
+
+    body = f'''
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+          {body_text}
+        </p>'''
+    html = _base_template(
+        label, body,
+        cta_text='SUBSCRIBE', cta_url=f'{base}/subscribe',
+        fine_print='After expiration, you will lose access to signal details and result breakdowns.',
+        to_email=to,
+    )
+    return send_email(to, subject, html)
 
 
 # ── 6. Trial Expired ──
 
 def send_trial_expired_email(to, first_name=None):
     base = get_base_url()
-    html = _render('trial-expired', {
-        'firstName': first_name,
-        'upgradeUrl': f'{base}/subscribe',
-        'unsubscribeUrl': _make_unsub_url(to),
-    })
-    if not html:
-        body = '''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
-          Your trial period has ended. Access has been moved to the free tier.
+    body = '''
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+          Your trial has ended. Subscribe to restore access to signals and results.
         </p>'''
-        html = _base_template(
-            'ACCOUNT STATUS', body,
-            cta_text='SUBSCRIBE', cta_url=f'{base}/subscribe',
-            to_email=to,
-        )
+    html = _base_template(
+        'TRIAL ENDED', body,
+        cta_text='SUBSCRIBE', cta_url=f'{base}/subscribe',
+        fine_print='Questions: support@sharppicks.ai',
+        to_email=to,
+    )
     return send_email(to, 'SharpPicks: Trial period ended', html)
 
 
@@ -424,22 +386,16 @@ def send_cancellation_email(to, first_name=None, access_end_date=None, is_foundi
     base = get_base_url()
     end_str = access_end_date.strftime('%b %-d, %Y') if access_end_date else 'end of billing period'
 
-    html = _render('cancellation', {
-        'firstName': first_name,
-        'accessEndsDate': end_str,
-        'reactivateUrl': f'{base}/subscribe',
-        'unsubscribeUrl': _make_unsub_url(to),
-    })
-    if not html:
-        body = f'''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
-          Subscription cancelled. Full access continues through {end_str}.
+    body = '''
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+          Your subscription has been cancelled. You will retain access until the end of your current billing period.
         </p>'''
-        html = _base_template(
-            'ACCOUNT STATUS', body,
-            cta_text='RESUBSCRIBE', cta_url=f'{base}/subscribe',
-            to_email=to,
-        )
+    html = _base_template(
+        'SUBSCRIPTION CANCELLED', body,
+        cta_text='RESUBSCRIBE', cta_url=f'{base}/subscribe',
+        fine_print=f'Access ends: {end_str}. Questions: support@sharppicks.ai',
+        to_email=to,
+    )
     return send_email(to, 'SharpPicks: Subscription cancelled', html)
 
 
@@ -447,21 +403,16 @@ def send_cancellation_email(to, first_name=None, access_end_date=None, is_foundi
 
 def send_payment_failed_email(to, first_name=None):
     base = get_base_url()
-    html = _render('payment-failed', {
-        'firstName': first_name,
-        'updateUrl': f'{base}/',
-        'unsubscribeUrl': _make_unsub_url(to),
-    })
-    if not html:
-        body = '''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
-          Payment processing failed. Update your payment method to avoid interruption.
+    body = '''
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+          We were unable to process your latest payment. Update your payment method to maintain access.
         </p>'''
-        html = _base_template(
-            'BILLING NOTICE', body,
-            cta_text='UPDATE PAYMENT', cta_url=f'{base}/',
-            to_email=to,
-        )
+    html = _base_template(
+        'PAYMENT ISSUE', body,
+        cta_text='UPDATE PAYMENT', cta_url=f'{base}/',
+        fine_print='If this is resolved, disregard this email. Questions: support@sharppicks.ai',
+        to_email=to,
+    )
     return send_email(to, 'SharpPicks: Payment issue', html)
 
 
@@ -522,26 +473,22 @@ def send_signal_email(to, pick):
 
     html = _render_jinja('signal.html', ctx)
     if not html:
-        sport_label = (d.get('sport', 'nba') if d else getattr(pick, 'sport', 'nba') or 'nba').upper()
-        html = _render('signal', {
-            'sport': sport_label, 'matchup': f'{away_team} vs {home_team}',
-            'market': side, 'edge': f'+{edge:.1f}%', 'price': sportsbook,
-            'startTime': '', 'modelPct': model_prob, 'marketPct': market_prob,
-            'margin': round(float(margin), 1) if margin is not None else None,
-            'appUrl': f'{base}/', 'unsubscribeUrl': _make_unsub_url(to, 'email_signals'),
-        })
-    if not html:
         body = f'''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:bold;color:#FFFFFF;margin:0 0 8px;">{side}</p>
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:bold;color:#5A9E72;margin:0 0 20px;">Edge: +{edge:.1f}%</p>
-        <table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
-          <tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;">Model: {model_prob:.1f}%</td></tr>
-          <tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;">Market: {market_prob:.1f}%</td></tr>
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:28px;font-weight:700;color:#E8EAED;margin:0 0 8px;">{side}</p>
+        <p style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:24px;font-weight:700;color:#5A9E72;margin:0 0 20px;">+{edge:.1f}% edge</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 20px;">
+          <tr>
+            <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Model probability</td>
+            <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#5A9E72;">{model_prob:.1f}%</td>
+          </tr>
+          <tr>
+            <td style="padding:12px 0;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Market probability</td>
+            <td align="right" style="padding:12px 0;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#E8EAED;">{market_prob:.1f}%</td>
+          </tr>
         </table>'''
         html = _base_template(
-            'SIGNAL GENERATED', body,
+            'NEW SIGNAL', body,
             cta_text='VIEW FULL ANALYSIS', cta_url=f'{base}/',
-            fine_print='This signal was generated by the SharpPicks model. Past performance does not guarantee future results.',
             to_email=to, unsub_category='email_signals',
         )
     return send_email(to, f'SharpPicks: {side} Signal', html)
@@ -637,14 +584,20 @@ def send_result_email(to, pick):
 
     html = _render_jinja('grading.html', ctx)
     if not html:
-        result_color = '#5A9E72' if is_win else ('#9E7A7C' if result == 'loss' else '#666666')
-        icon = '&#x2714;' if is_win else ('&#x2014;' if is_push else '&#x2718;')
+        badge_bg = '#5A9E72' if is_win else ('#C4686B' if result == 'loss' else 'rgba(232,234,237,0.08)')
+        badge_text_color = '#E8EAED' if (is_win or result == 'loss') else 'rgba(232,234,237,0.5)'
+        accent = '#5A9E72' if is_win else ('#C4686B' if result == 'loss' else 'rgba(232,234,237,0.4)')
+        profit_val = profit if profit is not None else 0
+        units_str = f'+{profit_val:.1f}u' if is_win else (f'{profit_val:.1f}u' if result == 'loss' else '0.0u')
         body = f'''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:bold;color:#FFFFFF;margin:0 0 8px;">
-          {side} &nbsp;<span style="color:{result_color};">{icon}</span>
+        <div style="display:inline-block;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;padding:6px 14px;border-radius:4px;letter-spacing:0.15em;text-transform:uppercase;background-color:{badge_bg};color:{badge_text_color};">
+          {result_label}
+        </div>
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:28px;font-weight:700;color:#E8EAED;margin:20px 0 8px;">
+          {side}
         </p>
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;color:{result_color};font-weight:bold;margin:0 0 20px;">
-          Result: {result_label}
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:32px;font-weight:700;color:{accent};margin:0 0 20px;">
+          {units_str}
         </p>'''
         html = _base_template(
             'SIGNAL RESULT', body,
@@ -764,24 +717,37 @@ def send_weekly_summary(to, first_name=None, stats=None):
 
     html = _render_jinja('weekly_recap.html', ctx)
     if not html:
-        roi_color = '#5A9E72' if roi >= 0 else '#9E7A7C'
+        roi_color = '#5A9E72' if roi >= 0 else '#C4686B'
+        units_color = '#5A9E72' if units >= 0 else '#C4686B'
         body = f'''
-        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 8px;">
+        <div style="display:inline-block;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;padding:6px 14px;border-radius:4px;letter-spacing:0.15em;text-transform:uppercase;background-color:rgba(232,234,237,0.08);color:rgba(232,234,237,0.5);">
+          WEEKLY RECAP
+        </div>
+        <div style="text-align:center;margin:24px 0;">
+          <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:40px;font-weight:700;color:{units_color};line-height:1;">{units_str}</div>
+          <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:13px;color:rgba(232,234,237,0.35);margin-top:8px;">weekly profit</div>
+        </div>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
           <tr>
-            <td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;padding:6px 0;">Record: <strong>{record_str}</strong></td>
-            <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:{roi_color};padding:6px 0;">ROI: {roi:+.1f}%</td>
+            <td width="32%" style="background-color:#111622;border-radius:8px;padding:16px 12px;text-align:center;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;">
+              <div style="font-size:20px;font-weight:700;color:#E8EAED;line-height:1;">{record_str}</div>
+              <div style="font-size:10px;color:rgba(232,234,237,0.4);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">record</div>
+            </td>
+            <td width="2%"></td>
+            <td width="32%" style="background-color:#111622;border-radius:8px;padding:16px 12px;text-align:center;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;">
+              <div style="font-size:20px;font-weight:700;color:{roi_color};line-height:1;">{roi:+.1f}%</div>
+              <div style="font-size:10px;color:rgba(232,234,237,0.4);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">ROI</div>
+            </td>
+            <td width="2%"></td>
+            <td width="32%" style="background-color:#111622;border-radius:8px;padding:16px 12px;text-align:center;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;">
+              <div style="font-size:20px;font-weight:700;color:#E8EAED;line-height:1;">+{avg_edge:.1f}%</div>
+              <div style="font-size:10px;color:rgba(232,234,237,0.4);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">avg edge</div>
+            </td>
           </tr>
-          <tr>
-            <td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;padding:6px 0;">Units: {units_str}</td>
-            <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#FFFFFF;padding:6px 0;">Avg Edge: +{avg_edge:.1f}%</td>
-          </tr>
-        </table>
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#AAAAAA;margin:8px 0 20px;">
-          Days passed this week: {passes}
-        </p>'''
+        </table>'''
         html = _base_template(
-            'WEEKLY REPORT', body,
-            cta_text='VIEW FULL REPORT', cta_url=f'{base}/',
+            'WEEKLY RECAP', body,
+            cta_text='VIEW FULL RESULTS', cta_url=f'{base}/',
             to_email=to, unsub_category='email_weekly',
         )
 
@@ -794,30 +760,16 @@ def send_weekly_summary(to, first_name=None, stats=None):
 
 def send_founding_member_email(to, member_number=None, total=100, joined_date=None):
     base = get_base_url()
-    html = _render('founding-member', {
-        'firstName': None,
-        'foundingNumber': member_number,
-        'appUrl': f'{base}/',
-        'unsubscribeUrl': _make_unsub_url(to),
-    })
-    if not html:
-        num = member_number or '—'
-        body = f'''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
-          Your founding member status has been confirmed.
-        </p>
-        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;">
-          <tr><td align="center" style="padding:20px;background-color:#1A1A1A;border-radius:6px;">
-            <p style="font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;color:#FFFFFF;margin:0 0 8px;">
-              #{num} of {total}
-            </p>
-          </td></tr>
-        </table>'''
-        html = _base_template(
-            'MEMBER STATUS', body,
-            cta_text='ENTER MARKET VIEW', cta_url=f'{base}/',
-            to_email=to,
-        )
+    body = '''
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+          Your founding member status is confirmed. Locked rate: $99/year. This rate is permanent and will not increase.
+        </p>'''
+    html = _base_template(
+        'FOUNDING MEMBER', body,
+        cta_text='OPEN SHARPPICKS', cta_url=f'{base}/',
+        fine_print='Questions: support@sharppicks.ai',
+        to_email=to,
+    )
     return send_email(to, 'SharpPicks: Founding member status confirmed', html)
 
 
@@ -866,9 +818,21 @@ def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0):
     if not html:
         html = _base_template(
             'NO SIGNAL', f'''
-            <p style="font-family:'Courier New',Courier,monospace;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
-              {games_analyzed} games scanned, none above threshold.
-            </p>''',
+            <div style="text-align:center;padding:28px 0 4px;">
+              <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:48px;font-weight:700;color:rgba(232,234,237,0.25);line-height:1;">{games_analyzed}</div>
+              <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:13px;color:rgba(232,234,237,0.35);margin-top:8px;">games scanned</div>
+            </div>
+            <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:14px;color:rgba(232,234,237,0.5);line-height:1.6;padding:16px 20px;border-left:2px solid rgba(90,158,114,0.3);margin:20px 0;">
+              {games_analyzed} games analyzed, none above the 3.5% minimum edge threshold.
+            </div>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:20px 0;">
+              <tr>
+                <td style="background-color:#111622;border:1px solid rgba(90,158,114,0.15);border-radius:8px;padding:20px 24px;text-align:center;">
+                  <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:14px;font-weight:700;color:#5A9E72;margin-bottom:8px;">This is the product working.</div>
+                  <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;color:rgba(232,234,237,0.45);line-height:1.6;">Most services would have picked 3-4 of these games. We require a verified, quantified edge before sending a signal. No edge, no pick.</div>
+                </td>
+              </tr>
+            </table>''',
             cta_text='VIEW MARKET REPORT', cta_url=f'{base}/',
             to_email=to, unsub_category='email_marketing',
         )
