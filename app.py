@@ -7878,12 +7878,16 @@ def admin_generate_market_note():
 @app.route('/api/admin/test-emails', methods=['GET', 'POST'])
 @verify_cron
 def admin_test_emails():
-    """Send test versions of all email types to evan@sharppicks.ai."""
-    to = 'evan@sharppicks.ai'
+    """Send test versions of all email types."""
+    to = request.args.get('to', 'evan@sharppicks.ai')
     results = {}
     from email_service import (send_signal_email, send_result_email,
                                 send_no_signal_email, send_welcome_email,
-                                send_trial_started_email)
+                                send_trial_started_email, send_trial_expiring_email,
+                                send_trial_expired_email, send_cancellation_email,
+                                send_payment_failed_email, send_founding_member_email,
+                                send_verification_email, send_password_reset,
+                                send_weekly_summary, get_base_url)
     from datetime import datetime, timedelta
 
     # 1. Signal email (NBA)
@@ -7945,6 +7949,72 @@ def admin_test_emails():
         results['no_signal'] = send_no_signal_email(to, games_analyzed=6, edges_detected=2, efficiency=47)
     except Exception as e:
         results['no_signal'] = str(e)
+
+    # 6. Welcome email
+    try:
+        results['welcome'] = send_welcome_email(to, first_name='Test')
+    except Exception as e:
+        results['welcome'] = str(e)
+
+    # 7. Weekly recap
+    try:
+        results['weekly_recap'] = send_weekly_summary(to, stats={
+            'wins': 3, 'losses': 1, 'picks_made': 4, 'passes': 3,
+            'roi': 8.2, 'units': 1.73, 'avg_edge': 6.1, 'week_num': 12,
+        })
+    except Exception as e:
+        results['weekly_recap'] = str(e)
+
+    # 8. Verification email
+    try:
+        base = get_base_url()
+        results['verification'] = send_verification_email(to, f'{base}/verify?token=test-token-123')
+    except Exception as e:
+        results['verification'] = str(e)
+
+    # 9. Password reset
+    try:
+        base = get_base_url()
+        results['password_reset'] = send_password_reset(to, f'{base}/reset-password?token=test-token-123')
+    except Exception as e:
+        results['password_reset'] = str(e)
+
+    # 10. Trial started
+    try:
+        now = datetime.now()
+        results['trial_started'] = send_trial_started_email(to, trial_start=now, trial_end=now + timedelta(days=14))
+    except Exception as e:
+        results['trial_started'] = str(e)
+
+    # 11. Trial expiring
+    try:
+        results['trial_expiring'] = send_trial_expiring_email(to, trial_end_date=datetime.now() + timedelta(days=1))
+    except Exception as e:
+        results['trial_expiring'] = str(e)
+
+    # 12. Trial expired
+    try:
+        results['trial_expired'] = send_trial_expired_email(to)
+    except Exception as e:
+        results['trial_expired'] = str(e)
+
+    # 13. Cancellation
+    try:
+        results['cancellation'] = send_cancellation_email(to, access_end_date=datetime.now() + timedelta(days=30))
+    except Exception as e:
+        results['cancellation'] = str(e)
+
+    # 14. Payment failed
+    try:
+        results['payment_failed'] = send_payment_failed_email(to)
+    except Exception as e:
+        results['payment_failed'] = str(e)
+
+    # 15. Founding member
+    try:
+        results['founding_member'] = send_founding_member_email(to, member_number=7)
+    except Exception as e:
+        results['founding_member'] = str(e)
 
     return jsonify({'status': 'sent', 'to': to, 'results': results})
 
