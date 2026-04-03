@@ -5610,6 +5610,14 @@ def _create_trial_checkout_url(user):
                 'trial_period_days': 14,
                 'metadata': {'plan': 'trial', 'user_id': user.id},
             },
+            consent_collection={
+                'terms_of_service': 'required',
+            },
+            custom_text={
+                'submit': {
+                    'message': 'Your trial is 14 days. You will not be charged today.',
+                },
+            },
             success_url=f'https://{app_domain}/welcome?session_id={{CHECKOUT_SESSION_ID}}',
             cancel_url=f'https://{app_domain}/',
             customer=user.stripe_customer_id,
@@ -5868,10 +5876,21 @@ def create_checkout():
                 'metadata': {'plan': plan, 'user_id': user['id']},
             },
             'metadata': {'plan': plan, 'user_id': user['id']},
+            'consent_collection': {
+                'terms_of_service': 'required',
+            },
+            'custom_text': {
+                'submit': {
+                    'message': 'Cancel anytime from your account settings — no questions asked.',
+                },
+            },
         }
 
         if is_trial_eligible:
             checkout_params['subscription_data']['trial_period_days'] = 14
+            checkout_params['custom_text']['submit']['message'] = (
+                'Your trial is 14 days. You will not be charged today.'
+            )
 
         if customer_id:
             checkout_params['customer'] = customer_id
