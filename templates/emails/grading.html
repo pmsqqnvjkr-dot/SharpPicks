@@ -1,4 +1,4 @@
-{% from "wordmark.html" import email_wordmark %}
+{% from "wordmark.html" import email_header, email_cta, email_footer, stat_bar_3 %}
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -6,9 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>SharpPicks Result</title>
-  <!--[if mso]>
-  <style>table,td{font-family:Arial,Helvetica,sans-serif!important;}</style>
-  <![endif]-->
+  <!--[if mso]><style>table,td{font-family:Arial,Helvetica,sans-serif!important;}</style><![endif]-->
   <style>
     @media only screen and (max-width: 620px) {
       .outer-table { width: 100% !important; }
@@ -16,106 +14,92 @@
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background-color:#0A0D14;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+<body style="margin:0;padding:0;background-color:#070B14;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
   {% set green = "#5A9E72" %}
   {% set loss_red = "#C4686B" %}
   {% set is_win = (result == "W") %}
   {% set is_push = (result == "P") %}
-  {% set accent = green if is_win else (loss_red if not is_push else "rgba(232,234,237,0.6)") %}
-  {% set badge_bg = "rgba(90,158,114,0.15)" if is_win else ("rgba(196,104,107,0.15)" if not is_push else "rgba(255,255,255,0.06)") %}
+  {% set accent = green if is_win else (loss_red if not is_push else "rgba(232,234,237,0.4)") %}
+  {% set badge_bg = green if is_win else (loss_red if not is_push else "rgba(232,234,237,0.08)") %}
   {% set badge_label = "WIN" if is_win else ("LOSS" if not is_push else "PUSH") %}
 
-  <div style="display:none;font-size:1px;color:#0A0D14;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
-    {{ badge_label }} · {{ pick_team }} {{ pick_line }} · Final: {{ final_score_away }}-{{ final_score_home }}
-    &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;
+  <div style="display:none;font-size:1px;color:#070B14;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+    {{ badge_label }}: {{ pick_team }} {{ pick_line }}{% if profit_units is defined and profit_units %} {{ "+" if is_win else "" }}{{ profit_units }}u{% endif %}
+    &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;
   </div>
 
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#0A0D14;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#070B14;">
     <tr>
-      <td align="center" style="padding:32px 16px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="outer-table" style="max-width:600px;background-color:#0A0D14;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+      <td align="center" style="padding:0;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" class="outer-table" style="background-color:#0A0D14;max-width:600px;width:100%;">
 
-          {# ── Header ── #}
-          <tr>
-            <td class="inner-pad" style="padding:28px 32px 20px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-                <tr>
-                  <td>{{ email_wordmark(14) }}</td>
-                  <td align="right" style="font-family:'Courier New',Courier,monospace;font-size:12px;color:rgba(232,234,237,0.4);">
-                    {{ signal_date|default('') }}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr><td style="padding:0 32px;"><div style="border-top:1px solid rgba(255,255,255,0.06);"></div></td></tr>
+          {{ email_header(signal_date|default('')) }}
 
-          {# ── Body ── #}
           <tr>
-            <td class="inner-pad" style="padding:32px 32px 0;">
+            <td class="inner-pad" style="padding:24px 28px 0;">
 
               {# Badge #}
-              <div style="display:inline-block;font-family:'Courier New',Courier,monospace;font-size:12px;font-weight:600;padding:6px 16px;border-radius:6px;letter-spacing:0.1em;background-color:{{ badge_bg }};color:{{ accent }};margin-bottom:20px;">
+              <div style="display:inline-block;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;padding:6px 14px;border-radius:4px;letter-spacing:0.15em;text-transform:uppercase;background-color:{{ badge_bg }};color:#E8EAED;">
                 {{ badge_label }}
               </div>
 
               {# Matchup #}
-              <div style="font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.5);margin:20px 0 8px;">
-                {{ away_team_abbr|default('') }} @ {{ home_team_abbr|default('') }} · Final
+              <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:13px;color:rgba(232,234,237,0.4);margin:20px 0 8px;">
+                {{ away_team_abbr|default('') }} @ {{ home_team_abbr|default('') }} &middot; Final
               </div>
 
               {# Hero pick #}
-              <div style="font-family:'Courier New',Courier,monospace;font-size:32px;font-weight:700;color:#E8EAED;line-height:1.1;">
-                {{ pick_team }}
+              <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:28px;font-weight:700;color:#E8EAED;line-height:1.1;">
+                {{ pick_team }} {{ pick_line }}
               </div>
 
-              {# Profit #}
-              {% if not is_push %}
-              <div style="font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:700;color:{{ accent }};margin:8px 0 20px;">
-                {% if is_win and profit_units is defined and profit_units %}+{{ profit_units }}u{% elif not is_win and profit_units is defined and profit_units %}{{ profit_units }}u{% endif %}
+              {# Profit/loss #}
+              {% if profit_units is defined and profit_units %}
+              <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:32px;font-weight:700;color:{{ accent }};margin:8px 0 20px;">
+                {% if is_win %}+{{ profit_units }}u{% elif is_push %}0.0u{% else %}{{ profit_units }}u{% endif %}
               </div>
               {% endif %}
 
               {# Data rows #}
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.4);">Final score</td>
-                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:500;color:#E8EAED;">{{ home_team_abbr|default('') }} {{ final_score_home }} &ndash; {{ away_team_abbr|default('') }} {{ final_score_away }}</td>
+                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Final score</td>
+                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#E8EAED;">{{ away_team_abbr|default('') }} {{ final_score_away }} &middot; {{ home_team_abbr|default('') }} {{ final_score_home }}</td>
                 </tr>
                 {% if cover_margin is not none %}
                 <tr>
-                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.4);">Cover margin</td>
-                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:500;color:{{ accent }};">{% if cover_margin > 0 %}+{% endif %}{{ cover_margin }} points</td>
+                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Cover margin</td>
+                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:{% if cover_margin > 0 %}{{ green }}{% elif cover_margin < 0 %}{{ loss_red }}{% else %}#E8EAED{% endif %};">{% if cover_margin > 0 %}+{% endif %}{{ cover_margin }} points</td>
                 </tr>
                 {% endif %}
                 <tr>
-                  <td style="padding:12px 0;font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.4);">Edge at entry</td>
-                  <td align="right" style="padding:12px 0;font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:500;color:{{ green }};">+{{ edge_at_entry }}%</td>
+                  <td style="padding:12px 0;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Edge at entry</td>
+                  <td align="right" style="padding:12px 0;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:{{ green }};">+{{ edge_at_entry }}%</td>
                 </tr>
               </table>
 
-              {# CLV proof #}
+              {# Line movement box #}
               {% if opening_line and closing_line %}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:rgba(90,158,114,0.06);border-radius:10px;margin:20px 0;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:20px 0;">
                 <tr>
-                  <td style="padding:16px 20px;">
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:0.15em;color:rgba(232,234,237,0.3);margin-bottom:10px;">LINE MOVEMENT</div>
+                  <td style="background-color:#111622;border-radius:8px;padding:20px 24px;">
+                    <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(232,234,237,0.35);margin-bottom:12px;">LINE MOVEMENT</div>
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                       <tr>
-                        <td style="padding:4px 0;font-family:'Courier New',Courier,monospace;font-size:13px;color:rgba(232,234,237,0.45);">Our entry</td>
-                        <td align="right" style="padding:4px 0;font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:500;color:#5A9E72;">{{ opening_line }}</td>
+                        <td style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Our entry</td>
+                        <td align="right" style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#E8EAED;">{{ opening_line }}</td>
                       </tr>
                       <tr>
-                        <td style="padding:4px 0;font-family:'Courier New',Courier,monospace;font-size:13px;color:rgba(232,234,237,0.45);">Closing line</td>
-                        <td align="right" style="padding:4px 0;font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:500;color:#5A9E72;">{{ closing_line }}</td>
+                        <td style="padding:6px 0;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Closing line</td>
+                        <td align="right" style="padding:6px 0;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#E8EAED;">{{ closing_line }}</td>
                       </tr>
                     </table>
                     {% if clv_points is defined and clv_points != 0 %}
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:13px;color:rgba(232,234,237,0.35);margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);line-height:1.5;">
+                    <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;color:rgba(232,234,237,0.45);margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);line-height:1.6;">
                       {% if clv_points > 0 %}
-                      The line moved {{ clv_points|abs }} point{{ 's' if clv_points|abs != 1 else '' }} in our direction after we entered. The market agreed with the model.
+                      The line moved {{ clv_points|abs }} point{{ 's' if clv_points|abs != 1 else '' }} in our direction after entry. The market agreed with the model.
                       {% else %}
-                      The line moved {{ clv_points|abs }} point{{ 's' if clv_points|abs != 1 else '' }} against. CLV was negative. Process unchanged.
+                      The line moved {{ clv_points|abs }} point{{ 's' if clv_points|abs != 1 else '' }} against after entry. CLV was negative on this signal.
                       {% endif %}
                     </div>
                     {% endif %}
@@ -124,52 +108,22 @@
               </table>
               {% endif %}
 
-              <div style="height:1px;background:rgba(255,255,255,0.06);margin:24px 0;"></div>
+              <div style="height:1px;background:rgba(255,255,255,0.06);margin:20px 0;"></div>
 
-              {# Season bar #}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-                <tr>
-                  <td width="33%" style="background-color:rgba(255,255,255,0.04);border-radius:8px;padding:14px;text-align:center;font-family:'Courier New',Courier,monospace;">
-                    <div style="font-size:20px;font-weight:600;color:#E8EAED;line-height:1;">{{ updated_wins }}-{{ updated_losses }}</div>
-                    <div style="font-size:11px;color:rgba(232,234,237,0.35);margin-top:6px;">season record</div>
-                  </td>
-                  <td width="1%"></td>
-                  <td width="33%" style="background-color:rgba(255,255,255,0.04);border-radius:8px;padding:14px;text-align:center;font-family:'Courier New',Courier,monospace;">
-                    <div style="font-size:20px;font-weight:600;color:{{ green }};line-height:1;">{% if updated_roi > 0 %}+{% endif %}{{ updated_roi }}%</div>
-                    <div style="font-size:11px;color:rgba(232,234,237,0.35);margin-top:6px;">ROI</div>
-                  </td>
-                  <td width="1%"></td>
-                  <td width="33%" style="background-color:rgba(255,255,255,0.04);border-radius:8px;padding:14px;text-align:center;font-family:'Courier New',Courier,monospace;">
-                    <div style="font-size:20px;font-weight:600;color:{{ green }};line-height:1;">{{ updated_clv }}%</div>
-                    <div style="font-size:11px;color:rgba(232,234,237,0.35);margin-top:6px;">beat the close</div>
-                  </td>
-                </tr>
-              </table>
+              {# Season stat bar #}
+              {% set roi_color = green if updated_roi >= 0 else loss_red %}
+              {{ stat_bar_3(
+                updated_wins ~ '-' ~ updated_losses, 'season record',
+                ('+' if updated_roi > 0 else '') ~ updated_roi ~ '%', 'ROI',
+                updated_clv ~ '%', 'beat the close',
+                color2=roi_color, color3=green
+              ) }}
 
-              {# CTA #}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0 0;">
-                <tr>
-                  <td align="center" bgcolor="#5A9E72" style="border-radius:10px;">
-                    <a href="{{ app_url }}" style="display:block;padding:16px;background-color:#5A9E72;color:#0A0D14;text-decoration:none;border-radius:10px;font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:600;letter-spacing:0.05em;text-align:center;">View Full Results</a>
-                  </td>
-                </tr>
-              </table>
+              {{ email_cta(app_url, 'VIEW FULL RESULTS') }}
             </td>
           </tr>
 
-          {# ── Footer ── #}
-          <tr>
-            <td style="padding:24px 32px 28px;">
-              <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;text-align:center;">
-                <p style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:15px;color:rgba(232,234,237,0.4);margin:0 0 12px;">One pick beats five.</p>
-                <p style="font-family:'Courier New',Courier,monospace;font-size:11px;color:rgba(232,234,237,0.25);margin:0;">
-                  <a href="{{ app_url }}" style="color:rgba(232,234,237,0.35);text-decoration:none;">sharppicks.ai</a>
-                  &nbsp;·&nbsp;
-                  <a href="{{ unsubscribe_url }}" style="color:rgba(232,234,237,0.35);text-decoration:none;">Unsubscribe from results</a>
-                </p>
-              </div>
-            </td>
-          </tr>
+          {{ email_footer(app_url, unsubscribe_url) }}
 
         </table>
       </td>

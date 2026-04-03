@@ -1,4 +1,4 @@
-{% from "wordmark.html" import email_wordmark %}
+{% from "wordmark.html" import email_header, email_cta, email_footer %}
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -6,9 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>SharpPicks Weekly Recap</title>
-  <!--[if mso]>
-  <style>table,td{font-family:Arial,Helvetica,sans-serif!important;}</style>
-  <![endif]-->
+  <!--[if mso]><style>table,td{font-family:Arial,Helvetica,sans-serif!important;}</style><![endif]-->
   <style>
     @media only screen and (max-width: 620px) {
       .outer-table { width: 100% !important; }
@@ -16,67 +14,86 @@
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background-color:#0A0D14;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+<body style="margin:0;padding:0;background-color:#070B14;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
   {% set green = "#5A9E72" %}
   {% set red = "#C4686B" %}
 
-  <div style="display:none;font-size:1px;color:#0A0D14;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
-    Weekly Recap: {{ weekly_wins }}-{{ weekly_losses }} · {% if weekly_units >= 0 %}+{% endif %}{{ weekly_units }}u · ROI: {% if weekly_roi >= 0 %}+{% endif %}{{ weekly_roi }}%
-    &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;
+  <div style="display:none;font-size:1px;color:#070B14;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+    Weekly Recap: {{ weekly_wins }}-{{ weekly_losses }} &middot; {% if weekly_units >= 0 %}+{% endif %}{{ weekly_units }}u &middot; {% if weekly_roi >= 0 %}+{% endif %}{{ weekly_roi }}% ROI
+    &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;
   </div>
 
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#0A0D14;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#070B14;">
     <tr>
-      <td align="center" style="padding:32px 16px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="outer-table" style="max-width:600px;background-color:#0A0D14;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+      <td align="center" style="padding:0;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" class="outer-table" style="background-color:#0A0D14;max-width:600px;width:100%;">
 
-          {# ── Header ── #}
+          {{ email_header(week_start ~ ' - ' ~ week_end) }}
+
           <tr>
-            <td class="inner-pad" style="padding:28px 32px 20px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+            <td class="inner-pad" style="padding:24px 28px 0;">
+
+              {# Badge #}
+              <div style="display:inline-block;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;padding:6px 14px;border-radius:4px;letter-spacing:0.15em;text-transform:uppercase;background-color:rgba(232,234,237,0.08);color:rgba(232,234,237,0.5);">
+                WEEKLY RECAP
+              </div>
+
+              {# Hero stat #}
+              <div style="text-align:center;margin:24px 0;">
+                <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:40px;font-weight:700;color:{% if weekly_units >= 0 %}{{ green }}{% else %}{{ red }}{% endif %};line-height:1;">
+                  {% if weekly_units >= 0 %}+{% endif %}{{ weekly_units }}u
+                </div>
+                <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:13px;color:rgba(232,234,237,0.35);margin-top:8px;">weekly profit</div>
+              </div>
+
+              {# 4-column stat bar #}
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:20px;">
                 <tr>
-                  <td>{{ email_wordmark(14) }}</td>
-                  <td align="right" style="font-family:'Courier New',Courier,monospace;font-size:12px;color:rgba(232,234,237,0.4);">
-                    {{ week_start }} &ndash; {{ week_end }}
+                  <td width="24%" style="background-color:#111622;border-radius:8px;padding:14px 8px;text-align:center;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;">
+                    <div style="font-size:18px;font-weight:700;color:#E8EAED;line-height:1;">{{ weekly_wins }}-{{ weekly_losses }}</div>
+                    <div style="font-size:10px;color:rgba(232,234,237,0.4);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">record</div>
+                  </td>
+                  <td width="1%"></td>
+                  <td width="24%" style="background-color:#111622;border-radius:8px;padding:14px 8px;text-align:center;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;">
+                    <div style="font-size:18px;font-weight:700;color:{% if weekly_roi >= 0 %}{{ green }}{% else %}{{ red }}{% endif %};line-height:1;">{% if weekly_roi >= 0 %}+{% endif %}{{ weekly_roi }}%</div>
+                    <div style="font-size:10px;color:rgba(232,234,237,0.4);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">ROI</div>
+                  </td>
+                  <td width="1%"></td>
+                  <td width="24%" style="background-color:#111622;border-radius:8px;padding:14px 8px;text-align:center;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;">
+                    <div style="font-size:18px;font-weight:700;color:{{ green }};line-height:1;">{% if weekly_clv is defined %}{{ weekly_clv }}%{% else %}--{% endif %}</div>
+                    <div style="font-size:10px;color:rgba(232,234,237,0.4);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">CLV+</div>
+                  </td>
+                  <td width="1%"></td>
+                  <td width="24%" style="background-color:#111622;border-radius:8px;padding:14px 8px;text-align:center;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;">
+                    {% set total_picks = weekly_wins + weekly_losses %}
+                    {% set total_slates = total_picks + (pass_days|default(0)) %}
+                    <div style="font-size:18px;font-weight:700;color:#E8EAED;line-height:1;">{{ total_picks }}/{{ total_slates if total_slates > 0 else 7 }}</div>
+                    <div style="font-size:10px;color:rgba(232,234,237,0.4);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">active days</div>
                   </td>
                 </tr>
               </table>
-            </td>
-          </tr>
-          <tr><td style="padding:0 32px;"><div style="border-top:1px solid rgba(255,255,255,0.06);"></div></td></tr>
 
-          {# ── Body ── #}
-          <tr>
-            <td class="inner-pad" style="padding:32px 32px 0;">
-
-              {# Hero stat #}
-              <div style="text-align:center;margin-bottom:24px;">
-                <div style="font-family:'Courier New',Courier,monospace;font-size:48px;font-weight:700;color:{% if weekly_units >= 0 %}{{ green }}{% else %}{{ red }}{% endif %};line-height:1;">
-                  {% if weekly_units >= 0 %}+{% endif %}{{ weekly_units }}u
-                </div>
-                <div style="font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.5);margin-top:8px;">
-                  {{ weekly_wins }} win{{ 's' if weekly_wins != 1 else '' }}, {{ weekly_losses }} loss{{ 'es' if weekly_losses != 1 else '' }} · {% if weekly_roi >= 0 %}+{% endif %}{{ weekly_roi }}% ROI
-                </div>
-              </div>
-
-              {# Pick rows heading #}
+              {# Pick results list #}
               {% if picks %}
-              <div style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:0.15em;color:rgba(232,234,237,0.3);margin-bottom:12px;">THIS WEEK'S PICKS</div>
+              <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(232,234,237,0.35);margin-bottom:10px;">THIS WEEK</div>
 
               {% for pick in picks %}
               {% set p_win = (pick.result == "W") %}
               {% set p_color = green if p_win else red %}
-              {% set p_bg = "rgba(90,158,114,0.08)" if p_win else "rgba(196,104,107,0.08)" %}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:{{ p_bg }};border-radius:8px;{% if not loop.last %}margin-bottom:6px;{% endif %}">
+              {% set p_bg = "#111622" %}
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:{{ p_bg }};border-radius:6px;{% if not loop.last %}margin-bottom:6px;{% endif %}">
                 <tr>
                   <td style="padding:12px 16px;">
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                       <tr>
-                        <td width="28" style="font-family:'Courier New',Courier,monospace;font-size:12px;font-weight:600;color:{{ p_color }};">{{ pick.result }}</td>
-                        <td style="font-family:'Courier New',Courier,monospace;font-size:14px;color:#E8EAED;padding-left:12px;">{{ pick.team }} {{ pick.line }}</td>
-                        <td align="right" style="font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:500;color:{{ p_color }};">
+                        <td width="36" style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:600;color:{{ p_color }};letter-spacing:0.05em;vertical-align:middle;">
+                          <span style="display:inline-block;padding:2px 6px;border-radius:3px;background-color:{% if p_win %}rgba(90,158,114,0.15){% else %}rgba(196,104,107,0.15){% endif %};">{{ pick.result }}</span>
+                        </td>
+                        <td style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:#E8EAED;padding-left:8px;vertical-align:middle;">{{ pick.team }} {{ pick.line }}</td>
+                        <td align="right" style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:{{ p_color }};vertical-align:middle;white-space:nowrap;">
                           {% if p_win %}+0.91u{% else %}-1.00u{% endif %}
                         </td>
+                        <td align="right" width="70" style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:12px;color:rgba(232,234,237,0.35);vertical-align:middle;padding-left:8px;white-space:nowrap;">{{ pick.edge }}%</td>
                       </tr>
                     </table>
                   </td>
@@ -85,91 +102,32 @@
               {% endfor %}
               {% endif %}
 
-              {# Discipline box #}
-              {% set total_picks = weekly_wins + weekly_losses %}
-              {% set total_slates = total_picks + (pass_days|default(0)) %}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid rgba(90,158,114,0.15);border-radius:10px;margin:20px 0;">
-                <tr>
-                  <td style="padding:16px 20px;text-align:center;">
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:15px;color:#5A9E72;font-weight:500;margin-bottom:6px;">Acted on {{ total_picks }} of {{ total_slates }} slates.</div>
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:13px;color:rgba(232,234,237,0.4);line-height:1.5;">{{ pass_days|default(0) }} pass days. The model scanned {{ games_scanned|default(total_slates * 10) }} games and found {{ total_picks }} qualifying edge{{ 's' if total_picks != 1 else '' }}.</div>
-                  </td>
-                </tr>
-              </table>
-
-              {# CLV proof #}
-              {% if weekly_clv is defined %}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:rgba(90,158,114,0.06);border-radius:10px;margin:20px 0;">
-                <tr>
-                  <td style="padding:16px 20px;">
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:0.15em;color:rgba(232,234,237,0.3);margin-bottom:10px;">CLOSING LINE VALUE</div>
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-                      <tr>
-                        <td style="padding:4px 0;font-family:'Courier New',Courier,monospace;font-size:13px;color:rgba(232,234,237,0.45);">Average CLV</td>
-                        <td align="right" style="padding:4px 0;font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:500;color:#5A9E72;">{% if weekly_clv > 0 %}+{% endif %}{{ weekly_clv }} points</td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-              {% endif %}
-
-              <div style="height:1px;background:rgba(255,255,255,0.06);margin:24px 0;"></div>
-
-              {# Season totals heading #}
-              <div style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:0.15em;color:rgba(232,234,237,0.3);margin-bottom:12px;">SEASON TOTALS</div>
-
-              {# Season bar #}
+              {# Discipline section #}
+              <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(232,234,237,0.35);margin:24px 0 10px;">DISCIPLINE</div>
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <td width="24%" style="background-color:rgba(255,255,255,0.04);border-radius:8px;padding:14px 8px;text-align:center;font-family:'Courier New',Courier,monospace;">
-                    <div style="font-size:20px;font-weight:600;color:#E8EAED;line-height:1;">{{ season_wins }}-{{ season_losses }}</div>
-                    <div style="font-size:11px;color:rgba(232,234,237,0.35);margin-top:6px;">record</div>
-                  </td>
-                  <td width="1%"></td>
-                  <td width="24%" style="background-color:rgba(255,255,255,0.04);border-radius:8px;padding:14px 8px;text-align:center;font-family:'Courier New',Courier,monospace;">
-                    <div style="font-size:20px;font-weight:600;color:{{ green }};line-height:1;">{% if season_roi > 0 %}+{% endif %}{{ season_roi }}%</div>
-                    <div style="font-size:11px;color:rgba(232,234,237,0.35);margin-top:6px;">ROI</div>
-                  </td>
-                  <td width="1%"></td>
-                  <td width="24%" style="background-color:rgba(255,255,255,0.04);border-radius:8px;padding:14px 8px;text-align:center;font-family:'Courier New',Courier,monospace;">
-                    <div style="font-size:20px;font-weight:600;color:{{ green }};line-height:1;">{{ season_clv }}%</div>
-                    <div style="font-size:11px;color:rgba(232,234,237,0.35);margin-top:6px;">beat the close</div>
-                  </td>
-                  <td width="1%"></td>
-                  <td width="24%" style="background-color:rgba(255,255,255,0.04);border-radius:8px;padding:14px 8px;text-align:center;font-family:'Courier New',Courier,monospace;">
-                    <div style="font-size:20px;font-weight:600;color:#E8EAED;line-height:1;">{% if selectivity is defined %}{{ selectivity }}%{% else %}--{% endif %}</div>
-                    <div style="font-size:11px;color:rgba(232,234,237,0.35);margin-top:6px;">selectivity</div>
-                  </td>
+                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Signal rate</td>
+                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#E8EAED;">{% if selectivity is defined %}{{ selectivity }}%{% else %}--{% endif %} ({{ weekly_wins + weekly_losses }} of {{ (weekly_wins + weekly_losses + (pass_days|default(0))) or 7 }} days)</td>
                 </tr>
-              </table>
-
-              {# CTA #}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0 0;">
                 <tr>
-                  <td align="center" bgcolor="#5A9E72" style="border-radius:10px;">
-                    <a href="{{ app_url }}" style="display:block;padding:16px;background-color:#5A9E72;color:#0A0D14;text-decoration:none;border-radius:10px;font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:600;letter-spacing:0.05em;text-align:center;">View Full Report</a>
-                  </td>
+                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Avg edge at entry</td>
+                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#E8EAED;">{% if weekly_avg_edge is defined %}+{{ weekly_avg_edge }}%{% else %}--{% endif %}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">CLV rate</td>
+                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:{{ green }};">{% if weekly_clv is defined %}{{ weekly_clv }}%{% else %}--{% endif %}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Season record</td>
+                  <td align="right" style="padding:12px 0;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#E8EAED;">{{ season_wins }}-{{ season_losses }} ({% if season_roi > 0 %}+{% endif %}{{ season_roi }}% ROI)</td>
                 </tr>
               </table>
+
+              {{ email_cta(app_url, 'VIEW FULL RESULTS') }}
             </td>
           </tr>
 
-          {# ── Footer ── #}
-          <tr>
-            <td style="padding:24px 32px 28px;">
-              <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;text-align:center;">
-                <p style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:15px;color:rgba(232,234,237,0.4);margin:0 0 12px;">One pick beats five.</p>
-                <p style="font-family:'Courier New',Courier,monospace;font-size:11px;color:rgba(232,234,237,0.25);margin:0;">
-                  <a href="{{ app_url }}" style="color:rgba(232,234,237,0.35);text-decoration:none;">sharppicks.ai</a>
-                  &nbsp;·&nbsp;
-                  <a href="mailto:evan@sharppicks.ai" style="color:rgba(232,234,237,0.35);text-decoration:none;">Reply to evan@sharppicks.ai</a>
-                  &nbsp;·&nbsp;
-                  <a href="{{ unsubscribe_url }}" style="color:rgba(232,234,237,0.35);text-decoration:none;">Unsubscribe</a>
-                </p>
-              </div>
-            </td>
-          </tr>
+          {{ email_footer(app_url, unsubscribe_url) }}
 
         </table>
       </td>

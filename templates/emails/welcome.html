@@ -1,0 +1,75 @@
+{% from "wordmark.html" import email_header, email_cta, email_footer %}
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>SharpPicks: Account Active</title>
+  <!--[if mso]><style>table,td{font-family:Arial,Helvetica,sans-serif!important;}</style><![endif]-->
+  <style>
+    @media only screen and (max-width: 620px) {
+      .outer-table { width: 100% !important; }
+      .inner-pad { padding: 24px 20px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#070B14;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+  <div style="display:none;font-size:1px;color:#070B14;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+    Your SharpPicks account is active. Signal emails when the model finds an edge. Pass day emails when it does not.
+    &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#070B14;">
+    <tr>
+      <td align="center" style="padding:0;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" class="outer-table" style="background-color:#0A0D14;max-width:600px;width:100%;">
+
+          {{ email_header(signal_date|default('')) }}
+
+          <tr>
+            <td class="inner-pad" style="padding:24px 28px 0;">
+
+              {# Hero text #}
+              <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:24px;font-weight:700;color:#E8EAED;margin-bottom:20px;">
+                Account active.
+              </div>
+
+              {# Body copy #}
+              <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.7;margin-bottom:24px;">
+                SharpPicks scans every game on the board and only sends a signal when the model finds a verified, quantified edge above 3.5%. Some days that means no pick at all. That is the product working.
+              </div>
+
+              {# What to expect #}
+              <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(232,234,237,0.35);margin-bottom:16px;">WHAT TO EXPECT</div>
+
+              <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:14px;color:rgba(232,234,237,0.5);line-height:1.7;">
+                <div style="margin-bottom:8px;">Signal emails when the model finds an edge.</div>
+                <div style="margin-bottom:8px;">Pass day emails when it does not.</div>
+                <div style="margin-bottom:8px;">Result emails after each game grades.</div>
+                <div style="margin-bottom:0;">Weekly recaps every Monday.</div>
+              </div>
+
+              {# Guide callout #}
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0;">
+                <tr>
+                  <td style="background-color:#111622;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:20px 24px;">
+                    <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:14px;font-weight:700;color:rgba(232,234,237,0.6);margin-bottom:8px;">New to sports betting analytics?</div>
+                    <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;color:rgba(232,234,237,0.45);line-height:1.6;margin-bottom:16px;">We wrote a 5-minute guide that explains every number, tab, and metric in the app.</div>
+                    <a href="{{ guide_url|default('https://sharppicks.ai/guide.html') }}" style="display:inline-block;font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:#5A9E72;border:1px solid #5A9E72;padding:12px 24px;border-radius:6px;text-decoration:none;text-transform:uppercase;">READ THE GUIDE</a>
+                  </td>
+                </tr>
+              </table>
+
+              {{ email_cta(app_url, 'OPEN SHARPPICKS') }}
+            </td>
+          </tr>
+
+          {{ email_footer(app_url, unsubscribe_url|default('')) }}
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

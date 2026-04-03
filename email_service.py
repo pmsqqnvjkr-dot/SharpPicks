@@ -151,17 +151,17 @@ def _get_shared_email_context():
 # ── Legacy base template (kept as fallback) ──
 
 def _brand_header_html():
-    """Inline brand header matching the app Wordmark component — two bars + green underline."""
+    """Inline brand header: SHARP || PICKS with green double-bar separator."""
     return (
-        '<span style="font-family:\'Courier New\',Courier,monospace;font-size:14px;font-weight:500;'
+        '<span style="font-family:\'SF Mono\',\'Menlo\',\'Consolas\',\'Courier New\',monospace;font-size:13px;font-weight:500;'
         'letter-spacing:0.2em;color:#E8EAED;white-space:nowrap;display:inline-flex;align-items:center;line-height:1;">'
         'SHARP'
         '<span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 6px;gap:2px;letter-spacing:0;">'
         '<span style="display:inline-flex;gap:2px;">'
-        '<span style="display:inline-block;width:2px;height:18px;background:#E8EAED;border-radius:1px;"></span>'
-        '<span style="display:inline-block;width:2px;height:18px;background:#E8EAED;border-radius:1px;"></span>'
+        '<span style="display:inline-block;width:2px;height:16px;background:#E8EAED;border-radius:1px;"></span>'
+        '<span style="display:inline-block;width:2px;height:16px;background:#E8EAED;border-radius:1px;"></span>'
         '</span>'
-        '<span style="display:inline-block;width:6px;height:1.5px;background:#5A9E72;border-radius:1px;"></span>'
+        '<span style="display:inline-block;width:5px;height:1.5px;background:#5A9E72;border-radius:1px;"></span>'
         '</span>'
         'PICKS'
         '</span>'
@@ -173,19 +173,17 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
     base = get_base_url()
     unsub_url = _make_unsub_url(to_email, unsub_category) if to_email else f'{base}/unsubscribe'
     unsub_html = f'''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#444444;text-align:center;margin:8px 0 0;">
-          <a href="{unsub_url}" style="color:#4A9EFF;text-decoration:underline;">Unsubscribe</a>
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:11px;color:rgba(232,234,237,0.25);text-align:center;margin:8px 0 0;">
+          <a href="{unsub_url}" style="color:rgba(232,234,237,0.25);text-decoration:underline;">Unsubscribe</a>
         </p>'''
 
     cta_html = ''
     if cta_text and cta_url:
         cta_html = f'''
-        <table cellpadding="0" cellspacing="0" border="0" style="margin:32px auto;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0 0;">
           <tr>
-            <td align="center" bgcolor="#5A9E72" style="border-radius:6px;">
-              <!--[if !mso]><!-->
-              <a href="{cta_url}" style="display:inline-block;padding:14px 32px;background-color:#5A9E72;color:#ffffff;text-decoration:none;border-radius:6px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;">{cta_text}</a>
-              <!--<![endif]-->
+            <td align="center">
+              <a href="{cta_url}" style="display:block;width:100%;padding:16px 0;background-color:#5A9E72;color:#E8EAED;text-align:center;text-decoration:none;border-radius:6px;font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.08em;">{cta_text}</a>
             </td>
           </tr>
         </table>'''
@@ -193,7 +191,7 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
     fine_html = ''
     if fine_print:
         fine_html = f'''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#666666;line-height:1.6;margin:0 0 24px;">{fine_print}</p>'''
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;color:rgba(232,234,237,0.45);line-height:1.6;margin:16px 0 0;">{fine_print}</p>'''
 
     brand = _brand_header_html()
 
@@ -201,33 +199,29 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>SharpPicks</title></head>
-<body style="margin:0;padding:0;background-color:#0D0D0D;">
-<table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#0D0D0D;">
-  <tr><td align="center" style="padding:32px 16px;">
-    <table cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background-color:#141414;border-radius:8px;">
-      <tr><td style="padding:32px 32px 0;">
-        <table cellpadding="0" cellspacing="0" border="0" width="100%">
-          <tr><td align="center" style="padding:0 0 16px;">
-            {brand}
-          </td></tr>
-        </table>
-        <hr style="border:none;border-top:1px solid #2A2A2A;margin:0 0 24px;">
+<body style="margin:0;padding:0;background-color:#070B14;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#070B14;">
+  <tr><td align="center" style="padding:0;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;background-color:#0A0D14;">
+      <tr><td style="padding:24px 28px 20px;">
+        {brand}
       </td></tr>
-      <tr><td style="padding:0 32px;">
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:0.1em;text-transform:uppercase;color:#666666;margin:0 0 20px;">{type_label}</p>
+      <tr><td style="padding:0 28px;"><div style="border-top:1px solid rgba(255,255,255,0.06);"></div></td></tr>
+      <tr><td style="padding:24px 28px 0;">
+        <p style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;letter-spacing:0.15em;text-transform:uppercase;color:rgba(232,234,237,0.4);margin:0 0 20px;">{type_label}</p>
         {body_html}
         {cta_html}
         {fine_html}
       </td></tr>
-      <tr><td style="padding:0 32px 32px;">
-        <hr style="border:none;border-top:1px solid #2A2A2A;margin:24px 0 16px;">
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#444444;text-align:center;margin:0;">
-          SharpPicks. Selective by design.
-        </p>
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#444444;text-align:center;margin:8px 0 0;">
-          support@sharppicks.ai
-        </p>
-        {unsub_html}
+      <tr><td style="padding:24px 28px 28px;">
+        <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;text-align:center;">
+          <p style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:12px;color:rgba(232,234,237,0.3);margin:0 0 12px;">One pick beats five.</p>
+          <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:11px;color:rgba(232,234,237,0.25);margin:0 0 4px;">SharpPicks</p>
+          <p style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;color:rgba(232,234,237,0.25);margin:0 0 10px;">
+            <a href="{base}/" style="color:rgba(232,234,237,0.25);text-decoration:underline;">sharppicks.ai</a>
+          </p>
+          {unsub_html}
+        </div>
       </td></tr>
     </table>
   </td></tr>
@@ -289,40 +283,34 @@ def send_verification_email(to, verify_url, first_name=None):
 
 def send_welcome_email(to, first_name=None):
     base = get_base_url()
-    html = _render('welcome', {
-        'firstName': first_name,
-        'appUrl': f'{base}/',
-        'guideUrl': 'https://sharppicks.ai/guide.html',
-        'unsubscribeUrl': _make_unsub_url(to),
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    now_et = datetime.now(ZoneInfo('America/New_York'))
+
+    html = _render_jinja('welcome.html', {
+        'signal_date': now_et.strftime('%b %d, %Y').upper(),
+        'app_url': f'{base}/',
+        'guide_url': 'https://sharppicks.ai/guide.html',
+        'unsubscribe_url': _make_unsub_url(to),
     })
     if not html:
-        guide_section = '''
-        <div style="margin:24px 0;padding:20px 24px;border:1px solid rgba(90,158,114,0.18);border-radius:10px;background:rgba(90,158,114,0.04);">
-          <p style="font-family:'JetBrains Mono','Courier New',monospace;font-size:13px;color:rgba(232,234,237,0.5);letter-spacing:0.04em;text-transform:uppercase;margin:0 0 8px;">
-            New to sports betting analytics?
-          </p>
-          <p style="font-family:'JetBrains Mono','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);line-height:1.65;margin:0 0 16px;">
-            We wrote a 5-minute guide that explains every number, tab, and metric in the app. No jargon, no assumptions.
-          </p>
-          <a href="https://sharppicks.ai/guide.html" style="display:inline-block;font-family:'JetBrains Mono','Courier New',monospace;font-size:12px;letter-spacing:0.04em;color:#5A9E72;border:1px solid #5A9E72;padding:10px 24px;border-radius:6px;text-decoration:none;text-transform:uppercase;">
-            Read the Beginner&#8217;s Guide
-          </a>
-        </div>'''
+        html = _render('welcome', {
+            'firstName': first_name,
+            'appUrl': f'{base}/',
+            'guideUrl': 'https://sharppicks.ai/guide.html',
+            'unsubscribeUrl': _make_unsub_url(to),
+        })
+    if not html:
         body = f'''
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
-          Your account is active.
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:24px;font-weight:700;color:#E8EAED;margin:0 0 20px;">
+          Account active.
         </p>
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 16px;">
-          SharpPicks scans the full NBA market daily and generates signals only when a statistically significant edge is detected. Most days produce few or zero signals.
-        </p>
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#AAAAAA;line-height:1.7;margin:0 0 24px;">
-          That&rsquo;s by design.
-        </p>
-        {guide_section}'''
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.7;margin:0 0 16px;">
+          SharpPicks scans every game on the board and only sends a signal when the model finds a verified, quantified edge above 3.5%. Some days that means no pick at all. That is the product working.
+        </p>'''
         html = _base_template(
             'ACCOUNT STATUS', body,
-            cta_text='ENTER MARKET VIEW', cta_url=f'{base}/',
-            fine_print='Questions? Reply to this email or contact support@sharppicks.ai',
+            cta_text='OPEN SHARPPICKS', cta_url=f'{base}/',
             to_email=to,
         )
     return send_email(to, 'SharpPicks: Account active', html)
@@ -839,6 +827,9 @@ def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0):
         logging.info(f"Skipping no-signal email to {to} — unsubscribed")
         return False
     base = get_base_url()
+    from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo as _ZI
+    now_et = _dt.now(_ZI('America/New_York'))
 
     ctx = _get_shared_email_context()
     s_wins = ctx.get('season_record_wins', 0)
@@ -865,6 +856,7 @@ def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0):
         'season_record': f'{s_wins}-{s_losses}',
         'season_roi': s_roi,
         'pass_days': pass_count,
+        'signal_date': now_et.strftime('%b %d, %Y').upper(),
         'app_url': f'{base}/',
         'unsubscribe_url': _make_unsub_url(to, 'email_marketing'),
     })
@@ -885,102 +877,5 @@ def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0):
 # ── Legacy: Welcome email (preserving for backward compat) ──
 
 def send_welcome(to, first_name=None):
-    name = first_name or "there"
-    dashboard_url = get_base_url()
-
-    attachments = []
-    sig_b64 = _get_sig_b64()
-    if sig_b64:
-        attachments.append({
-            "content": sig_b64,
-            "filename": "evan-signature.png",
-            "content_id": "evan-sig",
-            "content_type": "image/png",
-        })
-
-    sig_src = 'cid:evan-sig' if sig_b64 else f'{get_base_url()}/evan-signature.png'
-
-    html = f"""
-    <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 20px 24px 48px; color: #e0e0e0; background-color: #0A0D14;">
-      <div style="text-align: center; margin-bottom: 24px;">
-        {_brand_header_html()}
-      </div>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px; margin-top: 0;">Hi {name},</p>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Welcome to SharpPicks.</p>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Most people treat sports betting like a game of luck. We treat it like a market. By joining this community, you've chosen to move away from the noise and toward a data-driven, disciplined approach.</p>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 24px;">Evan Cole here. I built this platform because I was tired of the "hype" culture. I wanted a tool that prioritized institutional-grade tracking and transparency over flashy promos.</p>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #ffffff; font-weight: 600; margin-bottom: 16px;">Here is how to get the most out of your first 24 hours:</p>
-
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
-        <tr>
-          <td style="padding: 14px 16px; border-bottom: 1px solid #1a1d28;">
-            <span style="font-size: 14px; font-weight: 700; color: #5A9E72; margin-right: 10px;">1.</span>
-            <span style="font-size: 15px; color: #ffffff; font-weight: 600;">Set Your Unit Size</span>
-            <p style="font-size: 13px; color: #888; margin: 4px 0 0 22px; line-height: 1.6;">Discipline starts with bankroll management.</p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 14px 16px; border-bottom: 1px solid #1a1d28;">
-            <span style="font-size: 14px; font-weight: 700; color: #5A9E72; margin-right: 10px;">2.</span>
-            <span style="font-size: 15px; color: #ffffff; font-weight: 600;">Explore Today's Analysis</span>
-            <p style="font-size: 13px; color: #888; margin: 4px 0 0 22px; line-height: 1.6;">See what the model found, or why it passed.</p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 14px 16px;">
-            <span style="font-size: 14px; font-weight: 700; color: #5A9E72; margin-right: 10px;">3.</span>
-            <span style="font-size: 15px; color: #ffffff; font-weight: 600;">Review the Public Record</span>
-            <p style="font-size: 13px; color: #888; margin: 4px 0 0 22px; line-height: 1.6;">Every pick and pass tracked transparently. Verified by data.</p>
-          </td>
-        </tr>
-      </table>
-
-      <div style="margin: 28px 0 28px 0; padding: 20px 24px; border-left: 3px solid #5A9E72; background-color: rgba(27, 122, 61, 0.04);">
-        <div style="font-family: 'Courier New', monospace; font-size: 9px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #5A9E72; margin-bottom: 14px;">Sharp Principle</div>
-        <p style="font-family: Georgia, 'Times New Roman', serif; font-size: 19px; line-height: 1.55; color: #ffffff; font-weight: 500; font-style: italic; margin: 0;">The goal isn't just to win a bet; it's to build a sustainable edge.</p>
-      </div>
-
-      <div style="text-align: center; margin: 32px 0;">
-        <a href="{dashboard_url}" style="display: inline-block; padding: 14px 36px; background-color: #5A9E72; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; font-family: Arial, sans-serif; letter-spacing: 0.05em; text-transform: uppercase;">ENTER MARKET VIEW</a>
-      </div>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 32px;">If you have questions or feedback on the interface, reply directly to this email. I'm personally looking for ways to make our tools sharper for you.</p>
-
-      <p style="font-size: 15px; line-height: 1.9; color: #b8b8b8; margin-bottom: 4px;">To the edge,</p>
-
-      <div style="margin-bottom: 0; padding-bottom: 0;">
-        <img src="{sig_src}" alt="Evan" style="height: 140px; width: auto; display: block; margin-left: -20px; margin-bottom: 0;" />
-      </div>
-      <table cellpadding="0" cellspacing="0" border="0"><tr>
-        <td style="vertical-align: middle; padding-right: 12px;">
-          <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, rgba(27,122,61,0.2), rgba(27,122,61,0.15)); border: 1px solid rgba(27,122,61,0.3); text-align: center; line-height: 38px;">
-            <span style="font-size: 15px; font-weight: 600; color: #5A9E72;">EC</span>
-          </div>
-        </td>
-        <td style="vertical-align: middle;">
-          <div style="font-size: 17px; color: #ffffff; font-weight: 600; font-family: 'Inter', -apple-system, sans-serif;">Evan Cole</div>
-          <div style="font-size: 13px; color: #777; font-family: 'Inter', -apple-system, sans-serif; margin-top: 2px;">Head of Signal Intelligence, SharpPicks</div>
-        </td>
-      </tr></table>
-
-      <hr style="border: none; border-top: 1px solid #2A2A2A; margin: 36px 0;">
-      <p style="font-size: 12px; color: #444; text-align: center;">SharpPicks. Selective by design.</p>
-      <p style="font-size: 12px; color: #444; text-align: center; margin-top: 4px;">support@sharppicks.ai</p>
-      <p style="font-size: 12px; color: #444; text-align: center; margin-top: 8px;">
-        <a href="{_make_unsub_url(to)}" style="color:#4A9EFF;text-decoration:underline;">Unsubscribe</a>
-      </p>
-    </div>
-    """
-    return send_email(
-        to,
-        "SharpPicks: Account active",
-        html,
-        reply_to="evan@sharppicks.ai",
-        from_email=FOUNDER_EMAIL,
-        attachments=attachments or None,
-    )
+    """Legacy welcome email - redirects to send_welcome_email."""
+    return send_welcome_email(to, first_name=first_name)

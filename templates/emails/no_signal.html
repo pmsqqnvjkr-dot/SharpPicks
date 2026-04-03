@@ -1,14 +1,12 @@
-{% from "wordmark.html" import email_wordmark %}
+{% from "wordmark.html" import email_header, email_cta, email_footer %}
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>SharpPicks No Signal</title>
-  <!--[if mso]>
-  <style>table,td{font-family:Arial,Helvetica,sans-serif!important;}</style>
-  <![endif]-->
+  <title>SharpPicks: No Signal</title>
+  <!--[if mso]><style>table,td{font-family:Arial,Helvetica,sans-serif!important;}</style><![endif]-->
   <style>
     @media only screen and (max-width: 620px) {
       .outer-table { width: 100% !important; }
@@ -16,123 +14,68 @@
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background-color:#0A0D14;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
-  <div style="display:none;font-size:1px;color:#0A0D14;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+<body style="margin:0;padding:0;background-color:#070B14;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+  <div style="display:none;font-size:1px;color:#070B14;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
     No qualifying signal today. {{ games_analyzed }} games scanned, none above threshold.
-    &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;
+    &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;
   </div>
 
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#0A0D14;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#070B14;">
     <tr>
-      <td align="center" style="padding:32px 16px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="outer-table" style="max-width:600px;background-color:#0A0D14;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+      <td align="center" style="padding:0;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" class="outer-table" style="background-color:#0A0D14;max-width:600px;width:100%;">
 
-          {# ── Header ── #}
-          <tr>
-            <td class="inner-pad" style="padding:28px 32px 20px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-                <tr>
-                  <td>{{ email_wordmark(14) }}</td>
-                  <td align="right" style="font-family:'Courier New',Courier,monospace;font-size:12px;color:rgba(232,234,237,0.4);">
-                    {{ signal_date|default('') }}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr><td style="padding:0 32px;"><div style="border-top:1px solid rgba(255,255,255,0.06);"></div></td></tr>
+          {{ email_header(signal_date|default('')) }}
 
-          {# ── Body ── #}
           <tr>
-            <td class="inner-pad" style="padding:32px 32px 0;">
+            <td class="inner-pad" style="padding:24px 28px 0;">
 
               {# Badge #}
-              <div style="display:inline-block;font-family:'Courier New',Courier,monospace;font-size:12px;font-weight:600;padding:6px 16px;border-radius:6px;letter-spacing:0.1em;background-color:rgba(255,255,255,0.06);color:rgba(232,234,237,0.5);margin-bottom:20px;">
+              <div style="display:inline-block;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;padding:6px 14px;border-radius:4px;letter-spacing:0.15em;text-transform:uppercase;background-color:rgba(232,234,237,0.08);color:rgba(232,234,237,0.5);">
                 NO SIGNAL
               </div>
 
               {# Hero number #}
-              <div style="text-align:center;padding:20px 0;">
-                <div style="font-family:'Courier New',Courier,monospace;font-size:56px;font-weight:700;color:rgba(232,234,237,0.3);line-height:1;">{{ games_analyzed }}</div>
-                <div style="font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.35);margin-top:8px;">games scanned</div>
+              <div style="text-align:center;padding:28px 0 4px;">
+                <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:48px;font-weight:700;color:rgba(232,234,237,0.25);line-height:1;">{{ games_analyzed }}</div>
+                <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:13px;color:rgba(232,234,237,0.35);margin-top:8px;">games scanned</div>
               </div>
 
-              {# Edge boxes #}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0;">
+              {# 2-column stat row #}
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:20px 0;">
                 <tr>
-                  <td width="49%" style="background-color:rgba(255,255,255,0.04);border-radius:10px;padding:16px;text-align:center;">
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:24px;font-weight:600;color:rgba(232,234,237,0.4);line-height:1;">0</div>
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:12px;color:rgba(232,234,237,0.4);margin-top:8px;">qualifying edges</div>
+                  <td width="49%" style="background-color:#111622;border-radius:8px;padding:16px 12px;text-align:center;">
+                    <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:22px;font-weight:700;color:#E8EAED;line-height:1;">0</div>
+                    <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:10px;color:rgba(232,234,237,0.4);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">qualifying edges</div>
                   </td>
                   <td width="2%"></td>
-                  <td width="49%" style="background-color:rgba(255,255,255,0.04);border-radius:10px;padding:16px;text-align:center;">
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:24px;font-weight:600;color:rgba(232,234,237,0.4);line-height:1;">{% if closest_edge is defined and closest_edge %}{{ closest_edge }}%{% else %}0%{% endif %}</div>
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:12px;color:rgba(232,234,237,0.4);margin-top:8px;">closest edge found</div>
+                  <td width="49%" style="background-color:#111622;border-radius:8px;padding:16px 12px;text-align:center;">
+                    <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:22px;font-weight:700;color:#E8EAED;line-height:1;">{% if closest_edge is defined and closest_edge %}{{ closest_edge }}%{% else %}0%{% endif %}</div>
+                    <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:10px;color:rgba(232,234,237,0.4);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">closest edge found</div>
                   </td>
                 </tr>
               </table>
 
-              {# Explainer #}
-              <div style="font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.45);line-height:1.6;padding:16px 20px;border-left:2px solid rgba(90,158,114,0.3);margin:20px 0;">
+              {# Explainer block #}
+              <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:14px;color:rgba(232,234,237,0.5);line-height:1.6;padding:16px 20px;border-left:2px solid rgba(90,158,114,0.3);margin:20px 0;">
                 {{ games_analyzed }} games analyzed, none above the 3.5% minimum edge threshold.{% if closest_edge is defined and closest_edge %} The closest edge was {{ closest_edge }}%, not enough to qualify.{% endif %}
               </div>
 
-              {# Discipline box #}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid rgba(90,158,114,0.15);border-radius:10px;margin:20px 0;">
+              {# Callout box #}
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:20px 0;">
                 <tr>
-                  <td style="padding:16px 20px;text-align:center;">
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:15px;color:#5A9E72;font-weight:500;margin-bottom:6px;">This is the product working.</div>
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:13px;color:rgba(232,234,237,0.4);line-height:1.5;">Most services would have picked 3-4 of these games. We require a verified, quantified edge before sending a signal. No edge, no pick.</div>
+                  <td style="background-color:#111622;border:1px solid rgba(90,158,114,0.15);border-radius:8px;padding:20px 24px;text-align:center;">
+                    <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:14px;font-weight:700;color:#5A9E72;margin-bottom:8px;">This is the product working.</div>
+                    <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;color:rgba(232,234,237,0.45);line-height:1.6;">Most services would have picked 3-4 of these games. We require a verified, quantified edge before sending a signal. No edge, no pick.</div>
                   </td>
                 </tr>
               </table>
 
-              <div style="height:1px;background:rgba(255,255,255,0.06);margin:24px 0;"></div>
-
-              {# Season bar #}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-                <tr>
-                  <td width="33%" style="background-color:rgba(255,255,255,0.04);border-radius:8px;padding:14px;text-align:center;font-family:'Courier New',Courier,monospace;">
-                    <div style="font-size:20px;font-weight:600;color:#E8EAED;line-height:1;">{{ season_record|default('--') }}</div>
-                    <div style="font-size:11px;color:rgba(232,234,237,0.35);margin-top:6px;">season record</div>
-                  </td>
-                  <td width="1%"></td>
-                  <td width="33%" style="background-color:rgba(255,255,255,0.04);border-radius:8px;padding:14px;text-align:center;font-family:'Courier New',Courier,monospace;">
-                    <div style="font-size:20px;font-weight:600;color:#5A9E72;line-height:1;">{% if season_roi is defined %}{% if season_roi > 0 %}+{% endif %}{{ season_roi }}%{% else %}--{% endif %}</div>
-                    <div style="font-size:11px;color:rgba(232,234,237,0.35);margin-top:6px;">season ROI</div>
-                  </td>
-                  <td width="1%"></td>
-                  <td width="33%" style="background-color:rgba(255,255,255,0.04);border-radius:8px;padding:14px;text-align:center;font-family:'Courier New',Courier,monospace;">
-                    <div style="font-size:20px;font-weight:600;color:#E8EAED;line-height:1;">{{ pass_days|default('--') }}</div>
-                    <div style="font-size:11px;color:rgba(232,234,237,0.35);margin-top:6px;">pass days</div>
-                  </td>
-                </tr>
-              </table>
-
-              {# CTA #}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0 0;">
-                <tr>
-                  <td align="center" bgcolor="#5A9E72" style="border-radius:10px;">
-                    <a href="{{ app_url }}" style="display:block;padding:16px;background-color:#5A9E72;color:#0A0D14;text-decoration:none;border-radius:10px;font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:600;letter-spacing:0.05em;text-align:center;">View Market Report</a>
-                  </td>
-                </tr>
-              </table>
+              {{ email_cta(app_url, 'VIEW MARKET REPORT') }}
             </td>
           </tr>
 
-          {# ── Footer ── #}
-          <tr>
-            <td style="padding:24px 32px 28px;">
-              <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;text-align:center;">
-                <p style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:15px;color:rgba(232,234,237,0.4);margin:0 0 12px;">If it's not sharp, it's not sent.</p>
-                <p style="font-family:'Courier New',Courier,monospace;font-size:11px;color:rgba(232,234,237,0.25);margin:0;">
-                  <a href="{{ app_url }}" style="color:rgba(232,234,237,0.35);text-decoration:none;">sharppicks.ai</a>
-                  &nbsp;·&nbsp;
-                  <a href="{{ unsubscribe_url }}" style="color:rgba(232,234,237,0.35);text-decoration:none;">Unsubscribe</a>
-                </p>
-              </div>
-            </td>
-          </tr>
+          {{ email_footer(app_url, unsubscribe_url) }}
 
         </table>
       </td>

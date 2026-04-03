@@ -1,4 +1,4 @@
-{% from "wordmark.html" import email_wordmark %}
+{% from "wordmark.html" import email_header, email_cta, email_footer %}
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -6,9 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>SharpPicks Signal</title>
-  <!--[if mso]>
-  <style>table,td{font-family:Arial,Helvetica,sans-serif!important;}</style>
-  <![endif]-->
+  <!--[if mso]><style>table,td{font-family:Arial,Helvetica,sans-serif!important;}</style><![endif]-->
   <style>
     @media only screen and (max-width: 620px) {
       .outer-table { width: 100% !important; }
@@ -16,117 +14,79 @@
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background-color:#0A0D14;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
-  <div style="display:none;font-size:1px;color:#0A0D14;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
-    Signal: {{ pick_team }} {{ pick_line }} · Edge: +{{ edge_pct }}% · Model: {{ model_prob }}% vs Market: {{ market_prob }}%
-    &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;
+<body style="margin:0;padding:0;background-color:#070B14;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+  <div style="display:none;font-size:1px;color:#070B14;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+    Signal: {{ pick_team }} {{ pick_line }} &middot; Edge: +{{ edge_pct }}% &middot; Model: {{ model_prob }}% vs Market: {{ market_prob }}%
+    &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;
   </div>
 
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#0A0D14;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#070B14;">
     <tr>
-      <td align="center" style="padding:32px 16px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="outer-table" style="max-width:600px;background-color:#0A0D14;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+      <td align="center" style="padding:0;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" class="outer-table" style="background-color:#0A0D14;max-width:600px;width:100%;">
 
-          {# ── Header ── #}
-          <tr>
-            <td class="inner-pad" style="padding:28px 32px 20px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-                <tr>
-                  <td>{{ email_wordmark(14) }}</td>
-                  <td align="right" style="font-family:'Courier New',Courier,monospace;font-size:12px;color:rgba(232,234,237,0.4);">
-                    {{ signal_date }}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr><td style="padding:0 32px;"><div style="border-top:1px solid rgba(255,255,255,0.06);"></div></td></tr>
+          {{ email_header(signal_date) }}
 
-          {# ── Body ── #}
           <tr>
-            <td class="inner-pad" style="padding:32px 32px 0;">
+            <td class="inner-pad" style="padding:24px 28px 0;">
 
               {# Badge #}
-              <div style="display:inline-block;font-family:'Courier New',Courier,monospace;font-size:12px;font-weight:600;padding:6px 16px;border-radius:6px;letter-spacing:0.1em;background-color:rgba(90,158,114,0.15);color:#5A9E72;margin-bottom:20px;">
-                {{ edge_strength.label|upper }} SIGNAL
+              <div style="display:inline-block;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;padding:6px 14px;border-radius:4px;letter-spacing:0.15em;text-transform:uppercase;background-color:rgba(90,158,114,0.15);color:#5A9E72;">
+                NEW SIGNAL
               </div>
 
               {# Matchup #}
-              <div style="font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.5);margin-bottom:8px;margin-top:20px;">
-                {{ away_team_abbr }} @ {{ home_team_abbr }} · {{ game_time }}
+              <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:13px;color:rgba(232,234,237,0.4);margin:20px 0 8px;">
+                {{ away_team_abbr }} @ {{ home_team_abbr }}{% if game_time %} &middot; {{ game_time }}{% endif %}
               </div>
 
               {# Hero pick #}
-              <div style="font-family:'Courier New',Courier,monospace;font-size:32px;font-weight:700;color:#E8EAED;line-height:1.1;margin-bottom:8px;">
+              <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:28px;font-weight:700;color:#E8EAED;line-height:1.1;margin-bottom:12px;">
                 {{ pick_team }}
               </div>
 
-              {# Edge boxes #}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0;">
-                <tr>
-                  <td width="49%" style="background-color:rgba(255,255,255,0.04);border-radius:10px;padding:16px;text-align:center;">
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:24px;font-weight:600;color:#5A9E72;line-height:1;">{{ edge_pct }}%</div>
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:12px;color:rgba(232,234,237,0.4);margin-top:8px;">model edge</div>
-                  </td>
-                  <td width="2%"></td>
-                  <td width="49%" style="background-color:rgba(255,255,255,0.04);border-radius:10px;padding:16px;text-align:center;">
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:24px;font-weight:600;color:#5A9E72;line-height:1;">{{ (model_prob / 100 * 100)|round|int }}%</div>
-                    <div style="font-family:'Courier New',Courier,monospace;font-size:12px;color:rgba(232,234,237,0.4);margin-top:8px;">model confidence</div>
-                  </td>
-                </tr>
-              </table>
+              {# Edge tier label #}
+              <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:{% if edge_strength and edge_strength.label|upper == 'STRONG' %}#5A9E72{% else %}rgba(232,234,237,0.5){% endif %};margin-bottom:4px;">
+                {{ edge_strength.label|upper if edge_strength else 'LEAN' }}
+              </div>
 
-              {# Explainer #}
-              <div style="font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.45);line-height:1.6;padding:16px 20px;border-left:2px solid rgba(90,158,114,0.3);margin:20px 0;">
+              {# Edge value #}
+              <div style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:24px;font-weight:700;color:#5A9E72;margin-bottom:20px;">
+                +{{ edge_pct }}% edge
+              </div>
+
+              {# Explainer block #}
+              <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:14px;color:rgba(232,234,237,0.5);line-height:1.6;padding:16px 20px;border-left:2px solid rgba(90,158,114,0.3);margin:0 0 20px;">
                 The model sees a {{ edge_pct }}% edge between our win probability ({{ model_prob }}%) and the market's implied probability ({{ market_prob }}%). Edges above 3.5% qualify as signals.
               </div>
 
               {# Data rows #}
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.4);">Model probability</td>
-                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:500;color:#5A9E72;">{{ model_prob }}%</td>
+                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Model probability</td>
+                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#5A9E72;">{{ model_prob }}%</td>
                 </tr>
                 <tr>
-                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.4);">Market probability</td>
-                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:500;color:#E8EAED;">{{ market_prob }}%</td>
+                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Market probability</td>
+                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#E8EAED;">{{ market_prob }}%</td>
                 </tr>
                 {% if margin_projection is not none %}
                 <tr>
-                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.4);">Projected margin</td>
-                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:500;color:#E8EAED;">{{ margin_projection }}</td>
+                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Projected margin</td>
+                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#E8EAED;">{% if margin_projection > 0 %}+{% endif %}{{ margin_projection }} points</td>
                 </tr>
                 {% endif %}
                 <tr>
-                  <td style="padding:12px 0;font-family:'Courier New',Courier,monospace;font-size:14px;color:rgba(232,234,237,0.4);">Best available line</td>
-                  <td align="right" style="padding:12px 0;font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:500;color:#5A9E72;">{{ sportsbook }} {{ pick_line }}</td>
+                  <td style="padding:12px 0;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:rgba(232,234,237,0.45);">Best available line</td>
+                  <td align="right" style="padding:12px 0;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#E8EAED;">{{ pick_line }}</td>
                 </tr>
               </table>
 
-              {# CTA #}
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0 0;">
-                <tr>
-                  <td align="center" bgcolor="#5A9E72" style="border-radius:10px;">
-                    <a href="{{ app_url }}" style="display:block;padding:16px;background-color:#5A9E72;color:#0A0D14;text-decoration:none;border-radius:10px;font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:600;letter-spacing:0.05em;text-align:center;">View Full Analysis</a>
-                  </td>
-                </tr>
-              </table>
+              {{ email_cta(app_url, 'VIEW FULL ANALYSIS') }}
             </td>
           </tr>
 
-          {# ── Footer ── #}
-          <tr>
-            <td style="padding:24px 32px 28px;">
-              <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;text-align:center;">
-                <p style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:15px;color:rgba(232,234,237,0.4);margin:0 0 12px;">One pick beats five.</p>
-                <p style="font-family:'Courier New',Courier,monospace;font-size:11px;color:rgba(232,234,237,0.25);margin:0;">
-                  <a href="{{ app_url }}" style="color:rgba(232,234,237,0.35);text-decoration:none;">sharppicks.ai</a>
-                  &nbsp;·&nbsp;
-                  <a href="{{ unsubscribe_url }}" style="color:rgba(232,234,237,0.35);text-decoration:none;">Unsubscribe from signals</a>
-                </p>
-              </div>
-            </td>
-          </tr>
+          {{ email_footer(app_url, unsubscribe_url) }}
 
         </table>
       </td>

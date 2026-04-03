@@ -1,6 +1,6 @@
-{# Pure HTML/CSS wordmark matching the app header — two bars + green underline #}
-{% macro email_wordmark(size=14) %}
-<span style="font-family:'Courier New',Courier,monospace;font-size:{{ size }}px;font-weight:500;letter-spacing:0.2em;color:#E8EAED;white-space:nowrap;display:inline-flex;align-items:center;line-height:1;"><!--
+{# Wordmark macro: SHARP || PICKS with green double-bar separator #}
+{% macro email_wordmark(size=13) %}
+<span style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:{{ size }}px;font-weight:500;letter-spacing:0.2em;color:#E8EAED;white-space:nowrap;display:inline-flex;align-items:center;line-height:1;"><!--
 -->SHARP<!--
 --><span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 {{ (size * 0.45)|int }}px;gap:{{ (size * 0.12)|int }}px;letter-spacing:0;"><!--
   --><span style="display:inline-flex;gap:{{ (size * 0.12)|int }}px;"><!--
@@ -10,4 +10,73 @@
   --><span style="display:inline-block;width:{{ (size * 0.38)|int }}px;height:1.5px;background:#5A9E72;border-radius:1px;"></span><!--
 --></span><!--
 -->PICKS</span>
+{% endmacro %}
+
+{# Shared email header: wordmark + date #}
+{% macro email_header(date_text='') %}
+<tr>
+  <td style="padding:24px 28px 20px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr>
+        <td>{{ email_wordmark(13) }}</td>
+        <td align="right" style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;color:rgba(232,234,237,0.35);letter-spacing:0.05em;">
+          {{ date_text }}
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr><td style="padding:0 28px;"><div style="border-top:1px solid rgba(255,255,255,0.06);"></div></td></tr>
+{% endmacro %}
+
+{# Shared CTA button #}
+{% macro email_cta(url, text) %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0;">
+  <tr>
+    <td align="center" style="padding:0;">
+      <a href="{{ url }}" style="display:block;width:100%;padding:16px 0;background-color:#5A9E72;color:#E8EAED;text-align:center;text-decoration:none;font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.08em;border-radius:6px;">{{ text }}</a>
+    </td>
+  </tr>
+</table>
+{% endmacro %}
+
+{# Shared footer #}
+{% macro email_footer(app_url, unsub_url, prefs_url='') %}
+<tr>
+  <td style="padding:24px 28px 28px;">
+    <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;text-align:center;">
+      <p style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:12px;color:rgba(232,234,237,0.3);margin:0 0 12px;">One pick beats five.</p>
+      <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:11px;color:rgba(232,234,237,0.25);margin:0 0 4px;">SharpPicks</p>
+      <p style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;color:rgba(232,234,237,0.25);margin:0 0 10px;">
+        <a href="{{ app_url }}" style="color:rgba(232,234,237,0.25);text-decoration:underline;">sharppicks.ai</a>
+      </p>
+      <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:11px;color:rgba(232,234,237,0.25);margin:0;">
+        {% if prefs_url %}<a href="{{ prefs_url }}" style="color:rgba(232,234,237,0.25);text-decoration:underline;">Manage preferences</a> &middot; {% endif %}
+        <a href="{{ unsub_url }}" style="color:rgba(232,234,237,0.25);text-decoration:underline;">Unsubscribe</a>
+      </p>
+    </div>
+  </td>
+</tr>
+{% endmacro %}
+
+{# 3-column stat bar #}
+{% macro stat_bar_3(val1, label1, val2, label2, val3, label3, color2='#5A9E72', color3='#5A9E72') %}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+  <tr>
+    <td width="32%" style="background-color:#111622;border-radius:8px;padding:16px 12px;text-align:center;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;">
+      <div style="font-size:20px;font-weight:700;color:#E8EAED;line-height:1;">{{ val1 }}</div>
+      <div style="font-size:10px;color:rgba(232,234,237,0.4);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">{{ label1 }}</div>
+    </td>
+    <td width="2%"></td>
+    <td width="32%" style="background-color:#111622;border-radius:8px;padding:16px 12px;text-align:center;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;">
+      <div style="font-size:20px;font-weight:700;color:{{ color2 }};line-height:1;">{{ val2 }}</div>
+      <div style="font-size:10px;color:rgba(232,234,237,0.4);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">{{ label2 }}</div>
+    </td>
+    <td width="2%"></td>
+    <td width="32%" style="background-color:#111622;border-radius:8px;padding:16px 12px;text-align:center;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;">
+      <div style="font-size:20px;font-weight:700;color:{{ color3 }};line-height:1;">{{ val3 }}</div>
+      <div style="font-size:10px;color:rgba(232,234,237,0.4);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">{{ label3 }}</div>
+    </td>
+  </tr>
+</table>
 {% endmacro %}
