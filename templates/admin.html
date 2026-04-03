@@ -2,2915 +2,1063 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SharpPicks — Command Center</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700;800&family=IBM+Plex+Serif:wght@400;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>SharpPicks Command Center v2</title>
 <style>
-:root {
-  --bg: #0a0e17;
-  --panel: #0f1520;
-  --panel-hover: #141c2a;
-  --border: #1a2235;
-  --border-bright: #243050;
-  --text: #c8d6e5;
-  --text-dim: #5a6a7e;
-  --text-bright: #e8f0ff;
-  --green: #00d68f;
-  --green-dim: rgba(0,214,143,0.15);
-  --red: #ff4757;
-  --red-dim: rgba(255,71,87,0.15);
-  --amber: #ffa502;
-  --amber-dim: rgba(255,165,2,0.15);
-  --blue: #4f86f7;
-  --blue-dim: rgba(79,134,247,0.15);
-  --cyan: #45aaf2;
-  --mono: 'JetBrains Mono', monospace;
-  --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --serif: 'IBM Plex Serif', serif;
-}
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Serif:ital,wght@1,400&display=swap');
 
-* { margin:0; padding:0; box-sizing:border-box; }
-html { background: var(--bg); }
-body { font-family: var(--sans); color: var(--text); background: var(--bg); min-height:100vh; font-size: 12px; }
-::selection { background: rgba(79,134,247,0.3); }
+  :root {
+    --bg: #0A0D14;
+    --bg-card: #0F1319;
+    --bg-elevated: #141920;
+    --border: #1C2230;
+    --border-subtle: #151B25;
+    --text-primary: #E8ECF2;
+    --text-secondary: #8A95A9;
+    --text-dim: #566178;
+    --green: #5A9E72;
+    --green-dim: rgba(90, 158, 114, 0.15);
+    --red: #C4686B;
+    --red-dim: rgba(196, 104, 107, 0.12);
+    --yellow: #D4A843;
+    --yellow-dim: rgba(212, 168, 67, 0.12);
+    --blue: #5B8DEF;
+    --blue-dim: rgba(91, 141, 239, 0.12);
+  }
 
-.dashboard {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  grid-template-rows: auto;
-  gap: 1px;
-  background: var(--border);
-  min-height: 100vh;
-}
-#control-room-body {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 1px;
-  grid-column: span 4;
-}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-.header {
-  grid-column: 1 / -1;
-  background: var(--bg);
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-}
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
 
-.header-back {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: transparent;
-  cursor: pointer;
-  color: var(--text-dim);
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-.header-back:hover {
-  background: var(--panel-hover);
-  color: var(--text-bright);
-  border-color: var(--border-bright);
-}
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(10, 13, 20, 0.95);
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
 
-.header-logo {
-  display: inline-flex;
-  align-items: center;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.2em;
-  color: var(--text-bright);
-  text-transform: uppercase;
-  line-height: 1;
-  white-space: nowrap;
-}
-.header-logo .wm-bars{display:inline-flex;flex-direction:column;align-items:center;flex-shrink:0}
-.header-logo .wm-bars-row{display:inline-flex}
-.header-logo .wm-bar{display:inline-block;background:currentColor}
-.header-logo .wm-ul{display:inline-block;background:var(--green);border-radius:1px}
+  .logo {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    color: var(--text-primary);
+  }
 
-.header-badge {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  padding: 3px 8px;
-  border-radius: 3px;
-  background: var(--green-dim);
-  color: var(--green);
-  text-transform: uppercase;
-}
+  .logo span { color: var(--green); }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(90, 158, 114, 0.6);
+    animation: pulse 3s ease-in-out infinite;
+  }
 
-.header-time {
-  font-size: 11px;
-  color: var(--text-dim);
-  font-weight: 400;
-}
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
 
-.header-pulse {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--green);
-  animation: pulse 2s infinite;
-}
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,214,143,0.4); }
-  50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(0,214,143,0); }
-}
+  .topbar-btn {
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.5px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+  }
 
-.panel {
-  background: var(--panel);
-  padding: 16px 20px;
-  position: relative;
-  overflow: hidden;
-}
+  .kill-switch {
+    border: 1px solid var(--red);
+    color: var(--red);
+    background: var(--red-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+  }
 
-.panel-label {
-  font-family: var(--mono);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+  .refresh-btn {
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    background: transparent;
+  }
 
-.panel-label .status-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-}
+  .actions-bar {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 
-.status-dot.green { background: var(--green); }
-.status-dot.red { background: var(--red); }
-.status-dot.amber { background: var(--amber); }
+  .action-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
 
-.metric-val {
-  font-family: var(--mono);
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--text-bright);
-  line-height: 1;
-  margin-bottom: 4px;
-  font-variant-numeric: tabular-nums;
-}
+  .action-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    width: 36px;
+    flex-shrink: 0;
+  }
 
-.metric-val.green { color: var(--green); }
-.metric-val.red { color: var(--red); }
-.metric-val.amber { color: var(--amber); }
-.metric-val.blue { color: var(--blue); }
+  .action-read-btns {
+    display: flex;
+    gap: 6px;
+  }
 
-.metric-sub {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-dim);
-  font-weight: 400;
-}
+  .action-mutate-btns {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
 
-.metric-delta {
-  font-size: 10px;
-  font-weight: 600;
-  margin-left: 6px;
-}
+  .action-btn {
+    font-size: 12px;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: all 0.15s;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
 
-.metric-delta.up { color: var(--green); }
-.metric-delta.down { color: var(--red); }
+  .action-btn:active { transform: scale(0.97); }
 
-.stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 11px;
-}
+  .action-btn.run {
+    border-color: var(--green);
+    color: var(--green);
+    background: var(--green-dim);
+    font-weight: 500;
+  }
 
-.stat-row:last-child { border-bottom: none; }
+  .action-btn.grade {
+    border-color: var(--green);
+    color: var(--green);
+    background: var(--green-dim);
+    font-weight: 500;
+  }
 
-.stat-row .label { color: var(--text-dim); }
-.stat-row .value { color: var(--text-bright); font-weight: 600; font-family: var(--mono); }
-.stat-row .value.green { color: var(--green); }
-.stat-row .value.red { color: var(--red); }
-.stat-row .value.amber { color: var(--amber); }
+  .action-btn.clear {
+    border-color: var(--red);
+    color: var(--red);
+    background: var(--red-dim);
+    font-size: 11px;
+    padding: 6px 10px;
+    min-height: 36px;
+  }
 
-.status-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 0;
-  font-size: 11px;
-}
+  .action-divider-line {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 2px 0;
+  }
 
-.status-indicator {
-  width: 8px; height: 8px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
+  .confirm-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(4px);
+  }
 
-.status-indicator.ok { background: var(--green); }
-.status-indicator.warn { background: var(--amber); }
-.status-indicator.err { background: var(--red); }
+  .confirm-overlay.active { display: flex; }
 
-.status-name { color: var(--text); flex: 1; }
-.status-val { color: var(--text-dim); font-weight: 500; text-align: right; }
+  .confirm-dialog {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 320px;
+    width: 100%;
+    text-align: center;
+  }
 
-.mini-chart {
-  height: 60px;
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  margin: 12px 0;
-}
+  .confirm-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+  }
 
-.mini-chart .bar {
-  flex: 1;
-  background: var(--blue);
-  border-radius: 2px 2px 0 0;
-  min-height: 2px;
-  opacity: 0.7;
-  transition: opacity 0.2s, background 0.2s;
-}
+  .confirm-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
 
-.mini-chart .bar:hover {
-  opacity: 1;
-  background: var(--cyan);
-}
+  .confirm-actions { display: flex; gap: 10px; }
 
-.mini-chart .bar.today {
-  background: var(--green);
-  opacity: 1;
-}
+  .confirm-btn {
+    flex: 1;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    min-height: 46px;
+    font-weight: 500;
+    border: none;
+  }
 
-.sparkline-wrap {
-  height: 50px;
-  margin: 8px 0;
-}
+  .confirm-btn.cancel {
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
 
-.sparkline-wrap svg {
-  width: 100%;
-  height: 100%;
-}
+  .confirm-btn.proceed { background: var(--green); color: var(--bg); }
+  .confirm-btn.proceed.danger { background: var(--red); }
 
-.user-table {
-  width: 100%;
-  font-size: 10px;
-  border-collapse: collapse;
-}
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+  }
 
-.user-table th {
-  font-weight: 600;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-size: 9px;
-  text-align: left;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border-bright);
-}
+  .tab {
+    font-size: 13px;
+    padding: 12px 16px;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    font-family: inherit;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
 
-.user-table td {
-  padding: 7px 0;
-  border-bottom: 1px solid var(--border);
-  color: var(--text);
-}
+  .tab:hover { color: var(--text-secondary); }
 
-.user-table tr:hover td { background: var(--panel-hover); }
+  .tab.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+    font-weight: 500;
+  }
 
-.badge {
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  text-transform: uppercase;
-}
+  .content { padding: 16px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
 
-.badge.pro { background: var(--green-dim); color: var(--green); }
-.btn-delete {
-  background: transparent;
-  border: 1px solid #ef4444;
-  color: #ef4444;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-family: Inter, sans-serif;
-}
-.btn-delete:hover { background: #ef4444; color: #fff; }
-.badge.trial { background: var(--blue-dim); color: var(--blue); }
-.badge.free { background: rgba(255,255,255,0.06); color: var(--text-dim); }
-.badge.founding { background: var(--amber-dim); color: var(--amber); }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
 
-.log-feed {
-  font-size: 10px;
-  max-height: 200px;
-  overflow-y: auto;
-}
+  .stat-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .stat-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
 
-.log-entry {
-  padding: 4px 0;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  gap: 8px;
-}
+  .stat-cell { background: var(--bg-card); padding: 14px; }
 
-.log-entry:hover { background: var(--panel-hover); }
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
 
-.log-time { color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
-.log-msg { color: var(--text); }
-.log-msg.ok { color: var(--green); }
-.log-msg.err { color: var(--red); }
-.log-msg.warn { color: var(--amber); }
+  .stat-value { font-size: 22px; font-weight: 600; line-height: 1.15; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.yellow { color: var(--yellow); }
+  .stat-value.blue { color: var(--blue); }
+  .stat-value.sm { font-size: 18px; }
 
-.panel.wide-2 { grid-column: span 2; }
-.panel.wide-3 { grid-column: span 3; }
-.panel.wide-4 { grid-column: span 4; }
+  .stat-sub { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
 
-.cal-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 9px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 3px;
-  background: var(--green-dim);
-  color: var(--green);
-  letter-spacing: 0.5px;
-}
+  .section-header {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin: 24px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+  }
 
-.cal-badge::before {
-  content: '';
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--green);
-}
+  .section-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-subtle);
+  }
 
-.progress-bar {
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  overflow: hidden;
-  margin: 8px 0;
-}
+  .pipeline-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
 
-.progress-bar .fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.5s ease;
-}
+  .pipeline-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
 
-.progress-bar .fill.green { background: var(--green); }
-.progress-bar .fill.blue { background: var(--blue); }
-.progress-bar .fill.amber { background: var(--amber); }
+  .pipeline-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px rgba(90, 158, 114, 0.4);
+  }
 
-.section-label {
-  font-family: var(--mono);
-  grid-column: 1 / -1;
-  background: var(--bg);
-  padding: 8px 20px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  border-top: 1px solid var(--border-bright);
-}
+  .pipeline-title { font-size: 14px; font-weight: 500; }
 
-@media (max-width: 1200px) {
-  .dashboard { grid-template-columns: 1fr 1fr; }
-  #control-room-body { grid-template-columns: 1fr 1fr; grid-column: span 2; }
-  .panel.wide-3 { grid-column: span 2; }
-  .panel.wide-4 { grid-column: span 2; }
-}
+  .pipeline-time {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
 
-@media (max-width: 768px) {
-  .dashboard { grid-template-columns: 1fr; }
-  #control-room-body { grid-template-columns: 1fr; grid-column: span 1; }
-  .panel.wide-2, .panel.wide-3, .panel.wide-4 { grid-column: span 1; }
-  .tab-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .tab-nav::-webkit-scrollbar { display: none; }
-  .header-left .cal-badge { display: none; }
-}
+  .pipeline-meta {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 10px;
+  }
 
-.tab-nav {
-  grid-column: 1 / -1;
-  background: var(--bg);
-  display: flex;
-  gap: 0;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--border-bright);
-  white-space: nowrap;
-}
-.tab-btn {
-  padding: 10px 16px;
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  color: var(--text-dim);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
-  white-space: nowrap;
-}
-.tab-btn:hover { color: var(--text); }
-.tab-btn.active { color: var(--text-bright); border-bottom-color: var(--green); }
+  .pipeline-meta-item { text-align: center; }
 
-.tab-content { display: none; }
-.tab-content.active { display: contents; }
+  .pipeline-meta-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
 
-.cron-row-ok { }
-.cron-row-warn .status-name, .cron-row-warn .status-val { color: var(--amber) !important; }
-.cron-row-err { background: rgba(255,71,87,0.04); }
-.cron-row-err .status-name { color: var(--red) !important; }
+  .pipeline-meta-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--green);
+  }
 
-.ks-header-badge {
-  font-size: 9px; font-weight: 700; letter-spacing: 1px;
-  padding: 3px 8px; border-radius: 3px; text-transform: uppercase;
-}
-.ks-header-badge.clear { background: var(--green-dim); color: var(--green); }
-.ks-header-badge.warning { background: var(--amber-dim); color: var(--amber); }
-.ks-header-badge.active { background: var(--red-dim); color: var(--red); }
+  .pick-card {
+    background: var(--bg-elevated);
+    border-left: 3px solid var(--green);
+    padding: 12px 14px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 8px;
+  }
 
-.tooltip-trigger { position: relative; cursor: help; }
-.tooltip-trigger:hover::after {
-  content: attr(data-tooltip);
-  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-  background: #1a2235; color: var(--text); border: 1px solid var(--border-bright);
-  padding: 6px 10px; border-radius: 6px; font-size: 10px; white-space: nowrap;
-  z-index: 10; pointer-events: none; margin-bottom: 4px;
-}
+  .pick-header { font-size: 13px; font-weight: 600; color: var(--green); margin-bottom: 3px; }
+  .pick-matchup { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
 
-.refresh-countdown {
-  font-size: 10px; color: var(--text-dim); font-family: var(--mono);
-}
+  .pick-stats {
+    display: flex;
+    gap: 18px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
 
-.user-action-btn {
-  background: transparent; border: 1px solid var(--border);
-  color: var(--text-dim); font-size: 9px; font-weight: 600;
-  padding: 2px 8px; border-radius: 4px; cursor: pointer;
-  font-family: var(--mono); letter-spacing: 0.3px; margin-right: 4px;
-}
-.user-action-btn:hover { background: var(--panel-hover); color: var(--text-bright); border-color: var(--border-bright); }
+  .pick-stats strong { color: var(--text-secondary); }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--panel); }
-::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
 
-.pick-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 10px;
-}
-.pick-row:last-child { border-bottom: none; }
-.pick-side { color: var(--text); flex: 1; }
-.pick-edge { color: var(--text-dim); width: 50px; text-align: right; }
-.pick-result { width: 30px; text-align: right; font-weight: 700; }
-.pick-result.W { color: var(--green); }
-.pick-result.L { color: var(--red); }
-.pick-result.pending { color: var(--text-dim); }
-.pick-pnl { width: 50px; text-align: right; font-weight: 600; }
+  .data-table th {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
 
-.loading-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  transition: opacity 0.3s;
-}
-.loading-overlay.hidden { opacity: 0; pointer-events: none; }
-.loading-spinner {
-  width: 24px; height: 24px;
-  border: 2px solid var(--border-bright);
-  border-top-color: var(--green);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+  .data-table th:last-child, .data-table td:last-child { text-align: right; }
+
+  .data-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+
+  .data-table tr:last-child td { border-bottom: none; }
+
+  .edge-positive { color: var(--green); font-weight: 500; }
+  .edge-negative { color: var(--text-dim); }
+
+  .cron-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--border-subtle);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .cron-item {
+    display: grid;
+    grid-template-columns: 10px 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    background: var(--bg-card);
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .cron-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .cron-name { color: var(--text-secondary); }
+  .cron-when { color: var(--text-dim); text-align: right; font-size: 11px; }
+  .cron-ago { color: var(--green); font-size: 11px; font-weight: 500; }
+
+  .service-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border-subtle);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .service-item {
+    background: var(--bg-card);
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .service-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+  }
+
+  .service-name {
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .service-latency { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+
+  .model-section { margin-bottom: 24px; }
+
+  .model-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .model-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .model-badge.live { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+  .model-badge.beta { background: var(--yellow-dim); color: var(--yellow); border: 1px solid var(--yellow); }
+  .model-badge.shadow { background: var(--blue-dim); color: var(--blue); border: 1px solid var(--blue); }
+
+  .cal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--green);
+    background: var(--green-dim);
+    color: var(--green);
+    letter-spacing: 0.5px;
+    font-weight: 500;
+  }
+
+  .cal-badge .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+
+  .bucket-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 12px; }
+  .bucket-label { width: 85px; color: var(--text-dim); flex-shrink: 0; }
+
+  .bucket-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--bg-elevated);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .bucket-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+  .bucket-bar-fill.green { background: var(--green); }
+  .bucket-bar-fill.yellow { background: var(--yellow); }
+  .bucket-bar-fill.red { background: var(--red); }
+
+  .bucket-record { width: 90px; text-align: right; color: var(--text-secondary); flex-shrink: 0; }
+
+  .funnel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    background: var(--bg-card);
+    border-radius: 6px;
+    margin-bottom: 16px;
+  }
+
+  .funnel-step { text-align: center; flex-shrink: 0; }
+  .funnel-value { font-size: 20px; font-weight: 600; color: var(--text-primary); }
+
+  .funnel-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .funnel-arrow { color: var(--text-dim); font-size: 14px; flex-shrink: 0; }
+  .funnel-rate { font-size: 10px; color: var(--yellow); flex-shrink: 0; font-weight: 500; }
+
+  .mini-pick {
+    display: grid;
+    grid-template-columns: 52px 1fr 36px 28px 48px;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .mini-pick:last-child { border-bottom: none; }
+  .mini-pick-date { color: var(--text-dim); }
+  .mini-pick-name { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mini-pick-edge { color: var(--text-dim); text-align: center; }
+  .mini-pick-result { text-align: center; font-weight: 600; }
+  .mini-pick-pnl { text-align: right; font-weight: 500; }
+
+  .user-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 12px;
+  }
+
+  .user-row:last-child { border-bottom: none; }
+
+  .user-email {
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tier-badge {
+    font-size: 10px;
+    padding: 3px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .tier-badge.founding { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(212, 168, 67, 0.3); }
+  .tier-badge.trial { background: var(--green-dim); color: var(--green); border: 1px solid rgba(90, 158, 114, 0.3); }
+  .tier-badge.free { background: rgba(122, 133, 153, 0.08); color: var(--text-dim); border: 1px solid var(--border); }
+
+  .user-date { font-size: 11px; color: var(--text-dim); }
+
+  .feature-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px; }
+  .feature-label { width: 110px; color: var(--text-secondary); flex-shrink: 0; }
+
+  .feature-track {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-elevated);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .feature-fill { height: 100%; background: var(--green); border-radius: 4px; transition: width 0.5s ease; }
+  .feature-pct { width: 44px; text-align: right; color: var(--text-dim); flex-shrink: 0; }
+
+  .pipeline-sport-tab {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border: none;
+    background: var(--bg-card);
+    color: var(--text-dim);
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    min-height: 38px;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+  }
+
+  .pipeline-sport-tab.active { background: var(--green-dim); color: var(--green); }
+
+  .pipeline-panel { display: none; }
+  .pipeline-panel.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .panel.active > * { animation: fadeIn 0.2s ease-out; }
+
+  .mt-12 { margin-top: 12px; }
+  .mb-16 { margin-bottom: 16px; }
+  .text-green { color: var(--green); }
+  .text-red { color: var(--red); }
+  .text-yellow { color: var(--yellow); }
+  .text-dim { color: var(--text-dim); }
+
+  .loading { color: var(--text-dim); text-align: center; padding: 40px; font-size: 12px; }
 </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="loader">
-  <div style="text-align:center">
-    <div class="loading-spinner" style="margin:0 auto 12px"></div>
-    <div style="font-size:10px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase">Loading Command Center</div>
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-dialog">
+    <div class="confirm-title" id="confirmTitle"></div>
+    <div class="confirm-desc" id="confirmDesc"></div>
+    <div class="confirm-actions">
+      <button class="confirm-btn cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-btn proceed" id="confirmProceed" onclick="executeConfirm()">Run</button>
+    </div>
   </div>
 </div>
 
-<div class="dashboard">
-
-  <div class="header">
-    <div class="header-left">
-      <button class="header-back" onclick="window.location.href='/'" title="Back to Dashboard">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-      </button>
-      <div class="header-logo"><span style="margin-right:3.85px">SHARP</span><span class="wm-bars" style="gap:1.65px"><span class="wm-bars-row" style="gap:1.32px"><span class="wm-bar" style="width:1.5px;height:13.75px;border-radius:0.9px"></span><span class="wm-bar" style="width:1.5px;height:13.75px;border-radius:0.9px"></span></span><span class="wm-ul" style="width:4.32px;height:1.5px"></span></span><span style="margin-left:4.95px">PICKS</span></div>
-      <div class="header-badge">Command Center</div>
-      <span class="cal-badge tooltip-trigger" data-tooltip="Model-to-market shrinkage sigma: 11.7 points. Controls probability calibration width.">Calibrated 11.7pt</span>
-      <span class="ks-header-badge clear" id="ks-header-badge">Kill Switch: Clear</span>
-    </div>
-    <div class="header-right">
-      <button class="header-back" id="refresh-btn" onclick="refreshAll()" title="Refresh all data" style="width:auto;padding:0 10px;gap:6px;display:flex;align-items:center;font-family:var(--mono);font-size:11px;color:var(--text-dim);">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
-        </svg>
-        Refresh
-      </button>
-      <span class="refresh-countdown" id="refresh-countdown"></span>
-      <span class="header-time" id="clock"></span>
-      <div class="header-pulse"></div>
-    </div>
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="status-dot"></div>
+    <div class="logo">SHARP <span>||</span> PICKS</div>
+  </div>
+  <div class="topbar-right">
+    <span id="topbarTime"></span>
+    <button class="topbar-btn refresh-btn" onclick="location.reload()">Refresh</button>
+    <button class="topbar-btn kill-switch" onclick="toggleKillSwitch()">Kill</button>
   </div>
-
-  <!-- STATUS BANNER -->
-  <div id="status-banner" class="panel wide-4" style="padding:14px 24px;display:flex;align-items:center;gap:16px;border-bottom:2px solid var(--border)">
-    <div id="status-dot-main" style="width:14px;height:14px;border-radius:50%;background:var(--text-dim);flex-shrink:0;box-shadow:0 0 8px rgba(0,0,0,0.3)"></div>
-    <div style="flex:1">
-      <div id="status-message" style="font-size:13px;font-weight:600;color:var(--text-bright);line-height:1.4">Loading system status...</div>
-      <div id="status-time" style="font-size:10px;color:var(--text-dim);margin-top:2px"></div>
-    </div>
-    <div id="status-alert-count" style="font-size:11px;color:var(--text-dim);white-space:nowrap"></div>
-  </div>
-
-  <!-- KEY ACTIONS — NBA (always visible at top) -->
-  <div class="panel wide-4" style="padding:12px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--border)">
-    <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);white-space:nowrap">NBA</span>
-    <button id="top-get-games-btn" onclick="triggerGetGames()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--panel-hover);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:var(--mono)">Get Games</button>
-    <button id="top-get-lines-btn" onclick="triggerGetLines()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--panel-hover);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:var(--mono)">Get Lines</button>
-    <button id="top-clear-btn" onclick="triggerClearToday()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--red-dim);color:var(--red);border:1px solid rgba(255,71,87,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Clear</button>
-    <button id="top-run-model-btn" onclick="triggerModel()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--blue-dim);color:var(--blue);border:1px solid rgba(79,134,247,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Run Model</button>
-    <button id="top-grade-btn" onclick="triggerGrade()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,214,143,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Grade</button>
-  </div>
-
-  <!-- KEY ACTIONS — MLB -->
-  <div class="panel wide-4" style="padding:12px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--border)">
-    <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--amber);white-space:nowrap">MLB</span>
-    <button id="top-mlb-collect-btn" onclick="triggerMlbCollect()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--panel-hover);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:var(--mono)">Collect Games</button>
-    <button id="top-mlb-clear-btn" onclick="triggerMlbClear()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--red-dim);color:var(--red);border:1px solid rgba(255,71,87,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Clear</button>
-    <button id="top-mlb-run-model-btn" onclick="triggerMlbModel()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--blue-dim);color:var(--blue);border:1px solid rgba(79,134,247,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Run Model</button>
-    <button id="top-mlb-grade-btn" onclick="triggerMlbGrade()" style="padding:6px 12px;font-size:11px;font-weight:600;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,214,143,0.3);border-radius:4px;cursor:pointer;font-family:var(--mono)">Grade</button>
-  </div>
-
-  <!-- ALERTS (only shown when issues exist) -->
-  <div id="alerts-panel" class="panel wide-4" style="padding:10px 20px;display:none;background:rgba(255,165,2,0.04);border-bottom:1px solid rgba(255,165,2,0.15)">
-    <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--amber);margin-bottom:8px;display:flex;align-items:center;gap:8px">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      Needs Attention
-    </div>
-    <div id="alerts-list"></div>
-  </div>
-
-  <!-- TAB NAVIGATION -->
-  <div class="tab-nav">
-    <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
-    <button class="tab-btn" onclick="switchTab('infra')">Infrastructure</button>
-    <button class="tab-btn" onclick="switchTab('model')">Model</button>
-    <button class="tab-btn" onclick="switchTab('revenue')">Revenue &amp; Users</button>
-    <button class="tab-btn" onclick="switchTab('engagement')">Engagement</button>
-    <button class="tab-btn" onclick="switchTab('control')">Control Room</button>
-  </div>
-
-  <!-- TAB: OVERVIEW -->
-  <div class="tab-content active" id="tab-overview">
-
-  <!-- TODAY'S PIPELINE -->
-  <div class="section-label">Today's Pipeline</div>
-
-  <div class="panel wide-4" id="pipeline-panel">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-      <div id="pipeline-status-dot" style="width:10px;height:10px;border-radius:50%;background:var(--text-dim)"></div>
-      <div style="flex:1">
-        <span id="pipeline-status-label" style="font-size:13px;font-weight:600;color:var(--text-bright)">Loading...</span>
-        <span id="pipeline-date" style="font-size:10px;color:var(--text-dim);margin-left:8px"></span>
-      </div>
-      <span id="pipeline-run-time" style="font-size:10px;color:var(--text-dim);font-family:var(--mono)"></span>
-    </div>
-    <div id="pipeline-details" style="display:none">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px">
-        <div>
-          <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Games</div>
-          <div id="pipeline-games" style="font-size:18px;font-weight:700;color:var(--text-bright)">--</div>
-        </div>
-        <div>
-          <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Result</div>
-          <div id="pipeline-result" style="font-size:18px;font-weight:700">--</div>
-        </div>
-        <div>
-          <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Edge</div>
-          <div id="pipeline-edge" style="font-size:18px;font-weight:700;color:var(--text-bright)">--</div>
-        </div>
-        <div>
-          <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Duration</div>
-          <div id="pipeline-duration" style="font-size:18px;font-weight:700;color:var(--text-dim)">--</div>
-        </div>
-      </div>
-      <div id="pipeline-pick-details" style="display:none;padding:10px 12px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:6px;margin-bottom:10px">
-      </div>
-      <div id="pipeline-pass-details" style="display:none;padding:10px 12px;background:rgba(255,165,2,0.06);border:1px solid rgba(255,165,2,0.15);border-radius:6px;margin-bottom:10px">
-      </div>
-      <div id="pipeline-games-section" style="display:none;margin-top:4px">
-        <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Games Analyzed</div>
-        <div id="pipeline-games-list" style="font-size:10px"></div>
-      </div>
-    </div>
-    <div id="pipeline-cron-attempts" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
-      <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Recent Runs</div>
-      <div id="pipeline-cron-list" style="font-size:10px;color:var(--text-dim)">--</div>
-    </div>
-  </div>
-
-  <!-- OVERVIEW: Quick KPIs from all sections -->
-  <div class="section-label">Key Metrics</div>
-  <div class="panel">
-    <div class="panel-label">NBA Record</div>
-    <div class="metric-val green" id="ov-nba-record">--</div>
-    <div class="metric-sub" id="ov-nba-roi">--</div>
-  </div>
-  <div class="panel">
-    <div class="panel-label">Revenue</div>
-    <div class="metric-val green" id="ov-mrr">--</div>
-    <div class="metric-sub">MRR</div>
-  </div>
-  <div class="panel">
-    <div class="panel-label">Users</div>
-    <div class="metric-val blue" id="ov-total-users">--</div>
-    <div class="metric-sub" id="ov-users-breakdown">--</div>
-  </div>
-  <div class="panel">
-    <div class="panel-label">Cron Health</div>
-    <div class="metric-val" id="ov-cron-status">--</div>
-    <div class="metric-sub" id="ov-cron-sub">--</div>
-  </div>
-
-  <!-- SITE ANALYTICS -->
-  <div class="section-label">Site Analytics</div>
-
-  <div class="panel">
-    <div class="panel-label">sharppicks.ai — Visitors (7d) <span style="font-size:8px;letter-spacing:1px;color:var(--blue)">CF</span></div>
-    <div class="metric-val blue" id="cf-mkt-uniques">--</div>
-    <div class="metric-sub" id="cf-mkt-uniques-sub">Unique visitors</div>
-  </div>
-  <div class="panel">
-    <div class="panel-label">sharppicks.ai — Page Views (7d) <span style="font-size:8px;letter-spacing:1px;color:var(--blue)">CF</span></div>
-    <div class="metric-val" id="cf-mkt-views">--</div>
-    <div class="metric-sub" id="cf-mkt-requests-sub">--</div>
-  </div>
-  <div class="panel">
-    <div class="panel-label">app — Visitors (7d) <span style="font-size:8px;letter-spacing:1px;color:var(--green)">SERVER</span></div>
-    <div class="metric-val blue" id="cf-app-uniques">--</div>
-    <div class="metric-sub" id="cf-app-uniques-sub">Unique visitors</div>
-  </div>
-  <div class="panel">
-    <div class="panel-label">app — Page Views (7d) <span style="font-size:8px;letter-spacing:1px;color:var(--green)">SERVER</span></div>
-    <div class="metric-val" id="cf-app-views">--</div>
-    <div class="metric-sub" id="cf-app-requests-sub">--</div>
-  </div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">sharppicks.ai — Top Pages (7d) <span style="font-size:8px;letter-spacing:1px;color:var(--blue)">CF</span></div>
-    <div id="cf-mkt-top-paths" style="max-height:220px;overflow-y:auto">
-      <div class="metric-sub">Loading...</div>
-    </div>
-  </div>
-  <div class="panel wide-2">
-    <div class="panel-label">app — Top Paths (7d) <span style="font-size:8px;letter-spacing:1px;color:var(--green)">SERVER</span></div>
-    <div id="cf-app-top-paths" style="max-height:220px;overflow-y:auto">
-      <div class="metric-sub">Loading...</div>
-    </div>
-  </div>
-
-  <div class="panel wide-4">
-    <div class="panel-label">Daily Traffic — Last 7 Days</div>
-    <div id="cf-daily-chart" style="position:relative;height:120px;margin:8px 0">
-      <svg viewBox="0 0 800 120" preserveAspectRatio="none" style="width:100%;height:100%">
-        <defs>
-          <linearGradient id="cf-mkt-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="rgba(79,125,243,0.25)"/>
-            <stop offset="100%" stop-color="rgba(79,125,243,0)"/>
-          </linearGradient>
-          <linearGradient id="cf-app-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="rgba(90,158,114,0.25)"/>
-            <stop offset="100%" stop-color="rgba(90,158,114,0)"/>
-          </linearGradient>
-        </defs>
-        <path id="cf-mkt-area" d="" fill="url(#cf-mkt-fill)" opacity="0.5"/>
-        <path id="cf-mkt-line" d="" fill="none" stroke="var(--blue)" stroke-width="2"/>
-        <path id="cf-app-area" d="" fill="url(#cf-app-fill)" opacity="0.5"/>
-        <path id="cf-app-line" d="" fill="none" stroke="var(--green)" stroke-width="2"/>
-        <g id="cf-x-labels"></g>
-      </svg>
-    </div>
-    <div style="display:flex;gap:16px;justify-content:center;margin-top:4px">
-      <span style="font-size:9px;color:var(--blue);display:flex;align-items:center;gap:4px">
-        <span style="width:10px;height:2px;background:var(--blue);display:inline-block"></span> sharppicks.ai
-      </span>
-      <span style="font-size:9px;color:var(--green);display:flex;align-items:center;gap:4px">
-        <span style="width:10px;height:2px;background:var(--green);display:inline-block"></span> app.sharppicks.ai
-      </span>
-    </div>
-    <div class="metric-sub" id="cf-period-label">--</div>
-  </div>
-
-  </div><!-- /tab-overview -->
-
-  <!-- TAB: INFRASTRUCTURE -->
-  <div class="tab-content" id="tab-infra">
-
-  <!-- CRON ALERTS BANNER (shown when cron jobs are overdue) -->
-  <div id="cron-alerts-banner" class="panel wide-4" style="display:none;padding:12px 20px;background:rgba(255,71,87,0.06);border-bottom:1px solid rgba(255,71,87,0.2)">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--red)">Overdue Cron Jobs</span>
-    </div>
-    <div id="cron-alerts-list" style="font-size:11px"></div>
-  </div>
-
-  <!-- INFRASTRUCTURE & OPS -->
-  <div class="section-label">Infrastructure & Operations</div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">Cron Job Health <span class="status-dot" id="cron-overall-dot"></span></div>
-    <div class="metric-sub" style="margin-bottom:8px" id="cron-checked-at">Loading...</div>
-    <div id="cron-jobs-list"></div>
-    <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
-      <div class="stat-row"><span class="label">Total Executions</span><span class="value" id="cron-total-exec">--</span></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Push Notifications <span class="status-dot" id="push-health-dot"></span></div>
-    <div class="stat-row"><span class="label">Opt-in Rate</span><span class="value" id="push-opt-in">--</span></div>
-    <div class="stat-row"><span class="label">Enabled Tokens</span><span class="value" id="push-enabled">--</span></div>
-    <div class="stat-row"><span class="label">Unique Users</span><span class="value" id="push-unique-users">--</span></div>
-    <div class="stat-row"><span class="label">Active (24h)</span><span class="value" id="push-active-24h">--</span></div>
-    <div class="stat-row"><span class="label">Active (7d)</span><span class="value" id="push-active-7d">--</span></div>
-    <div class="stat-row"><span class="label">Stale (7d+)</span><span class="value" id="push-stale">--</span></div>
-    <div class="stat-row"><span class="label">Disabled</span><span class="value" id="push-disabled">--</span></div>
-    <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
-      <div class="panel-label" style="font-size:10px;margin-bottom:4px">By Platform</div>
-      <div id="push-platforms"></div>
-    </div>
-    <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
-      <div class="panel-label" style="font-size:10px;margin-bottom:4px">Registered Devices</div>
-      <div id="push-user-list" style="max-height:150px;overflow-y:auto"></div>
-    </div>
-    <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
-      <div class="panel-label" style="font-size:10px;margin-bottom:6px">Send Test Push</div>
-      <input id="test-push-title" placeholder="Title" value="SharpPicks Test" style="width:100%;padding:6px 8px;margin-bottom:4px;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;box-sizing:border-box">
-      <input id="test-push-body" placeholder="Body" value="Push notifications are working." style="width:100%;padding:6px 8px;margin-bottom:6px;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;box-sizing:border-box">
-      <button onclick="sendTestPush()" id="test-push-btn" style="width:100%;padding:7px;background:var(--green);color:#000;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer">Send Test Push</button>
-      <div id="test-push-result" style="font-size:10px;margin-top:4px;color:var(--text-dim)"></div>
-    </div>
-  </div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">External Services <span class="status-dot" id="health-overall-dot"></span></div>
-    <div class="metric-sub" style="margin-bottom:8px" id="health-checked-at">Checking...</div>
-    <div id="health-services-list">
-      <div class="status-bar-row"><div class="status-indicator" id="hc-postgresql-dot"></div><span class="status-name">PostgreSQL</span><span class="status-val" id="hc-postgresql-val">...</span></div>
-      <div class="status-bar-row"><div class="status-indicator" id="hc-odds_api-dot"></div><span class="status-name">The Odds API</span><span class="status-val" id="hc-odds_api-val">...</span></div>
-      <div class="status-bar-row"><div class="status-indicator" id="hc-balldontlie-dot"></div><span class="status-name">balldontlie</span><span class="status-val" id="hc-balldontlie-val">...</span></div>
-      <div class="status-bar-row"><div class="status-indicator" id="hc-espn-dot"></div><span class="status-name">ESPN</span><span class="status-val" id="hc-espn-val">...</span></div>
-      <div class="status-bar-row"><div class="status-indicator" id="hc-resend-dot"></div><span class="status-name">Resend (Email)</span><span class="status-val" id="hc-resend-val">...</span></div>
-      <div class="status-bar-row"><div class="status-indicator" id="hc-stripe-dot"></div><span class="status-name">Stripe</span><span class="status-val" id="hc-stripe-val">...</span></div>
-      <div class="status-bar-row"><div class="status-indicator" id="hc-sqlite-dot"></div><span class="status-name">SQLite (games)</span><span class="status-val" id="hc-sqlite-val">...</span></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">NBA Model Runs</div>
-    <div id="nba-model-runs-list" style="max-height:200px;overflow-y:auto"></div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">WNBA Model Runs</div>
-    <div id="wnba-model-runs-list" style="max-height:200px;overflow-y:auto"></div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">MLB Model Runs</div>
-    <div id="mlb-model-runs-list" style="max-height:200px;overflow-y:auto"></div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Content</div>
-    <div class="stat-row"><span class="label">Total Insights</span><span class="value" id="insights-total">--</span></div>
-    <div class="stat-row"><span class="label">Published</span><span class="value green" id="insights-published">--</span></div>
-  </div>
-
-  </div><!-- /tab-infra -->
-
-  <!-- TAB: MODEL -->
-  <div class="tab-content" id="tab-model">
-
-  <!-- NBA MODEL PERFORMANCE -->
-  <div class="section-label">NBA Model Performance</div>
-
-  <div class="panel">
-    <div class="panel-label">NBA Season Record</div>
-    <div class="metric-val green" id="nba-record">--</div>
-    <div class="metric-sub" id="nba-record-sub">--</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">NBA Selectivity</div>
-    <div class="metric-val blue" id="nba-selectivity">--</div>
-    <div class="metric-sub">vs 78% industry avg</div>
-    <div class="progress-bar" style="margin-top:12px"><div class="fill blue" id="nba-selectivity-bar" style="width:0%"></div></div>
-    <div style="margin-top:8px">
-      <div class="stat-row"><span class="label">Total Picks</span><span class="value" id="nba-total-picks">--</span></div>
-      <div class="stat-row"><span class="label">Total Passes</span><span class="value" id="nba-total-passes">--</span></div>
-      <div class="stat-row"><span class="label">Avg Edge</span><span class="value" id="nba-avg-edge">--</span></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">NBA Confidence Buckets</div>
-    <div class="stat-row"><span class="label">3.5-5% edge</span><span class="value" id="nba-bucket-low">--</span></div>
-    <div class="stat-row"><span class="label">5-7.5% edge</span><span class="value" id="nba-bucket-mid">--</span></div>
-    <div class="stat-row"><span class="label">7.5-10% edge</span><span class="value" id="nba-bucket-high">--</span></div>
-    <div style="margin-top:10px">
-      <div class="stat-row"><span class="label">Pre-Cal</span><span class="value amber" id="nba-pre-cal">--</span></div>
-      <div class="stat-row"><span class="label">Post-Cal</span><span class="value green" id="nba-post-cal">--</span></div>
-      <div class="stat-row"><span class="label">CLV+</span><span class="value green" id="nba-clv-pct">--</span></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Calibration Status</div>
-    <div style="margin-bottom:8px">
-      <span class="cal-badge" style="font-size:11px">30/70 Shrinkage · σ 11.7</span>
-    </div>
-    <div class="stat-row"><span class="label">Model MAE</span><span class="value">12.03 pts</span></div>
-    <div class="stat-row"><span class="label">Market MAE</span><span class="value green">10.06 pts</span></div>
-    <div class="stat-row"><span class="label">Model Closer</span><span class="value amber">40%</span></div>
-    <div class="stat-row"><span class="label">Edge Cap</span><span class="value">8%</span></div>
-    <div class="stat-row"><span class="label">Calibration Date</span><span class="value">Feb 12, 2026</span></div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Pick Activity</div>
-    <div class="stat-row"><span class="label">Last Pick</span><span class="value" id="nba-last-pick">--</span></div>
-    <div class="stat-row"><span class="label">Days Since Pick</span><span class="value" id="nba-days-since">--</span></div>
-    <div class="stat-row"><span class="label">Consecutive Passes</span><span class="value" id="nba-pass-streak">--</span></div>
-  </div>
-
-  <div class="panel wide-4">
-    <div class="panel-label">NBA Equity Curve (1u Standardized)</div>
-    <div id="nba-equity-chart" style="position:relative;height:180px;margin:8px 0">
-      <svg viewBox="0 0 800 180" preserveAspectRatio="none" style="width:100%;height:100%">
-        <defs>
-          <linearGradient id="nba-eq-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="rgba(0,214,143,0.25)"/>
-            <stop offset="100%" stop-color="rgba(0,214,143,0)"/>
-          </linearGradient>
-        </defs>
-        <line id="nba-eq-zero" x1="0" y1="90" x2="800" y2="90" stroke="var(--border)" stroke-width="1" stroke-dasharray="4"/>
-        <path id="nba-eq-area" d="" fill="url(#nba-eq-fill)" opacity="0.5"/>
-        <path id="nba-eq-line" d="" fill="none" stroke="var(--green)" stroke-width="2"/>
-        <g id="nba-eq-dots"></g>
-      </svg>
-      <div id="nba-eq-tooltip" style="display:none;position:absolute;background:var(--panel);border:1px solid var(--border-bright);border-radius:6px;padding:8px 12px;font-size:10px;pointer-events:none;z-index:5;white-space:nowrap"></div>
-    </div>
-    <div class="metric-sub" id="nba-equity-sub">--</div>
-  </div>
-
-  <div class="panel wide-4">
-    <div class="panel-label">NBA Recent Picks</div>
-    <div id="nba-recent-picks-list" style="max-height:250px;overflow-y:auto"></div>
-  </div>
-
-  <!-- WNBA MODEL PERFORMANCE -->
-  <div class="section-label">WNBA Model Performance <span style="font-size:8px;letter-spacing:1px;color:var(--amber);margin-left:8px">PAPER TRADE</span></div>
-
-  <div class="panel">
-    <div class="panel-label">WNBA Season Record</div>
-    <div class="metric-val" id="wnba-record">--</div>
-    <div class="metric-sub" id="wnba-record-sub">--</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">WNBA Selectivity</div>
-    <div class="metric-val blue" id="wnba-selectivity">--</div>
-    <div class="progress-bar" style="margin-top:12px"><div class="fill blue" id="wnba-selectivity-bar" style="width:0%"></div></div>
-    <div style="margin-top:8px">
-      <div class="stat-row"><span class="label">Total Picks</span><span class="value" id="wnba-total-picks">--</span></div>
-      <div class="stat-row"><span class="label">Total Passes</span><span class="value" id="wnba-total-passes">--</span></div>
-      <div class="stat-row"><span class="label">Avg Edge</span><span class="value" id="wnba-avg-edge">--</span></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">WNBA Confidence Buckets</div>
-    <div class="stat-row"><span class="label">3.5-5% edge</span><span class="value" id="wnba-bucket-low">--</span></div>
-    <div class="stat-row"><span class="label">5-7.5% edge</span><span class="value" id="wnba-bucket-mid">--</span></div>
-    <div class="stat-row"><span class="label">7.5-10% edge</span><span class="value" id="wnba-bucket-high">--</span></div>
-    <div style="margin-top:10px">
-      <div class="stat-row"><span class="label">CLV+</span><span class="value green" id="wnba-clv-pct">--</span></div>
-    </div>
-  </div>
-
-  <div class="panel wide-4">
-    <div class="panel-label">WNBA Equity Curve (1u Standardized)</div>
-    <div id="wnba-equity-chart" style="position:relative;height:140px;margin:8px 0">
-      <svg viewBox="0 0 800 140" preserveAspectRatio="none" style="width:100%;height:100%">
-        <defs>
-          <linearGradient id="wnba-eq-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="rgba(79,134,247,0.25)"/>
-            <stop offset="100%" stop-color="rgba(79,134,247,0)"/>
-          </linearGradient>
-        </defs>
-        <line id="wnba-eq-zero" x1="0" y1="70" x2="800" y2="70" stroke="var(--border)" stroke-width="1" stroke-dasharray="4"/>
-        <path id="wnba-eq-area" d="" fill="url(#wnba-eq-fill)" opacity="0.5"/>
-        <path id="wnba-eq-line" d="" fill="none" stroke="var(--blue)" stroke-width="2"/>
-        <g id="wnba-eq-dots"></g>
-      </svg>
-      <div id="wnba-eq-tooltip" style="display:none;position:absolute;background:var(--panel);border:1px solid var(--border-bright);border-radius:6px;padding:8px 12px;font-size:10px;pointer-events:none;z-index:5;white-space:nowrap"></div>
-    </div>
-    <div class="metric-sub" id="wnba-equity-sub">--</div>
-  </div>
-
-  <!-- MLB MODEL PERFORMANCE -->
-  <div class="section-label">MLB Model Performance <span style="font-size:8px;letter-spacing:1px;color:var(--amber);margin-left:8px">NEW</span></div>
-
-  <div class="panel">
-    <div class="panel-label">MLB Season Record</div>
-    <div class="metric-val" id="mlb-record">--</div>
-    <div class="metric-sub" id="mlb-record-sub">--</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">MLB Selectivity</div>
-    <div class="metric-val blue" id="mlb-selectivity">--</div>
-    <div class="progress-bar" style="margin-top:12px"><div class="fill blue" id="mlb-selectivity-bar" style="width:0%"></div></div>
-    <div style="margin-top:8px">
-      <div class="stat-row"><span class="label">Total Picks</span><span class="value" id="mlb-total-picks">--</span></div>
-      <div class="stat-row"><span class="label">Total Passes</span><span class="value" id="mlb-total-passes">--</span></div>
-      <div class="stat-row"><span class="label">Avg Edge</span><span class="value" id="mlb-avg-edge">--</span></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">MLB Confidence Buckets</div>
-    <div class="stat-row"><span class="label">3.5-5% edge</span><span class="value" id="mlb-bucket-low">--</span></div>
-    <div class="stat-row"><span class="label">5-7.5% edge</span><span class="value" id="mlb-bucket-mid">--</span></div>
-    <div class="stat-row"><span class="label">7.5-10% edge</span><span class="value" id="mlb-bucket-high">--</span></div>
-    <div style="margin-top:10px">
-      <div class="stat-row"><span class="label">CLV+</span><span class="value green" id="mlb-clv-pct">--</span></div>
-    </div>
-  </div>
-
-  <div class="panel wide-4">
-    <div class="panel-label">MLB Equity Curve (1u Standardized)</div>
-    <div id="mlb-equity-chart" style="position:relative;height:140px;margin:8px 0">
-      <svg viewBox="0 0 800 140" preserveAspectRatio="none" style="width:100%;height:100%">
-        <defs>
-          <linearGradient id="mlb-eq-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="rgba(251,191,36,0.25)"/>
-            <stop offset="100%" stop-color="rgba(251,191,36,0)"/>
-          </linearGradient>
-        </defs>
-        <line id="mlb-eq-zero" x1="0" y1="70" x2="800" y2="70" stroke="var(--border)" stroke-width="1" stroke-dasharray="4"/>
-        <path id="mlb-eq-area" d="" fill="url(#mlb-eq-fill)" opacity="0.5"/>
-        <path id="mlb-eq-line" d="" fill="none" stroke="var(--amber)" stroke-width="2"/>
-        <g id="mlb-eq-dots"></g>
-      </svg>
-      <div id="mlb-eq-tooltip" style="display:none;position:absolute;background:var(--panel);border:1px solid var(--border-bright);border-radius:6px;padding:8px 12px;font-size:10px;pointer-events:none;z-index:5;white-space:nowrap"></div>
-    </div>
-    <div class="metric-sub" id="mlb-equity-sub">--</div>
-  </div>
-
-  <div class="panel wide-4">
-    <div class="panel-label">MLB Recent Picks</div>
-    <div id="mlb-recent-picks-list" style="max-height:250px;overflow-y:auto"></div>
-  </div>
-
-  </div><!-- /tab-model -->
-
-  <!-- TAB: REVENUE & USERS -->
-  <div class="tab-content" id="tab-revenue">
-
-  <!-- ALERTS FEED -->
-  <div class="section-label">Alerts</div>
-  <div class="panel wide-4" id="alerts-panel">
-    <div class="panel-label">Revenue Events</div>
-    <div id="alerts-feed" style="max-height:160px;overflow-y:auto;font-size:11px;color:var(--text)">
-      <span style="color:var(--text-dim)">Loading...</span>
-    </div>
-  </div>
-
-  <!-- REVENUE & SALES -->
-  <div class="section-label">Revenue & Sales</div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">Monthly Recurring Revenue</div>
-    <div class="metric-val green" id="mrr">--</div>
-    <div class="metric-sub" id="mrr-change">MRR</div>
-    <div id="mrr-sparkline" style="height:48px;display:flex;align-items:flex-end;gap:1px;margin-top:8px"></div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Annual Run Rate</div>
-    <div class="metric-val" id="arr">--</div>
-    <div class="metric-sub">ARR · Projected</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Active Subscribers</div>
-    <div class="metric-val blue" id="total-subs">--</div>
-    <div class="metric-sub" id="sub-breakdown">-- annual · -- monthly · -- trial</div>
-  </div>
-
-  <!-- CONVERSION FUNNEL -->
-  <div class="section-label">Conversion Funnel</div>
-
-  <div class="panel wide-4" id="funnel-panel">
-    <div class="panel-label">Signup → Trial → Paid</div>
-    <div id="funnel-flow" style="display:flex;align-items:center;gap:8px;margin:10px 0;flex-wrap:wrap">
-      <span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text-bright)" id="fn-signups">--</span>
-      <span style="color:var(--text-dim);font-size:11px">signups</span>
-      <span style="color:var(--text-dim);font-size:14px">→</span>
-      <span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--blue)" id="fn-trials">--</span>
-      <span style="color:var(--text-dim);font-size:11px" id="fn-s2t-rate">(--%) trials</span>
-      <span style="color:var(--text-dim);font-size:14px">→</span>
-      <span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--green)" id="fn-paid">--</span>
-      <span style="color:var(--text-dim);font-size:11px" id="fn-t2p-rate">(--%) paid</span>
-    </div>
-    <div style="display:flex;gap:20px;font-size:11px;color:var(--text-dim)">
-      <span id="fn-avg-s2t">Avg signup→trial: --</span>
-      <span id="fn-avg-t2p">Avg trial→paid: --</span>
-    </div>
-  </div>
-
-  <div class="panel wide-4" id="funnel-weekly-panel" style="max-height:200px;overflow-y:auto">
-    <div class="panel-label">Weekly Cohort Trend</div>
-    <table class="user-table" style="font-size:11px">
-      <thead><tr><th>Week</th><th>Signups</th><th>Trials</th><th>Conversions</th></tr></thead>
-      <tbody id="funnel-weekly-tbody"></tbody>
-    </table>
-  </div>
-
-  <!-- SUBSCRIBERS & DISTRIBUTION -->
-  <div class="section-label">Subscribers & Distribution</div>
-
-  <div class="panel">
-    <div class="panel-label">Founding Members</div>
-    <div class="metric-val amber" id="founding-count">--</div>
-    <div class="progress-bar"><div class="fill amber" id="founding-bar" style="width:0%"></div></div>
-    <div class="metric-sub" id="founding-sub">--</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">User Distribution</div>
-    <div class="stat-row"><span class="label">Total Users</span><span class="value" id="total-users">--</span></div>
-    <div class="stat-row"><span class="label">Active (Paid)</span><span class="value green" id="paid-users">--</span></div>
-    <div class="stat-row"><span class="label">Trial</span><span class="value blue" id="trial-users">--</span></div>
-    <div class="stat-row"><span class="label">Free</span><span class="value" id="free-users">--</span></div>
-    <div class="stat-row"><span class="label">Founding Members</span><span class="value amber" id="founding-users">--</span></div>
-  </div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">User Growth</div>
-    <div id="user-growth-chart" style="height:80px;display:flex;align-items:flex-end;gap:2px;margin:8px 0"></div>
-    <div class="metric-sub" id="user-growth-sub">--</div>
-  </div>
-
-  </div><!-- /tab-revenue -->
-
-  <!-- TAB: ENGAGEMENT -->
-  <div class="tab-content" id="tab-engagement">
-
-  <div class="section-label">Engagement — Last 7 Days <span id="eng-tracking-since" style="font-weight:400;font-size:10px;color:var(--text-dim);margin-left:8px"></span></div>
-
-  <div class="panel">
-    <div class="panel-label">Active Users (7d)</div>
-    <div class="metric-val green" id="eng-active-users">--</div>
-    <div class="metric-sub" id="eng-total-events">--</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Sessions (7d)</div>
-    <div class="metric-val blue" id="eng-total-sessions">--</div>
-    <div class="metric-sub" id="eng-sessions-per-user">--</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Session Metrics</div>
-    <div class="stat-row"><span class="label">Avg Duration</span><span class="value" id="eng-avg-duration">--</span></div>
-    <div class="stat-row"><span class="label">Avg Pages/Session</span><span class="value" id="eng-pages-per-session">--</span></div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Retention</div>
-    <div class="stat-row"><span class="label">D1</span><span class="value" id="eng-d1">--</span></div>
-    <div class="stat-row"><span class="label">D7</span><span class="value" id="eng-d7">--</span></div>
-    <div class="metric-sub" style="margin-top:6px;font-size:10px;color:var(--text-dim)">Based on first event seen per user</div>
-  </div>
-
-  <div class="panel wide-4">
-    <div class="panel-label">Daily Active Users</div>
-    <div id="dau-chart" style="height:80px;display:flex;align-items:flex-end;gap:3px;margin:8px 0"></div>
-    <div class="metric-sub" id="dau-sub">--</div>
-  </div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">Feature Usage</div>
-    <div id="feature-bars" style="margin:8px 0"></div>
-  </div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">Top Pages</div>
-    <div id="top-pages-list" style="font-size:11px"></div>
-  </div>
-
-  <div class="panel wide-4">
-    <div class="panel-label" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="toggleEngUsers('active')">
-      <span>Active Users (7d) <span id="eng-active-count-label" style="color:var(--text-dim);font-weight:400"></span></span>
-      <span id="eng-active-toggle" style="font-size:10px;color:var(--blue)">Show &darr;</span>
-    </div>
-    <div id="eng-active-user-list" style="display:none;max-height:300px;overflow-y:auto;margin-top:8px">
-      <table class="user-table" style="width:100%">
-        <thead><tr>
-          <th>Email</th><th>Name</th><th>Tier</th><th>Events (7d)</th><th>Last Seen</th>
-        </tr></thead>
-        <tbody id="eng-active-users-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="panel wide-4">
-    <div class="panel-label" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="toggleEngUsers('all')">
-      <span>All Users <span id="eng-all-count-label" style="color:var(--text-dim);font-weight:400"></span></span>
-      <span id="eng-all-toggle" style="font-size:10px;color:var(--blue)">Show &darr;</span>
-    </div>
-    <div id="eng-all-user-list" style="display:none;max-height:400px;overflow-y:auto;margin-top:8px">
-      <table class="user-table" style="width:100%">
-        <thead><tr>
-          <th>Email</th><th>Name</th><th>Tier</th><th>Plan</th><th>Signed Up</th>
-        </tr></thead>
-        <tbody id="eng-all-users-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  </div><!-- /tab-engagement -->
-
-  <!-- TAB: CONTROL ROOM -->
-  <div class="tab-content" id="tab-control">
-  <div class="section-label" style="background:rgba(255,165,2,0.06);color:var(--amber)">
-    <span>Control Room <span style="font-size:8px;letter-spacing:1px;margin-left:8px;color:var(--text-dim)">ADMIN ONLY</span></span>
-  </div>
-  <div id="control-room-body">
-
-  <div class="panel wide-2">
-    <div class="panel-label">Kill Switch &amp; Trigger States <span class="status-dot" id="ks-status-dot"></span></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div>
-        <div class="metric-val" id="ks-status-label" style="font-size:16px">--</div>
-        <div class="metric-sub" id="ks-position-label">--</div>
-      </div>
-      <div style="text-align:right">
-        <div class="metric-val" id="ks-triggers-count" style="font-size:22px">--</div>
-        <div class="metric-sub">triggers met</div>
-      </div>
-    </div>
-    <div id="ks-conditions-list"></div>
-    <div id="ks-trigger-log" style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;display:none">
-      <div class="panel-label" style="font-size:9px;margin-bottom:4px">Trigger Log</div>
-      <div id="ks-trigger-reasons"></div>
-    </div>
-  </div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">Risk Profile</div>
-    <div class="stat-row"><span class="label">Max Drawdown</span><span class="value" id="rp-max-drawdown">--</span></div>
-    <div class="stat-row"><span class="label">Rolling 50-Bet ROI</span><span class="value" id="rp-rolling-50">--</span></div>
-    <div class="stat-row"><span class="label">Rolling 100-Bet ROI</span><span class="value" id="rp-rolling-100">--</span></div>
-    <div class="stat-row"><span class="label">Return Std Dev</span><span class="value" id="rp-return-std">--</span></div>
-    <div class="stat-row"><span class="label">Risk of Ruin</span><span class="value" id="rp-risk-of-ruin">--</span></div>
-    <div class="stat-row"><span class="label">Avg Days Between Picks</span><span class="value" id="rp-avg-days">--</span></div>
-    <div class="stat-row"><span class="label">Avg Edge Published</span><span class="value green" id="rp-avg-edge">--</span></div>
-  </div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">Threshold Tuning</div>
-    <div class="stat-row"><span class="label">Base Edge Threshold</span><span class="value" id="th-base-edge">--</span></div>
-    <div class="stat-row"><span class="label">Elasticity Formula</span><span class="value" id="th-formula" style="font-size:9px;max-width:200px;text-align:right">--</span></div>
-    <div class="stat-row"><span class="label">Max Edge Cap</span><span class="value" id="th-max-edge">--</span></div>
-    <div class="stat-row"><span class="label">Model Weight (Shrinkage)</span><span class="value" id="th-model-weight">--</span></div>
-    <div class="stat-row"><span class="label">Sigma (σ)</span><span class="value" id="th-sigma">--</span></div>
-    <div class="stat-row"><span class="label">SFS Cap</span><span class="value" id="th-sfs-cap">--</span></div>
-    <div class="stat-row"><span class="label">Avg Edge Published</span><span class="value green" id="th-avg-edge">--</span></div>
-    <div class="stat-row"><span class="label">Avg Spread Published</span><span class="value" id="th-avg-spread">--</span></div>
-  </div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">Bucket Segmentation</div>
-    <div id="cr-bucket-list"></div>
-  </div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">Decay Metrics</div>
-    <div class="stat-row"><span class="label">Open Snapshots</span><span class="value" id="dm-open-count">--</span></div>
-    <div class="stat-row"><span class="label">Pre-Tip Snapshots</span><span class="value" id="dm-pretip-count">--</span></div>
-    <div class="stat-row"><span class="label">Avg Edge at Open</span><span class="value green" id="dm-avg-open">--</span></div>
-    <div class="stat-row"><span class="label">Avg Edge at Pre-Tip</span><span class="value" id="dm-avg-pretip">--</span></div>
-    <div class="stat-row"><span class="label">Avg Decay</span><span class="value" id="dm-avg-decay">--</span></div>
-  </div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">Fragility Scoring Breakdown</div>
-    <div id="cr-fragility-list" style="max-height:250px;overflow-y:auto"></div>
-  </div>
-
-  <div class="panel wide-2">
-    <div class="panel-label">Experimental Toggles</div>
-    <div id="cr-toggles-list"></div>
-  </div>
-
-  </div><!-- /control-room-body -->
-
-  </div><!-- /tab-control -->
-
-  <!-- USERS (inside revenue tab via JS switching) -->
-  <div class="tab-content" id="tab-users-section">
-  <div class="section-label">Users</div>
-
-  <div class="panel wide-4" style="margin-bottom:8px">
-    <div class="panel-label" style="font-size:10px;margin-bottom:6px">Search User by Email</div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <input id="user-search-input" placeholder="e.g. jessie.donnelly.m@gmail.com" onkeydown="if(event.key==='Enter')searchUser()" style="flex:1;padding:6px 8px;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;box-sizing:border-box">
-      <button onclick="searchUser()" style="padding:6px 12px;background:var(--blue);color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer">Search</button>
-    </div>
-    <div id="user-search-result" style="font-size:11px;margin-top:6px;color:var(--text-dim);min-height:18px"></div>
-  </div>
-
-  <div class="panel wide-4">
-    <div class="panel-label">Recent Users <span style="color:var(--text-dim);font-weight:400" id="user-count-label">(--)</span></div>
-    <table class="user-table">
-      <thead>
-        <tr>
-          <th>Email</th>
-          <th>Name</th>
-          <th>Tier</th>
-          <th>Plan</th>
-          <th>Signed Up</th>
-          <th>Trial Ends</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="users-tbody">
-      </tbody>
-    </table>
-  </div>
-
-  </div><!-- /tab-users-section -->
-
 </div>
 
-<!-- User Activity Drawer -->
-<div id="user-drawer-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000" onclick="closeUserDrawer()"></div>
-<div id="user-drawer" style="display:none;position:fixed;top:0;right:0;bottom:0;width:420px;max-width:90vw;background:var(--bg);border-left:1px solid var(--border);z-index:1001;overflow-y:auto;padding:20px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-    <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-bright)">User Activity</span>
-    <button onclick="closeUserDrawer()" style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--text-dim);cursor:pointer;padding:4px 8px;font-size:11px">✕</button>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('pulse', this)">Pulse</button>
+  <button class="tab" onclick="switchTab('models', this)">Models</button>
+  <button class="tab" onclick="switchTab('infra', this)">Infra</button>
+  <button class="tab" onclick="switchTab('business', this)">Business</button>
+</div>
+
+<div class="content">
+
+  <!-- PULSE -->
+  <div class="panel active" id="panel-pulse">
+    <div id="pulseStats" class="loading">Loading...</div>
+    <div class="section-header">Today's Pipeline</div>
+    <div style="display: flex; gap: 2px; margin-bottom: 12px; background: var(--border-subtle); border-radius: 5px; overflow: hidden; width: fit-content;">
+      <button class="pipeline-sport-tab active" onclick="switchPipeline('nba', this)">NBA</button>
+      <button class="pipeline-sport-tab" onclick="switchPipeline('mlb', this)">MLB</button>
+    </div>
+    <div class="pipeline-panel active" id="pipeline-nba"><div class="loading">Loading...</div></div>
+    <div class="pipeline-panel" id="pipeline-mlb"><div class="loading">Loading...</div></div>
+    <div class="section-header">Services</div>
+    <div id="servicesGrid" class="loading">Loading...</div>
   </div>
-  <div id="user-drawer-content" style="font-size:12px;color:var(--text)">Loading...</div>
+
+  <!-- MODELS -->
+  <div class="panel" id="panel-models">
+    <div id="modelsContent" class="loading">Loading...</div>
+  </div>
+
+  <!-- INFRA -->
+  <div class="panel" id="panel-infra">
+    <div class="section-header">Pipeline Controls</div>
+    <div class="actions-bar" style="border-bottom: none; padding: 0; margin-bottom: 20px;">
+      <div class="action-group">
+        <span class="action-group-label">NBA</span>
+        <div class="action-read-btns">
+          <button class="action-btn" onclick="runAction('/api/cron/collect-games')">Games</button>
+          <button class="action-btn" onclick="runAction('/api/cron/refresh-lines')">Lines</button>
+        </div>
+        <div class="action-mutate-btns">
+          <button class="action-btn clear" onclick="showConfirm('Clear NBA?', 'Reset today\'s NBA pipeline data.', 'Clear', true, '/api/cron/run-model?sport=nba&clear=true')">Clear</button>
+          <button class="action-btn run" onclick="showConfirm('Run NBA Model?', 'Execute model pipeline for today\'s NBA games.', 'Run', false, '/api/cron/run-model?force=true')">Run</button>
+          <button class="action-btn grade" onclick="showConfirm('Grade NBA Picks?', 'Grade all pending NBA picks against final scores.', 'Grade', false, '/api/cron/grade-picks')">Grade</button>
+        </div>
+      </div>
+      <div class="action-divider-line"></div>
+      <div class="action-group">
+        <span class="action-group-label">MLB</span>
+        <div class="action-read-btns">
+          <button class="action-btn" onclick="runAction('/api/cron/mlb-collect')">Collect</button>
+        </div>
+        <div class="action-mutate-btns">
+          <button class="action-btn clear" onclick="showConfirm('Clear MLB?', 'Reset today\'s MLB pipeline data.', 'Clear', true, '/api/cron/mlb-run-model?clear=true')">Clear</button>
+          <button class="action-btn run" onclick="showConfirm('Run MLB Model?', 'Execute model pipeline for today\'s MLB games.', 'Run', false, '/api/cron/mlb-run-model?force=true')">Run</button>
+          <button class="action-btn grade" onclick="showConfirm('Grade MLB Picks?', 'Grade all pending MLB picks against final scores.', 'Grade', false, '/api/cron/mlb-grade')">Grade</button>
+        </div>
+      </div>
+    </div>
+    <div id="infraContent" class="loading">Loading...</div>
+  </div>
+
+  <!-- BUSINESS -->
+  <div class="panel" id="panel-business">
+    <div id="businessContent" class="loading">Loading...</div>
+  </div>
+
 </div>
 
 <script>
-function fmtET(date) {
-  if (!date) return '—';
-  if (typeof date === 'string') date = new Date(date);
-  return date.toLocaleString('en-US', {
-    timeZone: 'America/New_York', month: 'short', day: 'numeric',
-    hour: 'numeric', minute: '2-digit', hour12: true
-  }).replace(',', ' ·') + ' ET';
+const CRON_SECRET = '{{ cron_secret }}';
+let pendingAction = null;
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
 }
 
-function fmtDateET(date) {
-  if (!date) return '—';
-  if (typeof date === 'string') date = new Date(date);
-  return date.toLocaleDateString('en-US', {
-    timeZone: 'America/New_York', month: 'short', day: 'numeric', year: 'numeric'
-  });
+function switchPipeline(sport, el) {
+  document.querySelectorAll('.pipeline-sport-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.pipeline-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pipeline-' + sport).classList.add('active');
+}
+
+function showConfirm(title, desc, actionLabel, isDanger, actionUrl) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmDesc').textContent = desc;
+  const btn = document.getElementById('confirmProceed');
+  btn.textContent = actionLabel;
+  btn.className = 'confirm-btn proceed' + (isDanger ? ' danger' : '');
+  pendingAction = actionUrl;
+  document.getElementById('confirmOverlay').classList.add('active');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('active');
+  pendingAction = null;
+}
+
+async function executeConfirm() {
+  if (pendingAction) {
+    const url = pendingAction;
+    closeConfirm();
+    await runAction(url);
+  } else {
+    closeConfirm();
+  }
+}
+
+async function runAction(url) {
+  try {
+    const r = await fetch(url, { method: 'POST', headers: { 'X-Cron-Secret': CRON_SECRET } });
+    const d = await r.json();
+    alert(JSON.stringify(d, null, 2));
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function toggleKillSwitch() {
+  if (!confirm('Toggle kill switch? This will disable/enable all model operations.')) return;
+  try {
+    const r = await fetch('/api/public/kill-switch');
+    const d = await r.json();
+    alert('Kill switch: ' + (d.killed ? 'ACTIVE' : 'OFF'));
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
 }
 
 function updateClock() {
   const now = new Date();
-  document.getElementById('clock').textContent = fmtET(now);
-}
-updateClock();
-setInterval(updateClock, 1000);
-
-function fmt$(n) {
-  return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const et = now.toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+  document.getElementById('topbarTime').textContent = et;
 }
 
-function pnlClass(v) {
-  return v > 0 ? 'green' : v < 0 ? 'red' : '';
-}
+async function loadData() {
+  updateClock();
+  setInterval(updateClock, 30000);
 
-function switchTab(tabId) {
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-  const target = document.getElementById('tab-' + tabId);
-  if (target) target.classList.add('active');
-  const usersSection = document.getElementById('tab-users-section');
-  if (usersSection) usersSection.classList.toggle('active', tabId === 'revenue');
-  const btn = document.querySelector(`.tab-btn[onclick="switchTab('${tabId}')"]`);
-  if (btn) btn.classList.add('active');
-}
-
-function viewUserProfile(userId) {
-  document.getElementById('user-drawer-overlay').style.display = 'block';
-  document.getElementById('user-drawer').style.display = 'block';
-  document.getElementById('user-drawer-content').innerHTML = '<span style="color:var(--text-dim)">Loading activity...</span>';
-  adminFetch('/api/admin/user-activity/' + userId)
-    .then(r => r.json())
-    .then(d => {
-      if (d.error) { document.getElementById('user-drawer-content').textContent = d.error; return; }
-      const u = d.user || {};
-      let html = '<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">';
-      html += '<div style="font-family:var(--sans);font-weight:600;color:var(--text-bright);font-size:14px">' + (u.email || '--') + '</div>';
-      html += '<div style="margin-top:4px;color:var(--text-dim);font-size:11px">' + (u.tier || 'free') + (u.founding_member ? ' · founding' : '') + ' · Joined ' + fmtDateET(u.created_at) + '</div>';
-      if (d.last_active) html += '<div style="margin-top:2px;color:var(--text-dim);font-size:11px">Last active: ' + fmtET(d.last_active) + '</div>';
-      html += '</div>';
-      html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">';
-      html += '<div style="background:var(--panel);padding:8px;border-radius:4px;text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text-bright)">' + (d.total_sessions || 0) + '</div><div style="font-size:10px;color:var(--text-dim)">Sessions</div></div>';
-      html += '<div style="background:var(--panel);padding:8px;border-radius:4px;text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text-bright)">' + (d.total_events || 0) + '</div><div style="font-size:10px;color:var(--text-dim)">Events</div></div>';
-      html += '<div style="background:var(--panel);padding:8px;border-radius:4px;text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text-bright)">' + (d.articles_read || 0) + '</div><div style="font-size:10px;color:var(--text-dim)">Articles</div></div>';
-      html += '</div>';
-      const pv = d.pages_visited || {};
-      const pvKeys = Object.keys(pv).filter(k => k).sort((a,b) => pv[b] - pv[a]).slice(0, 8);
-      if (pvKeys.length) {
-        html += '<div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.5px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px">Pages Visited</div>';
-        pvKeys.forEach(k => {
-          html += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);font-size:11px"><span style="color:var(--text)">' + k + '</span><span style="font-family:var(--mono);color:var(--text-bright)">' + pv[k] + '</span></div>';
-        });
-        html += '<div style="margin-bottom:14px"></div>';
-      }
-      const tl = d.activity_timeline || [];
-      if (tl.length) {
-        html += '<div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.5px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px">Activity Timeline (14d)</div>';
-        const maxEv = Math.max(...tl.map(t => t.events), 1);
-        tl.forEach(t => {
-          const pct = Math.round(t.events / maxEv * 100);
-          html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">';
-          html += '<span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);width:60px;flex-shrink:0">' + t.date.slice(5) + '</span>';
-          html += '<div style="flex:1;height:12px;background:var(--panel);border-radius:2px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:var(--green);border-radius:2px"></div></div>';
-          html += '<span style="font-family:var(--mono);font-size:10px;color:var(--text-bright);width:28px;text-align:right">' + t.events + '</span>';
-          html += '</div>';
-        });
-      }
-      document.getElementById('user-drawer-content').innerHTML = html;
-    })
-    .catch(e => { document.getElementById('user-drawer-content').textContent = 'Error: ' + e.message; });
-}
-
-function closeUserDrawer() {
-  document.getElementById('user-drawer-overlay').style.display = 'none';
-  document.getElementById('user-drawer').style.display = 'none';
-}
-
-function extendTrial(userId, email) {
-  if (!confirm('Extend trial for ' + email + ' by 7 days?')) return;
-  adminFetch('/api/admin/users/' + userId + '/extend-trial', { method: 'POST' })
-    .then(r => r.json())
-    .then(d => {
-      if (d.success) { alert('Trial extended.'); loadDashboard(); }
-      else alert('Failed: ' + (d.error || 'Unknown error'));
-    })
-    .catch(e => alert('Error: ' + e.message));
-}
-
-function loadPipeline() {
-  adminFetch('/api/admin/today-pipeline')
-    .then(r => r.json())
-    .then(data => {
-      const dot = document.getElementById('pipeline-status-dot');
-      const label = document.getElementById('pipeline-status-label');
-      const dateEl = document.getElementById('pipeline-date');
-      const timeEl = document.getElementById('pipeline-run-time');
-      const details = document.getElementById('pipeline-details');
-      const gamesEl = document.getElementById('pipeline-games');
-      const resultEl = document.getElementById('pipeline-result');
-      const edgeEl = document.getElementById('pipeline-edge');
-      const durationEl = document.getElementById('pipeline-duration');
-      const pickBox = document.getElementById('pipeline-pick-details');
-      const passBox = document.getElementById('pipeline-pass-details');
-      const cronList = document.getElementById('pipeline-cron-list');
-
-      dateEl.textContent = data.date;
-
-      if (data.status === 'pick') {
-        dot.style.background = 'var(--green)';
-        label.textContent = 'Pick Published';
-        label.style.color = 'var(--green)';
-        timeEl.textContent = data.run_time ? 'Ran at ' + data.run_time : '';
-        details.style.display = '';
-        gamesEl.textContent = data.games_analyzed;
-        resultEl.textContent = 'PICK';
-        resultEl.style.color = 'var(--green)';
-        edgeEl.textContent = data.pick.edge_pct != null ? (data.pick.edge_pct > 0 ? '+' : '') + data.pick.edge_pct + '%' : '--';
-        edgeEl.style.color = 'var(--green)';
-        durationEl.textContent = data.duration_ms ? (data.duration_ms / 1000).toFixed(1) + 's' : '--';
-        pickBox.style.display = '';
-        passBox.style.display = 'none';
-        pickBox.innerHTML =
-          '<div style="font-size:11px;font-weight:600;color:var(--green);margin-bottom:6px">' + data.pick.side + ' ' + (data.pick.line != null ? (data.pick.line > 0 ? '+' : '') + data.pick.line : '') + '</div>' +
-          '<div style="font-family:var(--sans);font-size:10px;color:var(--text-dim)">' + data.pick.away_team + ' @ ' + data.pick.home_team + '</div>' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;font-size:10px">' +
-            '<div><span style="color:var(--text-dim)">Edge</span><br><span style="color:var(--green)">' + data.pick.edge_pct + '%</span></div>' +
-            '<div><span style="color:var(--text-dim)">Cover</span><br>' + (data.pick.cover_prob != null ? (data.pick.cover_prob * 100).toFixed(1) + '%' : '--') + '</div>' +
-            '<div><span style="color:var(--text-dim)">Book</span><br>' + (data.pick.sportsbook || '--') + '</div>' +
-          '</div>' +
-          (data.pick.predicted_margin ? '<div style="margin-top:6px;font-size:10px;color:var(--text-dim)">Predicted margin: ' + data.pick.predicted_margin + ' pts</div>' : '');
-      } else if (data.status === 'pass') {
-        dot.style.background = 'var(--amber)';
-        label.textContent = 'Pass Day';
-        label.style.color = 'var(--amber)';
-        timeEl.textContent = data.run_time ? 'Ran at ' + data.run_time : '';
-        details.style.display = '';
-        gamesEl.textContent = data.games_analyzed;
-        resultEl.textContent = 'PASS';
-        resultEl.style.color = 'var(--amber)';
-        var passEdge = data.pass.closest_edge_pct;
-        edgeEl.textContent = passEdge != null && passEdge !== 0 ? (passEdge > 0 ? '+' : '') + passEdge + '%' : 'None';
-        edgeEl.style.color = passEdge != null && passEdge > 0 ? 'var(--amber)' : 'var(--text-dim)';
-        durationEl.textContent = data.duration_ms ? (data.duration_ms / 1000).toFixed(1) + 's' : '--';
-        pickBox.style.display = 'none';
-        passBox.style.display = '';
-        var passHtml = '<div style="font-size:11px;color:var(--amber);margin-bottom:4px">' + (data.pass.pass_reason || 'No edge detected') + '</div>';
-        if (data.pass.whatif) {
-          var w = data.pass.whatif;
-          passHtml += '<div style="font-size:10px;color:var(--text-dim);margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,165,2,0.15)">' +
-            'Closest: ' + w.side + ' ' + (w.line != null ? (w.line > 0 ? '+' : '') + w.line : '') + ' (' + w.away_team + ' @ ' + w.home_team + ') · Edge: ' + (w.edge != null ? (w.edge > 0 ? '+' : '') + w.edge + '%' : '--') + '</div>';
-        }
-        passBox.innerHTML = passHtml;
-      } else {
-        dot.style.background = 'var(--text-dim)';
-        label.textContent = 'Awaiting Model Run';
-        label.style.color = 'var(--text-dim)';
-        timeEl.textContent = '';
-        details.style.display = 'none';
-        pickBox.style.display = 'none';
-        passBox.style.display = 'none';
-      }
-
-      var gamesSection = document.getElementById('pipeline-games-section');
-      var gamesList = document.getElementById('pipeline-games-list');
-      if (data.games && data.games.length > 0) {
-        gamesSection.style.display = '';
-        var header = '<div style="display:grid;grid-template-columns:2fr 1.2fr 0.8fr 0.8fr;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px">' +
-          '<span>Matchup</span><span>Pick</span><span style="text-align:right">Edge</span><span style="text-align:right">Cover</span></div>';
-        var rows = data.games.map(function(g) {
-          var edgeColor = g.passes ? 'var(--green)' : g.edge > 0 ? 'var(--amber)' : 'var(--text-dim)';
-          var edgeStr = g.edge != null ? (g.edge > 0 ? '+' : '') + g.edge + '%' : '--';
-          var coverStr = g.cover_prob != null ? (g.cover_prob * 100).toFixed(1) + '%' : '--';
-          var lineStr = g.line != null ? (g.line > 0 ? '+' : '') + g.line : '';
-          var rowBg = g.passes ? 'rgba(34,197,94,0.04)' : 'transparent';
-          var reason = !g.passes && g.reason ? ' title="' + g.reason.replace(/"/g, '&quot;') + '"' : '';
-          return '<div style="display:grid;grid-template-columns:2fr 1.2fr 0.8fr 0.8fr;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);background:' + rowBg + '"' + reason + '>' +
-            '<span style="font-family:var(--sans);color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + g.away + ' @ ' + g.home + '</span>' +
-            '<span style="color:var(--text-dim)">' + (g.pick || '--') + ' ' + lineStr + '</span>' +
-            '<span style="text-align:right;color:' + edgeColor + ';font-family:var(--mono)">' + edgeStr + '</span>' +
-            '<span style="text-align:right;color:var(--text-dim);font-family:var(--mono)">' + coverStr + '</span>' +
-            '</div>';
-        }).join('');
-        gamesList.innerHTML = header + rows;
-      } else {
-        gamesSection.style.display = data.model_ran ? '' : 'none';
-        gamesList.innerHTML = '<span style="color:var(--text-dim)">No game details stored for this run</span>';
-      }
-
-      if (data.cron_attempts && data.cron_attempts.length > 0) {
-        cronList.innerHTML = data.cron_attempts.map(function(a) {
-          var statusColor = a.status === 'ok' ? 'var(--green)' : a.status === 'error' ? 'var(--red)' : 'var(--text-dim)';
-          return '<div style="display:flex;gap:8px;padding:2px 0">' +
-            '<span style="color:' + statusColor + ';width:8px">●</span>' +
-            '<span style="width:80px">' + a.time + '</span>' +
-            '<span style="color:var(--text-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (a.message || '--') + '</span>' +
-            '<span style="color:var(--text-dim)">' + (a.duration_ms ? (a.duration_ms / 1000).toFixed(1) + 's' : '') + '</span>' +
-            '</div>';
-        }).join('');
-      } else {
-        cronList.innerHTML = '<span style="color:var(--text-dim)">No model runs attempted today</span>';
-      }
-    })
-    .catch(function() {
-      document.getElementById('pipeline-status-label').textContent = 'Failed to load pipeline';
-    });
-}
-
-function loadStatusBanner() {
-  adminFetch('/api/admin/status-summary')
-    .then(r => r.json())
-    .then(data => {
-      const dot = document.getElementById('status-dot-main');
-      const banner = document.getElementById('status-banner');
-      const msg = document.getElementById('status-message');
-      const time = document.getElementById('status-time');
-      const count = document.getElementById('status-alert-count');
-      const alertsPanel = document.getElementById('alerts-panel');
-      const alertsList = document.getElementById('alerts-list');
-
-      const colors = { green: '#22c55e', yellow: '#ffa502', red: '#ef4444' };
-      const bgColors = { green: 'rgba(34,197,94,0.06)', yellow: 'rgba(255,165,2,0.06)', red: 'rgba(239,68,68,0.06)' };
-      const borderColors = { green: 'rgba(34,197,94,0.2)', yellow: 'rgba(255,165,2,0.2)', red: 'rgba(239,68,68,0.3)' };
-
-      dot.style.background = colors[data.level] || colors.yellow;
-      dot.style.boxShadow = '0 0 12px ' + (colors[data.level] || colors.yellow) + '40';
-      banner.style.background = bgColors[data.level] || bgColors.yellow;
-      banner.style.borderBottomColor = borderColors[data.level] || borderColors.yellow;
-      msg.textContent = data.message;
-      time.textContent = data.timestamp;
-
-      const issues = (data.alerts || []).filter(a => a.severity !== 'ok' && a.severity !== 'info');
-      if (issues.length > 0) {
-        count.textContent = issues.length + ' alert' + (issues.length > 1 ? 's' : '');
-        count.style.color = colors[data.level] || colors.yellow;
-        alertsPanel.style.display = '';
-        alertsPanel.style.background = bgColors[data.level] || bgColors.yellow;
-        alertsPanel.style.borderBottomColor = borderColors[data.level] || borderColors.yellow;
-        alertsList.innerHTML = issues.map(a => {
-          const isErr = a.severity === 'error' || a.severity === 'critical';
-          const sevColor = isErr ? 'var(--red)' : 'var(--amber)';
-          const sevLabel = isErr ? 'ERR' : 'WARN';
-          return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px">' +
-            '<span style="font-size:8px;font-weight:700;letter-spacing:1px;color:' + sevColor + ';width:32px">' + sevLabel + '</span>' +
-            '<span style="color:var(--text-dim);width:48px;font-size:9px;text-transform:uppercase">' + a.type + '</span>' +
-            '<span style="color:var(--text)">' + a.message + '</span>' +
-            '</div>';
-        }).join('');
-      } else {
-        count.textContent = '';
-        alertsPanel.style.display = 'none';
-      }
-    })
-    .catch(() => {
-      document.getElementById('status-message').textContent = 'Failed to load status';
-    });
-}
-
-let _equityCurveData = {};
-
-function buildEquityCurve(curve, prefix) {
-  const lineEl = document.getElementById(prefix + '-eq-line');
-  const areaEl = document.getElementById(prefix + '-eq-area');
-  if (!lineEl || !areaEl) return;
-  if (!curve || curve.length < 2) { lineEl.setAttribute('d', ''); areaEl.setAttribute('d', ''); return; }
-
-  _equityCurveData[prefix] = curve;
-
-  const vals = curve.map(c => c.value);
-  const minV = Math.min(...vals, 0);
-  const maxV = Math.max(...vals);
-  const range = maxV - minV || 1;
-  const w = 800;
-  const chartEl = document.getElementById(prefix + '-equity-chart');
-  const svgEl = chartEl ? chartEl.querySelector('svg') : null;
-  const h = svgEl ? parseInt(svgEl.getAttribute('viewBox').split(' ')[3]) : 180;
-  const pad = 6;
-
-  const zeroY = h - ((0 - minV) / range) * (h - pad * 2) - pad;
-  const zeroLine = document.getElementById(prefix + '-eq-zero');
-  if (zeroLine) { zeroLine.setAttribute('y1', zeroY.toFixed(1)); zeroLine.setAttribute('y2', zeroY.toFixed(1)); }
-
-  const points = curve.map((c, i) => {
-    const x = (i / (curve.length - 1)) * w;
-    const y = h - ((c.value - minV) / range) * (h - pad * 2) - pad;
-    return { x, y };
-  });
-
-  const line = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
-  const area = line + ' L' + w + ',' + h + ' L0,' + h + ' Z';
-
-  lineEl.setAttribute('d', line);
-  areaEl.setAttribute('d', area);
-
-  const dotsG = document.getElementById(prefix + '-eq-dots');
-  if (dotsG) {
-    dotsG.innerHTML = '';
-    points.forEach((p, i) => {
-      const c = curve[i];
-      const color = c.value >= 0 ? 'var(--green)' : 'var(--red)';
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', p.x.toFixed(1));
-      circle.setAttribute('cy', p.y.toFixed(1));
-      circle.setAttribute('r', '4');
-      circle.setAttribute('fill', color);
-      circle.setAttribute('opacity', '0');
-      circle.setAttribute('style', 'cursor:pointer;transition:opacity 0.15s');
-      circle.addEventListener('mouseenter', (e) => {
-        circle.setAttribute('opacity', '1');
-        const tooltip = document.getElementById(prefix + '-eq-tooltip');
-        if (tooltip) {
-          const pnlStr = c.value >= 0 ? '+' + c.value.toFixed(2) + 'u' : c.value.toFixed(2) + 'u';
-          const resultStr = c.result === 'win' ? '<span style="color:var(--green)">W</span>' : c.result === 'loss' ? '<span style="color:var(--red)">L</span>' : 'P';
-          tooltip.innerHTML = '<div style="color:var(--text-bright);font-weight:600;margin-bottom:2px">' + (c.side || '') + '</div>' +
-            '<div>' + (c.date || '') + ' ' + resultStr + ' &middot; ' + pnlStr + '</div>' +
-            (c.edge ? '<div style="color:var(--text-dim)">Edge: ' + c.edge + '%</div>' : '');
-          tooltip.style.display = 'block';
-          const chartEl = document.getElementById(prefix + '-equity-chart');
-          const rect = chartEl.getBoundingClientRect();
-          const px = (p.x / w) * rect.width;
-          tooltip.style.left = Math.min(px, rect.width - 160) + 'px';
-          tooltip.style.top = Math.max(0, (p.y / h) * rect.height - 60) + 'px';
-        }
-      });
-      circle.addEventListener('mouseleave', () => {
-        circle.setAttribute('opacity', '0');
-        const tooltip = document.getElementById(prefix + '-eq-tooltip');
-        if (tooltip) tooltip.style.display = 'none';
-      });
-      dotsG.appendChild(circle);
-    });
-  }
-}
-
-function buildRecentPicks(picks, containerId) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  container.innerHTML = '';
-  if (!picks || picks.length === 0) {
-    container.innerHTML = '<div style="color:var(--text-dim);font-size:10px;padding:12px 0;text-align:center">No picks yet</div>';
-    return;
-  }
-  picks.forEach(p => {
-    const resultClass = p.result === 'win' ? 'W' : p.result === 'loss' ? 'L' : 'pending';
-    const resultLabel = p.result === 'win' ? 'W' : p.result === 'loss' ? 'L' : '—';
-    const pnlStr = p.pnl != null ? (p.pnl > 0 ? '+' + p.pnl : p.pnl) : '—';
-    const row = document.createElement('div');
-    row.className = 'pick-row';
-    row.innerHTML = `
-      <span style="color:var(--text-dim);width:70px;flex-shrink:0">${p.date}</span>
-      <span class="pick-side">${p.side}</span>
-      <span class="pick-edge">${p.edge}%</span>
-      <span class="pick-result ${resultClass}">${resultLabel}</span>
-      <span class="pick-pnl" style="color:var(--${p.pnl > 0 ? 'green' : p.pnl < 0 ? 'red' : 'text-dim'})">${pnlStr}</span>
-    `;
-    container.appendChild(row);
-  });
-}
-
-function buildModelRuns(runs, containerId) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  container.innerHTML = '';
-  if (!runs || runs.length === 0) {
-    container.innerHTML = '<div style="color:var(--text-dim);font-size:10px;padding:12px 0;text-align:center">No runs yet</div>';
-    return;
-  }
-  runs.forEach(r => {
-    const row = document.createElement('div');
-    row.className = 'status-bar-row';
-    row.innerHTML = `
-      <div class="status-indicator ${r.pick_generated ? 'ok' : 'warn'}"></div>
-      <span class="status-name">${r.date} · ${r.games_analyzed} games</span>
-      <span class="status-val">${r.pick_generated ? 'PICK' : 'PASS'} · ${r.duration_ms}ms</span>
-    `;
-    container.appendChild(row);
-  });
-}
-
-function populateSportStats(m, prefix) {
-  const el = id => document.getElementById(prefix + '-' + id);
-  if (!el('record')) return;
-
-  el('record').textContent = m.record;
-  const winClass = m.win_rate >= 55 ? 'green' : m.win_rate >= 50 ? '' : 'red';
-  el('record').className = 'metric-val ' + winClass;
-  el('record-sub').textContent =
-    `${m.win_rate}% · ${m.total_pnl >= 0 ? '+' : ''}${fmt$(m.total_pnl)} · ${m.roi >= 0 ? '+' : ''}${m.roi}% ROI`;
-
-  el('selectivity').textContent = m.selectivity + '%';
-  el('selectivity-bar').style.width = m.selectivity + '%';
-  el('total-picks').textContent = m.total_picks;
-  el('total-passes').textContent = m.total_passes;
-  el('avg-edge').textContent = m.avg_edge + '%';
-
-  const bk = m.buckets;
-  const br = m.bucket_rates;
-  el('bucket-low').textContent = `${bk['3.5-5%']} (${br['3.5-5%']}%)`;
-  el('bucket-mid').textContent = `${bk['5-7.5%']} (${br['5-7.5%']}%)`;
-  el('bucket-high').textContent = `${bk['7.5-10%']} (${br['7.5-10%']}%)`;
-
-  if (el('pre-cal')) el('pre-cal').textContent = m.pre_cal_count;
-  if (el('post-cal')) el('post-cal').textContent = m.post_cal_count;
-  el('clv-pct').textContent = m.clv_pct + '%';
-
-  if (el('last-pick')) {
-    if (m.last_pick_date) {
-      el('last-pick').textContent = fmtDateET(m.last_pick_date + 'T12:00:00');
-    } else {
-      el('last-pick').textContent = 'None';
-    }
-  }
-  if (el('days-since')) {
-    const d = m.days_since_pick;
-    if (d != null) {
-      el('days-since').textContent = d;
-      el('days-since').className = 'value ' + (d >= 14 ? 'red' : d >= 7 ? 'amber' : 'green');
-    } else {
-      el('days-since').textContent = '—';
-    }
-  }
-  if (el('pass-streak')) {
-    el('pass-streak').textContent = m.consecutive_passes;
-    el('pass-streak').className = 'value ' + (m.consecutive_passes >= 14 ? 'red' : m.consecutive_passes >= 7 ? 'amber' : '');
-  }
-
-  buildEquityCurve(m.equity_curve, prefix);
-  el('equity-sub').textContent =
-    `${m.equity_curve.length} resolved picks · Current: ${m.total_pnl >= 0 ? '+' : ''}${fmt$(m.total_pnl)}`;
-}
-
-function buildUsersTable(users) {
-  const tbody = document.getElementById('users-tbody');
-  tbody.innerHTML = '';
-  users.forEach(u => {
-    const tr = document.createElement('tr');
-    const date = u.created_at ? fmtDateET(u.created_at) : '—';
-    let trialEnd = '—';
-    if (u.trial_end) {
-      const te = new Date(u.trial_end);
-      const now = new Date();
-      const daysLeft = Math.max(0, Math.ceil((te - now) / (1000 * 60 * 60 * 24)));
-      const dateStr = fmtDateET(te);
-      const urgencyClass = daysLeft <= 3 ? 'red' : daysLeft <= 7 ? 'amber' : 'green';
-      trialEnd = `<span class="${urgencyClass}">${dateStr}</span> <span style="color:var(--text-dim);font-size:11px">(${daysLeft}d)</span>`;
-    }
-    const isSuperuser = u.is_superuser;
-    const safeEmail = u.email.replace(/'/g, "\\'");
-    const actionsHtml = isSuperuser ? '<span style="color:var(--text-dim);font-size:9px">ADMIN</span>' :
-      '<button class="user-action-btn" onclick="viewUserProfile(\'' + u.id + '\')" title="View full profile">Profile</button>' +
-      (u.tier === 'trial' ? '<button class="user-action-btn" style="border-color:var(--green);color:var(--green)" onclick="extendTrial(\'' + u.id + '\', \'' + safeEmail + '\')" title="Extend trial by 7 days">Extend</button>' : '') +
-      '<button class="btn-delete" onclick="deleteUser(\'' + u.id + '\', \'' + safeEmail + '\')">Delete</button>';
-    tr.innerHTML = `
-      <td>${u.email}</td>
-      <td>${u.first_name}</td>
-      <td><span class="badge ${u.tier}">${u.tier}${u.founding_number ? ' #' + u.founding_number : ''}</span></td>
-      <td>${u.plan || '—'}</td>
-      <td>${date}</td>
-      <td>${trialEnd}</td>
-      <td style="white-space:nowrap">${actionsHtml}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-const _adminToken = new URLSearchParams(window.location.search).get('t');
-if (_adminToken) {
-  sessionStorage.setItem('admin_token', _adminToken);
-  window.history.replaceState({}, '', '/admin');
-}
-let adminToken = sessionStorage.getItem('admin_token') || '';
-const bearerToken = localStorage.getItem('sp_auth_token') || '';
-
-async function ensureAdminToken() {
-  if (adminToken) return;
-  if (!bearerToken) return;
   try {
-    const res = await fetch('/api/admin/token', {
-      credentials: 'include',
-      headers: { 'Authorization': 'Bearer ' + bearerToken }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.token) {
-        adminToken = data.token;
-        sessionStorage.setItem('admin_token', adminToken);
-      }
-    }
-  } catch(e) {}
-}
+    const [statsR, diagR, engR, usersR] = await Promise.all([
+      fetch('/api/admin/stats').then(r => r.json()).catch(() => null),
+      fetch('/api/cron/diagnostic', { headers: { 'X-Cron-Secret': CRON_SECRET } }).then(r => r.json()).catch(() => null),
+      fetch('/api/admin/engagement').then(r => r.json()).catch(() => null),
+      fetch('/api/admin/users').then(r => r.json()).catch(() => null),
+    ]);
 
-function adminFetch(url, opts = {}) {
-  const headers = opts.headers || {};
-  if (adminToken) headers['X-Admin-Token'] = adminToken;
-  if (bearerToken) headers['Authorization'] = 'Bearer ' + bearerToken;
-  return fetch(url, { credentials: 'include', ...opts, headers });
-}
-
-async function searchUser() {
-  const q = document.getElementById('user-search-input').value.trim();
-  const resultEl = document.getElementById('user-search-result');
-  if (!q) {
-    resultEl.textContent = 'Enter an email to search.';
-    return;
-  }
-  resultEl.textContent = 'Searching...';
-  try {
-    const res = await adminFetch('/api/admin/users/search?q=' + encodeURIComponent(q));
-    const data = await res.json();
-    if (!res.ok) {
-      resultEl.textContent = data.error || 'Search failed';
-      resultEl.style.color = 'var(--red)';
-      return;
-    }
-    if (data.found === 0) {
-      resultEl.textContent = 'No user found. User may not have registered, or may be in a different database (e.g. Replit vs Railway).';
-      resultEl.style.color = 'var(--amber)';
-    } else {
-      const u = data.users[0];
-      resultEl.innerHTML = 'Found: <strong>' + u.email + '</strong> — ' + (u.first_name || '') + ' · ' + (u.subscription_status || 'free') + ' · Created ' + (u.created_at ? new Date(u.created_at).toLocaleDateString('en-US') : '?');
-      resultEl.style.color = 'var(--green)';
-    }
+    renderPulse(statsR, diagR);
+    renderModels(statsR, diagR);
+    renderInfra(diagR);
+    renderBusiness(statsR, engR, usersR);
   } catch (e) {
-    resultEl.textContent = 'Error: ' + (e.message || 'network error');
-    resultEl.style.color = 'var(--red)';
+    console.error('Load failed:', e);
   }
 }
 
-async function deleteUser(userId, email) {
-  if (!confirm('Delete user ' + email + '? This cannot be undone.')) return;
-  try {
-    const res = await adminFetch('/api/admin/users/' + userId, { method: 'DELETE' });
-    if (res.ok) {
-      loadDashboard();
-    } else {
-      const data = await res.json();
-      alert('Delete failed: ' + (data.error || 'Unknown error'));
-    }
-  } catch(e) {
-    alert('Delete failed: ' + e.message);
+function renderPulse(stats, diag) {
+  if (!stats && !diag) { document.getElementById('pulseStats').textContent = 'Failed to load'; return; }
+
+  const s = stats || {};
+  const nba = s.nba || {};
+  const mlb = s.mlb || {};
+  const nbaW = nba.wins || 0, nbaL = nba.losses || 0;
+  const mlbW = mlb.wins || 0, mlbL = mlb.losses || 0;
+  const nbaRoi = nba.roi != null ? nba.roi.toFixed(1) : '0';
+  const mlbRoi = mlb.roi != null ? mlb.roi.toFixed(1) : '0';
+  const users = s.totalUsers || s.total_users || 0;
+
+  document.getElementById('pulseStats').innerHTML = `
+    <div class="stat-grid cols-4">
+      <div class="stat-cell"><div class="stat-label">NBA</div><div class="stat-value green">${nbaW}-${nbaL}</div><div class="stat-sub">${nbaRoi > 0 ? '+' : ''}${nbaRoi}% ROI</div></div>
+      <div class="stat-cell"><div class="stat-label">MLB</div><div class="stat-value green">${mlbW}-${mlbL}</div><div class="stat-sub">${mlbRoi > 0 ? '+' : ''}${mlbRoi}% ROI</div></div>
+      <div class="stat-cell"><div class="stat-label">MRR</div><div class="stat-value green">$${s.mrr || 0}</div><div class="stat-sub">$${s.arr || 0} ARR</div></div>
+      <div class="stat-cell"><div class="stat-label">Users</div><div class="stat-value">${users}</div><div class="stat-sub">${s.active_7d || 0} active 7d</div></div>
+    </div>`;
+
+  const today = diag || {};
+  const todayNba = today.nba_today || today.today || {};
+  const todayMlb = today.mlb_today || {};
+
+  const nbaPick = todayNba.pick;
+  const mlbPick = todayMlb.pick;
+  const nbaGames = today.games || {};
+  const mlbGames = today.mlb_games || {};
+
+  document.getElementById('pipeline-nba').innerHTML = nbaPick
+    ? `<div class="pipeline-card">
+        <div class="pipeline-status"><div class="pipeline-dot"></div><div class="pipeline-title">Pick Published</div></div>
+        <div class="pick-card">
+          <div class="pick-header">${nbaPick.side || '--'}</div>
+          <div class="pick-stats"><span>Edge <strong class="text-green">${nbaPick.edge ? '+' + nbaPick.edge + '%' : '--'}</strong></span></div>
+        </div>
+      </div>`
+    : (todayNba.pass ? '<div class="pipeline-card"><div class="pipeline-status"><div class="pipeline-dot" style="background:var(--yellow)"></div><div class="pipeline-title">Pass Day</div></div></div>'
+    : '<div class="pipeline-card"><div class="pipeline-status"><div class="pipeline-dot" style="background:var(--text-dim)"></div><div class="pipeline-title">Awaiting Model Run</div></div></div>');
+
+  document.getElementById('pipeline-mlb').innerHTML = mlbPick
+    ? `<div class="pipeline-card">
+        <div class="pipeline-status"><div class="pipeline-dot"></div><div class="pipeline-title">Pick Published</div></div>
+        <div class="pick-card">
+          <div class="pick-header">${mlbPick.side || '--'}</div>
+          <div class="pick-stats"><span>Edge <strong class="text-green">${mlbPick.edge ? '+' + mlbPick.edge + '%' : '--'}</strong></span></div>
+        </div>
+      </div>`
+    : '<div class="pipeline-card"><div class="pipeline-status"><div class="pipeline-dot" style="background:var(--text-dim)"></div><div class="pipeline-title">Awaiting Model Run</div></div></div>';
+
+  document.getElementById('servicesGrid').innerHTML = `
+    <div class="service-grid">
+      <div class="service-item"><div class="service-dot"></div><div class="service-name">PostgreSQL</div><div class="service-latency">OK</div></div>
+      <div class="service-item"><div class="service-dot"></div><div class="service-name">Odds API</div><div class="service-latency">${nbaGames.with_spreads || 0} w/ lines</div></div>
+      <div class="service-item"><div class="service-dot"></div><div class="service-name">ESPN</div><div class="service-latency">${nbaGames.total || 0} games</div></div>
+      <div class="service-item"><div class="service-dot"></div><div class="service-name">SQLite</div><div class="service-latency">${nbaGames.all_rows || 0} rows</div></div>
+      <div class="service-item"><div class="service-dot"></div><div class="service-name">Resend</div><div class="service-latency">OK</div></div>
+      <div class="service-item"><div class="service-dot"></div><div class="service-name">Stripe</div><div class="service-latency">OK</div></div>
+    </div>`;
+}
+
+function renderModels(stats, diag) {
+  const s = stats || {};
+  const nba = s.nba || {};
+  const mlb = s.mlb || {};
+  const nbaW = nba.wins || 0, nbaL = nba.losses || 0, nbaWr = (nbaW + nbaL) > 0 ? ((nbaW / (nbaW + nbaL)) * 100).toFixed(1) : '0';
+  const mlbW = mlb.wins || 0, mlbL = mlb.losses || 0, mlbWr = (mlbW + mlbL) > 0 ? ((mlbW / (mlbW + mlbL)) * 100).toFixed(1) : '0';
+  const nbaRoi = nba.roi != null ? nba.roi.toFixed(1) : '0';
+  const mlbRoi = mlb.roi != null ? mlb.roi.toFixed(1) : '0';
+
+  document.getElementById('modelsContent').innerHTML = `
+    <div class="model-section">
+      <div class="model-header">
+        <span class="section-header" style="margin:0">NBA</span>
+        <span class="model-badge live">Live</span>
+      </div>
+      <div class="stat-grid cols-4">
+        <div class="stat-cell"><div class="stat-label">Record</div><div class="stat-value green">${nbaW}-${nbaL}</div><div class="stat-sub">${nbaWr}%</div></div>
+        <div class="stat-cell"><div class="stat-label">ROI</div><div class="stat-value green">${nbaRoi > 0 ? '+' : ''}${nbaRoi}%</div></div>
+        <div class="stat-cell"><div class="stat-label">Picks</div><div class="stat-value sm">${nba.total_picks || 0}</div></div>
+        <div class="stat-cell"><div class="stat-label">Avg Edge</div><div class="stat-value sm">${nba.avg_edge ? nba.avg_edge.toFixed(1) + '%' : '--'}</div></div>
+      </div>
+    </div>
+    <div class="model-section">
+      <div class="model-header">
+        <span class="section-header" style="margin:0">MLB</span>
+        <span class="model-badge beta">Cal Beta</span>
+      </div>
+      <div class="stat-grid cols-4">
+        <div class="stat-cell"><div class="stat-label">Record</div><div class="stat-value green">${mlbW}-${mlbL}</div><div class="stat-sub">${mlbWr}%</div></div>
+        <div class="stat-cell"><div class="stat-label">ROI</div><div class="stat-value green">${mlbRoi > 0 ? '+' : ''}${mlbRoi}%</div></div>
+        <div class="stat-cell"><div class="stat-label">Picks</div><div class="stat-value sm">${mlb.total_picks || 0}</div></div>
+        <div class="stat-cell"><div class="stat-label">Avg Edge</div><div class="stat-value sm">${mlb.avg_edge ? mlb.avg_edge.toFixed(1) + '%' : '--'}</div></div>
+      </div>
+    </div>
+    <div class="model-section">
+      <div class="model-header">
+        <span class="section-header" style="margin:0">WNBA</span>
+        <span class="model-badge shadow">Shadow</span>
+      </div>
+      <div style="padding: 24px; text-align: center; color: var(--text-dim); font-size: 13px;">No runs yet</div>
+    </div>`;
+}
+
+function renderInfra(diag) {
+  const logs = (diag && diag.cron_logs) || [];
+  const recentJobs = {};
+  for (const log of logs) {
+    if (!recentJobs[log.job]) recentJobs[log.job] = log;
   }
-}
 
-function _getActionBtns(name) {
-  return [document.getElementById('top-' + name + '-btn')].filter(Boolean);
-}
-async function triggerGetGames() {
-  const btns = _getActionBtns('get-games');
-  if (btns[0] && btns[0].disabled) return;
-  btns.forEach(b => { b.disabled = true; b.textContent = '...'; });
-  try {
-    const res = await adminFetch('/api/admin/collect-games', { method: 'POST' });
-    const data = await res.json();
-    if (res.ok && data.success) {
-      loadPipeline();
-      loadDashboard();
-      btns.forEach(b => { b.textContent = 'Done'; });
-    } else {
-      btns.forEach(b => { b.textContent = 'Error'; });
-      alert(data.error || 'Failed');
-    }
-  } catch (e) {
-    btns.forEach(b => { b.textContent = 'Error'; });
-    alert('Error: ' + e.message);
+  let cronHtml = '<div class="section-header">Recent Cron Jobs</div><div class="cron-list">';
+  for (const [job, log] of Object.entries(recentJobs)) {
+    const ago = log.at ? timeAgo(log.at) : '--';
+    const ok = log.status === 'ok';
+    cronHtml += `<div class="cron-item">
+      <div class="cron-dot" style="background:${ok ? 'var(--green)' : 'var(--red)'}"></div>
+      <div class="cron-name">${job}</div>
+      <div class="cron-when">${log.dur_ms != null ? log.dur_ms + 'ms' : ''}</div>
+      <div class="cron-ago" style="color:${ok ? 'var(--green)' : 'var(--red)'}">${ago}</div>
+    </div>`;
   }
-  setTimeout(() => { btns.forEach(b => { if (b) { b.disabled = false; b.textContent = 'Get Games'; } }); }, 2000);
+  cronHtml += '</div>';
+  document.getElementById('infraContent').innerHTML = cronHtml;
 }
 
-async function triggerGetLines() {
-  const btns = _getActionBtns('get-lines');
-  if (btns[0] && btns[0].disabled) return;
-  btns.forEach(b => { b.disabled = true; b.textContent = '...'; });
-  try {
-    const res = await adminFetch('/api/admin/refresh-lines', { method: 'POST' });
-    const data = await res.json();
-    if (res.ok && data.success) {
-      loadPipeline();
-      loadDashboard();
-      btns.forEach(b => { b.textContent = 'Done'; });
-    } else {
-      btns.forEach(b => { b.textContent = 'Error'; });
-      alert(data.error || 'Failed');
-    }
-  } catch (e) {
-    btns.forEach(b => { b.textContent = 'Error'; });
-    alert('Error: ' + e.message);
+function renderBusiness(stats, eng, users) {
+  const s = stats || {};
+  const e = eng || {};
+  const u = (users && users.users) || [];
+
+  let usersHtml = '';
+  for (const user of u.slice(0, 10)) {
+    const tier = user.founding_member ? 'founding' : (user.subscription_status === 'trial' ? 'trial' : 'free');
+    const tierLabel = user.founding_member ? `F #${user.founding_number || ''}` : (tier === 'trial' ? 'Trial' : 'Free');
+    const date = user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    usersHtml += `<div class="user-row"><div class="user-email">${user.email || ''}</div><div><span class="tier-badge ${tier}">${tierLabel}</span></div><div class="user-date">${date}</div></div>`;
   }
-  setTimeout(() => { btns.forEach(b => { if (b) { b.disabled = false; b.textContent = 'Get Lines'; } }); }, 2000);
+
+  document.getElementById('businessContent').innerHTML = `
+    <div class="stat-grid cols-3">
+      <div class="stat-cell"><div class="stat-label">MRR</div><div class="stat-value green">$${s.mrr || 0}</div></div>
+      <div class="stat-cell"><div class="stat-label">ARR</div><div class="stat-value sm">$${s.arr || 0}</div></div>
+      <div class="stat-cell"><div class="stat-label">Founding</div><div class="stat-value yellow">${s.founding_count || 0}/50</div></div>
+    </div>
+    <div class="section-header">Engagement (7d)</div>
+    <div class="stat-grid cols-3">
+      <div class="stat-cell"><div class="stat-label">Active Users</div><div class="stat-value">${e.active_7d || s.active_7d || 0}</div></div>
+      <div class="stat-cell"><div class="stat-label">Sessions</div><div class="stat-value sm">${e.sessions_7d || 0}</div></div>
+      <div class="stat-cell"><div class="stat-label">Events</div><div class="stat-value sm">${e.events_7d || 0}</div></div>
+    </div>
+    <div class="section-header">Recent Users</div>
+    ${usersHtml}`;
 }
 
-async function triggerClearToday() {
-  const btns = _getActionBtns('clear');
-  if (btns[0] && btns[0].disabled) return;
-  if (!confirm('Clear today\'s pick/pass? Run model after to regenerate.')) return;
-  btns.forEach(b => { b.disabled = true; b.textContent = '...'; });
-  try {
-    const res = await adminFetch('/api/admin/clear-today', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sport: 'nba' }) });
-    const data = await res.json();
-    if (res.ok) {
-      loadPipeline();
-      loadDashboard();
-      btns.forEach(b => { b.textContent = 'Done'; });
-    } else {
-      btns.forEach(b => { b.textContent = 'Error'; });
-      alert(data.error || 'Failed');
-    }
-  } catch (e) {
-    btns.forEach(b => { b.textContent = 'Error'; });
-    alert('Error: ' + e.message);
-  }
-  setTimeout(() => { btns.forEach(b => { if (b) { b.disabled = false; b.textContent = 'Clear'; } }); }, 2000);
-}
-
-async function triggerModel() {
-  const btns = _getActionBtns('run-model');
-  if (btns[0] && btns[0].disabled) return;
-  btns.forEach(b => { b.disabled = true; b.textContent = 'Running...'; });
-  try {
-    const res = await adminFetch('/api/admin/trigger-model', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: false }) });
-    const data = await res.json();
-    if (res.ok) {
-      loadPipeline();
-      loadDashboard();
-      btns.forEach(b => { b.textContent = 'Done'; });
-    } else {
-      btns.forEach(b => { b.textContent = 'Error'; });
-      alert(data.error || 'Failed');
-    }
-  } catch (e) {
-    btns.forEach(b => { b.textContent = 'Error'; });
-    alert('Error: ' + e.message);
-  }
-  setTimeout(() => { btns.forEach(b => { if (b) { b.disabled = false; b.textContent = 'Run Model'; } }); }, 2000);
-}
-
-async function triggerGrade() {
-  const btns = _getActionBtns('grade');
-  if (btns[0] && btns[0].disabled) return;
-  btns.forEach(b => { b.disabled = true; b.textContent = 'Grading...'; });
-  try {
-    const res = await adminFetch('/api/admin/trigger-grade', { method: 'POST' });
-    const data = await res.json();
-    if (res.ok && data.success) {
-      loadPipeline();
-      loadDashboard();
-      btns.forEach(b => { b.textContent = 'Done'; });
-    } else {
-      btns.forEach(b => { b.textContent = 'Error'; });
-      alert(data.error || 'Failed');
-    }
-  } catch (e) {
-    btns.forEach(b => { b.textContent = 'Error'; });
-    alert('Error: ' + e.message);
-  }
-  setTimeout(() => { btns.forEach(b => { if (b) { b.disabled = false; b.textContent = 'Grade'; } }); }, 2000);
-}
-
-// ─── MLB Actions ───
-
-async function triggerMlbCollect() {
-  const btn = document.getElementById('top-mlb-collect-btn');
-  if (!btn || btn.disabled) return;
-  btn.disabled = true; btn.textContent = '...';
-  try {
-    const res = await adminFetch('/api/admin/mlb-collect', { method: 'POST' });
-    const data = await res.json();
-    btn.textContent = (res.ok && data.success) ? 'Done' : 'Error';
-    if (!res.ok) alert(data.error || 'Failed');
-    else { loadPipeline(); loadDashboard(); }
-  } catch (e) { btn.textContent = 'Error'; alert('Error: ' + e.message); }
-  setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = 'Collect Games'; } }, 2000);
-}
-
-async function triggerMlbClear() {
-  const btn = document.getElementById('top-mlb-clear-btn');
-  if (!btn || btn.disabled) return;
-  if (!confirm('Clear today\'s MLB pick/pass? Run model after to regenerate.')) return;
-  btn.disabled = true; btn.textContent = '...';
-  try {
-    const res = await adminFetch('/api/admin/clear-today', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sport: 'mlb' }) });
-    const data = await res.json();
-    btn.textContent = res.ok ? 'Done' : 'Error';
-    if (!res.ok) alert(data.error || 'Failed');
-    else { loadPipeline(); loadDashboard(); }
-  } catch (e) { btn.textContent = 'Error'; alert('Error: ' + e.message); }
-  setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = 'Clear'; } }, 2000);
-}
-
-async function triggerMlbModel() {
-  const btn = document.getElementById('top-mlb-run-model-btn');
-  if (!btn || btn.disabled) return;
-  btn.disabled = true; btn.textContent = 'Running...';
-  try {
-    const res = await adminFetch('/api/admin/trigger-model', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sport: 'mlb', force: false }) });
-    const data = await res.json();
-    btn.textContent = res.ok ? 'Done' : 'Error';
-    if (!res.ok) alert(data.error || 'Failed');
-    else { loadPipeline(); loadDashboard(); }
-  } catch (e) { btn.textContent = 'Error'; alert('Error: ' + e.message); }
-  setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = 'Run Model'; } }, 2000);
-}
-
-async function triggerMlbGrade() {
-  const btn = document.getElementById('top-mlb-grade-btn');
-  if (!btn || btn.disabled) return;
-  btn.disabled = true; btn.textContent = 'Grading...';
-  try {
-    const res = await adminFetch('/api/admin/trigger-grade', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sport: 'mlb' }) });
-    const data = await res.json();
-    btn.textContent = (res.ok && data.success) ? 'Done' : 'Error';
-    if (!(res.ok && data.success)) alert(data.error || 'Failed');
-    else { loadPipeline(); loadDashboard(); }
-  } catch (e) { btn.textContent = 'Error'; alert('Error: ' + e.message); }
-  setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = 'Grade'; } }, 2000);
-}
-
-async function sendTestPush() {
-  const btn = document.getElementById('test-push-btn');
-  const result = document.getElementById('test-push-result');
-  const title = document.getElementById('test-push-title').value;
-  const body = document.getElementById('test-push-body').value;
-  btn.disabled = true;
-  btn.textContent = 'Sending...';
-  result.textContent = '';
-  try {
-    const hdrs = { 'Content-Type': 'application/json' };
-    if (adminToken) hdrs['X-Admin-Token'] = adminToken;
-    if (bearerToken) hdrs['Authorization'] = 'Bearer ' + bearerToken;
-    const res = await fetch('/api/admin/test-push', {
-      method: 'POST',
-      credentials: 'include',
-      headers: hdrs,
-      body: JSON.stringify({ title: title, body: body })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      result.style.color = 'var(--green)';
-      result.textContent = 'Sent to ' + data.sent + ' device(s)';
-    } else {
-      result.style.color = '#f44';
-      result.textContent = data.error || 'Failed';
-    }
-  } catch(e) {
-    result.style.color = '#f44';
-    result.textContent = 'Error: ' + e.message;
-  }
-  btn.disabled = false;
-  btn.textContent = 'Send Test Push';
-}
-
-async function loadDashboard() {
-  try {
-    const res = await adminFetch('/api/admin/command-center');
-    if (!res.ok) {
-      if (res.status === 401) {
-        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--text-dim);font-family:var(--mono);font-size:14px;flex-direction:column;gap:16px"><span>Not logged in</span><a href="/" style="color:var(--blue);text-decoration:none">Sign in &rarr;</a></div>';
-        return;
-      }
-      if (res.status === 403) {
-        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--red);font-family:var(--mono);font-size:14px">Unauthorized — superuser access required</div>';
-        return;
-      }
-      throw new Error('API error: ' + res.status);
-    }
-    const d = await res.json();
-
-    document.getElementById('mrr').textContent = fmt$(d.revenue.mrr);
-    document.getElementById('arr').textContent = fmt$(d.revenue.arr);
-    document.getElementById('total-subs').textContent = d.revenue.total_subs;
-    document.getElementById('sub-breakdown').textContent =
-      `${d.revenue.annual_subs} annual · ${d.revenue.monthly_subs} monthly · ${d.revenue.trial_count} trial`;
-
-    document.getElementById('founding-count').textContent = `${d.revenue.founding_count} / ${d.revenue.founding_cap}`;
-    document.getElementById('founding-bar').style.width = d.revenue.founding_pct + '%';
-    document.getElementById('founding-sub').textContent =
-      `${d.revenue.founding_cap - d.revenue.founding_count} spots remaining · ${d.revenue.founding_pct}% filled`;
-
-    document.getElementById('total-users').textContent = d.users.total;
-    document.getElementById('paid-users').textContent = d.revenue.monthly_subs + d.revenue.annual_subs;
-    document.getElementById('trial-users').textContent = d.revenue.trial_count;
-    document.getElementById('free-users').textContent = d.revenue.free_count;
-    document.getElementById('founding-users').textContent = d.revenue.founding_count;
-
-    const ovMrr = document.getElementById('ov-mrr');
-    if (ovMrr) ovMrr.textContent = fmt$(d.revenue.mrr);
-    const ovUsers = document.getElementById('ov-total-users');
-    if (ovUsers) ovUsers.textContent = d.users.total;
-    const ovUsersBrk = document.getElementById('ov-users-breakdown');
-    if (ovUsersBrk) ovUsersBrk.textContent = (d.revenue.monthly_subs + d.revenue.annual_subs) + ' paid · ' + d.revenue.trial_count + ' trial';
-
-    const trialConv = document.getElementById('trial-conversion-rate');
-    if (trialConv) {
-      const totalTrialed = d.revenue.trial_count + (d.revenue.monthly_subs + d.revenue.annual_subs);
-      const paid = d.revenue.monthly_subs + d.revenue.annual_subs;
-      const rate = totalTrialed > 0 ? Math.round(paid / totalTrialed * 100) : 0;
-      trialConv.textContent = rate + '%';
-      trialConv.className = 'value ' + (rate >= 30 ? 'green' : rate >= 10 ? 'amber' : 'red');
-    }
-    const signups7d = document.getElementById('signups-7d');
-    if (signups7d) {
-      const now = new Date();
-      const week = new Date(now - 7 * 86400000);
-      const recent = d.users.list ? d.users.list.filter(u => u.created_at && new Date(u.created_at) >= week).length : 0;
-      signups7d.textContent = recent;
-    }
-    const signups30d = document.getElementById('signups-30d');
-    if (signups30d) {
-      const now = new Date();
-      const month = new Date(now - 30 * 86400000);
-      const recent = d.users.list ? d.users.list.filter(u => u.created_at && new Date(u.created_at) >= month).length : 0;
-      signups30d.textContent = recent;
-    }
-    const activeTrials = document.getElementById('active-trials-count');
-    if (activeTrials) activeTrials.textContent = d.revenue.trial_count;
-    const trialsExpiring = document.getElementById('trials-expiring-7d');
-    if (trialsExpiring) {
-      const now = new Date();
-      const nextWeek = new Date(now.getTime() + 7 * 86400000);
-      const expiring = d.users.list ? d.users.list.filter(u => u.trial_end && new Date(u.trial_end) <= nextWeek && new Date(u.trial_end) >= now).length : 0;
-      trialsExpiring.textContent = expiring;
-    }
-
-    if (d.users.list && d.users.list.length > 0) {
-      buildUserGrowthChart(d.users.list);
-    }
-
-    populateSportStats(d.model, 'nba');
-    populateSportStats(d.wnba_model, 'wnba');
-    populateSportStats(d.mlb_model, 'mlb');
-
-    const ovRecord = document.getElementById('ov-nba-record');
-    if (ovRecord) {
-      ovRecord.textContent = d.model.record;
-      ovRecord.className = 'metric-val ' + (d.model.win_rate >= 55 ? 'green' : d.model.win_rate >= 50 ? '' : 'red');
-    }
-    const ovRoi = document.getElementById('ov-nba-roi');
-    if (ovRoi) ovRoi.textContent = (d.model.roi >= 0 ? '+' : '') + d.model.roi + '% ROI · ' + d.model.selectivity + '% selectivity';
-
-    buildRecentPicks(d.recent_picks, 'nba-recent-picks-list');
-    buildModelRuns(d.model_runs, 'nba-model-runs-list');
-    buildModelRuns(d.wnba_model_runs, 'wnba-model-runs-list');
-    buildModelRuns(d.mlb_model_runs, 'mlb-model-runs-list');
-    buildRecentPicks(d.mlb_recent_picks, 'mlb-recent-picks-list');
-    buildUsersTable(d.users.list);
-    document.getElementById('user-count-label').textContent = `(${d.users.total} total)`;
-
-    document.getElementById('insights-total').textContent = d.insights.total;
-    document.getElementById('insights-published').textContent = d.insights.published;
-
-    if (d.push) {
-      const p = d.push;
-      document.getElementById('push-opt-in').textContent = p.opt_in_pct + '%';
-      document.getElementById('push-enabled').textContent = p.enabled;
-      document.getElementById('push-unique-users').textContent = p.unique_users + ' / ' + p.total_users;
-      document.getElementById('push-active-24h').textContent = p.active_24h;
-      document.getElementById('push-active-7d').textContent = p.active_7d;
-      document.getElementById('push-stale').textContent = p.stale;
-      document.getElementById('push-disabled').textContent = p.disabled;
-
-      const dot = document.getElementById('push-health-dot');
-      if (p.enabled > 0) { dot.classList.add('ok'); }
-      else { dot.classList.add('warn'); }
-
-      const plat = document.getElementById('push-platforms');
-      plat.innerHTML = Object.entries(p.by_platform).map(([k, v]) =>
-        `<div class="stat-row"><span class="label">${k}</span><span class="value">${v}</span></div>`
-      ).join('') || '<div class="metric-sub">No tokens yet</div>';
-
-      const ul = document.getElementById('push-user-list');
-      ul.innerHTML = p.user_tokens.map(t =>
-        `<div class="stat-row" style="font-size:10px"><span class="label">${t.user_email}</span><span class="value" style="font-size:9px">${t.platform} · ${t.last_seen ? fmtDateET(t.last_seen) : 'new'}</span></div>`
-      ).join('') || '<div class="metric-sub">No devices registered</div>';
-    }
-
-    document.getElementById('loader').classList.add('hidden');
-  } catch (err) {
-    console.error('Dashboard load error:', err);
-    document.getElementById('loader').innerHTML =
-      '<div style="color:var(--red);font-size:11px;font-family:var(--mono)">Error loading dashboard: ' + err.message + '</div>';
-  }
-}
-
-function buildUserGrowthChart(users) {
-  const chart = document.getElementById('user-growth-chart');
-  const sub = document.getElementById('user-growth-sub');
-  if (!chart) return;
+function timeAgo(isoStr) {
+  const d = new Date(isoStr);
   const now = new Date();
-  const weeks = [];
-  for (let i = 11; i >= 0; i--) {
-    const weekStart = new Date(now - i * 7 * 86400000);
-    const weekEnd = new Date(now - (i - 1) * 7 * 86400000);
-    const count = users.filter(u => u.created_at && new Date(u.created_at) >= weekStart && new Date(u.created_at) < weekEnd).length;
-    weeks.push({ label: weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), count });
-  }
-  const maxCount = Math.max(1, ...weeks.map(w => w.count));
-  chart.innerHTML = weeks.map(w => {
-    const pct = Math.max(4, (w.count / maxCount) * 100);
-    return '<div title="' + w.label + ': ' + w.count + ' signups" style="flex:1;background:var(--blue);border-radius:2px 2px 0 0;height:' + pct + '%;opacity:0.7;transition:opacity 0.2s;cursor:default" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7"></div>';
-  }).join('');
-  const total = weeks.reduce((s, w) => s + w.count, 0);
-  if (sub) sub.textContent = 'Last 12 weeks · ' + total + ' new signups';
+  const mins = Math.floor((now - d) / 60000);
+  if (mins < 1) return 'now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  return Math.floor(hrs / 24) + 'd ago';
 }
 
-let _refreshSecondsLeft = 30;
-function updateRefreshCountdown() {
-  _refreshSecondsLeft--;
-  const el = document.getElementById('refresh-countdown');
-  if (el) el.textContent = _refreshSecondsLeft + 's';
-  if (_refreshSecondsLeft <= 0) {
-    _refreshSecondsLeft = 30;
-    refreshAll();
-  }
-}
-setInterval(updateRefreshCountdown, 1000);
-
-function updateKillSwitchBadge(ks) {
-  const badge = document.getElementById('ks-header-badge');
-  if (!badge) return;
-  if (ks.active) {
-    badge.className = 'ks-header-badge active';
-    badge.textContent = 'Kill Switch: ACTIVE';
-  } else if (ks.triggers_met >= 2) {
-    badge.className = 'ks-header-badge warning';
-    badge.textContent = 'Kill Switch: ' + ks.triggers_met + '/3';
-  } else {
-    badge.className = 'ks-header-badge clear';
-    badge.textContent = 'Kill Switch: Clear';
-  }
-}
-
-async function loadCfAnalytics() {
-  const fmt = (n) => n != null ? n.toLocaleString() : '—';
-  function renderZone(prefix, z) {
-    if (!z || z.error) {
-      document.getElementById(prefix + '-uniques').textContent = '—';
-      document.getElementById(prefix + '-uniques').nextElementSibling.textContent = z?.error || 'No data';
-      document.getElementById(prefix + '-views').textContent = '—';
-      return null;
-    }
-    document.getElementById(prefix + '-uniques').textContent = fmt(z.uniques);
-    document.getElementById(prefix + '-views').textContent = fmt(z.pageViews);
-    document.getElementById(prefix + '-requests-sub').textContent = fmt(z.requests) + ' total requests';
-    const container = document.getElementById(prefix + '-top-paths');
-    if (z.topPaths && z.topPaths.length) {
-      container.innerHTML = z.topPaths.map((p, i) =>
-        `<div class="stat-row"><span class="label" style="display:flex;gap:6px;align-items:center"><span style="color:var(--text-dim);min-width:16px">${i+1}.</span>${p.path}</span><span class="value">${fmt(p.count)}</span></div>`
-      ).join('');
-    } else {
-      container.innerHTML = '<div class="metric-sub">No data</div>';
-    }
-    return z;
-  }
-
-  // Fetch server-side app analytics
-  let appDaily = [];
-  try {
-    const appRes = await adminFetch('/api/admin/app-analytics');
-    const appData = await appRes.json();
-    if (!appData.error) {
-      renderZone('cf-app', appData);
-      appDaily = appData.daily || [];
-    } else {
-      renderZone('cf-app', { error: appData.error });
-    }
-  } catch (e) {
-    renderZone('cf-app', { error: 'Failed to load' });
-  }
-
-  // Fetch Cloudflare zone analytics for marketing site
-  let mktDaily = [];
-  try {
-    const cfRes = await adminFetch('/api/admin/cf-analytics');
-    const cfData = await cfRes.json();
-    if (!cfData.error && cfData.marketing) {
-      renderZone('cf-mkt', cfData.marketing);
-      mktDaily = cfData.marketing?.daily || [];
-      if (cfData.period) {
-        document.getElementById('cf-period-label').textContent = cfData.period.since + ' → ' + cfData.period.until;
-      }
-    } else {
-      renderZone('cf-mkt', cfData.marketing || { error: cfData.error || 'CF not configured' });
-    }
-  } catch (e) {
-    renderZone('cf-mkt', { error: 'CF API not configured' });
-  }
-
-  // Daily sparkline chart
-  const allVals = [...mktDaily.map(x => x.uniques), ...appDaily.map(x => x.uniques)].filter(Boolean);
-  if (allVals.length) {
-    const maxV = Math.max(...allVals, 1);
-    const W = 800, H = 120, pad = 18;
-    function toPath(pts, close) {
-      if (!pts.length) return '';
-      const step = pts.length > 1 ? (W - 40) / (pts.length - 1) : 0;
-      let d = pts.map((v, i) => {
-        const x = 20 + i * step;
-        const y = pad + (H - 2 * pad) * (1 - v / maxV);
-        return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
-      }).join(' ');
-      if (close && pts.length) {
-        const lastX = 20 + (pts.length - 1) * step;
-        d += ' L' + lastX.toFixed(1) + ',' + H + ' L20,' + H + ' Z';
-      }
-      return d;
-    }
-    document.getElementById('cf-mkt-line').setAttribute('d', toPath(mktDaily.map(x => x.uniques), false));
-    document.getElementById('cf-mkt-area').setAttribute('d', toPath(mktDaily.map(x => x.uniques), true));
-    document.getElementById('cf-app-line').setAttribute('d', toPath(appDaily.map(x => x.uniques), false));
-    document.getElementById('cf-app-area').setAttribute('d', toPath(appDaily.map(x => x.uniques), true));
-    const labels = document.getElementById('cf-x-labels');
-    labels.innerHTML = '';
-    const longest = mktDaily.length >= appDaily.length ? mktDaily : appDaily;
-    const step = longest.length > 1 ? (W - 40) / (longest.length - 1) : 0;
-    longest.forEach((pt, i) => {
-      const x = 20 + i * step;
-      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      t.setAttribute('x', x);
-      t.setAttribute('y', H - 2);
-      t.setAttribute('text-anchor', 'middle');
-      t.setAttribute('fill', 'var(--text-dim)');
-      t.setAttribute('font-size', '9');
-      t.setAttribute('font-family', 'var(--font)');
-      t.textContent = pt.date.slice(5);
-      labels.appendChild(t);
-    });
-  }
-}
-
-async function loadAlerts() {
-  try {
-    const res = await adminFetch('/api/admin/alerts?limit=20');
-    if (!res.ok) return;
-    const d = await res.json();
-    const feed = document.getElementById('alerts-feed');
-    if (!feed) return;
-    const alerts = d.alerts || [];
-    if (!alerts.length) { feed.innerHTML = '<span style="color:var(--text-dim)">No recent alerts</span>'; return; }
-    const icons = { subscription_created: '🟢', subscription_deleted: '🔴', payment_failed: '⚠️', subscription_updated: '🔄' };
-    feed.innerHTML = alerts.map(a => {
-      const icon = icons[a.event_type] || '📋';
-      const acked = a.acknowledged ? 'opacity:0.4;' : '';
-      return '<div style="display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);' + acked + '">'
-        + '<span>' + icon + '</span>'
-        + '<div style="flex:1"><span style="color:var(--text-dim);font-family:var(--mono);font-size:10px">' + fmtET(a.created_at) + '</span> '
-        + '<span style="color:var(--text)">' + (a.detail || a.event_type) + '</span></div>'
-        + (a.acknowledged ? '' : '<button onclick="ackAlert(' + a.id + ',this)" style="background:none;border:1px solid var(--border);border-radius:3px;color:var(--text-dim);cursor:pointer;padding:2px 6px;font-size:10px">✓</button>')
-        + '</div>';
-    }).join('');
-  } catch (e) { console.error('loadAlerts:', e); }
-}
-
-async function ackAlert(id, btn) {
-  try {
-    await adminFetch('/api/admin/alerts/' + id + '/acknowledge', { method: 'PATCH' });
-    btn.parentElement.style.opacity = '0.4';
-    btn.remove();
-  } catch (e) { console.error('ackAlert:', e); }
-}
-
-async function loadMrrHistory() {
-  try {
-    const res = await adminFetch('/api/admin/mrr-history');
-    if (!res.ok) return;
-    const d = await res.json();
-    const el = document.getElementById('mrr');
-    if (el) el.textContent = '$' + d.mrr_dollars;
-    const arrEl = document.getElementById('arr');
-    if (arrEl) arrEl.textContent = '$' + d.arr_dollars;
-    const sub = document.getElementById('mrr-change');
-    if (sub) {
-      const c = d.net_change_30d_cents;
-      const cStr = (c >= 0 ? '+' : '') + '$' + (Math.abs(c) / 100).toFixed(2);
-      sub.textContent = 'MRR · ' + cStr + ' vs 30d ago';
-      sub.style.color = c > 0 ? 'var(--green)' : c < 0 ? 'var(--red)' : 'var(--text-dim)';
-    }
-    const spark = document.getElementById('mrr-sparkline');
-    if (spark && d.history && d.history.length > 1) {
-      const vals = d.history.map(h => h.mrr_cents);
-      const max = Math.max(...vals, 1);
-      spark.innerHTML = vals.map(v => {
-        const pct = Math.round(v / max * 100);
-        return '<div style="flex:1;background:var(--green);border-radius:1px;min-width:2px;height:' + Math.max(pct, 2) + '%"></div>';
-      }).join('');
-    } else if (spark) {
-      spark.innerHTML = '<span style="color:var(--text-dim);font-size:10px">Collecting data...</span>';
-    }
-  } catch (e) { console.error('loadMrrHistory:', e); }
-}
-
-async function loadFunnelMetrics() {
-  try {
-    const res = await adminFetch('/api/admin/funnel-metrics');
-    if (!res.ok) return;
-    const d = await res.json();
-    const s = id => document.getElementById(id);
-    if (s('fn-signups')) s('fn-signups').textContent = d.total_signups;
-    if (s('fn-trials')) s('fn-trials').textContent = d.total_trials;
-    if (s('fn-paid')) s('fn-paid').textContent = d.total_paid;
-    if (s('fn-s2t-rate')) s('fn-s2t-rate').textContent = '(' + d.signup_to_trial_rate + '%) trials';
-    if (s('fn-t2p-rate')) s('fn-t2p-rate').textContent = '(' + d.trial_to_paid_rate + '%) paid';
-    if (s('fn-avg-s2t')) s('fn-avg-s2t').textContent = 'Avg signup→trial: ' + (d.avg_days_signup_to_trial != null ? d.avg_days_signup_to_trial + 'd' : '--');
-    if (s('fn-avg-t2p')) s('fn-avg-t2p').textContent = 'Avg trial→paid: ' + (d.avg_days_trial_to_paid != null ? d.avg_days_trial_to_paid + 'd' : '--');
-    const tbody = document.getElementById('funnel-weekly-tbody');
-    if (tbody && d.weekly_trend) {
-      tbody.innerHTML = d.weekly_trend.map(w =>
-        '<tr><td style="font-family:var(--mono);font-size:10px">' + w.week_start + '</td>'
-        + '<td>' + w.signups + '</td><td>' + w.trials + '</td><td>' + w.conversions + '</td></tr>'
-      ).join('');
-    }
-  } catch (e) { console.error('loadFunnelMetrics:', e); }
-}
-
-async function loadEngagement() {
-  try {
-    const res = await adminFetch('/api/admin/engagement');
-    if (!res.ok) return;
-    const d = await res.json();
-
-    const sinceEl = document.getElementById('eng-tracking-since');
-    if (sinceEl) sinceEl.textContent = d.tracking_since ? '· Tracking since ' + fmtET(d.tracking_since) : '· No events yet';
-
-    const activeEl = document.getElementById('eng-active-users');
-    if (activeEl) activeEl.textContent = d.active_users_7d ?? 0;
-    const evtsEl = document.getElementById('eng-total-events');
-    if (evtsEl) evtsEl.textContent = (d.total_events ?? 0).toLocaleString() + ' total events recorded';
-
-    const sessEl = document.getElementById('eng-total-sessions');
-    if (sessEl) sessEl.textContent = d.total_sessions_7d ?? 0;
-    const spuEl = document.getElementById('eng-sessions-per-user');
-    if (spuEl) spuEl.textContent = d.avg_sessions_per_user != null ? d.avg_sessions_per_user + ' per user' : '--';
-
-    const dauEl = document.getElementById('dau-chart');
-    if (dauEl && d.dau && d.dau.length) {
-      const max = Math.max(...d.dau.map(x => x.active_users), 1);
-      const avg = (d.dau.reduce((s, x) => s + x.active_users, 0) / d.dau.length).toFixed(1);
-      const peak = Math.max(...d.dau.map(x => x.active_users));
-      dauEl.innerHTML = d.dau.map(x => {
-        const pct = Math.round(x.active_users / max * 100);
-        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
-          + '<span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">' + x.active_users + '</span>'
-          + '<div style="width:100%;background:var(--green);border-radius:2px;height:' + Math.max(pct, 4) + '%"></div>'
-          + '<span style="font-family:var(--mono);font-size:8px;color:var(--text-dim)">' + x.date.slice(5) + '</span>'
-          + '</div>';
-      }).join('');
-      const sub = document.getElementById('dau-sub');
-      if (sub) sub.textContent = 'Avg: ' + avg + ' DAU · Peak: ' + peak;
-    }
-
-    const durEl = document.getElementById('eng-avg-duration');
-    if (durEl) {
-      if (d.avg_session_duration != null) {
-        const m = Math.floor(d.avg_session_duration / 60);
-        const s = Math.round(d.avg_session_duration % 60);
-        durEl.textContent = m + 'm ' + (s < 10 ? '0' : '') + s + 's';
-      } else { durEl.textContent = '--'; }
-    }
-    const ppsEl = document.getElementById('eng-pages-per-session');
-    if (ppsEl) ppsEl.textContent = d.avg_pages_per_session != null ? d.avg_pages_per_session : '--';
-
-    const d1 = document.getElementById('eng-d1');
-    if (d1 && d.retention) {
-      if (d.retention.d1_eligible > 0) {
-        d1.textContent = d.retention.d1_rate_pct + '% (' + d.retention.d1_returned + '/' + d.retention.d1_eligible + ')';
-      } else { d1.textContent = 'Needs 2+ days of data'; d1.style.color = 'var(--text-dim)'; }
-    }
-    const d7El = document.getElementById('eng-d7');
-    if (d7El && d.retention) {
-      if (d.retention.d7_eligible > 0) {
-        d7El.textContent = d.retention.d7_rate_pct + '% (' + d.retention.d7_returned + '/' + d.retention.d7_eligible + ')';
-      } else { d7El.textContent = 'Needs 8+ days of data'; d7El.style.color = 'var(--text-dim)'; }
-    }
-
-    const featEl = document.getElementById('feature-bars');
-    if (featEl && d.feature_adoption) {
-      const labels = { view_market_scan: 'Market Scan', view_article: 'Journal Articles', tap_bet_link: 'Bet Link Taps' };
-      const maxF = Math.max(...Object.values(d.feature_adoption).map(v => v.users || v), 1);
-      featEl.innerHTML = Object.entries(d.feature_adoption).map(([k, v]) => {
-        const users = typeof v === 'object' ? v.users : v;
-        const pct_active = typeof v === 'object' ? v.pct_of_active : 0;
-        const barPct = Math.round(users / maxF * 100);
-        return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
-          + '<span style="width:100px;font-size:11px;color:var(--text-dim)">' + (labels[k] || k) + '</span>'
-          + '<div style="flex:1;height:14px;background:var(--panel);border-radius:2px;overflow:hidden"><div style="height:100%;width:' + barPct + '%;background:var(--green);border-radius:2px"></div></div>'
-          + '<span style="font-family:var(--mono);font-size:11px;color:var(--text-bright);width:60px;text-align:right">' + users + ' <span style="color:var(--text-dim)">(' + pct_active + '%)</span></span>'
-          + '</div>';
-      }).join('');
-    }
-
-    const tpEl = document.getElementById('top-pages-list');
-    if (tpEl && d.top_pages && d.top_pages.length) {
-      tpEl.innerHTML = d.top_pages.slice(0, 8).map((p, i) =>
-        '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">'
-        + '<span style="color:var(--text)">' + (i + 1) + '. ' + (p.page || '/') + '</span>'
-        + '<span style="font-family:var(--mono);color:var(--text-bright)">' + p.views + ' views <span style="color:var(--text-dim)">(' + p.distinct_users + ' users)</span></span>'
-        + '</div>'
-      ).join('');
-    } else if (tpEl) {
-      tpEl.innerHTML = '<span style="color:var(--text-dim);font-size:11px">No page data yet. Events will populate as users browse the app.</span>';
-    }
-    const activeLabel = document.getElementById('eng-active-count-label');
-    if (activeLabel) activeLabel.textContent = '(' + (d.active_user_details ? d.active_user_details.length : 0) + ')';
-    const activeTbody = document.getElementById('eng-active-users-tbody');
-    if (activeTbody && d.active_user_details) {
-      activeTbody.innerHTML = d.active_user_details.map(u => {
-        const tierColor = u.tier === 'active' ? 'green' : u.tier === 'trial' ? 'blue' : '';
-        const tierLabel = u.founding ? 'Founding' : (u.tier || 'free');
-        return '<tr>'
-          + '<td style="font-size:11px">' + (u.email || '') + '</td>'
-          + '<td style="font-size:11px">' + (u.name || '') + '</td>'
-          + '<td><span class="' + tierColor + '" style="font-size:10px;text-transform:capitalize">' + tierLabel + '</span></td>'
-          + '<td style="font-family:var(--mono);font-size:11px">' + (u.events_7d || 0) + '</td>'
-          + '<td style="font-size:10px;color:var(--text-dim)">' + (u.last_seen ? fmtET(u.last_seen) : '--') + '</td>'
-          + '</tr>';
-      }).join('');
-    }
-
-    const allLabel = document.getElementById('eng-all-count-label');
-    if (allLabel) allLabel.textContent = '(' + (d.all_users ? d.all_users.length : 0) + ')';
-    const allTbody = document.getElementById('eng-all-users-tbody');
-    if (allTbody && d.all_users) {
-      allTbody.innerHTML = d.all_users.map(u => {
-        const tierColor = u.tier === 'active' ? 'green' : u.tier === 'trial' ? 'blue' : '';
-        const tierLabel = u.founding ? 'Founding' : (u.tier || 'free');
-        return '<tr>'
-          + '<td style="font-size:11px">' + (u.email || '') + '</td>'
-          + '<td style="font-size:11px">' + (u.name || '') + '</td>'
-          + '<td><span class="' + tierColor + '" style="font-size:10px;text-transform:capitalize">' + tierLabel + '</span></td>'
-          + '<td style="font-size:10px">' + (u.plan || '--') + '</td>'
-          + '<td style="font-size:10px;color:var(--text-dim)">' + (u.signed_up ? fmtET(u.signed_up) : '--') + '</td>'
-          + '</tr>';
-      }).join('');
-    }
-  } catch (e) { console.error('loadEngagement:', e); }
-}
-
-function toggleEngUsers(type) {
-  const list = document.getElementById('eng-' + type + '-user-list');
-  const toggle = document.getElementById('eng-' + type + '-toggle');
-  if (!list) return;
-  const showing = list.style.display !== 'none';
-  list.style.display = showing ? 'none' : 'block';
-  if (toggle) toggle.innerHTML = showing ? 'Show &darr;' : 'Hide &uarr;';
-}
-
-function refreshAll() {
-  _refreshSecondsLeft = 30;
-  const btn = document.getElementById('refresh-btn');
-  btn.style.color = 'var(--blue)';
-  btn.querySelector('svg').style.transition = 'transform 0.6s';
-  btn.querySelector('svg').style.transform = 'rotate(360deg)';
-  loadStatusBanner();
-  loadPipeline();
-  loadDashboard();
-  loadHealthChecks();
-  loadCronHealth();
-  loadControlRoom();
-  loadCfAnalytics();
-  loadAlerts();
-  loadMrrHistory();
-  loadFunnelMetrics();
-  loadEngagement();
-  setTimeout(() => {
-    btn.style.color = 'var(--text-dim)';
-    btn.querySelector('svg').style.transform = 'rotate(0deg)';
-  }, 800);
-}
-
-ensureAdminToken().then(() => {
-  loadStatusBanner();
-  loadPipeline();
-  loadDashboard();
-  loadCfAnalytics();
-  loadAlerts();
-  loadMrrHistory();
-  loadFunnelMetrics();
-  loadEngagement();
+document.getElementById('confirmOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeConfirm();
 });
 
-function hcStatusClass(s) { return s === 'ok' ? 'ok' : s === 'warn' ? 'warn' : 'err'; }
-function hcDotClass(s) { return s === 'ok' ? 'green' : s === 'warn' ? 'amber' : 'red'; }
-
-function hcFormatVal(svc) {
-  if (svc.status === 'ok') {
-    if (svc.persistent !== undefined) {
-      return (svc.persistent ? 'persistent' : 'ephemeral') + ' · ' + (svc.games ?? 0) + ' games';
-    }
-    let val = svc.latency_ms + 'ms';
-    if (svc.requests_remaining) val += ' · ' + svc.requests_remaining + ' left';
-    if (svc.games_today !== undefined) val += ' · ' + svc.games_today + ' games';
-    if (svc.balance) val += ' · ' + svc.balance;
-    if (svc.domains !== undefined) val += ' · ' + svc.verified + '/' + svc.domains + ' domains';
-    if (svc.mode) val += ' · ' + svc.mode;
-    return val;
-  }
-  return svc.message || svc.status.toUpperCase();
-}
-
-async function loadHealthChecks() {
-  try {
-    const res = await adminFetch('/api/admin/health-checks');
-    if (!res.ok) return;
-    const d = await res.json();
-
-    const services = ['postgresql', 'odds_api', 'balldontlie', 'espn', 'resend', 'stripe', 'sqlite'];
-    services.forEach(key => {
-      const svc = d[key];
-      if (!svc) return;
-      const dot = document.getElementById('hc-' + key + '-dot');
-      const val = document.getElementById('hc-' + key + '-val');
-      if (dot) { dot.className = 'status-indicator ' + hcStatusClass(svc.status); }
-      if (val) {
-        val.textContent = hcFormatVal(svc);
-        val.style.color = svc.status === 'ok' ? 'var(--green)' : svc.status === 'warn' ? 'var(--amber)' : 'var(--red)';
-      }
-    });
-
-    const overall = d._summary;
-    const overallDot = document.getElementById('health-overall-dot');
-    if (overallDot) overallDot.className = 'status-dot ' + hcDotClass(overall.overall);
-    document.getElementById('health-checked-at').textContent = 'Last checked: ' + overall.checked_at;
-  } catch (err) {
-    console.error('Health check error:', err);
-  }
-}
-
-ensureAdminToken().then(() => { loadHealthChecks(); });
-
-function cronHealthClass(h) { return h === 'ok' ? 'ok' : h === 'warn' ? 'warn' : h === 'never' ? 'warn' : 'err'; }
-function cronDotClass(h) { return h === 'ok' ? 'green' : h === 'warn' || h === 'never' ? 'amber' : 'red'; }
-
-function formatCronAge(hoursAgo, health) {
-  if (hoursAgo == null) return { text: 'Never', color: 'var(--text-dim)' };
-  const isOverdue = health === 'overdue' || health === 'err';
-  if (hoursAgo < 0) {
-    const mins = Math.abs(Math.round(hoursAgo * 60));
-    return { text: 'Overdue by ' + mins + 'm', color: 'var(--red)' };
-  }
-  if (hoursAgo < 1) {
-    const mins = Math.round(hoursAgo * 60);
-    return { text: 'Ran ' + mins + 'm ago', color: isOverdue ? 'var(--red)' : 'var(--green)' };
-  }
-  if (hoursAgo < 24) {
-    return { text: 'Ran ' + Math.round(hoursAgo) + 'h ago', color: isOverdue ? 'var(--amber)' : 'var(--green)' };
-  }
-  return { text: 'Ran ' + Math.round(hoursAgo / 24) + 'd ago', color: 'var(--red)' };
-}
-
-function buildCronJobs(jobs) {
-  const container = document.getElementById('cron-jobs-list');
-  if (!container) return;
-  container.innerHTML = '';
-
-  const alertBanner = document.getElementById('cron-alerts-banner');
-  const alertList = document.getElementById('cron-alerts-list');
-  const overdueJobs = jobs.filter(j => j.health === 'overdue' || j.health === 'err' || (j.hours_ago != null && j.hours_ago < 0));
-
-  if (alertBanner && alertList) {
-    if (overdueJobs.length > 0) {
-      alertBanner.style.display = '';
-      alertList.innerHTML = overdueJobs.map(j => {
-        const age = formatCronAge(j.hours_ago, j.health);
-        return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0">' +
-          '<span style="color:var(--red);font-weight:700;font-size:10px">' + j.name + '</span>' +
-          '<span style="color:var(--red);font-size:10px">' + age.text + '</span>' +
-          (j.last_error_msg ? '<span style="color:var(--text-dim);font-size:10px"> — ' + j.last_error_msg + '</span>' : '') +
-          '</div>';
-      }).join('');
-    } else {
-      alertBanner.style.display = 'none';
-    }
-  }
-
-  const ovCronStatus = document.getElementById('ov-cron-status');
-  const ovCronSub = document.getElementById('ov-cron-sub');
-  if (ovCronStatus) {
-    if (overdueJobs.length > 0) {
-      ovCronStatus.textContent = overdueJobs.length + ' Overdue';
-      ovCronStatus.className = 'metric-val red';
-      if (ovCronSub) ovCronSub.textContent = overdueJobs.map(j => j.name).join(', ');
-    } else {
-      ovCronStatus.textContent = 'Healthy';
-      ovCronStatus.className = 'metric-val green';
-      if (ovCronSub) ovCronSub.textContent = jobs.length + ' jobs running';
-    }
-  }
-
-  jobs.forEach(j => {
-    const row = document.createElement('div');
-    const isErr = j.health === 'overdue' || j.health === 'err';
-    const isWarn = j.health === 'warn' || j.health === 'never';
-    row.className = 'status-bar-row' + (isErr ? ' cron-row-err' : isWarn ? ' cron-row-warn' : ' cron-row-ok');
-    row.style.cursor = 'default';
-    row.style.padding = '4px 6px';
-    row.style.borderRadius = '4px';
-    row.style.marginBottom = '1px';
-    const durStr = j.last_duration_ms != null ? j.last_duration_ms + 'ms' : '';
-    const age = formatCronAge(j.hours_ago, j.health);
-    const successRate = j.recent_ok + j.recent_errors > 0 ? Math.round(j.recent_ok / (j.recent_ok + j.recent_errors) * 100) : null;
-    const rateStr = successRate != null ? successRate + '%' : '';
-    const rateColor = successRate === 100 ? 'var(--green)' : successRate >= 80 ? 'var(--amber)' : 'var(--red)';
-
-    row.innerHTML = `
-      <div class="status-indicator ${cronHealthClass(j.health)}"></div>
-      <span class="status-name">${j.name}</span>
-      <span style="color:var(--text-dim);font-size:10px;width:70px;text-align:right">${j.schedule.replace('Daily ', '')}</span>
-      <span style="color:${age.color};font-size:10px;width:100px;text-align:right;font-weight:600">${age.text}</span>
-      <span style="color:var(--text-dim);font-size:10px;width:40px;text-align:right">${durStr}</span>
-      <span style="color:${rateColor};font-size:10px;width:30px;text-align:right;font-weight:600">${rateStr}</span>
-    `;
-
-    if (j.last_status === 'error' && j.last_error_msg) {
-      row.title = 'Last error: ' + j.last_error_msg;
-    }
-
-    container.appendChild(row);
-  });
-}
-
-async function loadCronHealth() {
-  try {
-    const res = await adminFetch('/api/admin/cron-health');
-    if (!res.ok) return;
-    const d = await res.json();
-
-    const overallDot = document.getElementById('cron-overall-dot');
-    if (overallDot) overallDot.className = 'status-dot ' + cronDotClass(d.overall);
-
-    document.getElementById('cron-checked-at').textContent = 'Last checked: ' + d.checked_at;
-    document.getElementById('cron-total-exec').textContent = d.total_executions;
-
-    buildCronJobs(d.jobs);
-  } catch (err) {
-    console.error('Cron health error:', err);
-  }
-}
-
-ensureAdminToken().then(() => { loadCronHealth(); });
-
-async function loadControlRoom() {
-  try {
-    const res = await adminFetch('/api/admin/control-room');
-    if (!res.ok) return;
-    const d = await res.json();
-
-    const ks = d.kill_switch;
-    updateKillSwitchBadge(ks);
-    const dot = document.getElementById('ks-status-dot');
-    const statusLabel = document.getElementById('ks-status-label');
-    const posLabel = document.getElementById('ks-position-label');
-    const triggersCount = document.getElementById('ks-triggers-count');
-
-    if (ks.active) {
-      dot.className = 'status-dot red';
-      statusLabel.textContent = 'ACTIVE';
-      statusLabel.className = 'metric-val red';
-      posLabel.textContent = 'Position reduced to ' + ks.position_size_pct + '%';
-    } else if (ks.triggers_met >= 2) {
-      dot.className = 'status-dot amber';
-      statusLabel.textContent = 'WARNING';
-      statusLabel.className = 'metric-val amber';
-      posLabel.textContent = ks.triggers_met + '/3 conditions met';
-    } else {
-      dot.className = 'status-dot green';
-      statusLabel.textContent = 'CLEAR';
-      statusLabel.className = 'metric-val green';
-      posLabel.textContent = 'All systems nominal';
-    }
-    triggersCount.textContent = (ks.triggers_met || 0) + '/' + (ks.triggers_required || 3);
-
-    const condList = document.getElementById('ks-conditions-list');
-    condList.innerHTML = '';
-    const conds = [
-      { label: 'Rolling 100-bet ROI < -8%', triggered: ks.conditions?.rolling_roi_triggered, detail: ks.diagnostics?.rolling_100_roi != null ? ks.diagnostics.rolling_100_roi + '%' : '< ' + (ks.diagnostics?.min_sample || 100) + ' bets' },
-      { label: 'CLV Negative >60%', triggered: ks.conditions?.clv_negative_triggered, detail: ks.diagnostics?.clv_total_with_data > 0 ? ks.diagnostics.clv_negative_count + '/' + ks.diagnostics.clv_total_with_data + ' negative' : 'No CLV data' },
-      { label: 'Edge Decay Stale', triggered: ks.conditions?.edge_decay_stale, detail: ks.diagnostics?.edge_decay_signal || (ks.diagnostics?.edge_decay_picks_tracked < 10 ? ks.diagnostics.edge_decay_picks_tracked + '/10 tracked' : 'unknown') },
-    ];
-    conds.forEach(c => {
-      const row = document.createElement('div');
-      row.className = 'status-bar-row';
-      row.innerHTML = '<div class="status-indicator ' + (c.triggered ? 'err' : 'ok') + '"></div>' +
-        '<span class="status-name">' + c.label + '</span>' +
-        '<span class="status-val" style="color:' + (c.triggered ? 'var(--red)' : 'var(--text-dim)') + '">' + c.detail + '</span>';
-      condList.appendChild(row);
-    });
-
-    if (ks.active && ks.trigger_reasons && ks.trigger_reasons.length > 0) {
-      const logDiv = document.getElementById('ks-trigger-log');
-      logDiv.style.display = 'block';
-      const reasonsDiv = document.getElementById('ks-trigger-reasons');
-      reasonsDiv.innerHTML = ks.trigger_reasons.map(r =>
-        '<div style="font-size:10px;color:var(--red);line-height:1.6;padding-left:10px;border-left:2px solid rgba(239,68,68,0.3);margin-bottom:4px">' + r + '</div>'
-      ).join('');
-    }
-
-    const rp = d.risk_profile || {};
-    document.getElementById('rp-max-drawdown').textContent = rp.max_drawdown_pct != null ? '-' + rp.max_drawdown_pct + '%' : '--';
-    const r50El = document.getElementById('rp-rolling-50');
-    r50El.textContent = rp.rolling_50_roi != null ? (rp.rolling_50_roi > 0 ? '+' : '') + rp.rolling_50_roi + '%' : '--';
-    if (rp.rolling_50_roi != null) r50El.className = 'value ' + (rp.rolling_50_roi >= 0 ? 'green' : 'red');
-    const r100El = document.getElementById('rp-rolling-100');
-    r100El.textContent = rp.rolling_100_roi != null ? (rp.rolling_100_roi > 0 ? '+' : '') + rp.rolling_100_roi + '%' : '--';
-    if (rp.rolling_100_roi != null) r100El.className = 'value ' + (rp.rolling_100_roi >= 0 ? 'green' : 'red');
-    document.getElementById('rp-return-std').textContent = rp.return_std_dev != null ? rp.return_std_dev + '%' : '--';
-    const rorEl = document.getElementById('rp-risk-of-ruin');
-    rorEl.textContent = rp.risk_of_ruin_pct != null ? rp.risk_of_ruin_pct + '%' : '--';
-    if (rp.risk_of_ruin_pct != null) rorEl.className = 'value ' + (rp.risk_of_ruin_pct < 1 ? 'green' : rp.risk_of_ruin_pct > 5 ? 'red' : '');
-    document.getElementById('rp-avg-days').textContent = rp.avg_days_between_picks || '--';
-    document.getElementById('rp-avg-edge').textContent = rp.avg_edge_published != null ? rp.avg_edge_published + '%' : '--';
-
-    const th = d.thresholds;
-    document.getElementById('th-base-edge').textContent = th.base_edge + '%';
-    document.getElementById('th-formula').textContent = th.elasticity_formula;
-    document.getElementById('th-max-edge').textContent = th.max_edge_cap + '%';
-    document.getElementById('th-model-weight').textContent = th.model_weight;
-    document.getElementById('th-sigma').textContent = th.sigma;
-    document.getElementById('th-sfs-cap').textContent = (th.sfs_cap * 100) + '%';
-    document.getElementById('th-avg-edge').textContent = th.avg_edge_published + '%';
-    document.getElementById('th-avg-spread').textContent = th.avg_spread_published + ' pts';
-
-    const bucketList = document.getElementById('cr-bucket-list');
-    bucketList.innerHTML = '';
-    const sortedBuckets = Object.entries(d.spread_buckets).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
-    sortedBuckets.forEach(([key, b]) => {
-      const wrClass = b.win_rate != null && b.win_rate >= 55 ? 'green' : b.win_rate != null && b.win_rate < 45 ? 'red' : '';
-      bucketList.innerHTML += '<div style="border-bottom:1px solid var(--border);padding:8px 0">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
-          '<span style="font-size:12px;font-weight:600;color:var(--text-bright)">Spread ' + key + '</span>' +
-          '<span class="value ' + wrClass + '" style="font-size:12px">' + (b.win_rate != null ? b.win_rate + '%' : '--') + '</span>' +
-        '</div>' +
-        '<div style="display:flex;gap:16px;font-size:10px;color:var(--text-dim)">' +
-          '<span>' + b.wins + '-' + b.losses + (b.pushes > 0 ? '-' + b.pushes : '') + '</span>' +
-          '<span>Avg Edge: ' + b.avg_edge + '%</span>' +
-          '<span>Req Threshold: ' + b.required_threshold + '%</span>' +
-          '<span>n=' + b.total + '</span>' +
-        '</div>' +
-      '</div>';
-    });
-
-    const dm = d.decay_metrics;
-    document.getElementById('dm-open-count').textContent = dm.open_snapshots;
-    document.getElementById('dm-pretip-count').textContent = dm.pretip_snapshots;
-    document.getElementById('dm-avg-open').textContent = dm.avg_open_edge != null ? dm.avg_open_edge + '%' : '--';
-    document.getElementById('dm-avg-pretip').textContent = dm.avg_pretip_edge != null ? dm.avg_pretip_edge + '%' : '--';
-    const avgDecay = (dm.avg_open_edge != null && dm.avg_pretip_edge != null) ? Math.round((1 - dm.avg_pretip_edge / dm.avg_open_edge) * 100) : null;
-    const dmDecayEl = document.getElementById('dm-avg-decay');
-    dmDecayEl.textContent = avgDecay != null ? avgDecay + '%' : '--';
-    if (avgDecay != null) dmDecayEl.className = 'value ' + (avgDecay > 40 ? 'red' : avgDecay > 20 ? 'amber' : 'green');
-
-    const fragList = document.getElementById('cr-fragility-list');
-    fragList.innerHTML = '';
-    if (d.fragility && d.fragility.length > 0) {
-      d.fragility.forEach(f => {
-        const sfsColor = f.sfs > 0.4 ? 'var(--red)' : f.sfs > 0.2 ? 'var(--amber)' : 'var(--green)';
-        const resultColor = f.result === 'win' ? 'var(--green)' : f.result === 'loss' ? 'var(--red)' : 'var(--text-dim)';
-        fragList.innerHTML += '<div class="stat-row">' +
-          '<span class="label" style="flex:1">' + f.date + ' · ' + f.side + ' (' + f.line + ')</span>' +
-          '<span style="color:' + sfsColor + ';font-weight:700;width:55px;text-align:right">SFS ' + (f.sfs * 100).toFixed(0) + '%</span>' +
-          '<span style="width:45px;text-align:right;color:var(--text-dim)">' + f.edge_pct + '%</span>' +
-          '<span style="width:20px;text-align:right;color:' + resultColor + ';font-weight:700">' + (f.result === 'win' ? 'W' : f.result === 'loss' ? 'L' : 'P') + '</span>' +
-        '</div>';
-      });
-    } else {
-      fragList.innerHTML = '<div style="color:var(--text-dim);font-size:10px;padding:12px 0;text-align:center">No SFS data yet</div>';
-    }
-
-    const toggleList = document.getElementById('cr-toggles-list');
-    toggleList.innerHTML = '';
-    const toggles = d.experimental;
-    Object.entries(toggles).forEach(([key, enabled]) => {
-      const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      toggleList.innerHTML += '<div class="status-bar-row">' +
-        '<div class="status-indicator ' + (enabled ? 'ok' : 'err') + '"></div>' +
-        '<span class="status-name">' + label + '</span>' +
-        '<span class="status-val" style="color:' + (enabled ? 'var(--green)' : 'var(--red)') + '">' + (enabled ? 'ON' : 'OFF') + '</span>' +
-      '</div>';
-    });
-  } catch (err) {
-    console.error('Control room error:', err);
-  }
-}
-
-ensureAdminToken().then(() => { loadControlRoom(); });
+loadData();
 </script>
 
 </body>

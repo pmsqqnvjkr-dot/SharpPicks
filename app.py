@@ -309,7 +309,7 @@ def _upsert_market_note_insight(report, sport='nba'):
     return insight
 
 
-from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent, CronLog, PageView, UserEvent, AdminAlert, MrrSnapshot
+from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent, CronLog, PageView, UserEvent, AdminAlert, MrrSnapshot, KillSwitch
 from picks_api import picks_bp
 from public_api import public_bp
 from insights_api import insights_bp
@@ -529,7 +529,13 @@ app.register_blueprint(weekly_card_bp)
 @app.route('/admin')
 def admin_dashboard():
     from flask import render_template
-    return render_template('admin.html')
+    user = get_current_user_from_session()
+    if not user:
+        return redirect('/login')
+    db_user = db.session.get(User, user['id'])
+    if not db_user or not db_user.is_superuser:
+        return redirect('/')
+    return render_template('admin.html', cron_secret=CRON_SECRET)
 
 MANIFESTO_CONTENT = """When I started building SharpPicks, I wasn\u2019t trying to create another betting app. The market already has plenty of those.
 
@@ -7930,61 +7936,45 @@ def get_stats():
     db_user = db.session.get(User, user['id'])
     if not db_user or not db_user.is_superuser:
         return jsonify({'error': 'Unauthorized'}), 403
-    conn = get_db()
-    cur = conn.cursor()
-    
-    cur.execute('SELECT COUNT(*) as c FROM games')
-    total = cur.fetchone()['c']
-    
-    cur.execute('SELECT COUNT(*) as c FROM games WHERE spread_result IS NOT NULL')
-    with_results = cur.fetchone()['c']
-    
-    cur.execute('SELECT DISTINCT DATE(game_date) as d FROM games ORDER BY d DESC LIMIT 30')
-    dates = [r['d'] for r in cur.fetchall()]
-    streak = calculate_streak(dates)
-    
-    cur.execute("SELECT spread_result, COUNT(*) as c FROM games WHERE spread_result IN ('HOME_COVER', 'AWAY_COVER', 'PUSH') GROUP BY spread_result")
-    spread_stats = {r['spread_result']: r['c'] for r in cur.fetchall()}
-    home_cover = spread_stats.get('HOME_COVER', 0)
-    away_cover = spread_stats.get('AWAY_COVER', 0)
-    pushes = spread_stats.get('PUSH', 0)
-    total_spreads = home_cover + away_cover + pushes
-    
-    model_accuracy = 79.5
-    model_brier = 0.139
+
+    def _sport_stats(sport):
+        picks = Pick.query.filter_by(sport=sport).all()
+        resolved = [p for p in picks if p.result in ('win', 'loss', 'push')]
+        wins = sum(1 for p in resolved if p.result == 'win')
+        losses = sum(1 for p in resolved if p.result == 'loss')
+        total_picks = len(picks)
+        total_pnl = sum(p.profit_units or 0 for p in resolved)
+        total_wagered = len(resolved)
+        roi = round((total_pnl / total_wagered) * 100, 1) if total_wagered > 0 else 0
+        edges = [p.edge_pct for p in picks if p.edge_pct is not None]
+        avg_edge = round(sum(edges) / len(edges), 1) if edges else None
+        return {'wins': wins, 'losses': losses, 'total_picks': total_picks, 'roi': roi, 'avg_edge': avg_edge, 'units': round(total_pnl, 2)}
+
+    nba = _sport_stats('nba')
+    mlb = _sport_stats('mlb')
+
+    total_users = User.query.count()
+    from datetime import timedelta
+    week_ago = datetime.now() - timedelta(days=7)
+    active_7d = db.session.query(db.func.count(db.func.distinct(UserEvent.user_id))).filter(
+        UserEvent.created_at >= week_ago, UserEvent.user_id.isnot(None)).scalar() or 0
+    founding_count = User.query.filter_by(founding_member=True).count()
+
+    mrr = 0
     try:
-        import pickle
-        with open('calibrated_model.pkl', 'rb') as f:
-            model_data = pickle.load(f)
-            if 'ensemble_accuracy' in model_data:
-                model_accuracy = round(model_data['ensemble_accuracy'] * 100, 1)
-            if 'ensemble_brier' in model_data:
-                model_brier = round(model_data['ensemble_brier'], 3)
-    except:
+        latest = MrrSnapshot.query.order_by(MrrSnapshot.snapshot_date.desc()).first()
+        if latest:
+            mrr = latest.mrr_cents // 100
+    except Exception:
         pass
-    
-    conn.close()
-    
+    arr = mrr * 12
+
     return jsonify({
-        'gamesCollected': total,
-        'gamesWithResults': with_results,
-        'collectionStreak': streak,
-        'wins': home_cover,
-        'losses': away_cover,
-        'winRate': round(home_cover/total_spreads*100, 1) if total_spreads > 0 else 0,
-        'totalProfit': model_accuracy,
-        'roi': model_brier,
-        'modelAccuracy': model_accuracy,
-        'modelBrier': model_brier,
-        'homeCover': home_cover,
-        'awayCover': away_cover,
-        'pushes': pushes,
-        'systemHealth': [
-            {'name': 'Data Collection', 'status': 'operational' if streak > 0 else 'warning', 'message': f'{streak} day streak'},
-            {'name': 'API Status', 'status': 'operational', 'message': 'All systems operational'},
-            {'name': 'Database', 'status': 'operational', 'message': f'{total} games stored'},
-            {'name': 'Model', 'status': 'operational', 'message': f'{model_accuracy}% accuracy'}
-        ]
+        'nba': nba, 'mlb': mlb,
+        'totalUsers': total_users, 'total_users': total_users,
+        'active_7d': active_7d,
+        'founding_count': founding_count,
+        'mrr': mrr, 'arr': arr,
     })
 
 @app.route('/api/recent-results')
@@ -8147,6 +8137,48 @@ def admin_users():
             'created_at': u.created_at.isoformat() if u.created_at else None,
         } for u in users]
     })
+
+@app.route('/api/public/kill-switch', methods=['GET', 'POST'])
+def api_kill_switch():
+    """Toggle the kill switch — superusers only"""
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    db_user = db.session.get(User, user['id'])
+    if not db_user or not db_user.is_superuser:
+        return jsonify({'error': 'Unauthorized'}), 403
+    ks = KillSwitch.query.first()
+    if not ks:
+        ks = KillSwitch(sport='nba', active=True, triggered_at=datetime.now())
+        db.session.add(ks)
+    else:
+        ks.active = not ks.active
+        if ks.active:
+            ks.triggered_at = datetime.now()
+        else:
+            ks.cleared_at = datetime.now()
+    db.session.commit()
+    return jsonify({'killed': ks.active, 'sport': ks.sport})
+
+
+@app.route('/api/admin/engagement')
+def admin_engagement():
+    """Engagement metrics - superusers only"""
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    db_user = db.session.get(User, user['id'])
+    if not db_user or not db_user.is_superuser:
+        return jsonify({'error': 'Unauthorized'}), 403
+    from datetime import timedelta
+    week_ago = datetime.now() - timedelta(days=7)
+    active_7d = db.session.query(db.func.count(db.func.distinct(UserEvent.user_id))).filter(
+        UserEvent.created_at >= week_ago, UserEvent.user_id.isnot(None)).scalar() or 0
+    sessions_7d = db.session.query(db.func.count(db.func.distinct(UserEvent.session_id))).filter(
+        UserEvent.created_at >= week_ago, UserEvent.session_id.isnot(None)).scalar() or 0
+    events_7d = UserEvent.query.filter(UserEvent.created_at >= week_ago).count()
+    return jsonify({'active_7d': active_7d, 'sessions_7d': sessions_7d, 'events_7d': events_7d})
+
 
 @app.route('/privacy')
 def privacy_policy():
