@@ -149,7 +149,7 @@ function AppContent() {
   const { setSport } = useSport();
   const [activeTab, setActiveTab] = useState('picks');
   const [picksResetKey, setPicksResetKey] = useState(0);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => localStorage.getItem('sp_onboarded') !== '1');
   const [showWelcome, setShowWelcome] = useState(false);
   const [profileScreen, setProfileScreen] = useState(null);
   const [profileScreenData, setProfileScreenData] = useState(null);

@@ -8,6 +8,8 @@ import teamAbbr, { teamCity } from '../../utils/teamAbbr';
 const PT_API_BASE = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' : '';
 import PullToRefresh from '../shared/PullToRefresh';
 import PickCard from './PickCard';
+import OnboardingCard from './OnboardingCard';
+import OnboardingCard from './OnboardingCard';
 import DailyMarketReport from './DailyMarketReport';
 import { GameSlate } from './MarketView';
 import AuthModal from './AuthModal';
@@ -297,6 +299,13 @@ export default function PicksTab({ onNavigate }) {
       }}>
       <div style={{ padding: '20px 20px 0' }}>
 
+        {/* MLB Onboarding Card */}
+        {sport === 'mlb' && (
+          <OnboardingCard cardId="mlb" title="CALIBRATION BETA">
+            MLB signals use the same pipeline as NBA but are building a live track record. Edges are real. Sizing is identical. Every signal is tracked and graded. The BETA label comes off when the data justifies it.
+          </OnboardingCard>
+        )}
+
         {/* Kill Switch Banner */}
         {killSwitch?.active && isPro && (
           <div style={{
@@ -356,6 +365,13 @@ export default function PicksTab({ onNavigate }) {
             </div>
           ) : null;
         })()}
+
+        {/* First MLB Visit onboarding card */}
+        {sport === 'mlb' && (
+          <OnboardingCard cardId="mlb" title="CALIBRATION BETA">
+            MLB signals use the same pipeline as NBA but are building a live track record. Edges are real. Sizing is identical. Every signal is tracked and graded. The BETA label comes off when the data justifies it.
+          </OnboardingCard>
+        )}
 
         {/* Resolved Pick Banner (suppressed in night mode; recap handles it) */}
         {!isNightMode && lastResolved && lastResolved.id && !isResolved && !dismissedOutcomes.has(lastResolved.id) && (
@@ -729,6 +745,9 @@ export default function PicksTab({ onNavigate }) {
         {/* ═══════════════ STATE 2: PICK DAY ═══════════════ */}
         {pageState === 'pick' && (
           <>
+            <OnboardingCard cardId="signal" title="YOUR FIRST SIGNAL">
+              The model found a qualifying edge. Tap the card below for the full breakdown: market vs. model line, quant reasoning, and sizing. Use Track to log it to your record.
+            </OnboardingCard>
             {/* MI Card — collapsed/expandable (always visible on pick day) */}
             <button
               onClick={() => setMiExpanded(!isMiExpanded)}
@@ -812,6 +831,11 @@ export default function PicksTab({ onNavigate }) {
         {/* ═══════════════ STATE 3: PASS DAY ═══════════════ */}
         {pageState === 'pass' && (
           <>
+            {sport === 'nba' && (
+              <OnboardingCard cardId="pass" title="PASS DAYS">
+                No signal today, but the full analysis is below. Every game's edge, the Daily Market Brief, and the reasoning on each game. This is the most common screen. No Edge. No Pick.
+              </OnboardingCard>
+            )}
             {/* Pass Day Card */}
             <div style={{
               background: '#0F1424',

@@ -7,6 +7,7 @@ import { trackEvent } from '../../utils/eventTracker';
 import UnifiedDashboard from './UnifiedDashboard';
 import DashboardTab from './DashboardTab';
 import FreeTierDashboard from './FreeTierDashboard';
+import OnboardingCard from './OnboardingCard';
 
 const API_ROOT = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' : '';
 
@@ -131,6 +132,9 @@ export default function PerformanceTab({ onNavigate, initialView, onViewConsumed
     <div style={{ padding: '0', paddingBottom: '100px' }}>
 
       <div style={{ padding: '0 20px', marginTop: '12px', marginBottom: '16px' }}>
+        <OnboardingCard cardId="results" title="YOUR RECORD">
+          Every signal tracked with full transparency. The equity curve shows cumulative performance. CLV measures whether the model beat the closing line. Discipline score tracks your selectivity vs. the industry average.
+        </OnboardingCard>
         <div style={{
           display: 'flex',
           backgroundColor: 'var(--surface-1)',

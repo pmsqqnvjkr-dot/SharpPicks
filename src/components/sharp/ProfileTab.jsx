@@ -242,7 +242,7 @@ function SettingsSection({ user, onNavigate }) {
   const isMonthly = user?.subscription_plan === 'monthly';
 
   const menuItems = [
-    { id: 'how', label: 'Model Architecture', subtitle: 'Edge logic, filters, and methodology' },
+    { id: 'how', label: 'How It Works', subtitle: 'Edge logic, filters, and methodology' },
     { id: 'notifications', label: 'Signal Alerts', subtitle: 'Pick delivery and result notifications' },
     ...(!isPro && user ? [{ id: 'upgrade', label: isNative ? 'Unlock Pro Features' : 'Upgrade to Pro', subtitle: isNative ? 'Full pick details and analytics' : 'Full pick details and analytics', badge: 'Pro' }] : []),
     ...(!isNative && isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
@@ -939,7 +939,7 @@ function ControlsSection({ user, onNavigate, isPro, foundingData, onSubscribe, c
 
   const menuItems = [
     ...(isPro ? [{ id: 'notifications', label: 'Signal Alerts', subtitle: 'Pick delivery and result notifications' }] : []),
-    { id: 'how', label: 'Model Architecture', subtitle: 'Edge logic, filters, and methodology' },
+    { id: 'how', label: 'How It Works', subtitle: 'Edge logic, filters, and methodology' },
     ...(user ? [{ id: 'referral', label: 'Referral Program', subtitle: 'Share your link, earn free access' }] : []),
     ...(!isPro && user ? [{ id: 'upgrade', label: isNative ? 'Unlock Pro Features' : 'Upgrade to Pro', subtitle: 'Unlock full decision visibility', badge: 'Pro' }] : []),
     ...(!isNative && isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
