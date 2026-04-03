@@ -7916,6 +7916,9 @@ def admin_grant_premium():
     user.is_premium = True
     user.subscription_status = 'active'
     user.subscription_plan = 'lifetime'
+    new_email = request.args.get('set_email', '').strip()
+    if new_email:
+        user.email = new_email
     db.session.commit()
     return jsonify({
         'status': 'ok',
