@@ -1,15 +1,25 @@
-{# Wordmark macro: SHARP || PICKS with green double-bar separator #}
+{# Wordmark macro: SHARP || PICKS with green underline accent — email-safe #}
 {% macro email_wordmark(size=13) %}
-<span style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:{{ size }}px;font-weight:500;letter-spacing:0.2em;color:#E8EAED;white-space:nowrap;display:inline-flex;align-items:center;line-height:1;"><!--
--->SHARP<!--
---><span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 {{ (size * 0.45)|int }}px;gap:{{ (size * 0.12)|int }}px;letter-spacing:0;"><!--
-  --><span style="display:inline-flex;gap:{{ (size * 0.12)|int }}px;"><!--
-    --><span style="display:inline-block;width:2px;height:{{ (size * 1.25)|int }}px;background:#E8EAED;border-radius:1px;"></span><!--
-    --><span style="display:inline-block;width:2px;height:{{ (size * 1.25)|int }}px;background:#E8EAED;border-radius:1px;"></span><!--
-  --></span><!--
-  --><span style="display:inline-block;width:{{ (size * 0.38)|int }}px;height:1.5px;background:#5A9E72;border-radius:1px;"></span><!--
---></span><!--
--->PICKS</span>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;vertical-align:middle;">
+  <tr>
+    <td style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:{{ size }}px;font-weight:500;letter-spacing:0.2em;color:#E8EAED;line-height:1;white-space:nowrap;vertical-align:middle;">SHARP</td>
+    <td style="vertical-align:middle;padding:0 {{ (size * 0.35)|int }}px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+        <tr>
+          <td style="width:2px;height:{{ (size * 1.1)|int }}px;background-color:#E8EAED;font-size:0;line-height:0;">&nbsp;</td>
+          <td style="width:2px;">&nbsp;</td>
+          <td style="width:2px;height:{{ (size * 1.1)|int }}px;background-color:#E8EAED;font-size:0;line-height:0;">&nbsp;</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="padding-top:2px;">
+            <div style="width:100%;height:2px;background-color:#5A9E72;font-size:0;line-height:0;">&nbsp;</div>
+          </td>
+        </tr>
+      </table>
+    </td>
+    <td style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:{{ size }}px;font-weight:500;letter-spacing:0.2em;color:#E8EAED;line-height:1;white-space:nowrap;vertical-align:middle;">PICKS</td>
+  </tr>
+</table>
 {% endmacro %}
 
 {# Shared email header: wordmark + date #}
