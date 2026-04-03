@@ -7896,13 +7896,23 @@ def admin_generate_market_note():
 @app.route('/api/admin/grant-premium', methods=['GET', 'POST'])
 @verify_cron
 def admin_grant_premium():
-    """Grant lifetime premium to a user by email."""
+    """Grant lifetime premium to a user by email or name search."""
     email = request.args.get('email', '').strip().lower()
     if not email:
         return jsonify({'error': 'Missing email parameter'}), 400
     user = User.query.filter(db.func.lower(User.email) == email).first()
     if not user:
-        return jsonify({'error': f'User not found: {email}'}), 404
+        user = User.query.filter(
+            db.or_(
+                db.func.lower(User.email).contains(email),
+                db.func.lower(User.first_name).contains(email),
+                db.func.lower(User.display_name).contains(email),
+            )
+        ).first()
+    if not user:
+        all_users = User.query.all()
+        matches = [{'id': u.id, 'email': u.email, 'name': u.first_name or u.display_name or ''} for u in all_users if email in (u.email or '').lower() or email in (u.first_name or '').lower()]
+        return jsonify({'error': f'User not found: {email}', 'suggestions': matches}), 404
     user.is_premium = True
     user.subscription_status = 'active'
     user.subscription_plan = 'lifetime'
