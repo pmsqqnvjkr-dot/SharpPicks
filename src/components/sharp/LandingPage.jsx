@@ -182,6 +182,11 @@ export default function LandingPage({ autoView }) {
                 See How It Works
               </button>
             </div>
+            <a href="https://play.google.com/store/apps/details?id=com.sharppicksllc.app"
+              style={{ display: 'inline-block', marginTop: 16 }} target="_blank" rel="noopener noreferrer">
+              <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                alt="Get it on Google Play" height={48} style={{ height: 48 }} />
+            </a>
           </div>
 
           {/* Right — App Screenshot */}
@@ -503,6 +508,13 @@ export default function LandingPage({ autoView }) {
           <a href="mailto:support@sharppicks.ai" style={{ fontSize: 12, color: 'var(--text-secondary)', textDecoration: 'none' }}>
             support@sharppicks.ai
           </a>
+          <div style={{ marginTop: 16 }}>
+            <a href="https://play.google.com/store/apps/details?id=com.sharppicksllc.app"
+              target="_blank" rel="noopener noreferrer">
+              <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                alt="Get it on Google Play" height={36} style={{ height: 36 }} />
+            </a>
+          </div>
         </div>
       </footer>
 

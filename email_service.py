@@ -179,7 +179,8 @@ def _brand_header_html():
 
 
 def _base_template(type_label, body_html, cta_text=None, cta_url=None,
-                   fine_print=None, to_email=None, unsub_category='all'):
+                   fine_print=None, to_email=None, unsub_category='all',
+                   show_store_badge=False):
     base = get_base_url()
     unsub_url = _make_unsub_url(to_email, unsub_category) if to_email else f'{base}/unsubscribe'
 
@@ -202,6 +203,22 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
     if fine_print:
         fine_html = f'''
         <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:12px;color:rgba(232,234,237,0.3);line-height:1.6;margin:16px 0 0;">{fine_print}</p>'''
+
+    store_badge_html = ''
+    if show_store_badge:
+        store_badge_html = '''
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td align="center" style="padding: 24px 28px 8px;">
+              <a href="https://play.google.com/store/apps/details?id=com.sharppicksllc.app"
+                 style="text-decoration:none;" target="_blank">
+                <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                     alt="Get it on Google Play"
+                     style="height:40px; border:0;" height="40">
+              </a>
+            </td>
+          </tr>
+        </table>'''
 
     brand = _brand_header_html()
 
@@ -230,6 +247,7 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
         {cta_html}
         {fine_html}
       </td></tr>
+      {store_badge_html}
       <tr><td style="padding:24px 28px 28px;">
         <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;text-align:center;">
           <p style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:12px;color:rgba(232,234,237,0.3);margin:0 0 12px;">One pick beats five.</p>
@@ -305,7 +323,7 @@ def send_welcome_email(to, first_name=None):
         html = _base_template(
             'ACCOUNT ACTIVE', body,
             cta_text='OPEN SHARPPICKS', cta_url=f'{base}/',
-            to_email=to,
+            to_email=to, show_store_badge=True,
         )
     return send_email(to, 'SharpPicks: Account active', html)
 
@@ -490,6 +508,7 @@ def send_signal_email(to, pick):
             'NEW SIGNAL', body,
             cta_text='VIEW FULL ANALYSIS', cta_url=f'{base}/',
             to_email=to, unsub_category='email_signals',
+            show_store_badge=True,
         )
     return send_email(to, f'SharpPicks: {side} Signal', html)
 
@@ -512,6 +531,7 @@ def send_free_signal_email(to, sport='nba', first_name=None):
         f'{sport_label} SIGNAL PUBLISHED', body,
         cta_text='UPGRADE TO PRO', cta_url=f'{base}/?view=signup',
         to_email=to, unsub_category='email_signals',
+        show_store_badge=True,
     )
     return send_email(to, f'SharpPicks: {sport_label} signal published today', html)
 
@@ -625,6 +645,7 @@ def send_result_email(to, pick):
             'SIGNAL RESULT', body,
             cta_text='VIEW FULL RESULTS', cta_url=f'{base}/',
             to_email=to, unsub_category='email_results',
+            show_store_badge=True,
         )
 
     profit = d.get('profit_units') if d else getattr(pick, 'profit_units', None)
@@ -771,6 +792,7 @@ def send_weekly_summary(to, first_name=None, stats=None):
             'WEEKLY RECAP', body,
             cta_text='VIEW FULL RESULTS', cta_url=f'{base}/',
             to_email=to, unsub_category='email_weekly',
+            show_store_badge=True,
         )
 
     week_num = s.get('week_num', '')

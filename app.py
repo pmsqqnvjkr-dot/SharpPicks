@@ -39,6 +39,20 @@ def root_landing():
     templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
     return send_from_directory(templates_dir, 'app-landing.html')
 
+@app.route('/download')
+def download_redirect():
+    return '''<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Download SharpPicks</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="3;url=https://sharppicks.ai">
+</head><body style="background:#0A0D14;">
+<script>
+var ua=navigator.userAgent.toLowerCase();
+if(/android/.test(ua))window.location.replace('https://play.google.com/store/apps/details?id=com.sharppicksllc.app');
+else window.location.replace('https://sharppicks.ai');
+</script>
+</body></html>'''
+
 is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
 
 CRON_SECRET = os.environ.get('CRON_SECRET', '')
