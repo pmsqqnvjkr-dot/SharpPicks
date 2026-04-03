@@ -7919,6 +7919,10 @@ def admin_grant_premium():
     new_email = request.args.get('set_email', '').strip()
     if new_email:
         user.email = new_email
+    founder_num = request.args.get('founder')
+    if founder_num:
+        user.founding_member = True
+        user.founding_number = int(founder_num)
     db.session.commit()
     return jsonify({
         'status': 'ok',
@@ -7927,6 +7931,8 @@ def admin_grant_premium():
         'is_premium': user.is_premium,
         'subscription_status': user.subscription_status,
         'subscription_plan': user.subscription_plan,
+        'founding_member': user.founding_member,
+        'founding_number': user.founding_number,
     })
 
 
