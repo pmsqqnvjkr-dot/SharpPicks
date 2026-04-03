@@ -298,13 +298,6 @@ export default function PicksTab({ onNavigate }) {
       }}>
       <div style={{ padding: '20px 20px 0' }}>
 
-        {/* MLB Onboarding Card */}
-        {sport === 'mlb' && (
-          <OnboardingCard cardId="mlb" title="CALIBRATION BETA">
-            MLB signals use the same pipeline as NBA but are building a live track record. Edges are real. Sizing is identical. Every signal is tracked and graded. The BETA label comes off when the data justifies it.
-          </OnboardingCard>
-        )}
-
         {/* Kill Switch Banner */}
         {killSwitch?.active && isPro && (
           <div style={{
