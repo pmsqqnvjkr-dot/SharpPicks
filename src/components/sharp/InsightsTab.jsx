@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { apiGet } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import { trackEvent } from '../../utils/eventTracker';
+import OnboardingCard from './OnboardingCard';
 
 const CATEGORIES = [
   { id: 'all', label: 'All' },
@@ -84,6 +85,9 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
   return (
     <div style={{ padding: '0' }}>
       <div style={{ padding: '20px 20px 0' }}>
+        <OnboardingCard cardId="journal" title="THE SHARP JOURNAL">
+          Articles on model philosophy, market structure, and discipline. Market Notes are daily reports for Pro members. Everything else is open to all.
+        </OnboardingCard>
         <div style={{
           fontFamily: 'var(--font-mono)',
           fontSize: '10px', fontWeight: 600,
