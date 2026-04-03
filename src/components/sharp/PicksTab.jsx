@@ -863,7 +863,13 @@ export default function PicksTab({ onNavigate }) {
                 color: '#7A8494', lineHeight: 1.5, marginBottom: '18px',
               }}>
                 {todayData?.games_analyzed > 0
-                  ? `${todayData.games_analyzed} games analyzed. Closest edge: ${topEdge}% (below ${threshold}% threshold).`
+                  ? `${todayData.games_analyzed} games analyzed. ${
+                      todayData.pass_reason
+                        ? `${todayData.pass_reason}${todayData.pass_reason.endsWith('.') ? '' : '.'}`
+                        : topEdge >= threshold
+                          ? `Top edge: ${topEdge}% — did not pass signal filters.`
+                          : `Closest edge: ${topEdge}% (below ${threshold}% threshold).`
+                    }`
                   : 'Model analysis complete. No edge above threshold.'}
               </div>
 

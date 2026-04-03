@@ -237,7 +237,7 @@ def _upsert_market_note_insight(report, sport='nba'):
         away = g.get('away_team', '?')
         home = g.get('home_team', '?')
         reasons = g.get('fail_reasons', [])
-        reason_text = reasons[0] if reasons else 'Edge below 3.5% threshold.'
+        reason_text = reasons[0] if reasons else (g.get('reason') or 'Edge below threshold.')
         near_miss_lines.append(f"- {away} vs {home} | +{abs(edge)}% | {reason_text}")
 
     content_parts = [
