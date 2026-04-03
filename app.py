@@ -7893,6 +7893,30 @@ def admin_generate_market_note():
     return jsonify({'error': 'Failed to generate market note'}), 500
 
 
+@app.route('/api/admin/grant-premium', methods=['GET', 'POST'])
+@verify_cron
+def admin_grant_premium():
+    """Grant lifetime premium to a user by email."""
+    email = request.args.get('email', '').strip().lower()
+    if not email:
+        return jsonify({'error': 'Missing email parameter'}), 400
+    user = User.query.filter(db.func.lower(User.email) == email).first()
+    if not user:
+        return jsonify({'error': f'User not found: {email}'}), 404
+    user.is_premium = True
+    user.subscription_status = 'active'
+    user.subscription_plan = 'lifetime'
+    db.session.commit()
+    return jsonify({
+        'status': 'ok',
+        'email': user.email,
+        'name': user.first_name or user.display_name or '',
+        'is_premium': user.is_premium,
+        'subscription_status': user.subscription_status,
+        'subscription_plan': user.subscription_plan,
+    })
+
+
 @app.route('/api/admin/test-emails', methods=['GET', 'POST'])
 @verify_cron
 def admin_test_emails():
