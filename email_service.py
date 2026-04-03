@@ -194,7 +194,7 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0 0;">
           <tr>
             <td align="center">
-              <a href="{cta_url}" style="display:block;width:100%;padding:18px 0;background-color:#5A9E72;color:#E8EAED;text-align:center;text-decoration:none;border-radius:6px;font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.08em;">{cta_text}</a>
+              <a href="{cta_url}" style="display:block;width:100%;padding:16px 0;background-color:#5A9E72;color:#E8EAED;text-align:center;text-decoration:none;border-radius:6px;font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.08em;">{cta_text}</a>
             </td>
           </tr>
         </table>'''
@@ -256,6 +256,7 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
             <a href="{base}/" style="color:rgba(232,234,237,0.25);text-decoration:underline;">sharppicks.ai</a>
           </p>
           <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:11px;color:rgba(232,234,237,0.25);margin:0;">
+            <a href="{base}/?view=settings" style="color:rgba(232,234,237,0.25);text-decoration:underline;">Manage preferences</a> &middot;
             <a href="{unsub_url}" style="color:rgba(232,234,237,0.25);text-decoration:underline;">Unsubscribe</a>
           </p>
         </div>

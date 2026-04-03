@@ -44,14 +44,26 @@
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0;">
   <tr>
     <td align="center" style="padding:0;">
-      <a href="{{ url }}" style="display:block;width:100%;padding:18px 0;background-color:#5A9E72;color:#E8EAED;text-align:center;text-decoration:none;font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.08em;border-radius:6px;">{{ text }}</a>
+      <a href="{{ url }}" style="display:block;width:100%;padding:16px 0;background-color:#5A9E72;color:#E8EAED;text-align:center;text-decoration:none;font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.08em;border-radius:6px;">{{ text }}</a>
     </td>
   </tr>
 </table>
 {% endmacro %}
 
+{# Google Play store badge #}
+{% macro store_badge() %}
+<tr>
+  <td align="center" style="padding:24px 28px 8px;">
+    <a href="https://play.google.com/store/apps/details?id=com.sharppicksllc.app" style="text-decoration:none;" target="_blank">
+      <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" style="height:40px;border:0;" height="40">
+    </a>
+  </td>
+</tr>
+{% endmacro %}
+
 {# Shared footer #}
-{% macro email_footer(app_url, unsub_url, prefs_url='') %}
+{% macro email_footer(app_url, unsub_url, prefs_url='', show_badge=false) %}
+{% if show_badge %}{{ store_badge() }}{% endif %}
 <tr>
   <td style="padding:24px 28px 28px;">
     <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;text-align:center;">
