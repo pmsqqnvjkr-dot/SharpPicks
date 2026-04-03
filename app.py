@@ -4808,11 +4808,11 @@ def _send_consolidated_model_notification(results, live_sports):
         title = f"New Signal \u00b7 {get_sport_config(pick_sport).get('name', pick_sport.upper())}"
         edge = pick_result.get('edge', 0)
         body = f"{pick_result.get('side', 'Pick available')} \u00b7 {edge}% edge. Open to view."
-        data = {'type': 'pick', 'pick_id': str(pick_result.get('pick_id', ''))}
+        data = {'type': 'pick', 'pick_id': str(pick_result.get('pick_id', '')), 'sport': pick_sport}
     elif has_pick:
         title = "Today's Model Results"
         body = ' | '.join(parts)
-        data = {'type': 'pick', 'pick_id': str(pick_result.get('pick_id', ''))}
+        data = {'type': 'pick', 'pick_id': str(pick_result.get('pick_id', '')), 'sport': pick_sport}
     else:
         title = "No Edge Today"
         all_pass_parts = []
@@ -4824,7 +4824,7 @@ def _send_consolidated_model_notification(results, live_sports):
                 games = r.get('games_analyzed', 0)
                 all_pass_parts.append(f"{tag}: {games} games, no qualifying edge")
         body = ' | '.join(all_pass_parts) if all_pass_parts else ' | '.join(parts)
-        data = {'type': 'pass', 'date': results.get(live_sports[0], {}).get('date', '')}
+        data = {'type': 'pass', 'date': results.get(live_sports[0], {}).get('date', ''), 'sport': live_sports[0] if live_sports else 'nba'}
 
     try:
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pick' if has_pick else 'pass')

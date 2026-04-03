@@ -3,7 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 import { useNetwork } from '../hooks/useNetwork';
-import { SportProvider } from '../hooks/useSport';
+import { SportProvider, useSport } from '../hooks/useSport';
 import { apiGet } from '../hooks/useApi';
 import { trackPageView, trackEvent } from '../utils/eventTracker';
 
@@ -146,6 +146,7 @@ function AppContent() {
   const online = useNetwork();
   const location = useLocation();
   const navigate = useNavigate();
+  const { setSport } = useSport();
   const [activeTab, setActiveTab] = useState('picks');
   const [picksResetKey, setPicksResetKey] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -204,9 +205,11 @@ function AppContent() {
       if (data.type === 'weekly_summary') {
         setActiveTab('profile');
         setProfileScreen('weekly');
-      } else if (data.type === 'pick' || data.type === 'result' || data.type === 'revoke') {
+      } else if (data.type === 'pick' || data.type === 'result' || data.type === 'revoke' || data.type === 'pretip') {
+        if (data.sport) setSport(data.sport);
         setActiveTab('picks');
       } else if (data.type === 'pass') {
+        if (data.sport) setSport(data.sport);
         setActiveTab('picks');
       } else if (data.type === 'journal' || data.type === 'market_note') {
         setActiveTab('insights');

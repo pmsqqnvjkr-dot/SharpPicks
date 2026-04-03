@@ -69,7 +69,7 @@ def send_pick_notification(pick):
         else:
             title = f"{rating} Pick \u00b7 {edge}% Edge"
             body = f"{pick.side} ({_abbr(pick.away_team)} @ {_abbr(pick.home_team)}). {confidence * 100:.0f}% confidence."
-        data = {'type': 'pick', 'pick_id': str(pick.id)}
+        data = {'type': 'pick', 'pick_id': str(pick.id), 'sport': sport}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pick')
         logging.info(f"Pick notification sent to {sent} device(s)")
         return sent > 0
@@ -102,7 +102,7 @@ def send_pass_notification(pass_entry):
         else:
             body = f"{games_analyzed} games analyzed. None above threshold."
 
-        data = {'type': 'pass', 'date': str(pass_entry.date)}
+        data = {'type': 'pass', 'date': str(pass_entry.date), 'sport': sport}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pass')
         logging.info(f"Pass notification sent to {sent} device(s)")
         return sent > 0
@@ -137,7 +137,8 @@ def send_result_notification(pick, result):
             title = f"Push \u00b7 {pick.side}"
             body = f"{away} @ {home} landed on the number. Stake returned."
 
-        data = {'type': 'result', 'pick_id': str(pick.id), 'result': result}
+        sport = getattr(pick, 'sport', 'nba') or 'nba'
+        data = {'type': 'result', 'pick_id': str(pick.id), 'result': result, 'sport': sport}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='result')
         logging.info(f"Result notification ({result}) sent to {sent} device(s)")
         return sent > 0
@@ -154,11 +155,12 @@ def send_pretip_reminder(pick, minutes_until=60):
         time_label = f"{minutes_until}m" if minutes_until < 60 else f"{minutes_until // 60}h"
         title = f"{pick.side} \u00b7 Tips in {time_label}"
 
+        sport = getattr(pick, 'sport', 'nba') or 'nba'
         away = _abbr(pick.away_team)
         home = _abbr(pick.home_team)
         body = f"{away} @ {home}."
 
-        data = {'type': 'pretip', 'pick_id': str(pick.id)}
+        data = {'type': 'pretip', 'pick_id': str(pick.id), 'sport': sport}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pretip')
         logging.info(f"Pre-tip reminder sent to {sent} device(s)")
         return sent > 0
@@ -211,7 +213,7 @@ def send_revoke_notification(pick, reason):
 
         title = "Pick Withdrawn"
         body = f"{away} @ {home} \u00b7 Edge dropped below threshold."
-        data = {'type': 'revoke', 'pick_id': str(pick.id)}
+        data = {'type': 'revoke', 'pick_id': str(pick.id), 'sport': sport}
         sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='revoke')
         logging.info(f"Revoke notification sent to {sent} device(s)")
         return sent > 0
