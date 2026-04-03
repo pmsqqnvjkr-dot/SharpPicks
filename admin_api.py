@@ -383,6 +383,30 @@ def delete_live_pick():
     return jsonify({'deleted': True, 'pick': info, 'game_date': today_str})
 
 
+@admin_bp.route('/api/admin/ungrade-pick/<pick_id>', methods=['POST'])
+def ungrade_pick(pick_id):
+    """Reset a pick back to pending (reverses an incorrect grade)."""
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Unauthorized'}), err_code
+    pick = Pick.query.get(pick_id)
+    if not pick:
+        return jsonify({'error': 'Not found'}), 404
+    old_result = pick.result
+    pick.result = 'pending'
+    pick.home_score = None
+    pick.away_score = None
+    pick.profit_units = None
+    pick.pnl = None
+    pick.result_ats = None
+    pick.result_resolved_at = None
+    db.session.commit()
+    return jsonify({'ungraded': True, 'pick_id': pick_id, 'old_result': old_result})
+
+
 @admin_bp.route('/api/admin/trigger-model', methods=['POST'])
 def trigger_model():
     """Run model without clearing (admin auth). Use force=true in body to clear and rerun."""

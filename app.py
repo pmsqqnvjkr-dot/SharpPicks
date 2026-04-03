@@ -4493,7 +4493,7 @@ def grade_mlb_picks_job():
 
             for pick in pending:
                 cursor.execute(
-                    "SELECT home_score, away_score FROM mlb_games WHERE home_team = ? AND away_team = ? AND game_date = ?",
+                    "SELECT home_score, away_score, game_status FROM mlb_games WHERE home_team = ? AND away_team = ? AND game_date = ? AND game_status = 'final'",
                     (pick.home_team, pick.away_team, pick.game_date)
                 )
                 row = cursor.fetchone()
@@ -4502,6 +4502,11 @@ def grade_mlb_picks_job():
 
                 home_score = int(row['home_score'])
                 away_score = int(row['away_score'])
+
+                if home_score == 0 and away_score == 0:
+                    continue
+                if home_score == 0 and away_score == 0:
+                    continue
                 pick.home_score = home_score
                 pick.away_score = away_score
 
