@@ -741,6 +741,7 @@ def send_weekly_summary(to, first_name=None, stats=None):
 
     ctx = _get_shared_email_context()
     ctx.update({
+        'week_num': s.get('week_num', ''),
         'week_start': week_start_fmt,
         'week_end': week_end_fmt,
         'weekly_wins': wins,
