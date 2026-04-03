@@ -70,7 +70,14 @@ def send_pick_notification(pick):
             title = f"{rating} Pick \u00b7 {edge}% Edge"
             body = f"{pick.side} ({_abbr(pick.away_team)} @ {_abbr(pick.home_team)}). {confidence * 100:.0f}% confidence."
         data = {'type': 'pick', 'pick_id': str(pick.id), 'sport': sport}
-        sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pick')
+
+        sport_label = cfg.get('name', sport.upper())
+        free_title = f"{sport_label} Signal Published"
+        free_body = "A qualifying signal was found today. Upgrade to Pro to see the full pick."
+        free_data = {'type': 'pick', 'sport': sport}
+
+        sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pick',
+                                free_title=free_title, free_body=free_body, free_data=free_data)
         logging.info(f"Pick notification sent to {sent} device(s)")
         return sent > 0
     except Exception as e:
@@ -139,7 +146,14 @@ def send_result_notification(pick, result):
 
         sport = getattr(pick, 'sport', 'nba') or 'nba'
         data = {'type': 'result', 'pick_id': str(pick.id), 'result': result, 'sport': sport}
-        sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='result')
+
+        result_label = 'Win' if result == 'win' else 'Loss' if result == 'loss' else 'Push'
+        free_title = f"Signal Result: {result_label}"
+        free_body = "Today's signal has been graded. Upgrade to Pro to see full details."
+        free_data = {'type': 'result', 'sport': sport}
+
+        sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='result',
+                                free_title=free_title, free_body=free_body, free_data=free_data)
         logging.info(f"Result notification ({result}) sent to {sent} device(s)")
         return sent > 0
     except Exception as e:
@@ -266,15 +280,17 @@ def send_market_note_notification(insight):
 
 
 def send_journal_notification(insight):
-    """Notify users when a new journal article is published."""
+    """Notify users when a new journal article is published.
+    Market reports (category=market_notes) are pro-only; all other insights go to everyone."""
     send_push_to_all, _, _ = _get_push_functions()
     if not send_push_to_all:
         return False
     try:
-        title = "New Insight"
+        is_market_report = getattr(insight, 'category', '') == 'market_notes'
+        title = "New Market Note" if is_market_report else "New Insight"
         body = (insight.title or '')[:80]
         data = {'type': 'journal', 'insight_id': str(insight.id), 'slug': insight.slug or ''}
-        sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='journal')
+        sent = send_push_to_all(title, body, data=data, premium_only=is_market_report, notification_type='journal')
         logging.info(f"Journal notification sent to {sent} device(s)")
         return sent > 0
     except Exception as e:

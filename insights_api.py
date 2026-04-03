@@ -61,6 +61,11 @@ def get_insights():
     query = Insight.query.filter(_visible_filter())
     query = query.filter(db.or_(Insight.sport == sport, Insight.sport.is_(None)))
 
+    user = get_current_user()
+    is_pro = user and (user.is_premium or user.subscription_status in ('active', 'trial'))
+    if not is_pro:
+        query = query.filter(Insight.category != 'market_notes')
+
     if category and category != 'all':
         query = query.filter_by(category=category)
 

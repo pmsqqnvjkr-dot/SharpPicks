@@ -833,7 +833,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
     ? { color: textMuted, background: 'rgba(255,255,255,0.04)' }
     : null;
 
-  const leftBorder = hasSignal ? `3px solid ${brandGreen}`
+  const leftBorder = (hasSignal && isPro) ? `3px solid ${brandGreen}`
     : isFinal ? `3px solid ${grayBorder}`
     : `3px solid #1e3050`;
 
@@ -877,7 +877,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
 
           {/* Edge + badge */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, marginLeft: 12 }}>
-            {edge != null ? (
+            {edge != null && isPro ? (
               <span style={{
                 fontFamily: mono, fontSize: '14px', fontWeight: 500,
                 color: hasSignalEdge ? brandGreen : textMuted,
@@ -908,7 +908,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
                   background: 'rgba(74,85,104,0.15)', color: '#6b7a8d',
                 }}>Push</span>
               ) : null
-            ) : hasSignal && !isFinal ? (
+            ) : hasSignal && !isFinal && isPro ? (
               <span style={{
                 fontFamily: mono, fontSize: '10px', fontWeight: 700,
                 letterSpacing: '1px', textTransform: 'uppercase',
@@ -1035,7 +1035,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
               <div style={{ fontFamily: mono, fontSize: '13px', fontWeight: 500, color: textSec }}>
                 {totalDisplay || '\u2014'}
               </div>
-              {game.total != null && game.total_open != null && Math.abs(parseFloat(game.total) - parseFloat(game.total_open)) >= 0.25 && (
+              {isPro && game.total != null && game.total_open != null && Math.abs(parseFloat(game.total) - parseFloat(game.total_open)) >= 0.25 && (
                 <div style={{ fontFamily: mono, fontSize: '10px', color: accentYellow }}>
                   {parseFloat(game.total) > parseFloat(game.total_open) ? '\u25B2' : '\u25BC'}
                   {Math.abs(parseFloat(game.total) - parseFloat(game.total_open)).toFixed(1)}
@@ -1061,10 +1061,17 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
             {/* Edge */}
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', color: textMuted, marginBottom: 2 }}>Edge</div>
-              <div style={{
-                fontFamily: mono, fontSize: edge != null ? '13px' : '10px', fontWeight: 500,
-                color: hasSignalEdge ? brandGreen : (edge == null && !hasModel ? textMuted : textSec),
-              }}>{edge != null ? `+${edge}%` : (hasModel ? '\u2014' : 'Pending')}</div>
+              {isPro ? (
+                <div style={{
+                  fontFamily: mono, fontSize: edge != null ? '13px' : '10px', fontWeight: 500,
+                  color: hasSignalEdge ? brandGreen : (edge == null && !hasModel ? textMuted : textSec),
+                }}>{edge != null ? `+${edge}%` : (hasModel ? '\u2014' : 'Pending')}</div>
+              ) : (
+                <div style={{
+                  fontFamily: mono, fontSize: '10px', fontWeight: 500,
+                  color: textMuted, letterSpacing: '0.5px',
+                }}>PRO</div>
+              )}
             </div>
           </div>
         )}
@@ -1328,7 +1335,7 @@ function TableView({ games, isPro, onLineHistory, sport }) {
             {games.map(g => {
               const status = gameStatus(g);
               const isSignal = g.model?.passes;
-              const rowBg = isSignal ? 'rgba(52,211,153,0.04)' : 'transparent';
+              const rowBg = isSignal && isPro ? 'rgba(52,211,153,0.04)' : 'transparent';
               const homeML = parseFloat(g.home_ml);
               const awayML = parseFloat(g.away_ml);
               return (

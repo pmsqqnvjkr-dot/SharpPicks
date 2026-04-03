@@ -49,7 +49,7 @@ NOTIFICATION_EVENTS = {
         'push_fn': 'send_journal_notification',
         'email_fn': None,
         'email_pref': None,
-        'premium_only': True,
+        'premium_only': False,
         'description': 'New journal article published',
     },
     'weekly_summary': {
@@ -101,10 +101,34 @@ def get_email_recipients(event_name):
         return []
 
 
-def dispatch_signal_emails(pick):
-    """Send signal email to all eligible premium users."""
+def get_free_email_recipients(pref_key=None):
+    """Return list of (user_id, email, first_name) for free-tier users."""
     try:
-        from email_service import send_signal_email
+        from models import User
+        users = User.query.filter(
+            User.email.isnot(None),
+            ~((User.is_premium == True) |
+              (User.subscription_status.in_(['active', 'trial'])))
+        ).all()
+        recipients = []
+        for user in users:
+            if not user.email:
+                continue
+            if pref_key:
+                prefs = user.notification_prefs or {}
+                if not prefs.get(pref_key, True):
+                    continue
+            recipients.append((user.id, user.email, user.first_name))
+        return recipients
+    except Exception as e:
+        logging.error(f"get_free_email_recipients failed: {e}")
+        return []
+
+
+def dispatch_signal_emails(pick):
+    """Send signal email to all eligible premium users, and a generic notification to free users."""
+    try:
+        from email_service import send_signal_email, send_free_signal_email
         recipients = get_email_recipients('pick_published')
         sent = 0
         for user_id, email, first_name in recipients:
@@ -113,8 +137,19 @@ def dispatch_signal_emails(pick):
                     sent += 1
             except Exception as e:
                 logging.error(f"Signal email to {email} failed: {e}")
-        logging.info(f"Signal emails dispatched: {sent}/{len(recipients)}")
-        return sent
+
+        free_recipients = get_free_email_recipients('email_signals')
+        free_sent = 0
+        sport = pick.get('sport', 'nba') if isinstance(pick, dict) else getattr(pick, 'sport', 'nba')
+        for user_id, email, first_name in free_recipients:
+            try:
+                if send_free_signal_email(email, sport=sport, first_name=first_name):
+                    free_sent += 1
+            except Exception as e:
+                logging.error(f"Free signal email to {email} failed: {e}")
+
+        logging.info(f"Signal emails dispatched: {sent} pro, {free_sent} free")
+        return sent + free_sent
     except Exception as e:
         logging.error(f"dispatch_signal_emails failed: {e}")
         return 0

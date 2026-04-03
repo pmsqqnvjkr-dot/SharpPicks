@@ -9,7 +9,6 @@ const PT_API_BASE = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' :
 import PullToRefresh from '../shared/PullToRefresh';
 import PickCard from './PickCard';
 import OnboardingCard from './OnboardingCard';
-import OnboardingCard from './OnboardingCard';
 import DailyMarketReport from './DailyMarketReport';
 import { GameSlate } from './MarketView';
 import AuthModal from './AuthModal';

@@ -210,7 +210,7 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
 
 function switchTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));const p=document.getElementById('panel-'+t);if(p){p.classList.add('active');setTimeout(()=>{const i=p.querySelector('input');if(i)i.focus()},50)}const ti={login:'Sign In',signup:'Get Started'};document.title='SharpPicks \u2014 '+(ti[t]||'Sign In');history.replaceState(null,'',t==='login'?'/login':'/signup')}
 
-(function(){const p=new URLSearchParams(location.search).get('plan');const pg=location.pathname;if(pg.includes('signup')||pg.includes('register')||p==='annual'||p==='trial'||p==='monthly')switchTab('signup');else if(p==='free'){switchTab('signup');handleFreeSwitch()}})();
+(function(){const p=new URLSearchParams(location.search).get('plan');const pg=location.pathname;if(p==='free'){switchTab('signup');handleFreeSwitch()}else if(pg.includes('signup')||pg.includes('register')||p==='annual'||p==='trial'||p==='monthly')switchTab('signup')})();
 
 function handleFreeSwitch(){
   const form=document.getElementById('signup-form');

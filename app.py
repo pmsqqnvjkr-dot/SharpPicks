@@ -4837,7 +4837,16 @@ def _send_consolidated_model_notification(results, live_sports):
         data = {'type': 'pass', 'date': results.get(live_sports[0], {}).get('date', ''), 'sport': live_sports[0] if live_sports else 'nba'}
 
     try:
-        sent = send_push_to_all(title, body, data=data, premium_only=True, notification_type='pick' if has_pick else 'pass')
+        free_kw = {}
+        if has_pick:
+            sport_name = get_sport_config(pick_sport).get('name', pick_sport.upper())
+            free_kw = {
+                'free_title': f'{sport_name} Signal Published',
+                'free_body': 'A qualifying signal was found today. Upgrade to Pro to see the full pick.',
+                'free_data': {'type': 'pick', 'sport': pick_sport},
+            }
+        sent = send_push_to_all(title, body, data=data, premium_only=True,
+                                notification_type='pick' if has_pick else 'pass', **free_kw)
         import logging
         logging.info(f"Consolidated model notification sent to {sent} device(s): {title}")
     except Exception as e:
@@ -7365,9 +7374,10 @@ def send_push_notification(user_id, title, body, data=None):
     return sent
 
 
-def send_push_to_all(title, body, data=None, premium_only=False, notification_type=None):
+def send_push_to_all(title, body, data=None, premium_only=False, notification_type=None,
+                     free_title=None, free_body=None, free_data=None):
     users = User.query.all()
-    if premium_only:
+    if premium_only and not free_title:
         users = [u for u in users if u.is_premium or u.subscription_status in ('active', 'trial')]
 
     PREF_KEY_MAP = {
@@ -7383,6 +7393,11 @@ def send_push_to_all(title, body, data=None, premium_only=False, notification_ty
 
     total = 0
     for u in users:
+        is_pro = u.is_premium or u.subscription_status in ('active', 'trial')
+
+        if premium_only and not is_pro and not free_title:
+            continue
+
         if notification_type and hasattr(u, 'notification_prefs') and u.notification_prefs:
             pref_key = PREF_KEY_MAP.get(notification_type)
             if pref_key and not u.notification_prefs.get(pref_key, True):
@@ -7404,7 +7419,10 @@ def send_push_to_all(title, body, data=None, premium_only=False, notification_ty
                 except Exception:
                     pass
 
-        total += send_push_notification(u.id, title, body, data)
+        if is_pro:
+            total += send_push_notification(u.id, title, body, data)
+        elif free_title:
+            total += send_push_notification(u.id, free_title, free_body or '', free_data or data)
     return total
 
 

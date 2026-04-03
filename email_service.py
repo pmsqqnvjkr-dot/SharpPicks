@@ -494,6 +494,28 @@ def send_signal_email(to, pick):
     return send_email(to, f'SharpPicks: {side} Signal', html)
 
 
+def send_free_signal_email(to, sport='nba', first_name=None):
+    """Send a generic signal notification to free-tier users (no pick details)."""
+    if not check_email_pref(to, 'email_signals'):
+        return False
+    base = get_base_url()
+    sport_label = sport.upper() if sport else 'NBA'
+    greeting = f'{first_name}, a' if first_name else 'A'
+    body = f'''
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0 0 16px;">
+          {greeting} qualifying {sport_label} signal was published today. The model found an edge above threshold.
+        </p>
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+          Upgrade to Pro to see the full pick, edge analysis, and track outcomes.
+        </p>'''
+    html = _base_template(
+        f'{sport_label} SIGNAL PUBLISHED', body,
+        cta_text='UPGRADE TO PRO', cta_url=f'{base}/?view=signup',
+        to_email=to, unsub_category='email_signals',
+    )
+    return send_email(to, f'SharpPicks: {sport_label} signal published today', html)
+
+
 # ── 10. Signal Result ──
 
 def send_result_email(to, pick):
