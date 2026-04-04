@@ -60,19 +60,11 @@ export default function UpgradeScreen({ onBack, user }) {
         <div style={{
           textAlign: 'center', padding: '20px 0 24px',
         }}>
-          <div style={{
-            width: '72px', height: '72px', borderRadius: '18px',
-            backgroundColor: 'var(--surface-1)', border: '1px solid var(--stroke-subtle)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 20px',
-          }}>
-            <svg viewBox="0 0 40 40" width="40" height="40" fill="none">
-              <path d="M20 2L4 9v12c0 10 6.5 18.5 16 21 9.5-2.5 16-11 16-21V9L20 2z" stroke="white" strokeWidth="3" fill="none"/>
-              <rect x="14" y="16" width="3" height="12" rx="1" fill="white"/>
-              <rect x="19" y="12" width="3" height="16" rx="1" fill="white"/>
-              <rect x="24" y="18" width="3" height="10" rx="1" fill="white"/>
-              <path d="M12 20L20 10L30 6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              <path d="M27 5l4 1-1 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+          <div style={{ margin: '0 auto 20px' }}>
+            <svg width="44" height="44" viewBox="0 0 500 500">
+              <rect x="150" y="100" width="60" height="300" rx="30" fill="#FFFFFF" />
+              <rect x="290" y="100" width="60" height="300" rx="30" fill="#FFFFFF" />
+              <rect x="150" y="420" width="200" height="20" rx="10" fill="#5A9E72" />
             </svg>
           </div>
           <h1 style={{
