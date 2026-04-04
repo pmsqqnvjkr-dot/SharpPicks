@@ -4993,7 +4993,7 @@ def cron_model_watchdog():
         results = {}
 
         nba_run = ModelRun.query.filter_by(date=today_str, sport='nba').first()
-        if not nba_run and et_hour >= 10:
+        if not nba_run and et_hour >= 9:
             results['nba'] = 'triggering'
             try:
                 run_model_and_log(app, sport='nba', force=False, send_notifications=True)
