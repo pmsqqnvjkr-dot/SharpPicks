@@ -1006,127 +1006,101 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
         overflowY: 'auto', WebkitOverflowScrolling: 'touch',
       }}
     >
-      {/* Scroll progress bar */}
+      {/* Progress bar */}
       <div style={{
         position: 'sticky', top: 0, left: 0, right: 0, height: '2px',
-        zIndex: 2, backgroundColor: 'rgba(255,255,255,0.04)',
+        zIndex: 2, background: 'transparent',
       }}>
         <div style={{
           height: '100%',
           width: `${scrollProgress * 100}%`,
-          backgroundColor: 'var(--blue-primary)',
-          transition: 'width 0.05s linear',
+          background: 'linear-gradient(90deg, #5A9E72, #7BC493)',
+          transition: 'width 0.1s linear',
         }} />
       </div>
 
-      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-      {/* Header */}
+      <div style={{ maxWidth: '430px', margin: '0 auto' }}>
+      {/* Top bar */}
       <div style={{
         position: 'sticky', top: '2px', zIndex: 1,
-        backgroundColor: 'var(--bg-primary)',
-        padding: '16px 20px',
+        background: 'rgba(10,13,20,0.92)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        padding: '14px 20px',
         display: 'flex', alignItems: 'center', gap: '12px',
-        borderBottom: '1px solid var(--stroke-subtle)',
+        borderBottom: '1px solid #1C2130',
       }}>
         <button
           onClick={onBack}
           aria-label="Go back"
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: '#7A8494', padding: '4px',
-            minWidth: '44px', minHeight: '44px',
+            color: '#626878', fontSize: '20px', lineHeight: 1,
+            padding: '4px', margin: '-4px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            minWidth: '44px', minHeight: '44px',
           }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M15 18l-6-6 6-6"/>
-          </svg>
+          ←
         </button>
         <span style={{
-          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
+          fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
           fontSize: '11px', fontWeight: 500,
-          letterSpacing: '2.5px', textTransform: 'uppercase',
-          color: '#7A8494',
+          letterSpacing: '3px', textTransform: 'uppercase',
+          color: '#626878',
         }}>Sharp Journal</span>
       </div>
 
-      <div ref={contentRef} style={{
-        padding: '24px 20px 100px',
-        maxWidth: '600px', margin: '0 auto',
-        opacity: fadeIn ? 1 : 0,
-        transform: fadeIn ? 'translateY(0)' : 'translateY(12px)',
-        transition: 'opacity 0.4s ease, transform 0.4s ease',
-      }}>
+      <div ref={contentRef} style={{ padding: '0 20px 60px' }}>
         {isMarketNote ? (
+          <div style={{ paddingTop: '24px' }}>
           <MarketNoteContent insight={insight} />
+          </div>
         ) : (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-              {insight.slug === 'beginners-guide' && (
+            {/* Hero */}
+            <div style={{
+              padding: '32px 0 28px',
+              borderBottom: '1px solid #1C2130',
+              marginBottom: '32px',
+              animation: fadeIn ? 'insightsFadeUp 0.4s ease 0.05s both' : 'none',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                <HeroCategoryTag category={insight.category} slug={insight.slug} />
                 <span style={{
-                  display: 'inline-block',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: '11px', fontWeight: 700,
-                  letterSpacing: '0.1em', textTransform: 'uppercase',
-                  color: '#E8EAED',
-                  backgroundColor: 'rgba(90,158,114,0.25)',
-                  border: '1px solid rgba(90,158,114,0.35)',
-                  padding: '4px 12px', borderRadius: '5px',
-                }}>Start Here</span>
-              )}
-              <span style={{
-                display: 'inline-block',
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: '11px', fontWeight: 600,
-                letterSpacing: '0.12em', textTransform: 'uppercase',
-                color: '#5A9E72',
-                backgroundColor: 'rgba(90,158,114,0.12)',
-                border: '1px solid rgba(90,158,114,0.2)',
-                padding: '4px 12px', borderRadius: '5px',
+                  fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+                  fontSize: '10px', color: '#454B5C', letterSpacing: '0.3px',
+                }}>
+                  Sharp Journal · {insight.reading_time_minutes || 2} min read
+                </span>
+              </div>
+
+              <h1 style={{
+                fontFamily: "'IBM Plex Serif', var(--font-serif), serif",
+                fontSize: '28px', fontWeight: 600,
+                color: '#E2E4E8',
+                lineHeight: 1.25,
+                letterSpacing: '-0.3px',
+                marginBottom: '10px',
               }}>
-                {CATEGORY_LABELS[insight.category] || insight.category}
-              </span>
+                {(insight.title || '').replace(/—/g, ' -- ')}
+              </h1>
+
               <span style={{
-                fontSize: '10px', color: 'var(--text-tertiary)',
-                fontFamily: 'var(--font-mono)', letterSpacing: '0.05em',
-              }}>·</span>
-              <span style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '10px', fontWeight: 500,
-                letterSpacing: '0.05em', textTransform: 'uppercase',
-                color: 'var(--text-tertiary)',
-              }}>Sharp Journal</span>
-              <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                {insight.reading_time_minutes} min read
+                fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+                fontSize: '11px', color: '#454B5C', letterSpacing: '0.3px',
+              }}>
+                {formatDate(insight.publish_date)}
               </span>
             </div>
 
-            <h1 style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: '27px', fontWeight: 700,
-              color: 'var(--text-primary)',
-              lineHeight: '1.3',
-              marginBottom: '12px',
-              letterSpacing: '-0.01em',
-            }}>
-              {(insight.title || '').replace(/—/g, '-')}
-            </h1>
-
+            {/* Body */}
             <div style={{
-              fontSize: '12px', color: 'var(--text-tertiary)',
-              marginBottom: '28px',
-              paddingBottom: '20px',
-              borderBottom: '1px solid var(--stroke-subtle)',
-            }}>
-              {formatDate(insight.publish_date)}
-            </div>
-
-            <div style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: '15.5px',
-              color: 'var(--text-secondary)',
-              lineHeight: '1.85',
-              letterSpacing: '0.01em',
+              fontFamily: "'IBM Plex Serif', var(--font-serif), serif",
+              fontSize: '16px',
+              color: '#9DA1AC',
+              lineHeight: 1.8,
+              animation: fadeIn ? 'insightsFadeUp 0.4s ease 0.12s both' : 'none',
             }}>
               {paragraphs.map((p, i) => {
                 const trimmed = p.trim();
@@ -1136,8 +1110,8 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                 if (trimmed === '---') {
                   return (
                     <div key={i} style={{
-                      border: 'none', height: 1, margin: '32px 0',
-                      background: 'linear-gradient(to right, transparent, rgba(90,158,114,0.3), transparent)',
+                      border: 'none', height: '1px', margin: '36px 0',
+                      background: '#1C2130',
                     }} />
                   );
                 }
@@ -1205,10 +1179,11 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                 if (p.startsWith('## ')) {
                   return (
                     <h2 key={i} style={{
-                      fontFamily: 'var(--font-sans)',
-                      fontSize: '17px', fontWeight: 600,
-                      color: 'var(--text-primary)',
-                      margin: '28px 0 12px',
+                      fontFamily: "'IBM Plex Serif', var(--font-serif), serif",
+                      fontSize: '20px', fontWeight: 600,
+                      color: '#E2E4E8',
+                      lineHeight: 1.3, letterSpacing: '-0.2px',
+                      marginTop: '40px', marginBottom: '16px',
                     }}>
                       {parseInlineMarkdown(p.replace('## ', ''))}
                     </h2>
@@ -1222,16 +1197,21 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                     return <SharpPrincipleBlock key={i} label={labelMatch[1]} text={labelMatch[2].trim()} />;
                   }
                   return (
-                    <div key={i} style={{
-                      borderLeft: '2px solid rgba(90,158,114,0.4)',
-                      padding: '16px 20px', margin: '24px 0',
-                      fontSize: 15, color: 'rgba(232,234,237,0.55)',
-                      lineHeight: 1.6,
-                      fontFamily: "'IBM Plex Serif', Georgia, serif",
-                      fontStyle: 'italic',
+                    <blockquote key={i} style={{
+                      borderLeft: '2px solid #5A9E72',
+                      padding: '14px 18px', margin: '28px 0',
+                      background: 'rgba(90,158,114,0.04)',
+                      borderRadius: '0 6px 6px 0',
                     }}>
-                      {parseInlineMarkdown(quoteText)}
-                    </div>
+                      <p style={{
+                        fontFamily: "'IBM Plex Serif', serif",
+                        fontSize: '14px', lineHeight: 1.7,
+                        color: '#9DA1AC', fontStyle: 'italic',
+                        margin: 0,
+                      }}>
+                        {parseInlineMarkdown(quoteText)}
+                      </p>
+                    </blockquote>
                   );
                 }
 
@@ -1262,97 +1242,155 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
                   p === 'Short term streaks are noise.\nLong term expectancy is signal.' ||
                   p === 'Survival is step one.\nCompounding is step two.';
                 if (isClosingPunch) {
-                  return <p key={i} style={{
-                    margin: '4px 0 16px', fontSize: '16px', fontWeight: 600,
-                    color: 'var(--text-primary)', lineHeight: '1.7',
+                  return <p key={i} className="kicker" style={{
+                    fontSize: '15px', fontWeight: 500,
+                    color: '#E2E4E8', marginBottom: '28px',
                   }}>{parseInlineMarkdown(p)}</p>;
                 }
 
-                return <p key={i} style={{ margin: '0 0 20px' }}>{parseInlineMarkdown(p)}</p>;
+                return <p key={i} style={{ marginBottom: '22px' }}>{parseInlineMarkdown(p)}</p>;
               })}
             </div>
 
             <WhyThisMatters insight={insight} />
 
-            <FounderSignature />
+            {/* Author byline */}
+            <div style={{
+              margin: '40px 0 32px',
+              display: 'flex', alignItems: 'center', gap: '14px',
+              animation: fadeIn ? 'insightsFadeUp 0.3s ease 0.18s both' : 'none',
+            }}>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '10px',
+                background: '#181D28', border: '1px solid #1C2130',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '12px', fontWeight: 600, color: '#5A9E72',
+                flexShrink: 0,
+              }}>EC</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{
+                  fontFamily: "'Inter', var(--font-sans), sans-serif",
+                  fontSize: '14px', fontWeight: 600, color: '#E2E4E8',
+                }}>Evan Cole</span>
+                <span style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '10px', color: '#454B5C', letterSpacing: '0.3px',
+                }}>Head of Signal Intelligence</span>
+              </div>
+            </div>
           </>
         )}
 
-        {!isMarketNote && (
-          <div style={{
-            margin: '32px 0',
-            padding: '16px 18px',
-            background: 'var(--surface-1)',
-            border: '1px solid var(--stroke-subtle)',
-            borderRadius: '12px',
-            textAlign: 'center',
-            cursor: 'pointer',
-            transition: 'border-color 0.2s ease',
-          }}
-            onClick={() => onNavigate && onNavigate('performance', 'model')}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(79, 134, 247, 0.3)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--stroke-subtle)'}
+        {/* CTA link */}
+        {!isMarketNote && insight.cta_text && (
+          <a
+            onClick={() => onNavigate && onNavigate(insight.cta_target || 'performance', 'model')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: '6px', padding: '14px 20px',
+              background: 'transparent',
+              border: '1px solid #1C2130', borderRadius: '8px',
+              marginBottom: '16px', cursor: 'pointer',
+              textDecoration: 'none',
+              transition: 'border-color 0.2s, background 0.2s',
+              animation: fadeIn ? 'insightsFadeUp 0.3s ease 0.22s both' : 'none',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'rgba(90,158,114,0.3)';
+              e.currentTarget.style.background = 'rgba(90,158,114,0.04)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = '#1C2130';
+              e.currentTarget.style.background = 'transparent';
+            }}
           >
-            <p style={{
-              fontSize: '13px',
-              color: 'var(--text-secondary)',
-              margin: 0,
-              lineHeight: '1.5',
-            }}>
-              See how this discipline performs in real picks{' '}
-              <span style={{ color: 'var(--blue-primary)', fontWeight: 500 }}>&rarr;</span>
-            </p>
-          </div>
+            <span style={{
+              fontFamily: "'Inter', var(--font-sans), sans-serif",
+              fontSize: '13px', fontWeight: 500, color: '#9DA1AC',
+            }}>{insight.cta_text || 'See how this discipline performs in real picks'}</span>
+            <span style={{ fontSize: '14px', color: '#5A9E72' }}>→</span>
+          </a>
+        )}
+
+        {!isMarketNote && !insight.cta_text && (
+          <a
+            onClick={() => onNavigate && onNavigate('performance', 'model')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: '6px', padding: '14px 20px',
+              background: 'transparent',
+              border: '1px solid #1C2130', borderRadius: '8px',
+              marginBottom: '16px', cursor: 'pointer',
+              textDecoration: 'none',
+              transition: 'border-color 0.2s, background 0.2s',
+              animation: fadeIn ? 'insightsFadeUp 0.3s ease 0.22s both' : 'none',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'rgba(90,158,114,0.3)';
+              e.currentTarget.style.background = 'rgba(90,158,114,0.04)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = '#1C2130';
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <span style={{
+              fontFamily: "'Inter', var(--font-sans), sans-serif",
+              fontSize: '13px', fontWeight: 500, color: '#9DA1AC',
+            }}>See how this discipline performs in real picks</span>
+            <span style={{ fontSize: '14px', color: '#5A9E72' }}>→</span>
+          </a>
         )}
 
         {insight.has_related_picks && (
           <RelatedPicksSection insightId={insight.id} />
         )}
 
+        {/* Next Read card */}
         {nextInsight && (
           <button
             onClick={() => onSelectInsight(nextInsight)}
             style={{
-              width: '100%',
-              textAlign: 'left',
-              background: 'var(--surface-1)',
-              border: '1px solid var(--stroke-subtle)',
-              borderRadius: '12px',
-              padding: '16px 18px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              transition: 'transform 0.2s ease, border-color 0.2s ease',
+              width: '100%', textAlign: 'left',
+              background: '#131720',
+              border: '1px solid #1C2130', borderRadius: '10px',
+              padding: '16px 18px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '14px',
+              transition: 'border-color 0.2s',
+              animation: fadeIn ? 'insightsFadeUp 0.3s ease 0.26s both' : 'none',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.borderColor = 'rgba(79, 134, 247, 0.3)';
+              e.currentTarget.style.borderColor = '#5A9E72';
+              e.currentTarget.querySelector('.nr-title').style.color = '#E2E4E8';
+              e.currentTarget.querySelector('.nr-arrow').style.color = '#5A9E72';
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.borderColor = 'var(--stroke-subtle)';
+              e.currentTarget.style.borderColor = '#1C2130';
+              e.currentTarget.querySelector('.nr-title').style.color = '#9DA1AC';
+              e.currentTarget.querySelector('.nr-arrow').style.color = '#454B5C';
             }}
           >
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '10px', fontWeight: 700,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '9px', fontWeight: 600,
                 letterSpacing: '1.5px', textTransform: 'uppercase',
-                color: 'var(--text-tertiary)',
-                marginBottom: '6px',
+                color: '#454B5C', marginBottom: '6px',
               }}>Next Read</div>
-              <div style={{
-                fontSize: '14px', fontWeight: 600,
-                color: 'var(--text-primary)',
-                lineHeight: '1.4',
+              <div className="nr-title" style={{
+                fontFamily: "'IBM Plex Serif', var(--font-serif), serif",
+                fontSize: '14px', fontWeight: 500,
+                color: '#9DA1AC', lineHeight: 1.4,
+                transition: 'color 0.2s',
               }}>
-                {(nextInsight.title || '').replace(/—/g, '-')}
+                {(nextInsight.title || '').replace(/—/g, ' -- ')}
               </div>
             </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary)" strokeWidth="2">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
+            <span className="nr-arrow" style={{
+              color: '#454B5C', fontSize: '16px', flexShrink: 0,
+              transition: 'color 0.2s',
+            }}>›</span>
           </button>
         )}
       </div>
@@ -1400,28 +1438,34 @@ function parseInlineMarkdown(text) {
 function SharpPrincipleBlock({ text, label }) {
   return (
     <div style={{
-      margin: '36px 0',
+      margin: '40px 0',
       padding: '28px 24px',
-      background: 'rgba(52, 211, 153, 0.05)',
-      borderLeft: '3px solid var(--green-profit)',
-      borderRadius: '0 12px 12px 0',
-      textAlign: 'center',
-      boxShadow: '-3px 0 12px rgba(52, 211, 153, 0.08)',
+      background: 'linear-gradient(135deg, rgba(90,158,114,0.04), rgba(90,158,114,0.02))',
+      borderLeft: '3px solid #5A9E72',
+      borderRadius: '0 10px 10px 0',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
       <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '10px', fontWeight: 700,
-        letterSpacing: '2.5px', textTransform: 'uppercase',
-        color: 'var(--green-profit)',
-        marginBottom: '14px',
+        position: 'absolute', top: 0, left: '-3px', right: 0,
+        height: '1px',
+        background: 'linear-gradient(90deg, #5A9E72, transparent 50%)',
+        opacity: 0.3, borderRadius: '0 10px 0 0',
+      }} />
+      <div style={{
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: '9px', fontWeight: 600,
+        letterSpacing: '2px', textTransform: 'uppercase',
+        color: '#454B5C',
+        marginBottom: '16px',
       }}>{label || 'Sharp Principle'}</div>
       <div style={{
-        fontFamily: 'var(--font-serif)',
-        fontSize: '19px',
+        fontFamily: "'IBM Plex Serif', serif",
+        fontSize: '18px',
         fontWeight: 500,
-        color: 'var(--text-primary)',
-        lineHeight: '1.55',
-        fontStyle: 'italic',
+        color: '#E2E4E8',
+        lineHeight: 1.6,
+        textAlign: 'left',
       }}>
         {parseInlineMarkdown(text)}
       </div>
@@ -1432,7 +1476,7 @@ function SharpPrincipleBlock({ text, label }) {
 function WhyThisMatters({ insight }) {
   const mattersMap = {
     'discipline': 'This is why SharpPicks passes most games. The goal is not activity. The goal is capital preservation. Discipline compounds. Impulse erodes.',
-    'philosophy': 'This principle shapes every decision the model makes. It is not strategy - it is structure.',
+    'philosophy': 'This principle shapes every decision the model makes. It is not strategy -- it is structure.',
     'how_it_works': 'Understanding how the system works builds the trust needed to follow it through variance.',
     'market_notes': 'The market is your competition. Understanding it is the first step toward finding real edge.',
     'founder_note': 'These are the convictions behind the code. The model is a reflection of these beliefs.',
@@ -1442,23 +1486,33 @@ function WhyThisMatters({ insight }) {
 
   return (
     <div style={{
-      margin: '20px 0 0',
-      padding: '16px',
-      borderTop: '1px solid var(--stroke-subtle)',
+      margin: '40px 0',
+      padding: '20px',
+      background: '#131720',
+      border: '1px solid #1C2130',
+      borderRadius: '8px',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
       <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '10px', fontWeight: 700,
-        letterSpacing: '1.5px', textTransform: 'uppercase',
-        color: 'var(--text-tertiary)',
-        marginBottom: '10px',
+        position: 'absolute', top: 0, left: 0, right: 0,
+        height: '1px',
+        background: 'linear-gradient(90deg, #5A9E72, transparent 40%)',
+        opacity: 0.4, borderRadius: '8px 8px 0 0',
+      }} />
+      <div style={{
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: '9px', fontWeight: 600,
+        letterSpacing: '2px', textTransform: 'uppercase',
+        color: '#454B5C',
+        marginBottom: '8px',
       }}>Why This Matters</div>
       <p style={{
-        fontSize: '14px',
-        color: 'var(--text-secondary)',
-        lineHeight: '1.65',
+        fontSize: '13px',
+        color: '#9DA1AC',
+        lineHeight: 1.65,
         margin: 0,
-        fontFamily: 'var(--font-sans)',
+        fontFamily: "'Inter', var(--font-sans), sans-serif",
       }}>
         {text}
       </p>
@@ -1466,58 +1520,32 @@ function WhyThisMatters({ insight }) {
   );
 }
 
-function FounderSignature() {
+const HERO_TAG_STYLES = {
+  philosophy:   { bg: 'rgba(212,160,84,0.12)', color: '#D4A054' },
+  discipline:   { bg: 'rgba(196,104,107,0.12)', color: '#C4686B' },
+  market_notes: { bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
+  how_it_works: { bg: 'rgba(130,160,210,0.12)', color: '#82A0D2' },
+  founder_note: { bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
+};
+
+function HeroCategoryTag({ category, slug }) {
+  const isStartHere = slug === 'beginners-guide';
+  const catKey = isStartHere ? 'founder_note' : (category || 'philosophy');
+  const style = HERO_TAG_STYLES[catKey] || HERO_TAG_STYLES.philosophy;
+  const label = isStartHere
+    ? 'Start Here'
+    : (CATEGORY_LABELS[category] || category || '');
+
   return (
-    <div style={{
-      margin: '12px 0 0',
-      padding: '16px 0 0',
-      borderTop: '1px solid var(--stroke-subtle)',
+    <span style={{
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: '9px', fontWeight: 600,
+      letterSpacing: '1.5px', textTransform: 'uppercase',
+      padding: '4px 10px', borderRadius: '4px',
+      background: style.bg, color: style.color,
     }}>
-      <img
-        src="/evan-signature.png"
-        alt="Evan"
-        style={{
-          height: '140px',
-          width: 'auto',
-          display: 'block',
-          marginBottom: '4px',
-          marginLeft: '-20px',
-          filter: 'brightness(1.1)',
-        }}
-      />
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '14px',
-        marginBottom: '14px',
-      }}>
-        <div style={{
-          width: '44px', height: '44px',
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(79, 134, 247, 0.15) 0%, rgba(52, 211, 153, 0.1) 100%)',
-          border: '1px solid rgba(79, 134, 247, 0.2)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '16px', fontWeight: 600,
-          color: 'var(--blue-primary)',
-          flexShrink: 0,
-        }}>EC</div>
-        <div>
-          <div style={{
-            fontSize: '17px', fontWeight: 600,
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-sans)',
-            marginBottom: '2px',
-          }}>Evan Cole</div>
-          <div style={{
-            fontSize: '13px',
-            color: 'var(--text-tertiary)',
-            fontFamily: 'var(--font-mono)',
-            letterSpacing: '0.03em',
-          }}>Head of Signal Intelligence</div>
-        </div>
-      </div>
-    </div>
+      {label}
+    </span>
   );
 }
 
