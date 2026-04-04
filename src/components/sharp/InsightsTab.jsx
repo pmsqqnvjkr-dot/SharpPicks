@@ -25,15 +25,15 @@ const CATEGORY_ABBR = {
   market_notes: 'MN',
   philosophy: 'PH',
   how_it_works: 'HW',
-  discipline: 'DI',
+  discipline: 'DS',
   founder_note: 'SN',
 };
 
 const CATEGORY_BADGE_STYLES = {
   market_notes: { bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
-  philosophy:   { bg: 'rgba(110,90,180,0.15)', color: '#9B8EC4' },
-  how_it_works: { bg: 'rgba(180,130,60,0.15)', color: '#C4A65E' },
-  discipline:   { bg: 'rgba(70,130,180,0.15)', color: '#6BA3C4' },
+  philosophy:   { bg: 'rgba(212,160,84,0.12)', color: '#D4A054' },
+  how_it_works: { bg: 'rgba(130,160,210,0.12)', color: '#82A0D2' },
+  discipline:   { bg: 'rgba(196,104,107,0.12)', color: '#C4686B' },
   founder_note: { bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
 };
 
@@ -54,6 +54,7 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
   const [animateIn, setAnimateIn] = useState(false);
 
   const [showAll, setShowAll] = useState(false);
+  const mountAnimDone = useRef(false);
 
   const selectAndTrack = (insight) => {
     setSelectedInsight(insight);
@@ -72,9 +73,15 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
   }, [activeCategory, sport]);
 
   useEffect(() => {
-    setAnimateIn(false);
-    const t = setTimeout(() => setAnimateIn(true), 50);
-    return () => clearTimeout(t);
+    if (!loading && !mountAnimDone.current) {
+      setAnimateIn(true);
+      const t = setTimeout(() => { mountAnimDone.current = true; }, 1200);
+      return () => clearTimeout(t);
+    } else if (!loading && mountAnimDone.current) {
+      setAnimateIn(true);
+    } else {
+      setAnimateIn(false);
+    }
   }, [loading]);
 
   const loadInsights = async () => {
@@ -106,9 +113,16 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
   const remaining = insights.slice(1);
   const compactList = showAll ? remaining : remaining.slice(0, COMPACT_LIMIT);
   const hasMore = remaining.length > COMPACT_LIMIT;
+  const shouldAnimate = !mountAnimDone.current;
 
   return (
     <div style={{ padding: '0' }}>
+      <style>{`
+        @keyframes insightsFadeUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
       <div style={{ padding: '20px 20px 0' }}>
         <OnboardingCard cardId="journal" title="THE SHARP JOURNAL">
           Articles on model philosophy, market structure, and discipline. Market Notes are daily reports for Pro members. Everything else is open to all.
@@ -116,20 +130,22 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
 
         {/* Section label */}
         <div style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '11px',
-          letterSpacing: '0.15em', textTransform: 'uppercase',
-          color: 'rgba(232,234,237,0.35)',
-          marginBottom: '10px',
+          fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+          fontSize: '10px',
+          fontWeight: 500,
+          letterSpacing: '2.5px', textTransform: 'uppercase',
+          color: '#454B5C',
+          marginBottom: '12px',
         }}>Sharp Journal</div>
 
         {/* Category filter pills */}
-        <div style={{ position: 'relative', marginBottom: '0' }}>
-          <div style={{
-            display: 'flex', gap: '6px', overflowX: 'auto',
-            paddingBottom: '12px',
-            scrollbarWidth: 'none',
-          }}>
+        <div style={{
+          display: 'flex', gap: '6px', overflowX: 'auto',
+          paddingBottom: '2px',
+          marginBottom: '20px',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}>
           {CATEGORIES.map(cat => {
             const isActive = activeCategory === cat.id;
             return (
@@ -137,107 +153,90 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
                 key={cat.id}
                 onClick={() => { setActiveCategory(cat.id); setShowAll(false); }}
                 style={{
-                  padding: '5px 12px',
-                  borderRadius: '16px',
-                  border: isActive ? '1px solid rgba(90,158,114,0.2)' : '1px solid rgba(232,234,237,0.08)',
-                  backgroundColor: isActive ? 'rgba(90,158,114,0.15)' : 'transparent',
-                  color: isActive ? '#5A9E72' : 'rgba(232,234,237,0.4)',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: isActive ? 'rgba(90,158,114,0.15)' : '#131720',
+                  color: isActive ? '#5A9E72' : '#626878',
                   fontSize: '12px', fontWeight: 500,
-                  fontFamily: 'var(--font-sans)',
+                  fontFamily: "'Inter', var(--font-sans), sans-serif",
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
-                  transition: 'all 0.2s ease',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 {cat.label}
               </button>
             );
           })}
-          </div>
-          <div style={{
-            position: 'absolute',
-            top: 0, right: 0, bottom: '12px', width: '32px',
-            background: 'linear-gradient(to left, var(--bg-primary) 60%, transparent)',
-            pointerEvents: 'none',
-          }} />
         </div>
       </div>
 
-      <div style={{
-        padding: '0 0 100px',
-        opacity: animateIn ? 1 : 0,
-        transform: animateIn ? 'translateY(0)' : 'translateY(8px)',
-        transition: 'opacity 0.35s ease, transform 0.35s ease',
-      }}>
+      <div style={{ padding: '0 0 100px' }}>
         {loading ? (
-          <div style={{ padding: '0 16px' }}><InsightsSkeleton /></div>
+          <div style={{ padding: '0 20px' }}><InsightsSkeleton /></div>
         ) : insights.length === 0 ? (
-          <div style={{ padding: '0 16px' }}>
-            <PinnedGuideCard onTap={() => {
-              loadInsights();
-            }} />
+          <div style={{ padding: '0 20px' }}>
+            <PinnedGuideCard onTap={() => { loadInsights(); }} animDelay="0.05s" />
             <EmptyInsights category={activeCategory} />
           </div>
         ) : (
           <>
-            {/* Pinned guide - always visible */}
             <PinnedGuideCard onTap={() => {
               const guide = insights.find(i => i.slug === 'beginners-guide');
               if (guide) selectAndTrack(guide);
-              else {
-                setActiveCategory('all');
-                loadInsights();
-              }
-            }} />
+              else { setActiveCategory('all'); loadInsights(); }
+            }} animDelay={shouldAnimate ? '0.05s' : undefined} />
 
-            {/* Featured card - most recent article */}
             {featured && (
               <FeaturedArticleCard
                 insight={featured}
                 onTap={() => selectAndTrack(featured)}
+                animDelay={shouldAnimate ? '0.12s' : undefined}
               />
             )}
 
-            {/* Divider */}
             {remaining.length > 0 && (
               <div style={{
-                padding: '6px 20px 10px',
-                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '0 20px', marginBottom: '16px',
+                display: 'flex', alignItems: 'center', gap: '12px',
+                animation: shouldAnimate ? 'insightsFadeUp 0.35s ease 0.18s both' : 'none',
               }}>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(232,234,237,0.06)' }} />
+                <div style={{ flex: 1, height: '1px', background: '#1C2130' }} />
                 <span style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '9px',
-                  color: 'rgba(232,234,237,0.25)',
-                  letterSpacing: '1.5px',
-                }}>RECENT</span>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(232,234,237,0.06)' }} />
+                  fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+                  fontSize: '9px', fontWeight: 500,
+                  color: '#454B5C',
+                  letterSpacing: '2px', textTransform: 'uppercase',
+                  flexShrink: 0,
+                }}>Recent</span>
+                <div style={{ flex: 1, height: '1px', background: '#1C2130' }} />
               </div>
             )}
 
-            {/* Compact article rows */}
             {compactList.length > 0 && (
-              <div style={{ padding: '0 16px' }}>
+              <div style={{ padding: '0 20px' }}>
                 {compactList.map((insight, i) => (
                   <CompactArticleRow
                     key={insight.id}
                     insight={insight}
                     isLast={i === compactList.length - 1}
                     onTap={() => selectAndTrack(insight)}
+                    animDelay={shouldAnimate ? `${0.22 + i * 0.04}s` : undefined}
+                    animateIn={shouldAnimate}
                   />
                 ))}
               </div>
             )}
 
-            {/* View all link */}
             {hasMore && !showAll && (
               <div style={{ padding: '16px 20px 24px', textAlign: 'center' }}>
                 <button
                   onClick={() => setShowAll(true)}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
-                    fontFamily: 'var(--font-mono)',
+                    fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
                     fontSize: '12px',
                     color: '#5A9E72',
                     letterSpacing: '0.5px',
@@ -254,74 +253,97 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
   );
 }
 
-function PinnedGuideCard({ onTap }) {
+function PinnedGuideCard({ onTap, animDelay }) {
   return (
     <button
       onClick={onTap}
       style={{
-        width: 'calc(100% - 32px)',
-        margin: '0 16px 12px',
+        width: 'calc(100% - 40px)',
+        margin: '0 20px 16px',
         textAlign: 'left',
-        background: '#111D30',
-        border: '1px solid rgba(90,158,114,0.15)',
-        borderRadius: '12px',
+        background: 'rgba(90,158,114,0.04)',
+        border: '1px solid rgba(90,158,114,0.12)',
+        borderRadius: '10px',
         padding: '14px 16px',
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
+        gap: '14px',
+        transition: 'border-color 0.2s, background 0.2s',
+        animation: animDelay ? `insightsFadeUp 0.35s ease ${animDelay} both` : 'none',
       }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(90,158,114,0.25)'; e.currentTarget.style.background = 'rgba(90,158,114,0.08)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(90,158,114,0.12)'; e.currentTarget.style.background = 'rgba(90,158,114,0.04)'; }}
     >
       <div style={{
         width: '36px', height: '36px', borderRadius: '8px',
-        backgroundColor: 'rgba(90,158,114,0.12)',
+        backgroundColor: 'rgba(90,158,114,0.15)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
       }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A9E72" strokeWidth="1.5">
-          <path d="M4 19.5v-15A2.5 2.5 0 016.5 2H20v20H6.5a2.5 2.5 0 010-5H20"/>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A9E72" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
         </svg>
       </div>
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '9px',
-          letterSpacing: '1px', textTransform: 'uppercase',
+          fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+          fontSize: '9px', fontWeight: 600,
+          letterSpacing: '1.5px', textTransform: 'uppercase',
           color: '#5A9E72',
           marginBottom: '3px',
         }}>Start Here</div>
         <div style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: '14px', fontWeight: 600,
-          color: '#E8EAED',
-          marginBottom: '2px',
+          fontFamily: "'IBM Plex Serif', var(--font-serif), serif",
+          fontSize: '14px', fontWeight: 500,
+          color: '#E2E4E8',
+          lineHeight: 1.3,
         }}>A beginner's guide to SharpPicks</div>
         <div style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: '11px',
-          color: 'rgba(232,234,237,0.35)',
+          fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+          fontSize: '10px',
+          color: '#454B5C',
+          marginTop: '2px',
         }}>5 min read · Evan Cole</div>
       </div>
-      <span style={{ color: 'rgba(232,234,237,0.25)', fontSize: '16px' }}>›</span>
+      <span style={{ color: '#454B5C', fontSize: '14px', flexShrink: 0 }}>›</span>
     </button>
   );
 }
 
 function CategoryBadge({ category, abbreviated = false }) {
-  const style = CATEGORY_BADGE_STYLES[category] || { bg: 'rgba(232,234,237,0.08)', color: 'rgba(232,234,237,0.5)' };
+  const badgeStyle = CATEGORY_BADGE_STYLES[category] || { bg: 'rgba(232,234,237,0.08)', color: 'rgba(232,234,237,0.5)' };
   const label = abbreviated
     ? (CATEGORY_ABBR[category] || '??')
     : (CATEGORY_LABELS[category] || category);
+
+  if (abbreviated) {
+    return (
+      <div style={{
+        width: '28px', height: '28px', borderRadius: '6px',
+        backgroundColor: badgeStyle.bg, color: badgeStyle.color,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+        fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+        fontSize: '8px', fontWeight: 700,
+        letterSpacing: '0.5px',
+        marginTop: '1px',
+      }}>
+        {label}
+      </div>
+    );
+  }
+
   return (
     <span style={{
-      fontFamily: 'var(--font-mono)',
-      fontSize: '9px',
-      letterSpacing: '0.8px',
+      fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+      fontSize: '9px', fontWeight: 600,
+      letterSpacing: '1.2px',
       textTransform: 'uppercase',
       padding: '3px 8px',
       borderRadius: '4px',
-      backgroundColor: style.bg,
-      color: style.color,
+      backgroundColor: badgeStyle.bg,
+      color: badgeStyle.color,
       flexShrink: 0,
     }}>
       {label}
@@ -329,53 +351,85 @@ function CategoryBadge({ category, abbreviated = false }) {
   );
 }
 
-function FeaturedArticleCard({ insight, onTap }) {
+function FeaturedArticleCard({ insight, onTap, animDelay }) {
   return (
     <button
       onClick={onTap}
       style={{
-        width: 'calc(100% - 32px)',
-        margin: '0 16px 12px',
+        width: 'calc(100% - 40px)',
+        margin: '0 20px 28px',
         textAlign: 'left',
-        background: 'rgba(232,234,237,0.04)',
-        border: '1px solid rgba(232,234,237,0.06)',
+        background: '#131720',
+        border: '1px solid #1C2130',
         borderRadius: '12px',
-        padding: '16px',
+        padding: '20px',
         cursor: 'pointer',
         display: 'block',
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'border-color 0.2s',
+        animation: animDelay ? `insightsFadeUp 0.35s ease ${animDelay} both` : 'none',
       }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = '#2A3040'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = '#1C2130'; }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+        background: 'linear-gradient(90deg, #5A9E72, transparent 60%)',
+        opacity: 0.4,
+      }} />
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <CategoryBadge category={insight.category} />
-        <span style={{ fontSize: '11px', color: 'rgba(232,234,237,0.3)' }}>
-          · SHARP JOURNAL · {insight.reading_time_minutes || 2} min
+        <span style={{
+          fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+          fontSize: '10px', color: '#454B5C',
+          letterSpacing: '0.3px',
+        }}>
+          Sharp Journal · {insight.reading_time_minutes || 2} min
         </span>
       </div>
 
       <div style={{
-        fontFamily: 'var(--font-sans)',
-        fontSize: '16px', fontWeight: 600,
-        color: '#E8EAED',
-        lineHeight: '1.35',
-        marginBottom: '6px',
+        fontFamily: "'IBM Plex Serif', var(--font-serif), serif",
+        fontSize: '19px', fontWeight: 600,
+        color: '#E2E4E8',
+        lineHeight: 1.35,
+        letterSpacing: '-0.2px',
+        marginBottom: '10px',
       }}>
         {(insight.title || '').replace(/—/g, '-')}
       </div>
 
       {insight.excerpt && (
         <div style={{
-          fontFamily: 'var(--font-sans)',
+          fontFamily: "'Inter', var(--font-sans), sans-serif",
           fontSize: '13px',
-          color: 'rgba(232,234,237,0.45)',
-          lineHeight: '1.5',
-          marginBottom: '8px',
+          color: '#626878',
+          lineHeight: 1.6,
+          marginBottom: '14px',
         }}>
           {insight.excerpt}
         </div>
       )}
 
-      <div style={{ fontSize: '11px', color: 'rgba(232,234,237,0.25)' }}>
-        {formatDate(insight.publish_date)}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{
+          fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+          fontSize: '10px', color: '#454B5C',
+          letterSpacing: '0.3px',
+        }}>
+          {formatDate(insight.publish_date)}
+        </span>
+        <span style={{
+          fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+          fontSize: '10px', fontWeight: 500,
+          color: '#5A9E72',
+          letterSpacing: '0.5px',
+          display: 'flex', alignItems: 'center', gap: '4px',
+        }}>
+          Read →
+        </span>
       </div>
     </button>
   );
@@ -387,41 +441,49 @@ function formatDateShort(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function CompactArticleRow({ insight, isLast, onTap }) {
+function CompactArticleRow({ insight, isLast, onTap, animDelay, animateIn = false }) {
   return (
     <button
       onClick={onTap}
       style={{
         width: '100%',
         display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        padding: '11px 0',
+        alignItems: 'flex-start',
+        gap: '12px',
+        padding: '13px 0',
         background: 'none',
         border: 'none',
-        borderBottom: isLast ? 'none' : '1px solid rgba(232,234,237,0.04)',
+        borderBottom: isLast ? 'none' : '1px solid rgba(28,33,48,0.5)',
         cursor: 'pointer',
         textAlign: 'left',
+        transition: 'opacity 0.15s',
+        animation: animateIn && animDelay ? `insightsFadeUp 0.3s ease ${animDelay} both` : 'none',
       }}
+      onPointerDown={e => { e.currentTarget.style.opacity = '0.7'; }}
+      onPointerUp={e => { e.currentTarget.style.opacity = '1'; }}
+      onPointerLeave={e => { e.currentTarget.style.opacity = '1'; }}
     >
       <CategoryBadge category={insight.category} abbreviated />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontFamily: 'var(--font-sans)',
+          fontFamily: "'Inter', var(--font-sans), sans-serif",
           fontSize: '13px', fontWeight: 500,
-          color: 'rgba(232,234,237,0.8)',
+          color: '#9DA1AC',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
+          lineHeight: 1.4,
         }}>
           {(insight.title || '').replace(/—/g, '-')}
         </div>
       </div>
       <span style={{
-        fontFamily: 'var(--font-sans)',
-        fontSize: '11px',
-        color: 'rgba(232,234,237,0.2)',
+        fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
+        fontSize: '10px',
+        color: '#454B5C',
         flexShrink: 0,
+        letterSpacing: '0.3px',
+        marginTop: '2px',
       }}>
         {formatDateShort(insight.publish_date)}
       </span>
