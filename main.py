@@ -4021,7 +4021,8 @@ def collect_mlb_odds():
                     home_pitcher_losses = COALESCE(?, home_pitcher_losses),
                     away_pitcher_losses = COALESCE(?, away_pitcher_losses),
                     home_pitcher_ip = COALESCE(?, home_pitcher_ip),
-                    away_pitcher_ip = COALESCE(?, away_pitcher_ip)
+                    away_pitcher_ip = COALESCE(?, away_pitcher_ip),
+                    home_score = NULL, away_score = NULL, spread_result = NULL
                     WHERE id = ?''',
                     (spread_home, spread_away, total,
                      home_ml, away_ml, datetime.now().isoformat(),

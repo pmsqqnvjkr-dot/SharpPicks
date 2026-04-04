@@ -4596,6 +4596,11 @@ def run_mlb_model_job(force=False):
     if force:
         from model_service import invalidate_model_cache
         invalidate_model_cache('mlb')
+        try:
+            collect_mlb_games_job()
+            print(f"[{datetime.now()}] MLB data re-collected before model run")
+        except Exception as e:
+            print(f"[{datetime.now()}] MLB collection failed (non-fatal): {e}")
     from model_service import run_model_and_log
     result = run_model_and_log(app, sport='mlb', force=force)
     print(f"[{datetime.now()}] MLB model run completed: {result.get('status', '?')}")
