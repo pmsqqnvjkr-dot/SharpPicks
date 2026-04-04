@@ -451,7 +451,7 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--blue-primary)',
+                color: '#5A9E72',
                 fontSize: '13px',
                 cursor: 'pointer',
                 fontFamily: 'var(--font-sans)',
@@ -469,7 +469,7 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--blue-primary)',
+                color: '#5A9E72',
                 fontSize: '13px',
                 cursor: 'pointer',
                 fontFamily: 'var(--font-sans)',
