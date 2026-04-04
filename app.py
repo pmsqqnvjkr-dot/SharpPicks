@@ -4188,11 +4188,17 @@ def cron_live_scores():
             cursor = conn.cursor()
 
             try:
+                utc_now = now_et.astimezone(ZoneInfo('UTC')).strftime('%Y-%m-%dT%H:%M:%SZ')
                 cursor.execute(f"""UPDATE {table} SET game_status = NULL, home_score = NULL, away_score = NULL
                                   WHERE game_date = ? AND game_status IN ('final', 'in_progress')
                                   AND game_time > ?""",
-                               (now_et.strftime('%Y-%m-%d'), now_et.astimezone(ZoneInfo('UTC')).strftime('%Y-%m-%dT%H:%M:%SZ')))
+                               (now_et.strftime('%Y-%m-%d'), utc_now))
                 cleaned = cursor.rowcount
+                cursor.execute(f"""UPDATE {table} SET home_score = NULL, away_score = NULL
+                                  WHERE game_date = ? AND home_score IS NOT NULL
+                                  AND game_time > ? AND (game_status IS NULL OR game_status = 'scheduled')""",
+                               (now_et.strftime('%Y-%m-%d'), utc_now))
+                cleaned += cursor.rowcount
                 if cleaned > 0:
                     conn.commit()
                     logging.info(f"Live scores: reset {cleaned} stale {sport} games that haven't started yet")
@@ -4283,6 +4289,9 @@ def cron_live_scores():
                         game_status = 'in_progress'
                     else:
                         game_status = 'scheduled'
+
+                    if game_status == 'scheduled':
+                        continue
 
                     prev_status = None
                     try:
