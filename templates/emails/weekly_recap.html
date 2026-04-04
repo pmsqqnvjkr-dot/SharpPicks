@@ -16,7 +16,7 @@
 </head>
 <body style="margin:0;padding:0;background-color:#070B14;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
   {% set green = "#5A9E72" %}
-  {% set red = "#C4686B" %}
+  {% set red = "#8B6F70" %}
 
   <div style="display:none;font-size:1px;color:#070B14;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
     Weekly Recap: {{ weekly_wins }}-{{ weekly_losses }} &middot; {% if weekly_units >= 0 %}+{% endif %}{{ weekly_units }}u &middot; {% if weekly_roi >= 0 %}+{% endif %}{{ weekly_roi }}% ROI
@@ -87,7 +87,7 @@
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                       <tr>
                         <td width="36" style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:600;color:{{ p_color }};letter-spacing:0.05em;vertical-align:middle;">
-                          <span style="display:inline-block;padding:2px 6px;border-radius:3px;background-color:{% if p_win %}rgba(90,158,114,0.15){% else %}rgba(196,104,107,0.15){% endif %};">{{ pick.result }}</span>
+                          <span style="display:inline-block;padding:2px 6px;border-radius:3px;background-color:{% if p_win %}rgba(90,158,114,0.15){% else %}rgba(139,111,112,0.15){% endif %};">{{ pick.result }}</span>
                         </td>
                         <td style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;color:#E8EAED;padding-left:8px;vertical-align:middle;">{{ pick.team }} {{ pick.line }}</td>
                         <td align="right" style="font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:{{ p_color }};vertical-align:middle;white-space:nowrap;">

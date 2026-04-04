@@ -11,3 +11,7 @@ export function useOnboardingCard(cardId) {
 
   return { visible, dismiss };
 }
+
+export function isCardDismissed(cardId) {
+  return localStorage.getItem(`sp_onboard_${cardId}`) === '1';
+}

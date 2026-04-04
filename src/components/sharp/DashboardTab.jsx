@@ -448,7 +448,7 @@ function formatDateShort(isoStr) {
 function StatusBadge({ result }) {
   const config = {
     win:     { label: 'W',  bg: '#5A9E72', color: '#FFFFFF' },
-    loss:    { label: 'L',  bg: '#C4686B', color: '#FFFFFF' },
+    loss:    { label: 'L',  bg: '#8B6F70', color: '#FFFFFF' },
     pending: { label: 'P',  bg: 'rgba(212,162,78,0.15)', color: '#d4a24e' },
     revoked: { label: 'WD', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
     push:    { label: 'PU', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
@@ -490,7 +490,7 @@ function StreakDots({ picks }) {
   const last7 = picks.slice(0, 7);
   const dotConfig = {
     win:     { label: 'W',  bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
-    loss:    { label: 'L',  bg: 'rgba(196,104,107,0.15)', color: '#C4686B' },
+    loss:    { label: 'L',  bg: 'rgba(139,111,112,0.15)', color: '#8B6F70' },
     revoked: { label: 'WD', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
     pending: { label: 'P',  bg: 'rgba(212,162,78,0.15)',  color: '#d4a24e' },
     push:    { label: 'PU', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
@@ -504,7 +504,7 @@ function StreakDots({ picks }) {
     } else { if (streakType) break; }
   }
   const streakLabel = streakType === 'win' ? `W${streakCount} streak` : streakType === 'loss' ? `L${streakCount} streak` : '';
-  const streakColor = streakType === 'win' ? '#5A9E72' : streakType === 'loss' ? '#C4686B' : '#6b7a8d';
+  const streakColor = streakType === 'win' ? '#5A9E72' : streakType === 'loss' ? '#8B6F70' : '#6b7a8d';
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
       <div style={{ display: 'flex', gap: 4 }}>

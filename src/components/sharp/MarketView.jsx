@@ -139,7 +139,7 @@ function EdgeBar({ value, max = 15 }) {
 }
 
 function EdgeBadge({ model, isPro }) {
-  if (!model || model.edge == null || !isPro) return null;
+  if (!model || model.edge == null) return null;
   const edge = model.edge;
   const strength = edgeStrength(edge);
   const color = edgeColor(edge);
@@ -351,7 +351,7 @@ function QuantExpandedPanel({ game, model, lineStability }) {
   const mono = "'IBM Plex Mono', var(--font-mono), monospace";
   const sans = "'Inter', var(--font-sans), sans-serif";
   const brandGreen = '#5A9E72';
-  const brandRed = '#C4686B';
+  const brandRed = '#8B6F70';
   const textMuted = '#7A8494';
   const textSec = '#9EAAB8';
   const textPrimary = '#E8ECF4';
@@ -815,7 +815,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
   const mono = "'IBM Plex Mono', var(--font-mono), monospace";
   const sans = "'Inter', var(--font-sans), sans-serif";
   const brandGreen = '#5A9E72';
-  const brandRed = '#C4686B';
+  const brandRed = '#8B6F70';
   const accentYellow = '#D4A843';
   const textPrimary = '#E8ECF4';
   const textSec = '#9EAAB8';
@@ -877,7 +877,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
 
           {/* Edge + badge */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, marginLeft: 12 }}>
-            {edge != null && isPro ? (
+            {edge != null ? (
               <span style={{
                 fontFamily: mono, fontSize: '14px', fontWeight: 500,
                 color: hasSignalEdge ? brandGreen : textMuted,
@@ -899,7 +899,7 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
                 <span style={{
                   fontFamily: mono, fontSize: '11px', fontWeight: 700,
                   padding: '3px 8px', borderRadius: 4,
-                  background: 'rgba(196,104,107,0.12)', color: brandRed,
+                  background: 'rgba(139,111,112,0.12)', color: brandRed,
                 }}>Loss {pickResult.units != null ? `${Math.abs(pickResult.units).toFixed(1)}u` : ''}</span>
               ) : pickResult.result === 'push' ? (
                 <span style={{
@@ -1134,8 +1134,14 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
             Quant analysis is a Pro feature
           </div>
           <div style={{ fontSize: '11px', color: textMuted }}>
-            Upgrade for edge data, cover probability, and quant reasoning
+            Cover probability and quant reasoning available with Pro
           </div>
+          <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
+            marginTop: 10, padding: '8px 16px', borderRadius: '6px',
+            border: '1.5px solid #5A9E72', background: 'transparent',
+            color: '#5A9E72', fontFamily: mono, fontSize: '11px',
+            fontWeight: 600, letterSpacing: '1px', cursor: 'pointer',
+          }}>View Plans</button>
         </div>
       )}
     </div>
@@ -1212,7 +1218,7 @@ const SORT_OPTIONS = [
 ];
 
 function SortPicker({ active, onChange, isPro, sport }) {
-  const opts = (isPro ? SORT_OPTIONS : SORT_OPTIONS.filter(o => o.key !== 'edge')).map(o =>
+  const opts = SORT_OPTIONS.map(o =>
     o.key === 'spread' ? { ...o, label: sportDisplay(sport).spreadLabel } : o
   );
   return (
@@ -1333,7 +1339,7 @@ function TableView({ games, isPro, onLineHistory, sport }) {
               <th style={thStyle}>{sportDisplay(sport).spreadLabel}</th>
               <th style={thStyle}>Total</th>
               <th style={thStyle}>ML</th>
-              {isPro && <th style={thStyle}>Edge</th>}
+              <th style={thStyle}>Edge</th>
               {isPro && <th style={thStyle}>Status</th>}
             </tr>
           </thead>

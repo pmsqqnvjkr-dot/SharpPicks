@@ -627,9 +627,9 @@ def send_result_email(to, pick):
 
     html = _render_jinja('grading.html', ctx)
     if not html:
-        badge_bg = '#5A9E72' if is_win else ('#C4686B' if result == 'loss' else 'rgba(232,234,237,0.08)')
+        badge_bg = '#5A9E72' if is_win else ('#8B6F70' if result == 'loss' else 'rgba(232,234,237,0.08)')
         badge_text_color = '#E8EAED' if (is_win or result == 'loss') else 'rgba(232,234,237,0.5)'
-        accent = '#5A9E72' if is_win else ('#C4686B' if result == 'loss' else 'rgba(232,234,237,0.4)')
+        accent = '#5A9E72' if is_win else ('#8B6F70' if result == 'loss' else 'rgba(232,234,237,0.4)')
         profit_val = profit if profit is not None else 0
         units_str = f'+{profit_val:.1f}u' if is_win else (f'{profit_val:.1f}u' if result == 'loss' else '0.0u')
         body = f'''
@@ -761,8 +761,8 @@ def send_weekly_summary(to, first_name=None, stats=None):
 
     html = _render_jinja('weekly_recap.html', ctx)
     if not html:
-        roi_color = '#5A9E72' if roi >= 0 else '#C4686B'
-        units_color = '#5A9E72' if units >= 0 else '#C4686B'
+        roi_color = '#5A9E72' if roi >= 0 else '#8B6F70'
+        units_color = '#5A9E72' if units >= 0 else '#8B6F70'
         body = f'''
         <div style="display:inline-block;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;padding:6px 14px;border-radius:4px;letter-spacing:0.15em;text-transform:uppercase;background-color:rgba(232,234,237,0.08);color:rgba(232,234,237,0.5);">
           WEEKLY RECAP

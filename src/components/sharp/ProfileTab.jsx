@@ -119,10 +119,10 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
               Create an account to track your bets, manage your subscription, and access all features.
             </p>
             <button onClick={() => setShowAuth(true)} style={{
-              padding: '14px 32px', backgroundColor: 'var(--blue-primary)',
-              color: '#fff', border: 'none', borderRadius: '10px',
-              fontSize: '15px', fontWeight: 600, cursor: 'pointer',
-              fontFamily: 'var(--font-sans)',
+              padding: '14px 32px', backgroundColor: '#5A9E72',
+              color: '#0A0D14', border: 'none', borderRadius: '8px',
+              fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'var(--font-mono)', letterSpacing: '1px',
             }}>Sign In or Create Account</button>
           </div>
 
@@ -293,39 +293,22 @@ function SettingsSection({ user, onNavigate }) {
   );
 }
 
-function PricingSection({ foundingData, onSubscribe, loading }) {
-  const plans = [
-    {
-      name: 'Free',
-      price: '',
-      period: 'Free',
-      features: ['See if a pick exists today', 'Public record access'],
-      cta: null,
-      plan: null,
-    },
-    {
-      name: 'Monthly',
-      price: '',
-      period: 'Monthly',
-      features: ['Full pick details', 'Real-time alerts', 'Pick history', 'Bet tracking'],
-      cta: 'Start Free Trial',
-      subtitle: 'Cancel anytime.',
-      plan: 'trial',
-    },
-    {
-      name: 'Annual',
-      price: '',
-      period: 'Annual',
-      features: [
-        'Everything in Monthly',
-        foundingData?.open ? `Founding member (${foundingData?.remaining || 0} of 50 left)` : 'Best value plan',
-        'Priority support',
-        'Founding member badge',
-      ],
-      cta: foundingData?.open ? 'Claim Founding Spot' : 'See Annual Plan',
-      plan: foundingData?.open ? 'founding' : 'annual',
-      highlight: true,
-    },
+function PricingSection({ foundingData }) {
+  const freeFeatures = [
+    'See if a pick exists today',
+    'Public model record access',
+    'Daily Market Brief',
+    'Sharp Journal access',
+    'Full game slate with edges',
+  ];
+  const proFeatures = [
+    'Full signal details (side, line, edge, sizing)',
+    'Quant reasoning and model analysis',
+    'Personal bet tracking with CLV',
+    'Equity curve and P&L history',
+    'Discipline scoring with benchmarks',
+    'Real-time push notifications',
+    'Priority support',
   ];
 
   return (
@@ -334,11 +317,6 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
       padding: '20px', border: '1px solid var(--stroke-subtle)',
       marginTop: '12px',
     }}>
-      <h3 style={{
-        fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)',
-        textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px',
-      }}>Plans</h3>
-
       {foundingData?.open && (
         <div style={{
           backgroundColor: 'rgba(245, 158, 11, 0.08)',
@@ -347,8 +325,9 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <span style={{
-            fontSize: '13px', color: 'var(--gold-pro)', fontWeight: 500,
-          }}>Founding member spots</span>
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+            letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--gold-pro)',
+          }}>FOUNDING MEMBER SPOTS</span>
           <span style={{
             fontFamily: 'var(--font-mono)', fontSize: '14px',
             color: 'var(--gold-pro)', fontWeight: 700,
@@ -356,70 +335,62 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {plans.map(plan => (
-          <div key={plan.name} style={{
-            padding: '16px', borderRadius: '12px',
-            backgroundColor: 'var(--surface-2)',
-            border: plan.highlight ? '1px solid var(--blue-primary)' : '1px solid var(--stroke-subtle)',
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+        letterSpacing: '1.5px', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', marginBottom: '12px',
+      }}>YOUR PLAN: FREE</div>
+
+      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px 0' }}>
+        {freeFeatures.map(f => (
+          <li key={f} style={{
+            fontSize: '12px', color: 'var(--text-secondary)',
+            padding: '4px 0', display: 'flex', alignItems: 'center', gap: '8px',
           }}>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              alignItems: 'baseline', marginBottom: '8px',
-            }}>
-              <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {plan.name}
-              </span>
-              <span>
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '18px',
-                  fontWeight: 700, color: 'var(--text-primary)',
-                }}>{plan.price}</span>
-                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                  {plan.period}
-                </span>
-              </span>
-            </div>
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 12px 0' }}>
-              {plan.features.map(f => (
-                <li key={f} style={{
-                  fontSize: '12px', color: 'var(--text-secondary)',
-                  padding: '3px 0', display: 'flex', alignItems: 'center', gap: '6px',
-                }}>
-                  <span style={{ color: 'var(--green-profit)', fontSize: '10px' }}>&#10003;</span>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            {plan.cta && (
-              <div>
-                <button
-                  onClick={() => onSubscribe(plan.plan)}
-                  disabled={loading}
-                  style={{
-                    width: '100%', padding: '10px',
-                    backgroundColor: plan.highlight ? 'var(--blue-primary)' : 'transparent',
-                    border: plan.highlight ? 'none' : '1px solid var(--stroke-muted)',
-                    borderRadius: '8px',
-                    color: plan.highlight ? '#fff' : 'var(--text-primary)',
-                    fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    opacity: loading ? 0.6 : 1,
-                  }}
-                >
-                  {loading ? 'Opening checkout...' : plan.cta}
-                </button>
-                {plan.subtitle && (
-                  <p style={{
-                    fontSize: '11px', color: 'var(--green-profit)',
-                    textAlign: 'center', margin: '6px 0 0', fontWeight: 500,
-                  }}>{plan.subtitle}</p>
-                )}
-              </div>
-            )}
-          </div>
+            <span style={{ color: 'var(--color-signal)', fontSize: '10px' }}>&#10003;</span>
+            {f}
+          </li>
         ))}
+      </ul>
+
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+        letterSpacing: '1.5px', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', marginBottom: '12px',
+        paddingTop: '16px', borderTop: '1px solid var(--stroke-subtle)',
+      }}>PRO INCLUDES EVERYTHING ABOVE, PLUS:</div>
+
+      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px 0' }}>
+        {proFeatures.map(f => (
+          <li key={f} style={{
+            fontSize: '12px', color: 'var(--text-secondary)',
+            padding: '4px 0', display: 'flex', alignItems: 'center', gap: '8px',
+          }}>
+            <span style={{ color: 'var(--color-signal)', fontSize: '10px' }}>&#10003;</span>
+            {f}
+          </li>
+        ))}
+      </ul>
+
+      <div style={{
+        fontSize: '12px', color: 'var(--text-tertiary)', textAlign: 'center',
+        marginBottom: '14px', lineHeight: '1.5',
+      }}>
+        Pricing and subscription options<br />available at sharppicks.ai
       </div>
+
+      <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
+        width: '100%', padding: '12px', borderRadius: '6px',
+        background: '#5A9E72', border: 'none',
+        color: '#0A0D14', fontFamily: 'var(--font-mono)',
+        fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
+        cursor: 'pointer', textAlign: 'center',
+      }}>View Plans</button>
+
+      <div style={{
+        textAlign: 'center', marginTop: '10px',
+        fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
+      }}>14-day free trial available. Cancel anytime.</div>
     </div>
   );
 }
@@ -639,10 +610,10 @@ function TrialSignup({ onBack }) {
             )}
 
             <button type="submit" disabled={loading} style={{
-              width: '100%', padding: '14px', fontSize: '15px', fontWeight: 700,
-              backgroundColor: 'var(--blue-primary)', border: 'none',
-              borderRadius: '10px', color: '#fff', cursor: 'pointer',
-              fontFamily: 'var(--font-sans)', opacity: loading ? 0.6 : 1,
+              width: '100%', padding: '14px', fontSize: '13px', fontWeight: 600,
+              backgroundColor: '#5A9E72', border: 'none',
+              borderRadius: '8px', color: '#0A0D14', cursor: 'pointer',
+              fontFamily: 'var(--font-mono)', letterSpacing: '1px', opacity: loading ? 0.6 : 1,
             }}>
               {loading ? 'Starting trial...' : 'Start Trial'}
             </button>
@@ -908,7 +879,7 @@ function AccessStatusCard({ user, isPro, stats }) {
           position: 'relative', zIndex: 1,
         }}>
           <StatusIndicator label="Model Visibility" value={isPro ? 'FULL' : 'LIMITED'} active={isPro} />
-          <StatusIndicator label="Edge Data" value={isPro ? 'ENABLED' : 'HIDDEN'} active={isPro} />
+          <StatusIndicator label="Edge Data" value="ENABLED" active={true} />
           <StatusIndicator label="Tracking" value={isPro ? 'ACTIVE' : 'OFF'} active={isPro} />
         </div>
       </div>

@@ -511,7 +511,7 @@ function MarketNoteContent({ insight }) {
   const densityStr = data.density % 1 === 0 ? `${Math.round(data.density)}%` : `${data.density}%`;
 
   const brandGreen = '#5A9E72';
-  const brandRed = '#C4686B';
+  const brandRed = '#8B6F70';
   const textMuted = '#7A8494';
   const textSecondary = '#9EAAB8';
   const textPrimary = '#E8ECF4';

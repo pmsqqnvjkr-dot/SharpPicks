@@ -465,48 +465,41 @@ function FreePickNotice({ onUpgrade, resolved }) {
       backgroundColor: 'var(--surface-1)',
       border: '1px solid var(--color-border)',
       borderRadius: '16px',
-      padding: '32px 24px', textAlign: 'center',
+      padding: '24px 20px',
     }}>
       <div style={{
-        width: '56px', height: '56px', borderRadius: '14px',
-        backgroundColor: 'var(--color-signal-bg)',
-        border: '1px solid var(--color-signal-border)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        margin: '0 auto 20px',
-      }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-signal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      </div>
+        fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+        letterSpacing: '1.5px', textTransform: 'uppercase',
+        color: 'var(--color-signal)', marginBottom: '14px',
+      }}>QUALIFIED EDGE DETECTED</div>
 
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700,
-        letterSpacing: '0.08em', textTransform: 'uppercase',
-        color: 'var(--color-signal)', marginBottom: '12px',
-      }}>Signal Published</div>
-
-      <p style={{
-        fontSize: 'var(--text-metric)', color: 'var(--text-secondary)',
-        lineHeight: '1.6', maxWidth: '280px', margin: '0 auto 24px',
+        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1px',
+        background: 'rgba(255,255,255,0.06)', borderRadius: '6px', overflow: 'hidden',
+        marginBottom: '16px',
       }}>
-        {resolved
-          ? "Today's signal has been resolved. Upgrade to see the outcome, side, and full analysis."
-          : "Edge detected. Upgrade to see the full signal, side, and analysis."
-        }
-      </p>
+        {['SIDE', 'LINE', 'EDGE', 'SIZE'].map(label => (
+          <div key={label} style={{ background: 'var(--surface-1)', padding: '10px 8px', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '1px', color: 'var(--text-tertiary)', marginBottom: '6px' }}>{label}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500, color: '#4a5a6e' }}>[Pro]</div>
+          </div>
+        ))}
+      </div>
 
-      <button onClick={onUpgrade} style={{
-        width: '100%', height: '48px', borderRadius: '14px', border: 'none',
-        background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
-        color: 'white', fontFamily: 'var(--font-sans)',
-        fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+      <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
+        width: '100%', padding: '12px', borderRadius: '6px',
+        border: '1.5px solid #5A9E72', background: 'transparent',
+        color: '#5A9E72', fontFamily: 'var(--font-mono)',
+        fontSize: '12px', fontWeight: 600, letterSpacing: '1px', cursor: 'pointer',
+        textAlign: 'center',
       }}>
-        Upgrade to See Signal
+        View Plans
       </button>
 
-      <p style={{
-        fontSize: 'var(--text-caption)', color: 'var(--text-tertiary)', marginTop: '12px',
-      }}>Full access · Cancel anytime</p>
+      <div style={{
+        textAlign: 'center', marginTop: '8px', fontFamily: 'var(--font-mono)',
+        fontSize: '9px', color: 'var(--text-tertiary)',
+      }}>Full details at sharppicks.ai</div>
     </div>
   );
 }

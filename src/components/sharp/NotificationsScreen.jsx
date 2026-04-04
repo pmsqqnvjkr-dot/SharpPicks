@@ -125,7 +125,7 @@ export default function NotificationsScreen({ onBack }) {
                 }}
                 disabled={pushLoading}
                 style={{
-                  backgroundColor: 'var(--blue-primary)', color: '#fff',
+                  backgroundColor: '#5A9E72', color: '#0A0D14',
                   border: 'none', borderRadius: '10px', padding: '10px 24px',
                   fontSize: '14px', fontWeight: 600, cursor: 'pointer',
                   opacity: pushLoading ? 0.6 : 1,
@@ -333,7 +333,7 @@ function ToggleRow({ label, subtitle, active, onToggle, last, disabled }) {
       </div>
       <button onClick={disabled ? undefined : onToggle} disabled={disabled} style={{
         width: '44px', height: '24px', borderRadius: '12px', border: 'none',
-        backgroundColor: active ? 'var(--blue-primary)' : 'var(--surface-2)',
+        backgroundColor: active ? '#5A9E72' : 'var(--surface-2)',
         cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s',
         flexShrink: 0,
       }}>

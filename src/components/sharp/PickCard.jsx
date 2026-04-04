@@ -163,31 +163,46 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
           borderRadius: '8px 8px 0 0',
         }} />
         <div style={{
-          fontFamily: mono, fontSize: '9px', letterSpacing: '1px',
-          color: textDim, textTransform: 'uppercase', marginBottom: '8px',
+          fontFamily: mono, fontSize: '10px', fontWeight: 600,
+          letterSpacing: '1.5px', textTransform: 'uppercase',
+          color: green, marginBottom: '14px',
         }}>
-          {(pick.sport || 'nba').toUpperCase()} · {pick.away_team} vs {pick.home_team}
+          QUALIFIED EDGE DETECTED
         </div>
         <div style={{
-          fontFamily: mono, fontSize: '10px', color: textDim, marginBottom: '12px',
+          fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px',
+          color: 'rgba(169,180,207,0.85)', textTransform: 'uppercase', marginBottom: '20px',
+        }}>
+          {pick.away_team} vs {pick.home_team}
+        </div>
+        <div style={{
+          fontFamily: mono, fontSize: '10px', color: textDim, marginBottom: '16px',
         }}>
           {fmtGameTime(pick.start_time, pick.game_date) && `${sportDisplay(pick.sport).tipLabel} ${fmtGameTime(pick.start_time, pick.game_date)}`}
         </div>
         <div style={{
-          background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)',
-          borderRadius: '6px', padding: '28px 20px', textAlign: 'center', marginBottom: '12px',
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1px',
+          background: 'rgba(255,255,255,0.06)', borderRadius: '6px', overflow: 'hidden',
+          marginBottom: '16px',
         }}>
-          <div style={{ fontSize: '20px', marginBottom: '10px', opacity: 0.6 }}>🔒</div>
-          <p style={{ fontSize: '12px', color: textSec, lineHeight: '1.5', marginBottom: '14px' }}>
-            Side and line locked for Pro members. Upgrade to see the full signal and track outcomes.
-          </p>
-          <button onClick={onUpgrade} style={{
-            width: '100%', height: '44px', borderRadius: '8px', border: 'none',
-            background: 'linear-gradient(135deg, var(--blue-primary, #4F86F7), var(--blue-deep, #3B6FE0))',
-            color: 'white', fontFamily: sans, fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-          }}>
-            Upgrade Now
-          </button>
+          {['SIDE', 'LINE', 'EDGE', 'SIZE'].map(label => (
+            <div key={label} style={{ background: bgCard, padding: '10px 8px', textAlign: 'center' }}>
+              <div style={{ fontFamily: mono, fontSize: '8px', letterSpacing: '1px', color: textDim, marginBottom: '6px' }}>{label}</div>
+              <div style={{ fontFamily: mono, fontSize: '12px', fontWeight: 500, color: '#4a5a6e' }}>[Pro]</div>
+            </div>
+          ))}
+        </div>
+        <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
+          width: '100%', padding: '12px', borderRadius: '6px',
+          border: '1.5px solid #5A9E72', background: 'transparent',
+          color: '#5A9E72', fontFamily: mono, fontSize: '12px',
+          fontWeight: 600, letterSpacing: '1px', cursor: 'pointer',
+          textAlign: 'center',
+        }}>
+          View Plans
+        </button>
+        <div style={{ textAlign: 'center', marginTop: '8px', fontFamily: mono, fontSize: '9px', color: textDim }}>
+          Full details at sharppicks.ai
         </div>
       </div>
     );
@@ -284,12 +299,12 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
           <div style={{
             padding: '8px 10px', borderRadius: '5px', textAlign: 'center',
             marginBottom: '12px',
-            border: `1px solid ${pick.result === 'win' ? 'rgba(90,158,114,0.25)' : pick.result === 'push' ? borderColor : 'rgba(196,104,107,0.22)'}`,
-            background: pick.result === 'win' ? 'rgba(90,158,114,0.08)' : pick.result === 'push' ? 'rgba(255,255,255,0.03)' : 'rgba(196,104,107,0.08)',
+            border: `1px solid ${pick.result === 'win' ? 'rgba(90,158,114,0.25)' : pick.result === 'push' ? borderColor : 'rgba(139,111,112,0.22)'}`,
+            background: pick.result === 'win' ? 'rgba(90,158,114,0.08)' : pick.result === 'push' ? 'rgba(255,255,255,0.03)' : 'rgba(139,111,112,0.08)',
           }}>
             <span style={{
               fontFamily: mono, fontSize: '13px', fontWeight: 600,
-              color: pick.result === 'win' ? green : pick.result === 'push' ? textSec : '#C4686B',
+              color: pick.result === 'win' ? green : pick.result === 'push' ? textSec : '#8B6F70',
             }}>
               {pick.result === 'win' ? `Win ${pick.pnl != null ? `+${pick.pnl}u` : ''}` : pick.result === 'push' ? 'Push · 0.0u' : `Loss ${pick.pnl != null ? `${pick.pnl}u` : ''}`}
             </span>
@@ -715,7 +730,7 @@ function CoverTracker({ pick, liveScore }) {
 
   const covering = adjustedMargin > 0;
   const marginAbs = Math.abs(adjustedMargin).toFixed(1);
-  const statusColor = covering ? '#5A9E72' : '#C4686B';
+  const statusColor = covering ? '#5A9E72' : '#8B6F70';
 
   const sideTeamName = sideStr.match(/^(.*?)(\s[+-]?\d+)/)?.[1] || sideStr.split(' ').slice(0, -1).join(' ');
   const sideAbbr = teamAbbr(sideTeamName) || sideStr.split(' ')[0];
@@ -777,7 +792,7 @@ function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, set
     const unitsLabel = isWin ? `+${Math.abs(pnl ?? 0).toFixed(1)}u`
       : isLoss ? `-${Math.abs(pnl ?? 0).toFixed(1)}u`
       : '0u';
-    const resultColor = isWin ? green : isLoss ? '#C4686B' : '#6b7a8d';
+    const resultColor = isWin ? green : isLoss ? '#8B6F70' : '#6b7a8d';
 
     return (
       <button
@@ -787,8 +802,8 @@ function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, set
           fontFamily: mono, fontWeight: 600, fontSize: '11px',
           letterSpacing: '1px', textTransform: 'uppercase',
           color: resultColor,
-          background: isWin ? 'rgba(90,158,114,0.06)' : isLoss ? 'rgba(196,104,107,0.06)' : 'rgba(74,85,104,0.06)',
-          border: `0.5px solid ${isWin ? 'rgba(90,158,114,0.2)' : isLoss ? 'rgba(196,104,107,0.2)' : 'rgba(74,85,104,0.2)'}`,
+          background: isWin ? 'rgba(90,158,114,0.06)' : isLoss ? 'rgba(139,111,112,0.06)' : 'rgba(74,85,104,0.06)',
+          border: `0.5px solid ${isWin ? 'rgba(90,158,114,0.2)' : isLoss ? 'rgba(139,111,112,0.2)' : 'rgba(74,85,104,0.2)'}`,
           cursor: 'pointer', textAlign: 'center',
         }}
       >
@@ -843,7 +858,7 @@ function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, set
         {tracking ? 'TRACKING...' : `TRACK · 1u · $${unitSize}`}
       </button>
       {trackError && (
-        <div style={{ marginTop: 4, fontFamily: mono, fontSize: '11px', color: '#C4686B', textAlign: 'center' }}>
+        <div style={{ marginTop: 4, fontFamily: mono, fontSize: '11px', color: '#8B6F70', textAlign: 'center' }}>
           {trackError}
         </div>
       )}
@@ -890,7 +905,7 @@ function CountdownPill({ startTime, sport }) {
 
 function EdgeTrackerDetail({ signalLine, currentLine, clv }) {
   const clvVal = clv != null ? parseFloat(clv) : (currentLine != null && signalLine != null ? parseFloat(signalLine) - parseFloat(currentLine) : null);
-  const clvColor = clvVal == null ? textDim : clvVal > 0 ? green : clvVal < 0 ? '#C4686B' : textDim;
+  const clvColor = clvVal == null ? textDim : clvVal > 0 ? green : clvVal < 0 ? '#8B6F70' : textDim;
 
   return (
     <div style={{

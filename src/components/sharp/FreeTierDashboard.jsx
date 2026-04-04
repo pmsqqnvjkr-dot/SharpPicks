@@ -31,9 +31,9 @@ export default function FreeTierDashboard({ onUpgrade }) {
               <ModelStat label="Record" value={stats.record || `${stats.wins}-${stats.losses}`} />
               <ModelStat label="Win Rate" value={stats.win_rate ? `${stats.win_rate}%` : '-'} />
               <ModelStat label="ROI" value={stats.roi != null ? `${stats.roi > 0 ? '+' : ''}${stats.roi}%` : '-'}
-                color={stats.roi > 0 ? 'var(--green-profit)' : stats.roi < 0 ? '#C4686B' : undefined} />
+                color={stats.roi > 0 ? 'var(--green-profit)' : stats.roi < 0 ? '#8B6F70' : undefined} />
               <ModelStat label="P&L (units)" value={stats.pnl != null ? `${stats.pnl > 0 ? '+' : ''}${stats.pnl}` : '-'}
-                color={stats.pnl > 0 ? 'var(--green-profit)' : stats.pnl < 0 ? '#C4686B' : undefined} />
+                color={stats.pnl > 0 ? 'var(--green-profit)' : stats.pnl < 0 ? '#8B6F70' : undefined} />
               <ModelStat label="CLV" value={stats.avg_clv != null ? `${stats.avg_clv > 0 ? '+' : ''}${stats.avg_clv}` : '-'}
                 color={stats.avg_clv > 0 ? 'var(--green-profit)' : undefined} />
               <ModelStat label="Selectivity" value={stats.selectivity ? `${stats.selectivity}%` : '-'} />
@@ -48,7 +48,7 @@ export default function FreeTierDashboard({ onUpgrade }) {
           }}>
             Per-pick breakdowns, equity curve, and personal tracking available for{' '}
             <span onClick={onUpgrade} style={{
-              color: 'var(--blue-primary)', cursor: 'pointer', textDecoration: 'underline',
+              color: '#5A9E72', cursor: 'pointer', textDecoration: 'underline',
             }}>Pro members</span>.
           </p>
         </div>
@@ -115,23 +115,22 @@ export default function FreeTierDashboard({ onUpgrade }) {
               border: '1px dashed var(--stroke-muted)',
               borderRadius: '12px', textAlign: 'center',
             }}>
-              <div style={{ fontSize: '14px', marginBottom: '8px', opacity: 0.5 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{ verticalAlign: 'middle' }}>
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                  <path d="M7 11V7a5 5 0 0110 0v4"/>
-                </svg>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1px', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', overflow: 'hidden', marginBottom: '4px' }}>
+                {['SIDE', 'LINE', 'EDGE', 'SIZE'].map(label => (
+                  <div key={label} style={{ background: 'var(--surface-1)', padding: '10px 8px', textAlign: 'center' }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '1px', color: 'var(--text-tertiary)', marginBottom: '6px' }}>{label}</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500, color: '#4a5a6e' }}>[Pro]</div>
+                  </div>
+                ))}
               </div>
-              <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5' }}>
-                Side, line, and edge available for Pro members
-              </p>
             </div>
-            <button onClick={onUpgrade} style={{
-              width: '100%', padding: '14px', marginTop: '14px',
-              background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
-              border: 'none', borderRadius: '12px',
-              color: '#fff', fontSize: '14px', fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'var(--font-sans)',
-            }}>Unlock This Pick</button>
+            <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
+              width: '100%', padding: '12px', marginTop: '14px',
+              border: '1.5px solid #5A9E72', background: 'transparent', borderRadius: '6px',
+              color: '#5A9E72', fontSize: '12px', fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '1px',
+              textAlign: 'center',
+            }}>View Plans</button>
           </div>
         )}
 

@@ -63,7 +63,7 @@ function useCountdownTo(targetHourEt = 10) {
 }
 
 export default function PicksTab({ onNavigate }) {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, enablePush, pushStatus } = useAuth();
   const { sport, setSport } = useSport();
   const { data: todayData, loading, error, refetch: refetchToday } = useApi(sportQuery('/picks/today', sport));
   const { data: stats, refetch: refetchStats } = useApi(sportQuery('/public/stats', sport));
@@ -345,14 +345,13 @@ export default function PicksTab({ onNavigate }) {
             }}>
               <style>{`
                 @keyframes trialPulse { 0%, 100% { box-shadow: 0 0 0 rgba(251,191,36,0); } 50% { box-shadow: 0 0 12px rgba(251,191,36,0.08); } }
-                @keyframes ctaEdgeGlow { 0%, 100% { box-shadow: 0 0 16px rgba(79,134,247,0.2), 0 2px 8px rgba(0,0,0,0.3); } 50% { box-shadow: 0 0 24px rgba(79,134,247,0.35), 0 2px 8px rgba(0,0,0,0.3); } }
               `}</style>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, color: daysLeft <= 2 ? '#FBBF24' : 'var(--green-profit)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>PRO TRIAL &bull; {daysLeft} {daysLeft === 1 ? 'DAY' : 'DAYS'} LEFT</div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 800, color: daysLeft <= 2 ? '#FBBF24' : 'var(--green-profit)', lineHeight: 1 }}>{daysLeft}d</div>
               </div>
               <div style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '14px' }}>You're inside the full model. {daysLeft <= 1 ? 'Access narrows tomorrow.' : `In ${daysLeft} days, access narrows.`}</div>
-              <button onClick={() => onNavigate && onNavigate('profile', 'upgrade')} style={{ width: '100%', padding: '12px 24px', background: 'linear-gradient(135deg, #4F86F7 0%, #3B6FE0 100%)', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', animation: 'ctaEdgeGlow 4s ease-in-out infinite' }}>Keep Pro Access</button>
+              <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{ width: '100%', padding: '12px 24px', background: '#5A9E72', border: 'none', borderRadius: '8px', color: '#0A0D14', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '1px' }}>View Plans</button>
               <div style={{ textAlign: 'center', marginTop: '8px', fontFamily: 'var(--font-sans)', fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>Full decision visibility ends after trial.</div>
             </div>
           ) : null;
@@ -384,6 +383,10 @@ export default function PicksTab({ onNavigate }) {
         )}
         {!isNightMode && todayData?.type === 'pick' && isResolved && !isPro && (
           <FreePickNotice resolved onUpgrade={() => { if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); } else { setShowAuth(true); } }} />
+        )}
+        {/* Contextual push notification prompt — after first resolved signal */}
+        {!isNightMode && isResolved && user && pushStatus !== 'granted' && pushStatus !== 'denied' && localStorage.getItem('sp_push_prompt_dismissed') !== '1' && (
+          <PushPromptInline onEnable={enablePush} onDismiss={() => localStorage.setItem('sp_push_prompt_dismissed', '1')} />
         )}
         {!isNightMode && isRevoked && (
           <RevokedPassCard pick={todayData} onViewDetails={() => { setResolutionPick(todayData); setShowResolution(true); }} />
@@ -1059,7 +1062,7 @@ export default function PicksTab({ onNavigate }) {
                         <span style={{
                           fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
                           letterSpacing: '0.05em', textTransform: 'uppercase',
-                          color: '#4F86F7', backgroundColor: 'rgba(79,134,247,0.1)',
+                          color: '#5A9E72', backgroundColor: 'rgba(90,158,114,0.1)',
                           padding: '3px 8px', borderRadius: '4px',
                         }}>{catLabel}</span>
                         <span style={{ fontSize: '10px', color: '#616A8A', fontFamily: 'var(--font-mono)' }}>&middot;</span>
@@ -1119,7 +1122,7 @@ export default function PicksTab({ onNavigate }) {
                     <span style={{
                       fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
                       letterSpacing: '0.05em', textTransform: 'uppercase',
-                      color: '#4F86F7', backgroundColor: 'rgba(79,134,247,0.1)',
+                      color: '#5A9E72', backgroundColor: 'rgba(90,158,114,0.1)',
                       padding: '3px 8px', borderRadius: '4px',
                     }}>{catLabel}</span>
                     <span style={{ fontSize: '10px', color: '#616A8A', fontFamily: 'var(--font-mono)' }}>&middot;</span>
@@ -1414,18 +1417,70 @@ function ResolvedPickBanner({ pick, onViewDetails, onDismiss, onShare }) {
   );
 }
 
-function FreePickNotice({ onUpgrade, resolved }) {
+function PushPromptInline({ onEnable, onDismiss }) {
+  const [loading, setLoading] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
   return (
-    <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '32px 24px', textAlign: 'center' }}>
-      <div style={{ width: '56px', height: '56px', borderRadius: '14px', backgroundColor: 'var(--color-signal-bg)', border: '1px solid var(--color-signal-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-signal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <div style={{
+      background: '#111e33', border: '0.5px solid #1e3050',
+      borderLeft: '3px solid #5A9E72', borderRadius: '8px',
+      padding: '12px 14px', marginBottom: '12px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+    }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: '12px', color: '#e8ecf0', lineHeight: '1.5', fontWeight: 500 }}>
+          Want to know the moment the model finds an edge?
+        </div>
       </div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-label-size)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-signal)', marginBottom: '12px' }}>Signal Published</div>
-      <p style={{ fontSize: 'var(--text-metric)', color: 'var(--text-secondary)', lineHeight: '1.6', maxWidth: '280px', margin: '0 auto 24px' }}>
-        {resolved ? "Today's signal has been resolved. Upgrade to see the outcome, side, and full analysis." : "Edge detected. Upgrade to see the full signal, side, and analysis."}
-      </p>
-      <button onClick={onUpgrade} style={{ width: '100%', height: '48px', borderRadius: '14px', border: 'none', background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))', color: 'white', fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>Upgrade to See Signal</button>
-      <p style={{ fontSize: 'var(--text-caption)', color: 'var(--text-tertiary)', marginTop: '12px', lineHeight: '1.5' }}>14-day free trial. Cancel anytime.</p>
+      <button
+        onClick={async () => {
+          setLoading(true);
+          await onEnable();
+          setLoading(false);
+          setDismissed(true);
+          if (onDismiss) onDismiss();
+        }}
+        disabled={loading}
+        style={{
+          padding: '8px 14px', borderRadius: '6px',
+          border: '1.5px solid #5A9E72', background: 'transparent',
+          color: '#5A9E72', fontFamily: 'var(--font-mono)',
+          fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px',
+          cursor: 'pointer', whiteSpace: 'nowrap',
+          opacity: loading ? 0.6 : 1,
+        }}
+      >
+        {loading ? 'Enabling...' : 'Enable Notifications'}
+      </button>
+    </div>
+  );
+}
+
+function FreePickNotice({ onUpgrade, resolved, pick }) {
+  return (
+    <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '24px 20px' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--color-signal)', marginBottom: '14px' }}>QUALIFIED EDGE DETECTED</div>
+      {pick && (
+        <>
+          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'rgba(169,180,207,0.85)', textTransform: 'uppercase', marginBottom: '8px' }}>
+            {pick.away_team || 'Away'} vs {pick.home_team || 'Home'}
+          </div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-tertiary)', marginBottom: '16px' }}>
+            {pick.game_date} · {pick.start_time ? new Date(pick.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' ET' : ''}
+          </div>
+        </>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1px', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', overflow: 'hidden', marginBottom: '16px' }}>
+        {['SIDE', 'LINE', 'EDGE', 'SIZE'].map(label => (
+          <div key={label} style={{ background: 'var(--surface-1)', padding: '10px 8px', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '1px', color: 'var(--text-tertiary)', marginBottom: '6px' }}>{label}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500, color: '#4a5a6e' }}>[Pro]</div>
+          </div>
+        ))}
+      </div>
+      <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1.5px solid #5A9E72', background: 'transparent', color: '#5A9E72', fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, letterSpacing: '1px', cursor: 'pointer', textAlign: 'center' }}>View Plans</button>
+      <div style={{ textAlign: 'center', marginTop: '8px', fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--text-tertiary)' }}>Full details at sharppicks.ai</div>
     </div>
   );
 }

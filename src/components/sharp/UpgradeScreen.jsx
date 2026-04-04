@@ -183,88 +183,53 @@ export default function UpgradeScreen({ onBack, user }) {
           </div>
         )}
 
-        {isNative ? (
-          <div style={{ marginBottom: '24px' }}>
-            <button
-              onClick={() => handleSubscribe()}
-              disabled={checkoutLoading}
-              style={{
-                width: '100%', padding: '16px',
-                background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
-                border: 'none', borderRadius: '14px',
-                color: '#fff', fontSize: '15px', fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                opacity: checkoutLoading ? 0.6 : 1,
-                boxShadow: '0 0 16px rgba(79,134,247,0.2)',
-              }}
-            >
-              Unlock Pro Features
-            </button>
-            <p style={{
-              fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5',
-              textAlign: 'center', marginTop: '10px',
-            }}>You'll be taken to sharppicks.ai to complete setup.</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-            {isFoundingOpen && (
-              <PricingCard
-                name={annualLabel}
-                price=""
-                period="Annual"
-                description="Lock in your founding member rate permanently."
-                cta="Claim Founding Spot"
-                onSelect={() => handleSubscribe('founding')}
-                loading={checkoutLoading}
-                highlight
-                badge={`${spotsRemaining} of 50 left`}
-                savings="Best value. Billed annually."
-              />
-            )}
-            <PricingCard
-              name="Monthly"
-              price=""
-              period="Monthly"
-              description="Flexible access. Cancel anytime."
-              cta="See Monthly Plan"
-              onSelect={() => handleSubscribe('monthly')}
-              loading={checkoutLoading}
-              secondary
-            />
-            {!isFoundingOpen && (
-              <PricingCard
-                name={annualLabel}
-                price=""
-                period="Annual"
-                description="Best value. Billed annually."
-                cta="See Annual Plan"
-                onSelect={() => handleSubscribe('annual')}
-                loading={checkoutLoading}
-                highlight
-                savings="Save vs monthly"
-              />
-            )}
-          </div>
-        )}
-
         <div style={{
-          textAlign: 'center', padding: '0 0 14px',
+          backgroundColor: 'var(--surface-1)', borderRadius: '12px',
+          border: '1px solid var(--stroke-subtle)', padding: '20px',
+          marginBottom: '16px',
         }}>
-          <p style={{
-            fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5',
-          }}>Cancel anytime. No lock-ins. No tricks.</p>
-        </div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+            letterSpacing: '1.5px', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '12px',
+          }}>YOUR PLAN: FREE</div>
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px 0' }}>
+            {['See if a pick exists today', 'Public model record access', 'Daily Market Brief', 'Sharp Journal access', 'Full game slate with edges'].map(f => (
+              <li key={f} style={{ fontSize: '12px', color: 'var(--text-secondary)', padding: '4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: 'var(--green-profit)', fontSize: '10px' }}>&#10003;</span>{f}
+              </li>
+            ))}
+          </ul>
 
-        <div style={{
-          textAlign: 'center', padding: '4px 16px 16px',
-          marginBottom: '8px',
-        }}>
-          <span style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: '12px',
-            color: 'var(--text-tertiary)',
-            lineHeight: 1.5,
-          }}>Built for long-term bankroll growth, not daily action.</span>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+            letterSpacing: '1.5px', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '12px',
+            paddingTop: '16px', borderTop: '1px solid var(--stroke-subtle)',
+          }}>PRO INCLUDES EVERYTHING ABOVE, PLUS:</div>
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px 0' }}>
+            {['Full signal details (side, line, edge, sizing)', 'Quant reasoning and model analysis', 'Personal bet tracking with CLV', 'Equity curve and P&L history', 'Discipline scoring with benchmarks', 'Real-time push notifications', 'Priority support'].map(f => (
+              <li key={f} style={{ fontSize: '12px', color: 'var(--text-secondary)', padding: '4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: 'var(--green-profit)', fontSize: '10px' }}>&#10003;</span>{f}
+              </li>
+            ))}
+          </ul>
+
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', textAlign: 'center', marginBottom: '14px', lineHeight: '1.5' }}>
+            Pricing and subscription options<br />available at sharppicks.ai
+          </div>
+
+          <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
+            width: '100%', padding: '12px', borderRadius: '6px',
+            background: '#5A9E72', border: 'none',
+            color: '#0A0D14', fontFamily: 'var(--font-mono)',
+            fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
+            cursor: 'pointer', textAlign: 'center',
+          }}>View Plans</button>
+
+          <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5' }}>
+            14-day free trial available. Cancel anytime.
+          </div>
         </div>
 
         <div style={{

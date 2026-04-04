@@ -80,25 +80,22 @@ function AgeGate({ onConfirm }) {
       padding: '40px 24px',
       textAlign: 'center',
     }}>
-      <div style={{
-        width: '64px', height: '64px', borderRadius: '16px',
-        backgroundColor: 'var(--surface-2)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginBottom: '24px',
-      }}>
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      <div style={{ marginBottom: '24px' }}>
+        <svg width="44" height="44" viewBox="0 0 500 500">
+          <rect x="150" y="100" width="60" height="300" rx="30" fill="#FFFFFF" />
+          <rect x="290" y="100" width="60" height="300" rx="30" fill="#FFFFFF" />
+          <rect x="150" y="420" width="200" height="20" rx="10" fill="#5A9E72" />
         </svg>
       </div>
       <h1 style={{
-        fontFamily: 'var(--font-serif)', fontSize: '24px', fontWeight: 600,
+        fontFamily: "'IBM Plex Serif', serif", fontSize: '24px', fontWeight: 600,
         color: 'var(--text-primary)', marginBottom: '12px',
       }}>Age Verification</h1>
       <p style={{
         fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.6',
         maxWidth: '340px', marginBottom: '8px',
       }}>
-        SharpPicks provides sports betting analytics for informational and entertainment purposes only.
+        SharpPicks provides sports market intelligence for informational purposes only.
       </p>
       <p style={{
         fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5',
@@ -113,10 +110,11 @@ function AgeGate({ onConfirm }) {
         }}
         style={{
           padding: '16px 48px', width: '100%', maxWidth: '320px',
-          background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
-          border: 'none', borderRadius: '14px',
-          color: '#fff', fontSize: '16px', fontWeight: 700,
-          cursor: 'pointer', fontFamily: 'var(--font-sans)',
+          background: '#5A9E72',
+          border: 'none', borderRadius: '8px',
+          color: '#0A0D14', fontSize: '16px', fontWeight: 600,
+          cursor: 'pointer', fontFamily: "'JetBrains Mono', monospace",
+          letterSpacing: '1px',
           marginBottom: '12px',
         }}
       >I am 21 or older</button>

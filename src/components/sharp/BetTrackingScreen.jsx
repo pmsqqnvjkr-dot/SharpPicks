@@ -314,8 +314,8 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                     {stats.equityCurve.slice(-20).map((p, i) => (
                       <div key={i} style={{
                         width: '24px', height: '24px', borderRadius: '4px',
-                        backgroundColor: p.result === 'W' ? 'rgba(90, 158, 114, 0.2)' : 'rgba(196, 104, 107, 0.2)',
-                        border: `1px solid ${p.result === 'W' ? 'rgba(90, 158, 114, 0.4)' : 'rgba(196, 104, 107, 0.4)'}`,
+                        backgroundColor: p.result === 'W' ? 'rgba(90, 158, 114, 0.2)' : 'rgba(139, 111, 112, 0.2)',
+                        border: `1px solid ${p.result === 'W' ? 'rgba(90, 158, 114, 0.4)' : 'rgba(139, 111, 112, 0.4)'}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '10px', fontWeight: 500, fontFamily: 'var(--font-mono)',
                         color: p.result === 'W' ? 'var(--green-profit)' : 'var(--red-loss)',
@@ -450,7 +450,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
               <div style={{ padding: '4px 0 12px' }}>
                 <button onClick={() => setShowTrackModal(true)} style={{
                   width: '100%', padding: '14px',
-                  backgroundColor: 'var(--blue-primary)', color: '#fff',
+                  backgroundColor: '#5A9E72', color: '#0A0D14',
                   border: 'none', borderRadius: '12px',
                   fontSize: '14px', fontWeight: 600, cursor: 'pointer',
                   fontFamily: 'var(--font-sans)',
@@ -470,7 +470,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
           <div style={{ marginBottom: '12px' }}>
             <button onClick={() => setShowTrackModal(true)} style={{
               width: '100%', padding: '14px',
-              backgroundColor: 'var(--blue-primary)', color: '#fff',
+              backgroundColor: '#5A9E72', color: '#0A0D14',
               border: 'none', borderRadius: '12px',
               fontSize: '14px', fontWeight: 600, cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
@@ -719,7 +719,7 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
         ? { color: '#5A9E72', bg: 'rgba(90,158,114,0.12)' }
         : p.result === 'P'
         ? { color: '#8B8E96', bg: 'rgba(139,142,150,0.1)' }
-        : { color: '#C4686B', bg: 'rgba(196,104,107,0.12)' };
+        : { color: '#8B6F70', bg: 'rgba(139,111,112,0.12)' };
       return (
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
@@ -786,14 +786,14 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
             flex: 1, padding: '10px 0', textAlign: 'center', borderRadius: '8px', border: 'none',
             fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
             letterSpacing: '0.04em', cursor: 'pointer', transition: 'all 0.2s',
-            backgroundColor: mode === 'model' ? 'var(--blue-primary)' : 'transparent',
+            backgroundColor: mode === 'model' ? '#5A9E72' : 'transparent',
             color: mode === 'model' ? '#fff' : 'var(--text-tertiary)',
           }}>Model Pick</button>
           <button onClick={() => setMode('manual')} style={{
             flex: 1, padding: '10px 0', textAlign: 'center', borderRadius: '8px', border: 'none',
             fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
             letterSpacing: '0.04em', cursor: 'pointer', transition: 'all 0.2s',
-            backgroundColor: mode === 'manual' ? 'var(--blue-primary)' : 'transparent',
+            backgroundColor: mode === 'manual' ? '#5A9E72' : 'transparent',
             color: mode === 'manual' ? '#fff' : 'var(--text-tertiary)',
           }}>My Own Bet</button>
         </div>
@@ -903,7 +903,7 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
                                   style={{
                                     width: '100%', padding: '12px', border: 'none', borderRadius: '10px',
                                     fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
-                                    color: '#fff', backgroundColor: 'var(--blue-primary)',
+                                    color: '#0A0D14', backgroundColor: '#5A9E72',
                                     cursor: 'pointer', letterSpacing: '0.02em',
                                     opacity: submitting ? 0.5 : 1,
                                   }}
@@ -1023,7 +1023,7 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
               <button type="submit" disabled={submitting || (manualBetType === 'parlay' ? !parlayDesc.trim() : (!manualGame.trim() || !manualPick.trim()))} style={{
                 width: '100%', padding: '14px', border: 'none', borderRadius: '10px',
                 fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600,
-                color: '#fff', backgroundColor: 'var(--blue-primary)',
+                color: '#0A0D14', backgroundColor: '#5A9E72',
                 cursor: 'pointer', letterSpacing: '0.02em', marginTop: '4px',
                 opacity: (submitting || (manualBetType === 'parlay' ? !parlayDesc.trim() : (!manualGame.trim() || !manualPick.trim()))) ? 0.4 : 1,
               }}>{submitting ? 'Tracking...' : 'Track Bet'}</button>
@@ -1117,7 +1117,7 @@ function PendingBetCard({ bet, onGraded }) {
             onClick={() => { setEditing(!editing); setGrading(false); }}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              padding: '4px', color: editing ? 'var(--blue-primary)' : 'var(--text-tertiary)',
+              padding: '4px', color: editing ? '#5A9E72' : 'var(--text-tertiary)',
               opacity: 0.7, transition: 'color 0.15s',
             }}
             title="Edit bet"
@@ -1133,8 +1133,8 @@ function PendingBetCard({ bet, onGraded }) {
               style={{
                 fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
                 padding: '4px 10px', borderRadius: '6px',
-                backgroundColor: isManual ? 'rgba(251,191,36,0.12)' : 'rgba(79, 134, 247, 0.12)',
-                color: isManual ? '#f59e0b' : 'var(--blue-primary)',
+                backgroundColor: isManual ? 'rgba(251,191,36,0.12)' : 'rgba(90,158,114,0.12)',
+                color: isManual ? '#f59e0b' : '#5A9E72',
                 letterSpacing: '0.3px', border: 'none', cursor: 'pointer',
               }}
             >
@@ -1230,7 +1230,7 @@ function PendingBetCard({ bet, onGraded }) {
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={handleSaveEdit} disabled={saving} style={{
               flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
-              backgroundColor: 'var(--blue-primary)', color: '#fff',
+              backgroundColor: '#5A9E72', color: '#0A0D14',
               fontSize: '12px', fontWeight: 600, cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
               opacity: saving ? 0.5 : 1,
@@ -1261,7 +1261,7 @@ function EmptyDashboard({ onTrack }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         margin: '0 auto 20px',
       }}>
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary)" strokeWidth="1.5">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5A9E72" strokeWidth="1.5">
           <path d="M3 3v18h18"/>
           <path d="M7 16l4-4 4 4 5-5"/>
         </svg>
@@ -1283,7 +1283,7 @@ function EmptyDashboard({ onTrack }) {
       </p>
       <button onClick={onTrack} style={{
         padding: '12px 24px',
-        backgroundColor: 'var(--blue-primary)', color: '#fff',
+        backgroundColor: '#5A9E72', color: '#0A0D14',
         border: 'none', borderRadius: '10px',
         fontSize: '14px', fontWeight: 600, cursor: 'pointer',
         fontFamily: 'var(--font-sans)',
@@ -1438,7 +1438,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
                 <span style={{
                   fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
                   padding: '2px 6px', borderRadius: '4px',
-                  backgroundColor: 'rgba(79, 134, 247, 0.15)', color: 'var(--blue-primary)',
+                  backgroundColor: 'rgba(90,158,114,0.15)', color: '#5A9E72',
                   textTransform: 'uppercase', letterSpacing: '0.5px',
                 }}>SP</span>
               )}
@@ -1481,7 +1481,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
               onClick={(e) => { e.stopPropagation(); setEditing(!editing); setGrading(false); }}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                padding: '4px', color: editing ? 'var(--blue-primary)' : 'var(--text-tertiary)',
+                padding: '4px', color: editing ? '#5A9E72' : 'var(--text-tertiary)',
                 opacity: 0.7, transition: 'color 0.15s',
               }}
               title="Edit bet"
@@ -1621,7 +1621,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={handleSaveEdit} disabled={saving} style={{
                 flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
-                backgroundColor: 'var(--blue-primary)', color: '#fff',
+                backgroundColor: '#5A9E72', color: '#0A0D14',
                 fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                 fontFamily: 'var(--font-sans)',
                 opacity: saving ? 0.5 : 1,

@@ -100,7 +100,7 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
             padding: '8px 16px', borderRadius: '8px', fontSize: '13px',
             fontWeight: 600, border: 'none', cursor: 'pointer',
             textTransform: 'capitalize', fontFamily: 'var(--font-sans)',
-            backgroundColor: filter === f ? 'var(--blue-primary)' : 'var(--surface-2)',
+            backgroundColor: filter === f ? '#5A9E72' : 'var(--surface-2)',
             color: filter === f ? '#fff' : 'var(--text-secondary)',
           }}>{f}</button>
         ))}
@@ -149,13 +149,8 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                     <div style={{
                       fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
                     }}>
-                      {isPro ? pick.side : (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                          </svg>
-                          <span style={{ color: 'var(--text-tertiary)' }}>Upgrade to view</span>
-                        </span>
+                      {(isPro || pick.result !== 'pending') ? pick.side : (
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#4a5a6e' }}>[Pro]</span>
                       )}
                     </div>
                     <div style={{
@@ -209,7 +204,7 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                             : ''}
                         </div>
                       )}
-                      {isPro && pick.edge_pct && (
+                      {pick.edge_pct && (
                         <div style={{
                           fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', marginTop: '2px',
                           fontFamily: 'var(--font-mono)',
@@ -232,7 +227,7 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
               backgroundColor: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
               borderRadius: '12px', cursor: 'pointer',
               fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 600,
-              color: 'var(--blue-primary)',
+              color: '#5A9E72',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
             }}>
               Show All ({filtered.length - INITIAL_LIMIT} more)

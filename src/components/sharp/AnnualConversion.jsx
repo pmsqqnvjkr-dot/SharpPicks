@@ -66,10 +66,10 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
             onClick={handleSwitch}
             style={{
               width: '100%', padding: '16px',
-              background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
-              border: 'none', borderRadius: '14px',
-              color: '#fff', fontSize: '15px', fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              background: '#5A9E72',
+              border: 'none', borderRadius: '8px',
+              color: '#0A0D14', fontSize: '13px', fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '1px',
               marginBottom: '10px',
             }}
           >
@@ -144,10 +144,10 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
           disabled={loading}
           style={{
             width: '100%', padding: '16px',
-            background: 'linear-gradient(135deg, var(--blue-primary), var(--blue-deep))',
-            border: 'none', borderRadius: '14px',
-            color: '#fff', fontSize: '15px', fontWeight: 700,
-            cursor: 'pointer', fontFamily: 'var(--font-sans)',
+            background: '#5A9E72',
+            border: 'none', borderRadius: '8px',
+            color: '#0A0D14', fontSize: '13px', fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '1px',
             marginBottom: '10px',
             opacity: loading ? 0.6 : 1,
           }}

@@ -159,7 +159,7 @@ export default function UnifiedDashboard({ embedded = false }) {
         <div style={{ marginBottom: '16px' }}>
           <button onClick={() => setShowTrackModal(true)} style={{
             width: '100%', padding: '14px',
-            backgroundColor: 'var(--blue-primary)', color: '#fff',
+            backgroundColor: '#5A9E72', color: '#0A0D14',
             border: 'none', borderRadius: '12px',
             fontSize: '14px', fontWeight: 600, cursor: 'pointer',
             fontFamily: 'var(--font-sans)',

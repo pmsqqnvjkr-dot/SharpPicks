@@ -80,7 +80,7 @@ export default function ReferralScreen({ onBack }) {
 
           <button onClick={copyCode} style={{
             width: '100%', padding: '14px',
-            backgroundColor: copied ? 'var(--green-dark)' : 'var(--blue-primary)',
+            backgroundColor: copied ? 'var(--green-dark)' : '#5A9E72',
             color: '#fff', border: 'none', borderRadius: '10px',
             fontSize: '15px', fontWeight: 600, cursor: 'pointer',
             fontFamily: 'var(--font-sans)',

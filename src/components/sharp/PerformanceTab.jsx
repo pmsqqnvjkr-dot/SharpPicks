@@ -123,7 +123,23 @@ export default function PerformanceTab({ onNavigate, initialView, onViewConsumed
   if (!isPro) {
     return (
       <div style={{ padding: '0', paddingBottom: '100px' }}>
-        <FreeTierDashboard onUpgrade={() => onNavigate && onNavigate('profile', 'upgrade')} />
+        <div style={{ padding: '0 20px', marginTop: '12px', marginBottom: '16px' }}>
+          <div style={{
+            display: 'flex',
+            backgroundColor: 'var(--surface-1)',
+            borderRadius: '10px',
+            padding: '3px',
+            border: '1px solid var(--stroke-subtle)',
+          }}>
+            <ToggleButton active={view === 'yours'} onClick={() => setView('yours')} label="Your Results" />
+            <ToggleButton active={view === 'model'} onClick={() => setView('model')} label="Model" />
+          </div>
+        </div>
+        {view === 'model' ? (
+          <DashboardTab onNavigate={onNavigate} embedded />
+        ) : (
+          <FreeResultsEmptyState />
+        )}
       </div>
     );
   }
@@ -246,6 +262,80 @@ function SharePreviewModal({ previewUrl, onShare, onCancel }) {
 }
 
 
+function FreeResultsEmptyState() {
+  const trackingFeatures = [
+    'Equity curve with cumulative P&L',
+    'Discipline score vs industry average',
+    'Capital preserved from passed picks',
+    'Model vs off-model comparison',
+  ];
+  return (
+    <div style={{ padding: '0 20px' }}>
+      <div style={{
+        backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+        border: '1px solid var(--stroke-subtle)', padding: '32px 24px',
+        textAlign: 'center',
+      }}>
+        <div style={{ marginBottom: '20px', opacity: 0.4 }}>
+          <svg width="32" height="32" viewBox="0 0 500 500">
+            <rect x="150" y="100" width="60" height="300" rx="30" fill="#e8ecf0" />
+            <rect x="290" y="100" width="60" height="300" rx="30" fill="#e8ecf0" />
+            <rect x="150" y="420" width="200" height="20" rx="10" fill="#5A9E72" />
+          </svg>
+        </div>
+        <p style={{
+          fontFamily: 'var(--font-serif)', fontSize: '15px', fontWeight: 500,
+          color: 'var(--text-primary)', lineHeight: '1.6', marginBottom: '8px',
+        }}>Start tracking to see your equity curve.</p>
+        <p style={{
+          fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6',
+          maxWidth: '280px', margin: '0 auto 20px',
+        }}>
+          Log your bets, see your P&L in real time, and measure your discipline against the industry average.
+        </p>
+
+        <div style={{
+          textAlign: 'left', marginBottom: '20px',
+          paddingTop: '16px', borderTop: '1px solid var(--stroke-subtle)',
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+            letterSpacing: '1.5px', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '10px',
+          }}>TRACKING UNLOCKS:</div>
+          {trackingFeatures.map(f => (
+            <div key={f} style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '4px 0',
+            }}>
+              <span style={{ color: 'var(--color-signal)', fontSize: '10px' }}>&#10003;</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{f}</span>
+            </div>
+          ))}
+        </div>
+
+        <p style={{
+          fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px',
+        }}>Personal tracking is a Pro feature.</p>
+
+        <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
+          width: '100%', padding: '12px', borderRadius: '6px',
+          border: '1.5px solid #5A9E72', background: 'transparent',
+          color: '#5A9E72', fontFamily: 'var(--font-mono)',
+          fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
+          cursor: 'pointer', textAlign: 'center',
+        }}>View Plans at sharppicks.ai</button>
+
+        <p style={{
+          fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+          fontSize: '12px', color: 'var(--text-tertiary)',
+          marginTop: '16px', lineHeight: '1.5',
+        }}>"The record you keep is the edge you build."</p>
+      </div>
+    </div>
+  );
+}
+
 function ToggleButton({ active, onClick, label }) {
   return (
     <button onClick={onClick} style={{
@@ -257,7 +347,7 @@ function ToggleButton({ active, onClick, label }) {
       border: 'none',
       borderRadius: '8px',
       cursor: 'pointer',
-      backgroundColor: active ? 'var(--blue-primary)' : 'transparent',
+      backgroundColor: active ? '#5A9E72' : 'transparent',
       color: active ? '#fff' : 'var(--text-tertiary)',
       transition: 'all 0.2s',
     }}>
