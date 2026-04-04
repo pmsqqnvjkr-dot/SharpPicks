@@ -53,6 +53,8 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
   const [selectedInsight, setSelectedInsight] = useState(null);
   const [animateIn, setAnimateIn] = useState(false);
 
+  const [showAll, setShowAll] = useState(false);
+
   const selectAndTrack = (insight) => {
     setSelectedInsight(insight);
     if (insight) trackEvent('view_article', { article_slug: insight.slug, category: insight.category });
@@ -99,8 +101,6 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
       />
     );
   }
-
-  const [showAll, setShowAll] = useState(false);
 
   const featured = insights.length > 0 ? insights[0] : null;
   const remaining = insights.slice(1);
