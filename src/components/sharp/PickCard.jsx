@@ -135,7 +135,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
           reader.readAsDataURL(blob);
         });
         const file = await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache });
-        await Share.share({ title: 'SharpPicks', url: file.uri });
+        await Share.share({ title: 'SharpPicks', files: [file.uri] });
         try { await Filesystem.deleteFile({ path: filename, directory: Directory.Cache }); } catch {}
       } else {
         const file = new File([blob], filename, { type: 'image/png' });

@@ -496,14 +496,16 @@ def flush_share_cache():
 
 @cards_bp.route('/result/<signal_id>')
 def result_card(signal_id):
-    """Generate and return the 1080x1920 story-format share card."""
+    """Generate and return the 1080x1350 share card using Playwright + HTML template."""
+    from flask import render_template
+
     pick = Pick.query.get(signal_id)
     if not pick:
         return jsonify({'error': 'Not found'}), 404
 
     cache_dir = os.path.join(_BASE, '.share-cache')
     os.makedirs(cache_dir, exist_ok=True)
-    cache_path = os.path.join(cache_dir, f'share-v4-{signal_id}.png')
+    cache_path = os.path.join(cache_dir, f'share-v5-{signal_id}.png')
 
     is_resolved = pick.result in ('win', 'loss', 'push', 'revoked')
     force_refresh = request.args.get('refresh') == '1'
@@ -512,9 +514,80 @@ def result_card(signal_id):
             return Response(f.read(), mimetype='image/png',
                             headers={'Cache-Control': 'public, max-age=31536000, immutable'})
 
-    img = _generate_share_card(pick)
-    buf = _to_png(img)
-    png_bytes = buf.read()
+    is_win = pick.result == 'win'
+    is_loss = pick.result == 'loss'
+    is_push = pick.result == 'push'
+    is_revoked = pick.result == 'revoked'
+
+    if is_win:
+        result_label, result_color, accent_color = 'WIN', 'green', '#5A9E72'
+    elif is_loss:
+        result_label, result_color, accent_color = 'LOSS', 'red', '#8B6F70'
+    elif is_push:
+        result_label, result_color, accent_color = 'PUSH', 'dim', 'rgba(232,236,241,0.3)'
+    else:
+        result_label, result_color, accent_color = 'WITHDRAWN', 'dim', 'rgba(232,236,241,0.3)'
+
+    uval = pick.profit_units or 0
+    if is_revoked:
+        units_fmt, units_color = '0.0u', 'dim'
+    elif uval > 0:
+        units_fmt, units_color = f'+{uval:.1f}u', 'green'
+    elif uval < 0:
+        units_fmt, units_color = f'\u2212{abs(uval):.1f}u', 'red'
+    else:
+        units_fmt, units_color = '+0.0u', 'dim'
+
+    edge_pct = f'{pick.edge_pct:.1f}' if pick.edge_pct else '0.0'
+
+    cv = pick.clv
+    if is_revoked or cv is None:
+        clv_fmt, clv_color = '--', 'dim'
+    elif cv > 0:
+        clv_fmt, clv_color = f'+{cv:.1f}', 'green'
+    elif cv < 0:
+        clv_fmt, clv_color = f'{cv:.1f}', 'red'
+    else:
+        clv_fmt, clv_color = '0.0', 'dim'
+
+    line_fmt = _fmt_spread(pick.line) if not is_revoked else '--'
+
+    score_line = ''
+    if not is_revoked and pick.home_score is not None and pick.away_score is not None:
+        score_line = f'{_abbr(pick.away_team)} {pick.away_score} \u00b7 {_abbr(pick.home_team)} {pick.home_score} \u00b7 Final'
+    elif is_revoked:
+        score_line = 'Withdrawn before tip. Capital preserved.'
+
+    stats = _season_stats(pick.sport)
+    data = {
+        'accent_color': accent_color,
+        'game_date': _date_label(pick),
+        'matchup': f'{(pick.away_team or "").upper()} @ {(pick.home_team or "").upper()}',
+        'side': pick.side or '',
+        'result_label': result_label,
+        'result_color': result_color,
+        'units_fmt': units_fmt,
+        'units_color': units_color,
+        'edge_pct': edge_pct,
+        'clv_fmt': clv_fmt,
+        'clv_color': clv_color,
+        'line_fmt': line_fmt,
+        'score_line': score_line,
+        'season_wins': stats['wins'],
+        'season_losses': stats['losses'],
+        'season_win_pct': stats['win_pct'],
+        'season_clv': stats['beat_close'],
+    }
+
+    html_string = render_template('result_card.html', **data)
+
+    try:
+        from services.card_generator import generate_card_png
+        png_bytes = generate_card_png(html_string)
+    except Exception:
+        img = _generate_share_card(pick)
+        buf = _to_png(img)
+        png_bytes = buf.read()
 
     if is_resolved:
         with open(cache_path, 'wb') as f:

@@ -43,7 +43,7 @@ async function nativeShare(blob, filename) {
   await Share.share({
     title: 'Sharp Picks Weekly Recap',
     text: 'Beat the market, not the scoreboard.\n\nsharppicks.ai',
-    url: file.uri,
+    files: [file.uri],
     dialogTitle: 'Share your results',
   });
 

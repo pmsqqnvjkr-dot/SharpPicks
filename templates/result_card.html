@@ -120,6 +120,9 @@
       <div class="hero-side">{{ side }}</div>
       <div class="hero-result {{ result_color }}">{{ result_label }}</div>
       <div class="hero-units {{ units_color }}">{{ units_fmt }}</div>
+      {% if score_line %}
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500; color: rgba(232,236,241,0.40); letter-spacing: 1px; margin-top: 16px;">{{ score_line }}</div>
+      {% endif %}
     </div>
 
     <div class="stat-cards">
