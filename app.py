@@ -57,6 +57,27 @@ is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
 
 CRON_SECRET = os.environ.get('CRON_SECRET', '')
 
+PRE_PROVISIONED_GRANTS = {
+    'kd1donnelly@gmail.com': { 'premium': True, 'founder': True, 'plan': 'lifetime' },
+}
+
+def _apply_pre_provisioned(user):
+    """Check if a newly registered user has pre-provisioned grants and apply them."""
+    grant = PRE_PROVISIONED_GRANTS.get((user.email or '').lower())
+    if not grant:
+        return
+    if grant.get('premium'):
+        user.is_premium = True
+        user.subscription_status = 'active'
+        user.subscription_plan = grant.get('plan', 'lifetime')
+    if grant.get('founder'):
+        user.founding_member = True
+        if not user.founding_number:
+            from models import User as UserModel
+            max_num = db.session.query(db.func.max(UserModel.founding_number)).scalar() or 0
+            user.founding_number = max_num + 1
+    db.session.commit()
+
 def verify_cron(f):
     from functools import wraps
     @wraps(f)
@@ -5276,6 +5297,8 @@ def register():
     db.session.add(user)
     db.session.commit()
 
+    _apply_pre_provisioned(user)
+
     login_user(user, remember=True)
     session.permanent = True
     session['user_id'] = user.id
@@ -5573,6 +5596,8 @@ def _oauth_find_or_create(email, provider, provider_id, first_name=None, plan='t
     )
     db.session.add(user)
     db.session.commit()
+
+    _apply_pre_provisioned(user)
 
     try:
         send_admin_alert(
