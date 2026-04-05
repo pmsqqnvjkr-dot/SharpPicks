@@ -10,12 +10,12 @@ alwaysApply: false
 Static landing site files live in `/landing` directory.
 
 ## Deployment
-- Hosted on Cloudflare Pages (project: crimson-mud-d8b4)
-- Connected to GitHub repo pmsqqnvjkr-dot/SharpPicks
+- Hosted on Cloudflare Pages (project: sharppicks)
+- Domain: sharppicks.ai, sharppicks.pages.dev
 - Root directory: /landing
-- Auto-deploys on every push to main branch
+- No Git auto-deploy -- requires manual deploy
 - No build step needed (static HTML)
-- Deploy command: npx wrangler pages deploy
+- Deploy command: npx wrangler pages deploy landing/ --project-name sharppicks
 
 ## Structure
 - /landing/index.html — main landing page
