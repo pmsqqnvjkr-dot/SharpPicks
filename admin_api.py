@@ -9,6 +9,7 @@ import time
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+import commentary as cmt
 
 admin_bp = Blueprint('admin_api', __name__)
 ET = ZoneInfo('America/New_York')
@@ -903,10 +904,12 @@ def command_center_data():
         pre_cal = [p for p in resolved if p.notes and 'Pre-Cal' in p.notes]
         post_cal = [p for p in resolved if not (p.notes and 'Pre-Cal' in p.notes)]
 
-        buckets = {'3.5-5%': {'w': 0, 'l': 0}, '5-7.5%': {'w': 0, 'l': 0}, '7.5-10%': {'w': 0, 'l': 0}}
+        buckets = {'3.5-5%': {'w': 0, 'l': 0}, '5-7.5%': {'w': 0, 'l': 0}, '7.5-10%': {'w': 0, 'l': 0}, '10%+': {'w': 0, 'l': 0}}
         for p in resolved:
             e = p.edge_pct or 0
-            if e >= 7.5:
+            if e >= 10:
+                k = '10%+'
+            elif e >= 7.5:
                 k = '7.5-10%'
             elif e >= 5:
                 k = '5-7.5%'
@@ -1027,6 +1030,29 @@ def command_center_data():
     insights = Insight.query.all()
     published_insights = [i for i in insights if i.status == 'published']
 
+    push_stats = get_push_token_stats()
+    active_7d = push_stats.get('active_7d', 0)
+
+    try:
+        pulse_c = cmt.pulse_daily_read(nba_stats, mlb_stats, {'mrr': mrr}, active_7d, total_users)
+        nba_c = cmt.nba_model_read(nba_stats)
+        mlb_c = cmt.mlb_model_read(mlb_stats)
+        rev_c = cmt.revenue_read({
+            'total_signups': total_users,
+            'total_paid': len(active_subs),
+            'founding_count': founding_count,
+            'trial_count': len(trial_users),
+        }, {'mrr': mrr, 'arr': arr})
+        commentary_data = {
+            'pulse': [{'type': pulse_c[0], 'label': pulse_c[1], 'text': pulse_c[2]}],
+            'nba': [{'type': nba_c[0], 'label': nba_c[1], 'text': nba_c[2]}],
+            'mlb': [{'type': mlb_c[0], 'label': mlb_c[1], 'text': mlb_c[2]}],
+            'revenue': [{'type': rev_c[0], 'label': rev_c[1], 'text': rev_c[2]}],
+        }
+    except Exception as e:
+        logging.error(f'Commentary error: {e}')
+        commentary_data = {}
+
     return jsonify({
         'revenue': {
             'mrr': mrr,
@@ -1057,7 +1083,8 @@ def command_center_data():
             'total': len(insights),
             'published': len(published_insights),
         },
-        'push': get_push_token_stats(),
+        'push': push_stats,
+        'commentary': commentary_data,
         'timestamp': now_et.strftime('%b %d, %Y · %-I:%M:%S %p EST'),
     })
 
