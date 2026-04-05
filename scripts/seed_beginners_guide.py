@@ -16,7 +16,7 @@ EXCERPT = (
 
 CONTENT = r"""## What Is SharpPicks?
 
-SharpPicks is a sports betting analytics app. It uses a mathematical model to identify games where it believes the betting market (the odds set by sportsbooks) has gotten the number wrong. When the model finds a big enough difference, it generates a **signal**: essentially a recommendation worth considering. It currently covers the NBA (with MLB in beta and WNBA coming soon).
+SharpPicks is a sports market intelligence platform. It uses a mathematical model to identify games where the betting market has gotten the number wrong. When the model finds a big enough difference, it generates a **signal**: essentially a recommendation worth considering. It currently covers the NBA (with MLB in beta and WNBA coming soon).
 
 > A low density number means the model is being very selective.
 

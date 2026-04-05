@@ -965,12 +965,338 @@ const SCREENSHOT_META = {
   insights: { name: 'Insights Tab', desc: 'Sharp Journal articles organized by category', src: '/journal/insights.png' },
 };
 
+// ── Beginner's Guide: structured content data ──
+
+const BG_SIGNAL_BANNER_DEFS = [
+  { term: 'Market Intelligence Banner', desc: 'A quick summary of today\'s landscape. For example, "9 games \u00B7 6 edges \u00B7 2 signals \u00B7 22% density" means: out of 9 games today, the model found 6 where it disagrees with the market, but only 2 were strong enough to become official signals. The 22% density tells you how active the model is.' },
+  { term: 'Outcome Resolved', desc: 'Shows the result of the most recent signal. The pick, the final score, and a brief mindset note to encourage disciplined thinking. No revenge bets. Next signal when the edge is there.' },
+];
+
+const BG_SIGNAL_CARD_DEFS = [
+  { term: 'Team Name + Number', desc: 'The "-8.5" is the spread. The model is recommending OKC, but they need to win by more than 8.5 points for the bet to pay out.' },
+  { term: '+12.8% (Edge)', desc: 'The percentage difference between where the market has the line and where the model thinks it should be. Bigger = better.' },
+  { term: '-105 (Price / Odds)', desc: 'The cost of the bet. At -105, you\'d risk $105 to win $100. Negative numbers mean you lay more than you win; positive numbers mean you win more than you lay.' },
+  { term: 'Countdown', desc: 'Time remaining until game start.' },
+  { term: 'Market vs. Model', desc: 'The market line is -8.5 (what sportsbooks are offering). The model line is -13 (what the model thinks it should be). That gap is where the value comes from.' },
+  { term: 'Tier', desc: 'Signal strength. "STR" stands for Strong, the model\'s highest conviction level.', termExtra: 'STR' },
+  { term: 'Size (2u)', desc: 'The recommended bet size in units. A "unit" is your standard bet amount (e.g., if your unit is $50, a 2u bet means $100). Keeps things relative to your bankroll.' },
+  { term: 'Edge Bar (+12.8pp)', desc: 'A visual showing the edge in percentage points.' },
+  { term: 'Value Line ("Playable down to -12")', desc: 'If the spread moves, this tells you the worst number at which the bet is still worth taking. Past -12, the value is gone.' },
+  { term: 'Flat 2u vs. Kelly 5u', desc: 'Two bet-sizing strategies. "Flat" means bet the same amount every time (conservative). "Kelly" is a mathematical formula that sizes bets proportional to the edge: higher confidence = bigger bet. The Kelly suggestion of 5u is more aggressive.' },
+  { term: 'Tracking Button', desc: 'Tap to log the bet in your personal tracker so you can follow your results.' },
+];
+
+const BG_SEASON_DEFS = [
+  { term: 'Win Rate', desc: 'Percentage of signals that won.' },
+  { term: 'ROI', desc: 'Return on Investment. For every dollar wagered following the signals, you\'d be up by that percentage.' },
+  { term: 'Avg CLV', desc: 'Closing Line Value. On average, how much the line moved in the model\'s direction after the signal was released. This is a key indicator that the model is finding real value.' },
+  { term: 'Signals', desc: 'Total number of picks made this season.' },
+  { term: 'Units', desc: 'Net profit in units across all signals.' },
+  { term: 'Signal History', desc: 'A scrollable list of every past signal with win/loss results, units gained or lost, and CLV for each.' },
+];
+
+const BG_MARKET_DEFS = [
+  { term: 'MEI (Market Efficiency Index)', desc: 'A score from 0-100 measuring how much opportunity the model sees across all games today. Higher = more opportunities.' },
+  { term: 'Regime', desc: 'The model\'s assessment of the current market environment. "Active" means it\'s finding a moderate number of opportunities.' },
+  { term: 'Top Edge', desc: 'The best single edge found today.' },
+  { term: 'Signal Breakdown', desc: 'How many edges exist at each confidence level. Only the strong and sometimes moderate ones become official signals.' },
+  { term: 'Line Movement', desc: 'Shows how the betting line for each game has moved, and whether it\'s moving toward or away from the model\'s prediction. "Toward model" is a positive validation sign.' },
+  { term: 'Model vs. Market Delta', desc: 'A ranked list showing the gap between the model\'s line and the market line for every game. The biggest gaps are at the top: these are where the model sees the most disagreement with the market.' },
+];
+
+const BG_RESULTS_DEFS = [
+  { term: 'Your Results', desc: 'Shows your actual profit/loss if you\'ve been tracking bets.' },
+  { term: 'ROI', desc: 'Your personal return on investment across tracked bets.' },
+  { term: 'Equity Curve', desc: 'The line chart showing your profit over time, ideally trending upward.' },
+  { term: 'Track a Bet', desc: 'Button to manually log a bet you\'ve placed.' },
+  { term: 'Discipline Score', desc: 'Grades how selectively you\'re following signals. A lower selectivity rate means you\'re being more choosy than the industry average, which the app considers a good thing. It awards a letter grade.' },
+  { term: 'Picks Followed vs. Passed', desc: 'How many signals you acted on versus skipped.' },
+  { term: 'Capital Preserved', desc: 'An estimate of money saved by passing on picks that turned out to be losing bets.' },
+  { term: 'Active / Settled Bets', desc: 'Active bets are still in play; settled bets show final outcomes with profit or loss in green (+) or red (-).' },
+];
+
+const BG_GLOSSARY = [
+  { term: 'Spread', desc: 'The point margin set by sportsbooks. If a team is -8.5, they need to win by 9 or more for the bet to pay out. If they\'re +8.5, they can lose by up to 8 and you still win.' },
+  { term: 'Edge', desc: 'The percentage difference between the market line and the model\'s projected line. A larger edge indicates more perceived value in a bet.' },
+  { term: 'Unit (u)', desc: 'A standardized bet size relative to your bankroll. If your unit is $50, then 2u = $100. Using units keeps your betting proportional regardless of bankroll size.' },
+  { term: 'CLV (Closing Line Value)', desc: 'How much the line moved in the model\'s direction between when the signal was released and when the game started. Consistently beating the closing line is the strongest indicator of long-term profitability.' },
+  { term: 'ROI (Return on Investment)', desc: 'Your net profit as a percentage of total amount wagered. An ROI of +10% means for every $100 wagered, you\'ve profited $10.' },
+  { term: 'Kelly Criterion', desc: 'A mathematical formula that determines optimal bet size based on edge and odds. Higher edge = larger suggested bet. More aggressive than flat betting but maximizes long-term growth when used correctly.' },
+  { term: 'Signal Density', desc: 'The percentage of today\'s games that generated official signals. Lower density means the model is being more selective, which is typically a good thing.' },
+];
+
+function BeginnersGuideContent({ insight, fadeIn, onNavigate }) {
+  const [openGlossary, setOpenGlossary] = useState(new Set());
+
+  const toggle = useCallback((idx) => {
+    setOpenGlossary(prev => {
+      const s = new Set(prev);
+      s.has(idx) ? s.delete(idx) : s.add(idx);
+      return s;
+    });
+  }, []);
+
+  const mono = "'JetBrains Mono', var(--font-mono), monospace";
+  const serif = "'IBM Plex Serif', var(--font-serif), serif";
+  const sans = "'Inter', var(--font-sans), sans-serif";
+  const c = { primary: '#E8E9EC', secondary: '#8B8F9A', tertiary: '#5A5E6A', green: '#5A9E72', greenDim: 'rgba(90,158,114,0.12)', card: '#141820', border: '#1E2330', light: '#0F1219', subtle: '#252B3A' };
+  const anim = (d) => fadeIn ? `insightsFadeUp 0.4s ease ${d}s both` : 'none';
+  const rule = { border: 'none', height: '1px', background: c.border, margin: '40px 0' };
+
+  const SectionDiv = ({ num, title }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', margin: '48px 0 32px' }}>
+      <div style={{ flexShrink: 0, width: '32px', height: '32px', borderRadius: '8px', background: c.greenDim, border: '1px solid rgba(90,158,114,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: mono, fontSize: '13px', fontWeight: 600, color: c.green }}>{num}</div>
+      <div style={{ fontFamily: mono, fontSize: '20px', fontWeight: 600, color: c.primary, letterSpacing: '-0.3px' }}>{title}</div>
+    </div>
+  );
+
+  const SubLabel = ({ label, desc }) => (
+    <>
+      <span style={{ display: 'block', fontFamily: mono, fontSize: '10px', fontWeight: 500, letterSpacing: '2px', textTransform: 'uppercase', color: c.green, marginBottom: '4px' }}>{label}</span>
+      <span style={{ display: 'block', fontFamily: sans, fontSize: '12px', color: c.tertiary, marginBottom: '28px' }}>{desc}</span>
+    </>
+  );
+
+  const DefGrid = ({ items }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', margin: '24px 0 32px' }}>
+      {items.map((d, i) => (
+        <div key={i} style={{ padding: '16px 18px', background: c.card, border: `1px solid ${c.border}`, borderRadius: '8px' }}>
+          <div style={{ fontFamily: mono, fontSize: '13px', fontWeight: 600, color: c.primary, marginBottom: '6px' }}>{d.term}</div>
+          <div style={{ fontFamily: sans, fontSize: '13px', lineHeight: 1.65, color: c.secondary }}>{d.desc}</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const InlineDefs = ({ items }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', margin: '20px 0 28px' }}>
+      {items.map((d, i) => (
+        <div key={i} style={{ paddingLeft: '14px', borderLeft: `2px solid ${c.border}` }}>
+          <div style={{ fontFamily: mono, fontSize: '13px', fontWeight: 600, color: c.primary, marginBottom: '4px' }}>
+            {d.term}
+            {d.termExtra && <span style={{ color: c.green, fontSize: '11px', fontWeight: 500, marginLeft: '6px' }}>({d.termExtra})</span>}
+          </div>
+          <div style={{ fontFamily: sans, fontSize: '13px', lineHeight: 1.6, color: c.secondary }}>{d.desc}</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <>
+      {/* Hero */}
+      <div style={{ padding: '40px 0 36px', borderBottom: `1px solid ${c.border}`, marginBottom: '40px', animation: anim(0.05) }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          <span style={{ fontFamily: mono, fontSize: '10px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', padding: '5px 12px', borderRadius: '3px', background: c.greenDim, color: c.green, border: '1px solid rgba(90,158,114,0.2)' }}>Start Here</span>
+          <span style={{ fontFamily: mono, fontSize: '10px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', padding: '5px 12px', borderRadius: '3px', background: 'rgba(139,143,154,0.08)', color: c.secondary, border: `1px solid ${c.border}` }}>How It Works</span>
+        </div>
+        <h1 style={{ fontFamily: serif, fontSize: '32px', fontWeight: 600, lineHeight: 1.2, color: c.primary, marginBottom: '16px', letterSpacing: '-0.3px' }}>
+          A Beginner's Guide to SharpPicks
+        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontFamily: mono, fontSize: '11px', color: c.tertiary, letterSpacing: '0.5px' }}>
+          <span>5 min read</span>
+          <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: c.tertiary }} />
+          <span>Evan Cole</span>
+          <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: c.tertiary }} />
+          <span>{formatDate(insight.publish_date)}</span>
+        </div>
+      </div>
+
+      <div style={{ animation: anim(0.12) }}>
+        {/* Lead */}
+        <p style={{ fontFamily: serif, fontSize: '18px', lineHeight: 1.8, color: c.secondary, marginBottom: '32px', fontStyle: 'italic' }}>
+          SharpPicks is a sports market intelligence platform. It uses a mathematical model to identify games where the betting market has gotten the number wrong. When the model finds a big enough difference, it generates a signal: essentially a recommendation worth considering.
+        </p>
+        <p style={{ fontFamily: serif, fontSize: '16px', lineHeight: 1.8, color: c.secondary, marginBottom: '24px' }}>
+          It currently covers the NBA, with MLB in beta and WNBA coming soon.
+        </p>
+        <div style={{ borderLeft: `2px solid ${c.green}`, padding: '16px 20px', margin: '28px 0', background: 'rgba(90,158,114,0.06)', borderRadius: '0 6px 6px 0' }}>
+          <p style={{ fontFamily: serif, fontSize: '14px', lineHeight: 1.7, color: c.secondary, fontStyle: 'italic', margin: 0 }}>
+            A low density number means the model is being very selective. That selectivity is the entire point.
+          </p>
+        </div>
+
+        <div style={rule} />
+
+        {/* ── Section 1: Signals ── */}
+        <SectionDiv num={1} title="Signals" />
+        <SubLabel label="Home Screen" desc="Your daily dashboard with live signal, edge %, and tier badge" />
+        <p style={{ fontFamily: serif, fontSize: '16px', lineHeight: 1.8, color: c.secondary, marginBottom: '24px' }}>
+          This is your daily dashboard. Everything you need for today's action lives here.
+        </p>
+        <DefGrid items={BG_SIGNAL_BANNER_DEFS} />
+        <p style={{ fontFamily: serif, fontSize: '16px', lineHeight: 1.8, color: c.secondary, marginBottom: '24px' }}>
+          <strong style={{ color: c.primary, fontWeight: 600 }}>Daily Top Signal</strong> is the main event -- the app's strongest pick for the day. Here's what each piece means:
+        </p>
+
+        {/* Signal Card Mock */}
+        <div style={{ margin: '28px 0', borderRadius: '12px', overflow: 'hidden', border: `1px solid ${c.border}`, background: c.light }}>
+          <div style={{ padding: '10px 16px', background: c.card, borderBottom: `1px solid ${c.border}`, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: c.green }} />
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: c.tertiary }} />
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: c.tertiary }} />
+            <span style={{ marginLeft: 'auto', fontFamily: mono, fontSize: '10px', letterSpacing: '1px', color: c.tertiary, textTransform: 'uppercase' }}>Daily Top Signal</span>
+          </div>
+          <div style={{ padding: '20px 16px' }}>
+            <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '8px', padding: '16px' }}>
+              <div style={{ fontFamily: mono, fontSize: '9px', letterSpacing: '1.5px', textTransform: 'uppercase', color: c.tertiary, marginBottom: '8px' }}>NBA -- New York Knicks vs Oklahoma City Thunder</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
+                <span style={{ fontFamily: serif, fontSize: '18px', fontWeight: 600, color: c.primary }}>Oklahoma City Thunder -8.5</span>
+                <span style={{ fontFamily: mono, fontSize: '14px', fontWeight: 600, color: c.green }}>+12.8%</span>
+              </div>
+              <div style={{ fontFamily: mono, fontSize: '10px', color: c.tertiary, marginBottom: '4px' }}>Mar 29 · 7:40 PM ET · -105</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginTop: '12px' }}>
+                {[
+                  { label: 'Market', value: '-8.5' },
+                  { label: 'Model', value: '-13' },
+                  { label: 'Tier', value: 'STR', color: c.green },
+                  { label: 'Size', value: '2u' },
+                ].map((cell, i) => (
+                  <div key={i} style={{ textAlign: 'center', padding: '8px 0', background: 'rgba(255,255,255,0.02)', borderRadius: '4px' }}>
+                    <div style={{ fontFamily: mono, fontSize: '8px', letterSpacing: '1px', textTransform: 'uppercase', color: c.tertiary, marginBottom: '4px' }}>{cell.label}</div>
+                    <div style={{ fontFamily: mono, fontSize: '14px', fontWeight: 600, color: cell.color || c.primary }}>{cell.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Edge Bar */}
+            <div style={{ margin: '16px 0', padding: '12px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: mono, fontSize: '10px', color: c.tertiary }}>
+                <span>EDGE</span>
+                <span style={{ color: c.green, fontWeight: 600 }}>+12.8pp</span>
+              </div>
+              <div style={{ height: '4px', background: c.subtle, borderRadius: '2px', position: 'relative', margin: '8px 0' }}>
+                <div style={{ height: '100%', background: `linear-gradient(90deg, ${c.green}, #7BC493)`, borderRadius: '2px', width: '65%' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: mono, fontSize: '10px', color: c.tertiary }}>
+                <span>VALUE -8.5</span>
+                <span>-12</span>
+              </div>
+              <div style={{ fontFamily: mono, fontSize: '9px', color: c.tertiary, marginTop: '4px' }}>Playable down to -12</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: mono, fontSize: '10px', color: c.tertiary, marginTop: '8px' }}>
+              <span>FLAT <span style={{ color: c.primary }}>2u</span></span>
+              <span>KELLY <span style={{ color: c.primary }}>5u</span></span>
+            </div>
+          </div>
+        </div>
+
+        <InlineDefs items={BG_SIGNAL_CARD_DEFS} />
+
+        <p style={{ fontFamily: serif, fontSize: '16px', lineHeight: 1.8, color: c.secondary, marginBottom: '24px' }}>
+          <strong style={{ color: c.primary, fontWeight: 600 }}>Season Performance</strong> is a snapshot of the model's overall track record:
+        </p>
+        <InlineDefs items={BG_SEASON_DEFS} />
+
+        <div style={rule} />
+
+        {/* ── Section 2: Market ── */}
+        <SectionDiv num={2} title="Market" />
+        <SubLabel label="Market Tab" desc="Full slate overview with MEI score, edges, and model vs. market deltas" />
+        <p style={{ fontFamily: serif, fontSize: '16px', lineHeight: 1.8, color: c.secondary, marginBottom: '24px' }}>
+          A deeper look at the day's full slate of games.
+        </p>
+        <DefGrid items={BG_MARKET_DEFS} />
+
+        <div style={rule} />
+
+        {/* ── Section 3: Results ── */}
+        <SectionDiv num={3} title="Results" />
+        <SubLabel label="Results Tab" desc="Personal scoreboard with equity curve and discipline score" />
+        <p style={{ fontFamily: serif, fontSize: '16px', lineHeight: 1.8, color: c.secondary, marginBottom: '24px' }}>
+          Your personal scoreboard.
+        </p>
+        <DefGrid items={BG_RESULTS_DEFS} />
+
+        <div style={rule} />
+
+        {/* ── Section 4: Insights ── */}
+        <SectionDiv num={4} title="Insights (Sharp Journal)" />
+        <SubLabel label="Insights Tab" desc="Sharp Journal articles organized by category" />
+        <p style={{ fontFamily: serif, fontSize: '16px', lineHeight: 1.8, color: c.secondary, marginBottom: '24px' }}>
+          Educational content and daily commentary from the founder. Articles are tagged by category: <strong style={{ color: c.primary, fontWeight: 600 }}>Philosophy</strong> (the thinking behind the approach), <strong style={{ color: c.primary, fontWeight: 600 }}>Discipline</strong> (mindset and bankroll management), <strong style={{ color: c.primary, fontWeight: 600 }}>Market Notes</strong> (daily analysis), and <strong style={{ color: c.primary, fontWeight: 600 }}>How It Works</strong> (technical explanations).
+        </p>
+
+        <div style={rule} />
+
+        {/* ── Section 5: Account ── */}
+        <SectionDiv num={5} title="Account" />
+        <p style={{ fontFamily: serif, fontSize: '16px', lineHeight: 1.8, color: c.secondary, marginBottom: '24px' }}>
+          Your personal settings and subscription management.
+        </p>
+
+        <div style={rule} />
+
+        {/* ── Key Concepts Glossary ── */}
+        <h2 style={{ fontFamily: mono, fontSize: '18px', fontWeight: 600, color: c.primary, marginBottom: '24px' }}>Key Concepts Glossary</h2>
+        <div style={{ margin: '24px 0' }}>
+          {BG_GLOSSARY.map((g, i) => {
+            const isOpen = openGlossary.has(i);
+            return (
+              <div key={i} style={{ border: `1px solid ${c.border}`, borderRadius: '8px', marginBottom: '8px', overflow: 'hidden' }}>
+                <button
+                  onClick={() => toggle(i)}
+                  style={{
+                    width: '100%', background: c.card, border: 'none',
+                    padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    cursor: 'pointer', fontFamily: mono, fontSize: '13px', fontWeight: 500,
+                    color: c.green, letterSpacing: '0.3px',
+                  }}
+                >
+                  <span>{g.term}</span>
+                  <span style={{ fontSize: '12px', color: c.tertiary, transition: 'transform 0.2s ease', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                </button>
+                {isOpen && (
+                  <div style={{ padding: '0 18px 16px', background: c.card }}>
+                    <p style={{ fontFamily: sans, fontSize: '13px', lineHeight: 1.65, color: c.secondary, margin: 0 }}>{g.desc}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Why This Matters */}
+        <div style={{
+          margin: '40px 0', padding: '24px',
+          background: `linear-gradient(135deg, ${c.card}, ${c.light})`,
+          border: `1px solid ${c.border}`, borderRadius: '10px',
+          position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: `linear-gradient(90deg, ${c.green}, transparent)` }} />
+          <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', color: c.tertiary, marginBottom: '12px' }}>Why This Matters</div>
+          <p style={{ fontFamily: serif, fontSize: '15px', lineHeight: 1.7, color: c.secondary, margin: 0 }}>
+            Understanding how the system works builds the trust needed to follow it through variance.
+          </p>
+        </div>
+
+        {/* Footer CTA */}
+        <div style={{
+          marginTop: '56px', padding: '32px 24px',
+          background: c.card, border: `1px solid ${c.border}`, borderRadius: '12px',
+          textAlign: 'center',
+          cursor: 'pointer',
+        }}
+          onClick={() => onNavigate && onNavigate('today')}
+        >
+          <div style={{ fontFamily: mono, fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', color: c.tertiary, marginBottom: '12px' }}>Next Steps</div>
+          <h3 style={{ fontFamily: serif, fontSize: '20px', fontWeight: 600, color: c.primary, marginBottom: '8px' }}>Head to the Signals tab</h3>
+          <p style={{ fontFamily: sans, fontSize: '13px', color: c.secondary, lineHeight: 1.6, margin: 0 }}>
+            See what the model is finding today. If there's a signal, read it. If there isn't, that's discipline working.
+          </p>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNavigate }) {
   const scrollRef = useRef(null);
   const contentRef = useRef(null);
   const [fadeIn, setFadeIn] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const isMarketNote = insight.category === 'market_notes' && /^market-note-\d{4}/.test(insight.slug);
+  const isBeginnersGuide = insight.slug === 'beginners-guide';
 
   useEffect(() => {
     setFadeIn(false);
@@ -1051,11 +1377,13 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
         }}>Sharp Journal</span>
       </div>
 
-      <div ref={contentRef} style={{ padding: '0 20px 60px' }}>
+      <div ref={contentRef} style={{ padding: '0 20px 60px', maxWidth: isBeginnersGuide ? '680px' : undefined, margin: isBeginnersGuide ? '0 auto' : undefined }}>
         {isMarketNote ? (
           <div style={{ paddingTop: '24px' }}>
           <MarketNoteContent insight={insight} />
           </div>
+        ) : isBeginnersGuide ? (
+          <BeginnersGuideContent insight={insight} fadeIn={fadeIn} onNavigate={onNavigate} />
         ) : (
           <>
             {/* Hero */}
@@ -1283,7 +1611,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
         )}
 
         {/* CTA link */}
-        {!isMarketNote && insight.cta_text && (
+        {!isMarketNote && !isBeginnersGuide && insight.cta_text && (
           <a
             onClick={() => onNavigate && onNavigate(insight.cta_target || 'performance', 'model')}
             style={{
@@ -1313,7 +1641,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
           </a>
         )}
 
-        {!isMarketNote && !insight.cta_text && (
+        {!isMarketNote && !isBeginnersGuide && !insight.cta_text && (
           <a
             onClick={() => onNavigate && onNavigate('performance', 'model')}
             style={{
