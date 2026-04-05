@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiGet } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import { trackEvent } from '../../utils/eventTracker';
