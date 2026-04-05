@@ -93,7 +93,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,16,24,.92
 .strip-tag{width:100%;text-align:center;font-family:var(--sf);font-style:italic;font-size:13px;color:var(--t4);margin-top:8px}
 
 /* ─── INSIDE THE APP (screenshot tabs) ─── */
-.app-sec{padding:80px 24px;max-width:960px;margin:0 auto}
+.app-sec{padding:56px 24px;max-width:960px;margin:0 auto}
 .app-sec .sec-eye{font-family:var(--mn);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--grn);margin-bottom:14px;text-align:center}
 .app-sec h2{font-family:var(--sf);font-size:clamp(24px,4vw,38px);font-weight:500;line-height:1.2;margin-bottom:8px;text-align:center}
 .app-sec .sub{font-size:14px;color:var(--t3);margin-bottom:36px;text-align:center}
@@ -107,24 +107,26 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,16,24,.92
 .app-panel .screenshot{max-width:340px;width:100%;border-radius:16px;border:1px solid var(--bdr);margin:0 auto;display:block}
 
 /* ─── SECTIONS ─── */
-.sec{padding:80px 24px;max-width:960px;margin:0 auto}
+.sec{padding:56px 24px;max-width:960px;margin:0 auto}
 .sec-eye{font-family:var(--mn);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--grn);margin-bottom:14px}
 .sec h2{font-family:var(--sf);font-size:clamp(24px,4vw,38px);font-weight:500;line-height:1.2;margin-bottom:8px}
-.sec .sub{font-size:14px;color:var(--t3);margin-bottom:48px}
+.sec .sub{font-size:14px;color:var(--t3);margin-bottom:32px}
 .sec .desc{font-size:15px;line-height:1.7;color:var(--t2);max-width:600px;margin-bottom:48px}
 
 /* ─── FEATURES GRID ─── */
 .fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
 .fc{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:28px 24px;transition:border-color .25s}
 .fc:hover{border-color:var(--bdr2)}
+.fc:nth-child(1),.fc:nth-child(2){border-left:2px solid var(--grn)}
+.fc:nth-child(3),.fc:nth-child(4){border-left:2px solid rgba(90,158,114,.6)}
+.fc:nth-child(5),.fc:nth-child(6){border-left:2px solid rgba(90,158,114,.35)}
 .fc h3{font-family:var(--sf);font-size:16px;font-weight:500;margin-bottom:10px;line-height:1.35}
 .fc p{font-size:13px;line-height:1.65;color:var(--t2)}
 
 /* ─── HOW IT WORKS ─── */
-.steps{display:flex;flex-direction:column;max-width:600px;position:relative}
-.steps::before{content:'';position:absolute;left:15px;top:36px;bottom:36px;width:1px;background:var(--bdr)}
-.step{display:flex;gap:24px;padding:24px 0}
-.step-i{width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-family:var(--mn);font-size:14px;color:var(--grn);background:var(--bg);border:1px solid var(--bdr);border-radius:50%;flex-shrink:0;z-index:1}
+.steps{display:flex;flex-direction:column;max-width:600px;gap:28px}
+.step{display:flex;gap:16px;align-items:flex-start}
+.step-i{width:32px;height:32px;border-radius:8px;background:var(--grn-d);border:1px solid rgba(90,158,114,.2);display:flex;align-items:center;justify-content:center;font-family:var(--mn);font-size:13px;font-weight:600;color:var(--grn);flex-shrink:0;margin-top:2px}
 .step h3{font-family:var(--sf);font-size:16px;font-weight:500;margin-bottom:6px}
 .step p{font-size:13px;line-height:1.65;color:var(--t2)}
 
@@ -160,6 +162,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,16,24,.92
 .pi .v.g{color:var(--grn)}
 .pi .l{font-family:var(--mn);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
 .pi .sub-l{font-family:var(--mn);font-size:9px;color:var(--t4);margin-top:2px}
+.pi.hl{border-color:rgba(90,158,114,.3);background:rgba(90,158,114,.04)}
+.pi.hl .v{color:var(--grn)}
 
 /* ─── MID CTA ─── */
 .mid-cta{text-align:center;padding:40px 24px;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr)}
@@ -187,7 +191,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,16,24,.92
 .pfine{font-family:var(--mn);font-size:10px;color:var(--t4);text-align:center;max-width:600px;margin:12px auto 0;line-height:1.6}
 
 /* ─── BOTTOM CTA ─── */
-.bot{text-align:center;padding:80px 24px;border-top:1px solid var(--bdr)}
+.bot{text-align:center;padding:56px 24px;border-top:1px solid var(--bdr)}
 .bot h2{font-family:var(--sf);font-size:clamp(24px,5vw,36px);font-weight:500;margin-bottom:8px}
 .bot .sub{font-size:14px;color:var(--t3);margin-bottom:28px}
 .bot-motto{font-family:var(--sf);font-style:italic;font-size:13px;color:var(--t4);margin-top:36px;line-height:1.8}
@@ -200,6 +204,34 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
 .f-l{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
 .f-l a{font-family:var(--mn);font-size:11px;color:var(--t4);text-decoration:none;transition:color .2s}
 .f-l a:hover{color:var(--t2)}
+
+/* ─── APP BADGES ─── */
+.app-badges{display:flex;justify-content:center;gap:14px;align-items:flex-start;margin-top:20px;flex-wrap:wrap}
+.badge-link{display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none}
+.store-badge{height:40px;border-radius:6px;border:1px solid var(--bdr);padding:8px 14px;display:flex;align-items:center;gap:8px;background:var(--card);transition:border-color .15s}
+.store-badge:hover{border-color:var(--bdr2)}
+.store-badge svg{width:18px;height:18px;flex-shrink:0}
+.store-badge-text{text-align:left}
+.store-badge-sm{font-size:8px;color:var(--t4);line-height:1;display:block}
+.store-badge-lg{font-size:12px;font-weight:600;color:var(--t1);line-height:1.2;display:block}
+.store-badge.dim{opacity:.35;filter:grayscale(.5)}
+.coming-label{font-family:var(--mn);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--t4)}
+
+/* ─── JOURNAL CARDS ─── */
+.journal-cards{display:flex;flex-direction:column;gap:12px;max-width:600px}
+.jc{display:block;padding:18px;background:var(--card);border:1px solid var(--bdr);border-radius:10px;text-decoration:none;transition:border-color .15s}
+.jc:hover{border-color:var(--bdr2)}
+.jc-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.jc-tag{font-family:var(--mn);font-size:8px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:3px 7px;border-radius:4px}
+.jc-time{font-family:var(--mn);font-size:10px;color:var(--t4)}
+.jc-title{font-family:var(--sf);font-size:15px;font-weight:600;color:var(--t1);line-height:1.35;margin-bottom:6px}
+.jc-ex{font-size:12px;color:var(--t3);line-height:1.5}
+.jc-link{display:inline-flex;align-items:center;gap:4px;font-family:var(--mn);font-size:11px;font-weight:500;color:var(--grn);text-decoration:none;margin-top:16px}
+
+/* ─── X FOLLOW ─── */
+.x-sec{text-align:center;padding:32px 24px;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);background:var(--card)}
+.x-btn{display:inline-flex;align-items:center;gap:10px;padding:12px 24px;border:1px solid var(--bdr);border-radius:8px;background:var(--bg);text-decoration:none;transition:border-color .15s}
+.x-btn:hover{border-color:var(--bdr2)}
 
 /* ─── ANIM ─── */
 @keyframes fu{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
@@ -241,7 +273,7 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
   <div class="pills">
     <span class="pill on">NBA</span>
     <span class="pill on">MLB</span>
-    <span class="pill soon">WNBA — Coming Soon</span>
+    <span class="pill soon">WNBA -- Coming Soon</span>
   </div>
   <div class="h-cta">
     <div class="cta-row">
@@ -249,6 +281,21 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
       <a href="#how" class="cta-sec">See How It Works</a>
     </div>
     <div class="cta-note">$99/yr after trial · cancel anytime</div>
+  </div>
+  <div class="app-badges">
+    <a class="badge-link" href="https://play.google.com/store/apps/details?id=com.sharppicksllc.app" target="_blank" rel="noopener">
+      <div class="store-badge">
+        <svg viewBox="0 0 24 24" fill="var(--grn)"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-1.899l2.834 1.64a1 1 0 0 1 0 1.736l-2.834 1.64-2.532-2.532 2.532-2.484zM5.864 3.458L16.8 9.791l-2.302 2.302-8.635-8.635z"/></svg>
+        <div class="store-badge-text"><span class="store-badge-sm">GET IT ON</span><span class="store-badge-lg">Google Play</span></div>
+      </div>
+    </a>
+    <a class="badge-link" href="#">
+      <div class="store-badge dim">
+        <svg viewBox="0 0 24 24" fill="var(--t2)"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        <div class="store-badge-text"><span class="store-badge-sm">Download on the</span><span class="store-badge-lg">App Store</span></div>
+      </div>
+      <span class="coming-label">Coming Soon</span>
+    </a>
   </div>
   <div class="proof">
     <div class="proof-item"><div class="proof-v" id="p-rec">—</div><div class="proof-l">Record</div></div>
@@ -285,7 +332,7 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
     <img class="screenshot" src="/images/screenshot-signal-detail.png" alt="Signal detail screen" loading="lazy">
   </div>
   <div class="app-panel" id="tab-market">
-    <p class="desc">MEI score, regime classification, top edge, signal density bar, line movement tracking, and a market signal narrative — before tip-off.</p>
+    <p class="desc">MEI score, regime classification, top edge, signal density bar, line movement tracking, and a market signal narrative -- before tip-off.</p>
     <img class="screenshot" src="/images/screenshot-market.png" alt="Market intelligence screen" loading="lazy">
   </div>
   <div class="app-panel" id="tab-board">
@@ -297,7 +344,7 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
     <img class="screenshot" src="/images/screenshot-results.png" alt="Results tracker screen" loading="lazy">
   </div>
   <div class="app-panel" id="tab-journal">
-    <p class="desc">Signal intelligence notes, market analysis, and discipline essays. Content like "The Model Doesn't Watch the Game" — designed to make you a sharper bettor.</p>
+    <p class="desc">Signal intelligence notes, market analysis, and discipline essays. Content like "The Model Doesn't Watch the Game" -- designed to make you a sharper bettor.</p>
     <img class="screenshot" src="/images/screenshot-signals.png" alt="Sharp Journal screen" loading="lazy">
   </div>
 </section>
@@ -309,10 +356,10 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
   <p class="sub">Not a picks service. An intelligence platform.</p>
   <div class="fg">
     <div class="fc"><h3>Daily market brief before you bet</h3><p>MEI score, regime classification, top edge, signal density, and a market narrative. Line movement tracking shows which lines are moving toward or away from the model.</p></div>
-    <div class="fc"><h3>Every game analyzed — signals and passes</h3><p>The full market board with edge sorting. See which games qualified, which were passed, spread vs model line, moneyline, and the quant analysis behind each. Filter by upcoming, final, or passed.</p></div>
-    <div class="fc"><h3>Track your bets. See your whole portfolio.</h3><p>Log wagers at actual stakes, track results, and see your total P/L with an equity curve over time. ROI, record, units — all calculated from your real bets.</p></div>
+    <div class="fc"><h3>Every game analyzed -- signals and passes</h3><p>The full market board with edge sorting. See which games qualified, which were passed, spread vs model line, moneyline, and the quant analysis behind each. Filter by upcoming, final, or passed.</p></div>
+    <div class="fc"><h3>Track your bets. See your whole portfolio.</h3><p>Log wagers at actual stakes, track results, and see your total P/L with an equity curve over time. ROI, record, units -- all calculated from your real bets.</p></div>
     <div class="fc"><h3>The bets you don't take are tracked too</h3><p>Selectivity rate, picks followed vs passed, and a discipline grade. The only platform that measures restraint and compares you to the industry average.</p></div>
-    <div class="fc"><h3>Sharp Journal — market notes and philosophy</h3><p>Signal intelligence notes, market analysis, and discipline essays. Content like "The Model Doesn't Watch the Game" designed to make you a sharper bettor by understanding when not to bet.</p></div>
+    <div class="fc"><h3>Sharp Journal -- market notes and philosophy</h3><p>Signal intelligence notes, market analysis, and discipline essays. Content like "The Model Doesn't Watch the Game" designed to make you a sharper bettor by understanding when not to bet.</p></div>
     <div class="fc"><h3>Live tracking and a permanent public record</h3><p>Watch your picks play out in real time. Every result graded against the closing line, published publicly, and permanently on record. Zero picks deleted.</p></div>
   </div>
 </section>
@@ -329,9 +376,9 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
   <h2>From market scan to signal.</h2>
   <p class="sub">Three steps. One decision. Or none at all.</p>
   <div class="steps">
-    <div class="step"><div class="step-i">◎</div><div><h3>Market Intelligence</h3><p>SharpPicks scans every game across multiple sportsbooks to detect pricing discrepancies and measure market efficiency in real time.</p></div></div>
-    <div class="step"><div class="step-i">△</div><div><h3>Quantitative Analysis</h3><p>Each game is evaluated using four ML models, probability gaps, and market signals. 56 features per game, no narratives.</p></div></div>
-    <div class="step"><div class="step-i">◇</div><div><h3>Discipline Filter</h3><p>Only positions with 3.5%+ edge survive. Most games are passed. No edge, no pick.</p></div></div>
+    <div class="step"><div class="step-i">1</div><div><h3>Market Intelligence</h3><p>SharpPicks scans every game across multiple sportsbooks to detect pricing discrepancies and measure market efficiency in real time.</p></div></div>
+    <div class="step"><div class="step-i">2</div><div><h3>Quantitative Analysis</h3><p>Each game is evaluated using four ML models, probability gaps, and market signals. 56 features per game, no narratives.</p></div></div>
+    <div class="step"><div class="step-i">3</div><div><h3>Discipline Filter</h3><p>Only positions with 3.5%+ edge survive. Most games are passed. No edge, no pick.</p></div></div>
   </div>
 </section>
 
@@ -365,7 +412,7 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
 <section class="sec rv">
   <div class="sec-eye">Your Results + Behavioral Edge</div>
   <h2>Track your bets. Measure your discipline.</h2>
-  <p class="desc">Your portfolio, your equity curve, your discipline score — all in one view.</p>
+  <p class="desc">Your portfolio, your equity curve, your discipline score -- all in one view.</p>
   <div class="beh">
     <div class="beh-stats">
       <div class="bs"><div class="v g">+$612</div><div class="l">Portfolio P/L</div></div>
@@ -387,9 +434,43 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
     <div class="pi"><div class="v" id="perf-picks">—</div><div class="l">Total Picks</div><div class="sub-l">All time</div></div>
     <div class="pi"><div class="v g" id="perf-sel">—</div><div class="l">Selectivity</div><div class="sub-l">Signal rate</div></div>
     <div class="pi"><div class="v" id="perf-pass">—</div><div class="l">Total Passes</div><div class="sub-l">Games skipped</div></div>
-    <div class="pi"><div class="v">0</div><div class="l">Picks Deleted</div><div class="sub-l">Full transparency</div></div>
+    <div class="pi hl"><div class="v">0</div><div class="l">Picks Deleted</div><div class="sub-l">Full transparency</div></div>
   </div>
 </section>
+
+<!-- ═══ FROM THE JOURNAL ═══ -->
+<section class="sec rv">
+  <div class="sec-eye">From the Sharp Journal</div>
+  <h2>Model thinking. Market discipline.</h2>
+  <p class="sub">Signal intelligence notes, process philosophy, and daily market reads. Free to read.</p>
+  <div class="journal-cards">
+    <a class="jc" href="/blog/why-we-pass/" style="border-left:2px solid #D4A054">
+      <div class="jc-meta"><span class="jc-tag" style="background:rgba(212,160,84,.12);color:#D4A054">Philosophy</span><span class="jc-time">4 min</span></div>
+      <div class="jc-title">Why We Pass More Than We Play</div>
+      <div class="jc-ex">The betting industry runs on volume. SharpPicks publishes a signal on roughly 30% of available slates. The other 70%, the system is silent.</div>
+    </a>
+    <a class="jc" href="/blog/cost-of-bad-bet/" style="border-left:2px solid #D4A054">
+      <div class="jc-meta"><span class="jc-tag" style="background:rgba(212,160,84,.12);color:#D4A054">Philosophy</span><span class="jc-time">4 min</span></div>
+      <div class="jc-title">The Cost of a Bad Bet You Didn't Need to Make</div>
+      <div class="jc-ex">Every unnecessary bet has a cost beyond the dollars lost. It erodes discipline, distorts your record, and moves you further from profitability.</div>
+    </a>
+    <a class="jc" href="/blog/between-lines-phone/" style="border-left:2px solid #6B8EC2">
+      <div class="jc-meta"><span class="jc-tag" style="background:rgba(107,142,194,.12);color:#6B8EC2">How It Works</span><span class="jc-time">5 min</span></div>
+      <div class="jc-title">What Happens Between the Lines and Your Phone</div>
+      <div class="jc-ex">A technical walkthrough of the four-model ensemble pipeline, 56 features, and the edge threshold.</div>
+    </a>
+  </div>
+  <div style="text-align:center;margin-top:20px"><a class="jc-link" href="/blog/">Read all articles &#8594;</a></div>
+</section>
+
+<!-- ═══ X FOLLOW ═══ -->
+<div class="x-sec rv">
+  <a href="https://x.com/sharppicksapp" target="_blank" rel="noopener" class="x-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--t1)"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    <span style="font-family:var(--mn);font-size:11px;font-weight:500;color:var(--t2)">Follow @sharppicksapp</span>
+  </a>
+  <p style="font-size:11px;color:var(--t4);margin-top:10px">Daily market reads, signal results, and model notes.</p>
+</div>
 
 <!-- ═══ PRICING ═══ -->
 <section class="sec rv" id="pricing">
@@ -415,10 +496,10 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
       <ul class="pc-f">
         <li>Daily market brief with MEI score</li>
         <li>Full pick details, edge %, side, line</li>
-        <li>Full market board — signals + passes</li>
+        <li>Full market board -- signals + passes</li>
         <li>Bet tracking & portfolio P/L</li>
         <li>Discipline score & behavioral insights</li>
-        <li>Sharp Journal — market notes & philosophy</li>
+        <li>Sharp Journal -- market notes & philosophy</li>
         <li>Live tracking & real-time alerts</li>
       </ul>
       <a href="https://app.sharppicks.ai/signup?plan=monthly" class="pc-cta ol">Start 14-Day Free Trial</a>
@@ -448,6 +529,21 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
     <a href="https://app.sharppicks.ai/signup?plan=annual" class="cta-big">Start Free Trial</a>
     <a href="https://app.sharppicks.ai/signup?plan=free" class="cta-sec">Sign Up Free</a>
   </div>
+  <div class="app-badges" style="margin-top:24px">
+    <a class="badge-link" href="https://play.google.com/store/apps/details?id=com.sharppicksllc.app" target="_blank" rel="noopener">
+      <div class="store-badge">
+        <svg viewBox="0 0 24 24" fill="var(--grn)"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-1.899l2.834 1.64a1 1 0 0 1 0 1.736l-2.834 1.64-2.532-2.532 2.532-2.484zM5.864 3.458L16.8 9.791l-2.302 2.302-8.635-8.635z"/></svg>
+        <div class="store-badge-text"><span class="store-badge-sm">GET IT ON</span><span class="store-badge-lg">Google Play</span></div>
+      </div>
+    </a>
+    <a class="badge-link" href="#">
+      <div class="store-badge dim">
+        <svg viewBox="0 0 24 24" fill="var(--t2)"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        <div class="store-badge-text"><span class="store-badge-sm">Download on the</span><span class="store-badge-lg">App Store</span></div>
+      </div>
+      <span class="coming-label">Coming Soon</span>
+    </a>
+  </div>
   <div class="bot-motto">Beat the market, not the scoreboard.<br>One pick beats five.<br>No edge, no pick.</div>
 </section>
 
@@ -456,6 +552,7 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
   <div class="f-tg">Market intelligence for sports.</div>
   <div class="f-d">SharpPicks provides sports analytics and model-based insights only. Not financial advice. Not a sportsbook.</div>
   <div class="f-l">
+    <a href="/blog/">Journal</a>
     <a href="/support.html">Support</a>
     <a href="/guide.html">Guide</a>
     <a href="/privacy.html">Privacy</a>

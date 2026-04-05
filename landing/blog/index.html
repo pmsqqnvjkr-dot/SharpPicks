@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" style="background:#0c1018;color-scheme:dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0c1018">
+<title>Sharp Journal - Sports Market Intelligence Notes | SharpPicks</title>
+<meta name="description" content="Market intelligence notes, model thinking, and discipline philosophy from SharpPicks. Learn how the model works, why we pass more than we play, and what separates process from habit.">
+<link rel="canonical" href="https://sharppicks.ai/blog">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sharppicks.ai/blog">
+<meta property="og:title" content="Sharp Journal - Sports Market Intelligence Notes">
+<meta property="og:description" content="Market intelligence notes, model thinking, and discipline philosophy from SharpPicks.">
+<meta property="og:site_name" content="SharpPicks">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@SharpPicksApp">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#0c1018;--s1:#111520;--s2:#161B27;--bdr:#1e2a3a;--bdr2:#2a3654;--grn:#5A9E72;--grn-d:rgba(90,158,114,.10);--t1:#e8eaf0;--t2:#9098b3;--t3:#616a8a;--t4:#4a5274;--t5:#333845;--sf:'IBM Plex Serif',Georgia,serif;--sn:'Inter',-apple-system,sans-serif;--mn:'JetBrains Mono','Menlo',monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+html{background:#0c1018!important}
+body{font-family:var(--sn);background:#0c1018!important;color:var(--t1);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+nav{position:sticky;top:0;z-index:100;background:rgba(12,16,24,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--bdr);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(16px,4vw,48px)}
+.logo{font-family:var(--mn);font-size:13px;font-weight:700;letter-spacing:3px;color:var(--t1);text-decoration:none;white-space:nowrap}
+.logo span{color:var(--grn)}
+.nav-r{display:flex;gap:8px;align-items:center}
+.b{font-family:var(--mn);font-size:11px;letter-spacing:.04em;padding:8px 18px;border-radius:6px;text-decoration:none;cursor:pointer;transition:all .2s;border:none;display:inline-block;white-space:nowrap}
+.b.gh{color:var(--t2);background:none;border:1px solid var(--bdr)}
+.b.gr{color:#fff;background:var(--grn)}
+
+.wrap{max-width:680px;margin:0 auto;padding:0 20px}
+
+.page-hdr{padding:32px 0 24px;border-bottom:1px solid var(--bdr)}
+.page-label{font-family:var(--mn);font-size:9px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--grn);margin-bottom:12px}
+.page-title{font-family:var(--sf);font-size:26px;font-weight:600;color:var(--t1);line-height:1.25;margin-bottom:8px}
+.page-sub{font-size:13px;color:var(--t3);line-height:1.6}
+
+.filters{display:flex;gap:6px;padding:16px 0;border-bottom:1px solid var(--bdr);overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.pill{font-family:var(--sn);font-size:12px;font-weight:500;padding:6px 14px;border-radius:20px;border:none;cursor:pointer;transition:all .15s;background:var(--s1);color:var(--t3);white-space:nowrap}
+.pill:hover{background:var(--s2);color:var(--t2)}
+.pill.active{background:var(--grn-d);color:var(--grn)}
+
+.pinned{display:flex;align-items:center;gap:14px;padding:14px 16px;background:rgba(90,158,114,.04);border:1px solid rgba(90,158,114,.12);border-radius:10px;margin:20px 0;text-decoration:none;transition:border-color .15s}
+.pinned:hover{border-color:rgba(90,158,114,.25)}
+.pin-icon{width:36px;height:36px;border-radius:8px;background:var(--grn-d);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pin-body{flex:1;min-width:0}
+.pin-label{font-family:var(--mn);font-size:8px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--grn);margin-bottom:2px}
+.pin-title{font-family:var(--sf);font-size:14px;font-weight:500;color:var(--t1)}
+.pin-meta{font-family:var(--mn);font-size:9px;color:var(--t4);margin-top:2px}
+.pin-arrow{font-size:14px;color:var(--t4);flex-shrink:0}
+
+.featured{display:block;text-decoration:none;background:var(--s1);border:1px solid var(--bdr);border-radius:12px;padding:24px 20px;margin:20px 0;position:relative;overflow:hidden;transition:border-color .15s}
+.featured::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--grn),transparent 70%);opacity:.4}
+.featured:hover{border-color:rgba(90,158,114,.25)}
+.feat-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cat-tag{font-family:var(--mn);font-size:8px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:3px 7px;border-radius:4px}
+.cat-time{font-family:var(--mn);font-size:10px;color:var(--t4)}
+.feat-title{font-family:var(--sf);font-size:20px;font-weight:600;color:var(--t1);line-height:1.3;margin-bottom:8px}
+.feat-ex{font-size:13px;color:var(--t3);line-height:1.6;margin-bottom:12px}
+.feat-foot{display:flex;justify-content:space-between;align-items:center}
+.feat-date{font-family:var(--mn);font-size:10px;color:var(--t4)}
+.feat-read{font-family:var(--mn);font-size:11px;font-weight:500;color:var(--grn)}
+
+.list-hdr{display:flex;align-items:center;gap:12px;margin:28px 0 0;font-family:var(--mn);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--t4)}
+.list-hdr::after{content:'';flex:1;height:1px;background:var(--bdr)}
+
+.article-row{display:block;text-decoration:none;padding:18px 0;border-bottom:1px solid rgba(26,31,46,.5)}
+.article-row:last-child{border-bottom:none}
+.row-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.row-title{font-family:var(--sf);font-size:16px;font-weight:600;color:var(--t1);line-height:1.35;margin-bottom:4px}
+.row-ex{font-size:12px;color:var(--t3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.row-foot{font-family:var(--mn);font-size:10px;color:var(--t4);margin-top:6px}
+
+.cta-box{background:var(--s1);border:1px solid var(--bdr);border-radius:10px;padding:24px 20px;text-align:center;margin:32px 0;position:relative;overflow:hidden}
+.cta-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--grn),transparent 70%)}
+.cta-title{font-family:var(--sf);font-size:17px;font-weight:600;color:var(--t1);margin-bottom:8px}
+.cta-body{font-size:12px;color:var(--t3);margin-bottom:16px;line-height:1.5}
+.cta-btn{display:inline-block;font-family:var(--mn);font-size:11px;font-weight:600;padding:10px 24px;border-radius:6px;background:var(--grn);color:#0A0D14;text-decoration:none}
+
+footer{text-align:center;padding:40px 20px;border-top:1px solid var(--bdr)}
+.f-links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
+.f-links a{font-family:var(--mn);font-size:11px;color:var(--t4);text-decoration:none}
+.f-copy{font-family:var(--mn);font-size:9px;color:var(--t5)}
+
+.cat-ph{background:rgba(212,160,84,.12);color:#D4A054}
+.cat-mn{background:rgba(90,158,114,.15);color:#5A9E72}
+.cat-ds{background:rgba(139,111,112,.12);color:#8B6F70}
+.cat-hw{background:rgba(107,142,194,.12);color:#6B8EC2}
+.cat-sh{background:rgba(90,158,114,.15);color:#5A9E72}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">SHARP<span> || </span>PICKS</a>
+  <div class="nav-r">
+    <a href="https://app.sharppicks.ai/login" class="b gh">Sign In</a>
+    <a href="https://app.sharppicks.ai/signup?plan=annual" class="b gr">Start Free Trial</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="page-hdr">
+    <div class="page-label">Sharp Journal</div>
+    <h1 class="page-title">Market notes, model thinking, and discipline.</h1>
+    <p class="page-sub">Signal intelligence from SharpPicks. Published when there's something worth saying.</p>
+  </div>
+
+  <div class="filters">
+    <button class="pill active" data-cat="all">All</button>
+    <button class="pill" data-cat="philosophy">Philosophy</button>
+    <button class="pill" data-cat="discipline">Discipline</button>
+    <button class="pill" data-cat="market_notes">Market Notes</button>
+    <button class="pill" data-cat="how_it_works">How It Works</button>
+  </div>
+
+  <a class="pinned" href="/blog/beginners-guide/">
+    <div class="pin-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A9E72" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    </div>
+    <div class="pin-body">
+      <div class="pin-label">Start Here</div>
+      <div class="pin-title">A beginner's guide to SharpPicks</div>
+      <div class="pin-meta">5 min read &middot; Evan Cole</div>
+    </div>
+    <span class="pin-arrow">&rsaquo;</span>
+  </a>
+
+  <a class="featured" href="/blog/why-we-pass/" data-cat="philosophy">
+    <div class="feat-meta">
+      <span class="cat-tag cat-ph">Philosophy</span>
+      <span class="cat-time">Sharp Journal &middot; 4 min</span>
+    </div>
+    <div class="feat-title">Why We Pass More Than We Play</div>
+    <div class="feat-ex">The betting industry runs on volume. SharpPicks publishes a signal on roughly 30% of available slates. The other 70%, the system is silent. That silence is the product.</div>
+    <div class="feat-foot">
+      <span class="feat-date">Apr 2, 2026</span>
+      <span class="feat-read">Read &rarr;</span>
+    </div>
+  </a>
+
+  <div class="list-hdr">Recent</div>
+
+  <a class="article-row" href="/blog/cost-of-bad-bet/" data-cat="philosophy">
+    <div class="row-top"><span class="cat-tag cat-ph">PH</span><span class="cat-time">4 min</span></div>
+    <div class="row-title">The Cost of a Bad Bet You Didn't Need to Make</div>
+    <div class="row-ex">Every unnecessary bet has a cost beyond the dollars lost. It erodes discipline, distorts your record, and moves you further from profitability.</div>
+    <div class="row-foot">Apr 2, 2026 &middot; Evan Cole</div>
+  </a>
+
+  <a class="article-row" href="/blog/between-lines-phone/" data-cat="how_it_works">
+    <div class="row-top"><span class="cat-tag cat-hw">HW</span><span class="cat-time">5 min</span></div>
+    <div class="row-title">What Happens Between the Lines and Your Phone</div>
+    <div class="row-ex">Every morning, SharpPicks wakes up before you do. By the time you check the app, the system has already pulled fresh lines from six major sportsbooks and run them through a four-model ensemble.</div>
+    <div class="row-foot">Mar 31, 2026 &middot; Evan Cole</div>
+  </a>
+
+  <div class="cta-box">
+    <div class="cta-title">See signals in real time.</div>
+    <div class="cta-body">Create a free account and watch the model work. Upgrade to Pro for full signal details, bet tracking, and discipline scoring.</div>
+    <a class="cta-btn" href="https://app.sharppicks.ai/signup?plan=annual">Start Free Trial</a>
+  </div>
+</div>
+
+<footer>
+  <div class="f-links">
+    <a href="/">Home</a>
+    <a href="/blog/">Journal</a>
+    <a href="/support.html">Support</a>
+    <a href="/privacy.html">Privacy</a>
+    <a href="/terms.html">Terms</a>
+    <a href="/disclaimer.html">Disclaimer</a>
+  </div>
+  <div class="f-copy">&copy; 2026 SharpPicks LLC. All rights reserved.</div>
+</footer>
+
+<script>
+document.querySelectorAll('.filters .pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.filters .pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    const cat = pill.dataset.cat;
+    document.querySelectorAll('[data-cat]').forEach(el => {
+      if (el.classList.contains('pill')) return;
+      el.style.display = (cat === 'all' || el.dataset.cat === cat) ? '' : 'none';
+    });
+  });
+});
+</script>
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "f8cfdbdd30364ac19e8ded4ed2451efd"}'></script>
+</body>
+</html>
