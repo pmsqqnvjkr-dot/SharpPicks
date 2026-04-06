@@ -67,4 +67,28 @@
     <priority>0.7</priority>
   </url>
 
+  <url>
+    <loc>https://app.sharppicks.ai/edges/nba-today</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://app.sharppicks.ai/edges/mlb-today</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://app.sharppicks.ai/tools/clv-calculator</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://app.sharppicks.ai/tools/edge-calculator</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
 </urlset>

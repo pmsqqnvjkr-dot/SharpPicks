@@ -561,6 +561,9 @@ app.register_blueprint(cards_bp, url_prefix='/api/cards')
 from routes.card_routes import weekly_card_bp
 app.register_blueprint(weekly_card_bp)
 
+from content_engine import content_bp
+app.register_blueprint(content_bp)
+
 @app.route('/admin')
 def admin_dashboard():
     from flask import render_template

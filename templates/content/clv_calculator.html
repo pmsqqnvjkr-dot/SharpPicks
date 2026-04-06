@@ -1,0 +1,77 @@
+{% extends "content/base.html" %}
+{% block head_extra %}
+<script type="application/ld+json">{{ jsonld_sw|safe }}</script>
+<script type="application/ld+json">{{ jsonld_faq|safe }}</script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="breadcrumb"><a href="/edges/nba-today">Tools</a> / CLV Calculator</div>
+  <h1 class="page-h1">CLV Calculator</h1>
+  <div class="page-meta"><span>Measure Your Closing Line Value</span></div>
+</div>
+
+<p class="body-text">Closing Line Value (CLV) measures whether you got a better price than the market's final number. Consistently beating the closing line is the strongest predictor of long-term betting profitability.</p>
+
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px">
+  <div style="margin-bottom:14px">
+    <label style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t4);display:block;margin-bottom:5px">Your Bet Line</label>
+    <input type="number" id="clv-bet-line" step="0.5" placeholder="-3.0" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:14px;outline:none">
+  </div>
+  <div style="margin-bottom:14px">
+    <label style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t4);display:block;margin-bottom:5px">Closing Line</label>
+    <input type="number" id="clv-close-line" step="0.5" placeholder="-4.5" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:14px;outline:none">
+  </div>
+  <button onclick="calcCLV()" style="width:100%;padding:11px;border-radius:6px;background:var(--green);color:#0A0D14;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;border:none;cursor:pointer;letter-spacing:0.5px">Calculate CLV</button>
+</div>
+
+<div id="clv-result" style="display:none;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px;text-align:center">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--t4);margin-bottom:6px">Closing Line Value</div>
+  <div id="clv-value" style="font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;margin-bottom:6px"></div>
+  <div id="clv-meaning" style="font-family:'Inter',sans-serif;font-size:12px;color:var(--t3);line-height:1.5"></div>
+</div>
+
+<div class="sh">How CLV Works</div>
+<p class="body-text">If you bet a spread of -3 and the line closes at -4.5, you captured 1.5 points of CLV. That means you got a better number than the final market price. Over time, positive CLV correlates strongly with profit.</p>
+<p class="body-text">SharpPicks measures CLV on every signal to validate model accuracy. A high CLV+ rate confirms the model is identifying real mispricing, not noise.</p>
+
+<div class="sh">Common Questions</div>
+<div class="faq">
+  <div class="faq-item"><div class="faq-q">What is Closing Line Value?</div><div class="faq-a">CLV measures whether you got a better price than the closing line. Consistently positive CLV indicates long-term edge.</div></div>
+  <div class="faq-item"><div class="faq-q">How do I calculate CLV?</div><div class="faq-a">Compare the line you bet at versus the closing line. If you bet -3 and it closed at -4.5, you captured 1.5 points of CLV.</div></div>
+  <div class="faq-item"><div class="faq-q">Why does CLV matter?</div><div class="faq-a">CLV is the strongest predictor of long-term betting profitability. Bettors who consistently beat the closing line tend to profit over time.</div></div>
+</div>
+
+<div class="il">
+  <a class="il-link" href="/blog/what-is-closing-line-value"><span class="il-label">Learn</span>What Is Closing Line Value?<span class="il-arrow">&#8250;</span></a>
+  <a class="il-link" href="/tools/edge-calculator"><span class="il-label">Tool</span>Edge Calculator<span class="il-arrow">&#8250;</span></a>
+</div>
+
+<div class="cta">
+  <h3>{{ cta.headline }}</h3>
+  <p>{{ cta.body }}</p>
+  <a class="cta-btn" href="https://sharppicks.ai/#pricing">Start Free Trial</a>
+</div>
+
+<script>
+function calcCLV(){
+  var bet=parseFloat(document.getElementById('clv-bet-line').value);
+  var close=parseFloat(document.getElementById('clv-close-line').value);
+  if(isNaN(bet)||isNaN(close))return;
+  var clv=close-bet;
+  var el=document.getElementById('clv-result');
+  el.style.display='block';
+  var vEl=document.getElementById('clv-value');
+  var mEl=document.getElementById('clv-meaning');
+  var sign=clv>0?'+':'';
+  vEl.textContent=sign+clv.toFixed(1)+' pts';
+  vEl.style.color=clv>0?'var(--green)':clv<0?'var(--red)':'var(--t2)';
+  if(clv>0){
+    mEl.textContent='Positive CLV. You got a better number than the closing line. This is a strong indicator of long-term edge.';
+  }else if(clv<0){
+    mEl.textContent='Negative CLV. The line moved in your favor after you bet, meaning you got a worse number than the close.';
+  }else{
+    mEl.textContent='Zero CLV. Your bet line matched the closing line exactly. No line value captured.';
+  }
+}
+</script>
+{% endblock %}

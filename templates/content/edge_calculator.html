@@ -1,0 +1,85 @@
+{% extends "content/base.html" %}
+{% block head_extra %}
+<script type="application/ld+json">{{ jsonld_sw|safe }}</script>
+<script type="application/ld+json">{{ jsonld_faq|safe }}</script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="breadcrumb"><a href="/edges/nba-today">Tools</a> / Edge Calculator</div>
+  <h1 class="page-h1">Edge Calculator</h1>
+  <div class="page-meta"><span>Find Your Betting Edge</span></div>
+</div>
+
+<p class="body-text">A betting edge is the difference between your estimated true probability and the implied probability from market odds. A positive edge means you have expected profit on the bet over time.</p>
+
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px">
+  <div style="margin-bottom:14px">
+    <label style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t4);display:block;margin-bottom:5px">Your Estimated Probability (%)</label>
+    <input type="number" id="edge-prob" step="1" min="1" max="99" placeholder="55" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:14px;outline:none">
+  </div>
+  <div style="margin-bottom:14px">
+    <label style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t4);display:block;margin-bottom:5px">Market Odds (American)</label>
+    <input type="number" id="edge-odds" step="1" placeholder="-110" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:14px;outline:none">
+  </div>
+  <button onclick="calcEdge()" style="width:100%;padding:11px;border-radius:6px;background:var(--green);color:#0A0D14;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;border:none;cursor:pointer;letter-spacing:0.5px">Calculate Edge</button>
+</div>
+
+<div id="edge-result" style="display:none;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px">
+  <div class="sg c3" style="margin-bottom:12px">
+    <div class="sc"><div class="sc-label">Edge</div><div class="sc-val" id="edge-value"></div></div>
+    <div class="sc"><div class="sc-label">Implied Prob</div><div class="sc-val" id="edge-implied" style="color:var(--t2)"></div></div>
+    <div class="sc"><div class="sc-label">Threshold</div><div class="sc-val" id="edge-threshold"></div></div>
+  </div>
+  <div id="edge-meaning" style="font-family:'Inter',sans-serif;font-size:12px;color:var(--t3);line-height:1.5;text-align:center"></div>
+</div>
+
+<div class="sh">How Edge Works</div>
+<p class="body-text">Edge = Your Probability - Implied Probability. At -110 odds, the implied probability is about 52.4%. If you estimate the true probability at 57%, your edge is roughly 4.6%.</p>
+<p class="body-text">SharpPicks requires at least a <strong>3.5% edge</strong> before publishing a signal. This threshold filters out noise and ensures only meaningful mispricing is acted on.</p>
+
+<div class="sh">Common Questions</div>
+<div class="faq">
+  <div class="faq-item"><div class="faq-q">What is a betting edge?</div><div class="faq-a">A betting edge is the difference between your estimated true probability and the implied probability from market odds. A positive edge means you have an expected profit.</div></div>
+  <div class="faq-item"><div class="faq-q">What is the 3.5% threshold?</div><div class="faq-a">SharpPicks requires at least a 3.5% edge before publishing a signal. This threshold filters out noise and ensures only meaningful mispricing is acted on.</div></div>
+  <div class="faq-item"><div class="faq-q">How do I estimate true probability?</div><div class="faq-a">True probability is estimated using statistical models that account for team strength, matchup factors, injuries, and other variables. SharpPicks uses an ensemble of four models.</div></div>
+</div>
+
+<div class="il">
+  <a class="il-link" href="/blog/sports-betting-edge-explained"><span class="il-label">Learn</span>What Is a Betting Edge?<span class="il-arrow">&#8250;</span></a>
+  <a class="il-link" href="/tools/clv-calculator"><span class="il-label">Tool</span>CLV Calculator<span class="il-arrow">&#8250;</span></a>
+</div>
+
+<div class="cta">
+  <h3>{{ cta.headline }}</h3>
+  <p>{{ cta.body }}</p>
+  <a class="cta-btn" href="https://sharppicks.ai/#pricing">Start Free Trial</a>
+</div>
+
+<script>
+function calcEdge(){
+  var prob=parseFloat(document.getElementById('edge-prob').value);
+  var odds=parseFloat(document.getElementById('edge-odds').value);
+  if(isNaN(prob)||isNaN(odds)||prob<=0||prob>=100)return;
+  var implied;
+  if(odds<0){implied=Math.abs(odds)/(Math.abs(odds)+100)*100;}
+  else{implied=100/(odds+100)*100;}
+  var edge=prob-implied;
+  document.getElementById('edge-result').style.display='block';
+  var vEl=document.getElementById('edge-value');
+  vEl.textContent=(edge>0?'+':'')+edge.toFixed(1)+'%';
+  vEl.style.color=edge>=3.5?'var(--green)':edge>0?'var(--amber)':'var(--red)';
+  document.getElementById('edge-implied').textContent=implied.toFixed(1)+'%';
+  var tEl=document.getElementById('edge-threshold');
+  if(edge>=3.5){tEl.textContent='ABOVE';tEl.style.color='var(--green)';}
+  else{tEl.textContent='BELOW';tEl.style.color='var(--t4)';}
+  var mEl=document.getElementById('edge-meaning');
+  if(edge>=3.5){
+    mEl.textContent='This edge exceeds the 3.5% qualification threshold. It would be eligible for the SharpPicks signal layer (pending confidence and validation filters).';
+  }else if(edge>0){
+    mEl.textContent='Positive edge, but below the 3.5% qualification threshold. SharpPicks would log this as a pass rather than a signal.';
+  }else{
+    mEl.textContent='Negative or zero edge. The market odds reflect equal or better pricing than your probability estimate. No expected value.';
+  }
+}
+</script>
+{% endblock %}

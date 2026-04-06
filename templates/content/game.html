@@ -1,0 +1,91 @@
+{% extends "content/base.html" %}
+{% block head_extra %}
+<script type="application/ld+json">{{ jsonld_article|safe }}</script>
+<script type="application/ld+json">{{ jsonld_event|safe }}</script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="breadcrumb"><a href="/edges/{{ data.sport }}-today">{{ data.sport_upper }}</a> / {{ data.date_formatted }}</div>
+  <h1 class="page-h1">{{ game.away_name }} vs {{ game.home_name }} -- Model Analysis</h1>
+  <div class="page-meta">
+    <span>{{ data.date_formatted }}</span>
+    <span class="dot"></span>
+    {% if game.signal %}<span class="green">Signal Published</span>{% else %}<span style="color:var(--t4)">Passed</span>{% endif %}
+    <span class="dot"></span>
+    {% if game.indexable %}<span class="badge-idx">Indexed</span>{% else %}<span class="badge-noidx">Not Indexed</span>{% endif %}
+  </div>
+</div>
+
+{% for block in model_view_blocks %}
+<div class="narrative"><p>{{ block }}</p></div>
+{% endfor %}
+
+<div class="sh">Market vs Model</div>
+<div style="margin-bottom:16px">
+  <div class="dr"><span class="dr-l">Current Spread</span><span class="dr-v">{{ game.pick_label if game.market_line is not none else '--' }}</span></div>
+  {% if game.signal %}
+  <div class="dr"><span class="dr-l">Model Line</span><span class="dr-v green">{{ game.model_line }}</span></div>
+  {% endif %}
+  <div class="dr"><span class="dr-l">Edge Band</span><span class="dr-v{% if game.edge >= 4.5 %} green{% elif game.edge >= 3.0 %} amber{% endif %}">{{ game.edge_band }}</span></div>
+  <div class="dr"><span class="dr-l">Status</span><span class="dr-v{% if game.signal %} green{% endif %}">{% if game.signal %}Signal{% else %}Pass{% endif %}</span></div>
+</div>
+
+{% if game.edge > 0 %}
+<div class="eb">
+  <div class="eb-labels"><span>Market</span><span class="{% if game.edge >= 3.5 %}green{% else %}amber{% endif %}" style="font-weight:600">Edge: {{ game.edge_band }}</span></div>
+  <div class="eb-track"><div class="eb-fill" style="width:{{ [game.edge * 8, 100]|min }}%"></div></div>
+  <div class="eb-labels"><span>0%</span><span>3.5% threshold</span></div>
+</div>
+{% endif %}
+
+{% if game.signal and game.reasoning %}
+<div class="sh">Key Factors</div>
+<div class="factors">
+  {% for reason in game.reasoning[:5] %}
+  <div class="factor"><div class="factor-dot"></div>{{ reason }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not game.signal %}
+<div class="sh">Pass Reason</div>
+<div class="co"><p>{{ game.pass_reason }}{% if game.fail_reasons %}. {{ game.fail_reasons|join('. ') }}{% endif %}.</p></div>
+{% endif %}
+
+<div class="sh">Result</div>
+{% if result_data %}
+<div class="result">
+  <div class="result-badge {% if result_data.result == 'win' %}win{% elif result_data.result == 'loss' %}loss{% else %}pend{% endif %}">
+    {% if result_data.result == 'win' %}Covered{% elif result_data.result == 'loss' %}Did Not Cover{% else %}{{ result_data.result|title }}{% endif %}
+  </div>
+  {% if result_data.away_score is not none and result_data.home_score is not none %}
+  <div class="result-score">{{ game.away_team }} {{ result_data.away_score }} -- {{ game.home_team }} {{ result_data.home_score }} &middot; Final</div>
+  {% endif %}
+  {% if result_data.clv is not none %}
+  <div class="result-detail">CLV: {{ '%+.1f'|format(result_data.clv) }} points</div>
+  {% endif %}
+</div>
+{% if postgame_summary %}
+<p class="body-text" style="margin-top:12px">{{ postgame_summary }}</p>
+{% endif %}
+{% else %}
+<div class="result">
+  <div class="result-badge pend">Pending</div>
+  <div class="result-score">Game has not been graded</div>
+  <div class="result-detail">Result and CLV will be graded after the final score is posted.</div>
+</div>
+{% endif %}
+
+<div class="sh">Related</div>
+<div class="il">
+  {% for link in internal_links %}
+  <a class="il-link" href="{{ link.url }}"><span class="il-label">{{ link.label }}</span>{{ link.text }}<span class="il-arrow">&#8250;</span></a>
+  {% endfor %}
+</div>
+
+<div class="cta">
+  <h3>{{ cta.headline }}</h3>
+  <p>{{ cta.body }}</p>
+  <a class="cta-btn" href="https://sharppicks.ai/#pricing">Start Free Trial</a>
+</div>
+{% endblock %}

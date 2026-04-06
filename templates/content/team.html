@@ -1,0 +1,89 @@
+{% extends "content/base.html" %}
+{% block head_extra %}
+<script type="application/ld+json">{{ jsonld|safe }}</script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="breadcrumb"><a href="/edges/{{ team.sport }}-today">{{ team.sport_upper }}</a> / Team Insights</div>
+  <h1 class="page-h1">{{ team.name }}</h1>
+  <div class="page-meta">
+    <span>Betting Insights</span>
+    <span class="dot"></span>
+    <span>{{ team.sport_upper }} Season</span>
+  </div>
+</div>
+
+<div class="team-header">
+  <div class="team-icon">{{ team.abbr }}</div>
+  <div class="team-info">
+    <h2>{{ team.name }}</h2>
+    <div class="sub">{{ team.sport_upper }} &middot; {{ team.conf }}{% if team.div %} {{ team.div }}{% endif %}</div>
+  </div>
+</div>
+
+<div class="sg c4">
+  <div class="sc"><div class="sc-label">Signals</div><div class="sc-val green">{{ team.signals }}</div></div>
+  <div class="sc"><div class="sc-label">Record</div><div class="sc-val">{{ team.record }}</div></div>
+  <div class="sc"><div class="sc-label">Avg Edge</div><div class="sc-val green">{{ team.avg_edge_band }}</div></div>
+  <div class="sc"><div class="sc-label">CLV+</div><div class="sc-val{% if team.clv_rate >= 60 %} green{% elif team.clv_rate >= 40 %} amber{% elif team.clv_rate > 0 %} red{% endif %}">{{ team.clv_rate }}%</div></div>
+</div>
+
+{% if signal_freq %}
+<div class="narrative"><p>{{ signal_freq }}</p></div>
+{% endif %}
+
+{% if team.edges and team.edges|length > 2 %}
+<div class="sh">Edge Trend</div>
+<div class="spark">
+  {% set max_edge = team.edges|max if team.edges else 1 %}
+  <svg viewBox="0 0 300 50" preserveAspectRatio="none">
+    {% set points = [] %}
+    {% for e in team.edges %}
+    {% set x = (loop.index0 / ([team.edges|length - 1, 1]|max)) * 300 %}
+    {% set y = 50 - (e / ([max_edge, 1]|max)) * 45 %}
+    {% if points.append('%d,%d'|format(x, y)) %}{% endif %}
+    {% endfor %}
+    <polygon points="0,50 {{ points|join(' ') }} 300,50" fill="rgba(90,158,114,0.06)"/>
+    <polyline points="{{ points|join(' ') }}" fill="none" stroke="#5A9E72" stroke-width="1.5"/>
+    {% if points %}<circle cx="300" cy="{{ points[-1].split(',')[1] }}" r="2" fill="#5A9E72"/>{% endif %}
+  </svg>
+  <div class="spark-labels"><span>Season start</span><span style="color:var(--green)">Recent</span></div>
+</div>
+{% endif %}
+
+{% if team.recent_games %}
+<div class="sh">Recent Games</div>
+<div class="gt">
+  <div class="gr hdr"><span class="gr-m">Date / Opp</span><span class="gr-s">Spread</span><span class="gr-e">Edge</span><span class="gr-st">Result</span></div>
+  {% for g in team.recent_games %}
+  <div class="gr">
+    <span class="gr-m">
+      <a href="/{{ team.sport }}/{{ g.slug }}" style="color:inherit;text-decoration:none">{{ g.date_short }} {{ 'vs' if g.at_home else '@' }} {{ g.opponent }}</a>
+    </span>
+    <span class="gr-s">{{ g.spread if g.spread is not none else '--' }}</span>
+    <span class="gr-e{% if g.edge >= 4.5 %} green{% elif g.edge >= 3.0 %} amber{% endif %}">{{ g.edge_band }}</span>
+    <span class="gr-st"{% if g.result == 'win' %} style="color:var(--green)"{% elif g.result == 'loss' %} style="color:var(--red)"{% else %} style="color:var(--t4)"{% endif %}>
+      {% if g.is_signal %}{% if g.result == 'win' %}W{% elif g.result == 'loss' %}L{% else %}PEND{% endif %}{% else %}PASS{% endif %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if pricing_tendency %}
+<div class="narrative"><p>{{ pricing_tendency }}</p></div>
+{% endif %}
+
+<div class="sh">Related</div>
+<div class="il">
+  {% for link in internal_links %}
+  <a class="il-link" href="{{ link.url }}"><span class="il-label">{{ link.label }}</span>{{ link.text }}<span class="il-arrow">&#8250;</span></a>
+  {% endfor %}
+</div>
+
+<div class="cta">
+  <h3>{{ cta.headline }}</h3>
+  <p>{{ cta.body }}</p>
+  <a class="cta-btn" href="https://sharppicks.ai/#pricing">Start Free Trial</a>
+</div>
+{% endblock %}

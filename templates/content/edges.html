@@ -1,0 +1,55 @@
+{% extends "content/base.html" %}
+{% block content %}
+<div class="page-header">
+  <div class="breadcrumb"><a href="/market-report/{{ data.date }}?sport={{ data.sport }}">Edges</a> / {{ data.sport_upper }} Today</div>
+  <h1 class="page-h1">Today's {{ data.sport_upper }} Edges</h1>
+  <div class="page-meta">
+    <span>{{ data.date_formatted }}</span>
+    <span class="dot"></span>
+    <span>Updated {{ data.last_updated[:16] if data.last_updated else 'today' }}</span>
+  </div>
+</div>
+
+<p class="body-text">Edge rankings from the SharpPicks model. Only edges above <strong>3.5%</strong> qualify for signals. Games below threshold are shown for transparency in rounded bands.</p>
+
+<div class="sg c3">
+  <div class="sc"><div class="sc-label">Games</div><div class="sc-val">{{ data.games_analyzed }}</div></div>
+  <div class="sc"><div class="sc-label">Above 3.5%</div><div class="sc-val green">{{ data.edges_found }}</div></div>
+  <div class="sc"><div class="sc-label">Signals</div><div class="sc-val green">{{ data.signals_published }}</div></div>
+</div>
+
+<div class="gt">
+  <div class="gr hdr"><span class="gr-m">Matchup</span><span class="gr-s">Spread</span><span class="gr-e">Edge</span><span class="gr-st">Index</span></div>
+  {% for game in data.games %}
+  <div class="gr"{% if game.signal %} style="background:var(--g04);border-radius:4px"{% elif game.edge < 2 %} style="opacity:0.4"{% elif game.edge < 3 %} style="opacity:0.55"{% endif %}>
+    <span class="gr-m"{% if game.signal %} style="color:var(--t1);font-weight:600"{% endif %}>
+      <a href="/{{ data.sport }}/{{ game.slug }}" style="color:inherit;text-decoration:none">{{ game.matchup }}</a>
+    </span>
+    <span class="gr-s">{{ game.market_line if game.market_line is not none else '--' }}</span>
+    <span class="gr-e{% if game.edge >= 4.5 %} green{% elif game.edge >= 3.0 %} amber{% endif %}">{{ game.edge_band }}</span>
+    <span class="gr-st">{% if game.indexable %}<span class="badge-idx">IDX</span>{% else %}<span class="badge-noidx">NO</span>{% endif %}</span>
+  </div>
+  {% endfor %}
+</div>
+
+<div style="padding:7px 12px;background:var(--s1);border:1px solid var(--border);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t4);text-align:center;margin-bottom:16px">
+  IDX = game page indexed by search engines &middot; NO = noindex,follow (exists for linking only)
+</div>
+
+{% if data.sport == 'mlb' %}
+<div class="co"><p>MLB edge thresholds are higher (4.5%) than NBA (3.5%) due to higher variance in baseball outcomes. Early-season pass rates run higher as the model requires stable pitching data.</p></div>
+{% endif %}
+
+<div class="sh">Related</div>
+<div class="il">
+  {% for link in internal_links %}
+  <a class="il-link" href="{{ link.url }}"><span class="il-label">{{ link.label }}</span>{{ link.text }}<span class="il-arrow">&#8250;</span></a>
+  {% endfor %}
+</div>
+
+<div class="cta">
+  <h3>{{ cta.headline }}</h3>
+  <p>{{ cta.body }}</p>
+  <a class="cta-btn" href="https://sharppicks.ai/#pricing">Start Free Trial</a>
+</div>
+{% endblock %}

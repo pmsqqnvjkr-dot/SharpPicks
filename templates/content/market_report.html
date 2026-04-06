@@ -1,0 +1,109 @@
+{% extends "content/base.html" %}
+{% block head_extra %}
+<script type="application/ld+json">{{ jsonld_article|safe }}</script>
+<script type="application/ld+json">{{ jsonld_faq|safe }}</script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="breadcrumb"><a href="/edges/{{ data.sport }}-today">Market Reports</a> / {{ data.date_formatted }}</div>
+  <h1 class="page-h1">{{ data.sport_upper }} Market Report -- {{ data.date_formatted }}</h1>
+  <div class="page-meta">
+    <span>{{ data.games_analyzed }} games analyzed</span>
+    <span class="dot"></span>
+    <span>{{ data.signals_published }} signal{{ data.s_plural }}</span>
+    <span class="dot"></span>
+    <span>MEI: {{ data.mei_score }}</span>
+  </div>
+</div>
+
+{% for block in overview_blocks %}
+<div class="narrative"><p>{{ block }}</p></div>
+{% endfor %}
+
+<div class="sg c4">
+  <div class="sc"><div class="sc-label">MEI</div><div class="sc-val">{{ data.mei_score }}</div><div class="sc-sub">{{ data.regime }}</div></div>
+  <div class="sc"><div class="sc-label">Top Edge</div><div class="sc-val green">{{ data.top_edge }}</div><div class="sc-sub">{{ data.top_edge_game }}</div></div>
+  <div class="sc"><div class="sc-label">Density</div><div class="sc-val">{{ data.signal_density }}%</div><div class="sc-sub">{{ data.signals_published }} of {{ data.games_analyzed }}</div></div>
+  <div class="sc"><div class="sc-label">Passed</div><div class="sc-val">{{ data.games_passed }}</div><div class="sc-sub">of {{ data.games_analyzed }}</div></div>
+</div>
+
+{% if data.signal %}
+<div class="sh">Signal</div>
+<div class="sig">
+  <div class="sig-badge pub">Signal Published</div>
+  <div class="sig-team">{{ data.signal.pick }}</div>
+  <div class="sig-meta">{{ data.signal.matchup }}</div>
+  <div class="sig-grid">
+    <div class="sig-cell"><div class="sig-cell-l">Market</div><div class="sig-cell-v" style="color:var(--t1)">{{ data.signal.market_line }}</div></div>
+    <div class="sig-cell"><div class="sig-cell-l">Model</div><div class="sig-cell-v green">{{ data.signal.model_line }}</div></div>
+    <div class="sig-cell"><div class="sig-cell-l">Edge</div><div class="sig-cell-v green">{{ data.signal.edge_band }}</div></div>
+    <div class="sig-cell"><div class="sig-cell-l">Status</div><div class="sig-cell-v green">SIGNAL</div></div>
+  </div>
+</div>
+{% else %}
+<div class="sh">Signal</div>
+<div class="sig">
+  <div class="sig-badge none">No Signal Today</div>
+  <div class="sig-team">Full slate passed</div>
+  <div class="sig-meta">No game cleared the qualification filter on this slate</div>
+</div>
+{% endif %}
+
+{% for block in selectivity_blocks %}
+<div class="narrative"><p>{{ block }}</p></div>
+{% endfor %}
+
+<div class="sh">Game Breakdown</div>
+<div class="gt">
+  <div class="gr hdr"><span class="gr-m">Matchup</span><span class="gr-s">Spread</span><span class="gr-e">Edge</span><span class="gr-st">Status</span></div>
+  {% for game in data.games %}
+  <div class="gr"{% if game.edge < 2 %} style="opacity:0.5"{% elif game.edge < 3 %} style="opacity:0.65"{% endif %}>
+    <span class="gr-m"{% if game.signal %} style="color:var(--t1);font-weight:600"{% endif %}>{{ game.matchup }}</span>
+    <span class="gr-s">{{ game.market_line if game.market_line is not none else '--' }}</span>
+    <span class="gr-e{% if game.edge >= 4.5 %} green{% elif game.edge >= 3.0 %} amber{% endif %}">{{ game.edge_band }}</span>
+    <span class="gr-st">{% if game.signal %}<span class="badge-sig">SIGNAL</span>{% else %}<span class="badge-pass">PASS</span>{% endif %}</span>
+  </div>
+  {% endfor %}
+</div>
+
+{% if data.line_movement_games %}
+<div class="sh">Line Movement</div>
+<div style="margin-bottom:16px">
+  {% for lm in data.line_movement_games[:6] %}
+  <div class="lm">
+    <span class="lm-g">{{ lm.matchup }}</span>
+    <span class="lm-d {% if lm.direction == 'toward' %}lm-t{% elif lm.direction == 'away' %}lm-a{% else %}lm-n{% endif %}">
+      {% if lm.direction == 'toward' %}+{{ lm.movement }} toward model{% elif lm.direction == 'away' %}-{{ lm.movement }} away{% else %}No movement{% endif %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% for block in why_blocks %}
+<div class="narrative"><p>{{ block }}</p></div>
+{% endfor %}
+
+<div class="sh">Common Questions</div>
+<div class="faq">
+  {% for q in faq %}
+  <div class="faq-item">
+    <div class="faq-q">{{ q.question }}</div>
+    <div class="faq-a">{{ q.answer }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="sh">Related</div>
+<div class="il">
+  {% for link in internal_links %}
+  <a class="il-link" href="{{ link.url }}"><span class="il-label">{{ link.label }}</span>{{ link.text }}<span class="il-arrow">&#8250;</span></a>
+  {% endfor %}
+</div>
+
+<div class="cta">
+  <h3>{{ cta.headline }}</h3>
+  <p>{{ cta.body }}</p>
+  <a class="cta-btn" href="https://sharppicks.ai/#pricing">Start Free Trial</a>
+</div>
+{% endblock %}
