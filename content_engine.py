@@ -22,33 +22,9 @@ ET = ZoneInfo('America/New_York')
 
 content_bp = Blueprint('content', __name__)
 
-RESERVED_PATHS = {
-    'login', 'register', 'dashboard', 'signals', 'portfolio',
-    'insights', 'settings', 'api', 'admin', 'logout', 'verify',
-    'reset', 'auth', 'health', 'stripe', 'webhook', 'static',
-    'favicon.ico', 'robots.txt', 'sitemap.xml', 'manifest.json',
-    'service-worker.js', '.well-known', 'apple-app-site-association',
-    'command-center', 'onboarding', 'subscribe', 'account',
-    'terms', 'privacy', 'disclaimer', 'support', 'guide',
-    'app', 'download', 'blog', 'assets',
-}
-
 VALID_SPORTS = {'nba', 'mlb', 'nfl', 'wnba'}
 
 CANONICAL_DOMAIN = 'https://sharppicks.ai'
-
-
-CONTENT_ENGINE_API_PATHS = {'/api/cron/content-engine'}
-
-
-@content_bp.before_request
-def check_reserved_paths():
-    """Prevent content engine from handling main app routes."""
-    if request.path in CONTENT_ENGINE_API_PATHS:
-        return
-    first_segment = request.path.strip('/').split('/')[0].lower()
-    if first_segment in RESERVED_PATHS:
-        abort(404)
 
 # ---------------------------------------------------------------------------
 # Team name mapping
@@ -981,10 +957,12 @@ def edges_page(sport_slug):
 # Routes -- Team Page (registered before game page for route specificity)
 # ---------------------------------------------------------------------------
 
-@content_bp.route('/<sport>/<team_slug>-betting-insights')
-def team_page(sport, team_slug):
-    if sport.lower() not in VALID_SPORTS:
-        abort(404)
+@content_bp.route('/nba/<team_slug>-betting-insights')
+@content_bp.route('/mlb/<team_slug>-betting-insights')
+@content_bp.route('/nfl/<team_slug>-betting-insights')
+@content_bp.route('/wnba/<team_slug>-betting-insights')
+def team_page(team_slug):
+    sport = request.path.strip('/').split('/')[0]
     if sport not in get_live_sports():
         abort(404)
 
@@ -1066,12 +1044,12 @@ def team_page(sport, team_slug):
 # Routes -- Game Page (catch-all for /<sport>/<slug>, registered after team)
 # ---------------------------------------------------------------------------
 
-@content_bp.route('/<sport>/<slug>')
-def game_page(sport, slug):
-    if sport.lower() not in VALID_SPORTS:
-        abort(404)
-    if slug.lower() in RESERVED_PATHS:
-        abort(404)
+@content_bp.route('/nba/<slug>')
+@content_bp.route('/mlb/<slug>')
+@content_bp.route('/nfl/<slug>')
+@content_bp.route('/wnba/<slug>')
+def game_page(slug):
+    sport = request.path.strip('/').split('/')[0]
     if sport not in get_live_sports():
         abort(404)
 
