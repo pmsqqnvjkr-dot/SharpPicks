@@ -3,3 +3,13 @@ https://www.sharppicks.ai/* https://sharppicks.ai/:splat 301
 
 # App redirect
 /app https://app.sharppicks.ai 302
+
+# Content engine proxy (200 = proxy, URL stays as sharppicks.ai)
+/market-report/*      https://app.sharppicks.ai/market-report/:splat      200
+/passes/*             https://app.sharppicks.ai/passes/:splat             200
+/edges/*              https://app.sharppicks.ai/edges/:splat              200
+/nba/*                https://app.sharppicks.ai/nba/:splat                200
+/mlb/*                https://app.sharppicks.ai/mlb/:splat                200
+/tools/*              https://app.sharppicks.ai/tools/:splat              200
+/sitemap-content.xml  https://app.sharppicks.ai/sitemap-content.xml       200
+/api/cron/*           https://app.sharppicks.ai/api/cron/:splat           200

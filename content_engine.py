@@ -365,7 +365,7 @@ def build_jsonld_article(title, description, date_str, url):
         "publisher": {
             "@type": "Organization",
             "name": "SharpPicks",
-            "url": "https://app.sharppicks.ai"
+            "url": "https://sharppicks.ai"
         },
         "mainEntityOfPage": {"@type": "WebPage", "@id": url},
     })
@@ -706,7 +706,7 @@ def create_social_draft(report_data):
 def build_sitemap_urls(report_data=None, game_pages=None):
     """Build sitemap URL entries for content engine pages."""
     urls = []
-    base = 'https://app.sharppicks.ai'
+    base = 'https://sharppicks.ai'
 
     for sport in get_live_sports():
         urls.append({'loc': f"{base}/edges/{sport}-today", 'changefreq': 'daily', 'priority': '0.8'})
@@ -775,7 +775,7 @@ def market_report_page(date_str):
 
     title = f"{data['sport_upper']} Betting Market Report -- {data['date_formatted']} | SharpPicks"
     meta_desc = build_market_report_meta(data)
-    canonical = f"https://app.sharppicks.ai/market-report/{date_str}?sport={sport}"
+    canonical = f"https://sharppicks.ai/market-report/{date_str}?sport={sport}"
 
     jsonld_article = build_jsonld_article(title, meta_desc, date_str, canonical)
     jsonld_faq = build_jsonld_faq(MARKET_REPORT_FAQ)
@@ -854,7 +854,7 @@ def pass_report_page(date_str):
 
     title = f"Games the Model Passed On -- {data['date_formatted']} | SharpPicks"
     meta_desc = build_pass_report_meta(data)
-    canonical = f"https://app.sharppicks.ai/passes/{date_str}?sport={sport}"
+    canonical = f"https://sharppicks.ai/passes/{date_str}?sport={sport}"
     jsonld_article = build_jsonld_article(title, meta_desc, date_str, canonical)
 
     internal_links = [
@@ -919,7 +919,7 @@ def edges_page(sport_slug):
 
     title = f"Today's {data['sport_upper']} Betting Edges -- Model Analysis | SharpPicks"
     meta_desc = build_edges_meta(data)
-    canonical = f"https://app.sharppicks.ai/edges/{sport}-today"
+    canonical = f"https://sharppicks.ai/edges/{sport}-today"
 
     internal_links = [
         {'label': 'Report', 'text': f"Market Report -- {data['date_short']}", 'url': f"/market-report/{today}?sport={sport}"},
@@ -1000,7 +1000,7 @@ def team_page(sport, team_slug):
 
     title = f"{team_data['name']} Betting Insights and Analysis | SharpPicks"
     meta_desc = build_team_page_meta(team_data['name'], team_data['sport_upper'])
-    canonical = f"https://app.sharppicks.ai/{sport}/{team_slug}-betting-insights"
+    canonical = f"https://sharppicks.ai/{sport}/{team_slug}-betting-insights"
 
     jsonld = build_jsonld_collection(title, meta_desc, canonical)
 
@@ -1096,7 +1096,7 @@ def game_page(sport, slug):
 
     title = f"{game['away_name']} vs {game['home_name']} Betting Analysis -- {data['date_formatted']} | SharpPicks"
     meta_desc = build_game_page_meta(game, data)
-    canonical = f"https://app.sharppicks.ai/{sport}/{slug}"
+    canonical = f"https://sharppicks.ai/{sport}/{slug}"
 
     jsonld_article = build_jsonld_article(title, meta_desc, date_str, canonical)
     jsonld_event = build_jsonld_sports_event(game, data)
@@ -1139,7 +1139,7 @@ def game_page(sport, slug):
 def clv_calculator():
     title = "CLV Calculator -- Measure Your Closing Line Value | SharpPicks"
     meta_desc = "Calculate your Closing Line Value (CLV) to measure bet quality. Enter your bet line and closing line to see if you beat the market."
-    canonical = "https://app.sharppicks.ai/tools/clv-calculator"
+    canonical = "https://sharppicks.ai/tools/clv-calculator"
     jsonld_sw = build_jsonld_software("CLV Calculator", meta_desc, canonical)
     jsonld_faq = build_jsonld_faq([
         {"question": "What is Closing Line Value?", "answer": "CLV measures whether you got a better price than the closing line. Consistently positive CLV indicates long-term edge."},
@@ -1165,7 +1165,7 @@ def clv_calculator():
 def edge_calculator():
     title = "Edge Calculator -- Find Your Betting Edge | SharpPicks"
     meta_desc = "Calculate your betting edge by comparing your estimated probability against market odds. See if your edge exceeds the 3.5% qualification threshold."
-    canonical = "https://app.sharppicks.ai/tools/edge-calculator"
+    canonical = "https://sharppicks.ai/tools/edge-calculator"
     jsonld_sw = build_jsonld_software("Edge Calculator", meta_desc, canonical)
     jsonld_faq = build_jsonld_faq([
         {"question": "What is a betting edge?", "answer": "A betting edge is the difference between your estimated true probability and the implied probability from market odds. A positive edge means you have an expected profit."},
@@ -1195,7 +1195,7 @@ def edge_calculator():
 def sitemap_content():
     today = datetime.now(ET).strftime('%Y-%m-%d')
     urls = []
-    base = 'https://app.sharppicks.ai'
+    base = 'https://sharppicks.ai'
 
     for sport in get_live_sports():
         urls.append({'loc': f"{base}/edges/{sport}-today", 'changefreq': 'daily', 'priority': '0.8'})
