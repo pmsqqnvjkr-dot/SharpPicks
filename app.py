@@ -29,6 +29,7 @@ def health():
 @app.route('/')
 def root_landing():
     from flask import send_from_directory, make_response
+    user_agent = request.headers.get('User-Agent', '')
     if session.get('user_id') or (hasattr(current_user, 'is_authenticated') and current_user.is_authenticated):
         dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
         index_path = os.path.join(dist_dir, 'index.html')
@@ -36,8 +37,10 @@ def root_landing():
             resp = make_response(send_from_directory(dist_dir, 'index.html'))
             resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
             return resp
-    templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
-    return send_from_directory(templates_dir, 'app-landing.html')
+    if 'Capacitor' in user_agent or 'SharpPicks' in user_agent:
+        templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+        return send_from_directory(templates_dir, 'app-landing.html')
+    return redirect('https://sharppicks.ai', code=301)
 
 @app.route('/download')
 def download_redirect():

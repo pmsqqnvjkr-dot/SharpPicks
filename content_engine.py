@@ -22,6 +22,34 @@ ET = ZoneInfo('America/New_York')
 
 content_bp = Blueprint('content', __name__)
 
+RESERVED_PATHS = {
+    'login', 'register', 'dashboard', 'signals', 'portfolio',
+    'insights', 'settings', 'api', 'admin', 'logout', 'verify',
+    'reset', 'auth', 'health', 'stripe', 'webhook', 'static',
+    'favicon.ico', 'robots.txt', 'sitemap.xml', 'manifest.json',
+    'service-worker.js', '.well-known', 'apple-app-site-association',
+    'command-center', 'onboarding', 'subscribe', 'account',
+    'terms', 'privacy', 'disclaimer', 'support', 'guide',
+    'app', 'download', 'blog', 'assets',
+}
+
+VALID_SPORTS = {'nba', 'mlb', 'nfl', 'wnba'}
+
+CANONICAL_DOMAIN = 'https://sharppicks.ai'
+
+
+CONTENT_ENGINE_API_PATHS = {'/api/cron/content-engine'}
+
+
+@content_bp.before_request
+def check_reserved_paths():
+    """Prevent content engine from handling main app routes."""
+    if request.path in CONTENT_ENGINE_API_PATHS:
+        return
+    first_segment = request.path.strip('/').split('/')[0].lower()
+    if first_segment in RESERVED_PATHS:
+        abort(404)
+
 # ---------------------------------------------------------------------------
 # Team name mapping
 # ---------------------------------------------------------------------------
@@ -955,6 +983,8 @@ def edges_page(sport_slug):
 
 @content_bp.route('/<sport>/<team_slug>-betting-insights')
 def team_page(sport, team_slug):
+    if sport.lower() not in VALID_SPORTS:
+        abort(404)
     if sport not in get_live_sports():
         abort(404)
 
@@ -1038,6 +1068,10 @@ def team_page(sport, team_slug):
 
 @content_bp.route('/<sport>/<slug>')
 def game_page(sport, slug):
+    if sport.lower() not in VALID_SPORTS:
+        abort(404)
+    if slug.lower() in RESERVED_PATHS:
+        abort(404)
     if sport not in get_live_sports():
         abort(404)
 
