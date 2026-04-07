@@ -279,12 +279,12 @@ MARKET_REPORT_FAQ = [
 ]
 
 PILLAR_LINKS = [
-    {"url": "/blog/what-is-closing-line-value", "title": "What Is Closing Line Value?"},
-    {"url": "/blog/sports-betting-edge-explained", "title": "What Is a Betting Edge?"},
     {"url": "/blog/why-we-pass", "title": "Why We Pass More Than We Play"},
-    {"url": "/blog/how-sportsbooks-set-lines", "title": "How Sportsbooks Set Lines"},
-    {"url": "/blog/how-to-beat-the-market", "title": "How to Beat the Market"},
+    {"url": "/blog/beginners-guide", "title": "Beginner's Guide to Sports Betting"},
+    {"url": "/blog/between-lines-phone", "title": "Between the Lines: Betting from Your Phone"},
+    {"url": "/blog/cost-of-bad-bet", "title": "The Real Cost of a Bad Bet"},
     {"url": "/tools/clv-calculator", "title": "CLV Calculator"},
+    {"url": "/tools/edge-calculator", "title": "Edge Calculator"},
 ]
 
 
