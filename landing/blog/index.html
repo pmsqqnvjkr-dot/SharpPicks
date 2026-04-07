@@ -31,7 +31,11 @@ body{font-family:var(--sn);background:#0c1018!important;color:var(--t1);-webkit-
 nav{position:sticky;top:0;z-index:100;background:rgba(12,16,24,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--bdr);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(16px,4vw,48px)}
 .logo{font-family:var(--mn);font-size:13px;font-weight:700;letter-spacing:3px;color:var(--t1);text-decoration:none;white-space:nowrap}
 .logo span{color:var(--grn)}
+.nav-c{display:flex;gap:20px;align-items:center}
+.nav-c a{font-family:var(--mn);font-size:11px;letter-spacing:.04em;color:var(--t2);text-decoration:none;transition:color .2s}
+.nav-c a:hover{color:var(--t1)}
 .nav-r{display:flex;gap:8px;align-items:center}
+@media(max-width:680px){.nav-c{display:none}}
 .b{font-family:var(--mn);font-size:11px;letter-spacing:.04em;padding:8px 18px;border-radius:6px;text-decoration:none;cursor:pointer;transition:all .2s;border:none;display:inline-block;white-space:nowrap}
 .b.gh{color:var(--t2);background:none;border:1px solid var(--bdr)}
 .b.gr{color:#fff;background:var(--grn)}
@@ -102,6 +106,12 @@ footer{text-align:center;padding:40px 20px;border-top:1px solid var(--bdr)}
 
 <nav>
   <a href="/" class="logo">SHARP<span> || </span>PICKS</a>
+  <div class="nav-c">
+    <a href="/edges/nba-today">NBA Edges</a>
+    <a href="/edges/mlb-today">MLB Edges</a>
+    <a href="/tools/clv-calculator">CLV Calculator</a>
+    <a href="/tools/edge-calculator">Edge Calculator</a>
+  </div>
   <div class="nav-r">
     <a href="https://app.sharppicks.ai/login" class="b gh">Sign In</a>
     <a href="https://app.sharppicks.ai/signup?plan=annual" class="b gr">Start Free Trial</a>

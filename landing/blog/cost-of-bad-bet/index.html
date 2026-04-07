@@ -83,7 +83,11 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,16,24,.92
 .css-wm .wm-bars-row{display:inline-flex}
 .css-wm .wm-bar{display:inline-block;background:currentColor}
 .css-wm .wm-ul{display:inline-block;background:var(--grn);border-radius:1px}
+.nav-c{display:flex;gap:20px;align-items:center}
+.nav-c a{font-family:var(--mn);font-size:11px;letter-spacing:.04em;color:var(--t2);text-decoration:none;transition:color .2s}
+.nav-c a:hover{color:var(--t1)}
 .nav-r{display:flex;gap:8px;align-items:center}
+@media(max-width:680px){.nav-c{display:none}}
 .b{font-family:var(--mn);font-size:11px;letter-spacing:.04em;padding:8px 18px;border-radius:6px;text-decoration:none;cursor:pointer;transition:all .2s;border:none;display:inline-block}
 .b.gh{color:var(--t2);background:none;border:1px solid var(--bdr)}
 .b.gh:hover{color:var(--t1);border-color:var(--bdr2)}
@@ -137,6 +141,12 @@ footer{text-align:center;padding:40px 20px;border-top:1px solid var(--bdr)}
 
 <nav>
   <a href="/" class="css-wm" style="font-size:15px"><span style="margin-right:5.25px">SHARP</span><span class="wm-bars" style="gap:2.25px"><span class="wm-bars-row" style="gap:1.8px"><span class="wm-bar" style="width:2px;height:18.75px;border-radius:1.2px"></span><span class="wm-bar" style="width:2px;height:18.75px;border-radius:1.2px"></span></span><span class="wm-ul" style="width:5.8px;height:1.5px"></span></span><span style="margin-left:6.75px">PICKS</span></a>
+  <div class="nav-c">
+    <a href="/edges/nba-today">NBA Edges</a>
+    <a href="/edges/mlb-today">MLB Edges</a>
+    <a href="/tools/clv-calculator">CLV Calculator</a>
+    <a href="/tools/edge-calculator">Edge Calculator</a>
+  </div>
   <div class="nav-r">
     <a href="https://app.sharppicks.ai/login" class="b gh">Sign In</a>
     <a href="https://app.sharppicks.ai/signup?plan=annual" class="b gr">Start Free Trial</a>
