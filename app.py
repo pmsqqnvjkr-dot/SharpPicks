@@ -565,7 +565,7 @@ from routes.card_routes import weekly_card_bp
 app.register_blueprint(weekly_card_bp)
 
 from content_engine import content_bp
-app.register_blueprint(content_bp, url_prefix='/c')
+app.register_blueprint(content_bp)
 
 @app.route('/admin')
 def admin_dashboard():
