@@ -777,7 +777,7 @@ def market_report_page(date_str):
     pillar = get_rotating_pillar(seed)
     cta = get_rotating_cta(seed)
 
-    title = f"{data['sport_upper']} Betting Market Report -- {data['date_formatted']} | SharpPicks"
+    title = f"{data['sport_upper']} Betting Market Report {data['date_formatted']} | SharpPicks"
     meta_desc = build_market_report_meta(data)
     canonical = f"https://sharppicks.ai/market-report/{date_str}?sport={sport}"
 
@@ -856,13 +856,13 @@ def pass_report_page(date_str):
     if passed_games:
         avg_edge = sum(g['edge'] for g in passed_games) / len(passed_games)
 
-    title = f"Games the Model Passed On -- {data['date_formatted']} | SharpPicks"
+    title = f"Games the Model Passed On {data['date_formatted']} | SharpPicks"
     meta_desc = build_pass_report_meta(data)
     canonical = f"https://sharppicks.ai/passes/{date_str}?sport={sport}"
     jsonld_article = build_jsonld_article(title, meta_desc, date_str, canonical)
 
     internal_links = [
-        {'label': 'Report', 'text': f"Full Market Report -- {data['date_short']}", 'url': f"/market-report/{date_str}?sport={sport}"},
+        {'label': 'Report', 'text': f"Full Market Report {data['date_short']}", 'url': f"/market-report/{date_str}?sport={sport}"},
         {'label': 'Read', 'text': 'Why We Pass More Than We Play', 'url': '/blog/why-we-pass'},
         {'label': 'Edges', 'text': f"Today's {data['sport_upper']} edge rankings", 'url': f"/edges/{sport}-today"},
     ]
@@ -921,13 +921,13 @@ def edges_page(sport_slug):
     pillar = get_rotating_pillar(seed)
     cta = get_rotating_cta(seed)
 
-    title = f"Today's {data['sport_upper']} Betting Edges -- Model Analysis | SharpPicks"
+    title = f"Today's {data['sport_upper']} Betting Edges | SharpPicks"
     meta_desc = build_edges_meta(data)
     canonical = f"https://sharppicks.ai/edges/{sport}-today"
 
     internal_links = [
-        {'label': 'Report', 'text': f"Market Report -- {data['date_short']}", 'url': f"/market-report/{today}?sport={sport}"},
-        {'label': 'Passes', 'text': f"Pass Report -- {data['date_short']}", 'url': f"/passes/{today}?sport={sport}"},
+        {'label': 'Report', 'text': f"Market Report {data['date_short']}", 'url': f"/market-report/{today}?sport={sport}"},
+        {'label': 'Passes', 'text': f"Pass Report {data['date_short']}", 'url': f"/passes/{today}?sport={sport}"},
     ]
     top_edge_games = sorted(data['games'], key=lambda g: g['edge'], reverse=True)[:2]
     for g in top_edge_games:
@@ -1016,7 +1016,7 @@ def team_page(team_slug):
     for g in team_data['recent_games'][:3]:
         internal_links.append({
             'label': 'Game',
-            'text': f"{team_data['abbr']} {'vs' if g['at_home'] else '@'} {g['opponent']} -- {g['date_short']}",
+            'text': f"{team_data['abbr']} {'vs' if g['at_home'] else '@'} {g['opponent']} {g['date_short']}",
             'url': f"/{sport}/{g['slug']}",
         })
     internal_links.append({'label': 'Tool', 'text': 'CLV Calculator', 'url': '/tools/clv-calculator'})
@@ -1106,7 +1106,7 @@ def game_page(slug):
     pillar = get_rotating_pillar(seed)
     cta = get_rotating_cta(seed)
 
-    title = f"{game['away_name']} vs {game['home_name']} Betting Analysis -- {data['date_formatted']} | SharpPicks"
+    title = f"{game['away_name']} vs {game['home_name']} Betting Analysis {data['date_formatted']} | SharpPicks"
     meta_desc = build_game_page_meta(game, data)
     canonical = f"https://sharppicks.ai/{sport}/{slug}"
 
@@ -1114,7 +1114,7 @@ def game_page(slug):
     jsonld_event = build_jsonld_sports_event(game, data)
 
     internal_links = [
-        {'label': 'Report', 'text': f"Market Report -- {data['date_short']}", 'url': f"/market-report/{date_str}?sport={sport}"},
+        {'label': 'Report', 'text': f"Market Report {data['date_short']}", 'url': f"/market-report/{date_str}?sport={sport}"},
         {'label': 'Team', 'text': f"{game['away_name']} Insights", 'url': f"/{sport}/{_team_slug(game['away_team'], sport)}-betting-insights"},
         {'label': 'Team', 'text': f"{game['home_name']} Insights", 'url': f"/{sport}/{_team_slug(game['home_team'], sport)}-betting-insights"},
         {'label': 'Learn', 'text': pillar['title'], 'url': pillar['url']},
@@ -1149,7 +1149,7 @@ def game_page(slug):
 
 @content_bp.route('/tools/clv-calculator')
 def clv_calculator():
-    title = "CLV Calculator -- Measure Your Closing Line Value | SharpPicks"
+    title = "CLV Calculator | SharpPicks"
     meta_desc = "Calculate your Closing Line Value (CLV) to measure bet quality. Enter your bet line and closing line to see if you beat the market."
     canonical = "https://sharppicks.ai/tools/clv-calculator"
     jsonld_sw = build_jsonld_software("CLV Calculator", meta_desc, canonical)
@@ -1175,7 +1175,7 @@ def clv_calculator():
 
 @content_bp.route('/tools/edge-calculator')
 def edge_calculator():
-    title = "Edge Calculator -- Find Your Betting Edge | SharpPicks"
+    title = "Edge Calculator | SharpPicks"
     meta_desc = "Calculate your betting edge by comparing your estimated probability against market odds. See if your edge exceeds the 3.5% qualification threshold."
     canonical = "https://sharppicks.ai/tools/edge-calculator"
     jsonld_sw = build_jsonld_software("Edge Calculator", meta_desc, canonical)
