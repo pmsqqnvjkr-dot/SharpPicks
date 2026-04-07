@@ -19,7 +19,7 @@
 </div>
 
 <div class="gt">
-  <div class="gr hdr"><span class="gr-m">Matchup</span><span class="gr-s">Spread</span><span class="gr-e">Edge</span><span class="gr-st">Index</span></div>
+  <div class="gr hdr"><span class="gr-m">Matchup</span><span class="gr-s">Spread</span><span class="gr-e">Edge</span><span class="gr-st">Status</span></div>
   {% for game in data.games %}
   <div class="gr"{% if game.signal %} style="background:var(--g04);border-radius:4px"{% elif game.edge < 2 %} style="opacity:0.4"{% elif game.edge < 3 %} style="opacity:0.55"{% endif %}>
     <span class="gr-m"{% if game.signal %} style="color:var(--t1);font-weight:600"{% endif %}>
@@ -27,13 +27,9 @@
     </span>
     <span class="gr-s">{{ game.market_line if game.market_line is not none else '--' }}</span>
     <span class="gr-e{% if game.edge >= 4.5 %} green{% elif game.edge >= 3.0 %} amber{% endif %}">{{ game.edge_band }}</span>
-    <span class="gr-st">{% if game.indexable %}<span class="badge-idx">IDX</span>{% else %}<span class="badge-noidx">NO</span>{% endif %}</span>
+    <span class="gr-st">{% if game.signal %}<span class="badge-sig">SIGNAL</span>{% else %}<span class="badge-pass">PASS</span>{% endif %}</span>
   </div>
   {% endfor %}
-</div>
-
-<div style="padding:7px 12px;background:var(--s1);border:1px solid var(--border);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t4);text-align:center;margin-bottom:16px">
-  IDX = game page indexed by search engines &middot; NO = noindex,follow (exists for linking only)
 </div>
 
 {% if data.sport == 'mlb' %}
