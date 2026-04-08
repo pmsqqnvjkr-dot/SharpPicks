@@ -199,8 +199,7 @@ export default function PicksTab({ onNavigate }) {
   const nightRecapPick = sameDayNight ? todayData : (hasRecapPick ? lastResolved : null);
   const hasAnyRecapContent = !!(nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'pending')
     || !!(tonightBets && tonightBets.length > 0)
-    || (sameDayNight && todayData?.type === 'pass')
-    || (postMidnightNight && !hasRecapPick);
+    || (sameDayNight && todayData?.type === 'pass');
 
   useEffect(() => {
     if (!isNightMode) { setTomorrowGames(null); setTomorrowDate(null); setTonightBets(null); return; }
@@ -558,13 +557,12 @@ export default function PicksTab({ onNavigate }) {
               );
             })()}
 
-            {/* Pass day recap — when model ran but no signal was issued, or signal was withdrawn */}
+            {/* Pass day recap — only when model explicitly ran and returned pass */}
             {(() => {
               const isPassRecap = sameDayNight && todayData?.type === 'pass';
               const isRevokedRecap = sameDayNight && todayData?.type === 'pick' && todayData?.result === 'revoked';
-              const isPostMidnightNoSignal = postMidnightNight && !hasRecapPick && !(todayData?.type === 'pick');
               const isPostMidnightRevoked = postMidnightNight && nightRecapPick?.result === 'revoked';
-              if (!isPassRecap && !isPostMidnightNoSignal && !isRevokedRecap && !isPostMidnightRevoked) return null;
+              if (!isPassRecap && !isRevokedRecap && !isPostMidnightRevoked) return null;
               const gamesCount = todayData?.games_analyzed || totalGames || 0;
               return (
                 <div style={{
