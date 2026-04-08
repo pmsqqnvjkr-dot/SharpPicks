@@ -98,10 +98,39 @@ MLB_TEAMS = {
 
 SPORT_TEAM_MAP = {'nba': NBA_TEAMS, 'mlb': MLB_TEAMS}
 
+# Reverse lookup: map full team name (lowercased) -> abbreviation for each sport
+_NAME_TO_ABBR = {}
+for _sport_key, _team_dict in SPORT_TEAM_MAP.items():
+    for _abbr, _info in _team_dict.items():
+        _NAME_TO_ABBR[(_sport_key, _info['name'].lower())] = _abbr
+        # Also map the nickname alone (e.g. "lakers" -> LAL)
+        _nickname = _info['name'].split()[-1].lower()
+        _NAME_TO_ABBR[(_sport_key, _nickname)] = _abbr
+
+
+def _resolve_team_abbr(team_ref, sport='nba'):
+    """Resolve any team reference (abbr, full name, nickname) to canonical abbreviation."""
+    if not team_ref:
+        return team_ref
+    teams = SPORT_TEAM_MAP.get(sport, NBA_TEAMS)
+    if team_ref in teams:
+        return team_ref
+    key_lower = team_ref.strip().lower()
+    found = _NAME_TO_ABBR.get((sport, key_lower))
+    if found:
+        return found
+    # Try slugified match against team slugs
+    slugified = _slugify(team_ref)
+    for abbr, info in teams.items():
+        if info['slug'] == slugified:
+            return abbr
+    return team_ref
+
 
 def _team_lookup(abbr, sport='nba'):
     teams = SPORT_TEAM_MAP.get(sport, NBA_TEAMS)
-    return teams.get(abbr, {'name': abbr, 'slug': abbr.lower(), 'conf': '', 'div': ''})
+    resolved = _resolve_team_abbr(abbr, sport)
+    return teams.get(resolved, {'name': abbr, 'slug': _slugify(abbr), 'conf': '', 'div': ''})
 
 
 def _team_full_name(abbr, sport='nba'):
@@ -124,8 +153,8 @@ def _slugify(text):
 
 
 def make_game_slug(away, home, date_str, sport='nba'):
-    away_slug = _team_slug(away, sport)
-    home_slug = _team_slug(home, sport)
+    away_slug = _slugify(_team_slug(away, sport))
+    home_slug = _slugify(_team_slug(home, sport))
     return f"{away_slug}-vs-{home_slug}-{date_str}"
 
 
@@ -198,6 +227,53 @@ def should_index_game_page(game):
 # Pass reason taxonomy
 # ---------------------------------------------------------------------------
 
+PASS_REASON_DISPLAY = {
+    "spread_too_large": "Spread exceeds the model's reliable range for this matchup type",
+    "star_questionable": "Key player status uncertain, reducing model confidence",
+    "below_threshold": "Edge below the 3.5% qualification threshold",
+    "confidence_split": "Model ensemble did not reach sufficient agreement",
+    "margin_of_error": "Edge within the model's margin of error",
+    "no_edge": "No measurable disagreement between model and market",
+    "insufficient_data": "Not enough recent data to generate a reliable projection",
+    "lineup_uncertain": "Starting lineup not confirmed, projection unreliable",
+    "early_season": "Insufficient season data for stable projection",
+    "high_variance": "Outcome variance too high for reliable edge estimate",
+    "model_disagreement": "Individual models disagree on direction",
+    "stale_line": "Line data may be stale or unavailable",
+}
+
+
+def format_fail_reason(raw_reason):
+    """Convert an internal fail_reason token to user-facing copy."""
+    if not raw_reason:
+        return "Below qualification threshold"
+    cleaned = raw_reason.strip().lower()
+    if cleaned in PASS_REASON_DISPLAY:
+        return PASS_REASON_DISPLAY[cleaned]
+    # Check for partial matches
+    for key, display in PASS_REASON_DISPLAY.items():
+        if key in cleaned:
+            return display
+    # If it already looks like readable text (contains spaces, no underscores), pass through
+    if ' ' in raw_reason and '_' not in raw_reason:
+        return raw_reason
+    return "Below qualification threshold"
+
+
+def format_fail_reasons(reasons_list):
+    """Convert a list of internal fail_reason tokens to user-facing copy."""
+    if not reasons_list:
+        return []
+    seen = set()
+    result = []
+    for r in reasons_list:
+        display = format_fail_reason(r)
+        if display not in seen:
+            seen.add(display)
+            result.append(display)
+    return result
+
+
 def get_pass_reason(edge):
     edge = abs(edge) if edge else 0
     if edge < 1.0:
@@ -207,7 +283,7 @@ def get_pass_reason(edge):
     elif edge < 3.5:
         return "Near threshold but not qualified"
     else:
-        return "Filtered out by confidence or validation checks"
+        return "Filtered by confidence or validation checks"
 
 
 # ---------------------------------------------------------------------------
@@ -455,8 +531,29 @@ def get_daily_report_data(date_str, sport='nba'):
     for g in board:
         edge_val = abs(g.get('edge', 0) or 0)
         is_signal = bool(g.get('signal'))
-        away = g.get('away_team', '?')
-        home = g.get('home_team', '?')
+        away = _resolve_team_abbr(g.get('away_team', '?'), sport)
+        home = _resolve_team_abbr(g.get('home_team', '?'), sport)
+
+        # Deduplicate reasoning/factors
+        raw_reasoning = g.get('reasoning', [])
+        seen_reasons = set()
+        unique_reasoning = []
+        for r in raw_reasoning:
+            if r not in seen_reasons:
+                seen_reasons.add(r)
+                unique_reasoning.append(r)
+
+        # Convert raw fail_reasons to user-facing copy
+        raw_fail = g.get('fail_reasons', [])
+        display_fail = format_fail_reasons(raw_fail)
+
+        # Determine public status: SIGNAL / FILTERED / PASS
+        if is_signal:
+            public_status = 'Signal'
+        elif edge_val >= 3.5 and not is_signal:
+            public_status = 'Filtered'
+        else:
+            public_status = 'Pass'
 
         game_entry = {
             'away_team': away,
@@ -470,11 +567,12 @@ def get_daily_report_data(date_str, sport='nba'):
             'edge': edge_val,
             'edge_band': get_public_edge_band(edge_val),
             'signal': is_signal,
+            'status': public_status,
             'pick_side': g.get('pick_side'),
             'pick_label': g.get('pick_label', ''),
             'pick': g.get('pick', ''),
-            'reasoning': g.get('reasoning', []),
-            'fail_reasons': g.get('fail_reasons', []),
+            'reasoning': unique_reasoning,
+            'fail_reasons': display_fail,
             'predicted_margin': g.get('predicted_margin'),
             'pass_reason': '' if is_signal else get_pass_reason(edge_val),
             'slug': make_game_slug(away, home, date_str, sport),
@@ -852,8 +950,12 @@ def pass_report_page(date_str):
     pillar = get_rotating_pillar(seed)
     cta = get_rotating_cta(seed)
 
+    # Only include true passes (not filtered) in avg edge calculation
+    true_passes = [g for g in passed_games if g['status'] == 'Pass']
     avg_edge = 0
-    if passed_games:
+    if true_passes:
+        avg_edge = sum(g['edge'] for g in true_passes) / len(true_passes)
+    elif passed_games:
         avg_edge = sum(g['edge'] for g in passed_games) / len(passed_games)
 
     title = f"Games the Model Passed On {data['date_formatted']} | SharpPicks"

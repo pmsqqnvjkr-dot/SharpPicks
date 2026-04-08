@@ -7,7 +7,7 @@
 {% block content %}
 <div class="page-header">
   <div class="breadcrumb"><a href="/market-report/{{ data.date }}?sport={{ data.sport }}">Pass Reports</a> / {{ data.date_formatted }}</div>
-  <h1 class="page-h1">Games the Model Passed On -- {{ data.date_formatted }}</h1>
+  <h1 class="page-h1">Games the Model Passed On | {{ data.date_formatted }}</h1>
   <div class="page-meta">
     <span>{{ data.games_passed }} of {{ data.games_analyzed }} {{ data.sport_upper }} games passed</span>
     <span class="dot"></span>
@@ -22,15 +22,15 @@
 <div class="sg c3">
   <div class="sc"><div class="sc-label">Analyzed</div><div class="sc-val">{{ data.games_analyzed }}</div></div>
   <div class="sc"><div class="sc-label">Passed</div><div class="sc-val">{{ data.games_passed }}</div><div class="sc-sub">{{ (data.games_passed / data.games_analyzed * 100)|round|int if data.games_analyzed else 0 }}%</div></div>
-  <div class="sc"><div class="sc-label">Avg Edge</div><div class="sc-val" style="color:var(--t3)">{{ avg_edge_band }}</div><div class="sc-sub">below gate</div></div>
+  <div class="sc"><div class="sc-label">Avg Edge</div><div class="sc-val" style="color:var(--t3)">{{ avg_edge_band }}</div><div class="sc-sub">of passed games</div></div>
 </div>
 
 <div class="sh">Passed Games</div>
 {% for game in passed_games %}
 <div class="pc">
-  <div class="pc-m">{{ game.matchup }} &middot; {{ game.market_line if game.market_line is not none else '--' }}</div>
+  <div class="pc-m">{{ game.matchup }} &middot; {{ game.market_line if game.market_line is not none else '--' }}{% if game.status == 'Filtered' %} <span class="badge-pass" style="font-size:10px;padding:1px 6px;vertical-align:middle">FILTERED</span>{% endif %}</div>
   <div class="pc-d">{{ game.pass_reason }}.{% if game.fail_reasons %} {{ game.fail_reasons|join('. ') }}.{% endif %}</div>
-  <div class="pc-e">Edge band: {{ game.edge_band }} &middot; {{ game.pass_reason }}</div>
+  <div class="pc-e">Edge band: {{ game.edge_band }} &middot; {{ game.status }}</div>
 </div>
 {% endfor %}
 
