@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, render_template, abort, request, make_response
-from models import db, Pick, Pass, ModelRun
+from models import db, Pick, Pass, ModelRun, ContentPageView
 from public_api import build_market_report_dict
 from sport_config import get_sport_config, get_live_sports, SPORT_CONFIG
 from db_path import get_sqlite_path
@@ -21,6 +21,26 @@ log = logging.getLogger(__name__)
 ET = ZoneInfo('America/New_York')
 
 content_bp = Blueprint('content', __name__)
+
+BOT_TOKENS = ('bot', 'crawler', 'spider', 'googlebot', 'bingbot', 'slurp',
+               'duckduckbot', 'facebookexternalhit', 'twitterbot', 'linkedinbot')
+
+
+@content_bp.before_request
+def log_content_page_view():
+    try:
+        ua = request.headers.get('User-Agent', '')
+        is_bot = any(b in ua.lower() for b in BOT_TOKENS)
+        view = ContentPageView(
+            path=request.path,
+            user_agent=ua[:500],
+            is_bot=is_bot
+        )
+        db.session.add(view)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
 
 VALID_SPORTS = {'nba', 'mlb', 'nfl', 'wnba'}
 

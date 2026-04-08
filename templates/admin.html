@@ -154,6 +154,45 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
 .user-badge.trial{background:var(--a15);color:var(--amber)}
 .user-badge.free{background:rgba(98,104,120,0.1);color:var(--t3)}
 .user-date{color:var(--t4);font-size:10px;min-width:40px;text-align:right}
+.user-filters{display:flex;gap:4px;margin-bottom:8px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:2px}
+.user-filters::-webkit-scrollbar{display:none}
+.uf{padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--s1);font-size:8px;font-weight:500;color:var(--t4);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.uf.active{background:var(--g15);border-color:rgba(90,158,114,0.25);color:var(--green)}
+.user-table{width:100%;border-collapse:collapse;margin-bottom:10px}
+.user-table th{font-size:8px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t4);text-align:left;padding:6px 4px;border-bottom:1px solid var(--border);cursor:pointer}
+.user-table th:hover{color:var(--t2)}
+.user-table td{font-size:9px;padding:7px 4px;border-bottom:1px solid rgba(26,31,46,0.4);color:var(--t2);vertical-align:middle}
+.user-table tr:last-child td{border-bottom:none}
+.user-table tr.founding-row{border-left:2px solid var(--green)}
+.user-table tr.inactive-row{opacity:0.45}
+.user-table tr.unverified-row td:first-child{opacity:0.6}
+.status-badge{font-size:7px;font-weight:600;padding:2px 5px;border-radius:3px;letter-spacing:0.5px}
+.status-badge.pro{background:var(--g15);color:var(--green)}
+.status-badge.founding{background:var(--g15);color:var(--green)}
+.status-badge.trial{background:var(--a15);color:var(--amber)}
+.status-badge.free-badge{background:rgba(69,75,92,0.1);color:var(--t4)}
+.dot-g{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green)}
+.dot-r{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--red)}
+.top-user{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s1);border:1px solid var(--border);border-radius:6px;margin-bottom:4px;font-size:10px}
+.top-user-rank{font-weight:700;color:var(--green);width:16px}
+.top-user-email{color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top-user-stat{color:var(--t3);text-align:right}
+.top-user-flag{font-size:7px;padding:1px 4px;border-radius:2px;margin-left:4px;font-weight:600;letter-spacing:0.5px}
+.top-user-flag.power{background:var(--g15);color:var(--green)}
+.top-user-flag.risk{background:var(--r15);color:var(--red)}
+.verif{padding:12px;background:var(--s1);border:1px solid var(--border);border-radius:8px;margin-bottom:10px}
+.verif-bar{height:6px;background:var(--s2);border-radius:3px;overflow:hidden;margin:8px 0}
+.verif-fill{height:100%;border-radius:3px;background:var(--green)}
+.verif-stats{display:flex;justify-content:space-between;font-size:10px}
+.verif-list{margin-top:8px}
+.verif-row{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:9px;color:var(--t3)}
+.verif-row span:last-child{margin-left:auto}
+.content-table{width:100%;border-collapse:collapse;margin-bottom:10px}
+.content-table th{font-size:8px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t4);text-align:left;padding:6px 4px;border-bottom:1px solid var(--border)}
+.content-table td{font-size:9px;padding:6px 4px;border-bottom:1px solid rgba(26,31,46,0.4);color:var(--t2)}
+.content-table td:last-child{text-align:right}
+.spark-mini{display:flex;align-items:flex-end;gap:3px;height:30px;margin-bottom:4px}
+.spark-bar{flex:1;border-radius:2px 2px 0 0;min-width:6px}
 .page-row{display:flex;align-items:baseline;padding:6px 0;border-bottom:1px solid rgba(26,31,46,0.3);font-size:11px}
 .page-row:last-child{border-bottom:0}
 .page-path{flex:1;color:var(--t2)}
@@ -565,16 +604,16 @@ async function loadData() {
       fetch('/api/admin/engagement').then(r => r.json()).catch(() => null),
       fetch('/api/admin/cf-analytics').then(r => r.json()).catch(() => null),
     ]);
-    renderPulse(ccR, healthR, cfR);
+    renderPulse(ccR, healthR, cfR, engR);
     renderModels(ccR);
-    renderInfra(cronR, healthR, ccR);
+    renderInfra(cronR, healthR, ccR, cfR);
     renderBusiness(ccR, funnelR, engR);
   } catch (e) {
     console.error('Load failed:', e);
   }
 }
 
-function renderPulse(cc, health, cf) {
+function renderPulse(cc, health, cf, eng) {
   if (!cc) { document.getElementById('pulseContent').textContent = 'Failed to load'; return; }
   const nba = cc.model || {};
   const mlb = cc.mlb_model || {};
@@ -605,6 +644,44 @@ function renderPulse(cc, health, cf) {
     h += renderTrafficChart(cf);
     const tc = computeTrafficCommentary(cf, cc.users?.total || 0);
     if (tc) h += commentaryHtml(tc.type, tc.label, tc.text);
+  }
+
+  if (eng && eng.content_engine) {
+    const ce = eng.content_engine;
+    h += '<div class="sh">Content Engine</div>';
+    h += '<div class="sg c4">';
+    h += '<div class="sc"><div class="sc-label">Pages</div><div class="sc-val">' + (ce.total_pages || 0) + '</div><div class="sc-sub">total</div></div>';
+    h += '<div class="sc"><div class="sc-label">Views 7d</div><div class="sc-val">' + commaFmt(ce.total_views_7d) + '</div></div>';
+    h += '<div class="sc"><div class="sc-label">Paths</div><div class="sc-val">' + (ce.unique_paths || 0) + '</div></div>';
+    h += '<div class="sc"><div class="sc-label">Top Page</div><div class="sc-val" style="font-size:9px;word-break:break-all">' + (ce.top_page || '--') + '</div></div>';
+    h += '</div>';
+
+    if (ce.daily && ce.daily.length > 0) {
+      const maxV = Math.max(...ce.daily.map(d => d.views || 0), 1);
+      h += '<div class="spark-mini">';
+      for (const d of ce.daily) {
+        const pct = Math.max(10, (d.views || 0) / maxV * 100);
+        h += '<div class="spark-bar" style="height:' + pct + '%;background:var(--green);opacity:0.6"></div>';
+      }
+      h += '</div>';
+      h += '<div style="display:flex;justify-content:space-between;font-size:7px;color:var(--t4);margin-bottom:10px">';
+      for (const d of ce.daily) {
+        const label = d.date ? d.date.slice(5).replace('-', '/') : '';
+        h += '<span>' + label + '</span>';
+      }
+      h += '</div>';
+    }
+
+    if (ce.top_pages && ce.top_pages.length > 0) {
+      h += '<table class="content-table"><thead><tr><th>Page</th><th>Views</th></tr></thead><tbody>';
+      for (const p of ce.top_pages.slice(0, 8)) {
+        h += '<tr><td>' + (p.path || '/') + '</td><td>' + (p.views || 0) + '</td></tr>';
+      }
+      h += '</tbody></table>';
+    }
+
+    const ceC = eng.commentary?.content_engine?.[0];
+    if (ceC) h += commentaryHtml(ceC.type, ceC.label, ceC.text);
   }
 
   document.getElementById('pulseContent').innerHTML = h;
@@ -764,7 +841,7 @@ function renderModels(cc) {
   document.getElementById('modelsContent').innerHTML = h;
 }
 
-function renderInfra(cronData, health, cc) {
+function renderInfra(cronData, health, cc, cf) {
   let h = '';
 
   h += '<div class="sh" style="margin-top:0">System Controls</div>';
@@ -805,11 +882,123 @@ function renderInfra(cronData, health, cc) {
     }
   }
 
+  if (cf && cf.marketing) {
+    const m = cf.marketing;
+    h += '<div class="sh">Cloudflare Pages</div>';
+    h += '<div class="sg c3">';
+    h += '<div class="sc"><div class="sc-label">Visits 7d</div><div class="sc-val">' + commaFmt(m.uniques) + '</div></div>';
+    h += '<div class="sc"><div class="sc-label">Page Views</div><div class="sc-val">' + commaFmt(m.pageViews) + '</div></div>';
+    h += '<div class="sc"><div class="sc-label">Top Referrer</div><div class="sc-val" style="font-size:11px">google.com</div></div>';
+    h += '</div>';
+
+    if (m.daily && m.daily.length > 0) {
+      const maxV = Math.max(...m.daily.map(d => d.uniques || d.views || 0), 1);
+      h += '<div class="spark-mini">';
+      for (const d of m.daily) {
+        const pct = Math.max(10, ((d.uniques || d.views || 0) / maxV) * 100);
+        h += '<div class="spark-bar" style="height:' + pct + '%;background:var(--blue);opacity:0.6"></div>';
+      }
+      h += '</div>';
+      h += '<div style="display:flex;justify-content:space-between;font-size:7px;color:var(--t4);margin-bottom:8px">';
+      for (const d of m.daily) {
+        const label = d.date ? d.date.slice(5).replace('-', '/') : '';
+        h += '<span>' + label + '</span>';
+      }
+      h += '</div>';
+    }
+
+    if (m.topPaths && m.topPaths.length > 0) {
+      h += '<table class="content-table"><thead><tr><th>Top Landing Pages</th><th>Views</th></tr></thead><tbody>';
+      for (const p of m.topPaths.slice(0, 5)) {
+        h += '<tr><td>sharppicks.ai' + (p.path || '/') + '</td><td>' + (p.count || 0) + '</td></tr>';
+      }
+      h += '</tbody></table>';
+    }
+  }
+
   const infraC = computeInfraCommentary(cronData);
   h += commentaryHtml(infraC.type, infraC.label, infraC.text);
 
   document.getElementById('infraContent').innerHTML = h;
   updateKillUI();
+}
+
+let bizFilter = 'all';
+let bizSort = 'last_active';
+let bizSortAsc = false;
+
+function filterBizUsers(filter, btn) {
+  bizFilter = filter;
+  btn.parentElement.querySelectorAll('.uf').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderUserTable();
+}
+
+function sortBizUsers(col) {
+  if (bizSort === col) bizSortAsc = !bizSortAsc;
+  else { bizSort = col; bizSortAsc = false; }
+  renderUserTable();
+}
+
+let _allBizUsers = [];
+
+function renderUserTable() {
+  let users = _allBizUsers.slice();
+
+  if (bizFilter === 'paid') users = users.filter(u => ['pro','active','founding'].includes(u.tier) || u.founding);
+  else if (bizFilter === 'free') users = users.filter(u => u.tier === 'free' && !u.founding);
+  else if (bizFilter === 'founding') users = users.filter(u => u.founding);
+  else if (bizFilter === 'active') users = users.filter(u => u.is_active);
+  else if (bizFilter === 'unverified') users = users.filter(u => !u.email_verified);
+  else if (bizFilter === 'atrisk') users = users.filter(u => u.is_at_risk);
+  else if (bizFilter === 'trial') users = users.filter(u => u.tier === 'trialing' || u.tier === 'trial');
+
+  users.sort((a, b) => {
+    let va, vb;
+    if (bizSort === 'sessions') { va = a.sessions_7d || 0; vb = b.sessions_7d || 0; }
+    else if (bizSort === 'email') { va = (a.email || '').toLowerCase(); vb = (b.email || '').toLowerCase(); return bizSortAsc ? va.localeCompare(vb) : vb.localeCompare(va); }
+    else if (bizSort === 'signed_up') { va = a.signed_up || ''; vb = b.signed_up || ''; return bizSortAsc ? va.localeCompare(vb) : vb.localeCompare(va); }
+    else { va = a.last_seen_iso || ''; vb = b.last_seen_iso || ''; return bizSortAsc ? va.localeCompare(vb) : vb.localeCompare(va); }
+    return bizSortAsc ? va - vb : vb - va;
+  });
+
+  let t = '<div style="overflow-x:auto;margin-bottom:10px"><table class="user-table" style="min-width:520px"><thead><tr>';
+  t += '<th onclick="sortBizUsers(\'email\')">Email</th>';
+  t += '<th onclick="sortBizUsers(\'tier\')">Status</th>';
+  t += '<th>Verified</th>';
+  t += '<th onclick="sortBizUsers(\'last_active\')">Last Active</th>';
+  t += '<th onclick="sortBizUsers(\'sessions\')">Sessions</th>';
+  t += '<th>Top Feature</th>';
+  t += '</tr></thead><tbody>';
+
+  for (const u of users) {
+    const tier = u.tier || 'free';
+    const isFounding = u.founding;
+    let tierLabel, tierClass;
+    if (isFounding && u.founding_number) { tierLabel = 'F#' + u.founding_number; tierClass = 'founding'; }
+    else if (tier === 'pro' || tier === 'active') { tierLabel = 'PRO'; tierClass = 'pro'; }
+    else if (tier === 'trialing' || tier === 'trial') { tierLabel = 'TRIAL'; tierClass = 'trial'; }
+    else { tierLabel = 'FREE'; tierClass = 'free-badge'; }
+
+    let rowClass = '';
+    if (isFounding) rowClass += ' founding-row';
+    if (!u.is_active && u.sessions_7d === 0) rowClass += ' inactive-row';
+    if (!u.email_verified) rowClass += ' unverified-row';
+
+    const lastColor = u.last_active === 'never' ? 'color:var(--red)' : (u.is_active ? 'color:var(--green)' : '');
+    const signedUp = u.signed_up ? new Date(u.signed_up).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--';
+
+    t += '<tr class="' + rowClass.trim() + '">';
+    t += '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (u.email || '') + '</td>';
+    t += '<td><span class="status-badge ' + tierClass + '">' + tierLabel + '</span></td>';
+    t += '<td>' + (u.email_verified ? '<span class="dot-g"></span>' : '<span class="dot-r"></span>') + '</td>';
+    t += '<td style="' + lastColor + '">' + (u.last_active || '--') + '</td>';
+    t += '<td>' + (u.sessions_7d || 0) + '</td>';
+    t += '<td>' + (u.top_feature || '--') + '</td>';
+    t += '</tr>';
+  }
+  t += '</tbody></table></div>';
+  document.getElementById('userTableContainer').innerHTML = t;
 }
 
 function renderBusiness(cc, funnel, eng) {
@@ -850,6 +1039,77 @@ function renderBusiness(cc, funnel, eng) {
   h += '</div>';
 
   if (eng) {
+    const verif = eng.verification || {};
+    if (verif.total) {
+      h += '<div class="sh">Email Verification</div>';
+      h += '<div class="verif">';
+      h += '<div class="verif-stats"><span style="color:var(--green)">Verified: ' + (verif.verified || 0) + ' (' + (verif.verified_pct || 0) + '%)</span><span style="color:var(--red)">Unverified: ' + (verif.unverified || 0) + ' (' + (100 - (verif.verified_pct || 0)).toFixed(0) + '%)</span></div>';
+      h += '<div class="verif-bar"><div class="verif-fill" style="width:' + (verif.verified_pct || 0) + '%"></div></div>';
+      if (verif.unverified_list && verif.unverified_list.length > 0) {
+        h += '<div class="verif-list">';
+        for (const u of verif.unverified_list.slice(0, 6)) {
+          const dt = u.signed_up ? new Date(u.signed_up).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--';
+          h += '<div class="verif-row"><span class="dot-r"></span> ' + (u.email || '') + '<span>' + (u.tier || 'Free') + ' &middot; ' + dt + '</span></div>';
+        }
+        h += '</div>';
+      }
+      h += '</div>';
+      const verifC = eng.commentary?.verification?.[0];
+      if (verifC) h += commentaryHtml(verifC.type, verifC.label, verifC.text);
+    }
+
+    const allUsers = eng.all_users || [];
+    const totalUsers = allUsers.length;
+    const paidCount = allUsers.filter(u => ['pro','active','founding'].includes(u.tier) || u.founding).length;
+    const freeCount = allUsers.filter(u => u.tier === 'free' && !u.founding).length;
+    const foundingCount = allUsers.filter(u => u.founding).length;
+    const activeCount = allUsers.filter(u => u.is_active).length;
+    const unvCount = allUsers.filter(u => !u.email_verified).length;
+    const riskCount = allUsers.filter(u => u.is_at_risk).length;
+
+    _allBizUsers = allUsers;
+
+    h += '<div class="sh">User Detail</div>';
+    h += '<div class="user-filters">';
+    h += '<button class="uf active" onclick="filterBizUsers(\'all\',this)">All (' + totalUsers + ')</button>';
+    h += '<button class="uf" onclick="filterBizUsers(\'paid\',this)">Paid (' + paidCount + ')</button>';
+    h += '<button class="uf" onclick="filterBizUsers(\'free\',this)">Free (' + freeCount + ')</button>';
+    h += '<button class="uf" onclick="filterBizUsers(\'founding\',this)">Founding (' + foundingCount + ')</button>';
+    h += '<button class="uf" onclick="filterBizUsers(\'active\',this)">Active 7d (' + activeCount + ')</button>';
+    h += '<button class="uf" onclick="filterBizUsers(\'unverified\',this)">Unverified (' + unvCount + ')</button>';
+    h += '<button class="uf" onclick="filterBizUsers(\'atrisk\',this)">At Risk (' + riskCount + ')</button>';
+    h += '</div>';
+    h += '<div id="userTableContainer"></div>';
+
+    const topUsers = allUsers.filter(u => u.sessions_7d > 0).sort((a, b) => b.sessions_7d - a.sessions_7d).slice(0, 5);
+    if (topUsers.length > 0) {
+      h += '<div class="sh">Top Users (7d)</div>';
+      topUsers.forEach((u, i) => {
+        h += '<div class="top-user">';
+        h += '<span class="top-user-rank">' + (i + 1) + '</span>';
+        h += '<span class="top-user-email">' + (u.email || '') + '</span>';
+        h += '<span class="top-user-stat">' + u.sessions_7d + ' sessions</span>';
+        if (u.is_power) h += '<span class="top-user-flag power">POWER</span>';
+        h += '</div>';
+      });
+    }
+
+    const atRisk = allUsers.filter(u => u.is_at_risk);
+    if (atRisk.length > 0) {
+      h += '<div class="sh">At-Risk Users</div>';
+      for (const u of atRisk.slice(0, 5)) {
+        h += '<div class="top-user">';
+        h += '<span class="top-user-rank" style="color:var(--red)">&bull;</span>';
+        h += '<span class="top-user-email">' + (u.email || '') + '</span>';
+        h += '<span class="top-user-stat">' + (u.sessions_7d || 0) + ' sess, ' + (u.last_active || 'never') + '</span>';
+        h += '<span class="top-user-flag risk">AT RISK</span>';
+        h += '</div>';
+      }
+    }
+
+    const engC = eng.commentary?.user_engagement?.[0];
+    if (engC) h += commentaryHtml(engC.type, engC.label, engC.text);
+
     const ret = eng.retention || {};
     const avgDur = eng.avg_session_duration;
     let durStr = '--';
@@ -879,8 +1139,8 @@ function renderBusiness(cc, funnel, eng) {
     h += '<div class="sc"><div class="sc-label">DAU</div><div class="sc-val">' + avgDau + '</div><div class="sc-sub">peak: ' + peakDau + '</div></div>';
     h += '</div>';
 
-    const engC = computeEngagementCommentary(eng, cc.users?.total || 0);
-    h += commentaryHtml(engC.type, engC.label, engC.text);
+    const oldEngC = computeEngagementCommentary(eng, cc.users?.total || 0);
+    h += commentaryHtml(oldEngC.type, oldEngC.label, oldEngC.text);
 
     if (eng.feature_adoption) {
       const featureMap = { 'view_article': 'Journal', 'view_market_scan': 'Market Scan', 'tap_bet_link': 'Bet Link Taps' };
@@ -894,31 +1154,13 @@ function renderBusiness(cc, funnel, eng) {
       const featC = computeFeatureCommentary(eng);
       h += commentaryHtml(featC.type, featC.label, featC.text);
     }
-
-    if (eng.top_pages && eng.top_pages.length > 0) {
-      h += '<div class="sh">Top Pages</div><div style="margin-bottom:16px">';
-      for (const p of eng.top_pages.slice(0, 6)) {
-        h += '<div class="page-row"><span class="page-path">' + (p.page || '/') + '</span><span class="page-views">' + commaFmt(p.views) + ' (' + (p.distinct_users || 0) + ' users)</span></div>';
-      }
-      h += '</div>';
-    }
-  }
-
-  const users = cc.users?.list || [];
-  if (users.length > 0) {
-    h += '<div class="sh">Recent Users</div><div>';
-    for (const u of users.slice(0, 10)) {
-      const tier = u.tier || 'free';
-      let tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
-      if (tier === 'founding' && u.founding_number) tierLabel = 'F #' + u.founding_number;
-      const tierClass = tier === 'pro' ? 'pro' : tier;
-      const date = u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-      h += '<div class="user-row"><span class="user-email">' + (u.email || '') + '</span><span class="user-badge ' + tierClass + '">' + tierLabel + '</span><span class="user-date">' + date + '</span></div>';
-    }
-    h += '</div>';
   }
 
   document.getElementById('businessContent').innerHTML = h;
+
+  if (eng && eng.all_users) {
+    renderUserTable();
+  }
 }
 
 function renderSessionsChart(sessionsByDay) {

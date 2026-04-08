@@ -1,12 +1,14 @@
 from flask import Blueprint, jsonify, request
-from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog, FCMToken, KillSwitch, UserBet, PageView, UserEvent, AdminAlert, MrrSnapshot
+from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog, FCMToken, KillSwitch, UserBet, PageView, UserEvent, AdminAlert, MrrSnapshot, ContentPageView
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, text
 from zoneinfo import ZoneInfo
 import os
+import re
 import requests
 import time
 import logging
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 import commentary as cmt
@@ -2655,43 +2657,192 @@ def admin_engagement():
                 if (first_seen + timedelta(days=7)) in udays:
                     d7_returned += 1
 
-    active_user_details = []
-    if all_active_users_7d:
-        active_users_db = User.query.filter(User.id.in_(list(all_active_users_7d))).all()
-        user_event_counts = {}
-        user_last_seen = {}
-        for ev in events:
-            if ev.user_id:
-                user_event_counts[ev.user_id] = user_event_counts.get(ev.user_id, 0) + 1
-                prev = user_last_seen.get(ev.user_id)
-                if prev is None or (ev.created_at and ev.created_at > prev):
-                    user_last_seen[ev.user_id] = ev.created_at
-        for u in active_users_db:
-            active_user_details.append({
-                'id': u.id,
-                'email': u.email,
-                'name': u.first_name or u.display_name or u.username or '',
-                'tier': u.subscription_status or 'free',
-                'plan': u.subscription_plan or '',
-                'founding': u.founding_member or False,
-                'events_7d': user_event_counts.get(u.id, 0),
-                'last_seen': user_last_seen[u.id].isoformat() if user_last_seen.get(u.id) else None,
-                'signed_up': u.created_at.isoformat() if u.created_at else None,
-            })
-        active_user_details.sort(key=lambda x: x.get('events_7d', 0), reverse=True)
+    # Per-user session counts, last seen, top feature
+    user_session_counts = {}
+    user_last_seen = {}
+    user_top_feature = {}
+    feature_labels = {
+        'view_market_scan': 'Market Scan', 'view_article': 'Journal',
+        'tap_bet_link': 'Bet Link', 'view_tracker': 'Tracker',
+        'view_signals': 'Signals', 'page_view': None,
+    }
+    user_feature_counts = {}
+    for ev in events:
+        if ev.user_id:
+            prev = user_last_seen.get(ev.user_id)
+            if prev is None or (ev.created_at and ev.created_at > prev):
+                user_last_seen[ev.user_id] = ev.created_at
+            if ev.session_id:
+                k = (ev.user_id, ev.session_id)
+                user_session_counts.setdefault(ev.user_id, set()).add(ev.session_id)
+            etype = ev.event_type
+            if etype in feature_labels and feature_labels[etype]:
+                user_feature_counts.setdefault(ev.user_id, {})
+                user_feature_counts[ev.user_id][etype] = user_feature_counts[ev.user_id].get(etype, 0) + 1
+
+    for uid, fcounts in user_feature_counts.items():
+        if fcounts:
+            top_key = max(fcounts, key=fcounts.get)
+            user_top_feature[uid] = feature_labels.get(top_key, top_key)
 
     all_users = User.query.order_by(User.created_at.desc()).all()
     all_user_details = []
+    verified_count = 0
+    unverified_users = []
+    now_utc = datetime.utcnow()
+
+    # Last-week active users for at-risk detection
+    prev_cutoff = cutoff - timedelta(days=7)
+    prev_events = UserEvent.query.filter(
+        UserEvent.created_at >= prev_cutoff,
+        UserEvent.created_at < cutoff,
+        UserEvent.user_id.isnot(None),
+    ).with_entities(UserEvent.user_id).distinct().all()
+    prev_active_uids = {r[0] for r in prev_events}
+
     for u in all_users:
+        uid = u.id
+        session_count = len(user_session_counts.get(uid, set()))
+        last_seen_dt = user_last_seen.get(uid)
+
+        tier = u.subscription_status or 'free'
+        is_founding = u.founding_member or False
+        founding_num = u.founding_number if is_founding else None
+        email_verified = bool(u.email_verified)
+        if email_verified:
+            verified_count += 1
+        else:
+            unverified_users.append({
+                'email': u.email,
+                'tier': tier,
+                'signed_up': u.created_at.isoformat() if u.created_at else None,
+            })
+
+        last_active_str = None
+        if last_seen_dt:
+            delta = now_utc - last_seen_dt
+            if delta.total_seconds() < 3600:
+                last_active_str = f"{max(1, int(delta.total_seconds() / 60))}m ago"
+            elif delta.total_seconds() < 86400:
+                last_active_str = f"{int(delta.total_seconds() / 3600)}h ago"
+            else:
+                last_active_str = f"{delta.days}d ago"
+        elif uid not in all_active_users_7d:
+            last_active_str = 'never'
+
+        is_active = uid in all_active_users_7d
+        is_power = session_count >= 10
+        is_at_risk = (uid in prev_active_uids and uid not in all_active_users_7d) or \
+                     (u.created_at and (now_utc - u.created_at).days >= 3 and uid not in all_active_users_7d and session_count <= 1)
+        trial_at_risk = False
+        if tier in ('trialing', 'trial') and u.trial_end_date:
+            days_left = (u.trial_end_date - now_utc).days if hasattr(u.trial_end_date, 'days') else (u.trial_end_date - now_utc.date()).days if hasattr(u.trial_end_date, 'year') else 999
+            if days_left < 3:
+                trial_at_risk = True
+                is_at_risk = True
+
         all_user_details.append({
-            'id': u.id,
+            'id': uid,
             'email': u.email,
             'name': u.first_name or u.display_name or u.username or '',
-            'tier': u.subscription_status or 'free',
+            'tier': tier,
             'plan': u.subscription_plan or '',
-            'founding': u.founding_member or False,
+            'founding': is_founding,
+            'founding_number': founding_num,
+            'email_verified': email_verified,
+            'sessions_7d': session_count,
+            'last_active': last_active_str,
+            'last_seen_iso': last_seen_dt.isoformat() if last_seen_dt else None,
+            'top_feature': user_top_feature.get(uid, '--'),
             'signed_up': u.created_at.isoformat() if u.created_at else None,
+            'is_active': is_active,
+            'is_power': is_power,
+            'is_at_risk': is_at_risk,
+            'trial_at_risk': trial_at_risk,
         })
+
+    # Sort by last_seen (most recent first), inactive at bottom
+    def _sort_key(u):
+        if u.get('last_seen_iso'):
+            return (0, u['last_seen_iso'])
+        return (1, '')
+    all_user_details.sort(key=_sort_key, reverse=True)
+
+    active_user_details = [u for u in all_user_details if u['is_active']]
+
+    # Verification summary
+    total_users = len(all_users)
+    unverified_count = total_users - verified_count
+
+    # Detect spam patterns
+    spam_pattern = None
+    email_prefixes = Counter()
+    for u in all_users:
+        if not u.email_verified:
+            prefix = u.email.split('@')[0] if u.email else ''
+            base = re.sub(r'\d+$', '', prefix)
+            if base and len(base) > 3:
+                email_prefixes[base] += 1
+    if email_prefixes:
+        top_prefix, top_count = email_prefixes.most_common(1)[0]
+        if top_count >= 3:
+            spam_pattern = {'prefix': top_prefix, 'count': top_count}
+
+    # Content engine page views (7d)
+    content_stats = {'total_views_7d': 0, 'unique_paths': 0, 'top_pages': [], 'total_pages': 0, 'top_page': None, 'daily': []}
+    try:
+        ContentPageView.__table__
+        content_cutoff = datetime.utcnow() - timedelta(days=7)
+        content_views = ContentPageView.query.filter(
+            ContentPageView.timestamp >= content_cutoff,
+            ContentPageView.is_bot == False,
+        ).all()
+
+        content_path_stats = {}
+        content_daily = {}
+        for v in content_views:
+            p = v.path
+            content_path_stats.setdefault(p, 0)
+            content_path_stats[p] += 1
+            d = _utc_naive_to_et_date(v.timestamp)
+            if d:
+                content_daily.setdefault(d.isoformat(), 0)
+                content_daily[d.isoformat()] += 1
+
+        total_content_views = sum(content_path_stats.values())
+        top_content = sorted(content_path_stats.items(), key=lambda x: x[1], reverse=True)[:10]
+        content_stats = {
+            'total_views_7d': total_content_views,
+            'unique_paths': len(content_path_stats),
+            'top_pages': [{'path': p, 'views': c} for p, c in top_content],
+            'total_pages': ContentPageView.query.with_entities(
+                func.count(func.distinct(ContentPageView.path))
+            ).scalar() or 0,
+            'top_page': top_content[0][0] if top_content else None,
+            'daily': [{'date': d, 'views': c} for d, c in sorted(content_daily.items())],
+        }
+    except Exception as e:
+        logging.warning('Content page view stats failed: %s', e)
+
+    # Power/at-risk counts
+    power_user_count = sum(1 for u in all_user_details if u.get('is_power'))
+    at_risk_count = sum(1 for u in all_user_details if u.get('is_at_risk'))
+    bet_pct = (feature_adoption.get('tap_bet_link', {}).get('pct_of_active', 0))
+
+    # Commentary
+    verif_c = cmt.verification_read({
+        'total_users': total_users,
+        'unverified_count': unverified_count,
+        'spam_pattern': spam_pattern,
+    })
+    content_c = cmt.content_engine_read(content_stats)
+    engagement_c = cmt.user_engagement_read({
+        'active_7d': active_user_count,
+        'total_users': total_users,
+        'power_user_count': power_user_count,
+        'at_risk_count': at_risk_count,
+        'bet_link_tap_rate': bet_pct,
+    })
 
     return jsonify({
         'period_days': 7,
@@ -2715,6 +2866,22 @@ def admin_engagement():
         },
         'active_user_details': active_user_details,
         'all_users': all_user_details,
+        'verification': {
+            'total': total_users,
+            'verified': verified_count,
+            'unverified': unverified_count,
+            'verified_pct': round(verified_count / max(total_users, 1) * 100, 1),
+            'unverified_list': unverified_users,
+            'spam_pattern': spam_pattern,
+        },
+        'content_engine': content_stats,
+        'power_user_count': power_user_count,
+        'at_risk_count': at_risk_count,
+        'commentary': {
+            'verification': [{'type': verif_c[0], 'label': verif_c[1], 'text': verif_c[2]}],
+            'content_engine': [{'type': content_c[0], 'label': content_c[1], 'text': content_c[2]}],
+            'user_engagement': [{'type': engagement_c[0], 'label': engagement_c[1], 'text': engagement_c[2]}],
+        },
     })
 
 

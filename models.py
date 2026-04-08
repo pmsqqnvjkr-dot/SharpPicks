@@ -368,6 +368,15 @@ class UserEvent(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now, index=True)
 
 
+class ContentPageView(db.Model):
+    __tablename__ = 'content_page_views'
+    id = db.Column(db.Integer, primary_key=True)
+    path = db.Column(db.String(500), nullable=False, index=True)
+    timestamp = db.Column(db.DateTime, default=datetime.now, index=True)
+    user_agent = db.Column(db.String(500), nullable=True)
+    is_bot = db.Column(db.Boolean, default=False)
+
+
 class AdminAlert(db.Model):
     __tablename__ = 'admin_alerts'
     id = db.Column(db.Integer, primary_key=True)

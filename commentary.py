@@ -660,3 +660,129 @@ def feature_note(
     if not text:
         text = "No feature usage data."
     return typ, "Feature Note", text
+
+
+# ---------------------------------------------------------------------------
+# Email Verification
+# ---------------------------------------------------------------------------
+
+def verification_read(
+    data: Dict[str, Any],
+) -> Tuple[TypeStr, str, str]:
+    total = _safe_int(data.get("total_users"), 1)
+    unverified = _safe_int(data.get("unverified_count"))
+    verified_pct = round((total - unverified) / max(total, 1) * 100, 0)
+    unverified_pct = round(unverified / max(total, 1) * 100, 0)
+    typ: TypeStr = "insight"
+    parts: List[str] = []
+
+    if unverified_pct > 30:
+        typ = "warning"
+        parts.append(
+            f"Verification rate is low at {_strong(f'{verified_pct:.0f}%')}. "
+            f"{_strong(unverified)} users haven't verified their email. "
+            f"Consider a re-verification nudge email or in-app prompt."
+        )
+    elif unverified_pct > 15:
+        parts.append(
+            f"Verification at {_strong(f'{verified_pct:.0f}%')}. "
+            f"{_strong(unverified)} unverified accounts."
+        )
+    else:
+        parts.append(
+            f"Email verification healthy at {_strong(f'{verified_pct:.0f}%')}."
+        )
+
+    spam_pattern = data.get("spam_pattern")
+    if spam_pattern:
+        parts.append(
+            f"{_strong(spam_pattern['count'])} signups matching pattern "
+            f"\"{spam_pattern['prefix']}\" look like bot/spam accounts. "
+            f"Consider an IP-based signup rate limit or CAPTCHA."
+        )
+        if typ == "insight":
+            typ = "warning"
+
+    return typ, "Verification Read", " ".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Content Engine Performance
+# ---------------------------------------------------------------------------
+
+def content_engine_read(
+    data: Dict[str, Any],
+) -> Tuple[TypeStr, str, str]:
+    views = _safe_int(data.get("total_views_7d"))
+    top = data.get("top_page", "unknown")
+    total_pages = _safe_int(data.get("total_pages"))
+    typ: TypeStr = "insight"
+    parts: List[str] = []
+
+    if views > 500:
+        parts.append(
+            f"Content engine generating solid traffic at {_strong(views)} views/week. "
+            f"Top page: {_strong(top)}."
+        )
+    elif views > 100:
+        parts.append(
+            f"Content engine warming up with {_strong(views)} views/week. "
+            f"{_strong(top)} leading."
+        )
+    elif views > 0:
+        parts.append(
+            f"Content engine at {_strong(views)} views/week. "
+            f"Early days -- SEO takes 4-8 weeks to compound."
+        )
+    else:
+        parts.append("No content page views recorded yet. Tracking just started.")
+
+    if total_pages:
+        parts.append(f"{_strong(total_pages)} total content pages generated.")
+
+    return typ, "Content Read", " ".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# User Engagement (enhanced)
+# ---------------------------------------------------------------------------
+
+def user_engagement_read(
+    data: Dict[str, Any],
+) -> Tuple[TypeStr, str, str]:
+    active = _safe_int(data.get("active_7d"))
+    total = _safe_int(data.get("total_users"), 1)
+    pct = round(active / max(total, 1) * 100, 0)
+    power_users = _safe_int(data.get("power_user_count"))
+    at_risk = _safe_int(data.get("at_risk_count"))
+    bet_rate = _safe_float(data.get("bet_link_tap_rate"))
+
+    typ: TypeStr = "insight"
+    parts: List[str] = []
+
+    parts.append(
+        f"{_strong(active)} of {_strong(total)} users active in the last 7 days "
+        f"({_strong(f'{pct:.0f}%')})."
+    )
+    if pct < 25:
+        typ = "warning"
+
+    if power_users > 0:
+        parts.append(f"{_strong(power_users)} power users (10+ sessions/week).")
+
+    if at_risk > 0:
+        parts.append(
+            f"{_strong(at_risk)} users at risk -- active last week but silent this week. "
+            f"Consider a re-engagement push notification."
+        )
+        if typ == "insight":
+            typ = "warning"
+
+    if bet_rate < 10 and active > 0:
+        parts.append(
+            f"Bet Link Taps at {_strong(f'{bet_rate:.1f}%')} -- "
+            f"users are reading signals but not acting on them. "
+            f"Trust gap or UX friction."
+        )
+
+    return typ, "User Engagement Read", " ".join(parts)
