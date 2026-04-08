@@ -488,10 +488,13 @@ def signal_card(signal_id):
 def flush_share_cache():
     """Clear all cached share card images so they regenerate with current design."""
     import shutil
-    cache_dir = os.path.join(_BASE, '.share-cache')
-    if os.path.isdir(cache_dir):
-        shutil.rmtree(cache_dir)
-    return jsonify({'status': 'ok', 'message': 'Share card cache cleared'})
+    cleared = []
+    for dirname in ('.share-cache', '.og-cache'):
+        cache_dir = os.path.join(_BASE, dirname)
+        if os.path.isdir(cache_dir):
+            shutil.rmtree(cache_dir)
+            cleared.append(dirname)
+    return jsonify({'status': 'ok', 'cleared': cleared})
 
 
 @cards_bp.route('/result/<signal_id>')
@@ -505,7 +508,7 @@ def result_card(signal_id):
 
     cache_dir = os.path.join(_BASE, '.share-cache')
     os.makedirs(cache_dir, exist_ok=True)
-    cache_path = os.path.join(cache_dir, f'share-v5-{signal_id}.png')
+    cache_path = os.path.join(cache_dir, f'share-v6-{signal_id}.png')
 
     is_resolved = pick.result in ('win', 'loss', 'push', 'revoked')
     force_refresh = request.args.get('refresh') == '1'
