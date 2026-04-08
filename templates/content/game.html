@@ -23,10 +23,10 @@
 {% endfor %}
 
 <div class="sh">Market vs Model</div>
-<div style="margin-bottom:16px">
+<div style="margin-bottom:16px;width:100%">
   <div class="dr"><span class="dr-l">Current Spread</span><span class="dr-v">{{ game.pick_label if game.market_line is not none else '--' }}</span></div>
   {% if game.signal %}
-  <div class="dr"><span class="dr-l">Model Line</span><span class="dr-v green">{{ game.model_line }}</span></div>
+  <div class="dr"><span class="dr-l">Model Line</span><span class="dr-v green">{{ '%+.1f'|format(game.model_line) if game.model_line is not none else '--' }}</span></div>
   {% endif %}
   <div class="dr"><span class="dr-l">Edge Band</span><span class="dr-v{% if game.edge >= 4.5 %} green{% elif game.edge >= 3.0 %} amber{% endif %}">{{ game.edge_band }}</span></div>
   <div class="dr"><span class="dr-l">Status</span><span class="dr-v{% if game.signal %} green{% endif %}">{{ game.status }}</span></div>

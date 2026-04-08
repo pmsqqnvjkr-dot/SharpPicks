@@ -229,6 +229,7 @@ def should_index_game_page(game):
 
 PASS_REASON_DISPLAY = {
     "spread_too_large": "Spread exceeds the model's reliable range for this matchup type",
+    "mid_spread_insufficient_edge": "Edge insufficient for this spread size",
     "star_questionable": "Key player status uncertain, reducing model confidence",
     "below_threshold": "Edge below the 3.5% qualification threshold",
     "confidence_split": "Model ensemble did not reach sufficient agreement",
@@ -240,6 +241,10 @@ PASS_REASON_DISPLAY = {
     "high_variance": "Outcome variance too high for reliable edge estimate",
     "model_disagreement": "Individual models disagree on direction",
     "stale_line": "Line data may be stale or unavailable",
+    "missing_spread": "Spread data unavailable for this game",
+    "missing_prediction": "Model could not generate a prediction",
+    "fallback_sigma": "Prediction uncertainty too high",
+    "extreme_line_move": "Line moved significantly since model ran",
 }
 
 
@@ -247,16 +252,22 @@ def format_fail_reason(raw_reason):
     """Convert an internal fail_reason token to user-facing copy."""
     if not raw_reason:
         return "Below qualification threshold"
-    cleaned = raw_reason.strip().lower()
-    if cleaned in PASS_REASON_DISPLAY:
-        return PASS_REASON_DISPLAY[cleaned]
-    # Check for partial matches
+    cleaned = raw_reason.strip()
+    cleaned_lower = cleaned.lower()
+    # Direct match
+    if cleaned_lower in PASS_REASON_DISPLAY:
+        return PASS_REASON_DISPLAY[cleaned_lower]
+    # Strip parenthetical data (e.g. "spread_too_large (14.5, need 6% edge)")
+    base_token = re.sub(r'\s*\(.*\)\s*$', '', cleaned_lower).strip()
+    if base_token in PASS_REASON_DISPLAY:
+        return PASS_REASON_DISPLAY[base_token]
+    # Check for partial/prefix matches
     for key, display in PASS_REASON_DISPLAY.items():
-        if key in cleaned:
+        if key in cleaned_lower:
             return display
     # If it already looks like readable text (contains spaces, no underscores), pass through
-    if ' ' in raw_reason and '_' not in raw_reason:
-        return raw_reason
+    if ' ' in cleaned and '_' not in cleaned:
+        return cleaned
     return "Below qualification threshold"
 
 
@@ -534,14 +545,15 @@ def get_daily_report_data(date_str, sport='nba'):
         away = _resolve_team_abbr(g.get('away_team', '?'), sport)
         home = _resolve_team_abbr(g.get('home_team', '?'), sport)
 
-        # Deduplicate reasoning/factors
+        # Deduplicate reasoning/factors (normalize whitespace for comparison)
         raw_reasoning = g.get('reasoning', [])
         seen_reasons = set()
         unique_reasoning = []
         for r in raw_reasoning:
-            if r not in seen_reasons:
-                seen_reasons.add(r)
-                unique_reasoning.append(r)
+            normalized = ' '.join(r.strip().split()).lower()
+            if normalized and normalized not in seen_reasons:
+                seen_reasons.add(normalized)
+                unique_reasoning.append(r.strip())
 
         # Convert raw fail_reasons to user-facing copy
         raw_fail = g.get('fail_reasons', [])
@@ -665,17 +677,22 @@ def build_postgame_summary(game):
 def get_team_season_data(abbr, sport='nba'):
     """Aggregate signal history for a team across the current season."""
     team_info = _team_lookup(abbr, sport)
+    full_name = team_info['name']
+
+    # DB stores full team names, so query by full name AND abbreviation
     picks = Pick.query.filter(
         Pick.sport == sport,
         Pick.result != 'revoked',
     ).filter(
-        db.or_(Pick.home_team == abbr, Pick.away_team == abbr)
+        db.or_(
+            Pick.home_team == abbr, Pick.away_team == abbr,
+            Pick.home_team == full_name, Pick.away_team == full_name,
+        )
     ).order_by(Pick.game_date.desc()).all()
 
     signal_picks = [p for p in picks if p.side and (
-        (p.home_team == abbr and p.side.lower().startswith(abbr.lower())) or
-        (p.away_team == abbr and p.side.lower().startswith(abbr.lower())) or
-        abbr.lower() in (p.side or '').lower()
+        abbr.lower() in (p.side or '').lower() or
+        full_name.lower() in (p.side or '').lower()
     )]
 
     wins = sum(1 for p in signal_picks if p.result == 'win')
@@ -703,13 +720,16 @@ def get_team_season_data(abbr, sport='nba'):
     all_team_picks = Pick.query.filter(
         Pick.sport == sport,
         Pick.result != 'revoked',
-        db.or_(Pick.home_team == abbr, Pick.away_team == abbr)
+        db.or_(
+            Pick.home_team == abbr, Pick.away_team == abbr,
+            Pick.home_team == full_name, Pick.away_team == full_name,
+        )
     ).order_by(Pick.game_date.desc()).limit(10).all()
 
     for p in all_team_picks:
-        is_signal_for_team = abbr.lower() in (p.side or '').lower()
-        opp = p.away_team if p.home_team == abbr else p.home_team
-        at_home = p.home_team == abbr
+        is_signal_for_team = abbr.lower() in (p.side or '').lower() or full_name.lower() in (p.side or '').lower()
+        opp = p.away_team if p.home_team in (abbr, full_name) else p.home_team
+        at_home = p.home_team in (abbr, full_name)
         recent_games.append({
             'date': p.game_date,
             'date_short': _format_date_short(p.game_date) if p.game_date else '',
