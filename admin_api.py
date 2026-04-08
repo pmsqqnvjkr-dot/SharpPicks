@@ -2546,6 +2546,14 @@ def admin_engagement():
     if not admin:
         return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
+    try:
+        return _admin_engagement_inner()
+    except Exception as e:
+        logging.error('Engagement endpoint crashed: %s', e, exc_info=True)
+        return jsonify({'error': str(e)[:200], '_crash': True}), 500
+
+
+def _admin_engagement_inner():
     cutoff = datetime.utcnow() - timedelta(days=7)
 
     first_event = UserEvent.query.order_by(UserEvent.created_at.asc()).first()
@@ -2657,6 +2665,22 @@ def admin_engagement():
                 if (first_seen + timedelta(days=7)) in udays:
                     d7_returned += 1
 
+    sessions_by_day_dict = {}
+    for ev in events:
+        if ev.session_id:
+            d = _utc_naive_to_et_date(ev.created_at)
+            if d:
+                sessions_by_day_dict.setdefault(d.isoformat(), set()).add(ev.session_id)
+
+    sessions_by_day = []
+    for i in range(7):
+        d = today_et - timedelta(days=6 - i)
+        d_iso = d.isoformat()
+        sessions_by_day.append({
+            'date': d_iso,
+            'sessions': len(sessions_by_day_dict.get(d_iso, set())),
+        })
+
     # Per-user session counts, last seen, top feature
     user_session_counts = {}
     user_last_seen = {}
@@ -2736,7 +2760,14 @@ def admin_engagement():
                      (u.created_at and (now_utc - u.created_at).days >= 3 and uid not in all_active_users_7d and session_count <= 1)
         trial_at_risk = False
         if tier in ('trialing', 'trial') and u.trial_end_date:
-            days_left = (u.trial_end_date - now_utc).days if hasattr(u.trial_end_date, 'days') else (u.trial_end_date - now_utc.date()).days if hasattr(u.trial_end_date, 'year') else 999
+            try:
+                ted = u.trial_end_date
+                if isinstance(ted, datetime):
+                    days_left = (ted - now_utc).days
+                else:
+                    days_left = (ted - now_utc.date()).days
+            except Exception:
+                days_left = 999
             if days_left < 3:
                 trial_at_risk = True
                 is_at_risk = True
@@ -2857,6 +2888,7 @@ def admin_engagement():
         'active_users_7d': active_user_count,
         'total_sessions_7d': len(total_sessions_7d),
         'dau': dau,
+        'sessions_by_day': sessions_by_day,
         'avg_session_duration': avg_session_duration,
         'avg_sessions_per_user': avg_sessions_per_user,
         'avg_pages_per_session': avg_pages_per_session,

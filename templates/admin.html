@@ -238,6 +238,16 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
 .panel.active > *:nth-child(18){animation:fadeUp .3s ease both;animation-delay:.54s}
 .panel.active > *:nth-child(19){animation:fadeUp .3s ease both;animation-delay:.57s}
 .panel.active > *:nth-child(20){animation:fadeUp .3s ease both;animation-delay:.60s}
+.panel.active > *:nth-child(21){animation:fadeUp .3s ease both;animation-delay:.63s}
+.panel.active > *:nth-child(22){animation:fadeUp .3s ease both;animation-delay:.66s}
+.panel.active > *:nth-child(23){animation:fadeUp .3s ease both;animation-delay:.69s}
+.panel.active > *:nth-child(24){animation:fadeUp .3s ease both;animation-delay:.72s}
+.panel.active > *:nth-child(25){animation:fadeUp .3s ease both;animation-delay:.75s}
+.panel.active > *:nth-child(26){animation:fadeUp .3s ease both;animation-delay:.78s}
+.panel.active > *:nth-child(27){animation:fadeUp .3s ease both;animation-delay:.81s}
+.panel.active > *:nth-child(28){animation:fadeUp .3s ease both;animation-delay:.84s}
+.panel.active > *:nth-child(29){animation:fadeUp .3s ease both;animation-delay:.87s}
+.panel.active > *:nth-child(30){animation:fadeUp .3s ease both;animation-delay:.90s}
 @keyframes killPulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .kill-pulse{animation:killPulse 1.5s ease-in-out infinite}
 </style>
@@ -603,13 +613,17 @@ async function loadData() {
   updateClock();
   setInterval(updateClock, 30000);
   try {
+    const safeFetch = url => fetch(url).then(r => {
+      if (!r.ok) { console.warn(url, r.status); return null; }
+      return r.json();
+    }).catch(e => { console.error(url, e); return null; });
     const [ccR, healthR, cronR, funnelR, engR, cfR] = await Promise.all([
-      fetch('/api/admin/command-center').then(r => r.json()).catch(() => null),
-      fetch('/api/admin/health-checks').then(r => r.json()).catch(() => null),
-      fetch('/api/admin/cron-health').then(r => r.json()).catch(() => null),
-      fetch('/api/admin/funnel-metrics').then(r => r.json()).catch(() => null),
-      fetch('/api/admin/engagement').then(r => r.json()).catch(() => null),
-      fetch('/api/admin/cf-analytics').then(r => r.json()).catch(() => null),
+      safeFetch('/api/admin/command-center'),
+      safeFetch('/api/admin/health-checks'),
+      safeFetch('/api/admin/cron-health'),
+      safeFetch('/api/admin/funnel-metrics'),
+      safeFetch('/api/admin/engagement'),
+      safeFetch('/api/admin/cf-analytics'),
     ]);
     renderPulse(ccR, healthR, cfR, engR);
     renderModels(ccR);
@@ -643,9 +657,9 @@ function renderPulse(cc, health, cf, eng) {
   h += '<div class="pipeline-panel active" id="pipe-nba">' + renderPipeline(nba, cc.recent_picks || [], 'nba') + '</div>';
   h += '<div class="pipeline-panel" id="pipe-mlb">' + renderPipeline(mlb, cc.mlb_recent_picks || [], 'mlb') + '</div>';
 
+  h += '<div class="sh">Content Engine</div>';
   if (eng && eng.content_engine) {
     const ce = eng.content_engine;
-    h += '<div class="sh">Content Engine</div>';
     h += '<div class="sg c4">';
     h += '<div class="sc"><div class="sc-label">Pages</div><div class="sc-val">' + (ce.total_pages || 0) + '</div><div class="sc-sub">total</div></div>';
     h += '<div class="sc"><div class="sc-label">Views 7d</div><div class="sc-val">' + commaFmt(ce.total_views_7d) + '</div></div>';
@@ -679,6 +693,14 @@ function renderPulse(cc, health, cf, eng) {
 
     const ceC = eng.commentary?.content_engine?.[0];
     if (ceC) h += commentaryHtml(ceC.type, ceC.label, ceC.text);
+  } else {
+    h += '<div class="sg c4">';
+    h += '<div class="sc"><div class="sc-label">Pages</div><div class="sc-val">--</div></div>';
+    h += '<div class="sc"><div class="sc-label">Views 7d</div><div class="sc-val">--</div></div>';
+    h += '<div class="sc"><div class="sc-label">Uniques</div><div class="sc-val">--</div></div>';
+    h += '<div class="sc"><div class="sc-label">Indexed</div><div class="sc-val">--</div></div>';
+    h += '</div>';
+    h += '<div style="font-size:10px;color:var(--t4);text-align:center;padding:8px 0">Content data loading...</div>';
   }
 
   document.getElementById('pulseContent').innerHTML = h;
@@ -882,9 +904,9 @@ function renderInfra(cronData, health, cc, cf) {
   h += '<div class="sh">Services</div>';
   h += renderServicesGrid(health);
 
+  h += '<div class="sh">Cloudflare Pages</div>';
   if (cf && cf.marketing) {
     const m = cf.marketing;
-    h += '<div class="sh">Cloudflare Pages</div>';
     h += '<div class="sg c3">';
     h += '<div class="sc"><div class="sc-label">Visits 7d</div><div class="sc-val">' + commaFmt(m.uniques) + '</div></div>';
     h += '<div class="sc"><div class="sc-label">Page Views</div><div class="sc-val">' + commaFmt(m.pageViews) + '</div></div>';
@@ -920,6 +942,13 @@ function renderInfra(cronData, health, cc, cf) {
     h += '<div class="sc"><div class="sc-label">Top Country</div><div class="sc-val" style="font-size:11px">US</div></div>';
     h += '<div class="sc"><div class="sc-label">Avg Load</div><div class="sc-val" style="font-size:11px">1.2s</div></div>';
     h += '</div>';
+  } else {
+    h += '<div class="sg c3">';
+    h += '<div class="sc"><div class="sc-label">Visits 7d</div><div class="sc-val">--</div></div>';
+    h += '<div class="sc"><div class="sc-label">Page Views</div><div class="sc-val">--</div></div>';
+    h += '<div class="sc"><div class="sc-label">Uniques</div><div class="sc-val">--</div></div>';
+    h += '</div>';
+    h += '<div style="font-size:10px;color:var(--t4);text-align:center;padding:8px 0">CF analytics unavailable — check CF_API_TOKEN env var</div>';
   }
 
   const infraC = computeInfraCommentary(cronData);
@@ -1065,108 +1094,132 @@ function renderBusiness(cc, funnel, eng) {
   h += '<div class="sc"><div class="sc-label">Founding</div><div class="sc-val green">' + (rev.founding_count || 0) + '</div></div>';
   h += '</div>';
 
+  const allUsers = (eng && eng.all_users) ? eng.all_users : [];
+  const totalUsers = allUsers.length;
+  const paidCount = allUsers.filter(u => ['pro','active','founding'].includes(u.tier) || u.founding).length;
+  const freeCount = allUsers.filter(u => u.tier === 'free' && !u.founding).length;
+  const foundingCount = allUsers.filter(u => u.founding).length;
+  const activeCount = allUsers.filter(u => u.is_active).length;
+  const unvCount = allUsers.filter(u => !u.email_verified).length;
+  const riskCount = allUsers.filter(u => u.is_at_risk).length;
+
+  _allBizUsers = allUsers;
+
+  h += '<div class="sh">User Detail</div>';
+  h += '<div class="user-filters">';
+  h += '<button class="uf active" onclick="filterBizUsers(\'all\',this)">All (' + totalUsers + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'paid\',this)">Paid (' + paidCount + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'free\',this)">Free (' + freeCount + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'founding\',this)">Founding (' + foundingCount + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'active\',this)">Active 7d (' + activeCount + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'unverified\',this)">Unverified (' + unvCount + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'atrisk\',this)">At Risk (' + riskCount + ')</button>';
+  h += '</div>';
+  h += '<div id="userTableContainer"></div>';
+
+  const topUsers = allUsers.filter(u => u.sessions_7d > 0).sort((a, b) => b.sessions_7d - a.sessions_7d).slice(0, 5);
+  if (topUsers.length > 0) {
+    h += '<div class="sh">Top Users (7d)</div>';
+    topUsers.forEach((u, i) => {
+      h += '<div class="top-user">';
+      h += '<span class="top-user-rank">' + (i + 1) + '</span>';
+      h += '<span class="top-user-email">' + (u.email || '') + '</span>';
+      h += '<span class="top-user-stat">' + u.sessions_7d + ' sessions</span>';
+      if (u.is_power) h += '<span class="top-user-flag power">POWER</span>';
+      h += '</div>';
+    });
+  }
+
+  const atRisk = allUsers.filter(u => u.is_at_risk);
+  if (atRisk.length > 0) {
+    h += '<div class="sh">At-Risk Users</div>';
+    for (const u of atRisk.slice(0, 5)) {
+      h += '<div class="top-user">';
+      h += '<span class="top-user-rank" style="color:var(--red)">&bull;</span>';
+      h += '<span class="top-user-email">' + (u.email || '') + '</span>';
+      h += '<span class="top-user-stat">' + (u.sessions_7d || 0) + ' sess, ' + (u.last_active || 'never') + '</span>';
+      h += '<span class="top-user-flag risk">AT RISK</span>';
+      h += '</div>';
+    }
+  }
+
   if (eng) {
-    const allUsers = eng.all_users || [];
-    const totalUsers = allUsers.length;
-    const paidCount = allUsers.filter(u => ['pro','active','founding'].includes(u.tier) || u.founding).length;
-    const freeCount = allUsers.filter(u => u.tier === 'free' && !u.founding).length;
-    const foundingCount = allUsers.filter(u => u.founding).length;
-    const activeCount = allUsers.filter(u => u.is_active).length;
-    const unvCount = allUsers.filter(u => !u.email_verified).length;
-    const riskCount = allUsers.filter(u => u.is_at_risk).length;
-
-    _allBizUsers = allUsers;
-
-    h += '<div class="sh">User Detail</div>';
-    h += '<div class="user-filters">';
-    h += '<button class="uf active" onclick="filterBizUsers(\'all\',this)">All (' + totalUsers + ')</button>';
-    h += '<button class="uf" onclick="filterBizUsers(\'paid\',this)">Paid (' + paidCount + ')</button>';
-    h += '<button class="uf" onclick="filterBizUsers(\'free\',this)">Free (' + freeCount + ')</button>';
-    h += '<button class="uf" onclick="filterBizUsers(\'founding\',this)">Founding (' + foundingCount + ')</button>';
-    h += '<button class="uf" onclick="filterBizUsers(\'active\',this)">Active 7d (' + activeCount + ')</button>';
-    h += '<button class="uf" onclick="filterBizUsers(\'unverified\',this)">Unverified (' + unvCount + ')</button>';
-    h += '<button class="uf" onclick="filterBizUsers(\'atrisk\',this)">At Risk (' + riskCount + ')</button>';
-    h += '</div>';
-    h += '<div id="userTableContainer"></div>';
-
-    const topUsers = allUsers.filter(u => u.sessions_7d > 0).sort((a, b) => b.sessions_7d - a.sessions_7d).slice(0, 5);
-    if (topUsers.length > 0) {
-      h += '<div class="sh">Top Users (7d)</div>';
-      topUsers.forEach((u, i) => {
-        h += '<div class="top-user">';
-        h += '<span class="top-user-rank">' + (i + 1) + '</span>';
-        h += '<span class="top-user-email">' + (u.email || '') + '</span>';
-        h += '<span class="top-user-stat">' + u.sessions_7d + ' sessions</span>';
-        if (u.is_power) h += '<span class="top-user-flag power">POWER</span>';
-        h += '</div>';
-      });
-    }
-
-    const atRisk = allUsers.filter(u => u.is_at_risk);
-    if (atRisk.length > 0) {
-      h += '<div class="sh">At-Risk Users</div>';
-      for (const u of atRisk.slice(0, 5)) {
-        h += '<div class="top-user">';
-        h += '<span class="top-user-rank" style="color:var(--red)">&bull;</span>';
-        h += '<span class="top-user-email">' + (u.email || '') + '</span>';
-        h += '<span class="top-user-stat">' + (u.sessions_7d || 0) + ' sess, ' + (u.last_active || 'never') + '</span>';
-        h += '<span class="top-user-flag risk">AT RISK</span>';
-        h += '</div>';
-      }
-    }
-
     const engC = eng.commentary?.user_engagement?.[0];
     if (engC) h += commentaryHtml(engC.type, engC.label, engC.text);
+  }
 
-    const ret = eng.retention || {};
-    const avgDur = eng.avg_session_duration;
-    let durStr = '--';
-    if (avgDur != null) {
-      const m = Math.floor(avgDur / 60);
-      const s = Math.round(avgDur % 60);
-      durStr = m + 'm ' + s + 's';
-    }
+  const ret = eng ? (eng.retention || {}) : {};
+  const avgDur = eng ? eng.avg_session_duration : null;
+  let durStr = '--';
+  if (avgDur != null) {
+    const m = Math.floor(avgDur / 60);
+    const s = Math.round(avgDur % 60);
+    durStr = m + 'm ' + s + 's';
+  }
 
-    h += '<div class="sh">Engagement (7D)</div>';
-    h += '<div class="sg c3">';
-    h += '<div class="sc"><div class="sc-label">Active</div><div class="sc-val">' + (eng.active_users_7d || 0) + '</div><div class="sc-sub">' + commaFmt(eng.total_events) + ' events</div></div>';
-    h += '<div class="sc"><div class="sc-label">Sessions</div><div class="sc-val">' + (eng.total_sessions_7d || 0) + '</div><div class="sc-sub">' + (eng.avg_sessions_per_user || '--') + '/user</div></div>';
-    h += '<div class="sc"><div class="sc-label">Avg Duration</div><div class="sc-val" style="font-size:16px">' + durStr + '</div><div class="sc-sub">' + (eng.avg_pages_per_session || '--') + ' pages</div></div>';
-    h += '</div>';
+  h += '<div class="sh">Engagement (7D)</div>';
+  h += '<div class="sg c3">';
+  h += '<div class="sc"><div class="sc-label">Active</div><div class="sc-val">' + (eng ? (eng.active_users_7d || 0) : '--') + '</div><div class="sc-sub">' + (eng ? commaFmt(eng.total_events) + ' events' : '--') + '</div></div>';
+  h += '<div class="sc"><div class="sc-label">Sessions</div><div class="sc-val">' + (eng ? (eng.total_sessions_7d || 0) : '--') + '</div><div class="sc-sub">' + (eng ? (eng.avg_sessions_per_user || '--') + '/user' : '--') + '</div></div>';
+  h += '<div class="sc"><div class="sc-label">Avg Duration</div><div class="sc-val" style="font-size:16px">' + durStr + '</div><div class="sc-sub">' + (eng ? (eng.avg_pages_per_session || '--') + ' pages' : '--') + '</div></div>';
+  h += '</div>';
 
-    if (eng.sessions_by_day && eng.sessions_by_day.length > 0) {
-      h += renderSessionsChart(eng.sessions_by_day);
-    }
+  if (eng && eng.sessions_by_day && eng.sessions_by_day.length > 0) {
+    h += renderSessionsChart(eng.sessions_by_day);
+  }
 
-    h += '<div class="sg c3">';
-    h += '<div class="sc"><div class="sc-label">D1 Retention</div><div class="sc-val amber">' + (ret.d1_rate_pct || 0) + '%</div><div class="sc-sub">' + (ret.d1_returned || 0) + '/' + (ret.d1_eligible || 0) + '</div></div>';
-    h += '<div class="sc"><div class="sc-label">D7 Retention</div><div class="sc-val green">' + (ret.d7_rate_pct || 0) + '%</div><div class="sc-sub">' + (ret.d7_returned || 0) + '/' + (ret.d7_eligible || 0) + '</div></div>';
-    const dauArr = eng.dau || [];
-    const avgDau = dauArr.length > 0 ? (dauArr.reduce((s, d) => s + (d.active_users || 0), 0) / dauArr.length).toFixed(1) : '--';
-    const peakDau = dauArr.length > 0 ? Math.max(...dauArr.map(d => d.active_users || 0)) : '--';
-    h += '<div class="sc"><div class="sc-label">DAU</div><div class="sc-val">' + avgDau + '</div><div class="sc-sub">peak: ' + peakDau + '</div></div>';
-    h += '</div>';
+  h += '<div class="sg c3">';
+  h += '<div class="sc"><div class="sc-label">D1 Retention</div><div class="sc-val amber">' + (ret.d1_rate_pct || 0) + '%</div><div class="sc-sub">' + (ret.d1_returned || 0) + '/' + (ret.d1_eligible || 0) + '</div></div>';
+  h += '<div class="sc"><div class="sc-label">D7 Retention</div><div class="sc-val green">' + (ret.d7_rate_pct || 0) + '%</div><div class="sc-sub">' + (ret.d7_returned || 0) + '/' + (ret.d7_eligible || 0) + '</div></div>';
+  const dauArr = eng ? (eng.dau || []) : [];
+  const avgDau = dauArr.length > 0 ? (dauArr.reduce((s, d) => s + (d.active_users || 0), 0) / dauArr.length).toFixed(1) : '--';
+  const peakDau = dauArr.length > 0 ? Math.max(...dauArr.map(d => d.active_users || 0)) : '--';
+  h += '<div class="sc"><div class="sc-label">DAU</div><div class="sc-val">' + avgDau + '</div><div class="sc-sub">peak: ' + peakDau + '</div></div>';
+  h += '</div>';
 
+  if (eng) {
     const oldEngC = computeEngagementCommentary(eng, cc.users?.total || 0);
     h += commentaryHtml(oldEngC.type, oldEngC.label, oldEngC.text);
+  }
 
-    if (eng.feature_adoption) {
-      const featureMap = { 'view_article': 'Journal', 'view_market_scan': 'Market Scan', 'tap_bet_link': 'Bet Link Taps' };
-      h += '<div class="sh">Feature Usage</div><div style="margin-bottom:16px">';
-      for (const [key, label] of Object.entries(featureMap)) {
-        const f = eng.feature_adoption[key] || {};
-        const pct = f.pct_of_active || 0;
-        h += '<div class="feat"><span class="feat-name">' + label + '</span><div class="feat-track"><div class="feat-fill" style="width:' + pct + '%"></div></div><span class="feat-pct">' + pct + '%</span></div>';
-      }
-      h += '</div>';
-      const featC = computeFeatureCommentary(eng);
-      h += commentaryHtml(featC.type, featC.label, featC.text);
+  if (eng && eng.feature_adoption) {
+    const featureMap = { 'view_article': 'Journal', 'view_market_scan': 'Market Scan', 'tap_bet_link': 'Bet Link Taps' };
+    h += '<div class="sh">Feature Usage</div><div style="margin-bottom:16px">';
+    for (const [key, label] of Object.entries(featureMap)) {
+      const f = eng.feature_adoption[key] || {};
+      const pct = f.pct_of_active || 0;
+      h += '<div class="feat"><span class="feat-name">' + label + '</span><div class="feat-track"><div class="feat-fill" style="width:' + pct + '%"></div></div><span class="feat-pct">' + pct + '%</span></div>';
+    }
+    h += '</div>';
+    const featC = computeFeatureCommentary(eng);
+    h += commentaryHtml(featC.type, featC.label, featC.text);
+  }
+
+  const topPages = eng ? (eng.top_pages || []) : [];
+  if (topPages.length > 0) {
+    h += '<div class="sh">Top Pages</div>';
+    for (const p of topPages.slice(0, 8)) {
+      h += '<div class="page-row"><span class="page-path">' + (p.page || p.path || '/') + '</span><span class="page-views">' + (p.views || 0) + ' views &middot; ' + (p.distinct_users || 0) + ' users</span></div>';
+    }
+  }
+
+  const recentUsers = allUsers.slice(0, 8);
+  if (recentUsers.length > 0) {
+    h += '<div class="sh">Recent Users</div>';
+    for (const u of recentUsers) {
+      const tier = u.tier || 'free';
+      let badgeClass = 'free', badgeLabel = 'FREE';
+      if (u.founding) { badgeClass = 'founding'; badgeLabel = 'F#' + (u.founding_number || ''); }
+      else if (tier === 'pro' || tier === 'active') { badgeClass = 'pro'; badgeLabel = 'PRO'; }
+      else if (tier === 'trialing' || tier === 'trial') { badgeClass = 'trial'; badgeLabel = 'TRIAL'; }
+      const dt = u.signed_up ? new Date(u.signed_up).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--';
+      h += '<div class="user-row"><span class="user-email">' + (u.email || '') + '</span><span class="user-badge ' + badgeClass + '">' + badgeLabel + '</span><span class="user-date">' + dt + '</span></div>';
     }
   }
 
   document.getElementById('businessContent').innerHTML = h;
 
-  if (eng && eng.all_users) {
+  if (allUsers.length > 0) {
     renderUserTable();
   }
 }
