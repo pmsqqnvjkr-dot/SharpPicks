@@ -3222,17 +3222,33 @@ def grade_pending_picks():
                 side_lower = pick.side.lower()
                 home_lower = pick.home_team.lower()
                 away_lower = pick.away_team.lower()
-                is_home_pick = home_lower in side_lower or any(
-                    word in side_lower for word in home_lower.split() if len(word) > 3
-                )
-                is_away_pick = away_lower in side_lower or any(
-                    word in side_lower for word in away_lower.split() if len(word) > 3
-                )
-                if not is_home_pick and not is_away_pick:
-                    print(f"[Auto-grade] Cannot determine side for: {pick.side} ({pick.home_team} vs {pick.away_team})")
-                    continue
 
-                if is_home_pick and not is_away_pick:
+                home_full_match = home_lower in side_lower
+                away_full_match = away_lower in side_lower
+
+                if home_full_match and not away_full_match:
+                    is_home_pick = True
+                elif away_full_match and not home_full_match:
+                    is_home_pick = False
+                elif home_full_match and away_full_match:
+                    home_unique = [w for w in home_lower.split() if w not in away_lower.split() and len(w) > 2]
+                    is_home_pick = any(w in side_lower for w in home_unique)
+                else:
+                    home_words = {w for w in home_lower.split() if len(w) > 3}
+                    away_words = {w for w in away_lower.split() if len(w) > 3}
+                    home_unique_words = home_words - away_words
+                    away_unique_words = away_words - home_words
+                    home_hit = any(w in side_lower for w in home_unique_words) if home_unique_words else False
+                    away_hit = any(w in side_lower for w in away_unique_words) if away_unique_words else False
+                    if home_hit and not away_hit:
+                        is_home_pick = True
+                    elif away_hit and not home_hit:
+                        is_home_pick = False
+                    else:
+                        print(f"[Auto-grade] Cannot determine side for: {pick.side} ({pick.home_team} vs {pick.away_team})")
+                        continue
+
+                if is_home_pick:
                     ats_margin = spread_result + line_value
                 else:
                     ats_margin = -spread_result + line_value
@@ -4136,15 +4152,31 @@ def _grade_picks_for_final_games(final_games):
                 side_lower = (pick.side or '').lower()
                 home_lower = (pick.home_team or '').lower()
                 away_lower = (pick.away_team or '').lower()
-                is_home_pick = home_lower in side_lower or any(
-                    word in side_lower for word in home_lower.split() if len(word) > 3
-                )
-                is_away_pick = away_lower in side_lower or any(
-                    word in side_lower for word in away_lower.split() if len(word) > 3
-                )
-                if not is_home_pick and not is_away_pick:
-                    logging.warning(f"[Live-grade] Cannot determine side: {pick.side}")
-                    continue
+
+                home_full_match = home_lower in side_lower
+                away_full_match = away_lower in side_lower
+
+                if home_full_match and not away_full_match:
+                    is_home_pick = True
+                elif away_full_match and not home_full_match:
+                    is_home_pick = False
+                elif home_full_match and away_full_match:
+                    home_unique = [w for w in home_lower.split() if w not in away_lower.split() and len(w) > 2]
+                    is_home_pick = any(w in side_lower for w in home_unique)
+                else:
+                    home_words = {w for w in home_lower.split() if len(w) > 3}
+                    away_words = {w for w in away_lower.split() if len(w) > 3}
+                    home_unique_words = home_words - away_words
+                    away_unique_words = away_words - home_words
+                    home_hit = any(w in side_lower for w in home_unique_words) if home_unique_words else False
+                    away_hit = any(w in side_lower for w in away_unique_words) if away_unique_words else False
+                    if home_hit and not away_hit:
+                        is_home_pick = True
+                    elif away_hit and not home_hit:
+                        is_home_pick = False
+                    else:
+                        logging.warning(f"[Live-grade] Cannot determine side: {pick.side}")
+                        continue
 
                 if is_home_pick:
                     ats_margin = spread_result + line_value
@@ -4587,9 +4619,31 @@ def grade_mlb_picks_job():
 
                 side_lower = (pick.side or '').lower()
                 home_lower = (pick.home_team or '').lower()
-                is_home_pick = home_lower in side_lower or any(
-                    word in side_lower for word in home_lower.split() if len(word) > 3
-                )
+                away_lower = (pick.away_team or '').lower()
+
+                home_full_match = home_lower in side_lower
+                away_full_match = away_lower in side_lower
+
+                if home_full_match and not away_full_match:
+                    is_home_pick = True
+                elif away_full_match and not home_full_match:
+                    is_home_pick = False
+                elif home_full_match and away_full_match:
+                    home_unique = [w for w in home_lower.split() if w not in away_lower.split() and len(w) > 2]
+                    is_home_pick = any(w in side_lower for w in home_unique)
+                else:
+                    home_words = {w for w in home_lower.split() if len(w) > 3}
+                    away_words = {w for w in away_lower.split() if len(w) > 3}
+                    home_unique_words = home_words - away_words
+                    away_unique_words = away_words - home_words
+                    home_match = any(w in side_lower for w in home_unique_words) if home_unique_words else False
+                    away_match = any(w in side_lower for w in away_unique_words) if away_unique_words else False
+                    if home_match and not away_match:
+                        is_home_pick = True
+                    elif away_match and not home_match:
+                        is_home_pick = False
+                    else:
+                        is_home_pick = any(w in side_lower for w in home_words)
 
                 if is_home_pick:
                     ats_margin = run_diff + line_val
@@ -4671,6 +4725,82 @@ def cron_mlb_run_model():
 @verify_cron
 def cron_mlb_grade():
     return log_cron('mlb_grade', grade_mlb_picks_job)
+
+
+@app.route('/api/admin/regrade-pick/<pick_id>', methods=['POST'])
+def regrade_pick(pick_id):
+    """Re-grade a pick with corrected side-detection logic. Admin only."""
+    from admin_api import require_superuser
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Unauthorized'}), err_code
+
+    pick = Pick.query.get(pick_id)
+    if not pick:
+        return jsonify({'error': 'Pick not found'}), 404
+    if pick.home_score is None or pick.away_score is None:
+        return jsonify({'error': 'No scores available to regrade'}), 400
+
+    home_score = pick.home_score
+    away_score = pick.away_score
+    spread_result = home_score - away_score
+    line_value = pick.line if pick.line and abs(pick.line) < 50 else 0
+
+    side_lower = (pick.side or '').lower()
+    home_lower = (pick.home_team or '').lower()
+    away_lower = (pick.away_team or '').lower()
+
+    home_full = home_lower in side_lower
+    away_full = away_lower in side_lower
+
+    if home_full and not away_full:
+        is_home_pick = True
+    elif away_full and not home_full:
+        is_home_pick = False
+    elif home_full and away_full:
+        home_unique = [w for w in home_lower.split() if w not in away_lower.split() and len(w) > 2]
+        is_home_pick = any(w in side_lower for w in home_unique)
+    else:
+        home_words = {w for w in home_lower.split() if len(w) > 3}
+        away_words = {w for w in away_lower.split() if len(w) > 3}
+        home_hit = any(w in side_lower for w in (home_words - away_words))
+        away_hit = any(w in side_lower for w in (away_words - home_words))
+        is_home_pick = home_hit and not away_hit
+
+    ats_margin = (spread_result + line_value) if is_home_pick else (-spread_result + line_value)
+
+    old_result = pick.result
+    if ats_margin == 0:
+        pick.result = 'push'
+        pick.profit_units = 0
+    elif ats_margin > 0:
+        pick.result = 'win'
+        actual_odds = pick.market_odds or -110
+        if actual_odds < 0:
+            pick.profit_units = round(100 / abs(actual_odds), 2)
+        else:
+            pick.profit_units = round(actual_odds / 100, 2)
+    else:
+        pick.result = 'loss'
+        pick.profit_units = -1.0
+
+    pick.pnl = pick.profit_units
+    pick.result_ats = 'P' if pick.result == 'push' else ('W' if pick.result == 'win' else 'L')
+    db.session.commit()
+
+    return jsonify({
+        'status': 'regraded',
+        'pick_id': pick.id,
+        'side': pick.side,
+        'home_team': pick.home_team,
+        'away_team': pick.away_team,
+        'is_home_pick': is_home_pick,
+        'score': f"{away_score}-{home_score}",
+        'ats_margin': ats_margin,
+        'old_result': old_result,
+        'new_result': pick.result,
+        'profit_units': pick.profit_units,
+    })
 
 
 def retrain_mlb_model_job():
