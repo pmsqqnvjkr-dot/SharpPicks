@@ -2800,10 +2800,13 @@ def admin_engagement():
 
         content_path_stats = {}
         content_daily = {}
+        content_unique_ips = set()
         for v in content_views:
             p = v.path
             content_path_stats.setdefault(p, 0)
             content_path_stats[p] += 1
+            if v.ip_hash:
+                content_unique_ips.add(v.ip_hash)
             d = _utc_naive_to_et_date(v.timestamp)
             if d:
                 content_daily.setdefault(d.isoformat(), 0)
@@ -2811,13 +2814,16 @@ def admin_engagement():
 
         total_content_views = sum(content_path_stats.values())
         top_content = sorted(content_path_stats.items(), key=lambda x: x[1], reverse=True)[:10]
+        total_pages_ever = ContentPageView.query.with_entities(
+            func.count(func.distinct(ContentPageView.path))
+        ).scalar() or 0
         content_stats = {
             'total_views_7d': total_content_views,
+            'unique_visitors_7d': len(content_unique_ips),
             'unique_paths': len(content_path_stats),
             'top_pages': [{'path': p, 'views': c} for p, c in top_content],
-            'total_pages': ContentPageView.query.with_entities(
-                func.count(func.distinct(ContentPageView.path))
-            ).scalar() or 0,
+            'total_pages': total_pages_ever,
+            'indexed_pages': total_pages_ever,
             'top_page': top_content[0][0] if top_content else None,
             'daily': [{'date': d, 'views': c} for d, c in sorted(content_daily.items())],
         }

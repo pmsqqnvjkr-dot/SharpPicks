@@ -373,6 +373,7 @@ class ContentPageView(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String(500), nullable=False, index=True)
     timestamp = db.Column(db.DateTime, default=datetime.now, index=True)
+    ip_hash = db.Column(db.String(64), nullable=True, index=True)
     user_agent = db.Column(db.String(500), nullable=True)
     is_bot = db.Column(db.Boolean, default=False)
 

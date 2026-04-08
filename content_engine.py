@@ -29,10 +29,16 @@ BOT_TOKENS = ('bot', 'crawler', 'spider', 'googlebot', 'bingbot', 'slurp',
 @content_bp.before_request
 def log_content_page_view():
     try:
+        import hashlib
         ua = request.headers.get('User-Agent', '')
         is_bot = any(b in ua.lower() for b in BOT_TOKENS)
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr or '')
+        if ',' in ip:
+            ip = ip.split(',')[0].strip()
+        ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16] if ip else None
         view = ContentPageView(
             path=request.path,
+            ip_hash=ip_hash,
             user_agent=ua[:500],
             is_bot=is_bot
         )

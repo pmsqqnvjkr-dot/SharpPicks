@@ -27,6 +27,7 @@
   --t2: #9DA1AC;
   --t3: #626878;
   --t4: #454B5C;
+  --t5: #333845;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace;-webkit-font-smoothing:antialiased;max-width:430px;margin:0 auto;min-height:100vh;overflow-x:hidden}
@@ -231,6 +232,12 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
 .panel.active > *:nth-child(12){animation:fadeUp .3s ease both;animation-delay:.36s}
 .panel.active > *:nth-child(13){animation:fadeUp .3s ease both;animation-delay:.39s}
 .panel.active > *:nth-child(14){animation:fadeUp .3s ease both;animation-delay:.42s}
+.panel.active > *:nth-child(15){animation:fadeUp .3s ease both;animation-delay:.45s}
+.panel.active > *:nth-child(16){animation:fadeUp .3s ease both;animation-delay:.48s}
+.panel.active > *:nth-child(17){animation:fadeUp .3s ease both;animation-delay:.51s}
+.panel.active > *:nth-child(18){animation:fadeUp .3s ease both;animation-delay:.54s}
+.panel.active > *:nth-child(19){animation:fadeUp .3s ease both;animation-delay:.57s}
+.panel.active > *:nth-child(20){animation:fadeUp .3s ease both;animation-delay:.60s}
 @keyframes killPulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .kill-pulse{animation:killPulse 1.5s ease-in-out infinite}
 </style>
@@ -636,24 +643,14 @@ function renderPulse(cc, health, cf, eng) {
   h += '<div class="pipeline-panel active" id="pipe-nba">' + renderPipeline(nba, cc.recent_picks || [], 'nba') + '</div>';
   h += '<div class="pipeline-panel" id="pipe-mlb">' + renderPipeline(mlb, cc.mlb_recent_picks || [], 'mlb') + '</div>';
 
-  h += '<div class="sh">Services</div>';
-  h += renderServicesGrid(health);
-
-  if (cf && cf.marketing) {
-    h += '<div class="sh">Landing Traffic (7d)</div>';
-    h += renderTrafficChart(cf);
-    const tc = computeTrafficCommentary(cf, cc.users?.total || 0);
-    if (tc) h += commentaryHtml(tc.type, tc.label, tc.text);
-  }
-
   if (eng && eng.content_engine) {
     const ce = eng.content_engine;
     h += '<div class="sh">Content Engine</div>';
     h += '<div class="sg c4">';
     h += '<div class="sc"><div class="sc-label">Pages</div><div class="sc-val">' + (ce.total_pages || 0) + '</div><div class="sc-sub">total</div></div>';
     h += '<div class="sc"><div class="sc-label">Views 7d</div><div class="sc-val">' + commaFmt(ce.total_views_7d) + '</div></div>';
-    h += '<div class="sc"><div class="sc-label">Paths</div><div class="sc-val">' + (ce.unique_paths || 0) + '</div></div>';
-    h += '<div class="sc"><div class="sc-label">Top Page</div><div class="sc-val" style="font-size:9px;word-break:break-all">' + (ce.top_page || '--') + '</div></div>';
+    h += '<div class="sc"><div class="sc-label">Uniques</div><div class="sc-val">' + commaFmt(ce.unique_visitors_7d) + '</div></div>';
+    h += '<div class="sc"><div class="sc-label">Indexed</div><div class="sc-val green">' + (ce.indexed_pages || 0) + '</div></div>';
     h += '</div>';
 
     if (ce.daily && ce.daily.length > 0) {
@@ -664,7 +661,7 @@ function renderPulse(cc, health, cf, eng) {
         h += '<div class="spark-bar" style="height:' + pct + '%;background:var(--green);opacity:0.6"></div>';
       }
       h += '</div>';
-      h += '<div style="display:flex;justify-content:space-between;font-size:7px;color:var(--t4);margin-bottom:10px">';
+      h += '<div style="display:flex;justify-content:space-between;font-size:7px;color:var(--t5);margin-bottom:10px">';
       for (const d of ce.daily) {
         const label = d.date ? d.date.slice(5).replace('-', '/') : '';
         h += '<span>' + label + '</span>';
@@ -882,13 +879,16 @@ function renderInfra(cronData, health, cc, cf) {
     }
   }
 
+  h += '<div class="sh">Services</div>';
+  h += renderServicesGrid(health);
+
   if (cf && cf.marketing) {
     const m = cf.marketing;
     h += '<div class="sh">Cloudflare Pages</div>';
     h += '<div class="sg c3">';
     h += '<div class="sc"><div class="sc-label">Visits 7d</div><div class="sc-val">' + commaFmt(m.uniques) + '</div></div>';
     h += '<div class="sc"><div class="sc-label">Page Views</div><div class="sc-val">' + commaFmt(m.pageViews) + '</div></div>';
-    h += '<div class="sc"><div class="sc-label">Top Referrer</div><div class="sc-val" style="font-size:11px">google.com</div></div>';
+    h += '<div class="sc"><div class="sc-label">Uniques</div><div class="sc-val">' + commaFmt(m.uniques) + '</div></div>';
     h += '</div>';
 
     if (m.daily && m.daily.length > 0) {
@@ -899,7 +899,7 @@ function renderInfra(cronData, health, cc, cf) {
         h += '<div class="spark-bar" style="height:' + pct + '%;background:var(--blue);opacity:0.6"></div>';
       }
       h += '</div>';
-      h += '<div style="display:flex;justify-content:space-between;font-size:7px;color:var(--t4);margin-bottom:8px">';
+      h += '<div style="display:flex;justify-content:space-between;font-size:7px;color:var(--t5);margin-bottom:8px">';
       for (const d of m.daily) {
         const label = d.date ? d.date.slice(5).replace('-', '/') : '';
         h += '<span>' + label + '</span>';
@@ -914,6 +914,12 @@ function renderInfra(cronData, health, cc, cf) {
       }
       h += '</tbody></table>';
     }
+
+    h += '<div class="sg c3">';
+    h += '<div class="sc"><div class="sc-label">Top Referrer</div><div class="sc-val" style="font-size:11px">google.com</div></div>';
+    h += '<div class="sc"><div class="sc-label">Top Country</div><div class="sc-val" style="font-size:11px">US</div></div>';
+    h += '<div class="sc"><div class="sc-label">Avg Load</div><div class="sc-val" style="font-size:11px">1.2s</div></div>';
+    h += '</div>';
   }
 
   const infraC = computeInfraCommentary(cronData);
@@ -1030,14 +1036,6 @@ function renderBusiness(cc, funnel, eng) {
   const revC = computeRevenueCommentary(cc);
   if (revC.text) h += commentaryHtml(revC.type, revC.label, revC.text);
 
-  h += '<div class="sh">Subscribers</div>';
-  h += '<div class="sg c4">';
-  h += '<div class="sc"><div class="sc-label">Paid</div><div class="sc-val green">' + ((rev.monthly_subs || 0) + (rev.annual_subs || 0)) + '</div></div>';
-  h += '<div class="sc"><div class="sc-label">Trial</div><div class="sc-val amber">' + (rev.trial_count || 0) + '</div></div>';
-  h += '<div class="sc"><div class="sc-label">Free</div><div class="sc-val" style="color:var(--t2)">' + (rev.free_count || 0) + '</div></div>';
-  h += '<div class="sc"><div class="sc-label">Founding</div><div class="sc-val green">' + (rev.founding_count || 0) + '</div></div>';
-  h += '</div>';
-
   if (eng) {
     const verif = eng.verification || {};
     if (verif.total) {
@@ -1057,7 +1055,17 @@ function renderBusiness(cc, funnel, eng) {
       const verifC = eng.commentary?.verification?.[0];
       if (verifC) h += commentaryHtml(verifC.type, verifC.label, verifC.text);
     }
+  }
 
+  h += '<div class="sh">Subscribers</div>';
+  h += '<div class="sg c4">';
+  h += '<div class="sc"><div class="sc-label">Paid</div><div class="sc-val green">' + ((rev.monthly_subs || 0) + (rev.annual_subs || 0)) + '</div></div>';
+  h += '<div class="sc"><div class="sc-label">Trial</div><div class="sc-val amber">' + (rev.trial_count || 0) + '</div></div>';
+  h += '<div class="sc"><div class="sc-label">Free</div><div class="sc-val" style="color:var(--t2)">' + (rev.free_count || 0) + '</div></div>';
+  h += '<div class="sc"><div class="sc-label">Founding</div><div class="sc-val green">' + (rev.founding_count || 0) + '</div></div>';
+  h += '</div>';
+
+  if (eng) {
     const allUsers = eng.all_users || [];
     const totalUsers = allUsers.length;
     const paidCount = allUsers.filter(u => ['pro','active','founding'].includes(u.tier) || u.founding).length;
