@@ -254,14 +254,20 @@ def should_index_game_page(game):
 # ---------------------------------------------------------------------------
 
 PASS_REASON_DISPLAY = {
-    "spread_too_large": "Spread exceeds the model's reliable range for this matchup type",
+    "spread_too_large": "Spread exceeds model comfort range",
     "mid_spread_insufficient_edge": "Edge insufficient for this spread size",
-    "star_questionable": "Key player status uncertain, reducing model confidence",
-    "below_threshold": "Edge below the 3.5% qualification threshold",
+    "star_questionable": "Player availability uncertainty",
+    "star_out": "Key player confirmed out, reducing projection reliability",
+    "below_threshold": "Below qualification threshold",
     "confidence_split": "Model ensemble did not reach sufficient agreement",
     "margin_of_error": "Edge within the model's margin of error",
     "no_edge": "No measurable disagreement between model and market",
     "insufficient_data": "Not enough recent data to generate a reliable projection",
+    "low_confidence": "Model confidence below required level",
+    "volatility": "Line volatility exceeds model parameters",
+    "back_to_back": "Schedule context reduced projection confidence",
+    "edge_too_small": "Edge below qualification threshold",
+    "validation_fail": "Did not pass secondary validation checks",
     "lineup_uncertain": "Starting lineup not confirmed, projection unreliable",
     "early_season": "Insufficient season data for stable projection",
     "high_variance": "Outcome variance too high for reliable edge estimate",
@@ -294,6 +300,9 @@ def format_fail_reason(raw_reason):
     # If it already looks like readable text (contains spaces, no underscores), pass through
     if ' ' in cleaned and '_' not in cleaned:
         return cleaned
+    # Catch-all: convert any remaining underscore tokens to title case
+    if '_' in cleaned:
+        return cleaned.replace('_', ' ').capitalize()
     return "Below qualification threshold"
 
 
@@ -369,12 +378,13 @@ PASS_OVERVIEW_BLOCKS = [
     "Passing is part of the system. On {date_formatted}, {games_passed} of {games_analyzed} {sport_upper} games remained below the qualification threshold and were excluded from the official signal layer.",
 ]
 
-CTA_BLOCKS = [
-    {"headline": "See what qualified in real time.", "body": "SharpPicks subscribers get the live signal layer, alerts, and tracking tools."},
-    {"headline": "Daily reports show the market.", "body": "Members get the actionable layer."},
-    {"headline": "Most games never qualify.", "body": "Get notified when one actually does."},
-    {"headline": "SharpPicks is built for selectivity, not volume.", "body": "Get signal alerts in real time."},
-]
+CTA_BLOCKS = {
+    'market_report': {"headline": "Only the signal layer is hidden.", "body": "Full model output. Live alerts. Bet tracking. One pick beats five."},
+    'game': {"headline": "This qualified. See all signals live.", "body": "SharpPicks members get real-time alerts and full model transparency."},
+    'pass': {"headline": "Most games never qualify.", "body": "Get notified when one actually does. Selectivity is the system."},
+    'edges': {"headline": "See what qualified in real time.", "body": "SharpPicks subscribers get the live signal layer, alerts, and tracking tools."},
+    'default': {"headline": "SharpPicks is built for selectivity, not volume.", "body": "Get signal alerts in real time."},
+}
 
 MARKET_REPORT_FAQ = [
     {
@@ -413,9 +423,8 @@ def get_rotating_pillar(page_key):
     return PILLAR_LINKS[idx]
 
 
-def get_rotating_cta(page_key):
-    idx = abs(hash(page_key)) % len(CTA_BLOCKS)
-    return CTA_BLOCKS[idx]
+def get_rotating_cta(page_key, page_type='default'):
+    return CTA_BLOCKS.get(page_type, CTA_BLOCKS['default'])
 
 
 # ---------------------------------------------------------------------------
@@ -890,6 +899,38 @@ def build_sitemap_urls(report_data=None, game_pages=None):
     return urls
 
 
+def get_proof_module(sport='nba', limit=7):
+    """Build a compact proof/receipts block from the last N resolved picks."""
+    try:
+        recent = Pick.query.filter(
+            Pick.sport == sport,
+            Pick.result.in_(['win', 'loss', 'push']),
+        ).order_by(Pick.game_date.desc()).limit(limit).all()
+
+        if not recent:
+            return None
+
+        wins = sum(1 for p in recent if p.result == 'win')
+        losses = sum(1 for p in recent if p.result == 'loss')
+        pushes = sum(1 for p in recent if p.result == 'push')
+        total = wins + losses
+        clv_positive = sum(1 for p in recent if p.clv and float(p.clv) > 0)
+        clv_pct = round(clv_positive / len(recent) * 100) if recent else 0
+        edges = [abs(float(p.edge_pct)) for p in recent if p.edge_pct]
+        avg_edge = round(sum(edges) / len(edges), 1) if edges else 0
+
+        return {
+            'record': f"{wins}-{losses}" + (f"-{pushes}" if pushes else ""),
+            'win_rate': round(wins / total * 100) if total else 0,
+            'clv_pct': clv_pct,
+            'avg_edge': avg_edge,
+            'count': len(recent),
+        }
+    except Exception as e:
+        log.warning('Proof module failed: %s', e)
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Routes -- Market Report
 # ---------------------------------------------------------------------------
@@ -919,7 +960,8 @@ def market_report_page(date_str):
     )
 
     pillar = get_rotating_pillar(seed)
-    cta = get_rotating_cta(seed)
+    cta = get_rotating_cta(seed, page_type='market_report')
+    proof = get_proof_module(sport)
 
     title = f"{data['sport_upper']} Betting Market Report {data['date_formatted']} | SharpPicks"
     meta_desc = build_market_report_meta(data)
@@ -949,6 +991,7 @@ def market_report_page(date_str):
         lm_blocks=lm_blocks,
         why_blocks=why_blocks,
         cta=cta,
+        proof=proof,
         faq=MARKET_REPORT_FAQ,
         internal_links=internal_links,
         title=title,
@@ -994,7 +1037,7 @@ def pass_report_page(date_str):
         is_early_mlb = False
 
     pillar = get_rotating_pillar(seed)
-    cta = get_rotating_cta(seed)
+    cta = get_rotating_cta(seed, page_type='pass')
 
     # Only include true passes (not filtered) in avg edge calculation
     true_passes = [g for g in passed_games if g['status'] == 'Pass']
@@ -1067,7 +1110,7 @@ def edges_page(sport_slug):
 
     seed = f"{sport}-{today}-edges"
     pillar = get_rotating_pillar(seed)
-    cta = get_rotating_cta(seed)
+    cta = get_rotating_cta(seed, page_type='edges')
 
     title = f"Today's {data['sport_upper']} Betting Edges | SharpPicks"
     meta_desc = build_edges_meta(data)
@@ -1086,10 +1129,13 @@ def edges_page(sport_slug):
         })
     internal_links.append({'label': 'Learn', 'text': pillar['title'], 'url': pillar['url']})
 
+    proof = get_proof_module(sport)
+
     resp = make_response(render_template(
         'content/edges.html',
         data=data,
         cta=cta,
+        proof=proof,
         internal_links=internal_links,
         title=title,
         meta_desc=meta_desc,
@@ -1252,7 +1298,7 @@ def game_page(slug):
     )
 
     pillar = get_rotating_pillar(seed)
-    cta = get_rotating_cta(seed)
+    cta = get_rotating_cta(seed, page_type='game')
 
     title = f"{game['away_name']} vs {game['home_name']} Betting Analysis {data['date_formatted']} | SharpPicks"
     meta_desc = build_game_page_meta(game, data)
