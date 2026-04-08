@@ -360,10 +360,10 @@ LINE_MOVEMENT_BLOCKS = [
 ]
 
 WHY_THIS_MATTERS_BLOCKS = [
-    "For most bettors, the hardest part is not finding action. It is recognizing when the market has already priced the game efficiently.",
-    "SharpPicks is built around the idea that selective signals compound better than constant volume. This report shows how that discipline plays out on a real slate.",
-    "A slate with fewer qualified spots is not a weak day. It is a clearer reminder that edge is scarce and should be treated that way.",
-    "Public betting content usually focuses only on what was played. SharpPicks also shows what was rejected, which gives a more honest view of the market.",
+    "Most bettors would have played 3 to 5 games on this slate. SharpPicks found {signals_published}. The gap between those two numbers is where edge lives.",
+    "This slate had {games_analyzed} games. A typical bettor might scan all of them and find reasons to play half. SharpPicks qualified {signals_published}. Selectivity compounds.",
+    "The difference between a winning year and a losing one is usually not the picks you hit. It is the {games_passed} games like these that you do not play.",
+    "Every passed game on this slate represents capital preserved. Over a season, the passes matter more than the signals.",
 ]
 
 GAME_MODEL_VIEW_BLOCKS = [
@@ -899,6 +899,36 @@ def build_sitemap_urls(report_data=None, game_pages=None):
     return urls
 
 
+def get_history_links(date_str, sport='nba'):
+    """Build previous/next report links and weekly context for crawl depth."""
+    try:
+        dt = datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        return {}
+
+    prev_date = (dt - timedelta(days=1)).strftime('%Y-%m-%d')
+    next_date = (dt + timedelta(days=1)).strftime('%Y-%m-%d')
+    today = datetime.now(ET).strftime('%Y-%m-%d')
+
+    links = {
+        'prev_report': {'url': f"/market-report/{prev_date}?sport={sport}", 'label': f"Previous report"},
+    }
+
+    if next_date <= today:
+        links['next_report'] = {'url': f"/market-report/{next_date}?sport={sport}", 'label': f"Next report"}
+
+    # Week boundaries for "this week's signals"
+    week_start = dt - timedelta(days=dt.weekday())
+    week_dates = [(week_start + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7) if (week_start + timedelta(days=i)).strftime('%Y-%m-%d') <= today]
+    if len(week_dates) > 1:
+        links['week_reports'] = [
+            {'url': f"/market-report/{d}?sport={sport}", 'date': _format_date_short(d)}
+            for d in week_dates
+        ]
+
+    return links
+
+
 def get_proof_module(sport='nba', limit=7):
     """Build a compact proof/receipts block from the last N resolved picks."""
     try:
@@ -962,6 +992,7 @@ def market_report_page(date_str):
     pillar = get_rotating_pillar(seed)
     cta = get_rotating_cta(seed, page_type='market_report')
     proof = get_proof_module(sport)
+    history = get_history_links(date_str, sport)
 
     title = f"{data['sport_upper']} Betting Market Report {data['date_formatted']} | SharpPicks"
     meta_desc = build_market_report_meta(data)
@@ -981,6 +1012,7 @@ def market_report_page(date_str):
             'text': f"{g['away_team']} @ {g['home_team']}",
             'url': f"/{sport}/{g['slug']}",
         })
+    internal_links.append({'label': 'Weekly', 'text': f"{data['sport_upper']} Weekly Summary", 'url': f"/{sport}-weekly-report"})
     internal_links.append({'label': 'Learn', 'text': pillar['title'], 'url': pillar['url']})
 
     resp = make_response(render_template(
@@ -992,6 +1024,7 @@ def market_report_page(date_str):
         why_blocks=why_blocks,
         cta=cta,
         proof=proof,
+        history=history,
         faq=MARKET_REPORT_FAQ,
         internal_links=internal_links,
         title=title,
@@ -1064,6 +1097,7 @@ def pass_report_page(date_str):
             'text': f"{_team_full_name(g['away_team'], sport)} Insights",
             'url': f"/{sport}/{_team_slug(g['away_team'], sport)}-betting-insights",
         })
+    internal_links.append({'label': 'Weekly', 'text': f"{data['sport_upper']} Weekly Summary", 'url': f"/{sport}-weekly-report"})
 
     resp = make_response(render_template(
         'content/pass_report.html',
@@ -1127,6 +1161,7 @@ def edges_page(sport_slug):
             'text': f"{g['away_team']} @ {g['home_team']}",
             'url': f"/{sport}/{g['slug']}",
         })
+    internal_links.append({'label': 'Weekly', 'text': f"{data['sport_upper']} Weekly Summary", 'url': f"/{sport}-weekly-report"})
     internal_links.append({'label': 'Learn', 'text': pillar['title'], 'url': pillar['url']})
 
     proof = get_proof_module(sport)
@@ -1394,6 +1429,139 @@ def edge_calculator():
 
 
 # ---------------------------------------------------------------------------
+# Routes -- Weekly Summary
+# ---------------------------------------------------------------------------
+
+def get_weekly_summary_data(sport='nba', week_offset=0):
+    """Aggregate daily report data for the current (or prior) week."""
+    now = datetime.now(ET)
+    ref = now - timedelta(weeks=week_offset)
+    week_start = ref - timedelta(days=ref.weekday())
+
+    days = []
+    total_games = 0
+    total_signals = 0
+    total_passes = 0
+    all_edges = []
+    signal_details = []
+
+    for i in range(7):
+        d = week_start + timedelta(days=i)
+        date_str = d.strftime('%Y-%m-%d')
+        if d.date() > now.date():
+            break
+        data = get_daily_report_data(date_str, sport)
+        if not data:
+            days.append({'date': date_str, 'date_short': _format_date_short(date_str), 'available': False})
+            continue
+
+        day_signals = data.get('signals_published', 0)
+        day_games = data.get('games_analyzed', 0)
+        day_passed = data.get('games_passed', 0)
+        day_top_edge = 0
+
+        for g in data.get('games', []):
+            if g.get('edge', 0) > day_top_edge:
+                day_top_edge = g['edge']
+            all_edges.append(g.get('edge', 0))
+            if g.get('signal'):
+                signal_details.append({
+                    'date': _format_date_short(date_str),
+                    'matchup': g['matchup'],
+                    'edge_band': g['edge_band'],
+                    'slug': g.get('slug'),
+                })
+
+        total_games += day_games
+        total_signals += day_signals
+        total_passes += day_passed
+
+        days.append({
+            'date': date_str,
+            'date_short': _format_date_short(date_str),
+            'available': True,
+            'games': day_games,
+            'signals': day_signals,
+            'passed': day_passed,
+            'top_edge': get_public_edge_band(day_top_edge),
+            'report_url': f"/market-report/{date_str}?sport={sport}",
+        })
+
+    avg_edge = round(sum(all_edges) / len(all_edges), 1) if all_edges else 0
+    top_edge = max(all_edges) if all_edges else 0
+    week_label = week_start.strftime('%b %d') + ' – ' + (week_start + timedelta(days=6)).strftime('%b %d, %Y')
+
+    return {
+        'sport': sport,
+        'sport_upper': sport.upper(),
+        'week_label': week_label,
+        'week_start': week_start.strftime('%Y-%m-%d'),
+        'days': days,
+        'total_games': total_games,
+        'total_signals': total_signals,
+        'total_passes': total_passes,
+        'avg_edge': f"{avg_edge}%",
+        'top_edge': get_public_edge_band(top_edge),
+        'signal_details': signal_details,
+        'days_with_data': sum(1 for d in days if d.get('available')),
+    }
+
+
+@content_bp.route('/<sport>-weekly-report')
+def weekly_summary_page(sport):
+    if sport not in get_live_sports():
+        abort(404)
+
+    week_offset = request.args.get('week', 0, type=int)
+    data = get_weekly_summary_data(sport, week_offset)
+
+    if not data or data['days_with_data'] == 0:
+        abort(404)
+
+    title = f"{data['sport_upper']} Weekly Summary | {data['week_label']} | SharpPicks"
+    meta_desc = (
+        f"{data['sport_upper']} weekly betting summary for {data['week_label']}. "
+        f"{data['total_games']} games analyzed, {data['total_signals']} signals published. "
+        f"SharpPicks model performance and edge breakdown."
+    )
+    canonical = f"https://sharppicks.ai/{sport}-weekly-report"
+    if week_offset > 0:
+        canonical += f"?week={week_offset}"
+
+    proof = get_proof_module(sport)
+    cta = get_rotating_cta(f"weekly-{sport}", page_type='market_report')
+    pillar = get_rotating_pillar(f"weekly-{sport}")
+
+    internal_links = [
+        {'label': 'Today', 'text': f"{data['sport_upper']} Edges", 'url': f"/edges/{sport}-today"},
+        {'label': 'Report', 'text': 'Latest Market Report', 'url': f"/market-report/{datetime.now(ET).strftime('%Y-%m-%d')}?sport={sport}"},
+        {'label': 'Tool', 'text': 'Edge Calculator', 'url': '/tools/edge-calculator'},
+        {'label': 'Learn', 'text': pillar['title'], 'url': pillar['url']},
+    ]
+
+    prev_week = {'url': f"/{sport}-weekly-report?week={week_offset + 1}", 'label': 'Previous week'}
+    next_week = None
+    if week_offset > 0:
+        next_week = {'url': f"/{sport}-weekly-report?week={week_offset - 1}", 'label': 'Next week'}
+
+    resp = make_response(render_template(
+        'content/weekly_summary.html',
+        data=data,
+        title=title,
+        meta_desc=meta_desc,
+        canonical=canonical,
+        meta_robots='index,follow',
+        proof=proof,
+        cta=cta,
+        internal_links=internal_links,
+        prev_week=prev_week,
+        next_week=next_week,
+    ))
+    resp.headers['Cache-Control'] = 'public, max-age=1800'
+    return resp
+
+
+# ---------------------------------------------------------------------------
 # Routes -- Dynamic Sitemap
 # ---------------------------------------------------------------------------
 
@@ -1419,6 +1587,9 @@ def sitemap_content():
             continue
         for abbr, info in teams.items():
             urls.append({'loc': f"{base}/{sport_key}/{info['slug']}-betting-insights", 'changefreq': 'weekly', 'priority': '0.7'})
+
+    for sport in get_live_sports():
+        urls.append({'loc': f"{base}/{sport}-weekly-report", 'changefreq': 'weekly', 'priority': '0.8'})
 
     urls.append({'loc': f"{base}/tools/clv-calculator", 'changefreq': 'monthly', 'priority': '0.8'})
     urls.append({'loc': f"{base}/tools/edge-calculator", 'changefreq': 'monthly', 'priority': '0.8'})

@@ -540,6 +540,26 @@ def serialize_user(user):
     }
 
 @app.before_request
+def enforce_https_and_canonical_domain():
+    if request.path == '/health':
+        return
+    if not is_production:
+        return
+    host = request.host.split(':')[0].lower()
+    proto = request.headers.get('X-Forwarded-Proto', request.scheme)
+    needs_redirect = False
+    if proto != 'https':
+        needs_redirect = True
+    if host.startswith('www.'):
+        host = host[4:]
+        needs_redirect = True
+    if needs_redirect:
+        target = f"https://{host}{request.full_path}"
+        if target.endswith('?'):
+            target = target[:-1]
+        return redirect(target, code=301)
+
+@app.before_request
 def make_session_permanent():
     if request.path in ('/', '/health'):
         return

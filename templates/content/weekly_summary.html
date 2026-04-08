@@ -1,0 +1,97 @@
+{% extends "content/base.html" %}
+{% block og_image %}https://sharppicks.ai/og-report.png{% endblock %}
+{% block twitter_image %}https://sharppicks.ai/og-report.png{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="breadcrumb"><a href="/edges/{{ data.sport }}-today">{{ data.sport_upper }}</a> / Weekly Summary</div>
+  <h1 class="page-h1">{{ data.sport_upper }} Weekly Summary | {{ data.week_label }}</h1>
+  <div class="page-meta">
+    <span>{{ data.days_with_data }} days of data</span>
+    <span class="dot"></span>
+    <span>{{ data.total_games }} games analyzed</span>
+    <span class="dot"></span>
+    <span>{{ data.total_signals }} signal{{ 's' if data.total_signals != 1 else '' }}</span>
+  </div>
+</div>
+
+<div class="sg c4">
+  <div class="sc"><div class="sc-label">Games</div><div class="sc-val">{{ data.total_games }}</div></div>
+  <div class="sc"><div class="sc-label">Signals</div><div class="sc-val green">{{ data.total_signals }}</div></div>
+  <div class="sc"><div class="sc-label">Pass Rate</div><div class="sc-val">{% if data.total_games > 0 %}{{ ((data.total_passes / data.total_games) * 100)|round|int }}%{% else %}--{% endif %}</div></div>
+  <div class="sc"><div class="sc-label">Top Edge</div><div class="sc-val green">{{ data.top_edge }}</div></div>
+</div>
+
+{% if proof and proof.count > 0 %}
+<div class="sh">Recent Signal Performance</div>
+<div class="sg c4">
+  <div class="sc"><div class="sc-label">Last {{ proof.count }}</div><div class="sc-val green">{{ proof.record }}</div></div>
+  <div class="sc"><div class="sc-label">Win Rate</div><div class="sc-val">{{ proof.win_rate }}%</div></div>
+  <div class="sc"><div class="sc-label">CLV+</div><div class="sc-val green">{{ proof.clv_pct }}%</div></div>
+  <div class="sc"><div class="sc-label">Avg Edge</div><div class="sc-val">{{ proof.avg_edge }}%</div></div>
+</div>
+{% endif %}
+
+<div class="sh">Daily Breakdown</div>
+<div class="gt">
+  <div class="gr hdr" style="grid-template-columns:1fr 50px 50px 50px 60px"><span class="gr-m">Date</span><span class="gr-s">Games</span><span class="gr-e">Signals</span><span class="gr-st">Passed</span><span style="text-align:center">Top Edge</span></div>
+  {% for day in data.days %}
+  {% if day.available %}
+  <div class="gr" style="grid-template-columns:1fr 50px 50px 50px 60px">
+    <span class="gr-m"><a href="{{ day.report_url }}" style="color:var(--green);text-decoration:none">{{ day.date_short }}</a></span>
+    <span class="gr-s">{{ day.games }}</span>
+    <span class="gr-e{% if day.signals > 0 %} green{% endif %}">{{ day.signals }}</span>
+    <span class="gr-st">{{ day.passed }}</span>
+    <span style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600" class="{% if day.top_edge != '0–1%' %}green{% endif %}">{{ day.top_edge }}</span>
+  </div>
+  {% else %}
+  <div class="gr" style="grid-template-columns:1fr 50px 50px 50px 60px;opacity:0.35">
+    <span class="gr-m">{{ day.date_short }}</span>
+    <span class="gr-s">--</span>
+    <span class="gr-e">--</span>
+    <span class="gr-st">--</span>
+    <span style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px">--</span>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+
+{% if data.signal_details %}
+<div class="sh">Signals This Week</div>
+{% for sig in data.signal_details %}
+<div class="pc">
+  <div class="pc-m">{{ sig.matchup }}</div>
+  <div class="pc-d">{{ sig.date }}</div>
+  <div class="pc-e">Edge: {{ sig.edge_band }}{% if sig.slug %} · <a href="/{{ data.sport }}/{{ sig.slug }}" style="color:var(--green)">View analysis</a>{% endif %}</div>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="narrative"><p>This weekly view aggregates {{ data.days_with_data }} days of {{ data.sport_upper }} model output. {{ data.total_signals }} signal{{ 's' if data.total_signals != 1 else '' }} cleared the full qualification filter out of {{ data.total_games }} games analyzed. The rest were passed — not because nothing happened, but because the market priced them within the model's margin.</p></div>
+
+<div class="tools-row">
+  <a class="tool-link" href="/tools/edge-calculator">Calculate your edge <span class="tl-arrow">&rarr;</span></a>
+  <a class="tool-link" href="/tools/clv-calculator">Check your CLV <span class="tl-arrow">&rarr;</span></a>
+</div>
+
+<div class="history-nav">
+  {% if prev_week %}
+  <a class="hn-link" href="{{ prev_week.url }}">&larr; {{ prev_week.label }}</a>
+  {% endif %}
+  {% if next_week %}
+  <a class="hn-link" href="{{ next_week.url }}">{{ next_week.label }} &rarr;</a>
+  {% endif %}
+</div>
+
+<div class="sh">Related</div>
+<div class="il">
+  {% for link in internal_links %}
+  <a class="il-link" href="{{ link.url }}"><span class="il-label">{{ link.label }}</span>{{ link.text }}<span class="il-arrow">&#8250;</span></a>
+  {% endfor %}
+</div>
+
+<div class="cta">
+  <h3>{{ cta.headline }}</h3>
+  <p>{{ cta.body }}</p>
+  <a class="cta-btn" href="https://sharppicks.ai/#pricing">Start Free Trial</a>
+</div>
+{% endblock %}

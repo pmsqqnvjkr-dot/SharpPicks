@@ -20,6 +20,11 @@
   <div class="sc"><div class="sc-label">Signals</div><div class="sc-val green">{{ data.signals_published }}</div></div>
 </div>
 
+<div class="tools-row">
+  <a class="tool-link" href="/tools/edge-calculator">Calculate your edge <span class="tl-arrow">&rarr;</span></a>
+  <a class="tool-link" href="/tools/clv-calculator">Check your CLV <span class="tl-arrow">&rarr;</span></a>
+</div>
+
 <div class="gt">
   <div class="gr hdr"><span class="gr-m">Matchup</span><span class="gr-s">Spread</span><span class="gr-e">Edge</span><span class="gr-st">Status</span></div>
   {% for game in data.games %}
@@ -41,22 +46,22 @@
 <div class="co"><p>MLB edge thresholds are higher (4.5%) than NBA (3.5%) due to higher variance in baseball outcomes. Early-season pass rates run higher as the model requires stable pitching data.</p></div>
 {% endif %}
 
+{% if proof and proof.count > 0 %}
+<div class="sh">Recent Signal Performance</div>
+<div class="sg c4">
+  <div class="sc"><div class="sc-label">Last {{ proof.count }}</div><div class="sc-val green">{{ proof.record }}</div></div>
+  <div class="sc"><div class="sc-label">Win Rate</div><div class="sc-val">{{ proof.win_rate }}%</div></div>
+  <div class="sc"><div class="sc-label">CLV+</div><div class="sc-val green">{{ proof.clv_pct }}%</div></div>
+  <div class="sc"><div class="sc-label">Avg Edge</div><div class="sc-val">{{ proof.avg_edge }}%</div></div>
+</div>
+{% endif %}
+
 <div class="sh">Related</div>
 <div class="il">
   {% for link in internal_links %}
   <a class="il-link" href="{{ link.url }}"><span class="il-label">{{ link.label }}</span>{{ link.text }}<span class="il-arrow">&#8250;</span></a>
   {% endfor %}
 </div>
-
-{% if proof %}
-<div class="sh">Last {{ proof.count }} Signals</div>
-<div class="sg c4">
-  <div class="sc"><div class="sc-label">Record</div><div class="sc-val green">{{ proof.record }}</div></div>
-  <div class="sc"><div class="sc-label">Win Rate</div><div class="sc-val">{{ proof.win_rate }}%</div></div>
-  <div class="sc"><div class="sc-label">CLV+</div><div class="sc-val green">{{ proof.clv_pct }}%</div></div>
-  <div class="sc"><div class="sc-label">Avg Edge</div><div class="sc-val">{{ proof.avg_edge }}%</div></div>
-</div>
-{% endif %}
 
 <div class="cta">
   <h3>{{ cta.headline }}</h3>

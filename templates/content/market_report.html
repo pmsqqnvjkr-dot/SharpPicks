@@ -29,6 +29,11 @@
   <div class="sc"><div class="sc-label">Passed</div><div class="sc-val">{{ data.games_passed }}</div><div class="sc-sub">of {{ data.games_analyzed }}</div></div>
 </div>
 
+<div class="tools-row">
+  <a class="tool-link" href="/tools/edge-calculator">Track your edge <span class="tl-arrow">&rarr;</span></a>
+  <a class="tool-link" href="/tools/clv-calculator">Check your CLV <span class="tl-arrow">&rarr;</span></a>
+</div>
+
 {% if data.signal %}
 <div class="sh">Signal</div>
 <div class="sig">
@@ -82,6 +87,16 @@
 </div>
 {% endif %}
 
+{% if proof and proof.count > 0 %}
+<div class="sh">Recent Signal Performance</div>
+<div class="sg c4">
+  <div class="sc"><div class="sc-label">Last {{ proof.count }}</div><div class="sc-val green">{{ proof.record }}</div></div>
+  <div class="sc"><div class="sc-label">Win Rate</div><div class="sc-val">{{ proof.win_rate }}%</div></div>
+  <div class="sc"><div class="sc-label">CLV+</div><div class="sc-val green">{{ proof.clv_pct }}%</div></div>
+  <div class="sc"><div class="sc-label">Avg Edge</div><div class="sc-val">{{ proof.avg_edge }}%</div></div>
+</div>
+{% endif %}
+
 {% for block in why_blocks %}
 <div class="narrative"><p>{{ block }}</p></div>
 {% endfor %}
@@ -96,22 +111,31 @@
   {% endfor %}
 </div>
 
+{% if history %}
+<div class="sh">This Week's Reports</div>
+<div class="history-nav">
+  {% if history.prev_report %}
+  <a class="hn-link" href="{{ history.prev_report.url }}">&larr; {{ history.prev_report.label }}</a>
+  {% endif %}
+  {% if history.next_report %}
+  <a class="hn-link" href="{{ history.next_report.url }}">{{ history.next_report.label }} &rarr;</a>
+  {% endif %}
+</div>
+{% if history.week_reports %}
+<div class="week-strip">
+  {% for wr in history.week_reports %}
+  <a class="ws-day{% if wr.date == data.date_formatted %} ws-active{% endif %}" href="{{ wr.url }}">{{ wr.date }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endif %}
+
 <div class="sh">Related</div>
 <div class="il">
   {% for link in internal_links %}
   <a class="il-link" href="{{ link.url }}"><span class="il-label">{{ link.label }}</span>{{ link.text }}<span class="il-arrow">&#8250;</span></a>
   {% endfor %}
 </div>
-
-{% if proof %}
-<div class="sh">Last {{ proof.count }} Signals</div>
-<div class="sg c4">
-  <div class="sc"><div class="sc-label">Record</div><div class="sc-val green">{{ proof.record }}</div></div>
-  <div class="sc"><div class="sc-label">Win Rate</div><div class="sc-val">{{ proof.win_rate }}%</div></div>
-  <div class="sc"><div class="sc-label">CLV+</div><div class="sc-val green">{{ proof.clv_pct }}%</div></div>
-  <div class="sc"><div class="sc-label">Avg Edge</div><div class="sc-val">{{ proof.avg_edge }}%</div></div>
-</div>
-{% endif %}
 
 <div class="cta">
   <h3>{{ cta.headline }}</h3>
