@@ -830,7 +830,7 @@ export default function PicksTab({ onNavigate }) {
                 No signal today, but the full analysis is below. Every game's edge, the Daily Market Brief, and the reasoning on each game. This is the most common screen. No Edge. No Pick.
               </OnboardingCard>
             )}
-            <NoPickCard data={todayData || {}} sport={sport} modelPhase={modelPhase} />
+            <NoPickCard data={todayData || {}} sport={sport} modelPhase={todayData?.model_phase} />
 
             {/* Daily Market Brief — expanded by default */}
             <div style={{
