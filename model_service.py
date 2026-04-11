@@ -443,6 +443,24 @@ def pretip_revalidate(app, sport='nba'):
             return {'status': 'error', 'error': str(e)}
 
 
+def _write_recovery_pass(today_str, sport, reason):
+    """Write a recovery pass so the audit trail is never empty after a force-delete."""
+    try:
+        recovery = Pass(
+            date=today_str,
+            sport=sport,
+            games_analyzed=0,
+            closest_edge_pct=0,
+            pass_reason=f"force-run failed: {reason}",
+        )
+        db.session.add(recovery)
+        db.session.commit()
+        logging.warning(f"[{sport.upper()}] Recovery pass written for {today_str} after force-delete failure")
+    except Exception as recovery_err:
+        logging.error(f"[{sport.upper()}] Recovery pass write also failed: {recovery_err}")
+        db.session.rollback()
+
+
 def run_model_and_log(app, sport='nba', force=False, date_override=None, send_notifications=True):
     """Run the model for today and log either a pick or pass.
     date_override: optional YYYY-MM-DD to force a specific date (e.g. tomorrow for tonight's games).
@@ -475,6 +493,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
             print(f"[model-run] Already run for {today_str} — pick={'yes' if existing_pick else 'no'}, pass={'yes' if existing_pass else 'no'}")
             return {'status': 'already_run', 'date': today_str, 'sport': sport, 'games_funnel': funnel}
 
+        force_deleted = False
         if force and (existing_pick or existing_pass):
             if existing_pick:
                 db.session.delete(existing_pick)
@@ -483,6 +502,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                 db.session.delete(existing_pass)
                 print(f"[model-run] Force: deleted existing pass for {today_str}/{sport}")
             db.session.commit()
+            force_deleted = True
 
         try:
             from model import EnsemblePredictor
@@ -500,9 +520,13 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                             print(f"[model-run] Auto-retrain succeeded for {sport}")
                         else:
                             print(f"[model-run] ERROR: Auto-retrain failed for {sport}")
+                            if force_deleted:
+                                _write_recovery_pass(today_str, sport, 'Model not trained')
                             return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
                     except Exception as train_err:
                         print(f"[model-run] ERROR: Auto-retrain exception for {sport}: {train_err}")
+                        if force_deleted:
+                            _write_recovery_pass(today_str, sport, f'Model training exception: {train_err}')
                         return {'status': 'error', 'error': 'Model not trained', 'date': today_str}
                 _cache_model(sport, model, model._default_filepath())
 
@@ -543,6 +567,8 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                 if situation == 'data_failure':
                     duration_ms = int((time.time() - start_time) * 1000)
                     print(f"[model-run] DATA FAILURE — not creating pass, will retry later (db={get_sqlite_path()})")
+                    if force_deleted:
+                        _write_recovery_pass(today_str, sport, f'data_failure: {diag["message"]}')
                     return {
                         'status': 'data_failure',
                         'reason': diag['message'],
@@ -555,6 +581,8 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                 if situation == 'no_spreads':
                     duration_ms = int((time.time() - start_time) * 1000)
                     print(f"[model-run] NO SPREADS — {diag['total_games']} games but lines not posted yet, will retry later")
+                    if force_deleted:
+                        _write_recovery_pass(today_str, sport, f'no_spreads: {diag["message"]}')
                     return {
                         'status': 'no_spreads',
                         'reason': diag['message'],
@@ -653,6 +681,8 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
 
                 duration_ms = int((time.time() - start_time) * 1000)
                 print(f"[model-run] Unknown no-games situation '{situation}' — not creating pass, will retry")
+                if force_deleted:
+                    _write_recovery_pass(today_str, sport, f'unknown_no_games: {diag["message"]}')
                 return {
                     'status': 'unknown_no_games',
                     'reason': diag['message'],
@@ -898,4 +928,6 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
 
         except Exception as e:
             logging.error(f"[{sport.upper()}] run_model_and_log failed: {e}", exc_info=True)
+            if force_deleted:
+                _write_recovery_pass(today_str, sport, str(e))
             return {'status': 'error', 'error': str(e), 'date': today_str}

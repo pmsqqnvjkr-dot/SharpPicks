@@ -3114,16 +3114,17 @@ def grade_pending_picks():
         if not picks_to_grade:
             return
 
+        sqlite_conn = None
         try:
-            sqlite_conn = None
-            try:
-                sqlite_conn = sqlite3.connect(get_sqlite_path())
-                sqlite_conn.row_factory = sqlite3.Row
-                sqlite_cursor = sqlite_conn.cursor()
-            except Exception:
-                sqlite_cursor = None
+            sqlite_conn = sqlite3.connect(get_sqlite_path())
+            sqlite_conn.row_factory = sqlite3.Row
+            sqlite_cursor = sqlite_conn.cursor()
+        except Exception:
+            sqlite_cursor = None
 
-            for pick in picks_to_grade:
+        graded_count = 0
+        for pick in picks_to_grade:
+            try:
                 game = None
                 raw_date = pick.game_date
                 if hasattr(raw_date, 'strftime'):
@@ -3219,9 +3220,13 @@ def grade_pending_picks():
                 spread_result = home_score - away_score
                 line_value = pick.line if pick.line and abs(pick.line) < 50 else 0
 
-                side_lower = pick.side.lower()
-                home_lower = pick.home_team.lower()
-                away_lower = pick.away_team.lower()
+                side_lower = (pick.side or '').lower()
+                home_lower = (pick.home_team or '').lower()
+                away_lower = (pick.away_team or '').lower()
+
+                if not side_lower:
+                    logging.warning(f"[Auto-grade] Skipping pick {pick.id}: side is empty")
+                    continue
 
                 home_full_match = home_lower in side_lower
                 away_full_match = away_lower in side_lower
@@ -3253,7 +3258,6 @@ def grade_pending_picks():
                 else:
                     ats_margin = -spread_result + line_value
 
-                # Compute outcome (same for pending and revoked-with-bets)
                 if ats_margin == 0:
                     result_ats = 'P'
                     profit_units = 0.0
@@ -3309,12 +3313,44 @@ def grade_pending_picks():
                     else:
                         tb.profit = -tb.bet_amount
                     print(f"[Auto-grade] Tracked bet #{tb.id} for user {tb.user_id} -> {result_ats}")
+                graded_count += 1
+            except Exception as pick_err:
+                logging.error(f"[Auto-grade] Error grading pick {pick.id} ({pick.away_team} @ {pick.home_team}): {pick_err}")
+                continue
 
-            if sqlite_conn:
-                sqlite_conn.close()
+        try:
+            orphaned = TrackedBet.query.filter(
+                TrackedBet.result.is_(None),
+                TrackedBet.pick_id.isnot(None)
+            ).join(Pick, TrackedBet.pick_id == Pick.id).filter(
+                Pick.result.in_(['win', 'loss', 'push'])
+            ).all()
+            for tb in orphaned:
+                lp = tb.linked_pick
+                tb.result = lp.result_ats or ('W' if lp.result == 'win' else ('L' if lp.result == 'loss' else 'P'))
+                if tb.result == 'W':
+                    if tb.odds and tb.odds < 0:
+                        tb.profit = round(tb.bet_amount * (100 / abs(tb.odds)), 2)
+                    elif tb.odds:
+                        tb.profit = round(tb.bet_amount * (tb.odds / 100), 2)
+                    else:
+                        tb.profit = round(tb.bet_amount * (100 / 110), 2)
+                elif tb.result == 'P':
+                    tb.profit = 0.0
+                else:
+                    tb.profit = -(tb.bet_amount or 0)
+                logging.info(f"[Auto-grade] Catch-up: bet #{tb.id} synced to {tb.result} from pick {tb.pick_id}")
+        except Exception as catchup_err:
+            logging.error(f"[Auto-grade] Catch-up error: {catchup_err}")
+
+        if sqlite_conn:
+            sqlite_conn.close()
+        try:
             db.session.commit()
-        except Exception as e:
-            print(f"[Auto-grade] Error: {e}")
+            logging.info(f"[Auto-grade] Committed {graded_count} graded picks")
+        except Exception as commit_err:
+            logging.error(f"[Auto-grade] Commit error: {commit_err}")
+            db.session.rollback()
 
 def collect_closing_lines():
     """Snapshot current lines as closing lines from local SQLite.
@@ -3389,8 +3425,13 @@ def collect_closing_lines():
                     today_pick.line_close = closing
                     today_pick.closing_spread = closing
                     if today_pick.line is not None and closing is not None:
-                        pick_line = today_pick.line
-                        today_pick.clv = closing - pick_line
+                        side_lower = (today_pick.side or '').lower()
+                        home_lower = (today_pick.home_team or '').lower()
+                        is_home_pick = home_lower and home_lower in side_lower
+                        if is_home_pick:
+                            today_pick.clv = today_pick.line - closing
+                        else:
+                            today_pick.clv = today_pick.line + closing
 
             conn.commit()
             conn.close()
@@ -3479,8 +3520,14 @@ def collect_wnba_closing_lines_job():
                         today_pick.line_close = closing
                     today_pick.closing_spread = closing
                     if today_pick.line is not None and closing is not None:
-                        today_pick.clv = closing - today_pick.line
-            
+                        side_lower = (today_pick.side or '').lower()
+                        home_lower = (today_pick.home_team or '').lower()
+                        is_home_pick = home_lower and home_lower in side_lower
+                        if is_home_pick:
+                            today_pick.clv = today_pick.line - closing
+                        else:
+                            today_pick.clv = today_pick.line + closing
+
             conn.commit()
             conn.close()
             db.session.commit()
@@ -4562,7 +4609,13 @@ def collect_mlb_closing_lines_job():
                         today_pick.line_close = closing
                     today_pick.closing_spread = closing
                     if today_pick.line is not None and closing is not None:
-                        today_pick.clv = closing - today_pick.line
+                        side_lower = (today_pick.side or '').lower()
+                        home_lower = (today_pick.home_team or '').lower()
+                        is_home_pick = home_lower and home_lower in side_lower
+                        if is_home_pick:
+                            today_pick.clv = today_pick.line - closing
+                        else:
+                            today_pick.clv = today_pick.line + closing
 
             conn.commit()
             conn.close()
@@ -6821,6 +6874,7 @@ def get_user_bets():
             db.or_(TrackedBet.pick_id.is_(None), Pick.sport == sport)
         )
     bets = q.order_by(TrackedBet.created_at.desc()).all()
+    needs_commit = False
     tracked_pick_ids = set()
     bet_list = []
     for b in bets:
@@ -6837,6 +6891,21 @@ def get_user_bets():
                 pick_result = 'pending'
             else:
                 pick_result = b.linked_pick.result
+            if not b.result and pick_result and pick_result not in ('pending', 'revoked'):
+                b.result = pick_result
+                if pick_result == 'W':
+                    if b.odds and b.odds < 0:
+                        b.profit = round(b.bet_amount * (100 / abs(b.odds)), 2)
+                    elif b.odds:
+                        b.profit = round(b.bet_amount * (b.odds / 100), 2)
+                    else:
+                        b.profit = round(b.bet_amount * (100 / 110), 2)
+                elif pick_result == 'P':
+                    b.profit = 0.0
+                else:
+                    b.profit = -(b.bet_amount or 0)
+                needs_commit = True
+                logging.info(f"[Bet auto-settle] bet #{b.id} -> {pick_result} (synced from pick)")
         linked = b.linked_pick
         pick_detail = None
         if linked:
@@ -6879,6 +6948,11 @@ def get_user_bets():
             'created_at': b.created_at.isoformat() if b.created_at else None,
             'linked_pick': pick_detail,
         })
+    if needs_commit:
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
     return jsonify({'bets': bet_list, 'tracked_pick_ids': list(tracked_pick_ids)})
 
 @app.route('/api/bets/trackable', methods=['GET'])
@@ -8537,25 +8611,6 @@ def api_kill_switch():
             ks.cleared_at = datetime.now()
     db.session.commit()
     return jsonify({'killed': ks.active, 'sport': ks.sport})
-
-
-@app.route('/api/admin/engagement')
-def admin_engagement():
-    """Engagement metrics - superusers only"""
-    user = get_current_user_from_session()
-    if not user:
-        return jsonify({'error': 'Authentication required'}), 401
-    db_user = db.session.get(User, user['id'])
-    if not db_user or not db_user.is_superuser:
-        return jsonify({'error': 'Unauthorized'}), 403
-    from datetime import timedelta
-    week_ago = datetime.now() - timedelta(days=7)
-    active_7d = db.session.query(db.func.count(db.func.distinct(UserEvent.user_id))).filter(
-        UserEvent.created_at >= week_ago, UserEvent.user_id.isnot(None)).scalar() or 0
-    sessions_7d = db.session.query(db.func.count(db.func.distinct(UserEvent.session_id))).filter(
-        UserEvent.created_at >= week_ago, UserEvent.session_id.isnot(None)).scalar() or 0
-    events_7d = UserEvent.query.filter(UserEvent.created_at >= week_ago).count()
-    return jsonify({'active_7d': active_7d, 'sessions_7d': sessions_7d, 'events_7d': events_7d})
 
 
 @app.route('/privacy')

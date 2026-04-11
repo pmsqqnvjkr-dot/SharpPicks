@@ -856,7 +856,7 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
                             </div>
                             <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                {p.side} {p.line > 0 ? `+${p.line}` : p.line}
+                                {p.side}
                               </span>
                               {p.market_odds != null && (
                                 <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>

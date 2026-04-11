@@ -50,6 +50,7 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
 .sh:first-child{margin-top:0}
 .sg{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
 .sg.c4{grid-template-columns:repeat(4,1fr)}
+.sg.c2{grid-template-columns:repeat(2,1fr)}
 .sg.c3{grid-template-columns:repeat(3,1fr)}
 .sc{background:var(--s1);padding:12px 8px;text-align:center}
 .sc-label{font-size:8px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--t4);margin-bottom:3px}
@@ -276,6 +277,7 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
 
 <div class="tabs">
   <button class="tab active" onclick="go('pulse',this)">Pulse</button>
+  <button class="tab" onclick="go('analytics',this)">Analytics</button>
   <button class="tab" onclick="go('models',this)">Models</button>
   <button class="tab" onclick="go('infra',this)">Infra</button>
   <button class="tab" onclick="go('business',this)">Business</button>
@@ -283,6 +285,10 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
 
 <div class="panel active" id="p-pulse">
   <div id="pulseContent" style="color:var(--t4)">Loading...</div>
+</div>
+
+<div class="panel" id="p-analytics">
+  <div id="analyticsContent" style="color:var(--t4)">Loading...</div>
 </div>
 
 <div class="panel" id="p-models">
@@ -629,9 +635,170 @@ async function loadData() {
     renderModels(ccR);
     renderInfra(cronR, healthR, ccR, cfR);
     renderBusiness(ccR, funnelR, engR);
+    loadAnalytics('week');
   } catch (e) {
     console.error('Load failed:', e);
   }
+}
+
+let _analyticsPeriod = 'week';
+let _analyticsRefreshTimer = null;
+async function loadAnalytics(period) {
+  if (period) _analyticsPeriod = period;
+  const el = document.getElementById('analyticsContent');
+  if (!el) return;
+  const safeFetch = url => fetch(url).then(r => r.ok ? r.json() : null).catch(() => null);
+  const [cfR, appR, contentR] = await Promise.all([
+    safeFetch('/api/admin/cf-analytics?period=' + _analyticsPeriod),
+    safeFetch('/api/admin/app-analytics?period=' + _analyticsPeriod),
+    safeFetch('/api/admin/content-analytics?period=' + _analyticsPeriod),
+  ]);
+  renderAnalytics(cfR, appR, contentR);
+}
+
+function renderAnalytics(cf, app, content) {
+  const el = document.getElementById('analyticsContent');
+  if (!el) return;
+  let h = '';
+
+  const periodLabel = _analyticsPeriod === 'day' ? 'Today' : _analyticsPeriod === 'month' ? '30 Days' : '7 Days';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  h += '<div class="sh" style="margin:0">Web Analytics</div>';
+  h += '<div style="display:flex;gap:4px;align-items:center">';
+  ['day','week','month'].forEach(p => {
+    const label = p === 'day' ? '1D' : p === 'week' ? '7D' : '30D';
+    const active = _analyticsPeriod === p;
+    h += '<button onclick="loadAnalytics(\'' + p + '\')" style="padding:5px 12px;border-radius:6px;border:1px solid ' + (active ? 'var(--green)' : 'var(--s2)') + ';background:' + (active ? 'rgba(90,158,114,0.12)' : 'transparent') + ';color:' + (active ? 'var(--green)' : 'var(--t4)') + ';font-family:var(--mono);font-size:10px;font-weight:600;cursor:pointer;letter-spacing:0.08em">' + label + '</button>';
+  });
+  h += '</div></div>';
+
+  const cfM = (cf && cf.marketing) ? cf.marketing : null;
+  const cfViews = cfM ? cfM.pageViews : 0;
+  const cfUniques = cfM ? cfM.uniques : 0;
+  const appViews = app ? app.pageViews : 0;
+  const appUniques = app ? app.uniques : 0;
+  const contentViews = content ? content.pageViews : 0;
+  const contentUniques = content ? content.uniques : 0;
+  const totalViews = cfViews + appViews + contentViews;
+  const totalUniques = cfUniques + appUniques + contentUniques;
+
+  h += '<div class="sg c3" style="margin-bottom:12px">';
+  h += '<div class="sc"><div class="sc-label">Total Views</div><div class="sc-val">' + commaFmt(totalViews) + '</div></div>';
+  h += '<div class="sc"><div class="sc-label">Total Uniques</div><div class="sc-val">' + commaFmt(totalUniques) + '</div></div>';
+  h += '<div class="sc"><div class="sc-label">Period</div><div class="sc-val" style="font-size:13px">' + periodLabel + '</div></div>';
+  h += '</div>';
+
+  // --- Daily chart combining all three surfaces ---
+  const allDates = new Set();
+  const cfDaily = {}, appDaily = {}, contentDaily = {};
+  if (cfM && cfM.daily) cfM.daily.forEach(d => { cfDaily[d.date] = d.views || 0; allDates.add(d.date); });
+  if (app && app.daily) app.daily.forEach(d => { appDaily[d.date] = d.views || 0; allDates.add(d.date); });
+  if (content && content.daily) content.daily.forEach(d => { contentDaily[d.date] = d.views || 0; allDates.add(d.date); });
+  const sortedDates = [...allDates].sort();
+
+  if (sortedDates.length > 0) {
+    const maxV = Math.max(...sortedDates.map(d => (cfDaily[d]||0) + (appDaily[d]||0) + (contentDaily[d]||0)), 1);
+    h += '<div style="margin-bottom:6px"><span style="font-size:10px;color:var(--t4);font-family:var(--mono);letter-spacing:0.1em;text-transform:uppercase">Daily Views — All Surfaces</span></div>';
+    h += '<div style="display:flex;align-items:flex-end;gap:2px;height:80px;margin-bottom:2px">';
+    for (const d of sortedDates) {
+      const cfV = cfDaily[d] || 0, appV = appDaily[d] || 0, conV = contentDaily[d] || 0;
+      const total = cfV + appV + conV;
+      const pct = Math.max(4, (total / maxV) * 100);
+      const cfPct = total > 0 ? (cfV / total * 100) : 33;
+      const appPct = total > 0 ? (appV / total * 100) : 33;
+      h += '<div style="flex:1;height:' + pct + '%;display:flex;flex-direction:column;border-radius:3px 3px 0 0;overflow:hidden" title="' + d + ': ' + total + ' views">';
+      h += '<div style="flex:' + cfPct + ';background:var(--blue);opacity:0.7"></div>';
+      h += '<div style="flex:' + appPct + ';background:var(--green);opacity:0.6"></div>';
+      h += '<div style="flex:' + (100 - cfPct - appPct) + ';background:#D4A843;opacity:0.5"></div>';
+      h += '</div>';
+    }
+    h += '</div>';
+    h += '<div style="display:flex;justify-content:space-between;font-size:7px;color:var(--t5);margin-bottom:4px">';
+    for (const d of sortedDates) { h += '<span>' + d.slice(5).replace('-','/') + '</span>'; }
+    h += '</div>';
+    h += '<div style="display:flex;gap:12px;font-size:9px;color:var(--t4);font-family:var(--mono);margin-bottom:14px">';
+    h += '<span><span style="display:inline-block;width:8px;height:8px;background:var(--blue);opacity:0.7;border-radius:2px;margin-right:3px;vertical-align:middle"></span>Landing</span>';
+    h += '<span><span style="display:inline-block;width:8px;height:8px;background:var(--green);opacity:0.6;border-radius:2px;margin-right:3px;vertical-align:middle"></span>App</span>';
+    h += '<span><span style="display:inline-block;width:8px;height:8px;background:#D4A843;opacity:0.5;border-radius:2px;margin-right:3px;vertical-align:middle"></span>Content</span>';
+    h += '</div>';
+  }
+
+  // --- Three surface cards ---
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">';
+
+  // Landing card
+  h += '<div class="sc" style="padding:14px">';
+  h += '<div style="font-size:10px;color:var(--blue);font-family:var(--mono);font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Landing</div>';
+  h += '<div style="font-size:9px;color:var(--t5);margin-bottom:2px">sharppicks.ai</div>';
+  h += '<div class="sg c2" style="margin:0">';
+  h += '<div><div class="sc-label">Views</div><div class="sc-val" style="font-size:16px">' + commaFmt(cfViews) + '</div></div>';
+  h += '<div><div class="sc-label">Uniques</div><div class="sc-val" style="font-size:16px">' + commaFmt(cfUniques) + '</div></div>';
+  h += '</div>';
+  if (cfM && cfM.topReferrers && cfM.topReferrers.length > 0) {
+    h += '<div style="margin-top:8px;font-size:9px;color:var(--t4)">Top ref: <span style="color:var(--t2)">' + cfM.topReferrers[0].referrer + '</span></div>';
+  }
+  if (cfM && cfM.topPaths && cfM.topPaths.length > 0) {
+    h += '<table class="content-table" style="margin-top:6px"><thead><tr><th style="font-size:9px">Page</th><th style="font-size:9px">Views</th></tr></thead><tbody>';
+    for (const p of cfM.topPaths.slice(0, 5)) {
+      h += '<tr><td style="font-size:9px">' + (p.path || '/') + '</td><td style="font-size:9px">' + (p.count || 0) + '</td></tr>';
+    }
+    h += '</tbody></table>';
+  }
+  h += '</div>';
+
+  // App card
+  h += '<div class="sc" style="padding:14px">';
+  h += '<div style="font-size:10px;color:var(--green);font-family:var(--mono);font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">App</div>';
+  h += '<div style="font-size:9px;color:var(--t5);margin-bottom:2px">app.sharppicks.ai</div>';
+  h += '<div class="sg c2" style="margin:0">';
+  h += '<div><div class="sc-label">Views</div><div class="sc-val" style="font-size:16px">' + commaFmt(appViews) + '</div></div>';
+  h += '<div><div class="sc-label">Uniques</div><div class="sc-val" style="font-size:16px">' + commaFmt(appUniques) + '</div></div>';
+  h += '</div>';
+  if (app && app.requests != null) {
+    h += '<div style="margin-top:8px;font-size:9px;color:var(--t4)">API calls: <span style="color:var(--t2)">' + commaFmt(app.requests) + '</span></div>';
+  }
+  if (app && app.topPaths && app.topPaths.length > 0) {
+    h += '<table class="content-table" style="margin-top:6px"><thead><tr><th style="font-size:9px">Endpoint</th><th style="font-size:9px">Hits</th></tr></thead><tbody>';
+    for (const p of app.topPaths.slice(0, 5)) {
+      h += '<tr><td style="font-size:9px">' + (p.path || '/') + '</td><td style="font-size:9px">' + (p.count || 0) + '</td></tr>';
+    }
+    h += '</tbody></table>';
+  }
+  h += '</div>';
+
+  // Content card
+  h += '<div class="sc" style="padding:14px">';
+  h += '<div style="font-size:10px;color:#D4A843;font-family:var(--mono);font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Content</div>';
+  h += '<div style="font-size:9px;color:var(--t5);margin-bottom:2px">SEO pages</div>';
+  h += '<div class="sg c2" style="margin:0">';
+  h += '<div><div class="sc-label">Views</div><div class="sc-val" style="font-size:16px">' + commaFmt(contentViews) + '</div></div>';
+  h += '<div><div class="sc-label">Uniques</div><div class="sc-val" style="font-size:16px">' + commaFmt(contentUniques) + '</div></div>';
+  h += '</div>';
+  if (content && content.totalPages) {
+    h += '<div style="margin-top:8px;font-size:9px;color:var(--t4)">Total pages: <span style="color:var(--t2)">' + content.totalPages + '</span></div>';
+  }
+  if (content && content.topPaths && content.topPaths.length > 0) {
+    h += '<table class="content-table" style="margin-top:6px"><thead><tr><th style="font-size:9px">Page</th><th style="font-size:9px">Views</th></tr></thead><tbody>';
+    for (const p of content.topPaths.slice(0, 5)) {
+      h += '<tr><td style="font-size:9px">' + (p.path || '/') + '</td><td style="font-size:9px">' + (p.count || 0) + '</td></tr>';
+    }
+    h += '</tbody></table>';
+  }
+  h += '</div>';
+
+  h += '</div>';
+
+  // Referrer table from CF
+  if (cfM && cfM.topReferrers && cfM.topReferrers.length > 1) {
+    h += '<div class="sh">Top Referrers</div>';
+    h += '<table class="content-table"><thead><tr><th>Referrer</th><th>Views</th></tr></thead><tbody>';
+    for (const r of cfM.topReferrers) {
+      h += '<tr><td>' + (r.referrer || 'Direct') + '</td><td>' + commaFmt(r.count || 0) + '</td></tr>';
+    }
+    h += '</tbody></table>';
+  }
+
+  el.innerHTML = h;
 }
 
 function renderPulse(cc, health, cf, eng) {
@@ -937,10 +1104,11 @@ function renderInfra(cronData, health, cc, cf) {
       h += '</tbody></table>';
     }
 
+    const topRef = (m.topReferrers && m.topReferrers.length > 0) ? m.topReferrers[0].referrer : '--';
     h += '<div class="sg c3">';
-    h += '<div class="sc"><div class="sc-label">Top Referrer</div><div class="sc-val" style="font-size:11px">google.com</div></div>';
-    h += '<div class="sc"><div class="sc-label">Top Country</div><div class="sc-val" style="font-size:11px">US</div></div>';
-    h += '<div class="sc"><div class="sc-label">Avg Load</div><div class="sc-val" style="font-size:11px">1.2s</div></div>';
+    h += '<div class="sc"><div class="sc-label">Top Referrer</div><div class="sc-val" style="font-size:11px">' + topRef + '</div></div>';
+    h += '<div class="sc"><div class="sc-label">Avg/Day</div><div class="sc-val" style="font-size:11px">' + (m.daily && m.daily.length > 0 ? Math.round(m.pageViews / m.daily.length) : '--') + '</div></div>';
+    h += '<div class="sc"><div class="sc-label">Pages</div><div class="sc-val" style="font-size:11px">' + (m.topPaths ? m.topPaths.length : '--') + '</div></div>';
     h += '</div>';
   } else {
     h += '<div class="sg c3">';

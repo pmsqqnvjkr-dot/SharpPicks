@@ -81,23 +81,24 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
   const isRevoked = pick.result === 'revoked';
   const [expanded, setExpanded] = useState(false);
 
-  const handleTrackPick = async () => {
+  const [showTrackForm, setShowTrackForm] = useState(false);
+
+  const handleTrackPick = async (betData) => {
     setTracking(true);
     setTrackError(null);
     trackEvent('tap_bet_link', { game_id: pick.id, pick_type: 'spread', sportsbook: pick.sportsbook || 'unknown' });
     try {
-      const res = await apiPost('/bets', {
-        pick_id: pick.id, units_wagered: 1, odds: pick.market_odds || -110,
-      });
+      const res = await apiPost('/bets', betData);
       if (res.success) {
         setTracked(true);
+        setShowTrackForm(false);
         if (res.bet?.id) setTrackedBetId(res.bet.id);
       } else {
-        if (res.error?.includes('Already tracking')) setTracked(true);
+        if (res.error?.includes('Already tracking')) { setTracked(true); setShowTrackForm(false); }
         else setTrackError(res.error || 'Failed to track');
       }
     } catch (e) {
-      if (e?.message?.includes('Already tracking')) setTracked(true);
+      if (e?.message?.includes('Already tracking')) { setTracked(true); setShowTrackForm(false); }
       else setTrackError('Failed to track');
     } finally { setTracking(false); }
   };
@@ -625,6 +626,8 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
           settled={settled}
           isRevoked={isRevoked}
           flatStake={flatStake}
+          showForm={showTrackForm}
+          onToggleForm={() => setShowTrackForm(!showTrackForm)}
           onTrack={handleTrackPick}
           onUntrack={handleUntrack}
           onNavigate={onNavigate}
@@ -773,7 +776,12 @@ function CoverTracker({ pick, liveScore }) {
   );
 }
 
-function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, settled, isRevoked, flatStake, onTrack, onUntrack, onNavigate, unitSize = 100 }) {
+function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, settled, isRevoked, flatStake, showForm, onToggleForm, onTrack, onUntrack, onNavigate, unitSize = 100 }) {
+  const [formLine, setFormLine] = useState(pick.line != null ? String(pick.line) : '');
+  const [formOdds, setFormOdds] = useState(pick.market_odds != null ? String(pick.market_odds) : '-110');
+  const [formUnits, setFormUnits] = useState('1');
+  const [formWager, setFormWager] = useState(String(unitSize));
+
   if (isRevoked) return null;
 
   const sideStr = pick.side || '';
@@ -783,11 +791,45 @@ function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, set
   const shortSide = `${sideAbbrTB} ${spreadPart}`.trim();
   const units = flatStake ?? '1.0';
 
+  const handleUnitsChange = (val) => {
+    setFormUnits(val);
+    const u = parseFloat(val) || 1;
+    setFormWager(String(Math.round(u * unitSize)));
+  };
+  const handleWagerChange = (val) => {
+    setFormWager(val);
+    const w = parseFloat(val) || unitSize;
+    setFormUnits(String(parseFloat((w / unitSize).toFixed(2))));
+  };
+
+  const handleSubmit = () => {
+    onTrack({
+      pick_id: pick.id,
+      units_wagered: parseFloat(formUnits) || 1,
+      bet_amount: parseInt(formWager) || unitSize,
+      odds: parseInt(formOdds) || pick.market_odds || -110,
+      line_at_bet: parseFloat(formLine) || pick.line,
+      bet_type: 'spread',
+    });
+  };
+
+  const formInputStyle = {
+    background: 'var(--surface-0, #0A0D14)', border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '8px', padding: '10px 12px',
+    fontFamily: mono, fontSize: '14px', fontWeight: 500,
+    color: 'var(--text-primary, #E8ECF1)', outline: 'none', width: '100%',
+    boxSizing: 'border-box',
+  };
+  const formLabelStyle = {
+    fontFamily: mono, fontSize: '10px', fontWeight: 500,
+    color: textDim, letterSpacing: '0.1em',
+    textTransform: 'uppercase', marginBottom: '4px',
+  };
+
   if (settled && tracked) {
     const pnl = pick.profit_units ?? (pick.pnl != null ? pick.pnl / 100 : null);
     const isWin = pick.result === 'win';
     const isLoss = pick.result === 'loss';
-    const isPush = pick.result === 'push';
     const resultLabel = isWin ? 'WON' : isLoss ? 'LOST' : 'PUSH';
     const unitsLabel = isWin ? `+${Math.abs(pnl ?? 0).toFixed(1)}u`
       : isLoss ? `-${Math.abs(pnl ?? 0).toFixed(1)}u`
@@ -838,25 +880,73 @@ function TrackBetButton({ pick, tracked, tracking, trackedBetId, trackError, set
   return (
     <div style={{ marginTop: 10 }}>
       <button
-        onClick={onTrack}
+        onClick={onToggleForm}
         disabled={tracking}
         style={{
           width: '100%', borderRadius: 6, padding: 10,
           fontFamily: mono, fontWeight: 600, fontSize: '11px',
           letterSpacing: '1px', textTransform: 'uppercase',
-          color: tracking ? textDim : green,
-          background: 'transparent',
-          border: '0.5px solid rgba(90,158,114,0.3)',
+          color: tracking ? textDim : showForm ? '#E8ECF1' : green,
+          background: showForm ? 'rgba(90,158,114,0.06)' : 'transparent',
+          border: `0.5px solid ${showForm ? 'rgba(90,158,114,0.3)' : 'rgba(90,158,114,0.3)'}`,
           cursor: tracking ? 'default' : 'pointer',
           opacity: tracking ? 0.7 : 1,
           textAlign: 'center',
           transition: 'background 0.15s',
         }}
-        onMouseEnter={e => { if (!tracking) e.currentTarget.style.background = 'rgba(90,158,114,0.06)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
       >
-        {tracking ? 'TRACKING...' : `TRACK · 1u · $${unitSize}`}
+        {showForm ? 'CANCEL' : `TRACK · ${formUnits}u · $${formWager}`}
       </button>
+
+      {showForm && (
+        <div style={{
+          marginTop: 8, padding: '14px', borderRadius: 10,
+          background: 'var(--surface-1, #111622)',
+          border: '1px solid rgba(90,158,114,0.15)',
+        }}>
+          <div style={{
+            fontFamily: mono, fontSize: '11px', color: textSec,
+            marginBottom: 12, lineHeight: 1.4,
+          }}>
+            {pick.side} · {pick.market_odds > 0 ? '+' : ''}{pick.market_odds || -110} · {pick.edge_pct ? `${pick.edge_pct.toFixed(1)}% edge` : ''}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+            <div>
+              <div style={formLabelStyle}>Line bought</div>
+              <input type="text" inputMode="decimal" value={formLine} onChange={e => setFormLine(e.target.value)} style={formInputStyle} />
+            </div>
+            <div>
+              <div style={formLabelStyle}>Price (odds)</div>
+              <input type="text" inputMode="numeric" value={formOdds} onChange={e => setFormOdds(e.target.value)} style={formInputStyle} placeholder="-110" />
+            </div>
+            <div>
+              <div style={formLabelStyle}>Units</div>
+              <input type="text" inputMode="decimal" value={formUnits} onChange={e => handleUnitsChange(e.target.value)} style={formInputStyle} />
+            </div>
+            <div>
+              <div style={formLabelStyle}>Wager ($)</div>
+              <input type="text" inputMode="numeric" value={formWager} onChange={e => handleWagerChange(e.target.value)} style={{ ...formInputStyle, color: green }} />
+            </div>
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            disabled={tracking}
+            style={{
+              width: '100%', padding: 12, border: 'none', borderRadius: 8,
+              fontFamily: mono, fontSize: '13px', fontWeight: 600,
+              color: '#0A0D14', backgroundColor: green,
+              cursor: tracking ? 'default' : 'pointer',
+              letterSpacing: '0.02em',
+              opacity: tracking ? 0.5 : 1,
+            }}
+          >
+            {tracking ? 'Tracking...' : 'Track This Bet'}
+          </button>
+        </div>
+      )}
+
       {trackError && (
         <div style={{ marginTop: 4, fontFamily: mono, fontSize: '11px', color: '#8B6F70', textAlign: 'center' }}>
           {trackError}

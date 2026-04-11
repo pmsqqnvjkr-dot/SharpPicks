@@ -2173,6 +2173,16 @@ def sync_from_prod():
     return jsonify({'status': 'synced', 'stats': stats, 'source': 'app.sharppicks.ai'})
 
 
+def _analytics_period_days():
+    """Parse ?period=day|week|month from request args, default week."""
+    p = request.args.get('period', 'week').lower()
+    if p == 'day':
+        return 1
+    elif p == 'month':
+        return 30
+    return 7
+
+
 @admin_bp.route('/api/admin/cf-analytics')
 def cf_analytics():
     """Cloudflare Web Analytics (RUM beacon) for sharppicks.ai marketing site."""
@@ -2187,8 +2197,9 @@ def cf_analytics():
     if not token or not account_id:
         return jsonify({'error': 'CF_API_TOKEN or CF_ACCOUNT_ID not configured'}), 503
 
+    days = _analytics_period_days()
     today = datetime.now(ET).date()
-    since_date = today - timedelta(days=7)
+    since_date = today - timedelta(days=days)
     since_dt = f'{since_date}T00:00:00Z'
     until_dt = f'{today}T23:59:59Z'
 
@@ -2212,7 +2223,7 @@ def cf_analytics():
             sum { visits }
           }
           daily: rumPageloadEventsAdaptiveGroups(
-            limit: 8
+            limit: 31
             orderBy: [date_ASC]
             filter: {
               AND: [
@@ -2237,6 +2248,19 @@ def cf_analytics():
           ) {
             count
             dimensions { path: requestPath }
+          }
+          topReferrers: rumPageloadEventsAdaptiveGroups(
+            limit: 5
+            orderBy: [count_DESC]
+            filter: {
+              AND: [
+                {datetime_geq: $since, datetime_leq: $until}
+                {OR: [{siteTag: $siteTag}]}
+              ]
+            }
+          ) {
+            count
+            dimensions { referer: refererHost }
           }
         }
       }
@@ -2283,17 +2307,25 @@ def cf_analytics():
                 'count': p.get('count', 0),
             })
 
+        top_referrers = []
+        for r in acct.get('topReferrers', []):
+            dims = r.get('dimensions', {})
+            ref = dims.get('referer', '')
+            if ref:
+                top_referrers.append({'referrer': ref, 'count': r.get('count', 0)})
+
         marketing = {
             'pageViews': total_views,
             'uniques': total_visits,
             'requests': total_views,
             'daily': daily,
             'topPaths': top_paths,
+            'topReferrers': top_referrers,
         }
 
         return jsonify({
             'marketing': marketing,
-            'period': {'since': since_date.isoformat(), 'until': today.isoformat()},
+            'period': {'since': since_date.isoformat(), 'until': today.isoformat(), 'days': days},
         })
 
     except Exception as e:
@@ -2303,7 +2335,7 @@ def cf_analytics():
 
 @admin_bp.route('/api/admin/app-analytics')
 def app_analytics():
-    """Server-side request analytics for app.sharppicks.ai (7-day window)."""
+    """Server-side request analytics for app.sharppicks.ai."""
     admin, err_code = require_superuser()
     if not admin:
         return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
@@ -2313,8 +2345,9 @@ def app_analytics():
     except Exception:
         return jsonify({'error': 'PageView table not available'}), 503
 
+    days = _analytics_period_days()
     today = datetime.now(ET).date()
-    since = today - timedelta(days=7)
+    since = today - timedelta(days=days)
     since_dt = datetime(since.year, since.month, since.day)
 
     try:
@@ -2353,10 +2386,64 @@ def app_analytics():
             'requests': api_requests,
             'daily': daily,
             'topPaths': top_paths,
-            'period': {'since': since.isoformat(), 'until': today.isoformat()},
+            'period': {'since': since.isoformat(), 'until': today.isoformat(), 'days': days},
         })
     except Exception as e:
         logging.error(f'App analytics error: {e}')
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/content-analytics')
+def content_analytics():
+    """Content engine page view analytics (SEO pages on sharppicks.ai)."""
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    try:
+        ContentPageView.__table__
+    except Exception:
+        return jsonify({'error': 'ContentPageView table not available'}), 503
+
+    days = _analytics_period_days()
+    cutoff = datetime.utcnow() - timedelta(days=days)
+
+    try:
+        views = ContentPageView.query.filter(
+            ContentPageView.timestamp >= cutoff,
+            ContentPageView.is_bot == False,
+        ).all()
+
+        path_stats = {}
+        daily_map = {}
+        unique_ips = set()
+        for v in views:
+            path_stats.setdefault(v.path, 0)
+            path_stats[v.path] += 1
+            if v.ip_hash:
+                unique_ips.add(v.ip_hash)
+            d = _utc_naive_to_et_date(v.timestamp)
+            if d:
+                daily_map.setdefault(d.isoformat(), 0)
+                daily_map[d.isoformat()] += 1
+
+        total_views = sum(path_stats.values())
+        top_pages = sorted(path_stats.items(), key=lambda x: x[1], reverse=True)[:10]
+        total_pages_ever = ContentPageView.query.with_entities(
+            func.count(func.distinct(ContentPageView.path))
+        ).scalar() or 0
+
+        return jsonify({
+            'pageViews': total_views,
+            'uniques': len(unique_ips),
+            'totalPages': total_pages_ever,
+            'daily': [{'date': d, 'views': c} for d, c in sorted(daily_map.items())],
+            'topPaths': [{'path': p, 'count': c} for p, c in top_pages],
+            'period': {'since': (datetime.now(ET).date() - timedelta(days=days)).isoformat(),
+                       'until': datetime.now(ET).date().isoformat(), 'days': days},
+        })
+    except Exception as e:
+        logging.error(f'Content analytics error: {e}')
         return jsonify({'error': str(e)}), 500
 
 

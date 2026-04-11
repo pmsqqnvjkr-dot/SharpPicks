@@ -19,7 +19,7 @@ SPORT_CONFIG = {
         'model_run_hour': 10,
 
         'sigma': 11.7,
-        'model_weight': 0.45,
+        'model_weight': 0.30,  # Post-Feb-2026 calibration: market MAE 10.06 < model MAE 12.03, favor market
         'edge_threshold_pct': 3.5,
         'max_edge_pct': 8.0,
         'margin_std_floor': 8.0,
