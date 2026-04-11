@@ -962,7 +962,22 @@ def collect_todays_games():
         # Fallback: assume server is UTC, subtract 5 for ET
         today_str_et = (datetime.utcnow() - timedelta(hours=5)).strftime('%Y-%m-%d')
 
-    # Step 0: ESPN as source of truth for expected game count
+    # Step 0: Clean up stale Rundown entries (scored games from previous days stored with today's date)
+    try:
+        _cleanup_conn = sqlite3.connect(get_sqlite_path())
+        _cleanup_cur = _cleanup_conn.cursor()
+        stale_deleted = _cleanup_cur.execute(
+            "DELETE FROM games WHERE game_date = ? AND id LIKE 'rundown_%' AND home_score IS NOT NULL",
+            (today_str_et,)
+        ).rowcount
+        if stale_deleted > 0:
+            _cleanup_conn.commit()
+            print(f"   🧹 Cleaned {stale_deleted} stale Rundown entries for {today_str_et}")
+        _cleanup_conn.close()
+    except Exception:
+        pass
+
+    # Step 1: ESPN as source of truth for expected game count
     espn_expected, espn_matchups = _fetch_espn_expected_games(today_str_et)
     if espn_expected > 0:
         print(f"   ESPN (source of truth): {espn_expected} games for today {today_str_et}")
@@ -972,7 +987,7 @@ def collect_todays_games():
             print(f"      ... and {espn_expected - 5} more")
         print()
     else:
-        print(f"   ESPN: no games or API unavailable for {today_str_et}\n")
+        print(f"   ESPN: no games scheduled for {today_str_et}\n")
 
     # Fetch supplementary data
     team_data = get_team_data()
@@ -1188,13 +1203,24 @@ def collect_todays_games():
         print(f"\n⚠️ Odds API exception: {e}")
 
     if not odds_api_ok or len(games_to_process) == 0:
-        if rundown_games:
+        # If the Odds API succeeded but returned no games for today, and ESPN
+        # also shows no games, this is a genuine off day — not a data failure.
+        if odds_api_ok and espn_expected == 0:
+            print(f"📅 No NBA games scheduled for {today_str_et} (confirmed by Odds API + ESPN). Off day.")
+            show_stats()
+            return
+
+        if rundown_games and espn_expected > 0:
             print("🔄 Falling back to The Rundown API for today's games...")
             using_rundown = True
             for key, rg in rundown_games.items():
                 away_t = rg.get('away_team', '')
                 home_t = rg.get('home_team', '')
                 if not away_t or not home_t:
+                    continue
+                # Skip games that already have final scores — these are stale
+                if rg.get('home_score') is not None or rg.get('away_score') is not None:
+                    print(f"      ⏭️ Skipping scored game: {away_t} @ {home_t}")
                     continue
                 rd_spread = rg.get('spread_home') or rg.get('consensus_spread')
                 games_to_process.append({
@@ -1210,6 +1236,10 @@ def collect_todays_games():
                     'home_spread_book': 'Rundown Consensus', 'away_spread_book': 'Rundown Consensus',
                 })
             print(f"   ✅ Rundown fallback: {len(games_to_process)} games loaded\n")
+        elif espn_expected == 0:
+            print(f"📅 No NBA games scheduled for {today_str_et}. Off day.")
+            show_stats()
+            return
         else:
             print("❌ No odds source available. No games collected.\n")
             return
