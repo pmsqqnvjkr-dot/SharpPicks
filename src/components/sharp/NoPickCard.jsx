@@ -93,7 +93,9 @@ export default function NoPickCard({ data, sport, modelPhase, onInsightTap }) {
           }}>
             {gamesAnalyzed > 0
               ? `${gamesAnalyzed} game${gamesAnalyzed !== 1 ? 's' : ''} scanned. ${edgesDetected} edge${edgesDetected !== 1 ? 's' : ''} detected,\nzero cleared the signal threshold.`
-              : 'Model analysis complete. No games met the signal threshold.'}
+              : (data.pass_reason && data.pass_reason.toLowerCase().includes('off day'))
+                ? `No ${sportName} games scheduled today.`
+                : 'Model analysis complete. No games met the signal threshold.'}
           </div>
         </div>
 

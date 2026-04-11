@@ -195,6 +195,21 @@ def _diagnose_no_games(today_str, sport='nba'):
         conn.close()
 
         if total == 0:
+            # Check ESPN to distinguish off day from data failure
+            try:
+                from main import _fetch_espn_expected_games
+                from zoneinfo import ZoneInfo
+                et_today = datetime.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d')
+                espn_count, _ = _fetch_espn_expected_games(today_str)
+                if espn_count == 0:
+                    return {
+                        'situation': 'off_day',
+                        'total_games': 0,
+                        'games_with_spreads': 0,
+                        'message': f'No {sport.upper()} games scheduled today. Off day.',
+                    }
+            except Exception:
+                pass
             return {
                 'situation': 'data_failure',
                 'total_games': 0,
@@ -563,6 +578,37 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                 diag = _diagnose_no_games(today_str, sport=sport)
                 situation = diag['situation']
                 print(f"[model-run] No-games diagnostic: {situation} — {diag['message']}")
+
+                if situation == 'off_day':
+                    duration_ms = int((time.time() - start_time) * 1000)
+                    print(f"[model-run] OFF DAY — no {sport.upper()} games scheduled, creating pass")
+                    pass_entry = Pass(
+                        date=today_str,
+                        sport=sport,
+                        games_analyzed=0,
+                        closest_edge_pct=0,
+                        pass_reason='No games scheduled today. Off day.',
+                    )
+                    db.session.add(pass_entry)
+                    model_run = ModelRun(
+                        date=today_str,
+                        sport=sport,
+                        games_analyzed=0,
+                        pick_generated=False,
+                        pass_id=pass_entry.id,
+                        run_duration_ms=duration_ms,
+                        games_detail='[]',
+                    )
+                    db.session.add(model_run)
+                    db.session.commit()
+                    return {
+                        'status': 'pass',
+                        'reason': 'off_day',
+                        'date': today_str,
+                        'sport': sport,
+                        'games_analyzed': 0,
+                        'duration_ms': duration_ms,
+                    }
 
                 if situation == 'data_failure':
                     duration_ms = int((time.time() - start_time) * 1000)
