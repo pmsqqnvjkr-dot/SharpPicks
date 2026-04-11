@@ -22,7 +22,7 @@ app = Flask(__name__, static_folder='dist', static_url_path='/static-disabled')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.config['SECRET_KEY'] = app.secret_key
 
-DEPLOY_VERSION = '51a34eb-diag'
+DEPLOY_VERSION = '106b1d6-diag2'
 
 @app.route('/health')
 def health():
@@ -38,11 +38,32 @@ def health():
             diag['nba_games'] = cur.execute("SELECT COUNT(*) FROM games WHERE game_date = ?", (today_str,)).fetchone()[0]
             diag['nba_with_spreads'] = cur.execute("SELECT COUNT(*) FROM games WHERE game_date = ? AND spread_home IS NOT NULL", (today_str,)).fetchone()[0]
             diag['nba_unscored'] = cur.execute("SELECT COUNT(*) FROM games WHERE game_date = ? AND home_score IS NULL", (today_str,)).fetchone()[0]
-            sample = cur.execute("SELECT away_team, home_team, spread_home, game_time FROM games WHERE game_date = ? ORDER BY home_team LIMIT 20", (today_str,)).fetchall()
-            diag['nba_sample'] = [{'away': r[0], 'home': r[1], 'spread': r[2], 'time': r[3]} for r in sample]
+            sample = cur.execute("SELECT id, away_team, home_team, spread_home, game_time, home_score, away_score, collected_at FROM games WHERE game_date = ? ORDER BY collected_at DESC LIMIT 20", (today_str,)).fetchall()
+            diag['nba_sample'] = [{'id': r[0][:20], 'away': r[1], 'home': r[2], 'spread': r[3], 'time': r[4], 'h_score': r[5], 'a_score': r[6], 'collected': r[7]} for r in sample]
+            # Recent dates in DB to check for misplaced games
+            date_counts = cur.execute("SELECT game_date, COUNT(*), SUM(CASE WHEN home_score IS NULL THEN 1 ELSE 0 END) FROM games GROUP BY game_date ORDER BY game_date DESC LIMIT 7").fetchall()
+            diag['recent_dates'] = [{'date': r[0], 'total': r[1], 'unscored': r[2]} for r in date_counts]
             diag['mlb_games'] = cur.execute("SELECT COUNT(*) FROM mlb_games WHERE game_date = ?", (today_str,)).fetchone()[0]
-            last_collect = cur.execute("SELECT collected_at FROM games WHERE game_date = ? ORDER BY collected_at DESC LIMIT 1", (today_str,)).fetchone()
-            diag['last_collected'] = last_collect[0] if last_collect else None
+            # Test Odds API
+            try:
+                import requests as _req
+                api_key = os.environ.get('ODDS_API_KEY', '')
+                test_resp = _req.get("https://api.the-odds-api.com/v4/sports/basketball_nba/odds/",
+                    params={'apiKey': api_key, 'regions': 'us', 'markets': 'spreads', 'oddsFormat': 'american'},
+                    timeout=10)
+                diag['odds_api_status'] = test_resp.status_code
+                diag['odds_api_remaining'] = test_resp.headers.get('x-requests-remaining')
+                if test_resp.status_code == 200:
+                    raw = test_resp.json()
+                    diag['odds_api_raw_count'] = len(raw)
+                    from main import utc_to_eastern_date
+                    today_games = [g for g in raw if utc_to_eastern_date(g.get('commence_time', '') or '') == today_str]
+                    diag['odds_api_today_count'] = len(today_games)
+                    diag['odds_api_today_sample'] = [{'away': g['away_team'], 'home': g['home_team'], 'time': g.get('commence_time','')} for g in today_games[:5]]
+                else:
+                    diag['odds_api_error'] = test_resp.text[:200]
+            except Exception as api_err:
+                diag['odds_api_error'] = str(api_err)[:200]
             conn.close()
         except Exception as e:
             diag['diag_error'] = str(e)
