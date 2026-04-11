@@ -22,9 +22,11 @@ app = Flask(__name__, static_folder='dist', static_url_path='/static-disabled')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.config['SECRET_KEY'] = app.secret_key
 
+DEPLOY_VERSION = '56c021b-collect-fix'
+
 @app.route('/health')
 def health():
-    return {'status': 'ok'}, 200
+    return {'status': 'ok', 'version': DEPLOY_VERSION}, 200
 
 @app.route('/')
 def root_landing():
