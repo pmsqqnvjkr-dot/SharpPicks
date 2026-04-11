@@ -22,11 +22,31 @@ app = Flask(__name__, static_folder='dist', static_url_path='/static-disabled')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.config['SECRET_KEY'] = app.secret_key
 
-DEPLOY_VERSION = '56c021b-collect-fix'
+DEPLOY_VERSION = '51a34eb-diag'
 
 @app.route('/health')
 def health():
-    return {'status': 'ok', 'version': DEPLOY_VERSION}, 200
+    diag = {'status': 'ok', 'version': DEPLOY_VERSION}
+    if request.args.get('diag') == '1':
+        try:
+            import sqlite3
+            today_str = _get_et_today()
+            conn = sqlite3.connect(get_sqlite_path())
+            cur = conn.cursor()
+            diag['date'] = today_str
+            diag['db_path'] = get_sqlite_path()
+            diag['nba_games'] = cur.execute("SELECT COUNT(*) FROM games WHERE game_date = ?", (today_str,)).fetchone()[0]
+            diag['nba_with_spreads'] = cur.execute("SELECT COUNT(*) FROM games WHERE game_date = ? AND spread_home IS NOT NULL", (today_str,)).fetchone()[0]
+            diag['nba_unscored'] = cur.execute("SELECT COUNT(*) FROM games WHERE game_date = ? AND home_score IS NULL", (today_str,)).fetchone()[0]
+            sample = cur.execute("SELECT away_team, home_team, spread_home, game_time FROM games WHERE game_date = ? ORDER BY home_team LIMIT 20", (today_str,)).fetchall()
+            diag['nba_sample'] = [{'away': r[0], 'home': r[1], 'spread': r[2], 'time': r[3]} for r in sample]
+            diag['mlb_games'] = cur.execute("SELECT COUNT(*) FROM mlb_games WHERE game_date = ?", (today_str,)).fetchone()[0]
+            last_collect = cur.execute("SELECT collected_at FROM games WHERE game_date = ? ORDER BY collected_at DESC LIMIT 1", (today_str,)).fetchone()
+            diag['last_collected'] = last_collect[0] if last_collect else None
+            conn.close()
+        except Exception as e:
+            diag['diag_error'] = str(e)
+    return diag, 200
 
 @app.route('/')
 def root_landing():
