@@ -1,115 +1,198 @@
 import { InsightPassDayCTA } from './InsightsTab';
 
+const blue = '#4A8EC2';
+const cardBg = '#0C1018';
+const descBg = '#070C12';
+const border = '#2A3A50';
+const titleColor = '#E8EAF0';
+const secondaryColor = '#9EAABB';
+const statLabelColor = '#A0AABB';
+const statValColor = '#E2E4E8';
+const badgeText = '#A8C8E8';
+const badgeBg = '#0E1E30';
+const badgeBorder = '#2A5070';
+const mono = "'JetBrains Mono', var(--font-mono), monospace";
+const serif = "'IBM Plex Serif', var(--font-serif), serif";
+const sans = "'Inter', var(--font-sans), sans-serif";
+
 export default function NoPickCard({ data, sport, modelPhase, onInsightTap }) {
   const isCal = modelPhase === 'calibration';
   const sportName = (sport || 'nba').toUpperCase();
+  const today = new Date();
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dateStr = `${months[today.getMonth()]} ${today.getDate()}`;
+
+  const gamesAnalyzed = data.games_analyzed || 0;
+  const edgesDetected = data.edges_detected || 0;
+  const signalsCount = data.picks_this_week || 0;
+  const topEdge = data.closest_edge != null ? `${data.closest_edge}%` : '0%';
 
   return (
     <div style={{ padding: '0 4px' }}>
-      <div style={{ textAlign: 'center', padding: '24px 0 32px' }}>
+      {/* Main card */}
+      <div style={{
+        background: cardBg,
+        border: `1.5px solid ${border}`,
+        borderRadius: '16px',
+        padding: '28px',
+        position: 'relative',
+        overflow: 'hidden',
+        marginBottom: '16px',
+      }}>
+        {/* Top accent bar */}
         <div style={{
-          width: '6px', height: '6px', borderRadius: '50%',
-          background: isCal ? '#3B82F6' : 'var(--text-tertiary)', opacity: isCal ? 0.8 : 0.5,
-          margin: '0 auto 24px',
+          position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+          background: `linear-gradient(90deg, ${blue}, transparent)`,
+          borderRadius: '16px 16px 0 0',
         }} />
 
-        <h1 style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 'var(--text-label-size)',
-          fontWeight: 700,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: 'var(--text-secondary)',
-          marginBottom: '12px',
+        {/* Header: icon + title + badge */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+          marginBottom: '22px',
         }}>
-          Market Intelligence Complete
-        </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <SignalBars />
+            <div>
+              <div style={{
+                fontFamily: sans, fontSize: '17px', fontWeight: 600,
+                color: titleColor, marginBottom: '2px',
+              }}>
+                {isCal ? `No Qualifying ${sportName} Edge` : 'No Qualifying Edge'}
+              </div>
+              <div style={{
+                fontFamily: sans, fontSize: '12px', color: secondaryColor,
+              }}>
+                {dateStr} · {sportName}
+              </div>
+            </div>
+          </div>
+          <span style={{
+            background: badgeBg,
+            border: `1.5px solid ${badgeBorder}`,
+            borderRadius: '6px',
+            padding: '5px 12px',
+            fontFamily: mono, fontSize: '10px', fontWeight: 700,
+            letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: badgeText,
+            flexShrink: 0,
+          }}>PASS</span>
+        </div>
 
-        <h2 style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: '20px', fontWeight: 700,
-          color: 'var(--text-primary)',
-          marginBottom: '12px',
+        {/* Description block */}
+        <div style={{
+          background: descBg,
+          borderRadius: '8px',
+          padding: '14px 16px',
+          marginBottom: '22px',
         }}>
-          {isCal ? `No Qualifying ${sportName} Edge` : 'No Qualifying Signal'}
-        </h2>
+          <div style={{
+            fontFamily: "'Courier New', monospace",
+            fontSize: '13px', color: secondaryColor,
+            lineHeight: '1.5',
+          }}>
+            {gamesAnalyzed > 0
+              ? `${gamesAnalyzed} game${gamesAnalyzed !== 1 ? 's' : ''} scanned. ${edgesDetected} edge${edgesDetected !== 1 ? 's' : ''} detected,\nzero cleared the signal threshold.`
+              : 'Model analysis complete. No games met the signal threshold.'}
+          </div>
+        </div>
 
-        <p style={{
-          fontSize: 'var(--text-metric)',
-          color: 'var(--text-secondary)',
-          lineHeight: '1.55', marginBottom: '4px',
+        {/* Stats grid */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr',
+          gap: '1px', background: border,
+          borderRadius: '0', overflow: 'hidden',
+          marginBottom: '20px',
         }}>
-          {data.games_analyzed > 0
-              ? `${data.games_analyzed} games scanned, none above threshold.`
-              : 'Model analysis complete.'}
-        </p>
-        <p style={{
-          fontSize: 'var(--text-caption)',
-          color: 'var(--text-tertiary)',
-          lineHeight: '1.55',
+          <StatCell value={gamesAnalyzed} label="Games" />
+          <StatCell value={edgesDetected} label="Edges" />
+          <StatCell value={signalsCount} label="Signals" />
+          <StatCell value={topEdge} label="Top Edge" />
+        </div>
+
+        {/* Footer: tagline + dots */}
+        <div style={{
+          borderTop: `1px solid ${border}`,
+          paddingTop: '16px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          Next scan: Tomorrow 10:00 AM EST
-        </p>
+          <div style={{
+            fontFamily: sans, fontSize: '12px', fontStyle: 'italic',
+            color: secondaryColor,
+          }}>Selective by design.</div>
+          <div style={{ display: 'flex', gap: '5px' }}>
+            {[0,1,2,3].map(i => (
+              <span key={i} style={{
+                width: '6px', height: '6px', borderRadius: '50%',
+                background: i === 2 ? blue : border,
+              }} />
+            ))}
+          </div>
+        </div>
       </div>
 
+      {/* Closest miss */}
       {data.whatif?.side && data.whatif?.edge_pct != null && (
         <ClosestMiss whatif={data.whatif} />
       )}
 
+      {/* Insight cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: 'var(--space-xl)' }}>
         {isCal ? (
           <>
-            <InsightCard
-              title="Restraint builds the edge"
-              desc="Early-phase discipline. No forced edges. The model earns trust through selectivity."
-            />
-            <InsightCard
-              title="Building the edge in public"
-              desc="Every signal tracked from Day 1. No resets, no hiding. Full transparency."
-            />
-            <InsightCard
-              title="Process over outcomes"
-              desc="Calibration means proving the model before scaling it. This is how real edges are built."
-            />
+            <InsightCard title="Restraint builds the edge" desc="Early-phase discipline. No forced edges. The model earns trust through selectivity." />
+            <InsightCard title="Building the edge in public" desc="Every signal tracked from Day 1. No resets, no hiding. Full transparency." />
+            <InsightCard title="Process over outcomes" desc="Calibration means proving the model before scaling it. This is how real edges are built." />
           </>
         ) : (
           <>
-            <InsightCard
-              title="Restraint is a feature"
-              desc="Quiet days are intentional. Market efficient. No action required."
-            />
-            <InsightCard
-              title="Selectivity beats volume"
-              desc="Industry average: 78% of slates get action. SharpPicks: ~30%. That difference is the edge."
-            />
-            <InsightCard
-              title="Process over outcomes"
-              desc="All signals tracked publicly. No deletes. Confidence calibrated, not exaggerated."
-            />
+            <InsightCard title="Restraint is a feature" desc="Quiet days are intentional. Market efficient. No action required." />
+            <InsightCard title="Selectivity beats volume" desc="Industry average: 78% of slates get action. SharpPicks: ~30%. That difference is the edge." />
+            <InsightCard title="Process over outcomes" desc="All signals tracked publicly. No deletes. Confidence calibrated, not exaggerated." />
           </>
         )}
       </div>
 
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px',
-        marginBottom: 'var(--space-xl)',
-      }}>
-        <NopickStat value={data.picks_this_week ?? 2} label="Signals this week" />
-        <NopickStat value={data.passes_this_week ?? 4} label="Passes this week" />
-        <NopickStat value={`${data.selectivity ?? 33}%`} label="Selectivity" />
-        <NopickStat value={data.days_per_bet ?? '3.2'} label="Days per signal" />
-      </div>
-
       {onInsightTap && <InsightPassDayCTA onTap={onInsightTap} />}
+    </div>
+  );
+}
 
-      <p style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: 'var(--text-caption)',
-        color: 'var(--text-tertiary)',
-        textAlign: 'center',
-        marginTop: 'var(--space-lg)',
-        letterSpacing: '0.04em',
-      }}>Selective by design.</p>
+function SignalBars() {
+  const heights = [8, 14, 20];
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-end', gap: '4px',
+      height: '20px', flexShrink: 0,
+    }}>
+      {heights.map((h, i) => (
+        <div key={i} style={{
+          width: '4px', height: `${h}px`,
+          background: `rgba(74,142,194,0.35)`,
+          borderRadius: '2px',
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function StatCell({ value, label }) {
+  return (
+    <div style={{
+      background: cardBg,
+      padding: '16px 8px 14px',
+      textAlign: 'center',
+    }}>
+      <div style={{
+        fontFamily: mono, fontSize: '22px', fontWeight: 600,
+        color: statValColor, fontVariantNumeric: 'tabular-nums',
+        marginBottom: '4px',
+      }}>{value}</div>
+      <div style={{
+        fontFamily: mono, fontSize: '10px', fontWeight: 700,
+        letterSpacing: '0.12em', textTransform: 'uppercase',
+        color: statLabelColor,
+      }}>{label}</div>
     </div>
   );
 }
@@ -117,55 +200,23 @@ export default function NoPickCard({ data, sport, modelPhase, onInsightTap }) {
 function InsightCard({ title, desc }) {
   return (
     <div style={{
-      backgroundColor: 'var(--surface-1)',
+      background: cardBg,
       borderRadius: '14px',
-      border: '1px solid var(--color-border)',
-      padding: 'var(--space-md)',
+      border: `1.5px solid ${border}`,
+      padding: '18px',
     }}>
       <h3 style={{
-        fontFamily: 'var(--font-sans)',
-        fontSize: '15px', fontWeight: 600,
-        color: 'var(--text-primary)',
-        marginBottom: 'var(--space-sm)',
+        fontFamily: sans, fontSize: '15px', fontWeight: 600,
+        color: titleColor, marginBottom: '8px',
       }}>{title}</h3>
       <p style={{
-        fontSize: '13px',
-        color: 'var(--text-secondary)',
-        lineHeight: '1.55',
+        fontSize: '13px', color: secondaryColor, lineHeight: '1.55',
       }}>{desc}</p>
     </div>
   );
 }
 
-function NopickStat({ value, label }) {
-  return (
-    <div style={{
-      backgroundColor: 'var(--surface-1)',
-      border: '1px solid var(--color-border)',
-      borderRadius: '12px',
-      padding: 'var(--space-md)',
-      textAlign: 'center',
-    }}>
-      <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '22px', fontWeight: 700,
-        fontVariantNumeric: 'tabular-nums',
-        color: 'var(--text-primary)',
-        marginBottom: '4px',
-      }}>{value}</div>
-      <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '10px', fontWeight: 700,
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        color: 'var(--text-tertiary)',
-      }}>{label}</div>
-    </div>
-  );
-}
-
 function ClosestMiss({ whatif }) {
-  const mono = 'var(--font-mono)';
   const matchup = whatif.away_team && whatif.home_team
     ? `${whatif.away_team} @ ${whatif.home_team}` : null;
   const lineFmt = whatif.line != null
@@ -173,22 +224,22 @@ function ClosestMiss({ whatif }) {
 
   return (
     <div style={{
-      backgroundColor: 'var(--surface-1)',
-      border: '1px solid var(--color-border)',
+      background: cardBg,
+      border: `1.5px solid ${border}`,
       borderRadius: '14px',
-      padding: 'var(--space-md)',
-      marginBottom: 'var(--space-lg)',
+      padding: '18px',
+      marginBottom: '16px',
     }}>
       <div style={{
         fontFamily: mono, fontSize: '10px', fontWeight: 700,
         letterSpacing: '0.08em', textTransform: 'uppercase',
-        color: 'var(--text-tertiary)', marginBottom: '10px',
+        color: statLabelColor, marginBottom: '10px',
       }}>Closest Miss</div>
 
       {matchup && (
         <div style={{
-          fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
-          color: 'var(--text-primary)', marginBottom: '6px',
+          fontFamily: sans, fontSize: '15px', fontWeight: 600,
+          color: titleColor, marginBottom: '6px',
         }}>{matchup}</div>
       )}
 
@@ -202,7 +253,7 @@ function ClosestMiss({ whatif }) {
       </div>
 
       <div style={{
-        fontFamily: mono, fontSize: '12px', color: 'var(--text-tertiary)',
+        fontFamily: mono, fontSize: '12px', color: secondaryColor,
         lineHeight: '1.5',
       }}>
         Below the 3% qualification threshold. The filter did its job.
@@ -215,13 +266,13 @@ function MissStat({ label, value, accent }) {
   return (
     <div>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+        fontFamily: mono, fontSize: '10px', fontWeight: 600,
         letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: 'var(--text-tertiary)', marginBottom: '2px',
+        color: statLabelColor, marginBottom: '2px',
       }}>{label}</div>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700,
-        color: accent ? '#D4A843' : 'var(--text-primary)',
+        fontFamily: mono, fontSize: '14px', fontWeight: 700,
+        color: accent ? '#D4A843' : titleColor,
         fontVariantNumeric: 'tabular-nums',
       }}>{value}</div>
     </div>

@@ -1,6 +1,6 @@
 {
-  "appId": "com.sharppicksllc.app",
-  "appName": "SharpPicks",
+  "appId": "com.sharppicksllc.signals",
+  "appName": "SharpPicks: Signals",
   "webDir": "dist",
   "server": {
     "androidScheme": "https",

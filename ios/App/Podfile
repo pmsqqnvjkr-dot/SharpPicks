@@ -22,12 +22,12 @@ def capacitor_pods
   pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
   pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
   pod 'RevenuecatPurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
-  pod 'FirebaseMessaging'
 end
 
 target 'App' do
   capacitor_pods
-  # Add your Pods here
+  pod 'FirebaseCore'
+  pod 'FirebaseMessaging'
 end
 
 post_install do |installer|

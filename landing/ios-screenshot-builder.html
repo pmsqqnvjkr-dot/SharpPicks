@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SharpPicks — iOS Screenshot Builder</title>
+<style>
+  :root {
+    --obsidian: #0A0D14;
+    --panel: #111520;
+    --border: #1A1F2E;
+    --text: #E2E4E8;
+    --muted: #626878;
+    --signal: #5A9E72;
+    --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    --font-serif: 'IBM Plex Serif', Georgia, serif;
+    --font-sans: 'Inter', -apple-system, sans-serif;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=Inter:wght@400;500;600&display=swap');
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background: #05070C;
+    color: var(--text);
+    padding: 24px;
+  }
+  h1 { font-family: var(--font-serif); font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-family: var(--font-mono); font-size: 11px; margin-bottom: 20px; }
+  .layout { display: grid; grid-template-columns: 360px 1fr; gap: 24px; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  label { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin: 14px 0 6px; }
+  label:first-child { margin-top: 0; }
+  input[type="text"], textarea {
+    width: 100%; background: var(--obsidian); border: 1px solid var(--border);
+    color: var(--text); padding: 10px; border-radius: 6px;
+    font-family: var(--font-sans); font-size: 13px;
+  }
+  textarea { min-height: 60px; resize: vertical; }
+  input[type="file"] { width: 100%; font-size: 11px; color: var(--muted); }
+  button {
+    width: 100%; background: var(--signal); color: var(--obsidian);
+    border: none; padding: 12px; border-radius: 6px; margin-top: 16px;
+    font-family: var(--font-mono); font-weight: 600; font-size: 12px;
+    letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer;
+  }
+  button.ghost { background: transparent; color: var(--signal); border: 1px solid var(--signal); }
+
+  /* Canvas: iPhone 6.9" — 1320 x 2868 */
+  .stage { background: #000; border-radius: 8px; padding: 20px; display: flex; justify-content: center; overflow: auto; }
+  .canvas {
+    width: 1320px; height: 2868px;
+    background: var(--obsidian);
+    position: relative;
+    transform-origin: top center;
+    flex-shrink: 0;
+    display: flex; flex-direction: column;
+    padding: 120px 80px 100px;
+  }
+  .headline {
+    font-family: var(--font-serif); font-weight: 600;
+    font-size: 96px; line-height: 1.1; color: var(--text);
+    letter-spacing: -1px; margin-bottom: 32px;
+  }
+  .subcopy {
+    font-family: var(--font-sans); font-size: 40px; color: var(--muted);
+    line-height: 1.4; margin-bottom: 60px;
+  }
+  .phone-wrap { flex: 1; display: flex; justify-content: center; align-items: center; }
+  .phone {
+    width: 900px; aspect-ratio: 1320/2868;
+    background: #000; border-radius: 90px;
+    border: 10px solid #222;
+    overflow: hidden; position: relative;
+    box-shadow: 0 40px 120px rgba(0,0,0,0.6);
+  }
+  .phone img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .phone .empty {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    color: #333; font-family: var(--font-mono); font-size: 28px;
+  }
+  .footer-mark {
+    position: absolute; bottom: 60px; left: 0; right: 0;
+    display: flex; justify-content: center;
+  }
+
+  /* Wordmark — matches the React component */
+  .wm { display: inline-flex; align-items: center; font-family: var(--font-mono); font-weight: 500; letter-spacing: 0.2em; color: #fff; line-height: 1; white-space: nowrap; user-select: none; }
+  .wm .sym { display: inline-flex; flex-direction: column; align-items: center; }
+  .wm .bars { display: inline-flex; }
+  .wm .bar { display: inline-block; background: currentColor; }
+  .wm .ul { display: inline-block; background: var(--signal); }
+
+  /* size variants via data-size in px */
+  .preview-wm { font-size: 48px; }
+  .preview-wm .sym { gap: 7px; margin: 0 20px; }
+  .preview-wm .bars { gap: 6px; }
+  .preview-wm .bar { width: 5px; height: 60px; border-radius: 3px; }
+  .preview-wm .ul { width: 16px; height: 2.5px; border-radius: 1px; }
+
+  .stage-scroll { max-height: calc(100vh - 120px); overflow: auto; }
+</style>
+</head>
+<body>
+
+<h1>SharpPicks — iOS Screenshot Builder</h1>
+<div class="sub">1320 × 2868 · iPhone 6.9" · Apple App Store</div>
+
+<div class="layout">
+  <div class="panel">
+    <label>Headline</label>
+    <input type="text" id="headline" value="One pick beats five.">
+    <label>Sub-copy</label>
+    <textarea id="subcopy">Sports market intelligence. Selective by design.</textarea>
+    <label>Screenshot (upload)</label>
+    <input type="file" id="file" accept="image/*">
+    <button onclick="downloadPNG()">Download PNG (1320×2868)</button>
+    <button class="ghost" onclick="window.print()">Print / Save as image</button>
+    <p style="color:var(--muted);font-size:11px;line-height:1.6;margin-top:16px">
+      Export uses html-to-image. The preview is scaled to fit your screen; the exported PNG is full resolution.
+    </p>
+  </div>
+
+  <div class="stage-scroll">
+    <div class="stage">
+      <div class="canvas" id="canvas">
+        <div class="headline" id="h">One pick beats five.</div>
+        <div class="subcopy" id="s">Sports market intelligence. Selective by design.</div>
+        <div class="phone-wrap">
+          <div class="phone" id="phone">
+            <div class="empty">upload screenshot</div>
+          </div>
+        </div>
+        <div class="footer-mark">
+          <span class="wm preview-wm">
+            <span>SHARP</span>
+            <span class="sym">
+              <span class="bars"><span class="bar"></span><span class="bar"></span></span>
+              <span class="ul"></span>
+            </span>
+            <span>PICKS</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+<script>
+  const h = document.getElementById('headline');
+  const s = document.getElementById('subcopy');
+  const hOut = document.getElementById('h');
+  const sOut = document.getElementById('s');
+  h.oninput = () => hOut.textContent = h.value;
+  s.oninput = () => sOut.textContent = s.value;
+
+  document.getElementById('file').onchange = (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = (ev) => {
+      document.getElementById('phone').innerHTML = `<img src="${ev.target.result}">`;
+    };
+    r.readAsDataURL(f);
+  };
+
+  // Fit preview to viewport
+  function fit() {
+    const c = document.getElementById('canvas');
+    const avail = window.innerHeight - 160;
+    const scale = Math.min(1, avail / 2868);
+    c.style.transform = `scale(${scale})`;
+    c.parentElement.style.height = (2868 * scale + 40) + 'px';
+  }
+  window.addEventListener('resize', fit); fit();
+
+  async function downloadPNG() {
+    const c = document.getElementById('canvas');
+    const prev = c.style.transform;
+    c.style.transform = 'scale(1)';
+    c.parentElement.style.height = '2868px';
+    try {
+      const dataUrl = await htmlToImage.toPng(c, { width: 1320, height: 2868, pixelRatio: 1 });
+      const a = document.createElement('a');
+      a.download = 'sharppicks-ios-screenshot.png';
+      a.href = dataUrl; a.click();
+    } finally {
+      c.style.transform = prev; fit();
+    }
+  }
+</script>
+</body>
+</html>

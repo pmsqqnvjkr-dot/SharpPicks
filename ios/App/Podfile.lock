@@ -97,6 +97,7 @@ DEPENDENCIES:
   - "CapacitorShare (from `../../node_modules/@capacitor/share`)"
   - "CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)"
   - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
+  - FirebaseCore
   - FirebaseMessaging
   - "RevenuecatPurchasesCapacitor (from `../../node_modules/@revenuecat/purchases-capacitor`)"
 
@@ -168,6 +169,6 @@ SPEC CHECKSUMS:
   RevenueCat: c7310bad19cb96a1551c68045303e1faaa1942a5
   RevenuecatPurchasesCapacitor: 6b652e6e001224841fbfb9a97322c46f14d32504
 
-PODFILE CHECKSUM: 96a6c5aa515e40abb36038c9200d4617af33f6a6
+PODFILE CHECKSUM: cafedcd3efa74a5ef61c4120f6c079f22f138e95
 
 COCOAPODS: 1.16.2
