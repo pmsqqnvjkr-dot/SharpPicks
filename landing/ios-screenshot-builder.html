@@ -50,10 +50,10 @@
   }
   button.ghost { background: transparent; color: var(--signal); border: 1px solid var(--signal); }
 
-  /* Canvas: iPhone 6.9" — 1320 x 2868 */
+  /* Canvas: iPhone 6.7" — 1284 x 2778 */
   .stage { background: #000; border-radius: 8px; padding: 20px; display: flex; justify-content: center; overflow: auto; }
   .canvas {
-    width: 1320px; height: 2868px;
+    width: 1284px; height: 2778px;
     background: var(--obsidian);
     position: relative;
     transform-origin: top center;
@@ -72,7 +72,7 @@
   }
   .phone-wrap { flex: 1; display: flex; justify-content: center; align-items: center; }
   .phone {
-    width: 900px; aspect-ratio: 1320/2868;
+    width: 880px; aspect-ratio: 1284/2778;
     background: #000; border-radius: 90px;
     border: 10px solid #222;
     overflow: hidden; position: relative;
@@ -108,7 +108,7 @@
 <body>
 
 <h1>SharpPicks — iOS Screenshot Builder</h1>
-<div class="sub">1320 × 2868 · iPhone 6.9" · Apple App Store</div>
+<div class="sub">1284 × 2778 · iPhone 6.7" · Apple App Store</div>
 
 <div class="layout">
   <div class="panel">
@@ -118,7 +118,7 @@
     <textarea id="subcopy">Sports market intelligence. Selective by design.</textarea>
     <label>Screenshot (upload)</label>
     <input type="file" id="file" accept="image/*">
-    <button onclick="downloadPNG()">Download PNG (1320×2868)</button>
+    <button onclick="downloadPNG()">Download PNG (1284×2778)</button>
     <button class="ghost" onclick="window.print()">Print / Save as image</button>
     <p style="color:var(--muted);font-size:11px;line-height:1.6;margin-top:16px">
       Export uses html-to-image. The preview is scaled to fit your screen; the exported PNG is full resolution.
@@ -172,9 +172,9 @@
   function fit() {
     const c = document.getElementById('canvas');
     const avail = window.innerHeight - 160;
-    const scale = Math.min(1, avail / 2868);
+    const scale = Math.min(1, avail / 2778);
     c.style.transform = `scale(${scale})`;
-    c.parentElement.style.height = (2868 * scale + 40) + 'px';
+    c.parentElement.style.height = (2778 * scale + 40) + 'px';
   }
   window.addEventListener('resize', fit); fit();
 
@@ -182,9 +182,9 @@
     const c = document.getElementById('canvas');
     const prev = c.style.transform;
     c.style.transform = 'scale(1)';
-    c.parentElement.style.height = '2868px';
+    c.parentElement.style.height = '2778px';
     try {
-      const dataUrl = await htmlToImage.toPng(c, { width: 1320, height: 2868, pixelRatio: 1 });
+      const dataUrl = await htmlToImage.toPng(c, { width: 1284, height: 2778, pixelRatio: 1 });
       const a = document.createElement('a');
       a.download = 'sharppicks-ios-screenshot.png';
       a.href = dataUrl; a.click();
