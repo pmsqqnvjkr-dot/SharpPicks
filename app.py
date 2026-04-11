@@ -4747,11 +4747,13 @@ def run_mlb_model_job(force=False):
     if force:
         from model_service import invalidate_model_cache
         invalidate_model_cache('mlb')
-        try:
-            collect_mlb_games_job()
-            print(f"[{datetime.now()}] MLB data re-collected before model run")
-        except Exception as e:
-            print(f"[{datetime.now()}] MLB collection failed (non-fatal): {e}")
+
+    # Always collect fresh MLB data before running the model
+    try:
+        collect_mlb_games_job()
+        print(f"[{datetime.now()}] MLB data collected before model run")
+    except Exception as e:
+        print(f"[{datetime.now()}] MLB collection failed (non-fatal): {e}")
     from model_service import run_model_and_log
     result = run_model_and_log(app, sport='mlb', force=force)
     print(f"[{datetime.now()}] MLB model run completed: {result.get('status', '?')}")
@@ -5140,24 +5142,30 @@ def cron_run_model():
         date_override = None
 
     def _run():
+        today_str = date_override or _get_et_today()
+
         if force:
             from model_service import invalidate_model_cache
             invalidate_model_cache()
             print(f"[model-run] Force: all model caches invalidated")
-            today_str = date_override or _get_et_today()
-            print(f"[model-run] Force mode: collecting games + clearing stale passes for {today_str}")
-            try:
-                collect_todays_games()
-                print(f"[model-run] Force: games collected successfully")
-            except Exception as e:
-                print(f"[model-run] Force: game collection failed — aborting model run: {e}")
+
+        # Always collect fresh games before running the model to avoid stale data
+        print(f"[model-run] Collecting fresh game data for {today_str}...")
+        try:
+            collect_todays_games()
+            print(f"[model-run] NBA games collected successfully")
+        except Exception as e:
+            print(f"[model-run] NBA game collection failed: {e}")
+            if force:
                 return {'status': 'collect_failed', 'error': str(e), 'date': today_str}
-            if 'mlb' in get_live_sports():
-                try:
-                    collect_mlb_games_job()
-                    print(f"[model-run] Force: MLB games collected")
-                except Exception as e:
-                    print(f"[model-run] Force: MLB collection failed (non-fatal): {e}")
+        if 'mlb' in get_live_sports():
+            try:
+                collect_mlb_games_job()
+                print(f"[model-run] MLB games collected")
+            except Exception as e:
+                print(f"[model-run] MLB collection failed (non-fatal): {e}")
+
+        if force:
             for sport in get_live_sports():
                 stale_pass = Pass.query.filter_by(date=today_str, sport=sport).first()
                 if stale_pass and stale_pass.games_analyzed == 0:
@@ -5223,6 +5231,10 @@ def cron_model_watchdog():
         if not nba_run and et_hour >= 10:
             results['nba'] = 'triggering'
             try:
+                try:
+                    collect_todays_games()
+                except Exception as ce:
+                    logging.warning(f"[watchdog] NBA collection failed (continuing): {ce}")
                 run_model_and_log(app, sport='nba', force=False, send_notifications=True)
                 results['nba'] = 'triggered_and_completed'
                 try:
