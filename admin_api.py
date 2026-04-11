@@ -308,6 +308,18 @@ def rerun_model():
             'message': f'Cleared {today_str}/{sport}. Run model when ready.',
         })
 
+    # Always collect fresh game data before re-running
+    try:
+        if sport in ('nba', 'wnba'):
+            from app import collect_todays_games
+            collect_todays_games()
+        elif sport == 'mlb':
+            from app import collect_mlb_games_job
+            collect_mlb_games_job()
+    except Exception as e:
+        import logging
+        logging.warning(f"[admin-rerun] Game collection failed (continuing): {e}")
+
     from model_service import run_model_and_log
     from flask import current_app
     result = run_model_and_log(current_app._get_current_object(), sport=sport)
@@ -420,6 +432,18 @@ def trigger_model():
     data = request.get_json() or {}
     force = data.get('force', False)
     sport = data.get('sport', 'nba')
+
+    # Always collect fresh game data before running the model
+    try:
+        if sport in ('nba', 'wnba'):
+            from app import collect_todays_games
+            collect_todays_games()
+        elif sport == 'mlb':
+            from app import collect_mlb_games_job
+            collect_mlb_games_job()
+    except Exception as e:
+        import logging
+        logging.warning(f"[admin-trigger] Game collection failed (continuing): {e}")
 
     from model_service import run_model_and_log
     from flask import current_app
