@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
 import PickCard from './PickCard';
@@ -9,6 +10,8 @@ import AuthModal from './AuthModal';
 import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
 import { InlineError } from './ErrorStates';
+
+const isNative = Capacitor.isNativePlatform();
 
 export default function TodayTab({ onNavigate }) {
   const { user, loading: authLoading } = useAuth();
@@ -486,20 +489,34 @@ function FreePickNotice({ onUpgrade, resolved }) {
         ))}
       </div>
 
-      <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
-        width: '100%', padding: '12px', borderRadius: '6px',
-        border: '1.5px solid #5A9E72', background: 'transparent',
-        color: '#5A9E72', fontFamily: 'var(--font-mono)',
-        fontSize: '12px', fontWeight: 600, letterSpacing: '1px', cursor: 'pointer',
-        textAlign: 'center',
-      }}>
-        View Plans
-      </button>
+      {isNative ? (
+        <div style={{
+          width: '100%', padding: '12px', borderRadius: '6px',
+          border: '1.5px solid rgba(90,158,114,0.3)', background: 'transparent',
+          color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)',
+          fontSize: '11px', fontWeight: 500, letterSpacing: '0.5px',
+          textAlign: 'center',
+        }}>
+          Access full features at sharppicks.ai
+        </div>
+      ) : (
+        <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
+          width: '100%', padding: '12px', borderRadius: '6px',
+          border: '1.5px solid #5A9E72', background: 'transparent',
+          color: '#5A9E72', fontFamily: 'var(--font-mono)',
+          fontSize: '12px', fontWeight: 600, letterSpacing: '1px', cursor: 'pointer',
+          textAlign: 'center',
+        }}>
+          View Plans
+        </button>
+      )}
 
-      <div style={{
-        textAlign: 'center', marginTop: '8px', fontFamily: 'var(--font-mono)',
-        fontSize: '9px', color: 'var(--text-tertiary)',
-      }}>Full details at sharppicks.ai</div>
+      {!isNative && (
+        <div style={{
+          textAlign: 'center', marginTop: '8px', fontFamily: 'var(--font-mono)',
+          fontSize: '9px', color: 'var(--text-tertiary)',
+        }}>Full details at sharppicks.ai</div>
+      )}
     </div>
   );
 }

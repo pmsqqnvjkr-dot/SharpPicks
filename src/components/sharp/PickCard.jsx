@@ -5,6 +5,7 @@ import { trackEvent } from '../../utils/eventTracker';
 import teamAbbr from '../../utils/teamAbbr';
 import sportDisplay from '../../utils/sportDisplay';
 
+const isNative = Capacitor.isNativePlatform();
 const green = '#5A9E72';
 const greenDim = '#5A9E72';
 const blue = '#4A8EC2';
@@ -193,18 +194,32 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
             </div>
           ))}
         </div>
-        <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
-          width: '100%', padding: '12px', borderRadius: '6px',
-          border: '1.5px solid #5A9E72', background: 'transparent',
-          color: '#5A9E72', fontFamily: mono, fontSize: '12px',
-          fontWeight: 600, letterSpacing: '1px', cursor: 'pointer',
-          textAlign: 'center',
-        }}>
-          View Plans
-        </button>
-        <div style={{ textAlign: 'center', marginTop: '8px', fontFamily: mono, fontSize: '9px', color: textDim }}>
-          Full details at sharppicks.ai
-        </div>
+        {isNative ? (
+          <div style={{
+            width: '100%', padding: '12px', borderRadius: '6px',
+            border: '1.5px solid rgba(90,158,114,0.3)', background: 'transparent',
+            color: textDim, fontFamily: mono, fontSize: '11px',
+            fontWeight: 500, letterSpacing: '0.5px',
+            textAlign: 'center',
+          }}>
+            Access full features at sharppicks.ai
+          </div>
+        ) : (
+          <>
+            <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
+              width: '100%', padding: '12px', borderRadius: '6px',
+              border: '1.5px solid #5A9E72', background: 'transparent',
+              color: '#5A9E72', fontFamily: mono, fontSize: '12px',
+              fontWeight: 600, letterSpacing: '1px', cursor: 'pointer',
+              textAlign: 'center',
+            }}>
+              View Plans
+            </button>
+            <div style={{ textAlign: 'center', marginTop: '8px', fontFamily: mono, fontSize: '9px', color: textDim }}>
+              Full details at sharppicks.ai
+            </div>
+          </>
+        )}
       </div>
     );
   }
