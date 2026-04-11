@@ -60,6 +60,8 @@ def health():
                     today_games = [g for g in raw if utc_to_eastern_date(g.get('commence_time', '') or '') == today_str]
                     diag['odds_api_today_count'] = len(today_games)
                     diag['odds_api_today_sample'] = [{'away': g['away_team'], 'home': g['home_team'], 'time': g.get('commence_time','')} for g in today_games[:5]]
+                    diag['odds_api_all_dates'] = list(set(utc_to_eastern_date(g.get('commence_time', '') or '') for g in raw))
+                    diag['odds_api_raw_sample'] = [{'away': g['away_team'], 'home': g['home_team'], 'time': g.get('commence_time',''), 'et_date': utc_to_eastern_date(g.get('commence_time','') or '')} for g in raw[:5]]
                 else:
                     diag['odds_api_error'] = test_resp.text[:200]
             except Exception as api_err:
