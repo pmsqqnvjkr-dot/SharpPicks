@@ -15,6 +15,7 @@ import AuthModal from './AuthModal';
 import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
 import { InlineError } from './ErrorStates';
+import NoPickCard from './NoPickCard';
 
 
 function isTodayGame(gameDate) {
@@ -829,60 +830,7 @@ export default function PicksTab({ onNavigate }) {
                 No signal today, but the full analysis is below. Every game's edge, the Daily Market Brief, and the reasoning on each game. This is the most common screen. No Edge. No Pick.
               </OnboardingCard>
             )}
-            {/* Pass Day Card */}
-            <div style={{
-              background: '#0F1424',
-              border: '1px solid rgba(212,168,67,0.15)',
-              borderLeft: '3px solid #D4A843',
-              borderRadius: '10px',
-              padding: '24px 20px',
-              marginBottom: '16px',
-              textAlign: 'center',
-            }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: '50%',
-                background: 'rgba(212,168,67,0.1)',
-                border: '1px solid rgba(212,168,67,0.25)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 14px',
-              }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700, color: '#D4A843' }}>&mdash;</span>
-              </div>
-              <div style={{
-                fontFamily: 'var(--font-sans)', fontSize: '18px', fontWeight: 700,
-                color: '#E8ECF4', marginBottom: '8px',
-              }}>No Qualifying Edge</div>
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '12px',
-                color: '#7A8494', lineHeight: 1.5, marginBottom: '18px',
-              }}>
-                {todayData?.games_analyzed > 0
-                  ? `${todayData.games_analyzed} games analyzed. ${
-                      todayData.pass_reason
-                        ? `${todayData.pass_reason}${todayData.pass_reason.endsWith('.') ? '' : '.'}`
-                        : topEdge >= threshold
-                          ? `Top edge: ${topEdge}% — did not pass signal filters.`
-                          : `Closest edge: ${topEdge}% (below ${threshold}% threshold).`
-                    }`
-                  : 'Model analysis complete. No edge above threshold.'}
-              </div>
-
-              {/* Stats row */}
-              <div style={{
-                display: 'flex', justifyContent: 'center', gap: '20px',
-                marginBottom: '14px',
-              }}>
-                <PassStat value={todayData?.games_analyzed || totalGames || 0} label="GAMES" />
-                <PassStat value={edgeCount} label="EDGES" />
-                <PassStat value={signalCount} label="SIGNALS" />
-                <PassStat value={`${topEdge}%`} label="TOP EDGE" />
-              </div>
-
-              <div style={{
-                fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: '13px',
-                fontStyle: 'italic', color: '#7A8494',
-              }}>Selective by design.</div>
-            </div>
+            <NoPickCard data={todayData || {}} sport={sport} modelPhase={modelPhase} />
 
             {/* Daily Market Brief — expanded by default */}
             <div style={{

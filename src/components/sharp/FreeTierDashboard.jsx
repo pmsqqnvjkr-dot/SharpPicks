@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
+import NoPickCard from './NoPickCard';
 
 const isNative = Capacitor.isNativePlatform();
 
@@ -150,25 +151,7 @@ export default function FreeTierDashboard({ onUpgrade }) {
         )}
 
         {todayIsPass && (
-          <div style={{
-            backgroundColor: 'var(--surface-1)', borderRadius: '20px',
-            border: '1px solid var(--stroke-subtle)', padding: '20px',
-            marginBottom: '16px',
-          }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '10px', fontWeight: 700,
-              letterSpacing: '2px', textTransform: 'uppercase',
-              color: 'var(--text-tertiary)',
-              marginBottom: '10px',
-            }}>No Pick Today</div>
-            <p style={{
-              fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
-            }}>
-              Model analyzed {todayData.games_analyzed} games. No edge above threshold.
-              This is the discipline working as intended.
-            </p>
-          </div>
+          <NoPickCard data={todayData || {}} sport={sport} />
         )}
 
         {!todayIsPick && !todayIsPass && (
