@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390px">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0A0D14;
+    font-family: 'Inter', -apple-system, sans-serif;
+    width: 390px;
+    min-height: 844px;
+    padding: 0;
+  }
+
+  /* Status bar */
+  .statusbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #EEF2FF;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 20px 16px;
+  }
+  .wordmark {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: #EEF2FF;
+  }
+  .wordmark span { color: #5A9E72; margin: 0 3px; }
+  .welcome {
+    font-size: 12px;
+    color: #6B7280;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Sport tabs */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px 20px;
+  }
+  .tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    border: 1px solid #1e2a3a;
+    color: #6B7280;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tab.active {
+    border-color: #5A9E72;
+    color: #5A9E72;
+    background: rgba(90,158,114,0.06);
+  }
+  .tab .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #5A9E72;
+  }
+  .tab .dot.dim { background: #4B5563; }
+  .badge {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: rgba(90,158,114,0.12);
+    color: #5A9E72;
+    font-family: 'Courier New', monospace;
+  }
+
+  /* Main card */
+  .main-card {
+    margin: 0 16px 12px;
+    background: #111827;
+    border: 1px solid #1e2a3a;
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .signal-label {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #5A9E72;
+    margin-bottom: 10px;
+  }
+
+  .no-edge-headline {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 22px;
+    font-weight: 400;
+    font-style: italic;
+    color: #EEF2FF;
+    margin-bottom: 20px;
+    line-height: 1.2;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 0;
+    margin-bottom: 18px;
+    padding: 14px 0;
+    border-top: 1px solid #1e2a3a;
+    border-bottom: 1px solid #1e2a3a;
+  }
+  .stat {
+    text-align: center;
+    padding: 0 4px;
+    border-right: 1px solid #1e2a3a;
+  }
+  .stat:last-child { border-right: none; }
+  .stat-num {
+    font-family: 'Courier New', monospace;
+    font-size: 20px;
+    font-weight: 400;
+    color: #EEF2FF;
+    line-height: 1;
+    margin-bottom: 5px;
+  }
+  .stat-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #4B5563;
+  }
+
+  .card-footer {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-style: italic;
+    color: #4B5563;
+    text-align: left;
+  }
+
+  /* Principle tiles */
+  .principle {
+    margin: 0 16px 10px;
+    background: #111827;
+    border: 1px solid #1e2a3a;
+    border-left: 3px solid #5A9E72;
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+  }
+  .principle-label {
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #5A9E72;
+    margin-bottom: 6px;
+  }
+  .principle-body {
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    color: #9AA3B2;
+    line-height: 1.6;
+  }
+  .principle-body strong {
+    font-style: italic;
+    color: #EEF2FF;
+    font-weight: 400;
+  }
+
+  /* Bottom nav */
+  .nav {
+    position: fixed;
+    bottom: 0;
+    width: 390px;
+    background: #0D1017;
+    border-top: 1px solid #1e2a3a;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0 24px;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #4B5563;
+    font-family: 'Inter', sans-serif;
+  }
+  .nav-item.active { color: #5A9E72; }
+  .nav-icon {
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="statusbar">
+  <span>9:41</span>
+  <span>●●●● ▂▄▆ 85%</span>
+</div>
+
+<div class="header">
+  <div class="wordmark">SHARP <span>‖</span> PICKS</div>
+  <div class="welcome">Welcome back, Erin</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active"><div class="dot"></div> NBA</div>
+  <div class="tab"><div class="dot dim"></div> MLB <span class="badge">BETA</span></div>
+  <div class="tab"><div class="dot dim"></div> WNBA <span class="badge">SOON</span></div>
+</div>
+
+<div class="main-card">
+  <div class="signal-label">APR 11 · NBA · SIGNAL STATUS</div>
+  <div class="no-edge-headline">No qualifying edge.</div>
+
+  <div class="stat-row">
+    <div class="stat">
+      <div class="stat-num">0</div>
+      <div class="stat-label">Games</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">0</div>
+      <div class="stat-label">Edges</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">5</div>
+      <div class="stat-label">Signals</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">0%</div>
+      <div class="stat-label">Top Edge</div>
+    </div>
+  </div>
+
+  <div class="card-footer">Selective by design.</div>
+</div>
+
+<div class="principle">
+  <div class="principle-label">Sharp Principle</div>
+  <div class="principle-body"><strong>Restraint is a feature.</strong> Quiet days are intentional. Market efficient. No action required.</div>
+</div>
+
+<div class="principle">
+  <div class="principle-label">Sharp Principle</div>
+  <div class="principle-body"><strong>Selectivity beats volume.</strong> Industry average: 78% of slates get action. SharpPicks: ~30%. That difference is the edge.</div>
+</div>
+
+<div class="principle">
+  <div class="principle-label">Sharp Principle</div>
+  <div class="principle-body"><strong>Process over outcomes.</strong> All signals tracked publicly. No deletes. Confidence calibrated, not exaggerated.</div>
+</div>
+
+<div style="height: 90px;"></div>
+
+<div class="nav">
+  <div class="nav-item active">
+    <div class="nav-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A9E72" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+    </div>
+    Signals
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    </div>
+    Results
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    </div>
+    Insights
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </div>
+    Account
+  </div>
+</div>
+
+</body>
+</html>

@@ -4,6 +4,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
 import PickCard from './PickCard';
 import NoPickCard from './NoPickCard';
+import PassDay from '../signals/PassDay';
+import DarkDay from '../signals/DarkDay';
 import Wordmark from './Wordmark';
 import DailyInsightCard from './DailyInsightCard';
 import AuthModal from './AuthModal';
@@ -100,8 +102,37 @@ export default function TodayTab({ onNavigate }) {
           }} />
         )}
 
-        {todayData?.type === 'pass' && <NoPickCard data={todayData} onInsightTap={() => { if (onNavigate) onNavigate('insights'); }} />}
-        {todayData?.type === 'off_day' && <OffDayCard />}
+        {todayData?.type === 'pass' && (() => {
+          const d = new Date();
+          const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          const dateStr = `${m[d.getMonth()]} ${d.getDate()}`;
+          return (
+            <PassDay
+              date={dateStr}
+              sport="NBA"
+              gamesScanned={todayData.games_analyzed || 0}
+              signalsIssued={0}
+              tracked={0}
+              topEdgePct={Number(todayData.closest_edge_pct) || 0}
+              thresholdPct={8.0}
+              capitalPreservedUsd={100}
+              nextWindow={{ hours: 0, minutes: 0, openLocal: '' }}
+            />
+          );
+        })()}
+        {todayData?.type === 'off_day' && (() => {
+          const d = new Date();
+          const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          const dateStr = `${m[d.getMonth()]} ${d.getDate()}`;
+          return (
+            <DarkDay
+              date={dateStr}
+              sport="NBA"
+              returnDate=""
+              nextWindow={{ hours: 0, minutes: 0, gamesCount: 0, openLocal: '' }}
+            />
+          );
+        })()}
         {todayData?.type === 'waiting' && <DailyInsightCard data={todayData} onNavigate={onNavigate} />}
 
         {error && (

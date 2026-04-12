@@ -16,6 +16,8 @@ import LoadingState from './LoadingState';
 import ResolutionScreen from './ResolutionScreen';
 import { InlineError } from './ErrorStates';
 import NoPickCard from './NoPickCard';
+import PassDay from '../signals/PassDay';
+import DarkDay from '../signals/DarkDay';
 
 
 function isTodayGame(gameDate) {
@@ -823,221 +825,126 @@ export default function PicksTab({ onNavigate }) {
 
 
         {/* ═══════════════ STATE 3: PASS DAY ═══════════════ */}
-        {pageState === 'pass' && (
-          <>
-            {sport === 'nba' && (
-              <OnboardingCard cardId="pass" title="PASS DAYS">
-                No signal today, but the full analysis is below. Every game's edge, the Daily Market Brief, and the reasoning on each game. This is the most common screen. No Edge. No Pick.
-              </OnboardingCard>
-            )}
-            <NoPickCard data={todayData || {}} sport={sport} modelPhase={todayData?.model_phase} />
-
-            {/* Daily Market Brief — expanded by default */}
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-              letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: '#7A8494', marginBottom: '10px',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            }}>
-              <span>DAILY MARKET BRIEF</span>
-              <span style={{ fontWeight: 500, letterSpacing: '0.5px' }}>
-                {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'America/New_York' })}
-              </span>
-            </div>
-            <div style={{ marginBottom: '24px' }}>
-              <DailyMarketReport report={marketReport} />
-            </div>
-
-            {/* Section: TODAY'S SLATE */}
-            {totalGames > 0 && (
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-                letterSpacing: '0.12em', textTransform: 'uppercase',
-                color: '#7A8494', marginBottom: '14px',
-              }}>TODAY'S SLATE</div>
-            )}
-          </>
-        )}
+        {pageState === 'pass' && (() => {
+          const passDateStr = (() => {
+            const d = new Date();
+            const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            return `${m[d.getMonth()]} ${d.getDate()}`;
+          })();
+          const passTopEdge = todayData?.closest_edge_pct || marketReport?.largest_edge || 0;
+          const passThreshold = sport === 'mlb' ? 3.5 : 8.0;
+          const etNow = (() => {
+            try {
+              const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(new Date());
+              const h = parseInt(p.find(x => x.type === 'hour')?.value || '0', 10);
+              const m = parseInt(p.find(x => x.type === 'minute')?.value || '0', 10);
+              return { h, m };
+            } catch { return { h: 12, m: 0 }; }
+          })();
+          const minsUntilNext = (() => {
+            let r = modelRunHour * 60 - (etNow.h * 60 + etNow.m);
+            if (r <= 0) r += 24 * 60;
+            return r;
+          })();
+          return (
+            <PassDay
+              date={passDateStr}
+              sport={sportName}
+              gamesScanned={todayData?.games_analyzed || totalGames || 0}
+              signalsIssued={0}
+              tracked={0}
+              topEdgePct={Number(passTopEdge) || 0}
+              thresholdPct={passThreshold}
+              mei={marketReport?.market_efficiency_index || 0}
+              meiSevenDayAvg={marketReport?.mei?.seven_day_avg || 0}
+              regime={marketReport?.regime || 'Efficient'}
+              strengthCounts={marketReport?.edge_distribution || { strong: 0, moderate: 0, weak: 0 }}
+              edgeMap={[]}
+              capitalPreservedUsd={100}
+              nextWindow={{
+                hours: Math.floor(minsUntilNext / 60),
+                minutes: minsUntilNext % 60,
+                openLocal: `Tomorrow \u00B7 ${modelRunLabel}`,
+              }}
+              verdictText={
+                passTopEdge > 0
+                  ? `Market is pricing efficiently. Best opportunity fell ${(passThreshold - Number(passTopEdge)).toFixed(1)}pp short of threshold.`
+                  : 'Market is pricing efficiently. No qualifying opportunities detected.'
+              }
+            />
+          );
+        })()}
 
 
         {/* ═══════════════ STATE 4: OFF DAY ═══════════════ */}
-        {pageState === 'off-day' && (
-          <>
-            {/* No games header */}
-            <div style={{
-              fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 700,
-              color: '#E8ECF4', marginBottom: '4px',
-            }}>No games scheduled today.</div>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '12px',
-              color: '#7A8494', marginBottom: '20px',
-            }}>
-              {todayData?.resume_date
-                ? <>Next slate: {new Date(todayData.resume_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}{todayData.next_game_count ? ` \u00B7 ${todayData.next_game_count} games` : ''}</>
-                : `Next ${sportName} slate coming soon`}
-            </div>
-
-            {/* SEASON SNAPSHOT */}
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-              letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: '#7A8494', marginBottom: '10px',
-            }}>SEASON SNAPSHOT</div>
-            <div style={{
-              background: '#0F1424',
-              border: '1px solid rgba(90,158,114,0.12)',
-              borderRadius: '10px',
-              padding: '20px',
-              marginBottom: '16px',
-            }}>
-              {/* Per-sport stat lines */}
-              <div style={{ marginBottom: '16px' }}>
-                {(() => {
-                  const sportStats = stats || allSportsStats;
-                  const lines = [
-                    { key: sport, data: sportStats },
-                  ];
-                  return lines.map(({ key, data }) => {
-                    if (!data) return null;
-                    const picks = data.total_picks || 0;
-                    const wr = data.win_rate || 0;
-                    const clv = data.avg_clv;
-                    const phase = data.model_phase;
-                    return (
-                      <div key={key} style={{
-                        fontFamily: 'var(--font-mono)', fontSize: '12px',
-                        color: '#E8ECF4', lineHeight: 1.8,
-                      }}>
-                        <span style={{ fontWeight: 700, color: '#5A9E72' }}>{key.toUpperCase()}</span>
-                        <span style={{ color: '#7A8494' }}>:</span>{' '}
-                        {picks} signal{picks !== 1 ? 's' : ''} &middot; {wr}% win rate &middot;{' '}
-                        {phase === 'calibration'
-                          ? <span style={{ color: '#D4A843' }}>calibrating</span>
-                          : clv != null
-                            ? <span style={{ color: clv > 0 ? '#5A9E72' : '#7A8494' }}>{clv > 0 ? '+' : ''}{Number(clv).toFixed(1)} avg CLV</span>
-                            : <span style={{ color: '#7A8494' }}>--</span>
-                        }
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-
-              {/* Stat grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                <PortfolioStat value={`${(stats?.pnl || 0) >= 0 ? '+' : ''}${Number(stats?.pnl || 0).toFixed(1)}u`} label="UNITS" highlight />
-                <PortfolioStat value={stats?.record || `${stats?.wins || 0}-${stats?.losses || 0}`} label="RECORD" />
-                <PortfolioStat value={stats?.selectivity ? `${stats.selectivity}%` : '--'} label="SELECTIVITY" />
-              </div>
-
-              {/* Mini equity curve */}
-              {stats && (
-                <div style={{
-                  height: 48, borderRadius: 6,
-                  background: 'rgba(90,158,114,0.04)',
-                  display: 'flex', alignItems: 'flex-end', padding: '0 4px 4px',
-                  overflow: 'hidden',
-                }}>
-                  <MiniEquityCurve stats={stats} />
-                </div>
-              )}
-
-              <button
-                onClick={() => onNavigate && onNavigate('performance')}
-                style={{
-                  display: 'block', width: '100%', marginTop: '12px',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  fontFamily: 'var(--font-mono)', fontSize: '12px',
-                  color: '#5A9E72', textAlign: 'center',
-                }}
-              >View full results &rarr;</button>
-            </div>
-
-            {/* Cross-Sport Nudge */}
-            {otherSports.map(otherSport => {
-              const label = otherSport.toUpperCase();
-              return (
-                <button
-                  key={otherSport}
-                  onClick={() => setSport(otherSport)}
-                  style={{
-                    width: '100%', padding: '14px 18px', marginBottom: '10px',
-                    background: '#0F1424',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '10px', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  }}
-                >
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: '#E8ECF4' }}>
-                    {label} has games today
-                  </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: '#5A9E72', fontWeight: 600 }}>
-                    Switch to {label} &rarr;
-                  </span>
-                </button>
-              );
-            })}
-
-            {/* CATCH UP — Journal articles (exclude market notes) */}
-            {insightsData?.insights?.length > 0 && (() => {
-              const evg = insightsData.insights.filter(a => a.category !== 'market_notes');
-              if (!evg.length) return null;
-              return (
-              <>
-                <div style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-                  letterSpacing: '0.12em', textTransform: 'uppercase',
-                  color: '#7A8494', marginTop: '8px', marginBottom: '10px',
-                }}>CATCH UP</div>
-                {evg.slice(0, 2).map((article, i) => {
-                  const catLabels = { philosophy: 'Philosophy', discipline: 'Discipline', market_notes: 'Market Notes', how_it_works: 'How It Works', founder_note: 'Signal Notes' };
-                  const catLabel = catLabels[article.category] || article.category || 'Journal';
-                  return (
-                    <button
-                      key={article.id || i}
-                      onClick={() => onNavigate && onNavigate('insights', null, { insight: article })}
-                      style={{
-                        width: '100%', padding: '16px', marginBottom: '8px',
-                        background: '#0F1424',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '12px', cursor: 'pointer',
-                        textAlign: 'left', display: 'block',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                        <span style={{
-                          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-                          letterSpacing: '0.05em', textTransform: 'uppercase',
-                          color: '#5A9E72', backgroundColor: 'rgba(90,158,114,0.1)',
-                          padding: '3px 8px', borderRadius: '4px',
-                        }}>{catLabel}</span>
-                        <span style={{ fontSize: '10px', color: '#616A8A', fontFamily: 'var(--font-mono)' }}>&middot;</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#616A8A' }}>
-                          {article.reading_time_minutes || article.read_time || 4} min
-                        </span>
-                      </div>
-                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600, color: '#E8ECF4', lineHeight: 1.4 }}>{article.title}</div>
-                    </button>
-                  );
-                })}
-              </>
-              );
-            })()}
-          </>
-        )}
+        {pageState === 'off-day' && (() => {
+          const darkDateStr = (() => {
+            const d = new Date();
+            const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            return `${m[d.getMonth()]} ${d.getDate()}`;
+          })();
+          const returnDateFmt = todayData?.resume_date
+            ? (() => {
+                const [y, mo, da] = todayData.resume_date.split('-');
+                const d = new Date(parseInt(y), parseInt(mo) - 1, parseInt(da));
+                const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                return `${days[d.getDay()]} ${months[d.getMonth()]} ${parseInt(da)}`;
+              })()
+            : '';
+          const etNow2 = (() => {
+            try {
+              const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(new Date());
+              return { h: parseInt(p.find(x => x.type === 'hour')?.value || '0', 10), m: parseInt(p.find(x => x.type === 'minute')?.value || '0', 10) };
+            } catch { return { h: 12, m: 0 }; }
+          })();
+          const minsUntilReturn = (() => {
+            let r = modelRunHour * 60 - (etNow2.h * 60 + etNow2.m);
+            if (r <= 0) r += 24 * 60;
+            return r;
+          })();
+          const weekRecapData = stats ? {
+            netUsd: Math.round(Number(stats.pnl || 0)),
+            record: stats.record || `${stats.wins || 0}-${stats.losses || 0}`,
+            passDays: stats.passes_this_week || 0,
+            signalsIssued: stats.total_picks || 0,
+            daysCovered: 7,
+            selectivityPct: stats.selectivity || 0,
+            sparkline: [],
+          } : undefined;
+          return (
+            <DarkDay
+              date={darkDateStr}
+              sport={sportName}
+              returnDate={returnDateFmt}
+              nextWindow={{
+                hours: Math.floor(minsUntilReturn / 60),
+                minutes: minsUntilReturn % 60,
+                gamesCount: todayData?.next_game_count || 0,
+                openLocal: `${returnDateFmt} \u00B7 ${modelRunLabel}`,
+              }}
+              onSwitchSport={() => {
+                const other = ['nba', 'mlb', 'wnba'].find(s => s !== sport);
+                if (other) setSport(other);
+              }}
+              weekRecap={weekRecapData}
+              weekAhead={[]}
+            />
+          );
+        })()}
 
 
         {/* ═══════════════ GAME SLATE (pre-model, pick, pass) ═══════════════ */}
         {/* Always render to drive onGameCount; hidden visually in night/off-day */}
-        <div style={pageState === 'night' || pageState === 'off-day' ? { position: 'absolute', width: 0, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none' } : undefined}>
+        <div style={pageState === 'night' || pageState === 'off-day' || pageState === 'pass' ? { position: 'absolute', width: 0, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none' } : undefined}>
           <GameSlate
             preModel={pageState === 'pre-model'}
             onGameCount={setGameInfo}
           />
         </div>
 
-        {/* Recommended Reads — after today's slate (all states except off-day, which has its own) */}
-        {pageState !== 'off-day' && insightsData?.insights?.length > 0 && (() => {
+        {/* Recommended Reads — after today's slate (excluded on off-day and pass, which have their own layouts) */}
+        {pageState !== 'off-day' && pageState !== 'pass' && insightsData?.insights?.length > 0 && (() => {
           const evergreen = insightsData.insights.filter(a => a.category !== 'market_notes');
           if (!evergreen.length) return null;
           return (
@@ -1084,8 +991,8 @@ export default function PicksTab({ onNavigate }) {
           );
         })()}
 
-        {/* Portfolio Context Line (pick & pass days) */}
-        {(pageState === 'pick' || pageState === 'pass') && stats && (
+        {/* Portfolio Context Line (pick day only — pass day uses PassDay's ComplianceFooter) */}
+        {pageState === 'pick' && stats && (
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: '11px',
             color: '#7A8494', textAlign: 'center',
@@ -1097,11 +1004,6 @@ export default function PicksTab({ onNavigate }) {
               const wl = todayData.result === 'win' ? 'W' : todayData.result === 'push' ? 'P' : 'L';
               return <span> &middot; Tonight: {wl} {pnl >= 0 ? '+' : ''}{pnl.toFixed(1)}u</span>;
             })()}
-            {pageState === 'pass' && (
-              <div style={{ marginTop: '4px' }}>
-                Capital preserved today: +${(stats.avg_unit_size || 100)} from avoided sub-threshold bets
-              </div>
-            )}
           </div>
         )}
 
