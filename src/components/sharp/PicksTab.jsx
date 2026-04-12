@@ -871,6 +871,7 @@ export default function PicksTab({ onNavigate }) {
                   ? `Market is pricing efficiently. Best opportunity fell ${(passThreshold - Number(passTopEdge)).toFixed(1)}pp short of threshold.`
                   : 'Market is pricing efficiently. No qualifying opportunities detected.'
               }
+              marketReport={marketReport}
             />
           );
         })()}

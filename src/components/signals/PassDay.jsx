@@ -7,6 +7,7 @@ import MICard from './shared/MICard';
 import EdgeMapCard from './shared/EdgeMapCard';
 import CapitalCard from './shared/CapitalCard';
 import CountdownCard from './shared/CountdownCard';
+import DailyMarketReport from '../sharp/DailyMarketReport';
 
 export default function PassDay({
   date = '',
@@ -24,6 +25,7 @@ export default function PassDay({
   capitalPreservedUsd = 100,
   nextWindow = { hours: 0, minutes: 0, openLocal: '' },
   verdictText = '',
+  marketReport,
 }) {
   const containerRef = useRef(null);
   const [mounted, setMounted] = useState(false);
@@ -68,25 +70,32 @@ export default function PassDay({
         />
       </div>
 
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: '100ms' }}>
+      {marketReport && (
+        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: '100ms' }}>
+          <SectionTitle tone="blue">Daily Market Brief</SectionTitle>
+          <DailyMarketReport report={marketReport} />
+        </div>
+      )}
+
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: marketReport ? '150ms' : '100ms' }}>
         <SharpPrinciple>
           Pass days aren't missed opportunities — they're proof the system is working.
         </SharpPrinciple>
       </div>
 
       {edgeMap.length > 0 && (
-        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: '150ms' }}>
+        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: marketReport ? '200ms' : '150ms' }}>
           <SectionTitle tone="blue">Edge Map &middot; Today's Slate</SectionTitle>
           <EdgeMapCard edgeMap={edgeMap} thresholdPct={thresholdPct} />
         </div>
       )}
 
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: '200ms' }}>
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: marketReport ? '250ms' : '200ms' }}>
         <SectionTitle tone="green">Capital Preserved</SectionTitle>
         <CapitalCard capitalPreservedUsd={capitalPreservedUsd} />
       </div>
 
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: '250ms' }}>
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: marketReport ? '300ms' : '250ms' }}>
         <SectionTitle tone="blue">Next Edge Window</SectionTitle>
         <CountdownCard
           title={`${sport.toUpperCase()} Slate Opens`}
@@ -97,7 +106,7 @@ export default function PassDay({
         />
       </div>
 
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: '300ms' }}>
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: marketReport ? '350ms' : '300ms' }}>
         <ComplianceFooter />
       </div>
     </div>
