@@ -846,6 +846,22 @@ export default function PicksTab({ onNavigate }) {
             if (r <= 0) r += 24 * 60;
             return r;
           })();
+          const totalMinsInWindow = 24 * 60;
+          const passElapsedPct = Math.round(((totalMinsInWindow - minsUntilNext) / totalMinsInWindow) * 100);
+          const passArticle = (() => {
+            const evergreen = insightsData?.insights?.filter(a => a.category !== 'market_notes');
+            if (!evergreen?.length) return undefined;
+            const a = evergreen[0];
+            const catLabels = { philosophy: 'Philosophy', discipline: 'Discipline', how_it_works: 'How It Works', founder_note: 'Signal Notes' };
+            return {
+              title: a.title,
+              snippet: (a.content || '').split('\n\n')[0]?.slice(0, 140)?.replace(/\s+\S*$/, '…') || '',
+              readMinutes: a.reading_time_minutes || a.read_time || 4,
+              publishedDate: '',
+              category: catLabels[a.category] || a.category || 'Insight',
+              onClick: () => onNavigate && onNavigate('insights', null, { insight: a }),
+            };
+          })();
           return (
             <PassDay
               date={passDateStr}
@@ -861,13 +877,14 @@ export default function PicksTab({ onNavigate }) {
                 minutes: minsUntilNext % 60,
                 openLocal: `Tomorrow \u00B7 ${modelRunLabel}`,
               }}
-              elapsedPct={38}
+              elapsedPct={passElapsedPct}
               verdictText={
                 passTopEdge > 0
                   ? `Market is pricing efficiently. Best opportunity fell ${(passThreshold - Number(passTopEdge)).toFixed(1)}pp short of threshold.`
                   : 'Market is pricing efficiently. No qualifying opportunities detected.'
               }
               marketReport={marketReport}
+              furtherReading={passArticle}
             />
           );
         })()}
@@ -900,6 +917,8 @@ export default function PicksTab({ onNavigate }) {
             if (r <= 0) r += 24 * 60;
             return r;
           })();
+          const darkTotalMins = 24 * 60;
+          const darkElapsedPct = Math.round(((darkTotalMins - minsUntilReturn) / darkTotalMins) * 100);
           const weekRecapData = stats ? {
             netUsd: Math.round(Number(stats.pnl || 0)),
             record: stats.record || `${stats.wins || 0}-${stats.losses || 0}`,
@@ -920,6 +939,7 @@ export default function PicksTab({ onNavigate }) {
                 gamesCount: todayData?.next_game_count || 0,
                 openLocal: `${returnDateFmt} \u00B7 ${modelRunLabel}`,
               }}
+              elapsedPct={darkElapsedPct}
               onSwitchSport={() => {
                 const other = ['nba', 'mlb', 'wnba'].find(s => s !== sport);
                 if (other) setSport(other);

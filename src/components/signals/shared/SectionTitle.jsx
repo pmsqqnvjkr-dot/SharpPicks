@@ -26,7 +26,7 @@ export default function SectionTitle({ children, tone = 'dim', live = false }) {
           height: 6,
           borderRadius: '50%',
           background: colors.edgeGreen,
-          boxShadow: '0 0 8px #34D399',
+          boxShadow: `0 0 8px ${colors.edgeGreen}`,
           flexShrink: 0,
         }} />
       )}

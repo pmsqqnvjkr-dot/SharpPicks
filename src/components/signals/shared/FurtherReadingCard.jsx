@@ -6,14 +6,18 @@ export default function FurtherReadingCard({
   readMinutes = 0,
   publishedDate = '',
   category = 'Insight',
-  href = '#',
+  href,
+  onClick,
   imageUrl,
 }) {
+  const Tag = href ? 'a' : 'button';
+  const linkProps = href
+    ? { href, target: '_blank', rel: 'noopener noreferrer' }
+    : { onClick, type: 'button' };
+
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Tag
+      {...linkProps}
       style={{
         background: colors.surface1,
         border: `1px solid ${colors.stroke}`,
@@ -132,6 +136,6 @@ export default function FurtherReadingCard({
           </svg>
         </div>
       </div>
-    </a>
+      </Tag>
   );
 }
