@@ -1,6 +1,8 @@
 import { colors, fonts } from '../../../styles/tokens';
 
 export default function CapitalCard({ capitalPreservedUsd = 100 }) {
+  if (capitalPreservedUsd === 0) return null;
+
   return (
     <div style={{
       background: colors.surface1,

@@ -3,11 +3,10 @@ import SectionTitle from './shared/SectionTitle';
 import SharpPrinciple from './shared/SharpPrinciple';
 import ComplianceFooter from './shared/ComplianceFooter';
 import HeroCard from './shared/HeroCard';
-import MICard from './shared/MICard';
-import EdgeMapCard from './shared/EdgeMapCard';
+import MIPill from './shared/MIPill';
 import CapitalCard from './shared/CapitalCard';
+import FurtherReadingCard from './shared/FurtherReadingCard';
 import CountdownCard from './shared/CountdownCard';
-import DailyMarketReport from '../sharp/DailyMarketReport';
 
 export default function PassDay({
   date = '',
@@ -17,15 +16,12 @@ export default function PassDay({
   tracked = 0,
   topEdgePct = 0,
   thresholdPct = 8.0,
-  mei = 0,
-  meiSevenDayAvg = 0,
-  regime = 'Efficient',
-  strengthCounts = { strong: 0, moderate: 0, weak: 0 },
-  edgeMap = [],
   capitalPreservedUsd = 100,
   nextWindow = { hours: 0, minutes: 0, openLocal: '' },
+  elapsedPct = 38,
   verdictText = '',
   marketReport,
+  furtherReading,
 }) {
   const containerRef = useRef(null);
   const [mounted, setMounted] = useState(false);
@@ -46,9 +42,19 @@ export default function PassDay({
     { value: `+${topEdgePct.toFixed(1)}%`, label: 'Top', color: 'green' },
   ];
 
+  const edgeCount = marketReport?.edge_distribution
+    ? (marketReport.edge_distribution.strong || 0) + (marketReport.edge_distribution.moderate || 0) + (marketReport.edge_distribution.weak || 0)
+    : 0;
+
+  const miSubline = `${gamesScanned} games \u00B7 ${edgeCount} edges \u00B7 ${signalsIssued} signals \u00B7 tap for edge map`;
+
+  let delay = 0;
+  const nextDelay = () => { const d = delay; delay += 50; return `${d}ms`; };
+
   return (
     <div ref={containerRef} style={{ padding: '0 16px' }}>
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: '0ms' }}>
+      {/* 1. Hero */}
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
         <HeroCard
           variant="pass"
           date={date}
@@ -59,54 +65,51 @@ export default function PassDay({
         />
       </div>
 
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: '50ms' }}>
-        <SectionTitle tone="green" live>Market Intelligence &middot; Live</SectionTitle>
-        <MICard
-          mei={mei}
-          regime={regime}
-          topEdgePct={topEdgePct}
-          sevenDayAvg={meiSevenDayAvg}
-          strengthCounts={strengthCounts}
+      {/* 2. MI Pill (collapsed by default) */}
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
+        <MIPill
+          subline={miSubline}
+          marketReport={marketReport}
         />
       </div>
 
-      {marketReport && (
-        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: '100ms' }}>
-          <SectionTitle tone="blue">Daily Market Brief</SectionTitle>
-          <DailyMarketReport report={marketReport} />
-        </div>
-      )}
-
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: marketReport ? '150ms' : '100ms' }}>
+      {/* 3. Sharp Principle */}
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
         <SharpPrinciple>
           Pass days aren't missed opportunities — they're proof the system is working.
         </SharpPrinciple>
       </div>
 
-      {edgeMap.length > 0 && (
-        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: marketReport ? '200ms' : '150ms' }}>
-          <SectionTitle tone="blue">Edge Map &middot; Today's Slate</SectionTitle>
-          <EdgeMapCard edgeMap={edgeMap} thresholdPct={thresholdPct} />
+      {/* 4. Capital Preserved */}
+      {capitalPreservedUsd !== 0 && (
+        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
+          <SectionTitle tone="green">Capital Preserved</SectionTitle>
+          <CapitalCard capitalPreservedUsd={capitalPreservedUsd} />
         </div>
       )}
 
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: marketReport ? '250ms' : '200ms' }}>
-        <SectionTitle tone="green">Capital Preserved</SectionTitle>
-        <CapitalCard capitalPreservedUsd={capitalPreservedUsd} />
-      </div>
+      {/* 5. Further Reading */}
+      {furtherReading && (
+        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
+          <SectionTitle tone="dim">Further Reading</SectionTitle>
+          <FurtherReadingCard {...furtherReading} />
+        </div>
+      )}
 
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: marketReport ? '300ms' : '250ms' }}>
+      {/* 6. Countdown */}
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
         <SectionTitle tone="blue">Next Edge Window</SectionTitle>
         <CountdownCard
           title={`${sport.toUpperCase()} Slate Opens`}
           hours={nextWindow.hours}
           minutes={nextWindow.minutes}
           subtitle={nextWindow.openLocal}
-          progressPct={38}
+          progressPct={elapsedPct}
         />
       </div>
 
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: marketReport ? '350ms' : '300ms' }}>
+      {/* 7. Compliance */}
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
         <ComplianceFooter />
       </div>
     </div>

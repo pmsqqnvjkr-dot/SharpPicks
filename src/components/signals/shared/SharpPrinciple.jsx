@@ -22,15 +22,16 @@ export default function SharpPrinciple({ children, label = 'Sharp Principle' }) 
       }}>
         {label}
       </span>
-      <span style={{
-        fontFamily: fonts.serif,
-        fontSize: 17,
-        fontStyle: 'italic',
-        color: '#FFFFFF',
-        lineHeight: 1.5,
+      <div style={{
+        fontFamily: fonts.sans,
+        fontSize: 16,
+        fontWeight: 500,
+        fontStyle: 'normal',
+        color: colors.text,
+        lineHeight: 1.45,
       }}>
         {children}
-      </span>
+      </div>
     </div>
   );
 }

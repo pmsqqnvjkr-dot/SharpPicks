@@ -90,11 +90,11 @@ export default function CrossSportCard({
         </div>
 
         <div style={{
-          fontFamily: fonts.serif,
-          fontSize: 17,
-          fontWeight: 500,
+          fontFamily: fonts.sans,
+          fontSize: 16,
+          fontWeight: 600,
           marginBottom: 4,
-          letterSpacing: '-0.005em',
+          letterSpacing: '-0.01em',
           color: colors.text,
         }}>
           {matchup}

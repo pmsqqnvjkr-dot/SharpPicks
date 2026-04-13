@@ -4,6 +4,7 @@ import SharpPrinciple from './shared/SharpPrinciple';
 import ComplianceFooter from './shared/ComplianceFooter';
 import HeroCard from './shared/HeroCard';
 import CountdownCard from './shared/CountdownCard';
+import MIPill from './shared/MIPill';
 import CrossSportCard from './shared/CrossSportCard';
 import WeekRecapCard from './shared/WeekRecapCard';
 import ScheduleCard from './shared/ScheduleCard';
@@ -13,6 +14,7 @@ export default function DarkDay({
   sport = 'NBA',
   returnDate = '',
   nextWindow = { hours: 0, minutes: 0, gamesCount: 0, openLocal: '' },
+  elapsedPct = 0,
   crossSport,
   onSwitchSport,
   weekRecap = {
@@ -37,9 +39,13 @@ export default function DarkDay({
       ? `${returnDate} \u00B7 ${nextWindow.gamesCount} games \u00B7 lines drop 11:00 AM ET`
       : returnDate);
 
+  let delay = 0;
+  const nextDelay = () => { const d = delay; delay += 50; return `${d}ms`; };
+
   return (
     <div style={{ padding: '0 16px' }}>
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: '0ms' }}>
+      {/* 1. Hero */}
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
         <HeroCard
           variant="dark"
           date={date}
@@ -49,19 +55,29 @@ export default function DarkDay({
         />
       </div>
 
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: '50ms' }}>
+      {/* 2. Countdown */}
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
         <SectionTitle tone="green">Next Edge Window</SectionTitle>
         <CountdownCard
           title={`${sport.toUpperCase()} Returns In`}
           hours={nextWindow.hours}
           minutes={nextWindow.minutes}
           subtitle={countdownSubtitle}
-          progressPct={0}
+          progressPct={elapsedPct}
         />
       </div>
 
+      {/* 3. MI Pill (zero-state) */}
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
+        <MIPill
+          subline="No games scheduled"
+          zeroState
+        />
+      </div>
+
+      {/* 4. Cross-sport */}
       {crossSport && (
-        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: '100ms' }}>
+        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
           <SectionTitle tone="blue">Live Elsewhere</SectionTitle>
           <CrossSportCard
             sport={crossSport.sport}
@@ -76,14 +92,16 @@ export default function DarkDay({
         </div>
       )}
 
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: crossSport ? '150ms' : '100ms' }}>
+      {/* 5. Sharp Principle */}
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
         <SharpPrinciple>
           The goal isn't just to win a bet; it's to build a sustainable edge.
         </SharpPrinciple>
       </div>
 
+      {/* 6. Week Recap */}
       {(weekRecap.signalsIssued > 0 || weekRecap.daysCovered > 0) && (
-        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: crossSport ? '200ms' : '150ms' }}>
+        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
           <SectionTitle tone="dim">Your Week So Far</SectionTitle>
           <WeekRecapCard
             sparkline={weekRecap.sparkline}
@@ -97,14 +115,16 @@ export default function DarkDay({
         </div>
       )}
 
+      {/* 7. 7-Day Look-Ahead */}
       {weekAhead.length > 0 && (
-        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: crossSport ? '250ms' : '200ms' }}>
+        <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
           <SectionTitle tone="dim">7-Day Look-Ahead &middot; {sport.toUpperCase()}</SectionTitle>
           <ScheduleCard weekAhead={weekAhead} />
         </div>
       )}
 
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: crossSport ? '300ms' : '250ms' }}>
+      {/* 8. Compliance */}
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
         <ComplianceFooter />
       </div>
     </div>

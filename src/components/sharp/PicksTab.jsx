@@ -855,17 +855,13 @@ export default function PicksTab({ onNavigate }) {
               tracked={0}
               topEdgePct={Number(passTopEdge) || 0}
               thresholdPct={passThreshold}
-              mei={marketReport?.market_efficiency_index || 0}
-              meiSevenDayAvg={marketReport?.mei?.seven_day_avg || 0}
-              regime={marketReport?.regime || 'Efficient'}
-              strengthCounts={marketReport?.edge_distribution || { strong: 0, moderate: 0, weak: 0 }}
-              edgeMap={[]}
               capitalPreservedUsd={100}
               nextWindow={{
                 hours: Math.floor(minsUntilNext / 60),
                 minutes: minsUntilNext % 60,
                 openLocal: `Tomorrow \u00B7 ${modelRunLabel}`,
               }}
+              elapsedPct={38}
               verdictText={
                 passTopEdge > 0
                   ? `Market is pricing efficiently. Best opportunity fell ${(passThreshold - Number(passTopEdge)).toFixed(1)}pp short of threshold.`

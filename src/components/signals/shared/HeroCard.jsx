@@ -48,7 +48,7 @@ export default function HeroCard({
           textTransform: 'uppercase',
           color: colors.text3,
         }}>
-          Daily Verdict &middot; {date}
+          Today's Signal &middot; {date}
         </span>
         <span style={{
           padding: '6px 12px',
@@ -170,9 +170,9 @@ export default function HeroCard({
           alignItems: 'center',
         }}>
           <div style={{
-            fontFamily: fonts.serif,
-            fontStyle: 'italic',
-            fontSize: 14,
+            fontFamily: fonts.sans,
+            fontSize: 13,
+            fontWeight: 400,
             color: colors.text2,
           }}>
             {tagline}
