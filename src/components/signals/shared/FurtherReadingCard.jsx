@@ -29,28 +29,20 @@ export default function FurtherReadingCard({
         color: 'inherit',
         cursor: 'pointer',
         transition: 'border-color 0.2s ease',
+        width: '100%',
+        textAlign: 'left',
       }}
       onMouseEnter={e => e.currentTarget.style.borderColor = colors.strokeStrong}
       onMouseLeave={e => e.currentTarget.style.borderColor = colors.stroke}
     >
-      {/* Thumbnail */}
-      <div style={{
-        width: '100%',
-        height: 140,
-        background: 'linear-gradient(135deg, #0f1b2e 0%, #1a2847 50%, #0f1b2e 100%)',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        {/* Radial overlay gradients */}
+      {/* Thumbnail — only when an image is provided */}
+      {imageUrl && (
         <div style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: [
-            'radial-gradient(circle at 20% 40%, rgba(52, 211, 153, 0.15), transparent 40%)',
-            'radial-gradient(circle at 80% 60%, rgba(79, 134, 247, 0.12), transparent 45%)',
-          ].join(', '),
-        }} />
-        {imageUrl && (
+          width: '100%',
+          height: 140,
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
           <img
             src={imageUrl}
             alt=""
@@ -62,42 +54,64 @@ export default function FurtherReadingCard({
               objectFit: 'cover',
             }}
           />
-        )}
-        {/* Chip */}
-        <span style={{
-          position: 'absolute',
-          top: 12,
-          left: 12,
-          fontFamily: fonts.label,
-          fontSize: 9,
-          letterSpacing: '2.5px',
-          fontWeight: 700,
-          color: colors.edgeGreen,
-          background: 'rgba(10, 13, 20, 0.7)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          padding: '5px 9px',
-          borderRadius: 4,
-          border: '1px solid rgba(52, 211, 153, 0.25)',
-          zIndex: 2,
-          textTransform: 'uppercase',
-        }}>
-          {category}
-        </span>
-      </div>
+          <span style={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            fontFamily: fonts.label,
+            fontSize: 9,
+            letterSpacing: '2.5px',
+            fontWeight: 700,
+            color: colors.edgeGreen,
+            background: 'rgba(10, 13, 20, 0.7)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            padding: '5px 9px',
+            borderRadius: 4,
+            border: '1px solid rgba(52, 211, 153, 0.25)',
+            zIndex: 2,
+            textTransform: 'uppercase',
+          }}>
+            {category}
+          </span>
+        </div>
+      )}
 
       {/* Body */}
       <div style={{ padding: '16px 18px 18px' }}>
         <div style={{
-          fontFamily: fonts.label,
-          fontSize: 9,
-          letterSpacing: '2.5px',
-          fontWeight: 700,
-          color: colors.text3,
-          textTransform: 'uppercase',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
           marginBottom: 8,
         }}>
-          {readMinutes} min read &middot; {publishedDate}
+          {/* Inline chip when no thumbnail */}
+          {!imageUrl && (
+            <span style={{
+              fontFamily: fonts.label,
+              fontSize: 9,
+              letterSpacing: '2.5px',
+              fontWeight: 700,
+              color: colors.edgeGreen,
+              background: 'rgba(52, 211, 153, 0.08)',
+              padding: '3px 8px',
+              borderRadius: 4,
+              textTransform: 'uppercase',
+              flexShrink: 0,
+            }}>
+              {category}
+            </span>
+          )}
+          <span style={{
+            fontFamily: fonts.label,
+            fontSize: 9,
+            letterSpacing: '2.5px',
+            fontWeight: 700,
+            color: colors.text3,
+            textTransform: 'uppercase',
+          }}>
+            {readMinutes} min read{publishedDate ? ` \u00B7 ${publishedDate}` : ''}
+          </span>
         </div>
         <div style={{
           fontFamily: fonts.sans,
@@ -136,6 +150,6 @@ export default function FurtherReadingCard({
           </svg>
         </div>
       </div>
-      </Tag>
+    </Tag>
   );
 }
