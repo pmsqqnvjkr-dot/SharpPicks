@@ -490,7 +490,7 @@ export default function PicksTab({ onNavigate }) {
                     letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494a7', marginBottom: 8,
                   }}>SIGNAL WITHDRAWN</div>
                   <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8ECF4', marginBottom: 4 }}>
-                    {revokedPick.side} {revokedPick.line > 0 ? '+' : ''}{revokedPick.line}
+                    {revokedPick.side || 'Signal withdrawn'}{revokedPick.line != null ? ` ${revokedPick.line > 0 ? '+' : ''}${revokedPick.line}` : ''}
                   </div>
                   <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#8494a7' }}>
                     Withdrawn before tip. Capital preserved.
@@ -1079,9 +1079,9 @@ function MiniEquityCurve({ stats }) {
 }
 
 function RevokedPassCard({ pick, onViewDetails }) {
-  const sideLabel = pick.side && pick.line != null && pick.side.includes(String(Math.abs(pick.line)))
+  const sideLabel = !pick.side ? 'Signal' : (pick.line != null && pick.side.includes(String(Math.abs(pick.line)))
     ? pick.side
-    : `${pick.side} ${pick.line > 0 ? '+' : ''}${pick.line}`;
+    : `${pick.side}${pick.line != null ? ` ${pick.line > 0 ? '+' : ''}${pick.line}` : ''}`);
   return (
     <div onClick={onViewDetails} style={{
       background: '#0F1424',
@@ -1176,7 +1176,7 @@ function ResolvedPickBanner({ pick, onViewDetails, onDismiss, onShare }) {
   const profitDisplay = pick.profit_units != null ? `${pick.profit_units >= 0 ? '+' : ''}${Number(pick.profit_units).toFixed(1)}u` : isPush ? '0.0u' : isWin ? '+0.9u' : '-1.0u';
   const edgePct = pick.edge_pct || '--';
   const modelProb = pick.edge_pct ? `${Math.round(50 + pick.edge_pct)}%` : '--';
-  const sideDisplay = pick.side && pick.line != null && pick.side.includes(String(Math.abs(pick.line))) ? pick.side : `${pick.side} ${pick.line > 0 ? '+' : ''}${pick.line}`;
+  const sideDisplay = !pick.side ? 'Signal' : (pick.line != null && pick.side.includes(String(Math.abs(pick.line))) ? pick.side : `${pick.side}${pick.line != null ? ` ${pick.line > 0 ? '+' : ''}${pick.line}` : ''}`);
   const edgeDisplay = pick.edge_pct != null ? `+${Number(pick.edge_pct).toFixed(1)}%` : null;
   const resultLabel = isPush ? 'OUTCOME RESOLVED \u00B7 PUSH' : isWin ? 'OUTCOME RESOLVED \u00B7 WIN' : 'OUTCOME RESOLVED \u00B7 LOSS';
   const reviewText = getProcessCopy(pick.result, pick.id);
