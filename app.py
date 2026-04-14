@@ -6185,7 +6185,8 @@ def create_checkout():
                         yearly_prices.append(p)
 
             if plan == 'monthly' and monthly_prices:
-                price_id = monthly_prices[0].id
+                exact = [p for p in monthly_prices if p.unit_amount == 1999]
+                price_id = exact[0].id if exact else monthly_prices[0].id
             elif plan == 'trial' and yearly_prices:
                 founding = [p for p in yearly_prices if p.unit_amount == 9900]
                 standard = [p for p in yearly_prices if p.unit_amount == 14999]
@@ -6243,7 +6244,7 @@ def create_checkout():
             },
         }
 
-        if is_trial_eligible:
+        if is_trial_eligible and plan != 'monthly':
             checkout_params['subscription_data']['trial_period_days'] = 14
             checkout_params['custom_text']['submit']['message'] = (
                 'Your trial is 14 days. You will not be charged today.'

@@ -162,7 +162,7 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
       <!-- GET STARTED (Trial is default) -->
       <div class="panel" id="panel-signup">
         <div class="p-title">Start your 14-day trial</div>
-        <p class="p-sub">Card required to start. <span class="hl">$0 for 14 days</span>, then $99/year. First 50 members lock this rate. Cancel anytime before trial ends.</p>
+        <p class="p-sub">Card required to start. <span class="hl">$0 for 14 days</span>, then $149.99/year. Cancel anytime before trial ends.</p>
         <div id="signup-alert" class="alert"></div>
 
         <div class="social-btns" id="signup-social">
@@ -190,7 +190,7 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
           <li><span class="ic">&rarr;</span>Full market board · signals &amp; passes</li>
           <li><span class="ic">&rarr;</span>Bet tracking &amp; portfolio P/L</li>
           <li><span class="ic">&rarr;</span>Sharp Journal + discipline insights</li>
-          <li><span class="ic">&rarr;</span>$99/yr founding rate · locked while subscribed</li>
+          <li><span class="ic">&rarr;</span>$149.99/yr · founding rate available for first 50 members</li>
         </ul>
         <a href="#" class="free-link" onclick="handleFreeSwitch();return false">or create a free account instead · no card needed</a>
         <div class="af">Already have an account? <a href="#" onclick="switchTab('login');return false">Sign in</a></div>
@@ -230,11 +230,11 @@ function handleTrialSwitch(){
   const form=document.getElementById('signup-form');
   form.setAttribute('onsubmit',"handleSignup(event,'trial')");
   document.querySelector('#panel-signup .p-title').textContent='Start your 14-day trial';
-  document.querySelector('#panel-signup .p-sub').innerHTML='Card required to start. <span class="hl">$0 for 14 days</span>, then $99/year. First 50 members lock this rate. Cancel anytime before trial ends.';
+  document.querySelector('#panel-signup .p-sub').innerHTML='Card required to start. <span class="hl">$0 for 14 days</span>, then $149.99/year. Cancel anytime before trial ends.';
   document.getElementById('sb').querySelector('.bt').textContent='Start 14-Day Trial';
   document.querySelector('#panel-signup .cancel-note').style.display='';
   document.querySelector('#panel-signup .cancel-note').textContent='Card collected now. You won\u2019t be charged until trial ends.';
-  document.querySelector('#panel-signup .feat-list').innerHTML='<li><span class="ic">\u2192</span>Daily market brief + MEI score</li><li><span class="ic">\u2192</span>Full market board \u2014 signals & passes</li><li><span class="ic">\u2192</span>Bet tracking & portfolio P/L</li><li><span class="ic">\u2192</span>Sharp Journal + discipline insights</li><li><span class="ic">\u2192</span>$99/yr founding rate \u2014 locked while subscribed</li>';
+  document.querySelector('#panel-signup .feat-list').innerHTML='<li><span class="ic">\u2192</span>Daily market brief + MEI score</li><li><span class="ic">\u2192</span>Full market board \u2014 signals & passes</li><li><span class="ic">\u2192</span>Bet tracking & portfolio P/L</li><li><span class="ic">\u2192</span>Sharp Journal + discipline insights</li><li><span class="ic">\u2192</span>$149.99/yr \u2014 founding rate available for first 50 members</li>';
   document.querySelector('#panel-signup .free-link').textContent='or create a free account instead \u2014 no card needed';
   document.querySelector('#panel-signup .free-link').setAttribute('onclick','handleFreeSwitch();return false');
   var g=document.getElementById('sg-google'),a=document.getElementById('sg-apple');

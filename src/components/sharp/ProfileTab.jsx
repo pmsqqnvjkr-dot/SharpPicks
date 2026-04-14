@@ -62,7 +62,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
       return;
     }
     if (plan === 'trial') {
-      setScreen('trial');
+      setScreen('upgrade');
       return;
     }
     if (!user) {

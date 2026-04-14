@@ -133,7 +133,7 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
     login: 'Sign in to access your picks',
     register: isFreeView
       ? 'No card needed. See the model at work.'
-      : 'Card required to start. $0 for 14 days, then $99/year. Cancel anytime.',
+      : 'Card required to start. $0 for 14 days, then $149.99/year. Cancel anytime.',
     forgot: 'Enter your email to receive a reset link',
     verify: 'We sent a verification link to your email',
   };

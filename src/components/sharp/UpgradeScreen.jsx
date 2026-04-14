@@ -334,14 +334,14 @@ export default function UpgradeScreen({ onBack, user }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
               <PricingCard
                 name={isFoundingOpen ? 'Founding Member' : 'Annual'}
-                price="$99"
+                price={isFoundingOpen ? '$99' : '$149.99'}
                 period="/yr"
                 description={isFoundingOpen
                   ? `Lock the founding rate. ${spotsRemaining} of 50 spots left.`
                   : 'Best value — save vs monthly.'}
                 savings={isFoundingOpen ? 'Founding rate locked while subscribed' : null}
                 cta="Start 14-day free trial"
-                onSelect={() => handleStripeSubscribe('trial')}
+                onSelect={() => handleStripeSubscribe(isFoundingOpen ? 'trial' : 'annual_standard')}
                 loading={checkoutLoading}
                 highlight
                 badge={isFoundingOpen ? 'Best Value' : null}
@@ -351,7 +351,7 @@ export default function UpgradeScreen({ onBack, user }) {
                 price="$19.99"
                 period="/mo"
                 description="Full Pro access, billed monthly."
-                cta="Start monthly"
+                cta="Subscribe monthly"
                 onSelect={() => handleStripeSubscribe('monthly')}
                 loading={checkoutLoading}
                 secondary
