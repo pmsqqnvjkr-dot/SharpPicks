@@ -6,7 +6,8 @@
     "androidScheme": "https",
     "iosScheme": "https",
     "url": "https://app.sharppicks.ai",
-    "cleartext": false
+    "cleartext": false,
+    "errorPath": "error.html"
   },
   "plugins": {
     "SplashScreen": {
