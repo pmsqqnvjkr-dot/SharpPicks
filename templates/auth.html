@@ -206,7 +206,7 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
 </div>
 
 <script>
-(async function(){try{const r=await fetch('/api/auth/user',{credentials:'include'});if(r.ok){const d=await r.json();if(d&&d.authenticated&&d.user)window.location.href='/'}}catch(e){}})();
+(async function(){try{const r=await fetch('/api/auth/user',{credentials:'include'});if(r.ok){const d=await r.json();if(d&&d.authenticated&&d.user)window.location.href=location.pathname.includes('signup')?'/subscribe':'/'}}catch(e){}})();
 
 function switchTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));const p=document.getElementById('panel-'+t);if(p){p.classList.add('active');setTimeout(()=>{const i=p.querySelector('input');if(i)i.focus()},50)}const ti={login:'Sign In',signup:'Get Started'};document.title='SharpPicks \u2014 '+(ti[t]||'Sign In');history.replaceState(null,'',t==='login'?'/login':'/signup')}
 

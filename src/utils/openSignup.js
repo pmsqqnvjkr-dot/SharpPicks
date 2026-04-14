@@ -7,6 +7,6 @@ export default async function openSignup() {
     const { Browser } = await import('@capacitor/browser');
     await Browser.open({ url: SIGNUP_URL });
   } else {
-    window.open(SIGNUP_URL, '_blank');
+    window.location.href = '/subscribe';
   }
 }
