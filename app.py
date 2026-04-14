@@ -501,6 +501,22 @@ def generate_auth_token(user):
     s = _get_auth_serializer()
     return s.dumps({'uid': user.id, 'st': user.session_token}, salt='auth-token')
 
+import time as _time
+_oauth_nonces = {}
+
+def _store_oauth_nonce(nonce, token):
+    now = _time.time()
+    _oauth_nonces[nonce] = (token, now)
+    for k in list(_oauth_nonces):
+        if now - _oauth_nonces[k][1] > 300:
+            del _oauth_nonces[k]
+
+def _pop_oauth_nonce(nonce):
+    entry = _oauth_nonces.pop(nonce, None)
+    if entry and _time.time() - entry[1] < 300:
+        return entry[0]
+    return None
+
 def verify_auth_token():
     auth_header = request.headers.get('Authorization', '')
     token = None
@@ -5751,6 +5767,14 @@ def login():
         'token': generate_auth_token(user),
     })
 
+@app.route('/api/auth/nonce-exchange')
+def nonce_exchange():
+    nonce = request.args.get('nonce', '')
+    token = _pop_oauth_nonce(nonce)
+    if token:
+        return jsonify({'success': True, 'token': token})
+    return jsonify({'success': False}), 404
+
 @app.route('/api/auth/logout', methods=['POST'])
 def logout():
     """Logout current user"""
@@ -5938,6 +5962,9 @@ def google_login():
     if not _oauth_ready or not _google_client_id:
         return jsonify({'error': 'Google sign-in not configured'}), 501
     session['oauth_plan'] = request.args.get('plan', 'trial')
+    nonce = request.args.get('nonce', '')
+    if nonce:
+        session['oauth_nonce'] = nonce
     base = os.environ.get('APP_BASE_URL', request.host_url.rstrip('/'))
     redirect_uri = f"{base}/auth/google/callback"
     return _oauth.google.authorize_redirect(redirect_uri)
@@ -5957,6 +5984,7 @@ def google_callback():
         return redirect('/login?error=no_email')
 
     plan = session.pop('oauth_plan', 'trial')
+    nonce = session.pop('oauth_nonce', None)
     given_name = user_info.get('given_name') or user_info.get('name', '').split()[0] if user_info.get('name') else ''
     user, is_new = _oauth_find_or_create(email, 'google', user_info.get('sub'), first_name=given_name, plan=plan)
 
@@ -5964,6 +5992,9 @@ def google_callback():
     session.permanent = True
     session['user_id'] = user.id
     session['session_token'] = user.session_token
+
+    if nonce:
+        _store_oauth_nonce(nonce, generate_auth_token(user))
 
     if is_new and plan == 'trial':
         checkout_url = _create_trial_checkout_url(user)
@@ -5978,6 +6009,9 @@ def apple_login():
     if not _oauth_ready or not _apple_client_id:
         return jsonify({'error': 'Apple sign-in not configured'}), 501
     session['oauth_plan'] = request.args.get('plan', 'trial')
+    nonce = request.args.get('nonce', '')
+    if nonce:
+        session['oauth_nonce'] = nonce
     base = os.environ.get('APP_BASE_URL', request.host_url.rstrip('/'))
     redirect_uri = f"{base}/auth/apple/callback"
     return _oauth.apple.authorize_redirect(redirect_uri)
@@ -5998,6 +6032,7 @@ def apple_callback():
         return redirect('/login?error=no_email')
 
     plan = session.pop('oauth_plan', 'trial')
+    nonce = session.pop('oauth_nonce', None)
 
     first_name = None
     user_data = request.form.get('user')
@@ -6016,6 +6051,9 @@ def apple_callback():
     session.permanent = True
     session['user_id'] = user.id
     session['session_token'] = user.session_token
+
+    if nonce:
+        _store_oauth_nonce(nonce, generate_auth_token(user))
 
     if is_new and plan == 'trial':
         checkout_url = _create_trial_checkout_url(user)
