@@ -2524,8 +2524,8 @@ def admin_mrr_history():
     if not admin:
         return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
-    MONTHLY_CENTS = 2999
-    ANNUAL_MONTHLY_CENTS = round(9900 / 12)
+    MONTHLY_CENTS = 1999
+    ANNUAL_MONTHLY_CENTS = round(14999 / 12)
 
     active_users = User.query.filter_by(subscription_status='active').all()
     active_monthly = 0

@@ -344,7 +344,7 @@ export default function UpgradeScreen({ onBack, user }) {
               />
               <PricingCard
                 name="Monthly"
-                price="$14.99"
+                price="$19.99"
                 period="/mo"
                 description="Full Pro access, billed monthly."
                 cta="Start monthly"

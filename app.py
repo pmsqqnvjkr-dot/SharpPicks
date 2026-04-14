@@ -5437,8 +5437,8 @@ def cron_mrr_snapshot():
         existing = MrrSnapshot.query.filter_by(snapshot_date=today).first()
         if existing:
             return {'skipped': True, 'date': today.isoformat()}
-        MONTHLY_CENTS = 2999
-        ANNUAL_MONTHLY_CENTS = round(9900 / 12)
+        MONTHLY_CENTS = 1999
+        ANNUAL_MONTHLY_CENTS = round(14999 / 12)
         active_users = User.query.filter_by(subscription_status='active').all()
         mrr = 0
         monthly = 0
