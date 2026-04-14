@@ -177,64 +177,51 @@ export default function UpgradeScreen({ onBack, user }) {
           </div>
         )}
 
-        <div style={{
-          backgroundColor: 'var(--surface-1)', borderRadius: '12px',
-          border: '1px solid var(--stroke-subtle)', padding: '20px',
-          marginBottom: '16px',
-        }}>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-            letterSpacing: '1.5px', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: '12px',
-          }}>YOUR PLAN: FREE</div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px 0' }}>
-            {['See if a pick exists today', 'Public model record access', 'Daily Market Brief', 'Sharp Journal access', 'Full game slate with edges'].map(f => (
-              <li key={f} style={{ fontSize: '12px', color: 'var(--text-secondary)', padding: '4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ color: 'var(--green-profit)', fontSize: '10px' }}>&#10003;</span>{f}
-              </li>
-            ))}
-          </ul>
-
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-            letterSpacing: '1.5px', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: '12px',
-            paddingTop: '16px', borderTop: '1px solid var(--stroke-subtle)',
-          }}>PRO INCLUDES EVERYTHING ABOVE, PLUS:</div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px 0' }}>
-            {['Full signal details (side, line, edge, sizing)', 'Quant reasoning and model analysis', 'Personal bet tracking with CLV', 'Equity curve and P&L history', 'Discipline scoring with benchmarks', 'Real-time push notifications', 'Priority support'].map(f => (
-              <li key={f} style={{ fontSize: '12px', color: 'var(--text-secondary)', padding: '4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ color: 'var(--green-profit)', fontSize: '10px' }}>&#10003;</span>{f}
-              </li>
-            ))}
-          </ul>
-
-          <button onClick={() => handleSubscribe('trial')} disabled={checkoutLoading} style={{
-            width: '100%', padding: '12px', borderRadius: '6px',
-            background: '#5A9E72', border: 'none',
-            color: '#0A0D14', fontFamily: 'var(--font-mono)',
-            fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
-            cursor: 'pointer', textAlign: 'center',
-            opacity: checkoutLoading ? 0.6 : 1,
-          }}>Start 14-day free trial</button>
-          {isNative && (
-            <div style={{ textAlign: 'center', marginTop: '8px', fontSize: '11px', color: 'var(--text-tertiary)' }}>
-              Continues in your browser
-            </div>
-          )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+          <PricingCard
+            name={isFoundingOpen ? 'Founding Member' : 'Annual'}
+            price="$99"
+            period="/yr"
+            description={isFoundingOpen
+              ? `Lock the founding rate. ${spotsRemaining} of 50 spots left.`
+              : 'Best value — save vs monthly.'}
+            savings={isFoundingOpen ? 'Founding rate locked while subscribed' : null}
+            cta="Start 14-day free trial"
+            onSelect={() => handleSubscribe('trial')}
+            loading={checkoutLoading}
+            highlight
+            badge={isFoundingOpen ? 'Best Value' : null}
+          />
+          <PricingCard
+            name="Monthly"
+            price="$14.99"
+            period="/mo"
+            description="Full Pro access, billed monthly."
+            cta="Start monthly"
+            onSelect={() => handleSubscribe('monthly')}
+            loading={checkoutLoading}
+            secondary
+          />
         </div>
+
+        {isNative && (
+          <div style={{ textAlign: 'center', marginBottom: '16px', fontSize: '11px', color: 'var(--text-tertiary)' }}>
+            Continues in your browser
+          </div>
+        )}
 
         <div style={{
           backgroundColor: 'var(--surface-1)', borderRadius: '16px',
           border: '1px solid var(--stroke-subtle)', padding: '20px',
           marginBottom: '16px',
         }}>
-          <SectionLabel>What Changes</SectionLabel>
+          <SectionLabel>What You Get</SectionLabel>
           <FeatureRow icon="unlock" text="Full pick transparency: side, line, edge %" />
           <FeatureRow icon="chart" text="Quantified performance dashboard" />
           <FeatureRow icon="bell" text="Real-time pick alerts" />
-          <FeatureRow icon="track" text="Pick-linked tracking" />
+          <FeatureRow icon="track" text="Pick-linked tracking with CLV" />
           <FeatureRow icon="history" text="Complete historical analysis" />
+          <FeatureRow icon="unlock" text="Discipline scoring with benchmarks" />
         </div>
 
         <div style={{
@@ -253,7 +240,7 @@ export default function UpgradeScreen({ onBack, user }) {
           fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
           textAlign: 'center', padding: '8px 0 16px',
         }}>
-          Sharp Picks provides statistical analysis, not betting advice.
+          14-day free trial on annual plan. Cancel anytime.
         </p>
       </div>
     </div>
