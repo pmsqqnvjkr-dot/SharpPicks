@@ -3,42 +3,63 @@
 ## Endpoint
 
 ```
-POST /api/webhooks/revenuecat
+POST https://app.sharppicks.ai/api/webhooks/revenuecat
 ```
 
 ## Authentication
 
-Bearer token in `Authorization` header. Set the shared secret in:
-- **RevenueCat dashboard:** Project → Integrations → Webhooks → Authorization header
-- **Backend env:** `REVENUECAT_WEBHOOK_SECRET`
+Bearer token in the `Authorization` header, validated against the `REVENUECAT_WEBHOOK_SECRET` environment variable on Railway.
 
-```python
-auth = request.headers.get('Authorization', '')
-if auth != f'Bearer {os.environ["REVENUECAT_WEBHOOK_SECRET"]}':
-    return jsonify({'error': 'Unauthorized'}), 401
+## Setup
+
+### 1. Generate the shared secret
+
+```bash
+openssl rand -hex 32
 ```
 
-## Events to Handle
+### 2. Set the env var on Railway
+
+Add `REVENUECAT_WEBHOOK_SECRET=<generated_secret>` to the Railway service environment variables.
+
+### 3. Configure in RevenueCat dashboard
+
+1. Go to **Project Settings → Integrations → Webhooks**
+2. Set **Webhook URL**: `https://app.sharppicks.ai/api/webhooks/revenuecat`
+3. Set **Authorization header**: `Bearer <same_secret>`
+4. Enable events: INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION, BILLING_ISSUE, PRODUCT_CHANGE, UNCANCELLATION
+
+### 4. Test
+
+Use RevenueCat's **"Send Test Event"** button on the webhook configuration page. Check Railway logs for `RevenueCat webhook:` entries.
+
+## Events Handled
 
 | Event | Action |
 |-------|--------|
-| `INITIAL_PURCHASE` | Set `user.is_premium = True`, set `pro_expires_at` from expiration date |
-| `RENEWAL` | Update `pro_expires_at` with new expiration |
-| `CANCELLATION` | Leave `is_premium = True` until expiration, log cancellation date |
-| `EXPIRATION` | Set `user.is_premium = False`, `subscription_status = 'expired'` |
-| `BILLING_ISSUE` | Flag user, optionally send email about payment failure |
-| `PRODUCT_CHANGE` | Update `subscription_plan` to new product identifier |
+| `INITIAL_PURCHASE` | `is_premium=True`, `subscription_status='active'`, `pro_source='revenuecat'`, set `current_period_end` |
+| `RENEWAL` | Same as INITIAL_PURCHASE — refreshes expiration |
+| `PRODUCT_CHANGE` | Same — updates plan (monthly/annual) based on `product_id` |
+| `UNCANCELLATION` | Same — reactivates Pro |
+| `EXPIRATION` | `is_premium=False`, `subscription_status='expired'` |
+| `CANCELLATION` | Logged only — user retains access until `current_period_end` |
+| `BILLING_ISSUE` | Sets `subscription_status='past_due'`, admin alerted |
 
 ## User Matching
 
-RevenueCat sends `app_user_id` in the webhook payload. This maps to the SharpPicks `user.id` (set via `Purchases.logIn({ appUserID: userId })` in the app).
+RevenueCat `app_user_id` maps to the SharpPicks `user.id` (UUID). This is set in the iOS app via `Purchases.logIn({ appUserID: userId })` on authentication.
 
-```python
-app_user_id = event.get('app_user_id')
-user = db.session.get(User, app_user_id)
-```
+## Idempotency
 
-## Payload Structure
+Uses the existing `ProcessedEvent` table. Each `event.id` is stored on first processing; duplicates return `200 { duplicate: true }` without re-processing.
+
+## Monitoring
+
+- **Railway logs**: Search for `RevenueCat webhook:` or `RevenueCat:` prefixed entries
+- **RevenueCat dashboard**: Webhooks → Delivery History shows request/response for each event
+- **Admin alerts**: The app sends push notifications to admin users on all Pro status changes
+
+## Payload Reference
 
 ```json
 {
@@ -46,7 +67,7 @@ user = db.session.get(User, app_user_id)
   "event": {
     "id": "evt_unique_id",
     "type": "INITIAL_PURCHASE",
-    "app_user_id": "user_id_from_app",
+    "app_user_id": "user-uuid-from-app",
     "product_id": "pro_yearly",
     "entitlement_ids": ["pro"],
     "expiration_at_ms": 1700000000000,
@@ -56,22 +77,3 @@ user = db.session.get(User, app_user_id)
   }
 }
 ```
-
-## Idempotency
-
-Deduplicate by `event.id`. Store processed event IDs and skip duplicates.
-
-## Response
-
-Return `200 OK` within 5 seconds or RevenueCat will retry (up to 5 times with exponential backoff).
-
-```python
-return jsonify({'success': True}), 200
-```
-
-## RevenueCat Dashboard Setup
-
-1. Go to **Project Settings → Integrations → Webhooks**
-2. Set URL: `https://app.sharppicks.ai/api/webhooks/revenuecat`
-3. Set Authorization header: `Bearer <your-secret>`
-4. Enable events: INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION, BILLING_ISSUE, PRODUCT_CHANGE

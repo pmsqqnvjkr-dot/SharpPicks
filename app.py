@@ -728,6 +728,7 @@ def seed_database():
                 db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_id VARCHAR(255)"))
                 db.session.execute(db.text("ALTER TABLE watched_games ADD COLUMN IF NOT EXISTS sport VARCHAR(10) DEFAULT 'nba'"))
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS sport VARCHAR(10) DEFAULT 'nba'"))
+                db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS pro_source VARCHAR"))
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
@@ -6441,6 +6442,7 @@ def stripe_webhook():
                     user.subscription_start_date = datetime.now()
                     user.stripe_customer_id = data_obj.get('customer')
                     sub_id = data_obj.get('subscription')
+                    user.pro_source = 'stripe'
                     if sub_id:
                         stripe_obj = get_stripe_client()
                         sub = stripe_obj.Subscription.retrieve(sub_id)
@@ -6590,6 +6592,111 @@ def stripe_webhook():
         return jsonify({'error': str(e)}), 400
 
     return jsonify({'success': True})
+
+
+@app.route('/api/webhooks/revenuecat', methods=['POST'])
+def revenuecat_webhook():
+    """Handle RevenueCat webhook events for iOS IAP.
+    Events: INITIAL_PURCHASE, RENEWAL, EXPIRATION, CANCELLATION,
+    BILLING_ISSUE, PRODUCT_CHANGE, UNCANCELLATION"""
+    rc_secret = os.getenv('REVENUECAT_WEBHOOK_SECRET', '')
+    auth_header = request.headers.get('Authorization', '')
+
+    if not rc_secret or auth_header != f'Bearer {rc_secret}':
+        logging.warning('RevenueCat webhook: invalid auth')
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        payload = request.get_json(force=True)
+        event = payload.get('event', {})
+        event_type = event.get('type', '')
+        event_id = event.get('id', '')
+        app_user_id = event.get('app_user_id', '')
+        expiration_ms = event.get('expiration_at_ms')
+
+        if not event_type or not event_id:
+            return jsonify({'error': 'Missing event type or id'}), 400
+
+        logging.info(f'RevenueCat webhook: {event_type} (event_id={event_id}, user={app_user_id})')
+
+        if event_id:
+            try:
+                db.session.add(ProcessedEvent(id=event_id, event_type=f'rc_{event_type}'))
+                db.session.flush()
+            except Exception:
+                db.session.rollback()
+                logging.info(f'Skipping duplicate RevenueCat event: {event_id}')
+                return jsonify({'status': 'ok', 'duplicate': True}), 200
+
+        if not app_user_id:
+            logging.warning(f'RevenueCat webhook: no app_user_id in event {event_id}')
+            return jsonify({'status': 'ok', 'note': 'no user id'}), 200
+
+        user = db.session.get(User, app_user_id)
+        if not user:
+            logging.warning(f'RevenueCat webhook: user {app_user_id} not found')
+            return jsonify({'status': 'ok', 'note': 'user not found'}), 200
+
+        expires_at = None
+        if expiration_ms:
+            expires_at = datetime.fromtimestamp(expiration_ms / 1000)
+
+        if event_type in ('INITIAL_PURCHASE', 'RENEWAL', 'PRODUCT_CHANGE', 'UNCANCELLATION'):
+            user.is_premium = True
+            user.subscription_status = 'active'
+            user.pro_source = 'revenuecat'
+            if expires_at:
+                user.current_period_end = expires_at
+            product_id = event.get('product_id', '')
+            if product_id:
+                user.subscription_plan = 'annual' if 'yearly' in product_id or 'annual' in product_id else 'monthly'
+            db.session.commit()
+            logging.info(f'RevenueCat: Pro activated for {user.email} via {event_type}')
+            try:
+                send_admin_alert(
+                    f'RC {event_type}',
+                    f'{user.email} — Pro activated via iOS IAP ({product_id})',
+                )
+            except Exception:
+                pass
+
+        elif event_type == 'EXPIRATION':
+            user.is_premium = False
+            user.subscription_status = 'expired'
+            user.current_period_end = expires_at
+            db.session.commit()
+            logging.info(f'RevenueCat: Pro expired for {user.email}')
+            try:
+                send_admin_alert('RC EXPIRATION', f'{user.email} — iOS subscription expired')
+            except Exception:
+                pass
+
+        elif event_type in ('CANCELLATION', 'BILLING_ISSUE'):
+            logging.warning(f'RevenueCat: {event_type} for {user.email} — retaining access until expiry')
+            if event_type == 'BILLING_ISSUE':
+                user.subscription_status = 'past_due'
+                db.session.commit()
+            try:
+                send_admin_alert(f'RC {event_type}', f'{user.email} — {event_type.lower()} (access retained)')
+            except Exception:
+                pass
+
+        else:
+            logging.info(f'RevenueCat: unhandled event type {event_type} for {user.email}')
+
+        db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f'RevenueCat webhook error: {e}')
+        try:
+            send_admin_alert('RC Webhook Error', f'RevenueCat webhook failed: {str(e)[:200]}')
+        except Exception:
+            pass
+        return jsonify({'error': str(e)}), 400
+
+    return jsonify({'status': 'ok'})
+
 
 @app.route('/api/stripe/products')
 def list_products():

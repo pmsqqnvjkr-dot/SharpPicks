@@ -58,6 +58,7 @@ class User(UserMixin, db.Model):
     subscription_start_date = db.Column(db.DateTime, nullable=True)
     current_period_end = db.Column(db.DateTime, nullable=True)
     stripe_customer_id = db.Column(db.String, nullable=True)
+    pro_source = db.Column(db.String, nullable=True)
     referral_code = db.Column(db.String, unique=True, default=generate_referral_code)
     referred_by = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)
     notification_prefs = db.Column(JSONB, default=lambda: {
