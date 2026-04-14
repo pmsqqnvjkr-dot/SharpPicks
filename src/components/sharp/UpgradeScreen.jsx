@@ -209,12 +209,13 @@ export default function UpgradeScreen({ onBack, user }) {
             ))}
           </ul>
 
-          <button onClick={openSignup} style={{
+          <button onClick={() => handleSubscribe('trial')} disabled={checkoutLoading} style={{
             width: '100%', padding: '12px', borderRadius: '6px',
             background: '#5A9E72', border: 'none',
             color: '#0A0D14', fontFamily: 'var(--font-mono)',
             fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
             cursor: 'pointer', textAlign: 'center',
+            opacity: checkoutLoading ? 0.6 : 1,
           }}>Start 14-day free trial</button>
           {isNative && (
             <div style={{ textAlign: 'center', marginTop: '8px', fontSize: '11px', color: 'var(--text-tertiary)' }}>

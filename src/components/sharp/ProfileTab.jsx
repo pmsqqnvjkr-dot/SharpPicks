@@ -294,7 +294,7 @@ function SettingsSection({ user, onNavigate }) {
   );
 }
 
-function PricingSection({ foundingData }) {
+function PricingSection({ foundingData, onSubscribe, loading }) {
   const freeFeatures = [
     'See if a pick exists today',
     'Public model record access',
@@ -373,12 +373,13 @@ function PricingSection({ foundingData }) {
         ))}
       </ul>
 
-      <button onClick={openSignup} style={{
+      <button onClick={() => onSubscribe('trial')} disabled={loading} style={{
         width: '100%', padding: '12px', borderRadius: '6px',
         background: '#5A9E72', border: 'none',
         color: '#0A0D14', fontFamily: 'var(--font-mono)',
         fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
         cursor: 'pointer', textAlign: 'center',
+        opacity: loading ? 0.6 : 1,
       }}>Start 14-day free trial</button>
       {isNative && (
         <div style={{
