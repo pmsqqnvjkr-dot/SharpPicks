@@ -102,7 +102,7 @@ export default function TodayTab({ onNavigate }) {
           }} />
         )}
 
-        {todayData?.type === 'pass' && (() => {
+        {todayData?.type === 'pass' && (todayData.games_analyzed || 0) > 0 && (() => {
           const d = new Date();
           const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
           const dateStr = `${m[d.getMonth()]} ${d.getDate()}`;
@@ -120,7 +120,7 @@ export default function TodayTab({ onNavigate }) {
             />
           );
         })()}
-        {todayData?.type === 'off_day' && (() => {
+        {(todayData?.type === 'off_day' || todayData?.type === 'allstar_break' || (todayData?.type === 'pass' && !(todayData.games_analyzed > 0))) && (() => {
           const d = new Date();
           const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
           const dateStr = `${m[d.getMonth()]} ${d.getDate()}`;

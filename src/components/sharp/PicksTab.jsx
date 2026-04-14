@@ -253,10 +253,13 @@ export default function PicksTab({ onNavigate }) {
   }, [isNightMode, sport, postMidnightNight]);
 
   // Determine the 5-state: night, pre-model, pick, pass, off-day
+  // Guard: if backend says 'pass' but zero games were scanned, that's an off-day, not a pass.
+  const gamesScannedToday = todayData?.games_analyzed || gameInfo?.total || 0;
   const pageState =
     isNightMode ? 'night' :
     todayData?.type === 'pick' ? 'pick' :
-    todayData?.type === 'pass' ? 'pass' :
+    (todayData?.type === 'pass' && gamesScannedToday > 0) ? 'pass' :
+    (todayData?.type === 'pass' && gamesScannedToday === 0) ? 'off-day' :
     todayData?.type === 'waiting' ? 'pre-model' :
     (todayData?.type === 'off_day' || todayData?.type === 'allstar_break') ? 'off-day' :
     (!todayData && !error) ? 'pre-model' :
