@@ -5658,7 +5658,7 @@ def verify_email():
     if not user.trial_used and not user.is_premium:
         checkout_url = _create_trial_checkout_url(user)
         if checkout_url:
-            return redirect(checkout_url)
+            return _redirect_replace(checkout_url)
 
     ua = request.headers.get('User-Agent', '').lower()
     is_mobile = any(k in ua for k in ('iphone', 'ipad', 'android', 'capacitor'))
@@ -5898,6 +5898,17 @@ def _oauth_find_or_create(email, provider, provider_id, first_name=None, plan='t
     return user, True
 
 
+def _redirect_replace(url):
+    """Redirect using history.replaceState so the current page doesn't stay in browser history."""
+    safe_url = url.replace("'", "\\'").replace('"', '&quot;')
+    return Response(
+        f'''<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Redirecting…</title></head><body>
+<script>window.location.replace('{safe_url}');</script>
+<noscript><meta http-equiv="refresh" content="0;url={safe_url}"></noscript>
+</body></html>''',
+        content_type='text/html')
+
 def _create_trial_checkout_url(user):
     """Create a Stripe Checkout session with a 14-day free trial (card required, $0 charged).
     Returns the checkout URL or None on failure."""
@@ -5946,7 +5957,7 @@ def _create_trial_checkout_url(user):
                 },
             },
             success_url=f'https://{app_domain}/welcome?session_id={{CHECKOUT_SESSION_ID}}',
-            cancel_url=f'https://{app_domain}/',
+            cancel_url=f'https://{app_domain}/subscribe',
             customer=user.stripe_customer_id,
             client_reference_id=user.id,
             metadata={'plan': 'trial', 'user_id': user.id},
@@ -5999,9 +6010,9 @@ def google_callback():
     if is_new and plan == 'trial':
         checkout_url = _create_trial_checkout_url(user)
         if checkout_url:
-            return redirect(checkout_url)
+            return _redirect_replace(checkout_url)
 
-    return redirect('/')
+    return _redirect_replace('/')
 
 
 @app.route('/auth/apple')
@@ -6058,9 +6069,9 @@ def apple_callback():
     if is_new and plan == 'trial':
         checkout_url = _create_trial_checkout_url(user)
         if checkout_url:
-            return redirect(checkout_url)
+            return _redirect_replace(checkout_url)
 
-    return redirect('/')
+    return _redirect_replace('/')
 
 
 @app.route('/api/auth/forgot-password', methods=['POST'])
@@ -8911,6 +8922,18 @@ def serve_static_card(filename):
 def welcome_page():
     templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
     return send_from_directory(templates_dir, 'welcome.html')
+
+@app.route('/subscribe')
+def subscribe_page():
+    if session.get('user_id') or (hasattr(current_user, 'is_authenticated') and current_user.is_authenticated):
+        dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
+        index_path = os.path.join(dist_dir, 'index.html')
+        if os.path.isfile(index_path):
+            from flask import make_response
+            resp = make_response(send_from_directory(dist_dir, 'index.html'))
+            resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            return resp
+    return redirect('/signup')
 
 @app.route('/login')
 @app.route('/signup')
