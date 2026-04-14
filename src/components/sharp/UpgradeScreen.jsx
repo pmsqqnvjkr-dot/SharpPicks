@@ -297,18 +297,22 @@ export default function UpgradeScreen({ onBack, user }) {
             <button
               onClick={async () => {
                 const { Browser } = await import('@capacitor/browser');
-                await Browser.open({ url: 'https://app.sharppicks.ai/subscribe' });
+                await Browser.open({ url: 'https://app.sharppicks.ai/signup' });
               }}
               style={{
                 display: 'block', width: '100%', padding: '10px',
                 background: 'none', border: 'none',
                 color: 'var(--text-tertiary)', fontSize: '12px',
                 cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                textAlign: 'center', marginBottom: '8px',
+                textAlign: 'center', marginBottom: '2px',
               }}
             >
-              Subscribe on the web
+              Or subscribe on sharppicks.ai
             </button>
+            <div style={{
+              textAlign: 'center', marginBottom: '8px',
+              fontSize: '10px', color: 'var(--text-tertiary)', opacity: 0.6,
+            }}>Sign in required in browser</div>
 
             <button
               onClick={handleRestore}
