@@ -5612,7 +5612,7 @@ def register():
         token = s.dumps(user.id, salt='email-verify')
         base = os.environ.get('APP_BASE_URL', '').rstrip('/')
         if not base:
-            domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+            domains = os.environ.get('REPLIT_DOMAINS', 'app.sharppicks.ai')
             base = f"https://{domains.split(',')[0]}"
         verify_url = f"{base}/api/auth/verify-email?token={token}"
         send_verification_email(user.email, verify_url, user.first_name)
@@ -5709,7 +5709,7 @@ def resend_verification():
         token = s.dumps(user.id, salt='email-verify')
         base = os.environ.get('APP_BASE_URL', '').rstrip('/')
         if not base:
-            domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+            domains = os.environ.get('REPLIT_DOMAINS', 'app.sharppicks.ai')
             base = f"https://{domains.split(',')[0]}"
         verify_url = f"{base}/api/auth/verify-email?token={token}"
         send_verification_email(user.email, verify_url, user.first_name)
@@ -5935,10 +5935,7 @@ def _create_trial_checkout_url(user):
             logging.error("No Stripe prices configured for trial checkout")
             return None
 
-        app_domain = os.environ.get('APP_DOMAIN', '')
-        if not app_domain:
-            domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
-            app_domain = domains.split(',')[0]
+        app_domain = os.environ.get('APP_DOMAIN', '') or os.environ.get('REPLIT_DOMAINS', 'app.sharppicks.ai').split(',')[0]
 
         checkout_session = stripe.checkout.Session.create(
             mode='subscription',
@@ -6091,7 +6088,7 @@ def forgot_password():
     token = s.dumps(user.id, salt='password-reset')
     base = os.environ.get('APP_BASE_URL', '').rstrip('/')
     if not base:
-        domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+        domains = os.environ.get('REPLIT_DOMAINS', 'app.sharppicks.ai')
         base = f"https://{domains.split(',')[0]}"
     reset_url = f"{base}/reset-password?token={token}"
 
@@ -6196,10 +6193,7 @@ def create_checkout():
         if not price_id:
             return jsonify({'error': 'No prices configured in Stripe'}), 400
 
-        app_domain = os.environ.get('APP_DOMAIN', '')
-        if not app_domain:
-            domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
-            app_domain = domains.split(',')[0]
+        app_domain = os.environ.get('APP_DOMAIN', '') or os.environ.get('REPLIT_DOMAINS', 'app.sharppicks.ai').split(',')[0]
         subscribe_domain = os.environ.get('SUBSCRIBE_DOMAIN', app_domain)
 
         db_user = db.session.get(User, user['id'])
