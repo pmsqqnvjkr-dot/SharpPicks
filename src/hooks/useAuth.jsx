@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { apiPost, apiGet, setAuthToken } from './useApi';
 import { requestNotificationPermission, getNotificationPermissionStatus, getNativePermissionStatus, isNative } from '../firebase';
+import { initializeRevenueCat, rcLogin, rcLogout } from '../lib/revenuecat';
 
 const AuthContext = createContext(null);
 
@@ -10,6 +11,7 @@ export function AuthProvider({ children }) {
   const [pushStatus, setPushStatus] = useState('default');
 
   useEffect(() => {
+    initializeRevenueCat();
     checkAuth();
     (async () => {
       const status = await getNativePermissionStatus();
@@ -37,8 +39,10 @@ export function AuthProvider({ children }) {
       if (data && data.authenticated && data.user) {
         if (data.token) setAuthToken(data.token);
         setUser(data.user);
+        rcLogin(data.user.id);
       } else if (data && data.id) {
         setUser(data);
+        rcLogin(data.id);
       } else {
         setUser(null);
       }
@@ -55,9 +59,11 @@ export function AuthProvider({ children }) {
       if (data.success && data.user) {
         if (data.token) setAuthToken(data.token);
         setUser(data.user);
+        rcLogin(data.user.id);
         return { success: true };
       } else if (data.id) {
         setUser(data);
+        rcLogin(data.id);
         return { success: true };
       }
       return { success: false, error: data.error || 'Login failed' };
@@ -96,6 +102,7 @@ export function AuthProvider({ children }) {
     await apiPost('/auth/logout', {});
     setAuthToken(null);
     setUser(null);
+    rcLogout();
   };
 
   const setUnitSize = async (size) => {

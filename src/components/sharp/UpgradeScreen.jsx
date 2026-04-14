@@ -1,18 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApi, apiPost } from '../../hooks/useApi';
+import { useAuth } from '../../hooks/useAuth';
 import { Capacitor } from '@capacitor/core';
+import { getOfferings, purchasePackage, restorePurchases, isPurchaseCancelled } from '../../lib/revenuecat';
 
-import openSignup from '../../utils/openSignup';
-
+const platform = Capacitor.getPlatform();
+const isIOS = platform === 'ios';
 const isNative = Capacitor.isNativePlatform();
 const WEB_BILLING_URL = 'https://app.sharppicks.ai/signup';
 
 export default function UpgradeScreen({ onBack, user }) {
   const { data: foundingData } = useApi('/public/founding-count');
   const { data: statsData } = useApi('/public/stats');
+  const { checkAuth } = useAuth();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [iapOffering, setIapOffering] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState('yearly');
+  const [iapError, setIapError] = useState('');
+  const [iapSuccess, setIapSuccess] = useState('');
+  const [restoringPurchases, setRestoringPurchases] = useState(false);
 
-  const handleSubscribe = async (plan) => {
+  useEffect(() => {
+    if (isIOS) {
+      getOfferings().then(offering => {
+        if (offering) setIapOffering(offering);
+      });
+    }
+  }, []);
+
+  const handleStripeSubscribe = async (plan) => {
     if (isNative) {
       const { Browser } = await import('@capacitor/browser');
       await Browser.open({ url: WEB_BILLING_URL });
@@ -33,10 +49,59 @@ export default function UpgradeScreen({ onBack, user }) {
     }
   };
 
+  const handleIAPPurchase = async () => {
+    if (!iapOffering) return;
+    const pkg = selectedPlan === 'yearly'
+      ? iapOffering.annual
+      : iapOffering.monthly;
+    if (!pkg) return;
+
+    setCheckoutLoading(true);
+    setIapError('');
+    try {
+      const customerInfo = await purchasePackage(pkg);
+      const isPro = !!customerInfo?.entitlements?.active?.pro;
+      if (isPro) {
+        const expires = customerInfo.entitlements.active.pro.expirationDate;
+        const trialEnd = expires ? new Date(expires).toLocaleDateString() : '';
+        setIapSuccess(trialEnd ? `Pro activated. Trial ends ${trialEnd}.` : 'Pro activated.');
+        if (checkAuth) checkAuth();
+      }
+    } catch (e) {
+      if (!isPurchaseCancelled(e)) {
+        setIapError(e?.message || 'Purchase failed. Please try again.');
+      }
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    setRestoringPurchases(true);
+    setIapError('');
+    try {
+      const customerInfo = await restorePurchases();
+      if (customerInfo?.entitlements?.active?.pro) {
+        setIapSuccess('Purchases restored. Pro is active.');
+        if (checkAuth) checkAuth();
+      } else {
+        setIapError('No active subscription found.');
+      }
+    } catch (e) {
+      setIapError('Restore failed. Please try again.');
+    } finally {
+      setRestoringPurchases(false);
+    }
+  };
+
   const isFoundingOpen = foundingData?.open;
-  const annualLabel = isFoundingOpen ? 'Founding Member' : 'Annual';
   const spotsRemaining = foundingData?.remaining || 0;
   const isTrial = user?.subscription_status === 'trial';
+
+  const yearlyPkg = iapOffering?.annual;
+  const monthlyPkg = iapOffering?.monthly;
+  const yearlyPrice = yearlyPkg?.product?.priceString || '$149.99/yr';
+  const monthlyPrice = monthlyPkg?.product?.priceString || '$19.99/mo';
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
@@ -155,7 +220,7 @@ export default function UpgradeScreen({ onBack, user }) {
           </div>
         )}
 
-        {!isNative && isFoundingOpen && (
+        {!isIOS && isFoundingOpen && (
           <div style={{
             backgroundColor: 'rgba(245, 158, 11, 0.06)',
             border: '1px solid rgba(245, 158, 11, 0.18)',
@@ -177,37 +242,125 @@ export default function UpgradeScreen({ onBack, user }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-          <PricingCard
-            name={isFoundingOpen ? 'Founding Member' : 'Annual'}
-            price="$99"
-            period="/yr"
-            description={isFoundingOpen
-              ? `Lock the founding rate. ${spotsRemaining} of 50 spots left.`
-              : 'Best value — save vs monthly.'}
-            savings={isFoundingOpen ? 'Founding rate locked while subscribed' : null}
-            cta="Start 14-day free trial"
-            onSelect={() => handleSubscribe('trial')}
-            loading={checkoutLoading}
-            highlight
-            badge={isFoundingOpen ? 'Best Value' : null}
-          />
-          <PricingCard
-            name="Monthly"
-            price="$14.99"
-            period="/mo"
-            description="Full Pro access, billed monthly."
-            cta="Start monthly"
-            onSelect={() => handleSubscribe('monthly')}
-            loading={checkoutLoading}
-            secondary
-          />
-        </div>
+        {iapSuccess && (
+          <div style={{
+            backgroundColor: 'rgba(52, 211, 153, 0.1)',
+            border: '1px solid rgba(52, 211, 153, 0.2)',
+            borderRadius: '10px', padding: '12px 16px', marginBottom: '16px',
+            fontSize: '13px', color: 'var(--green-profit)', textAlign: 'center',
+          }}>{iapSuccess}</div>
+        )}
 
-        {isNative && (
-          <div style={{ textAlign: 'center', marginBottom: '16px', fontSize: '11px', color: 'var(--text-tertiary)' }}>
-            Continues in your browser
-          </div>
+        {iapError && (
+          <div style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            borderRadius: '10px', padding: '12px 16px', marginBottom: '16px',
+            fontSize: '13px', color: 'var(--red-loss)', textAlign: 'center',
+          }}>{iapError}</div>
+        )}
+
+        {isIOS ? (
+          <>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+              <PlanToggle
+                label="Annual"
+                price={yearlyPrice}
+                selected={selectedPlan === 'yearly'}
+                onSelect={() => setSelectedPlan('yearly')}
+                badge="14-day trial"
+              />
+              <PlanToggle
+                label="Monthly"
+                price={monthlyPrice}
+                selected={selectedPlan === 'monthly'}
+                onSelect={() => setSelectedPlan('monthly')}
+                badge="14-day trial"
+              />
+            </div>
+
+            <button
+              onClick={handleIAPPurchase}
+              disabled={checkoutLoading || !iapOffering}
+              style={{
+                width: '100%', padding: '16px',
+                background: 'linear-gradient(135deg, #5A9E72, #4A8E62)',
+                border: 'none', borderRadius: '14px',
+                color: '#fff', fontSize: '16px', fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                opacity: (checkoutLoading || !iapOffering) ? 0.6 : 1,
+                marginBottom: '12px',
+              }}
+            >
+              {checkoutLoading ? 'Processing...' : 'Subscribe with Apple'}
+            </button>
+
+            <button
+              onClick={async () => {
+                const { Browser } = await import('@capacitor/browser');
+                await Browser.open({ url: WEB_BILLING_URL });
+              }}
+              style={{
+                display: 'block', width: '100%', padding: '10px',
+                background: 'none', border: 'none',
+                color: 'var(--text-tertiary)', fontSize: '12px',
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                textAlign: 'center', marginBottom: '8px',
+              }}
+            >
+              Subscribe on the web
+            </button>
+
+            <button
+              onClick={handleRestore}
+              disabled={restoringPurchases}
+              style={{
+                display: 'block', width: '100%', padding: '8px',
+                background: 'none', border: 'none',
+                color: 'var(--text-tertiary)', fontSize: '11px',
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                textAlign: 'center', marginBottom: '16px',
+                opacity: restoringPurchases ? 0.5 : 1,
+              }}
+            >
+              {restoringPurchases ? 'Restoring...' : 'Restore Purchase'}
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+              <PricingCard
+                name={isFoundingOpen ? 'Founding Member' : 'Annual'}
+                price="$99"
+                period="/yr"
+                description={isFoundingOpen
+                  ? `Lock the founding rate. ${spotsRemaining} of 50 spots left.`
+                  : 'Best value — save vs monthly.'}
+                savings={isFoundingOpen ? 'Founding rate locked while subscribed' : null}
+                cta="Start 14-day free trial"
+                onSelect={() => handleStripeSubscribe('trial')}
+                loading={checkoutLoading}
+                highlight
+                badge={isFoundingOpen ? 'Best Value' : null}
+              />
+              <PricingCard
+                name="Monthly"
+                price="$14.99"
+                period="/mo"
+                description="Full Pro access, billed monthly."
+                cta="Start monthly"
+                onSelect={() => handleStripeSubscribe('monthly')}
+                loading={checkoutLoading}
+                secondary
+              />
+            </div>
+
+            {isNative && (
+              <div style={{ textAlign: 'center', marginBottom: '16px', fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                Continues in your browser
+              </div>
+            )}
+          </>
         )}
 
         <div style={{
@@ -240,10 +393,44 @@ export default function UpgradeScreen({ onBack, user }) {
           fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
           textAlign: 'center', padding: '8px 0 16px',
         }}>
-          14-day free trial on annual plan. Cancel anytime.
+          {isIOS ? 'Payment is charged to your Apple ID account.' : '14-day free trial on annual plan. Cancel anytime.'}
         </p>
       </div>
     </div>
+  );
+}
+
+function PlanToggle({ label, price, selected, onSelect, badge }) {
+  return (
+    <button
+      onClick={onSelect}
+      style={{
+        flex: 1, padding: '14px 12px', borderRadius: '12px',
+        background: selected ? 'rgba(79,134,247,0.06)' : 'var(--surface-1)',
+        border: selected ? '2px solid var(--blue-primary)' : '1px solid var(--stroke-subtle)',
+        cursor: 'pointer', textAlign: 'center', position: 'relative',
+      }}
+    >
+      {badge && (
+        <div style={{
+          position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--blue-primary)', color: '#fff',
+          fontSize: '9px', fontWeight: 700, padding: '2px 8px',
+          borderRadius: '4px', fontFamily: 'var(--font-sans)',
+          letterSpacing: '0.04em', textTransform: 'uppercase',
+          whiteSpace: 'nowrap',
+        }}>{badge}</div>
+      )}
+      <div style={{
+        fontSize: '13px', fontWeight: 600,
+        color: selected ? 'var(--text-primary)' : 'var(--text-secondary)',
+        marginBottom: '4px',
+      }}>{label}</div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 700,
+        color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)',
+      }}>{price}</div>
+    </button>
   );
 }
 

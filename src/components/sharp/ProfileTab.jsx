@@ -52,6 +52,10 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
   if (screen === 'referral') return <ReferralScreen onBack={() => navigate(null)} />;
 
   const handleSubscribe = async (plan) => {
+    if (Capacitor.getPlatform() === 'ios') {
+      setScreen('upgrade');
+      return;
+    }
     if (isNative) {
       const { Browser } = await import('@capacitor/browser');
       await Browser.open({ url: WEB_BILLING_URL });
@@ -128,7 +132,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
           </div>
 
           <SettingsSection user={null} onNavigate={navigate} />
-          {!isNative && <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />}
+          {(Capacitor.getPlatform() === 'ios' || !isNative) && <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />}
           <LegalSection />
         </div>
 
@@ -153,7 +157,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
 
         <ControlsSection user={user} onNavigate={navigate} isPro={isPro} foundingData={foundingData} onSubscribe={handleSubscribe} checkoutLoading={checkoutLoading} />
 
-        {!isPro && !isNative && <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />}
+        {!isPro && (Capacitor.getPlatform() === 'ios' || !isNative) && <PricingSection foundingData={foundingData} onSubscribe={handleSubscribe} loading={checkoutLoading} />}
         <LegalSection />
 
         <div style={{ marginTop: '12px', marginBottom: '20px' }}>
@@ -380,8 +384,8 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
         fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
         cursor: 'pointer', textAlign: 'center',
         opacity: loading ? 0.6 : 1,
-      }}>Start 14-day free trial</button>
-      {isNative && (
+      }}>{Capacitor.getPlatform() === 'ios' ? 'View Plans' : 'Start 14-day free trial'}</button>
+      {isNative && Capacitor.getPlatform() !== 'ios' && (
         <div style={{
           textAlign: 'center', marginTop: '8px',
           fontSize: '11px', color: 'var(--text-tertiary)',
