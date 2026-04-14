@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import NoPickCard from './NoPickCard';
+import openSignup from '../../utils/openSignup';
 
 const isNative = Capacitor.isNativePlatform();
 
@@ -128,24 +129,17 @@ export default function FreeTierDashboard({ onUpgrade }) {
                 ))}
               </div>
             </div>
-            {isNative ? (
-              <div style={{
-                width: '100%', padding: '12px', marginTop: '14px',
-                border: '1.5px solid rgba(90,158,114,0.3)', background: 'transparent', borderRadius: '6px',
-                color: 'var(--text-tertiary)', fontSize: '11px', fontWeight: 500,
-                fontFamily: 'var(--font-mono)', letterSpacing: '0.5px',
-                textAlign: 'center',
-              }}>
-                Access full features at sharppicks.ai
+            <button onClick={openSignup} style={{
+              width: '100%', padding: '12px', marginTop: '14px',
+              border: '1.5px solid #5A9E72', background: 'transparent', borderRadius: '6px',
+              color: '#5A9E72', fontSize: '12px', fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '1px',
+              textAlign: 'center',
+            }}>Start 14-day free trial</button>
+            {isNative && (
+              <div style={{ textAlign: 'center', marginTop: '8px', fontSize: '11px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                Continues in your browser
               </div>
-            ) : (
-              <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
-                width: '100%', padding: '12px', marginTop: '14px',
-                border: '1.5px solid #5A9E72', background: 'transparent', borderRadius: '6px',
-                color: '#5A9E72', fontSize: '12px', fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '1px',
-                textAlign: 'center',
-              }}>View Plans</button>
             )}
           </div>
         )}

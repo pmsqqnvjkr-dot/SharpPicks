@@ -12,9 +12,10 @@ import AnnualConversion from './AnnualConversion';
 import WeeklySummary from './WeeklySummary';
 import ResolutionScreen from './ResolutionScreen';
 import ReferralScreen from './ReferralScreen';
+import openSignup from '../../utils/openSignup';
 
 const isNative = Capacitor.isNativePlatform();
-const WEB_BILLING_URL = 'https://app.sharppicks.ai/upgrade';
+const WEB_BILLING_URL = 'https://app.sharppicks.ai/signup';
 
 export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack, onPickTracked, screenData }) {
   const { user, logout } = useAuth();
@@ -372,25 +373,19 @@ function PricingSection({ foundingData }) {
         ))}
       </ul>
 
-      <div style={{
-        fontSize: '12px', color: 'var(--text-tertiary)', textAlign: 'center',
-        marginBottom: '14px', lineHeight: '1.5',
-      }}>
-        Pricing and subscription options<br />available at sharppicks.ai
-      </div>
-
-      <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
+      <button onClick={openSignup} style={{
         width: '100%', padding: '12px', borderRadius: '6px',
         background: '#5A9E72', border: 'none',
         color: '#0A0D14', fontFamily: 'var(--font-mono)',
         fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
         cursor: 'pointer', textAlign: 'center',
-      }}>View Plans</button>
-
-      <div style={{
-        textAlign: 'center', marginTop: '10px',
-        fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
-      }}>14-day free trial available. Cancel anytime.</div>
+      }}>Start 14-day free trial</button>
+      {isNative && (
+        <div style={{
+          textAlign: 'center', marginTop: '8px',
+          fontSize: '11px', color: 'var(--text-tertiary)',
+        }}>Continues in your browser</div>
+      )}
     </div>
   );
 }

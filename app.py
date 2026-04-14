@@ -8869,6 +8869,11 @@ def serve_static_card(filename):
     resp.headers['Cache-Control'] = 'public, max-age=3600'
     return resp
 
+@app.route('/welcome')
+def welcome_page():
+    templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+    return send_from_directory(templates_dir, 'welcome.html')
+
 @app.route('/login')
 @app.route('/signup')
 @app.route('/register')

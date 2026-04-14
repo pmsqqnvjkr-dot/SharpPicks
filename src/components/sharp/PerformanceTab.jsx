@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { getAuthToken } from '../../hooks/useApi';
 import { useSport } from '../../hooks/useSport';
 import { trackEvent } from '../../utils/eventTracker';
+import openSignup from '../../utils/openSignup';
 import UnifiedDashboard from './UnifiedDashboard';
 import DashboardTab from './DashboardTab';
 import FreeTierDashboard from './FreeTierDashboard';
@@ -318,13 +319,13 @@ function FreeResultsEmptyState() {
           fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px',
         }}>Personal tracking is a Pro feature.</p>
 
-        <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
+        <button onClick={openSignup} style={{
           width: '100%', padding: '12px', borderRadius: '6px',
           border: '1.5px solid #5A9E72', background: 'transparent',
           color: '#5A9E72', fontFamily: 'var(--font-mono)',
           fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
           cursor: 'pointer', textAlign: 'center',
-        }}>View Plans at sharppicks.ai</button>
+        }}>Start 14-day free trial</button>
 
         <p style={{
           fontFamily: 'var(--font-serif)', fontStyle: 'italic',

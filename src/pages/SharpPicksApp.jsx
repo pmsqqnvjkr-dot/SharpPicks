@@ -194,7 +194,23 @@ function AppContent() {
     }
   }, [location.pathname, location.search, user]);
 
-  
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let listener;
+    import('@capacitor/app').then(({ App }) => {
+      App.addListener('appUrlOpen', ({ url }) => {
+        try {
+          const parsed = new URL(url);
+          if (parsed.pathname === '/welcome' || parsed.pathname === '/open') {
+            if (checkAuth) checkAuth();
+            setActiveTab('picks');
+            navigate('/', { replace: true });
+          }
+        } catch { /* ignore malformed URLs */ }
+      }).then(l => { listener = l; });
+    }).catch(() => {});
+    return () => { listener?.remove?.(); };
+  }, []);
 
   useEffect(() => {
     const handlePushNav = (e) => {

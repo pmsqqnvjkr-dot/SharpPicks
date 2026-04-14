@@ -8,6 +8,7 @@ import DailyMarketReport from './DailyMarketReport';
 import { trackEvent } from '../../utils/eventTracker';
 import teamAbbr from '../../utils/teamAbbr';
 import sportDisplay from '../../utils/sportDisplay';
+import openSignup from '../../utils/openSignup';
 
 const PROD_URL = 'https://app.sharppicks.ai';
 const MV_API_BASE = Capacitor.isNativePlatform() ? PROD_URL : '';
@@ -1136,12 +1137,12 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
           <div style={{ fontSize: '11px', color: textMuted }}>
             Cover probability and quant reasoning available with Pro
           </div>
-          <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{
+          <button onClick={openSignup} style={{
             marginTop: 10, padding: '8px 16px', borderRadius: '6px',
             border: '1.5px solid #5A9E72', background: 'transparent',
             color: '#5A9E72', fontFamily: mono, fontSize: '11px',
             fontWeight: 600, letterSpacing: '1px', cursor: 'pointer',
-          }}>View Plans</button>
+          }}>Start 14-day free trial</button>
         </div>
       )}
     </div>

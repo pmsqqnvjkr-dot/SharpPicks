@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useApi, getAuthToken } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import teamAbbr, { teamCity } from '../../utils/teamAbbr';
+import openSignup from '../../utils/openSignup';
 
 const PT_API_BASE = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' : '';
 import PullToRefresh from '../shared/PullToRefresh';
@@ -356,7 +357,7 @@ export default function PicksTab({ onNavigate }) {
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 800, color: daysLeft <= 2 ? '#FBBF24' : 'var(--green-profit)', lineHeight: 1 }}>{daysLeft}d</div>
               </div>
               <div style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '14px' }}>You're inside the full model. {daysLeft <= 1 ? 'Access narrows tomorrow.' : `In ${daysLeft} days, access narrows.`}</div>
-              <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{ width: '100%', padding: '12px 24px', background: '#5A9E72', border: 'none', borderRadius: '8px', color: '#0A0D14', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '1px' }}>View Plans</button>
+              <button onClick={openSignup} style={{ width: '100%', padding: '12px 24px', background: '#5A9E72', border: 'none', borderRadius: '8px', color: '#0A0D14', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '1px' }}>Start 14-day free trial</button>
               <div style={{ textAlign: 'center', marginTop: '8px', fontFamily: 'var(--font-sans)', fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>Full decision visibility ends after trial.</div>
             </div>
           ) : null;
@@ -1347,8 +1348,7 @@ function FreePickNotice({ onUpgrade, resolved, pick }) {
           </div>
         ))}
       </div>
-      <button onClick={() => window.open('https://sharppicks.ai/#pricing', '_blank')} style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1.5px solid #5A9E72', background: 'transparent', color: '#5A9E72', fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, letterSpacing: '1px', cursor: 'pointer', textAlign: 'center' }}>View Plans</button>
-      <div style={{ textAlign: 'center', marginTop: '8px', fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--text-tertiary)' }}>Full details at sharppicks.ai</div>
+      <button onClick={openSignup} style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1.5px solid #5A9E72', background: 'transparent', color: '#5A9E72', fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, letterSpacing: '1px', cursor: 'pointer', textAlign: 'center' }}>Start 14-day free trial</button>
     </div>
   );
 }

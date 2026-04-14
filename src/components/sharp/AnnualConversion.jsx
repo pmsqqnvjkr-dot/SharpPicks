@@ -3,7 +3,7 @@ import { apiPost } from '../../hooks/useApi';
 import { Capacitor } from '@capacitor/core';
 
 const isNative = Capacitor.isNativePlatform();
-const WEB_BILLING_URL = 'https://app.sharppicks.ai/upgrade';
+const WEB_BILLING_URL = 'https://app.sharppicks.ai/signup';
 
 export default function AnnualConversion({ onBack, user, onDismiss }) {
   const [loading, setLoading] = useState(false);

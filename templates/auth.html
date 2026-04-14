@@ -127,12 +127,12 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
 
     <div class="card">
       <div class="tabs">
-        <button class="tab active" data-tab="login" onclick="switchTab('login')">Sign In</button>
+        <button class="tab" data-tab="login" onclick="switchTab('login')">Sign In</button>
         <button class="tab" data-tab="signup" onclick="switchTab('signup')">Get Started</button>
       </div>
 
       <!-- LOGIN -->
-      <div class="panel active" id="panel-login">
+      <div class="panel" id="panel-login">
         <div class="p-title">Welcome back</div>
         <p class="p-sub">Sign in to your account.</p>
         <div id="login-alert" class="alert"></div>
@@ -210,7 +210,7 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
 
 function switchTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));const p=document.getElementById('panel-'+t);if(p){p.classList.add('active');setTimeout(()=>{const i=p.querySelector('input');if(i)i.focus()},50)}const ti={login:'Sign In',signup:'Get Started'};document.title='SharpPicks \u2014 '+(ti[t]||'Sign In');history.replaceState(null,'',t==='login'?'/login':'/signup')}
 
-(function(){const p=new URLSearchParams(location.search).get('plan');const pg=location.pathname;if(p==='free'){switchTab('signup');handleFreeSwitch()}else if(pg.includes('signup')||pg.includes('register')||p==='annual'||p==='trial'||p==='monthly')switchTab('signup')})();
+(function(){const p=new URLSearchParams(location.search).get('plan');const pg=location.pathname;if(p==='free'){switchTab('signup');handleFreeSwitch()}else if(pg.includes('signup')||pg.includes('register')||p==='annual'||p==='trial'||p==='monthly'){switchTab('signup')}else{switchTab('login')}})();
 
 function handleFreeSwitch(){
   const form=document.getElementById('signup-form');

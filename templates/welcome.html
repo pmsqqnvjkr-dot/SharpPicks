@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" style="background:#0c1018;color-scheme:dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0c1018">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>SharpPicks — Welcome to Pro</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--navy:#0c1018;--navy-mid:#111827;--border:#1e2a3a;--text-primary:#e8eaf0;--text-secondary:#9098b3;--text-tertiary:#616a8a;--text-dim:#4a5274;--green:#5A9E72;--green-dim:rgba(90,158,114,.10);--serif:'IBM Plex Serif',Georgia,serif;--sans:'Inter',-apple-system,sans-serif;--mono:'JetBrains Mono','Menlo',monospace}
+*{margin:0;padding:0;box-sizing:border-box}html,body{min-height:100%}
+html{background:#0c1018 !important}
+body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+
+.shell{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow-y:auto}
+.shell::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(90,158,114,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(90,158,114,.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
+.shell::after{content:'';position:absolute;top:-20%;left:50%;transform:translateX(-50%);width:600px;height:500px;background:radial-gradient(ellipse,rgba(90,158,114,.06),transparent 70%);pointer-events:none}
+
+.ctr{width:100%;max-width:420px;position:relative;z-index:1;text-align:center;animation:eu .5s ease both}
+@keyframes eu{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+.check{width:64px;height:64px;border-radius:50%;background:var(--green-dim);border:2px solid var(--green);display:inline-flex;align-items:center;justify-content:center;margin-bottom:28px}
+.check svg{animation:pop .4s ease .3s both}
+@keyframes pop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+
+h1{font-family:var(--serif);font-size:26px;font-weight:600;margin-bottom:8px;color:var(--text-primary)}
+.sub{font-size:14px;color:var(--text-secondary);line-height:1.6;max-width:320px;margin:0 auto 32px}
+
+.open-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:320px;padding:16px 32px;background:var(--green);border:none;border-radius:10px;color:#fff;font-family:var(--mono);font-size:14px;font-weight:500;letter-spacing:.04em;cursor:pointer;text-decoration:none;transition:background .2s,transform .1s}
+.open-btn:hover{background:#4e8c64}
+.open-btn:active{transform:scale(.99)}
+.open-btn svg{flex-shrink:0}
+
+.fallback{font-size:13px;color:var(--text-tertiary);line-height:1.5;max-width:300px;margin:20px auto 0}
+
+.bar{text-align:center;padding:20px 24px;font-size:11px;color:var(--text-dim);line-height:1.6}
+.bar a{color:var(--text-tertiary);text-decoration:none}
+.bar a:hover{color:var(--text-secondary)}
+
+@media(max-width:480px){.ctr{max-width:100%}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="ctr">
+    <div class="check">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5A9E72" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h1>You're in. Welcome to Pro.</h1>
+    <p class="sub">Your 14-day trial is active. Full signals, edge analysis, and performance tracking are unlocked.</p>
+    <a href="https://app.sharppicks.ai/open" class="open-btn">
+      Open SharpPicks app
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </a>
+    <p class="fallback">Already have the app? Reopen it &mdash; your Pro access is active.</p>
+  </div>
+</div>
+
+<div class="bar">
+  <a href="https://sharppicks.ai">SharpPicks</a> &middot; <a href="https://sharppicks.ai/support.html">Support</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a>
+</div>
+
+</body>
+</html>
