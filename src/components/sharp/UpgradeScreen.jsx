@@ -275,7 +275,6 @@ export default function UpgradeScreen({ onBack, user }) {
                 price={monthlyPrice}
                 selected={selectedPlan === 'monthly'}
                 onSelect={() => setSelectedPlan('monthly')}
-                badge="14-day trial"
               />
             </div>
 
@@ -298,7 +297,7 @@ export default function UpgradeScreen({ onBack, user }) {
             <button
               onClick={async () => {
                 const { Browser } = await import('@capacitor/browser');
-                await Browser.open({ url: WEB_BILLING_URL });
+                await Browser.open({ url: 'https://app.sharppicks.ai/subscribe' });
               }}
               style={{
                 display: 'block', width: '100%', padding: '10px',
