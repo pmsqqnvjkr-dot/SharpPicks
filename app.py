@@ -5438,7 +5438,7 @@ def cron_mrr_snapshot():
         if existing:
             return {'skipped': True, 'date': today.isoformat()}
         MONTHLY_CENTS = 1999
-        ANNUAL_MONTHLY_CENTS = round(14999 / 12)
+        ANNUAL_MONTHLY_CENTS = round(14900 / 12)
         active_users = User.query.filter_by(subscription_status='active').all()
         mrr = 0
         monthly = 0
@@ -5929,7 +5929,7 @@ def _create_trial_checkout_url(user):
             if p.recurring and p.recurring.interval == 'year':
                 yearly_prices.append(p)
         founding = [p for p in yearly_prices if p.unit_amount == 9900]
-        standard = [p for p in yearly_prices if p.unit_amount == 14999]
+        standard = [p for p in yearly_prices if p.unit_amount == 14900]
         price_id = (founding[0].id if founding
                     else standard[0].id if standard
                     else yearly_prices[0].id if yearly_prices
@@ -6188,7 +6188,7 @@ def create_checkout():
                 price_id = monthly_prices[0].id
             elif plan == 'trial' and yearly_prices:
                 founding = [p for p in yearly_prices if p.unit_amount == 9900]
-                standard = [p for p in yearly_prices if p.unit_amount == 14999]
+                standard = [p for p in yearly_prices if p.unit_amount == 14900]
                 price_id = (founding[0].id if founding
                             else standard[0].id if standard
                             else yearly_prices[0].id)
@@ -6196,7 +6196,7 @@ def create_checkout():
                 founding = [p for p in yearly_prices if p.unit_amount == 9900]
                 price_id = founding[0].id if founding else yearly_prices[0].id
             elif plan in ('annual', 'annual_standard') and yearly_prices:
-                standard = [p for p in yearly_prices if p.unit_amount == 14999]
+                standard = [p for p in yearly_prices if p.unit_amount == 14900]
                 price_id = standard[0].id if standard else yearly_prices[-1].id
             elif prices.data:
                 price_id = prices.data[0].id
