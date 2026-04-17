@@ -109,7 +109,8 @@ textarea::placeholder { color:#333845; }
 
 <script>
 const CHAT_ENDPOINT = '/api/evan/chat';
-const TOKEN = new URLSearchParams(location.search).get('t') || '07b5633a5aab4e9d490f408cbbcc1de0';
+const TOKEN = new URLSearchParams(location.search).get('t') || '';
+if (!TOKEN) { document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:JetBrains Mono,monospace;color:#333845;font-size:13px;">access denied</div>'; }
 let history = [];
 let busy = false;
 
