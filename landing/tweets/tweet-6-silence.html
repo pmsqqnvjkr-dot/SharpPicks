@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1200px; height: 675px; overflow: hidden;
+  background: #0A0D14;
+}
+.card {
+  width: 1200px; height: 675px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #0A0D14;
+  overflow: hidden;
+}
+
+/* Noise layer — tout chaos fading from left */
+.noise-layer {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 52%;
+  background: #0A0D14;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 56px 0 64px;
+  gap: 10px;
+}
+.noise-fade {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 200px;
+  background: linear-gradient(to right, transparent, #0A0D14);
+  z-index: 2;
+}
+.tout-item {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 11px 18px;
+  border-radius: 6px;
+  border: 1px solid;
+  opacity: 0.22;
+  position: relative;
+}
+.tout-item::after {
+  content: '✕';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  opacity: 0.5;
+}
+.tout-1 { color: #ef4444; border-color: #3a1a1a; background: rgba(239,68,68,0.04); }
+.tout-2 { color: #f59e0b; border-color: #3a2a10; background: rgba(245,158,11,0.04); }
+.tout-3 { color: #ef4444; border-color: #3a1a1a; background: rgba(239,68,68,0.04); }
+.tout-4 { color: #f59e0b; border-color: #3a2a10; background: rgba(245,158,11,0.04); }
+.tout-5 { color: #ef4444; border-color: #3a1a1a; background: rgba(239,68,68,0.04); }
+
+/* Divider */
+.divider-vert {
+  position: absolute;
+  left: 50%;
+  top: 10%;
+  bottom: 10%;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, #2a3654 30%, #2a3654 70%, transparent);
+  z-index: 3;
+}
+
+/* Signal side */
+.signal-side {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 48%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 72px;
+  gap: 28px;
+  z-index: 4;
+}
+
+.signal-mark {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 72px;
+  font-weight: 700;
+  color: #5A9E72;
+  letter-spacing: -4px;
+  line-height: 1;
+  text-shadow: 0 0 60px rgba(90,158,114,0.3);
+}
+
+.headline {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #EEF2FF;
+  text-align: center;
+}
+.headline em {
+  font-style: italic;
+  color: #5A9E72;
+}
+
+.data-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  background: rgba(90,158,114,0.06);
+  border: 1px solid rgba(90,158,114,0.2);
+  border-radius: 8px;
+  padding: 16px 28px;
+  width: 100%;
+}
+.data-main {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #5A9E72;
+}
+.data-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: #4a5274;
+}
+
+.silence-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #2a3654;
+}
+
+/* Corners */
+.corner { position: absolute; width: 24px; height: 24px; z-index: 10; }
+.corner.tl { top: 28px; left: 28px; border-top: 1.5px solid #2a3654; border-left: 1.5px solid #2a3654; }
+.corner.tr { top: 28px; right: 28px; border-top: 1.5px solid #2a3654; border-right: 1.5px solid #2a3654; }
+.corner.bl { bottom: 28px; left: 28px; border-bottom: 1.5px solid #2a3654; border-left: 1.5px solid #2a3654; }
+.corner.br { bottom: 28px; right: 28px; border-bottom: 1.5px solid #2a3654; border-right: 1.5px solid #2a3654; }
+
+.wordmark {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  color: #2a3654;
+  z-index: 10;
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="card">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <!-- Left: noise/tout chaos -->
+  <div class="noise-layer">
+    <div class="tout-item tout-1">⚡ 5-STAR LOCK OF THE YEAR</div>
+    <div class="tout-item tout-2">🔥 MAX BET ALERT — ACT NOW</div>
+    <div class="tout-item tout-3">💰 GUARANTEED WINNER · VIP</div>
+    <div class="tout-item tout-4">🚨 12-PICK MEGA SLATE DROP</div>
+    <div class="tout-item tout-1">⭐ 95% RECORD · TRUST THE PROCESS</div>
+    <div class="noise-fade"></div>
+  </div>
+
+  <!-- Vertical divider -->
+  <div class="divider-vert"></div>
+
+  <!-- Right: signal -->
+  <div class="signal-side">
+    <div class="signal-mark">||</div>
+    <div class="headline">
+      The loudest room in<br>sports betting just<br>went <em>quiet</em>.
+    </div>
+    <div class="data-row">
+      <div class="data-main">+8.0% EDGE · 72.8% MODEL · CLV+</div>
+      <div class="data-sub">Market Intelligence · Not Market Noise</div>
+    </div>
+    <div class="silence-line">sharppicks.ai</div>
+  </div>
+
+  <div class="wordmark">SHARP · PICKS</div>
+</div>
+</body>
+</html>

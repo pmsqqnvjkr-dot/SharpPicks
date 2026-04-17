@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1200px; height: 675px; overflow: hidden;
+  background: #0A0D14;
+  font-family: 'IBM Plex Serif', Georgia, serif;
+  display: flex; align-items: center; justify-content: center;
+}
+.card {
+  width: 1200px; height: 675px;
+  background: #0A0D14;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 72px 96px;
+}
+.corner { position: absolute; width: 28px; height: 28px; }
+.corner.tl { top: 32px; left: 32px; border-top: 2px solid #2a3654; border-left: 2px solid #2a3654; }
+.corner.tr { top: 32px; right: 32px; border-top: 2px solid #2a3654; border-right: 2px solid #2a3654; }
+.corner.bl { bottom: 32px; left: 32px; border-bottom: 2px solid #2a3654; border-left: 2px solid #2a3654; }
+.corner.br { bottom: 32px; right: 32px; border-bottom: 2px solid #2a3654; border-right: 2px solid #2a3654; }
+.tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: #5A9E72;
+  margin-bottom: 28px;
+}
+.headline {
+  font-size: 42px; font-weight: 600; line-height: 1.2;
+  color: #EEF2FF;
+  margin-bottom: 32px;
+  max-width: 820px;
+}
+.headline em { font-style: italic; color: #5A9E72; }
+.body {
+  font-family: 'Inter', sans-serif;
+  font-size: 19px; line-height: 1.75;
+  color: #9AA3B2;
+  max-width: 780px;
+  margin-bottom: 44px;
+}
+.body strong { color: #EEF2FF; font-weight: 600; }
+.stat-row {
+  display: flex; gap: 48px; align-items: center;
+}
+.stat {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.stat-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px; font-weight: 700;
+  color: #5A9E72;
+  letter-spacing: -0.5px;
+}
+.stat-lbl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: #4a5274;
+}
+.wordmark {
+  position: absolute;
+  bottom: 36px; right: 52px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 500;
+  letter-spacing: 3px;
+  color: #2a3654;
+}
+.divider {
+  width: 48px; height: 2px;
+  background: #5A9E72;
+  margin-bottom: 32px;
+  border-radius: 2px;
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="card">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <div class="tag">Signal Integrity</div>
+  <div class="divider"></div>
+  <div class="headline">4 of our last 8 signals were <em>revoked</em> before tip.</div>
+  <div class="body">
+    That's not a bug. That's the system.<br>
+    When the line moves against the edge, we pull the pick.<br>
+    Every time. No exceptions.<br><br>
+    The model doesn't care about being right.<br>It cares about the <strong>number</strong>.
+  </div>
+  <div class="stat-row">
+    <div class="stat">
+      <div class="stat-val">3.5%</div>
+      <div class="stat-lbl">Min Edge</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">0</div>
+      <div class="stat-lbl">Picks Deleted</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">CLV</div>
+      <div class="stat-lbl">Core Metric</div>
+    </div>
+  </div>
+
+  <div class="wordmark">SHARP · PICKS</div>
+</div>
+</body>
+</html>

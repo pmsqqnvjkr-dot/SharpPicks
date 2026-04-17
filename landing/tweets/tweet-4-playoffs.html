@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1200px; height: 675px; overflow: hidden;
+  background: #0A0D14;
+}
+.card {
+  width: 1200px; height: 675px;
+  background: #0A0D14;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 72px 160px;
+}
+.corner { position: absolute; width: 28px; height: 28px; }
+.corner.tl { top: 32px; left: 32px; border-top: 2px solid #2a3654; border-left: 2px solid #2a3654; }
+.corner.tr { top: 32px; right: 32px; border-top: 2px solid #2a3654; border-right: 2px solid #2a3654; }
+.corner.bl { bottom: 32px; left: 32px; border-bottom: 2px solid #2a3654; border-left: 2px solid #2a3654; }
+.corner.br { bottom: 32px; right: 32px; border-bottom: 2px solid #2a3654; border-right: 2px solid #2a3654; }
+.tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: #5A9E72;
+  margin-bottom: 28px;
+  display: flex; align-items: center; gap: 16px;
+}
+.tag::before, .tag::after {
+  content: '';
+  display: block;
+  width: 40px; height: 1px;
+  background: #2a3654;
+}
+.headline {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 52px; font-weight: 600; line-height: 1.15;
+  color: #EEF2FF;
+  margin-bottom: 32px;
+}
+.headline em { font-style: italic; color: #5A9E72; }
+.body {
+  font-family: 'Inter', sans-serif;
+  font-size: 19px; line-height: 1.75;
+  color: #9AA3B2;
+  max-width: 720px;
+  margin-bottom: 44px;
+}
+.body strong { color: #EEF2FF; font-weight: 600; }
+.signal-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px; font-weight: 600;
+  letter-spacing: 4px;
+  color: #5A9E72;
+}
+.wordmark {
+  position: absolute;
+  bottom: 36px; right: 52px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 500;
+  letter-spacing: 3px;
+  color: #2a3654;
+}
+.badge {
+  position: absolute;
+  top: 38px; right: 52px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: #4a5274;
+  border: 1px solid #1e2a3a;
+  padding: 5px 12px;
+  border-radius: 4px;
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="card">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+  <div class="badge">NBA Playoffs · Apr 2026</div>
+
+  <div class="tag">Market Read</div>
+
+  <div class="headline">The market is pricing<br><em>regular-season patterns</em><br>on a postseason board.</div>
+
+  <div class="body">
+    Seeding is volatile. Rest advantages are real.<br>
+    The model is watching.<br><br>
+    When it sees something, it says so.<br>
+    When it doesn't, it stays <strong>quiet</strong>.
+  </div>
+
+  <div class="signal-line">SILENCE · IS · SIGNAL</div>
+
+  <div class="wordmark">SHARP · PICKS</div>
+</div>
+</body>
+</html>

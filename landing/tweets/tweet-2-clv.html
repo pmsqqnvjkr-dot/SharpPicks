@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1200px; height: 675px; overflow: hidden;
+  background: #0A0D14;
+  font-family: 'IBM Plex Serif', Georgia, serif;
+  display: flex; align-items: center; justify-content: center;
+}
+.card {
+  width: 1200px; height: 675px;
+  background: #0A0D14;
+  position: relative;
+  display: flex;
+  padding: 72px 96px;
+  gap: 80px;
+  align-items: center;
+}
+.corner { position: absolute; width: 28px; height: 28px; }
+.corner.tl { top: 32px; left: 32px; border-top: 2px solid #2a3654; border-left: 2px solid #2a3654; }
+.corner.tr { top: 32px; right: 32px; border-top: 2px solid #2a3654; border-right: 2px solid #2a3654; }
+.corner.bl { bottom: 32px; left: 32px; border-bottom: 2px solid #2a3654; border-left: 2px solid #2a3654; }
+.corner.br { bottom: 32px; right: 32px; border-bottom: 2px solid #2a3654; border-right: 2px solid #2a3654; }
+.left { flex: 1; }
+.right {
+  width: 340px;
+  background: #0D1017;
+  border: 1px solid #1e2a3a;
+  border-radius: 12px;
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: #5A9E72;
+  margin-bottom: 20px;
+}
+.headline {
+  font-size: 38px; font-weight: 600; line-height: 1.2;
+  color: #EEF2FF;
+  margin-bottom: 24px;
+}
+.headline em { font-style: italic; color: #5A9E72; }
+.body {
+  font-family: 'Inter', sans-serif;
+  font-size: 17px; line-height: 1.75;
+  color: #9AA3B2;
+}
+.body strong { color: #EEF2FF; font-weight: 600; }
+.metric {
+  display: flex; flex-direction: column; gap: 6px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #1e2a3a;
+}
+.metric:last-child { border-bottom: none; padding-bottom: 0; }
+.metric-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 36px; font-weight: 700;
+  letter-spacing: -1px;
+}
+.metric-val.green { color: #5A9E72; }
+.metric-val.muted { color: #4a5274; }
+.metric-lbl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: #4a5274;
+}
+.metric-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; color: #616a8a;
+  margin-top: 2px;
+}
+.wordmark {
+  position: absolute;
+  bottom: 36px; right: 52px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 500;
+  letter-spacing: 3px;
+  color: #2a3654;
+}
+.divider { width: 40px; height: 2px; background: #5A9E72; margin-bottom: 24px; border-radius: 2px; }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="card">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <div class="left">
+    <div class="tag">Performance</div>
+    <div class="divider"></div>
+    <div class="headline">Our record: 22-20.<br>Our avg CLV: <em>+0.04</em>.</div>
+    <div class="body">
+      One of those numbers predicts long-term profitability.<br>
+      The other tells you what happened last week.<br><br>
+      We track both.<br>
+      We optimize for <strong>one</strong>.
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="metric">
+      <div class="metric-val muted">22-20</div>
+      <div class="metric-lbl">Win-Loss Record</div>
+      <div class="metric-sub">What the scoreboard shows</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val green">+0.04</div>
+      <div class="metric-lbl">Avg Closing Line Value</div>
+      <div class="metric-sub">What actually matters</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val green">42</div>
+      <div class="metric-lbl">Signals Published</div>
+      <div class="metric-sub">0 deleted. All on the record.</div>
+    </div>
+  </div>
+
+  <div class="wordmark">SHARP · PICKS</div>
+</div>
+</body>
+</html>

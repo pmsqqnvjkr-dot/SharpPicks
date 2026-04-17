@@ -2,103 +2,338 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Evan · SharpPicks</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap');
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html, body { height:100%; background:#060810; overflow:hidden; }
-body { font-family:'Inter',sans-serif; color:#EEF2FF; display:flex; flex-direction:column; max-width:480px; margin:0 auto; height:100%; }
 
-.header { display:flex; align-items:center; justify-content:space-between; padding:52px 20px 14px; background:#0A0D14; border-bottom:1px solid #1A1F2E; flex-shrink:0; }
-.header-left { display:flex; align-items:center; gap:10px; }
-.signal-avatar { width:36px; height:36px; background:rgba(90,158,114,0.15); border:1px solid rgba(90,158,114,0.3); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.signal-avatar img { width:20px; height:20px; opacity:0.9; }
-.header-title { font-family:'IBM Plex Serif',serif; font-size:17px; font-weight:600; color:#EEF2FF; }
-.header-sub { font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:#5A9E72; margin-top:1px; }
-.status-dot { width:7px; height:7px; background:#5A9E72; border-radius:50%; box-shadow:0 0 6px rgba(90,158,114,0.6); }
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: #060810; }
 
-.messages { flex:1; overflow-y:auto; padding:20px 16px; display:flex; flex-direction:column; gap:18px; background:#080B12; scrollbar-width:none; }
-.messages::-webkit-scrollbar { display:none; }
+body {
+  font-family: 'Inter', sans-serif;
+  color: #EEF2FF;
+  display: flex;
+  flex-direction: column;
+  max-width: 430px;
+  margin: 0 auto;
+  height: 100%;
+  position: relative;
+}
 
-.date-div { display:flex; align-items:center; gap:10px; margin:4px 0; }
-.date-div span { font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:500; letter-spacing:2px; text-transform:uppercase; color:#333845; white-space:nowrap; }
-.date-div::before, .date-div::after { content:''; flex:1; height:1px; background:#1A1F2E; }
+/* ── HEADER ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 52px 20px 14px;
+  background: #0A0D14;
+  border-bottom: 1px solid #1A1F2E;
+  position: sticky; top: 0; z-index: 10;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.signal-avatar {
+  width: 36px; height: 36px;
+  background: rgba(90,158,114,0.15);
+  border: 1px solid rgba(90,158,114,0.3);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.signal-avatar img { width: 20px; height: 20px; opacity: 0.9; }
+.header-title { font-family: 'IBM Plex Serif', serif; font-size: 17px; font-weight: 600; color: #EEF2FF; }
+.header-sub { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #5A9E72; margin-top: 1px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.status-dot { width: 7px; height: 7px; background: #5A9E72; border-radius: 50%; box-shadow: 0 0 6px rgba(90,158,114,0.6); }
+.header-menu { color: #626878; font-size: 18px; cursor: pointer; }
 
-.msg { display:flex; flex-direction:column; gap:4px; max-width:85%; }
-.msg.evan { align-self:flex-start; }
-.msg.user { align-self:flex-end; }
-.bubble { padding:12px 14px; border-radius:16px; font-size:14px; line-height:1.65; }
-.evan .bubble { background:#0D1017; border:1px solid #1A1F2E; border-bottom-left-radius:4px; color:#D4D8E8; }
-.user .bubble { background:rgba(90,158,114,0.15); border:1px solid rgba(90,158,114,0.25); border-bottom-right-radius:4px; color:#EEF2FF; }
-.msg-meta { font-family:'JetBrains Mono',monospace; font-size:9px; color:#2a3048; padding:0 4px; }
-.evan .msg-meta { text-align:left; }
-.user .msg-meta { text-align:right; }
+/* ── MESSAGES ── */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: #080B12;
+  scrollbar-width: none;
+}
+.messages::-webkit-scrollbar { display: none; }
 
-.typing { display:flex; align-items:center; gap:4px; padding:12px 14px; background:#0D1017; border:1px solid #1A1F2E; border-radius:16px; border-bottom-left-radius:4px; width:fit-content; }
-.typing span { width:5px; height:5px; background:#5A9E72; border-radius:50%; animation:bounce 1.2s infinite; }
-.typing span:nth-child(2) { animation-delay:0.2s; }
-.typing span:nth-child(3) { animation-delay:0.4s; }
-@keyframes bounce { 0%,60%,100%{transform:translateY(0);opacity:0.4} 30%{transform:translateY(-5px);opacity:1} }
+/* Date divider */
+.date-divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 4px 0;
+}
+.date-divider span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 500; letter-spacing: 2px;
+  text-transform: uppercase; color: #333845;
+  white-space: nowrap;
+}
+.date-divider::before, .date-divider::after {
+  content: ''; flex: 1; height: 1px; background: #1A1F2E;
+}
 
-.prompts { padding:10px 16px 6px; display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; background:#080B12; flex-shrink:0; }
-.prompts::-webkit-scrollbar { display:none; }
-.chip { flex-shrink:0; padding:7px 12px; background:#0D1017; border:1px solid #1A1F2E; border-radius:20px; font-family:'JetBrains Mono',monospace; font-size:10px; color:#9AA3B2; cursor:pointer; white-space:nowrap; transition:all 0.15s; }
-.chip:active { background:rgba(90,158,114,0.1); border-color:rgba(90,158,114,0.3); color:#5A9E72; }
+/* Message bubbles */
+.msg { display: flex; flex-direction: column; gap: 4px; max-width: 84%; }
+.msg.evan { align-self: flex-start; }
+.msg.user { align-self: flex-end; }
 
-.input-bar { padding:10px 16px 28px; background:#0A0D14; border-top:1px solid #1A1F2E; flex-shrink:0; }
-.input-row { display:flex; align-items:flex-end; gap:10px; background:#0D1017; border:1px solid #1A1F2E; border-radius:22px; padding:8px 8px 8px 16px; transition:border-color 0.15s; }
-.input-row:focus-within { border-color:rgba(90,158,114,0.35); }
-textarea { flex:1; background:none; border:none; outline:none; color:#EEF2FF; font-family:'Inter',sans-serif; font-size:14px; line-height:1.5; resize:none; max-height:100px; min-height:22px; }
-textarea::placeholder { color:#333845; }
-.send-btn { width:34px; height:34px; flex-shrink:0; background:#5A9E72; border:none; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background 0.15s; }
-.send-btn:disabled { background:#1A1F2E; cursor:not-allowed; }
-.send-btn svg { width:14px; height:14px; fill:#0A0D14; }
+.bubble {
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 14px; line-height: 1.6;
+}
+.evan .bubble {
+  background: #0D1017;
+  border: 1px solid #1A1F2E;
+  border-bottom-left-radius: 4px;
+  color: #D4D8E8;
+}
+.user .bubble {
+  background: rgba(90,158,114,0.15);
+  border: 1px solid rgba(90,158,114,0.25);
+  border-bottom-right-radius: 4px;
+  color: #EEF2FF;
+}
 
-.wordmark-bar { text-align:center; padding:0 0 4px; background:#0A0D14; flex-shrink:0; }
-.wordmark-bar img { height:13px; opacity:0.15; }
+.msg-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: #333845;
+  padding: 0 4px;
+}
+.evan .msg-meta { text-align: left; }
+.user .msg-meta { text-align: right; }
 
-.error-banner { background:rgba(196,104,107,0.1); border:1px solid rgba(196,104,107,0.2); border-radius:8px; padding:10px 14px; font-size:12px; color:#C4686B; font-family:'JetBrains Mono',monospace; display:none; margin:0 16px 8px; }
+/* Signal card inside chat */
+.signal-card {
+  background: #0D1017;
+  border: 1px solid #1A1F2E;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 8px;
+  max-width: 300px;
+}
+.signal-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.signal-card-sport {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+  color: #5A9E72;
+}
+.signal-card-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: #333845;
+}
+.signal-card-pick {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 15px; font-weight: 600; color: #EEF2FF;
+  margin-bottom: 8px;
+}
+.signal-card-stats {
+  display: flex; gap: 14px;
+}
+.signal-stat { display: flex; flex-direction: column; gap: 2px; }
+.signal-stat-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 700; color: #5A9E72;
+}
+.signal-stat-lbl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase;
+  color: #454B5C;
+}
+.signal-card-divider { height: 1px; background: #1A1F2E; margin: 10px 0; }
+.signal-card-note {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; line-height: 1.5; color: #626878;
+}
+
+/* Typing indicator */
+.typing {
+  display: flex; align-items: center; gap: 4px;
+  padding: 12px 14px;
+  background: #0D1017;
+  border: 1px solid #1A1F2E;
+  border-radius: 16px; border-bottom-left-radius: 4px;
+  width: fit-content;
+}
+.typing span {
+  width: 5px; height: 5px; background: #5A9E72; border-radius: 50%;
+  animation: bounce 1.2s infinite;
+}
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* ── SUGGESTED PROMPTS ── */
+.prompts {
+  padding: 10px 16px 6px;
+  display: flex; gap: 8px; overflow-x: auto;
+  scrollbar-width: none; background: #080B12;
+}
+.prompts::-webkit-scrollbar { display: none; }
+.prompt-chip {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  background: #0D1017;
+  border: 1px solid #1A1F2E;
+  border-radius: 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: #9AA3B2;
+  cursor: pointer; white-space: nowrap;
+  transition: all 0.15s;
+}
+.prompt-chip:active { background: rgba(90,158,114,0.1); border-color: rgba(90,158,114,0.3); color: #5A9E72; }
+
+/* ── INPUT ── */
+.input-bar {
+  padding: 10px 16px 28px;
+  background: #0A0D14;
+  border-top: 1px solid #1A1F2E;
+}
+.input-row {
+  display: flex; align-items: flex-end; gap: 10px;
+  background: #0D1017;
+  border: 1px solid #1A1F2E;
+  border-radius: 22px;
+  padding: 8px 8px 8px 16px;
+  transition: border-color 0.15s;
+}
+.input-row:focus-within { border-color: rgba(90,158,114,0.35); }
+.input-field {
+  flex: 1; background: none; border: none; outline: none;
+  color: #EEF2FF; font-family: 'Inter', sans-serif; font-size: 14px;
+  line-height: 1.5; resize: none; max-height: 100px; min-height: 22px;
+}
+.input-field::placeholder { color: #333845; }
+.send-btn {
+  width: 34px; height: 34px; flex-shrink: 0;
+  background: #5A9E72; border: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s;
+}
+.send-btn:active { background: #4A8F62; }
+.send-icon { width: 14px; height: 14px; fill: #0A0D14; }
+
+/* Wordmark footer */
+.wordmark-bar {
+  text-align: center; padding: 0 0 4px;
+  background: #0A0D14;
+}
+.wordmark-bar img { height: 14px; opacity: 0.2; }
+
 </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <div class="header">
   <div class="header-left">
-    <div class="signal-avatar"><img src="data:image/png;base64,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0AEAACBAoAMAAECAQAcAAIAAgQ4AAAABAh0AAAACBDoAAAAECHQAAAAIEOgAAAAQINABAAAgQKADAABAgEAHAACAAIEOAAAAAQIdAAAAAgQ6AAAABAh0AAAACBDoAAAAECDQAQAAIECgAwAAQIBABwAAgACBDgAAAAECHQAAAAIEOgAAAAQIdAAAAAgQ6AAAABAg0AEAACBAoAMAAECAQAcAAIAAgQ4AAAABAh0AAAACBDoAAAAECHQAAAAIEOgAAAAQINABAAAgQKADAABAgEAHAACAAIEOAAAAAQIdAAAAAgQ6AAAABAh0AAAACBDoAAAAECDQAQAAIECgAwAAQIBABwAAgACBDgAAAAECHQAAAAIEOgAAAAQIdAAAAAgQ6AAAABAg0AEAACBAoAMAAECAQAcAAIAAgQ4AAAABAh0AAAACBDoAAAAECHQAAAAIEOgAAAAQINABAAAgQKADAABAgEAHAACAAIEOAAAAAQIdAAAAAgQ6AAAABAh0AAAACBDoAAAAECDQAQAAIECgAwAAQIBABwAAgACBDgAAAAECHQAAAAIEOgAAAAQIdAAAAAgQ6AAAABAg0AEAACBAoAMAAECAQAcAAIAAgQ4AAAABAh0AAAACBDoAAAAECHQAAAAIEOgAAAAQINABAAAgQKADAABAgEAHAACAAIEOAAAAAQIdAAAAAgQ6AAAABAh0AAAACBDoAAAAECDQAQAAIECgAwAAQIBABwAAgACBDgAAAAECHQAAAAIEOgAAAAQIdAAAAAgQ6AAAABAg0AEAACBAoAMAAECAQAcAAIAAgQ4AAAABAh0AAAACBDoAAAAECHQAAAAIEOgAAAAQINABAAAgQKADAABAgEAHAACAAIEOAAAAAQIdAAAAAgQ6AAAABAh0AAAACBDoAAAAECDQAQAAIECgAwAAQIBABwAAgACBDgAAAAECHQAAAAIEOgAAAAQIdAAAAAgQ6AAAABAg0AEAACBAoAMAAECAQAcAAIAAgQ4AAAABAh0AAAACBDoAAAAECHQAAAAIEOgAAAAQINABAAAgQKADAABAgEAHAACAAIEOAAAAAQIdAAAAAgQ6AAAABAh0AAAACBDoAAAAECDQAQAAIECgAwAAQIBABwAAgACBDgAAAAECHQAAAAIEOgAAAAQIdAAAAAgQ6AAAABAg0AEAACBAoAMAAECAQAcAAIAA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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACGeweIPN69fUEmBAAAAABJRU5ErkJggg==" alt=""></div>
+    <div class="signal-avatar">
+      <img src="data:image/png;base64,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0AEAACBAoAMAAECAQAcAAIAAgQ4AAAABAh0AAAACBDoAAAAECHQAAAAIEOgAAAAQINABAAAgQKADAABAgEAHAACAAIEOAAAAAQIdAAAAAgQ6AAAABAh0AAAACBDoAAAAECDQAQAAIECgAwAAQIBABwAAgACBDgAAAAECHQAAAAIEOgAAAAQIdAAAAAgQ6AAAABAg0AEAACBAoAMAAECAQAcAAIAAgQ4AAAABAh0AAAACBDoAAAAECHQAAAAIEOgAAAAQINABAAAgQKADAABAgEAHAACAAIEOAAAAAQIdAAAAAgQ6AAAABAh0AAAACBDoAAAAECDQAQAAIECgAwAAQIBABwAAgACBDgAAAAECHQAAAAIEOgAAAAQIdAAAAAgQ6AAAABAg0AEAACBAoAMAAECAQAcAAIAAgQ4AAAABAh0AAAACBDoAAAAECHQAAAAIEOgAAAAQINABAAAgQKADAABAgEAHAACAAIEOAAAAAQIdAAAAAgQ6AAAABAh0AAAACBDoAAAAECDQAQAAIECgAwAAQIBABwAAgACBDgAAAAECHQAAAAIEOgAAAAQIdAAAAAgQ6AAAABAg0AEAACBAoAMAAECAQAcAAIAAgQ4AAAABAh0AAAACBDoAAAAECHQAAAAIEOgAAAAQINABAAAgQKADAABAgEAHAACAAIEOAAAAAQIdAAAAAgQ6AAAABAh0AAAACBDoAAAAECDQAQAAIECgAwAAQIBABwAAgACBDgAAAAECHQAAAAIEOgAAAAQIdAAAAAgQ6AAAABAg0AEAACBAoAMAAECAQAcAAIAAgQ4AAAABAh0AAAACBDoAAAAECHQAAAAIEOgAAAAQINABAAAgQKADAABAgEAHAACAAIEOAAAAAQIdAAAAAgQ6AAAABAh0AAAACBDoAAAAECDQAQAAIECgAwAAQIBABwAAgACBDgAAAAECHQAAAAIEOgAAAAQIdAAAAAgQ6AAAABAg0AEAACBAoAMAAECAQAcAAIAAgQ4AAAABAh0AAAACBDoAAAAECHQAAAAIEOgAAAAQINABAAAgQKADAABAgEAHAACAAIEOAAAAAQIdAAAAAgQ6AAAABAh0AAAACBDoAAAAECDQAQAAIECgAwAAQIBABwAAgACBDgAAAAECHQAAAAIEOgAAAAQIdAAAAAgQ6AAAABAg0AEAACBAoAMAAECAQAcAAIAA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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACGeweIPN69fUEmBAAAAABJRU5ErkJggg==" alt="Signal">
+    </div>
     <div>
       <div class="header-title">Evan</div>
       <div class="header-sub">Head of Signal Intelligence</div>
     </div>
   </div>
-  <div class="status-dot"></div>
-</div>
-
-<div class="messages" id="msgs">
-  <div class="date-div"><span>Today</span></div>
-  <div class="msg evan">
-    <div class="bubble">What do you need?</div>
-    <div class="msg-meta">Evan</div>
+  <div class="header-right">
+    <div class="status-dot"></div>
+    <div class="header-menu">···</div>
   </div>
 </div>
 
-<div class="error-banner" id="err"></div>
+<!-- MESSAGES -->
+<div class="messages" id="messages">
 
-<div class="prompts">
-  <div class="chip" onclick="chip(this)">Today's slate</div>
-  <div class="chip" onclick="chip(this)">Last pick result</div>
-  <div class="chip" onclick="chip(this)">Season record</div>
-  <div class="chip" onclick="chip(this)">Explain the model</div>
-  <div class="chip" onclick="chip(this)">NBA playoff edges</div>
-  <div class="chip" onclick="chip(this)">Pass day?</div>
+  <div class="date-divider"><span>Today · Apr 17</span></div>
+
+  <!-- Evan opening -->
+  <div class="msg evan">
+    <div class="bubble">
+      Morning. MLB slate is light today — scanned 8 games, nothing cleared 3.5%. NBA regular season ended last night, playoffs start Saturday.<br><br>
+      One thing worth watching: the Celtics line has moved 2 points toward the chalk since open on Game 1. Could be sharp action or could be public. I'll flag if the model sees edge develop.
+    </div>
+    <div class="msg-meta">Evan · 9:04 AM</div>
+  </div>
+
+  <!-- Signal card -->
+  <div class="msg evan">
+    <div class="signal-card">
+      <div class="signal-card-header">
+        <span class="signal-card-sport">MLB · Apr 16</span>
+        <span class="signal-card-date">GRADED · WIN</span>
+      </div>
+      <div class="signal-card-pick">San Francisco Giants +1.5</div>
+      <div class="signal-card-stats">
+        <div class="signal-stat">
+          <div class="signal-stat-val">+6.0%</div>
+          <div class="signal-stat-lbl">Edge</div>
+        </div>
+        <div class="signal-stat">
+          <div class="signal-stat-val">+1.7u</div>
+          <div class="signal-stat-lbl">Result</div>
+        </div>
+        <div class="signal-stat">
+          <div class="signal-stat-val">+0.0</div>
+          <div class="signal-stat-lbl">CLV</div>
+        </div>
+      </div>
+      <div class="signal-card-divider"></div>
+      <div class="signal-card-note">SF Giants 3, CIN Reds 0. Line held at open.</div>
+    </div>
+    <div class="msg-meta">Evan · 9:04 AM</div>
+  </div>
+
+  <!-- User message -->
+  <div class="msg user">
+    <div class="bubble">What should I watch in the playoffs this week?</div>
+    <div class="msg-meta">9:11 AM</div>
+  </div>
+
+  <!-- Evan response -->
+  <div class="msg evan">
+    <div class="bubble">
+      Three things worth tracking:<br><br>
+      <strong style="color:#EEF2FF">Rest edges.</strong> Playoff seeding compressed the schedule. Several teams played back-to-backs in the final week. The market hasn't fully priced fatigue into Game 1 lines yet.<br><br>
+      <strong style="color:#EEF2FF">Home court reversals.</strong> Two 3-seeds host 6-seeds where the 6 had a better road record in the second half. That's a market inefficiency window.<br><br>
+      <strong style="color:#EEF2FF">The Celtics line.</strong> Already mentioned — watching it. If it moves past -9 before tip I want to know why.
+    </div>
+    <div class="msg-meta">Evan · 9:12 AM</div>
+  </div>
+
+  <!-- Typing indicator -->
+  <div class="msg evan" id="typing-indicator">
+    <div class="typing"><span></span><span></span><span></span></div>
+  </div>
+
 </div>
 
+<!-- SUGGESTED PROMPTS -->
+<div class="prompts">
+  <div class="prompt-chip" onclick="sendPrompt(this)">Today's slate</div>
+  <div class="prompt-chip" onclick="sendPrompt(this)">Last pick result</div>
+  <div class="prompt-chip" onclick="sendPrompt(this)">Season record</div>
+  <div class="prompt-chip" onclick="sendPrompt(this)">Explain the model</div>
+  <div class="prompt-chip" onclick="sendPrompt(this)">NBA playoff edges</div>
+</div>
+
+<!-- INPUT -->
 <div class="input-bar">
   <div class="input-row">
-    <textarea id="inp" placeholder="Ask Evan..." rows="1"
-      oninput="resize(this)" onkeydown="key(event)"></textarea>
-    <button class="send-btn" id="sendBtn" onclick="send()">
-      <svg viewBox="0 0 24 24"><path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/></svg>
+    <textarea class="input-field" id="input" placeholder="Ask Evan..." rows="1"
+      oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+    <button class="send-btn" onclick="sendMessage()">
+      <svg class="send-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/>
+      </svg>
     </button>
   </div>
 </div>
@@ -108,106 +343,65 @@ textarea::placeholder { color:#333845; }
 </div>
 
 <script>
-const CHAT_ENDPOINT = '/api/evan/chat';
-const TOKEN = new URLSearchParams(location.search).get('t') || '07b5633a5aab4e9d490f408cbbcc1de0';
-let history = [];
-let busy = false;
+// Hide typing after 2s on load
+setTimeout(() => {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}, 2000);
 
-function resize(el) {
+function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 100) + 'px';
 }
 
-function key(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
 
-function chip(el) {
-  document.getElementById('inp').value = el.textContent;
-  send();
+function sendPrompt(el) {
+  document.getElementById('input').value = el.textContent;
+  sendMessage();
 }
 
-function now() {
-  return new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
-}
+const replies = {
+  "Today's slate": "Scanned 8 games across MLB. No signal today — nothing cleared the 3.5% edge threshold. Closest: Brewers -1.5 at +2.9%. Not close enough.",
+  "Last pick result": "Apr 16 · SF Giants +1.5 · WIN\n\n+6.0% edge at publish. Final: SF 3, CIN 0. Line held at open through close. CLV: flat.\n\nSeason: 22-20 · +1.79u",
+  "Season record": "22-20 overall. +1.79 units net. Average CLV +0.04 across 42 resolved picks.\n\n0 picks deleted. Full record visible on site.",
+  "Explain the model": "4-model ensemble: GBM, Random Forest, XGBoost, AdaBoost. 80 features per game. 30/70 blend between model probability and market implied.\n\nEdge threshold: 3.5% minimum. Most slates produce nothing.",
+  "NBA playoff edges": "Watching rest differentials and line movement on Game 1s. Two matchups where the model sees potential value — won't publish until tip-day when lines settle. Patience."
+};
 
-function addMsg(role, text) {
-  const msgs = document.getElementById('msgs');
-  const div = document.createElement('div');
-  div.className = 'msg ' + role;
-  const label = role === 'evan' ? 'Evan' : 'You';
-  div.innerHTML = `<div class="bubble">${text.replace(/\n/g,'<br>')}</div><div class="msg-meta">${label} · ${now()}</div>`;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return div;
-}
-
-function addTyping() {
-  const msgs = document.getElementById('msgs');
-  const div = document.createElement('div');
-  div.className = 'msg evan';
-  div.id = 'typing';
-  div.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-function removeTyping() {
-  const t = document.getElementById('typing');
-  if (t) t.remove();
-}
-
-function showErr(msg) {
-  const e = document.getElementById('err');
-  e.textContent = msg;
-  e.style.display = 'block';
-  setTimeout(() => e.style.display = 'none', 5000);
-}
-
-async function send() {
-  if (busy) return;
-  const inp = document.getElementById('inp');
+function sendMessage() {
+  const inp = document.getElementById('input');
   const text = inp.value.trim();
   if (!text) return;
-
   inp.value = ''; inp.style.height = 'auto';
-  busy = true;
-  document.getElementById('sendBtn').disabled = true;
 
-  addMsg('user', text);
-  history.push({role:'user', content:text});
-  addTyping();
+  const msgs = document.getElementById('messages');
 
-  try {
-    const res = await fetch(CHAT_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Evan-Token': TOKEN
-      },
-      body: JSON.stringify({ message: text, history: history.slice(0,-1) })
-    });
+  // User bubble
+  const userMsg = document.createElement('div');
+  userMsg.className = 'msg user';
+  userMsg.innerHTML = `<div class="bubble">${text}</div><div class="msg-meta">Just now</div>`;
+  msgs.appendChild(userMsg);
 
-    removeTyping();
+  // Typing
+  const typing = document.createElement('div');
+  typing.className = 'msg evan';
+  typing.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+  msgs.appendChild(typing);
+  msgs.scrollTop = msgs.scrollHeight;
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      showErr(err.error || 'Something went wrong. Try again.');
-    } else {
-      const data = await res.json();
-      const reply = data.reply || '';
-      addMsg('evan', reply);
-      history.push({role:'assistant', content:reply});
-      if (history.length > 40) history = history.slice(-40);
-    }
-  } catch(e) {
-    removeTyping();
-    showErr('Connection error. Check your signal.');
-  } finally {
-    busy = false;
-    document.getElementById('sendBtn').disabled = false;
-    document.getElementById('inp').focus();
-  }
+  // Response
+  setTimeout(() => {
+    typing.remove();
+    const reply = replies[text] || "Got it. Let me check the model and get back to you on that.";
+    const evanMsg = document.createElement('div');
+    evanMsg.className = 'msg evan';
+    evanMsg.innerHTML = `<div class="bubble">${reply.replace(/\n/g,'<br>')}</div><div class="msg-meta">Evan · Just now</div>`;
+    msgs.appendChild(evanMsg);
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 1200);
 }
 </script>
 </body>

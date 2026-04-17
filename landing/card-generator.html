@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SharpPicks Card Generator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap');
+:root{--bg:#0A0D14;--s1:#111520;--s2:#161B27;--border:#1A1F2E;--green:#5A9E72;--red:#C4686B;--amber:#D4A054;--t1:#E2E4E8;--t2:#9DA1AC;--t3:#626878;--t4:#454B5C;--t5:#333845}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0D0F14;color:var(--t1);font-family:'Inter',sans-serif;min-height:100vh}
+
+.app{max-width:520px;margin:0 auto;padding:24px 16px 60px}
+
+.header{display:flex;align-items:center;gap:8px;margin-bottom:24px}
+.header h1{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;letter-spacing:2px}
+.header h1 span{color:var(--green)}
+.header-sub{font-size:11px;color:var(--t4);margin-left:auto;font-family:'JetBrains Mono',monospace}
+
+/* Tab selector */
+.tabs{display:flex;gap:4px;margin-bottom:20px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:2px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--s1);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;color:var(--t3);cursor:pointer;white-space:nowrap;transition:all 0.15s}
+.tab.active{background:rgba(90,158,114,0.12);border-color:rgba(90,158,114,0.25);color:var(--green)}
+
+/* Form */
+.form-section{margin-bottom:20px}
+.form-label{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--t4);margin-bottom:6px;display:block}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.form-row.c3{grid-template-columns:1fr 1fr 1fr}
+.form-row.c1{grid-template-columns:1fr}
+input,select{width:100%;padding:10px 12px;background:var(--s1);border:1px solid var(--border);border-radius:6px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;transition:border-color 0.15s}
+input:focus,select:focus{border-color:rgba(90,158,114,0.4)}
+input::placeholder{color:var(--t4)}
+select{appearance:none;cursor:pointer}
+
+.generate-btn{width:100%;padding:14px;border-radius:8px;border:none;background:var(--green);color:#0A0D14;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;cursor:pointer;margin-top:16px;transition:background 0.15s}
+.generate-btn:hover{background:#6BB485}
+.generate-btn:active{background:#4A8F62}
+
+/* Preview */
+.preview-section{margin-top:24px;display:none}
+.preview-section.show{display:block}
+.preview-label{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--t4);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.preview-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.preview-box{background:#080A0F;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;display:flex;justify-content:center}
+.preview-box canvas{border-radius:4px;max-width:100%;height:auto}
+
+.download-row{display:flex;gap:8px}
+.dl-btn{flex:1;padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--s1);color:var(--green);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;cursor:pointer;text-align:center;transition:all 0.15s}
+.dl-btn:hover{background:rgba(90,158,114,0.08);border-color:rgba(90,158,114,0.3)}
+
+.copy-section{margin-top:16px;padding:14px;background:var(--s1);border:1px solid var(--border);border-radius:8px}
+.copy-label{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--t4);margin-bottom:8px}
+.copy-text{font-size:12px;line-height:1.6;color:var(--t2);white-space:pre-wrap;font-family:'Inter',sans-serif}
+.copy-btn{margin-top:8px;padding:6px 12px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--green);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer}
+
+/* Hidden */
+.panel{display:none}
+.panel.active{display:block}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="header">
+  <h1>SHARP<span> || </span>PICKS</h1>
+  <span class="header-sub">Card Generator</span>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchType('win',this)">Signal Win</button>
+  <button class="tab" onclick="switchType('loss',this)">Signal Loss</button>
+  <button class="tab" onclick="switchType('noplay',this)">No Pick</button>
+  <button class="tab" onclick="switchType('recap',this)">Recap</button>
+  <button class="tab" onclick="switchType('founding',this)">Founding</button>
+</div>
+
+<!-- ═══ SIGNAL WIN / LOSS ═══ -->
+<div class="panel active" id="p-win">
+  <div class="form-section">
+    <label class="form-label">Pick Details</label>
+    <div class="form-row c1"><input id="w-team" placeholder="Team name (e.g. Denver Nuggets -4.5)" value="San Francisco Giants +1.5"></div>
+    <div class="form-row"><input id="w-score" placeholder="Score" value="SF Giants 3, CIN Reds 0"><input id="w-sport" placeholder="Sport" value="MLB"></div>
+    <div class="form-row c3"><input id="w-edge" placeholder="Edge %" value="+6.0%"><input id="w-units" placeholder="Units" value="+1.7"><input id="w-clv" placeholder="CLV" value="+0.0"></div>
+  </div>
+  <div class="form-section">
+    <label class="form-label">Season Record</label>
+    <div class="form-row c3"><input id="w-record" placeholder="Record" value="22-20"><input id="w-roi" placeholder="ROI" value="+0.04 CLV avg"><input id="w-totalunits" placeholder="Units" value="+1.79u"></div>
+  </div>
+  <div class="form-section">
+    <label class="form-label">Closing Line</label>
+    <div class="form-row c1"><input id="w-clvnote" placeholder="CLV note" value="SF Giants +1.5 held at open. Line confirmed edge through close."></div>
+  </div>
+  <div class="form-section">
+    <label class="form-label">Date</label>
+    <div class="form-row c1"><input id="w-date" placeholder="e.g. Apr 4, 2026" value="Apr 16, 2026"></div>
+  </div>
+  <button class="generate-btn" onclick="generateWin()">Generate Card</button>
+</div>
+
+<div class="panel" id="p-loss">
+  <div class="form-section">
+    <label class="form-label">Pick Details</label>
+    <div class="form-row c1"><input id="l-team" value="Cleveland Guardians -1.5" placeholder="Team name"></div>
+    <div class="form-row"><input id="l-score" value="STL Cardinals 5, CLE Guardians 3" placeholder="Score"><input id="l-sport" value="MLB" placeholder="Sport"></div>
+    <div class="form-row c3"><input id="l-edge" value="+6.0%" placeholder="Edge %"><input id="l-units" value="-1.0" placeholder="Units"><input id="l-clv" value="+0.0" placeholder="CLV"></div>
+  </div>
+  <div class="form-section">
+    <label class="form-label">Season Record</label>
+    <div class="form-row c3"><input id="l-record" value="22-20" placeholder="Record"><input id="l-roi" value="+0.04 CLV avg" placeholder="ROI"><input id="l-totalunits" value="+1.79u" placeholder="Units"></div>
+  </div>
+  <div class="form-section">
+    <label class="form-label">Mindset Note</label>
+    <div class="form-row c1"><input id="l-note" placeholder="e.g. No revenge bets. Next signal when the edge is there." value="No revenge bets. Next signal when the edge is there."></div>
+  </div>
+  <div class="form-section">
+    <label class="form-label">Date</label>
+    <div class="form-row c1"><input id="l-date" value="Apr 15, 2026" placeholder="Date"></div>
+  </div>
+  <button class="generate-btn" onclick="generateLoss()">Generate Card</button>
+</div>
+
+<!-- ═══ NO PICK ═══ -->
+<div class="panel" id="p-noplay">
+  <div class="form-section">
+    <label class="form-label">Today's Scan</label>
+    <div class="form-row"><input id="n-games" value="42" placeholder="Games analyzed"><input id="n-sport" value="MLB + NBA" placeholder="Sport"></div>
+  </div>
+  <div class="form-section">
+    <label class="form-label">Date</label>
+    <div class="form-row c1"><input id="n-date" value="Apr 17, 2026" placeholder="Date"></div>
+  </div>
+  <button class="generate-btn" onclick="generateNoPlay()">Generate Card</button>
+</div>
+
+<!-- ═══ WEEKLY RECAP ═══ -->
+<div class="panel" id="p-recap">
+  <div class="form-section">
+    <label class="form-label">Week Range</label>
+    <div class="form-row c1"><input id="r-range" value="Apr 14-17, 2026" placeholder="Week range"></div>
+  </div>
+  <div class="form-section">
+    <label class="form-label">Week Stats</label>
+    <div class="form-row c3"><input id="r-record" value="1-2" placeholder="Week record"><input id="r-profit" value="-0.30u" placeholder="Profit/Loss"><input id="r-clvpct" value="33%" placeholder="CLV%"></div>
+    <div class="form-row"><input id="r-signals" value="3" placeholder="Signals"><input id="r-slates" value="14" placeholder="of X slates"></div>
+  </div>
+  <div class="form-section">
+    <label class="form-label">Season Totals</label>
+    <div class="form-row c3"><input id="r-szrecord" value="22-20" placeholder="Season record"><input id="r-szroi" value="+0.04 avg CLV" placeholder="ROI"><input id="r-szunits" value="+1.79u" placeholder="Units"></div>
+  </div>
+  <button class="generate-btn" onclick="generateRecap()">Generate Card</button>
+</div>
+
+<!-- ═══ FOUNDING FIFTY ═══ -->
+<div class="panel" id="p-founding">
+  <div class="form-section">
+    <label class="form-label">Spots Remaining</label>
+    <div class="form-row c1"><input id="f-spots" value="44" placeholder="Spots remaining"></div>
+  </div>
+  <button class="generate-btn" onclick="generateFounding()">Generate Card</button>
+</div>
+
+<!-- ═══ PREVIEW ═══ -->
+<div class="preview-section" id="preview">
+  <div class="preview-label">Preview</div>
+  <div class="preview-box"><canvas id="canvas" width="1080" height="1080"></canvas></div>
+  <div class="download-row">
+    <button class="dl-btn" onclick="downloadPNG()">Download PNG</button>
+    <button class="dl-btn" onclick="downloadJPG()">Download JPG</button>
+  </div>
+  <div class="copy-section">
+    <div class="copy-label">Paired Copy</div>
+    <div class="copy-text" id="copyText"></div>
+    <button class="copy-btn" onclick="copyToClipboard()">Copy Text</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+const C = document.getElementById('canvas');
+const ctx = C.getContext('2d');
+const S = 1080; // card size
+
+// Font loading helper
+function setFont(weight, size, family) {
+  ctx.font = `${weight} ${size}px ${family}`;
+}
+
+// Draw grid pattern
+function drawGrid() {
+  ctx.strokeStyle = '#1A1F2E';
+  ctx.lineWidth = 0.5;
+  ctx.globalAlpha = 0.25;
+  for (let x = 0; x <= S; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, S); ctx.stroke(); }
+  for (let y = 0; y <= S; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(S, y); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+}
+
+function drawBg() {
+  ctx.fillStyle = '#0A0D14';
+  ctx.fillRect(0, 0, S, S);
+  drawGrid();
+}
+
+function drawFooter(date, sport) {
+  setFont('500', 14, 'JetBrains Mono');
+  ctx.fillStyle = '#454B5C';
+  ctx.textAlign = 'left';
+  ctx.fillText('SHARP  ||  PICKS', 100, 990);
+  ctx.fillStyle = '#5A9E72';
+  ctx.textAlign = 'right';
+  ctx.fillText('sharppicks.ai', 980, 990);
+  ctx.fillStyle = '#333845';
+  ctx.textAlign = 'center';
+  setFont('400', 10, 'JetBrains Mono');
+  ctx.fillText(`${date}  ·  ${sport}`, 540, 1040);
+}
+
+function drawLine(y) {
+  ctx.strokeStyle = '#1A1F2E';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(200, y);
+  ctx.lineTo(880, y);
+  ctx.stroke();
+}
+
+function showPreview() {
+  document.getElementById('preview').classList.add('show');
+}
+
+// ═══════════════════════════════════
+// SIGNAL WIN
+// ═══════════════════════════════════
+function generateWin() {
+  const team = document.getElementById('w-team').value || 'Denver Nuggets -4.5';
+  const score = document.getElementById('w-score').value || 'DEN 118 -- LAL 109';
+  const sport = document.getElementById('w-sport').value || 'NBA';
+  const edge = document.getElementById('w-edge').value || '+6.2%';
+  const units = document.getElementById('w-units').value || '+91';
+  const clv = document.getElementById('w-clv').value || '+1.5';
+  const record = document.getElementById('w-record').value || '16-13';
+  const roi = document.getElementById('w-roi').value || '+8.6%';
+  const totalUnits = document.getElementById('w-totalunits').value || '+1.23u';
+  const clvNote = document.getElementById('w-clvnote').value || '';
+  const date = document.getElementById('w-date').value || 'Apr 4, 2026';
+
+  drawBg();
+  // Green top bar
+  ctx.fillStyle = '#5A9E72'; ctx.globalAlpha = 0.7;
+  ctx.fillRect(0, 0, S, 3); ctx.globalAlpha = 1;
+
+  // Badge
+  ctx.fillStyle = 'rgba(90,158,114,0.15)';
+  roundRect(ctx, 390, 80, 300, 52, 8); ctx.fill();
+  setFont('700', 22, 'JetBrains Mono');
+  ctx.fillStyle = '#5A9E72'; ctx.textAlign = 'center';
+  ctx.fillText('SIGNAL HIT', 540, 114);
+
+  // Team
+  setFont('600', 48, 'IBM Plex Serif');
+  ctx.fillStyle = '#E2E4E8'; ctx.textAlign = 'center';
+  ctx.fillText(team, 540, 250);
+  setFont('400', 16, 'JetBrains Mono');
+  ctx.fillStyle = '#626878';
+  ctx.fillText(`${score}  ·  Final`, 540, 300);
+
+  // Stats
+  drawLine(370);
+  const statLabels = ['EDGE', 'RESULT', 'CLV'];
+  const statVals = [edge, `${units}u`, clv];
+  const statXs = [320, 540, 760];
+  statLabels.forEach((l, i) => {
+    setFont('500', 14, 'JetBrains Mono');
+    ctx.fillStyle = '#454B5C'; ctx.textAlign = 'center';
+    ctx.letterSpacing = '2px';
+    ctx.fillText(l, statXs[i], 440);
+    setFont('700', 36, 'JetBrains Mono');
+    ctx.fillStyle = '#5A9E72';
+    ctx.fillText(statVals[i], statXs[i], 490);
+  });
+  drawLine(540);
+
+  // Season
+  setFont('500', 16, 'JetBrains Mono');
+  ctx.fillStyle = '#454B5C'; ctx.textAlign = 'center';
+  ctx.fillText('SEASON RECORD', 540, 620);
+  setFont('700', 48, 'JetBrains Mono');
+  ctx.fillStyle = '#E2E4E8';
+  ctx.fillText(record, 540, 685);
+  setFont('400', 18, 'JetBrains Mono');
+  ctx.fillStyle = '#5A9E72';
+  ctx.fillText(`${roi} ROI  ·  ${totalUnits}`, 540, 730);
+
+  // CLV note
+  if (clvNote) {
+    ctx.fillStyle = 'rgba(90,158,114,0.08)';
+    roundRect(ctx, 200, 785, 680, 44, 6); ctx.fill();
+    setFont('400', 12, 'JetBrains Mono');
+    ctx.fillStyle = '#5A9E72'; ctx.textAlign = 'center';
+    ctx.fillText(clvNote, 540, 814);
+  }
+
+  drawFooter(date, sport);
+  showPreview();
+
+  // Copy text
+  document.getElementById('copyText').textContent =
+`Signal hit.
+
+${team} -- covered.
+
+Edge: ${edge}
+Result: ${units} units (flat)
+CLV: ${clv}
+
+Season: ${record}  ·  ${roi} ROI
+
+Full record at sharppicks.ai`;
+}
+
+// ═══════════════════════════════════
+// SIGNAL LOSS
+// ═══════════════════════════════════
+function generateLoss() {
+  const team = document.getElementById('l-team').value || 'Boston Celtics -7.0';
+  const score = document.getElementById('l-score').value || 'BOS 105 -- MIA 101';
+  const sport = document.getElementById('l-sport').value || 'NBA';
+  const edge = document.getElementById('l-edge').value || '+7.1%';
+  const units = document.getElementById('l-units').value || '-110';
+  const clv = document.getElementById('l-clv').value || '+0.5';
+  const record = document.getElementById('l-record').value || '15-13';
+  const roi = document.getElementById('l-roi').value || '+6.5%';
+  const totalUnits = document.getElementById('l-totalunits').value || '+0.82u';
+  const note = document.getElementById('l-note').value || 'No revenge bets. Next signal when the edge is there.';
+  const date = document.getElementById('l-date').value || 'Apr 3, 2026';
+
+  drawBg();
+  // Red top bar
+  ctx.fillStyle = '#C4686B'; ctx.globalAlpha = 0.5;
+  ctx.fillRect(0, 0, S, 3); ctx.globalAlpha = 1;
+
+  // Badge
+  ctx.fillStyle = 'rgba(196,104,107,0.12)';
+  roundRect(ctx, 370, 80, 340, 52, 8); ctx.fill();
+  setFont('700', 22, 'JetBrains Mono');
+  ctx.fillStyle = '#C4686B'; ctx.textAlign = 'center';
+  ctx.fillText('SIGNAL MISS', 540, 114);
+
+  // Team
+  setFont('600', 48, 'IBM Plex Serif');
+  ctx.fillStyle = '#E2E4E8'; ctx.textAlign = 'center';
+  ctx.fillText(team, 540, 250);
+  setFont('400', 16, 'JetBrains Mono');
+  ctx.fillStyle = '#626878';
+  ctx.fillText(`${score}  ·  Final`, 540, 300);
+
+  // Stats
+  drawLine(370);
+  setFont('500', 14, 'JetBrains Mono'); ctx.fillStyle = '#454B5C'; ctx.textAlign = 'center';
+  ctx.fillText('EDGE', 320, 440); ctx.fillText('RESULT', 540, 440); ctx.fillText('CLV', 760, 440);
+  setFont('700', 36, 'JetBrains Mono');
+  ctx.fillStyle = '#9DA1AC'; ctx.fillText(edge, 320, 490);
+  ctx.fillStyle = '#C4686B'; ctx.fillText(`${units}u`, 540, 490);
+  ctx.fillStyle = '#5A9E72'; ctx.fillText(clv, 760, 490);
+  drawLine(540);
+
+  // Season
+  setFont('500', 16, 'JetBrains Mono'); ctx.fillStyle = '#454B5C'; ctx.textAlign = 'center';
+  ctx.fillText('SEASON RECORD', 540, 620);
+  setFont('700', 48, 'JetBrains Mono'); ctx.fillStyle = '#E2E4E8';
+  ctx.fillText(record, 540, 685);
+  setFont('400', 18, 'JetBrains Mono'); ctx.fillStyle = '#5A9E72';
+  ctx.fillText(`${roi} ROI  ·  ${totalUnits}`, 540, 730);
+
+  // Mindset note
+  ctx.fillStyle = 'rgba(69,75,92,0.15)';
+  roundRect(ctx, 160, 785, 760, 44, 6); ctx.fill();
+  setFont('400', 12, 'JetBrains Mono');
+  ctx.fillStyle = '#626878'; ctx.textAlign = 'center';
+  ctx.fillText(note, 540, 814);
+
+  drawFooter(date, sport);
+  showPreview();
+
+  document.getElementById('copyText').textContent =
+`Signal miss.
+
+${team} -- didn't cover.
+
+Edge: ${edge}
+Result: ${units} units (flat)
+CLV: ${clv} (market moved toward model)
+
+The loss goes on the record. No picks deleted.
+${note}
+
+Season: ${record}  ·  ${roi} ROI
+
+sharppicks.ai`;
+}
+
+// ═══════════════════════════════════
+// NO PICK TODAY
+// ═══════════════════════════════════
+function generateNoPlay() {
+  const games = document.getElementById('n-games').value || '9';
+  const sport = document.getElementById('n-sport').value || 'NBA';
+  const date = document.getElementById('n-date').value || 'Apr 5, 2026';
+
+  drawBg();
+
+  // Wordmark
+  setFont('500', 20, 'JetBrains Mono');
+  ctx.fillStyle = '#333845'; ctx.textAlign = 'center';
+  ctx.fillText('SHARP  ||  PICKS', 540, 160);
+
+  // Pipes watermark
+  setFont('700', 240, 'JetBrains Mono');
+  ctx.fillStyle = '#1A1F2E'; ctx.globalAlpha = 0.3;
+  ctx.fillText('||', 540, 480); ctx.globalAlpha = 1;
+
+  // Main message
+  setFont('600', 56, 'IBM Plex Serif');
+  ctx.fillStyle = '#E2E4E8'; ctx.textAlign = 'center';
+  ctx.fillText('No signal today.', 540, 430);
+
+  // Stats
+  setFont('400', 20, 'JetBrains Mono');
+  ctx.fillStyle = '#626878';
+  ctx.fillText(`${games} games analyzed  ·  0 qualified`, 540, 540);
+  setFont('400', 16, 'JetBrains Mono');
+  ctx.fillStyle = '#454B5C';
+  ctx.fillText('Signal density: 0%', 540, 600);
+
+  // Quote
+  setFont('400 italic', 24, 'IBM Plex Serif');
+  ctx.fillStyle = '#454B5C';
+  ctx.fillText('The model scanned every game', 540, 740);
+  ctx.fillText('and chose restraint over noise.', 540, 780);
+
+  // Footer
+  setFont('400', 14, 'JetBrains Mono');
+  ctx.fillStyle = '#5A9E72';
+  ctx.fillText('sharppicks.ai', 540, 960);
+  setFont('400', 10, 'JetBrains Mono');
+  ctx.fillStyle = '#333845';
+  ctx.fillText(`${date}  ·  ${sport}`, 540, 1010);
+
+  showPreview();
+
+  document.getElementById('copyText').textContent =
+`No signal today.
+
+${games} games analyzed. 0 qualified above the 3.5% edge threshold.
+
+The model scanned every game and chose restraint over noise.
+
+That's the product working, not the product failing.
+
+sharppicks.ai`;
+}
+
+// ═══════════════════════════════════
+// WEEKLY RECAP
+// ═══════════════════════════════════
+function generateRecap() {
+  const range = document.getElementById('r-range').value || 'Apr 7-12, 2026';
+  const record = document.getElementById('r-record').value || '3-1';
+  const profit = document.getElementById('r-profit').value || '+$181';
+  const clvPct = document.getElementById('r-clvpct').value || '75%';
+  const signals = document.getElementById('r-signals').value || '4';
+  const slates = document.getElementById('r-slates').value || '12';
+  const szRecord = document.getElementById('r-szrecord').value || '18-16';
+  const szRoi = document.getElementById('r-szroi').value || '+8.6%';
+  const szUnits = document.getElementById('r-szunits').value || '+1.23u';
+
+  drawBg();
+  ctx.fillStyle = '#5A9E72'; ctx.globalAlpha = 0.5;
+  ctx.fillRect(0, 0, S, 3); ctx.globalAlpha = 1;
+
+  // Header
+  setFont('500', 14, 'JetBrains Mono');
+  ctx.fillStyle = '#454B5C'; ctx.textAlign = 'left';
+  ctx.fillText('SHARP  ||  PICKS', 100, 120);
+  ctx.textAlign = 'right';
+  ctx.fillText('WEEK IN REVIEW', 980, 120);
+  setFont('400', 12, 'JetBrains Mono');
+  ctx.fillStyle = '#333845'; ctx.textAlign = 'left';
+  ctx.fillText(range, 100, 155);
+
+  drawLine(200);
+
+  // Week stats
+  const wx = [270, 540, 810];
+  setFont('500', 14, 'JetBrains Mono'); ctx.textAlign = 'center'; ctx.fillStyle = '#454B5C';
+  ctx.fillText('THIS WEEK', 270, 270); ctx.fillText('SIGNALS', 540, 270); ctx.fillText('CLV+', 810, 270);
+
+  setFont('700', 52, 'JetBrains Mono');
+  ctx.fillStyle = '#5A9E72'; ctx.fillText(record, 270, 340);
+  ctx.fillStyle = '#E2E4E8'; ctx.fillText(signals, 540, 340);
+  ctx.fillStyle = '#5A9E72'; ctx.fillText(clvPct, 810, 340);
+
+  setFont('400', 16, 'JetBrains Mono');
+  ctx.fillStyle = '#5A9E72'; ctx.fillText(profit, 270, 380);
+  ctx.fillStyle = '#626878'; ctx.fillText(`of ${slates} slates`, 540, 380);
+
+  drawLine(420);
+
+  // Season
+  setFont('500', 12, 'JetBrains Mono'); ctx.fillStyle = '#454B5C'; ctx.textAlign = 'left';
+  ctx.fillText('SEASON', 100, 700);
+  setFont('700', 28, 'JetBrains Mono'); ctx.fillStyle = '#E2E4E8';
+  ctx.fillText(szRecord, 100, 750);
+  ctx.fillStyle = '#5A9E72';
+  ctx.fillText(`${szRoi} ROI`, 300, 750);
+  ctx.fillText(szUnits, 600, 750);
+
+  // Footer
+  setFont('400', 14, 'JetBrains Mono'); ctx.textAlign = 'left';
+  ctx.fillStyle = '#5A9E72'; ctx.fillText('sharppicks.ai', 100, 960);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#454B5C';
+  ctx.fillText('Full record on site', 980, 960);
+
+  showPreview();
+
+  document.getElementById('copyText').textContent =
+`Week in review: ${range}
+
+${record} this week. ${profit}. ${signals} signals from ${slates} available slates.
+
+${clvPct} of picks beat the closing line.
+
+Season: ${szRecord}  ·  ${szRoi} ROI  ·  ${szUnits}
+
+Full record at sharppicks.ai`;
+}
+
+// ═══════════════════════════════════
+// FOUNDING FIFTY
+// ═══════════════════════════════════
+function generateFounding() {
+  const spots = document.getElementById('f-spots').value || '44';
+
+  drawBg();
+  // Glow
+  const grd = ctx.createRadialGradient(540, 480, 0, 540, 480, 400);
+  grd.addColorStop(0, 'rgba(90,158,114,0.06)');
+  grd.addColorStop(1, 'rgba(10,13,20,0)');
+  ctx.fillStyle = grd; ctx.fillRect(0, 0, S, S);
+
+  ctx.fillStyle = '#5A9E72'; ctx.globalAlpha = 0.6;
+  ctx.fillRect(0, 0, S, 3); ctx.globalAlpha = 1;
+
+  // Wordmark
+  setFont('500', 28, 'JetBrains Mono');
+  ctx.fillStyle = '#454B5C'; ctx.textAlign = 'center';
+  ctx.fillText('SHARP  ||  PICKS', 540, 200);
+
+  // Big number
+  setFont('700', 220, 'JetBrains Mono');
+  ctx.fillStyle = '#5A9E72'; ctx.textAlign = 'center';
+  ctx.fillText(spots, 540, 500);
+
+  // Label
+  setFont('500', 24, 'JetBrains Mono');
+  ctx.fillStyle = '#9DA1AC';
+  ctx.fillText('FOUNDING SPOTS REMAINING', 540, 570);
+
+  // Price
+  setFont('700', 42, 'JetBrains Mono');
+  ctx.fillStyle = '#E2E4E8';
+  ctx.fillText('$99/year', 540, 670);
+  setFont('400', 18, 'JetBrains Mono');
+  ctx.fillStyle = '#626878';
+  ctx.fillText('Locked in. $149/yr after spots are claimed.', 540, 715);
+
+  // CTA
+  ctx.fillStyle = '#5A9E72';
+  roundRect(ctx, 340, 810, 400, 52, 8); ctx.fill();
+  setFont('600', 16, 'JetBrains Mono');
+  ctx.fillStyle = '#0A0D14'; ctx.textAlign = 'center';
+  ctx.fillText('sharppicks.ai', 540, 843);
+
+  ctx.fillStyle = '#5A9E72'; ctx.globalAlpha = 0.3;
+  ctx.fillRect(0, S - 3, S, 3); ctx.globalAlpha = 1;
+
+  showPreview();
+
+  document.getElementById('copyText').textContent =
+`${spots} of 50 founding spots left.
+
+$99/yr locked in for the life of your subscription. Standard rate goes to $149/yr once they're claimed.
+
+No promo codes. No flash sales. Just 50 spots at the founding rate, then it's done.
+
+sharppicks.ai`;
+}
+
+// ═══ UTILITIES ═══
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function switchType(type, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('p-' + type).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('preview').classList.remove('show');
+}
+
+function downloadPNG() {
+  const link = document.createElement('a');
+  link.download = 'sharppicks-card.png';
+  link.href = C.toDataURL('image/png');
+  link.click();
+}
+
+function downloadJPG() {
+  const link = document.createElement('a');
+  link.download = 'sharppicks-card.jpg';
+  link.href = C.toDataURL('image/jpeg', 0.95);
+  link.click();
+}
+
+function copyToClipboard() {
+  const text = document.getElementById('copyText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied';
+    setTimeout(() => btn.textContent = 'Copy Text', 1500);
+  });
+}
+</script>
+</body>
+</html>

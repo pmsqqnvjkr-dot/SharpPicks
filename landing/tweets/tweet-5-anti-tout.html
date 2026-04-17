@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1200px; height: 675px; overflow: hidden;
+  background: #0A0D14;
+}
+.card {
+  width: 1200px; height: 675px;
+  background: #0A0D14;
+  position: relative;
+  display: flex;
+  padding: 64px 96px;
+  gap: 80px;
+  align-items: center;
+}
+.corner { position: absolute; width: 28px; height: 28px; }
+.corner.tl { top: 32px; left: 32px; border-top: 2px solid #2a3654; border-left: 2px solid #2a3654; }
+.corner.tr { top: 32px; right: 32px; border-top: 2px solid #2a3654; border-right: 2px solid #2a3654; }
+.corner.bl { bottom: 32px; left: 32px; border-bottom: 2px solid #2a3654; border-left: 2px solid #2a3654; }
+.corner.br { bottom: 32px; right: 32px; border-bottom: 2px solid #2a3654; border-right: 2px solid #2a3654; }
+.left { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.right {
+  width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: #5A9E72;
+  margin-bottom: 18px;
+}
+.divider { width: 40px; height: 2px; background: #5A9E72; margin-bottom: 22px; border-radius: 2px; }
+.headline {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 40px; font-weight: 600; line-height: 1.2;
+  color: #EEF2FF;
+  margin-bottom: 24px;
+}
+.headline em { font-style: italic; color: #5A9E72; }
+.body {
+  font-family: 'Inter', sans-serif;
+  font-size: 17px; line-height: 1.75;
+  color: #9AA3B2;
+  margin-bottom: 32px;
+}
+.body strong { color: #EEF2FF; }
+.tagline {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 22px; font-weight: 600;
+  font-style: italic;
+  color: #5A9E72;
+}
+.tout-row {
+  background: #0D1017;
+  border: 1px solid #1e2a3a;
+  border-radius: 8px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.tout-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1px;
+  color: #4a5274;
+  text-decoration: line-through;
+  text-decoration-color: #2a3654;
+}
+.tout-x {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #2a3654;
+}
+.sharp-row {
+  background: rgba(90,158,114,0.08);
+  border: 1px solid #5A9E72;
+  border-radius: 8px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.sharp-row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: #5A9E72;
+}
+.sharp-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1px;
+  color: #5A9E72;
+}
+.sharp-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600;
+  color: #5A9E72;
+}
+.wordmark {
+  position: absolute;
+  bottom: 36px; right: 52px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 500;
+  letter-spacing: 3px;
+  color: #2a3654;
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="card">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <div class="left">
+    <div class="tag">Philosophy</div>
+    <div class="divider"></div>
+    <div class="headline">The industry runs<br>on <em>volume</em>.<br>We don't.</div>
+    <div class="body">
+      5-star locks. Max bets. VIP slates. 12 picks a day.<br><br>
+      We published <strong>42 picks this season</strong>.<br>
+      Passed on thousands.
+    </div>
+    <div class="tagline">One pick beats five.</div>
+  </div>
+
+  <div class="right">
+    <div class="tout-row">
+      <div class="tout-label">5-STAR LOCK</div>
+      <div class="tout-x">✕</div>
+    </div>
+    <div class="tout-row">
+      <div class="tout-label">GUARANTEED W</div>
+      <div class="tout-x">✕</div>
+    </div>
+    <div class="tout-row">
+      <div class="tout-label">MAX BET ALERT</div>
+      <div class="tout-x">✕</div>
+    </div>
+    <div class="tout-row">
+      <div class="tout-label">VIP PICKS GROUP</div>
+      <div class="tout-x">✕</div>
+    </div>
+    <div class="tout-row">
+      <div class="tout-label">12-PICK SLATE</div>
+      <div class="tout-x">✕</div>
+    </div>
+    <div class="sharp-row">
+      <div class="sharp-label">+6.0% EDGE · CLV TRACKED</div>
+      <div class="sharp-val">✓</div>
+    </div>
+  </div>
+
+  <div class="wordmark">SHARP · PICKS</div>
+</div>
+</body>
+</html>

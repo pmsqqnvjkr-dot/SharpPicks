@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1200px; height: 675px; overflow: hidden;
+  background: #0A0D14;
+}
+.card {
+  width: 1200px; height: 675px;
+  background: #0A0D14;
+  position: relative;
+  display: flex;
+  padding: 64px 96px;
+  gap: 80px;
+  align-items: center;
+}
+.corner { position: absolute; width: 28px; height: 28px; }
+.corner.tl { top: 32px; left: 32px; border-top: 2px solid #2a3654; border-left: 2px solid #2a3654; }
+.corner.tr { top: 32px; right: 32px; border-top: 2px solid #2a3654; border-right: 2px solid #2a3654; }
+.corner.bl { bottom: 32px; left: 32px; border-bottom: 2px solid #2a3654; border-left: 2px solid #2a3654; }
+.corner.br { bottom: 32px; right: 32px; border-bottom: 2px solid #2a3654; border-right: 2px solid #2a3654; }
+.left { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.right { width: 420px; display: flex; flex-direction: column; gap: 12px; }
+.tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: #5A9E72;
+  margin-bottom: 18px;
+}
+.divider { width: 40px; height: 2px; background: #5A9E72; margin-bottom: 22px; border-radius: 2px; }
+.headline {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 38px; font-weight: 600; line-height: 1.2;
+  color: #EEF2FF;
+  margin-bottom: 20px;
+}
+.headline em { font-style: italic; color: #5A9E72; }
+.body {
+  font-family: 'Inter', sans-serif;
+  font-size: 17px; line-height: 1.75;
+  color: #9AA3B2;
+}
+.body strong { color: #EEF2FF; }
+.step {
+  background: #0D1017;
+  border: 1px solid #1e2a3a;
+  border-radius: 10px;
+  padding: 18px 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.step.active { border-color: #5A9E72; background: rgba(90,158,114,0.06); }
+.step.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: #5A9E72;
+}
+.step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 700;
+  color: #5A9E72;
+  letter-spacing: 1px;
+  margin-top: 2px;
+  min-width: 28px;
+}
+.step-content {}
+.step-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: #EEF2FF;
+  margin-bottom: 4px;
+}
+.step-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px; color: #616a8a; line-height: 1.5;
+}
+.step.active .step-desc { color: #9AA3B2; }
+.wordmark {
+  position: absolute;
+  bottom: 36px; right: 52px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 500;
+  letter-spacing: 3px;
+  color: #2a3654;
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="card">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <div class="left">
+    <div class="tag">How It Works</div>
+    <div class="divider"></div>
+    <div class="headline">Every game.<br>Same <em>pipeline</em>.</div>
+    <div class="body">
+      Most nights, nothing makes it to step 4.<br><br>
+      That's not a failure.<br>
+      That's the <strong>entire point</strong>.
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-content">
+        <div class="step-title">Ingest</div>
+        <div class="step-desc">80 features per matchup. Rest, pace, injuries, splits, line movement.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-content">
+        <div class="step-title">Model</div>
+        <div class="step-desc">4-model ensemble generates a probability. 30/70 model-to-market blend.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-content">
+        <div class="step-title">Edge Check</div>
+        <div class="step-desc">Below 3.5%? No signal. Most games stop here.</div>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-num">04</div>
+      <div class="step-content">
+        <div class="step-title">Signal</div>
+        <div class="step-desc">Published. Tracked. Measured against closing line. On the record.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wordmark">SHARP · PICKS</div>
+</div>
+</body>
+</html>
