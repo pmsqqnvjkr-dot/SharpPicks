@@ -183,10 +183,19 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
           </div>
         ) : (
           <>
-            <PinnedGuideCard onTap={() => {
+            <PinnedGuideCard onTap={async () => {
               const guide = insights.find(i => i.slug === 'beginners-guide');
-              if (guide) selectAndTrack(guide);
-              else { setActiveCategory('all'); loadInsights(); }
+              if (guide) {
+                selectAndTrack(guide);
+              } else {
+                try {
+                  const data = await apiGet('/api/insights/beginners-guide');
+                  if (data) selectAndTrack(data);
+                } catch (e) {
+                  setActiveCategory('all');
+                  loadInsights();
+                }
+              }
             }} animDelay={shouldAnimate ? '0.05s' : undefined} />
 
             {featured && (
