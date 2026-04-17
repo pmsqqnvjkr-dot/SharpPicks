@@ -1565,6 +1565,59 @@ def weekly_summary_page(sport):
 # Routes -- Dynamic Sitemap
 # ---------------------------------------------------------------------------
 
+@content_bp.route('/sitemap-pages.xml')
+def sitemap_pages():
+    from models import Insight
+    base = 'https://sharppicks.ai'
+
+    # Static pages
+    static_urls = [
+        {'loc': f'{base}/', 'changefreq': 'weekly', 'priority': '1.0'},
+        {'loc': f'{base}/support', 'changefreq': 'monthly', 'priority': '0.5'},
+        {'loc': f'{base}/guide.html', 'changefreq': 'monthly', 'priority': '0.7'},
+        {'loc': f'{base}/privacy.html', 'changefreq': 'yearly', 'priority': '0.3'},
+        {'loc': f'{base}/terms.html', 'changefreq': 'yearly', 'priority': '0.3'},
+        {'loc': f'{base}/disclaimer.html', 'changefreq': 'yearly', 'priority': '0.3'},
+        {'loc': f'{base}/blog', 'changefreq': 'weekly', 'priority': '0.8'},
+    ]
+
+    # Dynamic: all published insights/journal articles
+    try:
+        articles = Insight.query.filter_by(status='published').order_by(Insight.publish_date.desc()).all()
+        article_urls = []
+        for a in articles:
+            # Skip auto-generated market notes -- they're in sitemap-content.xml
+            if a.slug and a.slug.startswith('market-note-'):
+                continue
+            if a.slug:
+                lastmod = ''
+                if a.updated_at:
+                    lastmod = f'<lastmod>{a.updated_at.strftime("%Y-%m-%d")}</lastmod>'
+                elif a.publish_date:
+                    lastmod = f'<lastmod>{a.publish_date.strftime("%Y-%m-%d")}</lastmod>'
+                article_urls.append({
+                    'loc': f'{base}/blog/{a.slug}',
+                    'changefreq': 'monthly',
+                    'priority': '0.8' if a.featured else '0.7',
+                    'lastmod': lastmod,
+                })
+    except Exception:
+        article_urls = []
+
+    xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>']
+    xml_parts.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+    for u in static_urls:
+        xml_parts.append(f"  <url><loc>{u['loc']}</loc><changefreq>{u['changefreq']}</changefreq><priority>{u['priority']}</priority></url>")
+    for u in article_urls:
+        xml_parts.append(f"  <url><loc>{u['loc']}</loc>{u.get('lastmod','')}<changefreq>{u['changefreq']}</changefreq><priority>{u['priority']}</priority></url>")
+    xml_parts.append('</urlset>')
+
+    resp = make_response('\n'.join(xml_parts))
+    resp.headers['Content-Type'] = 'application/xml'
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
+
+
 @content_bp.route('/sitemap-content.xml')
 def sitemap_content():
     today = datetime.now(ET).strftime('%Y-%m-%d')
