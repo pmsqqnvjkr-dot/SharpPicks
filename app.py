@@ -74,7 +74,7 @@ def health():
 @app.route('/')
 def root_landing():
     from flask import send_from_directory, make_response
-    if session.get('user_id') or (hasattr(current_user, 'is_authenticated') and current_user.is_authenticated):
+    if get_current_user_from_session():
         dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
         index_path = os.path.join(dist_dir, 'index.html')
         if os.path.isfile(index_path):
@@ -9037,7 +9037,7 @@ def welcome_page():
 
 @app.route('/subscribe')
 def subscribe_page():
-    if session.get('user_id') or (hasattr(current_user, 'is_authenticated') and current_user.is_authenticated):
+    if get_current_user_from_session():
         dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
         index_path = os.path.join(dist_dir, 'index.html')
         if os.path.isfile(index_path):
