@@ -13,4 +13,3 @@ uv.lock
 node_modules
 sharp-picks-release.keystore
 *.keystore.old
-dist/

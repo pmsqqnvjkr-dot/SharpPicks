@@ -74,13 +74,14 @@ def health():
 @app.route('/')
 def root_landing():
     from flask import send_from_directory, make_response
-    if get_current_user_from_session():
-        dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
-        index_path = os.path.join(dist_dir, 'index.html')
-        if os.path.isfile(index_path):
-            resp = make_response(send_from_directory(dist_dir, 'index.html'))
-            resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-            return resp
+    dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
+    index_path = os.path.join(dist_dir, 'index.html')
+    has_spa = os.path.isfile(index_path)
+    user = get_current_user_from_session()
+    if user and has_spa:
+        resp = make_response(send_from_directory(dist_dir, 'index.html'))
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return resp
     templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
     return send_from_directory(templates_dir, 'app-landing.html')
 
