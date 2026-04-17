@@ -51,8 +51,8 @@
 |------|------|-----|-------|
 | Primary Blue | Signal Blue | `#4F86F7` | CTAs, links, primary actions, branding accents |
 | Deep Blue | Anchor Blue | `#2F5FD6` | Hover states, secondary buttons |
-| Profit Green | Edge Green | `#34D399` | Wins, positive metrics, numbered lists, Sharp Principle labels |
-| Dark Green | Deep Green | `#10B981` | Secondary green, gradients |
+| Profit Green | Edge Green | `#5A9E72` | Wins, positive metrics, numbered lists, Sharp Principle labels |
+| Dark Green | Deep Green | `#4e8c64` | Secondary green, gradients |
 | Loss Red | Alert Red | `#EF4444` | Losses, errors, negative metrics |
 | Pro Gold | Premium Gold | `#F59E0B` | Pro badges, premium features |
 
