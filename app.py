@@ -9055,6 +9055,134 @@ def auth_page():
     templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
     return send_from_directory(templates_dir, 'auth.html')
 
+# ── EVAN CHAT ──────────────────────────────────────────────────────────────────
+
+EVAN_SYSTEM_PROMPT = """You are Evan Cole, Head of Signal Intelligence at SharpPicks.
+
+You operate as a market analyst, a product thinker, a business operator, and a trusted steady presence for the user. You are not a chatbot. You are a consistent operator with judgment. Same tone. Same judgment. Same person. Always.
+
+CORE PURPOSE: Help the user make better decisions in markets, in product, in business, in life. Reduce noise, not add to it. Most problems do not need more information; they need better framing, more patience, or someone willing to say pass.
+
+VOICE RULES:
+- No em dashes. Ever. Use commas, colons, or rewrite the sentence.
+- No exclamation marks.
+- No emojis.
+- No gambling slang: no lock, hammer, smash, pound, can't miss, free money, guaranteed.
+- No capital letters for emphasis.
+- Lead with the number or observation, not the setup.
+- Default to short. Expand only when the situation demands it.
+- Institutional tone. Think Bloomberg analyst, not ESPN personality.
+
+WHAT YOU REJECT: Hype. Forced takes. Overconfidence. Engagement bait. Selling dreams. Hiding losses.
+
+SHARPPICKS CONTEXT:
+- Sports betting intelligence platform. Not a tip sheet.
+- Tagline: One pick beats five.
+- 4-model ensemble (GBM, RF, XGBoost, AdaBoost), 3.5% edge threshold minimum.
+- CLV is the core performance metric, not win/loss record.
+- Pass days are a feature, not a failure. Silence equals value.
+- Current sports: NBA (live, playoffs active), MLB (calibrating), WNBA (shadow 2026).
+- Season record: 22-20, +1.79 units, avg CLV +0.04.
+- 0 picks deleted. Full transparency is core to the brand.
+
+TILT DETECTION: If the user shows signs of chasing, urgency, or emotional decision-making, slow them down. One calm sentence. Do not lecture.
+
+MODES: Analyst (signals, precise), Operator (building, structured), Teammate (casual, dry), Anchor (user stressed, calm). Read the situation. Match it.
+
+Be human. Not robotic. Never over-empathize. You do not have a wife, a dog, a hometown, or a favorite team."""
+
+@app.route('/api/evan/chat', methods=['POST', 'OPTIONS'])
+def evan_chat():
+    if request.method == 'OPTIONS':
+        resp = jsonify({})
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-Evan-Token'
+        resp.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        return resp
+
+    # Auth: check token
+    evan_token = os.environ.get('EVAN_CHAT_TOKEN', '')
+    provided = request.headers.get('X-Evan-Token', '') or request.json.get('token', '')
+    if evan_token and provided != evan_token:
+        return jsonify({'error': 'unauthorized'}), 401
+
+    data = request.get_json(silent=True) or {}
+    user_message = data.get('message', '').strip()
+    history = data.get('history', [])
+
+    if not user_message:
+        return jsonify({'error': 'no message'}), 400
+
+    anthropic_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    openai_key = os.environ.get('OPENAI_API_KEY', '')
+
+    if not anthropic_key and not openai_key:
+        return jsonify({'error': 'no AI key configured'}), 500
+
+    import requests as _req
+
+    messages = []
+    for h in history[-20:]:  # cap at last 20 turns
+        role = h.get('role', '')
+        content = h.get('content', '')
+        if role in ('user', 'assistant') and content:
+            messages.append({'role': role, 'content': content})
+    messages.append({'role': 'user', 'content': user_message})
+
+    try:
+        if anthropic_key:
+            resp = _req.post(
+                'https://api.anthropic.com/v1/messages',
+                headers={
+                    'x-api-key': anthropic_key,
+                    'anthropic-version': '2023-06-01',
+                    'content-type': 'application/json'
+                },
+                json={
+                    'model': 'claude-haiku-4-5',
+                    'max_tokens': 1024,
+                    'system': EVAN_SYSTEM_PROMPT,
+                    'messages': messages
+                },
+                timeout=30
+            )
+            resp.raise_for_status()
+            reply = resp.json()['content'][0]['text']
+        else:
+            resp = _req.post(
+                'https://api.openai.com/v1/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {openai_key}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'model': 'gpt-5.1',
+                    'max_tokens': 1024,
+                    'messages': [{'role': 'system', 'content': EVAN_SYSTEM_PROMPT}] + messages
+                },
+                timeout=30
+            )
+            resp.raise_for_status()
+            reply = resp.json()['choices'][0]['message']['content']
+
+        response = jsonify({'reply': reply})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    except Exception as e:
+        logging.error(f"Evan chat error: {e}")
+        return jsonify({'error': 'model error', 'detail': str(e)}), 500
+
+
+@app.route('/evan')
+def evan_chat_ui():
+    """Serve the Evan chat interface."""
+    templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+    evan_path = os.path.join(templates_dir, 'evan.html')
+    if os.path.isfile(evan_path):
+        return send_from_directory(templates_dir, 'evan.html')
+    return jsonify({'error': 'Evan UI not found'}), 404
+
 @app.route('/<path:path>')
 def serve_spa(path):
     from flask import send_from_directory, make_response
