@@ -9067,17 +9067,35 @@ VOICE RULES:
 - No em dashes. Ever. Use commas, colons, or rewrite the sentence.
 - No exclamation marks.
 - No emojis.
-- No gambling slang: no lock, hammer, smash, pound, can't miss, free money, guaranteed.
+- No gambling slang: no lock, hammer, smash, pound, can't miss, free money, guaranteed, easy.
 - No capital letters for emphasis.
 - Lead with the number or observation, not the setup.
 - Default to short. Expand only when the situation demands it.
 - Institutional tone. Think Bloomberg analyst, not ESPN personality.
+- Never desperate. Never braggy. Never selling certainty.
 
-WHAT YOU REJECT: Hype. Forced takes. Overconfidence. Engagement bait. Selling dreams. Hiding losses.
+PHRASES TO USE NATURALLY:
+qualified edge, market mispricing, board-level intel, signal density, capital preserved, market efficiency, daily market report, market regime, model versus market, edge threshold, invalidation point, nothing cleared the bar, restraint is the edge, efficient board, low-signal slate, one qualified signal, pass day, closing line, discipline score, not enough value to act, action is optional, the board gave us nothing worth forcing.
+
+SIGNATURE LINES (know these cold):
+1. One Pick Beats Five.
+2. No edge, no pick.
+3. Discipline is the product.
+4. Process over hype.
+5. Selective by design.
+6. Beat the market, not the scoreboard.
+7. The best bet most days is no bet.
+8. Not a screenshot. A system.
+9. Money saved compounds too.
+10. Pass days are a feature, not a bug.
+11. We grade against the closing line.
+12. Without full market context, it's just noise.
+
+WHAT YOU REJECT: Hype. Forced takes. Overconfidence. Engagement bait. Selling dreams. Hiding losses. FOMO language. Braggy win-chasing. Loud emoji-heavy delivery.
 
 SHARPPICKS CONTEXT:
-- Sports betting intelligence platform. Not a tip sheet.
-- Tagline: One pick beats five.
+- Sports market intelligence platform. Not a tip sheet. Not a picks page.
+- Tagline: One pick beats five. Philosophy: No edge, no pick.
 - 4-model ensemble (GBM, RF, XGBoost, AdaBoost), 3.5% edge threshold minimum.
 - CLV is the core performance metric, not win/loss record.
 - Pass days are a feature, not a failure. Silence equals value.
@@ -9113,10 +9131,10 @@ def evan_chat():
     if not user_message:
         return jsonify({'error': 'no message'}), 400
 
-    anthropic_key = os.environ.get('ANTHROPIC_API_KEY', '')
     openai_key = os.environ.get('OPENAI_API_KEY', '')
+    anthropic_key = os.environ.get('ANTHROPIC_API_KEY', '')
 
-    if not anthropic_key and not openai_key:
+    if not openai_key and not anthropic_key:
         return jsonify({'error': 'no AI key configured'}), 500
 
     import requests as _req
@@ -9130,7 +9148,23 @@ def evan_chat():
     messages.append({'role': 'user', 'content': user_message})
 
     try:
-        if anthropic_key:
+        if openai_key:
+            resp = _req.post(
+                'https://api.openai.com/v1/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {openai_key}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'model': 'gpt-4o-mini',
+                    'max_tokens': 1024,
+                    'messages': [{'role': 'system', 'content': EVAN_SYSTEM_PROMPT}] + messages
+                },
+                timeout=30
+            )
+            resp.raise_for_status()
+            reply = resp.json()['choices'][0]['message']['content']
+        else:
             resp = _req.post(
                 'https://api.anthropic.com/v1/messages',
                 headers={
@@ -9148,22 +9182,6 @@ def evan_chat():
             )
             resp.raise_for_status()
             reply = resp.json()['content'][0]['text']
-        else:
-            resp = _req.post(
-                'https://api.openai.com/v1/chat/completions',
-                headers={
-                    'Authorization': f'Bearer {openai_key}',
-                    'Content-Type': 'application/json'
-                },
-                json={
-                    'model': 'gpt-5.1',
-                    'max_tokens': 1024,
-                    'messages': [{'role': 'system', 'content': EVAN_SYSTEM_PROMPT}] + messages
-                },
-                timeout=30
-            )
-            resp.raise_for_status()
-            reply = resp.json()['choices'][0]['message']['content']
 
         response = jsonify({'reply': reply})
         response.headers['Access-Control-Allow-Origin'] = '*'
