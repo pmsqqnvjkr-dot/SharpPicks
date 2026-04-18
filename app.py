@@ -9131,10 +9131,10 @@ def evan_chat():
     if not user_message:
         return jsonify({'error': 'no message'}), 400
 
-    openai_key = os.environ.get('OPENAI_API_KEY', '')
     anthropic_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    openai_key = os.environ.get('OPENAI_API_KEY', '')
 
-    if not openai_key and not anthropic_key:
+    if not anthropic_key and not openai_key:
         return jsonify({'error': 'no AI key configured'}), 500
 
     import requests as _req
@@ -9148,7 +9148,25 @@ def evan_chat():
     messages.append({'role': 'user', 'content': user_message})
 
     try:
-        if openai_key:
+        if anthropic_key:
+            resp = _req.post(
+                'https://api.anthropic.com/v1/messages',
+                headers={
+                    'x-api-key': anthropic_key,
+                    'anthropic-version': '2023-06-01',
+                    'content-type': 'application/json'
+                },
+                json={
+                    'model': 'claude-sonnet-4-5',
+                    'max_tokens': 1024,
+                    'system': EVAN_SYSTEM_PROMPT,
+                    'messages': messages
+                },
+                timeout=30
+            )
+            resp.raise_for_status()
+            reply = resp.json()['content'][0]['text']
+        else:
             resp = _req.post(
                 'https://api.openai.com/v1/chat/completions',
                 headers={
@@ -9164,24 +9182,6 @@ def evan_chat():
             )
             resp.raise_for_status()
             reply = resp.json()['choices'][0]['message']['content']
-        else:
-            resp = _req.post(
-                'https://api.anthropic.com/v1/messages',
-                headers={
-                    'x-api-key': anthropic_key,
-                    'anthropic-version': '2023-06-01',
-                    'content-type': 'application/json'
-                },
-                json={
-                    'model': 'claude-haiku-4-5',
-                    'max_tokens': 1024,
-                    'system': EVAN_SYSTEM_PROMPT,
-                    'messages': messages
-                },
-                timeout=30
-            )
-            resp.raise_for_status()
-            reply = resp.json()['content'][0]['text']
 
         response = jsonify({'reply': reply})
         response.headers['Access-Control-Allow-Origin'] = '*'
