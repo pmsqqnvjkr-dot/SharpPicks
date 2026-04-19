@@ -19,13 +19,31 @@ export default function UpgradeScreen({ onBack, user }) {
   const [iapError, setIapError] = useState('');
   const [iapSuccess, setIapSuccess] = useState('');
   const [restoringPurchases, setRestoringPurchases] = useState(false);
+  const [loadingOfferings, setLoadingOfferings] = useState(isIOS);
+
+  const loadOfferings = async () => {
+    if (!isIOS) return;
+    setLoadingOfferings(true);
+    setIapError('');
+    try {
+      const offering = await getOfferings();
+      if (offering) {
+        setIapOffering(offering);
+        return;
+      }
+      setIapOffering(null);
+      setIapError('Unable to load App Store products. Please try again.');
+    } catch (e) {
+      setIapOffering(null);
+      setIapError('Unable to load App Store products. Please try again.');
+    } finally {
+      setLoadingOfferings(false);
+    }
+  };
 
   useEffect(() => {
-    if (isIOS) {
-      getOfferings().then(offering => {
-        if (offering) setIapOffering(offering);
-      });
-    }
+    if (!isIOS) return;
+    loadOfferings();
   }, []);
 
   const handleStripeSubscribe = async (plan) => {
@@ -262,6 +280,42 @@ export default function UpgradeScreen({ onBack, user }) {
 
         {isIOS ? (
           <>
+            {!iapOffering && (
+              <div style={{
+                border: '1px solid rgba(255,255,255,0.08)',
+                backgroundColor: 'rgba(10, 13, 20, 0.55)',
+                borderRadius: '12px',
+                padding: '12px',
+                marginBottom: '16px',
+                textAlign: 'center',
+              }}>
+                <div style={{
+                  fontSize: '12px',
+                  color: 'var(--text-tertiary)',
+                  marginBottom: '8px',
+                }}>
+                  {loadingOfferings ? 'Loading App Store products...' : 'Products unavailable right now.'}
+                </div>
+                <button
+                  type="button"
+                  onClick={loadOfferings}
+                  disabled={loadingOfferings}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--stroke-muted)',
+                    background: 'var(--surface-2)',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px',
+                    cursor: loadingOfferings ? 'default' : 'pointer',
+                    opacity: loadingOfferings ? 0.6 : 1,
+                  }}
+                >
+                  {loadingOfferings ? 'Loading...' : 'Retry'}
+                </button>
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
               <PlanToggle
                 label="Annual"

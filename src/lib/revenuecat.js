@@ -10,7 +10,7 @@ async function _getPurchases() {
 }
 
 export async function initializeRevenueCat(userId) {
-  if (!isIOS || !RC_IOS_KEY || _configured) return;
+  if (!isIOS || !RC_IOS_KEY || _configured) return _configured;
   try {
     const Purchases = await _getPurchases();
     await Purchases.configure({ apiKey: RC_IOS_KEY, appUserID: userId || null });
@@ -18,10 +18,17 @@ export async function initializeRevenueCat(userId) {
   } catch (e) {
     console.error('[RC] configure failed:', e);
   }
+  return _configured;
+}
+
+export function isRevenueCatConfigured() {
+  return _configured;
 }
 
 export async function rcLogin(userId) {
-  if (!isIOS || !_configured || !userId) return;
+  if (!isIOS || !userId) return;
+  const ready = await initializeRevenueCat(String(userId));
+  if (!ready) return;
   try {
     const Purchases = await _getPurchases();
     await Purchases.logIn({ appUserID: String(userId) });
@@ -41,7 +48,9 @@ export async function rcLogout() {
 }
 
 export async function getOfferings() {
-  if (!isIOS || !_configured) return null;
+  if (!isIOS) return null;
+  const ready = await initializeRevenueCat();
+  if (!ready) return null;
   try {
     const Purchases = await _getPurchases();
     const offerings = await Purchases.getOfferings();
@@ -53,14 +62,17 @@ export async function getOfferings() {
 }
 
 export async function purchasePackage(pkg) {
-  if (!isIOS || !_configured) throw new Error('RevenueCat not available');
+  const ready = await initializeRevenueCat();
+  if (!isIOS || !ready) throw new Error('RevenueCat not available');
   const Purchases = await _getPurchases();
   const result = await Purchases.purchasePackage({ aPackage: pkg });
   return result.customerInfo;
 }
 
 export async function restorePurchases() {
-  if (!isIOS || !_configured) return null;
+  if (!isIOS) return null;
+  const ready = await initializeRevenueCat();
+  if (!ready) return null;
   try {
     const Purchases = await _getPurchases();
     const { customerInfo } = await Purchases.restorePurchases();
@@ -72,7 +84,9 @@ export async function restorePurchases() {
 }
 
 export async function checkProEntitlement() {
-  if (!isIOS || !_configured) return false;
+  if (!isIOS) return false;
+  const ready = await initializeRevenueCat();
+  if (!ready) return false;
   try {
     const Purchases = await _getPurchases();
     const { customerInfo } = await Purchases.getCustomerInfo();

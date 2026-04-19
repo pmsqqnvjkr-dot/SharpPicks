@@ -6,6 +6,7 @@ Flask server with API endpoints, dashboard, authentication, and scheduled tasks
 import os
 import re
 import sys
+import json
 import logging
 import threading
 import uuid
@@ -5790,6 +5791,7 @@ def logout():
 _google_client_id = os.environ.get('GOOGLE_CLIENT_ID')
 _google_client_secret = os.environ.get('GOOGLE_CLIENT_SECRET')
 _apple_client_id = os.environ.get('APPLE_CLIENT_ID')
+_apple_ios_client_id = os.environ.get('APPLE_IOS_CLIENT_ID') or os.environ.get('IOS_BUNDLE_ID') or os.environ.get('CAPACITOR_APP_ID')
 _apple_team_id = os.environ.get('APPLE_TEAM_ID')
 _apple_key_id = os.environ.get('APPLE_KEY_ID')
 _apple_private_key = os.environ.get('APPLE_PRIVATE_KEY', '')
@@ -5898,6 +5900,48 @@ def _oauth_find_or_create(email, provider, provider_id, first_name=None, plan='t
         logging.error(f"Admin OAuth signup alert failed: {e}")
 
     return user, True
+
+
+def _get_apple_jwks():
+    """Fetch and cache Apple's public keys for ID token verification."""
+    from jwt import PyJWKClient
+    import time
+    global _apple_jwks_client, _apple_jwks_client_built_at
+    now = time.time()
+    # Rebuild periodically so key rotation is respected without per-request fetches.
+    if _apple_jwks_client is None or now - _apple_jwks_client_built_at > 3600:
+        _apple_jwks_client = PyJWKClient("https://appleid.apple.com/auth/keys")
+        _apple_jwks_client_built_at = now
+    return _apple_jwks_client
+
+
+def _verify_apple_identity_token(identity_token, expected_audiences=None):
+    """Verify Apple identity token signature + issuer + audience."""
+    import jwt as pyjwt
+
+    if not identity_token:
+        raise ValueError("Missing identity token")
+
+    if expected_audiences is None:
+        expected_audiences = []
+        if _apple_client_id:
+            expected_audiences.append(_apple_client_id)
+        if _apple_ios_client_id:
+            expected_audiences.append(_apple_ios_client_id)
+        # Preserve order while removing duplicates.
+        expected_audiences = list(dict.fromkeys(expected_audiences))
+    if not expected_audiences:
+        raise ValueError("Apple client ID is not configured")
+
+    signing_key = _get_apple_jwks().get_signing_key_from_jwt(identity_token).key
+    return pyjwt.decode(
+        identity_token,
+        signing_key,
+        algorithms=["RS256"],
+        audience=expected_audiences,
+        issuer="https://appleid.apple.com",
+        options={"require": ["exp", "iat", "iss", "aud", "sub"]},
+    )
 
 
 def _redirect_replace(url):
@@ -6018,6 +6062,107 @@ def google_callback():
     return _redirect_replace('/')
 
 
+_apple_jwks_client = None
+_apple_jwks_client_built_at = 0
+
+
+@app.route('/api/auth/apple-native', methods=['POST'])
+@limiter.limit("20 per minute")
+def apple_native_login():
+    """Native iOS Sign in with Apple endpoint for Capacitor plugin flows."""
+    data = request.get_json() or {}
+    identity_token = (data.get('identityToken') or data.get('idToken') or '').strip()
+    plan = (data.get('plan') or 'free').strip().lower()
+    plan = 'trial' if plan == 'trial' else 'free'
+
+    if not _apple_ios_client_id:
+        logging.error("Native Apple auth rejected: APPLE_IOS_CLIENT_ID/IOS_BUNDLE_ID/CAPACITOR_APP_ID not configured")
+        return jsonify({'success': False, 'error': 'Native Apple auth is not configured'}), 500
+
+    try:
+        claims = _verify_apple_identity_token(identity_token, expected_audiences=[_apple_ios_client_id])
+    except Exception as e:
+        logging.warning(f"Native Apple token verification failed: {e}")
+        return jsonify({'success': False, 'error': 'Invalid Apple identity token'}), 401
+
+    apple_sub = (claims.get('sub') or '').strip()
+    email = (claims.get('email') or '').lower().strip()
+
+    if not apple_sub:
+        return jsonify({'success': False, 'error': 'Apple account identifier missing'}), 400
+
+    first_name = ''
+    full_name = data.get('fullName') or {}
+    if isinstance(full_name, str):
+        try:
+            full_name = json.loads(full_name)
+        except Exception:
+            full_name = {}
+    if isinstance(full_name, dict):
+        first_name = (full_name.get('givenName') or full_name.get('firstName') or '').strip()
+
+    user = User.query.filter_by(oauth_provider='apple', oauth_id=apple_sub).first()
+    is_new = False
+
+    if not user and email:
+        user = User.query.filter(func.lower(User.email) == email).first()
+
+    if not user:
+        is_new = True
+        from models import normalize_email
+        from werkzeug.security import generate_password_hash
+        import secrets
+
+        normalized = normalize_email(email) if email else None
+        user = User(
+            id=str(uuid.uuid4()),
+            email=email if email else f'apple_{apple_sub}@private.sharppicks.ai',
+            email_normalized=normalized,
+            first_name=first_name,
+            display_name=first_name or (email.split('@')[0] if email else 'Apple User'),
+            password_hash=generate_password_hash(secrets.token_urlsafe(32)),
+            oauth_provider='apple',
+            oauth_id=apple_sub,
+            is_premium=False,
+            email_verified=True,
+            subscription_status='free',
+        )
+        db.session.add(user)
+    else:
+        if not user.oauth_id:
+            user.oauth_provider = 'apple'
+            user.oauth_id = apple_sub
+        if email:
+            user.email = email
+            try:
+                from models import normalize_email
+                user.email_normalized = normalize_email(email)
+            except Exception:
+                pass
+        if first_name and not user.first_name:
+            user.first_name = first_name
+        if first_name and not user.display_name:
+            user.display_name = first_name
+
+    db.session.commit()
+    _apply_pre_provisioned(user)
+
+    login_user(user, remember=True)
+    session.permanent = True
+    session['user_id'] = user.id
+    session['session_token'] = user.session_token
+
+    token = generate_auth_token(user)
+    response = {
+        'success': True,
+        'user': serialize_user(user),
+        'token': token,
+        'new_user': is_new,
+        'plan': plan,
+    }
+    return jsonify(response)
+
+
 @app.route('/auth/apple')
 def apple_login():
     if not _oauth_ready or not _apple_client_id:
@@ -6035,7 +6180,9 @@ def apple_login():
 def apple_callback():
     try:
         token = _oauth.apple.authorize_access_token()
-        id_token = _oauth.apple.parse_id_token(token, nonce=None)
+        raw_id_token = token.get('id_token')
+        # Web OAuth callback should validate against the Services ID audience.
+        id_token = _verify_apple_identity_token(raw_id_token, expected_audiences=[_apple_client_id])
     except Exception as e:
         logging.error(f"Apple OAuth failed: {e}")
         return redirect('/login?error=apple_failed')
