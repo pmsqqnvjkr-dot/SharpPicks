@@ -20,6 +20,8 @@ import NoPickCard from './NoPickCard';
 import PassDay from '../signals/PassDay';
 import DarkDay from '../signals/DarkDay';
 
+let hasEvaluatedSignalsDefaultSport = false;
+
 
 function isTodayGame(gameDate) {
   if (!gameDate) return false;
@@ -70,6 +72,9 @@ export default function PicksTab({ onNavigate }) {
   const { user, loading: authLoading, enablePush, pushStatus } = useAuth();
   const { sport, setSport } = useSport();
   const { data: todayData, loading, error, refetch: refetchToday } = useApi(sportQuery('/picks/today', sport));
+  const { data: mlbTodayData, loading: mlbTodayLoading } = useApi('/picks/today?sport=mlb', {
+    skip: sport !== 'nba',
+  });
   const { data: stats, refetch: refetchStats } = useApi(sportQuery('/public/stats', sport));
   const { data: marketReport, refetch: refetchMarketReport } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
   const { data: killSwitch } = useApi(sportQuery('/public/kill-switch', sport), { pollInterval: 600000 });
@@ -103,6 +108,23 @@ export default function PicksTab({ onNavigate }) {
     setMiExpanded(null);
     setGameInfo(null);
   }, [sport]);
+
+  // If the app opens on NBA and there's no NBA pick but MLB has one,
+  // default the Signals tab to MLB so users land on the active signal.
+  useEffect(() => {
+    if (hasEvaluatedSignalsDefaultSport) return;
+    if (sport !== 'nba') {
+      hasEvaluatedSignalsDefaultSport = true;
+      return;
+    }
+    if (loading || mlbTodayLoading) return;
+    if (!todayData?.type || !mlbTodayData?.type) return;
+
+    hasEvaluatedSignalsDefaultSport = true;
+    if (todayData.type !== 'pick' && mlbTodayData.type === 'pick') {
+      setSport('mlb');
+    }
+  }, [sport, loading, mlbTodayLoading, todayData?.type, mlbTodayData?.type, setSport]);
 
   const handleDismissResolution = (pickId) => {
     setDismissedOutcomes(prev => {
