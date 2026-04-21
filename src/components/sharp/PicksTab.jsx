@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi, getAuthToken } from '../../hooks/useApi';
@@ -19,9 +19,6 @@ import { InlineError } from './ErrorStates';
 import NoPickCard from './NoPickCard';
 import PassDay from '../signals/PassDay';
 import DarkDay from '../signals/DarkDay';
-
-let hasEvaluatedSignalsDefaultSport = false;
-
 
 function isTodayGame(gameDate) {
   if (!gameDate) return false;
@@ -98,6 +95,8 @@ export default function PicksTab({ onNavigate }) {
   const [tomorrowGames, setTomorrowGames] = useState(null);
   const [tomorrowDate, setTomorrowDate] = useState(null);
   const [tonightBets, setTonightBets] = useState(null);
+  const initialSportRef = useRef(sport);
+  const hasEvaluatedDefaultSportRef = useRef(false);
   const modelRunHour = todayData?.model_run_hour || (sport === 'mlb' ? 11 : 10);
   const modelRunLabel = todayData?.model_runs_at || (modelRunHour <= 12 ? `${modelRunHour}:00 AM ET` : `${modelRunHour - 12}:00 PM ET`);
   const countdown = useCountdownTo(modelRunHour);
@@ -112,15 +111,16 @@ export default function PicksTab({ onNavigate }) {
   // If the app opens on NBA and there's no NBA pick but MLB has one,
   // default the Signals tab to MLB so users land on the active signal.
   useEffect(() => {
-    if (hasEvaluatedSignalsDefaultSport) return;
-    if (sport !== 'nba') {
-      hasEvaluatedSignalsDefaultSport = true;
+    if (hasEvaluatedDefaultSportRef.current) return;
+    if (initialSportRef.current !== 'nba') {
+      hasEvaluatedDefaultSportRef.current = true;
       return;
     }
+    if (sport !== 'nba') return;
     if (loading || mlbTodayLoading) return;
     if (!todayData?.type || !mlbTodayData?.type) return;
 
-    hasEvaluatedSignalsDefaultSport = true;
+    hasEvaluatedDefaultSportRef.current = true;
     if (todayData.type !== 'pick' && mlbTodayData.type === 'pick') {
       setSport('mlb');
     }
