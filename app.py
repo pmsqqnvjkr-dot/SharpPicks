@@ -5753,6 +5753,8 @@ def login():
             db.session.commit()
             return jsonify({'error': 'Too many failed attempts. Account locked for 15 minutes.'}), 429
         db.session.commit()
+        if getattr(user, 'oauth_provider', None) in ('google', 'apple'):
+            return jsonify({'error': 'Invalid email or password', 'oauth_hint': user.oauth_provider}), 401
         return jsonify({'error': 'Invalid email or password'}), 401
 
     user.failed_login_attempts = 0
@@ -6222,6 +6224,93 @@ def apple_callback():
             return _redirect_replace(checkout_url)
 
     return _redirect_replace('/')
+
+
+_apple_public_keys_cache = {'keys': None, 'fetched_at': 0}
+
+@app.route('/api/auth/apple-native', methods=['POST'])
+@limiter.limit("10 per minute")
+def apple_native_signin():
+    """Verify an Apple identity token from native Sign in with Apple and authenticate the user."""
+    import jwt as pyjwt
+    import time
+
+    data = request.get_json() or {}
+    identity_token = data.get('identityToken', '')
+    email = (data.get('email') or '').strip().lower()
+    given_name = data.get('givenName') or data.get('firstName') or ''
+    family_name = data.get('familyName') or data.get('lastName') or ''
+    first_name = given_name or family_name or ''
+
+    if not identity_token:
+        return jsonify({'error': 'identityToken is required'}), 400
+
+    try:
+        unverified_header = pyjwt.get_unverified_header(identity_token)
+        kid = unverified_header.get('kid')
+        if not kid:
+            return jsonify({'error': 'Invalid token header'}), 400
+
+        now = time.time()
+        if not _apple_public_keys_cache['keys'] or now - _apple_public_keys_cache['fetched_at'] > 3600:
+            import urllib.request, json as _json
+            req = urllib.request.Request('https://appleid.apple.com/auth/keys')
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                jwks = _json.loads(resp.read())
+            _apple_public_keys_cache['keys'] = jwks.get('keys', [])
+            _apple_public_keys_cache['fetched_at'] = now
+
+        apple_key = None
+        for k in _apple_public_keys_cache['keys']:
+            if k.get('kid') == kid:
+                apple_key = k
+                break
+        if not apple_key:
+            _apple_public_keys_cache['keys'] = None
+            return jsonify({'error': 'Unable to find matching Apple public key'}), 400
+
+        from jwt.algorithms import RSAAlgorithm
+        public_key = RSAAlgorithm.from_jwk(apple_key)
+
+        claims = pyjwt.decode(
+            identity_token,
+            key=public_key,
+            algorithms=['RS256'],
+            audience='com.sharppicksllc.signals',
+            issuer='https://appleid.apple.com',
+        )
+
+        apple_sub = claims.get('sub')
+        token_email = (claims.get('email') or '').strip().lower()
+        if not apple_sub:
+            return jsonify({'error': 'Invalid token: missing subject'}), 400
+
+        user_email = email or token_email
+        if not user_email:
+            user_email = f'apple_{apple_sub}@private.sharppicks.ai'
+
+        user, is_new = _oauth_find_or_create(user_email, 'apple', apple_sub, first_name=first_name)
+
+        login_user(user, remember=True)
+        session.permanent = True
+        session['user_id'] = user.id
+        session['session_token'] = user.session_token
+
+        token = generate_auth_token(user)
+        return jsonify({
+            'success': True,
+            'token': token,
+            'user': serialize_user(user),
+            'is_new': is_new,
+        })
+    except pyjwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except pyjwt.InvalidTokenError as e:
+        logging.error(f"Apple native token validation failed: {e}")
+        return jsonify({'error': 'Invalid token'}), 401
+    except Exception as e:
+        logging.error(f"Apple native sign-in error: {e}")
+        return jsonify({'error': 'Authentication failed'}), 500
 
 
 @app.route('/api/auth/forgot-password', methods=['POST'])

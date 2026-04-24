@@ -9,12 +9,15 @@
 html,body{height:100%;background:#0A0D14;color:#E8E9EB;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 body{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;text-align:center}
 .logo{margin-bottom:32px;opacity:0.9}
+.spinner{width:28px;height:28px;border:2.5px solid rgba(90,158,114,0.15);border-top-color:#5A9E72;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:24px}
+@keyframes spin{to{transform:rotate(360deg)}}
 h1{font-size:20px;font-weight:600;letter-spacing:-0.01em;margin-bottom:10px;color:#E8E9EB}
 p{font-size:14px;line-height:1.6;color:#8B8F96;max-width:280px;margin-bottom:24px}
-.pill{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;background:rgba(90,158,114,0.12);color:#5A9E72;margin-bottom:24px}
-button{padding:14px 40px;background:#5A9E72;border:none;border-radius:12px;color:#0A0D14;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:0.02em;-webkit-tap-highlight-color:transparent}
+.attempt{font-size:11px;color:#555;margin-bottom:20px;min-height:16px}
+button{padding:14px 40px;background:#5A9E72;border:none;border-radius:12px;color:#0A0D14;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:0.02em;-webkit-tap-highlight-color:transparent;display:none}
 button:active{opacity:0.85}
-.sub{font-size:11px;color:#555;margin-top:16px}
+.offline-msg{display:none}
+.offline-msg p{color:#8B8F96}
 </style>
 </head>
 <body>
@@ -25,10 +28,87 @@ button:active{opacity:0.85}
 <rect x="150" y="420" width="200" height="20" rx="10" fill="#5A9E72"/>
 </svg>
 </div>
-<div class="pill">Back shortly</div>
-<h1>Updating SharpPicks</h1>
-<p>We're rolling out an update. This usually takes less than a minute.</p>
-<button onclick="location.reload()">Try Again</button>
-<div class="sub">Your data and picks are safe.</div>
+
+<div id="loading-state">
+  <div class="spinner" id="spinner"></div>
+  <h1 id="heading">Connecting…</h1>
+  <p id="subtext">Just a moment while we connect.</p>
+  <div class="attempt" id="attempt"></div>
+  <button id="retry-btn" onclick="manualRetry()">Try Again</button>
+</div>
+
+<div id="offline-state" class="offline-msg">
+  <h1>No internet connection</h1>
+  <p>Please check your network and try again.</p>
+  <button style="display:inline-block;margin-top:8px" onclick="checkAndRetry()">Try Again</button>
+</div>
+
+<script>
+var MAX_RETRIES = 3;
+var attempt = 0;
+var delays = [2000, 4000, 6000];
+var timer = null;
+var APP_URL = 'https://app.sharppicks.ai';
+
+function show(id) {
+  document.getElementById('loading-state').style.display = id === 'loading' ? '' : 'none';
+  document.getElementById('offline-state').style.display = id === 'offline' ? '' : 'none';
+}
+
+function doRetry() {
+  attempt++;
+  if (attempt > MAX_RETRIES) {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('heading').textContent = 'Unable to connect';
+    document.getElementById('subtext').textContent = 'Please check your connection and try again.';
+    document.getElementById('attempt').textContent = '';
+    document.getElementById('retry-btn').style.display = 'inline-block';
+    return;
+  }
+  document.getElementById('attempt').textContent = 'Attempt ' + attempt + ' of ' + MAX_RETRIES + '\u2026';
+  window.location.replace(APP_URL);
+}
+
+function checkAndRetry() {
+  if (!navigator.onLine) {
+    show('offline');
+    return;
+  }
+  show('loading');
+  attempt = 0;
+  scheduleRetry();
+}
+
+function scheduleRetry() {
+  if (!navigator.onLine) {
+    show('offline');
+    return;
+  }
+  var delay = delays[attempt] || delays[delays.length - 1];
+  timer = setTimeout(doRetry, delay);
+}
+
+function manualRetry() {
+  attempt = 0;
+  document.getElementById('spinner').style.display = '';
+  document.getElementById('heading').textContent = 'Connecting\u2026';
+  document.getElementById('subtext').textContent = 'Just a moment while we connect.';
+  document.getElementById('retry-btn').style.display = 'none';
+  scheduleRetry();
+}
+
+window.addEventListener('online', function() {
+  show('loading');
+  attempt = 0;
+  scheduleRetry();
+});
+
+if (!navigator.onLine) {
+  show('offline');
+} else {
+  show('loading');
+  scheduleRetry();
+}
+</script>
 </body>
 </html>

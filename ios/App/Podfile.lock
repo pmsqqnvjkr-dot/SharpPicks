@@ -23,6 +23,8 @@ PODS:
     - Capacitor
   - CapacitorStatusBar (8.0.1):
     - Capacitor
+  - CapawesomeCapacitorAppleSignIn (0.1.0):
+    - Capacitor
   - FirebaseCore (12.11.0):
     - FirebaseCoreInternal (~> 12.11.0)
     - GoogleUtilities/Environment (~> 8.1)
@@ -97,6 +99,7 @@ DEPENDENCIES:
   - "CapacitorShare (from `../../node_modules/@capacitor/share`)"
   - "CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)"
   - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
+  - "CapawesomeCapacitorAppleSignIn (from `../../node_modules/@capawesome/capacitor-apple-sign-in`)"
   - FirebaseCore
   - FirebaseMessaging
   - "RevenuecatPurchasesCapacitor (from `../../node_modules/@revenuecat/purchases-capacitor`)"
@@ -140,6 +143,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/splash-screen"
   CapacitorStatusBar:
     :path: "../../node_modules/@capacitor/status-bar"
+  CapawesomeCapacitorAppleSignIn:
+    :path: "../../node_modules/@capawesome/capacitor-apple-sign-in"
   RevenuecatPurchasesCapacitor:
     :path: "../../node_modules/@revenuecat/purchases-capacitor"
 
@@ -156,6 +161,7 @@ SPEC CHECKSUMS:
   CapacitorShare: 0c58305114538568059bfc07111f22dcb9cb2a82
   CapacitorSplashScreen: 4b46c72298db552b3c57ce021ef028b6dc7f1fa7
   CapacitorStatusBar: 32206abd53b14f339763da26f71286deaa891e16
+  CapawesomeCapacitorAppleSignIn: 75182237c73f27c01fe0ac28e72881c9300c211a
   FirebaseCore: 1b39aa6e67b4b4d5771045abf9c9a57a585ff1e7
   FirebaseCoreInternal: 26601b1134d192ef73e80c0c0110fb96477db687
   FirebaseInstallations: 3b65e8f4faed02bad1abf5de40e8286c5b13073d
@@ -169,6 +175,6 @@ SPEC CHECKSUMS:
   RevenueCat: c7310bad19cb96a1551c68045303e1faaa1942a5
   RevenuecatPurchasesCapacitor: 6b652e6e001224841fbfb9a97322c46f14d32504
 
-PODFILE CHECKSUM: cafedcd3efa74a5ef61c4120f6c079f22f138e95
+PODFILE CHECKSUM: b1a6ab45edebf371a4fd64491fdcd35e660c41fd
 
 COCOAPODS: 1.16.2

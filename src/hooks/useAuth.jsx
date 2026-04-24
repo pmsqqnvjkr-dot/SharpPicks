@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
         rcLogin(data.id);
         return { success: true };
       }
-      return { success: false, error: data.error || 'Login failed' };
+      return { success: false, error: data.error || 'Login failed', oauth_hint: data.oauth_hint };
     } catch {
       return { success: false, error: 'Something went wrong. Please try again.' };
     }

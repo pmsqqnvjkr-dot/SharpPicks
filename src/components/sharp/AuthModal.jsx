@@ -61,6 +61,9 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
       const result = await login(email, password);
       if (result.success) {
         onClose();
+      } else if (result.oauth_hint) {
+        const provider = result.oauth_hint === 'google' ? 'Google' : 'Apple';
+        setError(`This account was created with ${provider}. Use "Forgot password" below to set a password, then sign in with your email.`);
       } else {
         setError(result.error);
       }
@@ -90,8 +93,45 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
   const isFreeView = accountView === 'free';
   const pollRef = useRef(null);
 
+  const isIOS = Capacitor.getPlatform() === 'ios';
+
   const handleOAuth = async (provider) => {
     const plan = isFreeView ? 'free' : 'trial';
+
+    if (provider === 'apple' && isIOS) {
+      try {
+        const { AppleSignIn } = await import('@capawesome/capacitor-apple-sign-in');
+        const result = await AppleSignIn.signIn({
+          scopes: ['EMAIL', 'FULL_NAME'],
+        });
+        const res = await fetch(`${API_BASE}/auth/apple-native`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            identityToken: result.idToken,
+            authorizationCode: result.authorizationCode,
+            email: result.email,
+            givenName: result.givenName,
+            familyName: result.familyName,
+          }),
+        });
+        const data = await res.json();
+        if (data.success && data.token) {
+          setAuthToken(data.token);
+          await checkAuth();
+          onClose();
+        } else {
+          setError(data.error || 'Apple sign-in failed');
+        }
+      } catch (e) {
+        if (e?.code !== 'SIGN_IN_CANCELED' && !String(e?.message || '').includes('cancel')) {
+          setError('Apple sign-in failed. Please try again.');
+        }
+      }
+      return;
+    }
+
     if (isNative) {
       const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
       const url = `${PROD_URL}/auth/${provider}?plan=${plan}&nonce=${nonce}`;

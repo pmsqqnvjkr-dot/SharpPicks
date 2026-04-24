@@ -10,11 +10,17 @@ async function _getPurchases() {
 }
 
 export async function initializeRevenueCat(userId) {
-  if (!isIOS || !RC_IOS_KEY || _configured) return _configured;
+  if (!isIOS) return false;
+  if (!RC_IOS_KEY) {
+    console.warn('[RC] No iOS API key set (VITE_REVENUECAT_IOS_KEY). Subscriptions will not work.');
+    return false;
+  }
+  if (_configured) return true;
   try {
     const Purchases = await _getPurchases();
     await Purchases.configure({ apiKey: RC_IOS_KEY, appUserID: userId || null });
     _configured = true;
+    console.log('[RC] RevenueCat configured successfully');
   } catch (e) {
     console.error('[RC] configure failed:', e);
   }
@@ -50,11 +56,20 @@ export async function rcLogout() {
 export async function getOfferings() {
   if (!isIOS) return null;
   const ready = await initializeRevenueCat();
-  if (!ready) return null;
+  if (!ready) {
+    console.warn('[RC] getOfferings called but RevenueCat not configured');
+    return null;
+  }
   try {
     const Purchases = await _getPurchases();
     const offerings = await Purchases.getOfferings();
-    return offerings?.current || null;
+    const current = offerings?.current || null;
+    if (!current) {
+      console.warn('[RC] No current offering returned. Check RevenueCat dashboard configuration.');
+    } else {
+      console.log('[RC] Offerings loaded:', current.identifier, '- annual:', !!current.annual, '- monthly:', !!current.monthly);
+    }
+    return current;
   } catch (e) {
     console.error('[RC] getOfferings failed:', e);
     return null;
