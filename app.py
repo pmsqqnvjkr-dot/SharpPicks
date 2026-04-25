@@ -6660,14 +6660,14 @@ def stripe_webhook():
                 event = stripe_lib.Webhook.construct_event(payload, sig, webhook_secret)
             except AttributeError:
                 import json
-                raw_event = json.loads(payload)
-                event = raw_event
-        elif not is_production:
+                event = json.loads(payload)
+        elif webhook_secret and not sig:
+            logging.warning('Stripe webhook: signature header missing but secret configured')
+            return jsonify({'error': 'Missing Stripe-Signature header'}), 400
+        else:
+            logging.warning(f'Stripe webhook: no STRIPE_WEBHOOK_SECRET configured (production={is_production}), processing unverified')
             import json
             event = json.loads(payload)
-        else:
-            logging.warning('Stripe webhook: missing signature in production')
-            return jsonify({'error': 'Webhook signature required in production'}), 400
 
         if isinstance(event, dict):
             event_id = event.get('id', '')
