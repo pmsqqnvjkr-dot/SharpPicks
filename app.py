@@ -8728,6 +8728,119 @@ def admin_grant_premium():
     })
 
 
+@app.route('/api/admin/sync-stripe-user', methods=['GET', 'POST'])
+@verify_cron
+def admin_sync_stripe_user():
+    """Sync a user's Pro status from their Stripe subscription. Use after missed webhooks."""
+    email = request.args.get('email', '').strip().lower()
+    if not email:
+        return jsonify({'error': 'Missing email parameter'}), 400
+    user = User.query.filter(db.func.lower(User.email) == email).first()
+    if not user:
+        return jsonify({'error': f'User not found: {email}'}), 404
+    results = {'email': user.email, 'before': {
+        'is_premium': user.is_premium,
+        'subscription_status': user.subscription_status,
+        'subscription_plan': user.subscription_plan,
+        'stripe_customer_id': user.stripe_customer_id,
+    }}
+    try:
+        from stripe_client import get_stripe_client
+        stripe_obj = get_stripe_client()
+        customers = stripe_obj.Customer.search(query=f'email:"{email}"', limit=1)
+        if customers.data:
+            cust = customers.data[0]
+            if not user.stripe_customer_id:
+                user.stripe_customer_id = cust.id
+            subs = stripe_obj.Subscription.list(customer=cust.id, limit=5)
+            active_sub = None
+            for s in subs.data:
+                if s.status in ('active', 'trialing'):
+                    active_sub = s
+                    break
+            if active_sub:
+                user.is_premium = True
+                user.pro_source = 'stripe'
+                if active_sub.status == 'trialing':
+                    user.subscription_status = 'trial'
+                    user.trial_used = True
+                    if hasattr(active_sub, 'trial_end') and active_sub.trial_end:
+                        user.trial_end_date = datetime.fromtimestamp(active_sub.trial_end)
+                else:
+                    user.subscription_status = 'active'
+                if hasattr(active_sub, 'current_period_end') and active_sub.current_period_end:
+                    user.current_period_end = datetime.fromtimestamp(active_sub.current_period_end)
+                plan_meta = None
+                if hasattr(active_sub, 'metadata') and active_sub.metadata:
+                    plan_meta = getattr(active_sub.metadata, 'plan', None)
+                if plan_meta:
+                    user.subscription_plan = plan_meta
+                elif not user.subscription_plan or user.subscription_plan == 'free':
+                    user.subscription_plan = 'monthly'
+                results['subscription_found'] = True
+                results['stripe_status'] = active_sub.status
+            else:
+                results['subscription_found'] = False
+                results['note'] = 'No active/trialing subscription found in Stripe'
+        else:
+            results['customer_found'] = False
+            results['note'] = 'No Stripe customer found for this email'
+        db.session.commit()
+    except Exception as e:
+        results['error'] = str(e)
+    results['after'] = {
+        'is_premium': user.is_premium,
+        'subscription_status': user.subscription_status,
+        'subscription_plan': user.subscription_plan,
+        'stripe_customer_id': user.stripe_customer_id,
+    }
+    return jsonify(results)
+
+
+@app.route('/api/admin/sync-all-stripe', methods=['GET', 'POST'])
+@verify_cron
+def admin_sync_all_stripe():
+    """Scan all users with stripe_customer_id and sync their Pro status from Stripe."""
+    try:
+        from stripe_client import get_stripe_client
+        stripe_obj = get_stripe_client()
+    except Exception as e:
+        return jsonify({'error': f'Stripe init failed: {e}'}), 500
+    users_with_stripe = User.query.filter(User.stripe_customer_id.isnot(None)).all()
+    fixed = []
+    already_ok = []
+    no_sub = []
+    errors = []
+    for user in users_with_stripe:
+        try:
+            subs = stripe_obj.Subscription.list(customer=user.stripe_customer_id, limit=5)
+            active_sub = None
+            for s in subs.data:
+                if s.status in ('active', 'trialing'):
+                    active_sub = s
+                    break
+            if active_sub:
+                if user.is_premium and user.subscription_status in ('active', 'trial'):
+                    already_ok.append(user.email)
+                else:
+                    user.is_premium = True
+                    user.pro_source = 'stripe'
+                    user.subscription_status = 'active' if active_sub.status == 'active' else 'trial'
+                    if hasattr(active_sub, 'current_period_end') and active_sub.current_period_end:
+                        user.current_period_end = datetime.fromtimestamp(active_sub.current_period_end)
+                    fixed.append(user.email)
+            else:
+                no_sub.append(user.email)
+        except Exception as e:
+            errors.append({'email': user.email, 'error': str(e)})
+    db.session.commit()
+    return jsonify({
+        'fixed': fixed, 'already_ok': already_ok,
+        'no_active_sub': no_sub, 'errors': errors,
+        'total_checked': len(users_with_stripe),
+    })
+
+
 @app.route('/api/admin/test-emails', methods=['GET', 'POST'])
 @verify_cron
 def admin_test_emails():
