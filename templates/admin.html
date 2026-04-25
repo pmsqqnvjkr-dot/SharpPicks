@@ -30,7 +30,7 @@
   --t5: #333845;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace;-webkit-font-smoothing:antialiased;max-width:430px;margin:0 auto;min-height:100vh;overflow-x:hidden}
+body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace;-webkit-font-smoothing:antialiased;max-width:960px;margin:0 auto;min-height:100vh;overflow-x:hidden}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(8,11,17,0.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:50}
 .topbar-left{display:flex;align-items:center;gap:8px}
 .back-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:0;color:var(--t3);font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer}
@@ -251,6 +251,80 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
 .panel.active > *:nth-child(30){animation:fadeUp .3s ease both;animation-delay:.90s}
 @keyframes killPulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .kill-pulse{animation:killPulse 1.5s ease-in-out infinite}
+
+/* ── Business Tab v2 ── */
+.biz-north{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
+@media(max-width:500px){.biz-north{grid-template-columns:repeat(3,1fr)}}
+.biz-kpi{background:var(--s1);padding:12px 8px;text-align:center;position:relative;border-left:2px solid transparent}
+.biz-kpi.good{border-left-color:var(--green)}.biz-kpi.watch{border-left-color:var(--amber)}.biz-kpi.alert{border-left-color:var(--red)}
+.biz-kpi-label{font-size:8px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t4);margin-bottom:3px}
+.biz-kpi-val{font-size:20px;font-weight:700;line-height:1.2}
+.biz-kpi-sub{font-size:9px;color:var(--t4);margin-top:2px;line-height:1.3}
+.biz-kpi-delta{font-size:8px;font-weight:600;margin-top:3px}
+.biz-kpi-delta.up{color:var(--green)}.biz-kpi-delta.down{color:var(--red)}.biz-kpi-delta.flat{color:var(--t4)}
+.biz-progress{height:4px;background:var(--s2);border-radius:2px;margin-top:6px;overflow:hidden}
+.biz-progress-fill{height:100%;border-radius:2px;background:var(--green)}
+
+.biz-reads{background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px}
+.biz-reads-title{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--t4);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.biz-reads-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.biz-read{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid rgba(26,31,46,0.4);font-family:'Inter',sans-serif;font-size:12px;line-height:1.55;color:var(--t2);cursor:pointer;transition:color 0.15s}
+.biz-read:last-child{border-bottom:0}
+.biz-read:hover{color:var(--t1)}
+.biz-read-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:6px}
+.biz-read-dot.good{background:var(--green)}.biz-read-dot.watch{background:var(--amber)}.biz-read-dot.alert{background:var(--red)}
+.biz-read-text{flex:1}
+.biz-read-text strong{color:var(--t1);font-weight:600}
+.biz-read-arrow{color:var(--t4);font-size:12px;flex-shrink:0;margin-top:4px}
+.biz-read-action{display:inline-block;font-size:10px;font-weight:600;color:var(--green);cursor:pointer;padding:3px 8px;border:1px solid rgba(90,158,114,0.25);border-radius:4px;background:var(--g08);margin-top:6px;font-family:'JetBrains Mono',monospace}
+.biz-read-action:hover{background:var(--g15)}
+.biz-expandable{margin-top:6px}
+.biz-expand-btn{font-size:9px;color:var(--t3);cursor:pointer;background:none;border:none;font-family:'JetBrains Mono',monospace;padding:0;text-decoration:underline;text-underline-offset:2px}
+.biz-expand-list{display:none;margin-top:6px;padding-left:14px}
+.biz-expand-list.open{display:block}
+.biz-expand-item{font-size:9px;color:var(--t3);padding:2px 0}
+.biz-expand-item span{color:var(--t4);margin-left:6px}
+
+.biz-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.biz-grid{grid-template-columns:1fr}}
+
+.biz-funnel{background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px}
+.biz-funnel-stage{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.biz-funnel-stage:last-child{margin-bottom:0}
+.biz-funnel-label{font-size:10px;color:var(--t2);width:70px;text-align:right;flex-shrink:0}
+.biz-funnel-bar{flex:1;height:16px;background:var(--s2);border-radius:3px;overflow:hidden;position:relative}
+.biz-funnel-fill{height:100%;border-radius:3px;background:var(--green);transition:width 0.6s ease}
+.biz-funnel-fill.watch{background:var(--amber)}
+.biz-funnel-count{position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:600;color:var(--t1);text-shadow:0 1px 2px rgba(0,0,0,0.4)}
+.biz-funnel-pct{font-size:9px;color:var(--t3);width:42px;text-align:right;flex-shrink:0}
+
+.biz-sparkline{background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px}
+
+.biz-segments{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+@media(max-width:500px){.biz-segments{grid-template-columns:1fr}}
+.biz-seg-col{background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:10px}
+.biz-seg-title{font-size:8px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--t4);margin-bottom:8px}
+.biz-seg-row{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:9px;border-bottom:1px solid rgba(26,31,46,0.3)}
+.biz-seg-row:last-child{border-bottom:0}
+.biz-seg-email{flex:1;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.biz-seg-metric{color:var(--t3);white-space:nowrap}
+.biz-seg-tag{font-size:7px;font-weight:600;padding:1px 4px;border-radius:2px;letter-spacing:0.5px}
+.biz-seg-tag.power{background:var(--g15);color:var(--green)}
+.biz-seg-tag.risk{background:var(--r15);color:var(--red)}
+
+.biz-cohort{width:100%;border-collapse:collapse;margin-bottom:16px}
+.biz-cohort th{font-size:8px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t4);text-align:left;padding:6px 4px;border-bottom:1px solid var(--border)}
+.biz-cohort td{font-size:9px;padding:6px 4px;border-bottom:1px solid rgba(26,31,46,0.4);color:var(--t2)}
+.biz-cohort tr.current-week{border-left:2px dashed var(--green)}
+
+.biz-engage-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
+.biz-engage-cell{background:var(--s1);padding:12px 8px;text-align:center}
+.biz-engage-label{font-size:8px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--t4);margin-bottom:3px}
+.biz-engage-val{font-size:18px;font-weight:700;line-height:1.2;color:var(--t1)}
+.biz-engage-delta{font-size:8px;font-weight:600;margin-top:3px}
+
+@keyframes countUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.biz-kpi-val,.biz-engage-val{animation:countUp 0.4s ease both}
 </style>
 </head>
 <body>
@@ -623,18 +697,19 @@ async function loadData() {
       if (!r.ok) { console.warn(url, r.status); return null; }
       return r.json();
     }).catch(e => { console.error(url, e); return null; });
-    const [ccR, healthR, cronR, funnelR, engR, cfR] = await Promise.all([
+    const [ccR, healthR, cronR, funnelR, engR, cfR, mrrR] = await Promise.all([
       safeFetch('/api/admin/command-center'),
       safeFetch('/api/admin/health-checks'),
       safeFetch('/api/admin/cron-health'),
       safeFetch('/api/admin/funnel-metrics'),
       safeFetch('/api/admin/engagement'),
       safeFetch('/api/admin/cf-analytics'),
+      safeFetch('/api/admin/mrr-history'),
     ]);
     renderPulse(ccR, healthR, cfR, engR);
     renderModels(ccR);
     renderInfra(cronR, healthR, ccR, cfR);
-    renderBusiness(ccR, funnelR, engR);
+    renderBusiness(ccR, funnelR, engR, mrrR);
     loadAnalytics('week');
   } catch (e) {
     console.error('Load failed:', e);
@@ -1155,6 +1230,8 @@ function renderUserTable() {
   else if (bizFilter === 'unverified') users = users.filter(u => !u.email_verified);
   else if (bizFilter === 'atrisk') users = users.filter(u => u.is_at_risk);
   else if (bizFilter === 'trial') users = users.filter(u => u.tier === 'trialing' || u.tier === 'trial');
+  else if (bizFilter === 'power') users = users.filter(u => u.is_power);
+  else if (bizFilter === 'new') users = users.filter(u => u.signed_up && (Date.now() - new Date(u.signed_up).getTime()) < 7 * 86400000);
 
   users.sort((a, b) => {
     let va, vb;
@@ -1165,13 +1242,14 @@ function renderUserTable() {
     return bizSortAsc ? va - vb : vb - va;
   });
 
-  let t = '<div style="overflow-x:auto;margin-bottom:10px"><table class="user-table" style="min-width:520px"><thead><tr>';
+  let t = '<div style="overflow-x:auto;margin-bottom:10px"><table class="user-table" style="min-width:600px"><caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">User detail table</caption><thead><tr>';
   t += '<th onclick="sortBizUsers(\'email\')">Email</th>';
   t += '<th onclick="sortBizUsers(\'tier\')">Status</th>';
   t += '<th>Verified</th>';
+  t += '<th onclick="sortBizUsers(\'signed_up\')">First Seen</th>';
   t += '<th onclick="sortBizUsers(\'last_active\')">Last Active</th>';
   t += '<th onclick="sortBizUsers(\'sessions\')">Sessions</th>';
-  t += '<th>Top Feature</th>';
+  t += '<th>Bet Taps</th>';
   t += '</tr></thead><tbody>';
 
   for (const u of users) {
@@ -1189,201 +1267,436 @@ function renderUserTable() {
     if (!u.email_verified) rowClass += ' unverified-row';
 
     const lastColor = u.last_active === 'never' ? 'color:var(--red)' : (u.is_active ? 'color:var(--green)' : '');
-    const signedUp = u.signed_up ? new Date(u.signed_up).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--';
+    const firstSeen = u.signed_up ? new Date(u.signed_up).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--';
+    const betTapLabel = u.top_feature === 'Bet Link' ? (u.sessions_7d > 0 ? '&#10003;' : '--') : '--';
 
     t += '<tr class="' + rowClass.trim() + '">';
-    t += '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (u.email || '') + '</td>';
+    t += '<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (u.email || '') + '</td>';
     t += '<td><span class="status-badge ' + tierClass + '">' + tierLabel + '</span></td>';
     t += '<td>' + (u.email_verified ? '<span class="dot-g"></span>' : '<span class="dot-r"></span>') + '</td>';
+    t += '<td style="white-space:nowrap">' + firstSeen + '</td>';
     t += '<td style="' + lastColor + '">' + (u.last_active || '--') + '</td>';
     t += '<td>' + (u.sessions_7d || 0) + '</td>';
-    t += '<td>' + (u.top_feature || '--') + '</td>';
+    t += '<td style="text-align:center;color:var(--t4)">' + betTapLabel + '</td>';
     t += '</tr>';
   }
   t += '</tbody></table></div>';
   document.getElementById('userTableContainer').innerHTML = t;
 }
 
-function renderBusiness(cc, funnel, eng) {
+// ── Business Tab v2 — Helpers ──
+
+function bizStatusFor(key, pct) {
+  const t = { d7Retention: {g:40,w:25}, activation: {g:35,w:20}, signupToPaid: {g:15,w:8}, tapThrough: {g:20,w:10}, verification: {g:90,w:75} };
+  const th = t[key];
+  if (!th) return 'neutral';
+  if (pct >= th.g) return 'good';
+  if (pct >= th.w) return 'watch';
+  return 'alert';
+}
+
+function bizDelta(current, prior) {
+  if (prior === 0 && current === 0) return { dir: 'flat', pct: 0 };
+  if (prior === 0) return { dir: 'up', pct: 100 };
+  const change = ((current - prior) / prior) * 100;
+  return { dir: change > 0.5 ? 'up' : change < -0.5 ? 'down' : 'flat', pct: Math.round(change * 10) / 10 };
+}
+
+function bizDeltaHtml(d) {
+  const arrow = d.dir === 'up' ? '&#9650;' : d.dir === 'down' ? '&#9660;' : '&#8212;';
+  const sign = d.pct > 0 ? '+' : '';
+  return '<div class="biz-kpi-delta ' + d.dir + '">' + arrow + ' ' + sign + d.pct + '%</div>';
+}
+
+function bizFmtDur(secs) {
+  if (secs == null) return '--';
+  const m = Math.floor(secs / 60), s = Math.round(secs % 60);
+  return m + 'm ' + s + 's';
+}
+
+function bizIsoWeekStart(iso) {
+  const d = new Date(iso);
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() - (day - 1));
+  d.setUTCHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
+
+function bizWeekLabel(isoDate) {
+  const d = new Date(isoDate);
+  const m = d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+  return 'Wk ' + m + ' ' + d.getUTCDate();
+}
+
+function bizBuildCohorts(users, weeks) {
+  weeks = weeks || 4;
+  const buckets = {};
+  for (const u of users) {
+    if (!u.signed_up) continue;
+    const wk = bizIsoWeekStart(u.signed_up);
+    if (!buckets[wk]) buckets[wk] = [];
+    buckets[wk].push(u);
+  }
+  return Object.entries(buckets)
+    .sort(([a], [b]) => a < b ? 1 : -1)
+    .slice(0, weeks)
+    .map(([weekStart, group]) => {
+      const signups = group.length;
+      const active7d = group.filter(u => u.is_active).length;
+      const paid = group.filter(u => ['pro','active'].includes(u.tier) || u.founding).length;
+      return { weekStart, label: bizWeekLabel(weekStart), signups, active7d, paid };
+    });
+}
+
+function bizEstimatePriorEngagement(sessionsByDay) {
+  if (!sessionsByDay || sessionsByDay.length < 4) return null;
+  const half = Math.floor(sessionsByDay.length / 2);
+  const current = sessionsByDay.slice(half);
+  const prior = sessionsByDay.slice(0, half);
+  const sum = arr => arr.reduce((s, d) => s + (d.sessions || d.count || 0), 0);
+  return { currentSessions: sum(current), priorSessions: sum(prior) };
+}
+
+function renderBusiness(cc, funnel, eng, mrrData) {
   if (!cc) { document.getElementById('businessContent').textContent = 'Failed to load'; return; }
   const rev = cc.revenue || {};
+  const allUsers = (eng && eng.all_users) ? eng.all_users : [];
+  const ret = eng ? (eng.retention || {}) : {};
+  const verif = eng ? (eng.verification || {}) : {};
+  const fa = eng ? (eng.feature_adoption || {}) : {};
+  const totalSignups = funnel ? (funnel.total_signups || 0) : allUsers.length;
+  const totalPaid = funnel ? (funnel.total_paid || 0) : 0;
+  const active7d = eng ? (eng.active_users_7d || 0) : 0;
+  const d7 = ret.d7_rate_pct || 0;
+  const foundingCount = rev.founding_count || 0;
+  const foundingCap = rev.founding_cap || 50;
+  const signupPaidRate = totalSignups > 0 ? Math.round(totalPaid / totalSignups * 1000) / 10 : 0;
+  const activationRate = totalSignups > 0 ? Math.round(active7d / totalSignups * 1000) / 10 : 0;
+  const betPct = (fa.tap_bet_link || {}).pct_of_active || 0;
+  const verifPct = verif.verified_pct || 0;
+
+  const mrrDollars = mrrData ? parseFloat(mrrData.mrr_dollars || 0) : (rev.mrr || 0);
+  const arrDollars = mrrData ? parseFloat(mrrData.arr_dollars || 0) : (rev.arr || 0);
+  const mrrChange30d = mrrData ? (mrrData.net_change_30d_cents || 0) / 100 : 0;
+
   let h = '';
 
-  h += '<div class="sg c3">';
-  h += '<div class="sc"><div class="sc-label">MRR</div><div class="sc-val green">$' + (rev.mrr || 0) + '</div><div class="sc-sub">+$0 vs 30d</div></div>';
-  h += '<div class="sc"><div class="sc-label">ARR</div><div class="sc-val">$' + (rev.arr || 0) + '</div><div class="sc-sub">projected</div></div>';
-  h += '<div class="sc"><div class="sc-label">Founding</div><div class="sc-val green">' + (rev.founding_count || 0) + '/' + (rev.founding_cap || 50) + '</div><div class="sc-sub">' + ((rev.founding_cap || 50) - (rev.founding_count || 0)) + ' remaining</div></div>';
+  // ═══ NORTH STAR ROW ═══
+  h += '<div class="biz-north" aria-label="North Star KPIs">';
+  const mrrStatus = mrrChange30d > 0 ? 'good' : mrrChange30d < 0 ? 'alert' : 'neutral';
+  h += '<div class="biz-kpi ' + mrrStatus + '" aria-label="MRR $' + mrrDollars.toFixed(2) + ', ' + (mrrChange30d >= 0 ? '+' : '') + '$' + mrrChange30d.toFixed(2) + ' vs 30d">';
+  h += '<div class="biz-kpi-label">MRR</div>';
+  h += '<div class="biz-kpi-val green">$' + mrrDollars.toFixed(2) + '</div>';
+  h += '<div class="biz-kpi-sub">' + (mrrChange30d >= 0 ? '+' : '') + '$' + mrrChange30d.toFixed(2) + ' vs 30d</div>';
   h += '</div>';
 
-  if (funnel) {
-    const total = funnel.total_signups || 0;
-    const paid = funnel.total_paid || 0;
-    const rate = total > 0 ? (paid / total * 100).toFixed(1) : 0;
-    const rateColor = rate > 15 ? 'green' : (rate >= 5 ? 'amber' : 'red');
-    h += '<div class="sh">Conversion</div>';
-    h += '<div class="funnel">';
-    h += '<div class="funnel-step"><div class="funnel-num" style="color:var(--t1)">' + total + '</div><div class="funnel-label">Signups</div></div>';
-    h += '<div class="funnel-arrow">&#8594;</div>';
-    h += '<div class="funnel-pct ' + rateColor + '">' + rate + '%</div>';
-    h += '<div class="funnel-arrow">&#8594;</div>';
-    h += '<div class="funnel-step"><div class="funnel-num green">' + paid + '</div><div class="funnel-label">Paid</div></div>';
+  const spStatus = bizStatusFor('signupToPaid', signupPaidRate);
+  h += '<div class="biz-kpi ' + spStatus + '" aria-label="Signup to Paid ' + signupPaidRate + '%, ' + totalPaid + ' of ' + totalSignups + '">';
+  h += '<div class="biz-kpi-label">SIGNUP&rarr;PAID</div>';
+  h += '<div class="biz-kpi-val">' + signupPaidRate + '%</div>';
+  h += '<div class="biz-kpi-sub">' + totalPaid + ' of ' + totalSignups + '</div>';
+  h += '</div>';
+
+  const d7Status = bizStatusFor('d7Retention', d7);
+  h += '<div class="biz-kpi ' + d7Status + '" aria-label="D7 Retention ' + d7 + '%">';
+  h += '<div class="biz-kpi-label">D7 RETENTION</div>';
+  h += '<div class="biz-kpi-val">' + d7 + '%</div>';
+  h += '<div class="biz-kpi-sub">' + (ret.d7_returned || 0) + '/' + (ret.d7_eligible || 0) + '</div>';
+  h += '</div>';
+
+  const actStatus = bizStatusFor('activation', activationRate);
+  h += '<div class="biz-kpi ' + actStatus + '" aria-label="Activation Rate ' + activationRate + '%, ' + active7d + ' of ' + totalSignups + '">';
+  h += '<div class="biz-kpi-label">ACTIVATION</div>';
+  h += '<div class="biz-kpi-val">' + activationRate + '%</div>';
+  h += '<div class="biz-kpi-sub">' + active7d + ' of ' + totalSignups + '</div>';
+  h += '</div>';
+
+  const fndPct = Math.round(foundingCount / foundingCap * 100);
+  h += '<div class="biz-kpi">';
+  h += '<div class="biz-kpi-label">FOUNDING</div>';
+  h += '<div class="biz-kpi-val green">' + foundingCount + ' / ' + foundingCap + '</div>';
+  h += '<div class="biz-kpi-sub">' + (foundingCap - foundingCount) + ' remaining</div>';
+  h += '<div class="biz-progress"><div class="biz-progress-fill" style="width:' + fndPct + '%"></div></div>';
+  h += '</div>';
+  h += '</div>';
+
+  // ═══ TODAY'S READS ═══
+  const silentCount = allUsers.filter(u => !u.is_active && u.sessions_7d === 0).length;
+  const unverifiedCount = verif.unverified || 0;
+  const unverifiedList = verif.unverified_list || [];
+
+  h += '<div class="biz-reads">';
+  h += '<div class="biz-reads-title">TODAY\'S READS</div>';
+
+  h += '<div class="biz-read" onclick="document.getElementById(\'section-funnel\')?.scrollIntoView({behavior:\'smooth\',block:\'start\'})">';
+  h += '<div class="biz-read-dot ' + bizStatusFor('signupToPaid', signupPaidRate) + '"></div>';
+  h += '<div class="biz-read-text"><strong>' + signupPaidRate + '%</strong> signup&rarr;paid conversion. ' + (foundingCount > 0 ? 'Founding $50 anchor is doing the work.' : '') + '</div>';
+  h += '<div class="biz-read-arrow">&rarr;</div>';
+  h += '</div>';
+
+  h += '<div class="biz-read" onclick="document.getElementById(\'section-engagement\')?.scrollIntoView({behavior:\'smooth\',block:\'start\'})">';
+  h += '<div class="biz-read-dot ' + bizStatusFor('d7Retention', d7) + '"></div>';
+  h += '<div class="biz-read-text">D7 retention at <strong>' + d7 + '%</strong> &mdash; ' + silentCount + ' users silent this week. ' + (d7 < 25 ? 'Re-engagement push recommended.' : '') + '</div>';
+  h += '<div class="biz-read-arrow">&rarr;</div>';
+  h += '</div>';
+
+  h += '<div class="biz-read" onclick="document.getElementById(\'section-funnel\')?.scrollIntoView({behavior:\'smooth\',block:\'start\'})">';
+  h += '<div class="biz-read-dot ' + bizStatusFor('tapThrough', betPct) + '"></div>';
+  h += '<div class="biz-read-text">Bet Link Taps at <strong>' + betPct + '%</strong>. Users are reading signals but not acting &mdash; trust or UX gap.</div>';
+  h += '<div class="biz-read-arrow">&rarr;</div>';
+  h += '</div>';
+
+  const vStatus = bizStatusFor('verification', verifPct);
+  h += '<div class="biz-read" style="cursor:default">';
+  h += '<div class="biz-read-dot ' + vStatus + '"></div>';
+  h += '<div class="biz-read-text">Verification at <strong>' + verifPct + '%</strong>. ' + unverifiedCount + ' unverified accounts.';
+  if (unverifiedList.length > 0) {
+    h += '<div class="biz-expandable"><button class="biz-expand-btn" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle(\'open\');this.textContent=this.nextElementSibling.classList.contains(\'open\')?\'Hide\':\'View ' + unverifiedCount + ' unverified\'">View ' + unverifiedCount + ' unverified</button>';
+    h += '<div class="biz-expand-list">';
+    for (const u of unverifiedList.slice(0, 12)) {
+      const dt = u.signed_up ? new Date(u.signed_up).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--';
+      h += '<div class="biz-expand-item">' + (u.email || '') + '<span>' + (u.tier || 'Free') + ' &middot; ' + dt + '</span></div>';
+    }
+    h += '</div></div>';
+  }
+  h += '</div>';
+  h += '</div>';
+
+  h += '</div>';
+
+  // ═══ TWO-COLUMN GRID ═══
+  h += '<div class="biz-grid">';
+
+  // ─── LEFT COLUMN ───
+  h += '<div class="biz-left">';
+
+  // Conversion Funnel
+  const verified = verif.verified || 0;
+  const betTapUsers = (fa.tap_bet_link || {}).users || 0;
+  const funnelStages = [
+    { label: 'Signups', count: totalSignups },
+    { label: 'Verified', count: verified },
+    { label: 'Activated', count: active7d },
+    { label: 'Bet Tap', count: betTapUsers },
+    { label: 'Paid', count: totalPaid },
+  ];
+  let worstDrop = 0, worstIdx = -1;
+  for (let i = 1; i < funnelStages.length; i++) {
+    const prev = funnelStages[i-1].count;
+    if (prev <= 0) continue;
+    const drop = (prev - funnelStages[i].count) / prev;
+    if (drop > worstDrop) { worstDrop = drop; worstIdx = i; }
+  }
+
+  h += '<div class="sh" id="section-funnel">Conversion Funnel</div>';
+  h += '<div class="biz-funnel">';
+  for (let i = 0; i < funnelStages.length; i++) {
+    const s = funnelStages[i];
+    const barPct = totalSignups > 0 ? Math.max(2, s.count / totalSignups * 100) : 2;
+    const stagePct = i === 0 ? '' : (funnelStages[i-1].count > 0 ? (s.count / funnelStages[i-1].count * 100).toFixed(0) + '%' : '0%');
+    const watchClass = i === worstIdx ? ' watch' : '';
+    h += '<div class="biz-funnel-stage"' + (i === worstIdx ? ' role="button" aria-label="Worst drop: ' + s.label + '"' : '') + '>';
+    h += '<div class="biz-funnel-label">' + s.label + '</div>';
+    h += '<div class="biz-funnel-bar"><div class="biz-funnel-fill' + watchClass + '" style="width:' + barPct + '%"><span class="biz-funnel-count">' + s.count + '</span></div></div>';
+    h += '<div class="biz-funnel-pct">' + stagePct + '</div>';
     h += '</div>';
   }
+  h += '</div>';
 
-  const revC = computeRevenueCommentary(cc);
-  if (revC.text) h += commentaryHtml(revC.type, revC.label, revC.text);
-
-  if (eng) {
-    const verif = eng.verification || {};
-    if (verif.total) {
-      h += '<div class="sh">Email Verification</div>';
-      h += '<div class="verif">';
-      h += '<div class="verif-stats"><span style="color:var(--green)">Verified: ' + (verif.verified || 0) + ' (' + (verif.verified_pct || 0) + '%)</span><span style="color:var(--red)">Unverified: ' + (verif.unverified || 0) + ' (' + (100 - (verif.verified_pct || 0)).toFixed(0) + '%)</span></div>';
-      h += '<div class="verif-bar"><div class="verif-fill" style="width:' + (verif.verified_pct || 0) + '%"></div></div>';
-      if (verif.unverified_list && verif.unverified_list.length > 0) {
-        h += '<div class="verif-list">';
-        for (const u of verif.unverified_list.slice(0, 6)) {
-          const dt = u.signed_up ? new Date(u.signed_up).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--';
-          h += '<div class="verif-row"><span class="dot-r"></span> ' + (u.email || '') + '<span>' + (u.tier || 'Free') + ' &middot; ' + dt + '</span></div>';
-        }
-        h += '</div>';
-      }
-      h += '</div>';
-      const verifC = eng.commentary?.verification?.[0];
-      if (verifC) h += commentaryHtml(verifC.type, verifC.label, verifC.text);
-    }
+  // Revenue Trend (MRR sparkline)
+  if (mrrData && mrrData.history && mrrData.history.length > 1) {
+    h += '<div class="sh">Revenue Trend</div>';
+    h += '<div class="biz-sparkline">';
+    const hist = mrrData.history.slice(-30);
+    const vals = hist.map(d => d.mrr_cents / 100);
+    const maxV = Math.max(...vals, 0.01);
+    const width = 300, height = 50;
+    const step = width / Math.max(vals.length - 1, 1);
+    const pts = vals.map((v, i) => (i * step).toFixed(1) + ',' + (height - (v / maxV * (height - 6) + 3)).toFixed(1));
+    const polyFill = '0,' + height + ' ' + pts.join(' ') + ' ' + width + ',' + height;
+    h += '<svg width="100%" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" style="margin-bottom:6px">';
+    h += '<polygon points="' + polyFill + '" fill="rgba(90,158,114,0.06)"/>';
+    h += '<polyline points="' + pts.join(' ') + '" fill="none" stroke="var(--green)" stroke-width="1.5"/>';
+    const lastX = ((vals.length - 1) * step).toFixed(1);
+    const lastY = (height - (vals[vals.length-1] / maxV * (height - 6) + 3)).toFixed(1);
+    h += '<circle cx="' + lastX + '" cy="' + lastY + '" r="3" fill="var(--green)"/>';
+    h += '</svg>';
+    h += '<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4)">';
+    h += '<span>MRR $' + mrrDollars.toFixed(2) + '</span>';
+    h += '<span>ARR $' + arrDollars.toFixed(0) + '</span>';
+    h += '</div></div>';
   }
 
+  // Subscribers
   h += '<div class="sh">Subscribers</div>';
   h += '<div class="sg c4">';
   h += '<div class="sc"><div class="sc-label">Paid</div><div class="sc-val green">' + ((rev.monthly_subs || 0) + (rev.annual_subs || 0)) + '</div></div>';
   h += '<div class="sc"><div class="sc-label">Trial</div><div class="sc-val amber">' + (rev.trial_count || 0) + '</div></div>';
   h += '<div class="sc"><div class="sc-label">Free</div><div class="sc-val" style="color:var(--t2)">' + (rev.free_count || 0) + '</div></div>';
-  h += '<div class="sc"><div class="sc-label">Founding</div><div class="sc-val green">' + (rev.founding_count || 0) + '</div></div>';
+  h += '<div class="sc"><div class="sc-label">Founding</div><div class="sc-val green">' + foundingCount + '</div></div>';
   h += '</div>';
 
-  const allUsers = (eng && eng.all_users) ? eng.all_users : [];
-  const totalUsers = allUsers.length;
-  const paidCount = allUsers.filter(u => ['pro','active','founding'].includes(u.tier) || u.founding).length;
-  const freeCount = allUsers.filter(u => u.tier === 'free' && !u.founding).length;
-  const foundingCount = allUsers.filter(u => u.founding).length;
-  const activeCount = allUsers.filter(u => u.is_active).length;
-  const unvCount = allUsers.filter(u => !u.email_verified).length;
-  const riskCount = allUsers.filter(u => u.is_at_risk).length;
-
-  _allBizUsers = allUsers;
-
-  h += '<div class="sh">User Detail</div>';
-  h += '<div class="user-filters">';
-  h += '<button class="uf active" onclick="filterBizUsers(\'all\',this)">All (' + totalUsers + ')</button>';
-  h += '<button class="uf" onclick="filterBizUsers(\'paid\',this)">Paid (' + paidCount + ')</button>';
-  h += '<button class="uf" onclick="filterBizUsers(\'free\',this)">Free (' + freeCount + ')</button>';
-  h += '<button class="uf" onclick="filterBizUsers(\'founding\',this)">Founding (' + foundingCount + ')</button>';
-  h += '<button class="uf" onclick="filterBizUsers(\'active\',this)">Active 7d (' + activeCount + ')</button>';
-  h += '<button class="uf" onclick="filterBizUsers(\'unverified\',this)">Unverified (' + unvCount + ')</button>';
-  h += '<button class="uf" onclick="filterBizUsers(\'atrisk\',this)">At Risk (' + riskCount + ')</button>';
-  h += '</div>';
-  h += '<div id="userTableContainer"></div>';
-
-  const topUsers = allUsers.filter(u => u.sessions_7d > 0).sort((a, b) => b.sessions_7d - a.sessions_7d).slice(0, 5);
-  if (topUsers.length > 0) {
-    h += '<div class="sh">Top Users (7d)</div>';
-    topUsers.forEach((u, i) => {
-      h += '<div class="top-user">';
-      h += '<span class="top-user-rank">' + (i + 1) + '</span>';
-      h += '<span class="top-user-email">' + (u.email || '') + '</span>';
-      h += '<span class="top-user-stat">' + u.sessions_7d + ' sessions</span>';
-      if (u.is_power) h += '<span class="top-user-flag power">POWER</span>';
-      h += '</div>';
-    });
-  }
-
-  const atRisk = allUsers.filter(u => u.is_at_risk);
-  if (atRisk.length > 0) {
-    h += '<div class="sh">At-Risk Users</div>';
-    for (const u of atRisk.slice(0, 5)) {
-      h += '<div class="top-user">';
-      h += '<span class="top-user-rank" style="color:var(--red)">&bull;</span>';
-      h += '<span class="top-user-email">' + (u.email || '') + '</span>';
-      h += '<span class="top-user-stat">' + (u.sessions_7d || 0) + ' sess, ' + (u.last_active || 'never') + '</span>';
-      h += '<span class="top-user-flag risk">AT RISK</span>';
-      h += '</div>';
-    }
-  }
-
-  if (eng) {
-    const engC = eng.commentary?.user_engagement?.[0];
-    if (engC) h += commentaryHtml(engC.type, engC.label, engC.text);
-  }
-
-  const ret = eng ? (eng.retention || {}) : {};
+  // Engagement with deltas
+  h += '<div class="sh" id="section-engagement">Engagement (7D)</div>';
   const avgDur = eng ? eng.avg_session_duration : null;
-  let durStr = '--';
-  if (avgDur != null) {
-    const m = Math.floor(avgDur / 60);
-    const s = Math.round(avgDur % 60);
-    durStr = m + 'm ' + s + 's';
-  }
+  const durStr = bizFmtDur(avgDur);
+  const priorEst = bizEstimatePriorEngagement(eng ? eng.sessions_by_day : null);
 
-  h += '<div class="sh">Engagement (7D)</div>';
-  h += '<div class="sg c3">';
-  h += '<div class="sc"><div class="sc-label">Active</div><div class="sc-val">' + (eng ? (eng.active_users_7d || 0) : '--') + '</div><div class="sc-sub">' + (eng ? commaFmt(eng.total_events) + ' events' : '--') + '</div></div>';
-  h += '<div class="sc"><div class="sc-label">Sessions</div><div class="sc-val">' + (eng ? (eng.total_sessions_7d || 0) : '--') + '</div><div class="sc-sub">' + (eng ? (eng.avg_sessions_per_user || '--') + '/user' : '--') + '</div></div>';
-  h += '<div class="sc"><div class="sc-label">Avg Duration</div><div class="sc-val" style="font-size:16px">' + durStr + '</div><div class="sc-sub">' + (eng ? (eng.avg_pages_per_session || '--') + ' pages' : '--') + '</div></div>';
+  h += '<div class="biz-engage-row">';
+  h += '<div class="biz-engage-cell"><div class="biz-engage-label">Active</div><div class="biz-engage-val">' + (eng ? active7d : '--') + '</div>';
+  if (eng) { h += '<div class="biz-engage-delta" style="font-size:9px;color:var(--t4)">' + commaFmt(eng.total_events) + ' events</div>'; }
+  h += '</div>';
+  h += '<div class="biz-engage-cell"><div class="biz-engage-label">Sessions</div><div class="biz-engage-val">' + (eng ? (eng.total_sessions_7d || 0) : '--') + '</div>';
+  if (priorEst) {
+    const sd = bizDelta(priorEst.currentSessions, priorEst.priorSessions);
+    h += bizDeltaHtml(sd);
+  } else if (eng) {
+    h += '<div class="biz-engage-delta" style="color:var(--t4)">' + (eng.avg_sessions_per_user || '--') + '/user</div>';
+  }
+  h += '</div>';
+  h += '<div class="biz-engage-cell"><div class="biz-engage-label">Avg Duration</div><div class="biz-engage-val" style="font-size:16px">' + durStr + '</div>';
+  if (eng) { h += '<div class="biz-engage-delta" style="color:var(--t4)">' + (eng.avg_pages_per_session || '--') + ' pages</div>'; }
+  h += '</div>';
   h += '</div>';
 
+  // Sessions chart with rolling average
   if (eng && eng.sessions_by_day && eng.sessions_by_day.length > 0) {
     h += renderSessionsChart(eng.sessions_by_day);
   }
 
-  h += '<div class="sg c3">';
-  h += '<div class="sc"><div class="sc-label">D1 Retention</div><div class="sc-val amber">' + (ret.d1_rate_pct || 0) + '%</div><div class="sc-sub">' + (ret.d1_returned || 0) + '/' + (ret.d1_eligible || 0) + '</div></div>';
-  h += '<div class="sc"><div class="sc-label">D7 Retention</div><div class="sc-val green">' + (ret.d7_rate_pct || 0) + '%</div><div class="sc-sub">' + (ret.d7_returned || 0) + '/' + (ret.d7_eligible || 0) + '</div></div>';
+  // Retention + DAU
+  h += '<div class="sh">Retention</div>';
   const dauArr = eng ? (eng.dau || []) : [];
   const avgDau = dauArr.length > 0 ? (dauArr.reduce((s, d) => s + (d.active_users || 0), 0) / dauArr.length).toFixed(1) : '--';
   const peakDau = dauArr.length > 0 ? Math.max(...dauArr.map(d => d.active_users || 0)) : '--';
+  const d1 = ret.d1_rate_pct || 0;
+  const d1Status = d1 >= 40 ? 'good' : d1 >= 25 ? 'watch' : 'alert';
+  h += '<div class="sg c3">';
+  h += '<div class="sc"><div class="sc-label">D1</div><div class="sc-val ' + (d1Status === 'good' ? 'green' : d1Status === 'alert' ? 'red' : 'amber') + '">' + d1 + '%</div><div class="sc-sub">' + (ret.d1_returned || 0) + '/' + (ret.d1_eligible || 0) + '</div></div>';
+  h += '<div class="sc"><div class="sc-label">D7</div><div class="sc-val ' + (d7Status === 'good' ? 'green' : d7Status === 'alert' ? 'red' : 'amber') + '">' + d7 + '%</div><div class="sc-sub">' + (ret.d7_returned || 0) + '/' + (ret.d7_eligible || 0) + '</div></div>';
   h += '<div class="sc"><div class="sc-label">DAU</div><div class="sc-val">' + avgDau + '</div><div class="sc-sub">peak: ' + peakDau + '</div></div>';
   h += '</div>';
 
-  if (eng) {
-    const oldEngC = computeEngagementCommentary(eng, cc.users?.total || 0);
-    h += commentaryHtml(oldEngC.type, oldEngC.label, oldEngC.text);
-  }
-
-  if (eng && eng.feature_adoption) {
-    const featureMap = { 'view_article': 'Journal', 'view_market_scan': 'Market Scan', 'tap_bet_link': 'Bet Link Taps' };
-    h += '<div class="sh">Feature Usage</div><div style="margin-bottom:16px">';
-    for (const [key, label] of Object.entries(featureMap)) {
-      const f = eng.feature_adoption[key] || {};
-      const pct = f.pct_of_active || 0;
-      h += '<div class="feat"><span class="feat-name">' + label + '</span><div class="feat-track"><div class="feat-fill" style="width:' + pct + '%"></div></div><span class="feat-pct">' + pct + '%</span></div>';
+  // Cohorts
+  const cohorts = bizBuildCohorts(allUsers);
+  if (cohorts.length > 0) {
+    h += '<div class="sh">Cohorts</div>';
+    h += '<table class="biz-cohort"><caption class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Signup cohorts by week</caption>';
+    h += '<thead><tr><th>Week</th><th>Signups</th><th>Active</th><th>Paid</th></tr></thead><tbody>';
+    for (let i = 0; i < cohorts.length; i++) {
+      const c = cohorts[i];
+      const actPct = c.signups > 0 ? Math.round(c.active7d / c.signups * 100) : 0;
+      const paidPct = c.signups > 0 ? Math.round(c.paid / c.signups * 100) : 0;
+      const rowClass = i === 0 ? ' class="current-week"' : '';
+      h += '<tr' + rowClass + '>';
+      h += '<td>' + c.label + '</td>';
+      h += '<td>' + c.signups + '</td>';
+      h += '<td>' + c.active7d + ' <span style="color:var(--t4);font-size:8px">(' + actPct + '%)</span></td>';
+      h += '<td>' + c.paid + ' <span style="color:var(--t4);font-size:8px">(' + paidPct + '%)</span></td>';
+      h += '</tr>';
     }
-    h += '</div>';
-    const featC = computeFeatureCommentary(eng);
-    h += commentaryHtml(featC.type, featC.label, featC.text);
+    h += '</tbody></table>';
   }
 
+  h += '</div>'; // end left column
+
+  // ─── RIGHT COLUMN ───
+  h += '<div class="biz-right">';
+
+  // User Detail
+  const totalUsersN = allUsers.length;
+  const paidCount = allUsers.filter(u => ['pro','active','founding'].includes(u.tier) || u.founding).length;
+  const freeCount = allUsers.filter(u => u.tier === 'free' && !u.founding).length;
+  const foundingUserCount = allUsers.filter(u => u.founding).length;
+  const activeCount = allUsers.filter(u => u.is_active).length;
+  const unvCount = allUsers.filter(u => !u.email_verified).length;
+  const riskCount = allUsers.filter(u => u.is_at_risk).length;
+  const powerCount = allUsers.filter(u => u.is_power).length;
+  const newCount = allUsers.filter(u => {
+    if (!u.signed_up) return false;
+    return (Date.now() - new Date(u.signed_up).getTime()) < 7 * 86400000;
+  }).length;
+
+  _allBizUsers = allUsers;
+
+  h += '<div class="sh">User Detail (' + totalUsersN + ')</div>';
+  h += '<div class="user-filters">';
+  h += '<button class="uf active" onclick="filterBizUsers(\'all\',this)">All (' + totalUsersN + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'paid\',this)">Paid (' + paidCount + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'free\',this)">Free (' + freeCount + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'founding\',this)">Founding (' + foundingUserCount + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'active\',this)">Active 7d (' + activeCount + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'new\',this)">New (' + newCount + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'power\',this)">Power (' + powerCount + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'atrisk\',this)">At Risk (' + riskCount + ')</button>';
+  h += '<button class="uf" onclick="filterBizUsers(\'unverified\',this)">Unverified (' + unvCount + ')</button>';
+  h += '</div>';
+  h += '<div id="userTableContainer"></div>';
+
+  // User Segments (Power + At-Risk side by side)
+  const topPowerUsers = allUsers.filter(u => u.sessions_7d > 0).sort((a, b) => b.sessions_7d - a.sessions_7d).slice(0, 5);
+  const topAtRisk = allUsers.filter(u => u.is_at_risk).slice(0, 5);
+
+  h += '<div class="sh">User Segments</div>';
+  h += '<div class="biz-segments">';
+
+  h += '<div class="biz-seg-col">';
+  h += '<div class="biz-seg-title">Power Users</div>';
+  if (topPowerUsers.length > 0) {
+    for (const u of topPowerUsers) {
+      h += '<div class="biz-seg-row"><span class="biz-seg-email">' + (u.email || '') + '</span><span class="biz-seg-metric">' + u.sessions_7d + '</span>';
+      if (u.is_power) h += '<span class="biz-seg-tag power">POWER</span>';
+      h += '</div>';
+    }
+  } else {
+    h += '<div style="font-size:9px;color:var(--t4);padding:8px 0">No power users this week</div>';
+  }
+  h += '</div>';
+
+  h += '<div class="biz-seg-col">';
+  h += '<div class="biz-seg-title">At-Risk</div>';
+  if (topAtRisk.length > 0) {
+    for (const u of topAtRisk) {
+      h += '<div class="biz-seg-row"><span class="biz-seg-email">' + (u.email || '') + '</span><span class="biz-seg-metric">' + (u.sessions_7d || 0) + '</span><span class="biz-seg-tag risk">AT RISK</span></div>';
+    }
+  } else {
+    h += '<div style="font-size:9px;color:var(--t4);padding:8px 0">No at-risk users</div>';
+  }
+  h += '</div>';
+
+  h += '</div>';
+
+  // Recent Signups (7d)
+  const recentSignups = allUsers.filter(u => {
+    if (!u.signed_up) return false;
+    return (Date.now() - new Date(u.signed_up).getTime()) < 7 * 86400000;
+  }).sort((a, b) => (b.signed_up || '').localeCompare(a.signed_up || '')).slice(0, 8);
+
+  if (recentSignups.length > 0) {
+    h += '<div class="sh">Recent Signups (7d)</div>';
+    for (const u of recentSignups) {
+      const dt = u.signed_up ? new Date(u.signed_up).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--';
+      h += '<div class="user-row"><span class="user-email">' + (u.email || '') + '</span><span class="user-date">' + dt + '</span><span style="font-size:9px;color:var(--t4);min-width:42px;text-align:right">' + (u.sessions_7d || 0) + ' sess</span></div>';
+    }
+  }
+
+  // Top Pages with tap-through %
   const topPages = eng ? (eng.top_pages || []) : [];
   if (topPages.length > 0) {
     h += '<div class="sh">Top Pages</div>';
+    h += '<table class="user-table" style="margin-bottom:10px"><caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Top pages by views</caption>';
+    h += '<thead><tr><th>Page</th><th>Views</th><th>Users</th><th>Tap %</th></tr></thead><tbody>';
     for (const p of topPages.slice(0, 8)) {
-      h += '<div class="page-row"><span class="page-path">' + (p.page || p.path || '/') + '</span><span class="page-views">' + (p.views || 0) + ' views &middot; ' + (p.distinct_users || 0) + ' users</span></div>';
+      const path = p.page || p.path || '/';
+      const views = p.views || 0;
+      const users = p.distinct_users || 0;
+      h += '<tr><td>' + path + '</td><td>' + views + '</td><td>' + users + '</td><td style="color:var(--t4)">&mdash;</td></tr>';
     }
+    h += '</tbody></table>';
   }
 
-  const recentUsers = allUsers.slice(0, 8);
-  if (recentUsers.length > 0) {
-    h += '<div class="sh">Recent Users</div>';
-    for (const u of recentUsers) {
-      const tier = u.tier || 'free';
-      let badgeClass = 'free', badgeLabel = 'FREE';
-      if (u.founding) { badgeClass = 'founding'; badgeLabel = 'F#' + (u.founding_number || ''); }
-      else if (tier === 'pro' || tier === 'active') { badgeClass = 'pro'; badgeLabel = 'PRO'; }
-      else if (tier === 'trialing' || tier === 'trial') { badgeClass = 'trial'; badgeLabel = 'TRIAL'; }
-      const dt = u.signed_up ? new Date(u.signed_up).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--';
-      h += '<div class="user-row"><span class="user-email">' + (u.email || '') + '</span><span class="user-badge ' + badgeClass + '">' + badgeLabel + '</span><span class="user-date">' + dt + '</span></div>';
-    }
-  }
+  h += '</div>'; // end right column
+  h += '</div>'; // end biz-grid
 
   document.getElementById('businessContent').innerHTML = h;
 
@@ -1403,17 +1716,65 @@ function renderSessionsChart(sessionsByDay) {
     return '';
   });
 
+  // Rolling 7d average
+  const avgs = vals.map((_, i) => {
+    const start = Math.max(0, i - 6);
+    const slice = vals.slice(start, i + 1);
+    return slice.reduce((s, v) => s + v, 0) / slice.length;
+  });
+  const maxWithAvg = Math.max(maxVal, ...avgs, 1);
+
   let h = '<div class="chart-box"><div class="chart-title">Sessions (7d)</div>';
-  h += '<div class="chart-area" style="display:flex;align-items:flex-end;gap:6px;padding:0 4px">';
+
+  // SVG with bars + average line
+  const svgW = 300, svgH = 80;
+  const barGap = 6;
+  const barW = (svgW - barGap * (vals.length - 1)) / vals.length;
+
+  h += '<div class="chart-area" style="height:' + svgH + 'px;position:relative">';
+  h += '<svg width="100%" height="' + svgH + '" viewBox="0 0 ' + svgW + ' ' + svgH + '" preserveAspectRatio="none">';
+
+  // Bars
   for (let i = 0; i < vals.length; i++) {
-    const height = Math.max(4, (vals[i] / maxVal) * 72);
-    const opacity = 0.5 + (vals[i] / maxVal) * 0.5;
-    h += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="font-size:8px;color:var(--t4)">' + vals[i] + '</div><div style="width:100%;height:' + height + 'px;background:var(--green);border-radius:3px 3px 0 0;opacity:' + opacity.toFixed(2) + '"></div></div>';
+    const barH = Math.max(3, vals[i] / maxWithAvg * (svgH - 12));
+    const x = i * (barW + barGap);
+    const y = svgH - barH;
+    const opacity = (0.5 + (vals[i] / maxWithAvg) * 0.5).toFixed(2);
+    h += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + barH.toFixed(1) + '" rx="2" fill="var(--green)" opacity="' + opacity + '"/>';
+  }
+
+  // Rolling average line
+  if (vals.length > 1) {
+    const avgPts = avgs.map((a, i) => {
+      const x = i * (barW + barGap) + barW / 2;
+      const y = svgH - Math.max(3, a / maxWithAvg * (svgH - 12));
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    h += '<polyline points="' + avgPts.join(' ') + '" fill="none" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7"/>';
+  }
+
+  h += '</svg>';
+
+  // Value labels overlaid
+  h += '<div style="display:flex;position:absolute;top:0;left:0;right:0;gap:' + barGap + 'px">';
+  for (let i = 0; i < vals.length; i++) {
+    h += '<div style="flex:1;text-align:center;font-size:8px;color:var(--t4)">' + vals[i] + '</div>';
   }
   h += '</div>';
+
+  h += '</div>';
+
   h += '<div class="chart-labels">';
   for (const l of labels) h += '<span>' + l + '</span>';
-  h += '</div></div>';
+  h += '</div>';
+
+  // Legend
+  h += '<div style="display:flex;gap:12px;font-size:8px;color:var(--t4);margin-top:4px">';
+  h += '<span><span style="display:inline-block;width:8px;height:3px;background:var(--green);border-radius:1px;margin-right:3px;vertical-align:middle;opacity:0.7"></span>Sessions</span>';
+  h += '<span><span style="display:inline-block;width:10px;height:0;border-top:1.5px dashed var(--amber);margin-right:3px;vertical-align:middle;opacity:0.7"></span>7d avg</span>';
+  h += '</div>';
+
+  h += '</div>';
   return h;
 }
 
