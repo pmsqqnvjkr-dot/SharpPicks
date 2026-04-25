@@ -197,8 +197,8 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
                   content: '',
                 };
                 try {
-                  const data = await apiGet('/api/insights/beginners-guide');
-                  selectAndTrack(data || fallback);
+                  const data = await apiGet('/api/insights/slug/beginners-guide');
+                  selectAndTrack(data && data.slug ? data : fallback);
                 } catch (e) {
                   selectAndTrack(fallback);
                 }
