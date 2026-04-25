@@ -1193,14 +1193,22 @@ def live_scores():
             return jsonify({'scores': cached['scores']})
         return jsonify({'scores': [], 'error': 'ESPN unavailable'})
 
+    from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+    et_now = _dt.now(_tz(_td(hours=-4)))
+    today_str = et_now.strftime('%Y-%m-%d')
+
     scores = []
     for event in data.get('events', []):
+        event_date = (event.get('date', '') or '')[:10]
         comp = event.get('competitions', [{}])[0]
         status = comp.get('status', {})
         status_type = status.get('type', {})
         clock = status.get('displayClock', '')
         period = status.get('period', 0)
         state = status_type.get('name', '')
+
+        if event_date and event_date != today_str and state == 'STATUS_FINAL':
+            continue
 
         competitors = comp.get('competitors', [])
         home = away = None
@@ -1228,6 +1236,7 @@ def live_scores():
             'clock': clock,
             'period': period,
             'state': state,
+            'game_date': event_date,
             'home_record': home_record,
             'away_record': away_record,
         })
