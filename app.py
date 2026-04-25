@@ -100,7 +100,11 @@ else window.location.replace('https://sharppicks.ai');
 </script>
 </body></html>'''
 
-is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
+is_production = (
+    os.environ.get('REPLIT_DEPLOYMENT') == '1'
+    or bool(os.environ.get('RAILWAY_PUBLIC_DOMAIN'))
+    or bool(os.environ.get('RAILWAY_PROJECT_ID'))
+)
 
 CRON_SECRET = os.environ.get('CRON_SECRET', '')
 
@@ -6634,27 +6638,46 @@ def stripe_webhook():
     Listens for: checkout.session.completed, customer.subscription.updated,
     customer.subscription.deleted, invoice.paid, invoice.payment_failed"""
     import stripe as stripe_lib
-    from stripe_client import get_stripe_client
-    get_stripe_client()
 
     payload = request.data
     sig = request.headers.get('Stripe-Signature')
     webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
 
-    is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
+    logging.info(f'Stripe webhook received: sig={"yes" if sig else "no"}, secret={"yes" if webhook_secret else "no"}, payload_len={len(payload)}')
+
+    def _safe_get(obj, key, default=None):
+        """Safely get from dict or StripeObject (v14 and v15 compat)."""
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        try:
+            return obj.get(key, default)
+        except (AttributeError, TypeError):
+            return getattr(obj, key, default)
 
     try:
         if webhook_secret and sig:
-            event = stripe_lib.Webhook.construct_event(payload, sig, webhook_secret)
+            try:
+                event = stripe_lib.Webhook.construct_event(payload, sig, webhook_secret)
+            except AttributeError:
+                import json
+                raw_event = json.loads(payload)
+                event = raw_event
         elif not is_production:
             import json
             event = json.loads(payload)
         else:
+            logging.warning('Stripe webhook: missing signature in production')
             return jsonify({'error': 'Webhook signature required in production'}), 400
 
-        event_id = event.get('id', '')
-        event_type = event.get('type', '')
-        data_obj = event.get('data', {}).get('object', {})
+        if isinstance(event, dict):
+            event_id = event.get('id', '')
+            event_type = event.get('type', '')
+            data_obj = event.get('data', {}).get('object', {})
+        else:
+            event_id = getattr(event, 'id', '') or ''
+            event_type = getattr(event, 'type', '') or ''
+            event_data = getattr(event, 'data', {})
+            data_obj = _safe_get(event_data, 'object', {}) if event_data else {}
         logging.info(f'Stripe webhook: {event_type} (event_id={event_id})')
 
         if event_id:
@@ -6681,35 +6704,41 @@ def stripe_webhook():
                 pass
 
         if event_type == 'checkout.session.completed':
-            user_id = data_obj.get('client_reference_id') or data_obj.get('metadata', {}).get('user_id')
-            plan = data_obj.get('metadata', {}).get('plan', 'monthly')
+            user_id = _safe_get(data_obj, 'client_reference_id') or _safe_get(_safe_get(data_obj, 'metadata', {}), 'user_id')
+            plan = _safe_get(_safe_get(data_obj, 'metadata', {}), 'plan', 'monthly')
             if user_id:
                 user = db.session.get(User, user_id)
                 if user:
                     user.subscription_plan = plan
                     user.subscription_start_date = datetime.now()
-                    user.stripe_customer_id = data_obj.get('customer')
-                    sub_id = data_obj.get('subscription')
+                    user.stripe_customer_id = _safe_get(data_obj, 'customer')
+                    sub_id = _safe_get(data_obj, 'subscription')
                     user.pro_source = 'stripe'
                     if sub_id:
-                        stripe_obj = get_stripe_client()
-                        sub = stripe_obj.Subscription.retrieve(sub_id)
-                        sub_status = sub.get('status', 'active')
-                        if sub_status == 'trialing':
-                            user.subscription_status = 'trial'
-                            user.is_premium = True
-                            user.trial_used = True
-                            user.trial_start_date = datetime.now()
-                            trial_end = sub.get('trial_end')
-                            if trial_end:
-                                user.trial_end_date = datetime.fromtimestamp(trial_end)
-                                user.trial_ends = datetime.fromtimestamp(trial_end)
-                        else:
+                        try:
+                            from stripe_client import get_stripe_client
+                            stripe_obj = get_stripe_client()
+                            sub = stripe_obj.Subscription.retrieve(sub_id)
+                            sub_status = _safe_get(sub, 'status', 'active')
+                            if sub_status == 'trialing':
+                                user.subscription_status = 'trial'
+                                user.is_premium = True
+                                user.trial_used = True
+                                user.trial_start_date = datetime.now()
+                                trial_end = _safe_get(sub, 'trial_end')
+                                if trial_end:
+                                    user.trial_end_date = datetime.fromtimestamp(trial_end)
+                                    user.trial_ends = datetime.fromtimestamp(trial_end)
+                            else:
+                                user.subscription_status = 'active'
+                                user.is_premium = True
+                            period_end = _safe_get(sub, 'current_period_end')
+                            if period_end:
+                                user.current_period_end = datetime.fromtimestamp(period_end)
+                        except Exception as sub_err:
+                            logging.error(f'Stripe sub retrieve failed: {sub_err}')
                             user.subscription_status = 'active'
                             user.is_premium = True
-                        period_end = sub.get('current_period_end')
-                        if period_end:
-                            user.current_period_end = datetime.fromtimestamp(period_end)
                     else:
                         user.subscription_status = 'active'
                         user.is_premium = True
@@ -6718,12 +6747,12 @@ def stripe_webhook():
                         maybe_assign_founding(user_id)
 
         elif event_type == 'customer.subscription.created':
-            cust_id = data_obj.get('customer')
-            status = data_obj.get('status')
+            cust_id = _safe_get(data_obj, 'customer')
+            status = _safe_get(data_obj, 'status')
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
-                    plan_meta = data_obj.get('metadata', {}).get('plan')
+                    plan_meta = _safe_get(_safe_get(data_obj, 'metadata', {}), 'plan')
                     if plan_meta:
                         user.subscription_plan = plan_meta
                     if status == 'active':
@@ -6732,10 +6761,10 @@ def stripe_webhook():
                     elif status == 'trialing':
                         user.subscription_status = 'trial'
                         user.is_premium = True
-                        trial_end = data_obj.get('trial_end')
+                        trial_end = _safe_get(data_obj, 'trial_end')
                         if trial_end:
                             user.trial_end_date = datetime.fromtimestamp(trial_end)
-                    period_end = data_obj.get('current_period_end')
+                    period_end = _safe_get(data_obj, 'current_period_end')
                     if period_end:
                         user.current_period_end = datetime.fromtimestamp(period_end)
                     db.session.commit()
@@ -6743,13 +6772,13 @@ def stripe_webhook():
                         f'New subscriber: {user.email} — {plan_meta or status}')
 
         elif event_type == 'customer.subscription.updated':
-            cust_id = data_obj.get('customer')
-            status = data_obj.get('status')
+            cust_id = _safe_get(data_obj, 'customer')
+            status = _safe_get(data_obj, 'status')
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
                     old_status = user.subscription_status
-                    plan_meta = data_obj.get('metadata', {}).get('plan')
+                    plan_meta = _safe_get(_safe_get(data_obj, 'metadata', {}), 'plan')
                     if plan_meta:
                         user.subscription_plan = plan_meta
                     if status == 'active':
@@ -6758,7 +6787,7 @@ def stripe_webhook():
                     elif status == 'trialing':
                         user.subscription_status = 'trial'
                         user.is_premium = True
-                        trial_end = data_obj.get('trial_end')
+                        trial_end = _safe_get(data_obj, 'trial_end')
                         if trial_end:
                             user.trial_end_date = datetime.fromtimestamp(trial_end)
                     elif status == 'canceled':
@@ -6769,7 +6798,7 @@ def stripe_webhook():
                         user.is_premium = False
                     elif status == 'past_due':
                         user.subscription_status = 'past_due'
-                    period_end = data_obj.get('current_period_end')
+                    period_end = _safe_get(data_obj, 'current_period_end')
                     if period_end:
                         user.current_period_end = datetime.fromtimestamp(period_end)
                     db.session.commit()
@@ -6777,7 +6806,7 @@ def stripe_webhook():
                         f'Plan change: {user.email} — {old_status} → {status}')
 
         elif event_type == 'customer.subscription.deleted':
-            cust_id = data_obj.get('customer')
+            cust_id = _safe_get(data_obj, 'customer')
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
@@ -6794,15 +6823,17 @@ def stripe_webhook():
                         logging.error(f"Cancellation email failed: {e}")
 
         elif event_type in ('invoice.paid', 'invoice.payment_succeeded'):
-            cust_id = data_obj.get('customer')
+            cust_id = _safe_get(data_obj, 'customer')
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
                     user.subscription_status = 'active'
                     user.is_premium = True
-                    lines = data_obj.get('lines', {}).get('data', [])
+                    lines_obj = _safe_get(data_obj, 'lines', {})
+                    lines = _safe_get(lines_obj, 'data', []) if lines_obj else []
                     for line in lines:
-                        period_end = line.get('period', {}).get('end')
+                        period = _safe_get(line, 'period', {})
+                        period_end = _safe_get(period, 'end') if period else None
                         if period_end:
                             user.current_period_end = datetime.fromtimestamp(period_end)
                             break
@@ -6810,7 +6841,7 @@ def stripe_webhook():
                     logging.info(f'Invoice paid for user {user.email}')
 
         elif event_type == 'invoice.payment_failed':
-            cust_id = data_obj.get('customer')
+            cust_id = _safe_get(data_obj, 'customer')
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
@@ -6827,17 +6858,23 @@ def stripe_webhook():
 
         db.session.commit()
 
+    except stripe_lib.SignatureVerificationError as e:
+        logging.error(f'Stripe webhook signature failed: {e}')
+        return jsonify({'error': 'Invalid signature'}), 400
+    except ValueError as e:
+        logging.error(f'Stripe webhook invalid payload: {e}')
+        return jsonify({'error': 'Invalid payload'}), 400
     except Exception as e:
-        db.session.rollback()
-        logging.error(f'Webhook error: {e}')
         try:
-            send_admin_alert(
-                "Stripe Webhook Error",
-                f"Webhook processing failed: {str(e)[:200]}",
-            )
+            db.session.rollback()
         except Exception:
             pass
-        return jsonify({'error': str(e)}), 400
+        logging.error(f'Stripe webhook error: {e}', exc_info=True)
+        try:
+            send_admin_alert("Stripe Webhook Error", f"Failed: {str(e)[:200]}")
+        except Exception:
+            pass
+        return jsonify({'success': True, 'note': 'processed with error'}), 200
 
     return jsonify({'success': True})
 
