@@ -1,9 +1,9 @@
 import { createContext, useContext, useState } from 'react';
 
-const SportContext = createContext({ sport: 'nba', setSport: () => {} });
+const SportContext = createContext({ sport: 'mlb', setSport: () => {} });
 
 export function SportProvider({ children }) {
-  const [sport, setSport] = useState('nba');
+  const [sport, setSport] = useState('mlb');
   return (
     <SportContext.Provider value={{ sport, setSport }}>
       {children}

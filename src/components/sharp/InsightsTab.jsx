@@ -188,12 +188,19 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
               if (guide) {
                 selectAndTrack(guide);
               } else {
+                const fallback = {
+                  id: 'beginners-guide',
+                  slug: 'beginners-guide',
+                  title: "A Beginner's Guide to SharpPicks",
+                  category: 'how_it_works',
+                  reading_time_minutes: 5,
+                  content: '',
+                };
                 try {
                   const data = await apiGet('/api/insights/beginners-guide');
-                  if (data) selectAndTrack(data);
+                  selectAndTrack(data || fallback);
                 } catch (e) {
-                  setActiveCategory('all');
-                  loadInsights();
+                  selectAndTrack(fallback);
                 }
               }
             }} animDelay={shouldAnimate ? '0.05s' : undefined} />
@@ -1304,7 +1311,7 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
   const contentRef = useRef(null);
   const [fadeIn, setFadeIn] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const isMarketNote = insight.category === 'market_notes' && /^market-note-\d{4}/.test(insight.slug);
+  const isMarketNote = insight.category === 'market_notes' && /^market-note-(\w+-)?[0-9]{4}/.test(insight.slug);
   const isBeginnersGuide = insight.slug === 'beginners-guide';
 
   useEffect(() => {
