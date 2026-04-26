@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 import { useNetwork } from '../hooks/useNetwork';
 import { SportProvider, useSport } from '../hooks/useSport';
-import { apiGet } from '../hooks/useApi';
+import { apiGet, apiPost } from '../hooks/useApi';
 import { trackPageView, trackEvent } from '../utils/eventTracker';
 
 const PROD_URL = 'https://app.sharppicks.ai';
@@ -17,6 +17,138 @@ import PerformanceTab from '../components/sharp/PerformanceTab';
 import ProfileTab from '../components/sharp/ProfileTab';
 import LandingPage from '../components/sharp/LandingPage';
 import OnboardingFlow from '../components/sharp/OnboardingFlow';
+
+function PaymentFailedGate({ user }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleUpdatePayment = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await apiPost('/stripe/billing-portal', {
+        return_url: typeof window !== 'undefined' ? window.location.origin + '/?billing_return=1' : undefined,
+      });
+      if (res && res.url) {
+        window.location.href = res.url;
+        return;
+      }
+      setError(res?.error || 'Could not open billing portal. Please try again.');
+    } catch (err) {
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await fetch(`${NATIVE_API}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+    } catch {}
+    window.location.reload();
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: 'var(--bg-primary)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '40px 24px max(40px, env(safe-area-inset-bottom)) 24px',
+      paddingTop: 'max(40px, env(safe-area-inset-top))',
+      textAlign: 'center',
+    }}>
+      <div style={{
+        width: '72px', height: '72px', borderRadius: '50%',
+        background: 'rgba(107, 138, 196, 0.10)',
+        border: '1px solid rgba(107, 138, 196, 0.28)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        margin: '0 auto 24px',
+      }}>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6B8AC4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="2" y="6" width="20" height="13" rx="2" />
+          <line x1="2" y1="11" x2="22" y2="11" />
+          <line x1="6" y1="15" x2="10" y2="15" />
+        </svg>
+      </div>
+
+      <h1 style={{
+        fontFamily: 'var(--font-serif)', fontSize: '24px', fontWeight: 600,
+        color: 'var(--text-primary)', marginBottom: '12px',
+        letterSpacing: '-0.01em',
+      }}>Payment failed — access paused</h1>
+
+      <p style={{
+        fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.55,
+        maxWidth: '340px', marginBottom: '8px',
+      }}>
+        Your last invoice didn't go through, so we've paused your Pro access. Update your card and we'll restore everything immediately.
+      </p>
+
+      <p style={{
+        fontSize: '13px', color: 'var(--text-tertiary)',
+        marginBottom: '28px', maxWidth: '320px',
+      }}>
+        No picks are missed — every day's signal stays in your history once your subscription is current.
+      </p>
+
+      {error && (
+        <p style={{
+          fontSize: '13px', color: '#ef4444', marginBottom: '16px',
+          fontFamily: 'var(--font-sans)', maxWidth: '320px',
+        }}>{error}</p>
+      )}
+
+      <button
+        onClick={handleUpdatePayment}
+        disabled={busy}
+        style={{
+          padding: '14px 28px',
+          backgroundColor: busy ? 'var(--text-tertiary)' : '#4ADE80',
+          border: 'none', borderRadius: '12px',
+          color: '#0A0E1A', fontSize: '15px', fontWeight: 600,
+          cursor: busy ? 'wait' : 'pointer',
+          fontFamily: 'var(--font-sans)', marginBottom: '14px',
+          minWidth: '240px', minHeight: '48px',
+          letterSpacing: '0.01em',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+      >{busy ? 'Opening Stripe…' : 'Update payment method'}</button>
+
+      <a
+        href="mailto:support@sharppicks.ai?subject=Payment%20issue"
+        style={{
+          padding: '12px 20px', backgroundColor: 'transparent',
+          border: '1px solid var(--stroke-subtle)', borderRadius: '10px',
+          color: 'var(--text-secondary)', fontSize: '14px',
+          textDecoration: 'none', display: 'inline-block',
+          fontFamily: 'var(--font-sans)', marginBottom: '20px',
+          minWidth: '240px',
+        }}
+      >Contact support</a>
+
+      <button
+        onClick={handleSignOut}
+        style={{
+          background: 'none', border: 'none',
+          color: 'var(--text-tertiary)', fontSize: '13px', cursor: 'pointer',
+          padding: '12px',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+      >Sign out</button>
+
+      {user?.email && (
+        <p style={{
+          fontSize: '11px', color: 'var(--text-muted)',
+          marginTop: '20px', fontFamily: 'var(--font-mono)',
+          letterSpacing: '0.04em',
+        }}>{user.email}</p>
+      )}
+    </div>
+  );
+}
 
 function WelcomeScreen({ onContinue }) {
   return (
@@ -434,6 +566,10 @@ function AppContent() {
         >Sign out</button>
       </div>
     );
+  }
+
+  if (user && user.subscription_status === 'past_due') {
+    return <PaymentFailedGate user={user} />;
   }
 
   if (showWelcome) {

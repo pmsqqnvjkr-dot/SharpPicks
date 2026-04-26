@@ -423,16 +423,19 @@ def send_cancellation_email(to, first_name=None, access_end_date=None, is_foundi
 def send_payment_failed_email(to, first_name=None):
     base = get_base_url()
     body = '''
-        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
-          We were unable to process your latest payment. Update your payment method to maintain access.
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.85);line-height:1.6;margin:0 0 12px;">
+          Your latest invoice didn't go through, so we've paused your Pro access.
+        </p>
+        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:14px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+          Update your payment method and we'll restore access immediately. Every day's signal stays in your history once your subscription is current.
         </p>'''
     html = _base_template(
-        'PAYMENT ISSUE', body,
-        cta_text='UPDATE PAYMENT', cta_url=f'{base}/',
-        fine_print='If this is resolved, disregard this email. Questions: support@sharppicks.ai',
+        'ACCESS PAUSED', body,
+        cta_text='UPDATE PAYMENT METHOD', cta_url=f'{base}/',
+        fine_print='Already updated? Disregard this email. Questions: support@sharppicks.ai',
         to_email=to,
     )
-    return send_email(to, 'SharpPicks: Payment issue', html)
+    return send_email(to, 'SharpPicks: Access paused — update payment method', html)
 
 
 # ── 9. Signal Generated ──

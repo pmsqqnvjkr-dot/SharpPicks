@@ -6583,6 +6583,55 @@ def stripe_config():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/api/stripe/billing-portal', methods=['POST'])
+def create_billing_portal_session():
+    """Create a Stripe Billing Portal session so the user can update card / manage sub.
+
+    Used by the past_due gate to give users a one-click recovery path after a
+    failed invoice. Falls back gracefully if no Stripe customer exists yet.
+    """
+    user = get_current_user_from_session()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    db_user = db.session.get(User, user['id'])
+    if not db_user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if not db_user.stripe_customer_id:
+        return jsonify({
+            'error': 'No payment method on file. Please subscribe first.',
+            'code': 'no_customer',
+        }), 400
+
+    try:
+        stripe_obj = get_stripe_client()
+    except Exception as e:
+        logging.error(f'Stripe client unavailable: {e}')
+        return jsonify({'error': 'Payments temporarily unavailable. Please try again shortly.'}), 503
+
+    payload = request.get_json(silent=True) or {}
+    return_url = payload.get('return_url')
+    if not return_url:
+        host = request.host_url.rstrip('/')
+        return_url = f'{host}/?billing_return=1'
+
+    try:
+        portal = stripe_obj.billing_portal.Session.create(
+            customer=db_user.stripe_customer_id,
+            return_url=return_url,
+        )
+        portal_url = _safe_get(portal, 'url') if hasattr(portal, '__getitem__') else getattr(portal, 'url', None)
+        if not portal_url:
+            raise Exception('Portal URL missing in Stripe response')
+        return jsonify({'url': portal_url})
+    except Exception as e:
+        logging.error(f'Billing portal create failed for {db_user.email}: {e}')
+        return jsonify({
+            'error': 'Could not open the billing portal. Please contact support@sharppicks.ai.',
+        }), 500
+
 def maybe_assign_founding(user_id):
     """Assign founding member status if spots remain — atomic with row-level lock"""
     from sqlalchemy import text as sql_text
@@ -6798,6 +6847,7 @@ def stripe_webhook():
                         user.is_premium = False
                     elif status == 'past_due':
                         user.subscription_status = 'past_due'
+                        user.is_premium = False
                     period_end = _safe_get(data_obj, 'current_period_end')
                     if period_end:
                         user.current_period_end = datetime.fromtimestamp(period_end)
@@ -6845,11 +6895,15 @@ def stripe_webhook():
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
+                    # Revoke immediately on the first failed attempt — no grace period.
+                    # The User.is_pro property already excludes past_due, but we flip the
+                    # underlying is_premium column so the DB matches the access decision.
                     user.subscription_status = 'past_due'
+                    user.is_premium = False
                     db.session.commit()
-                    logging.warning(f'Payment failed for user {user.email}')
+                    logging.warning(f'Payment failed for user {user.email} — access revoked')
                     _log_revenue_alert('payment_failed', user.email,
-                        f'Failed payment: {user.email} ({user.subscription_plan})')
+                        f'Failed payment: {user.email} ({user.subscription_plan}) — access revoked')
                     try:
                         from email_service import send_payment_failed_email
                         send_payment_failed_email(user.email, user.first_name)
