@@ -176,11 +176,39 @@ function DetailStat({ value, label, border }) {
   );
 }
 
+// Signal Withdrawn — slate-blue institutional palette.
+// IMPORTANT: This screen is a NEUTRAL informational state, not an alert.
+// Never use yellow/orange/red/amber here. Slate-blue = system; green = "Protected" only.
+const W = {
+  bgPage: '#0A0E1A',
+  bgCard: '#111726',
+  bgCardElev: '#161D2E',
+  borderSubtle: '#1F2940',
+  borderMedium: '#2B3A5C',
+  edge: '#4ADE80',
+  system: '#6B8AC4',
+  systemBg: 'rgba(107, 138, 196, 0.08)',
+  systemBorder: 'rgba(107, 138, 196, 0.28)',
+  textPrimary: '#E8ECF4',
+  textSecondary: '#9BA8C2',
+  textTertiary: '#5A6886',
+  textMuted: '#3E4A66',
+  fontSans: "'Inter','-apple-system','BlinkMacSystemFont',system-ui,sans-serif",
+  fontMono: "'JetBrains Mono','Menlo',ui-monospace,monospace",
+};
+
 function WithdrawnDetailScreen({ pick, onBack }) {
   const scrollRef = useRef(null);
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [pick]);
+
+  const handleBack = () => {
+    if (typeof onBack === 'function') onBack();
+    else if (typeof window !== 'undefined' && window.history && window.history.length > 1) {
+      window.history.back();
+    }
+  };
 
   const sideDisplay = pick?.side && pick?.line != null && pick.side.includes(String(Math.abs(pick.line)))
     ? pick.side
@@ -188,140 +216,320 @@ function WithdrawnDetailScreen({ pick, onBack }) {
     ? `${pick.side} ${pick.line > 0 ? '+' : ''}${pick.line}`
     : pick?.side || '\u2014';
 
+  const matchup = pick?.away_team && pick?.home_team
+    ? `${pick.away_team} @ ${pick.home_team}`
+    : (pick?.matchup || 'Matchup unavailable');
+
+  const edgeAtEntry = pick?.edge_pct != null ? `${pick.edge_pct}%` : '--';
+  const edgeAtWithdrawal = pick?.edge_at_close != null ? `${pick.edge_at_close}%` : '--';
+  const pnlDisplay = pick?.profit_units != null
+    ? `${pick.profit_units >= 0 ? '' : ''}${Number(pick.profit_units).toFixed(1)}u`
+    : '0.0u';
+
+  // Render arrow in slate-blue if the reason contains one.
+  const renderInvalidationReason = (reason) => {
+    if (!reason) return null;
+    const parts = String(reason).split('\u2192');
+    if (parts.length === 1) return reason;
+    const out = [];
+    parts.forEach((p, i) => {
+      out.push(<span key={`p-${i}`}>{p}</span>);
+      if (i < parts.length - 1) {
+        out.push(<span key={`a-${i}`} style={{ color: W.system }}>{' \u2192 '}</span>);
+      }
+    });
+    return out;
+  };
+
+  const cardStyle = {
+    background: W.bgCard,
+    border: `1px solid ${W.borderSubtle}`,
+    borderRadius: '16px',
+    overflow: 'hidden',
+  };
+  const sectionLabelStyle = {
+    fontFamily: W.fontMono,
+    fontSize: '11px',
+    letterSpacing: '0.14em',
+    color: W.textTertiary,
+    textTransform: 'uppercase',
+    fontWeight: 500,
+    marginBottom: '14px',
+  };
+
   return (
     <div ref={scrollRef} style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: C.bg,
+      backgroundColor: W.bgPage,
+      color: W.textPrimary,
       zIndex: 200,
-      overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      WebkitTapHighlightColor: 'transparent',
     }}>
-    <div style={{ maxWidth: '420px', margin: '0 auto', padding: '0 16px', paddingBottom: '100px' }}>
       <div style={{
-        position: 'sticky', top: 0, zIndex: 1,
-        backgroundColor: C.bg,
-        borderBottom: `1px solid ${C.bdr}`,
-        padding: '12px 0',
-        display: 'flex', alignItems: 'center', gap: '12px',
+        maxWidth: '420px',
+        margin: '0 auto',
+        paddingLeft: 'max(16px, env(safe-area-inset-left))',
+        paddingRight: 'max(16px, env(safe-area-inset-right))',
+        paddingBottom: 'max(32px, env(safe-area-inset-bottom))',
       }}>
-        <button onClick={onBack} aria-label="Go back" style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: C.t2, fontSize: '20px', padding: '4px',
-        }}>&larr;</button>
-        <span style={{ fontFamily: "'Inter',-apple-system,sans-serif", fontSize: '18px', fontWeight: 600, color: C.t1 }}>
-          Signal Withdrawn
-        </span>
-      </div>
-
-      {/* Matchup hero */}
-      <div style={{
-        background: C.card, border: `1px solid ${C.bdr}`,
-        borderRadius: '12px', padding: '24px', textAlign: 'center',
-        position: 'relative', overflow: 'hidden', marginTop: '16px',
-      }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#d4a843' }} />
-        <div style={{ fontFamily: "'Inter',-apple-system,sans-serif", fontSize: '16px', fontWeight: 500, color: C.t1, marginBottom: '8px' }}>
-          {pick?.away_team} @ {pick?.home_team}
-        </div>
-        <div style={{ fontFamily: "'JetBrains Mono','Menlo',monospace", fontSize: '12px', color: C.t3 }}>
-          {sideDisplay}
-        </div>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: '5px',
-          fontFamily: "'JetBrains Mono','Menlo',monospace", fontSize: '10px', letterSpacing: '0.1em',
-          textTransform: 'uppercase', padding: '4px 12px', borderRadius: '6px', marginTop: '12px',
-          color: '#d4a843', background: 'rgba(212,168,67,.10)', border: '1px solid rgba(212,168,67,.15)',
-        }}>
-          <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#d4a843' }} />
-          WITHDRAWN
-        </span>
-      </div>
-
-      {/* Process Review */}
-      <div style={{ background: C.card, border: `1px solid ${C.bdr}`, borderRadius: '10px', marginTop: '12px', overflow: 'hidden' }}>
+        {/* Header */}
         <div style={{
-          fontFamily: "'JetBrains Mono','Menlo',monospace", fontSize: '9px', letterSpacing: '0.12em',
-          textTransform: 'uppercase', color: C.t3, padding: '16px 20px 0',
-        }}>Process Review</div>
+          position: 'sticky',
+          top: 0,
+          zIndex: 1,
+          backgroundColor: W.bgPage,
+          borderBottom: `1px solid ${W.borderSubtle}`,
+          paddingTop: 'max(14px, env(safe-area-inset-top))',
+          paddingBottom: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginLeft: 'calc(-1 * max(16px, env(safe-area-inset-left)))',
+          marginRight: 'calc(-1 * max(16px, env(safe-area-inset-right)))',
+          paddingLeft: 'max(16px, env(safe-area-inset-left))',
+          paddingRight: 'max(16px, env(safe-area-inset-right))',
+        }}>
+          <button
+            onClick={handleBack}
+            aria-label="Go back"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: W.textSecondary,
+              padding: '12px',
+              margin: '-12px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '44px',
+              minHeight: '44px',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+            onMouseDown={(e) => { e.currentTarget.style.color = W.textPrimary; }}
+            onMouseUp={(e) => { e.currentTarget.style.color = W.textSecondary; }}
+            onTouchStart={(e) => { e.currentTarget.style.color = W.textPrimary; }}
+            onTouchEnd={(e) => { e.currentTarget.style.color = W.textSecondary; }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <h1 style={{
+            margin: 0,
+            fontFamily: W.fontSans,
+            fontSize: '20px',
+            fontWeight: 600,
+            letterSpacing: '-0.01em',
+            color: W.textPrimary,
+            userSelect: 'none',
+          }}>Signal Withdrawn</h1>
+        </div>
 
-        {pick?.withdraw_reason && (
-          <div style={{
-            margin: '12px 20px 0', padding: '10px 14px', borderRadius: '8px',
-            background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.15)',
-          }}>
+        {/* Card stack */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '20px' }}>
+
+          {/* Game card */}
+          <div style={{ ...cardStyle, position: 'relative', padding: '28px 20px 24px', textAlign: 'center' }}>
             <div style={{
-              fontFamily: "'JetBrains Mono','Menlo',monospace", fontSize: '9px', fontWeight: 700,
-              color: '#f59e0b', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '4px',
-            }}>Invalidation Reason</div>
+              position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+              background: `linear-gradient(90deg, transparent, ${W.system} 20%, ${W.system} 80%, transparent)`,
+              opacity: 0.7,
+            }} />
             <div style={{
-              fontFamily: "'JetBrains Mono','Menlo',monospace", fontSize: '13px',
-              color: C.t2, lineHeight: 1.5,
-            }}>{pick.withdraw_reason}</div>
+              fontFamily: W.fontSans,
+              fontSize: '19px',
+              fontWeight: 600,
+              letterSpacing: '-0.01em',
+              color: W.textPrimary,
+              marginBottom: '10px',
+            }}>{matchup}</div>
+            <div style={{
+              fontFamily: W.fontMono,
+              fontSize: '14px',
+              color: W.textSecondary,
+              letterSpacing: '0.02em',
+              marginBottom: '16px',
+              userSelect: 'text',
+            }}>{sideDisplay}</div>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '7px 14px',
+              background: W.systemBg,
+              border: `1px solid ${W.systemBorder}`,
+              borderRadius: '999px',
+              fontFamily: W.fontMono,
+              fontSize: '11px',
+              fontWeight: 600,
+              letterSpacing: '0.12em',
+              color: W.system,
+              userSelect: 'none',
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: W.system }} />
+              WITHDRAWN
+            </span>
           </div>
-        )}
 
-        <div style={{ padding: '12px 20px 16px', fontSize: '14px', lineHeight: 1.6, color: C.t2 }}>
-          {pick?.withdraw_reason
-            ? 'Pre-tip validation detected a material change. Signal invalidated before tip-off. Capital preserved.'
-            : 'Market moved. Edge fell below threshold before tip-off. Capital preserved. No trade is a position.'}
-        </div>
-        <div style={{ display: 'flex', padding: '0 20px 16px' }}>
-          <DetailStat value={`${pick?.edge_pct || '--'}%`} label="Edge at entry" />
-          <DetailStat value={pick?.edge_at_close != null ? `${pick.edge_at_close}%` : '--'} label="Edge at withdrawal" border />
-          <DetailStat value="Protected" label="Action" border />
+          {/* Process Review */}
+          <div style={cardStyle}>
+            <div style={{ padding: '20px' }}>
+              <div style={sectionLabelStyle}>PROCESS REVIEW</div>
+
+              {pick?.withdraw_reason && (
+                <div style={{
+                  background: W.bgCardElev,
+                  border: `1px solid ${W.borderMedium}`,
+                  borderLeft: `2px solid ${W.system}`,
+                  borderRadius: '10px',
+                  padding: '14px 16px',
+                  marginBottom: '14px',
+                }}>
+                  <div style={{
+                    fontFamily: W.fontMono,
+                    fontSize: '10px',
+                    letterSpacing: '0.14em',
+                    color: W.system,
+                    fontWeight: 600,
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                  }}>INVALIDATION REASON</div>
+                  <div style={{
+                    fontFamily: W.fontMono,
+                    fontSize: '13px',
+                    lineHeight: 1.5,
+                    color: W.textPrimary,
+                    userSelect: 'text',
+                  }}>{renderInvalidationReason(pick.withdraw_reason)}</div>
+                </div>
+              )}
+
+              <div style={{
+                fontFamily: W.fontSans,
+                fontSize: '14.5px',
+                lineHeight: 1.55,
+                color: W.textSecondary,
+                marginBottom: '20px',
+                userSelect: 'text',
+              }}>
+                {pick?.withdraw_reason
+                  ? 'Pre-tip validation detected a material change. Signal invalidated before tip-off. Capital preserved.'
+                  : 'Market moved. Edge fell below threshold before tip-off. Capital preserved. No trade is a position.'}
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: '1px',
+                background: W.borderSubtle,
+                borderRadius: '10px',
+                overflow: 'hidden',
+              }}>
+                <WithdrawnStat value={edgeAtEntry} label="Edge at Entry" />
+                <WithdrawnStat
+                  value={edgeAtWithdrawal === '--' ? '--' : edgeAtWithdrawal}
+                  label="Edge at Withdrawal"
+                  muted={edgeAtWithdrawal === '--'}
+                />
+                <WithdrawnStat value="Protected" label="Action" action />
+              </div>
+            </div>
+          </div>
+
+          {/* P&L row */}
+          <div style={cardStyle}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '18px 20px',
+            }}>
+              <span style={{
+                fontFamily: W.fontMono,
+                fontSize: '11px',
+                letterSpacing: '0.14em',
+                color: W.textTertiary,
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                userSelect: 'none',
+              }}>P&L</span>
+              <span style={{
+                fontFamily: W.fontMono,
+                fontSize: '20px',
+                fontWeight: 600,
+                color: W.textSecondary,
+                userSelect: 'text',
+              }}>{pnlDisplay}</span>
+            </div>
+          </div>
+
+          {/* Discipline Framework */}
+          <div style={cardStyle}>
+            <div style={{ padding: '20px' }}>
+              <div style={{ ...sectionLabelStyle, color: W.system }}>DISCIPLINE FRAMEWORK</div>
+              <div style={{
+                fontFamily: W.fontSans,
+                fontSize: '14.5px',
+                lineHeight: 1.6,
+                color: W.textSecondary,
+                userSelect: 'text',
+              }}>
+                Not every signal survives. The edge decides, not emotion. A withdrawal is the system protecting capital. Next signal when the edge is there.
+              </div>
+            </div>
+          </div>
+
+          {/* Already Placed? */}
+          <div style={cardStyle}>
+            <div style={{ padding: '20px' }}>
+              <div style={{ ...sectionLabelStyle, color: W.system }}>ALREADY PLACED?</div>
+              <div style={{
+                fontFamily: W.fontSans,
+                fontSize: '14.5px',
+                lineHeight: 1.6,
+                color: W.textSecondary,
+                userSelect: 'text',
+              }}>
+                If already wagered before withdrawal, treat as standalone decision. Tracked bet still graded on actual result. Withdrawal reflects edge no longer met threshold.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* P&L */}
-      <div style={{
-        background: C.card, border: `1px solid ${C.bdr}`,
-        borderRadius: '10px', marginTop: '12px', padding: '16px 20px',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <span style={{
-          fontFamily: "'JetBrains Mono','Menlo',monospace", fontSize: '9px', letterSpacing: '0.12em',
-          textTransform: 'uppercase', color: C.t3,
-        }}>P&L</span>
-        <span style={{
-          fontFamily: "'JetBrains Mono','Menlo',monospace", fontSize: '20px', fontWeight: 700, color: C.t2,
-        }}>0.0u</span>
-      </div>
-
-      {/* Discipline Framework */}
-      <div style={{ background: C.card, border: `1px solid ${C.bdr}`, borderRadius: '10px', marginTop: '12px', overflow: 'hidden' }}>
-        <div style={{
-          fontFamily: "'JetBrains Mono','Menlo',monospace", fontSize: '9px', letterSpacing: '0.12em',
-          textTransform: 'uppercase', color: '#d4a843', padding: '16px 20px 0',
-        }}>Discipline Framework</div>
-        <div style={{
-          padding: '10px 20px 18px',
-          fontFamily: "'IBM Plex Serif',Georgia,serif", fontStyle: 'italic',
-          fontSize: '14px', lineHeight: 1.6, color: C.t2,
-        }}>
-          Not every signal survives. The edge decides, not emotion. A withdrawal is the system protecting capital. Next signal when the edge is there.
-        </div>
-      </div>
-
-      {/* Already Placed */}
-      <div style={{ background: C.card, border: `1px solid ${C.bdr}`, borderRadius: '10px', marginTop: '12px', overflow: 'hidden' }}>
-        <div style={{
-          fontFamily: "'JetBrains Mono','Menlo',monospace", fontSize: '9px', letterSpacing: '0.12em',
-          textTransform: 'uppercase', color: C.t3, padding: '16px 20px 0',
-        }}>Already Placed?</div>
-        <div style={{
-          padding: '10px 20px 18px',
-          fontSize: '14px', lineHeight: 1.6, color: C.t2,
-        }}>
-          If already wagered before withdrawal, treat as standalone decision. Tracked bet still graded on actual result. Withdrawal reflects edge no longer met threshold.
-        </div>
-      </div>
-
-      <p style={{
-        fontSize: '10px', color: C.t4, textAlign: 'center',
-        padding: '16px 0', lineHeight: '1.5', opacity: 0.6,
-      }}>
-        Capital preservation is the discipline.
-      </p>
     </div>
+  );
+}
+
+function WithdrawnStat({ value, label, muted, action }) {
+  const valueColor = action ? W.edge : muted ? W.textMuted : W.textPrimary;
+  const valueSize = action ? '16px' : '22px';
+  const valueWeight = action ? 600 : 600;
+  return (
+    <div style={{
+      background: W.bgCardElev,
+      padding: '16px 8px',
+      textAlign: 'center',
+    }}>
+      <div style={{
+        fontFamily: W.fontMono,
+        fontSize: valueSize,
+        fontWeight: valueWeight,
+        color: valueColor,
+        marginBottom: '6px',
+        lineHeight: 1,
+        paddingTop: action ? '4px' : 0,
+      }}>{value}</div>
+      <div style={{
+        fontFamily: W.fontMono,
+        fontSize: '9px',
+        letterSpacing: '0.12em',
+        color: W.textTertiary,
+        textTransform: 'uppercase',
+        userSelect: 'none',
+      }}>{label}</div>
     </div>
   );
 }

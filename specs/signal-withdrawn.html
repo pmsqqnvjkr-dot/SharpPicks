@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Signal Withdrawn — SharpPicks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Surfaces */
+    --bg-page: #0A0E1A;
+    --bg-card: #111726;
+    --bg-card-elevated: #161D2E;
+    --border-subtle: #1F2940;
+    --border-medium: #2B3A5C;
+
+    /* Two-color semantic system */
+    --edge: #4ADE80;
+    --edge-dim: #2F9E5F;
+    --edge-bg: rgba(74, 222, 128, 0.06);
+    --edge-border: rgba(74, 222, 128, 0.22);
+    --system: #6B8AC4;
+    --system-dim: #4A6691;
+    --system-bg: rgba(107, 138, 196, 0.08);
+    --system-border: rgba(107, 138, 196, 0.28);
+
+    /* Text hierarchy */
+    --text-primary: #E8ECF4;
+    --text-secondary: #9BA8C2;
+    --text-tertiary: #5A6886;
+    --text-muted: #3E4A66;
+
+    /* Type stack */
+    --font-serif: 'Fraunces', Georgia, serif;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  }
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html, body {
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  body {
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Disable selection on UI chrome; allow it on body copy via .selectable */
+  .ui-chrome { -webkit-user-select: none; user-select: none; }
+  .selectable { -webkit-user-select: text; user-select: text; }
+
+  .screen {
+    max-width: 420px;
+    margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(32px, env(safe-area-inset-bottom));
+  }
+
+  /* Header */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--bg-page);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-top: max(14px, env(safe-area-inset-top));
+    padding-bottom: 14px;
+    margin-left: calc(-1 * max(16px, env(safe-area-inset-left)));
+    margin-right: calc(-1 * max(16px, env(safe-area-inset-right)));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .back-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 12px;
+    margin: -12px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s;
+  }
+  .back-btn:active { color: var(--text-primary); }
+  .header h1 {
+    font-family: var(--font-sans);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+
+  /* Card pattern */
+  .card-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 20px;
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .card-body { padding: 20px; }
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+
+  /* Game card */
+  .game-card {
+    position: relative;
+    padding: 28px 20px 24px;
+    text-align: center;
+  }
+  .game-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--system) 20%, var(--system) 80%, transparent);
+    opacity: 0.7;
+  }
+  .matchup {
+    font-family: var(--font-sans);
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+  }
+  .pick {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+    margin-bottom: 16px;
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    background: var(--system-bg);
+    border: 1px solid var(--system-border);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--system);
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--system);
+  }
+
+  /* Invalidation reason */
+  .invalidation {
+    background: var(--bg-card-elevated);
+    border: 1px solid var(--border-medium);
+    border-left: 2px solid var(--system);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  .invalidation-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--system);
+    font-weight: 600;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .invalidation-text {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-primary);
+  }
+  .invalidation-text .arrow { color: var(--system); }
+
+  .body-copy {
+    font-family: var(--font-sans);
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+
+  /* Stats grid */
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border-subtle);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .stat {
+    background: var(--bg-card-elevated);
+    padding: 16px 8px;
+    text-align: center;
+  }
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    line-height: 1;
+  }
+  .stat-value.muted { color: var(--text-muted); }
+  .stat-value.action {
+    color: var(--edge);
+    font-size: 16px;
+    padding-top: 4px;
+  }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+  }
+
+  /* P&L row */
+  .pnl-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 20px;
+  }
+  .pnl-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+  .pnl-value {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  /* System-themed info cards */
+  .info-card .section-label { color: var(--system); }
+  .info-text {
+    font-family: var(--font-sans);
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+  <main class="screen">
+    <header class="header ui-chrome">
+      <button class="back-btn" id="back-btn" aria-label="Go back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <h1>Signal Withdrawn</h1>
+    </header>
+
+    <div class="card-stack">
+      <!-- Game card -->
+      <section class="card game-card ui-chrome">
+        <div class="matchup" id="f-matchup">Cleveland Guardians @ Toronto Blue Jays</div>
+        <div class="pick selectable" id="f-pick">Cleveland Guardians -1.5</div>
+        <span class="status-pill">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span>WITHDRAWN</span>
+        </span>
+      </section>
+
+      <!-- Process Review -->
+      <section class="card">
+        <div class="card-body">
+          <div class="section-label ui-chrome">PROCESS REVIEW</div>
+          <div class="invalidation">
+            <div class="invalidation-label ui-chrome">INVALIDATION REASON</div>
+            <div class="invalidation-text selectable" id="f-reason">Pre-tip re-check: line moved 3.0pts since publication (-1.5 <span class="arrow">&rarr;</span> +1.5)</div>
+          </div>
+          <p class="body-copy selectable">Pre-tip validation detected a material change. Signal invalidated before tip-off. Capital preserved.</p>
+          <div class="stats">
+            <div class="stat">
+              <div class="stat-value" id="f-edge-entry">6%</div>
+              <div class="stat-label">Edge at Entry</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value muted" id="f-edge-withdrawal">--</div>
+              <div class="stat-label">Edge at Withdrawal</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value action">Protected</div>
+              <div class="stat-label">Action</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- P&L -->
+      <section class="card">
+        <div class="pnl-row">
+          <span class="pnl-label ui-chrome">P&amp;L</span>
+          <span class="pnl-value selectable" id="f-pnl">0.0u</span>
+        </div>
+      </section>
+
+      <!-- Discipline Framework -->
+      <section class="card info-card">
+        <div class="card-body">
+          <div class="section-label ui-chrome">DISCIPLINE FRAMEWORK</div>
+          <p class="info-text selectable">Not every signal survives. The edge decides, not emotion. A withdrawal is the system protecting capital. Next signal when the edge is there.</p>
+        </div>
+      </section>
+
+      <!-- Already Placed? -->
+      <section class="card info-card">
+        <div class="card-body">
+          <div class="section-label ui-chrome">ALREADY PLACED?</div>
+          <p class="info-text selectable">If already wagered before withdrawal, treat as standalone decision. Tracked bet still graded on actual result. Withdrawal reflects edge no longer met threshold.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      // Back button: try Capacitor App.exitApp / history.back
+      var backBtn = document.getElementById('back-btn');
+      backBtn.addEventListener('click', function () {
+        if (window.history && window.history.length > 1) {
+          window.history.back();
+        } else if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+          window.Capacitor.Plugins.App.exitApp();
+        }
+      });
+
+      // Hydrate from window.__SHARPPICKS_DATA__ if present.
+      var data = window.__SHARPPICKS_DATA__;
+      if (!data || typeof data !== 'object') return;
+
+      function setText(id, val) {
+        if (val == null || val === '') return;
+        var el = document.getElementById(id);
+        if (el) el.textContent = val;
+      }
+
+      setText('f-matchup', data.matchup);
+      setText('f-pick', data.pick);
+
+      if (data.invalidationReason) {
+        var reasonEl = document.getElementById('f-reason');
+        var parts = String(data.invalidationReason).split('\u2192');
+        reasonEl.innerHTML = parts
+          .map(function (p, i) {
+            return p + (i < parts.length - 1 ? '<span class="arrow">&rarr;</span>' : '');
+          })
+          .join('');
+      }
+
+      if (data.edgeAtEntry != null) setText('f-edge-entry', data.edgeAtEntry + '%');
+      var withdrawalEl = document.getElementById('f-edge-withdrawal');
+      if (data.edgeAtWithdrawal == null) {
+        withdrawalEl.textContent = '--';
+        withdrawalEl.classList.add('muted');
+      } else {
+        withdrawalEl.textContent = data.edgeAtWithdrawal + '%';
+        withdrawalEl.classList.remove('muted');
+      }
+
+      setText('f-pnl', data.pnl);
+    })();
+  </script>
+</body>
+</html>
