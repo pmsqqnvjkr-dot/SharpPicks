@@ -1,4 +1,17 @@
-import { colors, fonts } from '../../../styles/tokens';
+import { useState, useEffect, useRef } from 'react';
+import { inst as c, instFonts as f } from '../../../styles/tokens';
+
+// Map a category string to a color tone per spec.
+function categoryColor(category) {
+  if (!category) return c.textSecondary;
+  const k = String(category).toUpperCase();
+  if (k.includes('DISCIPLINE')) return c.edge;        // green
+  if (k.includes('EDUCATION')) return c.system;        // blue
+  if (k.includes('PHILOSOPHY')) return c.system;
+  if (k.includes('HOW IT WORKS')) return c.textSecondary;
+  if (k.includes('SIGNAL') || k.includes('FOUNDER')) return c.textSecondary;
+  return c.edge;
+}
 
 export default function FurtherReadingCard({
   title = '',
@@ -6,23 +19,40 @@ export default function FurtherReadingCard({
   readMinutes = 0,
   publishedDate = '',
   category = 'Insight',
+  source = 'Sharp Journal',
   href,
   onClick,
-  imageUrl,
+  rotateKey = 0,
 }) {
   const Tag = href ? 'a' : 'button';
   const linkProps = href
     ? { href, target: '_blank', rel: 'noopener noreferrer' }
     : { onClick, type: 'button' };
 
+  const [fading, setFading] = useState(false);
+  const lastKey = useRef(rotateKey);
+
+  useEffect(() => {
+    if (rotateKey !== lastKey.current) {
+      setFading(true);
+      const t = setTimeout(() => setFading(false), 280);
+      lastKey.current = rotateKey;
+      return () => clearTimeout(t);
+    }
+  }, [rotateKey]);
+
+  const catColor = categoryColor(category);
+  const catLabel = String(category || '').toUpperCase();
+  const opacity = fading ? 0.3 : 1;
+
   return (
     <Tag
       {...linkProps}
       style={{
-        background: colors.surface1,
-        border: `1px solid ${colors.stroke}`,
-        borderRadius: 12,
-        marginBottom: 14,
+        background: c.bgCard,
+        border: `1px solid ${c.borderSubtle}`,
+        borderRadius: 18,
+        marginBottom: 4,
         overflow: 'hidden',
         display: 'block',
         textDecoration: 'none',
@@ -31,123 +61,103 @@ export default function FurtherReadingCard({
         transition: 'border-color 0.2s ease',
         width: '100%',
         textAlign: 'left',
+        padding: 22,
+        position: 'relative',
+        WebkitTapHighlightColor: 'transparent',
       }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = colors.strokeStrong}
-      onMouseLeave={e => e.currentTarget.style.borderColor = colors.stroke}
+      onMouseEnter={e => e.currentTarget.style.borderColor = c.borderMedium}
+      onMouseLeave={e => e.currentTarget.style.borderColor = c.borderSubtle}
     >
-      {/* Thumbnail — only when an image is provided */}
-      {imageUrl && (
-        <div style={{
-          width: '100%',
-          height: 140,
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
-          <img
-            src={imageUrl}
-            alt=""
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-            }}
-          />
-          <span style={{
-            position: 'absolute',
-            top: 12,
-            left: 12,
-            fontFamily: fonts.label,
-            fontSize: 9,
-            letterSpacing: '2.5px',
-            fontWeight: 700,
-            color: colors.edgeGreen,
-            background: 'rgba(10, 13, 20, 0.7)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            padding: '5px 9px',
-            borderRadius: 4,
-            border: '1px solid rgba(52, 211, 153, 0.25)',
-            zIndex: 2,
-            textTransform: 'uppercase',
-          }}>
-            {category}
-          </span>
-        </div>
-      )}
-
-      {/* Body */}
-      <div style={{ padding: '16px 18px 18px' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          marginBottom: 8,
-        }}>
-          {/* Inline chip when no thumbnail */}
-          {!imageUrl && (
-            <span style={{
-              fontFamily: fonts.label,
-              fontSize: 9,
-              letterSpacing: '2.5px',
-              fontWeight: 700,
-              color: colors.edgeGreen,
-              background: 'rgba(52, 211, 153, 0.08)',
-              padding: '3px 8px',
-              borderRadius: 4,
-              textTransform: 'uppercase',
-              flexShrink: 0,
-            }}>
-              {category}
-            </span>
-          )}
-          <span style={{
-            fontFamily: fonts.label,
-            fontSize: 9,
-            letterSpacing: '2.5px',
-            fontWeight: 700,
-            color: colors.text3,
-            textTransform: 'uppercase',
-          }}>
-            {readMinutes} min read{publishedDate ? ` \u00B7 ${publishedDate}` : ''}
-          </span>
-        </div>
-        <div style={{
-          fontFamily: fonts.sans,
-          fontSize: 17,
+      {/* Meta row */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 16,
+        fontFamily: f.mono,
+        fontSize: 11,
+        letterSpacing: '0.14em',
+        textTransform: 'uppercase',
+        opacity,
+        transition: 'opacity 0.3s ease',
+      }}>
+        <span style={{
+          color: catColor,
           fontWeight: 600,
-          letterSpacing: '-0.01em',
-          lineHeight: 1.3,
-          color: colors.text,
-          marginBottom: 8,
-        }}>
-          {title}
-        </div>
+        }}>{catLabel}</span>
+        <span style={{ color: c.textMuted }}>·</span>
+        <span style={{
+          color: c.textTertiary,
+          letterSpacing: '0.06em',
+        }}>{source}</span>
+        {readMinutes ? (
+          <>
+            <span style={{ color: c.textMuted }}>·</span>
+            <span style={{
+              color: c.textTertiary,
+              letterSpacing: '0.06em',
+            }}>{readMinutes} MIN</span>
+          </>
+        ) : null}
+      </div>
+
+      {/* Title */}
+      <div style={{
+        fontFamily: f.serif,
+        fontSize: 22,
+        fontWeight: 500,
+        lineHeight: 1.2,
+        letterSpacing: '-0.015em',
+        color: c.textPrimary,
+        marginBottom: 14,
+        opacity,
+        transition: 'opacity 0.3s ease',
+      }}>
+        {title}
+      </div>
+
+      {/* Excerpt */}
+      <div style={{
+        fontFamily: f.sans,
+        fontSize: 14,
+        lineHeight: 1.55,
+        color: c.textSecondary,
+        marginBottom: 22,
+        opacity,
+        transition: 'opacity 0.3s ease',
+        userSelect: 'text',
+        WebkitUserSelect: 'text',
+      }}>
+        {snippet}
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: 16,
+        borderTop: `1px solid ${c.borderSubtle}`,
+      }}>
+        <span style={{
+          fontFamily: f.mono,
+          fontSize: 11,
+          color: c.textTertiary,
+          letterSpacing: '0.06em',
+        }}>{publishedDate}</span>
         <div style={{
-          fontFamily: fonts.sans,
-          fontSize: 13,
-          color: colors.text2,
-          lineHeight: 1.5,
-          marginBottom: 12,
-        }}>
-          {snippet}
-        </div>
-        <div style={{
+          fontFamily: f.mono,
+          fontSize: 12,
+          fontWeight: 600,
+          letterSpacing: '0.08em',
+          color: c.edge,
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          fontFamily: fonts.label,
-          fontSize: 9,
-          letterSpacing: '2.5px',
-          fontWeight: 700,
-          color: colors.signalBlue,
           textTransform: 'uppercase',
         }}>
-          Read article
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M5 12h14M13 5l7 7-7 7" />
-          </svg>
+          <span>Read</span>
+          <span>→</span>
         </div>
       </div>
     </Tag>

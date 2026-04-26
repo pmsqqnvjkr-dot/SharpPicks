@@ -1,43 +1,53 @@
-import { colors, fonts } from '../../../styles/tokens';
+import { inst as c, instFonts as f } from '../../../styles/tokens';
 
 export default function CapitalCard({ capitalPreservedUsd = 100 }) {
   if (capitalPreservedUsd === 0) return null;
 
   return (
     <div style={{
-      background: colors.surface1,
-      border: `1px solid ${colors.stroke}`,
-      borderRadius: 12,
-      padding: 20,
+      background: c.bgCard,
+      border: `1px solid ${c.borderSubtle}`,
+      borderRadius: 18,
+      padding: 22,
       marginBottom: 14,
-      borderLeft: `3px solid ${colors.edgeGreen}`,
-      backgroundImage: 'linear-gradient(90deg, rgba(52,211,153,0.04), transparent 50%)',
     }}>
-      <span style={{
-        fontFamily: fonts.label,
-        fontSize: 9,
-        fontWeight: 700,
-        letterSpacing: '2.5px',
+      <div style={{
+        fontFamily: f.mono,
+        fontSize: 11,
+        fontWeight: 500,
+        letterSpacing: '0.18em',
         textTransform: 'uppercase',
-        color: colors.text3,
+        color: c.textTertiary,
+        marginBottom: 18,
+      }}>
+        Capital Preserved
+      </div>
+      <div style={{
+        fontFamily: f.mono,
+        fontSize: 10,
+        letterSpacing: '0.16em',
+        textTransform: 'uppercase',
+        color: c.textTertiary,
+        marginBottom: 8,
       }}>
         One Unit Not Risked
-      </span>
+      </div>
       <div style={{
-        fontFamily: fonts.mono,
-        fontSize: 32,
-        fontWeight: 700,
-        color: colors.edgeGreen,
+        fontFamily: f.serif,
+        fontSize: 44,
+        fontWeight: 500,
+        color: c.edge,
+        letterSpacing: '-0.02em',
         lineHeight: 1,
-        margin: '8px 0',
+        marginBottom: 14,
       }}>
         +${capitalPreservedUsd}
       </div>
       <div style={{
-        fontSize: 13.5,
-        color: colors.text2,
-        lineHeight: 1.55,
-        fontFamily: fonts.sans,
+        fontFamily: f.sans,
+        fontSize: 14,
+        lineHeight: 1.5,
+        color: c.textSecondary,
       }}>
         Discipline compounds. Passing on a sub-threshold spot is mathematically equivalent to winning, over time.
       </div>

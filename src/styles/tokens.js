@@ -24,3 +24,34 @@ export const fonts = {
 };
 
 export const radii = { sm: 6, md: 8, lg: 12 };
+
+// Institutional palette - used by signals/PassDay redesign and going forward.
+// Two-color semantic system: green = edge/capital/action, slate-blue = system/info.
+export const inst = {
+  bgPage: '#0A0E1A',
+  bgCard: '#111726',
+  bgCardElev: '#161D2E',
+  borderSubtle: '#1F2940',
+  borderMedium: '#2B3A5C',
+
+  edge: '#4ADE80',
+  edgeDim: '#2F9E5F',
+  edgeBg: 'rgba(74, 222, 128, 0.06)',
+  edgeBorder: 'rgba(74, 222, 128, 0.22)',
+
+  system: '#6B8AC4',
+  systemDim: '#4A6691',
+  systemBg: 'rgba(107, 138, 196, 0.08)',
+  systemBorder: 'rgba(107, 138, 196, 0.28)',
+
+  textPrimary: '#E8ECF4',
+  textSecondary: '#9BA8C2',
+  textTertiary: '#5A6886',
+  textMuted: '#3E4A66',
+};
+
+export const instFonts = {
+  serif: "'Fraunces', Georgia, serif",
+  sans: "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, monospace",
+};

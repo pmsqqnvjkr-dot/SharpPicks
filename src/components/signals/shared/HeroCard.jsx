@@ -1,4 +1,4 @@
-import { colors, fonts } from '../../../styles/tokens';
+import { inst as c, instFonts as f } from '../../../styles/tokens';
 
 export default function HeroCard({
   variant = 'pass',
@@ -8,152 +8,166 @@ export default function HeroCard({
   verdictText,
   stats,
   tagline = 'One pick beats five.',
-  activeDot = 2,
+  commentary,
+  commentaryIdx = 0,
+  commentaryCount = 0,
+  onTapCommentary,
 }) {
   const isPass = variant === 'pass';
-  const accent = isPass ? colors.signalBlue : colors.edgeGreen;
+  const accent = isPass ? c.system : c.edge;
+  const accentBg = isPass ? c.systemBg : c.edgeBg;
+  const accentBorder = isPass ? c.systemBorder : c.edgeBorder;
 
   return (
     <div style={{
-      background: colors.surface1,
-      border: `1px solid ${colors.stroke}`,
-      borderRadius: 12,
-      padding: '22px 22px 18px',
+      background: c.bgCard,
+      border: `1px solid ${c.borderSubtle}`,
+      borderRadius: 18,
+      padding: '22px 22px 20px',
       marginBottom: 14,
       position: 'relative',
+      overflow: 'hidden',
     }}>
-      {/* Top gradient line */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 22,
-        right: 22,
-        height: 1,
-        background: `linear-gradient(90deg, transparent, ${accent}, transparent)`,
-        opacity: 0.5,
-      }} />
-
       {/* Meta row */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 14,
+        marginBottom: 24,
       }}>
         <span style={{
-          fontFamily: fonts.label,
-          fontSize: 9,
-          fontWeight: 700,
-          letterSpacing: '2.5px',
-          textTransform: 'uppercase',
-          color: colors.text3,
+          fontFamily: f.mono,
+          fontSize: 10,
+          fontWeight: 500,
+          letterSpacing: '0.16em',
+          color: c.textTertiary,
         }}>
-          Today's Signal &middot; {date}
+          TODAY'S SIGNAL · {(date || '').toUpperCase()}
         </span>
         <span style={{
           padding: '6px 12px',
           borderRadius: 6,
-          border: `1px solid ${accent}`,
+          border: `1px solid ${accentBorder}`,
           color: accent,
-          fontFamily: fonts.label,
-          fontSize: 9,
-          letterSpacing: '2.5px',
-          fontWeight: 700,
-          background: `rgba(${isPass ? '79, 134, 247' : '52, 211, 153'}, 0.06)`,
+          fontFamily: f.mono,
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: '0.18em',
+          background: accentBg,
         }}>
           {isPass ? 'PASS' : 'LEAGUE OFF'}
         </span>
       </div>
 
-      {/* Title */}
+      {/* Headline */}
       <h1 style={{
-        fontFamily: fonts.serif,
-        fontSize: 30,
+        fontFamily: f.serif,
+        fontSize: 32,
         fontWeight: 500,
-        letterSpacing: '-0.015em',
-        lineHeight: 1.15,
-        margin: '6px 0 8px',
-        color: colors.text,
+        letterSpacing: '-0.02em',
+        lineHeight: 1.05,
+        margin: '0 0 18px',
+        color: c.textPrimary,
       }}>
-        {title}
+        {renderTitle(title)}
       </h1>
 
-      {/* Subtitle */}
+      {/* Scan summary */}
       <div style={{
-        fontFamily: fonts.mono,
+        fontFamily: f.mono,
         fontSize: 11.5,
-        color: colors.text3,
-        letterSpacing: '0.05em',
-        marginBottom: 18,
+        color: c.textTertiary,
+        letterSpacing: '0.04em',
+        lineHeight: 1.6,
+        marginBottom: 22,
         textTransform: 'uppercase',
       }}>
-        {subtitle}
+        {renderSubtitle(subtitle)}
       </div>
 
-      {/* Verdict bar */}
-      <div style={{
-        background: 'rgba(0,0,0,0.25)',
-        border: `1px solid ${colors.stroke}`,
-        borderRadius: 8,
-        padding: '13px 14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 11,
-      }}>
-        <div style={{
-          width: 7,
-          height: 7,
-          borderRadius: '50%',
-          background: accent,
-          boxShadow: `0 0 10px ${accent}`,
-          flexShrink: 0,
-        }} />
-        <div style={{
-          fontFamily: fonts.sans,
-          fontSize: 13.5,
-          color: colors.text,
-          lineHeight: 1.45,
-          fontWeight: 400,
-        }}>
-          {verdictText}
+      {/* Rotating commentary block */}
+      {(verdictText || commentary) && (
+        <div
+          onClick={onTapCommentary}
+          style={{
+            background: c.bgCardElev,
+            border: `1px solid ${c.borderSubtle}`,
+            borderLeft: `2px solid ${c.system}`,
+            borderRadius: 10,
+            padding: '14px 16px',
+            marginBottom: 22,
+            cursor: onTapCommentary ? 'pointer' : 'default',
+            WebkitTapHighlightColor: 'transparent',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+          }}
+        >
+          <div
+            key={commentaryIdx}
+            style={{
+              fontFamily: f.sans,
+              fontSize: 14,
+              lineHeight: 1.5,
+              color: c.textPrimary,
+              marginBottom: commentaryCount > 1 ? 10 : 0,
+              animation: 'sp-fade-in 0.4s ease-out',
+            }}
+            dangerouslySetInnerHTML={{ __html: commentary || verdictText }}
+          />
+          {commentaryCount > 1 && (
+            <div style={{
+              display: 'flex',
+              gap: 5,
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+            }}>
+              {Array.from({ length: commentaryCount }).map((_, i) => (
+                <span key={i} style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: '50%',
+                  background: i === commentaryIdx ? c.system : c.textMuted,
+                  transition: 'background 0.2s',
+                }} />
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Stats grid (pass variant only) */}
       {isPass && stats && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
-          borderTop: `1px solid ${colors.stroke}`,
-          borderBottom: `1px solid ${colors.stroke}`,
-          padding: '16px 0',
-          margin: '18px 0 14px',
+          borderTop: `1px solid ${c.borderSubtle}`,
+          borderBottom: `1px solid ${c.borderSubtle}`,
+          margin: '0 -22px',
         }}>
           {stats.map((s, i) => (
             <div key={i} style={{
+              padding: '18px 8px',
               textAlign: 'center',
-              borderRight: i < stats.length - 1 ? `1px solid ${colors.stroke}` : 'none',
-              padding: '0 4px',
+              borderRight: i < stats.length - 1 ? `1px solid ${c.borderSubtle}` : 'none',
             }}>
               <div style={{
-                fontFamily: fonts.mono,
-                fontSize: 22,
-                fontWeight: 700,
+                fontFamily: f.mono,
+                fontSize: 24,
+                fontWeight: s.color === 'dim' ? 400 : 500,
                 lineHeight: 1,
-                marginBottom: 8,
-                color: s.color === 'green' ? colors.edgeGreen
-                  : s.color === 'dim' ? colors.text3
-                  : colors.text,
+                marginBottom: 6,
+                color: s.color === 'green' ? c.edge
+                  : s.color === 'dim' ? c.textMuted
+                  : c.textPrimary,
               }}>
                 {s.value}
               </div>
               <div style={{
-                fontFamily: fonts.label,
+                fontFamily: f.mono,
                 fontSize: 9,
-                letterSpacing: '2.5px',
-                color: colors.text3,
+                letterSpacing: '0.14em',
+                color: c.textTertiary,
                 textTransform: 'uppercase',
-                fontWeight: 700,
               }}>
                 {s.label}
               </div>
@@ -168,28 +182,57 @@ export default function HeroCard({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          padding: '18px 22px 4px',
+          margin: '0 -22px',
         }}>
           <div style={{
-            fontFamily: fonts.sans,
+            fontFamily: f.serif,
+            fontStyle: 'italic',
             fontSize: 13,
             fontWeight: 400,
-            color: colors.text2,
+            color: c.textSecondary,
           }}>
             {tagline}
-          </div>
-          <div style={{ display: 'flex', gap: 5 }}>
-            {[0, 1, 2, 3].map(i => (
-              <span key={i} style={{
-                width: 5,
-                height: 5,
-                borderRadius: '50%',
-                background: i === activeDot ? colors.signalBlue : colors.text3,
-                opacity: i === activeDot ? 1 : 0.4,
-              }} />
-            ))}
           </div>
         </div>
       )}
     </div>
   );
+}
+
+// Render the title and italicize/green-ify the word "edge" if present.
+function renderTitle(title) {
+  if (!title) return null;
+  if (typeof title !== 'string') return title;
+  const lower = title.toLowerCase();
+  const idx = lower.indexOf('edge');
+  if (idx === -1) return title;
+  const before = title.slice(0, idx);
+  const word = title.slice(idx, idx + 4);
+  const after = title.slice(idx + 4);
+  return (
+    <>
+      {before}
+      <span style={{ fontStyle: 'italic', color: '#4ADE80' }}>{word}</span>
+      {after}
+    </>
+  );
+}
+
+// Color edge percent values inside the scan summary.
+function renderSubtitle(subtitle) {
+  if (!subtitle || typeof subtitle !== 'string') return subtitle;
+  const parts = subtitle.split(/(\+\d+(?:\.\d+)?%)/g);
+  return parts.map((part, i) => {
+    if (/^\+\d+(?:\.\d+)?%$/.test(part)) {
+      const isFirstEdge = parts.slice(0, i).filter(p => /^\+\d+(?:\.\d+)?%$/.test(p)).length === 0;
+      return (
+        <span key={i} style={{
+          color: isFirstEdge ? '#4ADE80' : '#9BA8C2',
+          fontWeight: 500,
+        }}>{part}</span>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
 }

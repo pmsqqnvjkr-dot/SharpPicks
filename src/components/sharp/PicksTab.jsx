@@ -75,7 +75,7 @@ export default function PicksTab({ onNavigate }) {
   const { data: killSwitch } = useApi(sportQuery('/public/kill-switch', sport), { pollInterval: 600000 });
   const isPro = user && (user.is_premium || user.subscription_status === 'active' || user.subscription_status === 'trial' || user.founding_member);
   const { data: lastResolved } = useApi(sportQuery('/picks/last-resolved', sport), { skip: !isPro });
-  const { data: insightsData } = useApi('/insights?limit=3&rotate=1');
+  const { data: insightsData } = useApi('/insights?limit=8&rotate=1');
   const { data: allSportsStats } = useApi('/public/stats');
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
@@ -852,20 +852,36 @@ export default function PicksTab({ onNavigate }) {
           })();
           const totalMinsInWindow = 24 * 60;
           const passElapsedPct = Math.round(((totalMinsInWindow - minsUntilNext) / totalMinsInWindow) * 100);
-          const passArticle = (() => {
-            const evergreen = insightsData?.insights?.filter(a => a.category !== 'market_notes');
-            if (!evergreen?.length) return undefined;
-            const a = evergreen[0];
-            const catLabels = { philosophy: 'Philosophy', discipline: 'Discipline', how_it_works: 'How It Works', founder_note: 'Signal Notes' };
-            return {
-              title: a.title,
-              snippet: (a.content || '').split('\n\n')[0]?.slice(0, 140)?.replace(/\s+\S*$/, '…') || '',
-              readMinutes: a.reading_time_minutes || a.read_time || 4,
-              publishedDate: '',
-              category: catLabels[a.category] || a.category || 'Insight',
-              onClick: () => onNavigate && onNavigate('insights', null, { insight: a }),
+          const formatPassArticleDate = (iso) => {
+            if (!iso) return '';
+            try {
+              const d = new Date(iso);
+              if (isNaN(d.getTime())) return '';
+              const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+              return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+            } catch { return ''; }
+          };
+          const passArticles = (() => {
+            const evergreen = insightsData?.insights?.filter(a => a.category !== 'market_notes') || [];
+            if (!evergreen.length) return [];
+            const catLabels = {
+              philosophy: 'Philosophy',
+              discipline: 'Discipline',
+              how_it_works: 'How It Works',
+              founder_note: 'Signal Notes',
+              education: 'Education',
             };
+            return evergreen.slice(0, 6).map((a) => ({
+              title: a.title,
+              snippet: (a.content || '').split('\n\n')[0]?.slice(0, 160)?.replace(/\s+\S*$/, '…') || '',
+              readMinutes: a.reading_time_minutes || a.read_time || 4,
+              publishedDate: formatPassArticleDate(a.published_at || a.created_at || a.date),
+              category: catLabels[a.category] || a.category || 'Insight',
+              source: 'Sharp Journal',
+              onClick: () => onNavigate && onNavigate('insights', null, { insight: a }),
+            }));
           })();
+          const passArticle = passArticles[0];
           return (
             <PassDay
               date={passDateStr}
@@ -889,6 +905,7 @@ export default function PicksTab({ onNavigate }) {
               }
               marketReport={marketReport}
               furtherReading={passArticle}
+              furtherReadings={passArticles}
             />
           );
         })()}

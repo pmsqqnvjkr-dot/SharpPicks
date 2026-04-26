@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>SharpPicks — No Edge (Pass Day)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-page: #0A0E1A;
+    --bg-card: #111726;
+    --bg-card-elevated: #161D2E;
+    --border-subtle: #1F2940;
+    --border-medium: #2B3A5C;
+
+    --edge: #4ADE80;
+    --edge-dim: #2F9E5F;
+    --edge-bg: rgba(74, 222, 128, 0.06);
+    --edge-border: rgba(74, 222, 128, 0.22);
+
+    --system: #6B8AC4;
+    --system-dim: #4A6691;
+    --system-bg: rgba(107, 138, 196, 0.08);
+    --system-border: rgba(107, 138, 196, 0.28);
+
+    --text-primary: #E8ECF4;
+    --text-secondary: #9BA8C2;
+    --text-tertiary: #5A6886;
+    --text-muted: #3E4A66;
+
+    --font-serif: 'Fraunces', Georgia, serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: #000;
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .device {
+    width: 390px;
+    background: var(--bg-page);
+    border-radius: 44px;
+    overflow: hidden;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+    border: 1px solid #1a1a2e;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .device::-webkit-scrollbar { display: none; }
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 28px 8px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .status-bar .icons {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    color: var(--text-primary);
+    font-size: 13px;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .logo {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo .divider { color: var(--edge); font-weight: 700; }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .gear { width: 22px; height: 22px; color: var(--text-tertiary); cursor: pointer; }
+  .tabs {
+    display: flex;
+    gap: 8px;
+    padding: 14px 16px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab.active {
+    border-color: var(--system);
+    background: var(--system-bg);
+    color: var(--text-primary);
+    box-shadow: 0 0 12px rgba(107, 138, 196, 0.15);
+  }
+  .tab .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+  .tab.active .dot {
+    background: var(--system);
+    box-shadow: 0 0 8px rgba(107, 138, 196, 0.6);
+  }
+  .tab .badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--system-bg);
+    color: var(--system);
+    border: 1px solid var(--system-border);
+    letter-spacing: 0.1em;
+  }
+  .tab .badge.soon {
+    background: transparent;
+    color: var(--text-muted);
+    border-color: var(--border-subtle);
+  }
+  .content {
+    padding: 18px 16px 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  .signal-card { padding: 22px 22px 20px; position: relative; }
+  .signal-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .signal-meta-text {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+  .verdict-pill {
+    padding: 6px 12px;
+    border: 1px solid var(--system-border);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--system);
+    background: var(--system-bg);
+  }
+  .headline {
+    font-family: var(--font-serif);
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 18px;
+    color: var(--text-primary);
+  }
+  .headline .accent { font-style: italic; color: var(--edge); }
+  .scan-summary {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+    margin-bottom: 22px;
+  }
+  .scan-summary .sep { color: var(--text-muted); margin: 0 6px; }
+  .scan-summary .val { color: var(--text-secondary); }
+  .scan-summary .edge-val { color: var(--edge); font-weight: 500; }
+  .commentary {
+    background: var(--bg-card-elevated);
+    border: 1px solid var(--border-subtle);
+    border-left: 2px solid var(--system);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 22px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .commentary-text {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+  }
+  .commentary-dots {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .c-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: background 0.2s;
+  }
+  .c-dot.active { background: var(--system); }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    margin: 0 -22px;
+  }
+  .stat {
+    padding: 18px 8px;
+    text-align: center;
+    border-right: 1px solid var(--border-subtle);
+  }
+  .stat:last-child { border-right: none; }
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    line-height: 1;
+  }
+  .stat-value.zero { color: var(--text-muted); font-weight: 400; }
+  .stat-value.edge-val { color: var(--edge); }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+  }
+  .signal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px 4px;
+    margin: 0 -22px;
+  }
+  .footer-quote {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .intel-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border-left: 2px solid var(--edge);
+    background: linear-gradient(90deg, var(--edge-bg) 0%, transparent 60%);
+    cursor: pointer;
+  }
+  .intel-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: var(--bg-card-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--edge);
+    flex-shrink: 0;
+  }
+  .intel-content { flex: 1; }
+  .intel-title {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .intel-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .intel-arrow { color: var(--text-tertiary); }
+  .principle-section {
+    padding: 22px;
+    background: var(--bg-card);
+    border-radius: 18px;
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .principle-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+    font-weight: 500;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .principle-counter {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    font-weight: 400;
+  }
+  .principle-quote {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    line-height: 1.25;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    color: var(--text-primary);
+  }
+  .principle-quote .em-dash { color: var(--edge); margin: 0 4px; }
+  .capital-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 18px;
+    padding: 22px;
+  }
+  .capital-header {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--text-tertiary);
+    margin-bottom: 18px;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+  .capital-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .capital-amount {
+    font-family: var(--font-serif);
+    font-size: 44px;
+    font-weight: 500;
+    color: var(--edge);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 14px;
+  }
+  .capital-text {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+  .countdown-card { padding: 22px; }
+  .countdown-header {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--text-tertiary);
+    margin-bottom: 22px;
+    font-weight: 500;
+    text-align: left;
+    text-transform: uppercase;
+  }
+  .countdown-inner { text-align: center; }
+  .countdown-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--text-tertiary);
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .countdown {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .count-unit { display: flex; align-items: baseline; gap: 4px; }
+  .count-num {
+    font-family: var(--font-serif);
+    font-size: 48px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .count-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.1em;
+  }
+  .count-sep {
+    font-family: var(--font-serif);
+    font-size: 36px;
+    color: var(--text-muted);
+    line-height: 1;
+  }
+  .countdown-when {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+    margin-bottom: 16px;
+  }
+  .progress-track {
+    height: 2px;
+    background: var(--border-subtle);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 32%;
+    background: var(--system);
+    border-radius: 1px;
+  }
+  .disclaimer {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    padding: 16px 24px;
+    letter-spacing: 0.04em;
+  }
+  .article-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 18px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    padding: 22px;
+  }
+  .article-card:hover { border-color: var(--border-medium); }
+  .article-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .article-category { color: var(--edge); font-weight: 600; }
+  .article-category.education { color: var(--system); }
+  .article-category.system { color: var(--text-secondary); }
+  .article-meta-divider { color: var(--text-muted); }
+  .article-source { color: var(--text-tertiary); letter-spacing: 0.06em; }
+  .article-title {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    margin-bottom: 14px;
+    color: var(--text-primary);
+    transition: opacity 0.3s ease;
+  }
+  .article-excerpt {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    margin-bottom: 22px;
+    transition: opacity 0.3s ease;
+  }
+  .article-card.fade-out .article-title,
+  .article-card.fade-out .article-excerpt,
+  .article-card.fade-out .article-meta {
+    opacity: 0.3;
+  }
+  .article-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .article-date {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.06em;
+  }
+  .article-cta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--edge);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+  }
+  .article-pagination {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    margin-top: 2px;
+    margin-bottom: 2px;
+  }
+  .a-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: background 0.2s, width 0.2s;
+  }
+  .a-dot.active {
+    background: var(--text-secondary);
+    width: 14px;
+    border-radius: 3px;
+  }
+  .bottom-nav {
+    position: sticky;
+    bottom: 0;
+    background: rgba(10, 14, 26, 0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 0;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-tertiary);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    padding: 4px 12px;
+  }
+  .nav-item.active { color: var(--edge); }
+  .nav-item svg { width: 22px; height: 22px; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .rotate-content { animation: fadeIn 0.4s ease-out; }
+</style>
+</head>
+<body>
+  <div class="device">
+    <div class="status-bar">
+      <span>1:08</span>
+      <div class="icons">
+        <span>●●●○</span>
+        <span>26</span>
+      </div>
+    </div>
+    <div class="header">
+      <div class="logo">SHARP<span class="divider">||</span>PICKS</div>
+      <div class="header-right">
+        <span>Welcome back, Evan</span>
+        <svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab active"><span class="dot"></span><span>NBA</span></div>
+      <div class="tab"><span class="dot"></span><span>MLB</span><span class="badge">BETA</span></div>
+      <div class="tab"><span class="dot"></span><span>WNBA</span><span class="badge soon">SOON</span></div>
+    </div>
+    <div class="content">
+      <div class="card">
+        <div class="signal-card">
+          <div class="signal-meta">
+            <span class="signal-meta-text">TODAY'S SIGNAL · APR 25</span>
+            <span class="verdict-pill">PASS</span>
+          </div>
+          <h1 class="headline">No qualifying <span class="accent">edge</span>.</h1>
+          <div class="scan-summary">
+            <span>3 GAMES SCANNED</span><span class="sep">·</span>
+            <span>TOP EDGE <span class="edge-val">+2.0%</span></span><span class="sep">·</span>
+            <span>THRESHOLD <span class="val">+8.0%</span></span>
+          </div>
+          <div class="commentary" id="commentary">
+            <div class="commentary-text rotate-content" id="commentary-text">
+              Market is pricing efficiently. Best opportunity fell 6.0pp short of threshold.
+            </div>
+            <div class="commentary-dots">
+              <div class="c-dot active" data-idx="0"></div>
+              <div class="c-dot" data-idx="1"></div>
+              <div class="c-dot" data-idx="2"></div>
+              <div class="c-dot" data-idx="3"></div>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="stat"><div class="stat-value">3</div><div class="stat-label">Games</div></div>
+            <div class="stat"><div class="stat-value zero">0</div><div class="stat-label">Signals</div></div>
+            <div class="stat"><div class="stat-value zero">0</div><div class="stat-label">Tracked</div></div>
+            <div class="stat"><div class="stat-value edge-val">+2.0%</div><div class="stat-label">Top</div></div>
+          </div>
+          <div class="signal-footer">
+            <div class="footer-quote">One pick beats five.</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="intel-card">
+          <div class="intel-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+          <div class="intel-content">
+            <div class="intel-title">Market Intelligence</div>
+            <div class="intel-meta">3 games · 0 edges · 0 signals · tap for edge map</div>
+          </div>
+          <svg class="intel-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+      <div class="principle-section">
+        <div class="principle-label">
+          <span>Sharp Principle</span>
+          <span class="principle-counter" id="principle-counter">01 / 06</span>
+        </div>
+        <div class="principle-quote rotate-content" id="principle-quote">
+          Pass days aren't missed opportunities<span class="em-dash">—</span>they're proof the system is working.
+        </div>
+      </div>
+      <div class="capital-card">
+        <div class="capital-header">Capital Preserved</div>
+        <div class="capital-label">One Unit Not Risked</div>
+        <div class="capital-amount">+$100</div>
+        <div class="capital-text">Discipline compounds. Passing on a sub-threshold spot is mathematically equivalent to winning, over time.</div>
+      </div>
+      <a class="article-card" id="article-card" href="#">
+        <div class="article-meta">
+          <span class="article-category" id="article-category">DISCIPLINE</span>
+          <span class="article-meta-divider">·</span>
+          <span class="article-source">Sharp Journal</span>
+          <span class="article-meta-divider">·</span>
+          <span class="article-source" id="article-readtime">4 MIN</span>
+        </div>
+        <div class="article-title" id="article-title">The math of patience: why pass days are profitable</div>
+        <div class="article-excerpt" id="article-excerpt">When you skip a sub-threshold spot, you're not missing out — you're refusing to convert a coin flip into a tax on your bankroll.</div>
+        <div class="article-footer">
+          <span class="article-date" id="article-date">Apr 25, 2026</span>
+          <div class="article-cta"><span>Read</span><span>→</span></div>
+        </div>
+      </a>
+      <div class="article-pagination">
+        <div class="a-dot active" data-idx="0"></div>
+        <div class="a-dot" data-idx="1"></div>
+        <div class="a-dot" data-idx="2"></div>
+        <div class="a-dot" data-idx="3"></div>
+        <div class="a-dot" data-idx="4"></div>
+        <div class="a-dot" data-idx="5"></div>
+      </div>
+      <div class="card">
+        <div class="countdown-card">
+          <div class="countdown-header">Next Edge Window</div>
+          <div class="countdown-inner">
+            <div class="countdown-label">NBA Slate Opens</div>
+            <div class="countdown">
+              <div class="count-unit"><span class="count-num">8</span><span class="count-label">H</span></div>
+              <span class="count-sep">:</span>
+              <div class="count-unit"><span class="count-num">52</span><span class="count-label">M</span></div>
+            </div>
+            <div class="countdown-when">Tomorrow · 10:00 AM ET</div>
+            <div class="progress-track"><div class="progress-fill"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="disclaimer">This is entertainment only. Past results don't guarantee future performance.</div>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        <span>SIGNALS</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>RESULTS</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span>INSIGHTS</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>ACCOUNT</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    const principles = [
+      `Pass days aren't missed opportunities<span class="em-dash">—</span>they're proof the system is working.`,
+      `The hardest edge to find is the patience to wait for one.`,
+      `A bad bet at +EV beats a good bet at -EV. The market doesn't care which felt better.`,
+      `Process over outcome. Always. Outcomes are noise; process is signal.`,
+      `Discipline isn't doing more<span class="em-dash">—</span>it's doing less, better.`,
+      `Capital preserved is capital compounding. Zero risk on a non-edge is a win.`
+    ];
+    const commentary = [
+      `Market is pricing efficiently. Best opportunity fell 6.0pp short of threshold.`,
+      `Books have absorbed the public. No structural mispricing detected in tonight's slate.`,
+      `Closing lines moved sharply on all 3 games<span style="color: var(--system)">—</span>sharps already in. Edge gone.`,
+      `Sample is too thin. Signal-to-noise ratio doesn't justify risk on this slate.`
+    ];
+    let principleIdx = 0;
+    let commentaryIdx = 0;
+    const principleEl = document.getElementById('principle-quote');
+    const counterEl = document.getElementById('principle-counter');
+    const commentaryEl = document.getElementById('commentary-text');
+    const dots = document.querySelectorAll('.c-dot');
+    function rotatePrinciple() {
+      principleIdx = (principleIdx + 1) % principles.length;
+      principleEl.classList.remove('rotate-content');
+      void principleEl.offsetWidth;
+      principleEl.innerHTML = principles[principleIdx];
+      principleEl.classList.add('rotate-content');
+      counterEl.textContent = `${String(principleIdx + 1).padStart(2, '0')} / ${String(principles.length).padStart(2, '0')}`;
+    }
+    function rotateCommentary() {
+      commentaryIdx = (commentaryIdx + 1) % commentary.length;
+      commentaryEl.classList.remove('rotate-content');
+      void commentaryEl.offsetWidth;
+      commentaryEl.innerHTML = commentary[commentaryIdx];
+      commentaryEl.classList.add('rotate-content');
+      dots.forEach((d, i) => d.classList.toggle('active', i === commentaryIdx));
+    }
+    setInterval(rotatePrinciple, 6000);
+    setInterval(rotateCommentary, 4500);
+    document.querySelector('.principle-section').addEventListener('click', rotatePrinciple);
+    document.querySelector('.commentary').addEventListener('click', rotateCommentary);
+
+    const articles = [
+      { category: 'DISCIPLINE', categoryClass: '', readtime: '4 MIN', date: 'Apr 25, 2026',
+        title: 'The math of patience: why pass days are profitable',
+        excerpt: "When you skip a sub-threshold spot, you're not missing out — you're refusing to convert a coin flip into a tax on your bankroll." },
+      { category: 'EDUCATION', categoryClass: 'education', readtime: '6 MIN', date: 'Apr 24, 2026',
+        title: 'How closing line value predicts long-term edge',
+        excerpt: "If you consistently beat the closing number, the market is telling you something the scoreboard can't." },
+      { category: 'HOW IT WORKS', categoryClass: 'system', readtime: '3 MIN', date: 'Apr 22, 2026',
+        title: 'Inside the threshold: what +8% really means',
+        excerpt: "Why SharpPicks won't tip a play under 8% edge — and how that number was calibrated against three seasons of backtest data." },
+      { category: 'DISCIPLINE', categoryClass: '', readtime: '5 MIN', date: 'Apr 19, 2026',
+        title: "Tilt is a tax. Here's what it costs you per season.",
+        excerpt: "Three years of data on chase bets, revenge plays, and overcorrection. The number is bigger than you think." },
+      { category: 'EDUCATION', categoryClass: 'education', readtime: '7 MIN', date: 'Apr 17, 2026',
+        title: 'Reading line movement: when sharps tell on themselves',
+        excerpt: "Steam moves, reverse line movement, and the difference between public-driven and money-driven shifts." },
+      { category: 'HOW IT WORKS', categoryClass: 'system', readtime: '4 MIN', date: 'Apr 14, 2026',
+        title: 'Why withdrawal is a feature, not a failure',
+        excerpt: "Pre-tip re-checks killed three signals last month. Here's the P&L impact of catching them in time." }
+    ];
+    let articleIdx = 0;
+    const articleCard = document.getElementById('article-card');
+    const articleTitle = document.getElementById('article-title');
+    const articleExcerpt = document.getElementById('article-excerpt');
+    const articleCategory = document.getElementById('article-category');
+    const articleReadtime = document.getElementById('article-readtime');
+    const articleDate = document.getElementById('article-date');
+    const articleDots = document.querySelectorAll('.a-dot');
+    function rotateArticle() {
+      articleIdx = (articleIdx + 1) % articles.length;
+      const a = articles[articleIdx];
+      articleCard.classList.add('fade-out');
+      setTimeout(() => {
+        articleTitle.textContent = a.title;
+        articleExcerpt.textContent = a.excerpt;
+        articleCategory.textContent = a.category;
+        articleCategory.className = `article-category ${a.categoryClass}`;
+        articleReadtime.textContent = a.readtime;
+        articleDate.textContent = a.date;
+        articleCard.classList.remove('fade-out');
+        articleDots.forEach((d, i) => d.classList.toggle('active', i === articleIdx));
+      }, 250);
+    }
+    setInterval(rotateArticle, 7000);
+    articleCard.addEventListener('click', (e) => {
+      e.preventDefault();
+      rotateArticle();
+    });
+  </script>
+</body>
+</html>

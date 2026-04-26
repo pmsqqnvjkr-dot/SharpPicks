@@ -1,4 +1,4 @@
-import { colors, fonts } from '../../../styles/tokens';
+import { inst as c, instFonts as f } from '../../../styles/tokens';
 
 export default function CountdownCard({
   title = 'NBA Slate Opens',
@@ -6,79 +6,112 @@ export default function CountdownCard({
   minutes = 0,
   subtitle = '',
   progressPct = 0,
+  header = 'Next Edge Window',
 }) {
   return (
     <div style={{
-      background: colors.surface1,
-      border: `1px solid ${colors.stroke}`,
-      borderRadius: 12,
-      padding: '22px 18px 18px',
+      background: c.bgCard,
+      border: `1px solid ${c.borderSubtle}`,
+      borderRadius: 18,
+      padding: 22,
       marginBottom: 14,
-      textAlign: 'center',
     }}>
-      <span style={{
-        fontFamily: fonts.label,
-        fontSize: 9,
-        fontWeight: 700,
-        letterSpacing: '2.5px',
+      <div style={{
+        fontFamily: f.mono,
+        fontSize: 11,
+        fontWeight: 500,
+        letterSpacing: '0.18em',
         textTransform: 'uppercase',
-        color: colors.text3,
+        color: c.textTertiary,
+        marginBottom: 22,
       }}>
-        {title}
-      </span>
-
-      <div style={{
-        fontFamily: fonts.mono,
-        fontSize: 38,
-        fontWeight: 700,
-        letterSpacing: '-0.01em',
-        lineHeight: 1,
-        margin: '12px 0 8px',
-        color: colors.text,
-      }}>
-        {hours}
-        <span style={{
-          fontFamily: fonts.label,
-          fontSize: 13,
-          color: colors.text3,
-          marginLeft: 2,
-          marginRight: 14,
-          fontWeight: 700,
-          letterSpacing: '0.15em',
-        }}>H</span>
-        {minutes}
-        <span style={{
-          fontFamily: fonts.label,
-          fontSize: 13,
-          color: colors.text3,
-          marginLeft: 2,
-          marginRight: 0,
-          fontWeight: 700,
-          letterSpacing: '0.15em',
-        }}>M</span>
+        {header}
       </div>
 
-      <div style={{
-        fontSize: 12,
-        color: colors.text3,
-        fontFamily: fonts.sans,
-        marginBottom: 14,
-      }}>
-        {subtitle}
-      </div>
-
-      <div style={{
-        height: 3,
-        background: 'rgba(255,255,255,0.04)',
-        borderRadius: 2,
-        overflow: 'hidden',
-      }}>
+      <div style={{ textAlign: 'center' }}>
         <div style={{
-          height: '100%',
-          width: `${Math.min(progressPct, 100)}%`,
-          background: colors.signalBlue,
-          borderRadius: 2,
-        }} />
+          fontFamily: f.mono,
+          fontSize: 10,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          color: c.textTertiary,
+          marginBottom: 14,
+        }}>
+          {title}
+        </div>
+
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'baseline',
+          gap: 16,
+          marginBottom: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span style={{
+              fontFamily: f.serif,
+              fontSize: 48,
+              fontWeight: 500,
+              color: c.textPrimary,
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
+            }}>{hours}</span>
+            <span style={{
+              fontFamily: f.mono,
+              fontSize: 11,
+              color: c.textTertiary,
+              letterSpacing: '0.1em',
+            }}>H</span>
+          </div>
+          <span style={{
+            fontFamily: f.serif,
+            fontSize: 36,
+            color: c.textMuted,
+            lineHeight: 1,
+          }}>:</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span style={{
+              fontFamily: f.serif,
+              fontSize: 48,
+              fontWeight: 500,
+              color: c.textPrimary,
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
+            }}>{String(minutes).padStart(2, '0')}</span>
+            <span style={{
+              fontFamily: f.mono,
+              fontSize: 11,
+              color: c.textTertiary,
+              letterSpacing: '0.1em',
+            }}>M</span>
+          </div>
+        </div>
+
+        {subtitle && (
+          <div style={{
+            fontFamily: f.mono,
+            fontSize: 11,
+            color: c.textSecondary,
+            letterSpacing: '0.06em',
+            marginBottom: 16,
+          }}>
+            {subtitle}
+          </div>
+        )}
+
+        <div style={{
+          height: 2,
+          background: c.borderSubtle,
+          borderRadius: 1,
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            height: '100%',
+            width: `${Math.min(Math.max(progressPct, 0), 100)}%`,
+            background: c.system,
+            borderRadius: 1,
+          }} />
+        </div>
       </div>
     </div>
   );
