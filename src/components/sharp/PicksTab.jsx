@@ -564,13 +564,14 @@ export default function PicksTab({ onNavigate }) {
               );
             })()}
 
-            {/* Pass day recap — only when model explicitly ran and returned pass */}
+            {/* Slate-closed recap — only when model explicitly ran and returned pass, or pick was revoked */}
             {(() => {
               const isPassRecap = sameDayNight && todayData?.type === 'pass';
               const isRevokedRecap = sameDayNight && todayData?.type === 'pick' && todayData?.result === 'revoked';
               const isPostMidnightRevoked = postMidnightNight && nightRecapPick?.result === 'revoked';
               if (!isPassRecap && !isRevokedRecap && !isPostMidnightRevoked) return null;
               const gamesCount = todayData?.games_analyzed || totalGames || 0;
+              const thresholdLabel = sport === 'mlb' ? '+3.5%' : '+8.0%';
               return (
                 <div style={{
                   background: '#111e33', border: '0.5px solid #1e3050',
@@ -580,9 +581,11 @@ export default function PicksTab({ onNavigate }) {
                   <div style={{
                     fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
                     letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494a7', marginBottom: 8,
-                  }}>PASS DAY</div>
+                  }}>NO SIGNAL ISSUED</div>
                   <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px', color: '#9aa5b4', lineHeight: 1.6 }}>
-                    {gamesCount > 0 ? `${gamesCount} games analyzed, none above threshold.` : 'Model analysis complete. No edge above threshold.'} Capital preserved.
+                    {gamesCount > 0
+                      ? `Analyzed ${gamesCount} games. None cleared the ${thresholdLabel} edge threshold. Capital preserved.`
+                      : 'Model analysis complete. No qualifying edge above threshold. Capital preserved.'}
                   </div>
                 </div>
               );
@@ -673,6 +676,165 @@ export default function PicksTab({ onNavigate }) {
                   });
                 })()}
               </div>
+            )}
+
+            {/* ── WHILE YOU WAIT ── */}
+            {(() => {
+              const evergreen = (insightsData?.insights || []).filter(a => a.category !== 'market_notes');
+              if (!evergreen.length) return null;
+              const articles = evergreen.slice(0, 3);
+              const catLabels = {
+                philosophy: 'Philosophy',
+                discipline: 'Discipline',
+                how_it_works: 'How It Works',
+                founder_note: 'Signal Notes',
+                education: 'Education',
+              };
+              return (
+                <>
+                  <div style={{
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+                    letterSpacing: '2px', textTransform: 'uppercase', color: '#8494a7',
+                    padding: '20px 0 8px',
+                  }}>While You Wait</div>
+                  {articles.map((a, i) => {
+                    const catLabel = catLabels[a.category] || a.category || 'Journal';
+                    const isDiscipline = a.category === 'discipline';
+                    const isHow = a.category === 'how_it_works';
+                    const catColor = isDiscipline ? '#5A9E72' : isHow ? '#6B8AC4' : '#8C9AB0';
+                    const catBg = isDiscipline ? 'rgba(90,158,114,0.1)' : isHow ? 'rgba(107,138,196,0.1)' : 'rgba(140,154,176,0.08)';
+                    return (
+                      <button
+                        key={a.id || i}
+                        onClick={() => onNavigate && onNavigate('insights', null, { insight: a })}
+                        style={{
+                          width: '100%',
+                          background: '#111e33',
+                          border: '0.5px solid #1e3050',
+                          borderRadius: 10,
+                          padding: '14px 16px',
+                          marginBottom: 8,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'block',
+                          color: 'inherit',
+                          WebkitTapHighlightColor: 'transparent',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                          <span style={{
+                            fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 600,
+                            letterSpacing: '0.08em', textTransform: 'uppercase',
+                            color: catColor, background: catBg,
+                            padding: '3px 8px', borderRadius: 4,
+                          }}>{catLabel}</span>
+                          <span style={{ fontSize: '10px', color: '#5A6886', fontFamily: "'IBM Plex Mono', var(--font-mono), monospace" }}>·</span>
+                          <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', color: '#5A6886' }}>
+                            {a.reading_time_minutes || a.read_time || 4} min read
+                          </span>
+                        </div>
+                        <div style={{
+                          fontFamily: "'Inter', var(--font-sans), sans-serif",
+                          fontSize: '14px', fontWeight: 600, lineHeight: 1.4, color: '#E8ECF4',
+                        }}>{a.title}</div>
+                      </button>
+                    );
+                  })}
+                </>
+              );
+            })()}
+
+            {/* ── KEEP EXPLORING (engagement CTAs for overnight users) ── */}
+            <div style={{
+              fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+              letterSpacing: '2px', textTransform: 'uppercase', color: '#8494a7',
+              padding: '20px 0 8px',
+            }}>Keep Exploring</div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+              {/* Performance CTA */}
+              <button
+                onClick={() => onNavigate && onNavigate('performance')}
+                style={{
+                  background: '#111e33', border: '0.5px solid #1e3050',
+                  borderRadius: 10, padding: '14px 12px',
+                  cursor: 'pointer', textAlign: 'left',
+                  WebkitTapHighlightColor: 'transparent',
+                  color: 'inherit',
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A9E72" strokeWidth="1.8" style={{ marginBottom: 8 }}>
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <div style={{
+                  fontFamily: "'Inter', var(--font-sans), sans-serif",
+                  fontSize: '13px', fontWeight: 600, color: '#E8ECF4', marginBottom: 2,
+                }}>Track Record</div>
+                <div style={{
+                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
+                  fontSize: '10px', color: '#8C9AB0',
+                }}>{stats?.total_picks ? `${stats.total_picks} signals · ${stats.win_rate || 0}%` : 'Season performance'}</div>
+              </button>
+
+              {/* Insights / Journal CTA */}
+              <button
+                onClick={() => onNavigate && onNavigate('insights')}
+                style={{
+                  background: '#111e33', border: '0.5px solid #1e3050',
+                  borderRadius: 10, padding: '14px 12px',
+                  cursor: 'pointer', textAlign: 'left',
+                  WebkitTapHighlightColor: 'transparent',
+                  color: 'inherit',
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B8AC4" strokeWidth="1.8" style={{ marginBottom: 8 }}>
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                </svg>
+                <div style={{
+                  fontFamily: "'Inter', var(--font-sans), sans-serif",
+                  fontSize: '13px', fontWeight: 600, color: '#E8ECF4', marginBottom: 2,
+                }}>Sharp Journal</div>
+                <div style={{
+                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
+                  fontSize: '10px', color: '#8C9AB0',
+                }}>How the model works</div>
+              </button>
+            </div>
+
+            {/* Push notification opt-in (only if not already enabled/denied) */}
+            {user && pushStatus !== 'granted' && pushStatus !== 'denied' && localStorage.getItem('sp_night_push_dismissed') !== '1' && (
+              <button
+                onClick={async () => {
+                  try { await enablePush(); } catch {}
+                }}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(90deg, rgba(90,158,114,0.08) 0%, transparent 60%)',
+                  border: '0.5px solid #1e3050',
+                  borderLeft: '2px solid #5A9E72',
+                  borderRadius: 10, padding: '14px 16px',
+                  cursor: 'pointer', textAlign: 'left',
+                  marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12,
+                  WebkitTapHighlightColor: 'transparent', color: 'inherit',
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A9E72" strokeWidth="1.8">
+                  <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontFamily: "'Inter', var(--font-sans), sans-serif",
+                    fontSize: '13px', fontWeight: 600, color: '#E8ECF4', marginBottom: 2,
+                  }}>Notify me when edges drop</div>
+                  <div style={{
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace",
+                    fontSize: '10px', color: '#8C9AB0',
+                  }}>One push at {modelRunLabel}. No noise.</div>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8C9AB0" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
             )}
           </>
         )}
@@ -981,8 +1143,8 @@ export default function PicksTab({ onNavigate }) {
           />
         </div>
 
-        {/* Recommended Reads — after today's slate (excluded on off-day and pass, which have their own layouts) */}
-        {pageState !== 'off-day' && pageState !== 'pass' && insightsData?.insights?.length > 0 && (() => {
+        {/* Recommended Reads — after today's slate (excluded on off-day, pass, and night, which have their own layouts) */}
+        {pageState !== 'off-day' && pageState !== 'pass' && pageState !== 'night' && insightsData?.insights?.length > 0 && (() => {
           const evergreen = insightsData.insights.filter(a => a.category !== 'market_notes');
           if (!evergreen.length) return null;
           return (
