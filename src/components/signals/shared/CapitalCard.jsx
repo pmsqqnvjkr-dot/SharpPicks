@@ -33,9 +33,9 @@ export default function CapitalCard({ capitalPreservedUsd = 100 }) {
         One Unit Not Risked
       </div>
       <div style={{
-        fontFamily: f.serif,
-        fontSize: 44,
-        fontWeight: 500,
+        fontFamily: f.mono,
+        fontSize: 36,
+        fontWeight: 600,
         color: c.edge,
         letterSpacing: '-0.02em',
         lineHeight: 1,

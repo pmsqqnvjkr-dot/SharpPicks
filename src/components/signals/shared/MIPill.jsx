@@ -16,11 +16,9 @@ export default function MIPill({
         style={{
           width: '100%',
           background: c.bgCard,
-          backgroundImage: `linear-gradient(90deg, ${c.edgeBg} 0%, transparent 60%)`,
           border: `1px solid ${c.borderSubtle}`,
-          borderLeft: `2px solid ${c.edge}`,
           borderRadius: 18,
-          padding: '16px 18px',
+          padding: '14px 16px',
           display: 'flex',
           alignItems: 'center',
           gap: 14,
@@ -33,8 +31,8 @@ export default function MIPill({
         }}
       >
         <div style={{
-          width: 38,
-          height: 38,
+          width: 34,
+          height: 34,
           background: c.bgCardElev,
           borderRadius: 8,
           display: 'flex',
@@ -42,7 +40,7 @@ export default function MIPill({
           justifyContent: 'center',
           flexShrink: 0,
         }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c.edge} strokeWidth="2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.edge} strokeWidth="2">
             <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
             <polyline points="17 6 23 6 23 12" />
           </svg>
@@ -50,7 +48,7 @@ export default function MIPill({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontFamily: f.sans,
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: 600,
             color: c.textPrimary,
             lineHeight: 1.2,
@@ -58,7 +56,7 @@ export default function MIPill({
           }}>Market Intelligence</div>
           <div style={{
             fontFamily: f.mono,
-            fontSize: 11,
+            fontSize: 10.5,
             color: c.textTertiary,
             letterSpacing: '0.04em',
             lineHeight: 1.4,
@@ -86,9 +84,8 @@ export default function MIPill({
           background: c.bgCard,
           border: `1px solid ${c.borderSubtle}`,
           borderTop: 'none',
-          borderLeft: `2px solid ${c.edge}`,
           borderRadius: '0 0 18px 18px',
-          padding: '4px 18px 18px',
+          padding: '4px 16px 16px',
         }}>
           {zeroState ? (
             <div style={{

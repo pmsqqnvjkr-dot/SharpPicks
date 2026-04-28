@@ -104,10 +104,10 @@ export default function FurtherReadingCard({
       {/* Title */}
       <div style={{
         fontFamily: f.serif,
-        fontSize: 22,
+        fontSize: 18,
         fontWeight: 500,
-        lineHeight: 1.2,
-        letterSpacing: '-0.015em',
+        lineHeight: 1.25,
+        letterSpacing: '-0.01em',
         color: c.textPrimary,
         marginBottom: 14,
         opacity,

@@ -49,38 +49,39 @@ export default function CountdownCard({
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
             <span style={{
-              fontFamily: f.serif,
-              fontSize: 48,
-              fontWeight: 500,
+              fontFamily: f.mono,
+              fontSize: 38,
+              fontWeight: 600,
               color: c.textPrimary,
               letterSpacing: '-0.02em',
               lineHeight: 1,
             }}>{hours}</span>
             <span style={{
               fontFamily: f.mono,
-              fontSize: 11,
+              fontSize: 10,
               color: c.textTertiary,
               letterSpacing: '0.1em',
             }}>H</span>
           </div>
           <span style={{
-            fontFamily: f.serif,
-            fontSize: 36,
+            fontFamily: f.mono,
+            fontSize: 28,
+            fontWeight: 600,
             color: c.textMuted,
             lineHeight: 1,
           }}>:</span>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
             <span style={{
-              fontFamily: f.serif,
-              fontSize: 48,
-              fontWeight: 500,
+              fontFamily: f.mono,
+              fontSize: 38,
+              fontWeight: 600,
               color: c.textPrimary,
               letterSpacing: '-0.02em',
               lineHeight: 1,
             }}>{String(minutes).padStart(2, '0')}</span>
             <span style={{
               fontFamily: f.mono,
-              fontSize: 11,
+              fontSize: 10,
               color: c.textTertiary,
               letterSpacing: '0.1em',
             }}>M</span>

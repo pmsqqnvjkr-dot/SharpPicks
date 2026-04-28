@@ -56,12 +56,12 @@ export default function SharpPrinciple({
         key={rotateKey}
         style={{
           fontFamily: f.serif,
-          fontSize: 22,
+          fontSize: 18,
           fontWeight: 400,
           fontStyle: 'normal',
           color: c.textPrimary,
-          letterSpacing: '-0.015em',
-          lineHeight: 1.25,
+          letterSpacing: '-0.01em',
+          lineHeight: 1.3,
           animation: 'sp-fade-in 0.4s ease-out',
         }}
         dangerouslySetInnerHTML={{ __html: typeof children === 'string' ? children : '' }}

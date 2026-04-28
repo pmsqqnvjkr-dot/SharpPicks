@@ -39,7 +39,7 @@ export default function HeroCard({
           fontFamily: f.mono,
           fontSize: 10,
           fontWeight: 500,
-          letterSpacing: '0.16em',
+          letterSpacing: '0.18em',
           color: c.textTertiary,
         }}>
           TODAY'S SIGNAL · {(date || '').toUpperCase()}

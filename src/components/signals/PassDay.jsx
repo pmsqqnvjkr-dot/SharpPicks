@@ -19,15 +19,69 @@ const PRINCIPLES = [
 ];
 
 // Rotating market commentary. The first entry is dynamic and computed below.
-function buildCommentary(gap) {
+function buildCommentary(gap, gameCount) {
   const gapStr = gap > 0 ? gap.toFixed(1) : '0.0';
+  const games = gameCount > 0 ? `all ${gameCount} games` : 'tonight\u2019s slate';
   return [
     `Market is pricing efficiently. Best opportunity fell ${gapStr}pp short of threshold.`,
     `Books have absorbed the public. No structural mispricing detected in tonight's slate.`,
-    `Closing lines moved sharply<span style="color:#6B8AC4;">—</span>sharps already in. Edge gone.`,
+    `Closing lines moved sharply on ${games}<span style="color:#6B8AC4;">\u2014</span>sharps already in. Edge gone.`,
     `Sample is too thin. Signal-to-noise ratio doesn't justify risk on this slate.`,
   ];
 }
+
+// Fallback Sharp Journal articles used when PicksTab supplies no real insights.
+// PicksTab's pipeline is preserved; this only kicks in if `furtherReadings` is empty.
+const FALLBACK_ARTICLES = [
+  {
+    category: 'Discipline',
+    readMinutes: 4,
+    publishedDate: 'Apr 25, 2026',
+    title: 'The math of patience: why pass days are profitable',
+    snippet: "When you skip a sub-threshold spot, you're not missing out \u2014 you're refusing to convert a coin flip into a tax on your bankroll.",
+    source: 'Sharp Journal',
+  },
+  {
+    category: 'Education',
+    readMinutes: 6,
+    publishedDate: 'Apr 24, 2026',
+    title: 'How closing line value predicts long-term edge',
+    snippet: "If you consistently beat the closing number, the market is telling you something the scoreboard can't.",
+    source: 'Sharp Journal',
+  },
+  {
+    category: 'How It Works',
+    readMinutes: 3,
+    publishedDate: 'Apr 22, 2026',
+    title: 'Inside the threshold: what +8% really means',
+    snippet: "Why SharpPicks won't tip a play under 8% edge \u2014 and how that number was calibrated against three seasons of backtest data.",
+    source: 'Sharp Journal',
+  },
+  {
+    category: 'Discipline',
+    readMinutes: 5,
+    publishedDate: 'Apr 19, 2026',
+    title: "Tilt is a tax. Here's what it costs you per season.",
+    snippet: 'Three years of data on chase bets, revenge plays, and overcorrection. The number is bigger than you think.',
+    source: 'Sharp Journal',
+  },
+  {
+    category: 'Education',
+    readMinutes: 7,
+    publishedDate: 'Apr 17, 2026',
+    title: 'Reading line movement: when sharps tell on themselves',
+    snippet: 'Steam moves, reverse line movement, and the difference between public-driven and money-driven shifts.',
+    source: 'Sharp Journal',
+  },
+  {
+    category: 'How It Works',
+    readMinutes: 4,
+    publishedDate: 'Apr 14, 2026',
+    title: 'Why withdrawal is a feature, not a failure',
+    snippet: "Pre-tip re-checks killed three signals last month. Here's the P&L impact of catching them in time.",
+    source: 'Sharp Journal',
+  },
+];
 
 export default function PassDay({
   date = '',
@@ -49,16 +103,17 @@ export default function PassDay({
   const [mounted, setMounted] = useState(false);
 
   const gap = Math.max(0, thresholdPct - topEdgePct);
-  const commentary = buildCommentary(gap);
+  const commentary = buildCommentary(gap, gamesScanned);
 
   // Rotation state
   const [principleIdx, setPrincipleIdx] = useState(0);
   const [commentaryIdx, setCommentaryIdx] = useState(0);
   const [articleIdx, setArticleIdx] = useState(0);
 
+  // Prefer real insights from PicksTab; fall back to brand copy when empty.
   const articles = (furtherReadings && furtherReadings.length > 0)
     ? furtherReadings
-    : (furtherReading ? [furtherReading] : []);
+    : (furtherReading ? [furtherReading] : FALLBACK_ARTICLES);
 
   useEffect(() => { setMounted(true); }, []);
 
