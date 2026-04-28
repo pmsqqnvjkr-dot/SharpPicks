@@ -4,7 +4,11 @@ const SIGNUP_URL = 'https://app.sharppicks.ai/signup';
 
 export default async function openSignup() {
   if (Capacitor.getPlatform() === 'ios') {
-    window.location.href = '/subscribe';
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sharppicks:open-auth', {
+        detail: { intent: 'signup' },
+      }));
+    }
     return;
   }
   if (Capacitor.isNativePlatform()) {

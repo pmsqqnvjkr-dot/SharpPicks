@@ -73,7 +73,12 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
     try {
       const data = await apiPost('/subscriptions/create-checkout', { plan });
       if (data.checkout_url) {
-        window.location.href = data.checkout_url;
+        if (Capacitor.getPlatform() === 'android') {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({ url: data.checkout_url });
+        } else {
+          window.location.href = data.checkout_url;
+        }
       } else if (data.error) {
         alert(data.error);
       }

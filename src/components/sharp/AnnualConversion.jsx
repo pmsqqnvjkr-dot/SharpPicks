@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { apiPost } from '../../hooks/useApi';
 import { Capacitor } from '@capacitor/core';
+import { getOfferings, purchasePackage, isPurchaseCancelled } from '../../lib/revenuecat';
 
 const isNative = Capacitor.isNativePlatform();
+const isIOS = Capacitor.getPlatform() === 'ios';
 const WEB_BILLING_URL = 'https://app.sharppicks.ai/signup';
 
 export default function AnnualConversion({ onBack, user, onDismiss }) {
@@ -14,6 +16,25 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
   const userROI = user?.roi || '+11.2';
 
   const handleSwitch = async () => {
+    if (isIOS && isNative) {
+      setLoading(true);
+      try {
+        const offering = await getOfferings();
+        const annual = offering?.annual;
+        if (!annual) {
+          alert('Annual plan is unavailable. Please try again later.');
+          return;
+        }
+        await purchasePackage(annual);
+      } catch (e) {
+        if (!isPurchaseCancelled(e)) {
+          alert(e?.message || 'Unable to complete purchase.');
+        }
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     if (isNative) {
       const { Browser } = await import('@capacitor/browser');
       await Browser.open({ url: WEB_BILLING_URL });
@@ -34,6 +55,82 @@ export default function AnnualConversion({ onBack, user, onDismiss }) {
       setLoading(false);
     }
   };
+
+  if (isIOS && isNative) {
+    return (
+      <div style={{ padding: '0', paddingBottom: '100px' }}>
+        <div style={{
+          padding: '16px 20px',
+          display: 'flex', alignItems: 'center', gap: '12px',
+        }}>
+          <button onClick={onBack} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-secondary)', padding: '4px',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+        </div>
+        <div style={{ padding: '0 20px', textAlign: 'center' }}>
+          <h2 style={{
+            fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 600,
+            color: 'var(--text-primary)', marginBottom: '12px',
+          }}>Switch to Annual</h2>
+          <p style={{
+            fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
+            maxWidth: '320px', margin: '0 auto 24px',
+          }}>
+            Lock in the best rate. Pay less per month, billed once a year.
+          </p>
+
+          <div style={{
+            backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+            border: '1px solid var(--stroke-subtle)', padding: '20px',
+            marginBottom: '24px', textAlign: 'left',
+          }}>
+            <h3 style={{
+              fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600,
+              color: 'var(--text-primary)', marginBottom: '16px',
+            }}>Your Results So Far</h3>
+            <ConvertRow label="Record" value={userRecord} />
+            <ConvertRow label="ROI" value={userROI + '%'} color="var(--green-profit)" last />
+          </div>
+
+          <button
+            onClick={handleSwitch}
+            disabled={loading}
+            style={{
+              width: '100%', padding: '16px',
+              background: '#5A9E72',
+              border: 'none', borderRadius: '8px',
+              color: '#0A0D14', fontSize: '13px', fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '1px',
+              marginBottom: '10px',
+              opacity: loading ? 0.6 : 1,
+            }}
+          >
+            {loading ? 'Processing...' : 'Switch to Annual Plan'}
+          </button>
+          <button onClick={onDismiss || onBack} style={{
+            width: '100%', padding: '12px', marginTop: '8px',
+            backgroundColor: 'transparent',
+            border: '1px solid var(--stroke-muted)',
+            borderRadius: '12px',
+            color: 'var(--text-tertiary)', fontSize: '13px', fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'var(--font-sans)',
+          }}>Not now</button>
+
+          <p style={{
+            fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.5',
+            textAlign: 'center', padding: '16px 0',
+          }}>
+            Switch takes effect at your next billing cycle. No double charge.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (isNative) {
     return (

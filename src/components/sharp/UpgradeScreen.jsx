@@ -56,7 +56,12 @@ export default function UpgradeScreen({ onBack, user }) {
     try {
       const data = await apiPost('/subscriptions/create-checkout', { plan });
       if (data.checkout_url) {
-        window.location.href = data.checkout_url;
+        if (Capacitor.getPlatform() === 'android') {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({ url: data.checkout_url });
+        } else {
+          window.location.href = data.checkout_url;
+        }
       } else if (data.error) {
         alert(data.error);
       }
@@ -347,26 +352,6 @@ export default function UpgradeScreen({ onBack, user }) {
             >
               {checkoutLoading ? 'Processing...' : 'Subscribe with Apple'}
             </button>
-
-            <button
-              onClick={async () => {
-                const { Browser } = await import('@capacitor/browser');
-                await Browser.open({ url: 'https://app.sharppicks.ai/signup' });
-              }}
-              style={{
-                display: 'block', width: '100%', padding: '10px',
-                background: 'none', border: 'none',
-                color: 'var(--text-tertiary)', fontSize: '12px',
-                cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                textAlign: 'center', marginBottom: '2px',
-              }}
-            >
-              Or subscribe on sharppicks.ai
-            </button>
-            <div style={{
-              textAlign: 'center', marginBottom: '8px',
-              fontSize: '10px', color: 'var(--text-tertiary)', opacity: 0.6,
-            }}>Sign in required in browser</div>
 
             <button
               onClick={handleRestore}

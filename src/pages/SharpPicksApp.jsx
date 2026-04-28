@@ -17,12 +17,25 @@ import PerformanceTab from '../components/sharp/PerformanceTab';
 import ProfileTab from '../components/sharp/ProfileTab';
 import LandingPage from '../components/sharp/LandingPage';
 import OnboardingFlow from '../components/sharp/OnboardingFlow';
+import AuthModal from '../components/sharp/AuthModal';
 
 function PaymentFailedGate({ user }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const isIOSNative = Capacitor.getPlatform() === 'ios' && Capacitor.isNativePlatform();
+  const isAndroidNative = Capacitor.getPlatform() === 'android' && Capacitor.isNativePlatform();
 
   const handleUpdatePayment = async () => {
+    if (isIOSNative) {
+      try {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.open({ url: 'https://apps.apple.com/account/subscriptions' });
+      } catch (e) {
+        setError(e?.message || 'Could not open subscription settings.');
+      }
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
@@ -30,7 +43,12 @@ function PaymentFailedGate({ user }) {
         return_url: typeof window !== 'undefined' ? window.location.origin + '/?billing_return=1' : undefined,
       });
       if (res && res.url) {
-        window.location.href = res.url;
+        if (isAndroidNative) {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({ url: res.url });
+        } else {
+          window.location.href = res.url;
+        }
         return;
       }
       setError(res?.error || 'Could not open billing portal. Please try again.');
@@ -103,19 +121,32 @@ function PaymentFailedGate({ user }) {
 
       <button
         onClick={handleUpdatePayment}
-        disabled={busy}
+        disabled={busy && !isIOSNative}
         style={{
           padding: '14px 28px',
-          backgroundColor: busy ? 'var(--text-tertiary)' : '#4ADE80',
+          backgroundColor: (busy && !isIOSNative) ? 'var(--text-tertiary)' : '#4ADE80',
           border: 'none', borderRadius: '12px',
           color: '#0A0E1A', fontSize: '15px', fontWeight: 600,
-          cursor: busy ? 'wait' : 'pointer',
+          cursor: (busy && !isIOSNative) ? 'wait' : 'pointer',
           fontFamily: 'var(--font-sans)', marginBottom: '14px',
           minWidth: '240px', minHeight: '48px',
           letterSpacing: '0.01em',
           WebkitTapHighlightColor: 'transparent',
         }}
-      >{busy ? 'Opening Stripe…' : 'Update payment method'}</button>
+      >
+        {isIOSNative
+          ? 'Manage subscription in App Store'
+          : busy ? 'Opening Stripe…' : 'Update payment method'}
+      </button>
+
+      {isIOSNative && (
+        <p style={{
+          fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.55,
+          maxWidth: '340px', marginBottom: '12px',
+        }}>
+          Manage your subscription in Settings &rarr; Apple ID &rarr; Subscriptions.
+        </p>
+      )}
 
       <a
         href="mailto:support@sharppicks.ai?subject=Payment%20issue"
@@ -288,6 +319,8 @@ function AppContent() {
   const [ageVerified, setAgeVerified] = useState(() => localStorage.getItem('sp_age_verified') === '1');
 
   const [initialInsight, setInitialInsight] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('register');
 
   useEffect(() => {
     const tabToPage = { picks: '/picks', insights: '/journal', performance: '/performance', profile: '/profile' };
@@ -390,6 +423,26 @@ function AppContent() {
     };
   }, []);
 
+  useEffect(() => {
+    const onOpenAuth = () => {
+      const isPro = user && (
+        user.is_premium ||
+        user.subscription_status === 'active' ||
+        user.subscription_status === 'trial' ||
+        user.founding_member
+      );
+      if (!user) {
+        setAuthModalMode('register');
+        setAuthModalOpen(true);
+      } else if (!isPro) {
+        setActiveTab('profile');
+        setProfileScreen('upgrade');
+      }
+    };
+    window.addEventListener('sharppicks:open-auth', onOpenAuth);
+    return () => window.removeEventListener('sharppicks:open-auth', onOpenAuth);
+  }, [user]);
+
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
     localStorage.setItem('sp_onboarded', '1');
@@ -477,7 +530,18 @@ function AppContent() {
     const autoView = (p === '/signup' || p === '/register' || q === 'signup') ? 'signup'
                    : (p === '/login' || q === 'signin' || q === 'login') ? 'signin'
                    : null;
-    return <LandingPage autoView={autoView} />;
+    return (
+      <>
+        <LandingPage autoView={autoView} />
+        {authModalOpen && (
+          <AuthModal
+            onClose={() => setAuthModalOpen(false)}
+            initialMode={authModalMode}
+            initialAccountType="trial"
+          />
+        )}
+      </>
+    );
   }
 
   const onboardingOverlay = showOnboarding
@@ -632,6 +696,13 @@ function AppContent() {
         setActiveTab(tab);
       }} />
       {onboardingOverlay}
+      {authModalOpen && (
+        <AuthModal
+          onClose={() => setAuthModalOpen(false)}
+          initialMode={authModalMode}
+          initialAccountType="trial"
+        />
+      )}
     </div>
   );
 }
