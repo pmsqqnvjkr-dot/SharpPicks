@@ -7076,8 +7076,13 @@ def get_user_stats():
         return jsonify({'error': 'Not authenticated'}), 401
     
     bets = TrackedBet.query.filter_by(user_id=user['id']).all()
-    
-    settled = [b for b in bets if b.result]
+
+    # Withdrawn (revoked) bets are invisible to performance metrics — the
+    # signal was pulled before tipoff so the user's stake conceptually
+    # never went into action. They do not contribute to record, ROI,
+    # profit, selectivity, or capital preserved.
+    settled = [b for b in bets if b.result in ('W', 'L', 'P')]
+    active_bets = [b for b in bets if not b.result]
     settled_sorted = sorted(settled, key=lambda x: x.created_at)
     wins = sum(1 for b in settled if b.result == 'W')
     losses = sum(1 for b in settled if b.result == 'L')
@@ -7163,7 +7168,7 @@ def get_user_stats():
     roi = (total_profit / total_risked * 100) if total_risked > 0 else 0
     win_rate = (wins / len(settled) * 100) if settled else 0
     
-    sharp_bets = [b for b in bets if b.source == 'sharp_pick' or (b.source is None and b.pick_id)]
+    sharp_bets = [b for b in bets if (b.source == 'sharp_pick' or (b.source is None and b.pick_id)) and b.result != 'revoked']
     total_sharp_picks_available = Pick.query.count()
     exact_follows = sum(1 for b in sharp_bets if (b.follow_type or 'exact') == 'exact')
     adherence_score = round(exact_follows / len(sharp_bets) * 100, 1) if sharp_bets else None
@@ -7206,7 +7211,7 @@ def get_user_stats():
         'totalUnitsProfit': total_units_profit,
         'roi': round(roi, 1),
         'totalBets': len(settled),
-        'pendingBets': len(bets) - len(settled),
+        'pendingBets': len(active_bets),
         'wins': wins,
         'losses': losses,
         'pushes': pushes,
