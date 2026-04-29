@@ -9721,6 +9721,78 @@ def admin_render_test_card():
     })
 
 
+@app.route('/api/admin/backup-models', methods=['POST'])
+def admin_backup_models():
+    """Snapshot all three model pickle files to the Railway volume backup folder.
+
+    Used pre-retrain (Phase 5) to enable rollback if calibration regresses
+    on out-of-sample data. Body: {"sports": ["nba","mlb","wnba"]} (optional;
+    defaults to all three). Best-effort across sports: a missing pickle
+    yields status='no_source' rather than failing the whole request.
+    """
+    from admin_api import require_superuser
+    from services.model_backup import backup_model
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    body = request.get_json(silent=True) or {}
+    sports = body.get('sports') or ['nba', 'mlb', 'wnba']
+    results = []
+    for sport in sports:
+        try:
+            results.append(backup_model(sport))
+        except Exception as e:
+            logging.error(f"backup_model({sport}) failed: {e}", exc_info=True)
+            results.append({'sport': sport, 'status': 'error', 'error': str(e)})
+    return jsonify({'results': results})
+
+
+@app.route('/api/admin/list-model-backups', methods=['GET'])
+def admin_list_model_backups():
+    """List existing model pickle backups, optionally filtered by ?sport=."""
+    from admin_api import require_superuser
+    from services.model_backup import list_backups
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    sport = request.args.get('sport')
+    try:
+        return jsonify({'backups': list_backups(sport)})
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/admin/restore-model', methods=['POST'])
+def admin_restore_model():
+    """Restore a named backup over the current pickle.
+
+    Body: {"sport": "mlb", "backup_filename": "sharp_picks_mlb_model.pkl.<ts>.bak"}.
+    A pre-restore safety backup of the current file is created first so the
+    restore is itself reversible.
+    """
+    from admin_api import require_superuser
+    from services.model_backup import restore_model
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    body = request.get_json(silent=True) or {}
+    sport = body.get('sport')
+    backup_filename = body.get('backup_filename')
+    if not sport or not backup_filename:
+        return jsonify({'error': 'sport and backup_filename required'}), 400
+    try:
+        result = restore_model(sport, backup_filename)
+    except (ValueError, FileNotFoundError) as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logging.error(f"restore_model({sport}, {backup_filename}) failed: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+    return jsonify(result)
+
+
 # Run seed on startup for Replit and Railway
 _on_replit = os.environ.get("REPLIT_DEPLOYMENT") == "1"
 _on_railway = bool(os.environ.get("RAILWAY_PUBLIC_DOMAIN") or os.environ.get("RAILWAY_PROJECT_ID"))
