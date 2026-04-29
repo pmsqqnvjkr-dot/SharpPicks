@@ -4128,6 +4128,7 @@ def cron_model_audit():
                     'n_models': len(model.models),
                     'model_names': list(model.models.keys()),
                     'n_features': len(model.feature_names),
+                    'feature_names': list(model.feature_names) if model.feature_names else [],
                     'margin_std': _safe(getattr(model, 'margin_std', None)),
                     'margin_mae': _safe(getattr(model, 'margin_mae', None)),
                     'using_fallback_sigma': bool(getattr(model, 'using_fallback_sigma', False)),
