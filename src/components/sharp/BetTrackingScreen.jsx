@@ -21,6 +21,9 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
 
   useEffect(() => {
     if (pickToTrack && user) {
+      if (pickToTrack.already_tracked) {
+        return;
+      }
       setSelectedPick(pickToTrack);
       setShowTrackModal(true);
     }
@@ -100,8 +103,9 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
   }
 
   const hasBets = stats && stats.totalBets > 0;
-  const pendingBets = bets.filter(b => !b.result);
-  const settledBets = bets.filter(b => b.result);
+  const activeBets = bets.filter(b => !b.result);
+  const withdrawnBets = bets.filter(b => b.result === 'revoked');
+  const settledBets = bets.filter(b => b.result && b.result !== 'revoked');
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
@@ -118,18 +122,27 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
             <div style={{ padding: '40px 0', textAlign: 'center' }}>
               <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Loading your dashboard...</p>
             </div>
-          ) : !hasBets && pendingBets.length === 0 && !(stats && stats.behavioral) ? (
+          ) : !hasBets && activeBets.length === 0 && withdrawnBets.length === 0 && !(stats && stats.behavioral) ? (
             <EmptyDashboard onTrack={() => setShowTrackModal(true)} />
           ) : (
             <>
-              {!hasBets && pendingBets.length === 0 && (
+              {!hasBets && activeBets.length === 0 && withdrawnBets.length === 0 && (
                 <EmptyDashboard onTrack={() => setShowTrackModal(true)} />
               )}
-              {pendingBets.length > 0 && (
-                <SectionCard title={`Active (${pendingBets.length})`}>
+              {activeBets.length > 0 && (
+                <SectionCard title={`Active (${activeBets.length})`}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {pendingBets.map(bet => (
+                    {activeBets.map(bet => (
                       <PendingBetCard key={bet.id} bet={bet} onGraded={loadBets} />
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
+              {withdrawnBets.length > 0 && (
+                <SectionCard title={`Withdrawn (${withdrawnBets.length})`}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {withdrawnBets.map(bet => (
+                      <WithdrawnBetCard key={bet.id} bet={bet} />
                     ))}
                   </div>
                 </SectionCard>
@@ -509,20 +522,40 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
             </div>
           ) : (
             <>
-              {pendingBets.length > 0 && (
+              {activeBets.length > 0 && (
                 <div style={{ marginBottom: '12px' }}>
                   <h3 style={{
                     fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
                     textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px',
-                  }}>Pending ({pendingBets.length})</h3>
+                  }}>Active ({activeBets.length})</h3>
                   <div style={{
                     backgroundColor: 'var(--surface-1)', borderRadius: '16px',
                     overflow: 'hidden', border: '1px solid var(--stroke-subtle)',
                   }}>
-                    {pendingBets.map((bet, i) => (
-                      <BetRow key={bet.id} bet={bet} isLast={i === pendingBets.length - 1}
+                    {activeBets.map((bet, i) => (
+                      <BetRow key={bet.id} bet={bet} isLast={i === activeBets.length - 1}
                         confirmDelete={confirmDelete}
                         setConfirmDelete={setConfirmDelete} onDelete={handleDelete} onGraded={loadBets} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {withdrawnBets.length > 0 && (
+                <div style={{ marginBottom: '12px' }}>
+                  <h3 style={{
+                    fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
+                    textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px',
+                  }}>Withdrawn ({withdrawnBets.length})</h3>
+                  <div style={{
+                    backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+                    overflow: 'hidden', border: '1px solid var(--stroke-subtle)',
+                  }}>
+                    {withdrawnBets.map((bet, i) => (
+                      <BetRow key={bet.id} bet={bet} isLast={i === withdrawnBets.length - 1}
+                        confirmDelete={confirmDelete}
+                        setConfirmDelete={setConfirmDelete} onDelete={handleDelete}
+                        variant="withdrawn" />
                     ))}
                   </div>
                 </div>
@@ -1248,6 +1281,61 @@ function PendingBetCard({ bet, onGraded }) {
   );
 }
 
+function WithdrawnBetCard({ bet }) {
+  const betTypeMeta = bet.bet_type === 'parlay'
+    ? { label: `${bet.parlay_legs || ''}L Parlay`, color: '#a855f7', bg: 'rgba(168,85,247,0.15)' }
+    : bet.bet_type === 'prop'
+    ? { label: 'Prop', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' }
+    : null;
+
+  return (
+    <div style={{
+      padding: '12px 14px', backgroundColor: 'var(--surface-2)', borderRadius: '10px',
+      border: '1px solid var(--stroke-subtle)', opacity: 0.55,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>
+              {bet.pick}
+            </div>
+            {betTypeMeta && (
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                padding: '2px 6px', borderRadius: '4px',
+                backgroundColor: betTypeMeta.bg, color: betTypeMeta.color,
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+              }}>{betTypeMeta.label}</span>
+            )}
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+            {bet.game}
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '11px',
+            color: 'var(--text-tertiary)', marginTop: '4px',
+          }}>
+            {bet.units_wagered ? `${bet.units_wagered}u · ` : ''}${bet.bet_amount} at {bet.odds != null ? (bet.odds > 0 ? `+${bet.odds}` : bet.odds) : '-110'}{bet.line_at_bet != null ? ` (${bet.line_at_bet > 0 ? '+' : ''}${bet.line_at_bet})` : ''}
+          </div>
+        </div>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+          padding: '4px 8px', borderRadius: '6px',
+          backgroundColor: 'var(--surface-1)', color: 'var(--text-tertiary)',
+          letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+        }}>Withdrawn</span>
+      </div>
+      <div style={{
+        marginTop: '8px', paddingTop: '8px',
+        borderTop: '1px solid var(--stroke-subtle)',
+        fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5',
+      }}>
+        Pick withdrawn · Edge dropped below threshold.
+      </div>
+    </div>
+  );
+}
+
 function EmptyDashboard({ onTrack }) {
   return (
     <div style={{
@@ -1298,8 +1386,9 @@ function EmptyDashboard({ onTrack }) {
   );
 }
 
-function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGraded }) {
-  const pickResultLabel = bet.pick_result && bet.pick_result !== 'pending'
+function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGraded, variant }) {
+  const isWithdrawn = variant === 'withdrawn' || bet.result === 'revoked';
+  const pickResultLabel = !isWithdrawn && bet.pick_result && bet.pick_result !== 'pending'
     ? bet.pick_result : null;
 
   const rowRef = useRef(null);
@@ -1428,12 +1517,16 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
           transform: `translateX(-${offset}px)`,
           transition: swiping.current ? 'none' : 'transform 0.25s ease',
           position: 'relative', zIndex: 1,
+          opacity: isWithdrawn ? 0.55 : 1,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>{bet.pick}</div>
+              <div style={{
+                fontSize: '14px', fontWeight: 500,
+                color: isWithdrawn ? 'var(--text-secondary)' : 'var(--text-primary)',
+              }}>{bet.pick}</div>
               {bet.pick_id && (
                 <span style={{
                   fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
@@ -1477,21 +1570,30 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            <button
-              onClick={(e) => { e.stopPropagation(); setEditing(!editing); setGrading(false); }}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: '4px', color: editing ? '#5A9E72' : 'var(--text-tertiary)',
-                opacity: 0.7, transition: 'color 0.15s',
-              }}
-              title="Edit bet"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            </button>
-            {bet.result ? (
+            {!isWithdrawn && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setEditing(!editing); setGrading(false); }}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '4px', color: editing ? '#5A9E72' : 'var(--text-tertiary)',
+                  opacity: 0.7, transition: 'color 0.15s',
+                }}
+                title="Edit bet"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+            )}
+            {isWithdrawn ? (
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                padding: '4px 8px', borderRadius: '6px',
+                backgroundColor: 'var(--surface-2)', color: 'var(--text-tertiary)',
+                letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+              }}>Withdrawn</span>
+            ) : bet.result ? (
               <div style={{
                 fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
                 color: bet.result === 'W' ? 'var(--green-profit)' : bet.result === 'P' ? 'var(--text-tertiary)' : 'var(--red-loss)',
@@ -1512,6 +1614,15 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
             )}
           </div>
         </div>
+        {isWithdrawn && (
+          <div style={{
+            marginTop: '8px', paddingTop: '8px',
+            borderTop: '1px solid var(--stroke-subtle)',
+            fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5',
+          }}>
+            Pick withdrawn · Edge dropped below threshold.
+          </div>
+        )}
         {!bet.result && grading && !editing && (
           <div style={{
             marginTop: '10px', paddingTop: '10px',
