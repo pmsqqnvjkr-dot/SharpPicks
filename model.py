@@ -923,14 +923,14 @@ class EnsemblePredictor:
             features['bullpen_usage_yesterday'] = pd.Series(0.0, index=df.index)
             try:
                 if 'game_date' in df.columns:
-                    from mlb_bullpen import get_team_bullpen_fatigue
+                    from mlb_bullpen import _cached_bullpen
                     for idx, row in df.iterrows():
                         ht = _mlb_abbrev(str(row.get('home_team', '')).strip())
                         at = _mlb_abbrev(str(row.get('away_team', '')).strip())
                         gd = str(row.get('game_date', ''))
                         if ht and at and gd:
-                            h_fat, h_heavy = get_team_bullpen_fatigue(ht, gd)
-                            a_fat, a_heavy = get_team_bullpen_fatigue(at, gd)
+                            h_fat, h_heavy = _cached_bullpen(ht, gd)
+                            a_fat, a_heavy = _cached_bullpen(at, gd)
                             features.at[idx, 'home_bullpen_fatigue'] = h_fat
                             features.at[idx, 'away_bullpen_fatigue'] = a_fat
                             features.at[idx, 'bullpen_fatigue_diff'] = a_fat - h_fat

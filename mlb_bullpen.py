@@ -8,6 +8,9 @@ which relievers pitched and how much, then computes a fatigue score.
 import requests
 import logging
 import sqlite3
+import json
+import os
+import hashlib
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -24,6 +27,29 @@ ESPN_MLB_TEAM_MAP = {
 }
 
 HEAVY_BULLPEN_IP_THRESHOLD = 4.0
+
+# League-average bullpen workload fallback used when ESPN returns no
+# pitching logs for the requested date (e.g., older seasons whose schedule
+# isn't surfaced by the team-schedule endpoint, off-season/All-Star windows,
+# or transient ESPN errors). Calibration: ~2-3 relievers @ ~1.0 IP under
+# recency weight 1.0 ≈ a 3.0 weighted-IP score. Using a non-zero default
+# keeps the feature distribution centered on a sensible league mean instead
+# of collapsing every fallback row to 0.0 (which previously made the four
+# bullpen features zero-variance during MLB training).
+LEAGUE_AVG_FATIGUE = 3.0
+LEAGUE_AVG_HEAVY_USAGE = 0
+
+# Per-process flag so we only warn ONCE per training session when ESPN
+# returns no logs, instead of spamming WARN per-row.
+_warned_no_data = False
+
+_BULLPEN_CACHE_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), '.cache', 'bullpen'
+)
+try:
+    os.makedirs(_BULLPEN_CACHE_DIR, exist_ok=True)
+except Exception:
+    pass
 
 
 def _parse_innings(ip_str):
@@ -56,9 +82,18 @@ def fetch_recent_pitching_logs(team_abbrev, lookback_days=3, game_date=None):
 
     logs = []
     try:
-        url = f"https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/{espn_id}/schedule"
+        # Pin the schedule request to the season of base_date. Without the
+        # season query param ESPN returns the *current* season only, so any
+        # historical training row (e.g. 2023-2024 dates during a 2026
+        # training run) saw zero events and silently fell through to the
+        # (0.0, 0) default — the root cause of the zero-variance drop.
+        season_year = base_date.year
+        url = (
+            f"https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/"
+            f"teams/{espn_id}/schedule?season={season_year}"
+        )
         headers = {'User-Agent': 'Mozilla/5.0'}
-        resp = requests.get(url, headers=headers, timeout=15)
+        resp = requests.get(url, headers=headers, timeout=8)
         if resp.status_code != 200:
             logger.warning(f"ESPN schedule API returned {resp.status_code} for {team_abbrev}")
             return []
@@ -84,7 +119,7 @@ def fetch_recent_pitching_logs(team_abbrev, lookback_days=3, game_date=None):
         for game_id, gdate, days_ago in recent_game_ids:
             try:
                 box_url = f"https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/summary?event={game_id}"
-                box_resp = requests.get(box_url, headers=headers, timeout=15)
+                box_resp = requests.get(box_url, headers=headers, timeout=8)
                 if box_resp.status_code != 200:
                     continue
                 box_data = box_resp.json()
@@ -100,17 +135,29 @@ def fetch_recent_pitching_logs(team_abbrev, lookback_days=3, game_date=None):
 
                     pitchers = []
                     for stat_group in team_players.get('statistics', []):
-                        if stat_group.get('name', '') != 'pitching':
+                        # ESPN switched the pitching stat-group identifier
+                        # from `name` to `type`; check both so old and new
+                        # response shapes work. Previously this filter never
+                        # matched (`name` is empty in current responses),
+                        # which is the underlying bug that made every row
+                        # produce 0 pitchers and the (0.0, 0) zero-variance
+                        # default.
+                        sg_kind = stat_group.get('type', '') or stat_group.get('name', '')
+                        if sg_kind != 'pitching':
                             continue
                         athletes = stat_group.get('athletes', [])
                         for i, athlete in enumerate(athletes):
                             name = athlete.get('athlete', {}).get('displayName', '')
                             stats_arr = athlete.get('stats', [])
                             ip = _parse_innings(stats_arr[0]) if stats_arr else 0.0
+                            # Prefer ESPN's explicit `starter` flag; fall
+                            # back to "first listed pitcher is the starter"
+                            # for older payload shapes.
+                            is_starter = bool(athlete.get('starter', i == 0))
                             pitchers.append({
                                 'name': name,
                                 'ip': ip,
-                                'is_starter': (i == 0),
+                                'is_starter': is_starter,
                             })
 
                     if pitchers:
@@ -165,10 +212,61 @@ def get_team_bullpen_fatigue(team_abbrev, game_date=None):
     """
     High-level: fetch logs and compute fatigue for one team.
     Returns (fatigue_score, heavy_usage_yesterday).
+
+    When ESPN returns no usable pitching logs for the requested date
+    (historical season, off-season, transient API failure), we fall back
+    to a league-average fatigue score rather than (0.0, 0). The previous
+    silent zero default caused all four bullpen features to be dropped at
+    training as zero-variance.
     """
+    global _warned_no_data
     logs = fetch_recent_pitching_logs(team_abbrev, lookback_days=3, game_date=game_date)
+    if not logs:
+        if not _warned_no_data:
+            logger.warning(
+                f"No ESPN bullpen data for {team_abbrev} game_date={game_date}; "
+                f"falling back to league-average fatigue ({LEAGUE_AVG_FATIGUE} IP). "
+                f"This warning is suppressed for the rest of the process."
+            )
+            _warned_no_data = True
+        return LEAGUE_AVG_FATIGUE, LEAGUE_AVG_HEAVY_USAGE
     result = compute_bullpen_fatigue(logs)
     return result['fatigue_score'], result['heavy_usage_yesterday']
+
+
+def _cached_bullpen(team_abbrev, game_date):
+    """
+    Disk-cached wrapper around get_team_bullpen_fatigue.
+
+    Training calls bullpen for ~1500 rows × 2 teams = ~3000 ESPN requests
+    per run. The JSON disk cache (one tiny file per team-date pair) makes
+    repeat runs essentially free and lets the very first run be the only
+    expensive one. Cache files live in mlb_bullpen.py's sibling .cache/
+    directory, which is gitignored.
+    """
+    if not team_abbrev or not game_date:
+        return LEAGUE_AVG_FATIGUE, LEAGUE_AVG_HEAVY_USAGE
+    try:
+        key = hashlib.md5(f"{team_abbrev}:{game_date}".encode()).hexdigest()
+        cache_path = os.path.join(_BULLPEN_CACHE_DIR, f"{key}.json")
+    except Exception:
+        return get_team_bullpen_fatigue(team_abbrev, game_date=game_date)
+
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path) as f:
+                d = json.load(f)
+            return float(d.get('fatigue', LEAGUE_AVG_FATIGUE)), int(d.get('heavy', LEAGUE_AVG_HEAVY_USAGE))
+        except Exception:
+            pass
+
+    fatigue, heavy = get_team_bullpen_fatigue(team_abbrev, game_date=game_date)
+    try:
+        with open(cache_path, 'w') as f:
+            json.dump({'fatigue': fatigue, 'heavy': heavy}, f)
+    except Exception:
+        pass
+    return fatigue, heavy
 
 
 if __name__ == '__main__':
