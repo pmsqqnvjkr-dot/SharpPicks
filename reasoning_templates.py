@@ -331,16 +331,6 @@ TEMPLATES = {
         ),
     },
 
-    'bdl_conf_rank_diff': {
-        'category': 'form',
-        'render': lambda v, ctx: (
-            f"Conference rank gap: {ctx['pick_team']} ranks "
-            f"{abs(v):.0f} spots higher in their conference."
-            if abs(_pick_val(v, ctx)) > 4
-            else None
-        ),
-    },
-
     # ═══ MLB — PITCHING ═══
 
     'era_diff': {

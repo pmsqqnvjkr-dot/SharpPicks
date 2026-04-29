@@ -320,6 +320,9 @@ def setup_database():
         ('rundown_num_books', 'INTEGER'),
         ('bdl_home_win_pct', 'REAL'),
         ('bdl_away_win_pct', 'REAL'),
+        # bdl_*_conf_rank dropped as features (BDL Option 2, W6 — never populated;
+        # /v1/standings was never wired). Columns kept as harmless dead schema to
+        # avoid a migration; no writes/reads remain.
         ('bdl_home_conf_rank', 'INTEGER'),
         ('bdl_away_conf_rank', 'INTEGER'),
         ('bdl_home_scoring_margin', 'REAL'),
@@ -1400,8 +1403,6 @@ def collect_todays_games():
 
             bdl_home_win_pct = bdl_home.get('win_pct')
             bdl_away_win_pct = bdl_away.get('win_pct')
-            bdl_home_conf_rank = bdl_home.get('conference_rank')
-            bdl_away_conf_rank = bdl_away.get('conference_rank')
             bdl_home_scoring_margin = bdl_home.get('bdl_scoring_margin_l14')
             bdl_away_scoring_margin = bdl_away.get('bdl_scoring_margin_l14')
             bdl_home_avg_pts = bdl_home.get('bdl_avg_pts_l14')
@@ -1435,7 +1436,6 @@ def collect_todays_games():
                      rundown_spread_consensus, rundown_spread_std, rundown_spread_range,
                      rundown_best_book, rundown_num_books,
                      bdl_home_win_pct, bdl_away_win_pct,
-                     bdl_home_conf_rank, bdl_away_conf_rank,
                      bdl_home_scoring_margin, bdl_away_scoring_margin,
                      bdl_home_avg_pts, bdl_away_avg_pts,
                      bdl_home_avg_pts_against, bdl_away_avg_pts_against,
@@ -1448,7 +1448,7 @@ def collect_todays_games():
                      alt_spread_plus_1, alt_spread_plus_3, alt_spread_plus_5, alt_spread_plus_7,
                      commence_time)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                             ?, ?, ?, ?, ?, ?, ?,
                             ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
@@ -1461,7 +1461,6 @@ def collect_todays_games():
                     home_injuries, away_injuries,
                     rd_consensus, rd_std, rd_range, rd_best_book, rd_num_books,
                     bdl_home_win_pct, bdl_away_win_pct,
-                    bdl_home_conf_rank, bdl_away_conf_rank,
                     bdl_home_scoring_margin, bdl_away_scoring_margin,
                     bdl_home_avg_pts, bdl_away_avg_pts,
                     bdl_home_avg_pts_against, bdl_away_avg_pts_against,
@@ -1490,7 +1489,6 @@ def collect_todays_games():
                         rundown_spread_consensus = ?, rundown_spread_std = ?,
                         rundown_spread_range = ?, rundown_best_book = ?, rundown_num_books = ?,
                         bdl_home_win_pct = ?, bdl_away_win_pct = ?,
-                        bdl_home_conf_rank = ?, bdl_away_conf_rank = ?,
                         bdl_home_scoring_margin = ?, bdl_away_scoring_margin = ?,
                         bdl_home_avg_pts = ?, bdl_away_avg_pts = ?,
                         bdl_home_avg_pts_against = ?, bdl_away_avg_pts_against = ?,
@@ -1513,7 +1511,6 @@ def collect_todays_games():
                     home_injuries, away_injuries,
                     rd_consensus, rd_std, rd_range, rd_best_book, rd_num_books,
                     bdl_home_win_pct, bdl_away_win_pct,
-                    bdl_home_conf_rank, bdl_away_conf_rank,
                     bdl_home_scoring_margin, bdl_away_scoring_margin,
                     bdl_home_avg_pts, bdl_away_avg_pts,
                     bdl_home_avg_pts_against, bdl_away_avg_pts_against,

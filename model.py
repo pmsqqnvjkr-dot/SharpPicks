@@ -362,7 +362,6 @@ class EnsemblePredictor:
         if self.sport != 'mlb':
             bdl_cols = """,
                 g.bdl_home_win_pct, g.bdl_away_win_pct,
-                g.bdl_home_conf_rank, g.bdl_away_conf_rank,
                 g.bdl_home_scoring_margin, g.bdl_away_scoring_margin,
                 g.bdl_home_avg_pts, g.bdl_away_avg_pts,
                 g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against"""
@@ -518,9 +517,6 @@ class EnsemblePredictor:
             features['bdl_home_win_pct'] = pd.to_numeric(df.get('bdl_home_win_pct', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
             features['bdl_away_win_pct'] = pd.to_numeric(df.get('bdl_away_win_pct', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
             features['bdl_win_pct_diff'] = features['bdl_home_win_pct'] - features['bdl_away_win_pct']
-            features['bdl_home_conf_rank'] = pd.to_numeric(df.get('bdl_home_conf_rank', pd.Series([15]*len(df))), errors='coerce').fillna(15)
-            features['bdl_away_conf_rank'] = pd.to_numeric(df.get('bdl_away_conf_rank', pd.Series([15]*len(df))), errors='coerce').fillna(15)
-            features['bdl_conf_rank_diff'] = features['bdl_away_conf_rank'] - features['bdl_home_conf_rank']
 
         if self.sport != 'mlb':
             from player_impact import compute_game_injury_features
@@ -1435,7 +1431,6 @@ class EnsemblePredictor:
         if self.sport != 'mlb':
             bdl_cols = """,
                 g.bdl_home_win_pct, g.bdl_away_win_pct,
-                g.bdl_home_conf_rank, g.bdl_away_conf_rank,
                 g.bdl_home_scoring_margin, g.bdl_away_scoring_margin,
                 g.bdl_home_avg_pts, g.bdl_away_avg_pts,
                 g.bdl_home_avg_pts_against, g.bdl_away_avg_pts_against"""
