@@ -11,6 +11,7 @@ import numpy as np
 from datetime import datetime, timedelta, timezone
 import pickle
 import os
+import logging
 
 from scipy.stats import norm
 from sport_config import get_sport_config
@@ -290,6 +291,8 @@ class EnsemblePredictor:
         self.scaler = StandardScaler()
         self.trained = False
         self.feature_names = []
+        self.dropped_features = []
+        self.dropped_features_by_category = {}
         self.calibration_stats = {}
     
     def _games_table(self):
@@ -983,10 +986,23 @@ class EnsemblePredictor:
         
         X = X.fillna(0)
         variances = X.var()
-        zero_var = variances[variances < 1e-10].index.tolist()
-        if zero_var:
-            print(f"   🗑️  Dropping {len(zero_var)} zero-variance features: {zero_var}")
-            X = X.drop(columns=zero_var)
+        zero_var_cols = variances[variances < 1e-10].index.tolist()
+        candidate_count = X.shape[1]
+        by_category: dict = {}
+        for col in zero_var_cols:
+            category = col.split('_', 1)[0] if '_' in col else col
+            by_category.setdefault(category, []).append(col)
+        if zero_var_cols:
+            print(f"   🗑️  Dropping {len(zero_var_cols)} zero-variance features: {zero_var_cols}")
+            logging.warning(
+                f"[{self.sport}] Zero-variance features pruned at training: "
+                f"{len(zero_var_cols)} of {candidate_count} candidates dropped"
+            )
+            for category, cols in by_category.items():
+                logging.warning(f"[{self.sport}]   {category}: {cols}")
+            X = X.drop(columns=zero_var_cols)
+        self.dropped_features = zero_var_cols
+        self.dropped_features_by_category = by_category
         self.feature_names = X.columns.tolist()
         print(f"   📋 Using {len(self.feature_names)} features\n")
         
@@ -2680,6 +2696,8 @@ class EnsemblePredictor:
             'trained_at': datetime.utcnow().isoformat(),
             'feature_means': getattr(self, 'feature_means', None),
             'feature_stds': getattr(self, 'feature_stds', None),
+            'dropped_features': getattr(self, 'dropped_features', []),
+            'dropped_features_by_category': getattr(self, 'dropped_features_by_category', {}),
         }
         
         with open(filepath, 'wb') as f:
@@ -2710,6 +2728,8 @@ class EnsemblePredictor:
             self.trained_at = model_data.get('trained_at', None)
             self.feature_means = model_data.get('feature_means', None)
             self.feature_stds = model_data.get('feature_stds', None)
+            self.dropped_features = model_data.get('dropped_features', [])
+            self.dropped_features_by_category = model_data.get('dropped_features_by_category', {})
             
             return True
         except Exception as e:
