@@ -893,8 +893,86 @@ class EnsemblePredictor:
             features['chalk_level'] = fav_ml.abs()
             features['is_heavy_chalk'] = (fav_ml < -180).astype(int)
 
-            features['home_back_to_back'] = (features['home_rest'] == 0).astype(int)
-            features['away_back_to_back'] = (features['away_rest'] == 0).astype(int)
+            # MLB-specific rest override: the universal block at ~485 reads
+            # `home_rest_days` from the games table, but mlb_games never
+            # populates that column, so every MLB row defaulted to 1.0
+            # (zero-variance for home_rest, away_rest, and rest_advantage).
+            # Compute real per-team rest from the previous observed game
+            # date for each team, mirroring the schedule-density block's
+            # pattern (build team->dates map from df, optionally extend
+            # with recent history for tiny single-day samples).
+            try:
+                if 'game_date' in df.columns:
+                    rest_dates = pd.to_datetime(df['game_date'], errors='coerce')
+                    if rest_dates.notna().sum() > 0:
+                        team_to_dates = {}
+                        for idx, row in df.iterrows():
+                            d = rest_dates.get(idx)
+                            if pd.isna(d):
+                                continue
+                            ht_full = row.get('home_team', '')
+                            at_full = row.get('away_team', '')
+                            if ht_full:
+                                team_to_dates.setdefault(ht_full, []).append(d)
+                            if at_full:
+                                team_to_dates.setdefault(at_full, []).append(d)
+
+                        unique_dates = rest_dates.dropna().unique()
+                        if len(unique_dates) <= 2:
+                            try:
+                                ref_date = unique_dates.max()
+                                start_date = (pd.Timestamp(ref_date) - pd.Timedelta(days=8)).strftime('%Y-%m-%d')
+                                end_date = pd.Timestamp(ref_date).strftime('%Y-%m-%d')
+                                tbl = self._games_table()
+                                hist_conn = sqlite3.connect(get_sqlite_path())
+                                hist_rows = hist_conn.execute(
+                                    f"SELECT game_date, home_team, away_team FROM {tbl} "
+                                    f"WHERE game_date >= ? AND game_date < ? AND home_score IS NOT NULL",
+                                    (start_date, end_date)
+                                ).fetchall()
+                                hist_conn.close()
+                                for gd_str, ht_full, at_full in hist_rows:
+                                    gd = pd.Timestamp(gd_str)
+                                    if ht_full:
+                                        team_to_dates.setdefault(ht_full, []).append(gd)
+                                    if at_full:
+                                        team_to_dates.setdefault(at_full, []).append(gd)
+                            except Exception:
+                                pass
+
+                        for team in team_to_dates:
+                            team_to_dates[team].sort()
+
+                        h_rest, a_rest = [], []
+                        for idx, row in df.iterrows():
+                            d = rest_dates.get(idx)
+                            if pd.isna(d):
+                                h_rest.append(1.0)
+                                a_rest.append(1.0)
+                                continue
+                            ht_full = row.get('home_team', '')
+                            at_full = row.get('away_team', '')
+                            h_prior = [gd for gd in team_to_dates.get(ht_full, []) if gd < d]
+                            a_prior = [gd for gd in team_to_dates.get(at_full, []) if gd < d]
+                            # Default 2.0 = "early-season / first-game"
+                            # rest assumption (a couple of days idle is
+                            # the median for a team's home opener).
+                            h_rest.append(float((d - h_prior[-1]).days) if h_prior else 2.0)
+                            a_rest.append(float((d - a_prior[-1]).days) if a_prior else 2.0)
+                        # Cap at 7d so off-season / All-Star outliers
+                        # don't blow up the feature distribution.
+                        features['home_rest'] = pd.Series(h_rest, index=df.index, dtype=float).clip(0, 7)
+                        features['away_rest'] = pd.Series(a_rest, index=df.index, dtype=float).clip(0, 7)
+                        features['rest_advantage'] = features['home_rest'] - features['away_rest']
+            except Exception as e:
+                print(f"   ⚠️ MLB rest calc error: {e}")
+
+            # MLB-specific back-to-back: rest <= 1 day captures real
+            # consecutive-game fatigue (true 0-day same-day games are
+            # rare even for doubleheaders). Universal `== 0` would be
+            # near-constant for MLB now that real rest is populated.
+            features['home_back_to_back'] = (features['home_rest'] <= 1).astype(int)
+            features['away_back_to_back'] = (features['away_rest'] <= 1).astype(int)
             features['b2b_advantage'] = features['away_back_to_back'] - features['home_back_to_back']
 
             home_pitcher_present = df.get('home_pitcher', pd.Series([None]*len(df)))
