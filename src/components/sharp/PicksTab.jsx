@@ -177,7 +177,11 @@ export default function PicksTab({ onNavigate }) {
 
   // Night mode detection: two scenarios
   // 1) Same-day: all today's games final + model ran today (pick/pass)
-  // 2) Post-midnight: today is "waiting" (model hasn't run) + we have a recent resolved pick from yesterday
+  // 2) Post-midnight: pre-10am ET and either (a) today is "waiting" (next slate's
+  //    model hasn't run) or (b) today is "pass" (backend's _get_et_date rolls back
+  //    to yesterday's date until 2:30am ET, so a yesterday Pass entry is returned
+  //    even after midnight). Without (b), the day-after-pass UI rendered the
+  //    pass-day flow at 1–2am instead of the recap/night view.
   const allTodayFinal = gameInfo?.allFinal === true;
   const todayHasEdges = gameInfo?.hasModel === true;
   const sameDayNight = allTodayFinal && todayHasEdges && (todayData?.type === 'pick' || todayData?.type === 'pass');
@@ -196,7 +200,9 @@ export default function PicksTab({ onNavigate }) {
       return parseInt(parts.find(p => p.type === 'hour')?.value || '12', 10);
     } catch { return 12; }
   })();
-  const postMidnightNight = todayData?.type === 'waiting' && etHour < 10;
+  const postMidnightNight = (
+    todayData?.type === 'waiting' || todayData?.type === 'pass'
+  ) && etHour < 10;
 
   const isNightMode = sameDayNight || postMidnightNight;
   const hasRecapPick = lastResolvedIsRecent && lastResolved?.result && lastResolved.result !== 'pending';
