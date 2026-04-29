@@ -4096,6 +4096,38 @@ def cron_diagnostic():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/cron/diagnose-bdl-conf-rank', methods=['GET', 'POST'])
+@verify_cron
+def cron_diagnose_bdl_conf_rank():
+    """One-shot diagnostic to verify NBA bdl_*_conf_rank columns are NULL on prod.
+
+    Gates the BDL Option 2 deletion (W6 investigation, Apr 2026). To be removed
+    in a follow-up commit after Phase 5 lands.
+    """
+    try:
+        conn = sqlite3.connect(get_sqlite_path())
+        cur = conn.execute(
+            "SELECT COUNT(*) AS total, "
+            "       SUM(CASE WHEN bdl_home_conf_rank IS NOT NULL THEN 1 ELSE 0 END) AS home_non_null, "
+            "       SUM(CASE WHEN bdl_away_conf_rank IS NOT NULL THEN 1 ELSE 0 END) AS away_non_null "
+            "FROM games WHERE home_score IS NOT NULL"
+        )
+        row = cur.fetchone()
+        conn.close()
+        total = int(row[0] or 0)
+        home_non_null = int(row[1] or 0)
+        away_non_null = int(row[2] or 0)
+        return jsonify({
+            'total_completed_games': total,
+            'home_non_null_conf_rank': home_non_null,
+            'away_non_null_conf_rank': away_non_null,
+            'verdict': 'safe_to_drop' if (home_non_null == 0 and away_non_null == 0) else 'investigate_before_dropping',
+        })
+    except Exception as e:
+        logging.error(f"diagnose_bdl_conf_rank failed: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/cron/model-audit', methods=['GET', 'POST'])
 @verify_cron
 def cron_model_audit():
