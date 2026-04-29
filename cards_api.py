@@ -9,10 +9,44 @@ from models import db, Pick, Pass, ModelRun
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 from functools import lru_cache
-import json, os, logging
+import hashlib, json, os, logging
 from markupsafe import escape
 
 cards_bp = Blueprint('cards', __name__)
+
+CARDS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'cards')
+
+
+def _result_cache_key(pick):
+    """Content-addressable cache key for a single pick's result card.
+
+    Uses fields that change when the underlying card content changes
+    (resolution timestamp, result, score). result_resolved_at is the
+    primary signal — falls back to a score-based fingerprint if it's
+    missing on the model row.
+    """
+    parts = [
+        pick.id or '',
+        (pick.result_resolved_at.isoformat() if pick.result_resolved_at else ''),
+        pick.result or '',
+        '' if pick.home_score is None else str(pick.home_score),
+        '' if pick.away_score is None else str(pick.away_score),
+        '' if pick.line is None else str(pick.line),
+    ]
+    raw = '|'.join(parts)
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def _user_results_cache_key(sport, last_resolved_at, total_decided, total_passes):
+    """Content-addressable cache key for the global user-results card.
+
+    The route serves a global aggregate (optionally sport-filtered), not
+    a per-user view, so the spec's user_id field doesn't apply. We
+    fingerprint the data instead: latest resolved timestamp + decided
+    count + passes count covers every observable change in the card.
+    """
+    raw = f"{sport or 'all'}|{last_resolved_at or ''}|{total_decided}|{total_passes}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 W, H = 1200, 630
 BG = (10, 13, 20)
@@ -506,9 +540,9 @@ def result_card(signal_id):
     if not pick:
         return jsonify({'error': 'Not found'}), 404
 
-    cache_dir = os.path.join(_BASE, '.share-cache')
-    os.makedirs(cache_dir, exist_ok=True)
-    cache_path = os.path.join(cache_dir, f'share-v6-{signal_id}.png')
+    os.makedirs(CARDS_DIR, exist_ok=True)
+    cache_key = _result_cache_key(pick)
+    cache_path = os.path.join(CARDS_DIR, f'result-{signal_id}-{cache_key}.png')
 
     is_resolved = pick.result in ('win', 'loss', 'push', 'revoked')
     force_refresh = request.args.get('refresh') == '1'
@@ -631,6 +665,16 @@ def user_results_card():
     clv_positive = sum(1 for v in clv_values if v > 0)
     clv_beat_rate = round(clv_positive / len(clv_values) * 100, 1) if clv_values else 0
 
+    _resolved_ts = [p.result_resolved_at for p in decided if p.result_resolved_at]
+    last_resolved = max(_resolved_ts).isoformat() if _resolved_ts else ''
+    cache_key = _user_results_cache_key(sport, last_resolved, total_decided, total_passes)
+    os.makedirs(CARDS_DIR, exist_ok=True)
+    cache_path = os.path.join(CARDS_DIR, f'user-results-{cache_key}.png')
+    if request.args.get('refresh') != '1' and os.path.isfile(cache_path):
+        with open(cache_path, 'rb') as f:
+            return Response(f.read(), mimetype='image/png',
+                            headers={'Cache-Control': 'public, max-age=31536000, immutable'})
+
     if selectivity < 20:
         grade = 'A+'
     elif selectivity < 30:
@@ -673,8 +717,13 @@ def user_results_card():
     try:
         from services.card_generator import generate_card_png
         png_bytes = generate_card_png(html_string)
+        try:
+            with open(cache_path, 'wb') as f:
+                f.write(png_bytes)
+        except Exception as e:
+            logging.warning(f"User results card cache write failed (non-fatal): {e}")
         return Response(png_bytes, mimetype='image/png',
-                        headers={'Cache-Control': 'public, max-age=300'})
+                        headers={'Cache-Control': 'public, max-age=31536000, immutable'})
     except Exception:
         return _user_results_fallback(wins, losses, total_pnl, roi, grade, selectivity)
 

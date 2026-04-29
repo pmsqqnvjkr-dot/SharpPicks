@@ -9609,6 +9609,114 @@ def _railway_startup_refresh():
         _startup_refresh_lock.release()
 
 
+# ────────────────────────────────────────────────────────────────────
+# Share-card cache: GC cron + admin flush + admin render diagnostics.
+# Cache files live under static/cards/ and are content-addressable
+# (filenames embed sha256 of the data inputs). When data changes the
+# key changes, the path changes, the old file naturally orphans.
+# ────────────────────────────────────────────────────────────────────
+
+
+def _cards_dir():
+    return os.path.join(os.path.dirname(__file__), 'static', 'cards')
+
+
+@app.route('/api/cron/clean-card-cache', methods=['GET', 'POST'])
+@verify_cron
+def cron_clean_card_cache():
+    """Delete share-card PNGs older than 30 days. Run weekly."""
+    import time as _t
+    cards_dir = _cards_dir()
+    if not os.path.isdir(cards_dir):
+        return jsonify({'deleted': 0, 'cards_dir_missing': True})
+    cutoff = _t.time() - (30 * 86400)
+    deleted = 0
+    kept = 0
+    for fname in os.listdir(cards_dir):
+        fpath = os.path.join(cards_dir, fname)
+        if not os.path.isfile(fpath):
+            continue
+        try:
+            if os.path.getmtime(fpath) < cutoff:
+                os.remove(fpath)
+                deleted += 1
+            else:
+                kept += 1
+        except OSError as e:
+            logging.warning(f"clean-card-cache: skipped {fname}: {e}")
+    logging.info(f"clean-card-cache: deleted={deleted} kept={kept}")
+    return jsonify({'deleted': deleted, 'kept': kept})
+
+
+@app.route('/api/admin/flush-card-cache', methods=['POST'])
+def admin_flush_card_cache():
+    """Emergency kill switch: delete every PNG under static/cards/.
+
+    Replaces the recurring ?v=N cache-bust pattern. After deploy, hit
+    this once to force every card to regenerate from scratch.
+    """
+    from admin_api import require_superuser
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    cards_dir = _cards_dir()
+    if not os.path.isdir(cards_dir):
+        return jsonify({'deleted': 0, 'cards_dir_missing': True})
+
+    deleted = 0
+    for fname in os.listdir(cards_dir):
+        if not fname.endswith('.png'):
+            continue
+        fpath = os.path.join(cards_dir, fname)
+        try:
+            os.remove(fpath)
+            deleted += 1
+        except OSError as e:
+            logging.warning(f"flush-card-cache: skipped {fname}: {e}")
+    logging.warning(f"Card cache flushed by admin: {deleted} files deleted")
+    return jsonify({'deleted': deleted})
+
+
+@app.route('/api/admin/render-test-card', methods=['GET', 'POST'])
+def admin_render_test_card():
+    """Render a weekly recap card and return font/timing diagnostics.
+
+    Hit this after each deploy to verify the share-card pipeline is
+    healthy. Healthy result: failed_fonts: [] and total render time
+    under ~3 seconds. Anything else points at font bundling or
+    Playwright issues — see services/card_generator.py logs.
+    """
+    from admin_api import require_superuser
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    try:
+        from routes.card_routes import _compute_weekly_data
+        from services.card_generator import generate_card_png_with_diagnostics
+    except Exception as e:
+        return jsonify({'error': f'Import failed: {e}'}), 500
+
+    try:
+        data = _compute_weekly_data()
+        data.pop('_cache_inputs', None)
+        html_string = render_template('recap_card.html', **data)
+        png_bytes, diagnostics = generate_card_png_with_diagnostics(html_string)
+    except Exception as e:
+        logging.exception("render-test-card failed")
+        return jsonify({'error': f'Render failed: {e}'}), 500
+
+    return jsonify({
+        'png_size_bytes': len(png_bytes),
+        'render_time_seconds': round(diagnostics.get('total', 0), 3),
+        'content_loaded_seconds': round(diagnostics.get('content_loaded_at', 0), 3),
+        'fonts_ready_seconds': round(diagnostics.get('fonts_ready_at', 0), 3),
+        'loaded_fonts': diagnostics.get('loaded_fonts', []),
+        'failed_fonts': diagnostics.get('failed_fonts', []),
+    })
+
+
 # Run seed on startup for Replit and Railway
 _on_replit = os.environ.get("REPLIT_DEPLOYMENT") == "1"
 _on_railway = bool(os.environ.get("RAILWAY_PUBLIC_DOMAIN") or os.environ.get("RAILWAY_PROJECT_ID"))

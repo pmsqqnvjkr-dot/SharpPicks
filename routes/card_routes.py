@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import logging
 import os
 from datetime import datetime, timedelta
@@ -10,6 +11,18 @@ from models import db, Pick, Pass
 from admin_api import require_superuser
 
 weekly_card_bp = Blueprint('weekly_card', __name__)
+
+CARDS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'cards')
+
+
+def _weekly_cache_key(week_start, week_end, last_data_update):
+    """Content-addressable cache key for the weekly recap card.
+
+    last_data_update should be a string/timestamp that changes whenever
+    the underlying picks data could affect the card (latest grade, edits).
+    """
+    raw = f"{week_start}|{week_end}|{last_data_update}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
 ET = ZoneInfo('America/New_York')
 
 LOGO_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'brand', 'images', 'crest.png')
@@ -63,6 +76,14 @@ def _compute_weekly_data(week_start_str=None, week_end_str=None):
         Pick.game_date <= we_str,
         Pick.result.in_(['win', 'loss', 'push']),
     ).all()
+
+    weekly_window_picks = Pick.query.filter(
+        Pick.game_date >= ws_str,
+        Pick.game_date <= we_str,
+    ).all()
+    _resolved_ts = [p.result_resolved_at for p in weekly_window_picks if p.result_resolved_at]
+    _published_ts = [p.published_at for p in weekly_window_picks if p.published_at]
+    last_data_update = max(_resolved_ts + _published_ts).isoformat() if (_resolved_ts or _published_ts) else 'empty'
 
     weekly_wins = sum(1 for p in weekly_picks if p.result == 'win')
     weekly_losses = sum(1 for p in weekly_picks if p.result == 'loss')
@@ -131,6 +152,11 @@ def _compute_weekly_data(week_start_str=None, week_end_str=None):
         'season_total_picks': total_picks,
         'logo_base64': _get_logo_base64(),
         'wordmark_base64': _get_wordmark_base64(),
+        '_cache_inputs': {
+            'week_start': ws_str,
+            'week_end': we_str,
+            'last_data_update': last_data_update,
+        },
     }
     out.update(get_card_fonts())
     return out
@@ -151,6 +177,31 @@ def weekly_card():
         logging.error(f"Weekly card data error: {e}")
         return jsonify({'error': 'Failed to compute card data'}), 500
 
+    cache_inputs = data.pop('_cache_inputs', None)
+    cache_path = None
+    if cache_inputs:
+        try:
+            os.makedirs(CARDS_DIR, exist_ok=True)
+            key = _weekly_cache_key(
+                cache_inputs['week_start'],
+                cache_inputs['week_end'],
+                cache_inputs['last_data_update'],
+            )
+            cache_path = os.path.join(CARDS_DIR, f'weekly-{key}.png')
+            if request.args.get('refresh') != '1' and os.path.isfile(cache_path):
+                with open(cache_path, 'rb') as f:
+                    return Response(
+                        f.read(),
+                        mimetype='image/png',
+                        headers={
+                            'Cache-Control': 'public, max-age=31536000, immutable',
+                            'Content-Disposition': 'inline; filename="sharppicks-weekly-recap.png"',
+                        },
+                    )
+        except Exception as e:
+            logging.warning(f"Weekly card cache check failed (will regenerate): {e}")
+            cache_path = None
+
     html_string = render_template('recap_card.html', **data)
 
     try:
@@ -159,6 +210,13 @@ def weekly_card():
     except Exception as e:
         logging.error(f"Weekly card screenshot error: {e}")
         return jsonify({'error': f'Screenshot failed: {str(e)}'}), 500
+
+    if cache_path:
+        try:
+            with open(cache_path, 'wb') as f:
+                f.write(png_bytes)
+        except Exception as e:
+            logging.warning(f"Weekly card cache write failed (non-fatal): {e}")
 
     return Response(
         png_bytes,
