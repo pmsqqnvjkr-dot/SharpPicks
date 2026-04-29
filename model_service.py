@@ -50,7 +50,7 @@ def _cache_model(sport, model, filepath):
     except OSError:
         pass
 from datetime import datetime, timedelta, timezone
-from models import db, Pick, Pass, ModelRun, EdgeSnapshot, KillSwitch
+from models import db, Pick, Pass, ModelRun, EdgeSnapshot, KillSwitch, TrackedBet
 from sport_config import get_sport_config, get_live_sports
 
 
@@ -411,6 +411,19 @@ def pretip_revalidate(app, sport='nba'):
             if revoke:
                 pick.result = 'revoked'
                 pick.notes = (pick.notes or '') + f' | REVOKED: {revoke_reason}'
+
+                # Cascade revoke to any pending tracked bets linked to this pick.
+                # Without this, users see the bet as "Active" indefinitely until
+                # the underlying game goes final (or never, if the matchup is
+                # republished). GET /api/bets surfaces result='revoked' so the
+                # frontend can bucket these into the Withdrawn section.
+                linked_pending_bets = TrackedBet.query.filter_by(
+                    pick_id=pick.id,
+                    result=None,
+                ).all()
+                for tb in linked_pending_bets:
+                    tb.result = 'revoked'
+
                 db.session.commit()
 
                 try:

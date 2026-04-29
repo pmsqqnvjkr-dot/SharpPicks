@@ -7317,6 +7317,11 @@ def get_user_bets():
                 pick_result = 'pending'
             else:
                 pick_result = b.linked_pick.result
+            # Revoked picks are intentionally NOT auto-settled here — the
+            # model_service revoke handler now cascades tb.result = 'revoked'
+            # in the same transaction (see model_service.py revalidate_pretip).
+            # Those rows surface in this response with result='revoked' and
+            # are bucketed into the frontend "Withdrawn" section.
             if not b.result and pick_result and pick_result not in ('pending', 'revoked'):
                 b.result = pick_result
                 if pick_result == 'W':
