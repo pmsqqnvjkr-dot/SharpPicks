@@ -111,7 +111,9 @@ def _compute_weekly_data(week_start_str=None, week_end_str=None):
     else:
         roi_fmt = "0.0%"
 
-    return {
+    from services.card_fonts import get_card_fonts
+
+    out = {
         'week_start': week_start_fmt,
         'week_end': week_end_fmt,
         'weekly_wins': weekly_wins,
@@ -130,6 +132,8 @@ def _compute_weekly_data(week_start_str=None, week_end_str=None):
         'logo_base64': _get_logo_base64(),
         'wordmark_base64': _get_wordmark_base64(),
     }
+    out.update(get_card_fonts())
+    return out
 
 
 @weekly_card_bp.route('/api/weekly-card')

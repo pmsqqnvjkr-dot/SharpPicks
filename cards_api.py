@@ -562,6 +562,7 @@ def result_card(signal_id):
         score_line = 'Withdrawn before tip. Capital preserved.'
 
     stats = _season_stats(pick.sport)
+    from services.card_fonts import get_card_fonts
     data = {
         'accent_color': accent_color,
         'game_date': _date_label(pick),
@@ -581,6 +582,7 @@ def result_card(signal_id):
         'season_win_pct': stats['win_pct'],
         'season_clv': stats['beat_close'],
     }
+    data.update(get_card_fonts())
 
     html_string = render_template('result_card.html', **data)
 
@@ -647,6 +649,7 @@ def user_results_card():
     roi_sign = '+' if roi >= 0 else '\u2212'
     roi_fmt = f'{roi_sign}{abs(roi)}%'
 
+    from services.card_fonts import get_card_fonts
     data = {
         'logo_base64': _get_logo_base64(),
         'wordmark_base64': _get_wordmark_base64(),
@@ -663,6 +666,7 @@ def user_results_card():
         'total_passes': total_passes,
         'total_picks': total_picks,
     }
+    data.update(get_card_fonts())
 
     html_string = render_template('user_results_card.html', **data)
 
