@@ -992,7 +992,41 @@ class EnsemblePredictor:
             features['rl_ml_agree'] = (spread_implies_home == ml_implies_home).astype(int)
 
             league_avg_rpgi = 8.8
-            features['ump_rpgi'] = pd.to_numeric(df.get('ump_rpgi', pd.Series([league_avg_rpgi]*len(df))), errors='coerce').fillna(league_avg_rpgi)
+            existing_ump = pd.to_numeric(df.get('ump_rpgi', pd.Series([None]*len(df), index=df.index)), errors='coerce')
+            ump_rpgi_series = existing_ump.copy()
+            try:
+                if 'game_date' in df.columns and 'home_team' in df.columns and 'away_team' in df.columns:
+                    from mlb_umpires import _cached_assignments, get_umpire_features
+                    needs_lookup = ump_rpgi_series.isna()
+                    unique_dates = sorted({
+                        str(d) for d in df.loc[needs_lookup, 'game_date'].dropna().unique() if str(d)
+                    })
+                    date_to_assignments = {}
+                    for d in unique_dates:
+                        try:
+                            date_to_assignments[d] = _cached_assignments(d) or {}
+                        except Exception:
+                            date_to_assignments[d] = {}
+                    # MLB Stats API serves umpire assignments back to ~2023 reliably,
+                    # but older or off-season rows may return empty -> league-average
+                    # fallback. That's still better than zero-variance: rows with real
+                    # assignments contribute genuine signal, and the model can learn
+                    # whether the umpire effect is informative.
+                    for idx in df.index[needs_lookup]:
+                        gd = str(df.at[idx, 'game_date']) if pd.notna(df.at[idx, 'game_date']) else ''
+                        ht = _mlb_abbrev(str(df.at[idx, 'home_team']).strip())
+                        at = _mlb_abbrev(str(df.at[idx, 'away_team']).strip())
+                        assignments = date_to_assignments.get(gd, {})
+                        ump_name = assignments.get((ht, at)) or assignments.get((at, ht)) or ''
+                        if ump_name:
+                            try:
+                                rpgi = get_umpire_features(ump_name)[0]
+                            except Exception:
+                                rpgi = league_avg_rpgi
+                            ump_rpgi_series.at[idx] = float(rpgi)
+            except Exception as e:
+                print(f"   ⚠️ MLB umpire RPGI lookup error: {e}")
+            features['ump_rpgi'] = ump_rpgi_series.fillna(league_avg_rpgi).astype(float)
             features['ump_deviation'] = features['ump_rpgi'] - league_avg_rpgi
 
             features['home_bullpen_fatigue'] = pd.Series(0.0, index=df.index)

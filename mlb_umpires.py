@@ -7,12 +7,23 @@ and provides career run-scoring averages per umpire.
 
 import requests
 import logging
+import json
+import os
+import hashlib
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 LEAGUE_AVG_RPGI = 8.8
 LEAGUE_AVG_K_RATE = 8.3
+
+_UMPIRE_CACHE_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), '.cache', 'umpires'
+)
+try:
+    os.makedirs(_UMPIRE_CACHE_DIR, exist_ok=True)
+except Exception:
+    pass
 
 UMP_CAREER_STATS = {
     'Angel Hernandez':       {'rpgi': 9.4, 'k_rate': 7.9},
@@ -145,6 +156,62 @@ def fetch_umpire_assignments(game_date):
     except Exception as e:
         logger.error(f"Error fetching umpire assignments: {e}")
 
+    return assignments
+
+
+def _cached_assignments(game_date):
+    """
+    Disk-cached wrapper around fetch_umpire_assignments.
+
+    MLB training touches ~100+ unique dates per run. Each date is one MLB
+    Stats API call that returns ~15 game→umpire mappings. The JSON disk
+    cache (one tiny file per date) keeps repeat training runs free. Cache
+    files live in mlb_umpires.py's sibling .cache/ directory, which is
+    gitignored.
+
+    Returns a dict of {(home_abbrev, away_abbrev): umpire_name}, matching
+    the shape of fetch_umpire_assignments().
+    """
+    if not game_date:
+        return {}
+
+    if isinstance(game_date, str):
+        date_str = game_date
+    else:
+        try:
+            date_str = game_date.strftime('%Y-%m-%d')
+        except Exception:
+            date_str = str(game_date)
+
+    try:
+        key = hashlib.md5(date_str.encode()).hexdigest()
+        cache_path = os.path.join(_UMPIRE_CACHE_DIR, f"{key}.json")
+    except Exception:
+        return fetch_umpire_assignments(date_str)
+
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path) as f:
+                raw = json.load(f)
+            out = {}
+            for k, v in raw.items():
+                parts = k.split('|', 1)
+                if len(parts) == 2:
+                    out[(parts[0], parts[1])] = v
+            return out
+        except Exception:
+            pass
+
+    assignments = fetch_umpire_assignments(date_str)
+    try:
+        serializable = {
+            f"{k[0]}|{k[1]}" if isinstance(k, tuple) and len(k) == 2 else str(k): v
+            for k, v in assignments.items()
+        }
+        with open(cache_path, 'w') as f:
+            json.dump(serializable, f)
+    except Exception:
+        pass
     return assignments
 
 
