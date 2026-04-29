@@ -19,25 +19,23 @@ Usage:
   --last-completed   anchor the 30-day window on the most recent completed
                      game in the DB instead of `date('now')`. Useful on dev
                      DBs that lag prod by weeks/months.
+
+The actual coverage computation lives in `services.pitcher_coverage` and is
+shared with the `/api/admin/diagnose-pitcher-coverage` admin endpoint so the
+script and the endpoint cannot drift.
 """
 
 import argparse
-import sqlite3
+import os
 import sys
 
-try:
-    from db_path import get_sqlite_path  # type: ignore
-except Exception:  # pragma: no cover - script is best-effort
-    def get_sqlite_path() -> str:
-        return "sharp_picks.db"
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from services.pitcher_coverage import compute_coverage  # noqa: E402
 
 
-WHIP_DEFAULT = 1.30
-IP_DEFAULT = 0
-
-
-def pct(n: int, d: int) -> str:
-    return f"{(100.0 * n / d):.1f}%" if d else "n/a"
+def _pct_str(p):
+    return f"{p:.1f}%" if p is not None else "n/a"
 
 
 def main() -> int:
@@ -51,66 +49,46 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    db_path = args.db or get_sqlite_path()
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
+    result = compute_coverage(
+        days=args.days,
+        last_completed=args.last_completed,
+        db_path=args.db,
+    )
 
-    if args.last_completed:
-        cur.execute("SELECT MAX(game_date) FROM mlb_games WHERE home_score IS NOT NULL")
-        anchor = cur.fetchone()[0]
-        if not anchor:
-            print(f"No completed games in {db_path}", file=sys.stderr)
-            return 1
-        anchor_clause = "date(?, '-{} days')".format(args.days)
-        params = (anchor,)
-        window_label = f"{args.days} days ending {anchor} (last completed game in DB)"
+    print(f"DB:       {result['db_path']}")
+    if result.get("anchor_mode") == "last_completed":
+        anchor = result.get("window_end") or "n/a"
+        window_label = f"{result['days']} days ending {anchor} (last completed game in DB)"
     else:
-        anchor_clause = "date('now', '-{} days')".format(args.days)
-        params = ()
-        window_label = f"last {args.days} days (today-anchored)"
-
-    sql = f"""
-        SELECT
-          COUNT(*)                                                                    AS n,
-          SUM(CASE WHEN home_pitcher_whip IS NOT NULL AND home_pitcher_whip != ?
-                   THEN 1 ELSE 0 END)                                                  AS h_whip,
-          SUM(CASE WHEN away_pitcher_whip IS NOT NULL AND away_pitcher_whip != ?
-                   THEN 1 ELSE 0 END)                                                  AS a_whip,
-          SUM(CASE WHEN home_pitcher_ip   IS NOT NULL AND home_pitcher_ip   != ?
-                   THEN 1 ELSE 0 END)                                                  AS h_ip,
-          SUM(CASE WHEN away_pitcher_ip   IS NOT NULL AND away_pitcher_ip   != ?
-                   THEN 1 ELSE 0 END)                                                  AS a_ip,
-          SUM(CASE WHEN home_pitcher_era  IS NOT NULL THEN 1 ELSE 0 END)               AS h_era,
-          SUM(CASE WHEN away_pitcher_era  IS NOT NULL THEN 1 ELSE 0 END)               AS a_era
-        FROM mlb_games
-        WHERE home_score IS NOT NULL
-          AND game_date >= {anchor_clause}
-    """
-    cur.execute(sql, (WHIP_DEFAULT, WHIP_DEFAULT, IP_DEFAULT, IP_DEFAULT, *params))
-    n, h_whip, a_whip, h_ip, a_ip, h_era, a_era = cur.fetchone()
-
-    print(f"DB:       {db_path}")
+        window_label = f"last {result['days']} days (today-anchored)"
     print(f"Window:   {window_label}")
+
+    n = result["total_games_in_window"]
     print(f"Games:    {n}")
     if not n:
         print("No completed games in window. Cannot compute coverage.")
-        return 0
+        return 1 if result.get("error") == "no_completed_games" else 0
+
+    cov = result["coverage"]
     print()
     print("Real (non-default) coverage:")
-    print(f"  home_pitcher_whip   {h_whip:>5}/{n}  {pct(h_whip, n)}")
-    print(f"  away_pitcher_whip   {a_whip:>5}/{n}  {pct(a_whip, n)}")
-    print(f"  home_pitcher_ip     {h_ip:>5}/{n}  {pct(h_ip, n)}")
-    print(f"  away_pitcher_ip     {a_ip:>5}/{n}  {pct(a_ip, n)}")
+    for field in ("home_pitcher_whip", "away_pitcher_whip", "home_pitcher_ip", "away_pitcher_ip"):
+        c = cov[field]
+        print(f"  {field:<20} {c['count']:>5}/{n}  {_pct_str(c['pct'])}")
+
+    era = result["era_reference"]
     print()
     print("Reference (ERA non-null, no league-default check):")
-    print(f"  home_pitcher_era    {h_era:>5}/{n}  {pct(h_era, n)}")
-    print(f"  away_pitcher_era    {a_era:>5}/{n}  {pct(a_era, n)}")
+    for field in ("home_pitcher_era", "away_pitcher_era"):
+        c = era[field]
+        print(f"  {field:<20} {c['count']:>5}/{n}  {_pct_str(c['pct'])}")
 
-    avg_whip = (h_whip + a_whip) / (2 * n)
-    avg_ip = (h_ip + a_ip) / (2 * n)
+    agg = result["aggregate"]
     print()
-    print(f"Aggregate WHIP coverage: {avg_whip*100:.1f}%")
-    print(f"Aggregate IP   coverage: {avg_ip*100:.1f}%")
+    print(f"Aggregate WHIP coverage: {agg['whip_avg_pct']:.1f}%")
+    print(f"Aggregate IP   coverage: {agg['ip_avg_pct']:.1f}%")
+    print(f"Min field coverage:      {agg['min_field_pct']:.1f}%")
+    print(f"Recommendation:          {result['recommendation']}")
     return 0
 
 

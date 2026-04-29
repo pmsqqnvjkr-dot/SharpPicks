@@ -9793,6 +9793,44 @@ def admin_restore_model():
     return jsonify(result)
 
 
+@app.route('/api/admin/diagnose-pitcher-coverage', methods=['GET', 'POST'])
+def admin_diagnose_pitcher_coverage():
+    """Report post-fix coverage of WHIP/IP pitcher fields on the live SQLite.
+
+    Run after the Phase 2C parser fix landed (commit ec87991) to decide
+    whether the MLB Stats API fallback is required. The recommendation
+    field auto-applies the user thresholds:
+      >= 50%  -> "ship"
+      20-50%  -> "queue_fallback"
+      <  20%  -> "fallback_required"
+
+    Query/body params:
+      days: int (default 30) - lookback window size in days.
+      last_completed: bool (default false) - anchor lookback to the most
+        recent completed game in the DB instead of today, useful when the
+        cron pipeline lags.
+    """
+    from admin_api import require_superuser
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    try:
+        days = int(request.values.get('days', 30))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'days must be an integer'}), 400
+    last_completed = str(request.values.get('last_completed', 'false')).lower() in ('true', '1', 'yes')
+
+    try:
+        from services.pitcher_coverage import compute_coverage
+        result = compute_coverage(days=days, last_completed=last_completed)
+    except Exception as e:
+        logging.error(f"diagnose_pitcher_coverage failed: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+    return jsonify(result)
+
+
 # Run seed on startup for Replit and Railway
 _on_replit = os.environ.get("REPLIT_DEPLOYMENT") == "1"
 _on_railway = bool(os.environ.get("RAILWAY_PUBLIC_DOMAIN") or os.environ.get("RAILWAY_PROJECT_ID"))
