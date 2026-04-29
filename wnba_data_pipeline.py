@@ -1,3 +1,4 @@
+# Dev-only. Do not run on Railway.
 """
 WNBA Historical Data Pipeline
 Backfills historical odds from The Odds API and enriches game data.

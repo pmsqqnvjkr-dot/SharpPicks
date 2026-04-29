@@ -1,3 +1,4 @@
+# Dev-only. Do not run on Railway.
 """
 WNBA Enhanced Walk-Forward Backtest
 Adds pace/ratings/four-factors from Basketball Reference

@@ -1,3 +1,4 @@
+# Dev-only. Do not run on Railway.
 """
 SHARP PICKS - HISTORICAL DATA IMPORTER
 Fetches past NBA games to speed up model training

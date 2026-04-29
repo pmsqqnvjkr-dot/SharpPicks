@@ -1,3 +1,4 @@
+# Dev-only. Do not run on Railway.
 """
 Import Kaggle NBA Historical Spread Data
 """

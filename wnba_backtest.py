@@ -1,3 +1,4 @@
+# Dev-only. Do not run on Railway.
 """
 WNBA BACKTESTING PIPELINE
 Collects historical data, runs walk-forward backtest with shrinkage sweep,

@@ -1,3 +1,4 @@
+# Dev-only. Do not run on Railway.
 """
 🏀 SHARP PICKS - BANKROLL & TILT MANAGEMENT
 Responsible gambling tools and behavior monitoring

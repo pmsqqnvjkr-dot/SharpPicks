@@ -13,22 +13,16 @@ import logging
 import requests
 from datetime import datetime, timedelta
 
+from db_path import get_sqlite_path
+
 logger = logging.getLogger(__name__)
 
 BDL_API_KEY = os.environ.get('BALLDONTLIE_API_KEY', '')
 BDL_WNBA_BASE = "https://api.balldontlie.io/wnba/v1"
 
 
-def _get_sqlite_path():
-    try:
-        from db_path import get_sqlite_path
-        return get_sqlite_path()
-    except Exception:
-        return 'sharp_picks.db'
-
-
 def _get_db():
-    conn = sqlite3.connect(_get_sqlite_path())
+    conn = sqlite3.connect(get_sqlite_path())
     conn.row_factory = sqlite3.Row
     return conn
 
