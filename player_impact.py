@@ -40,6 +40,91 @@ STAR_MPG_THRESHOLD = 28.0
 ROTATION_MPG_THRESHOLD = 15.0
 MIN_GAMES_PLAYED = 5
 
+
+def estimate_mpg_from_impact(impact_score):
+    """Rough MPG estimate based on impact rating (1-10 scale).
+
+    V1 tier-based mapping. V2 would pull actual season MPG from NBA stats API.
+    """
+    if impact_score >= 9:
+        return 36.0
+    if impact_score >= 7:
+        return 32.0
+    if impact_score >= 5:
+        return 28.0
+    if impact_score >= 3:
+        return 22.0
+    return 14.0
+
+
+def status_multiplier(status):
+    """Weight injury contribution by certainty of absence.
+
+    out=1.0, doubtful=0.75, questionable=0.5, probable=0.25, day-to-day=0.4,
+    default=0.5. Tolerant of mixed-case, whitespace, and combined statuses.
+    """
+    if not status:
+        return 0.5
+    s = str(status).lower().strip()
+    if (
+        'out' in s
+        and 'questionable' not in s
+        and 'doubtful' not in s
+        and 'probable' not in s
+    ):
+        return 1.0
+    if 'doubtful' in s:
+        return 0.75
+    if 'questionable' in s:
+        return 0.5
+    if 'probable' in s:
+        return 0.25
+    if 'day-to-day' in s or 'day to day' in s:
+        return 0.4
+    return 0.5
+
+
+_STATUS_SUFFIX_RE = re.compile(
+    r'(?:\s*-\s*|\s+)'
+    r'(out|questionable|doubtful|day[-\s]?to[-\s]?day|probable|gtd|dtd|o|d|q|p)'
+    r'\s*$',
+    re.IGNORECASE,
+)
+
+
+def _strip_parsed_status_suffix(name):
+    """Strip a trailing status keyword from a parsed injury name.
+
+    `parse_injury_string` only strips a status when separated by ' - '; for
+    plain inputs like "LeBron James out" the status remains glued to the name.
+    This helper handles both formats so STAR_PLAYERS lookup can match.
+    """
+    if not name:
+        return ''
+    return _STATUS_SUFFIX_RE.sub('', str(name).strip()).strip()
+
+
+def _lookup_star_impact(parsed_name):
+    """Return the STAR_PLAYERS impact score for a parsed injury name, or None.
+
+    Lazy-imports nba_injuries.STAR_PLAYERS so player_impact.py stays usable
+    even if nba_injuries cannot be imported in some context.
+    """
+    cleaned = _strip_parsed_status_suffix(parsed_name)
+    if not cleaned:
+        return None
+    try:
+        from nba_injuries import STAR_PLAYERS
+    except Exception:
+        return None
+    target = _normalize_name(cleaned)
+    if not target:
+        return None
+    for star_name, impact in STAR_PLAYERS.items():
+        if _normalize_name(star_name) == target:
+            return impact
+    return None
+
 PLAYER_ALIASES = {
     'pj washington': 'p.j. washington',
     'nic claxton': 'nicolas claxton',
@@ -343,11 +428,15 @@ def compute_weighted_injury_impact(injury_string, team_abbrev, season=None):
     Compute player-impact-weighted injury features for a team.
 
     Returns dict with:
-        weighted_impact: sum of mpg * status_multiplier for injured players
-        mpg_at_risk: same as weighted_impact (aliased for clarity)
-        ppg_at_risk: sum of ppg * status_multiplier
-        star_out: bool — any 28+ mpg player listed Out
-        num_rotation_out: count of 15+ mpg players Out
+        weighted_impact: V1 tier-based MPG-at-risk (alias of mpg_at_risk)
+        mpg_at_risk: sum of estimate_mpg_from_impact(STAR_PLAYERS impact)
+                     * status_multiplier(status); deterministic and
+                     cache-independent so it has variance even when the
+                     player_impact_cache table is sparse for historical
+                     training rows. Real per-player MPG from NBA stats is V2.
+        ppg_at_risk: cache-based sum of ppg * STATUS_MULTIPLIER
+        star_out: bool — any 28+ mpg (cache-based) player listed Out
+        num_rotation_out: count of 15+ mpg (cache-based) players Out
     """
     result = {
         'weighted_impact': 0.0,
@@ -365,6 +454,7 @@ def compute_weighted_injury_impact(injury_string, team_abbrev, season=None):
 
     total_mpg = 0.0
     total_ppg = 0.0
+    total_tier_mpg = 0.0
     star_out = False
     rotation_out = 0
 
@@ -372,6 +462,11 @@ def compute_weighted_injury_impact(injury_string, team_abbrev, season=None):
         name = entry['name']
         status = entry['status']
         multiplier = STATUS_MULTIPLIER.get(status, 0.25)
+
+        impact = _lookup_star_impact(name)
+        if impact is None:
+            impact = 3
+        total_tier_mpg += estimate_mpg_from_impact(impact) * status_multiplier(status)
 
         if multiplier == 0.0:
             continue
@@ -393,8 +488,8 @@ def compute_weighted_injury_impact(injury_string, team_abbrev, season=None):
         if status == 'out' and mpg >= ROTATION_MPG_THRESHOLD:
             rotation_out += 1
 
-    result['weighted_impact'] = round(total_mpg, 1)
-    result['mpg_at_risk'] = round(total_mpg, 1)
+    result['weighted_impact'] = round(total_tier_mpg, 1)
+    result['mpg_at_risk'] = round(total_tier_mpg, 1)
     result['ppg_at_risk'] = round(total_ppg, 1)
     result['star_out'] = star_out
     result['num_rotation_out'] = rotation_out
@@ -434,12 +529,12 @@ def compute_game_injury_features(home_injuries, away_injuries, home_abbrev, away
     away = compute_weighted_injury_impact(away_injuries, _resolve_abbrev(away_abbrev), season)
 
     return {
-        'home_mpg_at_risk': home['mpg_at_risk'],
-        'away_mpg_at_risk': away['mpg_at_risk'],
-        'injury_mpg_diff': away['mpg_at_risk'] - home['mpg_at_risk'],
-        'home_ppg_at_risk': home['ppg_at_risk'],
-        'away_ppg_at_risk': away['ppg_at_risk'],
-        'injury_ppg_diff': away['ppg_at_risk'] - home['ppg_at_risk'],
+        'home_mpg_at_risk': round(home['mpg_at_risk'], 1),
+        'away_mpg_at_risk': round(away['mpg_at_risk'], 1),
+        'injury_mpg_diff': round(away['mpg_at_risk'] - home['mpg_at_risk'], 1),
+        'home_ppg_at_risk': round(home['ppg_at_risk'], 1),
+        'away_ppg_at_risk': round(away['ppg_at_risk'], 1),
+        'injury_ppg_diff': round(away['ppg_at_risk'] - home['ppg_at_risk'], 1),
         'home_star_out': 1 if home['star_out'] else 0,
         'away_star_out': 1 if away['star_out'] else 0,
         'home_rotation_out': home['num_rotation_out'],
