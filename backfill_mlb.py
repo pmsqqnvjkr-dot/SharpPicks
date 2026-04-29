@@ -14,7 +14,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 from db_path import get_sqlite_path
-from main import setup_mlb_table, MLB_TEAM_ABBR_MAP
+from main import setup_mlb_table, MLB_TEAM_ABBR_MAP, _extract_pitcher_stats
 
 ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
 
@@ -118,22 +118,17 @@ def parse_espn_games(data, date_str_iso):
                     if prob.get('abbreviation') == 'SP' or 'starter' in prob.get('name', '').lower() or prob.get('name') == 'probableStartingPitcher':
                         athlete = prob.get('athlete', {})
                         game[f'{prefix}_pitcher'] = athlete.get('fullName') or athlete.get('displayName')
-                        for stat in prob.get('statistics', []):
-                            sname = (stat.get('name') or stat.get('abbreviation') or '').lower()
-                            try:
-                                val = float(stat.get('value', stat.get('displayValue', 0)))
-                            except (ValueError, TypeError):
-                                continue
-                            if sname in ('era', 'earnedrunaverage'):
-                                game[f'{prefix}_pitcher_era'] = val
-                            elif sname == 'whip':
-                                game[f'{prefix}_pitcher_whip'] = val
-                            elif sname in ('wins', 'w'):
-                                game[f'{prefix}_pitcher_wins'] = int(val)
-                            elif sname in ('losses', 'l'):
-                                game[f'{prefix}_pitcher_losses'] = int(val)
-                            elif sname in ('inningspitched', 'ip'):
-                                game[f'{prefix}_pitcher_ip'] = val
+                        pstats = _extract_pitcher_stats(prob)
+                        if pstats.get('era') is not None:
+                            game[f'{prefix}_pitcher_era'] = pstats['era']
+                        if pstats.get('whip') is not None:
+                            game[f'{prefix}_pitcher_whip'] = pstats['whip']
+                        if pstats.get('wins') is not None:
+                            game[f'{prefix}_pitcher_wins'] = pstats['wins']
+                        if pstats.get('losses') is not None:
+                            game[f'{prefix}_pitcher_losses'] = pstats['losses']
+                        if pstats.get('ip') is not None:
+                            game[f'{prefix}_pitcher_ip'] = pstats['ip']
                         break
 
             games.append(game)

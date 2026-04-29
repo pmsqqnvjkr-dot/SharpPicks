@@ -3630,9 +3630,41 @@ def get_mlb_team_schedule(team_abbr):
         return None, None
 
 
+def _assign_pitcher_stat(stats, name, val):
+    """Assign a single ESPN stat into the pitcher stats dict, preserving prior (non-None) values.
+
+    `name` is already lowercased. Returns silently on unknown stats.
+    """
+    try:
+        if name in ('era', 'earnedrunaverage'):
+            if stats.get('era') is None:
+                stats['era'] = float(val)
+        elif name == 'whip':
+            if stats.get('whip') is None:
+                stats['whip'] = float(val)
+        elif name in ('wins', 'w'):
+            if stats.get('wins') is None:
+                stats['wins'] = int(float(val))
+        elif name in ('losses', 'l'):
+            if stats.get('losses') is None:
+                stats['losses'] = int(float(val))
+        elif name in ('inningspitched', 'ip'):
+            if stats.get('ip') is None:
+                stats['ip'] = float(val)
+    except (ValueError, TypeError):
+        return
+
+
 def _extract_pitcher_stats(prob):
-    """Extract pitcher stats from ESPN probables data."""
+    """Extract pitcher stats from ESPN probables data.
+
+    Two paths exist in ESPN payloads. The top-level `statistics` array is preferred
+    (live games). The nested `athlete.statistics[*].splits[*].stats[*]` path is filled
+    by ESPN for many backfilled / historical games. We try top-level first, then fall
+    back to nested only for fields the top-level didn't supply.
+    """
     stats = {'era': None, 'whip': None, 'wins': None, 'losses': None, 'ip': None}
+
     for stat in prob.get('statistics', []):
         name = (stat.get('name') or stat.get('abbreviation') or '').lower()
         val = stat.get('value')
@@ -3641,31 +3673,22 @@ def _extract_pitcher_stats(prob):
                 val = float(stat.get('displayValue', '0'))
             except (ValueError, TypeError):
                 continue
-        if name in ('era', 'earnedrunaverage'):
-            stats['era'] = float(val)
-        elif name == 'whip':
-            stats['whip'] = float(val)
-        elif name in ('wins', 'w'):
-            stats['wins'] = int(val)
-        elif name in ('losses', 'l'):
-            stats['losses'] = int(val)
-        elif name in ('inningspitched', 'ip'):
-            stats['ip'] = float(val)
-    # Also check athlete.statistics if present
+        _assign_pitcher_stat(stats, name, val)
+
     athlete = prob.get('athlete', {})
     for stat_group in athlete.get('statistics', []):
-        splits = stat_group.get('splits', [])
-        for split in splits:
+        for split in stat_group.get('splits', []):
             for stat in split.get('stats', []):
-                name = stat.get('name', '').lower()
+                name = (stat.get('name') or stat.get('abbreviation') or '').lower()
+                raw = stat.get('value')
+                if raw is None:
+                    raw = stat.get('displayValue', 0)
                 try:
-                    val = float(stat.get('value', stat.get('displayValue', 0)))
+                    val = float(raw)
                 except (ValueError, TypeError):
                     continue
-                if name == 'era' or name == 'earnedrunaverage':
-                    stats['era'] = val
-                elif name == 'whip':
-                    stats['whip'] = val
+                _assign_pitcher_stat(stats, name, val)
+
     return stats
 
 
