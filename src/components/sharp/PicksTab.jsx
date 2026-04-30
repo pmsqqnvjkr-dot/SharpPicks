@@ -206,11 +206,19 @@ export default function PicksTab({ onNavigate }) {
       return parseInt(parts.find(p => p.type === 'hour')?.value || '12', 10);
     } catch { return 12; }
   })();
+  // Backend hasn't rolled over to today's slate yet — /picks/today is still
+  // serving a pick whose game_date is for a prior ET calendar day. Used both
+  // for night-mode gating (postMidnightNight) and for routing the recap card
+  // (nightRecapPick / priorDayPickIsRecap below).
+  const isPickFromPriorDay = !!(
+    todayData?.type === 'pick'
+    && todayData?.game_date
+    && todayData.game_date < todayET
+  );
   const todayDataIsPreSlate = (
     todayData?.type === 'waiting' ||
     todayData?.type === 'pass' ||
-    // Backend hasn't rolled over to today's slate yet — pick is for a prior ET day.
-    (todayData?.type === 'pick' && todayData?.game_date && todayData.game_date < todayET)
+    isPickFromPriorDay
   );
   const postMidnightNight = etHour < 10 && todayDataIsPreSlate;
 
