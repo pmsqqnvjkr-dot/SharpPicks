@@ -177,11 +177,17 @@ export default function PicksTab({ onNavigate }) {
 
   // Night mode detection: two scenarios
   // 1) Same-day: all today's games final + model ran today (pick/pass)
-  // 2) Post-midnight: pre-10am ET and either (a) today is "waiting" (next slate's
-  //    model hasn't run) or (b) today is "pass" (backend's _get_et_date rolls back
-  //    to yesterday's date until 2:30am ET, so a yesterday Pass entry is returned
-  //    even after midnight). Without (b), the day-after-pass UI rendered the
-  //    pass-day flow at 1–2am instead of the recap/night view.
+  // 2) Post-midnight: pre-10am ET and one of:
+  //    (a) today is "waiting" (next slate's model hasn't run yet — covers
+  //        the 2:30am–10am ET window after the betting-day rollover);
+  //    (b) today is "pass" (backend's _get_et_date rolls back to yesterday's
+  //        date until 2:30am ET, so a yesterday Pass entry is returned even
+  //        after midnight);
+  //    (c) today is "pick" but for a prior calendar day — same 12am–2:30am
+  //        ET rollover window when yesterday published a real pick. Without
+  //        (c), 12am–2:30am ET on the day after a pick day rendered the live
+  //        pick view and kept polling ESPN for stale scores from yesterday's
+  //        already-finished game.
   const allTodayFinal = gameInfo?.allFinal === true;
   const todayHasEdges = gameInfo?.hasModel === true;
   const sameDayNight = allTodayFinal && todayHasEdges && (todayData?.type === 'pick' || todayData?.type === 'pass');
@@ -200,9 +206,13 @@ export default function PicksTab({ onNavigate }) {
       return parseInt(parts.find(p => p.type === 'hour')?.value || '12', 10);
     } catch { return 12; }
   })();
-  const postMidnightNight = (
-    todayData?.type === 'waiting' || todayData?.type === 'pass'
-  ) && etHour < 10;
+  const todayDataIsPreSlate = (
+    todayData?.type === 'waiting' ||
+    todayData?.type === 'pass' ||
+    // Backend hasn't rolled over to today's slate yet — pick is for a prior ET day.
+    (todayData?.type === 'pick' && todayData?.game_date && todayData.game_date < todayET)
+  );
+  const postMidnightNight = etHour < 10 && todayDataIsPreSlate;
 
   const isNightMode = sameDayNight || postMidnightNight;
   const hasRecapPick = lastResolvedIsRecent && lastResolved?.result && lastResolved.result !== 'pending';
