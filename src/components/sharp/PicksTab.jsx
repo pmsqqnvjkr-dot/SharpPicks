@@ -216,7 +216,18 @@ export default function PicksTab({ onNavigate }) {
 
   const isNightMode = sameDayNight || postMidnightNight;
   const hasRecapPick = lastResolvedIsRecent && lastResolved?.result && lastResolved.result !== 'pending';
-  const nightRecapPick = sameDayNight ? todayData : (hasRecapPick ? lastResolved : null);
+  // Prior-day pick still being served by /picks/today: if it's resolved (win/loss/push/revoked),
+  // route it as the recap so hasAnyRecapContent is true and the date header / slate-closed
+  // recap render. Without this, the night view only shows the small Signal Withdrawn card +
+  // upcoming slate, missing the comprehensive recap experience.
+  const priorDayPickIsRecap = isPickFromPriorDay
+    && todayData?.result
+    && todayData.result !== 'pending';
+  const nightRecapPick = sameDayNight
+    ? todayData
+    : priorDayPickIsRecap
+      ? todayData
+      : (hasRecapPick ? lastResolved : null);
   const hasAnyRecapContent = !!(nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'pending')
     || !!(tonightBets && tonightBets.length > 0)
     || (sameDayNight && todayData?.type === 'pass');
