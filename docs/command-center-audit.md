@@ -391,3 +391,23 @@ Phase 2 funnel queries that want pre/post continuity:
 `WHERE event_type IN ('tap_bet_link', 'bet_tap')`. Queries that need
 surface granularity: `WHERE event_type = 'bet_tap'` and group by
 `surface`.
+
+## Phase 2 event-name mapping (added 2026-05-01)
+
+The Phase 2 spec uses generic terms like `signal_view` and
+`bet_tap_signal_card` for funnel steps. Actual emissions in the code
+use different concrete names. Mapping used by `services/sources/events.py`:
+
+| Spec funnel step       | Actual `user_events` query                              |
+|------------------------|---------------------------------------------------------|
+| `signal_view`          | `event_type='view_pick'`                                |
+| `bet_tap_signal_card`  | `event_type='bet_tap'` AND `surface='signal_card'`      |
+| `bet_tap_place_bet`    | `event_type='bet_tap'` AND `surface='place_own_bet'`    |
+
+`signals_issued` does NOT come from `user_events` — signals are
+system-generated when the model writes a Pick. The events source
+queries the `picks` table directly grouped by sport.
+
+Anonymous users (user_id IS NULL) are excluded from the funnel — we
+cannot follow them across steps without session-level identity. Future
+improvement: COALESCE(user_id::text, session_id) for logged-out users.
