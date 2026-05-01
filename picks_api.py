@@ -221,6 +221,36 @@ def _calc_playable_to(line, side, edge_pct):
         return round((line - pts) * 2) / 2
 
 
+def _compute_cover(pick_side, spread_val, h_score, a_score):
+    """Compute live cover status for an in-progress signal pick.
+
+    spread_val is the picked-side line (per ma['line'] convention from
+    model_service._build_games_detail): negative when picked side is favored,
+    positive when picked side is dog. Same formula works for home and away
+    because spread_val is normalized to picked-side perspective.
+
+    Returns {'status': 'covering'|'not_covering', 'margin': float} or None.
+
+    NOTE: ma['line'] is picked-side perspective; the r['spread_home'] fallback
+    used at the call site would be home perspective. Fallback is unreachable
+    for passing picks but flagged for future cleanup.
+    """
+    if spread_val is None:
+        return None
+    is_home_pick = 'home' in pick_side.lower() if pick_side else False
+    if is_home_pick:
+        margin = h_score - a_score
+    else:
+        margin = a_score - h_score
+    adjusted = margin + spread_val
+    # adjusted == 0 (exact push) maps to 'not_covering' with margin 0; the
+    # cover tracker is informational only and the renderer has no 'push' branch.
+    return {
+        'status': 'covering' if adjusted > 0 else 'not_covering',
+        'margin': round(abs(adjusted), 1),
+    }
+
+
 def calculate_stake_guidance(edge_pct, confidence, market_odds=-110):
     """Generate bankroll guidance: flat staking + fractional Kelly
     
@@ -1057,19 +1087,9 @@ def market_view():
             h_score = r['home_score'] or 0
             a_score = r['away_score'] or 0
             spread_val = ma.get('line') or r['spread_home']
-            if spread_val is not None:
-                is_home_pick = 'home' in pick_side.lower() if pick_side else False
-                if is_home_pick:
-                    margin = h_score - a_score
-                    adjusted = margin + spread_val
-                else:
-                    margin = a_score - h_score
-                    adjusted = margin + (r['spread_away'] or -spread_val if r['spread_away'] else -spread_val)
-
-                game_data['cover'] = {
-                    'status': 'covering' if adjusted > 0 else 'not_covering',
-                    'margin': round(abs(adjusted), 1),
-                }
+            cover = _compute_cover(pick_side, spread_val, h_score, a_score)
+            if cover is not None:
+                game_data['cover'] = cover
 
         games.append(game_data)
 
