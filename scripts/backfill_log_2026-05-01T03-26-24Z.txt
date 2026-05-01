@@ -1,0 +1,64 @@
+CLV backfill — pre-2026-04-10 historical residue
+Mode: APPLY
+Started: 2026-05-01T03:26:24.855577Z
+Log: /Users/erindonnelly/Projects/SharpPicks/scripts/backfill_log_2026-05-01T03-26-24Z.txt
+---
+SKIP (null closing) id=9cc4946d-37f2-46cc-acb9-50a4c5be16c1 side='Detroit Pistons +2.0' line=2.0 clv_before=None
+SKIP (null closing) id=dab82bf3-4dee-4d3e-a15e-9c3287aa7ff7 side='San Antonio Spurs -2.5' line=-2.5 clv_before=None
+SKIP (null closing) id=e4647da5-b1e9-4d49-8f39-3e11de343ce0 side='Houston Rockets +4.5' line=4.5 clv_before=None
+SKIP (null closing) id=f1843352-a18a-49f9-a2cf-5bc6abe50bfe side='Los Angeles Lakers +5.0' line=5.0 clv_before=None
+SKIP (null closing) id=1520a539-73db-4f3c-aabf-086927ee9b10 side='Chicago Bulls +5.0' line=5.0 clv_before=None
+SKIP (null closing) id=d4d15c8b-9dd2-49c0-b48b-bf8ab868a5fc side='LA Clippers +0.5' line=0.5 clv_before=None
+SKIP (null closing) id=46f93629-6df1-4644-9c9c-d3f945434ad7 side='Charlotte Hornets -8.5' line=-8.5 clv_before=None
+SKIP (null closing) id=efd99ce8-b2a5-4867-92c5-0a3e16837aa2 side='Philadelphia 76ers +24.5' line=24.5 clv_before=None
+SKIP (null closing) id=01a485ef-ab1a-4ecc-af10-9803b41c1f0f side='Los Angeles Lakers -7.5' line=-7.5 clv_before=None
+SKIP (null closing) id=c9284c80-a253-4d94-bd17-5462da685983 side='Washington Wizards +4.5' line=4.5 clv_before=None
+CHANGE id=59b1958e-f2e9-4d25-848c-e2ad132ad116 sport=nba date=2026-03-05 side='Orlando Magic -9.0' line=-9.0 closing_home=-8.0 -> closing_picked=-8.0 clv 1.0 -> -1.0
+CHANGE id=1dd7dc43-3604-4eff-9506-1ca556e4170b sport=nba date=2026-03-06 side='Miami Heat +7.0' line=7.0 closing_home=-7.5 -> closing_picked=7.5 clv -14.5 -> -0.5
+CHANGE id=9628cbf4-efcc-401f-9d12-6d4af92f851d sport=nba date=2026-03-07 side='Detroit Pistons -14.0' line=-14.0 closing_home=-13.5 -> closing_picked=-13.5 clv 0.5 -> -0.5
+CHANGE id=9a0e3559-79f7-406e-95e4-f5ddceef619c sport=nba date=2026-03-08 side='Portland Trail Blazers -8.5' line=-8.5 closing_home=-9.5 -> closing_picked=-9.5 clv -1.0 -> 1.0
+CHANGE id=83800ab8-a58d-4385-96d6-cfa325e30e32 sport=nba date=2026-03-09 side='Oklahoma City Thunder -7.0' line=-7.0 closing_home=-3.5 -> closing_picked=-3.5 clv 3.5 -> -3.5
+CHANGE id=ea3decdb-1f15-4f56-9baa-2fa84bad8177 sport=nba date=2026-03-10 side='Boston Celtics +3.0' line=3.0 closing_home=-3.5 -> closing_picked=3.5 clv -6.5 -> -0.5
+CHANGE id=4940b464-ec70-4e1e-b108-beded4858fd7 sport=nba date=2026-03-11 side='Utah Jazz +14.5' line=14.5 closing_home=14.0 -> closing_picked=14.0 clv -0.5 -> 0.5
+CHANGE id=7f10bdfa-3415-4a2a-8e2d-b14c8f475b9e sport=nba date=2026-03-12 side='Orlando Magic -15.0' line=-15.0 closing_home=-14.0 -> closing_picked=-14.0 clv 1.0 -> -1.0
+CHANGE id=8e33e483-37d7-4baa-950c-22f2d53ab5d2 sport=nba date=2026-03-14 side='Orlando Magic +3.5' line=3.5 closing_home=-4.5 -> closing_picked=4.5 clv -8.0 -> -1.0
+CHANGE id=71cd403b-e5c8-455a-860b-3e3c2a2bb1b1 sport=nba date=2026-03-16 side='Phoenix Suns +9.0' line=9.0 closing_home=-9.0 -> closing_picked=9.0 clv -18.0 -> 0.0
+CHANGE id=3969fc24-114d-4f22-a05e-3ebe7ce1b46c sport=nba date=2026-03-17 side='New York Knicks -15.5' line=-15.5 closing_home=-14.0 -> closing_picked=-14.0 clv 1.5 -> -1.5
+CHANGE id=3f6d5356-5f7b-4527-a6bf-ab80360da473 sport=nba date=2026-03-20 side='Detroit Pistons -4.5' line=-4.5 closing_home=-5.5 -> closing_picked=-5.5 clv -1.0 -> 1.0
+CHANGE id=be41dccf-ea54-4de7-9a01-ab1e0d9d85b4 sport=nba date=2026-03-21 side='Dallas Mavericks +7.0' line=7.0 closing_home=7.5 -> closing_picked=7.5 clv 0.5 -> -0.5
+CHANGE id=b64cbbab-3756-46f6-903b-5eba20964b32 sport=nba date=2026-03-22 side='Minnesota Timberwolves +10.0' line=10.0 closing_home=-10.5 -> closing_picked=10.5 clv -20.5 -> -0.5
+CHANGE id=12a094f9-c7f0-44f3-8171-0b08d1d6a037 sport=nba date=2026-03-23 side='Utah Jazz +12.5' line=12.5 closing_home=10.0 -> closing_picked=10.0 clv -2.5 -> 2.5
+CHANGE id=e6770e5f-1230-43f4-8978-c429fa4cf83a sport=nba date=2026-03-25 side='Utah Jazz -4.5' line=-4.5 closing_home=-3.5 -> closing_picked=-3.5 clv 1.0 -> -1.0
+CHANGE id=03b68a41-50a7-4a9a-a909-7ebf2d17c83f sport=nba date=2026-03-28 side='Atlanta Hawks -15.0' line=-15.0 closing_home=-13.5 -> closing_picked=-13.5 clv 1.5 -> -1.5
+SKIP (null closing) id=c01dab41-3f3b-4aa5-8688-1cacbee58ce6 side='Washington Nationals +1.5' line=1.5 clv_before=None
+SKIP (null closing) id=0a51e4ea-7fb3-4a76-b437-71d95134957a side='Colorado Rockies +1.5' line=1.5 clv_before=None
+CHANGE id=14cbc802-babe-438e-a2d7-969de0a2bce9 sport=nba date=2026-03-29 side='Oklahoma City Thunder -8.5' line=-8.5 closing_home=-8.0 -> closing_picked=-8.0 clv 0.5 -> -0.5
+CHANGE id=8988984a-2bca-4acf-8e52-504854a01de3 sport=mlb date=2026-03-30 side='Texas Rangers +1.5' line=1.5 closing_home=-1.5 -> closing_picked=1.5 clv -3.0 -> 0.0
+CHANGE id=6c1efad0-d4c2-49ca-89d8-429ec5680107 sport=mlb date=2026-03-31 side='Colorado Rockies +1.5' line=1.5 closing_home=-1.5 -> closing_picked=1.5 clv -3.0 -> 0.0
+CHANGE id=80822826-6920-4cb7-bb8d-b82be69823d8 sport=nba date=2026-04-01 side='Atlanta Hawks -2.5' line=-2.5 closing_home=2.5 -> closing_picked=-2.5 clv 5.0 -> 0.0
+SKIP (null closing) id=a1aa74a9-449b-47fc-8abc-c74d376da289 side='Cleveland Guardians +1.5' line=1.5 clv_before=None
+CHANGE id=2ac13eef-98f8-4f8a-a5e2-ae23fcd8186e sport=nba date=2026-04-02 side='San Antonio Spurs -4.0' line=-4.0 closing_home=-2.0 -> closing_picked=2.0 clv 2.0 -> -6.0
+CHANGE id=ba82e4fe-4ef1-49f7-ac61-0c0960dd1ce1 sport=mlb date=2026-04-02 side='New York Mets -1.5' line=-1.5 closing_home=1.5 -> closing_picked=-1.5 clv 3.0 -> 0.0
+SKIP (null closing) id=63bc8251-63ec-4903-9069-59bec1baa8e6 side='St. Louis Cardinals +1.5' line=1.5 clv_before=None
+CHANGE id=a576d937-d8b2-4b71-8837-425f1d550f4a sport=mlb date=2026-04-04 side='Miami Marlins +1.5' line=1.5 closing_home=-1.5 -> closing_picked=1.5 clv -3.0 -> 0.0
+CHANGE id=e72b9b2f-3a7e-4862-843e-8df7f276d71d sport=nba date=2026-04-04 side='San Antonio Spurs -1.5' line=-1.5 closing_home=1.5 -> closing_picked=-1.5 clv 3.0 -> 0.0
+CHANGE id=d331df0f-c193-456c-9d3a-ed86b3e92da3 sport=nba date=2026-04-05 side='Houston Rockets -3.5' line=-3.5 closing_home=3.5 -> closing_picked=-3.5 clv 7.0 -> 0.0
+CHANGE id=eb9ecf3d-85bb-4d6d-9a8d-6c8372a3b1f1 sport=mlb date=2026-04-05 side='Miami Marlins +1.5' line=1.5 closing_home=-1.5 -> closing_picked=1.5 clv -3.0 -> 0.0
+CHANGE id=2a0b9441-f537-4cec-aed1-4dce06acd4eb sport=nba date=2026-04-06 side='New York Knicks +1.5' line=1.5 closing_home=-1.5 -> closing_picked=1.5 clv -3.0 -> 0.0
+CHANGE id=aaab2693-b851-4a69-8ee9-0e0067f73319 sport=mlb date=2026-04-06 side='Cincinnati Reds +1.5' line=1.5 closing_home=-1.5 -> closing_picked=1.5 clv -3.0 -> 0.0
+CHANGE id=70480ef2-84c6-481a-9336-0697cb5b062f sport=nba date=2026-04-07 side='Houston Rockets +1.0' line=1.0 closing_home=1.0 -> closing_picked=-1.0 clv 0.0 -> 2.0
+CHANGE id=a41e7cd8-9861-4d92-869b-f88f10e96f3a sport=mlb date=2026-04-07 side='Athletics +1.5' line=1.5 closing_home=-1.5 -> closing_picked=1.5 clv -3.0 -> 0.0
+CHANGE id=b3fd5fbc-2025-4e11-aec0-ca62adc3eeb4 sport=mlb date=2026-04-08 side='Seattle Mariners -1.5' line=-1.5 closing_home=1.5 -> closing_picked=-1.5 clv 3.0 -> 0.0
+CHANGE id=f9342475-329a-473f-b10f-ac663b8b830a sport=nba date=2026-04-08 side='Atlanta Hawks +2.0' line=2.0 closing_home=-4.0 -> closing_picked=4.0 clv -6.0 -> -2.0
+CHANGE id=22b43b3e-d086-4e8a-8cc5-6045bf94fbf7 sport=mlb date=2026-04-09 side='Athletics +1.5' line=1.5 closing_home=-1.5 -> closing_picked=1.5 clv -3.0 -> 0.0
+CHANGE id=6016110b-3f1d-4815-bae9-c435f7026a81 sport=nba date=2026-04-09 side='Toronto Raptors -3.5' line=-3.5 closing_home=-4.5 -> closing_picked=-4.5 clv -1.0 -> 1.0
+---
+Mode: APPLY
+Examined:                 57
+Updated (clv changed):    35
+No change:                8
+Skipped (side unresolved):0
+Skipped (null closing):   14
+Skipped (null line):      0
+Errors:                   0
+Finished: 2026-05-01T03:26:29.961721Z
