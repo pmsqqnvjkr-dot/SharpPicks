@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from models import db, User, Pick, Pass, ModelRun, FoundingCounter, TrackedBet, Insight, CronLog, FCMToken, KillSwitch, UserBet, PageView, UserEvent, AdminAlert, MrrSnapshot, ContentPageView
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, text
@@ -2415,6 +2415,81 @@ def app_analytics():
     except Exception as e:
         logging.error(f'App analytics error: {e}')
         return jsonify({'error': str(e)}), 500
+
+
+# ─── Phase 2 unified metrics endpoint ────────────────────────────────────
+# Pulls from six sources (Cloudflare, Stripe, Postgres events, GA4, GSC,
+# RevenueCat) in parallel. Each source returns the same envelope shape;
+# single-source failure does not fail the endpoint. See
+# docs/command-center-audit.md (Phase 2 ground truth).
+
+def _metrics_safe_envelope(name, fn):
+    """Run fn() and return (name, envelope). Catches any exception so a
+    single source failure doesn't propagate to the whole endpoint."""
+    try:
+        return name, fn()
+    except Exception as e:
+        logging.exception('admin_metrics: %s fetch failed', name)
+        return name, {
+            'payload': None,
+            'fetched_at': None,
+            'stale': True,
+            'last_error': str(e)[:500] or e.__class__.__name__,
+        }
+
+
+@admin_bp.route('/api/admin/metrics')
+def admin_metrics():
+    """Unified metrics endpoint for the command center dashboard."""
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    range_ = request.args.get('range', '7d')
+    if range_ not in ('7d', '30d'):
+        return jsonify({'error': 'range must be 7d or 30d'}), 400
+
+    include_internal_raw = (request.args.get('include_internal') or 'false').strip().lower()
+    include_internal = include_internal_raw in ('true', '1', 'yes', 'on')
+
+    # Lazy import keeps startup fast and avoids module-load issues if a
+    # source has a missing optional dependency at import time.
+    from services.sources import cloudflare as cf_source
+    from services.sources import stripe_metrics as stripe_source
+    from services.sources import events as events_source
+    from services.sources import ga4 as ga4_source
+    from services.sources import gsc as gsc_source
+    from services.sources import revenuecat as rc_source
+
+    sources = {
+        'cloudflare':  lambda: cf_source.fetch(range_),
+        'stripe':      lambda: stripe_source.fetch(),
+        'events':      lambda: events_source.fetch(range_, include_internal),
+        'ga4':         lambda: ga4_source.fetch(range_),
+        'gsc':         lambda: gsc_source.fetch(),
+        'revenuecat':  lambda: rc_source.fetch(),
+    }
+
+    # Each worker thread needs its own Flask app context for db.session.
+    flask_app = current_app._get_current_object()
+
+    def _wrap(name, fn):
+        with flask_app.app_context():
+            return _metrics_safe_envelope(name, fn)
+
+    results = {}
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = [executor.submit(_wrap, name, fn) for name, fn in sources.items()]
+        for fut in as_completed(futures):
+            name, envelope = fut.result()
+            results[name] = envelope
+
+    return jsonify({
+        'range': range_,
+        'generated_at': datetime.now(timezone.utc).isoformat(),
+        'include_internal': include_internal,
+        **results,
+    })
 
 
 @admin_bp.route('/api/admin/content-analytics')

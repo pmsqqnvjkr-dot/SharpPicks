@@ -411,3 +411,51 @@ queries the `picks` table directly grouped by sport.
 Anonymous users (user_id IS NULL) are excluded from the funnel — we
 cannot follow them across steps without session-level identity. Future
 improvement: COALESCE(user_id::text, session_id) for logged-out users.
+
+## Phase 2 ground truth (snapshot 2026-05-01)
+
+Six sources, one endpoint, server-side cache. All third-party data is
+fetched server-side; the browser only talks to `/api/admin/metrics`.
+
+| Source | Module | Cache TTL | Cache key(s) | Auth |
+|---|---|---|---|---|
+| Cloudflare RUM | services/sources/cloudflare.py | 30m | cloudflare:7d, cloudflare:30d | CLOUDFLARE_API_TOKEN (or CF_API_TOKEN fallback), CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_SITE_TAG |
+| Stripe | services/sources/stripe_metrics.py | 5m | stripe:summary | existing stripe_client (STRIPE_LIVE_SECRET_KEY) |
+| Postgres events | services/sources/events.py | none (direct) | n/a | DB session |
+| GA4 | services/sources/ga4.py | 60m | ga4:7d, ga4:30d | GOOGLE_OAUTH_CLIENT_ID, _SECRET, _REFRESH_TOKEN (dev@sharppicks.ai identity) |
+| Search Console | services/sources/gsc.py | 12h | gsc:summary | same OAuth as GA4 |
+| RevenueCat | services/sources/revenuecat.py | 5m | revenuecat:summary | DB (User + processed_events) |
+
+**Endpoint:** `GET /api/admin/metrics?range=7d|30d&include_internal=false`
+
+**Auth:** `require_superuser()` (admin_api.py:25). Tighter than the
+spec's `ADMIN_EMAILS` allowlist — requires
+`is_superuser=True AND email==ADMIN_EMAIL`. Per the OAuth-identity-vs-
+admin-allowlist split, dev@ owns the Google refresh token but cannot
+hit `/api/admin/metrics`.
+
+**Concurrency:** ThreadPoolExecutor with 6 workers, all sources
+fetched in parallel. Each worker pushes its own Flask app_context for
+db.session. Total endpoint latency = max(slowest source), not sum.
+
+**Response shape:** every source returns
+`{payload, fetched_at, stale, last_error}`. Single-source failure ->
+`stale=True` with `last_error` populated, payload preserved from prior
+successful fetch (or null on first-ever failure). Endpoint never 500s
+on a single-source failure.
+
+### RC MRR divergence (Path A)
+
+Stripe MRR is computed live from Stripe API subscription objects with
+real per-sub prices. RC MRR is heuristic — counts User rows where
+`pro_source='revenuecat' AND is_premium=True`, multiplied by hardcoded
+prices ($19.99/mo or $149/yr keyed off `User.subscription_plan`). The
+RC webhook handler discards the payload so per-event prices are not
+preserved. Phase 4 reconciliation will compare; if SharpPicks ever
+ships multiple RC tiers, this needs revisiting (preserve webhook
+payload at write time).
+
+The legacy `admin_api.py:909-915` MRR calc (`User.subscription_plan`
+strings * hardcoded $29/$99) stays in place but is no longer used by
+the command center. Phase 4 reconciliation will surface the
+discrepancy with Stripe-derived MRR.

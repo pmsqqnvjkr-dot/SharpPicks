@@ -1,0 +1,105 @@
+"""RevenueCat metrics source for /api/admin/metrics.
+
+iOS subscription state derived from the User table (current state)
+and processed_events (RC webhook event counts in time windows).
+processed_events is a 3-column dedupe ledger — id, event_type,
+processed_at — the full webhook payload is discarded by the handler.
+That means we cannot break down by product_id or per-event price.
+
+Cached for 5 minutes (matches Stripe).
+
+DIVERGENCE FROM STRIPE: this MRR is heuristic, not source-of-truth.
+Stripe's services.sources.stripe_metrics iterates live Stripe API
+subscriptions and computes MRR from real subscription objects with
+real per-sub prices. Here we count User rows where
+pro_source='revenuecat' AND is_premium=True, then multiply by
+hardcoded prices keyed off User.subscription_plan ('annual' or
+'monthly'). See docs/command-center-audit.md (Path A).
+"""
+import logging
+from datetime import datetime, timedelta
+
+from models import db, User, ProcessedEvent
+from services.metrics_cache import get_or_fetch
+
+logger = logging.getLogger(__name__)
+
+CACHE_TTL_SECONDS = 5 * 60
+
+# Per Phase 2 spec: $19.99 monthly -> 1999 cents/mo, $149 yearly -> 1241 cents/mo
+PRO_MONTHLY_CENTS = 1999
+PRO_YEARLY_MONTHLY_CENTS = 1241
+
+
+def _plan_key(value):
+    """Normalize User.subscription_plan to 'monthly' / 'annual' / 'other'."""
+    v = (value or '').lower()
+    if 'month' in v:
+        return 'monthly'
+    if 'year' in v or 'annual' in v:
+        return 'annual'
+    return 'other'
+
+
+def _fetch_raw():
+    now = datetime.utcnow()
+    cutoff_7d = now - timedelta(days=7)
+    cutoff_30d = now - timedelta(days=30)
+
+    rc_users = User.query.filter(
+        User.pro_source == 'revenuecat',
+        User.is_premium == True,  # noqa: E712 (SQLAlchemy)
+    ).all()
+
+    monthly_count = 0
+    annual_count = 0
+    other_count = 0
+    for u in rc_users:
+        bucket = _plan_key(u.subscription_plan)
+        if bucket == 'monthly':
+            monthly_count += 1
+        elif bucket == 'annual':
+            annual_count += 1
+        else:
+            other_count += 1
+
+    mrr_cents = monthly_count * PRO_MONTHLY_CENTS + annual_count * PRO_YEARLY_MONTHLY_CENTS
+
+    def _event_count(event_type, since):
+        return ProcessedEvent.query.filter(
+            ProcessedEvent.event_type == event_type,
+            ProcessedEvent.processed_at >= since,
+        ).count()
+
+    new_subs_7d = _event_count('rc_INITIAL_PURCHASE', cutoff_7d)
+    new_subs_30d = _event_count('rc_INITIAL_PURCHASE', cutoff_30d)
+    canceled_30d = _event_count('rc_CANCELLATION', cutoff_30d)
+    billing_issues_30d = _event_count('rc_BILLING_ISSUE', cutoff_30d)
+
+    return {
+        'active_ios_subs': monthly_count + annual_count + other_count,
+        'monthly_subs': monthly_count,
+        'annual_subs': annual_count,
+        'unknown_plan_subs': other_count,
+        'mrr_cents': mrr_cents,
+        'new_subs_7d': new_subs_7d,
+        'new_subs_30d': new_subs_30d,
+        'canceled_30d': canceled_30d,
+        'billing_issues_30d': billing_issues_30d,
+        'currency': 'usd',
+        'note': (
+            'iOS state derived from User.pro_source=revenuecat. MRR is '
+            'heuristic ($19.99/mo or $149/yr keyed by User.subscription_plan); '
+            'unknown_plan_subs contribute 0. Stripe MRR is source-of-truth.'
+        ),
+    }
+
+
+def fetch() -> dict:
+    """Returns the cache envelope: {payload, fetched_at, stale, last_error}."""
+    return get_or_fetch(
+        cache_key='revenuecat:summary',
+        ttl_seconds=CACHE_TTL_SECONDS,
+        source='revenuecat',
+        fetch_fn=_fetch_raw,
+    )
