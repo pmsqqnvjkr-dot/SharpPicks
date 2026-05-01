@@ -3929,82 +3929,160 @@ def log_cron_async(job_name, fn, skip_throttle=False):
     return jsonify({'status': 'accepted', 'job': job_name, 'message': 'Running in background'}), 202
 
 
+INTERNAL_EMAILS = [
+    e.strip().lower()
+    for e in os.environ.get('INTERNAL_EMAILS', 'evan@sharppicks.ai').split(',')
+    if e.strip()
+]
+
+EVENTS_DEDUPE_WINDOW_SECONDS = 60
+
+
+def _events_client_ip():
+    fwd = request.headers.get('X-Forwarded-For', '')
+    if fwd:
+        return fwd.split(',')[0].strip()
+    return request.remote_addr
+
+
+def _events_parse_body():
+    """Parse JSON regardless of Content-Type. sendBeacon sends text/plain
+    with a JSON body; fetch sends application/json. Both land here."""
+    raw = request.get_data(as_text=True)
+    if not raw:
+        raise ValueError('empty body')
+    return json.loads(raw)
+
+
+def _events_parse_client_ts(s):
+    if not s or not isinstance(s, str):
+        return None
+    s = s.strip()
+    if s.endswith('Z'):
+        s = s[:-1] + '+00:00'
+    try:
+        return datetime.fromisoformat(s)
+    except ValueError:
+        return None
+
+
+def _events_is_dup(event_type, client_ts, signal_id, surface, ip):
+    """60-second idempotency window keyed on
+    (event_type, client_ts, signal_id, surface, ip). Without a client_ts
+    the dedupe key is undefined; pass through."""
+    if not client_ts:
+        return False
+    cutoff = datetime.utcnow() - timedelta(seconds=EVENTS_DEDUPE_WINDOW_SECONDS)
+    q = UserEvent.query.filter(
+        UserEvent.event_type == event_type,
+        UserEvent.client_ts == client_ts,
+        UserEvent.created_at >= cutoff,
+    )
+    q = q.filter(UserEvent.signal_id.is_(None) if signal_id is None else UserEvent.signal_id == signal_id)
+    q = q.filter(UserEvent.surface.is_(None)   if surface   is None else UserEvent.surface   == surface)
+    q = q.filter(UserEvent.ip.is_(None)        if ip        is None else UserEvent.ip        == ip)
+    return db.session.query(q.exists()).scalar()
+
+
 @app.route('/api/events', methods=['POST'])
 def post_user_events():
-    user = get_current_user_from_session()
-    if not user:
-        return jsonify({'error': 'Authentication required'}), 401
+    # NOTE: This endpoint returns HTTP 200 with {"ok": true} (NOT 204 No Content)
+    # by deliberate design. Returning 200 with {'ok': true} instead of 204 is a
+    # deliberate concession to single-deploy architecture. Frontend bundle and
+    # Flask backend ship in one Railway artifact, so we cannot land a
+    # client-side 204 handler before the server starts returning 204. Browser
+    # tabs already loaded at deploy time would hit the new server with the old
+    # client (no 204 handler), eventTracker would fail to parse the empty body,
+    # and the retry queue would back up until the user reloaded. The
+    # 200-with-body shape is parseable by every version of the client. Do not
+    # change to 204 without solving the sticky-tab transition first.
+
+    # No auth wall. Session attached if present, anonymous otherwise.
     try:
-        body = request.get_json(force=True)
-    except Exception:
+        body = _events_parse_body()
+    except (ValueError, json.JSONDecodeError):
         return jsonify({'error': 'Invalid JSON'}), 400
-    if body is None or not isinstance(body, dict):
+    if not isinstance(body, dict):
         return jsonify({'error': 'Expected JSON object'}), 400
-    events = body.get('events')
-    if not isinstance(events, list):
-        return jsonify({'error': 'events must be an array'}), 400
+
+    # Two accepted shapes:
+    #   new (single):  { event, surface, signal_id, sport, client_ts, ... }
+    #   old (batch):   { events: [ { event_type, event_data, ... }, ... ] }
+    if isinstance(body.get('events'), list):
+        events = body['events']
+    elif isinstance(body.get('event'), str):
+        events = [body]
+    else:
+        return jsonify({'error': 'Expected {event:...} or {events:[...]}'}), 400
     if len(events) > 100:
         return jsonify({'error': 'Maximum 100 events per request'}), 400
 
-    user_id = user['id']
+    user = None
+    try:
+        user = get_current_user_from_session()
+    except Exception:
+        logging.exception('post_user_events: session lookup failed')
+        user = None
+    user_id = (user or {}).get('id')
+    user_email = ((user or {}).get('email') or '').lower()
+    is_internal = bool(user_email) and user_email in INTERNAL_EMAILS
+
+    ip = _events_client_ip()
+    user_agent = (request.headers.get('User-Agent') or '')[:500]
+    server_now = datetime.utcnow()
+
     rows = []
-    for i, ev in enumerate(events):
-        if not isinstance(ev, dict):
-            return jsonify({'error': f'events[{i}] must be an object'}), 400
-        et = ev.get('event_type')
-        if not isinstance(et, str) or not et.strip():
-            return jsonify({'error': f'events[{i}].event_type required'}), 400
-        et = et.strip()
-        if len(et) > 50:
-            return jsonify({'error': f'events[{i}].event_type too long (max 50)'}), 400
-        ed = ev.get('event_data', {})
-        if ed is None:
-            ed = {}
-        if not isinstance(ed, dict):
-            return jsonify({'error': f'events[{i}].event_data must be an object'}), 400
-        page = ev.get('page')
-        if page is not None and not isinstance(page, str):
-            return jsonify({'error': f'events[{i}].page must be a string'}), 400
-        if page:
-            page = page[:100]
-        sid = ev.get('session_id')
-        if sid is not None and not isinstance(sid, str):
-            return jsonify({'error': f'events[{i}].session_id must be a string'}), 400
-        if sid:
-            sid = sid[:64]
-        created_kw = {}
-        ts_raw = ev.get('timestamp')
-        if ts_raw is not None:
-            if not isinstance(ts_raw, str):
-                return jsonify({'error': f'events[{i}].timestamp must be a string'}), 400
-            s = ts_raw.strip()
-            if s.endswith('Z'):
-                s = s[:-1] + '+00:00'
-            try:
-                ca = datetime.fromisoformat(s)
-            except ValueError:
-                return jsonify({'error': f'events[{i}].timestamp invalid ISO format'}), 400
-            if ca.tzinfo is not None:
-                ca = ca.astimezone(timezone.utc).replace(tzinfo=None)
-            created_kw['created_at'] = ca
+    deduped = 0
+    for raw_ev in events:
+        if not isinstance(raw_ev, dict):
+            return jsonify({'error': 'each event must be an object'}), 400
+
+        et = (raw_ev.get('event') or raw_ev.get('event_type') or '').strip()
+        if not et or len(et) > 50:
+            return jsonify({'error': 'event/event_type required, max 50 chars'}), 400
+        surface = raw_ev.get('surface')
+        signal_id = raw_ev.get('signal_id')
+        sport = raw_ev.get('sport')
+        client_ts = _events_parse_client_ts(raw_ev.get('client_ts') or raw_ev.get('timestamp'))
+        page = (raw_ev.get('page') or '')[:100] or None
+        sid = (raw_ev.get('session_id') or '')[:64] or None
+        if 'event_data' in raw_ev and isinstance(raw_ev['event_data'], dict):
+            event_data = raw_ev['event_data']
+        else:
+            event_data = {k: v for k, v in raw_ev.items()
+                          if k not in {'event', 'event_type', 'surface', 'signal_id',
+                                       'sport', 'client_ts', 'timestamp', 'page', 'session_id'}}
+
+        if _events_is_dup(et, client_ts, signal_id, surface, ip):
+            deduped += 1
+            continue
+
         rows.append(UserEvent(
             user_id=user_id,
             event_type=et,
-            event_data=ed,
-            page=page or None,
-            session_id=sid or None,
-            **created_kw,
+            event_data=event_data,
+            page=page,
+            session_id=sid,
+            surface=surface,
+            is_internal=is_internal,
+            signal_id=signal_id,
+            sport=sport,
+            client_ts=client_ts,
+            ip=ip,
+            user_agent=user_agent,
+            created_at=server_now,
         ))
 
-    try:
-        db.session.add_all(rows)
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        logging.exception('post_user_events failed')
-        return jsonify({'error': 'Failed to save events'}), 500
+    if rows:
+        try:
+            db.session.add_all(rows)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            logging.exception('post_user_events failed')
+            return jsonify({'error': 'Failed to save events'}), 500
 
-    return jsonify({'success': True, 'count': len(rows)})
+    return jsonify({'ok': True}), 200
 
 
 @app.route('/api/cron/diagnostic', methods=['GET', 'POST'])

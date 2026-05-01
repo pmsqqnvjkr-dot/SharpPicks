@@ -79,7 +79,7 @@ export async function apiPost(endpoint, body) {
       body: JSON.stringify(body),
       signal: controller.signal,
     });
-    const json = await res.json();
+    const json = res.status === 204 ? {} : await res.json();
     if (json.token) setAuthToken(json.token);
     return json;
   } catch (err) {

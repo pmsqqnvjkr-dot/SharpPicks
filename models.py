@@ -6,8 +6,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 if os.environ.get('TESTING') == '1':
     from sqlalchemy import JSON as JSONB  # SQLite-compatible for tests
+    from sqlalchemy import String as INET  # SQLite has no INET; fall back to text
 else:
     from sqlalchemy.dialects.postgresql import JSONB
+    from sqlalchemy.dialects.postgresql import INET
 import uuid
 import random
 import string
@@ -367,6 +369,14 @@ class UserEvent(db.Model):
     page = db.Column(db.String(100), nullable=True)
     session_id = db.Column(db.String(64), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.now, index=True)
+    # Phase 1 additions (migrations/2026-05-01-extend-user-events.sql):
+    surface = db.Column(db.String, nullable=True, index=True)
+    is_internal = db.Column(db.Boolean, nullable=False, default=False)
+    signal_id = db.Column(db.String, nullable=True)
+    sport = db.Column(db.String, nullable=True)
+    client_ts = db.Column(db.DateTime(timezone=True), nullable=True)
+    ip = db.Column(INET, nullable=True)
+    user_agent = db.Column(db.String, nullable=True)
 
 
 class ContentPageView(db.Model):

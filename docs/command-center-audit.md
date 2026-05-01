@@ -301,3 +301,50 @@ Hold here. Before Phase 1 starts, decide:
 
 No code changes have been made. Files modified by this audit: this doc
 only.
+
+---
+
+## Phase 1 implementation notes (added 2026-05-01)
+
+### `created_at` semantic shift at the Phase 1 deploy boundary
+
+Pre-Phase-1, `/api/events` mapped the client-supplied `timestamp` field into
+`user_events.created_at` directly. Post-Phase-1, the server sets
+`created_at` to the server-side wall clock (`datetime.utcnow()`) and the
+client's wall clock lands in the new `client_ts` column.
+
+Implication for any timeseries grouped by `created_at`:
+
+- Rows written before the deploy carry client-side time (subject to
+  client clock skew and the up-to-30s eventTracker batch flush delay).
+- Rows written after the deploy carry server-side time at the moment of
+  insert.
+
+The discontinuity is small in practice (skew typically < 1 minute) but
+non-zero. Phase 4 reconciliation should not treat `created_at`
+distributions as continuous across the Phase 1 deploy date.
+
+### Returning 200 with `{"ok": true}` instead of 204 No Content
+
+Returning 200 with `{'ok': true}` instead of 204 is a deliberate
+concession to single-deploy architecture. Frontend bundle and Flask
+backend ship in one Railway artifact, so we cannot land a client-side
+204 handler before the server starts returning 204. Browser tabs already
+loaded at deploy time would hit the new server with the old client (no
+204 handler), eventTracker would fail to parse the empty body, and the
+retry queue would back up until the user reloaded. The 200-with-body
+shape is parseable by every version of the client. Do not change to 204
+without solving the sticky-tab transition first.
+
+The companion `apiPost` 204-handling tweak shipped in `useApi.js` is a
+defensive fix: future endpoints can return 204 without breaking new
+browsers, but `/api/events` itself stays on 200-with-body for the
+sticky-tab reason above.
+
+### `INTERNAL_EMAILS` allowlist
+
+Module-level constant in `app.py`, env-overridable via the
+`INTERNAL_EMAILS` env var (comma-separated). Default is
+`['evan@sharppicks.ai']`, matching the existing `ADMIN_EMAIL` constant
+in `admin_api.py:23`. Lowercase normalized at parse time. Used to set
+`user_events.is_internal = true` server-side at write time.
