@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 const PROD_URL = 'https://app.sharppicks.ai';
-const API_BASE = Capacitor.isNativePlatform() ? PROD_URL + '/api' : '/api';
+// Consumed by src/utils/track.js for Capacitor native compatibility.
+// If you refactor this, update track.js — webview origin differs from
+// app.sharppicks.ai on native, so a relative '/api' path silently breaks
+// bet_tap tracking on iOS/Android.
+export const API_BASE = Capacitor.isNativePlatform() ? PROD_URL + '/api' : '/api';
 const TOKEN_KEY = 'sp_auth_token';
 
 export function setAuthToken(token) {

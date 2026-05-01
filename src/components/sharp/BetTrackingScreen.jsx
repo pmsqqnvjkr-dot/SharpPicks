@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiGet, apiPost, apiPut, apiDelete } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
+import { track } from '../../utils/track';
 
 export default function BetTrackingScreen({ onBack, pickToTrack }) {
   const { user, setUnitSize } = useAuth();
@@ -50,6 +51,11 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
   };
 
   const handleSubmitBet = async (betData) => {
+    track('bet_tap', {
+      surface: 'place_own_bet',
+      signal_id: betData.pick_id || null,
+      sport: betData.sport || null,
+    });
     try {
       const res = await apiPost('/bets', betData);
       if (res.success) {
@@ -690,6 +696,7 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
     setSubmitting(true);
     await onSubmit({
       pick_id: pick.id,
+      sport: pick.sport,
       units_wagered: parseFloat(cardUnits) || 1,
       bet_amount: parseInt(cardWager) || unitSize || 100,
       odds: parseInt(cardOdds) || pick.market_odds || -110,

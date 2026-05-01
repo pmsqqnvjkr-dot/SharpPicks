@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { apiPost, apiDelete, getAuthToken } from '../../hooks/useApi';
 import { trackEvent } from '../../utils/eventTracker';
+import { track } from '../../utils/track';
 import teamAbbr from '../../utils/teamAbbr';
 import sportDisplay from '../../utils/sportDisplay';
 import openSignup from '../../utils/openSignup';
@@ -89,6 +90,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
     setTracking(true);
     setTrackError(null);
     trackEvent('tap_bet_link', { game_id: pick.id, pick_type: 'spread', sportsbook: pick.sportsbook || 'unknown' });
+    track('bet_tap', { surface: 'signal_card', signal_id: pick.id, sport: pick.sport });
     try {
       const res = await apiPost('/bets', betData);
       if (res.success) {
