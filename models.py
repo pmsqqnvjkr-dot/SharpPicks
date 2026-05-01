@@ -410,3 +410,15 @@ class MrrSnapshot(db.Model):
     founding_members = db.Column(db.Integer, default=0)
     total_subscribers = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.now)
+
+
+class MetricsCache(db.Model):
+    """Phase 2 server-side cache for third-party analytics fetches.
+    See migrations/2026-05-01-metrics-cache.sql and services/metrics_cache.py."""
+    __tablename__ = 'metrics_cache'
+    cache_key = db.Column(db.Text, primary_key=True)
+    payload = db.Column(JSONB, nullable=False)
+    fetched_at = db.Column(db.DateTime(timezone=True), nullable=False)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=False)
+    source = db.Column(db.Text, nullable=False)
+    last_error = db.Column(db.Text, nullable=True)
