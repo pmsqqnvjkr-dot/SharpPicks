@@ -569,7 +569,7 @@ def send_result_email(to, pick):
 
     opening_line_fmt = fmt_line(line_open if line_open is not None else signal_line)
     closing_line_fmt = fmt_line(closing)
-    clv_points = round(float(clv_val), 1) if clv_val is not None else 0
+    clv_points = round(float(clv_val), 1) if clv_val is not None else None
     model_prob = round(float(model_prob_raw) * 100, 1) if model_prob_raw else 0
 
     cover_margin = None

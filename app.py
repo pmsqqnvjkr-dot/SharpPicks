@@ -400,6 +400,7 @@ from picks_api import picks_bp
 from public_api import public_bp
 from insights_api import insights_bp
 from model_service import run_model_and_log
+from utils.clv import resolve_pick_side, to_picked_perspective, clv_points
 from sqlalchemy import func
 
 if is_production:
@@ -3493,13 +3494,12 @@ def collect_closing_lines():
                     today_pick.line_close = closing
                     today_pick.closing_spread = closing
                     if today_pick.line is not None and closing is not None:
-                        side_lower = (today_pick.side or '').lower()
-                        home_lower = (today_pick.home_team or '').lower()
-                        is_home_pick = home_lower and home_lower in side_lower
-                        if is_home_pick:
-                            today_pick.clv = today_pick.line - closing
-                        else:
-                            today_pick.clv = today_pick.line + closing
+                        side = resolve_pick_side(today_pick)
+                        if side is not None:
+                            today_pick.clv = clv_points(
+                                today_pick.line,
+                                to_picked_perspective(closing, side),
+                            )
 
             conn.commit()
             conn.close()
@@ -3588,13 +3588,12 @@ def collect_wnba_closing_lines_job():
                         today_pick.line_close = closing
                     today_pick.closing_spread = closing
                     if today_pick.line is not None and closing is not None:
-                        side_lower = (today_pick.side or '').lower()
-                        home_lower = (today_pick.home_team or '').lower()
-                        is_home_pick = home_lower and home_lower in side_lower
-                        if is_home_pick:
-                            today_pick.clv = today_pick.line - closing
-                        else:
-                            today_pick.clv = today_pick.line + closing
+                        side = resolve_pick_side(today_pick)
+                        if side is not None:
+                            today_pick.clv = clv_points(
+                                today_pick.line,
+                                to_picked_perspective(closing, side),
+                            )
 
             conn.commit()
             conn.close()
@@ -4675,19 +4674,34 @@ def collect_mlb_closing_lines_job():
             cursor = conn.cursor()
 
             today_str = _get_et_today()
+            now_utc = datetime.utcnow()
+            # mlb_games.game_time format is 'YYYY-MM-DDTHH:MMZ' (no seconds)
+            now_iso = now_utc.strftime('%Y-%m-%dT%H:%MZ')
+            window_end = now_utc + timedelta(minutes=10)
+            end_iso = window_end.strftime('%Y-%m-%dT%H:%MZ')
+
             cursor.execute('''
                 SELECT id, home_team, away_team, spread_home, total,
-                       home_ml, away_ml
+                       home_ml, away_ml, game_time, home_score
                 FROM mlb_games
                 WHERE game_date LIKE ?
-                AND home_score IS NULL
+                AND game_time IS NOT NULL
                 AND spread_home IS NOT NULL
             ''', (f'{today_str}%',))
 
             games = cursor.fetchall()
             updated = 0
+            skipped_outside = 0
+            skipped_scored = 0
 
             for game in games:
+                gt = game['game_time']
+                if gt < now_iso or gt > end_iso:
+                    skipped_outside += 1
+                    continue
+                if game['home_score'] is not None:
+                    skipped_scored += 1
+                    continue
                 cursor.execute('''
                     UPDATE mlb_games SET
                         spread_home_close = ?,
@@ -4713,18 +4727,17 @@ def collect_mlb_closing_lines_job():
                         today_pick.line_close = closing
                     today_pick.closing_spread = closing
                     if today_pick.line is not None and closing is not None:
-                        side_lower = (today_pick.side or '').lower()
-                        home_lower = (today_pick.home_team or '').lower()
-                        is_home_pick = home_lower and home_lower in side_lower
-                        if is_home_pick:
-                            today_pick.clv = today_pick.line - closing
-                        else:
-                            today_pick.clv = today_pick.line + closing
+                        side = resolve_pick_side(today_pick)
+                        if side is not None:
+                            today_pick.clv = clv_points(
+                                today_pick.line,
+                                to_picked_perspective(closing, side),
+                            )
 
             conn.commit()
             conn.close()
             db.session.commit()
-            print(f"[{datetime.now()}] Captured MLB closing lines for {updated} games")
+            print(f"[{datetime.now()}] MLB closing-lines: {len(games)} today, {updated} snapshotted, {skipped_scored} already scored, {skipped_outside} outside window")
         except Exception as e:
             print(f"[{datetime.now()}] MLB closing line error: {e}")
 

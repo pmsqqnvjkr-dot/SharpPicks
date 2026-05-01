@@ -95,7 +95,7 @@
                         <td align="right" style="padding:6px 0;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:14px;font-weight:500;color:#E8EAED;">{{ closing_line }}</td>
                       </tr>
                     </table>
-                    {% if clv_points is defined and clv_points != 0 %}
+                    {% if clv_points is defined and clv_points is not none and clv_points != 0 %}
                     <div style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:13px;color:rgba(232,234,237,0.45);margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);line-height:1.6;">
                       {% if clv_points > 0 %}
                       The line moved {{ clv_points|abs }} point{{ 's' if clv_points|abs != 1 else '' }} in our direction after entry. The market agreed with the model.
