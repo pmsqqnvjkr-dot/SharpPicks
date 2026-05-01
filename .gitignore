@@ -11,6 +11,7 @@ venv/
 *.db
 *.pkl
 firebase-service-account.json
+secrets/
 uv.lock
 node_modules
 sharp-picks-release.keystore
