@@ -348,3 +348,46 @@ Module-level constant in `app.py`, env-overridable via the
 `['evan@sharppicks.ai']`, matching the existing `ADMIN_EMAIL` constant
 in `admin_api.py:23`. Lowercase normalized at parse time. Used to set
 `user_events.is_internal = true` server-side at write time.
+
+### Phase 1 ground truth (snapshot 2026-05-01)
+
+For Phase 2 to start from current state, here's what shipped:
+
+**Schema (Step 1.1):** `migrations/2026-05-01-extend-user-events.sql`
+applied to prod. 7 new columns on `user_events`: `surface`,
+`is_internal` (NOT NULL DEFAULT false), `signal_id`, `sport`,
+`client_ts` (TIMESTAMPTZ), `ip` (INET), `user_agent`. 2 new indexes:
+`ix_user_events_event_type_created_at` (composite), `ix_user_events_surface`.
+Backfill set `is_internal=true` for 5588 rows tied to
+`evan@sharppicks.ai`.
+
+**Server (Step 1.2):** `app.py` route `POST /api/events`
+(`post_user_events`). Accepts both new single-event shape
+(`{event, surface, signal_id, sport, client_ts, ...}`) and old batch
+shape (`{events: [...]}`). No auth wall. Both `application/json` and
+`text/plain` content types accepted (sendBeacon path). 60-second
+dedupe on (event_type, client_ts, signal_id, surface, ip). Returns
+`{"ok": true}` 200 (NOT 204). Server-side: attaches `user_id` from
+session if present, computes `is_internal` from `INTERNAL_EMAILS`,
+sets `created_at = utcnow()`, captures `ip` and `user_agent`.
+
+**Client (Step 1.3):** `src/utils/track.js` is the new helper —
+sendBeacon-first, fetch-with-keepalive fallback. Wired at:
+- `src/components/sharp/PickCard.jsx:handleTrackPick` — emits
+  `bet_tap` with `surface=signal_card`. Existing
+  `trackEvent('tap_bet_link', ...)` left in place alongside.
+- `src/components/sharp/BetTrackingScreen.jsx:handleSubmitBet` —
+  emits `bet_tap` with `surface=place_own_bet`. Manual / parlay
+  sub-paths pass `signal_id=null` and `sport=null`.
+
+**Event-type cohorts in `user_events` for Phase 2 funnel queries:**
+- Pre-1.3: `event_type='tap_bet_link'`, no surface, ~52 rows over 30d.
+- Post-1.3 from PickCard: both `tap_bet_link` AND `bet_tap` fire from
+  the same handler. The `bet_tap` row carries `surface=signal_card`.
+- Post-1.3 from BetTrackingScreen: `bet_tap` with
+  `surface=place_own_bet` (no `tap_bet_link`).
+
+Phase 2 funnel queries that want pre/post continuity:
+`WHERE event_type IN ('tap_bet_link', 'bet_tap')`. Queries that need
+surface granularity: `WHERE event_type = 'bet_tap'` and group by
+`surface`.
