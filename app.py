@@ -5789,12 +5789,15 @@ def verify_email():
     session['user_id'] = user.id
     session['session_token'] = user.session_token
 
-    if not user.trial_used and not user.is_premium:
+    ua = request.headers.get('User-Agent', '').lower()
+    # iOS users must use IAP per App Store Guideline 3.1.1; never funnel
+    # them through Stripe checkout for digital subscriptions.
+    is_ios = 'iphone' in ua or 'ipad' in ua or 'ipod' in ua
+    if not is_ios and not user.trial_used and not user.is_premium:
         checkout_url = _create_trial_checkout_url(user)
         if checkout_url:
             return _redirect_replace(checkout_url)
 
-    ua = request.headers.get('User-Agent', '').lower()
     is_mobile = any(k in ua for k in ('iphone', 'ipad', 'android', 'capacitor'))
     if is_mobile:
         html = """<!DOCTYPE html>
@@ -6187,7 +6190,9 @@ def google_callback():
     if nonce:
         _store_oauth_nonce(nonce, generate_auth_token(user))
 
-    if is_new and plan == 'trial':
+    ua = (request.headers.get('User-Agent') or '').lower()
+    is_ios = 'iphone' in ua or 'ipad' in ua or 'ipod' in ua
+    if not is_ios and is_new and plan == 'trial':
         checkout_url = _create_trial_checkout_url(user)
         if checkout_url:
             return _redirect_replace(checkout_url)
@@ -6252,7 +6257,9 @@ def apple_callback():
     if nonce:
         _store_oauth_nonce(nonce, generate_auth_token(user))
 
-    if is_new and plan == 'trial':
+    ua = (request.headers.get('User-Agent') or '').lower()
+    is_ios = 'iphone' in ua or 'ipad' in ua or 'ipod' in ua
+    if not is_ios and is_new and plan == 'trial':
         checkout_url = _create_trial_checkout_url(user)
         if checkout_url:
             return _redirect_replace(checkout_url)

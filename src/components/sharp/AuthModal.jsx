@@ -10,7 +10,10 @@ const isIOS = Capacitor.getPlatform() === 'ios';
 
 export default function AuthModal({ onClose, initialMode, initialAccountType }) {
   const [mode, setMode] = useState(initialMode || 'login');
-  const [accountView, setAccountView] = useState(initialAccountType || 'trial');
+  // iOS subscriptions must run through StoreKit/IAP per App Store rules,
+  // so default new iOS signups to a free account; upgrades happen later
+  // via the in-app paywall (RevenueCat).
+  const [accountView, setAccountView] = useState(initialAccountType || (isIOS ? 'free' : 'trial'));
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -519,22 +522,24 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
                 {isFreeView ? 'No card needed · Limited access · Upgrade anytime' : 'Card required · $0 for 14 days · Cancel anytime'}
               </p>
 
-              <button
-                type="button"
-                onClick={() => setAccountView(isFreeView ? 'trial' : 'free')}
-                style={{
-                  display: 'block',
-                  margin: '16px auto 0',
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-tertiary)',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-sans)',
-                }}
-              >
-                {isFreeView ? 'or start a 14-day trial instead' : 'or create a free account instead'}
-              </button>
+              {!isIOS && (
+                <button
+                  type="button"
+                  onClick={() => setAccountView(isFreeView ? 'trial' : 'free')}
+                  style={{
+                    display: 'block',
+                    margin: '16px auto 0',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-tertiary)',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {isFreeView ? 'or start a 14-day trial instead' : 'or create a free account instead'}
+                </button>
+              )}
             </>
           ) : (
             <button
