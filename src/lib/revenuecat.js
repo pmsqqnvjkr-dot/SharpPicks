@@ -18,11 +18,17 @@ export async function initializeRevenueCat(userId) {
   if (_configured) return true;
   try {
     const Purchases = await _getPurchases();
-    await Purchases.configure({ apiKey: RC_IOS_KEY, appUserID: userId || null });
+    // Omit appUserID entirely when we don't have one — passing null caused
+    // the SDK to silently reject configure(), which left getOfferings()
+    // throwing 'Purchases must be configured before calling this function'
+    // for anonymous users on app boot.
+    const config = { apiKey: RC_IOS_KEY };
+    if (userId) config.appUserID = String(userId);
+    await Purchases.configure(config);
     _configured = true;
-    console.log('[RC] RevenueCat configured successfully');
+    console.log('[RC] RevenueCat configured successfully', userId ? '(identified)' : '(anonymous)');
   } catch (e) {
-    console.error('[RC] configure failed:', e);
+    console.error('[RC] configure failed:', e?.message || e, 'code:', e?.code);
   }
   return _configured;
 }
