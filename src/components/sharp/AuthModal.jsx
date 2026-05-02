@@ -251,52 +251,50 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
           </div>
         )}
 
-        {(mode === 'login' || mode === 'register') && (
-          <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-              {!isIOS && (
-                <button
-                  type="button"
-                  onClick={() => handleOAuth('google')}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                    width: '100%', padding: '12px', borderRadius: 8,
-                    fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 500,
-                    color: 'var(--text-primary)', background: 'var(--surface-2)',
-                    border: '1px solid var(--stroke-muted)', cursor: 'pointer',
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
-                  Continue with Google
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => handleOAuth('apple')}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  width: '100%', padding: '12px', borderRadius: 8,
-                  fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 500,
-                  color: 'var(--text-primary)', background: 'var(--surface-2)',
-                  border: '1px solid var(--stroke-muted)', cursor: 'pointer',
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.52-3.23 0-1.44.64-2.2.52-3.06-.4C3.79 16.17 4.36 9.96 8.9 9.7c1.26.07 2.13.72 2.87.76.99-.2 1.94-.78 3-.84 1.28-.07 2.25.38 2.88 1.2-2.64 1.58-2.01 5.07.37 6.04-.5 1.3-.73 1.88-1.37 3.03-.58 1.04-1.4 2.08-2.6 2.39zM12.03 9.6C11.86 7.69 13.38 6.1 15.18 5.95c.27 2.15-1.94 3.76-3.15 3.65z" fill="#fff"/></svg>
-                Continue with Apple
-              </button>
-            </div>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16,
-            }}>
-              <div style={{ flex: 1, height: 1, background: 'var(--stroke-muted)' }} />
-              <span style={{
-                fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 500,
-                letterSpacing: '0.08em', textTransform: 'uppercase',
-                color: 'var(--text-tertiary)', whiteSpace: 'nowrap',
-              }}>or use email</span>
-              <div style={{ flex: 1, height: 1, background: 'var(--stroke-muted)' }} />
-            </div>
-          </>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+          {!isIOS && (
+            <button
+              type="button"
+              onClick={() => handleOAuth('google')}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                width: '100%', padding: '12px', borderRadius: 8,
+                fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 500,
+                color: 'var(--text-primary)', background: 'var(--surface-2)',
+                border: '1px solid var(--stroke-muted)', cursor: 'pointer',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+              Continue with Google
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => handleOAuth('apple')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              width: '100%', padding: '12px', borderRadius: 8,
+              fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 500,
+              color: 'var(--text-primary)', background: 'var(--surface-2)',
+              border: '1px solid var(--stroke-muted)', cursor: 'pointer',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.52-3.23 0-1.44.64-2.2.52-3.06-.4C3.79 16.17 4.36 9.96 8.9 9.7c1.26.07 2.13.72 2.87.76.99-.2 1.94-.78 3-.84 1.28-.07 2.25.38 2.88 1.2-2.64 1.58-2.01 5.07.37 6.04-.5 1.3-.73 1.88-1.37 3.03-.58 1.04-1.4 2.08-2.6 2.39zM12.03 9.6C11.86 7.69 13.38 6.1 15.18 5.95c.27 2.15-1.94 3.76-3.15 3.65z" fill="#fff"/></svg>
+            Continue with Apple
+          </button>
+        </div>
+        {mode !== 'verify' && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16,
+          }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--stroke-muted)' }} />
+            <span style={{
+              fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 500,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: 'var(--text-tertiary)', whiteSpace: 'nowrap',
+            }}>or use email</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--stroke-muted)' }} />
+          </div>
         )}
 
         {mode === 'verify' ? (
