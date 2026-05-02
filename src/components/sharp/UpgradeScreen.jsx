@@ -123,8 +123,8 @@ export default function UpgradeScreen({ onBack, user }) {
 
   const yearlyPkg = iapOffering?.annual;
   const monthlyPkg = iapOffering?.monthly;
-  const yearlyPrice = yearlyPkg?.product?.priceString || '$149.99/yr';
-  const monthlyPrice = monthlyPkg?.product?.priceString || '$19.99/mo';
+  const yearlyPrice = yearlyPkg?.product?.priceString || '';
+  const monthlyPrice = monthlyPkg?.product?.priceString || '';
 
   return (
     <div style={{ padding: '0', paddingBottom: '100px' }}>
