@@ -74,12 +74,17 @@ def health():
 
 @app.route('/')
 def root_landing():
-    from flask import send_from_directory, make_response
+    from flask import send_from_directory, make_response, request
     dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
     index_path = os.path.join(dist_dir, 'index.html')
     has_spa = os.path.isfile(index_path)
     user = get_current_user_from_session()
-    if user and has_spa:
+    # Honor the ?view= query param so the auth.html native-redirect
+    # ('/' + ?view=signup|signin) actually lands inside the React SPA
+    # instead of looping back to the marketing page.
+    view_param = (request.args.get('view') or '').lower()
+    wants_app = view_param in ('signup', 'signin', 'login', 'register')
+    if (user or wants_app) and has_spa:
         resp = make_response(send_from_directory(dist_dir, 'index.html'))
         resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return resp
