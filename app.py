@@ -7107,6 +7107,11 @@ def start_trial():
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
 
+    # iOS clients must use IAP (App Store Guideline 3.1.1); never hand
+    # them a Stripe checkout URL even via this legacy endpoint.
+    ua_lower = (request.headers.get('User-Agent') or '').lower()
+    is_ios = 'iphone' in ua_lower or 'ipad' in ua_lower or 'ipod' in ua_lower
+
     if not email:
         return jsonify({'error': 'Email required'}), 400
 
@@ -7128,7 +7133,7 @@ def start_trial():
         session['user_id'] = user.id
         session['session_token'] = user.session_token
 
-        if not user.is_premium:
+        if not is_ios and not user.is_premium:
             checkout_url = _create_trial_checkout_url(user)
             if checkout_url:
                 return jsonify({'success': True, 'needs_checkout': True, 'checkout_url': checkout_url})
@@ -7157,9 +7162,10 @@ def start_trial():
     session['user_id'] = user.id
     session['session_token'] = user.session_token
 
-    checkout_url = _create_trial_checkout_url(user)
-    if checkout_url:
-        return jsonify({'success': True, 'needs_checkout': True, 'checkout_url': checkout_url})
+    if not is_ios:
+        checkout_url = _create_trial_checkout_url(user)
+        if checkout_url:
+            return jsonify({'success': True, 'needs_checkout': True, 'checkout_url': checkout_url})
 
     return jsonify({
         'success': True,
