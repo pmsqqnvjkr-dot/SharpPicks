@@ -119,13 +119,9 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
   try {
     var C = window.Capacitor;
     if (!C || typeof C.isNativePlatform !== 'function' || !C.isNativePlatform()) return;
-    var s = document.createElement('style');
-    s.textContent = [
-      '#login-social.social-btns,#signup-social.social-btns{display:none!important;}',
-      '.social-btns + .divider{display:none!important;}',
-      'a[href^="/auth/"]{display:none!important;}'
-    ].join('');
-    document.head.appendChild(s);
+    var p = location.pathname;
+    var view = (p.indexOf('signup') !== -1 || p.indexOf('register') !== -1) ? 'signup' : 'signin';
+    location.replace('/?view=' + view);
   } catch (e) {}
 })();
 </script>
