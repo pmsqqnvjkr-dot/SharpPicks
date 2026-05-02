@@ -97,8 +97,6 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
   const isFreeView = accountView === 'free';
   const pollRef = useRef(null);
 
-  const isIOS = Capacitor.getPlatform() === 'ios';
-
   const handleOAuth = async (provider) => {
     const plan = isFreeView ? 'free' : 'trial';
 
