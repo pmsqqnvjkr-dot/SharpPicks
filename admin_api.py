@@ -917,8 +917,10 @@ def command_center_data():
     free_users = [u for u in users if u.subscription_status in ('free', None, '')]
     annual_subs = [u for u in active_subs if u.subscription_plan and 'annual' in u.subscription_plan.lower()]
     monthly_subs = [u for u in active_subs if u.subscription_plan and 'month' in u.subscription_plan.lower()]
-    founding_members = [u for u in users if u.founding_member]
-    founding_count = len(founding_members)
+    # Founding count is a real cap on paid spots and includes internal
+    # employee accounts who claimed founding. Read from the full users
+    # table, not the is_internal-filtered metrics view.
+    founding_count = User.query.filter_by(founding_member=True).count()
     founding_cap = 50
 
     counter = FoundingCounter.query.first()
