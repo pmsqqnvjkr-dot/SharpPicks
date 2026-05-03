@@ -43,6 +43,19 @@ function fmtTotal(val) {
   return Number.isInteger(n) ? `${n}` : n.toFixed(1);
 }
 
+// `line` is the picked-side spread (negative when picked side is favored,
+// positive when dog), so the same formula works for home and away picks.
+function computeLiveCover(pickSide, line, homeScore, awayScore) {
+  if (line == null || pickSide == null) return null;
+  const isHomePick = String(pickSide).toLowerCase().includes('home');
+  const margin = isHomePick ? (homeScore - awayScore) : (awayScore - homeScore);
+  const adjusted = margin + parseFloat(line);
+  return {
+    status: adjusted > 0 ? 'covering' : 'not_covering',
+    margin: Math.round(Math.abs(adjusted) * 10) / 10,
+  };
+}
+
 function formatSlateDate(dateStr) {
   if (!dateStr) return '';
   try {
@@ -982,34 +995,46 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
         )}
 
         {/* Cover Tracker (live signal games only) */}
-        {isLive && hasSignal && game.cover && (
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <span style={{
-                fontFamily: mono, fontSize: '10px', fontWeight: 700,
-                letterSpacing: '1px', textTransform: 'uppercase', color: grayBorder,
-              }}>COVER TRACKER</span>
-              <span style={{
-                fontFamily: mono, fontSize: '10px', fontWeight: 500,
-                color: game.cover.status === 'covering' ? brandGreen : brandRed,
-              }}>
-                {game.model?.pick || ''} · {game.cover.status === 'covering' ? 'covering' : 'not covering'} by {game.cover.margin}
-              </span>
+        {(() => {
+          if (!isLive || !hasSignal) return null;
+          const cover = computeLiveCover(
+            game.model?.pick_side,
+            game.model?.line,
+            game.home_score ?? 0,
+            game.away_score ?? 0,
+          );
+          if (!cover) return null;
+          const isCovering = cover.status === 'covering';
+          const coverColor = isCovering ? brandGreen : brandRed;
+          return (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <span style={{
+                  fontFamily: mono, fontSize: '10px', fontWeight: 700,
+                  letterSpacing: '1px', textTransform: 'uppercase', color: grayBorder,
+                }}>COVER TRACKER</span>
+                <span style={{
+                  fontFamily: mono, fontSize: '10px', fontWeight: 500,
+                  color: coverColor,
+                }}>
+                  {game.model?.pick || ''} · {isCovering ? 'covering' : 'not covering'} by {cover.margin}
+                </span>
+              </div>
+              <div style={{ position: 'relative', height: 3, background: '#1a2a42', borderRadius: 2 }}>
+                <div style={{
+                  position: 'absolute', left: 0, top: 0, height: '100%',
+                  width: `${Math.min(50 + (isCovering ? 1 : -1) * Math.min(cover.margin * 3, 50), 100)}%`,
+                  background: coverColor,
+                  borderRadius: 2, transition: 'width 0.3s ease',
+                }} />
+                <div style={{
+                  position: 'absolute', left: '50%', top: -2, width: 1.5, height: 7,
+                  background: textPrimary, transform: 'translateX(-50%)',
+                }} />
+              </div>
             </div>
-            <div style={{ position: 'relative', height: 3, background: '#1a2a42', borderRadius: 2 }}>
-              <div style={{
-                position: 'absolute', left: 0, top: 0, height: '100%',
-                width: `${Math.min(50 + (game.cover.status === 'covering' ? 1 : -1) * Math.min(game.cover.margin * 3, 50), 100)}%`,
-                background: game.cover.status === 'covering' ? brandGreen : brandRed,
-                borderRadius: 2, transition: 'width 0.3s ease',
-              }} />
-              <div style={{
-                position: 'absolute', left: '50%', top: -2, width: 1.5, height: 7,
-                background: textPrimary, transform: 'translateX(-50%)',
-              }} />
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Data strip: 4-column grid (hidden when final) */}
         {!isFinal && (
