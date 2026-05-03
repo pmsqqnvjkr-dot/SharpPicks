@@ -327,7 +327,7 @@ function PricingSection({ foundingData, onSubscribe, loading }) {
       padding: '20px', border: '1px solid var(--stroke-subtle)',
       marginTop: '12px',
     }}>
-      {foundingData?.open && (
+      {foundingData?.open && Capacitor.getPlatform() !== 'ios' && (
         <div style={{
           backgroundColor: 'rgba(245, 158, 11, 0.08)',
           border: '1px solid rgba(245, 158, 11, 0.2)',
