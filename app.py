@@ -730,6 +730,8 @@ def seed_database():
                 db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS bet_type VARCHAR DEFAULT 'spread'"))
                 db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS parlay_legs INTEGER"))
                 db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS units_wagered FLOAT"))
+                db.session.execute(db.text("ALTER TABLE tracked_bets ADD COLUMN IF NOT EXISTS settled_at TIMESTAMP"))
+                db.session.execute(db.text("UPDATE tracked_bets SET settled_at = created_at WHERE settled_at IS NULL AND result IS NOT NULL"))
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS story_type VARCHAR"))
                 db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(20)"))
                 db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_id VARCHAR(255)"))
@@ -3381,6 +3383,7 @@ def grade_pending_picks():
                         tb.profit = 0.0
                     else:
                         tb.profit = -tb.bet_amount
+                    tb.settled_at = datetime.now()
                     print(f"[Auto-grade] Tracked bet #{tb.id} for user {tb.user_id} -> {result_ats}")
                 graded_count += 1
             except Exception as pick_err:
@@ -3408,9 +3411,31 @@ def grade_pending_picks():
                     tb.profit = 0.0
                 else:
                     tb.profit = -(tb.bet_amount or 0)
+                tb.settled_at = datetime.now()
                 logging.info(f"[Auto-grade] Catch-up: bet #{tb.id} synced to {tb.result} from pick {tb.pick_id}")
         except Exception as catchup_err:
             logging.error(f"[Auto-grade] Catch-up error: {catchup_err}")
+
+        # Safety net for withdrawn picks. The inline cascade in
+        # model_service.revalidate_pretip handles the common path, but bets
+        # created after a revoke, or picks revoked through other paths (admin
+        # tools, future code), can leave tracked bets stranded as Pending.
+        # The other catch-up loops above intentionally skip 'revoked', so
+        # nothing else sweeps these.
+        try:
+            stranded_revoked = TrackedBet.query.filter(
+                TrackedBet.result.is_(None),
+                TrackedBet.pick_id.isnot(None),
+            ).join(Pick, TrackedBet.pick_id == Pick.id).filter(
+                Pick.result == 'revoked'
+            ).all()
+            for tb in stranded_revoked:
+                tb.result = 'revoked'
+                tb.profit = 0.0
+                tb.settled_at = datetime.now()
+                logging.info(f"[Auto-grade] Revoke sweep: bet #{tb.id} -> revoked from pick {tb.pick_id}")
+        except Exception as sweep_err:
+            logging.error(f"[Auto-grade] Revoke sweep error: {sweep_err}")
 
         if sqlite_conn:
             sqlite_conn.close()
@@ -4459,6 +4484,7 @@ def _grade_picks_for_final_games(final_games):
                         tb.profit = 0.0
                     else:
                         tb.profit = -tb.bet_amount
+                    tb.settled_at = datetime.now()
 
                 graded += 1
 
@@ -7474,6 +7500,7 @@ def get_user_bets():
                     b.profit = 0.0
                 else:
                     b.profit = -(b.bet_amount or 0)
+                b.settled_at = datetime.now()
                 needs_commit = True
                 logging.info(f"[Bet auto-settle] bet #{b.id} -> {pick_result} (synced from pick)")
         linked = b.linked_pick
@@ -7516,6 +7543,7 @@ def get_user_bets():
             'bet_type': b.bet_type or 'spread',
             'parlay_legs': b.parlay_legs,
             'created_at': b.created_at.isoformat() if b.created_at else None,
+            'settled_at': b.settled_at.isoformat() if b.settled_at else None,
             'linked_pick': pick_detail,
         })
     if needs_commit:
@@ -7708,10 +7736,15 @@ def update_bet_result(bet_id):
     except (TypeError, ValueError):
         profit_val = 0
 
+    was_pending = bet.result is None
     bet.result = new_result
     bet.profit = profit_val
+    if new_result and was_pending:
+        bet.settled_at = datetime.now()
+    elif new_result is None:
+        bet.settled_at = None
     db.session.commit()
-    
+
     return jsonify({'success': True})
 
 @app.route('/api/bets/<int:bet_id>', methods=['PUT'])
@@ -7741,6 +7774,7 @@ def edit_bet(bet_id):
         bet.game = data['game']
     if 'line_at_bet' in data:
         bet.line_at_bet = float(data['line_at_bet']) if data['line_at_bet'] is not None else None
+    was_pending = bet.result is None
     if 'result' in data:
         val = data['result']
         if val and val not in ('W', 'L', 'P'):
@@ -7763,6 +7797,11 @@ def edit_bet(bet_id):
     else:
         bet.profit = 0
 
+    if bet.result and was_pending:
+        bet.settled_at = datetime.now()
+    elif bet.result is None:
+        bet.settled_at = None
+
     db.session.commit()
 
     return jsonify({
@@ -7777,6 +7816,67 @@ def edit_bet(bet_id):
     })
 
 
+@app.route('/api/bets/<int:bet_id>/settle', methods=['POST'])
+def settle_own_bet(bet_id):
+    """Manually settle an own-bet tracked row.
+
+    Own bets have no game-data path so users grade them themselves.
+    Sharp-pick bets are auto-settled and rejected here.
+    """
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+
+    bet = TrackedBet.query.filter_by(id=bet_id, user_id=user.id).first()
+    if not bet:
+        return jsonify({'error': 'Bet not found'}), 404
+
+    is_own_bet = bet.pick_id is None or (bet.source or '') == 'manual'
+    if not is_own_bet:
+        return jsonify({'error': 'Only own bets can be manually settled'}), 400
+    if bet.result is not None:
+        return jsonify({'error': 'Bet is already settled'}), 400
+
+    data = request.get_json() or {}
+    outcome = (data.get('outcome') or '').lower()
+    if outcome not in ('win', 'loss', 'push', 'void'):
+        return jsonify({'error': 'Invalid outcome. Use win, loss, push, or void.'}), 400
+
+    stake = bet.bet_amount or 0
+    odds = bet.odds if bet.odds is not None else -110
+
+    if outcome == 'win':
+        if odds > 0:
+            profit = round(stake * (odds / 100), 2)
+        else:
+            profit = round(stake * (100 / abs(odds)), 2)
+        stored_result = 'W'
+    elif outcome == 'loss':
+        profit = float(-stake)
+        stored_result = 'L'
+    elif outcome == 'push':
+        profit = 0.0
+        stored_result = 'P'
+    else:
+        profit = 0.0
+        stored_result = 'void'
+
+    bet.result = stored_result
+    bet.profit = profit
+    bet.settled_at = datetime.now()
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'bet': {
+            'id': bet.id,
+            'result': bet.result,
+            'profit': bet.profit,
+            'settled_at': bet.settled_at.isoformat() if bet.settled_at else None,
+        }
+    })
+
+
 @app.route('/api/bets/<int:bet_id>', methods=['DELETE'])
 def delete_bet(bet_id):
     """Delete/untrack a bet"""
@@ -7786,10 +7886,10 @@ def delete_bet(bet_id):
     bet = TrackedBet.query.filter_by(id=bet_id, user_id=user.id).first()
     if not bet:
         return jsonify({'error': 'Bet not found'}), 404
-    
+
     db.session.delete(bet)
     db.session.commit()
-    
+
     return jsonify({'success': True})
 
 NOTIFICATION_PREF_DEFAULTS = {

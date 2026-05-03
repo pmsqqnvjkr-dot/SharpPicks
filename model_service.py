@@ -423,6 +423,8 @@ def pretip_revalidate(app, sport='nba'):
                 ).all()
                 for tb in linked_pending_bets:
                     tb.result = 'revoked'
+                    tb.profit = 0.0
+                    tb.settled_at = datetime.now()
 
                 db.session.commit()
 
