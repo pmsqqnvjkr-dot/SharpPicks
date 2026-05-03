@@ -74,12 +74,17 @@ def health():
 
 @app.route('/')
 def root_landing():
-    from flask import send_from_directory, make_response
+    from flask import send_from_directory, make_response, request
     dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
     index_path = os.path.join(dist_dir, 'index.html')
     has_spa = os.path.isfile(index_path)
     user = get_current_user_from_session()
-    if user and has_spa:
+    # Honor the ?view= query param so the auth.html native-redirect
+    # ('/' + ?view=signup|signin) actually lands inside the React SPA
+    # instead of looping back to the marketing page.
+    view_param = (request.args.get('view') or '').lower()
+    wants_app = view_param in ('signup', 'signin', 'login', 'register')
+    if (user or wants_app) and has_spa:
         resp = make_response(send_from_directory(dist_dir, 'index.html'))
         resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return resp
@@ -484,6 +489,11 @@ def handle_unauthorized():
 def load_user(user_id):
     user = _safe_get_user(user_id)
     if not user:
+        return None
+    # Soft-deleted users get force-logged-out on the next request.
+    if not user.is_active:
+        session.pop('user_id', None)
+        session.pop('session_token', None)
         return None
     stored_token = session.get('session_token')
     if not stored_token or stored_token != user.session_token:
@@ -4050,7 +4060,14 @@ def post_user_events():
         user = None
     user_id = (user or {}).get('id')
     user_email = ((user or {}).get('email') or '').lower()
+    # Email allowlist (legacy), plus the User.is_internal column added in
+    # the 2026-05-03 migration. Either path flags the event as internal so
+    # admin metrics can exclude it.
     is_internal = bool(user_email) and user_email in INTERNAL_EMAILS
+    if not is_internal and user_id:
+        db_user = db.session.get(User, user_id)
+        if db_user and db_user.is_internal:
+            is_internal = True
 
     ip = _events_client_ip()
     user_agent = (request.headers.get('User-Agent') or '')[:500]
@@ -5900,6 +5917,10 @@ def login():
     user = User.query.filter(func.lower(User.email) == email.lower()).first()
     if not user or not user.password_hash:
         return jsonify({'error': 'Invalid email or password'}), 401
+    # Soft-deleted accounts get the same generic error as 'no such user'
+    # so we don't leak the existence of disabled accounts.
+    if not user.is_active:
+        return jsonify({'error': 'Invalid email or password'}), 401
 
     if user.locked_until and user.locked_until > datetime.now():
         remaining = int((user.locked_until - datetime.now()).total_seconds() / 60) + 1
@@ -6208,6 +6229,9 @@ def google_callback():
     given_name = user_info.get('given_name') or user_info.get('name', '').split()[0] if user_info.get('name') else ''
     user, is_new = _oauth_find_or_create(email, 'google', user_info.get('sub'), first_name=given_name, plan=plan)
 
+    if not user.is_active:
+        return redirect('/login?error=account_disabled')
+
     login_user(user, remember=True)
     session.permanent = True
     session['user_id'] = user.id
@@ -6275,6 +6299,9 @@ def apple_callback():
 
     user, is_new = _oauth_find_or_create(email, 'apple', apple_sub, first_name=first_name, plan=plan)
 
+    if not user.is_active:
+        return redirect('/login?error=account_disabled')
+
     login_user(user, remember=True)
     session.permanent = True
     session['user_id'] = user.id
@@ -6336,6 +6363,9 @@ def apple_native_signin():
         user_email = f'apple_{apple_sub}@private.sharppicks.ai'
 
     user, is_new = _oauth_find_or_create(user_email, 'apple', apple_sub, first_name=first_name, plan=plan)
+
+    if not user.is_active:
+        return jsonify({'success': False, 'error': 'Account is no longer active'}), 401
 
     try:
         login_user(user, remember=True)
@@ -7128,6 +7158,11 @@ def start_trial():
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
 
+    # iOS clients must use IAP (App Store Guideline 3.1.1); never hand
+    # them a Stripe checkout URL even via this legacy endpoint.
+    ua_lower = (request.headers.get('User-Agent') or '').lower()
+    is_ios = 'iphone' in ua_lower or 'ipad' in ua_lower or 'ipod' in ua_lower
+
     if not email:
         return jsonify({'error': 'Email required'}), 400
 
@@ -7149,7 +7184,7 @@ def start_trial():
         session['user_id'] = user.id
         session['session_token'] = user.session_token
 
-        if not user.is_premium:
+        if not is_ios and not user.is_premium:
             checkout_url = _create_trial_checkout_url(user)
             if checkout_url:
                 return jsonify({'success': True, 'needs_checkout': True, 'checkout_url': checkout_url})
@@ -7178,9 +7213,10 @@ def start_trial():
     session['user_id'] = user.id
     session['session_token'] = user.session_token
 
-    checkout_url = _create_trial_checkout_url(user)
-    if checkout_url:
-        return jsonify({'success': True, 'needs_checkout': True, 'checkout_url': checkout_url})
+    if not is_ios:
+        checkout_url = _create_trial_checkout_url(user)
+        if checkout_url:
+            return jsonify({'success': True, 'needs_checkout': True, 'checkout_url': checkout_url})
 
     return jsonify({
         'success': True,

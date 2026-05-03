@@ -10,10 +10,11 @@ const isIOS = Capacitor.getPlatform() === 'ios';
 
 export default function AuthModal({ onClose, initialMode, initialAccountType }) {
   const [mode, setMode] = useState(initialMode || 'login');
-  // iOS subscriptions must run through StoreKit/IAP per App Store rules,
-  // so default new iOS signups to a free account; upgrades happen later
-  // via the in-app paywall (RevenueCat).
-  const [accountView, setAccountView] = useState(initialAccountType || (isIOS ? 'free' : 'trial'));
+  // iOS subscriptions must run through StoreKit/IAP per App Store rules.
+  // Force the free-account variant on iOS regardless of what the caller
+  // passed — even if a deep link or future caller asks for 'trial', the
+  // card-required Stripe form must never appear in the iOS WebView.
+  const [accountView, setAccountView] = useState(isIOS ? 'free' : (initialAccountType || 'trial'));
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -95,8 +96,6 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
 
   const isFreeView = accountView === 'free';
   const pollRef = useRef(null);
-
-  const isIOS = Capacitor.getPlatform() === 'ios';
 
   const handleOAuth = async (provider) => {
     const plan = isFreeView ? 'free' : 'trial';
