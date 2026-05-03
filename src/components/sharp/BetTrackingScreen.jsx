@@ -1076,8 +1076,7 @@ export function TrackBetModal({ initialPick, onClose, onSubmit, unitSize = 100, 
 }
 
 function PendingBetCard({ bet, onGraded }) {
-  const [grading, setGrading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [showSheet, setShowSheet] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editUnits, setEditUnits] = useState(String(bet.units_wagered || 1));
   const [editOdds, setEditOdds] = useState(String(bet.odds ?? -110));
@@ -1090,17 +1089,6 @@ function PendingBetCard({ bet, onGraded }) {
     : bet.bet_type === 'prop'
     ? { label: 'Prop', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' }
     : null;
-
-  const handleGrade = async (result) => {
-    setSubmitting(true);
-    const profit = result === 'W' ? (bet.to_win || 0) : result === 'P' ? 0 : -(bet.bet_amount || 0);
-    try {
-      await apiPost(`/bets/${bet.id}/result`, { result, profit });
-      onGraded();
-    } catch { /* silent */ }
-    setSubmitting(false);
-    setGrading(false);
-  };
 
   const handleSaveEdit = async () => {
     setSaving(true);
@@ -1119,12 +1107,21 @@ function PendingBetCard({ bet, onGraded }) {
     setSaving(false);
   };
 
+  const handleRowTap = () => {
+    if (editing) return;
+    if (isManual) setShowSheet(true);
+  };
+
   return (
-    <div style={{
-      padding: '12px 14px', backgroundColor: 'var(--surface-2)', borderRadius: '10px',
-      border: `1px solid ${(grading || editing) ? 'rgba(79,134,247,0.3)' : 'rgba(79, 134, 247, 0.15)'}`,
-      transition: 'border-color 0.15s',
-    }}>
+    <div
+      onClick={handleRowTap}
+      style={{
+        padding: '12px 14px', backgroundColor: 'var(--surface-2)', borderRadius: '10px',
+        border: `1px solid ${editing ? 'rgba(79,134,247,0.3)' : 'rgba(79, 134, 247, 0.15)'}`,
+        transition: 'border-color 0.15s',
+        cursor: isManual && !editing ? 'pointer' : 'default',
+      }}
+    >
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
@@ -1154,7 +1151,7 @@ function PendingBetCard({ bet, onGraded }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
-            onClick={() => { setEditing(!editing); setGrading(false); }}
+            onClick={(e) => { e.stopPropagation(); setEditing(!editing); }}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               padding: '4px', color: editing ? '#5A9E72' : 'var(--text-tertiary)',
@@ -1167,57 +1164,28 @@ function PendingBetCard({ bet, onGraded }) {
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
           </button>
-          {!grading && !editing && (
-            <button
-              onClick={() => setGrading(true)}
+          {!editing && (
+            <span
               style={{
                 fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
                 padding: '4px 10px', borderRadius: '6px',
                 backgroundColor: isManual ? 'rgba(251,191,36,0.12)' : 'rgba(90,158,114,0.12)',
                 color: isManual ? '#f59e0b' : '#5A9E72',
-                letterSpacing: '0.3px', border: 'none', cursor: 'pointer',
+                letterSpacing: '0.3px',
               }}
             >
-              {isManual ? 'Grade' : 'Awaiting'}
-            </button>
+              {isManual ? 'Tap to settle' : 'Awaiting'}
+            </span>
           )}
         </div>
       </div>
 
-      {grading && !editing && (
-        <div style={{
-          marginTop: '10px', paddingTop: '10px',
-          borderTop: '1px solid var(--stroke-subtle)',
-          display: 'flex', gap: '8px', justifyContent: 'center',
-        }}>
-          {[
-            { result: 'W', label: 'Win', color: 'var(--green-profit)', bg: 'rgba(52,211,153,0.12)' },
-            { result: 'L', label: 'Loss', color: 'var(--red-loss)', bg: 'rgba(239,68,68,0.12)' },
-            { result: 'P', label: 'Push', color: 'var(--text-tertiary)', bg: 'rgba(100,116,139,0.12)' },
-          ].map(opt => (
-            <button
-              key={opt.result}
-              onClick={() => handleGrade(opt.result)}
-              disabled={submitting}
-              style={{
-                flex: 1, padding: '8px 12px', borderRadius: '8px',
-                fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                fontFamily: 'var(--font-mono)', border: 'none',
-                backgroundColor: opt.bg, color: opt.color,
-                opacity: submitting ? 0.5 : 1,
-                transition: 'opacity 0.15s',
-              }}
-            >{opt.label}</button>
-          ))}
-          <button
-            onClick={() => setGrading(false)}
-            style={{
-              padding: '8px', borderRadius: '8px', border: 'none',
-              backgroundColor: 'transparent', cursor: 'pointer',
-              color: 'var(--text-tertiary)', fontSize: '12px',
-            }}
-          >✕</button>
-        </div>
+      {showSheet && (
+        <SettleActionSheet
+          bet={bet}
+          onClose={() => setShowSheet(false)}
+          onSettled={onGraded}
+        />
       )}
 
       {editing && (
@@ -1393,6 +1361,96 @@ function EmptyDashboard({ onTrack }) {
   );
 }
 
+function SettleActionSheet({ bet, onClose, onSettled }) {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handlePick = async (outcome) => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await apiPost(`/bets/${bet.id}/settle`, { outcome });
+      if (res && res.success) {
+        if (onSettled) onSettled();
+        onClose();
+      } else {
+        alert((res && res.error) || 'Failed to settle bet');
+        setSubmitting(false);
+      }
+    } catch (e) {
+      alert('Failed to settle bet');
+      setSubmitting(false);
+    }
+  };
+
+  const options = [
+    { outcome: 'win', label: 'Win', color: 'var(--green-profit)', bg: 'rgba(52,211,153,0.12)' },
+    { outcome: 'loss', label: 'Loss', color: 'var(--red-loss)', bg: 'rgba(239,68,68,0.12)' },
+    { outcome: 'push', label: 'Push', color: 'var(--text-tertiary)', bg: 'rgba(100,116,139,0.12)' },
+    { outcome: 'void', label: 'Void', color: 'var(--text-tertiary)', bg: 'rgba(100,116,139,0.12)' },
+  ];
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
+        zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '480px',
+          backgroundColor: 'var(--surface-1)',
+          borderTopLeftRadius: '16px', borderTopRightRadius: '16px',
+          padding: '12px 16px 20px',
+          boxShadow: '0 -8px 24px rgba(0,0,0,0.3)',
+        }}
+      >
+        <div style={{
+          width: '40px', height: '4px', borderRadius: '2px',
+          backgroundColor: 'var(--stroke-subtle)', margin: '0 auto 12px',
+        }} />
+        <div style={{
+          fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)',
+          textTransform: 'uppercase', letterSpacing: '0.06em',
+          marginBottom: '4px',
+        }}>Settle bet</div>
+        <div style={{
+          fontSize: '14px', color: 'var(--text-primary)',
+          marginBottom: '14px', lineHeight: '1.4',
+        }}>{bet.pick}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {options.map(opt => (
+            <button
+              key={opt.outcome}
+              onClick={() => handlePick(opt.outcome)}
+              disabled={submitting}
+              style={{
+                padding: '14px', borderRadius: '12px', border: 'none',
+                backgroundColor: opt.bg, color: opt.color,
+                fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'var(--font-mono)', letterSpacing: '0.02em',
+                opacity: submitting ? 0.5 : 1, transition: 'opacity 0.15s',
+              }}
+            >{opt.label}</button>
+          ))}
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            style={{
+              padding: '14px', borderRadius: '12px', border: 'none',
+              backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)',
+              fontSize: '15px', fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'var(--font-sans)', marginTop: '4px',
+            }}
+          >Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGraded, variant }) {
   const isWithdrawn = variant === 'withdrawn' || bet.result === 'revoked';
   const pickResultLabel = !isWithdrawn && bet.pick_result && bet.pick_result !== 'pending'
@@ -1404,8 +1462,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
   const swiping = useRef(false);
   const [offset, setOffset] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [grading, setGrading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [showSheet, setShowSheet] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editUnits, setEditUnits] = useState(String(bet.units_wagered || 1));
   const [editOdds, setEditOdds] = useState(String(bet.odds ?? -110));
@@ -1414,17 +1471,8 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
   const [editGame, setEditGame] = useState(bet.game || '');
   const [saving, setSaving] = useState(false);
   const deleteThreshold = 80;
-
-  const handleGrade = async (result) => {
-    setSubmitting(true);
-    const profit = result === 'W' ? (bet.to_win || 0) : result === 'P' ? 0 : -(bet.bet_amount || 0);
-    try {
-      await apiPost(`/bets/${bet.id}/result`, { result, profit });
-      if (onGraded) onGraded();
-    } catch { /* silent */ }
-    setSubmitting(false);
-    setGrading(false);
-  };
+  const isOwnBet = !bet.pick_id;
+  const isPending = !bet.result;
 
   const handleSaveEdit = async () => {
     setSaving(true);
@@ -1518,6 +1566,10 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onClick={() => {
+          if (offset > 0 || showConfirm || editing) return;
+          if (isOwnBet && isPending) setShowSheet(true);
+        }}
         style={{
           padding: '14px 20px',
           backgroundColor: 'var(--surface-1)',
@@ -1525,6 +1577,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
           transition: swiping.current ? 'none' : 'transform 0.25s ease',
           position: 'relative', zIndex: 1,
           opacity: isWithdrawn ? 0.55 : 1,
+          cursor: isOwnBet && isPending && !editing ? 'pointer' : 'default',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1579,7 +1632,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {!isWithdrawn && (
               <button
-                onClick={(e) => { e.stopPropagation(); setEditing(!editing); setGrading(false); }}
+                onClick={(e) => { e.stopPropagation(); setEditing(!editing); }}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   padding: '4px', color: editing ? '#5A9E72' : 'var(--text-tertiary)',
@@ -1600,6 +1653,13 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
                 backgroundColor: 'var(--surface-2)', color: 'var(--text-tertiary)',
                 letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap',
               }}>Withdrawn</span>
+            ) : bet.result === 'void' ? (
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                padding: '4px 8px', borderRadius: '6px',
+                backgroundColor: 'var(--surface-2)', color: 'var(--text-tertiary)',
+                letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+              }}>Void</span>
             ) : bet.result ? (
               <div style={{
                 fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 600,
@@ -1607,17 +1667,24 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
               }}>
                 {bet.result === 'W' ? `+$${Math.abs(bet.profit || 0).toFixed(0)}` : bet.result === 'P' ? 'Push' : `-$${Math.abs(bet.profit || 0).toFixed(0)}`}
               </div>
-            ) : (
-              <button
-                onClick={(e) => { e.stopPropagation(); setGrading(!grading); setEditing(false); }}
+            ) : isOwnBet ? (
+              <span
                 style={{
                   fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
                   padding: '4px 10px', borderRadius: '6px',
-                  backgroundColor: grading ? 'rgba(251,191,36,0.18)' : 'rgba(251,191,36,0.12)',
-                  color: '#f59e0b',
-                  letterSpacing: '0.3px', border: 'none', cursor: 'pointer',
-                  transition: 'background-color 0.15s',
-                }}>Grade</button>
+                  backgroundColor: 'rgba(251,191,36,0.12)', color: '#f59e0b',
+                  letterSpacing: '0.3px', whiteSpace: 'nowrap',
+                }}
+              >Tap to settle</span>
+            ) : (
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
+                  padding: '4px 10px', borderRadius: '6px',
+                  backgroundColor: 'rgba(90,158,114,0.12)', color: '#5A9E72',
+                  letterSpacing: '0.3px',
+                }}
+              >Awaiting</span>
             )}
           </div>
         </div>
@@ -1627,42 +1694,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
             borderTop: '1px solid var(--stroke-subtle)',
             fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5',
           }}>
-            Pick withdrawn · Edge dropped below threshold.
-          </div>
-        )}
-        {!bet.result && grading && !editing && (
-          <div style={{
-            marginTop: '10px', paddingTop: '10px',
-            borderTop: '1px solid var(--stroke-subtle)',
-            display: 'flex', gap: '8px', justifyContent: 'center',
-          }}>
-            {[
-              { result: 'W', label: 'Win', color: 'var(--green-profit)', bg: 'rgba(52,211,153,0.12)' },
-              { result: 'L', label: 'Loss', color: 'var(--red-loss)', bg: 'rgba(239,68,68,0.12)' },
-              { result: 'P', label: 'Push', color: 'var(--text-tertiary)', bg: 'rgba(100,116,139,0.12)' },
-            ].map(opt => (
-              <button
-                key={opt.result}
-                onClick={() => handleGrade(opt.result)}
-                disabled={submitting}
-                style={{
-                  flex: 1, padding: '8px 12px', borderRadius: '8px',
-                  fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                  fontFamily: 'var(--font-mono)', border: 'none',
-                  backgroundColor: opt.bg, color: opt.color,
-                  opacity: submitting ? 0.5 : 1,
-                  transition: 'opacity 0.15s',
-                }}
-              >{opt.label}</button>
-            ))}
-            <button
-              onClick={() => setGrading(false)}
-              style={{
-                padding: '8px', borderRadius: '8px', border: 'none',
-                backgroundColor: 'transparent', cursor: 'pointer',
-                color: 'var(--text-tertiary)', fontSize: '12px',
-              }}
-            >✕</button>
+            Pick withdrawn. Edge dropped below threshold.
           </div>
         )}
 
@@ -1754,6 +1786,13 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
           </div>
         )}
       </div>
+      {showSheet && (
+        <SettleActionSheet
+          bet={bet}
+          onClose={() => setShowSheet(false)}
+          onSettled={onGraded}
+        />
+      )}
     </div>
   );
 }
