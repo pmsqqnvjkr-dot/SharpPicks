@@ -281,7 +281,7 @@ export default function LandingPage({ autoView }) {
 
   const spotsLeft = founding ? (founding.remaining != null ? founding.remaining : Math.max(0, 50 - (founding.current || 0))) : null;
 
-  const monthlyPrice = (isIOS && iapOffering?.monthly?.product?.priceString) || (isIOS ? null : '$29.99');
+  const monthlyPrice = (isIOS && iapOffering?.monthly?.product?.priceString) || (isIOS ? null : '$19.99');
   const annualPrice = (isIOS && iapOffering?.annual?.product?.priceString) || (isIOS ? null : '$99');
   const showFoundingTier = !isIOS && spotsLeft !== null && spotsLeft > 0;
 
