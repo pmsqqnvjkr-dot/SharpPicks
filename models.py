@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
+from sqlalchemy import event
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
@@ -86,6 +87,12 @@ class User(UserMixin, db.Model):
     oauth_id = db.Column(db.String(255), nullable=True)
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True)
+    is_internal = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    # Soft-delete: NULL = active, timestamp = soft-deleted. Used to disable
+    # spam/test accounts without losing referential integrity from
+    # user_events, user_bets, etc. See is_active override below — Flask-Login's
+    # session resumption and our explicit login checks both honor it.
+    deleted_at = db.Column(db.DateTime, nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
@@ -96,6 +103,14 @@ class User(UserMixin, db.Model):
         if not self.password_hash:
             return False
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def is_active(self):
+        """Override Flask-Login's UserMixin.is_active to honor soft-delete.
+        Returning False causes session loaders and login flows that check
+        this property to reject the user. All explicit login_user() callsites
+        in app.py also gate on this."""
+        return self.deleted_at is None
 
     @property
     def is_pro(self):
@@ -114,6 +129,17 @@ class User(UserMixin, db.Model):
                 return True
             return False
         return False
+
+
+@event.listens_for(User, 'before_insert')
+def _flag_internal_user(mapper, connection, target):
+    """Auto-flag any new user signing up with an @sharppicks.ai address.
+    Spam/test accounts are flagged manually via the migration script and the
+    is_internal column directly; this hook only handles the employee case
+    so we don't have to remember to set the flag on every signup path."""
+    email = (getattr(target, 'email', None) or '').lower().strip()
+    if email.endswith('@sharppicks.ai'):
+        target.is_internal = True
 
 
 class Pick(db.Model):

@@ -490,6 +490,11 @@ def load_user(user_id):
     user = _safe_get_user(user_id)
     if not user:
         return None
+    # Soft-deleted users get force-logged-out on the next request.
+    if not user.is_active:
+        session.pop('user_id', None)
+        session.pop('session_token', None)
+        return None
     stored_token = session.get('session_token')
     if not stored_token or stored_token != user.session_token:
         session.pop('user_id', None)
@@ -5879,6 +5884,10 @@ def login():
     user = User.query.filter(func.lower(User.email) == email.lower()).first()
     if not user or not user.password_hash:
         return jsonify({'error': 'Invalid email or password'}), 401
+    # Soft-deleted accounts get the same generic error as 'no such user'
+    # so we don't leak the existence of disabled accounts.
+    if not user.is_active:
+        return jsonify({'error': 'Invalid email or password'}), 401
 
     if user.locked_until and user.locked_until > datetime.now():
         remaining = int((user.locked_until - datetime.now()).total_seconds() / 60) + 1
@@ -6187,6 +6196,9 @@ def google_callback():
     given_name = user_info.get('given_name') or user_info.get('name', '').split()[0] if user_info.get('name') else ''
     user, is_new = _oauth_find_or_create(email, 'google', user_info.get('sub'), first_name=given_name, plan=plan)
 
+    if not user.is_active:
+        return redirect('/login?error=account_disabled')
+
     login_user(user, remember=True)
     session.permanent = True
     session['user_id'] = user.id
@@ -6254,6 +6266,9 @@ def apple_callback():
 
     user, is_new = _oauth_find_or_create(email, 'apple', apple_sub, first_name=first_name, plan=plan)
 
+    if not user.is_active:
+        return redirect('/login?error=account_disabled')
+
     login_user(user, remember=True)
     session.permanent = True
     session['user_id'] = user.id
@@ -6315,6 +6330,9 @@ def apple_native_signin():
         user_email = f'apple_{apple_sub}@private.sharppicks.ai'
 
     user, is_new = _oauth_find_or_create(user_email, 'apple', apple_sub, first_name=first_name, plan=plan)
+
+    if not user.is_active:
+        return jsonify({'success': False, 'error': 'Account is no longer active'}), 401
 
     try:
         login_user(user, remember=True)
