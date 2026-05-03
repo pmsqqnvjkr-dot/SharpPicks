@@ -200,6 +200,19 @@ body{font-family:var(--sans);background:#0c1018 !important;color:#e8eaf0;-webkit
 <script>
 async function load(){try{const r=await fetch('/api/public/stats');if(!r.ok)return;const d=await r.json();if(d.record)document.getElementById('r').textContent=d.record;if(d.roi!==undefined)document.getElementById('roi').textContent=(d.roi>0?'+':'')+d.roi+'%';if(d.units!==undefined)document.getElementById('u').textContent=(d.units>0?'+':'')+d.units+'u';if(d.selectivity!==undefined)document.getElementById('sel').textContent=d.selectivity+'%'}catch(e){}}
 load();
+(function relabelForIOS(){
+  // iOS Capacitor routes /signup to a free account flow, not a paid trial.
+  // Relabel the trial CTAs so the copy matches the destination.
+  var isCapIOS = window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() === 'ios';
+  if (!isCapIOS) return;
+  var nodes = document.querySelectorAll('a[href="/signup"]');
+  for (var i = 0; i < nodes.length; i++) {
+    var t = (nodes[i].textContent || '').trim();
+    if (t === 'Start Free Trial' || t === 'Start 14-Day Free Trial') {
+      nodes[i].textContent = 'Create Free Account';
+    }
+  }
+})();
 </script>
 </body>
 </html>
