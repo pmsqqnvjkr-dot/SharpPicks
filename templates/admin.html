@@ -34,14 +34,18 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
 @media(min-width:600px){body{padding:0 16px}}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(8,11,17,0.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:50}
 .topbar-left{display:flex;align-items:center;gap:8px}
-.back-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:0;color:var(--t3);font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.back-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:0;color:var(--t3);font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+.back-btn::before{content:'';position:absolute;inset:-7px;border-radius:8px}
 .sdot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(90,158,114,0.5)}
 .sdot.killed{background:var(--red);box-shadow:0 0 6px rgba(196,104,107,0.5)}
 .logo{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--t1)}
 .logo span{color:var(--green)}
-.topbar-ts{font-size:10px;color:var(--t4);text-align:right}
-.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 16px;position:sticky;top:55px;background:var(--bg);z-index:49}
-.tab{padding:11px 14px;font-size:12px;font-weight:500;color:var(--t4);border:0;background:0;cursor:pointer;border-bottom:2px solid transparent;font-family:'JetBrains Mono',monospace;transition:color 0.15s}
+.topbar-ts{font-size:10px;color:var(--t4);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.tabs-wrap{position:sticky;top:55px;background:var(--bg);z-index:49}
+.tabs-wrap::after{content:'';position:absolute;right:0;top:0;bottom:0;width:24px;background:linear-gradient(to right,rgba(10,13,20,0),var(--bg));pointer-events:none}
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:14px 16px;font-size:12px;font-weight:500;color:var(--t4);border:0;background:0;cursor:pointer;border-bottom:2px solid transparent;font-family:'JetBrains Mono',monospace;transition:color 0.15s;white-space:nowrap;flex-shrink:0;scroll-snap-align:start}
 .tab.active{color:var(--green);border-bottom-color:var(--green)}
 .tab:hover{color:var(--t2)}
 .panel{display:none;padding:16px 16px 60px}
@@ -257,8 +261,19 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
 
 /* ── Business Tab v2 ── */
 .biz-north{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
-@media(max-width:600px){.biz-north{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:360px){.biz-north{grid-template-columns:1fr}}
+@media(max-width:899px){
+  .biz-north{grid-template-columns:repeat(3,1fr)}
+  .biz-north .biz-kpi:first-child{grid-column:span 2}
+}
+@media(max-width:599px){
+  .biz-north{grid-template-columns:repeat(2,1fr)}
+  .biz-north .biz-kpi:first-child{grid-column:auto}
+  .biz-north .biz-kpi:last-child{grid-column:span 2}
+}
+@media(max-width:399px){
+  .biz-north{grid-template-columns:1fr}
+  .biz-north .biz-kpi:last-child{grid-column:auto}
+}
 .biz-kpi{background:var(--s1);padding:12px 8px;text-align:center;position:relative;border-left:2px solid transparent}
 .biz-kpi.good{border-left-color:var(--green)}.biz-kpi.watch{border-left-color:var(--amber)}.biz-kpi.alert{border-left-color:var(--red)}
 .biz-kpi-label{font-size:8px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t4);margin-bottom:3px}
@@ -272,7 +287,7 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
 .biz-reads{background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px}
 .biz-reads-title{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--t4);margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .biz-reads-title::after{content:'';flex:1;height:1px;background:var(--border)}
-.biz-read{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid rgba(26,31,46,0.4);font-family:'Inter',sans-serif;font-size:12px;line-height:1.55;color:var(--t2);cursor:pointer;transition:color 0.15s;word-break:break-word}
+.biz-read{display:flex;align-items:flex-start;gap:8px;padding:14px 0;min-height:48px;border-bottom:1px solid rgba(26,31,46,0.4);font-family:'Inter',sans-serif;font-size:12px;line-height:1.55;color:var(--t2);cursor:pointer;transition:color 0.15s;word-break:break-word}
 @media(max-width:500px){.biz-read{font-size:11px}}
 .biz-read:last-child{border-bottom:0}
 .biz-read:hover{color:var(--t1)}
@@ -284,7 +299,7 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
 .biz-read-action{display:inline-block;font-size:10px;font-weight:600;color:var(--green);cursor:pointer;padding:3px 8px;border:1px solid rgba(90,158,114,0.25);border-radius:4px;background:var(--g08);margin-top:6px;font-family:'JetBrains Mono',monospace}
 .biz-read-action:hover{background:var(--g15)}
 .biz-expandable{margin-top:6px}
-.biz-expand-btn{font-size:9px;color:var(--t3);cursor:pointer;background:none;border:none;font-family:'JetBrains Mono',monospace;padding:0;text-decoration:underline;text-underline-offset:2px}
+.biz-expand-btn{font-size:10px;color:var(--t3);cursor:pointer;background:none;border:none;font-family:'JetBrains Mono',monospace;padding:8px 0;text-decoration:underline;text-underline-offset:2px;min-height:32px}
 .biz-expand-list{display:none;margin-top:6px;padding-left:14px}
 .biz-expand-list.open{display:block}
 .biz-expand-item{font-size:9px;color:var(--t3);padding:2px 0}
@@ -300,7 +315,7 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
 .biz-funnel-bar{flex:1;height:16px;background:var(--s2);border-radius:3px;overflow:hidden;position:relative}
 .biz-funnel-fill{height:100%;border-radius:3px;background:var(--green);transition:width 0.6s ease}
 .biz-funnel-fill.watch{background:var(--amber)}
-.biz-funnel-count{position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:600;color:var(--t1);text-shadow:0 1px 2px rgba(0,0,0,0.4)}
+.biz-funnel-count{font-size:10px;font-weight:600;color:var(--t1);min-width:28px;text-align:right;flex-shrink:0;font-family:'JetBrains Mono',monospace}
 .biz-funnel-pct{font-size:9px;color:var(--t3);width:42px;text-align:right;flex-shrink:0}
 
 .biz-sparkline{background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px}
@@ -355,12 +370,14 @@ body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace
   <div class="topbar-ts" id="topbarTime"></div>
 </div>
 
+<div class="tabs-wrap">
 <div class="tabs">
   <button class="tab active" onclick="go('pulse',this)">Pulse</button>
+  <button class="tab" onclick="go('business',this)">Business</button>
   <button class="tab" onclick="go('analytics',this)">Analytics</button>
   <button class="tab" onclick="go('models',this)">Models</button>
   <button class="tab" onclick="go('infra',this)">Infra</button>
-  <button class="tab" onclick="go('business',this)">Business</button>
+</div>
 </div>
 
 <div class="panel active" id="p-pulse">
@@ -1503,7 +1520,8 @@ function renderBusiness(cc, funnel, eng, mrrData) {
     const watchClass = i === worstIdx ? ' watch' : '';
     h += '<div class="biz-funnel-stage"' + (i === worstIdx ? ' role="button" aria-label="Worst drop: ' + s.label + '"' : '') + '>';
     h += '<div class="biz-funnel-label">' + s.label + '</div>';
-    h += '<div class="biz-funnel-bar"><div class="biz-funnel-fill' + watchClass + '" style="width:' + barPct + '%"><span class="biz-funnel-count">' + s.count + '</span></div></div>';
+    h += '<div class="biz-funnel-bar"><div class="biz-funnel-fill' + watchClass + '" style="width:' + barPct + '%"></div></div>';
+    h += '<div class="biz-funnel-count">' + s.count + '</div>';
     h += '<div class="biz-funnel-pct">' + stagePct + '</div>';
     h += '</div>';
   }
