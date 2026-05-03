@@ -22,6 +22,21 @@ def _get_admin_serializer():
 
 ADMIN_EMAIL = 'evan@sharppicks.ai'
 
+
+def _real_users_query():
+    """Returns a User query scoped to real, non-internal, non-deleted users.
+    Use this in admin metrics aggregations (signup totals, funnels, user
+    lists, etc.) so internal employees and soft-deleted test/spam accounts
+    don't pollute customer-facing numbers. See migrations from 2026-05-03."""
+    return User.query.filter(User.is_internal == False, User.deleted_at.is_(None))  # noqa: E712
+
+
+def _real_user_filter():
+    """SQLAlchemy filter expression equivalent to _real_users_query, for
+    use inside .filter() chains on subqueries/joins where we already have
+    a User reference."""
+    return db.and_(User.is_internal == False, User.deleted_at.is_(None))  # noqa: E712
+
 def require_superuser():
     from flask_login import current_user
     if current_user.is_authenticated:
@@ -102,7 +117,7 @@ def db_stats():
     if not admin:
         return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
-    user_count = User.query.count()
+    user_count = _real_users_query().count()
     db_url = os.environ.get('DATABASE_URL') or os.environ.get('SQLALCHEMY_DATABASE_URI') or ''
     db_source = 'railway' if ('railway' in db_url.lower() or 'rlwy.net' in db_url) else 'unknown'
 
@@ -894,7 +909,8 @@ def command_center_data():
     now_et = datetime.now(ET)
     today_str = now_et.strftime('%Y-%m-%d')
 
-    users = User.query.all()
+    # Exclude internal/test/soft-deleted users from all command-center metrics.
+    users = _real_users_query().all()
     total_users = len(users)
     active_subs = [u for u in users if u.subscription_status == 'active']
     trial_users = [u for u in users if u.subscription_status == 'trial']
@@ -2660,7 +2676,8 @@ def admin_funnel_metrics():
     if not admin:
         return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
-    users = User.query.all()
+    # Exclude internal/test/soft-deleted users from the conversion funnel.
+    users = _real_users_query().all()
     total_signups = len(users)
     with_trial = [u for u in users if u.trial_start_date is not None]
     total_trials = len(with_trial)
@@ -2745,11 +2762,17 @@ def admin_engagement():
 def _admin_engagement_inner():
     cutoff = datetime.utcnow() - timedelta(days=7)
 
-    first_event = UserEvent.query.order_by(UserEvent.created_at.asc()).first()
-    tracking_since = first_event.created_at.isoformat() if first_event else None
-    total_event_count = UserEvent.query.count()
+    # Exclude internal/test users from engagement aggregations. The
+    # event-level is_internal flag was backfilled in the 2026-05-03
+    # migration for all rows tied to the 22 test accounts and Evan, so
+    # this filter alone (no join) is sufficient.
+    base_events = UserEvent.query.filter(UserEvent.is_internal == False)  # noqa: E712
 
-    events = UserEvent.query.filter(UserEvent.created_at >= cutoff).all()
+    first_event = base_events.order_by(UserEvent.created_at.asc()).first()
+    tracking_since = first_event.created_at.isoformat() if first_event else None
+    total_event_count = base_events.count()
+
+    events = base_events.filter(UserEvent.created_at >= cutoff).all()
 
     dau_by_day = {}
     page_stats = {}
@@ -2898,7 +2921,7 @@ def _admin_engagement_inner():
             top_key = max(fcounts, key=fcounts.get)
             user_top_feature[uid] = feature_labels.get(top_key, top_key)
 
-    all_users = User.query.order_by(User.created_at.desc()).all()
+    all_users = _real_users_query().order_by(User.created_at.desc()).all()
     all_user_details = []
     verified_count = 0
     unverified_users = []
@@ -2907,6 +2930,7 @@ def _admin_engagement_inner():
     # Last-week active users for at-risk detection
     prev_cutoff = cutoff - timedelta(days=7)
     prev_events = UserEvent.query.filter(
+        UserEvent.is_internal == False,  # noqa: E712
         UserEvent.created_at >= prev_cutoff,
         UserEvent.created_at < cutoff,
         UserEvent.user_id.isnot(None),

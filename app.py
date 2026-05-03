@@ -4035,7 +4035,14 @@ def post_user_events():
         user = None
     user_id = (user or {}).get('id')
     user_email = ((user or {}).get('email') or '').lower()
+    # Email allowlist (legacy), plus the User.is_internal column added in
+    # the 2026-05-03 migration. Either path flags the event as internal so
+    # admin metrics can exclude it.
     is_internal = bool(user_email) and user_email in INTERNAL_EMAILS
+    if not is_internal and user_id:
+        db_user = db.session.get(User, user_id)
+        if db_user and db_user.is_internal:
+            is_internal = True
 
     ip = _events_client_ip()
     user_agent = (request.headers.get('User-Agent') or '')[:500]
