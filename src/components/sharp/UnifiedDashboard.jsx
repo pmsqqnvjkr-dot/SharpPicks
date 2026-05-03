@@ -4,7 +4,7 @@ import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import ResolutionScreen from './ResolutionScreen';
 import Wordmark from './Wordmark';
-import { TrackBetModal } from './BetTrackingScreen';
+import { TrackBetModal, SettleActionSheet } from './BetTrackingScreen';
 
 export default function UnifiedDashboard({ embedded = false }) {
   const { user, setUnitSize } = useAuth();
@@ -268,6 +268,7 @@ export default function UnifiedDashboard({ embedded = false }) {
                 confirmDelete={confirmDelete}
                 setConfirmDelete={setConfirmDelete}
                 onDelete={handleDelete}
+                onSettled={loadData}
               />
             ))}
           </BetsSection>
@@ -1013,8 +1014,11 @@ function BetsSection({ title, children }) {
   );
 }
 
-function BetRow({ bet, confirmDelete, setConfirmDelete, onDelete, onViewPick }) {
-  const isClickable = bet.result && bet.linked_pick;
+function BetRow({ bet, confirmDelete, setConfirmDelete, onDelete, onViewPick, onSettled }) {
+  const isOwnBet = !bet.pick_id;
+  const isPending = !bet.result;
+  const isOwnPending = isOwnBet && isPending;
+  const isClickable = (bet.result && bet.linked_pick) || isOwnPending;
 
   const rowRef = useRef(null);
   const startX = useRef(0);
@@ -1022,7 +1026,19 @@ function BetRow({ bet, confirmDelete, setConfirmDelete, onDelete, onViewPick }) 
   const swipingRef = useRef(false);
   const [offset, setOffset] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showSheet, setShowSheet] = useState(false);
   const deleteThreshold = 80;
+
+  const handleRowTap = () => {
+    if (offset !== 0 || showConfirm) return;
+    if (isOwnPending) {
+      setShowSheet(true);
+      return;
+    }
+    if (bet.result && bet.linked_pick && onViewPick) {
+      onViewPick(bet.linked_pick);
+    }
+  };
 
   const onTouchStart = useCallback((e) => {
     startX.current = e.touches[0].clientX;
@@ -1098,7 +1114,7 @@ function BetRow({ bet, confirmDelete, setConfirmDelete, onDelete, onViewPick }) 
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        onClick={() => { if (isClickable && onViewPick && offset === 0) onViewPick(bet.linked_pick); }}
+        onClick={handleRowTap}
         style={{
           padding: '14px 16px',
           backgroundColor: 'var(--surface-1)',
@@ -1132,7 +1148,19 @@ function BetRow({ bet, confirmDelete, setConfirmDelete, onDelete, onViewPick }) 
             </div>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
-            {bet.result ? (
+            {bet.result === 'void' ? (
+              <div style={{
+                padding: '6px 12px',
+                fontSize: '11px', fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                backgroundColor: 'var(--surface-2)',
+                color: 'var(--text-tertiary)',
+                border: '1px solid var(--stroke-subtle)',
+                borderRadius: '8px',
+              }}>Void</div>
+            ) : bet.result ? (
               <div>
                 <span style={{
                   fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
@@ -1141,6 +1169,19 @@ function BetRow({ bet, confirmDelete, setConfirmDelete, onDelete, onViewPick }) 
                   {bet.result === 'W' ? `+$${Math.abs(bet.profit || 0).toFixed(0)}` : bet.result === 'L' ? `-$${Math.abs(bet.profit || 0).toFixed(0)}` : 'Push'}
                 </span>
               </div>
+            ) : isOwnBet ? (
+              <div style={{
+                padding: '6px 12px',
+                fontSize: '11px', fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                backgroundColor: 'rgba(251,191,36,0.10)',
+                color: '#f59e0b',
+                border: '1px solid rgba(251,191,36,0.25)',
+                borderRadius: '8px',
+                whiteSpace: 'nowrap',
+              }}>Tap to settle</div>
             ) : (
               <div style={{
                 padding: '6px 12px',
@@ -1157,6 +1198,13 @@ function BetRow({ bet, confirmDelete, setConfirmDelete, onDelete, onViewPick }) 
           </div>
         </div>
       </div>
+      {showSheet && (
+        <SettleActionSheet
+          bet={bet}
+          onClose={() => setShowSheet(false)}
+          onSettled={onSettled}
+        />
+      )}
     </div>
   );
 }
