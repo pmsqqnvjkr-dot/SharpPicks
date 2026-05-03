@@ -1361,7 +1361,7 @@ function EmptyDashboard({ onTrack }) {
   );
 }
 
-function SettleActionSheet({ bet, onClose, onSettled }) {
+export function SettleActionSheet({ bet, onClose, onSettled }) {
   const [submitting, setSubmitting] = useState(false);
 
   const handlePick = async (outcome) => {
