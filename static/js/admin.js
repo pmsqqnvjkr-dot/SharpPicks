@@ -720,13 +720,18 @@ function bindUsersActivity(data) {
   // text content as a fallback so these populate even without explicit IDs.)
 
   // Activity snapshot summary — top of Users tab
+  // The Users tab uses "activity overview" as the section title;
+  // the Command tab uses "user activity · 30d". Set both — the
+  // server-side compute_summaries also sets section-user-activity
+  // by ID (Command tab); this title-match catches the Users-tab
+  // section.
   if (s.dau != null) {
     const dauActive = s.dau > 0 ? `${s.dau} DAU today` : 'no DAU today (login tracking is sparse — populates as users log in)';
     const stickiness = s.mau > 0 ? `${s.stickiness_pct}% stickiness (DAU/MAU)` : '';
     const newUsers = s.new_7d > 0 ? `${s.new_7d} new in the last 7 days` : 'no new signups this week';
     const power = (tiers.power || 0);
     const powerStr = power > 0 ? `${power} power user${power === 1 ? '' : 's'} (15+ logins)` : 'no power-tier users yet';
-    _bySectionTitle('user activity', `${dauActive}. ${stickiness ? stickiness + '. ' : ''}${newUsers}. ${powerStr}.`);
+    _bySectionTitle('activity overview', `${dauActive}. ${stickiness ? stickiness + '. ' : ''}${newUsers}. ${powerStr}.`);
   }
 
   // Login frequency summary + chart visibility.
@@ -768,7 +773,7 @@ function bindUsersActivity(data) {
       `${loggedInUsers} of ${totalUsers} users have logged in this month. Light tier (1-5 logins) is ${lightPct}%, power tier (15+) is ${powerPct}%.`);
   }
 
-  // Cohort retention summary
+  // Cohort retention summary — section title is "retention · weekly cohorts"
   const cohorts = Array.isArray(data.cohort_retention) ? data.cohort_retention : [];
   if (cohorts.length > 0) {
     const avgWeek1 = Math.round(
@@ -777,7 +782,22 @@ function bindUsersActivity(data) {
     const avgWeek4 = Math.round(
       cohorts.map(c => (c.retention_by_week || [])[4] || 0).reduce((a, b) => a + b, 0) / cohorts.length
     );
-    _bySectionTitle('cohort retention', `Week-1 retention averages ${avgWeek1}% across the last ${cohorts.length} cohorts. Week-4 averages ${avgWeek4}%.`);
+    if (avgWeek1 === 0 && avgWeek4 === 0) {
+      _bySectionTitle('retention', `Cohort retention requires login event history. Login tracking started 2026-05-04 — the table fills in as users return week-over-week.`);
+    } else {
+      _bySectionTitle('retention', `Week-1 retention averages ${avgWeek1}% across the last ${cohorts.length} cohorts. Week-4 averages ${avgWeek4}%.`);
+    }
+  }
+
+  // Power Users leaderboard summary — needs the user list to derive
+  // tag breakdown. We have tier_counts.power for the headline number;
+  // the iOS-vs-web split needs more data. For now, single-fact summary.
+  if (tiers.power != null) {
+    if (tiers.power === 0) {
+      _bySectionTitle('power users', `No power-tier users yet (15+ logins in 30 days). Login tracking started 2026-05-04 — power tier populates as the most-engaged users return.`);
+    } else {
+      _bySectionTitle('power users', `${tiers.power} user${tiers.power === 1 ? '' : 's'} in the power tier (15+ logins in 30 days). They drive disproportionate engagement on the funnel below.`);
+    }
   }
 
   // Replace the DAU 90d bar chart with real daily counts. Login event
@@ -905,6 +925,30 @@ function bindUsersList(data) {
 
   // Update the "All" chip with the real total
   _setSegmentCount('#panel-users .segment-chips', 'All', data.total);
+
+  // Needs Attention summary — derive from current page of users.
+  // Concerning states the operator should look at:
+  //   - past_due tag       (payment failed, access revoked)
+  //   - cancel_scheduled tag (paid sub or trial about to drop)
+  //   - churned recently    (already cancelled, may want win-back)
+  // The full attention-queue endpoint is a Phase 3.5 follow-up; for
+  // now compute counts client-side.
+  const sp = window.__SP_METRICS?.stripe?.payload || {};
+  const cancelTrials = sp.trials_with_cancel_scheduled || 0;
+  const cancelPaid = sp.paid_with_cancel_scheduled || 0;
+  const failedUsers = sp.failed_payment_users_30d || 0;
+  const churned30d = sp.canceled_30d || 0;
+  const total = cancelTrials + cancelPaid + failedUsers;
+  if (total === 0 && churned30d === 0) {
+    _bySectionTitle('needs attention', `No users in concerning states this week. Revenue collection is clean and no cancellations queued.`);
+  } else {
+    const bits = [];
+    if (cancelTrials > 0) bits.push(`${cancelTrials} trial${cancelTrials === 1 ? '' : 's'} with cancel scheduled`);
+    if (cancelPaid > 0) bits.push(`${cancelPaid} paid sub${cancelPaid === 1 ? '' : 's'} with cancel scheduled`);
+    if (failedUsers > 0) bits.push(`${failedUsers} customer${failedUsers === 1 ? '' : 's'} with failed payments in 30d`);
+    if (churned30d > 0) bits.push(`${churned30d} cancelled in the last 30 days`);
+    _bySectionTitle('needs attention', `${bits.join(', ')}. Highest-leverage outreach is the cancel-scheduled cohort — the save window closes at cancel_effective_at.`);
+  }
 
   const lists = document.querySelectorAll('#panel-users .user-row');
   // The mockup has two demo user rows; the list is rendered in their
@@ -1275,6 +1319,23 @@ function bindCronHealth(data) {
   if (!data || !Array.isArray(data.jobs)) return;
   const container = document.querySelector('#panel-infra .pipeline-row')?.parentNode;
   if (!container) return;
+
+  // Data pipeline section summary — health rollup of the cron jobs.
+  const total = data.jobs.length;
+  const healthy = data.jobs.filter(j => j.health === 'ok').length;
+  const warn = data.jobs.filter(j => j.health === 'warn').length;
+  const fail = data.jobs.filter(j => j.health === 'error' || j.health === 'never').length;
+  if (total === 0) {
+    _bySectionTitle('data pipeline', 'No cron jobs registered.');
+  } else if (fail === 0 && warn === 0) {
+    _bySectionTitle('data pipeline', `All ${total} scheduled jobs landed within their windows.`);
+  } else {
+    const bits = [`${healthy} of ${total} healthy`];
+    if (warn > 0) bits.push(`${warn} warn`);
+    if (fail > 0) bits.push(`${fail} failing or never run`);
+    _bySectionTitle('data pipeline', `${bits.join(', ')}. Investigate failing jobs first; warn buckets are 1-2 windows late but recoverable.`);
+  }
+
   container.querySelectorAll('.pipeline-row').forEach(n => n.remove());
   data.jobs.forEach(job => {
     const row = document.createElement('div');
