@@ -437,6 +437,62 @@ export default function PicksTab({ onNavigate }) {
         {/* ═══════════════ STATE 0: NIGHT MODE ═══════════════ */}
         {pageState === 'night' && (
           <>
+            {/* ── MARKET PULSE STRIP (Phase 7 home redesign) ──
+                Three cells with thin dividers between. Frames the wait
+                as the system working — every open shows the operator
+                where they are in the cycle. */}
+            {(() => {
+              const passDays = stats?.capital_preserved_days;
+              const lastUnits = lastResolved?.profit_units;
+              const lastIsWin = lastUnits != null && lastUnits > 0;
+              const lastIsPush = lastUnits != null && lastUnits === 0;
+              const clv30 = stats?.avg_clv;
+              const fmtUnits = (n) => n == null ? '—' : `${n > 0 ? '+' : ''}${Number(n).toFixed(1)}u`;
+              const fmtClv = (n) => n == null ? '—' : `${n > 0 ? '+' : ''}${Number(n).toFixed(1)}`;
+              const cellStyle = { flex: 1, textAlign: 'center', padding: '0 4px' };
+              const labelStyle = {
+                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                letterSpacing: '0.12em', textTransform: 'uppercase', color: '#7A8494', marginBottom: 4,
+              };
+              const valueStyle = {
+                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '15px', fontWeight: 600,
+              };
+              const dividerStyle = { width: '0.5px', background: 'rgba(132,148,167,0.20)', alignSelf: 'stretch' };
+              return (
+                <>
+                  <div style={{
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+                    letterSpacing: '2px', textTransform: 'uppercase', color: '#8494a7',
+                    padding: '0 0 8px',
+                  }}>MARKET PULSE · 30D</div>
+                  <div style={{
+                    background: '#111e33', border: '0.5px solid #1e3050', borderRadius: 8,
+                    padding: '14px 8px', marginBottom: 14,
+                    display: 'flex', alignItems: 'stretch', gap: 0,
+                  }}>
+                    <div style={cellStyle}>
+                      <div style={labelStyle}>Pass days</div>
+                      <div style={{ ...valueStyle, color: '#E8ECF4' }}>{passDays != null ? passDays : '—'}</div>
+                    </div>
+                    <div style={dividerStyle}></div>
+                    <div style={cellStyle}>
+                      <div style={labelStyle}>Last signal</div>
+                      <div style={{ ...valueStyle, color: lastIsWin ? '#5A9E72' : (lastIsPush ? '#8494a7' : '#D4787B') }}>
+                        {fmtUnits(lastUnits)}
+                      </div>
+                    </div>
+                    <div style={dividerStyle}></div>
+                    <div style={cellStyle}>
+                      <div style={labelStyle}>CLV · 30d</div>
+                      <div style={{ ...valueStyle, color: clv30 != null && clv30 >= 0 ? '#5A9E72' : '#D4787B' }}>
+                        {fmtClv(clv30)}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+
             {/* ── DATE RECAP ── */}
             {hasAnyRecapContent && (
               <div style={{
@@ -838,6 +894,239 @@ export default function PicksTab({ onNavigate }) {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8C9AB0" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
               </button>
             )}
+
+            {/* ── WHILE YOU WAIT 3-CARD STACK (Phase 7 home redesign) ──
+                Fills the 9-10 hour dead time between morning model runs
+                with three high-signal cards. Card 1 is real data
+                (tonight's slate, current market lines). Cards 2 and 3
+                are placeholder content until the Sharp Journal pipeline
+                (item 06) and Field Guide backlog land. */}
+            {(() => {
+              const upcoming = (tomorrowGames && tomorrowGames.length > 0
+                ? tomorrowGames.slice(0, 3)
+                : (gameInfo?.games || []).filter(g => g && (g.away_team || g.home_team)).slice(0, 3));
+              const featuredArticle = (insightsData?.insights || [])
+                .find(a => a && a.category !== 'market_notes' && a.title);
+
+              const wwCard = {
+                background: '#111e33', border: '0.5px solid #1e3050',
+                borderRadius: 8, padding: 12, marginBottom: 10,
+              };
+              const wwEyebrow = {
+                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                letterSpacing: '0.12em', textTransform: 'uppercase', color: '#7A8494', marginBottom: 6,
+              };
+              const wwTitle = {
+                fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600,
+                color: '#E8ECF4', marginBottom: 4,
+              };
+              const wwBody = {
+                fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '12px', color: '#9aa5b4',
+                lineHeight: 1.55, marginBottom: 8,
+              };
+
+              return (
+                <>
+                  <div style={{
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+                    letterSpacing: '2px', textTransform: 'uppercase', color: '#8494a7',
+                    padding: '20px 0 8px',
+                  }}>WHILE YOU WAIT</div>
+
+                  {/* Card 1: Watchlist — what the model is watching */}
+                  <div style={{ ...wwCard, borderLeft: '3px solid #4F86F7' }}>
+                    <div style={wwEyebrow}>What the model is watching</div>
+                    <div style={wwTitle}>Tonight&apos;s slate, pre-edge.</div>
+                    <div style={wwBody}>
+                      {upcoming.length > 0
+                        ? `${upcoming.length} game${upcoming.length === 1 ? '' : 's'} in the queue. The model runs at ${modelRunLabel} and edges publish after.`
+                        : 'No games posted yet — the slate fills in as books open.'}
+                    </div>
+                    {upcoming.map((g, i) => {
+                      const away = g.away_team || g.away || '—';
+                      const home = g.home_team || g.home || '—';
+                      const spread = g.spread_home != null ? (g.spread_home > 0 ? `+${g.spread_home}` : g.spread_home) : '';
+                      const total = g.total != null ? `o${g.total}` : '';
+                      return (
+                        <div key={g.id || `${away}-${home}-${i}`} style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr auto auto auto',
+                          gap: 10, padding: '6px 0',
+                          borderTop: i === 0 ? '0.5px solid rgba(30,48,80,0.5)' : 'none',
+                          alignItems: 'baseline',
+                        }}>
+                          <span style={{
+                            fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#E8ECF4',
+                          }}>{teamAbbr(away)} @ {teamAbbr(home)}</span>
+                          <span style={{
+                            fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#9aa5b4',
+                          }}>{spread}</span>
+                          <span style={{
+                            fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#9aa5b4',
+                          }}>{total}</span>
+                          <span style={{
+                            fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px',
+                            letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494',
+                          }}>Watching</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Card 2: Sharp Journal — Evan Cole's "Today's read"
+                      Until the Sharp Journal pipeline (item 06) lands,
+                      shows a static placeholder framed honestly. The
+                      backend cron writes here once 06 is shipped. */}
+                  <div style={{ ...wwCard, borderLeft: '3px solid #5A9E72' }}>
+                    <div style={{ ...wwEyebrow, color: '#5A9E72', display: 'flex', gap: 6 }}>
+                      <span style={{ fontWeight: 600 }}>Evan Cole</span>
+                      <span style={{ color: '#7A8494' }}>·</span>
+                      <span>Today&apos;s read</span>
+                    </div>
+                    <div style={{
+                      fontFamily: "'IBM Plex Serif', var(--font-serif), Georgia, serif",
+                      fontSize: '13px', fontStyle: 'italic', color: '#E8ECF4',
+                      lineHeight: 1.6, marginBottom: 6,
+                    }}>
+                      {upcoming.length > 0 && upcoming.length <= 3
+                        ? `Thin slates favor the books, not the model. If the system passes on all ${upcoming.length}, that is the correct read.`
+                        : 'Discipline is the product. The market gives us moments worth acting on; everything else is noise. Wait for the read.'}
+                    </div>
+                    <div style={{
+                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px',
+                      letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494',
+                    }}>2 MIN READ</div>
+                  </div>
+
+                  {/* Card 3: Field Guide — rotates from evergreen backlog */}
+                  {featuredArticle && (
+                    <div
+                      onClick={() => onNavigate && onNavigate('insights', null, { insight: featuredArticle })}
+                      style={{ ...wwCard, cursor: 'pointer' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{
+                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                          letterSpacing: '0.10em', textTransform: 'uppercase',
+                          padding: '2px 8px', borderRadius: 3,
+                          background: 'rgba(79,134,247,0.10)', color: '#7AA0E5',
+                        }}>{(featuredArticle.category || 'Field Guide').replace(/_/g, ' ')}</span>
+                        <span style={{
+                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px',
+                          letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494',
+                        }}>{featuredArticle.read_time_min ? `${featuredArticle.read_time_min} min read` : '5 min read'}</span>
+                      </div>
+                      <div style={wwTitle}>{featuredArticle.title}</div>
+                      {featuredArticle.summary && (
+                        <div style={wwBody}>{featuredArticle.summary.length > 140
+                          ? featuredArticle.summary.slice(0, 140) + '…'
+                          : featuredArticle.summary}</div>
+                      )}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+
+            {/* ── NIGHTLY RECAP CTA (Phase 7 home redesign) ──
+                "Last night's read" — links to the Sharp Journal evening
+                edition. Routes to /journal/{slug} when the evening
+                edition (item 08) lands. Until then the link goes to
+                the existing recap surface. */}
+            {(() => {
+              const recapDate = postMidnightNight ? yesterdayDate : todayET;
+              if (!recapDate) return null;
+              const games = todayData?.games_analyzed || totalGames || 0;
+              const signals = (todayData?.type === 'pick' && todayData?.result !== 'revoked') ? 1 : 0;
+              const lastUnits = lastResolved?.profit_units;
+              return (
+                <>
+                  <div style={{
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+                    letterSpacing: '2px', textTransform: 'uppercase', color: '#8494a7',
+                    padding: '20px 0 8px',
+                  }}>LAST NIGHT&apos;S READ</div>
+                  <div
+                    onClick={() => onNavigate && onNavigate('insights', null, null)}
+                    style={{
+                      background: 'linear-gradient(180deg, rgba(79,134,247,0.06) 0%, #111e33 30%)',
+                      border: '0.5px solid #1e3050', borderRadius: 8, padding: 12, marginBottom: 14,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{
+                          width: 6, height: 6, borderRadius: '50%', background: '#5A9E72',
+                          display: 'inline-block',
+                        }}></span>
+                        <span style={{
+                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700,
+                          letterSpacing: '0.12em', textTransform: 'uppercase', color: '#7A8494',
+                        }}>Sharp Journal · Evening edition</span>
+                      </div>
+                    </div>
+                    <div style={{
+                      fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600,
+                      color: '#E8ECF4', marginBottom: 4,
+                    }}>{signals === 0 ? 'The slate closed quiet.' : `Signal ${lastUnits != null && lastUnits > 0 ? 'won' : (lastUnits != null && lastUnits < 0 ? 'lost' : 'closed')}.`}</div>
+                    <div style={{
+                      fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '12px', color: '#9aa5b4',
+                      lineHeight: 1.55, marginBottom: 12,
+                    }}>
+                      {signals === 0
+                        ? `${games || '—'} game${games === 1 ? '' : 's'} scanned. ${signals} signal${signals === 1 ? '' : 's'} issued. Capital preserved.`
+                        : `${games || '—'} game${games === 1 ? '' : 's'} scanned. ${signals} signal issued.`}
+                    </div>
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+                      borderTop: '0.5px solid rgba(30,48,80,0.5)', paddingTop: 8, marginBottom: 10,
+                    }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{
+                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px',
+                          letterSpacing: '0.10em', textTransform: 'uppercase', color: '#7A8494', marginBottom: 2,
+                        }}>Games</div>
+                        <div style={{
+                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '14px', fontWeight: 600,
+                          color: '#E8ECF4',
+                        }}>{games || '—'}</div>
+                      </div>
+                      <div style={{ textAlign: 'center', borderLeft: '0.5px solid rgba(30,48,80,0.5)', borderRight: '0.5px solid rgba(30,48,80,0.5)' }}>
+                        <div style={{
+                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px',
+                          letterSpacing: '0.10em', textTransform: 'uppercase', color: '#7A8494', marginBottom: 2,
+                        }}>Signals</div>
+                        <div style={{
+                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '14px', fontWeight: 600,
+                          color: '#E8ECF4',
+                        }}>{signals}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{
+                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px',
+                          letterSpacing: '0.10em', textTransform: 'uppercase', color: '#7A8494', marginBottom: 2,
+                        }}>CLV held</div>
+                        <div style={{
+                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '14px', fontWeight: 600,
+                          color: stats?.avg_clv != null && stats.avg_clv >= 0 ? '#5A9E72' : '#D4787B',
+                        }}>{stats?.avg_clv != null ? `${stats.avg_clv > 0 ? '+' : ''}${stats.avg_clv.toFixed(1)}` : '—'}</div>
+                      </div>
+                    </div>
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', fontWeight: 600,
+                      color: '#7AA0E5', letterSpacing: '0.04em',
+                    }}>
+                      <span>Read the evening edition</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <path d="M5 12h14M13 5l7 7-7 7"/>
+                      </svg>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </>
         )}
 
