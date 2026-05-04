@@ -33,11 +33,14 @@ export default function HeroCard({
       {isPass && (
         <div style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
+          top: -1,
+          left: -1,
+          right: -1,
           height: 2,
           background: c.edge,
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          pointerEvents: 'none',
         }} />
       )}
 
