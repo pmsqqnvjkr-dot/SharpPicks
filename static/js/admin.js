@@ -393,8 +393,17 @@ function setMovedRow(label, value, deltaText, deltaClass) {
   return false;
 }
 
+// Stash the latest metrics payload so per-tab binds (Users / Model /
+// Infra) can reach into Stripe + RC + events numbers when they need
+// to (e.g., the Users tab Paid/Trial segment chips read from Stripe
+// active_subs / trial_subs, which is the source-of-truth count of
+// paying customers — not subscription_status='active' from User table,
+// which has webhook-ordering drift).
+window.__SP_METRICS = null;
+
 function bindLiveData(metrics) {
   if (!metrics) return;
+  window.__SP_METRICS = metrics;
 
   // -- Headline + actions (Phase 3.3) --
   // services/headline.py emits {sentence, color} for the headline and a
@@ -672,6 +681,39 @@ function bindUsersActivity(data) {
   const tiers = data.tier_counts || {};
   if (tiers.power != null) setStat('Power users', SP_FMT.num(tiers.power));
 
+  // ── Update every Users-tab segment chip count from real data ──
+  // Source-of-truth rules:
+  //   All         -> snapshot.total_registered (real users only)
+  //   Paid        -> Stripe.active_subs (PAYING customers, not DB drift)
+  //   Trial       -> Stripe.trial_subs (cards on file, not yet billed)
+  //   Power       -> tier_counts.power  (logins_30d >= 15)
+  //   Dormant     -> tier_counts.dormant
+  //   Churned     -> dervied; computed by the segment endpoint
+  const metrics = window.__SP_METRICS;
+  const stripePayload = metrics?.stripe?.payload || {};
+  const total = s.total_registered;
+  const paid = stripePayload.active_subs;
+  const trial = stripePayload.trial_subs;
+  const power = tiers.power;
+  const dormant = tiers.dormant;
+
+  _setSegmentCount('#panel-users .segment-chips', 'All', total);
+  _setSegmentCount('#panel-users .segment-chips', 'Paid', paid);
+  _setSegmentCount('#panel-users .segment-chips', 'Trial', trial);
+  _setSegmentCount('#panel-users .segment-chips', 'Power', power);
+  _setSegmentCount('#panel-users .segment-chips', 'Dormant', dormant);
+
+  // Churned count needs its own /list call since the activity payload
+  // doesn't aggregate it. Lightweight: limit=1 just to read .filtered.
+  fetch('/api/admin/users/list?segment=churned&limit=1', { credentials: 'same-origin' })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if (d && d.filtered != null) {
+        _setSegmentCount('#panel-users .segment-chips', 'Churned', d.filtered);
+      }
+    })
+    .catch(() => {});
+
   // -- Users tab section summaries (real data from this endpoint) --
   // section-users-snapshot, section-login-frequency, section-cohort-retention
   // (the section IDs aren't yet on the markup; we target by .section-title
@@ -841,8 +883,29 @@ function _renderTag(tag) {
   return `<span class="user-tag ${tag}">${label}</span>`;
 }
 
+// Update segment-chip counts from real data. Targets the chip whose
+// label text starts with the given word (case-insensitive).
+function _setSegmentCount(scopeSelector, labelWord, count) {
+  if (count == null) return;
+  const scope = document.querySelector(scopeSelector);
+  if (!scope) return;
+  const chips = scope.querySelectorAll('.segment-chip');
+  for (const chip of chips) {
+    const text = chip.textContent.trim().toLowerCase();
+    if (text.startsWith(labelWord.toLowerCase())) {
+      const countEl = chip.querySelector('.count');
+      if (countEl) countEl.textContent = SP_FMT.num(count);
+      return;
+    }
+  }
+}
+
 function bindUsersList(data) {
   if (!data || !Array.isArray(data.users)) return;
+
+  // Update the "All" chip with the real total
+  _setSegmentCount('#panel-users .segment-chips', 'All', data.total);
+
   const lists = document.querySelectorAll('#panel-users .user-row');
   // The mockup has two demo user rows; the list is rendered in their
   // parent container. Find that container by climbing from one row.
