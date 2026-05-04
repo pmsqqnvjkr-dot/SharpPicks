@@ -2078,12 +2078,14 @@ def firebase_diagnose():
     if out['probe'] and out['probe'].get('auth_ok'):
         try:
             from models import FCMToken
-            tokens = FCMToken.query.filter_by(enabled=True).limit(6).all()
+            tokens = FCMToken.query.filter_by(enabled=True).limit(20).all()
             per_platform = {}
+            ios_results = []  # collect every iOS attempt
             for t in tokens:
                 platform = (getattr(t, 'platform', None) or 'unknown').lower()
-                if platform in per_platform:
-                    continue  # one probe per platform is plenty
+                # For non-iOS, one probe per platform is enough.
+                if platform != 'ios' and platform in per_platform:
+                    continue
                 msg = {
                     'token': t.fcm_token,
                     'notification': {'title': 'sharppicks diagnostic', 'body': 'silent test'},
@@ -2095,13 +2097,35 @@ def firebase_diagnose():
                     }
                 try:
                     r = requests.post(url, json={'message': msg}, headers=headers, timeout=10)
-                    per_platform[platform] = {
+                    result = {
                         'http_status': r.status_code,
                         'body': r.text[:400],
                         'token_user_id': getattr(t, 'user_id', None),
                     }
+                    if platform == 'ios':
+                        ios_results.append(result)
+                        if 'ios' not in per_platform:
+                            per_platform['ios'] = result  # first one for back-compat
+                    else:
+                        per_platform[platform] = result
                 except Exception as send_err:
-                    per_platform[platform] = {'error': str(send_err)[:200]}
+                    err = {'error': str(send_err)[:200]}
+                    if platform == 'ios':
+                        ios_results.append(err)
+                    else:
+                        per_platform[platform] = err
+            # Surface the full iOS attempt list separately
+            if ios_results:
+                per_platform['ios_all'] = ios_results
+                ios_ok = sum(1 for r in ios_results if r.get('http_status') == 200)
+                ios_stale = sum(1 for r in ios_results if r.get('http_status') in (404, 410))
+                ios_401 = sum(1 for r in ios_results if r.get('http_status') == 401)
+                per_platform['ios_summary'] = {
+                    'tested': len(ios_results),
+                    'ok_200': ios_ok,
+                    'stale_404_410': ios_stale,
+                    'unauth_401': ios_401,
+                }
             out['real_token_probes'] = per_platform
             # Plain-English diagnosis based on what came back
             ios = per_platform.get('ios')
