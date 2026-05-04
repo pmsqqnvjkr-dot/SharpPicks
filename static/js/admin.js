@@ -421,6 +421,20 @@ function bindLiveData(metrics) {
     }
   }
 
+  // -- Per-section summaries (Phase 3 audit follow-up) --
+  // services/headline.py.compute_summaries() returns a dict of
+  // section-id -> sentence. Replace each .section-summary inner text
+  // by section ID so we don't accidentally update mockup copy that
+  // never had a real-data equivalent.
+  const summaries = metrics.summaries || {};
+  Object.entries(summaries).forEach(([sectionId, sentence]) => {
+    if (!sentence) return;
+    const sec = document.getElementById(sectionId);
+    if (!sec) return;
+    const summaryEl = sec.querySelector('.section-summary');
+    if (summaryEl) summaryEl.textContent = sentence;
+  });
+
   // -- Hero MRR (combined Stripe + RevenueCat) --
   // Real MRR = paying customers only. Trialing subs have a card on
   // file but no money has changed hands; they're broken out below.
@@ -617,6 +631,33 @@ fetch('/api/admin/metrics?range=7d&include_internal=false', { credentials: 'same
 // histogram, cohort retention table, and user list rows with real data.
 // ─────────────────────────────────────────────────────────────────────────
 
+// Helper: replaces the .section-summary inside a section ID with new text.
+function _setSummary(sectionId, sentence) {
+  if (!sentence) return;
+  const sec = document.getElementById(sectionId);
+  if (!sec) return;
+  const el = sec.querySelector('.section-summary');
+  if (el) el.textContent = sentence;
+}
+
+// Helper: replaces .section-summary by matching the section's title
+// text (case-insensitive substring). Useful for sections without an
+// explicit ID — Users / Model / Infra tabs all have section-title
+// labels but no IDs.
+function _bySectionTitle(titleSubstring, sentence) {
+  if (!sentence) return;
+  const sections = document.querySelectorAll('.section');
+  const needle = titleSubstring.toLowerCase();
+  for (const sec of sections) {
+    const titleEl = sec.querySelector('.section-title');
+    if (titleEl && titleEl.textContent.toLowerCase().includes(needle)) {
+      const el = sec.querySelector('.section-summary');
+      if (el) el.textContent = sentence;
+      return;
+    }
+  }
+}
+
 function bindUsersActivity(data) {
   if (!data) return;
 
@@ -630,6 +671,44 @@ function bindUsersActivity(data) {
   // Power user count comes from tier_counts (more accurate than mockup's 28)
   const tiers = data.tier_counts || {};
   if (tiers.power != null) setStat('Power users', SP_FMT.num(tiers.power));
+
+  // -- Users tab section summaries (real data from this endpoint) --
+  // section-users-snapshot, section-login-frequency, section-cohort-retention
+  // (the section IDs aren't yet on the markup; we target by .section-title
+  // text content as a fallback so these populate even without explicit IDs.)
+
+  // Activity snapshot summary — top of Users tab
+  if (s.dau != null) {
+    const dauActive = s.dau > 0 ? `${s.dau} DAU today` : 'no DAU today (login tracking is sparse — populates as users log in)';
+    const stickiness = s.mau > 0 ? `${s.stickiness_pct}% stickiness (DAU/MAU)` : '';
+    const newUsers = s.new_7d > 0 ? `${s.new_7d} new in the last 7 days` : 'no new signups this week';
+    const power = (tiers.power || 0);
+    const powerStr = power > 0 ? `${power} power user${power === 1 ? '' : 's'} (15+ logins)` : 'no power-tier users yet';
+    _bySectionTitle('user activity', `${dauActive}. ${stickiness ? stickiness + '. ' : ''}${newUsers}. ${powerStr}.`);
+  }
+
+  // Login frequency summary
+  const buckets = data.login_frequency_buckets || {};
+  const totalUsers = Object.values(buckets).reduce((a, b) => a + b, 0);
+  if (totalUsers > 0) {
+    const zero = buckets['0'] || 0;
+    const power = (buckets['15-19'] || 0) + (buckets['20-29'] || 0) + (buckets['30+'] || 0);
+    const zeroPct = Math.round(100 * zero / totalUsers);
+    const powerPct = Math.round(100 * power / totalUsers);
+    _bySectionTitle('login frequency', `${zeroPct}% of users haven't logged in this month (${zero} of ${totalUsers}). Power tier (15+ logins) is ${powerPct}%.`);
+  }
+
+  // Cohort retention summary
+  const cohorts = Array.isArray(data.cohort_retention) ? data.cohort_retention : [];
+  if (cohorts.length > 0) {
+    const avgWeek1 = Math.round(
+      cohorts.map(c => (c.retention_by_week || [])[1] || 0).reduce((a, b) => a + b, 0) / cohorts.length
+    );
+    const avgWeek4 = Math.round(
+      cohorts.map(c => (c.retention_by_week || [])[4] || 0).reduce((a, b) => a + b, 0) / cohorts.length
+    );
+    _bySectionTitle('cohort retention', `Week-1 retention averages ${avgWeek1}% across the last ${cohorts.length} cohorts. Week-4 averages ${avgWeek4}%.`);
+  }
 
   // Replace the DAU 90d bar chart with real daily counts. Login event
   // tracking started today (2026-05-04) so the past 90 days will be
@@ -882,6 +961,68 @@ function bindModelPerf(data) {
     }
   }
 
+  // -- Model tab section summaries --
+  // Win rate vs market summary
+  const winBySport = data.win_rate_by_sport_daily || {};
+  const sportNames = Object.keys(winBySport);
+  if (sportNames.length > 0) {
+    const lastValues = sportNames.map(s => {
+      const series = winBySport[s] || [];
+      for (let i = series.length - 1; i >= 0; i--) {
+        if (series[i].win_rate != null) return { sport: s.toUpperCase(), rate: series[i].win_rate, n: series[i].sample_n };
+      }
+      return null;
+    }).filter(Boolean);
+    if (lastValues.length > 0) {
+      const phrase = lastValues.map(lv => `${lv.sport} ${lv.rate}% (n=${lv.n})`).join(', ');
+      _bySectionTitle('win rate', `Latest 14d-rolling win rate: ${phrase}. 52.4% is breakeven against -110 lines.`);
+    } else {
+      _bySectionTitle('win rate', 'Not enough resolved picks per sport for a 14d rolling read yet.');
+    }
+  }
+
+  // Hit rate by edge tier
+  const tiers = Array.isArray(data.hit_rate_by_edge_tier) ? data.hit_rate_by_edge_tier : [];
+  if (tiers.length > 0 && tiers.some(t => t.hit_rate != null)) {
+    const top = tiers[tiers.length - 1];
+    if (top && top.hit_rate != null) {
+      _bySectionTitle('hit rate', `Top edge tier (${top.tier}) hits ${top.hit_rate}% on ${top.sample_n} picks. Higher edge tiers should out-hit lower — that's the threshold doing real work.`);
+    }
+  } else {
+    _bySectionTitle('hit rate', 'Edge tier hit-rate computation needs resolved picks. Currently sparse.');
+  }
+
+  // Calibration plots — one summary covers both NBA and MLB
+  const cal = data.calibration || {};
+  const calSports = Object.keys(cal);
+  if (calSports.length > 0) {
+    const fragments = calSports.map(s => {
+      const points = (cal[s] || []).filter(p => p.observed != null);
+      if (points.length === 0) return null;
+      const samples = points.reduce((a, p) => a + (p.sample_n || 0), 0);
+      return `${s.toUpperCase()} (${points.length} buckets, n=${samples})`;
+    }).filter(Boolean);
+    if (fragments.length > 0) {
+      _bySectionTitle('calibration', `Calibration coverage: ${fragments.join(' · ')}. Closer the points sit to the diagonal, the better the model's probability estimates.`);
+    } else {
+      _bySectionTitle('calibration', 'Not enough resolved picks with cover_prob to plot calibration yet.');
+    }
+  }
+
+  // Edge distribution / MEI histogram
+  const edgeDist = Array.isArray(data.edge_distribution) ? data.edge_distribution : [];
+  const totalPicks = edgeDist.reduce((a, b) => a + (b.count || 0), 0);
+  if (totalPicks > 0) {
+    const above = edgeDist.filter(b => {
+      const lo = parseFloat(b.tier);
+      return !isNaN(lo) && lo >= 4;
+    }).reduce((a, b) => a + (b.count || 0), 0);
+    const sharpPct = Math.round(100 * above / totalPicks);
+    _bySectionTitle('mei distribution', `${totalPicks} picks scored in the last 30 days. ${sharpPct}% cleared the 4% edge threshold.`);
+  } else {
+    _bySectionTitle('mei distribution', 'No scored picks in the last 30 days.');
+  }
+
   // Last 10 signals table
   if (Array.isArray(data.last_10_signals)) {
     // The mockup renders signals as .top-list or .pipeline-row style.
@@ -996,6 +1137,43 @@ function bindInfraHealth(data) {
   if (dh.database_size_mb != null)   setStat('Database size',      dh.database_size_mb + ' MB');
   if (dh.longest_running_query_seconds != null) {
     setStat('Longest query', dh.longest_running_query_seconds + 's');
+  }
+
+  // -- Infra tab section summaries --
+  const p95 = c.p95_24h_ms;
+  const errors = c.errors_24h;
+  const requests = c.requests_24h;
+  if (requests != null) {
+    const healthBits = [];
+    if (requests > 0) healthBits.push(`${requests.toLocaleString()} requests last 24h`);
+    if (p95 != null && p95 > 0) healthBits.push(`p95 ${p95}ms`);
+    if (errors != null) healthBits.push(`${errors} 5xx error${errors === 1 ? '' : 's'}`);
+    const summary = healthBits.length > 0
+      ? `${healthBits.join(', ')}. ` + (errors === 0 ? 'No server errors today.' : 'Investigate the 5xx counts.')
+      : 'request_metrics table is sparse — fills in as traffic accumulates.';
+    _bySectionTitle('server health', summary);
+  }
+
+  // Latency series summary
+  const series = Array.isArray(data.latency_series) ? data.latency_series : [];
+  const populatedHours = series.filter(p => p.p95 != null).length;
+  if (populatedHours > 0) {
+    _bySectionTitle('latency', `${populatedHours} of ${series.length} hours have data so far. Lines fill in as traffic accumulates.`);
+  }
+
+  // Recent deploys
+  const deploys = Array.isArray(data.recent_deploys) ? data.recent_deploys : [];
+  if (deploys.length > 0) {
+    const latest = deploys[0];
+    _bySectionTitle('recent deploys', `${deploys.length} commits in this window. Latest: ${latest.sha} by ${latest.author}.`);
+  } else {
+    _bySectionTitle('recent deploys', 'git log not callable from the running container.');
+  }
+
+  // Database health summary
+  if (dh.database_size_mb != null) {
+    const conns = (dh.connections_active || 0) + (dh.connections_idle || 0);
+    _bySectionTitle('database', `${dh.database_size_mb} MB total, ${conns} active connections.`);
   }
 }
 

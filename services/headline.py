@@ -258,10 +258,180 @@ def compute_actions(metrics: dict) -> list:
     return items[:3]
 
 
+def _pluralize(n: int, word: str, plural: str = None) -> str:
+    """'1 trial' / '2 trials' helper."""
+    if n == 1:
+        return f'{n} {word}'
+    return f'{n} {plural or (word + "s")}'
+
+
+def _delta(current: int, baseline: int) -> str:
+    """Return a +/- delta string in money format. baseline=0 means no
+    prior data."""
+    if baseline is None or baseline == 0:
+        return ''
+    diff = current - baseline
+    if diff == 0:
+        return 'flat vs 90d ago'
+    sign = '+' if diff > 0 else '−'
+    return f'{sign}{_money(abs(diff))} vs 90d ago'
+
+
+def compute_summaries(metrics: dict) -> dict:
+    """Per-section summary sentences for the Command tab. Each value
+    is one short sentence (or two) computed from real metrics — no
+    invented trends, no exclamation marks. Sections without enough
+    data fall back to a neutral 'no activity yet' note instead of
+    making something up."""
+    stripe = _payload(metrics, 'stripe')
+    rc     = _payload(metrics, 'revenuecat')
+    events = _payload(metrics, 'events')
+    ga4    = _payload(metrics, 'ga4')
+    gsc    = _payload(metrics, 'gsc')
+
+    summaries = {}
+
+    # ── revenue · 90d ──
+    mrr_now = (stripe.get('mrr_cents') or 0) + (rc.get('mrr_cents') or 0)
+    expected_now = (stripe.get('expected_mrr_cents') or stripe.get('mrr_cents') or 0) + (rc.get('mrr_cents') or 0)
+    daily = stripe.get('mrr_daily_90d') or []
+    mrr_90d_ago = (daily[0].get('mrr_cents') if daily else 0) or 0
+    delta_str = _delta(stripe.get('mrr_cents') or 0, mrr_90d_ago)
+    upside = expected_now - mrr_now
+    parts = [f'MRR is {_money(mrr_now)} from active paying customers']
+    if upside > 0:
+        parts.append(f'{_money(upside)} more would convert if all in-flight trials bill')
+    if delta_str:
+        parts.append(delta_str)
+    summaries['section-revenue'] = '. '.join(parts) + '.'
+
+    # ── trial pipeline ──
+    trials = stripe.get('trials') or 0
+    trials_likely = stripe.get('trials_likely_to_convert') or 0
+    trials_cancel = stripe.get('trials_with_cancel_scheduled') or 0
+    paid_cancel = stripe.get('paid_with_cancel_scheduled') or 0
+    conv_7d = stripe.get('trial_conversions_7d') or 0
+    if trials == 0 and conv_7d == 0 and paid_cancel == 0:
+        summaries['section-trial-pipeline'] = (
+            'No trials in flight and no cancellations queued. The card-on-file pipeline is empty.'
+        )
+    else:
+        bits = []
+        if trials > 0:
+            bits.append(f'{_pluralize(trials, "trial")} in flight ({trials_likely} likely to bill, {trials_cancel} with cancel scheduled)')
+        if paid_cancel > 0:
+            bits.append(f'{_pluralize(paid_cancel, "paid sub")} with cancel scheduled')
+        if conv_7d > 0:
+            bits.append(f'{_pluralize(conv_7d, "trial converted", "trials converted")} in the last 7 days')
+        summaries['section-trial-pipeline'] = '. '.join(bits) + '.'
+
+    # ── failed payments · top offenders ──
+    failed_users_30d = stripe.get('failed_payment_users_30d') or 0
+    failed_attempts_30d = stripe.get('failed_payment_attempts_30d') or 0
+    failing = stripe.get('failing_users') or []
+    if failed_users_30d == 0:
+        summaries['section-failing-customers'] = (
+            'No failed payments in the last 30 days. Revenue collection is clean.'
+        )
+    else:
+        worst = failing[0] if failing else None
+        worst_share = (worst.get('attempts_30d', 0) / failed_attempts_30d * 100) if (worst and failed_attempts_30d) else 0
+        if worst and worst_share >= 50:
+            who = worst.get('email') or worst.get('customer_id', 'one customer')
+            summaries['section-failing-customers'] = (
+                f'{_pluralize(failed_users_30d, "customer")} with failed payments in 30d, '
+                f'{worst.get("attempts_30d", 0)} of {failed_attempts_30d} attempts from {who}. '
+                f'Likely a single dead card — reach out before churning them.'
+            )
+        else:
+            summaries['section-failing-customers'] = (
+                f'{_pluralize(failed_users_30d, "customer")} with failed payments in 30d, '
+                f'{failed_attempts_30d} attempts total. Per-user breakdown below.'
+            )
+
+    # ── user activity · 30d ──
+    funnel = events.get('funnel') or []
+    signal_views = next((s.get('users') for s in funnel if s.get('step') == 'signal_view'), 0) or 0
+    if signal_views == 0:
+        summaries['section-user-activity'] = (
+            'No tracked user activity in the last 7 days. Login + event tracking populates from this point forward.'
+        )
+    else:
+        summaries['section-user-activity'] = (
+            f'{_pluralize(signal_views, "user")} viewed a signal in the last 7 days. '
+            f'Bet-tap conversion follows in the funnel section below.'
+        )
+
+    # ── signals · 7d ──
+    signals_by_sport = events.get('signals_issued') or {}
+    total_signals = sum(signals_by_sport.values())
+    if total_signals == 0:
+        summaries['section-signals'] = (
+            'No signals issued in the last 7 days. Pass days are a feature, not a failure.'
+        )
+    else:
+        breakdown = ', '.join(f'{n} {sport.upper()}' for sport, n in sorted(signals_by_sport.items()) if n)
+        summaries['section-signals'] = (
+            f'{_pluralize(total_signals, "signal")} issued in the last 7 days ({breakdown}).'
+        )
+
+    # ── funnel ──
+    if funnel:
+        steps = {s.get('step'): s for s in funnel if s.get('step')}
+        view_users = (steps.get('signal_view') or {}).get('users', 0)
+        bet_card = (steps.get('bet_tap_signal_card') or {}).get('users', 0)
+        bet_place = (steps.get('bet_tap_place_bet') or {}).get('users', 0)
+        if view_users == 0:
+            summaries['section-funnel'] = (
+                'No signal views recorded yet. The funnel populates as authenticated users tap signals.'
+            )
+        else:
+            conv1 = round(100.0 * bet_card / view_users, 1) if view_users else 0
+            conv2 = round(100.0 * bet_place / view_users, 1) if view_users else 0
+            summaries['section-funnel'] = (
+                f'{_pluralize(view_users, "user")} viewed signals, '
+                f'{bet_card} tapped a bet card ({conv1}%), '
+                f'{bet_place} reached the place-bet surface ({conv2}%).'
+            )
+
+    # ── traffic ──
+    sessions = ga4.get('sessions') or ga4.get('sessions_30d') or 0
+    if sessions == 0:
+        summaries['section-traffic'] = (
+            'GA4 reports 0 sessions in the window. Confirm tracking is firing on the marketing site.'
+        )
+    else:
+        gsc_clicks = gsc.get('clicks') or 0
+        if gsc_clicks > 0:
+            summaries['section-traffic'] = (
+                f'{int(sessions):,} sessions in the window. {int(gsc_clicks):,} GSC clicks last 7 days — search is contributing real top-of-funnel.'
+            )
+        else:
+            summaries['section-traffic'] = (
+                f'{int(sessions):,} sessions in the window. GSC reporting is empty — likely propagation delay or the verified property is wrong.'
+            )
+
+    # ── bet taps ──
+    bet_taps_by_surface = events.get('bet_taps') or {}
+    total_taps = sum(bet_taps_by_surface.values())
+    if total_taps == 0:
+        summaries['section-bet-taps'] = (
+            'No bet taps from real users in the last 7 days. Distribution is the bottleneck — instrumentation is fine.'
+        )
+    else:
+        surfaces = ', '.join(f'{n} from {surface}' for surface, n in sorted(bet_taps_by_surface.items()) if n)
+        summaries['section-bet-taps'] = (
+            f'{_pluralize(total_taps, "bet tap")} in the last 7 days ({surfaces}).'
+        )
+
+    return summaries
+
+
 def compute(metrics: dict) -> dict:
-    """Public entry point. Returns {'headline': {...}, 'actions': [...]}.
-    Wired into /api/admin/metrics in admin_api.py."""
+    """Public entry point. Returns {'headline': {...}, 'actions': [...],
+    'summaries': {...}}. Wired into /api/admin/metrics in admin_api.py."""
     return {
-        'headline': compute_headline(metrics),
-        'actions':  compute_actions(metrics),
+        'headline':  compute_headline(metrics),
+        'actions':   compute_actions(metrics),
+        'summaries': compute_summaries(metrics),
     }
