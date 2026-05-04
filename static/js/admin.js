@@ -468,6 +468,7 @@ function bindLiveData(metrics) {
   if (sp.trial_conversions_30d != null)        setText('stat-trial-conv-30d',         SP_FMT.num(sp.trial_conversions_30d));
   if (sp.paid_with_cancel_scheduled != null)   setText('stat-paid-cancel-scheduled',  SP_FMT.num(sp.paid_with_cancel_scheduled));
   if (sp.canceled_30d != null)                 setText('stat-canceled-30d',           SP_FMT.num(sp.canceled_30d));
+  if (sp.comped_pro_users != null)             setText('stat-comped-pro',             SP_FMT.num(sp.comped_pro_users));
 
   // -- Failing payment customers list (top 10 by attempt count) --
   const failingList = document.getElementById('failing-customers-list');
@@ -643,6 +644,7 @@ const TAG_LABEL = {
   paid_annual:      'paid annual',
   paid_monthly:     'paid monthly',
   paid:             'paid',
+  comped:           'comped',
   trial:            'trial',
   cancel_scheduled: 'cancel scheduled',
   pending_verify:   'pending verify',

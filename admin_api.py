@@ -912,15 +912,19 @@ def command_center_data():
     # Exclude internal/test/soft-deleted users from all command-center metrics.
     users = _real_users_query().all()
     total_users = len(users)
-    active_subs = [u for u in users if u.subscription_status == 'active']
-    trial_users = [u for u in users if u.subscription_status == 'trial']
+    # PAID buckets exclude comped (gifted) users so MRR and active-sub
+    # counts reflect actual paying customers only. Comped users still
+    # count toward total_users.
+    active_subs = [u for u in users if u.subscription_status == 'active' and not u.comped]
+    trial_users = [u for u in users if u.subscription_status == 'trial' and not u.comped]
     free_users = [u for u in users if u.subscription_status in ('free', None, '')]
     annual_subs = [u for u in active_subs if u.subscription_plan and 'annual' in u.subscription_plan.lower()]
     monthly_subs = [u for u in active_subs if u.subscription_plan and 'month' in u.subscription_plan.lower()]
-    # Founding count is a real cap on paid spots and includes internal
-    # employee accounts who claimed founding. Read from the full users
-    # table, not the is_internal-filtered metrics view.
-    founding_count = User.query.filter_by(founding_member=True).count()
+    # Founding count is a real cap on paid spots. Excludes comped because
+    # those weren't real $99 founding-rate purchases; includes is_internal
+    # because employees who paid the founding rate still count toward
+    # the 50-spot cap.
+    founding_count = User.query.filter_by(founding_member=True).filter(User.comped == False).count()  # noqa: E712
     founding_cap = 50
 
     counter = FoundingCounter.query.first()

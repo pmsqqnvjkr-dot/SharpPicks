@@ -95,6 +95,11 @@ class User(UserMixin, db.Model):
     cancel_scheduled_at = db.Column(db.DateTime, nullable=True)
     cancel_effective_at = db.Column(db.DateTime, nullable=True)
     trial_converted_at = db.Column(db.DateTime, nullable=True)
+    # Complimentary pro access. These users have is_premium=True but
+    # are NOT paying — gifted access from Evan to friends/family. They
+    # must be excluded from MRR, paid totals, and paid_* labels.
+    # Distinct from is_internal (employees / shared accounts).
+    comped = db.Column(db.Boolean, nullable=False, default=False, index=True)
     is_internal = db.Column(db.Boolean, nullable=False, default=False, index=True)
     # Soft-delete: NULL = active, timestamp = soft-deleted. Used to disable
     # spam/test accounts without losing referential integrity from

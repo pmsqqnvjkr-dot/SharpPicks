@@ -750,6 +750,7 @@
   .user-tag.paid_annual { color: var(--signal-blue); border-color: rgba(79, 134, 247, 0.5); }
   .user-tag.paid_monthly { color: var(--signal-blue); border-color: rgba(79, 134, 247, 0.35); }
   .user-tag.founding { color: #FFD580; border-color: rgba(255, 213, 128, 0.45); background: rgba(255, 213, 128, 0.05); }
+  .user-tag.comped { color: #B8A0E0; border-color: rgba(184, 160, 224, 0.45); background: rgba(184, 160, 224, 0.05); }
   .user-tag.cancel_scheduled { color: var(--warn); border-color: rgba(228, 160, 59, 0.5); background: rgba(228, 160, 59, 0.06); }
   .user-tag.churned { color: var(--danger); border-color: rgba(228, 129, 129, 0.3); }
   .user-tag.past_due { color: var(--danger); border-color: rgba(228, 129, 129, 0.45); background: rgba(228, 129, 129, 0.05); }

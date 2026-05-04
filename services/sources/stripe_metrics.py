@@ -70,6 +70,31 @@ def _fetch_raw() -> dict:
     window_7d_ts = int((now - timedelta(days=7)).timestamp())
     window_30d_ts = int((now - timedelta(days=30)).timestamp())
 
+    # Build the exclusion set: stripe_customer_ids of users we don't
+    # count toward paid revenue metrics (employees, comped friends/family,
+    # soft-deleted spam). Without this filter, Evan's own real Stripe
+    # sub inflated MRR + active_subs and the four comped accounts
+    # showed up as paying customers.
+    excluded_customer_ids = set()
+    excluded_count_internal = 0
+    excluded_count_comped = 0
+    try:
+        from models import User
+        users_with_stripe = User.query.filter(
+            User.stripe_customer_id.isnot(None),
+        ).with_entities(
+            User.stripe_customer_id, User.is_internal, User.comped, User.deleted_at,
+        ).all()
+        for cust_id, is_internal, comped, deleted_at in users_with_stripe:
+            if is_internal or comped or deleted_at is not None:
+                excluded_customer_ids.add(cust_id)
+                if is_internal:
+                    excluded_count_internal += 1
+                if comped:
+                    excluded_count_comped += 1
+    except Exception as e:
+        logger.warning('stripe_metrics: exclusion-set build failed (counts will include internal/comped): %s', e)
+
     mrr_cents = 0
     trials = 0
     new_subs_7d = 0
@@ -93,11 +118,19 @@ def _fetch_raw() -> dict:
         created = _get(sub, 'created', 0) or 0
         canceled_at = _get(sub, 'canceled_at', 0) or 0
         cancel_at_period_end = bool(_get(sub, 'cancel_at_period_end'))
+        cust = _get(sub, 'customer')
+        cust_id = cust if isinstance(cust, str) else (_get(cust, 'id') if cust else None)
+
+        # Skip subs belonging to internal/comped/deleted users entirely.
+        # They don't add to MRR, active sub counts, trial pipeline, or
+        # any of the new/cancel windows. This is the fix that stops
+        # Evan's real Stripe sub from inflating the totals.
+        if cust_id and cust_id in excluded_customer_ids:
+            continue
 
         if status in ('active', 'trialing'):
-            cust = _get(sub, 'customer')
-            if cust:
-                customer_ids.add(cust if isinstance(cust, str) else _get(cust, 'id'))
+            if cust_id:
+                customer_ids.add(cust_id)
             items_container = _get(sub, 'items') or {}
             items_data = _get(items_container, 'data') or []
             for item in items_data:
@@ -142,6 +175,10 @@ def _fetch_raw() -> dict:
         cust = _get(charge, 'customer')
         cust_id = cust if isinstance(cust, str) else (_get(cust, 'id') if cust else None)
         if not cust_id:
+            continue
+        # Same exclusion as the subscription loop — failed retries from
+        # internal/comped customers shouldn't show up as churn risk.
+        if cust_id in excluded_customer_ids:
             continue
         c_created = _get(charge, 'created', 0) or 0
         failed_per_customer_30d[cust_id] = failed_per_customer_30d.get(cust_id, 0) + 1
@@ -210,9 +247,26 @@ def _fetch_raw() -> dict:
     except Exception as e:
         logger.warning('stripe_metrics: trial conversion count failed: %s', e)
 
+    # Comped pro-account count from DB. These users have full pro
+    # access but are not paying, so they're broken out separately
+    # (not included in active_subs above).
+    comped_count = 0
+    try:
+        from models import User, db as _db
+        from sqlalchemy import func as _func
+        comped_count = _db.session.query(_func.count(User.id)).filter(
+            User.comped == True,  # noqa: E712
+            User.deleted_at.is_(None),
+        ).scalar() or 0
+    except Exception as e:
+        logger.warning('stripe_metrics: comped count failed: %s', e)
+
     return {
         'mrr_cents': mrr_cents,
-        'active_subs': len(customer_ids),  # distinct customers in active+trialing
+        'active_subs': len(customer_ids),  # distinct PAYING customers in active+trialing
+        'comped_pro_users': comped_count,   # complimentary pro access, not in MRR
+        'excluded_internal_subs': excluded_count_internal,
+        'excluded_comped_subs': excluded_count_comped,
         'trials': trials,
         'new_subs_7d': new_subs_7d,
         'new_subs_30d': new_subs_30d,

@@ -27,7 +27,13 @@ from models import db, User, UserEvent
 # ─────────────────────────────────────────────────────────────────────────
 
 def _real_user_subq():
-    """Subquery of user IDs that count toward customer-facing metrics."""
+    """Subquery of user IDs that count toward customer-facing ACTIVITY
+    metrics (DAU/WAU/MAU/cohort retention/user list). Excludes
+    is_internal (employees) and deleted_at (soft-deleted spam/test).
+    Comped users ARE included here — they log in, they use the app,
+    they belong in retention math. Comped users are excluded only from
+    PAID metrics (Stripe MRR, active paid subs) where they'd inflate
+    revenue figures."""
     return db.session.query(User.id).filter(
         User.is_internal == False,  # noqa: E712
         User.deleted_at.is_(None),
@@ -311,8 +317,13 @@ def _user_tags(u: User, logins_30d: int, has_ios_purchase: bool, days_since_logi
     plan = (u.subscription_plan or '').lower()
     status = u.subscription_status or ''
 
-    # Billing tag — most specific wins
-    if status in ('active', 'cancelling'):
+    # Billing tag — most specific wins. Comped beats every other
+    # billing tag because the user might have founding_member=True or
+    # subscription_status='active' from the manual provisioning flow,
+    # but they are not actually paying.
+    if getattr(u, 'comped', False):
+        tags.append('comped')
+    elif status in ('active', 'cancelling'):
         if u.founding_member:
             tags.append('founding')
         elif 'annual' in plan or 'year' in plan or 'founding' in plan:
