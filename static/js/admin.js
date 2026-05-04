@@ -442,32 +442,43 @@ function bindLiveData(metrics) {
     }
   }
 
-  // Revenue chart — drop the placeholder RevenueCat line when iOS is
-  // not yet live in production. The chart constructor hardcodes a
-  // green Math.random() RC dataset that's misleading when there's no
-  // actual iOS revenue. Once IOS_PROD_LIVE=1 the dataset stays.
-  // Also flip the Stripe dataset's fill from 'origin' (which assumes
-  // a stacked area below it) to 'origin' staying — Chart.js handles
-  // single-dataset fill from origin natively.
+  // Revenue chart — wire real Stripe mrr_daily_90d series, drop the
+  // placeholder RevenueCat dataset when iOS is not yet live.
   const mrrChart = Chart.getChart(document.getElementById('chart-mrr'));
   const iosLive = !!metrics.revenuecat?.payload?.ios_prod_live;
-  if (mrrChart && !iosLive) {
-    // Remove any dataset whose label looks like RevenueCat
-    const before = mrrChart.data.datasets.length;
-    mrrChart.data.datasets = mrrChart.data.datasets.filter(
-      ds => !(ds.label || '').toLowerCase().includes('revenuecat')
-        && !(ds.label || '').toLowerCase().includes('ios')
-    );
-    if (mrrChart.data.datasets.length !== before) {
-      // Stripe dataset was previously fill: '-1' (relative to RC for stack).
-      // With RC removed, fill from origin so the area still shades.
-      mrrChart.data.datasets.forEach(ds => {
-        if ((ds.label || '').toLowerCase().includes('stripe')) {
-          ds.fill = 'origin';
-        }
-      });
-      mrrChart.update('none');
+  if (mrrChart) {
+    const stripeDaily = metrics.stripe?.payload?.mrr_daily_90d;
+    if (Array.isArray(stripeDaily) && stripeDaily.length > 0) {
+      // Replace mockup labels with real dates (MM-DD).
+      mrrChart.data.labels = stripeDaily.map(d => d.date.slice(5));
+      // Find or create the Stripe dataset and load real values.
+      const stripeIdx = mrrChart.data.datasets.findIndex(
+        ds => (ds.label || '').toLowerCase().includes('stripe')
+      );
+      const stripeDataset = stripeIdx >= 0 ? mrrChart.data.datasets[stripeIdx] : null;
+      if (stripeDataset) {
+        stripeDataset.data = stripeDaily.map(d => (d.mrr_cents || 0) / 100);
+      }
     }
+
+    if (!iosLive) {
+      // Drop any RevenueCat / iOS dataset entirely while iOS is gated off.
+      const before = mrrChart.data.datasets.length;
+      mrrChart.data.datasets = mrrChart.data.datasets.filter(
+        ds => !(ds.label || '').toLowerCase().includes('revenuecat')
+          && !(ds.label || '').toLowerCase().includes('ios')
+      );
+      if (mrrChart.data.datasets.length !== before) {
+        // Stripe dataset was previously fill='-1' (stacked above RC).
+        // With RC removed, fill from origin so the area still shades.
+        mrrChart.data.datasets.forEach(ds => {
+          if ((ds.label || '').toLowerCase().includes('stripe')) {
+            ds.fill = 'origin';
+          }
+        });
+      }
+    }
+    mrrChart.update('none');
   }
 
   // -- Revenue snapshot stats --

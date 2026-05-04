@@ -119,6 +119,20 @@ def _fetch_raw() -> dict:
     trial_customer_ids = set()   # status=trialing only -> 'trials' (distinct)
     currency = 'usd'
 
+    # Daily MRR series, last 90 days (oldest -> newest). Each entry is
+    # the sum of monthly-equivalent cents from subs that were actively
+    # paying (past trial_end, before canceled_at) on that day. Trialing
+    # days don't contribute — money hasn't moved yet.
+    DAYS = 90
+    today_utc_date = now.date()
+    window_start_date = today_utc_date - timedelta(days=DAYS - 1)
+    mrr_daily_cents = [0] * DAYS  # [0] = oldest, [DAYS-1] = today
+
+    def _ts_to_date(ts):
+        if not ts:
+            return None
+        return datetime.fromtimestamp(ts, tz=timezone.utc).date()
+
     sub_iter = stripe.Subscription.list(status='all', limit=100).auto_paging_iter()
     for n, sub in enumerate(sub_iter, start=1):
         if n > SUB_PAGE_CAP:
@@ -127,6 +141,7 @@ def _fetch_raw() -> dict:
         status = _get(sub, 'status')
         created = _get(sub, 'created', 0) or 0
         canceled_at = _get(sub, 'canceled_at', 0) or 0
+        trial_end = _get(sub, 'trial_end', 0) or 0
         cancel_at_period_end = bool(_get(sub, 'cancel_at_period_end'))
         cust = _get(sub, 'customer')
         cust_id = cust if isinstance(cust, str) else (_get(cust, 'id') if cust else None)
@@ -138,17 +153,39 @@ def _fetch_raw() -> dict:
         if cust_id and cust_id in excluded_customer_ids:
             continue
 
-        if status in ('active', 'trialing'):
-            items_container = _get(sub, 'items') or {}
-            items_data = _get(items_container, 'data') or []
-            sub_monthly_cents = 0
-            for item in items_data:
-                sub_monthly_cents += _price_to_monthly_cents(item)
-                price = _get(item, 'price') or {}
-                cur = _get(price, 'currency')
-                if cur:
-                    currency = cur
+        # Compute monthly cents for this sub (used both for current
+        # MRR and the daily series).
+        items_container = _get(sub, 'items') or {}
+        items_data = _get(items_container, 'data') or []
+        sub_monthly_cents = 0
+        for item in items_data:
+            sub_monthly_cents += _price_to_monthly_cents(item)
+            price = _get(item, 'price') or {}
+            cur = _get(price, 'currency')
+            if cur:
+                currency = cur
 
+        # ── Contribute to the daily MRR series ──
+        # A sub's "actively paying" window is from max(created, trial_end)
+        # to (canceled_at or today). Currently-active subs without a trial
+        # contribute every day from created -> today. Currently-trialing
+        # subs that haven't converted have trial_end in the future, so
+        # max(created, trial_end) is also in the future and they
+        # contribute zero days to the past 90 (correct — they haven't
+        # paid yet).
+        if sub_monthly_cents > 0:
+            paying_start_ts = max(created, trial_end)
+            paying_start_date = _ts_to_date(paying_start_ts) or window_start_date
+            paying_end_date = _ts_to_date(canceled_at) if canceled_at else today_utc_date
+            range_start = max(paying_start_date, window_start_date)
+            range_end = min(paying_end_date, today_utc_date)
+            if range_start <= range_end:
+                start_idx = (range_start - window_start_date).days
+                end_idx = (range_end - window_start_date).days
+                for i in range(max(0, start_idx), min(DAYS - 1, end_idx) + 1):
+                    mrr_daily_cents[i] += sub_monthly_cents
+
+        if status in ('active', 'trialing'):
             if status == 'active':
                 # ACTUAL paying MRR.
                 mrr_cents += sub_monthly_cents
@@ -281,9 +318,20 @@ def _fetch_raw() -> dict:
     except Exception as e:
         logger.warning('stripe_metrics: comped count failed: %s', e)
 
+    # Render the 90-day MRR series with date strings so the frontend
+    # can use them as chart labels directly.
+    mrr_daily_90d = [
+        {
+            'date': (window_start_date + timedelta(days=i)).isoformat(),
+            'mrr_cents': mrr_daily_cents[i],
+        }
+        for i in range(DAYS)
+    ]
+
     return {
         'mrr_cents': mrr_cents,                       # status='active' only — real recurring revenue
         'expected_mrr_cents': expected_mrr_cents,     # active + trialing — what MRR becomes if all trials convert
+        'mrr_daily_90d': mrr_daily_90d,               # 90-day daily MRR series for the Revenue chart
         'active_subs': len(paying_customer_ids),      # distinct PAYING customers (status=active only)
         'trial_subs':  len(trial_customer_ids),       # distinct trialing customers (no money in yet)
         'comped_pro_users': comped_count,             # complimentary pro access, not in MRR
