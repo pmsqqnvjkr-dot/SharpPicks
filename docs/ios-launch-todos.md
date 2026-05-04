@@ -40,6 +40,48 @@ admin Command tab → Trial Pipeline for the new fields.
 
 ---
 
+## 2A. APNs Authentication Key in Firebase Console (LAUNCH BLOCKER)
+
+Diagnosed 2026-05-04 via `/api/admin/firebase-diagnose`: Android FCM
+sends work (200 OK), iOS FCM sends fail with 401. Service-account auth
+is fine — the gap is between Firebase and Apple Push Notification
+Service.
+
+**Without this fixed, every iOS user gets zero push notifications**
+(no pick alerts, no pass-day notifications, no results, no weekly
+summaries). TestFlight users + Build 6 installers + every future
+App Store user are silently broken.
+
+**Fix steps (~10 min if you have Apple Dev access):**
+
+1. **Apple Developer Portal** → Certificates, Identifiers & Profiles →
+   **Keys** → **+** → name it `SharpPicks FCM` → check
+   `Apple Push Notifications service (APNs)` → Continue → Register →
+   download the `.p8` (one-time download, save it).
+2. Note three values from the new key page:
+   - **Key ID** (10 chars at the top)
+   - **Team ID** (top right of any Apple Developer page; current value:
+     `GM86B8Y7D7` per `ios/App/SharpPicks.storekit`)
+   - Bundle ID: `com.sharppicksllc.signals`
+3. **Firebase Console** → sharp-picks project → Project Settings (gear) →
+   **Cloud Messaging** tab → scroll to **Apple app configuration**.
+4. Either click the existing entry for `com.sharppicksllc.signals` or
+   add it (+ button).
+5. **APNs Authentication Key** row → **Upload** the `.p8`, paste Key ID
+   and Team ID, **Save**.
+
+**Verify:**
+
+```bash
+curl -s -H "X-Cron-Secret: <secret>" \
+  "https://app.sharppicks.ai/api/admin/firebase-diagnose" | jq '.real_token_probes.ios'
+```
+
+Should be `http_status: 200` (or 404/410 if the specific user reinstalled).
+Anything other than 401 means the auth path is fixed.
+
+---
+
 ## 3. Marketing site (`landing/`)
 
 The customer-facing marketing site is in `landing/`, served at sharppicks.ai
