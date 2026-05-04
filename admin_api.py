@@ -1987,6 +1987,90 @@ def _diagnose_signal(n, blended_wr, model_wr, blended_roi, model_roi, corr):
     return msg
 
 
+@admin_bp.route('/api/admin/firebase-diagnose')
+def firebase_diagnose():
+    """Returns the full Firebase/FCM credential state + a live FCM API
+    probe so we can see exactly what Google is rejecting. The probe
+    sends to a non-existent token (expects 404 from Google, which is
+    proof that auth WORKED). A 401 here means service-account auth
+    is broken — see service_account_email + project_id below to fix."""
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    out = {
+        'service_account_email': None,
+        'project_id': None,
+        'access_token_present': False,
+        'access_token_prefix': None,
+        'creds_load_error': None,
+        'probe': None,
+    }
+
+    try:
+        from app import _get_firebase_service_info, _get_firebase_credentials_and_project
+        info = _get_firebase_service_info()
+        if not info:
+            out['creds_load_error'] = 'No service account found (env vars + JSON file both empty)'
+            return jsonify(out)
+        out['service_account_email'] = info.get('client_email')
+        out['project_id'] = info.get('project_id')
+        try:
+            creds, project_id = _get_firebase_credentials_and_project()
+            out['project_id'] = project_id
+            tok = getattr(creds, 'token', None)
+            out['access_token_present'] = bool(tok)
+            out['access_token_prefix'] = (tok[:20] + '…') if tok else None
+        except Exception as e:
+            out['creds_load_error'] = f'{type(e).__name__}: {str(e)[:300]}'
+            return jsonify(out)
+    except Exception as e:
+        out['creds_load_error'] = f'Outer error: {type(e).__name__}: {str(e)[:300]}'
+        return jsonify(out)
+
+    # Live probe: send to an obviously-fake token. Google should
+    # respond 404 NOT_FOUND (token doesn't exist) — meaning AUTH
+    # WORKED but the registration target didn't. A 401 here means
+    # the access token itself was rejected — auth is broken.
+    try:
+        url = f'https://fcm.googleapis.com/v1/projects/{out["project_id"]}/messages:send'
+        headers = {
+            'Authorization': f'Bearer {creds.token}',
+            'Content-Type': 'application/json',
+        }
+        payload = {
+            'message': {
+                'token': 'definitely-not-a-real-token-for-diagnostic-only',
+                'notification': {'title': 'diagnostic', 'body': 'should 404'},
+            }
+        }
+        resp = requests.post(url, json=payload, headers=headers, timeout=10)
+        out['probe'] = {
+            'http_status': resp.status_code,
+            'body': resp.text[:600],
+            'auth_ok': resp.status_code in (404, 400),
+            'verdict': (
+                'AUTH OK — Google accepted the credential and rejected the fake token (expected).'
+                if resp.status_code in (404, 400)
+                else (
+                    'AUTH BROKEN — Google rejected the access token. '
+                    'Check Firebase Console → Project Settings → Service accounts. '
+                    'Likely fixes: regenerate the private key, OR enable Cloud Messaging API in GCP, '
+                    'OR confirm the service_account_email above matches the active account in Firebase.'
+                    if resp.status_code == 401 else
+                    f'Unexpected — investigate the {resp.status_code} body above.'
+                )
+            ),
+        }
+    except Exception as e:
+        out['probe'] = {'error': f'{type(e).__name__}: {str(e)[:300]}'}
+
+    return jsonify(out)
+
+
 @admin_bp.route('/api/admin/test-push', methods=['POST'])
 def test_push():
     cron_secret = os.environ.get('CRON_SECRET', '')
