@@ -2035,12 +2035,12 @@ def firebase_diagnose():
     # respond 404 NOT_FOUND (token doesn't exist) — meaning AUTH
     # WORKED but the registration target didn't. A 401 here means
     # the access token itself was rejected — auth is broken.
+    url = f'https://fcm.googleapis.com/v1/projects/{out["project_id"]}/messages:send'
+    headers = {
+        'Authorization': f'Bearer {creds.token}',
+        'Content-Type': 'application/json',
+    }
     try:
-        url = f'https://fcm.googleapis.com/v1/projects/{out["project_id"]}/messages:send'
-        headers = {
-            'Authorization': f'Bearer {creds.token}',
-            'Content-Type': 'application/json',
-        }
         payload = {
             'message': {
                 'token': 'definitely-not-a-real-token-for-diagnostic-only',
@@ -2067,6 +2067,59 @@ def firebase_diagnose():
         }
     except Exception as e:
         out['probe'] = {'error': f'{type(e).__name__}: {str(e)[:300]}'}
+
+    # Real-token probes per platform — only fire when service auth
+    # passed. Loops every enabled FCM token in the DB (capped at 6
+    # so we don't spam users), sends a real but innocuous test
+    # message, and reports the per-platform outcome. This is how
+    # we differentiate "FCM auth broken" (already ruled out above)
+    # from "iOS APNs key missing" (the most likely remaining cause
+    # for the production 401s).
+    if out['probe'] and out['probe'].get('auth_ok'):
+        try:
+            from models import FCMToken
+            tokens = FCMToken.query.filter_by(enabled=True).limit(6).all()
+            per_platform = {}
+            for t in tokens:
+                platform = (getattr(t, 'platform', None) or 'unknown').lower()
+                if platform in per_platform:
+                    continue  # one probe per platform is plenty
+                msg = {
+                    'token': t.fcm_token,
+                    'notification': {'title': 'sharppicks diagnostic', 'body': 'silent test'},
+                }
+                if platform == 'ios':
+                    msg['apns'] = {
+                        'payload': {'aps': {'content-available': 1}},
+                        'headers': {'apns-priority': '5'},
+                    }
+                try:
+                    r = requests.post(url, json={'message': msg}, headers=headers, timeout=10)
+                    per_platform[platform] = {
+                        'http_status': r.status_code,
+                        'body': r.text[:400],
+                        'token_user_id': getattr(t, 'user_id', None),
+                    }
+                except Exception as send_err:
+                    per_platform[platform] = {'error': str(send_err)[:200]}
+            out['real_token_probes'] = per_platform
+            # Plain-English diagnosis based on what came back
+            ios = per_platform.get('ios')
+            if ios and ios.get('http_status') == 401:
+                out['real_token_verdict'] = (
+                    'iOS tokens fail with 401 even though service-account auth is fine. '
+                    'This means Firebase cannot authenticate to APNs on your behalf. '
+                    'Fix: Firebase Console → Project Settings → Cloud Messaging → '
+                    'Apple app configuration → upload APNs Authentication Key (.p8 from '
+                    'Apple Developer Portal → Certificates, IDs & Profiles → Keys). '
+                    'Confirm the bundle ID matches com.sharppicksllc.signals.'
+                )
+            elif ios and ios.get('http_status') == 200:
+                out['real_token_verdict'] = 'iOS push works for at least one real device. The original 401 may have been per-token (expired/invalidated). Investigate the specific user that triggered the log entry.'
+            elif ios and ios.get('http_status') in (404, 410):
+                out['real_token_verdict'] = "iOS token in DB is stale (404/410). FCM said the registration is gone. Not an auth issue."
+        except Exception as e:
+            out['real_token_probes_error'] = f'{type(e).__name__}: {str(e)[:200]}'
 
     return jsonify(out)
 
