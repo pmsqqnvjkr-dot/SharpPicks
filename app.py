@@ -9650,6 +9650,28 @@ def serve_static_card(filename):
     resp.headers['Cache-Control'] = 'public, max-age=3600'
     return resp
 
+
+# Phase 3 admin dashboard assets. Flask's default static handler is
+# disabled (static_url_path='/static-disabled' on the app constructor)
+# to avoid clashing with React routes, so explicit handlers are needed
+# for any /static/<subpath>/... that the new admin templates load.
+@app.route('/static/css/<path:filename>')
+def serve_static_css(filename):
+    css_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'css')
+    from flask import make_response
+    resp = make_response(send_from_directory(css_dir, filename))
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
+
+
+@app.route('/static/js/<path:filename>')
+def serve_static_js(filename):
+    js_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'js')
+    from flask import make_response
+    resp = make_response(send_from_directory(js_dir, filename))
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
+
 @app.route('/welcome')
 def welcome_page():
     templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
