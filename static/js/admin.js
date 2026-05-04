@@ -505,14 +505,33 @@ function bindLiveData(metrics) {
   }
 
   // -- Revenue snapshot stats --
-  if (totalMrr)  setStat('Mrr',                SP_FMT.money(totalMrr));
-  if (stripeMrr) setStat('Stripe (web)',       SP_FMT.money(stripeMrr));
-  if (rcMrr)     setStat('Revenuecat (ios)',   SP_FMT.money(rcMrr));
+  // Always set every row so the mockup placeholders never leak.
+  // For RevenueCat: when iOS is gated off (IOS_PROD_LIVE=0), show
+  // "—" with an explicit suffix so the operator knows it's not
+  // missing data, just not yet live.
+  setStat('Mrr',          SP_FMT.money(totalMrr));
+  setStat('Stripe (web)', SP_FMT.money(stripeMrr));
+  const iosLive = !!metrics.revenuecat?.payload?.ios_prod_live;
+  if (iosLive) {
+    setStat('Revenuecat (ios)', SP_FMT.money(rcMrr));
+  } else {
+    // Hide the row entirely — cleaner than showing a fake "—"
+    const rows = document.querySelectorAll('#panel-command .stat-row');
+    for (const row of rows) {
+      const lbl = row.querySelector('.label');
+      if (lbl && lbl.textContent.trim().toLowerCase() === 'revenuecat (ios)') {
+        row.style.display = 'none';
+        break;
+      }
+    }
+    // And drop ' + revenuecat' from the Revenue section meta so the
+    // header doesn't claim a source we're not showing.
+    const revMeta = document.querySelector('#section-revenue .section-meta');
+    if (revMeta) revMeta.textContent = 'stripe · live';
+  }
   const stripeSubs = metrics.stripe?.payload?.active_subs;
   const rcSubs     = metrics.revenuecat?.payload?.active_ios_subs;
-  if (stripeSubs != null || rcSubs != null) {
-    setStat('Active subs', SP_FMT.num((stripeSubs || 0) + (rcSubs || 0)));
-  }
+  setStat('Active subs', SP_FMT.num((stripeSubs || 0) + (rcSubs || 0)));
   // Surface trial-card-on-file count separately from paying subs.
   const stripeTrials = metrics.stripe?.payload?.trial_subs;
   if (stripeTrials != null) setStat('Trials in flight', SP_FMT.num(stripeTrials));
@@ -680,6 +699,33 @@ function bindUsersActivity(data) {
   // Power user count comes from tier_counts (more accurate than mockup's 28)
   const tiers = data.tier_counts || {};
   if (tiers.power != null) setStat('Power users', SP_FMT.num(tiers.power));
+
+  // ── Users tab headline (h1.headline at top of panel) ──
+  // Composes 3-4 facts: MAU, paying customers (Stripe truth), power
+  // tier, attention items. Honest framing when the metrics are sparse.
+  (() => {
+    const headlineEl = document.querySelector('#panel-users .headline');
+    if (!headlineEl) return;
+    const sp = window.__SP_METRICS?.stripe?.payload || {};
+    const mau = s.mau ?? null;
+    const paying = sp.active_subs ?? null;
+    const power = tiers.power ?? null;
+    const cancelTrials = sp.trials_with_cancel_scheduled || 0;
+    const cancelPaid = sp.paid_with_cancel_scheduled || 0;
+    const attn = cancelTrials + cancelPaid;
+    const bits = [];
+    if (mau != null && mau > 0) bits.push(`${mau} monthly active${mau === 1 ? '' : 's'}`);
+    if (paying != null) bits.push(`${paying} paying`);
+    let sentence;
+    if (bits.length === 0) {
+      sentence = 'Login activity tracking started 2026-05-04. Numbers populate as users return.';
+    } else {
+      sentence = bits.join(', ') + '.';
+      if (power != null && power > 0) sentence += ` ${power} power user${power === 1 ? '' : 's'} drive disproportionate engagement.`;
+      if (attn > 0) sentence += ` ${attn} cancellation${attn === 1 ? '' : 's'} scheduled — save window open.`;
+    }
+    headlineEl.textContent = sentence;
+  })();
 
   // ── Update every Users-tab segment chip count from real data ──
   // Source-of-truth rules:
@@ -1032,6 +1078,27 @@ function _hasRealValues(arr, minCount = 5) {
 function bindModelPerf(data) {
   if (!data) return;
 
+  // ── Model tab headline ──
+  (() => {
+    const headlineEl = document.querySelector('#panel-model .headline');
+    if (!headlineEl) return;
+    const sportSeries = data.win_rate_by_sport_daily || {};
+    const sportNames = Object.keys(sportSeries);
+    const phrases = sportNames.map(s => {
+      const series = sportSeries[s] || [];
+      for (let i = series.length - 1; i >= 0; i--) {
+        if (series[i].win_rate != null) return `${s.toUpperCase()} at ${series[i].win_rate}% (n=${series[i].sample_n})`;
+      }
+      return null;
+    }).filter(Boolean);
+    if (phrases.length === 0) {
+      headlineEl.textContent = 'Not enough resolved picks per sport for a 14d-rolling read yet. Data accumulates as games settle.';
+    } else {
+      const breakeven = phrases.length === 1 ? '. 52.4% is breakeven against -110 lines.' : '. Breakeven is 52.4%.';
+      headlineEl.textContent = phrases.join(', ') + breakeven;
+    }
+  })();
+
   // Win rate vs market chart (NBA + MLB rolling 14d). Skip update if
   // there are not enough resolved picks per sport — keeps the mockup
   // line visible until real data accumulates. Need >= 14 days of
@@ -1206,6 +1273,25 @@ document.querySelector('.tab[data-tab="model"]')?.addEventListener('click', load
 function bindInfraHealth(data) {
   if (!data) return;
   const c = data.chips || {};
+
+  // ── Infra tab headline ──
+  (() => {
+    const headlineEl = document.querySelector('#panel-infra .headline');
+    if (!headlineEl) return;
+    const errors = c.errors_24h ?? null;
+    const p95 = c.p95_24h_ms ?? null;
+    const requests = c.requests_24h ?? null;
+    const deploys = Array.isArray(data.recent_deploys) ? data.recent_deploys : [];
+    const lastDeploy = deploys.length > 0 ? deploys[0] : null;
+    if (requests == null || requests === 0) {
+      headlineEl.textContent = 'Request timing started 2026-05-04. Numbers populate as traffic accumulates.';
+    } else {
+      const errPhrase = errors === 0 ? 'No 5xx errors today' : `${errors} 5xx error${errors === 1 ? '' : 's'} in 24h`;
+      const p95Phrase = p95 != null && p95 > 0 ? `p95 at ${p95}ms` : '';
+      const deployPhrase = lastDeploy ? `Last deploy ${lastDeploy.sha}.` : '';
+      headlineEl.textContent = [errPhrase, p95Phrase].filter(Boolean).join(', ') + '.' + (deployPhrase ? ' ' + deployPhrase : '');
+    }
+  })();
 
   // Update health-chip values by their .label text
   function setChipValue(label, value, kindClass) {

@@ -292,15 +292,27 @@ def compute_summaries(metrics: dict) -> dict:
     summaries = {}
 
     # ── revenue · 90d ──
+    # The summary leads with the actual paying MRR. For trial upside,
+    # we surface BOTH the MRR equivalent (e.g. $115.50/mo) AND the
+    # upfront annual billings the trials would generate at conversion
+    # (e.g. $1,386 cash). The cash framing matters for an annual-plan-
+    # heavy business; pure MRR understates the immediate impact.
     mrr_now = (stripe.get('mrr_cents') or 0) + (rc.get('mrr_cents') or 0)
     expected_now = (stripe.get('expected_mrr_cents') or stripe.get('mrr_cents') or 0) + (rc.get('mrr_cents') or 0)
     daily = stripe.get('mrr_daily_90d') or []
     mrr_90d_ago = (daily[0].get('mrr_cents') if daily else 0) or 0
     delta_str = _delta(stripe.get('mrr_cents') or 0, mrr_90d_ago)
     upside = expected_now - mrr_now
+    # Upfront annual billings = MRR upside × 12. For an annual sub
+    # billed at $99/year, the customer pays $99 upfront on conversion;
+    # MRR = $99/12 = $8.25 but the cash hits in one chunk.
+    upside_annual_cash = upside * 12
     parts = [f'MRR is {_money(mrr_now)} from active paying customers']
     if upside > 0:
-        parts.append(f'{_money(upside)} more would convert if all in-flight trials bill')
+        parts.append(
+            f'{_money(upside)}/mo more (~{_money(upside_annual_cash)} in upfront billings) '
+            f'if all in-flight trials convert at the founding rate'
+        )
     if delta_str:
         parts.append(delta_str)
     summaries['section-revenue'] = '. '.join(parts) + '.'
