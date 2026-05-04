@@ -509,119 +509,86 @@ export default function PicksTab({ onNavigate }) {
               );
             })()}
 
-            {/* Signal Withdrawn recap — show from todayData OR nightRecapPick */}
-            {(() => {
-              const revokedPick = (todayData?.type === 'pick' && todayData?.result === 'revoked') ? todayData
-                : (nightRecapPick?.result === 'revoked' ? nightRecapPick : null);
-              if (!revokedPick) return null;
-              return (
-                <div onClick={() => { setResolutionPick(revokedPick); setShowResolution(true); }} style={{
-                  background: '#111e33', border: '0.5px solid #1e3050',
-                  borderLeft: '3px solid #8494a7',
-                  borderRadius: 8, padding: 12, marginBottom: 12, cursor: 'pointer',
-                }}>
-                  <div style={{
-                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
-                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494a7', marginBottom: 8,
-                  }}>SIGNAL WITHDRAWN</div>
-                  <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8ECF4', marginBottom: 4 }}>
-                    {revokedPick.side || 'Signal withdrawn'}{revokedPick.line != null ? ` ${revokedPick.line > 0 ? '+' : ''}${revokedPick.line}` : ''}
-                  </div>
-                  <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#8494a7' }}>
-                    Withdrawn before tip. Capital preserved.
-                  </div>
-                  {revokedPick.edge_pct != null && (
-                    <div style={{ marginTop: 8 }}>
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge at entry +{Number(revokedPick.edge_pct).toFixed(1)}%</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Full Slate Results (tracked bets resolved tonight) */}
-            {tonightBets && tonightBets.length > 0 && (() => {
-              const wins = tonightBets.filter(b => (b.profit_units || 0) > 0 || b.result === 'win' || b.pick_result === 'W').length;
-              const losses = tonightBets.filter(b => (b.profit_units || 0) < 0 || b.result === 'loss' || b.pick_result === 'L').length;
-              const netUnits = tonightBets.reduce((sum, b) => sum + (b.profit_units || 0), 0);
-              return (
-                <div style={{
-                  background: '#111e33', border: '0.5px solid #1e3050',
-                  borderLeft: '3px solid #2a3a52',
-                  borderRadius: 8, padding: 12, marginBottom: 12,
-                }}>
-                  <div style={{
-                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
-                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494a7', marginBottom: 8,
-                  }}>FULL SLATE RESULTS</div>
-                  {tonightBets.map((bet, i) => {
-                    const units = bet.profit_units || 0;
-                    const isW = units > 0 || bet.result === 'win' || bet.pick_result === 'W';
-                    const badgeColor = isW ? '#5A9E72' : '#D4787B';
-                    const badgeBg = isW ? 'rgba(90,158,114,0.15)' : 'rgba(212,120,123,0.15)';
-                    const sideStr = bet.linked_pick?.side || bet.pick || '';
-                    const sideTeam = sideStr.replace(/\s*[+-]?\d+\.?\d*$/, '');
-                    const lineVal = bet.line_at_bet ?? bet.linked_pick?.line;
-                    const lineStr = lineVal != null ? `${lineVal > 0 ? '+' : ''}${lineVal}` : '';
-                    const label = `${teamAbbr(sideTeam)} ${lineStr}`;
-                    return (
-                      <div key={bet.id || i} style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: '5px 0',
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{
-                            fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
-                            padding: '2px 6px', borderRadius: 3, background: badgeBg, color: badgeColor,
-                          }}>{isW ? 'W' : 'L'}</span>
-                          <span style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '12px', color: '#9aa5b4' }}>{label}</span>
-                        </div>
-                        <span style={{
-                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px', fontWeight: 600,
-                          color: units >= 0 ? '#5A9E72' : '#D4787B',
-                        }}>{units >= 0 ? '+' : ''}{units.toFixed(1)}u</span>
-                      </div>
-                    );
-                  })}
-                  <div style={{
-                    borderTop: '0.5px solid rgba(30,48,80,0.5)', marginTop: 8, paddingTop: 8,
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  }}>
-                    <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px', color: '#9aa5b4' }}>
-                      {wins}-{losses}
-                    </span>
-                    <span style={{
-                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px', fontWeight: 600,
-                      color: netUnits >= 0 ? '#5A9E72' : '#D4787B',
-                    }}>{netUnits >= 0 ? '+' : ''}{netUnits.toFixed(1)}u</span>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Slate-closed recap — only when model explicitly ran and returned pass, or pick was revoked */}
+            {/* Combined recap card — "Capital preserved" framing.
+                Replaces the previous three separate cards (Signal Withdrawn,
+                Full Slate Results, No Signal Issued) per the May 2026 home-
+                screen audit. Single card avoids the confusing double-negative
+                of stacking "withdrawn + no-signal + slate-results" on the
+                same day. The withdrawn pick (if any) renders as a neutral
+                blue "Withdrawn" pill below a divider — never as a red L
+                badge. */}
             {(() => {
               const isPassRecap = sameDayNight && todayData?.type === 'pass';
               const isRevokedRecap = sameDayNight && todayData?.type === 'pick' && todayData?.result === 'revoked';
               const isPostMidnightRevoked = postMidnightNight && nightRecapPick?.result === 'revoked';
               if (!isPassRecap && !isRevokedRecap && !isPostMidnightRevoked) return null;
+
+              const revokedPick = isRevokedRecap ? todayData
+                : (isPostMidnightRevoked ? nightRecapPick : null);
               const gamesCount = todayData?.games_analyzed || totalGames || 0;
               const thresholdLabel = sport === 'mlb' ? '+3.5%' : '+8.0%';
+              const bodyText = gamesCount > 0
+                ? `Analyzed ${gamesCount} games. None cleared the ${thresholdLabel} edge threshold.`
+                : 'Model analysis complete. No qualifying edge above threshold.';
+
+              const lineStr = revokedPick && revokedPick.line != null
+                ? `${revokedPick.line > 0 ? '+' : ''}${revokedPick.line}`
+                : '';
+
               return (
-                <div style={{
-                  background: '#111e33', border: '0.5px solid #1e3050',
-                  borderLeft: '3px solid #6b7a8d',
-                  borderRadius: 8, padding: 12, marginBottom: 12,
-                }}>
+                <div
+                  onClick={revokedPick ? () => { setResolutionPick(revokedPick); setShowResolution(true); } : undefined}
+                  style={{
+                    background: '#111e33', border: '0.5px solid #1e3050',
+                    borderLeft: '3px solid #6b7a8d',
+                    borderRadius: 8, padding: 12, marginBottom: 12,
+                    cursor: revokedPick ? 'pointer' : 'default',
+                  }}
+                >
                   <div style={{
                     fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
-                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494a7', marginBottom: 8,
-                  }}>NO SIGNAL ISSUED</div>
-                  <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px', color: '#9aa5b4', lineHeight: 1.6 }}>
-                    {gamesCount > 0
-                      ? `Analyzed ${gamesCount} games. None cleared the ${thresholdLabel} edge threshold. Capital preserved.`
-                      : 'Model analysis complete. No qualifying edge above threshold. Capital preserved.'}
-                  </div>
+                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#5A9E72', marginBottom: 6,
+                  }}>CAPITAL PRESERVED</div>
+                  <div style={{
+                    fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600,
+                    color: '#E8ECF4', marginBottom: 6,
+                  }}>No signals cleared the threshold.</div>
+                  <div style={{
+                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px',
+                    color: '#9aa5b4', lineHeight: 1.6,
+                  }}>{bodyText}</div>
+
+                  {revokedPick && (
+                    <>
+                      <div style={{ borderTop: '0.5px solid rgba(30,48,80,0.5)', margin: '12px 0' }}></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{
+                          fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
+                          letterSpacing: '0.06em', textTransform: 'uppercase',
+                          padding: '3px 8px', borderRadius: 4,
+                          background: 'rgba(79, 134, 247, 0.10)', color: '#7AA0E5',
+                        }}>Withdrawn</span>
+                        <div style={{
+                          fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '13px', color: '#E8ECF4',
+                          display: 'flex', alignItems: 'baseline', gap: 6, flex: 1, minWidth: 0,
+                        }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {revokedPick.side || 'Signal'}
+                          </span>
+                          {lineStr && <span style={{ color: '#7A8494', fontSize: '12px' }}>{lineStr}</span>}
+                        </div>
+                      </div>
+                      {revokedPick.edge_pct != null && (
+                        <div style={{ marginTop: 8 }}>
+                          <span style={{
+                            fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px',
+                            padding: '3px 8px', borderRadius: 4,
+                            background: 'rgba(30,48,80,0.4)', color: '#9aa5b4',
+                          }}>Edge at entry +{Number(revokedPick.edge_pct).toFixed(1)}%</span>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               );
             })()}
