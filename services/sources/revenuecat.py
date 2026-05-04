@@ -42,13 +42,49 @@ def _plan_key(value):
 
 
 def _fetch_raw():
+    import os
     now = datetime.utcnow()
     cutoff_7d = now - timedelta(days=7)
     cutoff_30d = now - timedelta(days=30)
 
+    # iOS production gate. Until App Store approval lands and
+    # IOS_PROD_LIVE is set in Railway, all RC numbers are forced to 0.
+    # ProcessedEvent is a 3-column dedupe ledger that doesn't
+    # differentiate sandbox/TestFlight from production webhooks, so
+    # any TestFlight purchase fires INITIAL_PURCHASE events that look
+    # identical to real ones at this layer. Without the gate, App
+    # Review prep noise inflates new_subs / canceled / billing_issues
+    # in the dashboard.
+    ios_prod_live = (os.environ.get('IOS_PROD_LIVE') or '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+    if not ios_prod_live:
+        return {
+            'active_ios_subs': 0,
+            'monthly_subs': 0,
+            'annual_subs': 0,
+            'unknown_plan_subs': 0,
+            'mrr_cents': 0,
+            'new_subs_7d': 0,
+            'new_subs_30d': 0,
+            'canceled_30d': 0,
+            'billing_issues_30d': 0,
+            'currency': 'usd',
+            'ios_prod_live': False,
+            'note': (
+                'iOS not yet live in production (IOS_PROD_LIVE env var not set). '
+                'All values forced to 0 — TestFlight / sandbox webhook events '
+                'in ProcessedEvent are not differentiable from real ones, so they '
+                'would inflate metrics during App Review prep. Set IOS_PROD_LIVE=1 '
+                'in Railway after App Store approval to start counting real RC data.'
+            ),
+        }
+
     rc_users = User.query.filter(
         User.pro_source == 'revenuecat',
         User.is_premium == True,  # noqa: E712 (SQLAlchemy)
+        User.is_internal == False,  # noqa: E712 — exclude employees
+        User.comped == False,       # noqa: E712 — exclude gifted accounts
+        User.deleted_at.is_(None),  # exclude soft-deleted spam/test
     ).all()
 
     monthly_count = 0
@@ -87,9 +123,11 @@ def _fetch_raw():
         'canceled_30d': canceled_30d,
         'billing_issues_30d': billing_issues_30d,
         'currency': 'usd',
+        'ios_prod_live': True,
         'note': (
-            'iOS state derived from User.pro_source=revenuecat. MRR is '
-            'heuristic ($19.99/mo or $149/yr keyed by User.subscription_plan); '
+            'iOS state derived from User.pro_source=revenuecat (excluding '
+            'is_internal, comped, and soft-deleted). MRR is heuristic '
+            '($19.99/mo or $149/yr keyed by User.subscription_plan); '
             'unknown_plan_subs contribute 0. Stripe MRR is source-of-truth.'
         ),
     }
