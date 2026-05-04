@@ -199,7 +199,7 @@ def track_page_view(response):
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_login import LoginManager, login_required, current_user, login_user, logout_user
+from flask_login import LoginManager, login_required, current_user, login_user, logout_user, user_logged_in
 from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3
 import subprocess
@@ -501,6 +501,40 @@ def load_user(user_id):
         session.pop('session_token', None)
         return None
     return user
+
+
+# Phase 3.5: track every successful login as a UserEvent so the admin
+# Users tab can compute logins_30d, DAU, and cohort retention. Listening
+# on Flask-Login's user_logged_in signal catches every login_user() call
+# (8 sites in this file) without sprinkling tracking calls everywhere.
+@user_logged_in.connect_via(app)
+def _record_login_event(sender, user, **extra):
+    try:
+        from models import UserEvent
+        # Skip force-logout events (where login_user is called for cleanup)
+        # and anonymous logins (which shouldn't fire this signal anyway).
+        if not user or not getattr(user, 'id', None):
+            return
+        ev = UserEvent(
+            user_id=user.id,
+            event_type='login',
+            event_data={},
+            session_id=session.get('session_token') or None,
+            is_internal=bool(getattr(user, 'is_internal', False)),
+            ip=(_events_client_ip() if '_events_client_ip' in globals() else None),
+            user_agent=(request.headers.get('User-Agent') or '')[:500] if request else None,
+            created_at=datetime.utcnow(),
+        )
+        db.session.add(ev)
+        db.session.commit()
+    except Exception as e:
+        # Login tracking failure must never block the login itself.
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        logging.warning('login event tracking failed: %s', e)
+
 
 limiter = Limiter(
     get_remote_address,

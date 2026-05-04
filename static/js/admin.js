@@ -504,3 +504,145 @@ fetch('/api/admin/metrics?range=7d&include_internal=false', { credentials: 'same
   .then(r => r.ok ? r.json() : null)
   .then(data => { if (data) bindLiveData(data); })
   .catch(() => { /* placeholders remain; freshness untouched */ });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Users tab data binding (Phase 3.5)
+// Two endpoints: /api/admin/users/activity and /api/admin/users/list
+// Replaces the mockup's hardcoded snapshot stats, login frequency
+// histogram, cohort retention table, and user list rows with real data.
+// ─────────────────────────────────────────────────────────────────────────
+
+function bindUsersActivity(data) {
+  if (!data) return;
+
+  // Snapshot stats
+  const s = data.snapshot || {};
+  setStat('Dau today', SP_FMT.num(s.dau));
+  setStat('Wau (7d)',   SP_FMT.num(s.wau));
+  setStat('Mau (30d)',  SP_FMT.num(s.mau));
+  setStat('New users 7d', SP_FMT.num(s.new_7d));
+
+  // Power user count comes from tier_counts (more accurate than mockup's 28)
+  const tiers = data.tier_counts || {};
+  if (tiers.power != null) setStat('Power users', SP_FMT.num(tiers.power));
+
+  // Replace the DAU 90d bar chart with real daily counts
+  const dauCanvas = document.getElementById('chart-users-dau');
+  const dauChart = dauCanvas && Chart.getChart(dauCanvas);
+  if (dauChart && Array.isArray(data.dau_daily_90d)) {
+    dauChart.data.labels = data.dau_daily_90d.map(d => d.date.slice(5));
+    dauChart.data.datasets[0].data = data.dau_daily_90d.map(d => d.users);
+    dauChart.update('none');
+  }
+
+  // Replace login frequency histogram with real bucket counts
+  const freqCanvas = document.getElementById('chart-login-freq');
+  const freqChart = freqCanvas && Chart.getChart(freqCanvas);
+  if (freqChart && data.login_frequency_buckets) {
+    const ORDER = ['0', '1', '2-3', '4-5', '6-9', '10-14', '15-19', '20-29', '30+'];
+    freqChart.data.labels = ORDER;
+    freqChart.data.datasets[0].data = ORDER.map(k => data.login_frequency_buckets[k] || 0);
+    freqChart.update('none');
+  }
+
+  // Cohort retention heatmap: rebuild the .cohort-grid contents
+  const grid = document.querySelector('.cohort-grid');
+  if (grid && Array.isArray(data.cohort_retention)) {
+    const header = ['cohort', 'size', 'wk 0', 'wk 1', 'wk 2', 'wk 3', 'wk 4', 'wk 5', 'wk 6', 'wk 7', 'wk 8'];
+    // Match the mockup grid: 100px label col + repeat(8, 50px) — but we
+    // emit week 0..8 (9 cols) plus label + size. The CSS already supports
+    // the cohort-cell.label-col / .header / .heat-N classes.
+    grid.style.gridTemplateColumns = '100px 50px repeat(9, 50px)';
+    grid.innerHTML = '';
+    header.forEach((h, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'cohort-cell ' + (i === 0 ? 'label-col header' : 'header');
+      cell.textContent = h;
+      grid.appendChild(cell);
+    });
+    data.cohort_retention.forEach(row => {
+      const labelCell = document.createElement('div');
+      labelCell.className = 'cohort-cell label-col';
+      labelCell.textContent = row.cohort_week.slice(5); // MM-DD
+      grid.appendChild(labelCell);
+
+      const sizeCell = document.createElement('div');
+      sizeCell.className = 'cohort-cell';
+      sizeCell.textContent = SP_FMT.num(row.size);
+      grid.appendChild(sizeCell);
+
+      row.retention_by_week.forEach(pct => {
+        const cell = document.createElement('div');
+        let heat = 'empty';
+        if (pct >= 60) heat = 'heat-5';
+        else if (pct >= 45) heat = 'heat-4';
+        else if (pct >= 30) heat = 'heat-3';
+        else if (pct >= 18) heat = 'heat-2';
+        else if (pct >= 8)  heat = 'heat-1';
+        else if (pct > 0)   heat = 'heat-0';
+        cell.className = 'cohort-cell ' + heat;
+        cell.textContent = pct > 0 ? pct + '%' : '·';
+        grid.appendChild(cell);
+      });
+    });
+  }
+}
+
+function bindUsersList(data) {
+  if (!data || !Array.isArray(data.users)) return;
+  const lists = document.querySelectorAll('#panel-users .user-row');
+  // The mockup has two demo user rows; the list is rendered in their
+  // parent container. Find that container by climbing from one row.
+  const sample = lists[0];
+  if (!sample) return;
+  const container = sample.parentNode;
+  // Wipe existing user-row elements (preserve the header row above it).
+  container.querySelectorAll('.user-row').forEach(n => n.remove());
+  data.users.forEach(u => {
+    const row = document.createElement('div');
+    row.className = 'user-row';
+    const tagsHtml = (u.tags || []).slice(0, 3)
+      .map(t => `<span class="user-tag ${t}">${t.replace('_', ' ')}</span>`).join('');
+    row.innerHTML = `
+      <div class="user-identity">
+        <span class="user-email">${u.email}</span>
+        <div class="user-tags">${tagsHtml}</div>
+      </div>
+      <div class="user-numeric" data-label="Logins 30d">${u.logins_30d}</div>
+      <div class="user-numeric muted" data-label="Bet taps">${u.bet_taps_30d}</div>
+      <div class="user-numeric muted" data-label="Days active">${u.days_active_30d}</div>
+      <div class="user-numeric faint" data-label="Last seen">${u.last_seen_at ? u.last_seen_at.slice(5, 10) : '—'}</div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+// Fetch Users tab data only when the user actually clicks into the tab —
+// saves a query on initial load. Cache the response so re-clicks don't
+// re-fetch.
+let _usersDataPromise = null;
+function loadUsersTabData() {
+  if (_usersDataPromise) return _usersDataPromise;
+  _usersDataPromise = Promise.all([
+    fetch('/api/admin/users/activity?range=30d', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
+    fetch('/api/admin/users/list?segment=all&limit=50', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
+  ]).then(([activity, list]) => {
+    bindUsersActivity(activity);
+    bindUsersList(list);
+  }).catch(() => { _usersDataPromise = null; /* allow retry on next click */ });
+  return _usersDataPromise;
+}
+
+document.querySelector('.tab[data-tab="users"]')?.addEventListener('click', loadUsersTabData);
+document.querySelectorAll('[data-deep-link="users"]').forEach(l => l.addEventListener('click', loadUsersTabData));
+
+// Wire segment chip clicks to refetch the user list with the new segment.
+document.querySelectorAll('#panel-users .segment-chips .segment-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const seg = (chip.dataset.segment || chip.textContent.trim().split(/\s+/)[0] || 'all').toLowerCase();
+    fetch(`/api/admin/users/list?segment=${seg}&limit=50`, { credentials: 'same-origin' })
+      .then(r => r.ok ? r.json() : null)
+      .then(bindUsersList)
+      .catch(() => {});
+  });
+});

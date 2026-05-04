@@ -2456,6 +2456,57 @@ def _metrics_safe_envelope(name, fn):
         }
 
 
+@admin_bp.route('/api/admin/users/activity')
+def admin_users_activity():
+    """Phase 3.5: snapshot, DAU 90d, login frequency, tier counts, cohort retention.
+    Cached at the source-fn level via metrics_cache; here we just call through."""
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    range_ = request.args.get('range', '30d')
+    if range_ not in ('7d', '30d', '90d'):
+        return jsonify({'error': 'range must be 7d, 30d, or 90d'}), 400
+
+    try:
+        from services import users_metrics
+        return jsonify(users_metrics.fetch_activity(range_))
+    except Exception as e:
+        logging.exception('admin_users_activity failed')
+        return jsonify({'error': str(e)[:200]}), 500
+
+
+@admin_bp.route('/api/admin/users/list')
+def admin_users_list():
+    """Phase 3.5: filtered + paginated user list with per-user activity."""
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    segment = (request.args.get('segment') or 'all').strip().lower()
+    if segment not in ('all', 'paid', 'trial', 'power', 'dormant', 'churned'):
+        return jsonify({'error': 'invalid segment'}), 400
+    search = (request.args.get('search') or '').strip()
+    try:
+        limit = max(1, min(int(request.args.get('limit', 50)), 200))
+        offset = max(0, int(request.args.get('offset', 0)))
+    except ValueError:
+        return jsonify({'error': 'limit/offset must be integers'}), 400
+
+    try:
+        from services import users_metrics
+        return jsonify(users_metrics.fetch_list(segment=segment, search=search, limit=limit, offset=offset))
+    except Exception as e:
+        logging.exception('admin_users_list failed')
+        return jsonify({'error': str(e)[:200]}), 500
+
+
 @admin_bp.route('/api/admin/metrics')
 def admin_metrics():
     """Unified metrics endpoint for the command center dashboard."""
