@@ -636,6 +636,29 @@ function bindUsersActivity(data) {
   }
 }
 
+// Friendly label for each tag class. Anything not listed renders the
+// raw tag with underscores -> spaces.
+const TAG_LABEL = {
+  founding:         'founding member',
+  paid_annual:      'paid annual',
+  paid_monthly:     'paid monthly',
+  paid:             'paid',
+  trial:            'trial',
+  cancel_scheduled: 'cancel scheduled',
+  pending_verify:   'pending verify',
+  past_due:         'past due',
+  churned:          'churned',
+  free:             'free',
+  power:            'power',
+  ios:              'ios',
+  internal:         'internal',
+};
+
+function _renderTag(tag) {
+  const label = TAG_LABEL[tag] || tag.replace(/_/g, ' ');
+  return `<span class="user-tag ${tag}">${label}</span>`;
+}
+
 function bindUsersList(data) {
   if (!data || !Array.isArray(data.users)) return;
   const lists = document.querySelectorAll('#panel-users .user-row');
@@ -649,12 +672,22 @@ function bindUsersList(data) {
   data.users.forEach(u => {
     const row = document.createElement('div');
     row.className = 'user-row';
-    const tagsHtml = (u.tags || []).slice(0, 3)
-      .map(t => `<span class="user-tag ${t}">${t.replace('_', ' ')}</span>`).join('');
+    // Render up to 4 tags so a paid_annual + cancel_scheduled + ios
+    // user shows all three context flags without truncation.
+    const tagsHtml = (u.tags || []).slice(0, 4).map(_renderTag).join('');
+    // If a cancel is scheduled, surface the effective date inline so
+    // operators can see how much save-window is left.
+    let cancelHint = '';
+    if (u.cancel_scheduled_at && u.cancel_effective_at) {
+      const eff = new Date(u.cancel_effective_at);
+      const today = new Date();
+      const days = Math.max(0, Math.ceil((eff - today) / (1000 * 60 * 60 * 24)));
+      cancelHint = `<span class="user-cancel-hint">drops ${u.cancel_effective_at.slice(5, 10)} (${days}d)</span>`;
+    }
     row.innerHTML = `
       <div class="user-identity">
         <span class="user-email">${u.email}</span>
-        <div class="user-tags">${tagsHtml}</div>
+        <div class="user-tags">${tagsHtml}${cancelHint}</div>
       </div>
       <div class="user-numeric" data-label="Logins 30d">${u.logins_30d}</div>
       <div class="user-numeric muted" data-label="Bet taps">${u.bet_taps_30d}</div>

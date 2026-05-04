@@ -283,23 +283,63 @@ def fetch_activity(range_: str = '30d') -> dict:
 # ─────────────────────────────────────────────────────────────────────────
 
 def _user_tags(u: User, logins_30d: int, has_ios_purchase: bool, days_since_login: int = None) -> list:
-    """Compute per-user tags. Order matters for visual hierarchy."""
+    """Compute per-user tags. Returns a list of tag strings; the UI
+    renders each as a chip. Most-specific billing tag wins, then
+    cancel-intent overlay, then platform/internal flags.
+
+    Billing tags (exactly one):
+      founding         -- active + founding_member (paid the $99 founding rate)
+      paid_annual      -- active + plan contains 'annual' or 'year' (non-founding)
+      paid_monthly     -- active + plan contains 'month'
+      paid             -- active but plan unknown
+      trial            -- in trial period (card may or may not have been collected)
+      pending_verify   -- registered, awaiting email verification
+      past_due         -- payment failed; access revoked
+      churned          -- cancelled or expired
+      free             -- never had a paid sub or trial
+    Cancel overlay (added on top of the billing tag):
+      cancel_scheduled -- cancel_scheduled_at is set; will downgrade at cancel_effective_at
+    Activity / platform overlays:
+      power            -- logins_30d >= 15
+      ios              -- pro_source == 'revenuecat'
+      internal         -- u.is_internal
+    """
     tags = []
     if logins_30d >= 15:
         tags.append('power')
+
     plan = (u.subscription_plan or '').lower()
     status = u.subscription_status or ''
-    if status == 'active':
-        if 'annual' in plan or 'year' in plan:
-            tags.append('paid_yearly')
+
+    # Billing tag — most specific wins
+    if status in ('active', 'cancelling'):
+        if u.founding_member:
+            tags.append('founding')
+        elif 'annual' in plan or 'year' in plan or 'founding' in plan:
+            tags.append('paid_annual')
         elif 'month' in plan:
             tags.append('paid_monthly')
         else:
             tags.append('paid')
     elif status == 'trial':
         tags.append('trial')
-    elif status == 'cancelling':
-        tags.append('churning')
+    elif status == 'pending_verification':
+        tags.append('pending_verify')
+    elif status == 'past_due':
+        tags.append('past_due')
+    elif status in ('cancelled', 'expired'):
+        tags.append('churned')
+    else:
+        tags.append('free')
+
+    # Cancel-intent overlay — present whenever a cancel is queued,
+    # regardless of trial vs paid. Shows the user "this is going away
+    # at cancel_effective_at" without burying them under just the
+    # billing tag.
+    if u.cancel_scheduled_at is not None:
+        tags.append('cancel_scheduled')
+
+    # Platform / role overlays
     if has_ios_purchase:
         tags.append('ios')
     if u.is_internal:
@@ -433,6 +473,12 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
             'last_seen_at': last_seen.get(u.id).isoformat() if last_seen.get(u.id) else None,
             'subscription_status': u.subscription_status,
             'subscription_plan': u.subscription_plan,
+            'founding_member': bool(u.founding_member),
+            'founding_number': u.founding_number,
+            'cancel_scheduled_at': u.cancel_scheduled_at.isoformat() if u.cancel_scheduled_at else None,
+            'cancel_effective_at': u.cancel_effective_at.isoformat() if u.cancel_effective_at else None,
+            'trial_converted_at': u.trial_converted_at.isoformat() if u.trial_converted_at else None,
+            'trial_end_date': u.trial_end_date.isoformat() if u.trial_end_date else None,
             'created_at': u.created_at.isoformat() if u.created_at else None,
         })
 

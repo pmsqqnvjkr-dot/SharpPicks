@@ -747,9 +747,24 @@
   .user-tag.power { color: var(--edge-green); border-color: rgba(52, 211, 153, 0.3); }
   .user-tag.trial { color: var(--warn); border-color: rgba(228, 160, 59, 0.3); }
   .user-tag.paid { color: var(--signal-blue); border-color: rgba(79, 134, 247, 0.35); }
+  .user-tag.paid_annual { color: var(--signal-blue); border-color: rgba(79, 134, 247, 0.5); }
+  .user-tag.paid_monthly { color: var(--signal-blue); border-color: rgba(79, 134, 247, 0.35); }
+  .user-tag.founding { color: #FFD580; border-color: rgba(255, 213, 128, 0.45); background: rgba(255, 213, 128, 0.05); }
+  .user-tag.cancel_scheduled { color: var(--warn); border-color: rgba(228, 160, 59, 0.5); background: rgba(228, 160, 59, 0.06); }
   .user-tag.churned { color: var(--danger); border-color: rgba(228, 129, 129, 0.3); }
+  .user-tag.past_due { color: var(--danger); border-color: rgba(228, 129, 129, 0.45); background: rgba(228, 129, 129, 0.05); }
+  .user-tag.pending_verify { color: var(--text-faint); border-color: var(--border-strong); }
+  .user-tag.free { color: var(--text-faint); border-color: var(--border); }
   .user-tag.internal { color: var(--warn); border-color: rgba(228, 160, 59, 0.3); }
   .user-tag.ios { color: var(--text-faint); }
+  .user-cancel-hint {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--warn);
+    margin-left: 6px;
+    align-self: center;
+    white-space: nowrap;
+  }
 
   .user-numeric {
     font-family: var(--mono);

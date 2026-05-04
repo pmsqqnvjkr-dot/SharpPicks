@@ -7009,6 +7009,15 @@ def stripe_webhook():
                     # for "user has scheduled a cancel" — works whether
                     # the cancel came from our /api/subscriptions/cancel
                     # endpoint OR from the Stripe Customer Portal.
+                    #
+                    # IMPORTANT: subscription_status reflects the BILLING
+                    # TIER (trial/active/cancelled). cancel_scheduled_at
+                    # is the orthogonal CANCEL-INTENT flag. We only flip
+                    # subscription_status to 'cancelling' for active subs
+                    # (preserving back-compat with the existing
+                    # /reactivate endpoint and is_pro property). Trial
+                    # users with a cancel queued stay status='trial' so
+                    # they remain visible in the Trial Pipeline.
                     if cancel_at_period_end and status in ('active', 'trialing'):
                         if user.cancel_scheduled_at is None:
                             user.cancel_scheduled_at = (
@@ -7016,9 +7025,12 @@ def stripe_webhook():
                             )
                         if cancel_at_ts:
                             user.cancel_effective_at = datetime.fromtimestamp(cancel_at_ts)
-                        user.subscription_status = 'cancelling'
+                        if status == 'active':
+                            user.subscription_status = 'cancelling'
+                        else:
+                            user.subscription_status = 'trial'  # keep them in trial bucket
                         user.is_premium = True  # they keep access until cancel_effective_at
-                    elif not cancel_at_period_end and old_status == 'cancelling' and status in ('active', 'trialing'):
+                    elif not cancel_at_period_end and (old_status == 'cancelling' or user.cancel_scheduled_at is not None) and status in ('active', 'trialing'):
                         # Reactivation through any path (our endpoint or portal)
                         user.cancel_scheduled_at = None
                         user.cancel_effective_at = None
