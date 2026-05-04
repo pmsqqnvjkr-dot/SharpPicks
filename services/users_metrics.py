@@ -334,6 +334,15 @@ def _user_tags(u: User, logins_30d: int, has_ios_purchase: bool, days_since_logi
             tags.append('paid')
     elif status == 'trial':
         tags.append('trial')
+        # Secondary indicator: what plan they're trialing into. Helps
+        # the operator see at a glance whether a trial cancellation
+        # is losing $19/mo or $149/yr.
+        if 'founding' in plan:
+            tags.append('trial_founding')
+        elif 'annual' in plan or 'year' in plan:
+            tags.append('trial_annual')
+        elif 'month' in plan:
+            tags.append('trial_monthly')
     elif status == 'pending_verification':
         tags.append('pending_verify')
     elif status == 'past_due':

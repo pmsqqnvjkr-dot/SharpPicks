@@ -592,23 +592,32 @@ function bindUsersActivity(data) {
   const tiers = data.tier_counts || {};
   if (tiers.power != null) setStat('Power users', SP_FMT.num(tiers.power));
 
-  // Replace the DAU 90d bar chart with real daily counts
+  // Replace the DAU 90d bar chart with real daily counts. Guard
+  // against blanking the chart when login events table is sparse.
   const dauCanvas = document.getElementById('chart-users-dau');
   const dauChart = dauCanvas && Chart.getChart(dauCanvas);
   if (dauChart && Array.isArray(data.dau_daily_90d)) {
-    dauChart.data.labels = data.dau_daily_90d.map(d => d.date.slice(5));
-    dauChart.data.datasets[0].data = data.dau_daily_90d.map(d => d.users);
-    dauChart.update('none');
+    const counts = data.dau_daily_90d.map(d => d.users);
+    if (_hasRealValues(counts)) {
+      dauChart.data.labels = data.dau_daily_90d.map(d => d.date.slice(5));
+      dauChart.data.datasets[0].data = counts;
+      dauChart.update('none');
+    }
   }
 
-  // Replace login frequency histogram with real bucket counts
+  // Replace login frequency histogram with real bucket counts.
+  // The '0' bucket alone (everyone in 'never logged in') is real
+  // data even with no other activity, so we accept it.
   const freqCanvas = document.getElementById('chart-login-freq');
   const freqChart = freqCanvas && Chart.getChart(freqCanvas);
   if (freqChart && data.login_frequency_buckets) {
     const ORDER = ['0', '1', '2-3', '4-5', '6-9', '10-14', '15-19', '20-29', '30+'];
-    freqChart.data.labels = ORDER;
-    freqChart.data.datasets[0].data = ORDER.map(k => data.login_frequency_buckets[k] || 0);
-    freqChart.update('none');
+    const counts = ORDER.map(k => data.login_frequency_buckets[k] || 0);
+    if (_hasRealValues(counts)) {
+      freqChart.data.labels = ORDER;
+      freqChart.data.datasets[0].data = counts;
+      freqChart.update('none');
+    }
   }
 
   // Cohort retention heatmap: rebuild the .cohort-grid contents
@@ -663,6 +672,9 @@ const TAG_LABEL = {
   paid:             'paid',
   comped:           'comped',
   trial:            'trial',
+  trial_annual:     'trial → annual',
+  trial_monthly:    'trial → monthly',
+  trial_founding:   'trial → founding',
   cancel_scheduled: 'cancel scheduled',
   pending_verify:   'pending verify',
   past_due:         'past due',
@@ -742,47 +754,67 @@ document.querySelectorAll('[data-deep-link="users"]').forEach(l => l.addEventLis
 // hit_rate_by_edge_tier, calibration, edge_distribution, last_10_signals}
 // ─────────────────────────────────────────────────────────────────────────
 
+// Helper: returns true if a numeric series has at least one non-null,
+// non-zero value. Used to guard chart updates so we don't blank out
+// the mockup placeholder data with an empty real-data response.
+function _hasRealValues(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return false;
+  return arr.some(v => v != null && v !== 0);
+}
+
 function bindModelPerf(data) {
   if (!data) return;
 
-  // Win rate vs market chart (NBA + MLB rolling 14d)
+  // Win rate vs market chart (NBA + MLB rolling 14d). Skip update if
+  // there are no resolved picks per sport — keeps the mockup line
+  // visible until real data accumulates.
   const winChart = Chart.getChart(document.getElementById('chart-winrate'));
   if (winChart && data.win_rate_by_sport_daily) {
     const sports = Object.keys(data.win_rate_by_sport_daily);
-    const labels = (data.win_rate_by_sport_daily[sports[0]] || []).map(d => d.date.slice(5));
-    const datasets = sports.map((s, i) => {
-      const series = data.win_rate_by_sport_daily[s].map(d => d.win_rate);
-      const isMlb = s.toLowerCase().includes('mlb');
-      return {
-        label: `${s.toUpperCase()} (rolling 14d)`,
-        data: series,
-        borderColor: isMlb ? '#34D399' : '#4F86F7',
-        borderDash: isMlb ? [4, 4] : [],
-        tension: 0.4,
-        pointRadius: 0,
-        borderWidth: 2,
-        fill: false,
-      };
-    });
-    winChart.data.labels = labels;
-    winChart.data.datasets = datasets;
-    winChart.update('none');
+    if (sports.length > 0) {
+      const datasets = sports.map((s, i) => {
+        const series = data.win_rate_by_sport_daily[s].map(d => d.win_rate);
+        const isMlb = s.toLowerCase().includes('mlb');
+        return {
+          label: `${s.toUpperCase()} (rolling 14d)`,
+          data: series,
+          borderColor: isMlb ? '#34D399' : '#4F86F7',
+          borderDash: isMlb ? [4, 4] : [],
+          tension: 0.4,
+          pointRadius: 0,
+          borderWidth: 2,
+          fill: false,
+          spanGaps: true,
+        };
+      });
+      const anyReal = datasets.some(ds => _hasRealValues(ds.data));
+      if (anyReal) {
+        winChart.data.labels = (data.win_rate_by_sport_daily[sports[0]] || []).map(d => d.date.slice(5));
+        winChart.data.datasets = datasets;
+        winChart.update('none');
+      }
+    }
   }
 
   // Hit rate by edge tier
   const meiChart = Chart.getChart(document.getElementById('chart-meihit'));
   if (meiChart && Array.isArray(data.hit_rate_by_edge_tier)) {
-    meiChart.data.labels = data.hit_rate_by_edge_tier.map(t => t.tier);
-    meiChart.data.datasets[0].data = data.hit_rate_by_edge_tier.map(t => t.hit_rate || 0);
-    meiChart.update('none');
+    const values = data.hit_rate_by_edge_tier.map(t => t.hit_rate);
+    if (_hasRealValues(values)) {
+      meiChart.data.labels = data.hit_rate_by_edge_tier.map(t => t.tier);
+      meiChart.data.datasets[0].data = values.map(v => v || 0);
+      meiChart.update('none');
+    }
   }
 
-  // Calibration plots: NBA + MLB
+  // Calibration plots: NBA + MLB. Already guarded against empty
+  // series; preserve the existing skip behavior.
   ['nba', 'mlb'].forEach(sport => {
     const chart = Chart.getChart(document.getElementById('chart-cal-' + sport));
     if (!chart) return;
     const series = (data.calibration || {})[sport] || (data.calibration || {})[sport.toUpperCase()] || [];
     if (!series.length) return;
+    if (!series.some(p => p.observed != null)) return;
     chart.data.labels = series.map(p => p.predicted);
     chart.data.datasets[0].data = series.map(p => ({ x: p.predicted, y: p.observed }));
     chart.update('none');
@@ -791,9 +823,12 @@ function bindModelPerf(data) {
   // Edge distribution histogram
   const meiDist = Chart.getChart(document.getElementById('chart-mei'));
   if (meiDist && Array.isArray(data.edge_distribution)) {
-    meiDist.data.labels = data.edge_distribution.map(b => b.tier);
-    meiDist.data.datasets[0].data = data.edge_distribution.map(b => b.count);
-    meiDist.update('none');
+    const counts = data.edge_distribution.map(b => b.count);
+    if (_hasRealValues(counts)) {
+      meiDist.data.labels = data.edge_distribution.map(b => b.tier);
+      meiDist.data.datasets[0].data = counts;
+      meiDist.update('none');
+    }
   }
 
   // Last 10 signals table
@@ -869,17 +904,24 @@ function bindInfraHealth(data) {
                                        c.mem_pct < 70 ? 'ok' : c.mem_pct < 85 ? 'warn' : 'danger');
   if (c.requests_24h != null) setChipValue('Requests 24h', SP_FMT.num(c.requests_24h));
 
-  // Latency chart (p50/p95/p99 hourly)
+  // Latency chart (p50/p95/p99 hourly). request_metrics table was
+  // just created on 2026-05-04; the past-7-day window will be sparse
+  // until enough request data accumulates. Guard against blanking the
+  // chart — keep mockup placeholder visible if the real series is
+  // mostly null.
   const latChart = Chart.getChart(document.getElementById('chart-latency'));
   if (latChart && Array.isArray(data.latency_series)) {
-    latChart.data.labels = data.latency_series.map(p => p.hour.slice(5, 13));
-    // Mockup chart has 3 datasets — replace each
-    if (latChart.data.datasets.length >= 3) {
+    const p95Values = data.latency_series.map(p => p.p95);
+    if (_hasRealValues(p95Values) && latChart.data.datasets.length >= 3) {
+      latChart.data.labels = data.latency_series.map(p => p.hour.slice(5, 13));
       latChart.data.datasets[0].data = data.latency_series.map(p => p.p50);
       latChart.data.datasets[1].data = data.latency_series.map(p => p.p95);
       latChart.data.datasets[2].data = data.latency_series.map(p => p.p99);
+      // spanGaps=true on each dataset so any null buckets render as
+      // continuous-line gaps instead of dropping the whole series.
+      latChart.data.datasets.forEach(ds => { ds.spanGaps = true; });
+      latChart.update('none');
     }
-    latChart.update('none');
   }
 
   // Recent deploys

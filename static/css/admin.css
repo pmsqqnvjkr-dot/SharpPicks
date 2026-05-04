@@ -746,6 +746,9 @@
   }
   .user-tag.power { color: var(--edge-green); border-color: rgba(52, 211, 153, 0.3); }
   .user-tag.trial { color: var(--warn); border-color: rgba(228, 160, 59, 0.3); }
+  .user-tag.trial_annual,
+  .user-tag.trial_monthly,
+  .user-tag.trial_founding { color: var(--text-muted); border-color: var(--border-strong); font-size: 7px; }
   .user-tag.paid { color: var(--signal-blue); border-color: rgba(79, 134, 247, 0.35); }
   .user-tag.paid_annual { color: var(--signal-blue); border-color: rgba(79, 134, 247, 0.5); }
   .user-tag.paid_monthly { color: var(--signal-blue); border-color: rgba(79, 134, 247, 0.35); }
