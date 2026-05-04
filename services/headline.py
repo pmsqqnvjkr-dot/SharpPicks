@@ -42,59 +42,89 @@ def _payload(metrics: dict, source: str) -> dict:
 def compute_headline(metrics: dict) -> dict:
     """Pick exactly one of the five headline templates based on revenue
     and activity signals. Order matters: bad_day wins over mixed wins
-    over good wins over quiet."""
+    over good wins over quiet.
+
+    Failed-payment signals use the *distinct user* count, not the raw
+    attempt count — one customer with 14 retries shouldn't read the
+    same as 14 different customers in trouble. Cancellations include
+    BOTH already-executed cancellations (canceled_30d) and scheduled-
+    but-not-yet-executed ones (paid_with_cancel_scheduled +
+    trials_with_cancel_scheduled), so the headline doesn't read 'no
+    churn' when 5 cancellations are queued for next week.
+    """
     stripe = _payload(metrics, 'stripe')
     rc     = _payload(metrics, 'revenuecat')
     events = _payload(metrics, 'events')
-    ga4    = _payload(metrics, 'ga4')
 
     mrr_cents      = (stripe.get('mrr_cents') or 0) + (rc.get('mrr_cents') or 0)
     new_subs_7d    = (stripe.get('new_subs_7d') or 0) + (rc.get('new_subs_7d') or 0)
     canceled_30d   = (stripe.get('canceled_30d') or 0) + (rc.get('canceled_30d') or 0)
-    failed_payments_30d = stripe.get('failed_payments_30d') or 0
+    cancels_scheduled = (stripe.get('paid_with_cancel_scheduled') or 0) + (stripe.get('trials_with_cancel_scheduled') or 0)
+    # Use distinct user count, not raw attempt count.
+    failed_users = stripe.get('failed_payment_users_30d')
+    if failed_users is None:
+        failed_users = stripe.get('failed_payments_30d') or 0  # legacy fallback
     signals_today  = sum((events.get('signals_issued') or {}).values())
 
-    # bad_day: revenue health is actively concerning
-    if failed_payments_30d > 0 and canceled_30d > 0:
+    # bad_day: real revenue trouble — multiple users in payment failure
+    # AND actual cancellations executed
+    if failed_users > 0 and canceled_30d > 0:
         return {
             'template': 'bad_day',
             'sentence': (
-                f'{failed_payments_30d} failed payment'
-                + ('s' if failed_payments_30d != 1 else '')
-                + f' and {canceled_30d} cancellation'
+                f'{failed_users} customer'
+                + ('s' if failed_users != 1 else '')
+                + f' in payment failure and {canceled_30d} cancellation'
                 + ('s' if canceled_30d != 1 else '')
-                + ' in the last 30 days. Check the at-risk users on the Users tab.'
+                + ' in the last 30 days. Check the failed-payments list and at-risk users.'
             ),
             'color': 'red',
         }
 
-    # good_day: revenue moving up, no churn
-    if new_subs_7d > 0 and canceled_30d == 0 and mrr_cents > 0:
+    # good_day: revenue moving up, no actual churn AND nothing queued
+    if new_subs_7d > 0 and canceled_30d == 0 and cancels_scheduled == 0 and mrr_cents > 0:
         return {
             'template': 'good_day',
             'sentence': (
                 f'MRR holding at {_money(mrr_cents)}. {new_subs_7d} new subscriber'
                 + ('s' if new_subs_7d != 1 else '')
-                + ' this week, no churn.'
+                + ' this week, no churn, no cancellations queued.'
             ),
             'color': 'green',
         }
 
-    # mixed_day: subs growing but with some churn or payment friction
-    if new_subs_7d > 0 and (canceled_30d > 0 or failed_payments_30d > 0):
+    # mixed_day: any combination of growth + friction (executed churn,
+    # scheduled cancellation, or distinct payment failures)
+    if new_subs_7d > 0 and (canceled_30d > 0 or cancels_scheduled > 0 or failed_users > 0):
+        friction_bits = []
+        if cancels_scheduled > 0:
+            friction_bits.append(
+                f'{cancels_scheduled} cancellation'
+                + ('s' if cancels_scheduled != 1 else '')
+                + ' scheduled'
+            )
+        if canceled_30d > 0:
+            friction_bits.append(
+                f'{canceled_30d} cancelled in 30d'
+            )
+        if failed_users > 0:
+            friction_bits.append(
+                f'{failed_users} customer'
+                + ('s' if failed_users != 1 else '')
+                + ' in payment failure'
+            )
+        friction = ', '.join(friction_bits)
         return {
             'template': 'mixed_day',
             'sentence': (
                 f'{new_subs_7d} new subscriber'
                 + ('s' if new_subs_7d != 1 else '')
-                + f' this week, but {canceled_30d} cancellation'
-                + ('s' if canceled_30d != 1 else '')
-                + ' in the last 30 days. Net positive.'
+                + f' this week. {friction}. Net positive.'
             ),
             'color': 'amber',
         }
 
-    # anomaly_day: signal volume notably high or notably low
+    # anomaly_day: signal volume notably high
     if signals_today >= 5:
         return {
             'template': 'anomaly_day',
@@ -125,21 +155,52 @@ def compute_actions(metrics: dict) -> list:
 
     items = []
 
-    # warn: trial-no-card not currently exposed by Phase 2 sources; skip
-    # warn: failed payments in flight
-    failed = stripe.get('failed_payments_30d') or 0
-    if failed > 0:
+    # warn: failed payments — distinct USERS, with attempt context if
+    # the same customer is retrying. One person on a dead card vs. ten
+    # people in dunning are very different problems.
+    failed_users = stripe.get('failed_payment_users_30d')
+    failed_attempts = stripe.get('failed_payment_attempts_30d')
+    failing_users_list = stripe.get('failing_users') or []
+    if failed_users is None:
+        # Legacy fallback — old payload only had raw count
+        failed_users = stripe.get('failed_payments_30d') or 0
+        failed_attempts = failed_users
+    if failed_users > 0:
+        # If the worst offender accounts for most attempts, name them.
+        worst = failing_users_list[0] if failing_users_list else None
+        if worst and worst.get('attempts_30d', 0) >= max(3, failed_attempts * 0.5):
+            who = worst.get('email') or worst.get('customer_id', 'one customer')
+            msg = (
+                f'{worst["attempts_30d"]} of {failed_attempts} failed payment'
+                + ('s' if failed_attempts != 1 else '')
+                + f' in 30 days are from {who}. Likely a single dead card; reach out before churning them.'
+            )
+        else:
+            msg = (
+                f'{failed_users} customer'
+                + ('s' if failed_users != 1 else '')
+                + f' with failed payments in 30 days ({failed_attempts} attempts total). Review the failed-payments list.'
+            )
         items.append({
             'type': 'failed_payments',
             'priority': 'warn',
+            'message': msg,
+        })
+
+    # warn: cancellations scheduled but not yet executed
+    cancels_scheduled = (stripe.get('paid_with_cancel_scheduled') or 0) + (stripe.get('trials_with_cancel_scheduled') or 0)
+    if cancels_scheduled > 0:
+        items.append({
+            'type': 'cancel_scheduled',
+            'priority': 'warn',
             'message': (
-                f'{failed} failed payment'
-                + ('s' if failed != 1 else '')
-                + ' in the last 30 days. Review on the Users tab to identify churned customers.'
+                f'{cancels_scheduled} cancellation'
+                + ('s' if cancels_scheduled != 1 else '')
+                + ' scheduled but not yet effective. Save attempts have a window.'
             ),
         })
 
-    # warn: canceled subs in 30d window
+    # warn: canceled subs in 30d window (already executed)
     canceled = (stripe.get('canceled_30d') or 0) + (rc.get('canceled_30d') or 0)
     if canceled >= 3:
         items.append({
@@ -173,14 +234,16 @@ def compute_actions(metrics: dict) -> list:
             'message': f'{signals_total} signals issued this week ({sport_breakdown}).',
         })
 
-    # good: clean revenue health
+    # good: clean revenue health (no payment failures, no churn, no
+    # cancellations queued)
     new_subs = (stripe.get('new_subs_7d') or 0) + (rc.get('new_subs_7d') or 0)
-    if failed == 0 and canceled == 0 and new_subs > 0:
+    if failed_users == 0 and canceled == 0 and cancels_scheduled == 0 and new_subs > 0:
         items.append({
             'type': 'clean_revenue',
             'priority': 'good',
             'message': (
-                f'No failed payments, no cancellations, {new_subs} new subscriber'
+                f'No failed payments, no cancellations executed or scheduled, '
+                f'{new_subs} new subscriber'
                 + ('s' if new_subs != 1 else '')
                 + ' this week. Revenue health is clean.'
             ),
