@@ -687,15 +687,43 @@ function bindUsersActivity(data) {
     _bySectionTitle('user activity', `${dauActive}. ${stickiness ? stickiness + '. ' : ''}${newUsers}. ${powerStr}.`);
   }
 
-  // Login frequency summary
+  // Login frequency summary + chart visibility.
+  // Login event tracking started 2026-05-04; until enough days
+  // accumulate, the '0 logins' bucket dominates because most users
+  // simply haven't opened the app since tracking began. Showing
+  // "98% never logged in" is technically true but misleading.
+  // Threshold: at least 20% of users must have ANY login activity
+  // before the histogram is worth rendering. Otherwise hide the
+  // chart and surface a tracking-status sentence instead.
   const buckets = data.login_frequency_buckets || {};
   const totalUsers = Object.values(buckets).reduce((a, b) => a + b, 0);
-  if (totalUsers > 0) {
-    const zero = buckets['0'] || 0;
+  const zeroBucket = buckets['0'] || 0;
+  const loggedInUsers = totalUsers - zeroBucket;
+  const loggedInPct = totalUsers > 0 ? (100 * loggedInUsers / totalUsers) : 0;
+
+  const freqSection = Array.from(document.querySelectorAll('.section')).find(s => {
+    const t = s.querySelector('.section-title');
+    return t && t.textContent.toLowerCase().includes('login frequency');
+  });
+  const freqChartWrap = freqSection?.querySelector('.chart-wrap');
+
+  if (totalUsers === 0) {
+    _bySectionTitle('login frequency', 'No users in the metrics scope yet.');
+    if (freqChartWrap) freqChartWrap.style.display = 'none';
+  } else if (loggedInPct < 20) {
+    // Sparse — hide the histogram, summary explains why
+    _bySectionTitle('login frequency',
+      `Login tracking started 2026-05-04 — only ${loggedInUsers} of ${totalUsers} users have logged in since then. Histogram hidden until tracking matures (>=20% of users with activity).`);
+    if (freqChartWrap) freqChartWrap.style.display = 'none';
+  } else {
+    // Real data is meaningful — show chart + summary based on tier shape
+    if (freqChartWrap) freqChartWrap.style.display = '';
     const power = (buckets['15-19'] || 0) + (buckets['20-29'] || 0) + (buckets['30+'] || 0);
-    const zeroPct = Math.round(100 * zero / totalUsers);
+    const light = (buckets['1'] || 0) + (buckets['2-3'] || 0) + (buckets['4-5'] || 0);
+    const lightPct = Math.round(100 * light / totalUsers);
     const powerPct = Math.round(100 * power / totalUsers);
-    _bySectionTitle('login frequency', `${zeroPct}% of users haven't logged in this month (${zero} of ${totalUsers}). Power tier (15+ logins) is ${powerPct}%.`);
+    _bySectionTitle('login frequency',
+      `${loggedInUsers} of ${totalUsers} users have logged in this month. Light tier (1-5 logins) is ${lightPct}%, power tier (15+) is ${powerPct}%.`);
   }
 
   // Cohort retention summary
@@ -725,15 +753,18 @@ function bindUsersActivity(data) {
     }
   }
 
-  // Replace login frequency histogram with real bucket counts.
-  // The '0' bucket alone (everyone in 'never logged in') is real
-  // data even with no other activity, so we accept it.
+  // Replace login frequency histogram with real bucket counts —
+  // ONLY when there's enough data for the non-zero buckets to be
+  // visible (otherwise the '0' bar dominates and the chart looks
+  // broken). Same 20% threshold as the section-summary text above.
   const freqCanvas = document.getElementById('chart-login-freq');
   const freqChart = freqCanvas && Chart.getChart(freqCanvas);
   if (freqChart && data.login_frequency_buckets) {
     const ORDER = ['0', '1', '2-3', '4-5', '6-9', '10-14', '15-19', '20-29', '30+'];
     const counts = ORDER.map(k => data.login_frequency_buckets[k] || 0);
-    if (_hasRealValues(counts)) {
+    const totalU = counts.reduce((a, b) => a + b, 0);
+    const nonZeroBuckets = counts.slice(1).reduce((a, b) => a + b, 0);
+    if (totalU > 0 && (nonZeroBuckets / totalU) >= 0.20) {
       freqChart.data.labels = ORDER;
       freqChart.data.datasets[0].data = counts;
       freqChart.update('none');
