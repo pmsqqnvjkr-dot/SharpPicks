@@ -7,21 +7,10 @@ export default function CapitalCard({ capitalPreservedUsd = 100 }) {
     <div style={{
       background: c.bgCard,
       border: `1px solid ${c.borderSubtle}`,
-      borderRadius: 18,
-      padding: 22,
-      marginBottom: 14,
+      borderRadius: 16,
+      padding: 18,
+      marginBottom: 10,
     }}>
-      <div style={{
-        fontFamily: f.mono,
-        fontSize: 11,
-        fontWeight: 500,
-        letterSpacing: '0.18em',
-        textTransform: 'uppercase',
-        color: c.textTertiary,
-        marginBottom: 18,
-      }}>
-        Capital Preserved
-      </div>
       <div style={{
         fontFamily: f.mono,
         fontSize: 10,

@@ -3,6 +3,7 @@ import { inst as c, instFonts as f } from '../../../styles/tokens';
 export default function HeroCard({
   variant = 'pass',
   date,
+  sport,
   title,
   subtitle,
   verdictText,
@@ -12,6 +13,7 @@ export default function HeroCard({
   commentaryIdx = 0,
   commentaryCount = 0,
   onTapCommentary,
+  metaSignalLabel = 'NO QUALIFYING SIGNAL',
 }) {
   const isPass = variant === 'pass';
   const accent = isPass ? c.system : c.edge;
@@ -22,86 +24,164 @@ export default function HeroCard({
     <div style={{
       background: c.bgCard,
       border: `1px solid ${c.borderSubtle}`,
-      borderRadius: 18,
-      padding: '22px 22px 20px',
-      marginBottom: 14,
+      borderRadius: 16,
+      padding: 18,
+      marginBottom: 10,
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Meta row */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 24,
-      }}>
-        <span style={{
+      {isPass && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 2,
+          background: c.edge,
+        }} />
+      )}
+
+      {isPass ? (
+        <div style={{
           fontFamily: f.mono,
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: 500,
-          letterSpacing: '0.18em',
+          letterSpacing: '0.14em',
           color: c.textTertiary,
+          textTransform: 'uppercase',
+          marginBottom: 12,
         }}>
-          TODAY'S SIGNAL · {(date || '').toUpperCase()}
-        </span>
-        <span style={{
-          padding: '6px 12px',
-          borderRadius: 6,
-          border: `1px solid ${accentBorder}`,
-          color: accent,
-          fontFamily: f.mono,
-          fontSize: 10,
+          <span style={{ color: c.textSecondary }}>{(sport || 'NBA').toUpperCase()}</span>
+          <span style={{ color: c.textMuted, margin: '0 8px' }}>—</span>
+          <span>{(date || '').toUpperCase()}</span>
+          <span style={{ color: c.textMuted, margin: '0 8px' }}>·</span>
+          <span>{metaSignalLabel}</span>
+        </div>
+      ) : (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 18,
+        }}>
+          <span style={{
+            fontFamily: f.mono,
+            fontSize: 10,
+            fontWeight: 500,
+            letterSpacing: '0.16em',
+            color: c.textTertiary,
+          }}>
+            TODAY'S SIGNAL · {(date || '').toUpperCase()}
+          </span>
+          <span style={{
+            padding: '6px 12px',
+            borderRadius: 6,
+            border: `1px solid ${accentBorder}`,
+            color: accent,
+            fontFamily: f.mono,
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: '0.16em',
+            background: accentBg,
+          }}>
+            LEAGUE OFF
+          </span>
+        </div>
+      )}
+
+      {isPass ? (
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 12,
+          marginBottom: 14,
+        }}>
+          <h1 style={{
+            fontFamily: f.serif,
+            fontSize: 26,
+            fontWeight: 600,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.05,
+            margin: 0,
+            color: c.textPrimary,
+            flex: 1,
+            minWidth: 0,
+          }}>
+            {renderTitle(title)}
+          </h1>
+          <span style={{
+            marginTop: 6,
+            padding: '4px 9px',
+            borderRadius: 5,
+            border: `1px solid ${accentBorder}`,
+            color: accent,
+            fontFamily: f.mono,
+            fontSize: 9,
+            fontWeight: 600,
+            letterSpacing: '0.16em',
+            background: accentBg,
+            flexShrink: 0,
+            textTransform: 'uppercase',
+            lineHeight: 1.2,
+          }}>
+            PASS
+          </span>
+        </div>
+      ) : (
+        <h1 style={{
+          fontFamily: f.serif,
+          fontSize: 26,
           fontWeight: 600,
-          letterSpacing: '0.18em',
-          background: accentBg,
+          letterSpacing: '-0.02em',
+          lineHeight: 1.05,
+          margin: '0 0 14px',
+          color: c.textPrimary,
         }}>
-          {isPass ? 'PASS' : 'LEAGUE OFF'}
-        </span>
-      </div>
+          {renderTitle(title)}
+        </h1>
+      )}
 
-      {/* Headline */}
-      <h1 style={{
-        fontFamily: f.serif,
-        fontSize: 32,
-        fontWeight: 500,
-        letterSpacing: '-0.02em',
-        lineHeight: 1.05,
-        margin: '0 0 18px',
-        color: c.textPrimary,
-      }}>
-        {renderTitle(title)}
-      </h1>
-
-      {/* Scan summary */}
       <div style={{
         fontFamily: f.mono,
         fontSize: 11.5,
         color: c.textTertiary,
         letterSpacing: '0.04em',
         lineHeight: 1.6,
-        marginBottom: 22,
+        marginBottom: 16,
         textTransform: 'uppercase',
       }}>
         {renderSubtitle(subtitle)}
       </div>
 
-      {/* Rotating commentary block */}
       {(verdictText || commentary) && (
         <div
           onClick={onTapCommentary}
           style={{
-            background: c.bgCardElev,
+            background: c.bgNested,
             border: `1px solid ${c.borderSubtle}`,
-            borderLeft: `2px solid ${c.system}`,
-            borderRadius: 10,
-            padding: '14px 16px',
-            marginBottom: 22,
+            borderRadius: 8,
+            padding: '12px 14px',
+            marginBottom: 14,
             cursor: onTapCommentary ? 'pointer' : 'default',
             WebkitTapHighlightColor: 'transparent',
             userSelect: 'none',
             WebkitUserSelect: 'none',
           }}
         >
+          {isPass && (
+            <div style={{
+              fontFamily: f.mono,
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: c.system,
+              marginBottom: 8,
+            }}>
+              Market Read
+            </div>
+          )}
           <div
             key={commentaryIdx}
             style={{
@@ -135,65 +215,57 @@ export default function HeroCard({
         </div>
       )}
 
-      {/* Stats grid (pass variant only) */}
       {isPass && stats && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
-          borderTop: `1px solid ${c.borderSubtle}`,
-          borderBottom: `1px solid ${c.borderSubtle}`,
-          margin: '0 -22px',
+          gap: 6,
+          marginBottom: 14,
         }}>
           {stats.map((s, i) => (
             <div key={i} style={{
-              padding: '18px 8px',
+              background: c.bgNested,
+              border: `1px solid ${c.borderSubtle}`,
+              borderRadius: 8,
+              padding: '12px 6px 10px',
               textAlign: 'center',
-              borderRight: i < stats.length - 1 ? `1px solid ${c.borderSubtle}` : 'none',
             }}>
               <div style={{
                 fontFamily: f.mono,
-                fontSize: 24,
+                fontSize: 9,
+                letterSpacing: '0.16em',
+                color: c.textTertiary,
+                textTransform: 'uppercase',
+                marginBottom: 6,
+              }}>
+                {s.label}
+              </div>
+              <div style={{
+                fontFamily: f.mono,
+                fontSize: 18,
                 fontWeight: s.color === 'dim' ? 400 : 500,
                 lineHeight: 1,
-                marginBottom: 6,
                 color: s.color === 'green' ? c.edge
                   : s.color === 'dim' ? c.textMuted
                   : c.textPrimary,
               }}>
                 {s.value}
               </div>
-              <div style={{
-                fontFamily: f.mono,
-                fontSize: 9,
-                letterSpacing: '0.14em',
-                color: c.textTertiary,
-                textTransform: 'uppercase',
-              }}>
-                {s.label}
-              </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Footer (pass variant only) */}
       {isPass && (
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '18px 22px 4px',
-          margin: '0 -22px',
+          fontFamily: f.serif,
+          fontStyle: 'italic',
+          fontSize: 13,
+          fontWeight: 400,
+          color: c.textSecondary,
+          marginTop: 4,
         }}>
-          <div style={{
-            fontFamily: f.serif,
-            fontStyle: 'italic',
-            fontSize: 13,
-            fontWeight: 400,
-            color: c.textSecondary,
-          }}>
-            {tagline}
-          </div>
+          {tagline}
         </div>
       )}
     </div>

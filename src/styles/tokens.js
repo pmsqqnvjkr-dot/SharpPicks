@@ -28,11 +28,12 @@ export const radii = { sm: 6, md: 8, lg: 12 };
 // Institutional palette - used by signals/PassDay redesign and going forward.
 // Two-color semantic system: green = edge/capital/action, slate-blue = system/info.
 export const inst = {
-  bgPage: '#0A0E1A',
-  bgCard: '#111726',
-  bgCardElev: '#161D2E',
-  borderSubtle: '#1F2940',
-  borderMedium: '#2B3A5C',
+  bgPage: '#060911',
+  bgCard: '#0D1220',
+  bgCardElev: '#11172A',
+  bgNested: '#0A0F1C',
+  borderSubtle: '#18203A',
+  borderMedium: '#232D4D',
 
   edge: '#4ADE80',
   edgeDim: '#2F9E5F',

@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { inst as c } from '../../styles/tokens';
+import { inst as c, instFonts as f } from '../../styles/tokens';
 import ComplianceFooter from './shared/ComplianceFooter';
 import HeroCard from './shared/HeroCard';
 import MIPill from './shared/MIPill';
@@ -7,6 +7,24 @@ import SharpPrinciple from './shared/SharpPrinciple';
 import CapitalCard from './shared/CapitalCard';
 import FurtherReadingCard from './shared/FurtherReadingCard';
 import CountdownCard from './shared/CountdownCard';
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{
+      fontFamily: f.mono,
+      fontSize: 11,
+      fontWeight: 500,
+      letterSpacing: '0.18em',
+      textTransform: 'uppercase',
+      color: c.textTertiary,
+      padding: '2px 4px',
+      marginTop: 6,
+      marginBottom: -2,
+    }}>
+      {children}
+    </div>
+  );
+}
 
 // Rotating Sharp Principles (per spec). Em-dashes get green color.
 const PRINCIPLES = [
@@ -161,12 +179,14 @@ export default function PassDay({
   const currentArticle = articles[articleIdx];
 
   return (
-    <div ref={containerRef} style={{ padding: '0 16px' }}>
+    <div ref={containerRef} style={{ padding: '0 14px' }}>
       {/* 1. Hero */}
       <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
+        <SectionLabel>Today's Signal</SectionLabel>
         <HeroCard
           variant="pass"
           date={date}
+          sport={sport}
           title="No qualifying edge."
           subtitle={`${gamesScanned} GAMES SCANNED \u00B7 TOP EDGE +${topEdgePct.toFixed(1)}% \u00B7 THRESHOLD +${thresholdPct.toFixed(1)}%`}
           verdictText={verdictText}
@@ -200,6 +220,7 @@ export default function PassDay({
       {/* 4. Capital Preserved */}
       {capitalPreservedUsd !== 0 && (
         <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
+          <SectionLabel>Capital Preserved</SectionLabel>
           <CapitalCard capitalPreservedUsd={capitalPreservedUsd} />
         </div>
       )}
@@ -244,8 +265,8 @@ export default function PassDay({
 
       {/* 6. Countdown */}
       <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
+        <SectionLabel>Next Edge Window</SectionLabel>
         <CountdownCard
-          header="Next Edge Window"
           title={`${sport.toUpperCase()} Slate Opens`}
           hours={nextWindow.hours}
           minutes={nextWindow.minutes}

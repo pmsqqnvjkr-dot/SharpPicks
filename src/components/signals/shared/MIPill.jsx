@@ -10,14 +10,14 @@ export default function MIPill({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div style={{ marginBottom: 14 }}>
+    <div style={{ marginBottom: 10 }}>
       <button
         onClick={() => setExpanded(!expanded)}
         style={{
           width: '100%',
           background: c.bgCard,
           border: `1px solid ${c.borderSubtle}`,
-          borderRadius: 18,
+          borderRadius: 16,
           padding: '14px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -84,7 +84,7 @@ export default function MIPill({
           background: c.bgCard,
           border: `1px solid ${c.borderSubtle}`,
           borderTop: 'none',
-          borderRadius: '0 0 18px 18px',
+          borderRadius: '0 0 16px 16px',
           padding: '4px 16px 16px',
         }}>
           {zeroState ? (
