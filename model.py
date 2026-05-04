@@ -647,12 +647,26 @@ class EnsemblePredictor:
                     try:
                         rat_conn = sqlite3.connect(get_sqlite_path())
                         if self._has_table(rat_conn, ratings_tbl):
-                            rat_rows = rat_conn.execute(f"SELECT team_abbr, team_name, net_rating FROM {ratings_tbl}").fetchall()
-                            for r in rat_rows:
-                                val = float(r[2]) if r[2] else 0.0
-                                team_ratings[r[0]] = val
-                                if r[1]:
-                                    team_ratings[r[1]] = val
+                            if self.sport == 'wnba':
+                                # wnba_rolling_ratings is time-series; take latest game_date per team
+                                rat_rows = rat_conn.execute(
+                                    "SELECT r.team, r.nrtg FROM wnba_rolling_ratings r "
+                                    "WHERE r.game_date = ("
+                                    "  SELECT MAX(game_date) FROM wnba_rolling_ratings WHERE team = r.team"
+                                    ")"
+                                ).fetchall()
+                                for r in rat_rows:
+                                    val = float(r[1]) if r[1] else 0.0
+                                    team_ratings[r[0]] = val
+                            else:
+                                rat_rows = rat_conn.execute(
+                                    f"SELECT team_abbr, team_name, net_rating FROM {ratings_tbl}"
+                                ).fetchall()
+                                for r in rat_rows:
+                                    val = float(r[2]) if r[2] else 0.0
+                                    team_ratings[r[0]] = val
+                                    if r[1]:
+                                        team_ratings[r[1]] = val
                         rat_conn.close()
                     except Exception:
                         pass
