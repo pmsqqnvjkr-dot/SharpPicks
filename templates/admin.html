@@ -32,7 +32,37 @@
     </div>
   </header>
 
-  <!-- Step 3.2 will populate the tab strip + four panels here. -->
+  <!-- TAB STRIP -->
+  <nav class="tabs" role="tablist" aria-label="Command Center tabs">
+    <button class="tab active" data-tab="command" role="tab" aria-selected="true">Command</button>
+    <button class="tab" data-tab="users" role="tab" aria-selected="false">Users</button>
+    <button class="tab" data-tab="model" role="tab" aria-selected="false">Model</button>
+    <button class="tab" data-tab="infra" role="tab" aria-selected="false">Infra</button>
+  </nav>
+
+  <!-- PANELS -->
+  <div class="panel active" id="panel-command" role="tabpanel" aria-labelledby="tab-command">
+    <!-- Step 3.4+ populates Command panel sections (Status, What Moved, etc.).
+         The deep-link below is included now so Step 3.2's verification can
+         confirm tab switching works end-to-end; later it will live inside
+         the User Activity section. -->
+    <a href="#" class="deep-link" data-deep-link="users">
+      <span class="deep-link-text">View full user activity · users tab</span>
+      <span class="deep-link-arrow">→</span>
+    </a>
+  </div>
+
+  <div class="panel" id="panel-users" role="tabpanel" aria-labelledby="tab-users">
+    <!-- Step 3.5 populates Users panel. -->
+  </div>
+
+  <div class="panel" id="panel-model" role="tabpanel" aria-labelledby="tab-model">
+    <!-- Step 3.6 populates Model panel. -->
+  </div>
+
+  <div class="panel" id="panel-infra" role="tabpanel" aria-labelledby="tab-infra">
+    <!-- Step 3.7 populates Infra panel. -->
+  </div>
 
 </div>
 
