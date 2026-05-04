@@ -8512,7 +8512,15 @@ def send_push_notification(user_id, title, body, data=None):
             elif resp.status_code in (404, 410):
                 t.enabled = False
                 db.session.commit()
-                logging.info(f"Disabled stale FCM token for user {user_id}")
+                logging.info(f"Disabled stale FCM token for user {user_id} (status {resp.status_code})")
+            elif resp.status_code == 400 and 'not a valid FCM registration token' in resp.text:
+                t.enabled = False
+                db.session.commit()
+                logging.info(f"Disabled invalid FCM token for user {user_id} (400 INVALID_ARGUMENT)")
+            elif resp.status_code == 403:
+                t.enabled = False
+                db.session.commit()
+                logging.info(f"Disabled mismatched FCM token for user {user_id} (403 — wrong project)")
             elif resp.status_code == 401:
                 err_text = resp.text[:300]
                 logging.warning(f"FCM 401 (APNs/credentials): {err_text}")
