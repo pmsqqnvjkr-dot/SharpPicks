@@ -2479,6 +2479,28 @@ def admin_users_activity():
         return jsonify({'error': str(e)[:200]}), 500
 
 
+@admin_bp.route('/api/admin/model/perf')
+def admin_model_perf():
+    """Phase 3.6: model perf charts. Reads Pick table directly."""
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    range_ = request.args.get('range', '90d')
+    if range_ not in ('7d', '30d', '90d'):
+        return jsonify({'error': 'range must be 7d, 30d, or 90d'}), 400
+
+    try:
+        from services import model_perf
+        return jsonify(model_perf.fetch(range_))
+    except Exception as e:
+        logging.exception('admin_model_perf failed')
+        return jsonify({'error': str(e)[:200]}), 500
+
+
 @admin_bp.route('/api/admin/users/list')
 def admin_users_list():
     """Phase 3.5: filtered + paginated user list with per-user activity."""

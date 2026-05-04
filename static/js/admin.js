@@ -636,6 +636,101 @@ function loadUsersTabData() {
 document.querySelector('.tab[data-tab="users"]')?.addEventListener('click', loadUsersTabData);
 document.querySelectorAll('[data-deep-link="users"]').forEach(l => l.addEventListener('click', loadUsersTabData));
 
+// ─────────────────────────────────────────────────────────────────────────
+// Model tab data binding (Phase 3.6)
+// /api/admin/model/perf returns {win_rate_by_sport_daily,
+// hit_rate_by_edge_tier, calibration, edge_distribution, last_10_signals}
+// ─────────────────────────────────────────────────────────────────────────
+
+function bindModelPerf(data) {
+  if (!data) return;
+
+  // Win rate vs market chart (NBA + MLB rolling 14d)
+  const winChart = Chart.getChart(document.getElementById('chart-winrate'));
+  if (winChart && data.win_rate_by_sport_daily) {
+    const sports = Object.keys(data.win_rate_by_sport_daily);
+    const labels = (data.win_rate_by_sport_daily[sports[0]] || []).map(d => d.date.slice(5));
+    const datasets = sports.map((s, i) => {
+      const series = data.win_rate_by_sport_daily[s].map(d => d.win_rate);
+      const isMlb = s.toLowerCase().includes('mlb');
+      return {
+        label: `${s.toUpperCase()} (rolling 14d)`,
+        data: series,
+        borderColor: isMlb ? '#34D399' : '#4F86F7',
+        borderDash: isMlb ? [4, 4] : [],
+        tension: 0.4,
+        pointRadius: 0,
+        borderWidth: 2,
+        fill: false,
+      };
+    });
+    winChart.data.labels = labels;
+    winChart.data.datasets = datasets;
+    winChart.update('none');
+  }
+
+  // Hit rate by edge tier
+  const meiChart = Chart.getChart(document.getElementById('chart-meihit'));
+  if (meiChart && Array.isArray(data.hit_rate_by_edge_tier)) {
+    meiChart.data.labels = data.hit_rate_by_edge_tier.map(t => t.tier);
+    meiChart.data.datasets[0].data = data.hit_rate_by_edge_tier.map(t => t.hit_rate || 0);
+    meiChart.update('none');
+  }
+
+  // Calibration plots: NBA + MLB
+  ['nba', 'mlb'].forEach(sport => {
+    const chart = Chart.getChart(document.getElementById('chart-cal-' + sport));
+    if (!chart) return;
+    const series = (data.calibration || {})[sport] || (data.calibration || {})[sport.toUpperCase()] || [];
+    if (!series.length) return;
+    chart.data.labels = series.map(p => p.predicted);
+    chart.data.datasets[0].data = series.map(p => ({ x: p.predicted, y: p.observed }));
+    chart.update('none');
+  });
+
+  // Edge distribution histogram
+  const meiDist = Chart.getChart(document.getElementById('chart-mei'));
+  if (meiDist && Array.isArray(data.edge_distribution)) {
+    meiDist.data.labels = data.edge_distribution.map(b => b.tier);
+    meiDist.data.datasets[0].data = data.edge_distribution.map(b => b.count);
+    meiDist.update('none');
+  }
+
+  // Last 10 signals table
+  if (Array.isArray(data.last_10_signals)) {
+    // The mockup renders signals as .top-list or .pipeline-row style.
+    // Find a target container in the Model panel.
+    const tbl = document.querySelector('#panel-model .top-list');
+    if (tbl) {
+      tbl.innerHTML = '';
+      data.last_10_signals.forEach((s, i) => {
+        const row = document.createElement('div');
+        row.className = 'top-list-row';
+        const RESULT_LABEL = { won: 'WIN', lost: 'LOSS', push: 'PUSH', pending: 'PEND' };
+        const resultBadge = RESULT_LABEL[s.result] || 'PEND';
+        row.innerHTML = `
+          <span class="top-list-rank">${i + 1}</span>
+          <span class="top-list-label">${s.matchup} · ${s.side} ${s.line}</span>
+          <span class="top-list-value">${resultBadge} ${s.edge_pct ? s.edge_pct.toFixed(1) : '—'}%</span>
+        `;
+        tbl.appendChild(row);
+      });
+    }
+  }
+}
+
+let _modelDataPromise = null;
+function loadModelTabData() {
+  if (_modelDataPromise) return _modelDataPromise;
+  _modelDataPromise = fetch('/api/admin/model/perf?range=90d', { credentials: 'same-origin' })
+    .then(r => r.ok ? r.json() : null)
+    .then(bindModelPerf)
+    .catch(() => { _modelDataPromise = null; });
+  return _modelDataPromise;
+}
+
+document.querySelector('.tab[data-tab="model"]')?.addEventListener('click', loadModelTabData);
+
 // Wire segment chip clicks to refetch the user list with the new segment.
 document.querySelectorAll('#panel-users .segment-chips .segment-chip').forEach(chip => {
   chip.addEventListener('click', () => {
