@@ -136,6 +136,42 @@
       </div>
     </section>
 
+    <!-- TRIAL PIPELINE (Phase 3 audit follow-up) -->
+    <section class="section" id="section-trial-pipeline">
+      <div class="section-header">
+        <span class="section-title">trial pipeline · stripe</span>
+        <span class="section-meta">live</span>
+      </div>
+      <p class="section-summary">Where the cohort with a card on file actually lives. Trials with a confirmed cancel scheduled will not convert; the rest are likely to bill at trial end.</p>
+      <div class="section-content two-col">
+        <div>
+          <div class="col-title">trials</div>
+          <div class="stat-row"><span class="label">Trials in flight</span><span class="value" id="stat-trials-in-flight">—</span></div>
+          <div class="stat-row"><span class="label">Trials likely to convert</span><span class="value" id="stat-trials-likely-convert">—</span></div>
+          <div class="stat-row"><span class="label">Trials with cancel scheduled</span><span class="value" id="stat-trials-cancel-scheduled">—</span></div>
+          <div class="stat-row"><span class="label">Trial conversions 7d</span><span class="value" id="stat-trial-conv-7d">—</span></div>
+          <div class="stat-row"><span class="label">Trial conversions 30d</span><span class="value" id="stat-trial-conv-30d">—</span></div>
+        </div>
+        <div>
+          <div class="col-title">paid · cancellation queue</div>
+          <div class="stat-row"><span class="label">Paid with cancel scheduled</span><span class="value" id="stat-paid-cancel-scheduled">—</span></div>
+          <div class="stat-row"><span class="label">Cancellations 30d (final)</span><span class="value" id="stat-canceled-30d">—</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAILING PAYMENT CUSTOMERS (Phase 3 audit follow-up) -->
+    <section class="section" id="section-failing-customers">
+      <div class="section-header">
+        <span class="section-title">failed payments · top offenders</span>
+        <span class="section-meta">last 30d, by user</span>
+      </div>
+      <p class="section-summary">Failed-payment counts are segmented by user so a single customer with many retries does not inflate the apparent churn risk.</p>
+      <div class="top-list" id="failing-customers-list">
+        <div class="top-list-row"><span class="top-list-rank">—</span><span class="top-list-label">Loading…</span><span class="top-list-value">—</span></div>
+      </div>
+    </section>
+
     <!-- USER ACTIVITY -->
     <section class="section">
       <div class="section-header">

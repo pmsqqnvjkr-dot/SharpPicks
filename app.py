@@ -6662,10 +6662,23 @@ def cancel_subscription():
         db_user = db.session.get(User, user['id'])
         if not db_user or not db_user.stripe_customer_id:
             return jsonify({'error': 'No active subscription'}), 400
-        subs = stripe.Subscription.list(customer=db_user.stripe_customer_id, status='active', limit=1)
-        if subs.data:
-            stripe.Subscription.modify(subs.data[0].id, cancel_at_period_end=True)
+        # status='all' catches both 'active' and 'trialing' subs — trial
+        # users were previously unable to cancel through this endpoint.
+        def _sg(o, k, d=None):
+            return o.get(k, d) if isinstance(o, dict) else getattr(o, k, d)
+        subs = stripe.Subscription.list(customer=db_user.stripe_customer_id, status='all', limit=10)
+        target_sub = None
+        for s in subs.data:
+            if _sg(s, 'status') in ('active', 'trialing'):
+                target_sub = s
+                break
+        if target_sub:
+            modified = stripe.Subscription.modify(target_sub.id, cancel_at_period_end=True)
             db_user.subscription_status = 'cancelling'
+            db_user.cancel_scheduled_at = datetime.utcnow()
+            cancel_at = _sg(modified, 'cancel_at') or _sg(modified, 'current_period_end')
+            if cancel_at:
+                db_user.cancel_effective_at = datetime.fromtimestamp(cancel_at)
             db.session.commit()
         return jsonify({'success': True})
     except Exception as e:
@@ -6692,6 +6705,8 @@ def reactivate_subscription():
                 stripe.Subscription.modify(sub.id, cancel_at_period_end=False)
                 db_user.subscription_status = 'active'
                 db_user.is_premium = True
+                db_user.cancel_scheduled_at = None
+                db_user.cancel_effective_at = None
                 db.session.commit()
                 reactivated = True
                 break
@@ -6971,6 +6986,9 @@ def stripe_webhook():
         elif event_type == 'customer.subscription.updated':
             cust_id = _safe_get(data_obj, 'customer')
             status = _safe_get(data_obj, 'status')
+            cancel_at_period_end = bool(_safe_get(data_obj, 'cancel_at_period_end'))
+            cancel_at_ts = _safe_get(data_obj, 'cancel_at')
+            canceled_at_ts = _safe_get(data_obj, 'canceled_at')
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
@@ -6978,7 +6996,35 @@ def stripe_webhook():
                     plan_meta = _safe_get(_safe_get(data_obj, 'metadata', {}), 'plan')
                     if plan_meta:
                         user.subscription_plan = plan_meta
-                    if status == 'active':
+
+                    # Detect trial -> paid conversion. Only fires once per
+                    # user (idempotent via the null check) so re-deliveries
+                    # don't move the timestamp forward.
+                    if (old_status == 'trial'
+                            and status == 'active'
+                            and user.trial_converted_at is None):
+                        user.trial_converted_at = datetime.utcnow()
+
+                    # cancel_at_period_end is the source-of-truth signal
+                    # for "user has scheduled a cancel" — works whether
+                    # the cancel came from our /api/subscriptions/cancel
+                    # endpoint OR from the Stripe Customer Portal.
+                    if cancel_at_period_end and status in ('active', 'trialing'):
+                        if user.cancel_scheduled_at is None:
+                            user.cancel_scheduled_at = (
+                                datetime.fromtimestamp(canceled_at_ts) if canceled_at_ts else datetime.utcnow()
+                            )
+                        if cancel_at_ts:
+                            user.cancel_effective_at = datetime.fromtimestamp(cancel_at_ts)
+                        user.subscription_status = 'cancelling'
+                        user.is_premium = True  # they keep access until cancel_effective_at
+                    elif not cancel_at_period_end and old_status == 'cancelling' and status in ('active', 'trialing'):
+                        # Reactivation through any path (our endpoint or portal)
+                        user.cancel_scheduled_at = None
+                        user.cancel_effective_at = None
+                        user.subscription_status = 'active' if status == 'active' else 'trial'
+                        user.is_premium = True
+                    elif status == 'active':
                         user.subscription_status = 'active'
                         user.is_premium = True
                     elif status == 'trialing':
@@ -6996,12 +7042,14 @@ def stripe_webhook():
                     elif status == 'past_due':
                         user.subscription_status = 'past_due'
                         user.is_premium = False
+
                     period_end = _safe_get(data_obj, 'current_period_end')
                     if period_end:
                         user.current_period_end = datetime.fromtimestamp(period_end)
                     db.session.commit()
                     _log_revenue_alert('subscription_updated', user.email,
-                        f'Plan change: {user.email} — {old_status} → {status}')
+                        f'Plan change: {user.email} — {old_status} → {user.subscription_status}'
+                        + (' (cancel scheduled)' if cancel_at_period_end else ''))
 
         elif event_type == 'customer.subscription.deleted':
             cust_id = _safe_get(data_obj, 'customer')
@@ -7025,6 +7073,11 @@ def stripe_webhook():
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
+                    # If this is the first paid invoice after a trial,
+                    # record the conversion timestamp. Idempotent.
+                    was_trial = user.subscription_status == 'trial'
+                    if was_trial and user.trial_converted_at is None:
+                        user.trial_converted_at = datetime.utcnow()
                     user.subscription_status = 'active'
                     user.is_premium = True
                     lines_obj = _safe_get(data_obj, 'lines', {})

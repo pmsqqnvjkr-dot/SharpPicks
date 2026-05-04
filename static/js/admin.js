@@ -441,9 +441,57 @@ function bindLiveData(metrics) {
   // -- What Moved: only update rows where we have real data --
   const newSubs7d = (metrics.stripe?.payload?.new_subs_7d || 0) + (metrics.revenuecat?.payload?.new_subs_7d || 0);
   // 24h data isn't yet broken out; leave New subs today on placeholder for now.
-  const failedPay = metrics.stripe?.payload?.failed_payments_7d;
-  if (failedPay != null) {
-    setMovedRow('Failed payments 7d', SP_FMT.num(failedPay), failedPay === 0 ? 'clean' : 'attention', failedPay === 0 ? 'up' : 'down');
+
+  // Failed payments — segmented by user. The headline number is
+  // distinct USERS with failed payments 7d; we annotate with the total
+  // attempt count when retries inflate it (one user with 14 retries
+  // would otherwise look like 14 churn-risk customers).
+  const sp = metrics.stripe?.payload || {};
+  const failedUsers7d = sp.failed_payment_users_7d;
+  const failedAttempts7d = sp.failed_payment_attempts_7d;
+  if (failedUsers7d != null) {
+    const annotation = (failedAttempts7d > failedUsers7d)
+      ? `${failedAttempts7d} attempts across ${failedUsers7d} user${failedUsers7d === 1 ? '' : 's'}`
+      : (failedUsers7d === 0 ? 'clean' : 'attention');
+    setMovedRow('Failed payments 7d', SP_FMT.num(failedUsers7d), annotation, failedUsers7d === 0 ? 'up' : 'down');
+  }
+
+  // -- Trial pipeline section (Phase 3 audit follow-up) --
+  const setText = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val != null) el.textContent = val;
+  };
+  if (sp.trials != null)                       setText('stat-trials-in-flight',       SP_FMT.num(sp.trials));
+  if (sp.trials_likely_to_convert != null)     setText('stat-trials-likely-convert',  SP_FMT.num(sp.trials_likely_to_convert));
+  if (sp.trials_with_cancel_scheduled != null) setText('stat-trials-cancel-scheduled', SP_FMT.num(sp.trials_with_cancel_scheduled));
+  if (sp.trial_conversions_7d != null)         setText('stat-trial-conv-7d',          SP_FMT.num(sp.trial_conversions_7d));
+  if (sp.trial_conversions_30d != null)        setText('stat-trial-conv-30d',         SP_FMT.num(sp.trial_conversions_30d));
+  if (sp.paid_with_cancel_scheduled != null)   setText('stat-paid-cancel-scheduled',  SP_FMT.num(sp.paid_with_cancel_scheduled));
+  if (sp.canceled_30d != null)                 setText('stat-canceled-30d',           SP_FMT.num(sp.canceled_30d));
+
+  // -- Failing payment customers list (top 10 by attempt count) --
+  const failingList = document.getElementById('failing-customers-list');
+  if (failingList && Array.isArray(sp.failing_users)) {
+    failingList.innerHTML = '';
+    if (sp.failing_users.length === 0) {
+      const row = document.createElement('div');
+      row.className = 'top-list-row';
+      row.innerHTML = `<span class="top-list-rank">—</span><span class="top-list-label">No failed payments in the last 30 days.</span><span class="top-list-value">clean</span>`;
+      failingList.appendChild(row);
+    } else {
+      sp.failing_users.forEach((fu, i) => {
+        const row = document.createElement('div');
+        row.className = 'top-list-row';
+        const who = fu.email || fu.customer_id;
+        const recent = fu.attempts_24h > 0 ? ` · ${fu.attempts_24h} in 24h` : '';
+        row.innerHTML = `
+          <span class="top-list-rank">${i + 1}</span>
+          <span class="top-list-label">${who}${recent}</span>
+          <span class="top-list-value">${fu.attempts_30d} attempts</span>
+        `;
+        failingList.appendChild(row);
+      });
+    }
   }
   const trafficSource = metrics.ga4?.payload || metrics.cloudflare?.payload;
   const traffic24h = trafficSource?.visitors_24h ?? trafficSource?.sessions_24h;

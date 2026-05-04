@@ -87,6 +87,14 @@ class User(UserMixin, db.Model):
     oauth_id = db.Column(db.String(255), nullable=True)
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True)
+    # Cancellation + trial-conversion tracking (2026-05-04 migration).
+    # cancel_scheduled_at: when the user (or webhook) flagged cancel_at_period_end=true
+    # cancel_effective_at: when the cancellation will actually take effect (=Stripe's cancel_at)
+    # trial_converted_at: timestamp the trial flipped to paid (status: trialing -> active)
+    # All three nullable; populated by the Stripe webhook + a one-time backfill script.
+    cancel_scheduled_at = db.Column(db.DateTime, nullable=True)
+    cancel_effective_at = db.Column(db.DateTime, nullable=True)
+    trial_converted_at = db.Column(db.DateTime, nullable=True)
     is_internal = db.Column(db.Boolean, nullable=False, default=False, index=True)
     # Soft-delete: NULL = active, timestamp = soft-deleted. Used to disable
     # spam/test accounts without losing referential integrity from
