@@ -143,6 +143,50 @@ def verify_cron(f):
         return f(*args, **kwargs)
     return wrapper
 
+# Phase 3.7: per-request timing for the admin Infra tab. before_request
+# stamps the start time on g; after_request reads it, computes duration,
+# and writes a row to request_metrics. We skip static assets and tracking
+# endpoints to keep volume in check.
+@app.before_request
+def _stamp_request_start():
+    from flask import g
+    import time as _time
+    g._req_start_ms = _time.monotonic() * 1000.0
+
+_REQ_METRIC_SKIP_PREFIXES = (
+    '/assets/', '/static/', '/favicon', '/health',
+    '/api/track-events', '/api/track-event', '/api/admin/app-analytics',
+)
+
+@app.after_request
+def _record_request_metric(response):
+    try:
+        from flask import g
+        from models import RequestMetric
+        path = request.path or ''
+        if any(path.startswith(p) for p in _REQ_METRIC_SKIP_PREFIXES):
+            return response
+        start_ms = getattr(g, '_req_start_ms', None)
+        if start_ms is None:
+            return response
+        import time as _time
+        duration_ms = int((_time.monotonic() * 1000.0) - start_ms)
+        rec = RequestMetric(
+            path=path[:200],
+            method=(request.method or '')[:10],
+            status=int(getattr(response, 'status_code', 0) or 0),
+            duration_ms=max(0, duration_ms),
+        )
+        db.session.add(rec)
+        db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    return response
+
+
 @app.after_request
 def set_cache_headers(response):
     if request.path.startswith('/assets/'):

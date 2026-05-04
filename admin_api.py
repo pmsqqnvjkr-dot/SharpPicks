@@ -2479,6 +2479,25 @@ def admin_users_activity():
         return jsonify({'error': str(e)[:200]}), 500
 
 
+@admin_bp.route('/api/admin/infra/health')
+def admin_infra_health():
+    """Phase 3.7: server health chips, latency series, deploys, db health.
+    Pipeline status comes from the existing /api/admin/cron-health
+    endpoint — the Infra UI calls both and merges client-side."""
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+    try:
+        from services import infra_metrics
+        return jsonify(infra_metrics.fetch())
+    except Exception as e:
+        logging.exception('admin_infra_health failed')
+        return jsonify({'error': str(e)[:200]}), 500
+
+
 @admin_bp.route('/api/admin/model/perf')
 def admin_model_perf():
     """Phase 3.6: model perf charts. Reads Pick table directly."""

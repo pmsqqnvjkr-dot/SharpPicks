@@ -387,6 +387,20 @@ class PageView(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now, index=True)
 
 
+class RequestMetric(db.Model):
+    """Per-request timing for the Phase 3 admin Infra tab.
+    Written by an after_request hook in app.py for every non-static
+    HTTP request. Reads aggregate p50/p95/p99 + 5xx counts. Trim with
+    a periodic cleanup cron — keeping more than ~14 days is overkill."""
+    __tablename__ = 'request_metrics'
+    id = db.Column(db.Integer, primary_key=True)
+    path = db.Column(db.String(200), nullable=False, index=True)
+    method = db.Column(db.String(10), nullable=False)
+    status = db.Column(db.Integer, nullable=False, index=True)
+    duration_ms = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+
 class UserEvent(db.Model):
     __tablename__ = 'user_events'
     id = db.Column(db.Integer, primary_key=True)

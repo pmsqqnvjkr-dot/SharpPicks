@@ -731,6 +731,118 @@ function loadModelTabData() {
 
 document.querySelector('.tab[data-tab="model"]')?.addEventListener('click', loadModelTabData);
 
+// ─────────────────────────────────────────────────────────────────────────
+// Infra tab data binding (Phase 3.7)
+// Two endpoints:
+//   /api/admin/infra/health -> chips, latency_series, recent_deploys, database_health
+//   /api/admin/cron-health  -> pipeline status (existing endpoint, reused)
+// ─────────────────────────────────────────────────────────────────────────
+
+function bindInfraHealth(data) {
+  if (!data) return;
+  const c = data.chips || {};
+
+  // Update health-chip values by their .label text
+  function setChipValue(label, value, kindClass) {
+    const chips = document.querySelectorAll('#panel-infra .health-chip');
+    for (const chip of chips) {
+      const lbl = chip.querySelector('.label');
+      if (!lbl || lbl.textContent.trim().toLowerCase() !== label.toLowerCase()) continue;
+      const v = chip.querySelector('.v');
+      if (v) v.textContent = value;
+      if (kindClass) {
+        chip.classList.remove('ok', 'warn', 'danger');
+        chip.classList.add(kindClass);
+      }
+      return;
+    }
+  }
+  setChipValue('Uptime 30d', (c.uptime_30d_pct ?? '—') + '%',
+               c.uptime_30d_pct >= 99.5 ? 'ok' : c.uptime_30d_pct >= 98 ? 'warn' : 'danger');
+  setChipValue('p95 latency', (c.p95_24h_ms ?? '—') + 'ms',
+               (c.p95_24h_ms || 0) < 300 ? 'ok' : (c.p95_24h_ms || 0) < 1000 ? 'warn' : 'danger');
+  setChipValue('Errors 24h', SP_FMT.num(c.errors_24h),
+               (c.errors_24h || 0) === 0 ? 'ok' : (c.errors_24h || 0) < 10 ? 'warn' : 'danger');
+  if (c.cpu_pct != null) setChipValue('Cpu', c.cpu_pct + '%',
+                                       c.cpu_pct < 50 ? 'ok' : c.cpu_pct < 80 ? 'warn' : 'danger');
+  if (c.mem_pct != null) setChipValue('Memory', c.mem_pct + '%',
+                                       c.mem_pct < 70 ? 'ok' : c.mem_pct < 85 ? 'warn' : 'danger');
+  if (c.requests_24h != null) setChipValue('Requests 24h', SP_FMT.num(c.requests_24h));
+
+  // Latency chart (p50/p95/p99 hourly)
+  const latChart = Chart.getChart(document.getElementById('chart-latency'));
+  if (latChart && Array.isArray(data.latency_series)) {
+    latChart.data.labels = data.latency_series.map(p => p.hour.slice(5, 13));
+    // Mockup chart has 3 datasets — replace each
+    if (latChart.data.datasets.length >= 3) {
+      latChart.data.datasets[0].data = data.latency_series.map(p => p.p50);
+      latChart.data.datasets[1].data = data.latency_series.map(p => p.p95);
+      latChart.data.datasets[2].data = data.latency_series.map(p => p.p99);
+    }
+    latChart.update('none');
+  }
+
+  // Recent deploys
+  const deployContainer = document.querySelector('#panel-infra .deploy-row')?.parentNode;
+  if (deployContainer && Array.isArray(data.recent_deploys)) {
+    deployContainer.querySelectorAll('.deploy-row').forEach(n => n.remove());
+    data.recent_deploys.forEach(d => {
+      const row = document.createElement('div');
+      row.className = 'deploy-row';
+      row.innerHTML = `
+        <span class="sha">${d.sha}</span>
+        <span>${(d.date || '').slice(0, 10)}</span>
+        <span class="msg">${d.message}</span>
+        <span class="status ${d.status === 'success' ? 'success' : 'failed'}">${d.status}</span>
+      `;
+      deployContainer.appendChild(row);
+    });
+  }
+
+  // Database health stat-rows
+  const dh = data.database_health || {};
+  if (dh.connections_active != null) setStat('Connections active', SP_FMT.num(dh.connections_active));
+  if (dh.connections_idle != null)   setStat('Connections idle',   SP_FMT.num(dh.connections_idle));
+  if (dh.database_size_mb != null)   setStat('Database size',      dh.database_size_mb + ' MB');
+  if (dh.longest_running_query_seconds != null) {
+    setStat('Longest query', dh.longest_running_query_seconds + 's');
+  }
+}
+
+function bindCronHealth(data) {
+  if (!data || !Array.isArray(data.jobs)) return;
+  const container = document.querySelector('#panel-infra .pipeline-row')?.parentNode;
+  if (!container) return;
+  container.querySelectorAll('.pipeline-row').forEach(n => n.remove());
+  data.jobs.forEach(job => {
+    const row = document.createElement('div');
+    row.className = 'pipeline-row';
+    const dotClass = job.health === 'ok' ? '' : (job.health === 'warn' ? 'warn' : 'fail');
+    const ago = job.hours_ago != null ? job.hours_ago + 'h ago' : 'never';
+    row.innerHTML = `
+      <span class="pipeline-name">${job.name}</span>
+      <span class="pipeline-time">${ago}</span>
+      <span class="pipeline-status-dot ${dotClass}" aria-label="${job.health}"></span>
+    `;
+    container.appendChild(row);
+  });
+}
+
+let _infraDataPromise = null;
+function loadInfraTabData() {
+  if (_infraDataPromise) return _infraDataPromise;
+  _infraDataPromise = Promise.all([
+    fetch('/api/admin/infra/health', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
+    fetch('/api/admin/cron-health',  { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
+  ]).then(([health, cron]) => {
+    bindInfraHealth(health);
+    bindCronHealth(cron);
+  }).catch(() => { _infraDataPromise = null; });
+  return _infraDataPromise;
+}
+
+document.querySelector('.tab[data-tab="infra"]')?.addEventListener('click', loadInfraTabData);
+
 // Wire segment chip clicks to refetch the user list with the new segment.
 document.querySelectorAll('#panel-users .segment-chips .segment-chip').forEach(chip => {
   chip.addEventListener('click', () => {
