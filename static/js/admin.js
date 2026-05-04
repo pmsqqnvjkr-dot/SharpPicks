@@ -442,6 +442,34 @@ function bindLiveData(metrics) {
     }
   }
 
+  // Revenue chart — drop the placeholder RevenueCat line when iOS is
+  // not yet live in production. The chart constructor hardcodes a
+  // green Math.random() RC dataset that's misleading when there's no
+  // actual iOS revenue. Once IOS_PROD_LIVE=1 the dataset stays.
+  // Also flip the Stripe dataset's fill from 'origin' (which assumes
+  // a stacked area below it) to 'origin' staying — Chart.js handles
+  // single-dataset fill from origin natively.
+  const mrrChart = Chart.getChart(document.getElementById('chart-mrr'));
+  const iosLive = !!metrics.revenuecat?.payload?.ios_prod_live;
+  if (mrrChart && !iosLive) {
+    // Remove any dataset whose label looks like RevenueCat
+    const before = mrrChart.data.datasets.length;
+    mrrChart.data.datasets = mrrChart.data.datasets.filter(
+      ds => !(ds.label || '').toLowerCase().includes('revenuecat')
+        && !(ds.label || '').toLowerCase().includes('ios')
+    );
+    if (mrrChart.data.datasets.length !== before) {
+      // Stripe dataset was previously fill: '-1' (relative to RC for stack).
+      // With RC removed, fill from origin so the area still shades.
+      mrrChart.data.datasets.forEach(ds => {
+        if ((ds.label || '').toLowerCase().includes('stripe')) {
+          ds.fill = 'origin';
+        }
+      });
+      mrrChart.update('none');
+    }
+  }
+
   // -- Revenue snapshot stats --
   if (totalMrr)  setStat('Mrr',                SP_FMT.money(totalMrr));
   if (stripeMrr) setStat('Stripe (web)',       SP_FMT.money(stripeMrr));
@@ -592,13 +620,15 @@ function bindUsersActivity(data) {
   const tiers = data.tier_counts || {};
   if (tiers.power != null) setStat('Power users', SP_FMT.num(tiers.power));
 
-  // Replace the DAU 90d bar chart with real daily counts. Guard
-  // against blanking the chart when login events table is sparse.
+  // Replace the DAU 90d bar chart with real daily counts. Login event
+  // tracking started today (2026-05-04) so the past 90 days will be
+  // mostly null until users log in again. Need >= 7 days of activity
+  // to be worth replacing the placeholder.
   const dauCanvas = document.getElementById('chart-users-dau');
   const dauChart = dauCanvas && Chart.getChart(dauCanvas);
   if (dauChart && Array.isArray(data.dau_daily_90d)) {
     const counts = data.dau_daily_90d.map(d => d.users);
-    if (_hasRealValues(counts)) {
+    if (_hasRealValues(counts, 7)) {
       dauChart.data.labels = data.dau_daily_90d.map(d => d.date.slice(5));
       dauChart.data.datasets[0].data = counts;
       dauChart.update('none');
@@ -754,20 +784,30 @@ document.querySelectorAll('[data-deep-link="users"]').forEach(l => l.addEventLis
 // hit_rate_by_edge_tier, calibration, edge_distribution, last_10_signals}
 // ─────────────────────────────────────────────────────────────────────────
 
-// Helper: returns true if a numeric series has at least one non-null,
-// non-zero value. Used to guard chart updates so we don't blank out
-// the mockup placeholder data with an empty real-data response.
-function _hasRealValues(arr) {
+// Helper: returns true if a numeric series has at least `minCount`
+// non-null, non-zero values. Used to guard chart updates so we don't
+// blank out the mockup placeholder with sparse real-data responses
+// (a chart with 1-2 valid points and 100+ nulls renders as
+// essentially-invisible — better to keep the placeholder).
+function _hasRealValues(arr, minCount = 5) {
   if (!Array.isArray(arr) || arr.length === 0) return false;
-  return arr.some(v => v != null && v !== 0);
+  let count = 0;
+  for (const v of arr) {
+    if (v != null && v !== 0) {
+      count++;
+      if (count >= minCount) return true;
+    }
+  }
+  return false;
 }
 
 function bindModelPerf(data) {
   if (!data) return;
 
   // Win rate vs market chart (NBA + MLB rolling 14d). Skip update if
-  // there are no resolved picks per sport — keeps the mockup line
-  // visible until real data accumulates.
+  // there are not enough resolved picks per sport — keeps the mockup
+  // line visible until real data accumulates. Need >= 14 days of
+  // resolved picks per sport for a 14d rolling line to be honest.
   const winChart = Chart.getChart(document.getElementById('chart-winrate'));
   if (winChart && data.win_rate_by_sport_daily) {
     const sports = Object.keys(data.win_rate_by_sport_daily);
@@ -787,7 +827,7 @@ function bindModelPerf(data) {
           spanGaps: true,
         };
       });
-      const anyReal = datasets.some(ds => _hasRealValues(ds.data));
+      const anyReal = datasets.some(ds => _hasRealValues(ds.data, 14));
       if (anyReal) {
         winChart.data.labels = (data.win_rate_by_sport_daily[sports[0]] || []).map(d => d.date.slice(5));
         winChart.data.datasets = datasets;
@@ -904,21 +944,18 @@ function bindInfraHealth(data) {
                                        c.mem_pct < 70 ? 'ok' : c.mem_pct < 85 ? 'warn' : 'danger');
   if (c.requests_24h != null) setChipValue('Requests 24h', SP_FMT.num(c.requests_24h));
 
-  // Latency chart (p50/p95/p99 hourly). request_metrics table was
-  // just created on 2026-05-04; the past-7-day window will be sparse
-  // until enough request data accumulates. Guard against blanking the
-  // chart — keep mockup placeholder visible if the real series is
-  // mostly null.
+  // Latency chart (p50/p95/p99 hourly, 168 buckets = 7d). request_metrics
+  // table was just created; needs at least 24 hours of data before the
+  // chart looks meaningful. Below that, keep the mockup placeholder
+  // visible — a 1-out-of-168-buckets chart renders as essentially blank.
   const latChart = Chart.getChart(document.getElementById('chart-latency'));
   if (latChart && Array.isArray(data.latency_series)) {
     const p95Values = data.latency_series.map(p => p.p95);
-    if (_hasRealValues(p95Values) && latChart.data.datasets.length >= 3) {
+    if (_hasRealValues(p95Values, 24) && latChart.data.datasets.length >= 3) {
       latChart.data.labels = data.latency_series.map(p => p.hour.slice(5, 13));
       latChart.data.datasets[0].data = data.latency_series.map(p => p.p50);
       latChart.data.datasets[1].data = data.latency_series.map(p => p.p95);
       latChart.data.datasets[2].data = data.latency_series.map(p => p.p99);
-      // spanGaps=true on each dataset so any null buckets render as
-      // continuous-line gaps instead of dropping the whole series.
       latChart.data.datasets.forEach(ds => { ds.spanGaps = true; });
       latChart.update('none');
     }
