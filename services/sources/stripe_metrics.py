@@ -195,9 +195,12 @@ def _fetch_raw() -> dict:
                 if cancel_at_period_end:
                     paid_with_cancel_scheduled += 1
             else:  # trialing
-                # Card on file, no payment yet — counts only toward
-                # expected MRR, not actual MRR.
-                expected_mrr_cents += sub_monthly_cents
+                # Card on file, no payment yet. Counts toward expected
+                # MRR ONLY if a cancel isn't already scheduled — a trial
+                # with cancel_at_period_end=true will not bill, so
+                # adding it to "expected" overstates the upside.
+                if not cancel_at_period_end:
+                    expected_mrr_cents += sub_monthly_cents
                 if cust_id:
                     trial_customer_ids.add(cust_id)
                 trials += 1
