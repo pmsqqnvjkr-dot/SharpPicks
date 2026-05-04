@@ -396,6 +396,31 @@ function setMovedRow(label, value, deltaText, deltaClass) {
 function bindLiveData(metrics) {
   if (!metrics) return;
 
+  // -- Headline + actions (Phase 3.3) --
+  // services/headline.py emits {sentence, color} for the headline and a
+  // sorted list of {message, priority} for the actions. Replace the
+  // mockup's hardcoded copy in-place.
+  const headline = metrics.headline;
+  if (headline && headline.sentence) {
+    const headlineEl = document.querySelector('#panel-command .headline');
+    if (headlineEl) headlineEl.textContent = headline.sentence;
+  }
+
+  const actions = Array.isArray(metrics.actions) ? metrics.actions : [];
+  if (actions.length) {
+    const actionsEl = document.querySelector('#panel-command .actions');
+    if (actionsEl) {
+      actionsEl.innerHTML = '';
+      const PRIORITY_CLASS = { warn: '', info: 'priority-info', good: 'priority-good' };
+      actions.forEach(a => {
+        const p = document.createElement('p');
+        p.className = ('action ' + (PRIORITY_CLASS[a.priority] || '')).trim();
+        p.textContent = a.message;
+        actionsEl.appendChild(p);
+      });
+    }
+  }
+
   // -- Hero MRR (combined Stripe + RevenueCat) --
   const stripeMrr = metrics.stripe?.payload?.mrr_cents || 0;
   const rcMrr     = metrics.revenuecat?.payload?.mrr_cents || 0;

@@ -2505,11 +2505,23 @@ def admin_metrics():
             name, envelope = fut.result()
             results[name] = envelope
 
+    # Phase 3.3: rule-based headline + actions computed from the source
+    # envelopes. Pure function; no external API calls. Fails open — if
+    # headline computation throws, the dashboard's frontend keeps the
+    # mockup placeholder copy and the error is logged.
+    try:
+        from services import headline as headline_module
+        headline_payload = headline_module.compute(results)
+    except Exception as e:
+        logging.exception('headline.compute failed')
+        headline_payload = {'headline': None, 'actions': [], '_error': str(e)[:200]}
+
     return jsonify({
         'range': range_,
         'generated_at': datetime.now(timezone.utc).isoformat(),
         'include_internal': include_internal,
         **results,
+        **headline_payload,
     })
 
 
