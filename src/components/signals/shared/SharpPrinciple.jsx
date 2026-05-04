@@ -14,9 +14,9 @@ export default function SharpPrinciple({
       style={{
         background: c.bgCard,
         border: `1px solid ${c.borderSubtle}`,
-        borderRadius: 18,
-        padding: 22,
-        marginBottom: 14,
+        borderRadius: 16,
+        padding: 18,
+        marginBottom: 10,
         position: 'relative',
         cursor: onTap ? 'pointer' : 'default',
         WebkitTapHighlightColor: 'transparent',
@@ -43,7 +43,7 @@ export default function SharpPrinciple({
         {total > 0 && (
           <span style={{
             fontFamily: f.mono,
-            fontSize: 10,
+            fontSize: 9,
             fontWeight: 400,
             letterSpacing: '0.1em',
             color: c.textMuted,

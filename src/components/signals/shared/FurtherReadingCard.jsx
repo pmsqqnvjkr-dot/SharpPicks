@@ -51,7 +51,7 @@ export default function FurtherReadingCard({
       style={{
         background: c.bgCard,
         border: `1px solid ${c.borderSubtle}`,
-        borderRadius: 18,
+        borderRadius: 16,
         marginBottom: 4,
         overflow: 'hidden',
         display: 'block',
@@ -61,7 +61,7 @@ export default function FurtherReadingCard({
         transition: 'border-color 0.2s ease',
         width: '100%',
         textAlign: 'left',
-        padding: 22,
+        padding: 18,
         position: 'relative',
         WebkitTapHighlightColor: 'transparent',
       }}
