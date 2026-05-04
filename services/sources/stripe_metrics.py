@@ -95,7 +95,16 @@ def _fetch_raw() -> dict:
     except Exception as e:
         logger.warning('stripe_metrics: exclusion-set build failed (counts will include internal/comped): %s', e)
 
+    # mrr_cents: ACTUAL paying MRR — sum of monthly-equivalent cents
+    # across status='active' subscriptions only. Trialing subs have a
+    # card on file but no money has changed hands; counting them as MRR
+    # is double-booking the same dollar between this month (as MRR) and
+    # next month (when the trial converts).
     mrr_cents = 0
+    # expected_mrr_cents: MRR + the amount we WOULD bill if every
+    # in-flight trial converted. Useful as a forward indicator but not
+    # the headline number.
+    expected_mrr_cents = 0
     trials = 0
     new_subs_7d = 0
     new_subs_30d = 0
@@ -106,7 +115,8 @@ def _fetch_raw() -> dict:
     trials_likely_to_convert = 0
     # Trial conversion tracking (uses User.trial_converted_at; computed
     # below from the DB after the Stripe pass).
-    customer_ids = set()
+    paying_customer_ids = set()  # status=active only -> 'active_subs'
+    trial_customer_ids = set()   # status=trialing only -> 'trials' (distinct)
     currency = 'usd'
 
     sub_iter = stripe.Subscription.list(status='all', limit=100).auto_paging_iter()
@@ -129,25 +139,35 @@ def _fetch_raw() -> dict:
             continue
 
         if status in ('active', 'trialing'):
-            if cust_id:
-                customer_ids.add(cust_id)
             items_container = _get(sub, 'items') or {}
             items_data = _get(items_container, 'data') or []
+            sub_monthly_cents = 0
             for item in items_data:
-                mrr_cents += _price_to_monthly_cents(item)
+                sub_monthly_cents += _price_to_monthly_cents(item)
                 price = _get(item, 'price') or {}
                 cur = _get(price, 'currency')
                 if cur:
                     currency = cur
 
-            if status == 'trialing':
+            if status == 'active':
+                # ACTUAL paying MRR.
+                mrr_cents += sub_monthly_cents
+                expected_mrr_cents += sub_monthly_cents
+                if cust_id:
+                    paying_customer_ids.add(cust_id)
+                if cancel_at_period_end:
+                    paid_with_cancel_scheduled += 1
+            else:  # trialing
+                # Card on file, no payment yet — counts only toward
+                # expected MRR, not actual MRR.
+                expected_mrr_cents += sub_monthly_cents
+                if cust_id:
+                    trial_customer_ids.add(cust_id)
                 trials += 1
                 if cancel_at_period_end:
                     trials_with_cancel_scheduled += 1
                 else:
                     trials_likely_to_convert += 1
-            elif status == 'active' and cancel_at_period_end:
-                paid_with_cancel_scheduled += 1
 
         if created >= window_7d_ts:
             new_subs_7d += 1
@@ -262,9 +282,11 @@ def _fetch_raw() -> dict:
         logger.warning('stripe_metrics: comped count failed: %s', e)
 
     return {
-        'mrr_cents': mrr_cents,
-        'active_subs': len(customer_ids),  # distinct PAYING customers in active+trialing
-        'comped_pro_users': comped_count,   # complimentary pro access, not in MRR
+        'mrr_cents': mrr_cents,                       # status='active' only — real recurring revenue
+        'expected_mrr_cents': expected_mrr_cents,     # active + trialing — what MRR becomes if all trials convert
+        'active_subs': len(paying_customer_ids),      # distinct PAYING customers (status=active only)
+        'trial_subs':  len(trial_customer_ids),       # distinct trialing customers (no money in yet)
+        'comped_pro_users': comped_count,             # complimentary pro access, not in MRR
         'excluded_internal_subs': excluded_count_internal,
         'excluded_comped_subs': excluded_count_comped,
         'trials': trials,

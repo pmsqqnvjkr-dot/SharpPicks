@@ -422,11 +422,25 @@ function bindLiveData(metrics) {
   }
 
   // -- Hero MRR (combined Stripe + RevenueCat) --
+  // Real MRR = paying customers only. Trialing subs have a card on
+  // file but no money has changed hands; they're broken out below.
   const stripeMrr = metrics.stripe?.payload?.mrr_cents || 0;
   const rcMrr     = metrics.revenuecat?.payload?.mrr_cents || 0;
   const totalMrr  = stripeMrr + rcMrr;
   const heroNum   = document.querySelector('.hero-number');
   if (heroNum && totalMrr > 0) heroNum.textContent = SP_FMT.money(totalMrr);
+
+  // Annotate the hero meta with the expected MRR upside if it differs
+  // (i.e., trials are pending conversion).
+  const stripeExpected = metrics.stripe?.payload?.expected_mrr_cents || stripeMrr;
+  const expectedTotal = stripeExpected + rcMrr;
+  if (expectedTotal > totalMrr) {
+    const upside = expectedTotal - totalMrr;
+    const heroMeta = document.querySelector('.hero-meta .label');
+    if (heroMeta) {
+      heroMeta.textContent = `current mrr · combined web + ios · +${SP_FMT.money(upside)} expected if trials convert`;
+    }
+  }
 
   // -- Revenue snapshot stats --
   if (totalMrr)  setStat('Mrr',                SP_FMT.money(totalMrr));
@@ -437,6 +451,9 @@ function bindLiveData(metrics) {
   if (stripeSubs != null || rcSubs != null) {
     setStat('Active subs', SP_FMT.num((stripeSubs || 0) + (rcSubs || 0)));
   }
+  // Surface trial-card-on-file count separately from paying subs.
+  const stripeTrials = metrics.stripe?.payload?.trial_subs;
+  if (stripeTrials != null) setStat('Trials in flight', SP_FMT.num(stripeTrials));
 
   // -- What Moved: only update rows where we have real data --
   const newSubs7d = (metrics.stripe?.payload?.new_subs_7d || 0) + (metrics.revenuecat?.payload?.new_subs_7d || 0);

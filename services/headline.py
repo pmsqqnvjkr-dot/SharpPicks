@@ -56,6 +56,9 @@ def compute_headline(metrics: dict) -> dict:
     rc     = _payload(metrics, 'revenuecat')
     events = _payload(metrics, 'events')
 
+    # mrr_cents is the ACTUAL paying revenue (status='active' only).
+    # Trial subs are counted separately in stripe.trial_subs and
+    # contribute to expected_mrr_cents but NOT mrr_cents.
     mrr_cents      = (stripe.get('mrr_cents') or 0) + (rc.get('mrr_cents') or 0)
     new_subs_7d    = (stripe.get('new_subs_7d') or 0) + (rc.get('new_subs_7d') or 0)
     canceled_30d   = (stripe.get('canceled_30d') or 0) + (rc.get('canceled_30d') or 0)
