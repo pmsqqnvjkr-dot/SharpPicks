@@ -511,7 +511,6 @@ function bindLiveData(metrics) {
   // missing data, just not yet live.
   setStat('Mrr',          SP_FMT.money(totalMrr));
   setStat('Stripe (web)', SP_FMT.money(stripeMrr));
-  const iosLive = !!metrics.revenuecat?.payload?.ios_prod_live;
   if (iosLive) {
     setStat('Revenuecat (ios)', SP_FMT.money(rcMrr));
   } else {
@@ -635,13 +634,75 @@ function bindLiveData(metrics) {
     if (parts.length) freshnessEl.innerHTML = parts.join(' · ');
   }
 
-  // TODO Phase 3.4+:
-  //   - 90-day MRR chart needs metrics.stripe.payload.mrr_daily_90d (not yet shipped)
-  //   - DAU bar chart needs daily_active_users from a new events helper
-  //   - Sparkline needs 14-day MRR series
-  // TODO Phase 3.5: cohort retention, user list, tier counts (new endpoints)
-  // TODO Phase 3.6: model perf, calibration plots, last 10 signals (new endpoint)
-  // TODO Phase 3.7: infra health chips, deploy history, pipeline status (new endpoint)
+  // -- Recent bet taps (events.recent_bet_taps) --
+  // events_source emits the last 5 bet_tap events with timestamps and
+  // surfaces. Renders into #recent-bet-taps, replacing the empty
+  // placeholder.
+  const recentTaps = metrics.events?.payload?.recent_bet_taps;
+  const tapsEl = document.getElementById('recent-bet-taps');
+  if (tapsEl && Array.isArray(recentTaps)) {
+    tapsEl.innerHTML = '';
+    if (recentTaps.length === 0) {
+      tapsEl.innerHTML = '<div class="recent-row empty"><span class="meta">No bet taps in the last 7 days.</span></div>';
+    } else {
+      recentTaps.forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'recent-row';
+        const ts = t.at ? _agoLabel(t.at) : '—';
+        const surface = t.surface || 'unknown';
+        const sigId = t.signal_id ? ` · ${t.signal_id}` : '';
+        const tagText = t.is_internal ? 'internal' : 'external';
+        const tagClass = t.is_internal ? 'tag internal' : 'tag';
+        row.innerHTML = `<span class="ts">${ts}</span><span class="meta">${surface}${sigId}</span><span class="${tagClass}">${tagText}</span>`;
+        tapsEl.appendChild(row);
+      });
+    }
+  }
+
+  // -- Recent signals (events.recent_signals → last 10 issued picks) --
+  const recentSigs = metrics.events?.payload?.recent_signals;
+  const sigsEl = document.getElementById('recent-signals');
+  if (sigsEl && Array.isArray(recentSigs)) {
+    sigsEl.innerHTML = '';
+    if (recentSigs.length === 0) {
+      sigsEl.innerHTML = '<div class="recent-row empty"><span class="meta">No signals issued recently.</span></div>';
+    } else {
+      recentSigs.forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'recent-row';
+        const ts = s.at ? s.at.slice(5, 10) : '—';
+        let tag, tagStyle = '';
+        if (s.result === 'won')        { tag = 'hit';     tagStyle = 'class="tag power"'; }
+        else if (s.result === 'lost')  { tag = 'miss';    tagStyle = 'class="tag" style="color: var(--danger); border-color: rgba(228,129,129,0.3);"'; }
+        else if (s.result === 'push')  { tag = 'push';    tagStyle = 'class="tag"'; }
+        else                            { tag = 'live';    tagStyle = 'class="tag"'; }
+        row.innerHTML = `<span class="ts">${ts}</span><span class="meta">${s.meta}</span><span ${tagStyle}>${tag}</span>`;
+        sigsEl.appendChild(row);
+      });
+    }
+  }
+
+  // -- Header refresh timestamp --
+  const refreshEl = document.querySelector('.last-refresh');
+  if (refreshEl && metrics.generated_at) {
+    refreshEl.textContent = `refreshed ${_agoLabel(metrics.generated_at)}`;
+  }
+}
+
+// "14m ago", "2h ago", "3d ago" — short relative-time formatter for the
+// recent-rows. Falls back to the raw string if the date is malformed.
+function _agoLabel(iso) {
+  if (!iso) return '—';
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return iso;
+  const diff = Math.max(0, Date.now() - t);
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
 }
 
 // Kick off the live data fetch on page load. Failure is silent and leaves
@@ -689,16 +750,26 @@ function _bySectionTitle(titleSubstring, sentence) {
 function bindUsersActivity(data) {
   if (!data) return;
 
-  // Snapshot stats
+  // Snapshot stats — Activity Overview row labels in admin.html are
+  // exact matches: "Dau today", "Wau (7d)", "Mau (30d)", "Total registered",
+  // "Stickiness", "New 7d". setStat is case-insensitive label match.
   const s = data.snapshot || {};
-  setStat('Dau today', SP_FMT.num(s.dau));
-  setStat('Wau (7d)',   SP_FMT.num(s.wau));
-  setStat('Mau (30d)',  SP_FMT.num(s.mau));
-  setStat('New users 7d', SP_FMT.num(s.new_7d));
+  setStat('Dau today',       SP_FMT.num(s.dau));
+  setStat('Wau (7d)',        SP_FMT.num(s.wau));
+  setStat('Mau (30d)',       SP_FMT.num(s.mau));
+  setStat('Total registered', SP_FMT.num(s.total_registered));
+  if (s.stickiness_pct != null) setStat('Stickiness', SP_FMT.num(s.stickiness_pct));
+  setStat('New 7d',          SP_FMT.num(s.new_7d));
 
-  // Power user count comes from tier_counts (more accurate than mockup's 28)
+  // Login Frequency tier counts — labels match: "Power (15+)",
+  // "Engaged (5-14)", "Light (1-4)", "Dormant (0)".
   const tiers = data.tier_counts || {};
-  if (tiers.power != null) setStat('Power users', SP_FMT.num(tiers.power));
+  if (tiers.power   != null) setStat('Power (15+)',     SP_FMT.num(tiers.power));
+  if (tiers.engaged != null) setStat('Engaged (5-14)',  SP_FMT.num(tiers.engaged));
+  if (tiers.light   != null) setStat('Light (1-4)',     SP_FMT.num(tiers.light));
+  if (tiers.dormant != null) setStat('Dormant (0)',     SP_FMT.num(tiers.dormant));
+  if (data.avg_logins != null)    setStat('Avg logins/user', SP_FMT.num(data.avg_logins));
+  if (data.median_logins != null) setStat('Median logins',   SP_FMT.num(data.median_logins));
 
   // ── Users tab headline (h1.headline at top of panel) ──
   // Composes 3-4 facts: MAU, paying customers (Stripe truth), power
@@ -728,13 +799,19 @@ function bindUsersActivity(data) {
   })();
 
   // ── Update every Users-tab segment chip count from real data ──
-  // Source-of-truth rules:
-  //   All         -> snapshot.total_registered (real users only)
-  //   Paid        -> Stripe.active_subs (PAYING customers, not DB drift)
-  //   Trial       -> Stripe.trial_subs (cards on file, not yet billed)
-  //   Power       -> tier_counts.power  (logins_30d >= 15)
-  //   Dormant     -> tier_counts.dormant
-  //   Churned     -> dervied; computed by the segment endpoint
+  // Two distinct chip groups exist on the Users tab:
+  //   #section-power-users    : All / Paid / Trial / Free  (15+ login users)
+  //   #section-all-users      : All / Paid / Trial / Power / Dormant / Churned
+  // Each chip's "All" reflects a different denominator, so they're scoped
+  // to specific sections rather than the panel-wide selector.
+  //
+  // Source-of-truth rules (All Users group):
+  //   All     -> snapshot.total_registered (real users only)
+  //   Paid    -> Stripe.active_subs (PAYING customers, not DB drift)
+  //   Trial   -> Stripe.trial_subs (cards on file, not yet billed)
+  //   Power   -> tier_counts.power  (logins_30d >= 15)
+  //   Dormant -> tier_counts.dormant
+  //   Churned -> derived from a separate /list call below
   const metrics = window.__SP_METRICS;
   const stripePayload = metrics?.stripe?.payload || {};
   const total = s.total_registered;
@@ -743,11 +820,18 @@ function bindUsersActivity(data) {
   const power = tiers.power;
   const dormant = tiers.dormant;
 
-  _setSegmentCount('#panel-users .segment-chips', 'All', total);
-  _setSegmentCount('#panel-users .segment-chips', 'Paid', paid);
-  _setSegmentCount('#panel-users .segment-chips', 'Trial', trial);
-  _setSegmentCount('#panel-users .segment-chips', 'Power', power);
-  _setSegmentCount('#panel-users .segment-chips', 'Dormant', dormant);
+  const ALL_USERS_CHIPS = '#section-all-users .segment-chips';
+  _setSegmentCount(ALL_USERS_CHIPS, 'All', total);
+  _setSegmentCount(ALL_USERS_CHIPS, 'Paid', paid);
+  _setSegmentCount(ALL_USERS_CHIPS, 'Trial', trial);
+  _setSegmentCount(ALL_USERS_CHIPS, 'Power', power);
+  _setSegmentCount(ALL_USERS_CHIPS, 'Dormant', dormant);
+
+  // Power Users chips: "All" = power tier headline, "Paid"/"Trial"/"Free"
+  // need a per-power-user split from the actual list. We don't have the
+  // breakdown here yet; bindPowerUsersList fills these from its data.
+  const POWER_CHIPS = '#section-power-users .segment-chips';
+  _setSegmentCount(POWER_CHIPS, 'All', power);
 
   // Churned count needs its own /list call since the activity payload
   // doesn't aggregate it. Lightweight: limit=1 just to read .filtered.
@@ -755,7 +839,7 @@ function bindUsersActivity(data) {
     .then(r => r.ok ? r.json() : null)
     .then(d => {
       if (d && d.filtered != null) {
-        _setSegmentCount('#panel-users .segment-chips', 'Churned', d.filtered);
+        _setSegmentCount(ALL_USERS_CHIPS, 'Churned', d.filtered);
       }
     })
     .catch(() => {});
@@ -966,19 +1050,97 @@ function _setSegmentCount(scopeSelector, labelWord, count) {
   }
 }
 
+// Render a single user-row inside the given section. Used by both the
+// Power Users leaderboard and the All Users list — same card shape, just
+// different containers.
+function _renderUserRow(u) {
+  const row = document.createElement('div');
+  row.className = 'user-row';
+  const tagsHtml = (u.tags || []).slice(0, 4).map(_renderTag).join('');
+  let cancelHint = '';
+  if (u.cancel_scheduled_at && u.cancel_effective_at) {
+    const eff = new Date(u.cancel_effective_at);
+    const today = new Date();
+    const days = Math.max(0, Math.ceil((eff - today) / (1000 * 60 * 60 * 24)));
+    cancelHint = `<span class="user-cancel-hint">drops ${u.cancel_effective_at.slice(5, 10)} (${days}d)</span>`;
+  }
+  row.innerHTML = `
+    <div class="user-identity">
+      <span class="user-email">${u.email}</span>
+      <div class="user-tags">${tagsHtml}${cancelHint}</div>
+    </div>
+    <div class="user-numeric" data-label="Logins 30d">${u.logins_30d}</div>
+    <div class="user-numeric muted" data-label="Bet taps">${u.bet_taps_30d}</div>
+    <div class="user-numeric muted" data-label="Days active">${u.days_active_30d}</div>
+    <div class="user-numeric faint" data-label="Last seen">${u.last_seen_at ? u.last_seen_at.slice(5, 10) : '—'}</div>
+  `;
+  return row;
+}
+
+// Replace the rows inside `<section id>`'s users-grid-header → user-row
+// region with the rendered version of `users[]`. Preserves the header
+// row above the rows.
+function _replaceUserRows(sectionId, users) {
+  const sec = document.getElementById(sectionId);
+  if (!sec) return;
+  sec.querySelectorAll('.user-row').forEach(n => n.remove());
+  // Find the anchor to insert after — header row, or fall back to the
+  // section element itself.
+  const header = sec.querySelector('.users-grid-header');
+  const anchor = header || sec;
+  const frag = document.createDocumentFragment();
+  users.forEach(u => frag.appendChild(_renderUserRow(u)));
+  anchor.after(frag);
+}
+
 function bindUsersList(data) {
   if (!data || !Array.isArray(data.users)) return;
 
-  // Update the "All" chip with the real total
-  _setSegmentCount('#panel-users .segment-chips', 'All', data.total);
+  // Counts on the All Users segment chips — total is "all real users".
+  _setSegmentCount('#section-all-users .segment-chips', 'All', data.total);
 
-  // Needs Attention summary — derive from current page of users.
-  // Concerning states the operator should look at:
-  //   - past_due tag       (payment failed, access revoked)
-  //   - cancel_scheduled tag (paid sub or trial about to drop)
-  //   - churned recently    (already cancelled, may want win-back)
-  // The full attention-queue endpoint is a Phase 3.5 follow-up; for
-  // now compute counts client-side.
+  _replaceUserRows('section-all-users', data.users);
+
+  // Footer: "showing N of M · load more". Only show "load more" affordance
+  // if we got the full page (filtered > limit suggests more exist).
+  const footer = document.querySelector('#section-all-users .users-list-footer');
+  if (footer) {
+    const showing = data.users.length;
+    const more = data.filtered != null && data.filtered > showing;
+    footer.textContent = `showing ${showing} of ${data.filtered ?? data.total ?? showing}${more ? ' · load more' : ''}`;
+  }
+}
+
+// Power Users leaderboard — same shape as All Users but a different
+// list (segment=power) and a different container. Also derives the
+// Paid/Trial/Free split for the chip counts in this section.
+function bindPowerUsersList(data) {
+  if (!data || !Array.isArray(data.users)) return;
+  _replaceUserRows('section-power-users', data.users);
+
+  // Per-power-user breakdown for the chips. Tags reflect the user's
+  // actual subscription state.
+  let paid = 0, trial = 0, free = 0;
+  data.users.forEach(u => {
+    const tags = u.tags || [];
+    if (tags.includes('paid_annual') || tags.includes('paid_monthly') || tags.includes('founding') || tags.includes('comped')) {
+      paid += 1;
+    } else if (tags.includes('trial')) {
+      trial += 1;
+    } else {
+      free += 1;
+    }
+  });
+  const POWER_CHIPS = '#section-power-users .segment-chips';
+  _setSegmentCount(POWER_CHIPS, 'Paid', paid);
+  _setSegmentCount(POWER_CHIPS, 'Trial', trial);
+  _setSegmentCount(POWER_CHIPS, 'Free', free);
+}
+
+// Needs Attention — small list of users in concerning states.
+function bindNeedsAttention(data) {
+  // Summary comes from Stripe payload counts (truth source for billing
+  // states). data.users gives us per-user detail for the rows below.
   const sp = window.__SP_METRICS?.stripe?.payload || {};
   const cancelTrials = sp.trials_with_cancel_scheduled || 0;
   const cancelPaid = sp.paid_with_cancel_scheduled || 0;
@@ -996,38 +1158,54 @@ function bindUsersList(data) {
     _bySectionTitle('needs attention', `${bits.join(', ')}. Highest-leverage outreach is the cancel-scheduled cohort — the save window closes at cancel_effective_at.`);
   }
 
-  const lists = document.querySelectorAll('#panel-users .user-row');
-  // The mockup has two demo user rows; the list is rendered in their
-  // parent container. Find that container by climbing from one row.
-  const sample = lists[0];
-  if (!sample) return;
-  const container = sample.parentNode;
-  // Wipe existing user-row elements (preserve the header row above it).
-  container.querySelectorAll('.user-row').forEach(n => n.remove());
-  data.users.forEach(u => {
+  const container = document.getElementById('needs-attention-rows');
+  if (!container) return;
+  const users = (data && Array.isArray(data.users)) ? data.users.slice(0, 4) : [];
+  container.innerHTML = '';
+  if (users.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'recent-row empty';
+    empty.innerHTML = '<span class="meta">No users in concerning states this week.</span>';
+    container.appendChild(empty);
+    return;
+  }
+  const today = new Date();
+  users.forEach(u => {
     const row = document.createElement('div');
-    row.className = 'user-row';
-    // Render up to 4 tags so a paid_annual + cancel_scheduled + ios
-    // user shows all three context flags without truncation.
-    const tagsHtml = (u.tags || []).slice(0, 4).map(_renderTag).join('');
-    // If a cancel is scheduled, surface the effective date inline so
-    // operators can see how much save-window is left.
-    let cancelHint = '';
-    if (u.cancel_scheduled_at && u.cancel_effective_at) {
+    row.className = 'recent-row';
+    // Compose a useful left-side timestamp + middle meta + right-side tag.
+    let ts = '—';
+    let badge = 'reach out';
+    let badgeColor = 'var(--warn)';
+    let badgeBorder = 'rgba(228,160,59,0.3)';
+    if (u.cancel_effective_at) {
       const eff = new Date(u.cancel_effective_at);
-      const today = new Date();
-      const days = Math.max(0, Math.ceil((eff - today) / (1000 * 60 * 60 * 24)));
-      cancelHint = `<span class="user-cancel-hint">drops ${u.cancel_effective_at.slice(5, 10)} (${days}d)</span>`;
+      const days = Math.ceil((eff - today) / (1000 * 60 * 60 * 24));
+      if (days >= 0) {
+        ts = `${days}d left`;
+        badge = days <= 2 ? 'urgent' : 'cancel scheduled';
+        badgeColor = days <= 2 ? 'var(--danger)' : 'var(--warn)';
+        badgeBorder = days <= 2 ? 'rgba(228,129,129,0.3)' : 'rgba(228,160,59,0.3)';
+      } else {
+        ts = `${Math.abs(days)}d ago`;
+        badge = 'cancelled';
+        badgeColor = 'var(--text-faint)';
+        badgeBorder = 'var(--border)';
+      }
+    } else if ((u.tags || []).includes('past_due')) {
+      ts = 'now';
+      badge = 'payment failed';
+      badgeColor = 'var(--danger)';
+      badgeBorder = 'rgba(228,129,129,0.3)';
     }
+    const subBits = [];
+    if (u.subscription_status) subBits.push(u.subscription_status);
+    if (u.logins_30d != null) subBits.push(`${u.logins_30d} logins/30d`);
+    const sub = subBits.length ? ' · ' + subBits.join(' · ') : '';
     row.innerHTML = `
-      <div class="user-identity">
-        <span class="user-email">${u.email}</span>
-        <div class="user-tags">${tagsHtml}${cancelHint}</div>
-      </div>
-      <div class="user-numeric" data-label="Logins 30d">${u.logins_30d}</div>
-      <div class="user-numeric muted" data-label="Bet taps">${u.bet_taps_30d}</div>
-      <div class="user-numeric muted" data-label="Days active">${u.days_active_30d}</div>
-      <div class="user-numeric faint" data-label="Last seen">${u.last_seen_at ? u.last_seen_at.slice(5, 10) : '—'}</div>
+      <span class="ts">${ts}</span>
+      <span class="meta">${u.email}${sub}</span>
+      <span class="tag" style="color: ${badgeColor}; border-color: ${badgeBorder};">${badge}</span>
     `;
     container.appendChild(row);
   });
@@ -1039,12 +1217,17 @@ function bindUsersList(data) {
 let _usersDataPromise = null;
 function loadUsersTabData() {
   if (_usersDataPromise) return _usersDataPromise;
+  const opts = { credentials: 'same-origin' };
   _usersDataPromise = Promise.all([
-    fetch('/api/admin/users/activity?range=30d', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
-    fetch('/api/admin/users/list?segment=all&limit=50', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
-  ]).then(([activity, list]) => {
+    fetch('/api/admin/users/activity?range=30d', opts).then(r => r.ok ? r.json() : null),
+    fetch('/api/admin/users/list?segment=all&limit=50', opts).then(r => r.ok ? r.json() : null),
+    fetch('/api/admin/users/list?segment=power&limit=20', opts).then(r => r.ok ? r.json() : null),
+    fetch('/api/admin/users/list?segment=attention&limit=10', opts).then(r => r.ok ? r.json() : null),
+  ]).then(([activity, allUsers, powerUsers, attention]) => {
     bindUsersActivity(activity);
-    bindUsersList(list);
+    bindUsersList(allUsers);
+    bindPowerUsersList(powerUsers);
+    bindNeedsAttention(attention);
   }).catch(() => { _usersDataPromise = null; /* allow retry on next click */ });
   return _usersDataPromise;
 }
@@ -1452,13 +1635,36 @@ function loadInfraTabData() {
 
 document.querySelector('.tab[data-tab="infra"]')?.addEventListener('click', loadInfraTabData);
 
-// Wire segment chip clicks to refetch the user list with the new segment.
-document.querySelectorAll('#panel-users .segment-chips .segment-chip').forEach(chip => {
+// Wire segment chip clicks ONLY for the All Users section. The Power
+// Users chips below are visual-only filters of the leaderboard and must
+// not refetch the All Users list (a previous selector-overlap bug did).
+document.querySelectorAll('#section-all-users .segment-chips .segment-chip').forEach(chip => {
   chip.addEventListener('click', () => {
     const seg = (chip.dataset.segment || chip.textContent.trim().split(/\s+/)[0] || 'all').toLowerCase();
     fetch(`/api/admin/users/list?segment=${seg}&limit=50`, { credentials: 'same-origin' })
       .then(r => r.ok ? r.json() : null)
       .then(bindUsersList)
       .catch(() => {});
+  });
+});
+
+// Power Users chips: filter the rendered leaderboard rows by tag
+// match, in-place. No API call — we already have all power users in
+// the rendered DOM. Avoids re-fetching just to re-filter.
+document.querySelectorAll('#section-power-users .segment-chips .segment-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const label = chip.textContent.trim().split(/\s+/)[0].toLowerCase();
+    const sec = document.getElementById('section-power-users');
+    if (!sec) return;
+    sec.querySelectorAll('.user-row').forEach(row => {
+      const tags = row.querySelectorAll('.user-tag');
+      const tagSet = new Set([...tags].map(t => t.textContent.trim().toLowerCase()));
+      let show = true;
+      if (label === 'paid')  show = tagSet.has('paid annual') || tagSet.has('paid monthly') || tagSet.has('founding') || tagSet.has('comped');
+      else if (label === 'trial') show = [...tagSet].some(t => t.startsWith('trial'));
+      else if (label === 'free')  show = ![...tagSet].some(t => t.startsWith('paid') || t === 'founding' || t === 'comped' || t.startsWith('trial'));
+      // 'all' shows everything.
+      row.style.display = show ? '' : 'none';
+    });
   });
 });

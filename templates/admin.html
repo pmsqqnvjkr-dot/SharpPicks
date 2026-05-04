@@ -317,10 +317,8 @@
         </div>
         <div>
           <div class="col-title">recent</div>
-          <div class="recent-rows">
-            <div class="recent-row"><span class="ts">14m ago</span><span class="meta">signal_card · NBA-LAL-DEN</span><span class="tag">external</span></div>
-            <div class="recent-row"><span class="ts">2d ago</span><span class="meta">signal_card · NBA-BOS-NYK</span><span class="tag">external</span></div>
-            <div class="recent-row"><span class="ts">3d ago</span><span class="meta">signal_card · NBA-LAL-DEN</span><span class="tag internal">internal</span></div>
+          <div class="recent-rows" id="recent-bet-taps">
+            <div class="recent-row empty"><span class="meta">No bet taps in the last 7 days.</span></div>
           </div>
         </div>
       </div>
@@ -508,7 +506,7 @@
     </section>
 
     <!-- POWER USERS LEADERBOARD -->
-    <section class="section">
+    <section class="section" id="section-power-users">
       <div class="section-header">
         <span class="section-title">power users · 30d</span>
         <span class="section-meta">15+ logins · ranked by activity</span>
@@ -649,10 +647,10 @@
     </section>
 
     <!-- ALL USERS / SEARCH -->
-    <section class="section">
+    <section class="section" id="section-all-users">
       <div class="section-header">
         <span class="section-title">all users</span>
-        <span class="section-meta">847 total · sorted by last seen</span>
+        <span class="section-meta">sorted by last seen</span>
       </div>
 
       <div class="search-bar">
@@ -782,40 +780,21 @@
         <div class="user-numeric muted" data-label="Last">38d ago</div>
       </div>
 
-      <div style="text-align: center; padding: 24px 0; font-family: var(--label); font-size: 10px; letter-spacing: 1.8px; color: var(--text-faint); border-top: 1px solid var(--border); margin-top: 8px;">
-        showing 8 of 847 · load more
+      <div class="users-list-footer" style="text-align: center; padding: 24px 0; font-family: var(--label); font-size: 10px; letter-spacing: 1.8px; color: var(--text-faint); border-top: 1px solid var(--border); margin-top: 8px;">
+        loading…
       </div>
     </section>
 
     <!-- ATTENTION QUEUE -->
-    <section class="section">
+    <section class="section" id="section-needs-attention">
       <div class="section-header">
         <span class="section-title">needs attention</span>
         <span class="section-meta">computed · live</span>
       </div>
       <p class="section-summary">Three users in states that warrant action this week. Trial expirations without payment methods are the highest-leverage manual outreach.</p>
 
-      <div class="recent-rows" style="border-top: none; padding-top: 0;">
-        <div class="recent-row">
-          <span class="ts">2d left</span>
-          <span class="meta">sarah_g@gmail.com · trial · no card on file · 28 logins</span>
-          <span class="tag" style="color: var(--warn); border-color: rgba(228,160,59,0.3);">reach out</span>
-        </div>
-        <div class="recent-row">
-          <span class="ts">3d left</span>
-          <span class="meta">alex.rojas@hey.com · trial · card on file · 32 logins</span>
-          <span class="tag">on track</span>
-        </div>
-        <div class="recent-row">
-          <span class="ts">5d ago</span>
-          <span class="meta">jeff.mason@gmail.com · paid · last login 5d (typically daily)</span>
-          <span class="tag" style="color: var(--warn); border-color: rgba(228,160,59,0.3);">churn risk</span>
-        </div>
-        <div class="recent-row">
-          <span class="ts">7d ago</span>
-          <span class="meta">tara.lin@outlook.com · paid yearly · last login 7d (typically 2-3 days)</span>
-          <span class="tag" style="color: var(--warn); border-color: rgba(228,160,59,0.3);">re-engage</span>
-        </div>
+      <div class="recent-rows" id="needs-attention-rows" style="border-top: none; padding-top: 0;">
+        <div class="recent-row empty"><span class="meta">Loading…</span></div>
       </div>
     </section>
 
@@ -904,18 +883,14 @@
     </section>
 
     <!-- LAST 10 SIGNALS -->
-    <section class="section">
+    <section class="section" id="section-recent-signals">
       <div class="section-header">
         <span class="section-title">last 10 issued signals</span>
         <span class="section-meta">postgres · live</span>
       </div>
 
-      <div class="recent-rows" style="border-top: none; padding-top: 0;">
-        <div class="recent-row"><span class="ts">04-30</span><span class="meta">NBA · LAL -3.5 @ DEN · MEI 0.91 · WON</span><span class="tag power">hit</span></div>
-        <div class="recent-row"><span class="ts">04-29</span><span class="meta">MLB · LAD ML @ SF · MEI 0.87 · WON</span><span class="tag power">hit</span></div>
-        <div class="recent-row"><span class="ts">04-28</span><span class="meta">NBA · BOS -7 @ NYK · MEI 0.88 · LOST</span><span class="tag" style="color: var(--danger); border-color: rgba(228,129,129,0.3);">miss</span></div>
-        <div class="recent-row"><span class="ts">04-26</span><span class="meta">NBA · MIA -2.5 @ PHI · MEI 0.86 · WON</span><span class="tag power">hit</span></div>
-        <div class="recent-row"><span class="ts">04-24</span><span class="meta">NBA · DEN -5.5 @ MIN · MEI 0.93 · WON</span><span class="tag power">hit</span></div>
+      <div class="recent-rows" id="recent-signals" style="border-top: none; padding-top: 0;">
+        <div class="recent-row empty"><span class="meta">Loading…</span></div>
       </div>
     </section>
   </div>

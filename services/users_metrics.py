@@ -273,6 +273,35 @@ def _cohort_retention(now: datetime, weeks_back: int = 8) -> list:
     return out
 
 
+def _login_stats(now: datetime) -> dict:
+    """avg + median logins per user across the last 30 days. Real users
+    only, excludes internal. Users with 0 logins ARE counted (so the
+    average reflects the full user base, not just active users)."""
+    cutoff_30d = now - timedelta(days=30)
+    real = _real_user_subq()
+    rows = db.session.query(
+        UserEvent.user_id, func.count(UserEvent.id),
+    ).filter(
+        UserEvent.event_type == 'login',
+        UserEvent.created_at >= cutoff_30d,
+        UserEvent.user_id.in_(db.session.query(real.c.id)),
+        UserEvent.is_internal == False,  # noqa: E712
+    ).group_by(UserEvent.user_id).all()
+
+    total_users = db.session.query(func.count(User.id)).filter(
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+    ).scalar() or 0
+    if total_users == 0:
+        return {'avg_logins': 0, 'median_logins': 0}
+
+    counts = sorted([n for _, n in rows] + [0] * max(0, total_users - len(rows)))
+    avg = round(sum(counts) / total_users, 1)
+    mid = total_users // 2
+    median = counts[mid] if total_users % 2 else (counts[mid - 1] + counts[mid]) / 2
+    return {'avg_logins': avg, 'median_logins': median}
+
+
 def fetch_activity(range_: str = '30d') -> dict:
     now = datetime.utcnow()
     return {
@@ -281,6 +310,7 @@ def fetch_activity(range_: str = '30d') -> dict:
         'login_frequency_buckets': _login_frequency_buckets(now),
         'tier_counts': _tier_counts(now),
         'cohort_retention': _cohort_retention(now),
+        **_login_stats(now),
     }
 
 
@@ -398,6 +428,11 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
             User.subscription_status == 'cancelled',
             User.subscription_status == 'cancelling',
         ))
+    elif segment == 'attention':
+        q = q.filter(or_(
+            User.cancel_scheduled_at.isnot(None),
+            User.subscription_status.in_(('past_due', 'cancelling')),
+        ))
     # 'power' and 'dormant' filter post-aggregation since they need login counts
 
     total = User.query.filter(
@@ -408,7 +443,15 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
     # Aggregate logins_30d, bet_taps_30d, days_active_30d, last_seen for the
     # filtered set. For pagination cost, slice the user set BEFORE fetching
     # event counts (so we only aggregate over the displayed page).
-    candidate_users = q.order_by(User.created_at.desc()).all()
+    if segment == 'attention':
+        # Soonest cancel first (so the most-urgent saves bubble up); fall
+        # back to created_at for users without a scheduled cancel date.
+        candidate_users = q.order_by(
+            User.cancel_effective_at.asc().nulls_last(),
+            User.created_at.desc(),
+        ).all()
+    else:
+        candidate_users = q.order_by(User.created_at.desc()).all()
 
     # Tier-filter post hoc if needed
     if segment in ('power', 'dormant'):

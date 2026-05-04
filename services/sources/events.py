@@ -110,6 +110,77 @@ def _top_signals(include_internal):
     return [{'signal_id': sid, 'taps': taps} for sid, taps in rows]
 
 
+def _recent_bet_taps(include_internal, limit=5):
+    """Most recent bet_tap events with surface + signal_id + timestamp."""
+    cutoff = datetime.utcnow() - timedelta(days=7)
+    q = db.session.query(
+        UserEvent.created_at, UserEvent.surface,
+        UserEvent.signal_id, UserEvent.is_internal,
+    ).filter(
+        UserEvent.event_type == 'bet_tap',
+        UserEvent.created_at >= cutoff,
+    )
+    if not include_internal:
+        q = q.filter(UserEvent.is_internal == False)  # noqa: E712
+    rows = q.order_by(UserEvent.created_at.desc()).limit(limit).all()
+    return [
+        {
+            'at': created_at.isoformat() if created_at else None,
+            'surface': surface or 'unknown',
+            'signal_id': signal_id,
+            'is_internal': bool(is_internal),
+        }
+        for created_at, surface, signal_id, is_internal in rows
+    ]
+
+
+def _recent_signals(limit=10):
+    """Most recent issued picks with sport + selection + line + MEI + result."""
+    rows = Pick.query.order_by(Pick.published_at.desc()).limit(limit).all()
+    out = []
+    for p in rows:
+        # 'pending' = still live; treat as no result for display
+        raw_result = (p.result or '').lower()
+        result = raw_result if raw_result and raw_result != 'pending' else None
+
+        sport = (p.sport or '?').upper()
+        away = (p.away_team or '').strip()
+        home = (p.home_team or '').strip()
+        side = (p.side or '').strip()  # 'home' / 'away' / 'home_ml' etc.
+        line = p.line if p.line is not None else None
+        # 'LAL -3.5 @ DEN' — pick the side that the model selected and prefix the line
+        if side and away and home:
+            picked_team = home if 'home' in side.lower() else (away if 'away' in side.lower() else '')
+            other_team = away if picked_team == home else home
+            if picked_team and line is not None:
+                sign = '+' if line > 0 else ''
+                selection = f'{picked_team} {sign}{line:g} @ {other_team}'
+            elif picked_team:
+                selection = f'{picked_team} @ {other_team}'
+            else:
+                selection = f'{away} @ {home}'
+        elif away and home:
+            selection = f'{away} @ {home}'
+        else:
+            selection = ''
+
+        bits = [sport]
+        if selection:
+            bits.append(selection)
+        edge = p.edge_pct if p.edge_pct is not None else p.cover_prob
+        if isinstance(edge, (int, float)) and edge:
+            bits.append(f'MEI {edge:.2f}')
+        if result:
+            bits.append(result.upper())
+        out.append({
+            'at': p.published_at.isoformat() if p.published_at else None,
+            'sport': sport,
+            'meta': ' · '.join(bits),
+            'result': result,
+        })
+    return out
+
+
 def fetch(range_: Literal['7d', '30d'], include_internal: bool = False) -> dict:
     """Returns the cache envelope: {payload, fetched_at, stale, last_error}.
 
@@ -127,6 +198,8 @@ def fetch(range_: Literal['7d', '30d'], include_internal: bool = False) -> dict:
             'bet_taps': _bet_taps(range_, include_internal),
             'funnel': _funnel(include_internal),
             'top_signals': _top_signals(include_internal),
+            'recent_bet_taps': _recent_bet_taps(include_internal),
+            'recent_signals': _recent_signals(),
         }
         return {
             'payload': payload,
