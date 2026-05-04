@@ -40,17 +40,18 @@ admin Command tab → Trial Pipeline for the new fields.
 
 ---
 
-## 2A. APNs Authentication Key in Firebase Console (LAUNCH BLOCKER)
+## 2A. APNs Authentication Key in Firebase Console — RESOLVED 2026-05-04
 
 Diagnosed 2026-05-04 via `/api/admin/firebase-diagnose`: Android FCM
-sends work (200 OK), iOS FCM sends fail with 401. Service-account auth
-is fine — the gap is between Firebase and Apple Push Notification
-Service.
+sends worked (200 OK), iOS FCM sends failed with 401. Service-account
+auth was fine — the gap was between Firebase and Apple Push Notification
+Service. Resolved by uploading APNs Authentication Key to Firebase
+Console (Key ID `SAL7K8N44P`, Team `GM86B8Y7D7`) in **both** the
+Development and Production slots under Cloud Messaging → Apple app
+configuration. Same .p8 covers both environments.
 
-**Without this fixed, every iOS user gets zero push notifications**
-(no pick alerts, no pass-day notifications, no results, no weekly
-summaries). TestFlight users + Build 6 installers + every future
-App Store user are silently broken.
+Confirmed working: silent test push received on iPhone. Notes below
+preserved for posterity in case the key is ever rotated.
 
 **Fix steps (~10 min if you have Apple Dev access):**
 
