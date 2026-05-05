@@ -2535,7 +2535,7 @@ def admin_users_list():
             return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
     segment = (request.args.get('segment') or 'all').strip().lower()
-    if segment not in ('all', 'paid', 'trial', 'power', 'dormant', 'churned'):
+    if segment not in ('all', 'paid', 'trial', 'power', 'dormant', 'churned', 'attention'):
         return jsonify({'error': 'invalid segment'}), 400
     search = (request.args.get('search') or '').strip()
     try:

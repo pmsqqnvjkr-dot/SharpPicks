@@ -716,13 +716,10 @@ fetch('/api/admin/metrics?range=7d&include_internal=false', { credentials: 'same
   .then(r => r.ok ? r.json() : null)
   .then(data => { if (data) bindLiveData(data); })
   .catch(() => { /* placeholders remain; freshness untouched */ });
-
-// Also fire the Users-activity fetch eagerly. The Command tab's
-// "user activity · 30d" section displays the same stats (Dau/Wau/Mau,
-// power users, new 7d) that the Users tab does, and we want them
-// populated before the user clicks anywhere. This pre-warms the cache
-// for loadUsersTabData via _usersDataPromise.
-loadUsersTabData();
+// Note: the eager loadUsersTabData() fire is at the bottom of this file,
+// AFTER the `let _usersDataPromise` declaration. Calling it here would
+// throw a ReferenceError because the let binding is in TDZ until line
+// 1223 executes — function decls hoist, `let`s do not.
 
 // ─────────────────────────────────────────────────────────────────────────
 // Users tab data binding (Phase 3.5)
@@ -1674,3 +1671,9 @@ document.querySelectorAll('#section-power-users .segment-chips .segment-chip').f
     });
   });
 });
+
+// Eager pre-fetch for Users-tab data so the Command-tab "user activity"
+// section (and the Users tab itself) populate without waiting for a
+// click. Placed at end-of-file so the let _usersDataPromise binding
+// has already initialized — calling earlier hits TDZ.
+loadUsersTabData();
