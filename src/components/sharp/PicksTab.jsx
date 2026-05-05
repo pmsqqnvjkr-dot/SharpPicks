@@ -1212,9 +1212,6 @@ export default function PicksTab({ onNavigate }) {
         {/* ═══════════════ STATE 2: PICK DAY ═══════════════ */}
         {pageState === 'pick' && (
           <>
-            <OnboardingCard cardId="signal" title="YOUR FIRST SIGNAL">
-              The model found a qualifying edge. Tap the card below for the full breakdown: market vs. model line, quant reasoning, and sizing. Use Track to log it to your record.
-            </OnboardingCard>
             {/* MI Card — collapsed/expandable (always visible on pick day) */}
             <button
               onClick={() => setMiExpanded(!isMiExpanded)}
@@ -1255,6 +1252,9 @@ export default function PicksTab({ onNavigate }) {
             {/* Signal card (only when not revoked/resolved — those have their own cards above) */}
             {!isResolved && !isRevoked && (
               <>
+                <OnboardingCard cardId="signal" title="YOUR FIRST SIGNAL">
+                  The model found a qualifying edge. Tap the card below for the full breakdown: market vs. model line, quant reasoning, and sizing. Use Track to log it to your record.
+                </OnboardingCard>
                 <div style={{
                   fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 500,
                   letterSpacing: '1.5px', textTransform: 'uppercase',
@@ -1488,7 +1488,7 @@ export default function PicksTab({ onNavigate }) {
                       {article.reading_time_minutes || article.read_time || 4} min
                     </span>
                   </div>
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 600, color: '#E8ECF4', lineHeight: 1.4 }}>{article.title}</div>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: '17px', fontWeight: 500, color: '#E8ECF4', lineHeight: 1.25, letterSpacing: '-0.01em' }}>{article.title}</div>
                 </button>
               );
             })}
