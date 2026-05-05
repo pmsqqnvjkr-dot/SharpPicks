@@ -3801,9 +3801,24 @@ def collect_mlb_scores():
                 home_team = home.get('team', {}).get('displayName', '')
                 away_team = away.get('team', {}).get('displayName', '')
 
+                # ESPN ?dates= classifies events by UTC date, which puts
+                # late-night ET games on the next UTC day (e.g. 10pm ET =
+                # 02:00 UTC). Trust the event's timestamp converted to ET
+                # for row matching, not the loop's check_date.
+                event_dt_str = event.get('date', '')
+                try:
+                    event_dt = datetime.fromisoformat(event_dt_str.replace('Z', '+00:00'))
+                    if event_dt.tzinfo is None:
+                        event_dt = event_dt.replace(tzinfo=ZoneInfo('UTC'))
+                    game_date = event_dt.astimezone(et).strftime('%Y-%m-%d')
+                except Exception:
+                    game_date = check_date
+                if game_date != check_date:
+                    continue
+
                 cursor.execute(
                     "SELECT id FROM mlb_games WHERE home_team = ? AND away_team = ? AND game_date = ?",
-                    (home_team, away_team, check_date)
+                    (home_team, away_team, game_date)
                 )
                 row = cursor.fetchone()
 
@@ -3818,7 +3833,7 @@ def collect_mlb_scores():
                         misdate = cursor.fetchone()
                         if misdate:
                             row = (misdate[0],)
-                            print(f"   🔧 Correcting game_date {misdate[1]} → {check_date} for {away_team} @ {home_team}")
+                            print(f"   Correcting game_date {misdate[1]} -> {game_date} for {away_team} @ {home_team}")
                     if row:
                         spread_result = home_score - away_score
                         cursor.execute('''UPDATE mlb_games SET
@@ -3826,20 +3841,20 @@ def collect_mlb_scores():
                             game_status = 'final', game_date = ?,
                             scores_updated_at = ? WHERE id = ?''',
                             (home_score, away_score, str(spread_result),
-                             check_date,
+                             game_date,
                              datetime.now().isoformat(), row[0]))
-                        print(f"   ✅ Score: {away_team} {away_score} @ {home_team} {home_score}")
-                elif not row and check_date in (today_str, tomorrow):
+                        print(f"   Score: {away_team} {away_score} @ {home_team} {home_score}")
+                elif not row and game_date in (today_str, tomorrow):
                     game_time = event.get('date', '')
                     home_rec = home.get('records', [{}])[0].get('summary', '') if home.get('records') else ''
                     away_rec = away.get('records', [{}])[0].get('summary', '') if away.get('records') else ''
-                    espn_id = f'espn-{away_team}-{home_team}-{check_date}'.replace(' ', '-').lower()
+                    espn_id = f'espn-{away_team}-{home_team}-{game_date}'.replace(' ', '-').lower()
                     cursor.execute('''INSERT OR IGNORE INTO mlb_games
                         (id, game_date, game_time, home_team, away_team, home_record, away_record, collected_at, commence_time)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                        (espn_id, check_date, game_time, home_team, away_team, home_rec, away_rec,
+                        (espn_id, game_date, game_time, home_team, away_team, home_rec, away_rec,
                          datetime.now().isoformat(), game_time))
-                    print(f"   📋 Schedule: {away_team} @ {home_team} ({check_date})")
+                    print(f"   Schedule: {away_team} @ {home_team} ({game_date})")
         except Exception as e:
             print(f"   ⚠️ ESPN error for {check_date}: {e}")
 
