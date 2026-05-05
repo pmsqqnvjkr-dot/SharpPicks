@@ -1,91 +1,399 @@
 {% extends "content/base.html" %}
-{% block og_image %}https://sharppicks.ai/og-report.png{% endblock %}
-{% block twitter_image %}https://sharppicks.ai/og-report.png{% endblock %}
+{% block og_image %}https://sharppicks.ai/og-report-{{ data.phase }}.png{% endblock %}
+{% block twitter_image %}https://sharppicks.ai/og-report-{{ data.phase }}.png{% endblock %}
 {% block head_extra %}
 <script type="application/ld+json">{{ jsonld_article|safe }}</script>
 <script type="application/ld+json">{{ jsonld_faq|safe }}</script>
+<style>
+.sj-article {
+  --sj-bg: #0A0D14;
+  --sj-surface: #121725;
+  --sj-surface-2: #1B2030;
+  --sj-border: rgba(255, 255, 255, 0.08);
+  --sj-border-2: rgba(255, 255, 255, 0.05);
+  --sj-blue: #4F86F7;
+  --sj-green: #34D399;
+  --sj-red-soft: #C4868A;
+  --sj-text: #E8EAED;
+  --sj-text-2: rgba(232, 234, 237, 0.7);
+  --sj-text-3: rgba(232, 234, 237, 0.5);
+  --sj-text-4: rgba(232, 234, 237, 0.35);
+  --sj-text-5: rgba(232, 234, 237, 0.25);
+  padding: 8px 0 28px;
+  color: var(--sj-text);
+}
+.sj-meta-row { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }
+.sj-tag-pill { display: inline-flex; align-items: center; padding: 6px 12px; border: 1px solid var(--sj-blue); border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--sj-blue); }
+.sj-meta-sep { color: var(--sj-text-4); font-size: 12px; }
+.sj-meta-text { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sj-text-3); }
+.sj-headline { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 32px; font-weight: 700; color: var(--sj-text); line-height: 1.15; letter-spacing: -0.01em; margin-bottom: 16px; }
+.sj-date-line { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--sj-text-3); margin-bottom: 8px; }
+.sj-byline { font-size: 14px; color: var(--sj-text); margin-bottom: 24px; }
+.sj-byline-author { color: var(--sj-text); }
+.sj-byline-sep { color: var(--sj-text-4); margin: 0 6px; }
+.sj-byline-title { color: var(--sj-text-3); }
+.sj-article-divider { height: 1px; background: var(--sj-border); margin: 24px 0 28px; }
+.sj-section-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sj-green); margin-bottom: 14px; }
+.sj-observation { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 18px; line-height: 1.55; color: var(--sj-text); margin-bottom: 16px; }
+.sj-observation:last-of-type { margin-bottom: 32px; }
+.sj-stat-card { background: var(--sj-surface); border: 1px solid var(--sj-border); border-radius: 12px; padding: 22px 22px 24px; margin-bottom: 16px; }
+.sj-ms-grid { display: grid; grid-template-columns: 1fr 1px 1fr 1px 1fr; gap: 0; align-items: center; margin-top: 8px; }
+.sj-ms-cell { text-align: center; padding: 8px 0; }
+.sj-ms-value { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 36px; font-weight: 600; color: var(--sj-text); line-height: 1; margin-bottom: 8px; letter-spacing: -0.01em; }
+.sj-ms-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sj-text-3); }
+.sj-ms-divider { width: 1px; height: 50px; background: var(--sj-border); }
+.sj-bias-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 8px; }
+.sj-bias-label { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--sj-text); }
+.sj-bias-dot { width: 7px; height: 7px; border-radius: 50%; }
+.sj-bias-dot.left { background: var(--sj-red-soft); }
+.sj-bias-dot.right { background: var(--sj-green); }
+.sj-bias-bar { height: 4px; border-radius: 2px; background: var(--sj-surface-2); overflow: hidden; display: flex; margin: 6px 0 14px; }
+.sj-bias-bar-left { height: 100%; background: var(--sj-red-soft); }
+.sj-bias-bar-right { height: 100%; background: var(--sj-green); }
+.sj-bias-counts { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--sj-text-3); }
+.sj-te-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; margin-bottom: 6px; }
+.sj-te-pick { font-family: 'Inter', sans-serif; font-size: 22px; font-weight: 600; color: var(--sj-text); }
+.sj-te-edge { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 500; color: var(--sj-green); }
+.sj-te-edge.negative { color: var(--sj-red-soft); }
+.sj-te-matchup { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--sj-text-3); margin-bottom: 8px; }
+.sj-te-stats { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--sj-text-3); margin-bottom: 14px; }
+.sj-te-stats .num { color: var(--sj-text); }
+.sj-te-stats .num.green { color: var(--sj-green); }
+.sj-te-status-pill { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; padding: 5px 10px; border-radius: 4px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--sj-border); color: var(--sj-text-3); margin-bottom: 14px; }
+.sj-te-status-pill.signal { background: rgba(52, 211, 153, 0.1); border-color: rgba(52, 211, 153, 0.3); color: var(--sj-green); }
+.sj-te-status-pill.win { background: rgba(52, 211, 153, 0.1); border-color: rgba(52, 211, 153, 0.3); color: var(--sj-green); }
+.sj-te-status-pill.loss { background: rgba(196, 134, 138, 0.1); border-color: rgba(196, 134, 138, 0.3); color: var(--sj-red-soft); }
+.sj-te-status-pill.push { background: rgba(255, 255, 255, 0.06); color: var(--sj-text-2); }
+.sj-te-explainer { border-left: 2px solid rgba(52, 211, 153, 0.5); padding: 4px 0 4px 16px; margin-top: 14px; }
+.sj-te-explainer p { font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.55; color: var(--sj-text-2); margin-bottom: 10px; }
+.sj-te-explainer p:last-child { margin-bottom: 0; }
+.sj-edge-map { background: var(--sj-surface); border: 1px solid var(--sj-border); border-radius: 12px; padding: 22px 18px 18px; margin-bottom: 16px; }
+.sj-em-list { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+.sj-em-row { display: grid; grid-template-columns: 90px 50px 1fr auto; gap: 8px; align-items: center; font-size: 13px; }
+.sj-em-team { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: var(--sj-text); }
+.sj-em-pct { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--sj-text-2); text-align: right; }
+.sj-em-pct.negative { color: var(--sj-red-soft); }
+.sj-em-pct.positive { color: var(--sj-green); }
+.sj-em-bar-track { position: relative; height: 10px; background: var(--sj-surface-2); border-radius: 2px; margin: 0 8px; }
+.sj-em-bar-track::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--sj-text-5); }
+.sj-em-bar { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
+.sj-em-bar.negative { right: 50%; background: var(--sj-red-soft); }
+.sj-em-bar.positive { left: 50%; background: var(--sj-green); }
+.sj-em-status { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sj-text-3); text-align: right; white-space: nowrap; }
+.sj-em-status.signal { color: var(--sj-green); }
+.sj-em-status.win { color: var(--sj-green); }
+.sj-em-status.loss { color: var(--sj-red-soft); }
+.sj-em-status.push, .sj-em-status.pending { color: var(--sj-text-2); }
+.sj-closing-audit { background: var(--sj-surface); border: 1px solid var(--sj-border); border-radius: 12px; padding: 22px 22px 20px; margin-bottom: 16px; }
+.sj-ca-summary { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 16px; line-height: 1.5; color: var(--sj-text-2); margin: 8px 0 16px; }
+.sj-ca-row { padding: 12px 0; border-top: 1px solid var(--sj-border-2); display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.sj-ca-row:first-child { border-top: none; padding-top: 0; }
+.sj-ca-team { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: var(--sj-text); }
+.sj-ca-detail { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sj-text-3); margin-top: 3px; }
+.sj-ca-detail .num { color: var(--sj-text-2); }
+.sj-ca-verdict { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; padding: 4px 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: var(--sj-text-3); }
+.sj-ca-verdict.market-right { color: var(--sj-text-2); }
+.sj-ca-verdict.model-right { color: var(--sj-green); }
+.sj-near-misses { background: var(--sj-surface); border: 1px solid var(--sj-border); border-radius: 12px; padding: 22px 22px 18px; margin-bottom: 16px; }
+.sj-nm-list { margin-top: 6px; }
+.sj-nm-row { padding: 14px 0; border-bottom: 1px solid var(--sj-border-2); }
+.sj-nm-row:last-child { border-bottom: none; }
+.sj-nm-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.sj-nm-team { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500; color: var(--sj-text); }
+.sj-nm-edge { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--sj-green); }
+.sj-nm-sub { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--sj-text-3); }
+.sj-implication { border-left: 3px solid var(--sj-green); background: rgba(52, 211, 153, 0.04); padding: 18px 20px; border-radius: 0 8px 8px 0; margin-bottom: 28px; }
+.sj-impl-eyebrow { display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sj-green); margin-bottom: 8px; }
+.sj-impl-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sj-green); }
+.sj-impl-text { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 500; color: var(--sj-text); line-height: 1.4; }
+.sj-principle { margin-bottom: 28px; }
+.sj-principle-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sj-text-3); margin-bottom: 14px; }
+.sj-principle-body { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 18px; line-height: 1.55; color: var(--sj-text); }
+.sj-next-read { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; border: 1px solid var(--sj-border); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; text-decoration: none; color: var(--sj-text); }
+.sj-next-read:hover { border-color: var(--sj-blue); }
+.sj-nr-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sj-text-4); margin-bottom: 6px; }
+.sj-nr-title { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 16px; font-weight: 600; color: var(--sj-text); line-height: 1.3; }
+.sj-nr-arrow { color: var(--sj-text-4); }
+.sj-progress-banner { background: rgba(79, 134, 247, 0.06); border: 1px solid rgba(79, 134, 247, 0.2); border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; }
+.sj-pb-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--sj-blue); margin-bottom: 4px; }
+.sj-pb-text { font-family: 'Inter', sans-serif; font-size: 13px; color: var(--sj-text-2); line-height: 1.5; }
+</style>
 {% endblock %}
 {% block content %}
 <div class="page-header">
-  <div class="breadcrumb"><a href="/edges/{{ data.sport }}-today">Market Reports</a> / {{ data.date_formatted }}</div>
-  <h1 class="page-h1">{{ data.sport_upper }} Market Report | {{ data.date_formatted }}</h1>
+  <div class="breadcrumb"><a href="/edges/{{ data.sport }}-today">Market Reports</a> / {{ data.date_formatted }} / {% if data.phase == 'morning' %}Morning Edition{% else %}Evening Edition{% endif %}</div>
+  <h1 class="page-h1">
+    {% if data.phase == 'morning' %}{{ data.sport_upper }} Market Report{% else %}{{ data.sport_upper }} Slate Recap{% endif %} | {{ data.date_formatted }}
+  </h1>
   <div class="page-meta">
     <span>{{ data.games_analyzed }} games analyzed</span>
     <span class="dot"></span>
     <span>{{ data.signals_published }} signal{{ data.s_plural }}</span>
     <span class="dot"></span>
+    {% if data.phase == 'morning' %}
     <span>MEI: {{ data.mei_score }}</span>
+    {% else %}
+    <span>Net: {{ '+' if data.net_units >= 0 }}{{ '%.1f'|format(data.net_units) }}u</span>
+    {% endif %}
   </div>
 </div>
 
-{% for block in overview_blocks %}
-<div class="narrative"><p>{{ block }}</p></div>
-{% endfor %}
+<article class="sj-article">
 
-<div class="sg c4">
-  <div class="sc"><div class="sc-label">MEI</div><div class="sc-val">{{ data.mei_score }}</div><div class="sc-sub">{{ data.regime }}</div></div>
-  <div class="sc"><div class="sc-label">Top Edge</div><div class="sc-val green">{{ data.top_edge }}</div><div class="sc-sub">{{ data.top_edge_game }}</div></div>
-  <div class="sc"><div class="sc-label">Density</div><div class="sc-val">{{ data.signal_density }}%</div><div class="sc-sub">{{ data.signals_published }} of {{ data.games_analyzed }}</div></div>
-  <div class="sc"><div class="sc-label">Passed</div><div class="sc-val">{{ data.games_passed }}</div><div class="sc-sub">of {{ data.games_analyzed }}</div></div>
-</div>
-
-<div class="tools-row">
-  <a class="tool-link" href="/tools/edge-calculator">Track your edge <span class="tl-arrow">&rarr;</span></a>
-  <a class="tool-link" href="/tools/clv-calculator">Check your CLV <span class="tl-arrow">&rarr;</span></a>
-</div>
-
-{% if data.signal %}
-<div class="sh">Signal</div>
-<div class="sig">
-  <div class="sig-badge pub">Signal Published</div>
-  <div class="sig-team">{{ data.signal.pick }}</div>
-  <div class="sig-meta">{{ data.signal.matchup }}</div>
-  <div class="sig-grid">
-    <div class="sig-cell"><div class="sig-cell-l">Market</div><div class="sig-cell-v" style="color:var(--t1)">{{ data.signal.market_line }}</div></div>
-    <div class="sig-cell"><div class="sig-cell-l">Model</div><div class="sig-cell-v green">{{ data.signal.model_line }}</div></div>
-    <div class="sig-cell"><div class="sig-cell-l">Edge</div><div class="sig-cell-v green">{{ data.signal.edge_band }}</div></div>
-    <div class="sig-cell"><div class="sig-cell-l">Status</div><div class="sig-cell-v green">SIGNAL</div></div>
+  {# Slate-in-progress banner: evening only, when picks still pending #}
+  {% if data.phase == 'evening' and data.picks_pending and data.picks_pending > 0 %}
+  <div class="sj-progress-banner">
+    <div class="sj-pb-eyebrow">Slate in progress</div>
+    <div class="sj-pb-text">{{ data.games_settled }} of {{ data.games_analyzed }} games settled. Numbers below are preliminary and update as remaining games close.</div>
   </div>
-</div>
-{% else %}
-<div class="sh">Signal</div>
-<div class="sig">
-  <div class="sig-badge none">No Signal Today</div>
-  <div class="sig-team">Full slate passed</div>
-  <div class="sig-meta">No game cleared the qualification filter on this slate</div>
-</div>
-{% endif %}
+  {% endif %}
 
-{% for block in selectivity_blocks %}
-<div class="narrative"><p>{{ block }}</p></div>
-{% endfor %}
-
-<div class="sh">Game Breakdown</div>
-<div class="gt">
-  <div class="gr hdr"><span class="gr-m">Matchup</span><span class="gr-s">Spread</span><span class="gr-e">Edge</span><span class="gr-st">Status</span></div>
-  {% for game in data.games %}
-  <div class="gr"{% if game.edge < 2 %} style="opacity:0.5"{% elif game.edge < 3 %} style="opacity:0.65"{% endif %}>
-    <span class="gr-m"{% if game.signal %} style="color:var(--t1);font-weight:600"{% endif %}>{{ game.matchup }}</span>
-    <span class="gr-s">{{ game.market_line if game.market_line is not none else '--' }}</span>
-    <span class="gr-e{% if game.edge >= 4.5 %} green{% elif game.edge >= 3.0 %} amber{% endif %}">{{ game.edge_band }}</span>
-    <span class="gr-st">{% if game.signal %}<span class="badge-sig">SIGNAL</span>{% elif game.status == 'Filtered' %}<span class="badge-pass">FILTERED</span>{% else %}<span class="badge-pass">PASS</span>{% endif %}</span>
+  <div class="sj-meta-row">
+    <span class="sj-tag-pill">{% if data.phase == 'morning' %}Market Notes{% else %}Slate Recap{% endif %}</span>
+    <span class="sj-meta-sep">&middot;</span>
+    <span class="sj-meta-text">Sharp Journal</span>
+    {% if data.phase == 'evening' %}
+    <span class="sj-meta-sep">&middot;</span>
+    <span class="sj-meta-text">Evening Edition</span>
+    {% endif %}
+    <span class="sj-meta-sep">&middot;</span>
+    <span class="sj-meta-text">2 min read</span>
   </div>
+
+  <h1 class="sj-headline">{{ data.headline }}</h1>
+
+  <div class="sj-date-line">{{ data.date_formatted }}{% if data.phase == 'evening' and data.last_updated %} &middot; {{ data.last_updated }}{% endif %}</div>
+  <div class="sj-byline">
+    <span class="sj-byline-author">Evan Cole</span>
+    <span class="sj-byline-sep">&middot;</span>
+    <span class="sj-byline-title">Head of Signal Intelligence</span>
+  </div>
+
+  <div class="sj-article-divider"></div>
+
+  {# Observation block: Evan Cole pipeline output #}
+  <div class="sj-section-eyebrow">Observation</div>
+  {% for block in overview_blocks %}
+  <p class="sj-observation">{{ block }}</p>
   {% endfor %}
-</div>
 
-{% if data.line_movement_games %}
-<div class="sh">Line Movement</div>
-<div style="margin-bottom:16px">
-  {% for lm in data.line_movement_games[:6] %}
-  <div class="lm">
-    <span class="lm-g">{{ lm.matchup }}</span>
-    <span class="lm-d {% if lm.direction == 'toward' %}lm-t{% elif lm.direction == 'away' %}lm-a{% else %}lm-n{% endif %}">
-      {% if lm.direction == 'toward' %}+{{ lm.movement }} toward model{% elif lm.direction == 'away' %}-{{ lm.movement }} away{% else %}No movement{% endif %}
-    </span>
+  {# Market Structure: 3-up stat grid #}
+  <div class="sj-stat-card">
+    <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Market Structure</div>
+    <div class="sj-ms-grid">
+      <div class="sj-ms-cell">
+        <div class="sj-ms-value">{{ data.edges_found }}</div>
+        <div class="sj-ms-label">Edges</div>
+      </div>
+      <div class="sj-ms-divider"></div>
+      <div class="sj-ms-cell">
+        <div class="sj-ms-value">{{ data.signals_published }}</div>
+        <div class="sj-ms-label">Signals</div>
+      </div>
+      <div class="sj-ms-divider"></div>
+      <div class="sj-ms-cell">
+        <div class="sj-ms-value">{{ data.signal_density }}%</div>
+        <div class="sj-ms-label">Density</div>
+      </div>
+    </div>
   </div>
-  {% endfor %}
-</div>
-{% endif %}
+
+  {# Bias bar: Favorites/Underdogs (morning) or Market right/Model right (evening) #}
+  <div class="sj-stat-card">
+    <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Bias</div>
+    {% if data.phase == 'morning' %}
+    <div class="sj-bias-row">
+      <span class="sj-bias-label"><span class="sj-bias-dot left"></span>Favorites</span>
+      <span class="sj-bias-label">Underdogs<span class="sj-bias-dot right"></span></span>
+    </div>
+    <div class="sj-bias-bar">
+      <div class="sj-bias-bar-left" style="width: {{ data.bias_favorites_pct }}%"></div>
+      <div class="sj-bias-bar-right" style="width: {{ data.bias_underdogs_pct }}%"></div>
+    </div>
+    <div class="sj-bias-counts">
+      <span>{{ data.bias_favorites }} edge{{ '' if data.bias_favorites == 1 else 's' }}</span>
+      <span>{{ data.bias_underdogs }} edge{{ '' if data.bias_underdogs == 1 else 's' }}</span>
+    </div>
+    {% else %}
+    {% set settled = data.games_settled or 1 %}
+    {% set market_right = data.market_beat_count or 0 %}
+    {% set model_right = settled - market_right %}
+    {% set mr_pct = (market_right / settled * 100) if settled else 0 %}
+    {% set md_pct = (model_right / settled * 100) if settled else 0 %}
+    <div class="sj-bias-row">
+      <span class="sj-bias-label"><span class="sj-bias-dot left"></span>Market right</span>
+      <span class="sj-bias-label">Model right<span class="sj-bias-dot right"></span></span>
+    </div>
+    <div class="sj-bias-bar">
+      <div class="sj-bias-bar-left" style="width: {{ mr_pct }}%"></div>
+      <div class="sj-bias-bar-right" style="width: {{ md_pct }}%"></div>
+    </div>
+    <div class="sj-bias-counts">
+      <span>{{ market_right }} of {{ settled }}</span>
+      <span>{{ model_right }} of {{ settled }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  {# Top Edge card: signal pick + threshold/outcome pill + explainer #}
+  {% if data.signal %}
+  <div class="sj-stat-card">
+    <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Top Edge{% if data.phase == 'evening' %} &middot; Settled{% endif %}</div>
+    <div class="sj-te-row">
+      <span class="sj-te-pick">{{ data.signal.pick or data.signal.pick_label }}</span>
+      <span class="sj-te-edge">{{ data.signal.edge_band }}</span>
+    </div>
+    <div class="sj-te-matchup">{{ data.signal.matchup_display or data.signal.matchup }}{% if data.phase == 'evening' and data.signal.final_score %} &middot; {{ data.signal.final_score }}{% endif %}</div>
+    <div class="sj-te-stats">
+      Model: <span class="num green">{{ data.signal.model_line if data.signal.model_line is not none else '--' }}</span>
+      <span style="color: var(--sj-text-4)">&middot;</span>
+      {% if data.phase == 'evening' and data.signal.closing_line is not none %}
+      Close: <span class="num">{{ data.signal.closing_line }}</span>
+      <span style="color: var(--sj-text-4)">&middot;</span>
+      CLV: <span class="num green">{{ '%+.1f'|format(data.signal.clv) if data.signal.clv is not none else '--' }}</span>
+      {% else %}
+      Market: <span class="num">{{ data.signal.market_line if data.signal.market_line is not none else '--' }}</span>
+      <span style="color: var(--sj-text-4)">&middot;</span>
+      Edge: <span class="num green">{{ data.signal.edge_band }}</span>
+      {% endif %}
+    </div>
+    {% if data.phase == 'morning' %}
+    <span class="sj-te-status-pill signal">Signal published</span>
+    {% else %}
+      {% if data.signal.outcome == 'W' %}
+      <span class="sj-te-status-pill win">Win &middot; {{ '%+.1f'|format(data.signal.units_won or 0) }}u</span>
+      {% elif data.signal.outcome == 'L' %}
+      <span class="sj-te-status-pill loss">Loss &middot; {{ '%.1f'|format(data.signal.units_won or 0) }}u</span>
+      {% elif data.signal.outcome == 'Push' %}
+      <span class="sj-te-status-pill push">Push &middot; 0.0u</span>
+      {% else %}
+      <span class="sj-te-status-pill">Pending</span>
+      {% endif %}
+    {% endif %}
+    <div class="sj-te-explainer">
+      {% if data.phase == 'morning' %}
+      {% for r in data.signal.reasoning[:3] %}
+      <p>{{ r }}</p>
+      {% endfor %}
+      {% if not data.signal.reasoning %}
+      <p>Model edge of {{ data.signal.edge_band }} clears the qualification threshold. Ensemble consensus across all four models.</p>
+      <p>Market is pricing this game with tight consensus across books. Model sees a gap the market has not corrected.</p>
+      {% endif %}
+      {% else %}
+      {% if data.signal.final_score %}
+      <p>{{ data.signal.final_score }}.</p>
+      {% endif %}
+      {% if data.signal.closing_line is not none %}
+      <p>Closing line: {{ data.signal.closing_line }}. CLV: {{ '%+.1f'|format(data.signal.clv) if data.signal.clv is not none else '0.0' }}.</p>
+      {% endif %}
+      {% if data.signal.outcome == 'Push' %}
+      <p>Result graded as a push. Capital preserved. The signal did what it was supposed to do on a market the system correctly read as efficient.</p>
+      {% elif data.signal.outcome == 'W' %}
+      <p>Signal cleared. The model called this market right.</p>
+      {% elif data.signal.outcome == 'L' %}
+      <p>Variance is the cost of doing business. CLV held against close.</p>
+      {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# Edge Map: diverging bars across all analyzed games #}
+  {% if data.edge_map %}
+  <div class="sj-edge-map">
+    <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Edge Map</div>
+    <div class="sj-em-list">
+      {% for em in data.edge_map %}
+      <div class="sj-em-row">
+        <span class="sj-em-team">{{ em.matchup }}</span>
+        <span class="sj-em-pct {{ 'positive' if em.positive else 'negative' }}">{{ em.edge_pct_label }}</span>
+        <div class="sj-em-bar-track">
+          <div class="sj-em-bar {{ 'positive' if em.positive else 'negative' }}" style="width: {{ '%.1f'|format(em.bar_pct / 2) }}%"></div>
+        </div>
+        <span class="sj-em-status {{ em.status_class }}">{{ em.status_text }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# Closing Line Audit: evening only #}
+  {% if data.phase == 'evening' and data.closing_line_audit %}
+  <div class="sj-closing-audit">
+    <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Closing Line Audit</div>
+    <p class="sj-ca-summary">{{ data.closing_line_audit.summary }}</p>
+    {% for cla in data.closing_line_audit.games %}
+    <div class="sj-ca-row">
+      <div>
+        <div class="sj-ca-team">{{ cla.matchup }}</div>
+        <div class="sj-ca-detail">
+          Open: <span class="num">{{ cla.open_line }}</span>
+          <span style="color: var(--sj-text-4)">&middot;</span>
+          Close: <span class="num">{{ cla.close_line }}</span>
+          <span style="color: var(--sj-text-4)">&middot;</span>
+          Model: <span class="num">{{ cla.model_line }}</span>
+        </div>
+      </div>
+      <span class="sj-ca-verdict {{ 'model-right' if cla.verdict == 'Model right' else 'market-right' }}">{{ cla.verdict }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Near Misses: top sub-threshold edges #}
+  {% if data.near_misses %}
+  <div class="sj-near-misses">
+    <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Near Misses</div>
+    <div class="sj-nm-list">
+      {% for nm in data.near_misses %}
+      <div class="sj-nm-row">
+        <div class="sj-nm-head">
+          <span class="sj-nm-team">{{ nm.matchup_display }}</span>
+          <span class="sj-nm-edge">{{ nm.edge_band }}</span>
+        </div>
+        <div class="sj-nm-sub">{{ nm.note }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# Implication callout #}
+  <div class="sj-implication">
+    <div class="sj-impl-eyebrow"><span class="sj-impl-dot"></span>Implication</div>
+    <div class="sj-impl-text">{{ data.implication }}</div>
+  </div>
+
+  {# Sharp Principle #}
+  <div class="sj-principle">
+    <div class="sj-principle-eyebrow">Sharp Principle</div>
+    <p class="sj-principle-body">{{ data.sharp_principle }}</p>
+  </div>
+
+  {# Cross-edition link replaces the broken "Next Read" tile #}
+  {% if data.phase == 'morning' and data.evening_published %}
+  <a class="sj-next-read" href="{{ data.evening_url }}">
+    <div>
+      <div class="sj-nr-eyebrow">Tonight, after the slate</div>
+      <div class="sj-nr-title">Read the evening edition &rsaquo;</div>
+    </div>
+    <span class="sj-nr-arrow">&rsaquo;</span>
+  </a>
+  {% elif data.phase == 'evening' %}
+  <a class="sj-next-read" href="{{ data.morning_url }}">
+    <div>
+      <div class="sj-nr-eyebrow">How the morning called it</div>
+      <div class="sj-nr-title">Read the morning edition &rsaquo;</div>
+    </div>
+    <span class="sj-nr-arrow">&rsaquo;</span>
+  </a>
+  {% endif %}
+
+</article>
+
+{# ============================================================
+   Wrapper SEO sections preserved below the editorial portion
+   ============================================================ #}
 
 {% if proof and proof.count > 0 %}
 <div class="sh">Recent Signal Performance</div>
@@ -140,6 +448,6 @@
 <div class="cta">
   <h3>{{ cta.headline }}</h3>
   <p>{{ cta.body }}</p>
-  <a class="cta-btn" href="https://sharppicks.ai/#pricing">Start Free Trial</a>
+  <a class="cta-btn" href="https://sharppicks.ai/#pricing">{% if data.phase == 'morning' %}Start Free Trial{% else %}See Tomorrow's Setup{% endif %}</a>
 </div>
 {% endblock %}

@@ -401,6 +401,21 @@ MARKET_REPORT_FAQ = [
     },
 ]
 
+EVENING_FAQ = [
+    {
+        "question": "What is CLV?",
+        "answer": "Closing Line Value measures whether the price you got on a bet was better than the closing line. Positive CLV correlates with long-term profitability. The evening edition reports CLV against the closing line and against model fair value separately."
+    },
+    {
+        "question": "Why no red L badges on losses?",
+        "answer": "Outcomes are reported without color-coded punishment. A loss is a data point, not a failure. The framework holds when every signal is verified and every pass is documented, regardless of how any single result fell."
+    },
+    {
+        "question": "What is a pass day?",
+        "answer": "A pass day is a slate where the model issued zero signals. Pass days are not missed opportunities. They are the system refusing to manufacture signals where the data does not support them."
+    },
+]
+
 PILLAR_LINKS = [
     {"url": "/blog/why-we-pass", "title": "Why We Pass More Than We Play"},
     {"url": "/blog/beginners-guide", "title": "Beginner's Guide to Sports Betting"},
@@ -556,12 +571,414 @@ def build_jsonld_software(name, description, url):
 # Data layer
 # ---------------------------------------------------------------------------
 
-def get_daily_report_data(date_str, sport='nba'):
+# ---------------------------------------------------------------------------
+# Sharp Journal -- universal + evening field computation
+# ---------------------------------------------------------------------------
+
+# Locked Sharp Principles (BRAND_SPEC v4.1). Phase-specific pools per the
+# Sharp Journal spec: morning leans discipline-oriented, evening leans
+# process-oriented.
+SHARP_PRINCIPLES_MORNING = (
+    "One pick beats five.",
+    "No edge, no pick.",
+    "Discipline is the edge.",
+)
+SHARP_PRINCIPLES_EVENING = (
+    "Verified by data, not talk.",
+    "Pass days are not missed opportunities. They are proof the system is working.",
+    "Discipline is the edge.",
+)
+
+
+def _pick_principle(seed_str, phase):
+    """Deterministic principle pick keyed by date+sport so the same article
+    always shows the same line. Phase decides the pool."""
+    pool = SHARP_PRINCIPLES_EVENING if phase == 'evening' else SHARP_PRINCIPLES_MORNING
+    h = sum(ord(c) for c in seed_str) if seed_str else 0
+    return pool[h % len(pool)]
+
+
+def _morning_implication(regime):
+    """Map model regime to the editorial 'Implication' string for morning."""
+    r = (regime or '').upper()
+    if r == 'RARE INEFFICIENCY':
+        return 'Unusual market opportunity detected'
+    if r == 'HIGH OPPORTUNITY':
+        return 'Strong opportunity detected'
+    if r == 'ACTIVE':
+        return 'Moderate opportunity detected'
+    if r == 'QUIET':
+        return 'Markets priced efficiently. Passing is a position.'
+    return 'Typical market conditions. Selectivity holds.'
+
+
+def _evening_implication(net_units, signals_record, signals_published):
+    """Map slate outcome to the editorial 'Implication' string for evening."""
+    if signals_published == 0:
+        return 'Capital preserved on a slate where forced bets would have leaked.'
+    try:
+        wins, losses, pushes = (int(p) for p in signals_record.split('-'))
+    except Exception:
+        wins, losses, pushes = 0, 0, 0
+    if wins > 0 and losses == 0:
+        return 'Discipline paid. The model called the market right.'
+    if losses > 0 and wins == 0 and pushes == 0:
+        return 'Variance is the cost of doing business. CLV held.'
+    if pushes > 0 and wins == 0 and losses == 0:
+        return 'Efficient market. System held discipline on a slate that did not reward forced bets.'
+    return 'Two-sided result. The framework held.'
+
+
+def _morning_headline(data):
+    """Generate the editorial headline for the morning edition. Voice rules
+    apply: no em-dashes, no exclamation marks, no hyphen-as-separator."""
+    sigs = data.get('signals_published', 0)
+    bias_fav = data.get('bias_favorites', 0)
+    bias_dog = data.get('bias_underdogs', 0)
+    if sigs == 0:
+        return f"No signal cleared the threshold. {data.get('games_analyzed', 0)} games scanned."
+    if bias_dog > bias_fav and bias_dog >= 2:
+        plural = 's' if sigs != 1 else ''
+        return f"Value sitting with the underdogs tonight. {sigs} signal{plural}, mostly dogs."
+    if bias_fav > bias_dog and bias_fav >= 2:
+        plural = 's' if sigs != 1 else ''
+        return f"Favorites are where the model sees room. {sigs} signal{plural} on chalk."
+    return data.get('insight') or f"{sigs} signal{'' if sigs == 1 else 's'} cleared on a {data.get('regime', 'normal').lower()} slate."
+
+
+def _evening_headline(data):
+    """Generate the editorial headline for the evening edition."""
+    sigs = data.get('signals_published', 0)
+    settled = data.get('games_settled', 0)
+    total = data.get('games_analyzed', 0)
+    net = data.get('net_units', 0.0)
+    if sigs == 0:
+        return 'The slate closed quiet. Capital preserved on the pass.'
+    if settled and settled < total:
+        plural = 's' if sigs != 1 else ''
+        return f"{sigs} signal{plural} on the board. {total - settled} game{'s' if (total - settled) != 1 else ''} still running on the West Coast."
+    if net > 0:
+        return f"The model called this slate. Net result: {net:+.1f}u."
+    if net < 0:
+        return f"Mixed result on a tight slate. CLV held against close."
+    return 'Slate graded. Pushes on a market the model read efficient.'
+
+
+def _compute_near_misses(games, top_n=3):
+    """Top sub-threshold edges, sorted by edge desc. Threshold = signal cutoff
+    in the existing data shape; non-signal games with edge >= 2.0% qualify."""
+    candidates = [
+        g for g in games
+        if not g.get('signal') and (g.get('edge') or 0) >= 2.0
+    ]
+    candidates.sort(key=lambda g: g.get('edge', 0), reverse=True)
+    near = []
+    for g in candidates[:top_n]:
+        near.append({
+            'matchup_display': g.get('matchup_display') or g.get('matchup', ''),
+            'edge_band': g.get('edge_band', ''),
+            'note': 'Edge below threshold.',
+        })
+    return near
+
+
+def _enrich_with_evening_fields(data, date_str, sport):
+    """Mutates `data` to add evening-edition fields: net_units, signals_record,
+    clv_held, games_settled, market_beat_count, closing_line_audit, plus
+    per-game final_score and signal outcome.
+
+    Best-effort: any failed lookup leaves the field empty/None and the
+    template renders a PENDING state.
+    """
+    from sqlalchemy import and_
+
+    # ---- per-Pick aggregates: net_units, signals_record, clv_held ----
+    try:
+        picks = Pick.query.filter(
+            Pick.sport == sport,
+            Pick.game_date == date_str,
+            Pick.result != 'revoked',
+        ).all()
+    except Exception:
+        picks = []
+
+    wins = sum(1 for p in picks if (p.result or '').lower() == 'win')
+    losses = sum(1 for p in picks if (p.result or '').lower() == 'loss')
+    pushes = sum(1 for p in picks if (p.result or '').lower() == 'push')
+    net_units = round(sum((p.profit_units or 0.0) for p in picks), 2)
+    clv_vals = [p.clv for p in picks if p.clv is not None]
+    clv_held = round(sum(clv_vals) / len(clv_vals), 2) if clv_vals else 0.0
+    pending_picks = sum(1 for p in picks if (p.result or 'pending').lower() == 'pending')
+
+    data['net_units'] = net_units
+    data['signals_record'] = f"{wins}-{losses}-{pushes}"
+    data['clv_held'] = clv_held
+    data['picks_pending'] = pending_picks
+
+    # ---- per-game final_score lookup from sport-specific games table ----
+    final_scores = {}  # keyed by (away, home) tuple of full names
+    games_settled = 0
+    market_beat_count = 0
+    try:
+        conn = sqlite3.connect(get_sqlite_path())
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        tbl = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
+        cur.execute(
+            f"SELECT away_team, home_team, away_score, home_score, spread_home, spread_home_open "
+            f"FROM {tbl} WHERE game_date = ?",
+            (date_str,),
+        )
+        for r in cur.fetchall():
+            away_score = r['away_score']
+            home_score = r['home_score']
+            if away_score is not None and home_score is not None:
+                final_scores[(r['away_team'], r['home_team'])] = (away_score, home_score)
+                games_settled += 1
+        conn.close()
+    except Exception:
+        pass
+    data['games_settled'] = games_settled
+
+    # ---- attach final_score and signal outcome to each game ----
+    pick_lookup = {}
+    for p in picks:
+        pick_lookup[(p.away_team, p.home_team)] = p
+
+    for g in data.get('games', []):
+        away_full = g.get('away_name') or g.get('away_team', '')
+        home_full = g.get('home_name') or g.get('home_team', '')
+        score = final_scores.get((away_full, home_full))
+        if score:
+            away_s, home_s = score
+            g['final_score'] = f"{g.get('away_team', '')} {away_s}, {g.get('home_team', '')} {home_s}"
+            g['final_score_display'] = f"Final {g.get('away_team', '')} {away_s}-{home_s} {g.get('home_team', '')}"
+        else:
+            g['final_score'] = None
+            g['final_score_display'] = None
+
+        if g.get('signal'):
+            p = pick_lookup.get((away_full, home_full))
+            if p:
+                outcome = (p.result or '').lower()
+                if outcome == 'win':
+                    g['signal_outcome'] = 'W'
+                elif outcome == 'loss':
+                    g['signal_outcome'] = 'L'
+                elif outcome == 'push':
+                    g['signal_outcome'] = 'Push'
+                else:
+                    g['signal_outcome'] = None
+                g['signal_units_won'] = p.profit_units
+            else:
+                g['signal_outcome'] = None
+                g['signal_units_won'] = None
+
+    # ---- enrich data.signal with outcome + closing line + clv ----
+    sig = data.get('signal')
+    if sig:
+        away_full = sig.get('away_name') or sig.get('away_team', '')
+        home_full = sig.get('home_name') or sig.get('home_team', '')
+        p = pick_lookup.get((away_full, home_full))
+        if p:
+            outcome = (p.result or '').lower()
+            sig['outcome'] = (
+                'W' if outcome == 'win'
+                else 'L' if outcome == 'loss'
+                else 'Push' if outcome == 'push'
+                else None
+            )
+            sig['units_won'] = p.profit_units
+            sig['closing_line'] = p.closing_spread if p.closing_spread is not None else p.line
+            sig['clv'] = p.clv
+            sig['final_score'] = data['games'][0].get('final_score') if data.get('games') else None
+        else:
+            sig['outcome'] = None
+            sig['units_won'] = None
+            sig['closing_line'] = None
+            sig['clv'] = None
+
+    # ---- closing_line_audit: per-game open/close/model + verdict ----
+    audit_games = []
+    try:
+        conn = sqlite3.connect(get_sqlite_path())
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        tbl = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
+        cur.execute(
+            f"SELECT away_team, home_team, spread_home, spread_home_open "
+            f"FROM {tbl} WHERE game_date = ?",
+            (date_str,),
+        )
+        snap_rows = {(r['away_team'], r['home_team']): r for r in cur.fetchall()}
+        conn.close()
+    except Exception:
+        snap_rows = {}
+
+    for g in data.get('games', []):
+        away_full = g.get('away_name') or g.get('away_team', '')
+        home_full = g.get('home_name') or g.get('home_team', '')
+        snap = snap_rows.get((away_full, home_full))
+        if not snap:
+            continue
+        open_line = snap['spread_home_open']
+        close_line = snap['spread_home']
+        model_line = g.get('model_line')
+        if open_line is None or close_line is None or model_line is None:
+            continue
+
+        # Verdict: outcome-driven when we have a graded pick. The model "won"
+        # if the team it picked covered by more than the gap between close
+        # and model fair value; the market "won" if the close cushion was
+        # needed to cover (push or loss against model line). Falls back to
+        # gap-distance heuristic for ungraded games.
+        gap = abs(close_line - model_line)
+        p = pick_lookup.get((away_full, home_full))
+        graded = p and (p.result or '').lower() in ('win', 'loss', 'push')
+        if graded:
+            outcome = (p.result or '').lower()
+            if outcome == 'win':
+                verdict = 'Model right'
+            elif outcome == 'loss':
+                verdict = 'Market right'
+            else:
+                verdict = 'Market right'
+        else:
+            verdict = 'Market right' if gap >= 1.0 else 'Model right' if gap < 0.5 else 'Tied'
+
+        if verdict == 'Market right':
+            market_beat_count += 1
+        audit_games.append({
+            'matchup': g.get('matchup', ''),
+            'open_line': f"{open_line:+.1f}" if open_line is not None else '--',
+            'close_line': f"{close_line:+.1f}" if close_line is not None else '--',
+            'model_line': f"{model_line:+.1f}" if model_line is not None else '--',
+            'verdict': verdict,
+        })
+
+    data['market_beat_count'] = market_beat_count
+    if audit_games:
+        # Sort with model-right first so the editorial portion leads with wins
+        audit_games.sort(key=lambda a: (a['verdict'] != 'Model right', a['matchup']))
+        data['closing_line_audit'] = {
+            'summary': (
+                f"Market closed within model fair value on "
+                f"{games_settled - market_beat_count} of {games_settled} settled games."
+                if games_settled
+                else "Audit pending until games settle."
+            ),
+            'games': audit_games[:6],
+        }
+    else:
+        data['closing_line_audit'] = None
+
+    return data
+
+
+def _compute_universal_fields(data, sport, date_str, phase):
+    """Add fields needed by the unified Sharp Journal template for both phases:
+    bias counts, near misses, implication, sharp principle, headline,
+    cross-edition links."""
+    games = data.get('games', [])
+    bias_fav = sum(1 for g in games if (g.get('edge') or 0) >= 2.0 and g.get('pick_side') == 'home')
+    bias_dog = sum(1 for g in games if (g.get('edge') or 0) >= 2.0 and g.get('pick_side') == 'away')
+    total_edges = bias_fav + bias_dog
+    data['bias_favorites'] = bias_fav
+    data['bias_underdogs'] = bias_dog
+    data['bias_total'] = total_edges
+    if total_edges:
+        data['bias_favorites_pct'] = round(bias_fav / total_edges * 100, 1)
+        data['bias_underdogs_pct'] = round(bias_dog / total_edges * 100, 1)
+    else:
+        data['bias_favorites_pct'] = 50.0
+        data['bias_underdogs_pct'] = 50.0
+
+    data['near_misses'] = _compute_near_misses(games, top_n=3)
+    data['sharp_principle'] = _pick_principle(f"{sport}-{date_str}", phase)
+    data['phase'] = phase
+    data['morning_url'] = f"/market-report/{date_str}?sport={sport}"
+    data['evening_url'] = f"/market-report/{date_str}/evening?sport={sport}"
+
+    # Has the evening edition been computed yet? Best-effort: if at least one
+    # graded pick exists or any game has settled, treat evening as published.
+    data['evening_published'] = (
+        data.get('games_settled', 0) > 0
+        or any((g.get('final_score') for g in games))
+    )
+
+    # Edge map: per-game edge_pct + diverging-bar width (12% max scale).
+    EDGE_MAP_MAX = 12.0
+    edge_map = []
+    for g in games:
+        edge_val = g.get('edge') or 0
+        # In the public board, edges are stored as absolute. Pick side carries
+        # the direction. For the diverging bar, pick_side=='home' or signal on
+        # the favorite reads as positive; pick_side=='away' as negative.
+        pick_side = g.get('pick_side')
+        signed_edge = edge_val if pick_side == 'home' else -edge_val
+        bar_pct = min(abs(signed_edge) / EDGE_MAP_MAX * 100, 100)
+        if phase == 'evening':
+            outcome = g.get('signal_outcome')
+            if outcome == 'W':
+                status_text = f"+{g.get('signal_units_won') or 0:.1f}u"
+                status_class = 'win'
+            elif outcome == 'L':
+                status_text = f"{g.get('signal_units_won') or 0:.1f}u"
+                status_class = 'loss'
+            elif outcome == 'Push':
+                status_text = 'Push 0.0u'
+                status_class = 'push'
+            elif g.get('final_score'):
+                status_text = g.get('final_score_display') or 'Final'
+                status_class = 'final'
+            else:
+                status_text = 'Pending'
+                status_class = 'pending'
+        else:
+            if g.get('signal'):
+                status_text = 'Signal'
+                status_class = 'signal'
+            else:
+                status_text = 'Below threshold'
+                status_class = 'below'
+        edge_map.append({
+            'matchup': g.get('matchup', ''),
+            'edge_pct_signed': signed_edge,
+            'edge_pct_label': f"{signed_edge:+.1f}%" if signed_edge else '0%',
+            'bar_pct': bar_pct,
+            'positive': signed_edge >= 0,
+            'status_text': status_text,
+            'status_class': status_class,
+        })
+    data['edge_map'] = edge_map
+
+    # Headline + implication
+    if phase == 'evening':
+        data['headline'] = _evening_headline(data)
+        data['implication'] = _evening_implication(
+            data.get('net_units', 0.0),
+            data.get('signals_record', '0-0-0'),
+            data.get('signals_published', 0),
+        )
+    else:
+        data['headline'] = _morning_headline(data)
+        data['implication'] = _morning_implication(data.get('regime'))
+
+    return data
+
+
+def get_daily_report_data(date_str, sport='nba', phase='morning'):
     """
     Build the content-engine data dict for a given date and sport.
     Wraps the existing build_market_report_dict() and enriches with
     slug generation, pass reasons, formatted dates, and edge bands.
+
+    `phase` is 'morning' (default) or 'evening'. Evening enriches with
+    settled-game results, CLV, closing-line audit, and signal outcomes.
     """
+    if phase not in ('morning', 'evening'):
+        phase = 'morning'
+
     report = build_market_report_dict(date_str, sport)
 
     if not report.get('available'):
@@ -675,6 +1092,14 @@ def get_daily_report_data(date_str, sport='nba'):
         'briefing': report.get('briefing', []),
         'last_updated': report.get('last_updated'),
     }
+
+    # Phase-specific enrichment. Evening adds settled-game outcomes, CLV,
+    # closing-line audit, then universal computes headline/implication/etc
+    # using the now-populated evening fields.
+    if phase == 'evening':
+        _enrich_with_evening_fields(data, date_str, sport)
+    _compute_universal_fields(data, sport, date_str, phase)
+
     return data
 
 
@@ -965,17 +1390,25 @@ def get_proof_module(sport='nba', limit=7):
 # Routes -- Market Report
 # ---------------------------------------------------------------------------
 
-@content_bp.route('/market-report/<date_str>')
-def market_report_page(date_str):
+def _render_market_report(date_str, phase):
+    """Phase-aware renderer for the unified Sharp Journal template. Used by
+    both the morning route (`/market-report/<date>`) and the evening route
+    (`/market-report/<date>/evening`)."""
     sport = request.args.get('sport', 'nba')
     if sport not in get_live_sports():
         sport = 'nba'
 
-    data = get_daily_report_data(date_str, sport)
+    data = get_daily_report_data(date_str, sport, phase=phase)
     if not data:
         abort(404)
 
-    seed = f"{sport}-{date_str}-market-report"
+    # Evening edition gate: at least one game must have settled. The cron
+    # is best-effort at 11:30 PM ET. Late West Coast games can leave the
+    # evening URL 404 until they grade, then the cron republishes.
+    if phase == 'evening' and not data.get('games_settled', 0):
+        abort(404)
+
+    seed = f"{sport}-{date_str}-market-report-{phase}"
     overview_blocks = _format_blocks(
         choose_blocks(MARKET_OVERVIEW_BLOCKS, count=1, seed=seed), data
     )
@@ -994,12 +1427,18 @@ def market_report_page(date_str):
     proof = get_proof_module(sport)
     history = get_history_links(date_str, sport)
 
-    title = f"{data['sport_upper']} Betting Market Report {data['date_formatted']} | SharpPicks"
-    meta_desc = build_market_report_meta(data)
-    canonical = f"https://sharppicks.ai/market-report/{date_str}?sport={sport}"
+    if phase == 'evening':
+        title = f"{data['sport_upper']} Slate Recap {data['date_formatted']} | SharpPicks"
+        canonical = f"https://sharppicks.ai/market-report/{date_str}/evening?sport={sport}"
+        faq = EVENING_FAQ
+    else:
+        title = f"{data['sport_upper']} Betting Market Report {data['date_formatted']} | SharpPicks"
+        canonical = f"https://sharppicks.ai/market-report/{date_str}?sport={sport}"
+        faq = MARKET_REPORT_FAQ
 
+    meta_desc = build_market_report_meta(data)
     jsonld_article = build_jsonld_article(title, meta_desc, date_str, canonical)
-    jsonld_faq = build_jsonld_faq(MARKET_REPORT_FAQ)
+    jsonld_faq = build_jsonld_faq(faq)
 
     top_game_slugs = sorted(data['games'], key=lambda g: g['edge'], reverse=True)[:2]
     internal_links = [
@@ -1025,7 +1464,7 @@ def market_report_page(date_str):
         cta=cta,
         proof=proof,
         history=history,
-        faq=MARKET_REPORT_FAQ,
+        faq=faq,
         internal_links=internal_links,
         title=title,
         meta_desc=meta_desc,
@@ -1037,6 +1476,16 @@ def market_report_page(date_str):
     ))
     resp.headers['Cache-Control'] = 'public, max-age=3600'
     return resp
+
+
+@content_bp.route('/market-report/<date_str>')
+def market_report_page(date_str):
+    return _render_market_report(date_str, phase='morning')
+
+
+@content_bp.route('/market-report/<date_str>/evening')
+def market_report_evening_page(date_str):
+    return _render_market_report(date_str, phase='evening')
 
 
 # ---------------------------------------------------------------------------
@@ -1630,6 +2079,9 @@ def sitemap_content():
         data = get_daily_report_data(today, sport)
         if data:
             urls.append({'loc': f"{base}/market-report/{today}?sport={sport}", 'changefreq': 'daily', 'priority': '0.9'})
+            # Evening edition: only emit if at least one game has settled.
+            if data.get('games_settled', 0) > 0:
+                urls.append({'loc': f"{base}/market-report/{today}/evening?sport={sport}", 'changefreq': 'daily', 'priority': '0.9'})
             urls.append({'loc': f"{base}/passes/{today}?sport={sport}", 'changefreq': 'daily', 'priority': '0.7'})
             for g in data['games']:
                 if should_index_game_page(g):
@@ -1651,6 +2103,8 @@ def sitemap_content():
     for d in last_30_days:
         for sport in get_live_sports():
             urls.append({'loc': f"{base}/market-report/{d}?sport={sport}", 'changefreq': 'weekly', 'priority': '0.6'})
+            # Historical evening editions: assume settled (past dates).
+            urls.append({'loc': f"{base}/market-report/{d}/evening?sport={sport}", 'changefreq': 'weekly', 'priority': '0.6'})
             urls.append({'loc': f"{base}/passes/{d}?sport={sport}", 'changefreq': 'weekly', 'priority': '0.5'})
 
     xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>']
