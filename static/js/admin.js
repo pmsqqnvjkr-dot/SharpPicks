@@ -139,6 +139,49 @@
     }
   });
 
+  // Search Performance: dual-axis line chart, clicks (left) + impressions (right)
+  const searchEl = document.getElementById('chart-search');
+  if (searchEl) {
+    new Chart(searchEl, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Clicks',
+            data: [],
+            borderColor: '#4F86F7',
+            backgroundColor: 'rgba(79, 134, 247, 0.08)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0,
+            borderWidth: 1.5,
+            yAxisID: 'yClicks',
+          },
+          {
+            label: 'Impressions',
+            data: [],
+            borderColor: '#34D399',
+            backgroundColor: 'transparent',
+            tension: 0.3,
+            pointRadius: 0,
+            borderWidth: 1.5,
+            borderDash: [3, 3],
+            yAxisID: 'yImpressions',
+          },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, ...noLegend,
+        scales: {
+          x: { ...baseGrid, ticks: { display: false } },
+          yClicks:      { ...baseGrid, beginAtZero: true, position: 'left' },
+          yImpressions: { ...baseGrid, beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } },
+        },
+      },
+    });
+  }
+
   // Users tab — DAU 90d (bigger window than Command tab's 30d)
   new Chart(document.getElementById('chart-users-dau'), {
     type: 'bar',
@@ -634,6 +677,72 @@ function bindLiveData(metrics) {
   if (gsc.clicks != null)           setStat('Gsc clicks 28d',          SP_FMT.num(gsc.clicks));
   if (gsc.impressions != null)      setStat('Gsc impressions 28d',     SP_FMT.num(gsc.impressions));
   if (gsc.avg_position != null)     setStat('Avg position',            gsc.avg_position.toFixed(1));
+
+  // -- Search Performance section. Dedicated GSC view with totals,
+  // 28-day trend chart (clicks + impressions dual-axis), top queries,
+  // top pages. Source: gsc payload, cached 12h on the server (the
+  // GSC API itself updates daily so polling more often is wasted).
+  if (gsc.clicks != null)      setStat('Clicks',               SP_FMT.num(gsc.clicks));
+  if (gsc.impressions != null) setStat('Impressions',          SP_FMT.num(gsc.impressions));
+  if (gsc.ctr != null)         setStat('Ctr',                  (gsc.ctr * 100).toFixed(1), '%');
+  if (gsc.avg_position != null) setStat('Avg position (search)', gsc.avg_position.toFixed(1));
+
+  const searchSummary = gsc.clicks != null
+    ? `${SP_FMT.num(gsc.clicks)} clicks on ${SP_FMT.num(gsc.impressions || 0)} impressions over the last 28 days. Average position ${gsc.avg_position?.toFixed(1) || '—'}, click-through rate ${((gsc.ctr || 0) * 100).toFixed(1)}%. Data lags 2-3 days.`
+    : 'GSC data not available. Check the Google Search Console connection.';
+  _setSummary('section-search', searchSummary);
+
+  // 28d trend chart
+  const searchChart = document.getElementById('chart-search');
+  const searchChartObj = searchChart && Chart.getChart(searchChart);
+  if (searchChartObj && Array.isArray(gsc.daily) && gsc.daily.length > 0) {
+    searchChartObj.data.labels = gsc.daily.map(d => (d.date || '').slice(5));
+    searchChartObj.data.datasets[0].data = gsc.daily.map(d => d.clicks || 0);
+    searchChartObj.data.datasets[1].data = gsc.daily.map(d => d.impressions || 0);
+    searchChartObj.update('none');
+  }
+
+  // Top queries (10)
+  const queriesEl = document.getElementById('gsc-top-queries');
+  if (queriesEl && Array.isArray(gsc.top_queries)) {
+    queriesEl.innerHTML = '';
+    if (gsc.top_queries.length === 0) {
+      queriesEl.innerHTML = '<div class="top-list-row"><span class="top-list-rank">—</span><span class="top-list-label">No query data yet.</span><span class="top-list-value">—</span></div>';
+    } else {
+      gsc.top_queries.slice(0, 10).forEach((q, i) => {
+        const row = document.createElement('div');
+        row.className = 'top-list-row';
+        row.innerHTML = `
+          <span class="top-list-rank">${i + 1}.</span>
+          <span class="top-list-label">${q.query}</span>
+          <span class="top-list-value">${q.clicks} click${q.clicks === 1 ? '' : 's'}</span>
+        `;
+        queriesEl.appendChild(row);
+      });
+    }
+  }
+
+  // Top pages (10)
+  const pagesEl = document.getElementById('gsc-top-pages');
+  if (pagesEl && Array.isArray(gsc.top_pages)) {
+    pagesEl.innerHTML = '';
+    if (gsc.top_pages.length === 0) {
+      pagesEl.innerHTML = '<div class="top-list-row"><span class="top-list-rank">—</span><span class="top-list-label">No page data yet.</span><span class="top-list-value">—</span></div>';
+    } else {
+      gsc.top_pages.slice(0, 10).forEach((p, i) => {
+        const row = document.createElement('div');
+        row.className = 'top-list-row';
+        // Strip the protocol+host for display brevity.
+        const path = (p.page || '').replace(/^https?:\/\/[^/]+/, '') || p.page;
+        row.innerHTML = `
+          <span class="top-list-rank">${i + 1}.</span>
+          <span class="top-list-label">${path}</span>
+          <span class="top-list-value">${p.clicks} click${p.clicks === 1 ? '' : 's'}</span>
+        `;
+        pagesEl.appendChild(row);
+      });
+    }
+  }
 
   // Bet taps last 24h: events source returns by-surface dict for the
   // requested range (7d or 30d). The value here is taps in that window,

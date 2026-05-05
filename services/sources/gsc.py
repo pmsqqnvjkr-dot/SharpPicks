@@ -63,6 +63,21 @@ def _fetch_raw():
         clicks = impressions = 0
         ctr = position = 0.0
 
+    # Daily breakdown for the dashboard sparkline. GSC returns the
+    # 28-day window already so we just group by date and sort ascending.
+    daily_resp = _query(service, dimensions=['date'], row_limit=30)
+    daily = sorted(
+        [
+            {
+                'date': (r.get('keys') or [''])[0],
+                'clicks': int(r.get('clicks', 0)),
+                'impressions': int(r.get('impressions', 0)),
+            }
+            for r in (daily_resp.get('rows') or [])
+        ],
+        key=lambda d: d['date'],
+    )
+
     top_queries = [
         {
             'query': (r.get('keys') or [''])[0],
@@ -101,6 +116,7 @@ def _fetch_raw():
         'impressions': impressions,
         'ctr': ctr,
         'avg_position': position,
+        'daily': daily,
         'top_queries': top_queries,
         'top_pages': top_pages,
         'devices': devices,
