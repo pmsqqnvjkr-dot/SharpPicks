@@ -1,0 +1,382 @@
+{% extends "content/base.html" %}
+{% block og_image %}https://sharppicks.ai/og-report-evening.png{% endblock %}
+{% block twitter_image %}https://sharppicks.ai/og-report-evening.png{% endblock %}
+{% block head_extra %}
+<script type="application/ld+json">{{ jsonld_article|safe }}</script>
+<script type="application/ld+json">{{ jsonld_faq|safe }}</script>
+<style>
+/* Evening template uses base.html v3 tokens for visual cohesion with the
+   rest of the public site. No public reasoning paragraphs. */
+.sj-article {
+  --sj-bg: #0A0D14;
+  --sj-surface: #111520;
+  --sj-surface-2: #161B27;
+  --sj-border: #1A1F2E;
+  --sj-border-2: rgba(255, 255, 255, 0.05);
+  --sj-blue: #6B8EC2;
+  --sj-green: #5A9E72;
+  --sj-red-soft: #C4686B;
+  --sj-text: #E2E4E8;
+  --sj-text-2: #9DA1AC;
+  --sj-text-3: #626878;
+  --sj-text-4: #454B5C;
+  --sj-text-5: #333845;
+  padding: 8px 0 28px;
+  color: var(--sj-text);
+}
+.sj-meta-row { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }
+.sj-tag-pill { display: inline-flex; align-items: center; padding: 6px 12px; border: 1px solid var(--sj-blue); border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--sj-blue); }
+.sj-meta-sep { color: var(--sj-text-4); font-size: 12px; }
+.sj-meta-text { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sj-text-3); }
+.sj-headline { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 30px; font-weight: 700; color: var(--sj-text); line-height: 1.2; letter-spacing: -0.01em; margin-bottom: 16px; }
+.sj-date-line { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--sj-text-3); margin-bottom: 8px; }
+.sj-byline { font-size: 13px; color: var(--sj-text); margin-bottom: 24px; }
+.sj-byline-author { color: var(--sj-text); }
+.sj-byline-sep { color: var(--sj-text-4); margin: 0 6px; }
+.sj-byline-title { color: var(--sj-text-3); }
+.sj-article-divider { height: 1px; background: var(--sj-border); margin: 24px 0 28px; }
+.sj-section-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sj-green); margin-bottom: 14px; }
+.sj-observation { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 17px; line-height: 1.55; color: var(--sj-text); margin-bottom: 16px; }
+.sj-observation:last-of-type { margin-bottom: 32px; }
+.sj-stat-card { background: var(--sj-surface); border: 1px solid var(--sj-border); border-radius: 10px; padding: 20px 20px 22px; margin-bottom: 14px; }
+.sj-ms-grid { display: grid; grid-template-columns: 1fr 1px 1fr 1px 1fr; gap: 0; align-items: center; margin-top: 8px; }
+.sj-ms-cell { text-align: center; padding: 8px 0; }
+.sj-ms-value { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 32px; font-weight: 600; color: var(--sj-text); line-height: 1; margin-bottom: 8px; letter-spacing: -0.01em; }
+.sj-ms-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sj-text-3); }
+.sj-ms-divider { width: 1px; height: 46px; background: var(--sj-border); }
+.sj-bias-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 8px; }
+.sj-bias-label { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--sj-text); }
+.sj-bias-dot { width: 7px; height: 7px; border-radius: 50%; }
+.sj-bias-dot.left { background: var(--sj-red-soft); }
+.sj-bias-dot.right { background: var(--sj-green); }
+.sj-bias-bar { height: 4px; border-radius: 2px; background: var(--sj-surface-2); overflow: hidden; display: flex; margin: 6px 0 14px; }
+.sj-bias-bar-left { height: 100%; background: var(--sj-red-soft); }
+.sj-bias-bar-right { height: 100%; background: var(--sj-green); }
+.sj-bias-counts { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sj-text-3); }
+.sj-te-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; margin-bottom: 6px; }
+.sj-te-pick { font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 600; color: var(--sj-text); }
+.sj-te-edge { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500; color: var(--sj-green); }
+.sj-te-edge.negative { color: var(--sj-red-soft); }
+.sj-te-matchup { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--sj-text-3); margin-bottom: 8px; }
+.sj-te-stats { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--sj-text-3); margin-bottom: 14px; }
+.sj-te-stats .num { color: var(--sj-text); }
+.sj-te-stats .num.green { color: var(--sj-green); }
+.sj-te-status-pill { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em; padding: 5px 10px; border-radius: 4px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--sj-border); color: var(--sj-text-3); margin-bottom: 14px; }
+.sj-te-status-pill.win { background: rgba(90, 158, 114, 0.1); border-color: rgba(90, 158, 114, 0.3); color: var(--sj-green); }
+.sj-te-status-pill.loss { background: rgba(196, 104, 107, 0.1); border-color: rgba(196, 104, 107, 0.3); color: var(--sj-red-soft); }
+.sj-te-status-pill.push { background: rgba(255, 255, 255, 0.06); color: var(--sj-text-2); }
+.sj-te-outcome { border-left: 2px solid rgba(90, 158, 114, 0.5); padding: 4px 0 4px 16px; margin-top: 14px; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.55; color: var(--sj-text-2); }
+.sj-edge-map { background: var(--sj-surface); border: 1px solid var(--sj-border); border-radius: 10px; padding: 20px 16px 16px; margin-bottom: 14px; }
+.sj-em-list { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.sj-em-row { display: grid; grid-template-columns: 80px 50px 1fr auto; gap: 8px; align-items: center; font-size: 12px; }
+.sj-em-team { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; color: var(--sj-text); }
+.sj-em-pct { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sj-text-2); text-align: right; }
+.sj-em-pct.negative { color: var(--sj-red-soft); }
+.sj-em-pct.positive { color: var(--sj-green); }
+.sj-em-bar-track { position: relative; height: 8px; background: var(--sj-surface-2); border-radius: 2px; margin: 0 8px; }
+.sj-em-bar-track::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--sj-text-5); }
+.sj-em-bar { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
+.sj-em-bar.negative { right: 50%; background: var(--sj-red-soft); }
+.sj-em-bar.positive { left: 50%; background: var(--sj-green); }
+.sj-em-status { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--sj-text-3); text-align: right; white-space: nowrap; }
+.sj-em-status.win { color: var(--sj-green); }
+.sj-em-status.loss { color: var(--sj-red-soft); }
+.sj-em-status.push, .sj-em-status.pending { color: var(--sj-text-2); }
+.sj-closing-audit { background: var(--sj-surface); border: 1px solid var(--sj-border); border-radius: 10px; padding: 20px 20px 18px; margin-bottom: 14px; }
+.sj-ca-summary { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 15px; line-height: 1.5; color: var(--sj-text-2); margin: 8px 0 16px; }
+.sj-ca-row { padding: 10px 0; border-top: 1px solid var(--sj-border-2); display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.sj-ca-row:first-child { border-top: none; padding-top: 0; }
+.sj-ca-team { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; color: var(--sj-text); }
+.sj-ca-detail { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--sj-text-3); margin-top: 3px; }
+.sj-ca-detail .num { color: var(--sj-text-2); }
+.sj-ca-verdict { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; padding: 4px 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: var(--sj-text-3); }
+.sj-ca-verdict.market-right { color: var(--sj-text-2); }
+.sj-ca-verdict.model-right { color: var(--sj-green); }
+.sj-near-misses { background: var(--sj-surface); border: 1px solid var(--sj-border); border-radius: 10px; padding: 20px 20px 16px; margin-bottom: 14px; }
+.sj-nm-list { margin-top: 6px; }
+.sj-nm-row { padding: 12px 0; border-bottom: 1px solid var(--sj-border-2); }
+.sj-nm-row:last-child { border-bottom: none; }
+.sj-nm-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.sj-nm-team { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: var(--sj-text); }
+.sj-nm-edge { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--sj-green); }
+.sj-nm-sub { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sj-text-3); }
+.sj-implication { border-left: 3px solid var(--sj-green); background: rgba(90, 158, 114, 0.04); padding: 16px 18px; border-radius: 0 8px 8px 0; margin-bottom: 24px; }
+.sj-impl-eyebrow { display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sj-green); margin-bottom: 8px; }
+.sj-impl-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sj-green); }
+.sj-impl-text { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500; color: var(--sj-text); line-height: 1.4; }
+.sj-principle { margin-bottom: 24px; }
+.sj-principle-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sj-text-3); margin-bottom: 14px; }
+.sj-principle-body { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 17px; line-height: 1.55; color: var(--sj-text); }
+.sj-next-read { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; border: 1px solid var(--sj-border); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; text-decoration: none; color: var(--sj-text); }
+.sj-next-read:hover { border-color: var(--sj-blue); }
+.sj-nr-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sj-text-4); margin-bottom: 6px; }
+.sj-nr-title { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 15px; font-weight: 600; color: var(--sj-text); line-height: 1.3; }
+.sj-progress-banner { background: rgba(107, 142, 194, 0.06); border: 1px solid rgba(107, 142, 194, 0.2); border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; }
+.sj-pb-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--sj-blue); margin-bottom: 4px; }
+.sj-pb-text { font-family: 'Inter', sans-serif; font-size: 12px; color: var(--sj-text-2); line-height: 1.5; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="breadcrumb"><a href="/edges/{{ data.sport }}-today">Market Reports</a> / {{ data.date_formatted }} / Evening Edition</div>
+  <h1 class="page-h1">{{ data.sport_upper }} Slate Recap | {{ data.date_formatted }}</h1>
+  <div class="page-meta">
+    <span>{{ data.games_analyzed }} games analyzed</span>
+    <span class="dot"></span>
+    <span>{{ data.signals_published }} signal{{ data.s_plural }}</span>
+    <span class="dot"></span>
+    <span>Net: {{ '+' if data.net_units >= 0 }}{{ '%.1f'|format(data.net_units) }}u</span>
+  </div>
+</div>
+
+<article class="sj-article">
+
+  {% if data.picks_pending and data.picks_pending > 0 %}
+  <div class="sj-progress-banner">
+    <div class="sj-pb-eyebrow">Slate in progress</div>
+    <div class="sj-pb-text">{{ data.games_settled }} of {{ data.games_analyzed }} games settled. Numbers below are preliminary and update as remaining games close.</div>
+  </div>
+  {% endif %}
+
+  <div class="sj-meta-row">
+    <span class="sj-tag-pill">Slate Recap</span>
+    <span class="sj-meta-sep">&middot;</span>
+    <span class="sj-meta-text">Sharp Journal</span>
+    <span class="sj-meta-sep">&middot;</span>
+    <span class="sj-meta-text">Evening Edition</span>
+    <span class="sj-meta-sep">&middot;</span>
+    <span class="sj-meta-text">2 min read</span>
+  </div>
+
+  <h1 class="sj-headline">{{ data.headline }}</h1>
+
+  <div class="sj-date-line">{{ data.date_formatted }}{% if data.last_updated %} &middot; Updated {{ data.last_updated }}{% endif %}</div>
+  <div class="sj-byline">
+    <span class="sj-byline-author">Evan Cole</span>
+    <span class="sj-byline-sep">&middot;</span>
+    <span class="sj-byline-title">Head of Signal Intelligence</span>
+  </div>
+
+  <div class="sj-article-divider"></div>
+
+  <div class="sj-section-eyebrow">Observation</div>
+  {% for block in overview_blocks %}
+  <p class="sj-observation">{{ block }}</p>
+  {% endfor %}
+
+  <div class="sj-stat-card">
+    <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Slate Result</div>
+    <div class="sj-ms-grid">
+      <div class="sj-ms-cell">
+        <div class="sj-ms-value">{{ '+' if data.net_units >= 0 }}{{ '%.1f'|format(data.net_units) }}u</div>
+        <div class="sj-ms-label">Net &middot; {{ data.signals_record }}</div>
+      </div>
+      <div class="sj-ms-divider"></div>
+      <div class="sj-ms-cell">
+        <div class="sj-ms-value">{{ '+' if data.clv_held >= 0 }}{{ '%.1f'|format(data.clv_held) }}</div>
+        <div class="sj-ms-label">CLV Held</div>
+      </div>
+      <div class="sj-ms-divider"></div>
+      <div class="sj-ms-cell">
+        <div class="sj-ms-value">{{ data.market_beat_count }} / {{ data.games_settled }}</div>
+        <div class="sj-ms-label">Market Right</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sj-stat-card">
+    <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Bias</div>
+    {% set settled = data.games_settled or 1 %}
+    {% set market_right = data.market_beat_count or 0 %}
+    {% set model_right = settled - market_right %}
+    {% set mr_pct = (market_right / settled * 100) if settled else 0 %}
+    {% set md_pct = (model_right / settled * 100) if settled else 0 %}
+    <div class="sj-bias-row">
+      <span class="sj-bias-label"><span class="sj-bias-dot left"></span>Market right</span>
+      <span class="sj-bias-label">Model right<span class="sj-bias-dot right"></span></span>
+    </div>
+    <div class="sj-bias-bar">
+      <div class="sj-bias-bar-left" style="width: {{ mr_pct }}%"></div>
+      <div class="sj-bias-bar-right" style="width: {{ md_pct }}%"></div>
+    </div>
+    <div class="sj-bias-counts">
+      <span>{{ market_right }} of {{ settled }}</span>
+      <span>{{ model_right }} of {{ settled }}</span>
+    </div>
+  </div>
+
+  {% if data.signal %}
+  <div class="sj-stat-card">
+    <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Top Edge &middot; Settled</div>
+    <div class="sj-te-row">
+      <span class="sj-te-pick">{{ data.signal.pick or data.signal.pick_label }}</span>
+      <span class="sj-te-edge">{{ data.signal.edge_band }}</span>
+    </div>
+    <div class="sj-te-matchup">{{ data.signal.matchup_display or data.signal.matchup }}{% if data.signal.final_score %} &middot; {{ data.signal.final_score }}{% endif %}</div>
+    <div class="sj-te-stats">
+      Model: <span class="num green">{{ data.signal.model_line if data.signal.model_line is not none else '--' }}</span>
+      <span style="color: var(--sj-text-4)">&middot;</span>
+      {% if data.signal.closing_line is not none %}
+      Close: <span class="num">{{ data.signal.closing_line }}</span>
+      <span style="color: var(--sj-text-4)">&middot;</span>
+      CLV: <span class="num green">{{ '%+.1f'|format(data.signal.clv) if data.signal.clv is not none else '--' }}</span>
+      {% endif %}
+    </div>
+    {% if data.signal.outcome == 'W' %}
+    <span class="sj-te-status-pill win">Win &middot; {{ '%+.1f'|format(data.signal.units_won or 0) }}u</span>
+    {% elif data.signal.outcome == 'L' %}
+    <span class="sj-te-status-pill loss">Loss &middot; {{ '%.1f'|format(data.signal.units_won or 0) }}u</span>
+    {% elif data.signal.outcome == 'Push' %}
+    <span class="sj-te-status-pill push">Push &middot; 0.0u</span>
+    {% else %}
+    <span class="sj-te-status-pill">Pending</span>
+    {% endif %}
+
+    {# Outcome line only. No reasoning paragraphs (Pro-only intel). #}
+    {% if data.signal.outcome %}
+    <div class="sj-te-outcome">
+      {% if data.signal.outcome == 'Push' %}
+      Result graded as a push. Capital preserved on a market the system read as efficient.
+      {% elif data.signal.outcome == 'W' %}
+      Signal cleared. The model called this market right.
+      {% elif data.signal.outcome == 'L' %}
+      Variance is the cost of doing business. CLV held against close.
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if data.edge_map %}
+  <div class="sj-edge-map">
+    <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Edge Map</div>
+    <div class="sj-em-list">
+      {% for em in data.edge_map %}
+      <div class="sj-em-row">
+        <span class="sj-em-team">{{ em.matchup }}</span>
+        <span class="sj-em-pct {{ 'positive' if em.positive else 'negative' }}">{{ em.edge_pct_label }}</span>
+        <div class="sj-em-bar-track">
+          <div class="sj-em-bar {{ 'positive' if em.positive else 'negative' }}" style="width: {{ '%.1f'|format(em.bar_pct / 2) }}%"></div>
+        </div>
+        <span class="sj-em-status {{ em.status_class }}">{{ em.status_text }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if data.closing_line_audit %}
+  <div class="sj-closing-audit">
+    <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Closing Line Audit</div>
+    <p class="sj-ca-summary">{{ data.closing_line_audit.summary }}</p>
+    {% for cla in data.closing_line_audit.games %}
+    <div class="sj-ca-row">
+      <div>
+        <div class="sj-ca-team">{{ cla.matchup }}</div>
+        <div class="sj-ca-detail">
+          Open: <span class="num">{{ cla.open_line }}</span>
+          <span style="color: var(--sj-text-4)">&middot;</span>
+          Close: <span class="num">{{ cla.close_line }}</span>
+        </div>
+      </div>
+      <span class="sj-ca-verdict {{ 'model-right' if cla.verdict == 'Model right' else 'market-right' }}">{{ cla.verdict }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if data.near_misses %}
+  <div class="sj-near-misses">
+    <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Near Misses</div>
+    <div class="sj-nm-list">
+      {% for nm in data.near_misses %}
+      <div class="sj-nm-row">
+        <div class="sj-nm-head">
+          <span class="sj-nm-team">{{ nm.matchup_display }}</span>
+          <span class="sj-nm-edge">{{ nm.edge_band }}</span>
+        </div>
+        <div class="sj-nm-sub">{{ nm.note }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="sj-implication">
+    <div class="sj-impl-eyebrow"><span class="sj-impl-dot"></span>Implication</div>
+    <div class="sj-impl-text">{{ data.implication }}</div>
+  </div>
+
+  <div class="sj-principle">
+    <div class="sj-principle-eyebrow">Sharp Principle</div>
+    <p class="sj-principle-body">{{ data.sharp_principle }}</p>
+  </div>
+
+  <a class="sj-next-read" href="{{ data.morning_url }}">
+    <div>
+      <div class="sj-nr-eyebrow">How the morning called it</div>
+      <div class="sj-nr-title">Read the morning edition &rsaquo;</div>
+    </div>
+    <span>&rsaquo;</span>
+  </a>
+
+</article>
+
+{# Wrapper SEO sections: same shape as morning, preserved for cohesion #}
+
+{% if proof and proof.count > 0 %}
+<div class="sh">Recent Signal Performance</div>
+<div class="sg c4">
+  <div class="sc"><div class="sc-label">Last {{ proof.count }}</div><div class="sc-val green">{{ proof.record }}</div></div>
+  <div class="sc"><div class="sc-label">Win Rate</div><div class="sc-val">{{ proof.win_rate }}%</div></div>
+  <div class="sc"><div class="sc-label">CLV+</div><div class="sc-val green">{{ proof.clv_pct }}%</div></div>
+  <div class="sc"><div class="sc-label">Avg Edge</div><div class="sc-val">{{ proof.avg_edge }}%</div></div>
+</div>
+{% endif %}
+
+{% for block in why_blocks %}
+<div class="narrative"><p>{{ block }}</p></div>
+{% endfor %}
+
+<div class="sh">Common Questions</div>
+<div class="faq">
+  {% for q in faq %}
+  <div class="faq-item">
+    <div class="faq-q">{{ q.question }}</div>
+    <div class="faq-a">{{ q.answer }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if history %}
+<div class="sh">This Week's Reports</div>
+<div class="history-nav">
+  {% if history.prev_report %}
+  <a class="hn-link" href="{{ history.prev_report.url }}">&larr; {{ history.prev_report.label }}</a>
+  {% endif %}
+  {% if history.next_report %}
+  <a class="hn-link" href="{{ history.next_report.url }}">{{ history.next_report.label }} &rarr;</a>
+  {% endif %}
+</div>
+{% if history.week_reports %}
+<div class="week-strip">
+  {% for wr in history.week_reports %}
+  <a class="ws-day{% if wr.date == data.date_formatted %} ws-active{% endif %}" href="{{ wr.url }}">{{ wr.date }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endif %}
+
+<div class="sh">Related</div>
+<div class="il">
+  {% for link in internal_links %}
+  <a class="il-link" href="{{ link.url }}"><span class="il-label">{{ link.label }}</span>{{ link.text }}<span class="il-arrow">&#8250;</span></a>
+  {% endfor %}
+</div>
+
+<div class="cta">
+  <h3>{{ cta.headline }}</h3>
+  <p>{{ cta.body }}</p>
+  <a class="cta-btn" href="https://sharppicks.ai/#pricing">See Tomorrow's Setup</a>
+</div>
+{% endblock %}

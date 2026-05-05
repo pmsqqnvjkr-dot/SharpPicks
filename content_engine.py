@@ -1106,12 +1106,12 @@ def get_daily_report_data(date_str, sport='nba', phase='morning'):
         'last_updated': report.get('last_updated'),
     }
 
-    # Phase-specific enrichment. Evening adds settled-game outcomes, CLV,
-    # closing-line audit, then universal computes headline/implication/etc
-    # using the now-populated evening fields.
+    # Phase-specific enrichment. Morning is byte-identical to pre-Phase-A:
+    # no extra fields, no extra compute, no SEO drift risk. Evening adds
+    # settled-game outcomes + universal fields needed by the new template.
     if phase == 'evening':
         _enrich_with_evening_fields(data, date_str, sport)
-    _compute_universal_fields(data, sport, date_str, phase)
+        _compute_universal_fields(data, sport, date_str, phase)
 
     return data
 
@@ -1420,7 +1420,12 @@ def _render_market_report(date_str, phase):
     # republishes once results land. Sitemap (sitemap_content) still gates
     # on games_settled > 0 so unsettled evenings are not indexed.
 
-    seed = f"{sport}-{date_str}-market-report-{phase}"
+    # Morning seed must match pre-Phase-A exactly so rotating block selection
+    # (overview/selectivity/lm/why/pillar/cta) produces byte-identical output.
+    # Evening uses a suffixed seed for its own rotation pool.
+    seed = f"{sport}-{date_str}-market-report"
+    if phase == 'evening':
+        seed = seed + '-evening'
     overview_blocks = _format_blocks(
         choose_blocks(MARKET_OVERVIEW_BLOCKS, count=1, seed=seed), data
     )
@@ -1466,8 +1471,13 @@ def _render_market_report(date_str, phase):
     internal_links.append({'label': 'Weekly', 'text': f"{data['sport_upper']} Weekly Summary", 'url': f"/{sport}-weekly-report"})
     internal_links.append({'label': 'Learn', 'text': pillar['title'], 'url': pillar['url']})
 
+    template_name = (
+        'content/market_report_evening.html'
+        if phase == 'evening'
+        else 'content/market_report.html'
+    )
     resp = make_response(render_template(
-        'content/market_report.html',
+        template_name,
         data=data,
         overview_blocks=overview_blocks,
         selectivity_blocks=selectivity_blocks,
