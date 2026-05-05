@@ -8462,6 +8462,13 @@ def _get_firebase_credentials_and_project():
 def send_push_notification(user_id, title, body, data=None):
     from models import FCMToken
 
+    # QA safety: skip every push when DISABLE_PUSH is set. Staging shares
+    # the production Firebase project so a stray send would hit real
+    # devices; the env var is the single switch that prevents that.
+    if os.environ.get('DISABLE_PUSH', '').strip() in ('1', 'true', 'yes', 'on'):
+        logging.info(f"DISABLE_PUSH set — skipping push to user {user_id} ({title!r})")
+        return 0
+
     tokens = FCMToken.query.filter_by(user_id=user_id, enabled=True).all()
     if not tokens:
         return 0

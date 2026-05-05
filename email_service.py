@@ -55,6 +55,14 @@ def send_email(to, subject, html, reply_to=None, from_email=None, attachments=No
     if not resend.api_key:
         logging.warning(f"RESEND_API_KEY not set. Email to {to} not sent.")
         return False
+    # QA safety: if EMAIL_OVERRIDE_TO is set (always in the staging
+    # environment), reroute every outbound email to that address. Prefix
+    # the subject with the originally-intended recipient so the operator
+    # can still see who would have received it in production.
+    override_to = os.environ.get('EMAIL_OVERRIDE_TO', '').strip()
+    if override_to:
+        subject = f"[QA → {to}] {subject}"
+        to = override_to
     try:
         params = {
             "from": from_email or FROM_EMAIL,
