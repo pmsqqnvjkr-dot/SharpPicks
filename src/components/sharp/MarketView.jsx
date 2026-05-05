@@ -1908,8 +1908,9 @@ export function GameSlate({ preModel = false, onGameCount }) {
       const edgeCount = games.filter(g => g.model && g.model.edge > 0).length;
       const signalCount = games.filter(g => g.model && g.model.passes).length;
       const finalCount = games.filter(g => g.status === 'final').length;
+      const liveCount = games.filter(g => g.status === 'live' || g.status === 'in_progress').length;
       const allFinal = games.length > 0 && finalCount === games.length;
-      onGameCount({ total: games.length, edges: edgeCount, signals: signalCount, hasModel: hasModelData, date: data?.date, allFinal, finalCount });
+      onGameCount({ total: games.length, edges: edgeCount, signals: signalCount, hasModel: hasModelData, date: data?.date, allFinal, finalCount, liveCount });
     }
   }, [games, loading, hasModelData, data?.date]);
 

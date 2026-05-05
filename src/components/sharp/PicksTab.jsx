@@ -19,6 +19,7 @@ import { InlineError } from './ErrorStates';
 import NoPickCard from './NoPickCard';
 import PassDay from '../signals/PassDay';
 import DarkDay from '../signals/DarkDay';
+import { FEATURE_EVAN_COLE_READ, FEATURE_DISCIPLINE_ARTICLES, FEATURE_EVENING_RECAP } from '../../config/featureFlags';
 
 
 function isTodayGame(gameDate) {
@@ -220,7 +221,10 @@ export default function PicksTab({ onNavigate }) {
     todayData?.type === 'pass' ||
     isPickFromPriorDay
   );
-  const postMidnightNight = etHour < 10 && todayDataIsPreSlate;
+  const hasLiveGames = (gameInfo?.liveCount || 0) > 0;
+  // Don't roll into post-midnight night mode while a game from the prior
+  // day is still in progress (extra-innings MLB, West Coast NBA OT).
+  const postMidnightNight = etHour < 10 && todayDataIsPreSlate && !hasLiveGames;
 
   const isNightMode = sameDayNight || postMidnightNight;
   const hasRecapPick = lastResolvedIsRecent && lastResolved?.result && lastResolved.result !== 'pending';
@@ -247,7 +251,12 @@ export default function PicksTab({ onNavigate }) {
     const fetchSlatePreview = async () => {
       if (isPostMidnight) {
         try {
-          const resp = await fetch(`${PT_API_BASE}/api/picks/market?sport=${sport}`);
+          // Pass the actual ET calendar date so the server returns the new
+          // day's slate. Without an explicit date, /api/picks/market defaults
+          // to _get_et_date() which still returns the prior day until 2:30am
+          // ET (betting-day window for /picks/today).
+          const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+          const resp = await fetch(`${PT_API_BASE}/api/picks/market?sport=${sport}&date=${todayET}`);
           const json = await resp.json();
           if (json.games) { setTomorrowGames(json.games); setTomorrowDate(json.date || null); }
         } catch { setTomorrowGames(null); setTomorrowDate(null); }
@@ -737,7 +746,10 @@ export default function PicksTab({ onNavigate }) {
             )}
 
             {/* ── WHILE YOU WAIT ── */}
-            {(() => {
+            {/* Gated off: this evergreen-article stack duplicates the Field
+                Guide card in the new WHILE YOU WAIT 3-CARD STACK below since
+                both pull from insightsData.insights. */}
+            {FEATURE_DISCIPLINE_ARTICLES && (() => {
               const evergreen = (insightsData?.insights || []).filter(a => a.category !== 'market_notes');
               if (!evergreen.length) return null;
               const articles = evergreen.slice(0, 3);
@@ -977,29 +989,31 @@ export default function PicksTab({ onNavigate }) {
                       Until the Sharp Journal pipeline (item 06) lands,
                       shows a static placeholder framed honestly. The
                       backend cron writes here once 06 is shipped. */}
-                  <div style={{ ...wwCard, borderLeft: '3px solid #5A9E72' }}>
-                    <div style={{ ...wwEyebrow, color: '#5A9E72', display: 'flex', gap: 6 }}>
-                      <span style={{ fontWeight: 600 }}>Evan Cole</span>
-                      <span style={{ color: '#7A8494' }}>·</span>
-                      <span>Today&apos;s read</span>
+                  {FEATURE_EVAN_COLE_READ && (
+                    <div style={{ ...wwCard, borderLeft: '3px solid #5A9E72' }}>
+                      <div style={{ ...wwEyebrow, color: '#5A9E72', display: 'flex', gap: 6 }}>
+                        <span style={{ fontWeight: 600 }}>Evan Cole</span>
+                        <span style={{ color: '#7A8494' }}>·</span>
+                        <span>Today&apos;s read</span>
+                      </div>
+                      <div style={{
+                        fontFamily: "'IBM Plex Serif', var(--font-serif), Georgia, serif",
+                        fontSize: '13px', fontStyle: 'italic', color: '#E8ECF4',
+                        lineHeight: 1.6, marginBottom: 6,
+                      }}>
+                        {upcoming.length > 0 && upcoming.length <= 3
+                          ? `Thin slates favor the books, not the model. If the system passes on all ${upcoming.length}, that is the correct read.`
+                          : 'Discipline is the product. The market gives us moments worth acting on; everything else is noise. Wait for the read.'}
+                      </div>
+                      <div style={{
+                        fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px',
+                        letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494',
+                      }}>2 MIN READ</div>
                     </div>
-                    <div style={{
-                      fontFamily: "'IBM Plex Serif', var(--font-serif), Georgia, serif",
-                      fontSize: '13px', fontStyle: 'italic', color: '#E8ECF4',
-                      lineHeight: 1.6, marginBottom: 6,
-                    }}>
-                      {upcoming.length > 0 && upcoming.length <= 3
-                        ? `Thin slates favor the books, not the model. If the system passes on all ${upcoming.length}, that is the correct read.`
-                        : 'Discipline is the product. The market gives us moments worth acting on; everything else is noise. Wait for the read.'}
-                    </div>
-                    <div style={{
-                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px',
-                      letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494',
-                    }}>2 MIN READ</div>
-                  </div>
+                  )}
 
                   {/* Card 3: Field Guide — rotates from evergreen backlog */}
-                  {featuredArticle && (
+                  {FEATURE_DISCIPLINE_ARTICLES && featuredArticle && (
                     <div
                       onClick={() => onNavigate && onNavigate('insights', null, { insight: featuredArticle })}
                       style={{ ...wwCard, cursor: 'pointer' }}
@@ -1033,7 +1047,7 @@ export default function PicksTab({ onNavigate }) {
                 edition. Routes to /journal/{slug} when the evening
                 edition (item 08) lands. Until then the link goes to
                 the existing recap surface. */}
-            {(() => {
+            {FEATURE_EVENING_RECAP && (() => {
               const recapDate = postMidnightNight ? yesterdayDate : todayET;
               if (!recapDate) return null;
               const games = todayData?.games_analyzed || totalGames || 0;
