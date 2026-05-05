@@ -106,6 +106,7 @@ def _fetch_raw() -> dict:
     # the headline number.
     expected_mrr_cents = 0
     trials = 0
+    new_subs_24h = 0
     new_subs_7d = 0
     new_subs_30d = 0
     canceled_30d = 0
@@ -209,6 +210,8 @@ def _fetch_raw() -> dict:
                 else:
                     trials_likely_to_convert += 1
 
+        if created >= window_24h_ts:
+            new_subs_24h += 1
         if created >= window_7d_ts:
             new_subs_7d += 1
         if created >= window_30d_ts:
@@ -341,6 +344,7 @@ def _fetch_raw() -> dict:
         'excluded_internal_subs': excluded_count_internal,
         'excluded_comped_subs': excluded_count_comped,
         'trials': trials,
+        'new_subs_24h': new_subs_24h,
         'new_subs_7d': new_subs_7d,
         'new_subs_30d': new_subs_30d,
         'canceled_30d': canceled_30d,

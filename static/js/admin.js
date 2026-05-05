@@ -535,9 +535,18 @@ function bindLiveData(metrics) {
   const stripeTrials = metrics.stripe?.payload?.trial_subs;
   if (stripeTrials != null) setStat('Trials in flight', SP_FMT.num(stripeTrials));
 
-  // -- What Moved: only update rows where we have real data --
+  // -- What Moved: bind every row with real data. Sources cross-cut
+  // multiple metrics envelopes; some rows (DAU, Logins 24h) come in via
+  // bindUsersActivity which fires after this on page load.
+  const newSubs24h = (metrics.stripe?.payload?.new_subs_24h ?? 0) + (metrics.revenuecat?.payload?.new_subs_24h ?? 0);
   const newSubs7d = (metrics.stripe?.payload?.new_subs_7d || 0) + (metrics.revenuecat?.payload?.new_subs_7d || 0);
-  // 24h data isn't yet broken out; leave New subs today on placeholder for now.
+  const newSubs7dAvg = newSubs7d / 7.0;
+  const newSubsDelta = newSubs24h - newSubs7dAvg;
+  const newSubsDeltaText = Math.abs(newSubsDelta) < 0.5
+    ? 'on track'
+    : (newSubsDelta > 0 ? `+${Math.round(newSubsDelta)} vs avg` : `${Math.round(newSubsDelta)} vs avg`);
+  const newSubsDeltaClass = newSubsDelta > 0 ? 'up' : (newSubsDelta < 0 ? 'down' : '');
+  setMovedRow('New subscribers today', SP_FMT.num(newSubs24h), newSubsDeltaText, newSubsDeltaClass);
 
   // Failed payments — segmented by user. The headline number is
   // distinct USERS with failed payments 7d; we annotate with the total
@@ -595,12 +604,17 @@ function bindLiveData(metrics) {
   const traffic24h = trafficSource?.visitors_24h ?? trafficSource?.sessions_24h;
   if (traffic24h != null) setMovedRow('Traffic last 24h', SP_FMT.num(traffic24h));
 
-  // Bet taps last 24h: events source returns by-surface dict; sum it.
+  // Bet taps last 24h: events source returns by-surface dict for the
+  // requested range (7d or 30d). The value here is taps in that window,
+  // not strictly 24h, but it's the best we have until events source
+  // exposes a 24h slice. Bind unconditionally so a zero shows zero
+  // instead of leaving the mockup '1'.
   const betTapsBySurface = metrics.events?.payload?.bet_taps || {};
-  const betTaps24h = Object.values(betTapsBySurface).reduce((a, b) => a + b, 0);
-  if (Object.keys(betTapsBySurface).length) {
-    setMovedRow('Bet taps last 24h', SP_FMT.num(betTaps24h));
-  }
+  const betTaps = Object.values(betTapsBySurface).reduce((a, b) => a + b, 0);
+  const betTapsDelta = betTaps === 0
+    ? 'below threshold'
+    : (betTaps <= 3 ? 'on track' : 'above typical');
+  setMovedRow('Bet taps last 24h', SP_FMT.num(betTaps), betTapsDelta);
 
   // -- Funnel (last 7d) — replace mockup numbers with real funnel --
   const funnel = metrics.events?.payload?.funnel;
@@ -816,6 +830,28 @@ function bindUsersActivity(data) {
   setStat('Total registered', SP_FMT.num(s.total_registered));
   if (s.stickiness_pct != null) setStat('Stickiness', SP_FMT.num(s.stickiness_pct));
   setStat('New 7d',          SP_FMT.num(s.new_7d));
+
+  // -- Two "what moved" rows that depend on user-activity data
+  // (bindLiveData runs first but doesn't have access to these). DAU
+  // delta vs 7d avg, logins 24h delta vs 7d avg.
+  if (s.dau != null && s.dau_7d_avg != null) {
+    const dauDelta = s.dau - s.dau_7d_avg;
+    const dauPct = s.dau_7d_avg > 0 ? Math.round(100 * dauDelta / s.dau_7d_avg) : 0;
+    const dauText = Math.abs(dauPct) < 5
+      ? 'on track'
+      : (dauPct > 0 ? `+${dauPct}% vs avg` : `${dauPct}% vs avg`);
+    const dauClass = dauPct > 0 ? 'up' : (dauPct < 0 ? 'down' : '');
+    setMovedRow('Daily active users', SP_FMT.num(s.dau), dauText, dauClass);
+  }
+  if (s.logins_24h != null && s.logins_7d_avg != null) {
+    const lDelta = s.logins_24h - s.logins_7d_avg;
+    const lPct = s.logins_7d_avg > 0 ? Math.round(100 * lDelta / s.logins_7d_avg) : 0;
+    const lText = Math.abs(lPct) < 5
+      ? 'on track'
+      : (lPct > 0 ? `+${lPct}% vs avg` : `${lPct}% vs avg`);
+    const lClass = lPct > 0 ? 'up' : (lPct < 0 ? 'down' : '');
+    setMovedRow('Logins last 24h', SP_FMT.num(s.logins_24h), lText, lClass);
+  }
 
   // Login Frequency tier counts — labels match: "Power (15+)",
   // "Engaged (5-14)", "Light (1-4)", "Dormant (0)".

@@ -110,6 +110,26 @@ def _snapshot(now: datetime) -> dict:
         User.created_at >= cutoff_7d,
     ).scalar() or 0
 
+    # logins_24h: total ACTIVE_EVENT_TYPE events in the last 24h (not
+    # distinct users; that's dau). Used by the dashboard "what moved"
+    # section to give a sense of session volume even if few people came
+    # back twice.
+    logins_24h = db.session.query(func.count(UserEvent.id)).filter(
+        UserEvent.event_type == ACTIVE_EVENT_TYPE,
+        UserEvent.created_at >= cutoff_24h,
+        UserEvent.user_id.in_(db.session.query(real.c.id)),
+        UserEvent.is_internal == False,  # noqa: E712
+    ).scalar() or 0
+
+    # 7-day average baseline for the "vs avg" delta. logins per day
+    # over the last 7 days, used as the comparison floor.
+    logins_7d = db.session.query(func.count(UserEvent.id)).filter(
+        UserEvent.event_type == ACTIVE_EVENT_TYPE,
+        UserEvent.created_at >= cutoff_7d,
+        UserEvent.user_id.in_(db.session.query(real.c.id)),
+        UserEvent.is_internal == False,  # noqa: E712
+    ).scalar() or 0
+
     stickiness_pct = round(100.0 * dau / mau, 1) if mau else 0.0
 
     return {
@@ -119,6 +139,9 @@ def _snapshot(now: datetime) -> dict:
         'total_registered': total_registered,
         'stickiness_pct': stickiness_pct,
         'new_7d': new_7d,
+        'logins_24h': logins_24h,
+        'logins_7d_avg': round(logins_7d / 7.0, 1),
+        'dau_7d_avg': round(wau / 7.0, 1),
     }
 
 
