@@ -174,7 +174,7 @@ export default function PassDay({
           verdictText={verdictText}
           bulletPoints={bulletPoints}
           stats={heroStats}
-          tagline="One pick beats five."
+          tagline="Selective by design."
         />
       </div>
 
@@ -242,7 +242,7 @@ export default function PassDay({
       )}
 
       {/* 6. Countdown */}
-      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
+      <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay(), marginTop: 24 }}>
         <CountdownCard
           header="Next Edge Window"
           title={`${sport.toUpperCase()} Slate Opens`}

@@ -59,7 +59,7 @@ export default function HeroCard({
       {/* Headline */}
       <h1 style={{
         fontFamily: f.serif,
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: 500,
         letterSpacing: '-0.02em',
         lineHeight: 1.05,
@@ -96,7 +96,7 @@ export default function HeroCard({
           {bulletPoints.map((p, i) => (
             <li key={i} style={{
               fontFamily: f.sans,
-              fontSize: 14,
+              fontSize: 13,
               lineHeight: 1.5,
               color: c.textPrimary,
               position: 'relative',
@@ -123,7 +123,7 @@ export default function HeroCard({
           <div
             style={{
               fontFamily: f.sans,
-              fontSize: 14,
+              fontSize: 13,
               lineHeight: 1.5,
               color: c.textPrimary,
             }}
@@ -149,7 +149,7 @@ export default function HeroCard({
             }}>
               <div style={{
                 fontFamily: f.mono,
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: s.color === 'dim' ? 400 : 500,
                 lineHeight: 1,
                 marginBottom: 6,

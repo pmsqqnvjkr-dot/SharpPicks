@@ -104,7 +104,7 @@ export default function FurtherReadingCard({
       {/* Title */}
       <div style={{
         fontFamily: f.serif,
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: 500,
         lineHeight: 1.25,
         letterSpacing: '-0.01em',
@@ -119,7 +119,7 @@ export default function FurtherReadingCard({
       {/* Excerpt */}
       <div style={{
         fontFamily: f.sans,
-        fontSize: 14,
+        fontSize: 13,
         lineHeight: 1.55,
         color: c.textSecondary,
         marginBottom: 22,
