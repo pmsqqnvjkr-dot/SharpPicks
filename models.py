@@ -476,3 +476,37 @@ class MetricsCache(db.Model):
     expires_at = db.Column(db.DateTime(timezone=True), nullable=False)
     source = db.Column(db.Text, nullable=False)
     last_error = db.Column(db.Text, nullable=True)
+
+
+class EmailEvent(db.Model):
+    """Lifecycle email send + Resend-webhook outcome ledger. One row per
+    send; webhook events update the corresponding row's *_at columns.
+    See services/lifecycle_emails.py + the Resend webhook handler."""
+    __tablename__ = 'email_events'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False, index=True)
+    variant = db.Column(db.String(40), nullable=False, index=True)
+    sent_at = db.Column(db.DateTime, nullable=False, default=datetime.now, index=True)
+    resend_message_id = db.Column(db.String, nullable=True, unique=True, index=True)
+    delivered_at = db.Column(db.DateTime, nullable=True)
+    opened_at = db.Column(db.DateTime, nullable=True)
+    clicked_at = db.Column(db.DateTime, nullable=True)
+    bounced_at = db.Column(db.DateTime, nullable=True)
+    complained_at = db.Column(db.DateTime, nullable=True)
+    unsubscribed_at = db.Column(db.DateTime, nullable=True)
+
+
+class EmailSendHistory(db.Model):
+    """Frequency-cap ledger for lifecycle emails. Eligibility queries
+    consult this table to skip users who got any lifecycle send within
+    the cap window (default 7 days). Smaller and indexed differently
+    than email_events because we hit it on every cron tick.
+    See services/lifecycle_emails.py."""
+    __tablename__ = 'email_send_history'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    sent_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    variant = db.Column(db.String(40), nullable=False)
+    __table_args__ = (
+        db.Index('ix_email_send_history_user_sent', 'user_id', 'sent_at'),
+    )
