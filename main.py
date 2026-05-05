@@ -412,6 +412,9 @@ def setup_database():
         UNIQUE(date, sport)
     )''')
 
+    setup_wnba_table(cursor)
+    setup_mlb_table(cursor)
+
     conn.commit()
     conn.close()
 
@@ -2484,6 +2487,7 @@ def setup_wnba_table(cursor):
         ('game_status', 'TEXT DEFAULT "scheduled"'),
         ('current_period', 'TEXT'),
         ('game_clock', 'TEXT'),
+        ('commence_time', 'TEXT'),
     ]
 
     for col_name, col_type in new_columns:
