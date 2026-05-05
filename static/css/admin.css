@@ -891,3 +891,23 @@
     font-size: 11px;
     color: var(--text-faint);
   }
+
+  /* Print styles for the Export PDF flow. The button calls window.print();
+     these rules strip page chrome, force-render the dark theme into the PDF,
+     and keep cards from splitting across page breaks. Only the active tab's
+     panel prints because .panel:not(.active) is already display:none. */
+  @media print {
+    *, *::before, *::after {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    @page { size: letter; margin: 12mm; }
+    .tabs,
+    .header-right { display: none; }
+    section,
+    .stack-status,
+    .stack-moved {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
