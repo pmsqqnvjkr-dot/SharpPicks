@@ -146,19 +146,13 @@ def _recent_signals(limit=10):
         sport = (p.sport or '?').upper()
         away = (p.away_team or '').strip()
         home = (p.home_team or '').strip()
-        side = (p.side or '').strip()  # 'home' / 'away' / 'home_ml' etc.
-        line = p.line if p.line is not None else None
-        # 'LAL -3.5 @ DEN' — pick the side that the model selected and prefix the line
-        if side and away and home:
-            picked_team = home if 'home' in side.lower() else (away if 'away' in side.lower() else '')
-            other_team = away if picked_team == home else home
-            if picked_team and line is not None:
-                sign = '+' if line > 0 else ''
-                selection = f'{picked_team} {sign}{line:g} @ {other_team}'
-            elif picked_team:
-                selection = f'{picked_team} @ {other_team}'
-            else:
-                selection = f'{away} @ {home}'
+        # Pick.side is rendered as e.g. "Philadelphia 76ers +7.5" — the
+        # team-with-line string the customer sees. Use it directly as the
+        # picked-side label and append "@ opponent".
+        side = (p.side or '').strip()
+        if side and (away or home):
+            opponent = home if side.startswith(away) else away
+            selection = f'{side} @ {opponent}' if opponent else side
         elif away and home:
             selection = f'{away} @ {home}'
         else:
@@ -167,9 +161,14 @@ def _recent_signals(limit=10):
         bits = [sport]
         if selection:
             bits.append(selection)
-        edge = p.edge_pct if p.edge_pct is not None else p.cover_prob
-        if isinstance(edge, (int, float)) and edge:
-            bits.append(f'MEI {edge:.2f}')
+        # MEI: cover_prob (0..1) is the model's calibrated probability
+        # this side covers — the right scale for the dashboard's
+        # "MEI tier" visualization (≥0.85 cluster). edge_pct lives on
+        # a different scale (-10..+30) and would look broken next to
+        # the model perf charts that key off cover_prob buckets.
+        mei = p.cover_prob if p.cover_prob is not None else p.model_confidence
+        if isinstance(mei, (int, float)) and mei:
+            bits.append(f'MEI {mei:.2f}')
         if result:
             bits.append(result.upper())
         out.append({

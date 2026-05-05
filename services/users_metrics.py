@@ -4,11 +4,15 @@ Backs two endpoints:
   GET /api/admin/users/activity   -> snapshot, DAU 90d, login freq, tiers, cohort retention
   GET /api/admin/users/list       -> per-user list with tags + activity
 
-Login data comes from UserEvent rows where event_type='login' (added in
-Phase 3 via a Flask-Login signal listener in app.py). The signal only
-started firing on 2026-05-04, so historical retention will be sparse
-for the first few weeks until the events table fills in. That's
-acceptable — the bucket will populate naturally.
+Activity is measured as `session_start` events in UserEvent. session_start
+has been instrumented since 2026-03-24 (~8 weeks of history at time of
+writing). The newer `login` event_type, added 2026-05-04 via a
+Flask-Login signal, has only a handful of rows and is too sparse to
+power retention math — so the queries below intentionally key off
+session_start instead. The product label "logins" is preserved in the
+UI to keep operator vocabulary stable; semantically a session_start is
+"user opened the app while authenticated", which matches what most ops
+ask when they say "logins".
 
 Internal/test users (User.is_internal == True) and soft-deleted users
 (User.deleted_at IS NOT NULL) are excluded from every aggregation here.
@@ -40,12 +44,19 @@ def _real_user_subq():
     ).subquery()
 
 
+# Canonical "user is active" event. session_start has the longest
+# instrumented history (back to 2026-03-24); the login event is sparser
+# and used only for the legacy unified-events feed. Every per-user
+# activity query in this module uses session_start.
+ACTIVE_EVENT_TYPE = 'session_start'
+
+
 def _login_events_query(since=None, until=None):
-    """Base query over UserEvent where event_type='login', scoped to real
-    users only (joins to the real_user subquery)."""
+    """Base query over UserEvent where event_type indicates active session,
+    scoped to real users only (joins to the real_user subquery)."""
     real = _real_user_subq()
     q = UserEvent.query.filter(
-        UserEvent.event_type == 'login',
+        UserEvent.event_type == ACTIVE_EVENT_TYPE,
         UserEvent.user_id.in_(db.session.query(real.c.id)),
         UserEvent.is_internal == False,  # noqa: E712 — defensive double-filter
     )
@@ -68,21 +79,21 @@ def _snapshot(now: datetime) -> dict:
     real = _real_user_subq()
 
     dau = db.session.query(func.count(distinct(UserEvent.user_id))).filter(
-        UserEvent.event_type == 'login',
+        UserEvent.event_type == ACTIVE_EVENT_TYPE,
         UserEvent.created_at >= cutoff_24h,
         UserEvent.user_id.in_(db.session.query(real.c.id)),
         UserEvent.is_internal == False,  # noqa: E712
     ).scalar() or 0
 
     wau = db.session.query(func.count(distinct(UserEvent.user_id))).filter(
-        UserEvent.event_type == 'login',
+        UserEvent.event_type == ACTIVE_EVENT_TYPE,
         UserEvent.created_at >= cutoff_7d,
         UserEvent.user_id.in_(db.session.query(real.c.id)),
         UserEvent.is_internal == False,  # noqa: E712
     ).scalar() or 0
 
     mau = db.session.query(func.count(distinct(UserEvent.user_id))).filter(
-        UserEvent.event_type == 'login',
+        UserEvent.event_type == ACTIVE_EVENT_TYPE,
         UserEvent.created_at >= cutoff_30d,
         UserEvent.user_id.in_(db.session.query(real.c.id)),
         UserEvent.is_internal == False,  # noqa: E712
@@ -119,7 +130,7 @@ def _dau_daily_90d(now: datetime) -> list:
         func.date(UserEvent.created_at).label('day'),
         func.count(distinct(UserEvent.user_id)).label('users'),
     ).filter(
-        UserEvent.event_type == 'login',
+        UserEvent.event_type == ACTIVE_EVENT_TYPE,
         UserEvent.created_at >= cutoff,
         UserEvent.user_id.in_(db.session.query(real.c.id)),
         UserEvent.is_internal == False,  # noqa: E712
@@ -142,7 +153,7 @@ def _login_frequency_buckets(now: datetime) -> dict:
         UserEvent.user_id,
         func.count(UserEvent.id).label('n'),
     ).filter(
-        UserEvent.event_type == 'login',
+        UserEvent.event_type == ACTIVE_EVENT_TYPE,
         UserEvent.created_at >= cutoff,
         UserEvent.user_id.in_(db.session.query(real.c.id)),
         UserEvent.is_internal == False,  # noqa: E712
@@ -184,7 +195,7 @@ def _tier_counts(now: datetime) -> dict:
         UserEvent.user_id,
         func.count(UserEvent.id).label('n'),
     ).filter(
-        UserEvent.event_type == 'login',
+        UserEvent.event_type == ACTIVE_EVENT_TYPE,
         UserEvent.created_at >= cutoff_30d,
         UserEvent.user_id.in_(db.session.query(real.c.id)),
         UserEvent.is_internal == False,  # noqa: E712
@@ -243,7 +254,7 @@ def _cohort_retention(now: datetime, weeks_back: int = 8) -> list:
     # Pull every login event for these users in the cohort window
     user_ids = list(user_signup_week.keys())
     login_rows = UserEvent.query.filter(
-        UserEvent.event_type == 'login',
+        UserEvent.event_type == ACTIVE_EVENT_TYPE,
         UserEvent.user_id.in_(user_ids),
         UserEvent.is_internal == False,  # noqa: E712
     ).with_entities(UserEvent.user_id, UserEvent.created_at).all()
@@ -282,7 +293,7 @@ def _login_stats(now: datetime) -> dict:
     rows = db.session.query(
         UserEvent.user_id, func.count(UserEvent.id),
     ).filter(
-        UserEvent.event_type == 'login',
+        UserEvent.event_type == ACTIVE_EVENT_TYPE,
         UserEvent.created_at >= cutoff_30d,
         UserEvent.user_id.in_(db.session.query(real.c.id)),
         UserEvent.is_internal == False,  # noqa: E712
@@ -460,7 +471,7 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
         login_counts = dict(db.session.query(
             UserEvent.user_id, func.count(UserEvent.id),
         ).filter(
-            UserEvent.event_type == 'login',
+            UserEvent.event_type == ACTIVE_EVENT_TYPE,
             UserEvent.created_at >= cutoff_30d,
             UserEvent.user_id.in_(ids),
             UserEvent.is_internal == False,  # noqa: E712
@@ -482,7 +493,7 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
         login_counts = dict(db.session.query(
             UserEvent.user_id, func.count(UserEvent.id),
         ).filter(
-            UserEvent.event_type == 'login',
+            UserEvent.event_type == ACTIVE_EVENT_TYPE,
             UserEvent.created_at >= cutoff_30d,
             UserEvent.user_id.in_(page_ids),
             UserEvent.is_internal == False,  # noqa: E712

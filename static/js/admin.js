@@ -671,11 +671,15 @@ function bindLiveData(metrics) {
         const row = document.createElement('div');
         row.className = 'recent-row';
         const ts = s.at ? s.at.slice(5, 10) : '—';
+        // Pick.result values in the DB: 'win' | 'loss' | 'push' | 'revoked'
+        // | 'pending' (which arrives here as null after the source maps it).
         let tag, tagStyle = '';
-        if (s.result === 'won')        { tag = 'hit';     tagStyle = 'class="tag power"'; }
-        else if (s.result === 'lost')  { tag = 'miss';    tagStyle = 'class="tag" style="color: var(--danger); border-color: rgba(228,129,129,0.3);"'; }
-        else if (s.result === 'push')  { tag = 'push';    tagStyle = 'class="tag"'; }
-        else                            { tag = 'live';    tagStyle = 'class="tag"'; }
+        const r = s.result;
+        if (r === 'win' || r === 'won')         { tag = 'hit';     tagStyle = 'class="tag power"'; }
+        else if (r === 'loss' || r === 'lost')  { tag = 'miss';    tagStyle = 'class="tag" style="color: var(--danger); border-color: rgba(228,129,129,0.3);"'; }
+        else if (r === 'push')                  { tag = 'push';    tagStyle = 'class="tag"'; }
+        else if (r === 'revoked')               { tag = 'revoked'; tagStyle = 'class="tag" style="color: var(--text-faint); border-color: var(--border);"'; }
+        else                                    { tag = 'live';    tagStyle = 'class="tag"'; }
         row.innerHTML = `<span class="ts">${ts}</span><span class="meta">${s.meta}</span><span ${tagStyle}>${tag}</span>`;
         sigsEl.appendChild(row);
       });
@@ -712,6 +716,13 @@ fetch('/api/admin/metrics?range=7d&include_internal=false', { credentials: 'same
   .then(r => r.ok ? r.json() : null)
   .then(data => { if (data) bindLiveData(data); })
   .catch(() => { /* placeholders remain; freshness untouched */ });
+
+// Also fire the Users-activity fetch eagerly. The Command tab's
+// "user activity · 30d" section displays the same stats (Dau/Wau/Mau,
+// power users, new 7d) that the Users tab does, and we want them
+// populated before the user clicks anywhere. This pre-warms the cache
+// for loadUsersTabData via _usersDataPromise.
+loadUsersTabData();
 
 // ─────────────────────────────────────────────────────────────────────────
 // Users tab data binding (Phase 3.5)
@@ -789,7 +800,7 @@ function bindUsersActivity(data) {
     if (paying != null) bits.push(`${paying} paying`);
     let sentence;
     if (bits.length === 0) {
-      sentence = 'Login activity tracking started 2026-05-04. Numbers populate as users return.';
+      sentence = 'No active users in the last 30 days. Either the events table is empty or every user is internal.';
     } else {
       sentence = bits.join(', ') + '.';
       if (power != null && power > 0) sentence += ` ${power} power user${power === 1 ? '' : 's'} drive disproportionate engagement.`;
@@ -856,7 +867,7 @@ function bindUsersActivity(data) {
   // by ID (Command tab); this title-match catches the Users-tab
   // section.
   if (s.dau != null) {
-    const dauActive = s.dau > 0 ? `${s.dau} DAU today` : 'no DAU today (login tracking is sparse — populates as users log in)';
+    const dauActive = s.dau > 0 ? `${s.dau} DAU today` : 'no DAU today';
     const stickiness = s.mau > 0 ? `${s.stickiness_pct}% stickiness (DAU/MAU)` : '';
     const newUsers = s.new_7d > 0 ? `${s.new_7d} new in the last 7 days` : 'no new signups this week';
     const power = (tiers.power || 0);
@@ -864,14 +875,11 @@ function bindUsersActivity(data) {
     _bySectionTitle('activity overview', `${dauActive}. ${stickiness ? stickiness + '. ' : ''}${newUsers}. ${powerStr}.`);
   }
 
-  // Login frequency summary + chart visibility.
-  // Login event tracking started 2026-05-04; until enough days
-  // accumulate, the '0 logins' bucket dominates because most users
-  // simply haven't opened the app since tracking began. Showing
-  // "98% never logged in" is technically true but misleading.
-  // Threshold: at least 20% of users must have ANY login activity
-  // before the histogram is worth rendering. Otherwise hide the
-  // chart and surface a tracking-status sentence instead.
+  // Login frequency summary + chart visibility. The metric reads
+  // session_start events (instrumented since 2026-03-24), so the '0'
+  // bucket reflects users who genuinely haven't opened the app in 30d
+  // rather than missing instrumentation. Hide the histogram only if
+  // fewer than 20% of users have any activity (true cold-start).
   const buckets = data.login_frequency_buckets || {};
   const totalUsers = Object.values(buckets).reduce((a, b) => a + b, 0);
   const zeroBucket = buckets['0'] || 0;
@@ -888,19 +896,17 @@ function bindUsersActivity(data) {
     _bySectionTitle('login frequency', 'No users in the metrics scope yet.');
     if (freqChartWrap) freqChartWrap.style.display = 'none';
   } else if (loggedInPct < 20) {
-    // Sparse — hide the histogram, summary explains why
     _bySectionTitle('login frequency',
-      `Login tracking started 2026-05-04 — only ${loggedInUsers} of ${totalUsers} users have logged in since then. Histogram hidden until tracking matures (>=20% of users with activity).`);
+      `Only ${loggedInUsers} of ${totalUsers} users active in the last 30 days. Histogram suppressed below the 20% engagement floor.`);
     if (freqChartWrap) freqChartWrap.style.display = 'none';
   } else {
-    // Real data is meaningful — show chart + summary based on tier shape
     if (freqChartWrap) freqChartWrap.style.display = '';
     const power = (buckets['15-19'] || 0) + (buckets['20-29'] || 0) + (buckets['30+'] || 0);
     const light = (buckets['1'] || 0) + (buckets['2-3'] || 0) + (buckets['4-5'] || 0);
     const lightPct = Math.round(100 * light / totalUsers);
     const powerPct = Math.round(100 * power / totalUsers);
     _bySectionTitle('login frequency',
-      `${loggedInUsers} of ${totalUsers} users have logged in this month. Light tier (1-5 logins) is ${lightPct}%, power tier (15+) is ${powerPct}%.`);
+      `${loggedInUsers} of ${totalUsers} users active this month. Light tier (1-5 logins) is ${lightPct}%, power tier (15+) is ${powerPct}%.`);
   }
 
   // Cohort retention summary — section title is "retention · weekly cohorts"
@@ -913,7 +919,7 @@ function bindUsersActivity(data) {
       cohorts.map(c => (c.retention_by_week || [])[4] || 0).reduce((a, b) => a + b, 0) / cohorts.length
     );
     if (avgWeek1 === 0 && avgWeek4 === 0) {
-      _bySectionTitle('retention', `Cohort retention requires login event history. Login tracking started 2026-05-04 — the table fills in as users return week-over-week.`);
+      _bySectionTitle('retention', `No cohort retention yet — table will fill in as users return week-over-week.`);
     } else {
       _bySectionTitle('retention', `Week-1 retention averages ${avgWeek1}% across the last ${cohorts.length} cohorts. Week-4 averages ${avgWeek4}%.`);
     }
@@ -924,16 +930,16 @@ function bindUsersActivity(data) {
   // the iOS-vs-web split needs more data. For now, single-fact summary.
   if (tiers.power != null) {
     if (tiers.power === 0) {
-      _bySectionTitle('power users', `No power-tier users yet (15+ logins in 30 days). Login tracking started 2026-05-04 — power tier populates as the most-engaged users return.`);
+      _bySectionTitle('power users', `No power-tier users yet (15+ logins in 30 days). Power tier surfaces the heaviest-using accounts as data accrues.`);
     } else {
       _bySectionTitle('power users', `${tiers.power} user${tiers.power === 1 ? '' : 's'} in the power tier (15+ logins in 30 days). They drive disproportionate engagement on the funnel below.`);
     }
   }
 
-  // Replace the DAU 90d bar chart with real daily counts. Login event
-  // tracking started today (2026-05-04) so the past 90 days will be
-  // mostly null until users log in again. Need >= 7 days of activity
-  // to be worth replacing the placeholder.
+  // Replace the DAU 90d bar chart with real daily counts. Series is
+  // backed by session_start events (instrumented 2026-03-24); need >= 7
+  // days of activity before we'll render over the placeholder, so
+  // brand-new installs show the mockup until enough data accrues.
   const dauCanvas = document.getElementById('chart-users-dau');
   const dauChart = dauCanvas && Chart.getChart(dauCanvas);
   if (dauChart && Array.isArray(data.dau_daily_90d)) {
@@ -1467,7 +1473,7 @@ function bindInfraHealth(data) {
     const deploys = Array.isArray(data.recent_deploys) ? data.recent_deploys : [];
     const lastDeploy = deploys.length > 0 ? deploys[0] : null;
     if (requests == null || requests === 0) {
-      headlineEl.textContent = 'Request timing started 2026-05-04. Numbers populate as traffic accumulates.';
+      headlineEl.textContent = 'No requests measured in the current window. Either traffic is zero or RequestMetric instrumentation is paused.';
     } else {
       const errPhrase = errors === 0 ? 'No 5xx errors today' : `${errors} 5xx error${errors === 1 ? '' : 's'} in 24h`;
       const p95Phrase = p95 != null && p95 > 0 ? `p95 at ${p95}ms` : '';
