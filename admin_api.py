@@ -2580,25 +2580,27 @@ def admin_metrics():
     from services.sources import ga4 as ga4_source
     from services.sources import gsc as gsc_source
     from services.sources import revenuecat as rc_source
+    from services.sources import google_play as gp_source
 
     # When ?nocache=1 is set (manual refresh from the dashboard), expire
     # every source's cache row first so the next fetch hits the upstream
     # API directly. The cache layer's normal "stale-on-error preservation"
-    # still applies — if Stripe is down during a manual refresh, we fall
+    # still applies, if Stripe is down during a manual refresh, we fall
     # back to whatever was last cached.
     if nocache:
         from services.metrics_cache import invalidate
         for key in (f'cloudflare:{range_}', 'stripe:summary', f'ga4:{range_}',
-                    'gsc:summary', 'revenuecat:summary'):
+                    'gsc:summary', 'revenuecat:summary', 'google_play:summary'):
             invalidate(key)
 
     sources = {
-        'cloudflare':  lambda: cf_source.fetch(range_),
-        'stripe':      lambda: stripe_source.fetch(),
-        'events':      lambda: events_source.fetch(range_, include_internal),
-        'ga4':         lambda: ga4_source.fetch(range_),
-        'gsc':         lambda: gsc_source.fetch(),
-        'revenuecat':  lambda: rc_source.fetch(),
+        'cloudflare':   lambda: cf_source.fetch(range_),
+        'stripe':       lambda: stripe_source.fetch(),
+        'events':       lambda: events_source.fetch(range_, include_internal),
+        'ga4':          lambda: ga4_source.fetch(range_),
+        'gsc':          lambda: gsc_source.fetch(),
+        'revenuecat':   lambda: rc_source.fetch(),
+        'google_play':  lambda: gp_source.fetch(),
     }
 
     # Each worker thread needs its own Flask app context for db.session.
@@ -2609,7 +2611,7 @@ def admin_metrics():
             return _metrics_safe_envelope(name, fn)
 
     results = {}
-    with ThreadPoolExecutor(max_workers=6) as executor:
+    with ThreadPoolExecutor(max_workers=7) as executor:
         futures = [executor.submit(_wrap, name, fn) for name, fn in sources.items()]
         for fut in as_completed(futures):
             name, envelope = fut.result()
