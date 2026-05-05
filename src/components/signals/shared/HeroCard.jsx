@@ -8,10 +8,7 @@ export default function HeroCard({
   verdictText,
   stats,
   tagline = 'One pick beats five.',
-  commentary,
-  commentaryIdx = 0,
-  commentaryCount = 0,
-  onTapCommentary,
+  bulletPoints,
 }) {
   const isPass = variant === 'pass';
   const accent = isPass ? c.system : c.edge;
@@ -85,55 +82,55 @@ export default function HeroCard({
         {renderSubtitle(subtitle)}
       </div>
 
-      {/* Rotating commentary block */}
-      {(verdictText || commentary) && (
-        <div
-          onClick={onTapCommentary}
-          style={{
-            background: c.bgCardElev,
-            border: `1px solid ${c.borderSubtle}`,
-            borderLeft: `2px solid ${c.system}`,
-            borderRadius: 10,
-            padding: '14px 16px',
-            marginBottom: 22,
-            cursor: onTapCommentary ? 'pointer' : 'default',
-            WebkitTapHighlightColor: 'transparent',
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-          }}
-        >
+      {/* Static diagnostic bullets (preferred) or single verdict line. */}
+      {bulletPoints && bulletPoints.length > 0 ? (
+        <ul style={{
+          background: c.bgCardElev,
+          border: `1px solid ${c.borderSubtle}`,
+          borderLeft: `2px solid ${c.system}`,
+          borderRadius: 10,
+          padding: '14px 16px 14px 32px',
+          margin: '0 0 22px',
+          listStyle: 'none',
+        }}>
+          {bulletPoints.map((p, i) => (
+            <li key={i} style={{
+              fontFamily: f.sans,
+              fontSize: 14,
+              lineHeight: 1.5,
+              color: c.textPrimary,
+              position: 'relative',
+              marginBottom: i < bulletPoints.length - 1 ? 8 : 0,
+            }}>
+              <span style={{
+                position: 'absolute',
+                left: -16,
+                color: c.system,
+              }}>·</span>
+              <span dangerouslySetInnerHTML={{ __html: p }} />
+            </li>
+          ))}
+        </ul>
+      ) : verdictText ? (
+        <div style={{
+          background: c.bgCardElev,
+          border: `1px solid ${c.borderSubtle}`,
+          borderLeft: `2px solid ${c.system}`,
+          borderRadius: 10,
+          padding: '14px 16px',
+          marginBottom: 22,
+        }}>
           <div
-            key={commentaryIdx}
             style={{
               fontFamily: f.sans,
               fontSize: 14,
               lineHeight: 1.5,
               color: c.textPrimary,
-              marginBottom: commentaryCount > 1 ? 10 : 0,
-              animation: 'sp-fade-in 0.4s ease-out',
             }}
-            dangerouslySetInnerHTML={{ __html: commentary || verdictText }}
+            dangerouslySetInnerHTML={{ __html: verdictText }}
           />
-          {commentaryCount > 1 && (
-            <div style={{
-              display: 'flex',
-              gap: 5,
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-            }}>
-              {Array.from({ length: commentaryCount }).map((_, i) => (
-                <span key={i} style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: '50%',
-                  background: i === commentaryIdx ? c.system : c.textMuted,
-                  transition: 'background 0.2s',
-                }} />
-              ))}
-            </div>
-          )}
         </div>
-      )}
+      ) : null}
 
       {/* Stats grid (pass variant only) */}
       {isPass && stats && (
