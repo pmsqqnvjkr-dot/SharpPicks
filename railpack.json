@@ -1,6 +1,44 @@
 {
   "$schema": "https://schema.railpack.com",
+  "provider": "python",
   "packages": {
-    "uv": "0.11.8"
+    "uv": "0.11.8",
+    "python": "3.13",
+    "node": "22"
+  },
+  "buildAptPackages": [
+    "libglib2.0-0", "libnss3", "libnspr4", "libatk1.0-0",
+    "libatk-bridge2.0-0", "libcups2", "libdrm2", "libxkbcommon0",
+    "libxcomposite1", "libxdamage1", "libxfixes3", "libxrandr2",
+    "libgbm1", "libpango-1.0-0", "libcairo2", "libasound2",
+    "libatspi2.0-0", "libdbus-1-3", "libx11-6", "libx11-xcb1",
+    "libxcb1", "libxext6", "libxshmfence1", "fonts-liberation"
+  ],
+  "steps": {
+    "install": {
+      "commands": [
+        "uv sync --no-dev --no-install-project",
+        "npm ci || npm install",
+        "(cd emails && npm install)"
+      ]
+    },
+    "build": {
+      "commands": [
+        "uv sync --no-dev --no-editable",
+        "npm run build",
+        "uv run playwright install chromium"
+      ]
+    }
+  },
+  "deploy": {
+    "aptPackages": [
+      "libglib2.0-0", "libnss3", "libnspr4", "libatk1.0-0",
+      "libatk-bridge2.0-0", "libcups2", "libdrm2", "libxkbcommon0",
+      "libxcomposite1", "libxdamage1", "libxfixes3", "libxrandr2",
+      "libgbm1", "libpango-1.0-0", "libcairo2", "libasound2",
+      "libatspi2.0-0", "libdbus-1-3", "libx11-6", "libx11-xcb1",
+      "libxcb1", "libxext6", "libxshmfence1", "fonts-liberation"
+    ],
+    "startCommand": "gunicorn app:app --timeout 600 --workers 2 --graceful-timeout 600"
   }
 }
