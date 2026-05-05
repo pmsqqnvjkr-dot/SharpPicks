@@ -2569,6 +2569,9 @@ def admin_metrics():
     include_internal_raw = (request.args.get('include_internal') or 'false').strip().lower()
     include_internal = include_internal_raw in ('true', '1', 'yes', 'on')
 
+    nocache_raw = (request.args.get('nocache') or '').strip().lower()
+    nocache = nocache_raw in ('true', '1', 'yes', 'on')
+
     # Lazy import keeps startup fast and avoids module-load issues if a
     # source has a missing optional dependency at import time.
     from services.sources import cloudflare as cf_source
@@ -2577,6 +2580,17 @@ def admin_metrics():
     from services.sources import ga4 as ga4_source
     from services.sources import gsc as gsc_source
     from services.sources import revenuecat as rc_source
+
+    # When ?nocache=1 is set (manual refresh from the dashboard), expire
+    # every source's cache row first so the next fetch hits the upstream
+    # API directly. The cache layer's normal "stale-on-error preservation"
+    # still applies — if Stripe is down during a manual refresh, we fall
+    # back to whatever was last cached.
+    if nocache:
+        from services.metrics_cache import invalidate
+        for key in (f'cloudflare:{range_}', 'stripe:summary', f'ga4:{range_}',
+                    'gsc:summary', 'revenuecat:summary'):
+            invalidate(key)
 
     sources = {
         'cloudflare':  lambda: cf_source.fetch(range_),

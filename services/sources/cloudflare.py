@@ -27,7 +27,7 @@ from services.metrics_cache import get_or_fetch
 logger = logging.getLogger(__name__)
 
 CF_GQL_URL = 'https://api.cloudflare.com/client/v4/graphql'
-CACHE_TTL_SECONDS = 30 * 60
+CACHE_TTL_SECONDS = 5 * 60  # CF GraphQL data is at the 1-min granularity in CF, so 5 min is plenty fresh and respects rate limits
 
 QUERY = """
 query($accountTag: String!, $siteTag: String!, $since: String!, $until: String!) {

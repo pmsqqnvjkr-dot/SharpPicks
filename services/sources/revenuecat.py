@@ -24,7 +24,7 @@ from services.metrics_cache import get_or_fetch
 
 logger = logging.getLogger(__name__)
 
-CACHE_TTL_SECONDS = 5 * 60
+CACHE_TTL_SECONDS = 60  # iOS billing should feel near-real-time once IOS_PROD_LIVE is set
 
 # Per Phase 2 spec: $19.99 monthly -> 1999 cents/mo, $149 yearly -> 1241 cents/mo
 PRO_MONTHLY_CENTS = 1999

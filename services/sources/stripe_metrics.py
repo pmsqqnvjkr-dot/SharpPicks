@@ -21,7 +21,7 @@ from services.metrics_cache import get_or_fetch
 
 logger = logging.getLogger(__name__)
 
-CACHE_TTL_SECONDS = 5 * 60
+CACHE_TTL_SECONDS = 60  # Billing should feel near-real-time on the dashboard
 SUB_PAGE_CAP = 1000
 CHARGE_PAGE_CAP = 5000
 

@@ -709,17 +709,65 @@ function _agoLabel(iso) {
   return `${d}d ago`;
 }
 
-// Kick off the live data fetch on page load. Failure is silent and leaves
-// the mockup placeholders visible — the freshness line will reflect any
-// per-source error if the fetch itself succeeded.
-fetch('/api/admin/metrics?range=7d&include_internal=false', { credentials: 'same-origin' })
-  .then(r => r.ok ? r.json() : null)
-  .then(data => { if (data) bindLiveData(data); })
-  .catch(() => { /* placeholders remain; freshness untouched */ });
+// Reusable fetcher for the unified /api/admin/metrics endpoint. Pass
+// {nocache: true} to bust the server-side per-source cache (Stripe,
+// Cloudflare, etc.) before fetching — used by the manual refresh button.
+function refreshLiveData({ nocache = false } = {}) {
+  const url = nocache
+    ? '/api/admin/metrics?range=7d&include_internal=false&nocache=1'
+    : '/api/admin/metrics?range=7d&include_internal=false';
+  return fetch(url, { credentials: 'same-origin' })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => { if (data) bindLiveData(data); })
+    .catch(() => { /* placeholders remain; freshness untouched */ });
+}
+
+// Refresh everything visible. Combines the unified metrics fetch with
+// the Users-tab data fetch so a single call updates the entire dashboard.
+function refreshAll({ nocache = false } = {}) {
+  refreshLiveData({ nocache });
+  loadUsersTabData();  // _usersDataPromise auto-clears on completion
+}
+
+// Initial load. Failure is silent and leaves placeholders visible.
+refreshLiveData();
 // Note: the eager loadUsersTabData() fire is at the bottom of this file,
 // AFTER the `let _usersDataPromise` declaration. Calling it here would
 // throw a ReferenceError because the let binding is in TDZ until line
 // 1223 executes — function decls hoist, `let`s do not.
+
+// Auto-poll every 60 seconds while the tab is visible. The Stripe and
+// RevenueCat caches are 60s; this cadence makes "refreshed Xm ago"
+// stay accurate without spamming the upstream APIs.
+const POLL_INTERVAL_MS = 60_000;
+setInterval(() => {
+  if (document.visibilityState === 'visible') refreshAll();
+}, POLL_INTERVAL_MS);
+// Refresh immediately when the tab regains focus (e.g. you switched
+// away to Slack and came back five minutes later).
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refreshAll();
+});
+
+// Make the "refreshed Xm ago" indicator a manual-refresh button.
+// Clicking it bypasses the server-side cache so values come straight
+// from upstream (Stripe, Cloudflare, etc.).
+(() => {
+  const refreshEl = document.querySelector('.last-refresh');
+  if (!refreshEl) return;
+  refreshEl.style.cursor = 'pointer';
+  refreshEl.title = 'Click to refresh now (bypasses server cache)';
+  refreshEl.addEventListener('click', () => {
+    const original = refreshEl.textContent;
+    refreshEl.textContent = 'refreshing…';
+    refreshAll({ nocache: true });
+    // The bindLiveData call inside refreshLiveData will overwrite the
+    // text on success; this fallback restores it if the fetch fails.
+    setTimeout(() => {
+      if (refreshEl.textContent === 'refreshing…') refreshEl.textContent = original;
+    }, 8000);
+  });
+})();
 
 // ─────────────────────────────────────────────────────────────────────────
 // Users tab data binding (Phase 3.5)
@@ -1217,6 +1265,10 @@ function bindNeedsAttention(data) {
 // Fetch Users tab data only when the user actually clicks into the tab —
 // saves a query on initial load. Cache the response so re-clicks don't
 // re-fetch.
+// In-flight promise lets multiple eager triggers (page load + tab click +
+// poll) coalesce onto one fetch. Cleared as soon as the fetch resolves so
+// the next call re-fetches fresh — no time-based caching here, the dashboard
+// trusts every call.
 let _usersDataPromise = null;
 function loadUsersTabData() {
   if (_usersDataPromise) return _usersDataPromise;
@@ -1231,7 +1283,9 @@ function loadUsersTabData() {
     bindUsersList(allUsers);
     bindPowerUsersList(powerUsers);
     bindNeedsAttention(attention);
-  }).catch(() => { _usersDataPromise = null; /* allow retry on next click */ });
+  }).finally(() => {
+    _usersDataPromise = null;  // clear so next call re-fetches
+  });
   return _usersDataPromise;
 }
 
@@ -1443,7 +1497,7 @@ function loadModelTabData() {
   _modelDataPromise = fetch('/api/admin/model/perf?range=90d', { credentials: 'same-origin' })
     .then(r => r.ok ? r.json() : null)
     .then(bindModelPerf)
-    .catch(() => { _modelDataPromise = null; });
+    .finally(() => { _modelDataPromise = null; });
   return _modelDataPromise;
 }
 
@@ -1632,7 +1686,7 @@ function loadInfraTabData() {
   ]).then(([health, cron]) => {
     bindInfraHealth(health);
     bindCronHealth(cron);
-  }).catch(() => { _infraDataPromise = null; });
+  }).finally(() => { _infraDataPromise = null; });
   return _infraDataPromise;
 }
 
