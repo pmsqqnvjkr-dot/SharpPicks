@@ -18,16 +18,18 @@ const PRINCIPLES = [
   `Capital preserved is capital compounding. Zero risk on a non-edge is a win.`,
 ];
 
-// Rotating market commentary. The first entry is dynamic and computed below.
-function buildCommentary(gap, gameCount) {
-  const gapStr = gap > 0 ? gap.toFixed(1) : '0.0';
-  const games = gameCount > 0 ? `all ${gameCount} games` : 'tonight\u2019s slate';
-  return [
-    `Market is pricing efficiently. Best opportunity fell ${gapStr}pp short of threshold.`,
-    `Books have absorbed the public. No structural mispricing detected in tonight's slate.`,
-    `Closing lines moved sharply on ${games}<span style="color:#6B8AC4;">\u2014</span>sharps already in. Edge gone.`,
-    `Sample is too thin. Signal-to-noise ratio doesn't justify risk on this slate.`,
-  ];
+// Stable date-seeded index so different articles surface on different days
+// without shuffling on every render within the same day.
+function dateSeedIndex(arrayLength) {
+  if (!arrayLength || arrayLength <= 0) return 0;
+  try {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    let hash = 0;
+    for (let i = 0; i < today.length; i++) hash = (hash * 31 + today.charCodeAt(i)) | 0;
+    return Math.abs(hash) % arrayLength;
+  } catch {
+    return 0;
+  }
 }
 
 // Fallback Sharp Journal articles used when PicksTab supplies no real insights.
@@ -102,18 +104,26 @@ export default function PassDay({
   const containerRef = useRef(null);
   const [mounted, setMounted] = useState(false);
 
-  const gap = Math.max(0, thresholdPct - topEdgePct);
-  const commentary = buildCommentary(gap, gamesScanned);
-
-  // Rotation state
-  const [principleIdx, setPrincipleIdx] = useState(0);
-  const [commentaryIdx, setCommentaryIdx] = useState(0);
-  const [articleIdx, setArticleIdx] = useState(0);
-
   // Prefer real insights from PicksTab; fall back to brand copy when empty.
   const articles = (furtherReadings && furtherReadings.length > 0)
     ? furtherReadings
     : (furtherReading ? [furtherReading] : FALLBACK_ARTICLES);
+
+  // Rotation state
+  const [principleIdx, setPrincipleIdx] = useState(0);
+  // Seed the initial article index by today's ET date so the first article
+  // varies day-to-day instead of always landing on articles[0].
+  const [articleIdx, setArticleIdx] = useState(() => dateSeedIndex(articles.length));
+
+  // Two data-driven bullets describing why this is a pass. Replaces the
+  // prior auto-rotating commentary carousel.
+  const gap = Math.max(0, thresholdPct - topEdgePct);
+  const bulletPoints = [
+    `${gamesScanned} game${gamesScanned === 1 ? '' : 's'} scanned, 0 cleared the +${thresholdPct.toFixed(1)}% threshold`,
+    topEdgePct > 0
+      ? `Best edge +${topEdgePct.toFixed(1)}% fell ${gap.toFixed(1)}pp short`
+      : 'No qualifying opportunity in tonight’s slate',
+  ];
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -124,14 +134,6 @@ export default function PassDay({
     }, 6000);
     return () => clearInterval(id);
   }, []);
-
-  // Auto-rotate commentary every 4.5s
-  useEffect(() => {
-    const id = setInterval(() => {
-      setCommentaryIdx(i => (i + 1) % commentary.length);
-    }, 4500);
-    return () => clearInterval(id);
-  }, [commentary.length]);
 
   // Auto-rotate articles every 7s (only if more than one)
   useEffect(() => {
@@ -161,7 +163,7 @@ export default function PassDay({
   const currentArticle = articles[articleIdx];
 
   return (
-    <div ref={containerRef} style={{ padding: '0 16px' }}>
+    <div ref={containerRef} style={{ padding: '0' }}>
       {/* 1. Hero */}
       <div className={mounted ? 'sp-fade-child' : ''} style={{ animationDelay: nextDelay() }}>
         <HeroCard
@@ -170,10 +172,7 @@ export default function PassDay({
           title="No qualifying edge."
           subtitle={`${gamesScanned} GAMES SCANNED \u00B7 TOP EDGE +${topEdgePct.toFixed(1)}% \u00B7 THRESHOLD +${thresholdPct.toFixed(1)}%`}
           verdictText={verdictText}
-          commentary={commentary[commentaryIdx]}
-          commentaryIdx={commentaryIdx}
-          commentaryCount={commentary.length}
-          onTapCommentary={() => setCommentaryIdx(i => (i + 1) % commentary.length)}
+          bulletPoints={bulletPoints}
           stats={heroStats}
           tagline="One pick beats five."
         />
