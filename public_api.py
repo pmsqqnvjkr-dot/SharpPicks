@@ -1320,6 +1320,111 @@ def market_report():
     return jsonify(build_market_report_dict(date_param, sport))
 
 
+@public_bp.route('/recap')
+def public_recap():
+    """Recap data for a single date. Drives the Evan HQ nightly recap
+    cron, which posts a one-tweet summary of yesterday's signal + result.
+
+    Query params:
+      date:  YYYY-MM-DD (defaults to yesterday in ET)
+      sport: optional filter ('nba' | 'mlb' | 'wnba'); omitted = pick the
+             highest-edge resolved Pick across all sports
+
+    Response shape:
+      no model run for the date OR no resolved signal:
+        { "date": "...", "available": false }
+      pass day (model ran, but no signal cleared):
+        { "date": "...", "available": true, "type": "no_signal" }
+      signal exists:
+        { "date": "...", "available": true, "type": "signal",
+          "sport": "MLB", "team_picked": "Boston Red Sox",
+          "opponent": "New York Yankees", "side": "Boston Red Sox -1.5",
+          "line": -1.5, "market_odds": -110, "closing_spread": -2.5,
+          "clv": 1.0, "result": "won" | "lost" | "push" | "pending" | "revoked",
+          "score_margin": 7, "profit_units": 1.0 }
+
+    `clv` is the CLV in points: positive = closing line moved in our
+    favor. `score_margin` is signed by the side we picked (positive = we
+    won by that many; negative = we lost by that many absolute value).
+    Pending and revoked picks are returned as-is so the caller can skip
+    them, different from `available=false` which means there's no Pick
+    row at all for that date.
+    """
+    et = ZoneInfo('America/New_York')
+    yesterday = (datetime.now(et).date() - timedelta(days=1)).strftime('%Y-%m-%d')
+    date_param = request.args.get('date', yesterday)
+    sport = _get_sport_filter()
+
+    # Was there a model run for this date? If not, available=false (the
+    # date might be in the future or before we existed).
+    run_q = ModelRun.query.filter_by(date=date_param)
+    if sport:
+        run_q = run_q.filter_by(sport=sport)
+    if not run_q.first():
+        return jsonify({'date': date_param, 'available': False})
+
+    # Find the highest-edge Pick for this date, optionally filtered by sport.
+    pick_q = Pick.query.filter_by(game_date=date_param)
+    if sport:
+        pick_q = pick_q.filter_by(sport=sport)
+    # Sort by edge_pct desc; if there are multiple picks the higher-edge
+    # one is the recap-worthy story.
+    pick = pick_q.order_by(Pick.edge_pct.desc()).first()
+
+    if not pick:
+        # Model ran but nothing cleared. Pass day.
+        return jsonify({'date': date_param, 'available': True, 'type': 'no_signal'})
+
+    # Compute score margin signed by our side. Positive means we won by N,
+    # negative means we lost by N. None when scores aren't recorded yet.
+    score_margin = None
+    if pick.home_score is not None and pick.away_score is not None:
+        raw_margin = pick.home_score - pick.away_score  # home perspective
+        side_norm = (pick.side or '').lower()
+        if pick.away_team and pick.away_team.lower() in side_norm:
+            score_margin = -raw_margin  # picked away, flip sign
+        else:
+            score_margin = raw_margin
+
+    return jsonify({
+        'date': date_param,
+        'available': True,
+        'type': 'signal',
+        'sport': (pick.sport or '').upper(),
+        'team_picked': _picked_team(pick),
+        'opponent': _opposing_team(pick),
+        'side': pick.side,
+        'line': pick.line,
+        'market_odds': pick.market_odds,
+        'closing_spread': pick.closing_spread,
+        'clv': pick.clv,
+        'result': pick.result,
+        'score_margin': score_margin,
+        'profit_units': pick.profit_units,
+        'edge_pct': pick.edge_pct,
+    })
+
+
+def _picked_team(pick):
+    side = (pick.side or '').strip()
+    away = (pick.away_team or '').strip()
+    home = (pick.home_team or '').strip()
+    if side.startswith(away):
+        return away
+    if side.startswith(home):
+        return home
+    return None
+
+
+def _opposing_team(pick):
+    picked = _picked_team(pick)
+    if picked == pick.away_team:
+        return pick.home_team
+    if picked == pick.home_team:
+        return pick.away_team
+    return None
+
+
 @public_bp.route('/discipline')
 def discipline_score():
     sport = _get_sport_filter()
