@@ -358,9 +358,11 @@ const SP_FMT = {
   pct:   (n) => (n == null ? '—' : n.toFixed(1) + '%'),
 };
 
-function setStat(label, value) {
+function setStat(label, value, suffixText) {
   // Find a .stat-row whose .label text matches `label` (case-insensitive),
-  // and replace its .value text node while preserving any .value-suffix.
+  // replace its .value text, and optionally update the .value-suffix.
+  // If suffixText is omitted, an existing suffix in markup is preserved
+  // as-is. If suffixText is null, the suffix is removed.
   const rows = document.querySelectorAll('.stat-row');
   for (const row of rows) {
     const lbl = row.querySelector('.label');
@@ -370,7 +372,18 @@ function setStat(label, value) {
     if (!val) continue;
     const suffix = val.querySelector('.value-suffix');
     val.textContent = value;
-    if (suffix) val.appendChild(suffix);
+    if (suffixText === null) {
+      // explicit removal
+    } else if (suffixText !== undefined) {
+      // overwrite or create
+      const sNode = suffix || document.createElement('span');
+      if (!suffix) sNode.className = 'value-suffix';
+      sNode.textContent = suffixText;
+      val.appendChild(sNode);
+    } else if (suffix) {
+      // preserve existing
+      val.appendChild(suffix);
+    }
     return true;
   }
   return false;
@@ -603,6 +616,24 @@ function bindLiveData(metrics) {
   const trafficSource = metrics.ga4?.payload || metrics.cloudflare?.payload;
   const traffic24h = trafficSource?.visitors_24h ?? trafficSource?.sessions_24h;
   if (traffic24h != null) setMovedRow('Traffic last 24h', SP_FMT.num(traffic24h));
+
+  // -- Traffic section overview stats. Every label-row below was
+  // hardcoded mockup (2,840 / 1,820 / 9,120 / 486 / 12.4k / 14.2) and
+  // never bound to a source. Wire each from its real upstream.
+  const ga4 = metrics.ga4?.payload || {};
+  const cf = metrics.cloudflare?.payload || {};
+  const gsc = metrics.gsc?.payload || {};
+  if (ga4.sessions != null)         setStat('Sessions (ga4)',          SP_FMT.num(ga4.sessions));
+  if (ga4.engaged_sessions != null) {
+    // Engaged sessions row has a percent suffix in the markup; preserve
+    // it by formatting the value to include the engagement_rate.
+    const pct = ga4.engagement_rate != null ? Math.round(ga4.engagement_rate * 100) : null;
+    setStat('Engaged sessions', SP_FMT.num(ga4.engaged_sessions), pct != null ? `${pct}%` : undefined);
+  }
+  if (cf.page_views != null)        setStat('Requests (cloudflare)',  SP_FMT.num(cf.page_views));
+  if (gsc.clicks != null)           setStat('Gsc clicks 28d',          SP_FMT.num(gsc.clicks));
+  if (gsc.impressions != null)      setStat('Gsc impressions 28d',     SP_FMT.num(gsc.impressions));
+  if (gsc.avg_position != null)     setStat('Avg position',            gsc.avg_position.toFixed(1));
 
   // Bet taps last 24h: events source returns by-surface dict for the
   // requested range (7d or 30d). The value here is taps in that window,
