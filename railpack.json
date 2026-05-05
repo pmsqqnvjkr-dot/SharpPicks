@@ -14,19 +14,26 @@
     "libatspi2.0-0", "libdbus-1-3", "libx11-6", "libx11-xcb1",
     "libxcb1", "libxext6", "libxshmfence1", "fonts-liberation"
   ],
+  "caches": {
+    "uv":         { "directory": "/root/.cache/uv",            "type": "shared" },
+    "npm":        { "directory": "/root/.npm",                 "type": "shared" },
+    "playwright": { "directory": "/root/.cache/ms-playwright", "type": "shared" }
+  },
   "steps": {
     "install": {
+      "caches": ["uv", "npm", "playwright"],
       "commands": [
         "uv sync --no-dev --no-install-project",
         "npm ci || npm install",
-        "(cd emails && npm install)"
+        "(cd emails && npm install)",
+        "uv run playwright install chromium"
       ]
     },
     "build": {
+      "inputs": [{ "step": "install" }],
       "commands": [
         "uv sync --no-dev --no-editable",
-        "npm run build",
-        "uv run playwright install chromium"
+        "npm run build"
       ]
     }
   },
