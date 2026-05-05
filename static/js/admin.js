@@ -648,6 +648,68 @@ function bindLiveData(metrics) {
     if (parts.length) freshnessEl.innerHTML = parts.join(' · ');
   }
 
+  // -- Hero MRR sparkline (last 14 days). Source: stripe.mrr_daily_90d.
+  // The mockup hardcodes an SVG polyline; replace with real-data points
+  // mapped to the 600x56 viewBox. Skip if the daily series is missing
+  // or every value is zero (don't blank the placeholder with a flat line).
+  const sparkPolyline = document.querySelector('.sparkline-wrap svg polyline');
+  if (sparkPolyline && Array.isArray(metrics.stripe?.payload?.mrr_daily_90d)) {
+    const last14 = metrics.stripe.payload.mrr_daily_90d.slice(-14);
+    const cents = last14.map(d => d.mrr_cents || 0);
+    const maxC = Math.max(...cents);
+    const minC = Math.min(...cents);
+    if (maxC > 0 && last14.length >= 2) {
+      // Map each point to (x, y) in the 600x56 viewBox. y inverts so
+      // higher MRR sits higher on the chart. Add 4px padding top+bottom.
+      const range = maxC - minC || 1;
+      const w = 600, h = 56, pad = 4;
+      const points = last14.map((d, i) => {
+        const x = (i / (last14.length - 1)) * w;
+        const y = h - pad - ((d.mrr_cents - minC) / range) * (h - pad * 2);
+        return `${x.toFixed(0)},${y.toFixed(1)}`;
+      }).join(' ');
+      sparkPolyline.setAttribute('points', points);
+    }
+  }
+
+  // -- Traffic chart (Command tab, last 30 days, line series). Source:
+  // cloudflare.daily array of {date, page_views, visits}. Falls back
+  // gracefully if cf source is stale or missing.
+  const cfDaily = metrics.cloudflare?.payload?.daily;
+  const trafficCanvas = document.getElementById('chart-traffic');
+  const trafficChart = trafficCanvas && Chart.getChart(trafficCanvas);
+  if (trafficChart && Array.isArray(cfDaily) && cfDaily.length > 0) {
+    const counts = cfDaily.map(d => d.visits ?? d.page_views ?? 0);
+    if (_hasRealValues(counts, 5)) {
+      trafficChart.data.labels = cfDaily.map(d => (d.date || '').slice(5));
+      trafficChart.data.datasets[0].data = counts;
+      trafficChart.update('none');
+    }
+  }
+
+  // -- Top signals by tap rate · 30d (events.top_signals) --
+  // events_source returns up to 10 {signal_id, taps} entries sorted by
+  // tap count. Render into #top-signals-list as a top-list.
+  const topSignals = metrics.events?.payload?.top_signals;
+  const topListEl = document.getElementById('top-signals-list');
+  if (topListEl && Array.isArray(topSignals)) {
+    topListEl.innerHTML = '';
+    if (topSignals.length === 0) {
+      topListEl.innerHTML = '<div class="top-list-row"><span class="top-list-rank">—</span><span class="top-list-label">No bet taps in the last 30 days.</span><span class="top-list-value">—</span></div>';
+    } else {
+      topSignals.slice(0, 4).forEach((sig, i) => {
+        const row = document.createElement('div');
+        row.className = 'top-list-row';
+        row.innerHTML = `
+          <span class="top-list-rank">${i + 1}.</span>
+          <span class="top-list-label">${sig.signal_id}</span>
+          <span class="top-list-value">${sig.taps} tap${sig.taps === 1 ? '' : 's'}</span>
+        `;
+        topListEl.appendChild(row);
+      });
+    }
+  }
+
   // -- Recent bet taps (events.recent_bet_taps) --
   // events_source emits the last 5 bet_tap events with timestamps and
   // surfaces. Renders into #recent-bet-taps, replacing the empty
@@ -736,11 +798,15 @@ function refreshLiveData({ nocache = false } = {}) {
     .catch(() => { /* placeholders remain; freshness untouched */ });
 }
 
-// Refresh everything visible. Combines the unified metrics fetch with
-// the Users-tab data fetch so a single call updates the entire dashboard.
+// Refresh everything visible. Hits every tab's data source so a single
+// 60s tick keeps Command, Users, Model, and Infra all current. Each
+// loader function uses an in-flight promise so concurrent triggers
+// coalesce, then clears so the next call re-fetches fresh.
 function refreshAll({ nocache = false } = {}) {
   refreshLiveData({ nocache });
-  loadUsersTabData();  // _usersDataPromise auto-clears on completion
+  loadUsersTabData();
+  loadModelTabData();
+  loadInfraTabData();
 }
 
 // Initial load. Failure is silent and leaves placeholders visible.
@@ -1017,10 +1083,10 @@ function bindUsersActivity(data) {
     }
   }
 
-  // Replace the DAU 90d bar chart with real daily counts. Series is
-  // backed by session_start events (instrumented 2026-03-24); need >= 7
-  // days of activity before we'll render over the placeholder, so
-  // brand-new installs show the mockup until enough data accrues.
+  // Replace the DAU 90d bar chart (Users tab) with real daily counts.
+  // Series is backed by session_start events (instrumented 2026-03-24);
+  // need >= 7 days of activity before we'll render over the placeholder,
+  // so brand-new installs show the mockup until enough data accrues.
   const dauCanvas = document.getElementById('chart-users-dau');
   const dauChart = dauCanvas && Chart.getChart(dauCanvas);
   if (dauChart && Array.isArray(data.dau_daily_90d)) {
@@ -1029,6 +1095,20 @@ function bindUsersActivity(data) {
       dauChart.data.labels = data.dau_daily_90d.map(d => d.date.slice(5));
       dauChart.data.datasets[0].data = counts;
       dauChart.update('none');
+    }
+  }
+
+  // Same data, the trimmed-to-30d view that lives on the Command tab.
+  // Different canvas id, same threshold gate.
+  const dauCmdCanvas = document.getElementById('chart-dau');
+  const dauCmdChart = dauCmdCanvas && Chart.getChart(dauCmdCanvas);
+  if (dauCmdChart && Array.isArray(data.dau_daily_90d)) {
+    const last30 = data.dau_daily_90d.slice(-30);
+    const counts = last30.map(d => d.users);
+    if (_hasRealValues(counts, 7)) {
+      dauCmdChart.data.labels = last30.map(d => d.date.slice(5));
+      dauCmdChart.data.datasets[0].data = counts;
+      dauCmdChart.update('none');
     }
   }
 
@@ -1504,27 +1584,9 @@ function bindModelPerf(data) {
     _bySectionTitle('mei distribution', 'No scored picks in the last 30 days.');
   }
 
-  // Last 10 signals table
-  if (Array.isArray(data.last_10_signals)) {
-    // The mockup renders signals as .top-list or .pipeline-row style.
-    // Find a target container in the Model panel.
-    const tbl = document.querySelector('#panel-model .top-list');
-    if (tbl) {
-      tbl.innerHTML = '';
-      data.last_10_signals.forEach((s, i) => {
-        const row = document.createElement('div');
-        row.className = 'top-list-row';
-        const RESULT_LABEL = { won: 'WIN', lost: 'LOSS', push: 'PUSH', pending: 'PEND' };
-        const resultBadge = RESULT_LABEL[s.result] || 'PEND';
-        row.innerHTML = `
-          <span class="top-list-rank">${i + 1}</span>
-          <span class="top-list-label">${s.matchup} · ${s.side} ${s.line}</span>
-          <span class="top-list-value">${resultBadge} ${s.edge_pct ? s.edge_pct.toFixed(1) : '—'}%</span>
-        `;
-        tbl.appendChild(row);
-      });
-    }
-  }
+  // Note: Last 10 signals on the Model tab is rendered into
+  // #recent-signals via bindLiveData using the events source's
+  // recent_signals array. No duplicate render here.
 }
 
 let _modelDataPromise = null;
