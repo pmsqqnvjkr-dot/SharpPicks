@@ -50,15 +50,18 @@ SPORT_CONFIG = {
         'name': 'WNBA',
         'display_name': 'WNBA Basketball',
         'active': True,
-        'live': False,
+        'live': True,
         'model_phase': 'calibration',
 
-        'sigma': 10.5,
+        # Initial 2022-2024 train: cv_std_raw 11.3, MAE 13.3 (calib_ratio 0.85,
+        # overconfident). Floor 16.0 inflates published sigma to ~1.21 ratio.
+        # Beta calibration; revisit with 2026 data when corpus refreshes.
+        'sigma': 16.0,
         'model_weight': 0.35,
         'edge_threshold_pct': 3.5,
         'max_edge_pct': 8.0,
-        'margin_std_floor': 7.0,
-        'margin_std_ceiling': 13.0,
+        'margin_std_floor': 16.0,
+        'margin_std_ceiling': 18.0,
         'standard_odds': -110,
 
         'spread_edge_curve': [

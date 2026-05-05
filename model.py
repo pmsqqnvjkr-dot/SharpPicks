@@ -338,12 +338,22 @@ class EnsemblePredictor:
         ratings_cols = ""
         ratings_join = ""
         if has_ratings:
-            ratings_cols = """,
-                hr.pace as home_pace, hr.off_rating as home_off_rtg, 
+            if self.sport == 'wnba':
+                ratings_cols = """,
+                hr.pace as home_pace, hr.ortg as home_off_rtg,
+                hr.drtg as home_def_rtg, hr.nrtg as home_net_rtg,
+                ar.pace as away_pace, ar.ortg as away_off_rtg,
+                ar.drtg as away_def_rtg, ar.nrtg as away_net_rtg"""
+                ratings_join = f"""
+            LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team AND g.season = hr.season
+            LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team AND g.season = ar.season"""
+            else:
+                ratings_cols = """,
+                hr.pace as home_pace, hr.off_rating as home_off_rtg,
                 hr.def_rating as home_def_rtg, hr.net_rating as home_net_rtg,
                 ar.pace as away_pace, ar.off_rating as away_off_rtg,
                 ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg"""
-            ratings_join = f"""
+                ratings_join = f"""
             LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team_name
             LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_name"""
 
@@ -1411,12 +1421,22 @@ class EnsemblePredictor:
         ratings_cols = ""
         ratings_join = ""
         if has_ratings:
-            ratings_cols = """,
+            if self.sport == 'wnba':
+                ratings_cols = """,
+                hr.pace as home_pace, hr.ortg as home_off_rtg,
+                hr.drtg as home_def_rtg, hr.nrtg as home_net_rtg,
+                ar.pace as away_pace, ar.ortg as away_off_rtg,
+                ar.drtg as away_def_rtg, ar.nrtg as away_net_rtg"""
+                ratings_join = f"""
+            LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team AND g.season = hr.season
+            LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team AND g.season = ar.season"""
+            else:
+                ratings_cols = """,
                 hr.pace as home_pace, hr.off_rating as home_off_rtg,
                 hr.def_rating as home_def_rtg, hr.net_rating as home_net_rtg,
                 ar.pace as away_pace, ar.off_rating as away_off_rtg,
                 ar.def_rating as away_def_rtg, ar.net_rating as away_net_rtg"""
-            ratings_join = f"""
+                ratings_join = f"""
             LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team_name
             LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team_name"""
 
