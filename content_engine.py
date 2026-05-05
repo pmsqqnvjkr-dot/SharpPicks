@@ -716,9 +716,13 @@ def _enrich_with_evening_fields(data, date_str, sport):
     data['picks_pending'] = pending_picks
 
     # ---- per-game final_score lookup from sport-specific games table ----
-    final_scores = {}  # keyed by (away, home) tuple of full names
+    # Resolve both sides of the join to canonical abbreviations so naming
+    # differences (full name vs nickname vs abbr) between the games table
+    # and the games_detail JSON do not cause silent misses.
+    final_scores = {}  # keyed by (away_abbr, home_abbr)
     games_settled = 0
     market_beat_count = 0
+    snap_rows = {}
     try:
         conn = sqlite3.connect(get_sqlite_path())
         conn.row_factory = sqlite3.Row
@@ -730,35 +734,53 @@ def _enrich_with_evening_fields(data, date_str, sport):
             (date_str,),
         )
         for r in cur.fetchall():
+            away_abbr = _resolve_team_abbr(r['away_team'], sport)
+            home_abbr = _resolve_team_abbr(r['home_team'], sport)
+            snap_rows[(away_abbr, home_abbr)] = r
             away_score = r['away_score']
             home_score = r['home_score']
             if away_score is not None and home_score is not None:
-                final_scores[(r['away_team'], r['home_team'])] = (away_score, home_score)
+                final_scores[(away_abbr, home_abbr)] = (away_score, home_score)
                 games_settled += 1
         conn.close()
     except Exception:
         pass
+
+    # Fallback: if the games table didn't yield any settled rows (common in
+    # QA when the schedule table isn't populated), use Pick.home_score and
+    # Pick.away_score as a secondary source so signal outcomes still surface.
+    if games_settled == 0:
+        for p in picks:
+            if p.home_score is not None and p.away_score is not None:
+                a_abbr = _resolve_team_abbr(p.away_team, sport)
+                h_abbr = _resolve_team_abbr(p.home_team, sport)
+                final_scores[(a_abbr, h_abbr)] = (p.away_score, p.home_score)
+                games_settled += 1
+
     data['games_settled'] = games_settled
 
     # ---- attach final_score and signal outcome to each game ----
     pick_lookup = {}
     for p in picks:
-        pick_lookup[(p.away_team, p.home_team)] = p
+        a_abbr = _resolve_team_abbr(p.away_team, sport)
+        h_abbr = _resolve_team_abbr(p.home_team, sport)
+        pick_lookup[(a_abbr, h_abbr)] = p
 
     for g in data.get('games', []):
-        away_full = g.get('away_name') or g.get('away_team', '')
-        home_full = g.get('home_name') or g.get('home_team', '')
-        score = final_scores.get((away_full, home_full))
+        # game_entry was built with abbreviations as away_team/home_team
+        away_abbr = g.get('away_team', '')
+        home_abbr = g.get('home_team', '')
+        score = final_scores.get((away_abbr, home_abbr))
         if score:
             away_s, home_s = score
-            g['final_score'] = f"{g.get('away_team', '')} {away_s}, {g.get('home_team', '')} {home_s}"
-            g['final_score_display'] = f"Final {g.get('away_team', '')} {away_s}-{home_s} {g.get('home_team', '')}"
+            g['final_score'] = f"{away_abbr} {away_s}, {home_abbr} {home_s}"
+            g['final_score_display'] = f"Final {away_abbr} {away_s}-{home_s} {home_abbr}"
         else:
             g['final_score'] = None
             g['final_score_display'] = None
 
         if g.get('signal'):
-            p = pick_lookup.get((away_full, home_full))
+            p = pick_lookup.get((away_abbr, home_abbr))
             if p:
                 outcome = (p.result or '').lower()
                 if outcome == 'win':
@@ -777,9 +799,9 @@ def _enrich_with_evening_fields(data, date_str, sport):
     # ---- enrich data.signal with outcome + closing line + clv ----
     sig = data.get('signal')
     if sig:
-        away_full = sig.get('away_name') or sig.get('away_team', '')
-        home_full = sig.get('home_name') or sig.get('home_team', '')
-        p = pick_lookup.get((away_full, home_full))
+        away_abbr = sig.get('away_team', '')
+        home_abbr = sig.get('home_team', '')
+        p = pick_lookup.get((away_abbr, home_abbr))
         if p:
             outcome = (p.result or '').lower()
             sig['outcome'] = (
@@ -791,34 +813,25 @@ def _enrich_with_evening_fields(data, date_str, sport):
             sig['units_won'] = p.profit_units
             sig['closing_line'] = p.closing_spread if p.closing_spread is not None else p.line
             sig['clv'] = p.clv
-            sig['final_score'] = data['games'][0].get('final_score') if data.get('games') else None
+            score = final_scores.get((away_abbr, home_abbr))
+            if score:
+                away_s, home_s = score
+                sig['final_score'] = f"{away_abbr} {away_s}, {home_abbr} {home_s}"
+            else:
+                sig['final_score'] = None
         else:
             sig['outcome'] = None
             sig['units_won'] = None
             sig['closing_line'] = None
             sig['clv'] = None
+            sig['final_score'] = None
 
     # ---- closing_line_audit: per-game open/close/model + verdict ----
     audit_games = []
-    try:
-        conn = sqlite3.connect(get_sqlite_path())
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        tbl = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
-        cur.execute(
-            f"SELECT away_team, home_team, spread_home, spread_home_open "
-            f"FROM {tbl} WHERE game_date = ?",
-            (date_str,),
-        )
-        snap_rows = {(r['away_team'], r['home_team']): r for r in cur.fetchall()}
-        conn.close()
-    except Exception:
-        snap_rows = {}
-
     for g in data.get('games', []):
-        away_full = g.get('away_name') or g.get('away_team', '')
-        home_full = g.get('home_name') or g.get('home_team', '')
-        snap = snap_rows.get((away_full, home_full))
+        away_abbr = g.get('away_team', '')
+        home_abbr = g.get('home_team', '')
+        snap = snap_rows.get((away_abbr, home_abbr))
         if not snap:
             continue
         open_line = snap['spread_home_open']
@@ -833,7 +846,7 @@ def _enrich_with_evening_fields(data, date_str, sport):
         # needed to cover (push or loss against model line). Falls back to
         # gap-distance heuristic for ungraded games.
         gap = abs(close_line - model_line)
-        p = pick_lookup.get((away_full, home_full))
+        p = pick_lookup.get((away_abbr, home_abbr))
         graded = p and (p.result or '').lower() in ('win', 'loss', 'push')
         if graded:
             outcome = (p.result or '').lower()
@@ -1402,11 +1415,10 @@ def _render_market_report(date_str, phase):
     if not data:
         abort(404)
 
-    # Evening edition gate: at least one game must have settled. The cron
-    # is best-effort at 11:30 PM ET. Late West Coast games can leave the
-    # evening URL 404 until they grade, then the cron republishes.
-    if phase == 'evening' and not data.get('games_settled', 0):
-        abort(404)
+    # Evening edition: render whenever a model run exists for the slate. If
+    # no games have settled yet, the page shows PENDING states and the cron
+    # republishes once results land. Sitemap (sitemap_content) still gates
+    # on games_settled > 0 so unsettled evenings are not indexed.
 
     seed = f"{sport}-{date_str}-market-report-{phase}"
     overview_blocks = _format_blocks(
