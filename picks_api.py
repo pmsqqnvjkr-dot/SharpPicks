@@ -281,6 +281,21 @@ def _get_et_date():
     return now_et.strftime('%Y-%m-%d')
 
 
+def _get_et_calendar_date():
+    """Current ET calendar date with no betting-day shift.
+
+    Use this for slate/games endpoints (e.g. /picks/market) that should
+    roll at midnight. _get_et_date() returns the prior day until 2:30am
+    ET, which is the correct semantic for /picks/today (last night's pick
+    stays visible) but wrong for the slate.
+    """
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d')
+    except ImportError:
+        return (datetime.utcnow() - timedelta(hours=5)).strftime('%Y-%m-%d')
+
+
 @picks_bp.route('/today')
 def today():
     today_str = _get_et_date()
@@ -794,7 +809,7 @@ def market_view():
     """Today's game board with spreads, totals, moneylines, and 1H lines.
     Falls back to the next upcoming date if today has no games.
     Optional ?date=YYYY-MM-DD to fetch a specific date."""
-    today_str = request.args.get('date', '').strip() or _get_et_date()
+    today_str = request.args.get('date', '').strip() or _get_et_calendar_date()
     sport = request.args.get('sport', 'nba')
     games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
 
