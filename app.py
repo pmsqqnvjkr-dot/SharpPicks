@@ -5098,6 +5098,25 @@ def cron_mlb_grade():
     return log_cron('mlb_grade', grade_mlb_picks_job)
 
 
+@app.route('/api/cron/wnba-run-model', methods=['GET', 'POST'])
+@verify_cron
+def cron_wnba_run_model():
+    """Dedicated WNBA model run, scheduled separately from NBA so calibration
+    runs land in their own slot (noon ET) rather than sharing NBA's 10 AM
+    window. Mirrors mlb-run-model. Excluded from generic /run-model below
+    via sports_with_own_cron."""
+    force = request.args.get('force', 'false').lower() == 'true'
+    date_override = request.args.get('date', '').strip() or None
+
+    def _run():
+        from model_service import run_model_and_log
+        return run_model_and_log(
+            app, sport='wnba', force=force, date_override=date_override,
+            send_notifications=True,
+        )
+    return log_cron_async('wnba_run_model', _run, skip_throttle=True)
+
+
 @app.route('/api/admin/regrade-pick/<pick_id>', methods=['POST'])
 def regrade_pick(pick_id):
     """Re-grade a pick with corrected side-detection logic. Admin only."""
@@ -5501,7 +5520,9 @@ def cron_run_model():
             print(f"[model-run] Ratings refresh failed (non-fatal): {e}")
         results = {}
         live = get_live_sports()
-        sports_with_own_cron = {'mlb'}
+        # WNBA gets its own /api/cron/wnba-run-model so the noon ET model
+        # window stays separate from NBA's 10 AM. MLB has its own cron too.
+        sports_with_own_cron = {'mlb', 'wnba'}
         run_sports = [s for s in live if s not in sports_with_own_cron]
         for sport in run_sports:
             results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override, send_notifications=False)
