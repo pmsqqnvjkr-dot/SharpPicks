@@ -9,6 +9,7 @@ import { trackEvent } from '../../utils/eventTracker';
 import teamAbbr from '../../utils/teamAbbr';
 import sportDisplay from '../../utils/sportDisplay';
 import openSignup from '../../utils/openSignup';
+import inferGameStatus from '../../utils/inferGameStatus';
 
 const PROD_URL = 'https://app.sharppicks.ai';
 const MV_API_BASE = Capacitor.isNativePlatform() ? PROD_URL : '';
@@ -1538,6 +1539,15 @@ export default function MarketView({ onBack }) {
         };
       });
     }
+    // Fallback: any game still marked 'scheduled' whose start time has
+    // passed gets reclassified by inferGameStatus. Catches games the DB
+    // cron + live-scores feed haven't promoted yet, plus past slates
+    // where live-scores is skipped entirely.
+    merged = merged.map(g => {
+      if (g.status !== 'scheduled') return g;
+      const inferred = inferGameStatus(g);
+      return inferred ? { ...g, status: inferred } : g;
+    });
     return merged;
   }, [rawGames, liveScores, mvSlateIsToday]);
 
@@ -1890,6 +1900,13 @@ export function GameSlate({ preModel = false, onGameCount }) {
         return { ...updated, home_score: live.home_score, away_score: live.away_score, status: isFinal ? 'final' : 'live', live_clock: live.clock, live_period: live.period, live_state: live.state };
       });
     }
+    // Fallback: reclassify any game still marked 'scheduled' whose start
+    // time has passed. See inferGameStatus.js for the duration window.
+    merged = merged.map(g => {
+      if (g.status !== 'scheduled') return g;
+      const inferred = inferGameStatus(g);
+      return inferred ? { ...g, status: inferred } : g;
+    });
     return merged;
   }, [rawGames, liveScores, isToday]);
 
