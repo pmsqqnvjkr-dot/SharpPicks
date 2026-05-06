@@ -396,7 +396,7 @@ def _user_tags(u: User, logins_30d: int, has_ios_purchase: bool, days_since_logi
             tags.append('paid_monthly')
         else:
             tags.append('paid')
-    elif status == 'trial':
+    elif status in ('trial', 'trialing'):
         tags.append('trial')
         # Secondary indicator: what plan they're trialing into. Helps
         # the operator see at a glance whether a trial cancellation
@@ -456,7 +456,7 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
     if segment == 'paid':
         q = q.filter(User.subscription_status == 'active')
     elif segment == 'trial':
-        q = q.filter(User.subscription_status == 'trial')
+        q = q.filter(User.subscription_status.in_(('trial', 'trialing')))
     elif segment == 'churned':
         q = q.filter(or_(
             User.subscription_status == 'cancelled',

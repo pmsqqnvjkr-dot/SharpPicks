@@ -933,7 +933,7 @@ def command_center_data():
     # counts reflect actual paying customers only. Comped users still
     # count toward total_users.
     active_subs = [u for u in users if u.subscription_status == 'active' and not u.comped]
-    trial_users = [u for u in users if u.subscription_status == 'trial' and not u.comped]
+    trial_users = [u for u in users if u.subscription_status in ('trial', 'trialing') and not u.comped]
     free_users = [u for u in users if u.subscription_status in ('free', None, '')]
     annual_subs = [u for u in active_subs if u.subscription_plan and 'annual' in u.subscription_plan.lower()]
     monthly_subs = [u for u in active_subs if u.subscription_plan and 'month' in u.subscription_plan.lower()]
@@ -1078,7 +1078,7 @@ def command_center_data():
             tier = 'founding'
         elif u.subscription_status == 'active':
             tier = 'pro'
-        elif u.subscription_status == 'trial':
+        elif u.subscription_status in ('trial', 'trialing'):
             tier = 'trial'
         users_data.append({
             'id': u.id,

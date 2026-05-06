@@ -402,11 +402,17 @@ const SP_FMT = {
 };
 
 function setStat(label, value, suffixText) {
-  // Find a .stat-row whose .label text matches `label` (case-insensitive),
+  // Find every .stat-row whose .label text matches `label` (case-insensitive),
   // replace its .value text, and optionally update the .value-suffix.
   // If suffixText is omitted, an existing suffix in markup is preserved
   // as-is. If suffixText is null, the suffix is removed.
+  //
+  // Walks ALL matches because admin.html intentionally duplicates rows
+  // across tabs (Command "user activity" and Users "activity overview"
+  // both render Dau today / Wau (7d) / etc). Stopping at the first match
+  // left the second tab stuck on whatever value shipped in the HTML.
   const rows = document.querySelectorAll('.stat-row');
+  let updated = 0;
   for (const row of rows) {
     const lbl = row.querySelector('.label');
     if (!lbl) continue;
@@ -427,9 +433,9 @@ function setStat(label, value, suffixText) {
       // preserve existing
       val.appendChild(suffix);
     }
-    return true;
+    updated++;
   }
-  return false;
+  return updated > 0;
 }
 
 function setMovedRow(label, value, deltaText, deltaClass) {
@@ -1091,7 +1097,7 @@ function bindUsersActivity(data) {
     } else {
       sentence = bits.join(', ') + '.';
       if (power != null && power > 0) sentence += ` ${power} power user${power === 1 ? '' : 's'} drive disproportionate engagement.`;
-      if (attn > 0) sentence += ` ${attn} cancellation${attn === 1 ? '' : 's'} scheduled — save window open.`;
+      if (attn > 0) sentence += ` ${attn} cancellation${attn === 1 ? '' : 's'} scheduled. Save window open.`;
     }
     headlineEl.textContent = sentence;
   })();
@@ -1206,7 +1212,7 @@ function bindUsersActivity(data) {
       cohorts.map(c => (c.retention_by_week || [])[4] || 0).reduce((a, b) => a + b, 0) / cohorts.length
     );
     if (avgWeek1 === 0 && avgWeek4 === 0) {
-      _bySectionTitle('retention', `No cohort retention yet — table will fill in as users return week-over-week.`);
+      _bySectionTitle('retention', `No cohort retention yet. Table will fill in as users return week-over-week.`);
     } else {
       _bySectionTitle('retention', `Week-1 retention averages ${avgWeek1}% across the last ${cohorts.length} cohorts. Week-4 averages ${avgWeek4}%.`);
     }
