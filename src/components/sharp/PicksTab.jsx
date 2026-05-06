@@ -21,6 +21,7 @@ import PassDay from '../signals/PassDay';
 import DarkDay from '../signals/DarkDay';
 import WNBAPreLaunchScreen from './WNBAPreLaunchScreen';
 import CalibrationBanner from '../brand/CalibrationBanner';
+import DailyTopSignalCard from './DailyTopSignalCard';
 import { FEATURE_EVAN_COLE_READ, FEATURE_DISCIPLINE_ARTICLES, FEATURE_EVENING_RECAP } from '../../config/featureFlags';
 
 // Sport-aware calibration banner copy. NBA in deployment phase -> no banner.
@@ -1308,7 +1309,11 @@ export default function PicksTab({ onNavigate }) {
                     });
                   }} />
                 ) : (
-                  <FreePickNotice onUpgrade={() => { if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); } else { setShowAuth(true); } }} />
+                  <DailyTopSignalCard
+                    pick={todayData}
+                    sport={sport}
+                    onUpgrade={() => { if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); } else { setShowAuth(true); } }}
+                  />
                 )}
               </>
             )}
