@@ -75,7 +75,7 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
       return;
     }
 
-    const type = accountType || 'trial';
+    const type = accountType || (isIOS ? 'free' : (isFreeView ? 'free' : 'trial'));
     const result = await register(email, password, firstName.trim(), type);
 
     if (result.success) {
@@ -343,7 +343,7 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
             </button>
           </div>
         ) : (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={(e) => handleSubmit(e, mode === 'register' ? (isFreeView ? 'free' : 'trial') : undefined)}>
           {mode === 'register' && (
             <div style={{ marginBottom: '12px' }}>
               <label style={{
