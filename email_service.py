@@ -580,11 +580,17 @@ def send_result_email(to, pick):
     clv_points = round(float(clv_val), 1) if clv_val is not None else None
     model_prob = round(float(model_prob_raw) * 100, 1) if model_prob_raw else 0
 
-    cover_margin = None
-    if home_score is not None and away_score is not None and signal_line is not None:
-        spread = float(signal_line)
-        actual_margin = float(away_score) - float(home_score)
-        cover_margin = round(actual_margin + spread, 1)
+    # Cover margin must be computed from the bet side's perspective. The
+    # previous formula (away - home + line) was hard-coded to the away
+    # team and produced wrong-sign output on home picks (e.g. Pistons -3.5
+    # winning by 10 was rendered as -13.5 instead of +6.5). Use the
+    # canonical helper, which resolves home vs away from the pick text.
+    from utils.clv import compute_cover_margin
+    home_team_local = (d.get('home_team', '') if d else getattr(pick, 'home_team', '')) or ''
+    away_team_local = (d.get('away_team', '') if d else getattr(pick, 'away_team', '')) or ''
+    cover_margin = compute_cover_margin(
+        home_score, away_score, signal_line, side, home_team_local, away_team_local,
+    )
 
     try:
         from models import Pick
@@ -720,13 +726,14 @@ def send_weekly_summary(to, first_name=None, stats=None):
 
         for p in week_picks:
             from utils.email_helpers import fmt_line
+            from utils.clv import compute_cover_margin
             weekly_picks_list.append({
                 'result': 'W' if p.result == 'win' else 'L',
                 'team': (p.side or '').split(' ')[-1] if p.side else '',
                 'line': fmt_line(p.line),
                 'score_away': p.away_score if p.away_score is not None else '--',
                 'score_home': p.home_score if p.home_score is not None else '--',
-                'cover_margin': round(float(p.away_score or 0) - float(p.home_score or 0) + float(p.line or 0), 1) if p.away_score is not None and p.home_score is not None else None,
+                'cover_margin': compute_cover_margin(p.home_score, p.away_score, p.line, p.side, p.home_team, p.away_team),
                 'edge': round(p.edge_pct or 0, 1),
                 'clv': round(float(p.clv), 1) if p.clv is not None else None,
             })

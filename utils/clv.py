@@ -104,3 +104,42 @@ def clv_points(pick_line, closing_picked):
     if pick_line is None or closing_picked is None:
         return None
     return float(pick_line) - float(closing_picked)
+
+
+def compute_cover_margin(home_score, away_score, line, side, home_team, away_team):
+    """Cover margin in points, from the bet side's perspective.
+
+    Convention
+    ----------
+    - Positive: bet side covered the spread by N points.
+    - Negative: bet side failed to cover by N points.
+    - Zero: push (exact).
+    - None: not gradable (missing scores or line, or `side` does not
+      resolve to home / away).
+
+    Formula: team_margin + line, where team_margin is the bet side's
+    score margin (their score minus opponent's). `line` is in
+    PICKED-SIDE perspective per the clv.py convention (negative when
+    picked side is favored, positive when picked side is dog).
+
+    Examples (Pistons -3.5 home, final DET 111 - CLE 101):
+        home pick:  team_margin = 111 - 101 = +10, line = -3.5
+                    cover = +10 + (-3.5) = +6.5  (covered)
+        away pick:  team_margin = 101 - 111 = -10, line = +3.5
+                    cover = -10 + 3.5 = -6.5  (failed to cover)
+    """
+    if home_score is None or away_score is None or line is None:
+        return None
+
+    from types import SimpleNamespace
+    pick_like = SimpleNamespace(side=side, home_team=home_team, away_team=away_team)
+    side_label = resolve_pick_side(pick_like)
+    if side_label is None:
+        return None
+
+    if side_label == 'home':
+        team_margin = float(home_score) - float(away_score)
+    else:
+        team_margin = float(away_score) - float(home_score)
+
+    return round(team_margin + float(line), 1)

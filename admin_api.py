@@ -366,6 +366,16 @@ def clear_today():
     try:
         for pick_id in pick_ids:
             ModelRun.query.filter_by(pick_id=pick_id).update({'pick_id': None})
+            # Void any pending tracked bets BEFORE detaching pick_id, so
+            # users see them surface in the Withdrawn bucket instead of
+            # being stranded as Active forever (no Pick row left to grade
+            # against, and no orphan sweep covers result IS NULL with
+            # pick_id IS NULL).
+            TrackedBet.query.filter_by(pick_id=pick_id, result=None).update({
+                'result': 'revoked',
+                'profit': 0.0,
+                'settled_at': datetime.now(),
+            })
             TrackedBet.query.filter_by(pick_id=pick_id).update({'pick_id': None})
             UserBet.query.filter_by(pick_id=pick_id).delete()
 
@@ -406,6 +416,13 @@ def delete_live_pick():
     pick_id = pick.id
     info = f"{pick.away_team} @ {pick.home_team} ({pick.side})"
     ModelRun.query.filter_by(pick_id=pick_id).update({'pick_id': None})
+    # Void pending tracked bets before detaching, so they end up in the
+    # Withdrawn bucket rather than stranded as Active. See clear-today.
+    TrackedBet.query.filter_by(pick_id=pick_id, result=None).update({
+        'result': 'revoked',
+        'profit': 0.0,
+        'settled_at': datetime.now(),
+    })
     TrackedBet.query.filter_by(pick_id=pick_id).update({'pick_id': None})
     UserBet.query.filter_by(pick_id=pick_id).delete()
     db.session.delete(pick)
