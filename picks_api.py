@@ -1190,7 +1190,22 @@ def live_scores():
 
     scores = []
     for event in data.get('events', []):
-        event_date = (event.get('date', '') or '')[:10]
+        event_dt_str = event.get('date', '') or ''
+        # Convert ESPN's UTC event start to ET-date for comparison.
+        # ESPN's `date` field is the start time in UTC; for late-night ET
+        # games (e.g. 8:41pm ET start) the UTC timestamp rolls into the
+        # next UTC day. The previous code compared UTC date strings
+        # directly to today_str (ET), so yesterday's late-finishing games
+        # passed the != check and leaked into today's response with
+        # STATUS_FINAL. The MarketView merge keyed those by team-only,
+        # stamping today's scheduled rows with yesterday's scores.
+        try:
+            ev_dt = _dt.fromisoformat(event_dt_str.replace('Z', '+00:00'))
+            if ev_dt.tzinfo is None:
+                ev_dt = ev_dt.replace(tzinfo=_tz.utc)
+            event_date = ev_dt.astimezone(_tz(_td(hours=-4))).strftime('%Y-%m-%d')
+        except Exception:
+            event_date = event_dt_str[:10]
         comp = event.get('competitions', [{}])[0]
         status = comp.get('status', {})
         status_type = status.get('type', {})
