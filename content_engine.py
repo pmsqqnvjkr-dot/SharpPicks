@@ -122,7 +122,23 @@ MLB_TEAMS = {
     'WAS': {'name': 'Washington Nationals', 'slug': 'nationals', 'conf': 'National', 'div': 'NL East'},
 }
 
-SPORT_TEAM_MAP = {'nba': NBA_TEAMS, 'mlb': MLB_TEAMS}
+WNBA_TEAMS = {
+    'ATL': {'name': 'Atlanta Dream',          'slug': 'dream',     'conf': 'Eastern', 'div': 'Eastern'},
+    'CHI': {'name': 'Chicago Sky',            'slug': 'sky',       'conf': 'Eastern', 'div': 'Eastern'},
+    'CON': {'name': 'Connecticut Sun',        'slug': 'sun',       'conf': 'Eastern', 'div': 'Eastern'},
+    'IND': {'name': 'Indiana Fever',          'slug': 'fever',     'conf': 'Eastern', 'div': 'Eastern'},
+    'NYL': {'name': 'New York Liberty',       'slug': 'liberty',   'conf': 'Eastern', 'div': 'Eastern'},
+    'WAS': {'name': 'Washington Mystics',     'slug': 'mystics',   'conf': 'Eastern', 'div': 'Eastern'},
+    'DAL': {'name': 'Dallas Wings',           'slug': 'wings',     'conf': 'Western', 'div': 'Western'},
+    'GSV': {'name': 'Golden State Valkyries', 'slug': 'valkyries', 'conf': 'Western', 'div': 'Western'},
+    'LVA': {'name': 'Las Vegas Aces',         'slug': 'aces',      'conf': 'Western', 'div': 'Western'},
+    'LAS': {'name': 'Los Angeles Sparks',     'slug': 'sparks',    'conf': 'Western', 'div': 'Western'},
+    'MIN': {'name': 'Minnesota Lynx',         'slug': 'lynx',      'conf': 'Western', 'div': 'Western'},
+    'PHO': {'name': 'Phoenix Mercury',        'slug': 'mercury',   'conf': 'Western', 'div': 'Western'},
+    'SEA': {'name': 'Seattle Storm',          'slug': 'storm',     'conf': 'Western', 'div': 'Western'},
+}
+
+SPORT_TEAM_MAP = {'nba': NBA_TEAMS, 'mlb': MLB_TEAMS, 'wnba': WNBA_TEAMS}
 
 # Reverse lookup: map full team name (lowercased) -> abbreviation for each sport
 _NAME_TO_ABBR = {}
