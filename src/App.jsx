@@ -4,6 +4,7 @@ import ResetPassword from './pages/ResetPassword';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Disclaimer from './pages/Disclaimer';
+import PaywallPreview from './pages/PaywallPreview';
 import './index.css';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/disclaimer" element={<Disclaimer />} />
+        <Route path="/preview/paywalled-signal" element={<PaywallPreview />} />
         <Route path="/*" element={<SharpPicksApp />} />
       </Routes>
     </Router>
