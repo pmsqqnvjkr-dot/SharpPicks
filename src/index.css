@@ -1,4 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+/* SharpPicks v4.3 brand tokens. Source: BRAND_SPEC.md v4.3.
+   Imported first so --sp-* is available everywhere. The legacy
+   tokens defined in :root below predate the v4.3 system; new code
+   should reference --sp-* directly, legacy code keeps working. */
+@import url('/static/css/tokens.css');
 
 :root {
   /* ── Surface & Background ── */
