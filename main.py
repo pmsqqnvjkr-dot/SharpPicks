@@ -6,6 +6,7 @@ Run this daily to build your dataset
 import requests
 import sqlite3
 import os
+import logging
 from db_path import get_sqlite_path
 import time
 import random
@@ -3830,14 +3831,33 @@ def collect_mlb_scores():
                     home_score = int(home.get('score', 0))
                     away_score = int(away.get('score', 0))
                     if not row:
+                        # Misdate-correction fallback for postponed games or
+                        # rows inserted with the wrong date. Constrained to
+                        # game_date <= the ESPN date so the fallback never
+                        # reaches forward in time -- otherwise in a baseball
+                        # series (same teams playing on consecutive days),
+                        # ORDER BY game_date DESC would grab today's upcoming
+                        # row and clobber it with yesterday's final score.
                         cursor.execute(
-                            "SELECT id, game_date FROM mlb_games WHERE home_team = ? AND away_team = ? AND game_status != 'final' ORDER BY game_date DESC LIMIT 1",
-                            (home_team, away_team)
+                            """SELECT id, game_date FROM mlb_games
+                               WHERE home_team = ? AND away_team = ?
+                                 AND game_status != 'final'
+                                 AND game_date <= ?
+                               ORDER BY game_date DESC LIMIT 1""",
+                            (home_team, away_team, game_date)
                         )
                         misdate = cursor.fetchone()
                         if misdate:
                             row = (misdate[0],)
-                            print(f"   Correcting game_date {misdate[1]} -> {game_date} for {away_team} @ {home_team}")
+                            logging.warning(
+                                "collect_mlb_scores: misdate-correcting %s @ %s from %s -> %s",
+                                away_team, home_team, misdate[1], game_date,
+                            )
+                        else:
+                            logging.warning(
+                                "collect_mlb_scores: no row for %s @ %s on %s; ESPN reports final %s-%s; skipping (manual grade required)",
+                                away_team, home_team, game_date, away_score, home_score,
+                            )
                     if row:
                         spread_result = home_score - away_score
                         cursor.execute('''UPDATE mlb_games SET
