@@ -11,7 +11,7 @@ import logging
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, render_template, abort, request, make_response
+from flask import Blueprint, render_template, abort, request, make_response, redirect
 from models import db, Pick, Pass, ModelRun, ContentPageView
 from public_api import build_market_report_dict
 from sport_config import get_sport_config, get_live_sports, SPORT_CONFIG
@@ -1131,6 +1131,25 @@ def get_daily_report_data(date_str, sport='nba', phase='morning'):
     return data
 
 
+def _redirect_today_to_latest(date_str, sport):
+    """If date_str is today's date AND today has no published model run,
+    return the most recent date that does have data. Caller should issue
+    a 302 redirect.
+
+    For old or future dates with no data, returns None (caller renders
+    normally; will 404 as expected — those dates legitimately have no
+    data and pretending otherwise would mislead).
+
+    Used by /market-report/<date> and /passes/<date> so the daily 'today'
+    URL stays alive during the pre-model-run window every morning.
+    """
+    today_str = datetime.now(ET).strftime('%Y-%m-%d')
+    if date_str != today_str:
+        return None
+    active = _resolve_active_report_date(sport, today_str)
+    return active if active != today_str else None
+
+
 def _resolve_active_report_date(sport, target_date_str, max_lookback_days=3):
     """Find the most recent date with a published model run for the sport,
     starting at target_date_str and walking back up to max_lookback_days.
@@ -1451,6 +1470,15 @@ def _render_market_report(date_str, phase):
     if sport not in get_live_sports():
         sport = 'nba'
 
+    # Pre-model-run fallback (morning only). If today's URL is hit before
+    # the day's model run completes, redirect to the most recent slate
+    # so the public URL stops 404'ing for Googlebot and humans. Old or
+    # future dates with no data still 404 as they should.
+    if phase == 'morning':
+        latest = _redirect_today_to_latest(date_str, sport)
+        if latest:
+            return redirect(f'/market-report/{latest}?sport={sport}', code=302)
+
     data = get_daily_report_data(date_str, sport, phase=phase)
     if not data:
         abort(404)
@@ -1575,6 +1603,13 @@ def pass_report_page(date_str):
     sport = request.args.get('sport', 'nba')
     if sport not in get_live_sports():
         sport = 'nba'
+
+    # Pre-model-run fallback: same morning-window 404 as /edges and
+    # /market-report. Today's URL redirects to the most recent slate
+    # until the model runs. Old / future dates still 404 cleanly.
+    latest = _redirect_today_to_latest(date_str, sport)
+    if latest:
+        return redirect(f'/passes/{latest}?sport={sport}', code=302)
 
     data = get_daily_report_data(date_str, sport)
     if not data:
