@@ -2196,3 +2196,52 @@ def cron_content_engine():
             results.append(f"{sport}: no data")
 
     return {'status': 'ok', 'results': results}
+
+
+@content_bp.route('/api/cron/evening-report', methods=['POST'])
+def cron_evening_report():
+    """Build the evening market report for each live sport.
+
+    Schedule on cron-job.org (per CRON_SCHEDULE.md):
+      - 11:30 PM ET: primary publish after most slates have settled
+      - 1:00 AM ET:  catchup pass for late West Coast games
+
+    Idempotent. Each run rebuilds evening data inline, which:
+      - Validates Pick + games-table data is grading correctly
+      - Signals to monitoring that evening is publishable
+      - Implicitly warms server-side computation; CDN/browser cache
+        warms naturally on the next user / crawler GET (Cache-Control
+        public, max-age=3600).
+
+    Per-sport results are returned so cron-job.org alerting + the admin
+    dashboard can surface partial publishes (e.g. NBA settled, MLB
+    still pending late games).
+    """
+    import os
+    secret = os.environ.get('CRON_SECRET', '')
+    if secret and request.headers.get('X-Cron-Secret') != secret:
+        return {'error': 'unauthorized'}, 403
+
+    today = datetime.now(ET).strftime('%Y-%m-%d')
+    results = []
+    for sport in get_live_sports():
+        try:
+            data = get_daily_report_data(today, sport, phase='evening')
+            if not data:
+                results.append({'sport': sport, 'status': 'no_model_run'})
+                continue
+            results.append({
+                'sport': sport,
+                'status': 'ok',
+                'games_total': data.get('games_analyzed', 0),
+                'games_settled': data.get('games_settled', 0),
+                'signals_record': data.get('signals_record', '0-0-0'),
+                'picks_pending': data.get('picks_pending', 0),
+                'net_units': data.get('net_units', 0.0),
+                'clv_held': data.get('clv_held', 0.0),
+            })
+        except Exception as e:
+            log.exception('evening cron failed for %s: %s', sport, e)
+            results.append({'sport': sport, 'status': 'error', 'error': str(e)})
+
+    return {'status': 'ok', 'date': today, 'results': results}

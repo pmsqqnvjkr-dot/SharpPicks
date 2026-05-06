@@ -28,6 +28,7 @@ All times **Eastern (ET)**. Use `X-Cron-Secret` header with your `CRON_SECRET` v
 | data_quality | `https://app.sharppicks.ai/api/cron/check-data-quality` | 4:15 AM, 12:15 PM |
 | expire_trials | `https://app.sharppicks.ai/api/cron/expire-trials` | Hourly at :10 |
 | weekly_summary | `https://app.sharppicks.ai/api/cron/weekly-summary` | Mon 6:30 AM |
+| **evening_report** | **`https://app.sharppicks.ai/api/cron/evening-report`** (POST) | **11:30 PM, 1:00 AM** |
 | admin_alert | `https://app.sharppicks.ai/api/cron/admin-alert` | Every 4 hours |
 | player_props | `https://app.sharppicks.ai/api/cron/player-props` | 4:00 PM, 10:00 PM |
 | player_impact | `https://app.sharppicks.ai/api/cron/refresh-player-impact` | 12:00 PM |
@@ -64,3 +65,9 @@ All times **Eastern (ET)**. Use `X-Cron-Secret` header with your `CRON_SECRET` v
 - `model-watchdog` runs synchronously (not async) and catches silent failures from daemon thread kills on Railway restarts
 - Three watchdog runs per day provide coverage: 9:30 AM (NBA), 11:30 AM (NBA+MLB), 12:30 PM (all)
 - Watchdog NBA threshold: 9 AM ET, MLB threshold: 11 AM ET
+
+## Evening Report (Sharp Journal)
+- **11:30 PM ET** primary publish: rebuilds the public evening market report for each live sport (`/market-report/<date>/evening?sport=<sport>`). Late West Coast games may still be live; the page renders PENDING for unsettled games.
+- **1:00 AM ET** catchup: re-runs the same endpoint to grade-in late games that settled after the primary publish. The endpoint is idempotent.
+- Per-sport status returned in the response: `games_settled`, `games_total`, `signals_record`, `picks_pending`, `net_units`, `clv_held`. Useful for cron-job.org alerting and admin dashboard surfacing.
+- The page is rendered on demand with `Cache-Control: public, max-age=3600`. The cron warms server-side computation; CDN/browser cache warms naturally on next crawler/user hit.
