@@ -5,7 +5,6 @@ import AuthModal from './AuthModal';
 import Wordmark from './Wordmark';
 import { getOfferings } from '../../lib/revenuecat';
 
-const isNative = Capacitor.isNativePlatform();
 const isIOS = Capacitor.getPlatform() === 'ios';
 
 const SECTION_MAX = 1080;
@@ -247,7 +246,10 @@ export default function LandingPage({ autoView }) {
   const { data: founding } = useApi('/public/founding-count');
   const [showAuth, setShowAuth] = useState(autoView === 'signup' || autoView === 'signin');
   const [authMode, setAuthMode] = useState(autoView === 'signin' ? 'login' : 'register');
-  const [accountType, setAccountType] = useState(autoView === 'signup' ? (isNative ? 'free' : 'trial') : null);
+  // iOS forces 'free' because Apple App Store rules require IAP for paid
+  // tiers; we route iOS subscriptions through StoreKit later. Android and
+  // web both run through Stripe, so they get the trial flow like normal.
+  const [accountType, setAccountType] = useState(autoView === 'signup' ? (isIOS ? 'free' : 'trial') : null);
   const [iapOffering, setIapOffering] = useState(null);
 
   useEffect(() => {
@@ -266,7 +268,7 @@ export default function LandingPage({ autoView }) {
 
   const openRegister = () => {
     setAuthMode('register');
-    setAccountType(isNative ? 'free' : 'trial');
+    setAccountType(isIOS ? 'free' : 'trial');
     setShowAuth(true);
   };
   const openLogin = () => {
@@ -321,7 +323,7 @@ export default function LandingPage({ autoView }) {
               padding: '8px 18px', borderRadius: 6,
               color: '#fff', background: GREEN, border: 'none',
               cursor: 'pointer',
-            }}>{isNative ? 'Get Started' : 'Start Free Trial'}</button>
+            }}>{isIOS ? 'Get Started' : 'Start Free Trial'}</button>
           </div>
         </div>
       </nav>
@@ -394,7 +396,7 @@ export default function LandingPage({ autoView }) {
                 fontFamily: 'var(--font-mono)', fontSize: 13, letterSpacing: '0.04em',
                 color: '#fff', background: GREEN, border: 'none',
                 padding: '14px 36px', borderRadius: 8, cursor: 'pointer',
-              }}>{isNative ? 'Get Started' : 'Start Free Trial'}</button>
+              }}>{isIOS ? 'Get Started' : 'Start Free Trial'}</button>
               <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} style={{
                 fontFamily: 'var(--font-mono)', fontSize: 13, letterSpacing: '0.04em',
                 color: 'var(--text-secondary)', background: 'transparent',
@@ -402,7 +404,7 @@ export default function LandingPage({ autoView }) {
                 padding: '14px 28px', borderRadius: 8, cursor: 'pointer',
               }}>See How It Works</button>
             </div>
-            {!isNative && (
+            {!isIOS && (
               <div style={{
                 fontFamily: 'var(--font-mono)', fontSize: 10,
                 color: 'var(--text-tertiary)', marginTop: 4,
@@ -538,7 +540,7 @@ export default function LandingPage({ autoView }) {
           fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.04em',
           color: '#fff', background: GREEN, border: 'none',
           padding: '12px 32px', borderRadius: 8, cursor: 'pointer',
-        }}>{isNative ? 'Get Started' : 'Start Free Trial'}</button>
+        }}>{isIOS ? 'Get Started' : 'Start Free Trial'}</button>
       </div>
 
       {/* ─── HOW IT WORKS ─── */}
@@ -787,7 +789,7 @@ export default function LandingPage({ autoView }) {
             fontFamily: 'var(--font-mono)', fontSize: 13, letterSpacing: '0.04em',
             color: '#fff', background: GREEN, border: 'none',
             padding: '14px 36px', borderRadius: 8, cursor: 'pointer',
-          }}>{isNative ? 'Get Started' : 'Start Free Trial'}</button>
+          }}>{isIOS ? 'Get Started' : 'Start Free Trial'}</button>
           <button onClick={openFreeRegister} style={{
             fontFamily: 'var(--font-mono)', fontSize: 13, letterSpacing: '0.04em',
             color: 'var(--text-secondary)', background: 'transparent',
