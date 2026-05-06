@@ -84,6 +84,7 @@ export default function PassDay({
   marketReport,
   furtherReading,
   furtherReadings,
+  onOpenMarketReport,
 }) {
   const articles = (furtherReadings && furtherReadings.length > 0)
     ? furtherReadings
@@ -272,19 +273,23 @@ export default function PassDay({
 
       <SectionEyebrow title="Market Intelligence" meta={miUpdated ? `UPDATED ${miUpdated.toUpperCase()}` : null} />
 
-      <div style={{
-        background: 'var(--sp-surface, #121725)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '12px',
-        padding: '14px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        marginBottom: '22px',
-        position: 'relative',
-        overflow: 'hidden',
-        cursor: 'pointer',
-      }}>
+      <div
+        onClick={onOpenMarketReport}
+        role={onOpenMarketReport ? 'button' : undefined}
+        tabIndex={onOpenMarketReport ? 0 : undefined}
+        style={{
+          background: 'var(--sp-surface, #121725)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '12px',
+          padding: '14px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '22px',
+          position: 'relative',
+          overflow: 'hidden',
+          cursor: onOpenMarketReport ? 'pointer' : 'default',
+        }}>
         <div style={{
           position: 'absolute',
           top: 0, bottom: 0, left: 0,

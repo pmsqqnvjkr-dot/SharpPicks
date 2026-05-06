@@ -21,6 +21,7 @@ import PassDay from '../signals/PassDay';
 import DarkDay from '../signals/DarkDay';
 import WNBAPreLaunchScreen from './WNBAPreLaunchScreen';
 import CalibrationBanner from '../brand/CalibrationBanner';
+import MarketReportScreen from './MarketReportScreen';
 import { FEATURE_EVAN_COLE_READ, FEATURE_DISCIPLINE_ARTICLES, FEATURE_EVENING_RECAP } from '../../config/featureFlags';
 
 // Sport-aware calibration banner copy. NBA in deployment phase -> no banner.
@@ -106,6 +107,7 @@ export default function PicksTab({ onNavigate }) {
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
   const [resolutionPick, setResolutionPick] = useState(null);
+  const [showMarketReport, setShowMarketReport] = useState(false);
   const [dismissedOutcomes, setDismissedOutcomes] = useState(() => {
     try {
       const raw = localStorage.getItem('sp_dismissed_outcomes');
@@ -346,6 +348,10 @@ export default function PicksTab({ onNavigate }) {
 
   if (showResolution && resolutionPick) {
     return <ResolutionScreen pick={resolutionPick} onBack={() => { setShowResolution(false); setResolutionPick(null); }} onNavigate={onNavigate} />;
+  }
+
+  if (showMarketReport) {
+    return <MarketReportScreen onBack={() => setShowMarketReport(false)} />;
   }
 
   // MI card default state: collapsed on pick day, expanded on pass day
@@ -1403,6 +1409,7 @@ export default function PicksTab({ onNavigate }) {
               marketReport={marketReport}
               furtherReading={passArticle}
               furtherReadings={passArticles}
+              onOpenMarketReport={() => setShowMarketReport(true)}
             />
           );
         })()}
