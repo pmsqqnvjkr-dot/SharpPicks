@@ -600,7 +600,7 @@ function SignalHistory({ picks, filteredHist, histFilter, setHistFilter, showAll
         </div>
         {stats && (
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
-            {sport === 'mlb' ? '2026 Season' : 'Season 2025-26'} &middot; {stats.record || `${stats.wins || 0}-${stats.losses || 0}`} &middot; {stats.pnl >= 0 ? '+' : ''}{Number(stats.pnl || 0).toFixed(1)}u
+            {sport === 'nba' ? 'Season 2025-26' : '2026 Season'} &middot; {stats.record || `${stats.wins || 0}-${stats.losses || 0}`} &middot; {stats.pnl >= 0 ? '+' : ''}{Number(stats.pnl || 0).toFixed(1)}u
           </div>
         )}
       </div>

@@ -94,7 +94,9 @@ export default function PicksTab({ onNavigate }) {
   const [tomorrowGames, setTomorrowGames] = useState(null);
   const [tomorrowDate, setTomorrowDate] = useState(null);
   const [tonightBets, setTonightBets] = useState(null);
-  const modelRunHour = todayData?.model_run_hour || (sport === 'mlb' ? 11 : 10);
+  const modelRunHour = todayData?.model_run_hour
+    || ({ mlb: 11, wnba: 12 }[sport])
+    || 10;
   const modelRunLabel = todayData?.model_runs_at || (modelRunHour <= 12 ? `${modelRunHour}:00 AM ET` : `${modelRunHour - 12}:00 PM ET`);
   const countdown = useCountdownTo(modelRunHour);
 
@@ -412,6 +414,13 @@ export default function PicksTab({ onNavigate }) {
         {sport === 'mlb' && (
           <OnboardingCard cardId="mlb" title="CALIBRATION BETA">
             MLB signals use the same pipeline as NBA but are building a live track record. Edges are real. Sizing is identical. Every signal is tracked and graded. The BETA label comes off when the data justifies it.
+          </OnboardingCard>
+        )}
+
+        {/* First WNBA Visit onboarding card */}
+        {sport === 'wnba' && (
+          <OnboardingCard cardId="wnba" title="CALIBRATION BETA">
+            WNBA signals use the same pipeline as NBA but are building a live track record this season. Edges are real. Sizing is identical. Every signal is tracked and graded. The BETA label comes off when the data justifies it.
           </OnboardingCard>
         )}
 
