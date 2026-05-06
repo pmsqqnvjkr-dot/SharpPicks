@@ -1361,7 +1361,9 @@ def public_recap():
     if sport:
         run_q = run_q.filter_by(sport=sport)
     if not run_q.first():
-        return jsonify({'date': date_param, 'available': False})
+        _r = jsonify({'date': date_param, 'available': False})
+        _r.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+        return _r
 
     # Find the highest-edge Pick for this date, optionally filtered by sport.
     pick_q = Pick.query.filter_by(game_date=date_param)
@@ -1373,7 +1375,9 @@ def public_recap():
 
     if not pick:
         # Model ran but nothing cleared. Pass day.
-        return jsonify({'date': date_param, 'available': True, 'type': 'no_signal'})
+        _r = jsonify({'date': date_param, 'available': True, 'type': 'no_signal'})
+        _r.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+        return _r
 
     # Compute score margin signed by our side. Positive means we won by N,
     # negative means we lost by N. None when scores aren't recorded yet.
@@ -1386,10 +1390,11 @@ def public_recap():
         else:
             score_margin = raw_margin
 
-    return jsonify({
+    resp = jsonify({
         'date': date_param,
         'available': True,
         'type': 'signal',
+        'id': pick.id,
         'sport': (pick.sport or '').upper(),
         'team_picked': _picked_team(pick),
         'opponent': _opposing_team(pick),
@@ -1403,6 +1408,11 @@ def public_recap():
         'profit_units': pick.profit_units,
         'edge_pct': pick.edge_pct,
     })
+    # Bypass any CDN cache. Without this, Cloudflare was serving cached
+    # responses across different ?sport= values (cache key didn't include
+    # the query string), so ?sport=mlb returned ?sport=nba's blob.
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    return resp
 
 
 def _picked_team(pick):

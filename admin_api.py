@@ -297,6 +297,99 @@ def manual_grade():
     })
 
 
+@admin_bp.route('/api/admin/tap-grade', methods=['GET', 'POST'])
+def tap_grade():
+    """Phone-friendly emergency manual-grade. Tap a single URL with the
+    cron secret + scores to grade a pending pick from a phone browser
+    when the auto-grader missed it.
+
+    Example URL:
+      /api/admin/tap-grade?secret=<CRON_SECRET>&pick_id=<id>&home_score=8&away_score=5
+
+    Designed for the rare case where a slate finishes but the live-scores
+    or grade-picks cron fails to match the game (team-name drift, ESPN
+    data lag, etc.) and the pick is stranded as `pending`. Reuses the
+    same grading logic as /api/admin/manual-grade so results are
+    consistent. Accepts secret in the query string because phone
+    browsers can't easily set headers; logs are not bound to URLs in
+    this product, so the leak surface is bounded.
+    """
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    supplied = request.args.get('secret') or request.headers.get('X-Cron-Secret')
+    if not cron_secret or supplied != cron_secret:
+        return jsonify({'error': 'unauthorized'}), 403
+
+    pick_id = request.args.get('pick_id')
+    try:
+        home_score = int(request.args.get('home_score', ''))
+        away_score = int(request.args.get('away_score', ''))
+    except ValueError:
+        return jsonify({'error': 'home_score and away_score must be integers'}), 400
+    if not pick_id:
+        return jsonify({'error': 'pick_id required'}), 400
+
+    pick = Pick.query.get(pick_id)
+    if not pick:
+        return jsonify({'error': 'Pick not found'}), 404
+    if pick.result != 'pending':
+        return jsonify({'error': f'Pick already graded: {pick.result}'}), 400
+
+    spread_result = home_score - away_score
+    line_value = pick.line if pick.line and abs(pick.line) < 50 else 0
+
+    side_lower = (pick.side or '').lower()
+    home_lower = (pick.home_team or '').lower()
+    away_lower = (pick.away_team or '').lower()
+    if home_lower and home_lower in side_lower:
+        pick_is_home = True
+    elif away_lower and away_lower in side_lower:
+        pick_is_home = False
+    else:
+        return jsonify({'error': f'Cannot determine side from: {pick.side}'}), 400
+
+    if pick_is_home:
+        ats_margin = spread_result + line_value
+    else:
+        ats_margin = (away_score - home_score) + line_value
+    push = ats_margin == 0
+    covered = ats_margin > 0
+
+    if push:
+        pick.result = 'push'
+        pick.result_ats = 'P'
+        pick.profit_units = 0.0
+        pick.pnl = 0
+    elif covered:
+        pick.result = 'win'
+        pick.result_ats = 'W'
+        actual_odds = pick.market_odds or -110
+        if actual_odds < 0:
+            pick.profit_units = round(100 / abs(actual_odds), 2)
+        else:
+            pick.profit_units = round(actual_odds / 100, 2)
+        pick.pnl = round(pick.profit_units * 100, 0)
+    else:
+        pick.result = 'loss'
+        pick.result_ats = 'L'
+        pick.profit_units = -1.0
+        pick.pnl = -100
+
+    pick.home_score = home_score
+    pick.away_score = away_score
+    pick.result_resolved_at = datetime.now()
+    db.session.commit()
+
+    return jsonify({
+        'pick_id': pick_id,
+        'side': pick.side,
+        'final': f'{pick.away_team} {away_score} @ {pick.home_team} {home_score}',
+        'result': pick.result,
+        'result_ats': pick.result_ats,
+        'profit_units': pick.profit_units,
+        'ats_margin': ats_margin,
+    })
+
+
 @admin_bp.route('/api/admin/rerun-model', methods=['POST'])
 def rerun_model():
     cron_secret = os.environ.get('CRON_SECRET', '')
