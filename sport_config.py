@@ -52,7 +52,7 @@ SPORT_CONFIG = {
         'active': True,
         'live': True,
         'model_phase': 'calibration',
-        'model_run_hour': 12,
+        'model_run_hour': 9,
         'season_start_date': '2026-05-08',
 
         # Initial 2022-2024 train: cv_std_raw 11.3, MAE 13.3 (calib_ratio 0.85,

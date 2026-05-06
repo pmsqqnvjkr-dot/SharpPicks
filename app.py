@@ -5499,6 +5499,12 @@ def cron_run_model():
                 print(f"[model-run] MLB games collected")
             except Exception as e:
                 print(f"[model-run] MLB collection failed (non-fatal): {e}")
+        if 'wnba' in get_live_sports():
+            try:
+                collect_wnba_games_job()
+                print(f"[model-run] WNBA games collected")
+            except Exception as e:
+                print(f"[model-run] WNBA collection failed (non-fatal): {e}")
 
         if force:
             for sport in get_live_sports():
@@ -5520,9 +5526,12 @@ def cron_run_model():
             print(f"[model-run] Ratings refresh failed (non-fatal): {e}")
         results = {}
         live = get_live_sports()
-        # WNBA gets its own /api/cron/wnba-run-model so the noon ET model
-        # window stays separate from NBA's 10 AM. MLB has its own cron too.
-        sports_with_own_cron = {'mlb', 'wnba'}
+        # MLB has its own dedicated /api/cron/mlb-run-model. NBA + WNBA both
+        # run on this shared cron at 9 AM and 2:15 PM ET, with WNBA in
+        # calibration mode. The /api/cron/wnba-run-model endpoint stays
+        # available for manual force-fires but isn't needed in the daily
+        # schedule.
+        sports_with_own_cron = {'mlb'}
         run_sports = [s for s in live if s not in sports_with_own_cron]
         for sport in run_sports:
             results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override, send_notifications=False)
