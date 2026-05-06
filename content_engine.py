@@ -590,6 +590,21 @@ SHARP_PRINCIPLES_EVENING = (
 )
 
 
+def _evening_has_data(date_str, sport):
+    """True if at least one Pick for the given date+sport has graded
+    (win/loss/push). Cheap count() query used to gate (a) the morning ->
+    evening internal link and (b) today's evening URL in the sitemap, so
+    neither points at a thin/empty evening page."""
+    try:
+        return Pick.query.filter(
+            Pick.sport == sport,
+            Pick.game_date == date_str,
+            Pick.result.in_(('win', 'loss', 'push')),
+        ).count() > 0
+    except Exception:
+        return False
+
+
 def _pick_principle(seed_str, phase):
     """Deterministic principle pick keyed by date+sport so the same article
     always shows the same line. Phase decides the pool."""
@@ -1471,6 +1486,22 @@ def _render_market_report(date_str, phase):
     internal_links.append({'label': 'Weekly', 'text': f"{data['sport_upper']} Weekly Summary", 'url': f"/{sport}-weekly-report"})
     internal_links.append({'label': 'Learn', 'text': pillar['title'], 'url': pillar['url']})
 
+    # Cross-edition link: morning -> evening only when graded data exists,
+    # so morning never points at a thin/pending evening page. Evening ->
+    # morning is always safe (morning is published earlier in the day).
+    if phase == 'morning' and _evening_has_data(date_str, sport):
+        internal_links.append({
+            'label': 'Tonight',
+            'text': f"How the slate played out: {data['sport_upper']} evening edition",
+            'url': f"/market-report/{date_str}/evening?sport={sport}",
+        })
+    elif phase == 'evening':
+        internal_links.append({
+            'label': 'Morning',
+            'text': f"How the morning called it: {data['sport_upper']} market report",
+            'url': f"/market-report/{date_str}?sport={sport}",
+        })
+
     template_name = (
         'content/market_report_evening.html'
         if phase == 'evening'
@@ -2101,8 +2132,9 @@ def sitemap_content():
         data = get_daily_report_data(today, sport)
         if data:
             urls.append({'loc': f"{base}/market-report/{today}?sport={sport}", 'changefreq': 'daily', 'priority': '0.9'})
-            # Evening edition: only emit if at least one game has settled.
-            if data.get('games_settled', 0) > 0:
+            # Evening edition: emit only once at least one Pick has graded
+            # so Google never indexes a thin / pending-only evening page.
+            if _evening_has_data(today, sport):
                 urls.append({'loc': f"{base}/market-report/{today}/evening?sport={sport}", 'changefreq': 'daily', 'priority': '0.9'})
             urls.append({'loc': f"{base}/passes/{today}?sport={sport}", 'changefreq': 'daily', 'priority': '0.7'})
             for g in data['games']:

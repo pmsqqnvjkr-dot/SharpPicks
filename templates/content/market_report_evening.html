@@ -1,6 +1,7 @@
 {% extends "content/base.html" %}
-{% block og_image %}https://sharppicks.ai/og-report-evening.png{% endblock %}
-{% block twitter_image %}https://sharppicks.ai/og-report-evening.png{% endblock %}
+{# Falls back to morning's OG asset until an evening-specific image lands. #}
+{% block og_image %}https://sharppicks.ai/og-report.png{% endblock %}
+{% block twitter_image %}https://sharppicks.ai/og-report.png{% endblock %}
 {% block head_extra %}
 <script type="application/ld+json">{{ jsonld_article|safe }}</script>
 <script type="application/ld+json">{{ jsonld_faq|safe }}</script>
