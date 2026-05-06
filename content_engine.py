@@ -1131,6 +1131,31 @@ def get_daily_report_data(date_str, sport='nba', phase='morning'):
     return data
 
 
+def _resolve_active_report_date(sport, target_date_str, max_lookback_days=3):
+    """Find the most recent date with a published model run for the sport,
+    starting at target_date_str and walking back up to max_lookback_days.
+
+    Used by routes that ship "today's" content (/edges/<sport>-today,
+    /market-report/<today>, /passes/<today>) so the page renders the most
+    recent available slate during the pre-model-run window each morning,
+    instead of 404'ing for every visitor and Googlebot until the model
+    run completes (NBA 10am ET, MLB 11am ET).
+    """
+    try:
+        target = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return target_date_str
+    for offset in range(max_lookback_days + 1):
+        candidate = (target - timedelta(days=offset)).strftime('%Y-%m-%d')
+        try:
+            run = ModelRun.query.filter_by(date=candidate, sport=sport).first()
+            if run is not None:
+                return candidate
+        except Exception:
+            break
+    return target_date_str
+
+
 def _format_blocks(blocks, data):
     """Format narrative block templates with data dict, safely."""
     result = []
@@ -1636,7 +1661,11 @@ def edges_page(sport_slug):
         abort(404)
 
     today = datetime.now(ET).strftime('%Y-%m-%d')
-    data = get_daily_report_data(today, sport)
+    # Pre-model-run window: NBA model runs ~10am ET, MLB ~11am ET. Before
+    # the run, today has no data; fall back to the most recent slate so the
+    # page (and its canonical URL) stays live for Googlebot and morning users.
+    active_date = _resolve_active_report_date(sport, today)
+    data = get_daily_report_data(active_date, sport)
     if not data:
         abort(404)
 
@@ -1644,7 +1673,10 @@ def edges_page(sport_slug):
         g['index_score'] = get_index_score(g)
         g['indexable'] = should_index_game_page(g)
 
-    seed = f"{sport}-{today}-edges"
+    data['is_active_today'] = (active_date == today)
+    data['active_date'] = active_date
+
+    seed = f"{sport}-{active_date}-edges"
     pillar = get_rotating_pillar(seed)
     cta = get_rotating_cta(seed, page_type='edges')
 
@@ -1653,8 +1685,8 @@ def edges_page(sport_slug):
     canonical = f"https://sharppicks.ai/edges/{sport}-today"
 
     internal_links = [
-        {'label': 'Report', 'text': f"Market Report {data['date_short']}", 'url': f"/market-report/{today}?sport={sport}"},
-        {'label': 'Passes', 'text': f"Pass Report {data['date_short']}", 'url': f"/passes/{today}?sport={sport}"},
+        {'label': 'Report', 'text': f"Market Report {data['date_short']}", 'url': f"/market-report/{active_date}?sport={sport}"},
+        {'label': 'Passes', 'text': f"Pass Report {data['date_short']}", 'url': f"/passes/{active_date}?sport={sport}"},
     ]
     top_edge_games = sorted(data['games'], key=lambda g: g['edge'], reverse=True)[:2]
     for g in top_edge_games:
