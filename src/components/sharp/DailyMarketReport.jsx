@@ -4,11 +4,11 @@ import { useSport, sportQuery } from '../../hooks/useSport';
 
 const green = '#5A9E72';
 const greenDim = '#5A9E72';
-const blue = '#4A8EC2';
-const amber = '#d4a24e';
-const red = '#8B6F70';
+const blue = '#4F86F7';
+const amber = '#F59E0B';
+const red = '#C4868A';
 const border = 'rgba(90, 158, 114, 0.12)';
-const bgInner = '#131f36';
+const bgInner = '#121725';
 const textLabel = '#8899AA';
 const textSec = '#9EAAB8';
 const textDim = '#7A8494';

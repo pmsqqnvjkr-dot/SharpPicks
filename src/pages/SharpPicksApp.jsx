@@ -96,7 +96,7 @@ function PaymentFailedGate({ user }) {
         fontFamily: 'var(--font-serif)', fontSize: '24px', fontWeight: 600,
         color: 'var(--text-primary)', marginBottom: '12px',
         letterSpacing: '-0.01em',
-      }}>Payment failed — access paused</h1>
+      }}>Payment failed, access paused</h1>
 
       <p style={{
         fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.55,
@@ -109,7 +109,7 @@ function PaymentFailedGate({ user }) {
         fontSize: '13px', color: 'var(--text-tertiary)',
         marginBottom: '28px', maxWidth: '320px',
       }}>
-        No picks are missed — every day's signal stays in your history once your subscription is current.
+        No picks are missed: every day's signal stays in your history once your subscription is current.
       </p>
 
       {error && (

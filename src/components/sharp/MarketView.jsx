@@ -78,7 +78,7 @@ function Movement({ current, open }) {
   return (
     <span style={{
       fontSize: '0.65rem', fontWeight: 600, marginLeft: 3,
-      color: isUp ? 'var(--red-loss, #ef4444)' : 'var(--green-profit, #10b981)',
+      color: isUp ? 'var(--red-loss, #ef4444)' : 'var(--green-profit, #5A9E72)',
     }}>
       {isUp ? '▲' : '▼'}{Math.abs(diff).toFixed(1)}
     </span>
@@ -99,7 +99,7 @@ function Sparkline({ snapshots, field = 'spread', width = 48, height = 16 }) {
   }).join(' ');
   const lastVal = values[values.length - 1];
   const firstVal = values[0];
-  const color = lastVal < firstVal ? 'var(--green-profit, #10b981)' : lastVal > firstVal ? 'var(--red-loss, #ef4444)' : 'var(--text-tertiary)';
+  const color = lastVal < firstVal ? 'var(--green-profit, #5A9E72)' : lastVal > firstVal ? 'var(--red-loss, #ef4444)' : 'var(--text-tertiary)';
   return (
     <svg width={width} height={height} style={{ display: 'block' }}>
       <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -108,9 +108,9 @@ function Sparkline({ snapshots, field = 'spread', width = 48, height = 16 }) {
 }
 
 const SHARP_CONF = {
-  high:     { color: '#f59e0b', bg: 'rgba(251,191,36,0.06)', border: 'rgba(251,191,36,0.20)', label: 'HIGH', fill: 1.0 },
-  moderate: { color: '#d4a24a', bg: 'rgba(251,191,36,0.04)', border: 'rgba(251,191,36,0.12)', label: 'MED',  fill: 0.6 },
-  low:      { color: '#A89A7A', bg: 'rgba(251,191,36,0.02)', border: 'rgba(251,191,36,0.08)', label: 'LOW',  fill: 0.3 },
+  high:     { color: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.20)', label: 'HIGH', fill: 1.0 },
+  moderate: { color: '#d4a24a', bg: 'rgba(245,158,11,0.04)', border: 'rgba(245,158,11,0.12)', label: 'MED',  fill: 0.6 },
+  low:      { color: '#A89A7A', bg: 'rgba(245,158,11,0.02)', border: 'rgba(245,158,11,0.08)', label: 'LOW',  fill: 0.3 },
 };
 
 function RLMBadge({ sharpAction }) {
@@ -137,8 +137,8 @@ function edgeStrength(val) {
 }
 
 function edgeColor(val) {
-  if (val >= 7) return 'var(--green-profit, #10b981)';
-  if (val >= 3.5) return '#FBBF24';
+  if (val >= 7) return 'var(--green-profit, #5A9E72)';
+  if (val >= 3.5) return '#F59E0B';
   return 'var(--text-tertiary)';
 }
 
@@ -169,9 +169,9 @@ function EdgeBadge({ model, isPro }) {
       <span style={{
         fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700,
         padding: '2px 8px', borderRadius: 4,
-        background: `rgba(${edge >= 7 ? '52,211,153' : edge >= 3.5 ? '251,191,36' : '100,116,139'},${bgAlpha})`,
+        background: `rgba(${edge >= 7 ? '90,158,114' : edge >= 3.5 ? '245,158,11' : '100,116,139'},${bgAlpha})`,
         color,
-        border: `1px solid rgba(${edge >= 7 ? '52,211,153' : edge >= 3.5 ? '251,191,36' : '100,116,139'},${borderAlpha})`,
+        border: `1px solid rgba(${edge >= 7 ? '90,158,114' : edge >= 3.5 ? '245,158,11' : '100,116,139'},${borderAlpha})`,
       }}>
         EDGE +{edge}%
       </span>
@@ -208,9 +208,9 @@ function StatCell({ label, value, color, sub }) {
 }
 
 const STABILITY_CONFIG = {
-  low: { color: '#f59e0b', bg: 'rgba(251,191,36,0.04)', border: 'rgba(251,191,36,0.15)', desc: 'Market still finding price. Line may continue moving.' },
+  low: { color: '#f59e0b', bg: 'rgba(245,158,11,0.04)', border: 'rgba(245,158,11,0.15)', desc: 'Market still finding price. Line may continue moving.' },
   medium: { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.02)', border: 'rgba(255,255,255,0.06)', desc: 'Moderate book agreement. Some price discovery remaining.' },
-  high: { color: 'var(--green-profit, #10b981)', bg: 'rgba(52,211,153,0.03)', border: 'rgba(52,211,153,0.12)', desc: 'Strong book consensus. Line unlikely to move significantly.' },
+  high: { color: 'var(--green-profit, #5A9E72)', bg: 'rgba(90,158,114,0.03)', border: 'rgba(90,158,114,0.12)', desc: 'Strong book consensus. Line unlikely to move significantly.' },
 };
 
 function MarketConfidence({ stability, edge }) {
@@ -283,7 +283,7 @@ function MarketConfidence({ stability, edge }) {
       {edgeAligned && (
         <div style={{
           marginTop: 8, padding: '4px 8px', borderRadius: 4,
-          background: 'rgba(251,191,36,0.08)',
+          background: 'rgba(245,158,11,0.08)',
           fontFamily: 'var(--font-mono)', fontSize: '0.625rem', fontWeight: 600,
           color: '#f59e0b',
         }}>
@@ -306,8 +306,8 @@ function ValueRange({ pickLine, playableTo, currentLine }) {
   return (
     <div style={{
       marginTop: 10, padding: '10px 12px', borderRadius: 6,
-      background: atRisk ? 'rgba(251,191,36,0.04)' : 'rgba(79,125,243,0.03)',
-      border: `1px solid ${atRisk ? 'rgba(251,191,36,0.15)' : 'rgba(79,125,243,0.1)'}`,
+      background: atRisk ? 'rgba(245,158,11,0.04)' : 'rgba(79,125,243,0.03)',
+      border: `1px solid ${atRisk ? 'rgba(245,158,11,0.15)' : 'rgba(79,125,243,0.1)'}`,
     }}>
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
@@ -327,7 +327,7 @@ function ValueRange({ pickLine, playableTo, currentLine }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 700,
-          color: 'var(--green-profit, #10b981)',
+          color: 'var(--green-profit, #5A9E72)',
         }}>{fmtSpread(pickLine)}</span>
         <div style={{
           flex: 1, height: 6, borderRadius: 3,
@@ -337,8 +337,8 @@ function ValueRange({ pickLine, playableTo, currentLine }) {
             position: 'absolute', left: 0, top: 0, bottom: 0,
             width: `${100 - pct}%`, borderRadius: 3,
             background: atRisk
-              ? 'linear-gradient(90deg, var(--green-profit, #10b981) 0%, #f59e0b 100%)'
-              : 'var(--green-profit, #10b981)',
+              ? 'linear-gradient(90deg, var(--green-profit, #5A9E72) 0%, #f59e0b 100%)'
+              : 'var(--green-profit, #5A9E72)',
             transition: 'width 0.3s ease',
           }} />
         </div>
@@ -542,7 +542,7 @@ function LineHistoryModal({ game, onClose }) {
   const openVal = spreads[0];
   const currentVal = spreads[spreads.length - 1];
   const moved = currentVal !== openVal;
-  const lineColor = currentVal < openVal ? 'var(--green-profit, #10b981)' : currentVal > openVal ? 'var(--red-loss, #ef4444)' : 'var(--text-tertiary)';
+  const lineColor = currentVal < openVal ? 'var(--green-profit, #5A9E72)' : currentVal > openVal ? 'var(--red-loss, #ef4444)' : 'var(--text-tertiary)';
 
   return (
     <div
@@ -764,9 +764,9 @@ function ConsensusBar({ consensus, current }) {
         {isSignificant && (
           <span style={{
             fontSize: '0.625rem', fontWeight: 700, padding: '1px 6px',
-            borderRadius: 3, background: 'rgba(251,191,36,0.1)',
+            borderRadius: 3, background: 'rgba(245,158,11,0.1)',
             color: '#f59e0b', letterSpacing: '0.04em',
-            border: '1px solid rgba(251,191,36,0.2)',
+            border: '1px solid rgba(245,158,11,0.2)',
             display: 'inline-flex', alignItems: 'center', gap: 3,
           }}>
             {absDiff} off
@@ -1318,7 +1318,7 @@ function LiveBadge({ state, period, clock, sport }) {
       <span style={{
         fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
         padding: '1px 5px', borderRadius: 3,
-        background: 'rgba(251,191,36,0.12)', color: '#f59e0b',
+        background: 'rgba(245,158,11,0.12)', color: '#f59e0b',
       }}>{cfg.halftimeLabel}</span>
     );
   }
@@ -1327,8 +1327,8 @@ function LiveBadge({ state, period, clock, sport }) {
 
 function gameStatus(game) {
   if (!game.model) return { label: 'Pending', color: 'var(--text-tertiary)' };
-  if (game.model.passes) return { label: 'SIGNAL', color: 'var(--green-profit, #10b981)' };
-  if (game.model.edge >= 5) return { label: 'WATCH', color: '#FBBF24' };
+  if (game.model.passes) return { label: 'SIGNAL', color: 'var(--green-profit, #5A9E72)' };
+  if (game.model.edge >= 5) return { label: 'WATCH', color: '#F59E0B' };
   if (game.model.edge >= 2) return { label: 'NEAR', color: 'var(--text-tertiary)' };
   return { label: 'NO EDGE', color: 'var(--text-tertiary)' };
 }
@@ -1374,7 +1374,7 @@ function TableView({ games, isPro, onLineHistory, sport }) {
             {games.map(g => {
               const status = gameStatus(g);
               const isSignal = g.model?.passes;
-              const rowBg = isSignal && isPro ? 'rgba(52,211,153,0.04)' : 'transparent';
+              const rowBg = isSignal && isPro ? 'rgba(90,158,114,0.04)' : 'transparent';
               const homeML = parseFloat(g.home_ml);
               const awayML = parseFloat(g.away_ml);
               return (
@@ -1410,14 +1410,14 @@ function TableView({ games, isPro, onLineHistory, sport }) {
                     {fmtTotal(g.total)}
                   </td>
                   <td style={tdStyle}>
-                    <div style={{ color: awayML > 0 ? '#FBBF24' : 'rgba(96,165,250,0.85)', fontWeight: awayML > 0 ? 600 : 400 }}>{fmtML(g.away_ml)}</div>
-                    <div style={{ color: homeML > 0 ? '#FBBF24' : 'rgba(96,165,250,0.85)' }}>{fmtML(g.home_ml)}</div>
+                    <div style={{ color: awayML > 0 ? '#F59E0B' : 'rgba(96,165,250,0.85)', fontWeight: awayML > 0 ? 600 : 400 }}>{fmtML(g.away_ml)}</div>
+                    <div style={{ color: homeML > 0 ? '#F59E0B' : 'rgba(96,165,250,0.85)' }}>{fmtML(g.home_ml)}</div>
                   </td>
                   {isPro && (
                     <td style={{
                       ...tdStyle,
-                      color: g.model?.edge >= 7 ? 'var(--green-profit, #10b981)'
-                        : g.model?.edge >= 3.5 ? '#FBBF24'
+                      color: g.model?.edge >= 7 ? 'var(--green-profit, #5A9E72)'
+                        : g.model?.edge >= 3.5 ? '#F59E0B'
                         : 'var(--text-tertiary)',
                     }}>
                       {g.model?.edge != null ? `+${g.model.edge}%` : 'Pending'}
@@ -1429,9 +1429,9 @@ function TableView({ games, isPro, onLineHistory, sport }) {
                         fontFamily: 'var(--font-mono)', fontSize: '0.625rem', fontWeight: 700,
                         letterSpacing: '0.04em',
                         padding: '2px 6px', borderRadius: 3,
-                        background: isSignal ? 'rgba(52,211,153,0.12)' : status.label === 'WATCH' ? 'rgba(251,191,36,0.10)' : 'rgba(100,116,139,0.08)',
+                        background: isSignal ? 'rgba(90,158,114,0.12)' : status.label === 'WATCH' ? 'rgba(245,158,11,0.10)' : 'rgba(100,116,139,0.08)',
                         color: status.color,
-                        border: `1px solid ${isSignal ? 'rgba(52,211,153,0.25)' : status.label === 'WATCH' ? 'rgba(251,191,36,0.20)' : 'rgba(100,116,139,0.12)'}`,
+                        border: `1px solid ${isSignal ? 'rgba(90,158,114,0.25)' : status.label === 'WATCH' ? 'rgba(245,158,11,0.20)' : 'rgba(100,116,139,0.12)'}`,
                       }}>{status.label}</span>
                     </td>
                   )}

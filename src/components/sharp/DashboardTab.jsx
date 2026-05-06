@@ -393,10 +393,10 @@ function DisciplineScore({ discipline, modelPhase }) {
             <div style={{
               width: '56px', height: '56px', borderRadius: '14px',
               background: discipline.restraint_grade?.startsWith('A')
-                ? 'linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))'
+                ? 'linear-gradient(135deg, rgba(90,158,114,0.15), rgba(90,158,114,0.05))'
                 : 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
               border: discipline.restraint_grade?.startsWith('A')
-                ? '1px solid rgba(52,211,153,0.3)'
+                ? '1px solid rgba(90,158,114,0.3)'
                 : '1px solid var(--stroke-subtle)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
@@ -449,7 +449,7 @@ function StatusBadge({ result }) {
   const config = {
     win:     { label: 'W',  bg: '#5A9E72', color: '#FFFFFF' },
     loss:    { label: 'L',  bg: '#8B6F70', color: '#FFFFFF' },
-    pending: { label: 'P',  bg: 'rgba(212,162,78,0.15)', color: '#d4a24e' },
+    pending: { label: 'P',  bg: 'rgba(245,158,11,0.15)', color: '#F59E0B' },
     revoked: { label: 'WD', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
     push:    { label: 'PU', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
   };
@@ -483,7 +483,7 @@ function CountdownLabel({ startTime }) {
     const id = setInterval(calc, 60000);
     return () => clearInterval(id);
   }, [startTime]);
-  return <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500, fontVariantNumeric: 'tabular-nums', color: '#d4a24e' }}>{label}</div>;
+  return <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500, fontVariantNumeric: 'tabular-nums', color: '#F59E0B' }}>{label}</div>;
 }
 
 function StreakDots({ picks }) {
@@ -492,7 +492,7 @@ function StreakDots({ picks }) {
     win:     { label: 'W',  bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
     loss:    { label: 'L',  bg: 'rgba(139,111,112,0.15)', color: '#8B6F70' },
     revoked: { label: 'WD', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
-    pending: { label: 'P',  bg: 'rgba(212,162,78,0.15)',  color: '#d4a24e' },
+    pending: { label: 'P',  bg: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
     push:    { label: 'PU', bg: 'rgba(74,85,104,0.15)',  color: '#6b7a8d' },
   };
   let streakCount = 0, streakType = null;
@@ -563,7 +563,7 @@ function SignalHistoryRow({ pick, isPro, isLast, allLiveScores, onView }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
         <div style={{ textAlign: 'right' }}>
           {showCountdown ? <CountdownLabel startTime={pick.start_time} /> : rightLine1 ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: isSettled ? '14px' : '12px', fontWeight: isSettled ? 600 : 500, fontVariantNumeric: 'tabular-nums', color: rightLine1Color }}>{rightLine1}</div> : null}
-          {isPro && rightLine2 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: hasCLV ? '12px' : '11px', fontWeight: hasCLV ? 600 : 400, fontVariantNumeric: 'tabular-nums', color: rightLine2Color, marginTop: '2px', ...(hasCLV ? { padding: '1px 5px', borderRadius: 3, background: clvVal > 0 ? 'rgba(52,211,153,0.08)' : clvVal < 0 ? 'rgba(158,122,124,0.08)' : 'transparent' } : {}) }}>{rightLine2}</div>}
+          {isPro && rightLine2 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: hasCLV ? '12px' : '11px', fontWeight: hasCLV ? 600 : 400, fontVariantNumeric: 'tabular-nums', color: rightLine2Color, marginTop: '2px', ...(hasCLV ? { padding: '1px 5px', borderRadius: 3, background: clvVal > 0 ? 'rgba(90,158,114,0.08)' : clvVal < 0 ? 'rgba(158,122,124,0.08)' : 'transparent' } : {}) }}>{rightLine2}</div>}
         </div>
         {canView && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{ flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>}
       </div>
@@ -991,7 +991,7 @@ function SelectivityBar({ selectivity, industryAvg }) {
       <div style={{
         position: 'absolute', left: '0', top: '11px',
         width: `${userPos}%`, height: '6px',
-        background: 'linear-gradient(90deg, #34D399, #2563EB)',
+        background: 'linear-gradient(90deg, #5A9E72, #2563EB)',
         borderRadius: '3px',
       }} />
       <div style={{
@@ -1049,7 +1049,7 @@ function MiniEquityChart({ data }) {
 
 const TRUST_STEPS = [
   { label: 'Market Regime', desc: 'Classify daily market conditions: exploitable, active, moderate, or efficient.', accent: 'rgba(79,134,247,0.7)' },
-  { label: 'Edges Detected', desc: 'Every game on the slate scanned for pricing inefficiency vs. model projections.', accent: 'rgba(251,191,36,0.8)' },
+  { label: 'Edges Detected', desc: 'Every game on the slate scanned for pricing inefficiency vs. model projections.', accent: 'rgba(245,158,11,0.8)' },
   { label: 'Qualified Signals', desc: 'Only edges above the statistical threshold survive qualification filters.', accent: 'var(--green-profit)' },
   { label: 'Quant Reasoning', desc: 'Full model logic, line movement, and sharp vs. public money, transparent to you.', accent: 'var(--text-secondary)' },
   { label: 'CLV Performance', desc: 'After the game closes, did the model beat the closing line? This is the ultimate proof.', accent: 'var(--green-profit)', isFinal: true },

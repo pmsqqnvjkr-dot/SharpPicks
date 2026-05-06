@@ -107,7 +107,7 @@ export default function Disclaimer() {
             marginTop: '8px',
             padding: '16px 20px',
             borderLeft: '3px solid var(--green-profit)',
-            backgroundColor: 'rgba(52, 211, 153, 0.04)',
+            backgroundColor: 'rgba(90, 158, 114, 0.04)',
           }}>
             <div style={{
               fontFamily: "'Courier New', monospace",

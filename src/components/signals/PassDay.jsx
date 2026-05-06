@@ -8,13 +8,13 @@ import CapitalCard from './shared/CapitalCard';
 import FurtherReadingCard from './shared/FurtherReadingCard';
 import CountdownCard from './shared/CountdownCard';
 
-// Rotating Sharp Principles (per spec). Em-dashes get green color.
+// Rotating Sharp Principles (per spec).
 const PRINCIPLES = [
-  `Pass days aren't missed opportunities<span style="color:#4ADE80;margin:0 4px;">—</span>they're proof the system is working.`,
+  `Pass days aren't missed opportunities. They're proof the system is working.`,
   `The hardest edge to find is the patience to wait for one.`,
   `A bad bet at +EV beats a good bet at -EV. The market doesn't care which felt better.`,
   `Process over outcome. Always. Outcomes are noise; process is signal.`,
-  `Discipline isn't doing more<span style="color:#4ADE80;margin:0 4px;">—</span>it's doing less, better.`,
+  `Discipline isn't doing more. It's doing less, better.`,
   `Capital preserved is capital compounding. Zero risk on a non-edge is a win.`,
 ];
 

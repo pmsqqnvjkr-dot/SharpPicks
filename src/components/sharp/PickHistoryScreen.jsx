@@ -138,9 +138,9 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
                         width: '24px', height: '24px', borderRadius: '6px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0,
-                        backgroundColor: pick.result === 'win' ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.15)',
+                        backgroundColor: pick.result === 'win' ? 'rgba(90,158,114,0.15)' : 'rgba(239,68,68,0.15)',
                         color: pick.result === 'win' ? 'var(--green-profit)' : 'var(--red-loss)',
-                        border: `1px solid ${pick.result === 'win' ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                        border: `1px solid ${pick.result === 'win' ? 'rgba(90,158,114,0.3)' : 'rgba(239,68,68,0.3)'}`,
                       }}>
                         {pick.result === 'win' ? 'W' : 'L'}
                       </span>

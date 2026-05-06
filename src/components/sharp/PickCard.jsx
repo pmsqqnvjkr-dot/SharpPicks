@@ -260,7 +260,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
               letterSpacing: '0.04em',
             }}>{pick.phase_label.toUpperCase()}</span>
           )}
-          <span>— {pick.away_team} vs {pick.home_team}</span>
+          <span>· {pick.away_team} vs {pick.home_team}</span>
         </div>
 
         {liveScore && (
@@ -322,7 +322,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
         {isRevoked && (
           <div style={{
             padding: '8px 10px', borderRadius: '5px', marginBottom: '12px',
-            border: '1px solid rgba(251,191,36,0.2)', background: 'rgba(251,191,36,0.04)',
+            border: '1px solid rgba(245,158,11,0.2)', background: 'rgba(245,158,11,0.04)',
           }}>
             <div style={{
               fontFamily: mono, fontSize: '10px', fontWeight: 600,
@@ -990,11 +990,11 @@ function CountdownPill({ startTime, sport }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center',
-      background: isSoon ? 'rgba(212,162,78,0.15)' : 'rgba(212,162,78,0.1)',
-      border: '0.5px solid rgba(212,162,78,0.2)',
+      background: isSoon ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)',
+      border: '0.5px solid rgba(245,158,11,0.2)',
       borderRadius: 4, padding: '2px 8px',
       fontFamily: "'JetBrains Mono', var(--font-mono), monospace",
-      fontSize: '10px', color: '#d4a24e',
+      fontSize: '10px', color: '#F59E0B',
     }}>{label}</span>
   );
 }

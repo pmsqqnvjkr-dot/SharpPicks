@@ -99,7 +99,7 @@ export default function FreeTierDashboard({ onUpgrade }) {
         {todayIsPick && (
           <div style={{
             backgroundColor: 'var(--surface-1)', borderRadius: '20px',
-            border: '1px solid rgba(52, 211, 153, 0.25)', padding: '20px',
+            border: '1px solid rgba(90, 158, 114, 0.25)', padding: '20px',
             marginBottom: '16px',
           }}>
             <div style={{

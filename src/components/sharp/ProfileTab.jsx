@@ -500,7 +500,7 @@ function TrialSignup({ onBack }) {
       <div style={{ padding: '20px', textAlign: 'center', paddingTop: '80px' }}>
         <div style={{
           width: '64px', height: '64px', borderRadius: '50%',
-          backgroundColor: 'rgba(52, 211, 153, 0.1)', margin: '0 auto 20px',
+          backgroundColor: 'rgba(90, 158, 114, 0.1)', margin: '0 auto 20px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green-profit)" strokeWidth="2">
@@ -698,10 +698,10 @@ function AccessStatusCard({ user, isPro, stats }) {
     ? '#ef4444'
     : trialDaysLeft != null && trialDaysLeft <= 7
       ? '#f59e0b'
-      : 'var(--green-profit, #34D399)';
+      : 'var(--green-profit, #5A9E72)';
   const progressGlow = isUrgent
     ? '0 0 8px rgba(239,68,68,0.5)'
-    : '0 0 6px rgba(52,211,153,0.3)';
+    : '0 0 6px rgba(90,158,114,0.3)';
 
   const pnl = stats?.pnl;
   const capitalPreserved = stats?.total_picks && stats?.total_passes
@@ -755,7 +755,7 @@ function AccessStatusCard({ user, isPro, stats }) {
             {isPro && (
               <div style={{
                 width: '18px', height: '18px', borderRadius: '50%',
-                background: 'var(--green-profit, #34D399)',
+                background: 'var(--green-profit, #5A9E72)',
                 display: 'grid', placeItems: 'center', flexShrink: 0,
               }}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--bg, #0A0D14)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
@@ -857,7 +857,7 @@ function AccessStatusCard({ user, isPro, stats }) {
               }}>Since Activation</div>
               <div style={{
                 fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 800,
-                color: pnl >= 0 ? 'var(--green-profit, #34D399)' : 'var(--red-loss, #9E7A7C)',
+                color: pnl >= 0 ? 'var(--green-profit, #5A9E72)' : 'var(--red-loss, #9E7A7C)',
                 lineHeight: 1,
               }}>{pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}u</div>
             </div>
@@ -898,7 +898,7 @@ function StatusIndicator({ label, value, active }) {
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: '11px',
         fontWeight: 700, letterSpacing: '0.5px',
-        color: active ? 'var(--green-profit, #34D399)' : 'var(--text-tertiary)',
+        color: active ? 'var(--green-profit, #5A9E72)' : 'var(--text-tertiary)',
         marginBottom: '3px',
       }}>{value}</div>
       <div style={{

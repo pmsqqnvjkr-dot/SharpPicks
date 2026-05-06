@@ -138,7 +138,7 @@ export default function ResetPassword() {
             width: '48px',
             height: '48px',
             borderRadius: '12px',
-            backgroundColor: 'rgba(52, 211, 153, 0.1)',
+            backgroundColor: 'rgba(90, 158, 114, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

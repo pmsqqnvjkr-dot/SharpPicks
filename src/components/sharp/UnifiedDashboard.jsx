@@ -199,10 +199,10 @@ export default function UnifiedDashboard({ embedded = false }) {
               <div style={{
                 width: '56px', height: '56px', borderRadius: '14px',
                 background: stats.behavioral.restraint_grade?.startsWith('A')
-                  ? 'linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))'
+                  ? 'linear-gradient(135deg, rgba(90,158,114,0.15), rgba(90,158,114,0.05))'
                   : 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
                 border: stats.behavioral.restraint_grade?.startsWith('A')
-                  ? '1px solid rgba(52,211,153,0.3)'
+                  ? '1px solid rgba(90,158,114,0.3)'
                   : '1px solid var(--stroke-subtle)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
@@ -221,7 +221,7 @@ export default function UnifiedDashboard({ embedded = false }) {
                 position: 'absolute', left: 0, top: '11px',
                 width: `${Math.min(Math.max(stats.behavioral.selectivity || 0, 0), 100)}%`,
                 height: '6px',
-                background: 'linear-gradient(90deg, #34D399, #2563EB)',
+                background: 'linear-gradient(90deg, #5A9E72, #2563EB)',
                 borderRadius: '3px',
               }} />
               <div style={{
@@ -934,7 +934,7 @@ function UnitGrowthCard({ equityCurve }) {
               <div key={i} style={{
                 width: '6px', height: '16px',
                 borderRadius: '2px',
-                backgroundColor: d.result === 'W' ? 'rgba(52,211,153,0.4)' : 'rgba(239,68,68,0.4)',
+                backgroundColor: d.result === 'W' ? 'rgba(90,158,114,0.4)' : 'rgba(239,68,68,0.4)',
               }} />
             ))}
           </div>
@@ -1176,9 +1176,9 @@ function BetRow({ bet, confirmDelete, setConfirmDelete, onDelete, onViewPick, on
                 fontFamily: 'var(--font-mono)',
                 letterSpacing: '0.05em',
                 textTransform: 'uppercase',
-                backgroundColor: 'rgba(251,191,36,0.10)',
+                backgroundColor: 'rgba(245,158,11,0.10)',
                 color: '#f59e0b',
-                border: '1px solid rgba(251,191,36,0.25)',
+                border: '1px solid rgba(245,158,11,0.25)',
                 borderRadius: '8px',
                 whiteSpace: 'nowrap',
               }}>Tap to settle</div>
@@ -1394,9 +1394,9 @@ function SelectivitySpectrum({ selectivity, industryAvg }) {
 }
 
 const TYPE_META = {
-  spread: { label: 'Spreads', color: '#f59e0b', bg: 'rgba(251,191,36,0.1)' },
-  total: { label: 'Totals', color: '#f59e0b', bg: 'rgba(251,191,36,0.1)' },
-  moneyline: { label: 'Moneylines', color: '#f59e0b', bg: 'rgba(251,191,36,0.1)' },
+  spread: { label: 'Spreads', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+  total: { label: 'Totals', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+  moneyline: { label: 'Moneylines', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
   prop: { label: 'Props', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
   parlay: { label: 'Parlays', color: '#a855f7', bg: 'rgba(168,85,247,0.1)' },
 };

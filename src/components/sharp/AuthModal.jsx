@@ -241,8 +241,8 @@ export default function AuthModal({ onClose, initialMode, initialAccountType }) 
 
         {success && (
           <div style={{
-            backgroundColor: 'rgba(52, 211, 153, 0.1)',
-            border: '1px solid rgba(52, 211, 153, 0.2)',
+            backgroundColor: 'rgba(90, 158, 114, 0.1)',
+            border: '1px solid rgba(90, 158, 114, 0.2)',
             borderRadius: '10px',
             padding: '12px 16px',
             marginBottom: '16px',

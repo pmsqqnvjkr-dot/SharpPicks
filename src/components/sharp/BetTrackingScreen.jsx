@@ -408,10 +408,10 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                     <div style={{
                       width: '56px', height: '56px', borderRadius: '14px',
                       background: stats.behavioral.restraint_grade?.startsWith('A')
-                        ? 'linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))'
+                        ? 'linear-gradient(135deg, rgba(90,158,114,0.15), rgba(90,158,114,0.05))'
                         : 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
                       border: stats.behavioral.restraint_grade?.startsWith('A')
-                        ? '1px solid rgba(52,211,153,0.3)'
+                        ? '1px solid rgba(90,158,114,0.3)'
                         : '1px solid var(--stroke-subtle)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
@@ -430,7 +430,7 @@ export default function BetTrackingScreen({ onBack, pickToTrack }) {
                       position: 'absolute', left: 0, top: '11px',
                       width: `${Math.min(Math.max(stats.behavioral.selectivity || 0, 0), 100)}%`,
                       height: '6px',
-                      background: 'linear-gradient(90deg, #34D399, #2563EB)',
+                      background: 'linear-gradient(90deg, #5A9E72, #2563EB)',
                       borderRadius: '3px',
                     }} />
                     <div style={{
@@ -1169,7 +1169,7 @@ function PendingBetCard({ bet, onGraded }) {
               style={{
                 fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
                 padding: '4px 10px', borderRadius: '6px',
-                backgroundColor: isManual ? 'rgba(251,191,36,0.12)' : 'rgba(90,158,114,0.12)',
+                backgroundColor: isManual ? 'rgba(245,158,11,0.12)' : 'rgba(90,158,114,0.12)',
                 color: isManual ? '#f59e0b' : '#5A9E72',
                 letterSpacing: '0.3px',
               }}
@@ -1383,7 +1383,7 @@ export function SettleActionSheet({ bet, onClose, onSettled }) {
   };
 
   const options = [
-    { outcome: 'win', label: 'Win', color: 'var(--green-profit)', bg: 'rgba(52,211,153,0.12)' },
+    { outcome: 'win', label: 'Win', color: 'var(--green-profit)', bg: 'rgba(90,158,114,0.12)' },
     { outcome: 'loss', label: 'Loss', color: 'var(--red-loss)', bg: 'rgba(239,68,68,0.12)' },
     { outcome: 'push', label: 'Push', color: 'var(--text-tertiary)', bg: 'rgba(100,116,139,0.12)' },
     { outcome: 'void', label: 'Void', color: 'var(--text-tertiary)', bg: 'rgba(100,116,139,0.12)' },
@@ -1672,7 +1672,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
                 style={{
                   fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
                   padding: '4px 10px', borderRadius: '6px',
-                  backgroundColor: 'rgba(251,191,36,0.12)', color: '#f59e0b',
+                  backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b',
                   letterSpacing: '0.3px', whiteSpace: 'nowrap',
                 }}
               >Tap to settle</span>
@@ -1751,7 +1751,7 @@ function BetRow({ bet, isLast, confirmDelete, setConfirmDelete, onDelete, onGrad
               <div style={{ display: 'flex', gap: '6px' }}>
                 {[
                   { val: '', label: 'Pending', color: 'var(--text-tertiary)', bg: 'rgba(100,116,139,0.12)' },
-                  { val: 'W', label: 'Win', color: 'var(--green-profit)', bg: 'rgba(52,211,153,0.12)' },
+                  { val: 'W', label: 'Win', color: 'var(--green-profit)', bg: 'rgba(90,158,114,0.12)' },
                   { val: 'L', label: 'Loss', color: 'var(--red-loss)', bg: 'rgba(239,68,68,0.12)' },
                   { val: 'P', label: 'Push', color: 'var(--text-tertiary)', bg: 'rgba(100,116,139,0.12)' },
                 ].map(opt => (

@@ -21,7 +21,6 @@ import PassDay from '../signals/PassDay';
 import DarkDay from '../signals/DarkDay';
 import WNBAPreLaunchScreen from './WNBAPreLaunchScreen';
 import CalibrationBanner from '../brand/CalibrationBanner';
-import DailyTopSignalCard from './DailyTopSignalCard';
 import { FEATURE_EVAN_COLE_READ, FEATURE_DISCIPLINE_ARTICLES, FEATURE_EVENING_RECAP } from '../../config/featureFlags';
 
 // Sport-aware calibration banner copy. NBA in deployment phase -> no banner.
@@ -394,12 +393,12 @@ export default function PicksTab({ onNavigate }) {
             display: 'flex', alignItems: 'center', gap: '8px',
             padding: '10px 14px', marginBottom: '14px',
             borderRadius: '10px',
-            background: 'rgba(251,191,36,0.06)',
-            border: '1px solid rgba(251,191,36,0.2)',
+            background: 'rgba(245,158,11,0.06)',
+            border: '1px solid rgba(245,158,11,0.2)',
           }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FBBF24', flexShrink: 0 }} />
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#F59E0B', flexShrink: 0 }} />
             <div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, color: '#FBBF24', marginBottom: '2px' }}>Reduced Exposure Mode</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, color: '#F59E0B', marginBottom: '2px' }}>Reduced Exposure Mode</div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-tertiary)' }}>Position sizing adjusted to {killSwitch.position_size_pct}%. Circuit breaker active.</div>
             </div>
           </div>
@@ -421,17 +420,17 @@ export default function PicksTab({ onNavigate }) {
           return daysLeft > 0 ? (
             <div style={{
               background: 'linear-gradient(135deg, rgba(10,13,20,0.95) 0%, rgba(15,20,30,0.95) 100%)',
-              border: `1px solid ${daysLeft <= 2 ? 'rgba(251,191,36,0.25)' : daysLeft <= 5 ? 'rgba(251,191,36,0.15)' : 'var(--color-signal-border)'}`,
+              border: `1px solid ${daysLeft <= 2 ? 'rgba(245,158,11,0.25)' : daysLeft <= 5 ? 'rgba(245,158,11,0.15)' : 'var(--color-signal-border)'}`,
               borderRadius: '14px', padding: '16px 18px', marginBottom: '16px',
               position: 'relative', overflow: 'hidden',
               ...(daysLeft <= 1 ? { animation: 'trialPulse 3s ease-in-out infinite' } : {}),
             }}>
               <style>{`
-                @keyframes trialPulse { 0%, 100% { box-shadow: 0 0 0 rgba(251,191,36,0); } 50% { box-shadow: 0 0 12px rgba(251,191,36,0.08); } }
+                @keyframes trialPulse { 0%, 100% { box-shadow: 0 0 0 rgba(245,158,11,0); } 50% { box-shadow: 0 0 12px rgba(245,158,11,0.08); } }
               `}</style>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, color: daysLeft <= 2 ? '#FBBF24' : 'var(--green-profit)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>PRO TRIAL &bull; {daysLeft} {daysLeft === 1 ? 'DAY' : 'DAYS'} LEFT</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 800, color: daysLeft <= 2 ? '#FBBF24' : 'var(--green-profit)', lineHeight: 1 }}>{daysLeft}d</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, color: daysLeft <= 2 ? '#F59E0B' : 'var(--green-profit)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>PRO TRIAL &bull; {daysLeft} {daysLeft === 1 ? 'DAY' : 'DAYS'} LEFT</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 800, color: daysLeft <= 2 ? '#F59E0B' : 'var(--green-profit)', lineHeight: 1 }}>{daysLeft}d</div>
               </div>
               <div style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '14px' }}>You're inside the full model. {daysLeft <= 1 ? 'Access narrows tomorrow.' : `In ${daysLeft} days, access narrows.`}</div>
               <button onClick={openSignup} style={{ width: '100%', padding: '12px 24px', background: '#5A9E72', border: 'none', borderRadius: '8px', color: '#0A0D14', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '1px' }}>Start 14-day free trial</button>
@@ -479,7 +478,7 @@ export default function PicksTab({ onNavigate }) {
           <>
             {/* ── MARKET PULSE STRIP (Phase 7 home redesign) ──
                 Three cells with thin dividers between. Frames the wait
-                as the system working — every open shows the operator
+                as the system working: every open shows the operator
                 where they are in the cycle. */}
             {(() => {
               const passDays = stats?.capital_preserved_days;
@@ -611,7 +610,7 @@ export default function PicksTab({ onNavigate }) {
                 screen audit. Single card avoids the confusing double-negative
                 of stacking "withdrawn + no-signal + slate-results" on the
                 same day. The withdrawn pick (if any) renders as a neutral
-                blue "Withdrawn" pill below a divider — never as a red L
+                blue "Withdrawn" pill below a divider, never as a red L
                 badge. */}
             {(() => {
               const isPassRecap = sameDayNight && todayData?.type === 'pass';
@@ -1074,7 +1073,7 @@ export default function PicksTab({ onNavigate }) {
             })()}
 
             {/* ── NIGHTLY RECAP CTA (Phase 7 home redesign) ──
-                "Last night's read" — links to the Sharp Journal evening
+                "Last night's read" links to the Sharp Journal evening
                 edition. Routes to /journal/{slug} when the evening
                 edition (item 08) lands. Until then the link goes to
                 the existing recap surface. */}
@@ -1309,11 +1308,7 @@ export default function PicksTab({ onNavigate }) {
                     });
                   }} />
                 ) : (
-                  <DailyTopSignalCard
-                    pick={todayData}
-                    sport={sport}
-                    onUpgrade={() => { if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); } else { setShowAuth(true); } }}
-                  />
+                  <FreePickNotice onUpgrade={() => { if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); } else { setShowAuth(true); } }} />
                 )}
               </>
             )}

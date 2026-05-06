@@ -267,8 +267,8 @@ export default function UpgradeScreen({ onBack, user }) {
 
         {iapSuccess && (
           <div style={{
-            backgroundColor: 'rgba(52, 211, 153, 0.1)',
-            border: '1px solid rgba(52, 211, 153, 0.2)',
+            backgroundColor: 'rgba(90, 158, 114, 0.1)',
+            border: '1px solid rgba(90, 158, 114, 0.2)',
             borderRadius: '10px', padding: '12px 16px', marginBottom: '16px',
             fontSize: '13px', color: 'var(--green-profit)', textAlign: 'center',
           }}>{iapSuccess}</div>
@@ -377,7 +377,7 @@ export default function UpgradeScreen({ onBack, user }) {
                 period="/yr"
                 description={isFoundingOpen
                   ? `Lock the founding rate. ${spotsRemaining} of 50 spots left.`
-                  : 'Best value — save vs monthly.'}
+                  : 'Best value, save vs monthly.'}
                 savings={isFoundingOpen ? 'Founding rate locked while subscribed' : null}
                 cta="Start 14-day free trial"
                 onSelect={() => handleStripeSubscribe(isFoundingOpen ? 'trial' : 'annual_standard')}
