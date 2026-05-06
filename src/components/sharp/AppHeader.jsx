@@ -74,8 +74,8 @@ export default function AppHeader({ onNavigate }) {
 
 const SPORT_CONFIG = {
   nba: { label: 'NBA', color: '#d4874d', active: true },
-  mlb: { label: 'MLB', color: '#3B82F6', active: true, badge: 'BETA' },
-  wnba: { label: 'WNBA', color: '#EC4899', active: true, badge: 'BETA' },
+  mlb: { label: 'MLB', color: '#3B82F6', active: true, badge: 'CAL' },
+  wnba: { label: 'WNBA', color: '#EC4899', active: true, badge: 'CAL' },
 };
 
 function SportFilterPills({ sport, setSport }) {
@@ -117,8 +117,8 @@ function SportFilterPills({ sport, setSport }) {
               <span style={{
                 fontSize: '8px', fontWeight: 600,
                 padding: '1px 4px', borderRadius: '4px',
-                backgroundColor: `${cfg.color}20`,
-                color: cfg.color,
+                backgroundColor: 'rgba(245, 158, 11, 0.18)',
+                color: '#F59E0B',
                 letterSpacing: '0',
               }}>{cfg.badge}</span>
             )}

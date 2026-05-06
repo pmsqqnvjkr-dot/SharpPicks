@@ -179,23 +179,53 @@ function DetailStat({ value, label, border }) {
 // Signal Withdrawn — slate-blue institutional palette.
 // IMPORTANT: This screen is a NEUTRAL informational state, not an alert.
 // Never use yellow/orange/red/amber here. Slate-blue = system; green = "Protected" only.
-const W = {
-  bgPage: '#0A0E1A',
-  bgCard: '#111726',
-  bgCardElev: '#161D2E',
-  borderSubtle: '#1F2940',
-  borderMedium: '#2B3A5C',
-  edge: '#4ADE80',
-  system: '#6B8AC4',
-  systemBg: 'rgba(107, 138, 196, 0.08)',
-  systemBorder: 'rgba(107, 138, 196, 0.28)',
-  textPrimary: '#E8ECF4',
-  textSecondary: '#9BA8C2',
-  textTertiary: '#5A6886',
-  textMuted: '#3E4A66',
-  fontSans: "'Inter','-apple-system','BlinkMacSystemFont',system-ui,sans-serif",
-  fontMono: "'JetBrains Mono','Menlo',ui-monospace,monospace",
+// v4.3 Withdrawn Detail tokens. Inline so the component reads as one unit;
+// the rest of ResolutionScreen still uses the legacy `C` palette above and
+// is intentionally untouched (different state, different design call).
+const SP = {
+  bg: '#0A0D14',
+  surface: '#121725',
+  surface2: '#1B2030',
+  border: 'rgba(255, 255, 255, 0.08)',
+  border2: 'rgba(255, 255, 255, 0.05)',
+  blue: '#4F86F7',
+  blueSoft: 'rgba(79, 134, 247, 0.12)',
+  green: '#5A9E72',
+  greenSoft: 'rgba(90, 158, 114, 0.12)',
+  amber: '#F59E0B',
+  text: '#E8EAED',
+  text2: 'rgba(232, 234, 237, 0.7)',
+  text3: 'rgba(232, 234, 237, 0.5)',
+  text4: 'rgba(232, 234, 237, 0.35)',
+  text5: 'rgba(232, 234, 237, 0.25)',
+  fontSans: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+  fontMono: "'JetBrains Mono', 'Menlo', ui-monospace, monospace",
+  fontSerif: "'IBM Plex Serif', Georgia, serif",
 };
+
+function fmtTimeET(iso) {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric', minute: '2-digit', hour12: true,
+    }).formatToParts(d);
+    const h = parts.find((p) => p.type === 'hour')?.value || '';
+    const m = parts.find((p) => p.type === 'minute')?.value || '';
+    const a = (parts.find((p) => p.type === 'dayPeriod')?.value || '').toUpperCase();
+    return `${h}:${m} ${a} ET`;
+  } catch {
+    return null;
+  }
+}
+
+function thresholdFor(sport) {
+  const s = (sport || '').toLowerCase();
+  if (s === 'mlb' || s === 'wnba') return 4.5;
+  return 8.0;
+}
 
 function WithdrawnDetailScreen({ pick, onBack }) {
   const scrollRef = useRef(null);
@@ -216,80 +246,112 @@ function WithdrawnDetailScreen({ pick, onBack }) {
     ? `${pick.side} ${pick.line > 0 ? '+' : ''}${pick.line}`
     : pick?.side || '\u2014';
 
-  const matchup = pick?.away_team && pick?.home_team
-    ? `${pick.away_team} @ ${pick.home_team}`
-    : (pick?.matchup || 'Matchup unavailable');
+  const sport = (pick?.sport || 'mlb').toUpperCase();
+  const isCalibration = pick?.model_phase === 'calibration';
 
-  const edgeAtEntry = pick?.edge_pct != null ? `${pick.edge_pct}%` : '--';
-  const edgeAtWithdrawal = pick?.edge_at_close != null ? `${pick.edge_at_close}%` : '--';
-  const pnlDisplay = pick?.profit_units != null
-    ? `${pick.profit_units >= 0 ? '' : ''}${Number(pick.profit_units).toFixed(1)}u`
-    : '0.0u';
+  const sizeUnits = pick?.position_size_pct != null
+    ? `${Number(pick.position_size_pct).toFixed(1)}u`
+    : null;
 
-  // Render arrow in slate-blue if the reason contains one.
+  const firedTime = fmtTimeET(pick?.published_at);
+  const withdrawnTime = fmtTimeET(pick?.result_resolved_at);
+  const firstPitchTime = fmtTimeET(pick?.start_time);
+
+  const threshold = thresholdFor(pick?.sport);
+  const edgeAtFire = pick?.edge_pct != null
+    ? `+${Number(pick.edge_pct).toFixed(1)}%`
+    : null;
+  const edgeAtRecheck = pick?.edge_at_close != null
+    ? `+${Number(pick.edge_at_close).toFixed(1)}%`
+    : `+${threshold.toFixed(1)}%`;
+  const thresholdLabel = `+${threshold.toFixed(1)}%`;
+
+  // Render `+4.5%` style inline code chunks if the reason contains one.
   const renderInvalidationReason = (reason) => {
     if (!reason) return null;
-    const parts = String(reason).split('\u2192');
-    if (parts.length === 1) return reason;
+    const text = String(reason);
+    const codeRe = /([+\-]?\d+(?:\.\d+)?%)/g;
     const out = [];
-    parts.forEach((p, i) => {
-      out.push(<span key={`p-${i}`}>{p}</span>);
-      if (i < parts.length - 1) {
-        out.push(<span key={`a-${i}`} style={{ color: W.system }}>{' \u2192 '}</span>);
-      }
-    });
-    return out;
+    let lastIdx = 0;
+    let m;
+    let i = 0;
+    while ((m = codeRe.exec(text)) !== null) {
+      if (m.index > lastIdx) out.push(<span key={`t-${i}`}>{text.slice(lastIdx, m.index)}</span>);
+      out.push(
+        <code key={`c-${i}`} style={{
+          fontFamily: SP.fontMono,
+          fontSize: '12px',
+          color: SP.text,
+          background: 'rgba(0, 0, 0, 0.25)',
+          padding: '1px 5px',
+          borderRadius: '3px',
+        }}>{m[0]}</code>,
+      );
+      lastIdx = m.index + m[0].length;
+      i += 1;
+    }
+    if (lastIdx < text.length) out.push(<span key={`t-${i}`}>{text.slice(lastIdx)}</span>);
+    return out.length ? out : text;
   };
 
   const cardStyle = {
-    background: W.bgCard,
-    border: `1px solid ${W.borderSubtle}`,
-    borderRadius: '16px',
+    background: SP.surface,
+    border: `1px solid ${SP.border}`,
+    borderRadius: '14px',
     overflow: 'hidden',
   };
-  const sectionLabelStyle = {
-    fontFamily: W.fontMono,
-    fontSize: '11px',
-    letterSpacing: '0.14em',
-    color: W.textTertiary,
-    textTransform: 'uppercase',
-    fontWeight: 500,
-    marginBottom: '14px',
+
+  const tlItemStyle = {
+    position: 'relative',
+    padding: '16px 0 16px 24px',
+    borderBottom: `1px solid ${SP.border2}`,
   };
+
+  const tlDot = (color) => ({
+    content: '""',
+    position: 'absolute',
+    left: 0,
+    top: 22,
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    background: color,
+  });
 
   return (
     <div ref={scrollRef} style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: W.bgPage,
-      color: W.textPrimary,
+      backgroundColor: SP.bg,
+      color: SP.text,
       zIndex: 200,
       overflowY: 'auto',
       WebkitOverflowScrolling: 'touch',
       WebkitTapHighlightColor: 'transparent',
     }}>
       <div style={{
-        maxWidth: '420px',
+        maxWidth: '480px',
         margin: '0 auto',
-        paddingLeft: 'max(16px, env(safe-area-inset-left))',
-        paddingRight: 'max(16px, env(safe-area-inset-right))',
+        paddingLeft: 'max(18px, env(safe-area-inset-left))',
+        paddingRight: 'max(18px, env(safe-area-inset-right))',
         paddingBottom: 'max(32px, env(safe-area-inset-bottom))',
+        borderLeft: '1px solid rgba(255, 255, 255, 0.04)',
+        borderRight: '1px solid rgba(255, 255, 255, 0.04)',
       }}>
-        {/* Header */}
         <div style={{
           position: 'sticky',
           top: 0,
           zIndex: 1,
-          backgroundColor: W.bgPage,
-          borderBottom: `1px solid ${W.borderSubtle}`,
-          paddingTop: 'max(14px, env(safe-area-inset-top))',
-          paddingBottom: '14px',
+          backgroundColor: SP.bg,
+          borderBottom: `1px solid ${SP.border}`,
+          paddingTop: 'max(12px, env(safe-area-inset-top))',
+          paddingBottom: '18px',
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          marginLeft: 'calc(-1 * max(16px, env(safe-area-inset-left)))',
-          marginRight: 'calc(-1 * max(16px, env(safe-area-inset-right)))',
-          paddingLeft: 'max(16px, env(safe-area-inset-left))',
-          paddingRight: 'max(16px, env(safe-area-inset-right))',
+          marginLeft: 'calc(-1 * max(18px, env(safe-area-inset-left)))',
+          marginRight: 'calc(-1 * max(18px, env(safe-area-inset-right)))',
+          paddingLeft: 'max(18px, env(safe-area-inset-left))',
+          paddingRight: 'max(18px, env(safe-area-inset-right))',
         }}>
           <button
             onClick={handleBack}
@@ -298,238 +360,392 @@ function WithdrawnDetailScreen({ pick, onBack }) {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: W.textSecondary,
-              padding: '12px',
-              margin: '-12px',
+              color: SP.text2,
+              width: 32, height: 32,
+              marginLeft: '-8px',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              minWidth: '44px',
-              minHeight: '44px',
               WebkitTapHighlightColor: 'transparent',
             }}
-            onMouseDown={(e) => { e.currentTarget.style.color = W.textPrimary; }}
-            onMouseUp={(e) => { e.currentTarget.style.color = W.textSecondary; }}
-            onTouchStart={(e) => { e.currentTarget.style.color = W.textPrimary; }}
-            onTouchEnd={(e) => { e.currentTarget.style.color = W.textSecondary; }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <h1 style={{
-            margin: 0,
-            fontFamily: W.fontSans,
-            fontSize: '20px',
-            fontWeight: 600,
-            letterSpacing: '-0.01em',
-            color: W.textPrimary,
-            userSelect: 'none',
-          }}>Signal Withdrawn</h1>
+          <span style={{
+            fontFamily: SP.fontMono,
+            fontSize: '12px',
+            fontWeight: 500,
+            letterSpacing: '0.24em',
+            textTransform: 'uppercase',
+            color: SP.text,
+          }}>Signal Withdrawn</span>
         </div>
 
-        {/* Card stack */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '20px' }}>
-
-          {/* Game card */}
-          <div style={{ ...cardStyle, position: 'relative', padding: '28px 20px 24px', textAlign: 'center' }}>
-            <div style={{
-              position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
-              background: `linear-gradient(90deg, transparent, ${W.system} 20%, ${W.system} 80%, transparent)`,
-              opacity: 0.7,
-            }} />
-            <div style={{
-              fontFamily: W.fontSans,
-              fontSize: '19px',
-              fontWeight: 600,
-              letterSpacing: '-0.01em',
-              color: W.textPrimary,
-              marginBottom: '10px',
-            }}>{matchup}</div>
-            <div style={{
-              fontFamily: W.fontMono,
-              fontSize: '14px',
-              color: W.textSecondary,
-              letterSpacing: '0.02em',
-              marginBottom: '16px',
-              userSelect: 'text',
-            }}>{sideDisplay}</div>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '7px 14px',
-              background: W.systemBg,
-              border: `1px solid ${W.systemBorder}`,
-              borderRadius: '999px',
-              fontFamily: W.fontMono,
-              fontSize: '11px',
-              fontWeight: 600,
-              letterSpacing: '0.12em',
-              color: W.system,
-              userSelect: 'none',
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: W.system }} />
-              WITHDRAWN
-            </span>
-          </div>
-
-          {/* Process Review */}
-          <div style={cardStyle}>
-            <div style={{ padding: '20px' }}>
-              <div style={sectionLabelStyle}>PROCESS REVIEW</div>
-
-              {pick?.withdraw_reason && (
-                <div style={{
-                  background: W.bgCardElev,
-                  border: `1px solid ${W.borderMedium}`,
-                  borderLeft: `2px solid ${W.system}`,
-                  borderRadius: '10px',
-                  padding: '14px 16px',
-                  marginBottom: '14px',
-                }}>
-                  <div style={{
-                    fontFamily: W.fontMono,
-                    fontSize: '10px',
-                    letterSpacing: '0.14em',
-                    color: W.system,
-                    fontWeight: 600,
-                    marginBottom: '6px',
-                    textTransform: 'uppercase',
-                  }}>INVALIDATION REASON</div>
-                  <div style={{
-                    fontFamily: W.fontMono,
-                    fontSize: '13px',
-                    lineHeight: 1.5,
-                    color: W.textPrimary,
-                    userSelect: 'text',
-                  }}>{renderInvalidationReason(pick.withdraw_reason)}</div>
-                </div>
-              )}
-
-              <div style={{
-                fontFamily: W.fontSans,
-                fontSize: '14.5px',
-                lineHeight: 1.55,
-                color: W.textSecondary,
-                marginBottom: '20px',
-                userSelect: 'text',
+        <div style={{ paddingTop: '22px' }}>
+          {/* Matchup card */}
+          <div style={{ ...cardStyle, padding: '22px 22px 20px', marginBottom: '22px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '4px 10px',
+                border: `1px solid ${SP.amber}`,
+                borderRadius: '4px',
+                fontFamily: SP.fontMono,
+                fontSize: '9px',
+                fontWeight: 500,
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: SP.amber,
               }}>
-                {pick?.withdraw_reason
-                  ? 'Pre-tip validation detected a material change. Signal invalidated before tip-off. Capital preserved.'
-                  : 'Market moved. Edge fell below threshold before tip-off. Capital preserved. No trade is a position.'}
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
-                gap: '1px',
-                background: W.borderSubtle,
-                borderRadius: '10px',
-                overflow: 'hidden',
+                {sport}{isCalibration ? ' · Calibration' : ''}
+              </span>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 10px',
+                border: '1px solid rgba(79, 134, 247, 0.3)',
+                background: SP.blueSoft,
+                borderRadius: '4px',
+                fontFamily: SP.fontMono,
+                fontSize: '9px',
+                fontWeight: 500,
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: SP.blue,
               }}>
-                <WithdrawnStat value={edgeAtEntry} label="Edge at Entry" />
-                <WithdrawnStat
-                  value={edgeAtWithdrawal === '--' ? '--' : edgeAtWithdrawal}
-                  label="Edge at Withdrawal"
-                  muted={edgeAtWithdrawal === '--'}
-                />
-                <WithdrawnStat value="Protected" label="Action" action />
-              </div>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: SP.blue }} />
+                Withdrawn
+              </span>
             </div>
-          </div>
-
-          {/* P&L row */}
-          <div style={cardStyle}>
+            <h1 style={{
+              fontFamily: SP.fontSerif,
+              fontSize: '22px',
+              fontWeight: 600,
+              color: SP.text,
+              lineHeight: 1.25,
+              marginBottom: '6px',
+            }}>{matchup}</h1>
+            <div style={{
+              fontFamily: SP.fontMono,
+              fontSize: '13px',
+              color: SP.text2,
+              marginBottom: '14px',
+              letterSpacing: '0.04em',
+            }}>
+              Original signal: <span style={{ color: SP.text, fontWeight: 500 }}>{sideDisplay}</span>
+              {sizeUnits ? ` · ${sizeUnits}` : ''}
+            </div>
             <div style={{
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '18px 20px',
+              paddingTop: '14px',
+              borderTop: `1px solid ${SP.border2}`,
             }}>
-              <span style={{
-                fontFamily: W.fontMono,
-                fontSize: '11px',
-                letterSpacing: '0.14em',
-                color: W.textTertiary,
-                fontWeight: 500,
-                textTransform: 'uppercase',
-                userSelect: 'none',
-              }}>P&L</span>
-              <span style={{
-                fontFamily: W.fontMono,
-                fontSize: '20px',
-                fontWeight: 600,
-                color: W.textSecondary,
-                userSelect: 'text',
-              }}>{pnlDisplay}</span>
+              {[
+                { label: 'Signal Fired', value: firedTime || '—' },
+                { label: 'Withdrawn', value: withdrawnTime || '—' },
+                { label: 'First Pitch', value: firstPitchTime || '—' },
+              ].map((cell) => (
+                <div key={cell.label} style={{ flex: 1, textAlign: 'left' }}>
+                  <div style={{
+                    fontFamily: SP.fontMono,
+                    fontSize: '9px',
+                    letterSpacing: '0.22em',
+                    textTransform: 'uppercase',
+                    color: SP.text4,
+                    marginBottom: '4px',
+                  }}>{cell.label}</div>
+                  <div style={{
+                    fontFamily: SP.fontMono,
+                    fontSize: '12px',
+                    color: SP.text,
+                    letterSpacing: '0.04em',
+                  }}>{cell.value}</div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Discipline Framework */}
-          <div style={cardStyle}>
-            <div style={{ padding: '20px' }}>
-              <div style={{ ...sectionLabelStyle, color: W.system }}>DISCIPLINE FRAMEWORK</div>
-              <div style={{
-                fontFamily: W.fontSans,
-                fontSize: '14.5px',
-                lineHeight: 1.6,
-                color: W.textSecondary,
-                userSelect: 'text',
+          {/* Capital preserved hero */}
+          <div style={{ ...cardStyle, padding: '22px', marginBottom: '22px', position: 'relative' }}>
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 20,
+              right: 20,
+              height: 2,
+              background: `linear-gradient(90deg, transparent, ${SP.green} 20%, ${SP.green} 80%, transparent)`,
+              opacity: 0.5,
+            }} />
+            <div style={{
+              fontFamily: SP.fontMono,
+              fontSize: '10px',
+              fontWeight: 500,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: SP.blue,
+              marginBottom: '14px',
+            }}>Capital preserved</div>
+            <h2 style={{
+              fontFamily: SP.fontSerif,
+              fontSize: '22px',
+              fontWeight: 600,
+              lineHeight: 1.25,
+              color: SP.text,
+              marginBottom: '14px',
+            }}>The system pulled the signal before tip-off.</h2>
+            {[
+              { label: 'Position', value: 'No bet placed', tone: 'plain' },
+              { label: 'Capital exposed', value: '0.0u', tone: 'plain' },
+              { label: 'Outcome', value: 'Protected', tone: 'green' },
+            ].map((row) => (
+              <div key={row.label} style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderTop: `1px solid ${SP.border2}`,
               }}>
-                Not every signal survives. The edge decides, not emotion. A withdrawal is the system protecting capital. Next signal when the edge is there.
+                <span style={{
+                  fontFamily: SP.fontMono,
+                  fontSize: '10px',
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  color: SP.text3,
+                }}>{row.label}</span>
+                <span style={{
+                  fontFamily: SP.fontMono,
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  letterSpacing: '0.04em',
+                  color: row.tone === 'green' ? SP.green : SP.text,
+                }}>{row.value}</span>
               </div>
+            ))}
+          </div>
+
+          {/* Withdrawal sequence */}
+          <div style={{ marginBottom: '22px' }}>
+            <div style={{
+              fontFamily: SP.fontMono,
+              fontSize: '10px',
+              fontWeight: 500,
+              letterSpacing: '0.24em',
+              textTransform: 'uppercase',
+              color: SP.green,
+              marginBottom: '12px',
+              paddingLeft: '4px',
+            }}>Withdrawal sequence</div>
+            <div style={{
+              ...cardStyle,
+              borderRadius: '12px',
+              padding: '6px 22px',
+            }}>
+              {[
+                {
+                  time: firedTime ? firedTime.toUpperCase() : 'SIGNAL FIRED',
+                  event: 'Signal fired with qualifying edge',
+                  detail: edgeAtFire
+                    ? `Edge ${edgeAtFire} · above ${thresholdLabel} threshold`
+                    : `Above ${thresholdLabel} threshold`,
+                  dot: SP.green,
+                },
+                {
+                  time: withdrawnTime ? `${withdrawnTime.toUpperCase()} · PRE-TIP RECHECK` : 'PRE-TIP RECHECK',
+                  event: 'Pre-tip re-check detected material change',
+                  detail: pick?.withdraw_reason || 'Validation surfaced new information',
+                  dot: SP.amber,
+                },
+                {
+                  time: withdrawnTime ? withdrawnTime.toUpperCase() : 'WITHDRAWN',
+                  event: 'Signal withdrawn before tip-off',
+                  detail: `Edge dropped to ${edgeAtRecheck} · no longer qualifying`,
+                  dot: SP.blue,
+                },
+              ].map((item, i, arr) => (
+                <div
+                  key={item.event}
+                  style={{
+                    ...tlItemStyle,
+                    borderBottom: i < arr.length - 1 ? `1px solid ${SP.border2}` : 'none',
+                  }}
+                >
+                  <span style={tlDot(item.dot)} aria-hidden />
+                  {i < arr.length - 1 && (
+                    <span style={{
+                      position: 'absolute',
+                      left: 3.5,
+                      top: 30,
+                      bottom: -8,
+                      width: 1,
+                      background: SP.border2,
+                    }} aria-hidden />
+                  )}
+                  <div style={{
+                    fontFamily: SP.fontMono,
+                    fontSize: '10px',
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase',
+                    color: SP.text4,
+                    marginBottom: '4px',
+                  }}>{item.time}</div>
+                  <div style={{
+                    fontFamily: SP.fontSans,
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: SP.text,
+                    lineHeight: 1.45,
+                    marginBottom: '4px',
+                  }}>{item.event}</div>
+                  <div style={{
+                    fontFamily: SP.fontMono,
+                    fontSize: '11px',
+                    color: SP.text3,
+                    letterSpacing: '0.04em',
+                  }}>{item.detail}</div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Already Placed? */}
-          <div style={cardStyle}>
-            <div style={{ padding: '20px' }}>
-              <div style={{ ...sectionLabelStyle, color: W.system }}>ALREADY PLACED?</div>
+          {/* Process review */}
+          <div style={{
+            fontFamily: SP.fontMono,
+            fontSize: '10px',
+            fontWeight: 500,
+            letterSpacing: '0.24em',
+            textTransform: 'uppercase',
+            color: SP.green,
+            marginBottom: '12px',
+            paddingLeft: '4px',
+          }}>Process review</div>
+          <div style={{ ...cardStyle, padding: '20px 22px', borderRadius: '12px', marginBottom: '22px' }}>
+            {pick?.withdraw_reason && (
               <div style={{
-                fontFamily: W.fontSans,
-                fontSize: '14.5px',
-                lineHeight: 1.6,
-                color: W.textSecondary,
-                userSelect: 'text',
+                background: SP.greenSoft,
+                borderLeft: `2px solid ${SP.green}`,
+                borderRadius: '0 8px 8px 0',
+                padding: '14px 18px',
+                marginBottom: '16px',
               }}>
-                If already wagered before withdrawal, treat as standalone decision. Tracked bet still graded on actual result. Withdrawal reflects edge no longer met threshold.
+                <div style={{
+                  fontFamily: SP.fontMono,
+                  fontSize: '9px',
+                  fontWeight: 500,
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  color: SP.green,
+                  marginBottom: '6px',
+                }}>Invalidation reason</div>
+                <div style={{
+                  fontFamily: SP.fontSerif,
+                  fontSize: '14px',
+                  lineHeight: 1.5,
+                  color: SP.text,
+                }}>{renderInvalidationReason(pick.withdraw_reason)}</div>
               </div>
+            )}
+            <p style={{
+              fontSize: '13px',
+              lineHeight: 1.55,
+              color: SP.text2,
+              marginBottom: '16px',
+            }}>
+              The signal pipeline runs a final validation pass on every active signal in the 30 minutes before tip-off. When new information moves the edge below threshold, the system withdraws automatically. No discretionary call.
+            </p>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1px 1fr 1px 1fr',
+              background: SP.bg,
+              border: `1px solid ${SP.border}`,
+              borderRadius: '12px',
+              overflow: 'hidden',
+            }}>
+              {[
+                { label: 'Edge at fire', value: edgeAtFire || '—', tone: 'green' },
+                { label: 'Edge at recheck', value: edgeAtRecheck, tone: 'dropped' },
+                { label: 'Threshold', value: thresholdLabel, tone: 'plain' },
+              ].flatMap((cell, i, arr) => [
+                <div key={`c-${cell.label}`} style={{ padding: '16px 8px', textAlign: 'center' }}>
+                  <div style={{
+                    fontFamily: SP.fontMono,
+                    fontSize: '9px',
+                    letterSpacing: '0.22em',
+                    textTransform: 'uppercase',
+                    color: SP.text4,
+                    marginBottom: '6px',
+                  }}>{cell.label}</div>
+                  <div style={{
+                    fontFamily: SP.fontMono,
+                    fontSize: '16px',
+                    fontWeight: 500,
+                    lineHeight: 1,
+                    color: cell.tone === 'green' ? SP.green : cell.tone === 'dropped' ? SP.amber : SP.text,
+                  }}>{cell.value}</div>
+                </div>,
+                i < arr.length - 1 ? <div key={`d-${i}`} style={{ background: SP.border }} /> : null,
+              ])}
+            </div>
+          </div>
+
+          {/* Sharp Principle */}
+          <div style={{
+            background: SP.greenSoft,
+            borderLeft: `2px solid ${SP.green}`,
+            borderRadius: '0 12px 12px 0',
+            padding: '18px 22px',
+            marginBottom: '22px',
+          }}>
+            <div style={{
+              fontFamily: SP.fontMono,
+              fontSize: '9px',
+              fontWeight: 500,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: SP.green,
+              marginBottom: '8px',
+            }}>Sharp Principle</div>
+            <div style={{
+              fontFamily: SP.fontSerif,
+              fontSize: '15px',
+              fontStyle: 'italic',
+              lineHeight: 1.5,
+              color: SP.text,
+            }}>Not every signal survives. The edge decides, not emotion. Withdrawal is the system protecting capital.</div>
+          </div>
+
+          {/* Already placed help */}
+          <div style={{ ...cardStyle, padding: '18px 22px', borderRadius: '12px', marginBottom: '22px' }}>
+            <div style={{
+              fontFamily: SP.fontMono,
+              fontSize: '10px',
+              fontWeight: 500,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: SP.text3,
+              marginBottom: '10px',
+            }}>Already placed?</div>
+            <div style={{
+              fontFamily: SP.fontSerif,
+              fontSize: '15px',
+              fontWeight: 600,
+              color: SP.text,
+              marginBottom: '8px',
+            }}>If you placed this bet before withdrawal, treat it as a standalone decision.</div>
+            <div style={{
+              fontSize: '13px',
+              lineHeight: 1.55,
+              color: SP.text2,
+            }}>
+              Your tracked bet still grades on actual game result. The withdrawal reflects that the signal no longer met threshold at the time of re-check. SharpPicks tracks both: your actual outcome and the system's withdrawn-signal record.
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function WithdrawnStat({ value, label, muted, action }) {
-  const valueColor = action ? W.edge : muted ? W.textMuted : W.textPrimary;
-  const valueSize = action ? '16px' : '22px';
-  const valueWeight = action ? 600 : 600;
-  return (
-    <div style={{
-      background: W.bgCardElev,
-      padding: '16px 8px',
-      textAlign: 'center',
-    }}>
-      <div style={{
-        fontFamily: W.fontMono,
-        fontSize: valueSize,
-        fontWeight: valueWeight,
-        color: valueColor,
-        marginBottom: '6px',
-        lineHeight: 1,
-        paddingTop: action ? '4px' : 0,
-      }}>{value}</div>
-      <div style={{
-        fontFamily: W.fontMono,
-        fontSize: '9px',
-        letterSpacing: '0.12em',
-        color: W.textTertiary,
-        textTransform: 'uppercase',
-        userSelect: 'none',
-      }}>{label}</div>
     </div>
   );
 }
