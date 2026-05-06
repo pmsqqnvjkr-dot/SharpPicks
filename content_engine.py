@@ -621,7 +621,7 @@ def _evening_implication(net_units, signals_record, signals_published):
     except Exception:
         wins, losses, pushes = 0, 0, 0
     if wins > 0 and losses == 0:
-        return 'Discipline paid. The model called the market right.'
+        return "Discipline paid. The model's read held against close."
     if losses > 0 and wins == 0 and pushes == 0:
         return 'Variance is the cost of doing business. CLV held.'
     if pushes > 0 and wins == 0 and losses == 0:
@@ -661,7 +661,7 @@ def _evening_headline(data):
         return f"The model called this slate. Net result: {net:+.1f}u."
     if net < 0:
         return f"Mixed result on a tight slate. CLV held against close."
-    return 'Slate graded. Pushes on a market the model read efficient.'
+    return 'Slate graded. Pushes on a market priced inside fair value.'
 
 
 def _compute_near_misses(games, top_n=3):
@@ -851,15 +851,15 @@ def _enrich_with_evening_fields(data, date_str, sport):
         if graded:
             outcome = (p.result or '').lower()
             if outcome == 'win':
-                verdict = 'Model right'
+                verdict = 'Model edge'
             elif outcome == 'loss':
-                verdict = 'Market right'
+                verdict = 'Market efficient'
             else:
-                verdict = 'Market right'
+                verdict = 'Market efficient'
         else:
-            verdict = 'Market right' if gap >= 1.0 else 'Model right' if gap < 0.5 else 'Tied'
+            verdict = 'Market efficient' if gap >= 1.0 else 'Model edge' if gap < 0.5 else 'Tied'
 
-        if verdict == 'Market right':
+        if verdict == 'Market efficient':
             market_beat_count += 1
         audit_games.append({
             'matchup': g.get('matchup', ''),
@@ -872,7 +872,7 @@ def _enrich_with_evening_fields(data, date_str, sport):
     data['market_beat_count'] = market_beat_count
     if audit_games:
         # Sort with model-right first so the editorial portion leads with wins
-        audit_games.sort(key=lambda a: (a['verdict'] != 'Model right', a['matchup']))
+        audit_games.sort(key=lambda a: (a['verdict'] != 'Model edge', a['matchup']))
         data['closing_line_audit'] = {
             'summary': (
                 f"Market closed within model fair value on "

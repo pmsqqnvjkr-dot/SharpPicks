@@ -90,8 +90,8 @@
 .sj-ca-detail { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--sj-text-3); margin-top: 3px; }
 .sj-ca-detail .num { color: var(--sj-text-2); }
 .sj-ca-verdict { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; padding: 4px 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: var(--sj-text-3); }
-.sj-ca-verdict.market-right { color: var(--sj-text-2); }
-.sj-ca-verdict.model-right { color: var(--sj-green); }
+.sj-ca-verdict.market-efficient { color: var(--sj-text-2); }
+.sj-ca-verdict.model-edge { color: var(--sj-green); }
 .sj-near-misses { background: var(--sj-surface); border: 1px solid var(--sj-border); border-radius: 10px; padding: 20px 20px 16px; margin-bottom: 14px; }
 .sj-nm-list { margin-top: 6px; }
 .sj-nm-row { padding: 12px 0; border-bottom: 1px solid var(--sj-border-2); }
@@ -179,31 +179,35 @@
       <div class="sj-ms-divider"></div>
       <div class="sj-ms-cell">
         <div class="sj-ms-value">{{ data.market_beat_count }} / {{ data.games_settled }}</div>
-        <div class="sj-ms-label">Market Right</div>
+        <div class="sj-ms-label">Markets Efficient</div>
       </div>
     </div>
   </div>
 
+  {# Bias bar only renders when at least one game has settled; otherwise
+     percentages are meaningless and the section misleads. #}
+  {% if data.games_settled and data.games_settled > 0 %}
   <div class="sj-stat-card">
     <div class="sj-section-eyebrow" style="margin-bottom: 4px;">Bias</div>
-    {% set settled = data.games_settled or 1 %}
-    {% set market_right = data.market_beat_count or 0 %}
-    {% set model_right = settled - market_right %}
-    {% set mr_pct = (market_right / settled * 100) if settled else 0 %}
-    {% set md_pct = (model_right / settled * 100) if settled else 0 %}
+    {% set settled = data.games_settled %}
+    {% set market_efficient = data.market_beat_count or 0 %}
+    {% set model_edge = settled - market_efficient %}
+    {% set me_pct = market_efficient / settled * 100 %}
+    {% set md_pct = model_edge / settled * 100 %}
     <div class="sj-bias-row">
-      <span class="sj-bias-label"><span class="sj-bias-dot left"></span>Market right</span>
-      <span class="sj-bias-label">Model right<span class="sj-bias-dot right"></span></span>
+      <span class="sj-bias-label"><span class="sj-bias-dot left"></span>Market efficient</span>
+      <span class="sj-bias-label">Model edge<span class="sj-bias-dot right"></span></span>
     </div>
     <div class="sj-bias-bar">
-      <div class="sj-bias-bar-left" style="width: {{ mr_pct }}%"></div>
+      <div class="sj-bias-bar-left" style="width: {{ me_pct }}%"></div>
       <div class="sj-bias-bar-right" style="width: {{ md_pct }}%"></div>
     </div>
     <div class="sj-bias-counts">
-      <span>{{ market_right }} of {{ settled }}</span>
-      <span>{{ model_right }} of {{ settled }}</span>
+      <span>{{ market_efficient }} of {{ settled }}</span>
+      <span>{{ model_edge }} of {{ settled }}</span>
     </div>
   </div>
+  {% endif %}
 
   {% if data.signal %}
   <div class="sj-stat-card">
@@ -238,7 +242,7 @@
       {% if data.signal.outcome == 'Push' %}
       Result graded as a push. Capital preserved on a market the system read as efficient.
       {% elif data.signal.outcome == 'W' %}
-      Signal cleared. The model called this market right.
+      Signal cleared. The model's read held against close.
       {% elif data.signal.outcome == 'L' %}
       Variance is the cost of doing business. CLV held against close.
       {% endif %}
@@ -279,7 +283,7 @@
           Close: <span class="num">{{ cla.close_line }}</span>
         </div>
       </div>
-      <span class="sj-ca-verdict {{ 'model-right' if cla.verdict == 'Model right' else 'market-right' }}">{{ cla.verdict }}</span>
+      <span class="sj-ca-verdict {{ 'model-edge' if cla.verdict == 'Model edge' else 'market-efficient' }}">{{ cla.verdict }}</span>
     </div>
     {% endfor %}
   </div>
