@@ -249,6 +249,10 @@ function WithdrawnDetailScreen({ pick, onBack }) {
   const sport = (pick?.sport || 'mlb').toUpperCase();
   const isCalibration = pick?.model_phase === 'calibration';
 
+  const matchup = pick?.away_team && pick?.home_team
+    ? `${pick.away_team} @ ${pick.home_team}`
+    : (pick?.matchup || 'Matchup unavailable');
+
   const sizeUnits = pick?.position_size_pct != null
     ? `${Number(pick.position_size_pct).toFixed(1)}u`
     : null;
