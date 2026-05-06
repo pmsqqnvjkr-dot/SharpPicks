@@ -20,7 +20,21 @@ import NoPickCard from './NoPickCard';
 import PassDay from '../signals/PassDay';
 import DarkDay from '../signals/DarkDay';
 import WNBAPreLaunchScreen from './WNBAPreLaunchScreen';
+import CalibrationBanner from '../brand/CalibrationBanner';
 import { FEATURE_EVAN_COLE_READ, FEATURE_DISCIPLINE_ARTICLES, FEATURE_EVENING_RECAP } from '../../config/featureFlags';
+
+// Sport-aware calibration banner copy. NBA in deployment phase -> no banner.
+// MLB and WNBA in calibration phase share the same framing pattern.
+const CALIBRATION_COPY = {
+  mlb: {
+    eyebrow: 'Calibration Phase · MLB',
+    body: <><strong>MLB signals run on the same pipeline as NBA</strong> while building a live track record. Edges are real, sizing is identical, every signal is graded. The calibration tag comes off when the data justifies it.</>,
+  },
+  wnba: {
+    eyebrow: 'Calibration Phase · WNBA',
+    body: <><strong>WNBA signals run on the same pipeline as NBA</strong> while building a live track record this season. Edges are real, sizing is identical, every signal is graded. The calibration tag comes off when the data justifies it.</>,
+  },
+};
 
 // WNBA opens 2026-05-08. Until then the WNBA tab renders a pre-launch
 // screen instead of the normal slate / pass / signal flow. Date check uses
@@ -390,21 +404,14 @@ export default function PicksTab({ onNavigate }) {
           </div>
         )}
 
-        {/* Calibration Banner */}
-        {todayData?.model_phase === 'calibration' && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '10px 14px', marginBottom: '14px',
-            borderRadius: '10px',
-            background: 'rgba(59,130,246,0.06)',
-            border: '1px solid rgba(59,130,246,0.2)',
-          }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#3B82F6', flexShrink: 0 }} />
-            <div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, color: '#3B82F6', marginBottom: '2px' }}>Model Phase: Calibration</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-tertiary)' }}>Edges are being tracked live. Early signals, full transparency.</div>
-            </div>
-          </div>
+        {/* Calibration Banner (v4.3 amber pattern, replaces the old blue
+            Model Phase strip and the green CALIBRATION BETA OnboardingCard).
+            Renders only when the sport is in calibration phase. NBA is in
+            deployment phase so it doesn't show. */}
+        {todayData?.model_phase === 'calibration' && CALIBRATION_COPY[sport] && (
+          <CalibrationBanner eyebrow={CALIBRATION_COPY[sport].eyebrow}>
+            {CALIBRATION_COPY[sport].body}
+          </CalibrationBanner>
         )}
 
         {/* Trial Banner */}
@@ -432,19 +439,10 @@ export default function PicksTab({ onNavigate }) {
           ) : null;
         })()}
 
-        {/* First MLB Visit onboarding card */}
-        {sport === 'mlb' && (
-          <OnboardingCard cardId="mlb" title="CALIBRATION BETA">
-            MLB signals use the same pipeline as NBA but are building a live track record. Edges are real. Sizing is identical. Every signal is tracked and graded. The BETA label comes off when the data justifies it.
-          </OnboardingCard>
-        )}
-
-        {/* First WNBA Visit onboarding card */}
-        {sport === 'wnba' && (
-          <OnboardingCard cardId="wnba" title="CALIBRATION BETA">
-            WNBA signals use the same pipeline as NBA but are building a live track record this season. Edges are real. Sizing is identical. Every signal is tracked and graded. The BETA label comes off when the data justifies it.
-          </OnboardingCard>
-        )}
+        {/* MLB and WNBA "CALIBRATION BETA" OnboardingCards removed in v4.3
+            migration. Their framing is now covered by the single amber
+            CalibrationBanner above (see CALIBRATION_COPY map). One banner
+            per screen, not two stacked cards. */}
 
         {/* Resolved Pick Banner (suppressed in night mode; recap handles it) */}
         {!isNightMode && lastResolved && lastResolved.id && !isResolved && !dismissedOutcomes.has(lastResolved.id) && (
