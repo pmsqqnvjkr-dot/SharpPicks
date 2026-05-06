@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0A0D14" />
+<title>MLB Signals · Free User</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:           #0A0D14;
+    --surface:      #121725;
+    --surface-2:    #1B2030;
+    --border:       rgba(255, 255, 255, 0.08);
+    --border-2:     rgba(255, 255, 255, 0.05);
+    --blue:         #4F86F7;
+    --blue-soft:    rgba(79, 134, 247, 0.12);
+    --green:        #5A9E72;
+    --green-soft:   rgba(90, 158, 114, 0.12);
+    --amber:        #F59E0B;
+    --amber-soft:   rgba(245, 158, 11, 0.08);
+    --red-soft:     #C4868A;
+    --text:         #E8EAED;
+    --text-2:       rgba(232, 234, 237, 0.7);
+    --text-3:       rgba(232, 234, 237, 0.5);
+    --text-4:       rgba(232, 234, 237, 0.35);
+    --text-5:       rgba(232, 234, 237, 0.25);
+    --mlb-orange:   #FF8A00;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    max-width: 480px;
+    margin: 0 auto;
+    border-left: 1px solid rgba(255,255,255,0.04);
+    border-right: 1px solid rgba(255,255,255,0.04);
+  }
+
+  /* ═══════════ STATUS BAR ═══════════ */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 22px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* ═══════════ TOP NAV ═══════════ */
+  .top-nav {
+    padding: 8px 18px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .greeting {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .greeting-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-4);
+  }
+  .greeting-text {
+    font-size: 14px;
+    color: var(--text-2);
+    font-weight: 500;
+  }
+  .nav-icons {
+    display: flex;
+    gap: 14px;
+    color: var(--text-3);
+  }
+
+  /* ═══════════ SPORT TABS ═══════════ */
+  .sport-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 4px 18px 18px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .sport-tabs::-webkit-scrollbar { display: none; }
+
+  .sport-tab {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    cursor: pointer;
+  }
+  .sport-tab-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-5);
+  }
+
+  /* MLB active = blue */
+  .sport-tab.active.mlb {
+    border-color: var(--blue);
+    background: var(--blue-soft);
+    color: var(--blue);
+  }
+  .sport-tab.active.mlb .sport-tab-dot { background: var(--blue); }
+
+  /* NBA active = orange */
+  .sport-tab.active.nba {
+    border-color: var(--mlb-orange);
+    background: rgba(255, 138, 0, 0.1);
+    color: var(--mlb-orange);
+  }
+
+  /* WNBA pre-launch = amber, not muted "soon" */
+  .sport-tab.wnba .sport-tab-status {
+    margin-left: 4px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--amber);
+    font-size: 8px;
+    letter-spacing: 0.18em;
+  }
+
+  /* ═══════════ CALIBRATION BANNER ═══════════ */
+  .calibration-banner {
+    margin: 0 18px 18px;
+    background: var(--amber-soft);
+    border: 1px solid rgba(245, 158, 11, 0.22);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .cal-pulse {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    margin-top: 5px;
+    background: var(--amber);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+    70%  { box-shadow: 0 0 0 7px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  }
+  .cal-content { flex: 1; }
+  .cal-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 4px;
+  }
+  .cal-text {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .cal-text strong { font-weight: 600; }
+
+  /* ═══════════ CONTENT ═══════════ */
+  .content {
+    padding: 0 18px 100px;
+  }
+
+  /* ═══════════ SECTION EYEBROW ═══════════ */
+  .section-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 12px;
+    padding-left: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .section-eyebrow .meta {
+    color: var(--text-4);
+    letter-spacing: 0.04em;
+  }
+
+  /* ═══════════ MARKET INTELLIGENCE CARD ═══════════ */
+  .market-int {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .market-int::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 2px;
+    background: var(--green);
+  }
+  .mi-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    background: var(--green-soft);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--green);
+  }
+  .mi-content { flex: 1; min-width: 0; }
+  .mi-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 3px;
+  }
+  .mi-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+  .mi-arrow {
+    color: var(--text-4);
+    flex-shrink: 0;
+  }
+
+  /* ═══════════ DAILY TOP SIGNAL · LOCKED ═══════════ */
+  .signal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 22px;
+  }
+  .signal-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--green) 20%, var(--green) 80%, transparent);
+    opacity: 0.6;
+  }
+
+  .sc-header {
+    padding: 22px 22px 18px;
+    border-bottom: 1px solid var(--border-2);
+  }
+
+  .sc-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .sc-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border: 1px solid var(--green);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--green);
+  }
+  .sc-cal-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border: 1px solid var(--amber);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .sc-cal-dot {
+    width: 5px;
+    height: 5px;
+    background: var(--amber);
+    border-radius: 50%;
+  }
+
+  .sc-headline {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.25;
+    margin-bottom: 6px;
+  }
+  .sc-headline-accent {
+    color: var(--green);
+  }
+  .sc-sub {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+
+  /* OBSCURED STATS GRID — preserves visual structure but hides values */
+  .sc-stats {
+    background: var(--bg);
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr 1px 1fr 1px 1fr;
+    position: relative;
+  }
+  .sc-stat-cell {
+    padding: 18px 8px 14px;
+    text-align: center;
+  }
+  .sc-stat-divider {
+    background: var(--border);
+  }
+  .sc-stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+  .sc-stat-value-blur {
+    /* the values exist but are visually obscured */
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+    filter: blur(6px);
+    user-select: none;
+    pointer-events: none;
+    opacity: 0.7;
+  }
+  .sc-stat-value-blur.serif {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  /* OVERLAY UNLOCK PROMPT — subtle, doesn't dominate the card */
+  .sc-unlock-strip {
+    padding: 20px 22px;
+    background: linear-gradient(180deg, transparent, rgba(90, 158, 114, 0.04));
+  }
+
+  .sc-unlock-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+  .sc-lock-icon {
+    color: var(--green);
+    flex-shrink: 0;
+  }
+
+  .sc-trial-btn {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--green);
+    border: none;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #062019;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .sc-trial-meta {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-4);
+    text-align: center;
+  }
+
+  /* ═══════════ TODAY'S SLATE TABS ═══════════ */
+  .slate-section {
+    margin-top: 8px;
+  }
+
+  .slate-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 2px 0 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .slate-tabs::-webkit-scrollbar { display: none; }
+  .slate-tab {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    cursor: pointer;
+  }
+  .slate-tab.active {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border-2);
+  }
+
+  /* ═══════════ SLATE PREVIEW (free) ═══════════ */
+  .slate-preview {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .slate-game {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-2);
+  }
+  .slate-game:last-child { border-bottom: none; }
+
+  .slate-game.has-edge {
+    background: rgba(90, 158, 114, 0.04);
+  }
+
+  .sg-team {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.35;
+  }
+  .sg-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .sg-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-4);
+  }
+  .sg-status.edge {
+    color: var(--green);
+  }
+  .sg-status-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--text-5);
+  }
+  .sg-status.edge .sg-status-dot {
+    background: var(--green);
+  }
+
+  /* ═══════════ BOTTOM NAV ═══════════ */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    background: rgba(10, 13, 20, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+    display: flex;
+    justify-content: space-around;
+    z-index: 100;
+  }
+  .bn-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    position: relative;
+  }
+  .bn-item.active { color: var(--green); }
+  .bn-item.active::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    width: 24px;
+    height: 2px;
+    background: var(--green);
+    border-radius: 0 0 2px 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Status bar -->
+<div class="status-bar">
+  <span>3:38</span>
+  <span style="display: inline-flex; gap: 6px; align-items: center;">
+    <svg width="14" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M1 6h2v4H1zm4-2h2v6H5zm4-2h2v8H9zm4-2h2v10h-2z"/></svg>
+    <svg width="14" height="11" viewBox="0 0 14 11" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4a5 5 0 0 1 10 0M4 6a3 3 0 0 1 6 0M7 8a1 1 0 0 0 0 2 1 1 0 0 0 0-2z"/></svg>
+    <span>25</span>
+  </span>
+</div>
+
+<!-- Top nav: greeting + icons (no wordmark — wastes header space on home) -->
+<div class="top-nav">
+  <div class="greeting">
+    <span class="greeting-eyebrow">MAY 6 · 3:38 PM ET</span>
+    <span class="greeting-text">Welcome back</span>
+  </div>
+  <div class="nav-icons">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+  </div>
+</div>
+
+<!-- Sport tabs -->
+<div class="sport-tabs">
+  <div class="sport-tab">
+    <span class="sport-tab-dot"></span>NBA
+  </div>
+  <div class="sport-tab active mlb">
+    <span class="sport-tab-dot"></span>MLB
+  </div>
+  <div class="sport-tab wnba">
+    <span class="sport-tab-dot"></span>WNBA
+    <span class="sport-tab-status">FRI</span>
+  </div>
+</div>
+
+<!-- Calibration banner (replaces blue Model Phase strip) -->
+<div class="calibration-banner">
+  <div class="cal-pulse"></div>
+  <div class="cal-content">
+    <div class="cal-eyebrow">Calibration Phase · MLB</div>
+    <div class="cal-text">
+      <strong>MLB signals run on the same pipeline as NBA</strong> while building a live track record. Edges are real, sizing is identical, every signal is graded. The calibration tag comes off when the data justifies it.
+    </div>
+  </div>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+  <!-- Market Intelligence -->
+  <div class="section-eyebrow">
+    <span>Market Intelligence</span>
+    <span class="meta">Updated 11:00 AM ET</span>
+  </div>
+  <div class="market-int">
+    <div class="mi-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 17l6-6 4 4 8-8"/></svg>
+    </div>
+    <div class="mi-content">
+      <div class="mi-title">15 games · 9 edges · 2 signals</div>
+      <div class="mi-meta">Density 13% · MEI 69 · Active regime</div>
+    </div>
+    <svg class="mi-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+  </div>
+
+  <!-- Daily Top Signal (paywalled, but shows real structure) -->
+  <div class="section-eyebrow">
+    <span>Daily Top Signal</span>
+    <span class="meta">2H BEFORE TIP</span>
+  </div>
+
+  <div class="signal-card">
+    <div class="sc-header">
+      <div class="sc-meta-row">
+        <span class="sc-tag">MLB</span>
+        <span class="sc-cal-tag"><span class="sc-cal-dot"></span>Calibration v1</span>
+      </div>
+      <h2 class="sc-headline">A qualified edge fired tonight. <span class="sc-headline-accent">+6.0%</span></h2>
+      <p class="sc-sub">Bullpen edge based on fatigue differential. Late-inning advantage in a game projected to go nine.</p>
+    </div>
+
+    <div class="sc-stats">
+      <div class="sc-stat-cell">
+        <div class="sc-stat-label">Side</div>
+        <div class="sc-stat-value-blur">Texas</div>
+      </div>
+      <div class="sc-stat-divider"></div>
+      <div class="sc-stat-cell">
+        <div class="sc-stat-label">Line</div>
+        <div class="sc-stat-value-blur">+1.5</div>
+      </div>
+      <div class="sc-stat-divider"></div>
+      <div class="sc-stat-cell">
+        <div class="sc-stat-label">Tier</div>
+        <div class="sc-stat-value-blur serif">WK</div>
+      </div>
+      <div class="sc-stat-divider"></div>
+      <div class="sc-stat-cell">
+        <div class="sc-stat-label">Size</div>
+        <div class="sc-stat-value-blur">1.5u</div>
+      </div>
+    </div>
+
+    <div class="sc-unlock-strip">
+      <div class="sc-unlock-row">
+        <svg class="sc-lock-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Unlock to see side, line, edge breakdown, and Kelly sizing</span>
+      </div>
+      <button class="sc-trial-btn">Start 14-day free trial</button>
+      <div class="sc-trial-meta">No card required · Cancel anytime</div>
+    </div>
+  </div>
+
+  <!-- Today's slate -->
+  <div class="slate-section">
+    <div class="section-eyebrow">
+      <span>Today's Slate</span>
+      <span class="meta">15 GAMES</span>
+    </div>
+
+    <div class="slate-tabs">
+      <div class="slate-tab active">All</div>
+      <div class="slate-tab">Edges</div>
+      <div class="slate-tab">Upcoming</div>
+      <div class="slate-tab">Live</div>
+      <div class="slate-tab">Final</div>
+    </div>
+
+    <div class="slate-preview">
+      <div class="slate-game has-edge">
+        <div>
+          <div class="sg-team">Texas Rangers @ NY Yankees</div>
+          <div class="sg-time">7:06 PM ET</div>
+        </div>
+        <div class="sg-status edge"><span class="sg-status-dot"></span>Signal</div>
+      </div>
+      <div class="slate-game has-edge">
+        <div>
+          <div class="sg-team">Boston Red Sox @ Detroit Tigers</div>
+          <div class="sg-time">7:10 PM ET</div>
+        </div>
+        <div class="sg-status edge"><span class="sg-status-dot"></span>Edge</div>
+      </div>
+      <div class="slate-game">
+        <div>
+          <div class="sg-team">Toronto Blue Jays @ Tampa Bay Rays</div>
+          <div class="sg-time">7:50 PM ET</div>
+        </div>
+        <div class="sg-status"><span class="sg-status-dot"></span>Below</div>
+      </div>
+      <div class="slate-game">
+        <div>
+          <div class="sg-team">LA Dodgers @ Houston Astros</div>
+          <div class="sg-time">8:10 PM ET</div>
+        </div>
+        <div class="sg-status"><span class="sg-status-dot"></span>Below</div>
+      </div>
+      <div class="slate-game">
+        <div>
+          <div class="sg-team">San Diego Padres @ SF Giants</div>
+          <div class="sg-time">9:45 PM ET</div>
+        </div>
+        <div class="sg-status"><span class="sg-status-dot"></span>Below</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom nav -->
+<div class="bottom-nav">
+  <div class="bn-item active">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/></svg>
+    <span>Signals</span>
+  </div>
+  <div class="bn-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+    <span>Results</span>
+  </div>
+  <div class="bn-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    <span>Insights</span>
+  </div>
+  <div class="bn-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/></svg>
+    <span>Account</span>
+  </div>
+</div>
+
+</body>
+</html>

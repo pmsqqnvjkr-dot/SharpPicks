@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0A0D14" />
+<title>Sharp Journal · Unified template (morning + evening)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:           #0A0D14;
+    --surface:      #121725;
+    --surface-2:    #1B2030;
+    --border:       rgba(255, 255, 255, 0.08);
+    --border-2:     rgba(255, 255, 255, 0.05);
+    --blue:         #4F86F7;
+    --green:        #5A9E72;
+    --red-soft:     #C4868A;
+    --text:         #E8EAED;
+    --text-2:       rgba(232, 234, 237, 0.7);
+    --text-3:       rgba(232, 234, 237, 0.5);
+    --text-4:       rgba(232, 234, 237, 0.35);
+    --text-5:       rgba(232, 234, 237, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* ═══════════ PHASE TOGGLE (demo only — not in production) ═══════════ */
+  .phase-toggle {
+    position: sticky;
+    top: env(safe-area-inset-top);
+    z-index: 50;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .phase-toggle-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-4);
+    margin-right: 4px;
+  }
+  .phase-btn {
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .phase-btn.active {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+  }
+
+  /* ═══════════ NAV BAR ═══════════ */
+  .navbar {
+    padding: 18px 24px 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .back-arrow {
+    color: var(--text-3);
+    cursor: pointer;
+  }
+  .navbar-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+
+  /* ═══════════ ARTICLE CONTAINER ═══════════ */
+  .article {
+    padding: 24px 24px 60px;
+  }
+
+  /* ═══════════ HEADER (Tag + Meta) ═══════════ */
+  .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .tag-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid var(--blue);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--blue);
+  }
+  .meta-sep {
+    color: var(--text-4);
+    font-size: 12px;
+  }
+  .meta-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+
+  /* ═══════════ HEADLINE ═══════════ */
+  .headline {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin-bottom: 16px;
+  }
+
+  /* ═══════════ DATE + BYLINE ═══════════ */
+  .date-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+  .byline {
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+  .byline-author { color: var(--text); }
+  .byline-sep { color: var(--text-4); margin: 0 6px; }
+  .byline-title { color: var(--text-3); }
+
+  /* ═══════════ DIVIDER ═══════════ */
+  .article-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 24px 0 28px;
+  }
+
+  /* ═══════════ SECTION (block container) ═══════════ */
+  .section-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 14px;
+  }
+
+  /* ═══════════ OBSERVATION (serif body) ═══════════ */
+  .observation {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--text);
+    margin-bottom: 32px;
+  }
+
+  /* ═══════════ STAT CARD (Market Structure / Bias / Top Edge) ═══════════ */
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 22px 24px;
+    margin-bottom: 16px;
+  }
+
+  /* Market Structure: 3-up stat grid */
+  .market-structure-grid {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr 1px 1fr;
+    gap: 0;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .ms-cell { text-align: center; padding: 8px 0; }
+  .ms-value {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .ms-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .ms-divider {
+    width: 1px;
+    height: 50px;
+    background: var(--border);
+  }
+
+  /* Bias card: split bar */
+  .bias-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 8px;
+  }
+  .bias-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .bias-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+  .bias-dot.left { background: var(--red-soft); }
+  .bias-dot.right { background: var(--green); }
+  .bias-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface-2);
+    overflow: hidden;
+    display: flex;
+    margin: 6px 0 14px;
+  }
+  .bias-bar-left {
+    height: 100%;
+    background: var(--red-soft);
+  }
+  .bias-bar-right {
+    height: 100%;
+    background: var(--green);
+  }
+  .bias-counts {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  /* Top Edge card */
+  .top-edge-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 10px;
+    margin-bottom: 6px;
+  }
+  .te-pick {
+    font-family: 'Inter', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .te-edge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--green);
+  }
+  .te-edge.negative { color: var(--red-soft); }
+  .te-matchup {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+  .te-stats {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-3);
+    margin-bottom: 14px;
+  }
+  .te-stats .num {
+    color: var(--text);
+  }
+  .te-stats .num.green { color: var(--green); }
+  .te-status-pill {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    padding: 5px 10px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--text-3);
+    margin-bottom: 14px;
+  }
+  .te-status-pill.signal {
+    background: rgba(90, 158, 114, 0.1);
+    border-color: rgba(90, 158, 114, 0.3);
+    color: var(--green);
+  }
+  .te-status-pill.win {
+    background: rgba(90, 158, 114, 0.1);
+    border-color: rgba(90, 158, 114, 0.3);
+    color: var(--green);
+  }
+  .te-status-pill.loss {
+    background: rgba(196, 134, 138, 0.1);
+    border-color: rgba(196, 134, 138, 0.3);
+    color: var(--red-soft);
+  }
+  .te-status-pill.push {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-2);
+  }
+
+  /* Quote-styled explainer paragraph (Top Edge body) */
+  .te-explainer {
+    border-left: 2px solid rgba(90, 158, 114, 0.5);
+    padding: 4px 0 4px 16px;
+    margin-top: 14px;
+  }
+  .te-explainer p {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-2);
+    margin-bottom: 10px;
+  }
+  .te-explainer p:last-child { margin-bottom: 0; }
+
+  /* ═══════════ EDGE MAP (diverging bars) ═══════════ */
+  .edge-map {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 18px 18px;
+    margin-bottom: 16px;
+  }
+  .edge-map-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 8px;
+  }
+  .em-row {
+    display: grid;
+    grid-template-columns: 90px 50px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .em-team {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .em-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+    text-align: right;
+  }
+  .em-pct.negative { color: var(--red-soft); }
+  .em-pct.positive { color: var(--green); }
+
+  /* Diverging bar with center axis */
+  .em-bar-track {
+    position: relative;
+    height: 10px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    margin: 0 8px;
+  }
+  .em-bar-track::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -2px;
+    bottom: -2px;
+    width: 1px;
+    background: var(--text-5);
+  }
+  .em-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 2px;
+  }
+  .em-bar.negative {
+    right: 50%;
+    background: var(--red-soft);
+  }
+  .em-bar.positive {
+    left: 50%;
+    background: var(--green);
+  }
+  .em-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .em-status.signal { color: var(--green); }
+  .em-status.win { color: var(--green); }
+  .em-status.loss { color: var(--red-soft); }
+
+  /* ═══════════ NEAR MISSES ═══════════ */
+  .near-misses {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 22px 18px;
+    margin-bottom: 16px;
+  }
+  .nm-list { margin-top: 6px; }
+  .nm-row {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-2);
+  }
+  .nm-row:last-child { border-bottom: none; }
+  .nm-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .nm-team {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .nm-edge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--green);
+  }
+  .nm-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  /* ═══════════ IMPLICATION CALLOUT ═══════════ */
+  .implication {
+    border-left: 3px solid var(--green);
+    background: rgba(90, 158, 114, 0.04);
+    padding: 18px 20px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 28px;
+  }
+  .impl-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+  .impl-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+  .impl-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  /* ═══════════ SHARP PRINCIPLE ═══════════ */
+  .principle {
+    margin-bottom: 28px;
+  }
+  .principle-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 14px;
+  }
+  .principle-body {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+
+  /* ═══════════ NEXT READ TILE ═══════════ */
+  .next-read {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+    cursor: pointer;
+  }
+  .nr-content { min-width: 0; }
+  .nr-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-4);
+    margin-bottom: 6px;
+  }
+  .nr-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .nr-arrow {
+    color: var(--text-4);
+  }
+
+  /* ═══════════ EVENING-ONLY: CLOSING LINE AUDIT ═══════════ */
+  .closing-audit {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 22px 20px;
+    margin-bottom: 16px;
+  }
+  .ca-summary {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text-2);
+    margin: 8px 0 16px;
+  }
+  .ca-row {
+    padding: 12px 0;
+    border-top: 1px solid var(--border-2);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .ca-row:first-child { border-top: none; padding-top: 0; }
+  .ca-team {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .ca-detail {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 3px;
+  }
+  .ca-detail .num { color: var(--text-2); }
+  .ca-verdict {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-3);
+  }
+  .ca-verdict.market-right { color: var(--text-2); }
+  .ca-verdict.model-right { color: var(--green); }
+
+  /* Hidden state for phase swapping */
+  .phase-only-morning, .phase-only-evening { display: block; }
+  body.phase-evening .phase-only-morning { display: none; }
+  body.phase-morning .phase-only-evening { display: none; }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade { animation: fadeInUp 0.35s ease-out; }
+</style>
+</head>
+<body class="phase-morning">
+
+<!-- ═══════════ PHASE TOGGLE (DEMO ONLY) ═══════════ -->
+<div class="phase-toggle">
+  <span class="phase-toggle-label">View:</span>
+  <button class="phase-btn active" data-phase="morning">Morning</button>
+  <button class="phase-btn" data-phase="evening">Evening</button>
+</div>
+
+<!-- ═══════════ NAV BAR ═══════════ -->
+<nav class="navbar">
+  <svg class="back-arrow" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M19 12H5M12 19l-7-7 7-7"/>
+  </svg>
+  <span class="navbar-title">SHARP JOURNAL</span>
+</nav>
+
+<!-- ═══════════ ARTICLE ═══════════ -->
+<article class="article">
+
+  <!-- META ROW: tag pill changes by phase -->
+  <div class="meta-row">
+    <span class="tag-pill phase-only-morning">Market Notes</span>
+    <span class="tag-pill phase-only-evening">Slate Recap</span>
+    <span class="meta-sep">·</span>
+    <span class="meta-text">Sharp Journal</span>
+    <span class="meta-sep">·</span>
+    <span class="meta-text">2 min read</span>
+  </div>
+
+  <!-- HEADLINE: phase-conditional, no hyphens-as-separators -->
+  <h1 class="headline phase-only-morning">
+    Value sitting with the underdogs tonight. 2 signals, mostly dogs.
+  </h1>
+  <h1 class="headline phase-only-evening">
+    The slate closed quiet. Capital preserved on the pass.
+  </h1>
+
+  <!-- DATE + BYLINE -->
+  <div class="date-line">May 1, 2026</div>
+  <div class="byline">
+    <span class="byline-author">Evan Cole</span>
+    <span class="byline-sep">·</span>
+    <span class="byline-title">Head of Signal Intelligence</span>
+  </div>
+
+  <div class="article-divider"></div>
+
+  <!-- ═══════════ OBSERVATION ═══════════ -->
+  <div class="section-eyebrow">Observation</div>
+
+  <p class="observation phase-only-morning">
+    The underdog side is where the model is finding room. 11 edges on dogs against 3 on favorites, with 2 clearing the threshold.
+  </p>
+  <p class="observation phase-only-evening">
+    Two signals issued, both pushed. The market closed within fair value on 11 of 15 games, which is the system working as designed on a slate the model read as efficient.
+  </p>
+
+  <!-- ═══════════ MARKET STRUCTURE ═══════════ -->
+  <div class="stat-card">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">Market Structure</div>
+    <div class="market-structure-grid">
+      <div class="ms-cell">
+        <div class="ms-value">14</div>
+        <div class="ms-label">Edges</div>
+      </div>
+      <div class="ms-divider"></div>
+      <div class="ms-cell">
+        <div class="ms-value">2</div>
+        <div class="ms-label">Signals</div>
+      </div>
+      <div class="ms-divider"></div>
+      <div class="ms-cell">
+        <div class="ms-value">13%</div>
+        <div class="ms-label">Density</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ BIAS (split bar) ═══════════ -->
+  <div class="stat-card">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">Bias</div>
+
+    <!-- Morning: Favorites vs Underdogs -->
+    <div class="phase-only-morning">
+      <div class="bias-row">
+        <span class="bias-label"><span class="bias-dot left"></span>Favorites</span>
+        <span class="bias-label">Underdogs<span class="bias-dot right"></span></span>
+      </div>
+      <div class="bias-bar">
+        <div class="bias-bar-left" style="width: 21.4%"></div>
+        <div class="bias-bar-right" style="width: 78.6%"></div>
+      </div>
+      <div class="bias-counts">
+        <span>3 edges</span>
+        <span>11 edges</span>
+      </div>
+    </div>
+
+    <!-- Evening: Model right vs Market right -->
+    <div class="phase-only-evening">
+      <div class="bias-row">
+        <span class="bias-label"><span class="bias-dot left"></span>Market right</span>
+        <span class="bias-label">Model right<span class="bias-dot right"></span></span>
+      </div>
+      <div class="bias-bar">
+        <div class="bias-bar-left" style="width: 73.3%"></div>
+        <div class="bias-bar-right" style="width: 26.7%"></div>
+      </div>
+      <div class="bias-counts">
+        <span>11 of 15</span>
+        <span>4 of 15</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ TOP EDGE ═══════════ -->
+  <div class="stat-card">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">Top Edge</div>
+    <div class="top-edge-row">
+      <span class="te-pick">Minnesota Twins +1.5</span>
+      <span class="te-edge">+10.9%</span>
+    </div>
+    <div class="te-matchup">Toronto Blue Jays vs Minnesota Twins</div>
+    <div class="te-stats">
+      Model: <span class="num green">1.2</span>
+      <span style="color: var(--text-4)">·</span>
+      Market: <span class="num">1.5</span>
+      <span style="color: var(--text-4)">·</span>
+      Gap: <span class="num">0.3 points</span>
+    </div>
+
+    <!-- Status pill: morning shows threshold state, evening shows outcome -->
+    <span class="te-status-pill phase-only-morning">Below threshold</span>
+    <span class="te-status-pill push phase-only-evening">Push · 0.0u</span>
+
+    <div class="te-explainer">
+      <div class="phase-only-morning">
+        <p>Schedule density: Minnesota Twins has played 7 games in the last 7 days. Heavy workload impacts performance.</p>
+        <p>Model edge: -10.9% above the qualification threshold. Ensemble consensus across all four models.</p>
+        <p>Market is pricing this game with tight consensus across books. Model sees a gap the market hasn't corrected.</p>
+      </div>
+      <div class="phase-only-evening">
+        <p>Final: Toronto 4, Minnesota 3. Twins covered the +1.5, hooking the spread by half a run.</p>
+        <p>Closing line: +1.5 at -110. Same as open. CLV: zero. The market priced this game where the model priced it.</p>
+        <p>Result graded as a push at -110 juice. Capital preserved. The signal did what it was supposed to do on a market the system correctly read as efficient.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ EDGE MAP ═══════════ -->
+  <div class="edge-map">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">Edge Map</div>
+    <div class="edge-map-list">
+
+      <!-- 15 game rows. In production this is {% for game in data.games %}.
+           Bar widths are derived from edge_pct as percentage of 12% max. -->
+
+      <div class="em-row">
+        <span class="em-team">TOR vs MIN</span>
+        <span class="em-pct negative">-10.9%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 45.4%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">CLE vs ATH</span>
+        <span class="em-pct negative">-10.3%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 42.9%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">NYM vs LAA</span>
+        <span class="em-pct negative">-10.1%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 42.1%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">CIN vs PIT</span>
+        <span class="em-pct negative">-8%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 33.3%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">TEX vs DET</span>
+        <span class="em-pct positive">+6%</span>
+        <div class="em-bar-track">
+          <div class="em-bar positive" style="width: 25%"></div>
+        </div>
+        <span class="em-status signal phase-only-morning">Signal</span>
+        <span class="em-status push phase-only-evening">Push 0.0u</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">BAL vs NYY</span>
+        <span class="em-pct positive">+6%</span>
+        <div class="em-bar-track">
+          <div class="em-bar positive" style="width: 25%"></div>
+        </div>
+        <span class="em-status signal phase-only-morning">Signal</span>
+        <span class="em-status push phase-only-evening">Push 0.0u</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">HOU vs BOS</span>
+        <span class="em-pct positive">+6%</span>
+        <div class="em-bar-track">
+          <div class="em-bar positive" style="width: 25%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">PHI vs MIA</span>
+        <span class="em-pct positive">+6%</span>
+        <div class="em-bar-track">
+          <div class="em-bar positive" style="width: 25%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">MIL vs WSH</span>
+        <span class="em-pct negative">-4.6%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 19.2%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">KC vs SEA</span>
+        <span class="em-pct negative">-3.5%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 14.6%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">ARI vs CHC</span>
+        <span class="em-pct negative">-3.3%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 13.8%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">LAD vs STL</span>
+        <span class="em-pct positive">+2.9%</span>
+        <div class="em-bar-track">
+          <div class="em-bar positive" style="width: 12.1%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">SF vs TB</span>
+        <span class="em-pct negative">-2.9%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 12.1%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">CWS vs SD</span>
+        <span class="em-pct negative">-2.5%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 10.4%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">ATL vs COL</span>
+        <span class="em-pct positive">+0.9%</span>
+        <div class="em-bar-track">
+          <div class="em-bar positive" style="width: 3.8%"></div>
+        </div>
+        <span class="em-status">Below threshold</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ CLOSING LINE AUDIT — EVENING ONLY ═══════════ -->
+  <div class="closing-audit phase-only-evening">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">Closing Line Audit</div>
+    <p class="ca-summary">
+      Market closed within model fair value on 11 of 15 games. The model held CLV on the two signals issued.
+    </p>
+
+    <div class="ca-row">
+      <div>
+        <div class="ca-team">TOR vs MIN</div>
+        <div class="ca-detail">
+          Open: <span class="num">+1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Close: <span class="num">+1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Model: <span class="num">+1.2</span>
+        </div>
+      </div>
+      <span class="ca-verdict market-right">Market right</span>
+    </div>
+
+    <div class="ca-row">
+      <div>
+        <div class="ca-team">BAL vs NYY</div>
+        <div class="ca-detail">
+          Open: <span class="num">-1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Close: <span class="num">-1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Model: <span class="num">-1.2</span>
+        </div>
+      </div>
+      <span class="ca-verdict market-right">Market right</span>
+    </div>
+
+    <div class="ca-row">
+      <div>
+        <div class="ca-team">TEX vs DET</div>
+        <div class="ca-detail">
+          Open: <span class="num">-1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Close: <span class="num">-1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Model: <span class="num">-1.8</span>
+        </div>
+      </div>
+      <span class="ca-verdict model-right">Model right</span>
+    </div>
+  </div>
+
+  <!-- ═══════════ NEAR MISSES ═══════════ -->
+  <div class="near-misses">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">Near Misses</div>
+    <div class="nm-list">
+
+      <div class="nm-row">
+        <div class="nm-head">
+          <span class="nm-team">Arizona Diamondbacks vs Chicago Cubs</span>
+          <span class="nm-edge">+3.3%</span>
+        </div>
+        <div class="nm-sub">Edge below threshold.</div>
+      </div>
+
+      <div class="nm-row">
+        <div class="nm-head">
+          <span class="nm-team">Los Angeles Dodgers vs St. Louis Cardinals</span>
+          <span class="nm-edge">+2.9%</span>
+        </div>
+        <div class="nm-sub">Edge below threshold.</div>
+      </div>
+
+      <div class="nm-row">
+        <div class="nm-head">
+          <span class="nm-team">San Francisco Giants vs Tampa Bay Rays</span>
+          <span class="nm-edge">+2.9%</span>
+        </div>
+        <div class="nm-sub">Edge below threshold.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ IMPLICATION ═══════════ -->
+  <div class="implication">
+    <div class="impl-eyebrow"><span class="impl-dot"></span>Implication</div>
+    <div class="impl-text phase-only-morning">Moderate opportunity detected</div>
+    <div class="impl-text phase-only-evening">Efficient market. System held discipline.</div>
+  </div>
+
+  <!-- ═══════════ SHARP PRINCIPLE ═══════════ -->
+  <div class="principle">
+    <div class="principle-eyebrow">Sharp Principle</div>
+    <p class="principle-body phase-only-morning">
+      An underdog lean suggests the spread market is running a point or two wide on several games. Small inefficiencies add up.
+    </p>
+    <p class="principle-body phase-only-evening">
+      Pass days are not missed opportunities. They are proof the system is working.
+    </p>
+  </div>
+
+  <!-- ═══════════ CROSS-EDITION (replaces broken Next Read) ═══════════ -->
+  <div class="next-read phase-only-morning">
+    <div class="nr-content">
+      <div class="nr-eyebrow">Tonight, after the slate</div>
+      <div class="nr-title">Read the evening edition →</div>
+    </div>
+    <svg class="nr-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  </div>
+  <div class="next-read phase-only-evening">
+    <div class="nr-content">
+      <div class="nr-eyebrow">Tomorrow at 10:15 AM ET</div>
+      <div class="nr-title">Sat May 2 morning edition publishes after the model run.</div>
+    </div>
+    <svg class="nr-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  </div>
+
+</article>
+
+<script>
+  // Phase toggle (demo only)
+  document.querySelectorAll('.phase-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const phase = btn.dataset.phase;
+      document.body.className = 'phase-' + phase;
+      document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      // Trigger fade animation on visible content
+      document.querySelectorAll('.article > *').forEach(el => {
+        el.classList.remove('fade');
+        // force reflow
+        void el.offsetWidth;
+        el.classList.add('fade');
+      });
+    });
+  });
+</script>
+</body>
+</html>

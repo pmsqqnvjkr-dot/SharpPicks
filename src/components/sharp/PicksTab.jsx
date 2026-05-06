@@ -19,7 +19,18 @@ import { InlineError } from './ErrorStates';
 import NoPickCard from './NoPickCard';
 import PassDay from '../signals/PassDay';
 import DarkDay from '../signals/DarkDay';
+import WNBAPreLaunchScreen from './WNBAPreLaunchScreen';
 import { FEATURE_EVAN_COLE_READ, FEATURE_DISCIPLINE_ARTICLES, FEATURE_EVENING_RECAP } from '../../config/featureFlags';
+
+// WNBA opens 2026-05-08. Until then the WNBA tab renders a pre-launch
+// screen instead of the normal slate / pass / signal flow. Date check uses
+// the user's local timezone which is fine for "is today launch day yet";
+// model_run_hour=9 ET means signals start appearing Friday morning anyway.
+const WNBA_LAUNCH_DATE = '2026-05-08';
+function isWNBAPreLaunch() {
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  return today < WNBA_LAUNCH_DATE;
+}
 
 
 function isTodayGame(gameDate) {
@@ -342,6 +353,17 @@ export default function PicksTab({ onNavigate }) {
 
   // Cross-sport data for off-day nudge
   const otherSports = ['nba', 'mlb', 'wnba'].filter(s => s !== sport);
+
+  // WNBA pre-launch gate: render the bare-minimum pre-launch screen until
+  // the season opens. Skips all of the normal slate / signal / pass logic
+  // below since none of it has anything meaningful to show pre-launch.
+  if (sport === 'wnba' && isWNBAPreLaunch()) {
+    return (
+      <div style={{ padding: '0' }}>
+        <WNBAPreLaunchScreen />
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '0' }}>

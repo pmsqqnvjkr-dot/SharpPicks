@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0A0D14" />
+<title>Daily Top Signal · MLB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:           #0A0D14;
+    --surface:      #121725;
+    --surface-2:    #1B2030;
+    --border:       rgba(255, 255, 255, 0.08);
+    --border-2:     rgba(255, 255, 255, 0.05);
+    --blue:         #4F86F7;
+    --green:        #5A9E72;
+    --green-soft:   rgba(90, 158, 114, 0.12);
+    --amber:        #F59E0B;
+    --red-soft:     #C4868A;
+    --text:         #E8EAED;
+    --text-2:       rgba(232, 234, 237, 0.7);
+    --text-3:       rgba(232, 234, 237, 0.5);
+    --text-4:       rgba(232, 234, 237, 0.35);
+    --text-5:       rgba(232, 234, 237, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    max-width: 480px;
+    margin: 0 auto;
+    border-left: 1px solid rgba(255,255,255,0.04);
+    border-right: 1px solid rgba(255,255,255,0.04);
+  }
+
+  /* ═══════════ STATUS BAR ═══════════ */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 22px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* ═══════════ TOP STRIP (Market Intelligence preview, leftover from above) ═══════════ */
+  .market-int-strip {
+    margin: 0 18px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-2);
+  }
+  .mis-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .mis-icon {
+    width: 28px;
+    height: 28px;
+    background: rgba(79, 134, 247, 0.1);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--blue);
+  }
+  .mis-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+  .mis-text strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .mis-arrow {
+    color: var(--text-4);
+  }
+
+  /* ═══════════ CONTENT ═══════════ */
+  .content {
+    padding: 0 18px 100px;
+  }
+
+  /* ═══════════ SECTION EYEBROW ═══════════ */
+  .section-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+
+  /* ═══════════ MAIN SIGNAL CARD ═══════════ */
+  .signal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+  }
+  .signal-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--green) 20%, var(--green) 80%, transparent);
+    opacity: 0.7;
+  }
+
+  /* Header section */
+  .sc-header {
+    padding: 22px 22px 0;
+  }
+  .sc-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .sc-sport-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    background: var(--surface-2);
+  }
+  .sc-version-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--amber);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .sc-version-dot {
+    width: 5px;
+    height: 5px;
+    background: var(--amber);
+    border-radius: 50%;
+  }
+  .sc-matchup {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+    flex-basis: 100%;
+    margin-top: 6px;
+  }
+
+  /* Pick headline */
+  .sc-pick-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+    gap: 12px;
+  }
+  .sc-pick {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .sc-pick .line { color: var(--green); }
+  .sc-edge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--green);
+    white-space: nowrap;
+  }
+
+  /* First-pitch chip */
+  .sc-first-pitch {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 11px;
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.04em;
+    margin-top: 10px;
+  }
+  .sc-first-pitch-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--amber);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+    70%  { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  }
+  .sc-game-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 8px;
+  }
+  .sc-game-time .num { color: var(--text-2); }
+
+  /* 4-CELL STAT GRID */
+  .sc-stats {
+    margin: 22px;
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr 1px 1fr 1px 1fr;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .sc-stat-cell {
+    padding: 14px 8px;
+    text-align: center;
+  }
+  .sc-stat-divider {
+    background: var(--border);
+  }
+  .sc-stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 6px;
+  }
+  .sc-stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+  }
+  .sc-stat-value.green { color: var(--green); }
+  .sc-stat-value.serif {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  /* OBSERVATION (was "WHY THIS SIGNAL") */
+  .sc-observation {
+    margin: 0 22px 22px;
+    padding: 18px 18px;
+    background: var(--bg);
+    border-left: 2px solid var(--green);
+    border-radius: 0 8px 8px 0;
+  }
+  .sc-obs-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+  .sc-obs-body {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .sc-obs-body .em {
+    color: var(--green);
+    font-style: italic;
+  }
+
+  /* DIVERGING EDGE BAR */
+  .sc-edge-bar-section {
+    margin: 0 22px 18px;
+  }
+  .sc-edge-bar-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .sc-edge-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .sc-edge-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--green);
+    font-weight: 500;
+  }
+  .sc-edge-bar-track {
+    position: relative;
+    height: 8px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .sc-edge-bar-track::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -2px;
+    bottom: -2px;
+    width: 1px;
+    background: var(--text-5);
+  }
+  .sc-edge-bar-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    background: var(--green);
+    border-radius: 2px;
+  }
+  .sc-edge-scale {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-4);
+    letter-spacing: 0.04em;
+    margin-top: 6px;
+  }
+
+  /* CALIBRATION DISCLOSURE */
+  .sc-calibration-note {
+    margin: 0 22px 18px;
+    padding: 12px 14px;
+    background: rgba(245, 158, 11, 0.05);
+    border: 1px solid rgba(245, 158, 11, 0.18);
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .sc-cal-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: var(--amber);
+    margin-top: 1px;
+  }
+  .sc-cal-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-2);
+  }
+  .sc-cal-text strong {
+    color: var(--amber);
+    font-weight: 500;
+  }
+
+  /* PLAYABILITY RANGE */
+  .sc-playability {
+    margin: 0 22px 18px;
+  }
+  .sc-play-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .sc-play-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .sc-play-range {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+  .sc-play-range .target { color: var(--green); }
+  .sc-play-range .floor { color: var(--text-2); }
+  .sc-play-bar {
+    position: relative;
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .sc-play-fill {
+    position: absolute;
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), rgba(90, 158, 114, 0.3));
+    border-radius: 2px;
+  }
+  .sc-play-marker {
+    position: absolute;
+    top: -3px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--green);
+    border: 2px solid var(--bg);
+    transform: translateX(-50%);
+  }
+
+  /* SIZING */
+  .sc-sizing {
+    margin: 0 22px 18px;
+    padding: 14px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sc-sizing-left {
+    display: flex;
+    gap: 22px;
+  }
+  .sc-sizing-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sc-sizing-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-4);
+  }
+  .sc-sizing-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .sc-sizing-toggle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    cursor: pointer;
+  }
+
+  /* MARKET CONTEXT */
+  .sc-context {
+    margin: 0 22px 22px;
+    padding: 16px 18px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .sc-context-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+  .sc-context-body {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-2);
+  }
+  .sc-context-body .num {
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  /* SIGNAL REASONING (collapsed) */
+  .sc-reasoning {
+    margin: 0 22px 22px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .sc-reasoning-header {
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
+  .sc-reasoning-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .sc-reasoning-arrow {
+    color: var(--text-4);
+  }
+
+  /* MARKET TIMING */
+  .sc-timing {
+    margin: 0 22px 22px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .sc-timing .accent { color: var(--text); }
+  .sc-timing-divider {
+    color: var(--text-5);
+    margin: 0 8px;
+  }
+
+  /* TRACK CTA */
+  .sc-actions {
+    padding: 0 22px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sc-track-btn {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--green);
+    border: none;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #062019;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .sc-track-btn.tracking {
+    background: rgba(90, 158, 114, 0.1);
+    border: 1px solid rgba(90, 158, 114, 0.4);
+    color: var(--green);
+  }
+  .sc-track-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    text-align: center;
+  }
+
+  /* SHARP JOURNAL CROSS-LINK */
+  .sc-journal-link {
+    margin-top: 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .sc-journal-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--blue), transparent);
+    opacity: 0.4;
+  }
+  .sc-journal-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 6px;
+  }
+  .sc-journal-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+  .sc-journal-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: var(--text-4);
+  }
+  .sc-journal-arrow {
+    color: var(--text-3);
+  }
+
+  /* DISCLAIMER */
+  .sc-disclaimer {
+    margin-top: 28px;
+    padding: 0 8px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: var(--text-4);
+    line-height: 1.6;
+  }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    background: rgba(10, 13, 20, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+    display: flex;
+    justify-content: space-around;
+    z-index: 100;
+  }
+  .bn-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    position: relative;
+  }
+  .bn-item.active {
+    color: var(--green);
+  }
+  .bn-item.active::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    width: 24px;
+    height: 2px;
+    background: var(--green);
+    border-radius: 0 0 2px 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Status bar -->
+<div class="status-bar">
+  <span>1:29</span>
+  <span style="display: inline-flex; gap: 6px; align-items: center;">
+    <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M1 6h2v4H1zm4-2h2v6H5zm4-2h2v8H9zm4-2h2v10h-2z"/></svg>
+    <span style="font-size: 11px;">5G</span>
+    <span>38%</span>
+  </span>
+</div>
+
+<!-- Market Intelligence preview strip (leftover from above on the real screen) -->
+<div class="market-int-strip">
+  <div class="mis-left">
+    <div class="mis-icon">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M3 17l6-6 4 4 8-8"/>
+      </svg>
+    </div>
+    <div>
+      <div style="font-family: 'IBM Plex Serif', Georgia, serif; font-size: 14px; color: var(--text);">Market Intelligence</div>
+      <div class="mis-text"><strong>15 games</strong> · 9 edges · 2 signals · 13% density</div>
+    </div>
+  </div>
+  <svg class="mis-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M9 18l6-6-6-6"/>
+  </svg>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+  <div class="section-eyebrow">Daily Top Signal</div>
+
+  <!-- MAIN SIGNAL CARD -->
+  <div class="signal-card">
+
+    <!-- HEADER -->
+    <div class="sc-header">
+      <div class="sc-meta-row">
+        <span class="sc-sport-tag">MLB</span>
+        <span class="sc-version-tag"><span class="sc-version-dot"></span>Calibration v1</span>
+        <span class="sc-matchup">Texas Rangers vs New York Yankees</span>
+      </div>
+
+      <div class="sc-pick-row">
+        <span class="sc-pick">Texas Rangers <span class="line">+1.5</span></span>
+        <span class="sc-edge">+6.0%</span>
+      </div>
+
+      <div class="sc-game-time">May 6 <span style="color: var(--text-5)">·</span> <span class="num">7:06 PM ET</span> <span style="color: var(--text-5)">·</span> <span class="num">-115</span></div>
+
+      <div class="sc-first-pitch">
+        <span class="sc-first-pitch-dot"></span>
+        First pitch in 5h 36m
+      </div>
+    </div>
+
+    <!-- 4-CELL STAT GRID -->
+    <div class="sc-stats">
+      <div class="sc-stat-cell">
+        <div class="sc-stat-label">Market</div>
+        <div class="sc-stat-value">+1.5</div>
+      </div>
+      <div class="sc-stat-divider"></div>
+      <div class="sc-stat-cell">
+        <div class="sc-stat-label">Model</div>
+        <div class="sc-stat-value green">-0.4</div>
+      </div>
+      <div class="sc-stat-divider"></div>
+      <div class="sc-stat-cell">
+        <div class="sc-stat-label">Tier</div>
+        <div class="sc-stat-value serif">WK</div>
+      </div>
+      <div class="sc-stat-divider"></div>
+      <div class="sc-stat-cell">
+        <div class="sc-stat-label">Size</div>
+        <div class="sc-stat-value">1.5u</div>
+      </div>
+    </div>
+
+    <!-- OBSERVATION (replaces "WHY THIS SIGNAL") -->
+    <div class="sc-observation">
+      <div class="sc-obs-eyebrow">Observation</div>
+      <div class="sc-obs-body">
+        Bullpen edge. <span class="em">New York's bullpen is significantly more fatigued.</span> Late-inning advantage to Texas in a game projected to go nine.
+      </div>
+    </div>
+
+    <!-- DIVERGING EDGE BAR (replaces full-width green bar) -->
+    <div class="sc-edge-bar-section">
+      <div class="sc-edge-bar-row">
+        <span class="sc-edge-label">Edge</span>
+        <span class="sc-edge-value">+6.0pp</span>
+      </div>
+      <div class="sc-edge-bar-track">
+        <div class="sc-edge-bar-fill" style="width: 30%;"></div>
+      </div>
+      <div class="sc-edge-scale">
+        <span>-10pp</span>
+        <span>0</span>
+        <span>+10pp</span>
+      </div>
+    </div>
+
+    <!-- CALIBRATION NOTE (replaces "Early-stage signal. Full transparency.") -->
+    <div class="sc-calibration-note">
+      <svg class="sc-cal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 8v4M12 16h.01"/>
+      </svg>
+      <div class="sc-cal-text">
+        <strong>Calibration phase.</strong> Confidence intervals widen during early-season validation. Closing line audit publishes on every signal.
+      </div>
+    </div>
+
+    <!-- PLAYABILITY RANGE -->
+    <div class="sc-playability">
+      <div class="sc-play-header">
+        <span class="sc-play-label">Playability</span>
+        <span class="sc-play-range"><span class="target">+1.5 target</span> · <span class="floor">+0.5 floor</span></span>
+      </div>
+      <div class="sc-play-bar">
+        <div class="sc-play-fill" style="width: 100%;"></div>
+        <div class="sc-play-marker" style="left: 100%;"></div>
+      </div>
+    </div>
+
+    <!-- SIZING -->
+    <div class="sc-sizing">
+      <div class="sc-sizing-left">
+        <div class="sc-sizing-item">
+          <span class="sc-sizing-label">Flat</span>
+          <span class="sc-sizing-value">1.5u</span>
+        </div>
+        <div class="sc-sizing-item">
+          <span class="sc-sizing-label">Kelly</span>
+          <span class="sc-sizing-value">3.6u</span>
+        </div>
+      </div>
+      <span class="sc-sizing-toggle">Less ‹</span>
+    </div>
+
+    <!-- MARKET CONTEXT -->
+    <div class="sc-context">
+      <div class="sc-context-eyebrow">Market Context</div>
+      <div class="sc-context-body">
+        Underdogs showing unusual value. <span class="num">10 of 14</span> edges on dogs across tonight's slate.
+      </div>
+    </div>
+
+    <!-- SIGNAL REASONING (collapsed by default) -->
+    <div class="sc-reasoning">
+      <div class="sc-reasoning-header">
+        <span class="sc-reasoning-eyebrow">Signal Reasoning</span>
+        <svg class="sc-reasoning-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- MARKET TIMING -->
+    <div class="sc-timing">
+      <span class="accent">2h before tip</span>
+      <span class="sc-timing-divider">·</span>
+      <span>Best at <span class="accent">BetMGM</span></span>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="sc-actions">
+      <button class="sc-track-btn tracking">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 13l4 4L19 7"/>
+        </svg>
+        Tracking · TEX +1.5 · 1.5u
+      </button>
+    </div>
+
+  </div>
+
+  <!-- SHARP JOURNAL CROSS-LINK (new) -->
+  <div class="sc-journal-link">
+    <div>
+      <div class="sc-journal-eyebrow">Today's Sharp Journal</div>
+      <div class="sc-journal-title">Why the model fades the favorite tonight.</div>
+      <div class="sc-journal-meta">Morning edition · 2 min read · Evan Cole</div>
+    </div>
+    <svg class="sc-journal-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  </div>
+
+  <!-- DISCLAIMER -->
+  <div class="sc-disclaimer">
+    For informational purposes only. Past performance does not guarantee future results. Please gamble responsibly.
+  </div>
+
+</div>
+
+<!-- Bottom nav -->
+<div class="bottom-nav">
+  <div class="bn-item active">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/></svg>
+    <span>Signals</span>
+  </div>
+  <div class="bn-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+    <span>Results</span>
+  </div>
+  <div class="bn-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    <span>Insights</span>
+  </div>
+  <div class="bn-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/></svg>
+    <span>Account</span>
+  </div>
+</div>
+
+</body>
+</html>

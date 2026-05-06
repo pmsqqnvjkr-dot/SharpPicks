@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050810">
+<title>SharpPicks Email Previews</title>
+<style>
+  body { margin: 0; background: #050810; font-family: -apple-system, sans-serif; }
+  .tabs {
+    position: sticky; top: 0; z-index: 10;
+    background: #050810; border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 12px 16px;
+    padding-top: calc(12px + env(safe-area-inset-top));
+    display: flex; gap: 8px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab {
+    padding: 8px 14px;
+    border: 1px solid rgba(79,134,247,0.3);
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    font-family: 'Courier New', monospace;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    cursor: pointer; white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tab.active { background: #4F86F7; color: #fff; border-color: #4F86F7; }
+  .frame { display: none; }
+  .frame.active { display: block; }
+  iframe { width: 100%; min-height: 100vh; border: 0; display: block; }
+</style>
+</head><body>
+<div class="tabs"><button class="tab active" data-id="never_activated">Never Activated</button><button class="tab" data-id="dormant">Dormant 30d</button><button class="tab" data-id="cancelled">Cancelled</button><button class="tab" data-id="newly_converted">Newly Converted</button><button class="tab" data-id="renewal_t14">Renewal T-14</button><button class="tab" data-id="pass_day_skeptic">Pass-Day Skeptic</button><button class="tab" data-id="power_user">Power User</button></div>
+<div class="frame active" id="frame-never_activated"><iframe srcdoc="<!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;>
+<html xmlns=&quot;http://www.w3.org/1999/xhtml&quot; lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; />
+  <meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot; />
+  <meta name=&quot;x-apple-disable-message-reformatting&quot; />
+  <meta name=&quot;color-scheme&quot; content=&quot;dark light&quot; />
+  <meta name=&quot;supported-color-schemes&quot; content=&quot;dark light&quot; />
+  <title>SharpPicks · Activation</title>
+
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+
+  <style type=&quot;text/css&quot;>
+    /* Resets */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #0A0D14; }
+
+    /* Hide preheader */
+    .preheader { display: none !important; visibility: hidden; mso-hide: all; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; }
+
+    /* Mobile */
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; max-width: 100% !important; }
+      .px-mobile { padding-left: 24px !important; padding-right: 24px !important; }
+      .stat-cell { display: block !important; width: 100% !important; padding: 12px 0 !important; }
+      .stat-divider-row { display: none !important; }
+      .h1 { font-size: 28px !important; line-height: 1.2 !important; }
+      .units { font-size: 36px !important; }
+    }
+
+    /* Dark mode hardening (Apple Mail, iOS Mail) */
+    @media (prefers-color-scheme: dark) {
+      .force-light { background-color: #0A0D14 !important; }
+    }
+
+    /* Link styling */
+    a { color: #4F86F7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+
+<body style=&quot;margin:0; padding:0; background-color:#0A0D14;&quot;>
+
+  <!-- Preheader (shown in inbox preview) -->
+  <div class=&quot;preheader&quot;>You signed up. The model has been working. Here is what it found.</div>
+
+  <!-- Outer wrapper -->
+  <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#0A0D14&quot; style=&quot;background-color:#0A0D14;&quot;>
+    <tr>
+      <td align=&quot;center&quot; style=&quot;padding:32px 16px;&quot;>
+
+        <!-- Container -->
+        <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;600&quot; class=&quot;container&quot; style=&quot;width:600px; max-width:600px;&quot;>
+
+          <!-- ============================================ -->
+          <!-- HEADER: signal mark || + wordmark + meta     -->
+          <!-- Per BRAND_SPEC.md v3 — table-based for MSO   -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:8px 32px 28px 32px;&quot; align=&quot;center&quot;>
+
+              <!-- Signal mark || (centered, with Edge Green underline) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding:0; line-height:0; font-size:0;&quot;>
+                    <!-- Two pill bars -->
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                        <td width=&quot;6&quot; style=&quot;width:6px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <!-- Edge Green underline (brand signature, always present) -->
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding-top:5px; line-height:0; font-size:0;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;14&quot; bgcolor=&quot;#5A9E72&quot; style=&quot;width:14px; background-color:#5A9E72; border-radius:1px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;14&quot;>
+                            <tr><td width=&quot;14&quot; height=&quot;2&quot; style=&quot;width:14px; height:2px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Wordmark beneath the signal -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:18px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; font-weight:500; letter-spacing:4px; text-transform:uppercase; color:#E8EAED;&quot;>
+                    SHARPPICKS
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Meta line (campaign / segment) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:8px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.35);&quot;>
+                    Activation · Week 1
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Top accent line -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td height=&quot;1&quot; style=&quot;font-size:1px; line-height:1px; background-color:#5A9E72; opacity:0.5; height:1px;&quot;>&amp;nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- BODY CARD                                    -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#121725&quot; style=&quot;background-color:#121725;&quot;>
+
+                <!-- Eyebrow -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:32px 36px 0 36px; font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:#5A9E72;&quot;>
+                    Welcome to the system
+                  </td>
+                </tr>
+
+                <!-- Headline (IBM Plex Serif via Georgia fallback) -->
+                <tr>
+                  <td class=&quot;px-mobile h1&quot; style=&quot;padding:14px 36px 0 36px; font-family: &#39;IBM Plex Serif&#39;, Georgia, &#39;Times New Roman&#39;, serif; font-size:34px; line-height:1.18; letter-spacing:-0.01em; color:#FFFFFF; font-weight:500;&quot;>
+                    The model does not wait for you to log in.
+                  </td>
+                </tr>
+
+                <!-- Subhead -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.55; color:rgba(255,255,255,0.7);&quot;>
+                    Your account has been live for seven days. In that window, the system scanned every NBA and MLB slate and only flagged signals that cleared the threshold. Here is the read.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- DATA STRIP (3 stats)                         -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Games scanned
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            112
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Signals issued
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#5A9E72; letter-spacing:-0.01em;&quot;>
+                            4
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Pass rate
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            96%
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Body paragraph -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:24px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.6; color:rgba(255,255,255,0.75);&quot;>
+                    Most days, the answer is pass. That is the system working. The four signals that did clear are waiting in your dashboard, with the reasoning, edge calculation, and verified result attached. No newsletter recap, no telegram screenshots. Just the data.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- CTA (bulletproof button, MSO + WebKit)      -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; align=&quot;left&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;>
+                      <tr>
+                        <td align=&quot;center&quot; bgcolor=&quot;#4F86F7&quot; style=&quot;background-color:#4F86F7;&quot;>
+                          <!--[if mso]>
+                          <v:roundrect xmlns:v=&quot;urn:schemas-microsoft-com:vml&quot; xmlns:w=&quot;urn:schemas-microsoft-com:office:word&quot; href=&quot;https://app.sharppicks.ai/today&quot; style=&quot;height:46px; v-text-anchor:middle; width:200px;&quot; arcsize=&quot;0%&quot; stroke=&quot;f&quot; fillcolor=&quot;#4F86F7&quot;>
+                            <w:anchorlock/>
+                            <center style=&quot;color:#ffffff; font-family:Arial, sans-serif; font-size:14px; font-weight:500;&quot;>See the signals</center>
+                          </v:roundrect>
+                          <![endif]-->
+                          <!--[if !mso]><!-- -->
+                          <a href=&quot;https://app.sharppicks.ai/today&quot; style=&quot;display:inline-block; background-color:#4F86F7; color:#FFFFFF; font-family:-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:14px; font-weight:500; letter-spacing:0.02em; line-height:46px; text-align:center; text-decoration:none; min-width:200px; padding:0 24px; mso-hide:all;&quot;>
+                            See the signals
+                          </a>
+                          <!--<![endif]-->
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Secondary link (optional) -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:13px; color:rgba(255,255,255,0.5);&quot;>
+                    First time here? <a href=&quot;https://app.sharppicks.ai/how-it-works&quot; style=&quot;color:#4F86F7; text-decoration:none;&quot;>Read how the model works</a>
+                  </td>
+                </tr>
+
+                <!-- Sharp Principle quote block -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:36px 36px 32px 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td style=&quot;padding-top:20px; font-family: &#39;IBM Plex Serif&#39;, Georgia, serif; font-size:14px; font-style:italic; line-height:1.5; color:rgba(255,255,255,0.55);&quot;>
+                          &amp;ldquo;Pass days are not missed opportunities. They are proof the system is working.&amp;rdquo;
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- FOOTER                                       -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:28px 32px 0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.3); line-height:1.6;&quot;>
+                    SharpPicks LLC &amp;middot; Market intelligence, not picks<br/>
+                    Verified by data, not talk
+                  </td>
+                </tr>
+                <tr>
+                  <td style=&quot;padding-top:16px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; line-height:1.6; color:rgba(255,255,255,0.35);&quot;>
+                    You&#39;re receiving this because you have a SharpPicks account.<br/>
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Unsubscribe</a>
+                    &amp;nbsp;&amp;middot;&amp;nbsp;
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Email preferences</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+"></iframe></div><div class="frame" id="frame-dormant"><iframe srcdoc="<!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;>
+<html xmlns=&quot;http://www.w3.org/1999/xhtml&quot; lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; />
+  <meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot; />
+  <meta name=&quot;x-apple-disable-message-reformatting&quot; />
+  <meta name=&quot;color-scheme&quot; content=&quot;dark light&quot; />
+  <meta name=&quot;supported-color-schemes&quot; content=&quot;dark light&quot; />
+  <title>SharpPicks · 30-day recap</title>
+
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+
+  <style type=&quot;text/css&quot;>
+    /* Resets */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #0A0D14; }
+
+    /* Hide preheader */
+    .preheader { display: none !important; visibility: hidden; mso-hide: all; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; }
+
+    /* Mobile */
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; max-width: 100% !important; }
+      .px-mobile { padding-left: 24px !important; padding-right: 24px !important; }
+      .stat-cell { display: block !important; width: 100% !important; padding: 12px 0 !important; }
+      .stat-divider-row { display: none !important; }
+      .h1 { font-size: 28px !important; line-height: 1.2 !important; }
+      .units { font-size: 36px !important; }
+    }
+
+    /* Dark mode hardening (Apple Mail, iOS Mail) */
+    @media (prefers-color-scheme: dark) {
+      .force-light { background-color: #0A0D14 !important; }
+    }
+
+    /* Link styling */
+    a { color: #4F86F7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+
+<body style=&quot;margin:0; padding:0; background-color:#0A0D14;&quot;>
+
+  <!-- Preheader (shown in inbox preview) -->
+  <div class=&quot;preheader&quot;>The model kept running. Verified results inside.</div>
+
+  <!-- Outer wrapper -->
+  <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#0A0D14&quot; style=&quot;background-color:#0A0D14;&quot;>
+    <tr>
+      <td align=&quot;center&quot; style=&quot;padding:32px 16px;&quot;>
+
+        <!-- Container -->
+        <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;600&quot; class=&quot;container&quot; style=&quot;width:600px; max-width:600px;&quot;>
+
+          <!-- ============================================ -->
+          <!-- HEADER: signal mark || + wordmark + meta     -->
+          <!-- Per BRAND_SPEC.md v3 — table-based for MSO   -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:8px 32px 28px 32px;&quot; align=&quot;center&quot;>
+
+              <!-- Signal mark || (centered, with Edge Green underline) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding:0; line-height:0; font-size:0;&quot;>
+                    <!-- Two pill bars -->
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                        <td width=&quot;6&quot; style=&quot;width:6px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <!-- Edge Green underline (brand signature, always present) -->
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding-top:5px; line-height:0; font-size:0;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;14&quot; bgcolor=&quot;#5A9E72&quot; style=&quot;width:14px; background-color:#5A9E72; border-radius:1px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;14&quot;>
+                            <tr><td width=&quot;14&quot; height=&quot;2&quot; style=&quot;width:14px; height:2px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Wordmark beneath the signal -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:18px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; font-weight:500; letter-spacing:4px; text-transform:uppercase; color:#E8EAED;&quot;>
+                    SHARPPICKS
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Meta line (campaign / segment) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:8px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.35);&quot;>
+                    30-day recap
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Top accent line -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td height=&quot;1&quot; style=&quot;font-size:1px; line-height:1px; background-color:#5A9E72; opacity:0.5; height:1px;&quot;>&amp;nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- BODY CARD                                    -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#121725&quot; style=&quot;background-color:#121725;&quot;>
+
+                <!-- Eyebrow -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:32px 36px 0 36px; font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:#5A9E72;&quot;>
+                    While you were away
+                  </td>
+                </tr>
+
+                <!-- Headline (IBM Plex Serif via Georgia fallback) -->
+                <tr>
+                  <td class=&quot;px-mobile h1&quot; style=&quot;padding:14px 36px 0 36px; font-family: &#39;IBM Plex Serif&#39;, Georgia, &#39;Times New Roman&#39;, serif; font-size:34px; line-height:1.18; letter-spacing:-0.01em; color:#FFFFFF; font-weight:500;&quot;>
+                    The discipline does not log out.
+                  </td>
+                </tr>
+
+                <!-- Subhead -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.55; color:rgba(255,255,255,0.7);&quot;>
+                    It has been 30 days since your last session. The model kept scanning. Most slates were a pass. The ones that cleared are documented below, with closing line, result, and unit movement.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- DATA STRIP (3 stats)                         -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Signals issued
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            11
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            ROI
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#5A9E72; letter-spacing:-0.01em;&quot;>
+                            +8.2%
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Win rate
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            63%
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Body paragraph -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:24px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.6; color:rgba(255,255,255,0.75);&quot;>
+                    Eleven signals over 30 days. Three were passes that turned out correct, six cleared, two missed. The pattern holds: a small number of high-conviction reads, every one with a documented reason. Your dashboard has the full ledger waiting.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- CTA (bulletproof button, MSO + WebKit)      -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; align=&quot;left&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;>
+                      <tr>
+                        <td align=&quot;center&quot; bgcolor=&quot;#4F86F7&quot; style=&quot;background-color:#4F86F7;&quot;>
+                          <!--[if mso]>
+                          <v:roundrect xmlns:v=&quot;urn:schemas-microsoft-com:vml&quot; xmlns:w=&quot;urn:schemas-microsoft-com:office:word&quot; href=&quot;https://app.sharppicks.ai/ledger?range=30d&quot; style=&quot;height:46px; v-text-anchor:middle; width:200px;&quot; arcsize=&quot;0%&quot; stroke=&quot;f&quot; fillcolor=&quot;#4F86F7&quot;>
+                            <w:anchorlock/>
+                            <center style=&quot;color:#ffffff; font-family:Arial, sans-serif; font-size:14px; font-weight:500;&quot;>View the 30-day ledger</center>
+                          </v:roundrect>
+                          <![endif]-->
+                          <!--[if !mso]><!-- -->
+                          <a href=&quot;https://app.sharppicks.ai/ledger?range=30d&quot; style=&quot;display:inline-block; background-color:#4F86F7; color:#FFFFFF; font-family:-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:14px; font-weight:500; letter-spacing:0.02em; line-height:46px; text-align:center; text-decoration:none; min-width:200px; padding:0 24px; mso-hide:all;&quot;>
+                            View the 30-day ledger
+                          </a>
+                          <!--<![endif]-->
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Secondary link (optional) -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:13px; color:rgba(255,255,255,0.5);&quot;>
+                    Want a weekly digest instead of daily? <a href=&quot;https://app.sharppicks.ai/settings/email&quot; style=&quot;color:#4F86F7; text-decoration:none;&quot;>Adjust frequency</a>
+                  </td>
+                </tr>
+
+                <!-- Sharp Principle quote block -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:36px 36px 32px 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td style=&quot;padding-top:20px; font-family: &#39;IBM Plex Serif&#39;, Georgia, serif; font-size:14px; font-style:italic; line-height:1.5; color:rgba(255,255,255,0.55);&quot;>
+                          &amp;ldquo;Discipline is the edge.&amp;rdquo;
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- FOOTER                                       -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:28px 32px 0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.3); line-height:1.6;&quot;>
+                    SharpPicks LLC &amp;middot; Market intelligence, not picks<br/>
+                    Verified by data, not talk
+                  </td>
+                </tr>
+                <tr>
+                  <td style=&quot;padding-top:16px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; line-height:1.6; color:rgba(255,255,255,0.35);&quot;>
+                    You&#39;re receiving this because you have a SharpPicks account.<br/>
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Unsubscribe</a>
+                    &amp;nbsp;&amp;middot;&amp;nbsp;
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Email preferences</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+"></iframe></div><div class="frame" id="frame-cancelled"><iframe srcdoc="<!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;>
+<html xmlns=&quot;http://www.w3.org/1999/xhtml&quot; lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; />
+  <meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot; />
+  <meta name=&quot;x-apple-disable-message-reformatting&quot; />
+  <meta name=&quot;color-scheme&quot; content=&quot;dark light&quot; />
+  <meta name=&quot;supported-color-schemes&quot; content=&quot;dark light&quot; />
+  <title>SharpPicks · Post-cancellation read</title>
+
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+
+  <style type=&quot;text/css&quot;>
+    /* Resets */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #0A0D14; }
+
+    /* Hide preheader */
+    .preheader { display: none !important; visibility: hidden; mso-hide: all; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; }
+
+    /* Mobile */
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; max-width: 100% !important; }
+      .px-mobile { padding-left: 24px !important; padding-right: 24px !important; }
+      .stat-cell { display: block !important; width: 100% !important; padding: 12px 0 !important; }
+      .stat-divider-row { display: none !important; }
+      .h1 { font-size: 28px !important; line-height: 1.2 !important; }
+      .units { font-size: 36px !important; }
+    }
+
+    /* Dark mode hardening (Apple Mail, iOS Mail) */
+    @media (prefers-color-scheme: dark) {
+      .force-light { background-color: #0A0D14 !important; }
+    }
+
+    /* Link styling */
+    a { color: #4F86F7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+
+<body style=&quot;margin:0; padding:0; background-color:#0A0D14;&quot;>
+
+  <!-- Preheader (shown in inbox preview) -->
+  <div class=&quot;preheader&quot;>No discount pitch. Just the verified record.</div>
+
+  <!-- Outer wrapper -->
+  <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#0A0D14&quot; style=&quot;background-color:#0A0D14;&quot;>
+    <tr>
+      <td align=&quot;center&quot; style=&quot;padding:32px 16px;&quot;>
+
+        <!-- Container -->
+        <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;600&quot; class=&quot;container&quot; style=&quot;width:600px; max-width:600px;&quot;>
+
+          <!-- ============================================ -->
+          <!-- HEADER: signal mark || + wordmark + meta     -->
+          <!-- Per BRAND_SPEC.md v3 — table-based for MSO   -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:8px 32px 28px 32px;&quot; align=&quot;center&quot;>
+
+              <!-- Signal mark || (centered, with Edge Green underline) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding:0; line-height:0; font-size:0;&quot;>
+                    <!-- Two pill bars -->
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                        <td width=&quot;6&quot; style=&quot;width:6px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <!-- Edge Green underline (brand signature, always present) -->
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding-top:5px; line-height:0; font-size:0;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;14&quot; bgcolor=&quot;#5A9E72&quot; style=&quot;width:14px; background-color:#5A9E72; border-radius:1px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;14&quot;>
+                            <tr><td width=&quot;14&quot; height=&quot;2&quot; style=&quot;width:14px; height:2px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Wordmark beneath the signal -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:18px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; font-weight:500; letter-spacing:4px; text-transform:uppercase; color:#E8EAED;&quot;>
+                    SHARPPICKS
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Meta line (campaign / segment) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:8px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.35);&quot;>
+                    Post-cancellation read
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Top accent line -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td height=&quot;1&quot; style=&quot;font-size:1px; line-height:1px; background-color:#5A9E72; opacity:0.5; height:1px;&quot;>&amp;nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- BODY CARD                                    -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#121725&quot; style=&quot;background-color:#121725;&quot;>
+
+                <!-- Eyebrow -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:32px 36px 0 36px; font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:#5A9E72;&quot;>
+                    Two weeks since you cancelled
+                  </td>
+                </tr>
+
+                <!-- Headline (IBM Plex Serif via Georgia fallback) -->
+                <tr>
+                  <td class=&quot;px-mobile h1&quot; style=&quot;padding:14px 36px 0 36px; font-family: &#39;IBM Plex Serif&#39;, Georgia, &#39;Times New Roman&#39;, serif; font-size:34px; line-height:1.18; letter-spacing:-0.01em; color:#FFFFFF; font-weight:500;&quot;>
+                    The book stays open either way.
+                  </td>
+                </tr>
+
+                <!-- Subhead -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.55; color:rgba(255,255,255,0.7);&quot;>
+                    We do not run win-back discounts. The pricing is the pricing. What we will do is show the verified record from the period after you cancelled, so the decision to come back or stay gone is informed by data.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- DATA STRIP (3 stats)                         -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Signals · 14d
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            6
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Net units
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#5A9E72; letter-spacing:-0.01em;&quot;>
+                            +4.3u
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Verified
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            100%
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Body paragraph -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:24px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.6; color:rgba(255,255,255,0.75);&quot;>
+                    If the system was not working for you, that is a useful signal in itself. We would rather know what was missing than retain a subscriber who is not getting value. The link below goes straight to the founder. The other link goes to the public market report, no login required.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- CTA (bulletproof button, MSO + WebKit)      -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; align=&quot;left&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;>
+                      <tr>
+                        <td align=&quot;center&quot; bgcolor=&quot;#4F86F7&quot; style=&quot;background-color:#4F86F7;&quot;>
+                          <!--[if mso]>
+                          <v:roundrect xmlns:v=&quot;urn:schemas-microsoft-com:vml&quot; xmlns:w=&quot;urn:schemas-microsoft-com:office:word&quot; href=&quot;https://app.sharppicks.ai/feedback?source=cancelled&quot; style=&quot;height:46px; v-text-anchor:middle; width:200px;&quot; arcsize=&quot;0%&quot; stroke=&quot;f&quot; fillcolor=&quot;#4F86F7&quot;>
+                            <w:anchorlock/>
+                            <center style=&quot;color:#ffffff; font-family:Arial, sans-serif; font-size:14px; font-weight:500;&quot;>Tell the founder what was missing</center>
+                          </v:roundrect>
+                          <![endif]-->
+                          <!--[if !mso]><!-- -->
+                          <a href=&quot;https://app.sharppicks.ai/feedback?source=cancelled&quot; style=&quot;display:inline-block; background-color:#4F86F7; color:#FFFFFF; font-family:-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:14px; font-weight:500; letter-spacing:0.02em; line-height:46px; text-align:center; text-decoration:none; min-width:200px; padding:0 24px; mso-hide:all;&quot;>
+                            Tell the founder what was missing
+                          </a>
+                          <!--<![endif]-->
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Secondary link (optional) -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:13px; color:rgba(255,255,255,0.5);&quot;>
+                    Or read the public record: <a href=&quot;https://app.sharppicks.ai/market-report&quot; style=&quot;color:#4F86F7; text-decoration:none;&quot;>Open market report</a>
+                  </td>
+                </tr>
+
+                <!-- Sharp Principle quote block -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:36px 36px 32px 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td style=&quot;padding-top:20px; font-family: &#39;IBM Plex Serif&#39;, Georgia, serif; font-size:14px; font-style:italic; line-height:1.5; color:rgba(255,255,255,0.55);&quot;>
+                          &amp;ldquo;Verified by data, not talk.&amp;rdquo;
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- FOOTER                                       -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:28px 32px 0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.3); line-height:1.6;&quot;>
+                    SharpPicks LLC &amp;middot; Market intelligence, not picks<br/>
+                    Verified by data, not talk
+                  </td>
+                </tr>
+                <tr>
+                  <td style=&quot;padding-top:16px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; line-height:1.6; color:rgba(255,255,255,0.35);&quot;>
+                    You&#39;re receiving this because you have a SharpPicks account.<br/>
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Unsubscribe</a>
+                    &amp;nbsp;&amp;middot;&amp;nbsp;
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Email preferences</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+"></iframe></div><div class="frame" id="frame-newly_converted"><iframe srcdoc="<!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;>
+<html xmlns=&quot;http://www.w3.org/1999/xhtml&quot; lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; />
+  <meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot; />
+  <meta name=&quot;x-apple-disable-message-reformatting&quot; />
+  <meta name=&quot;color-scheme&quot; content=&quot;dark light&quot; />
+  <meta name=&quot;supported-color-schemes&quot; content=&quot;dark light&quot; />
+  <title>SharpPicks · First signal</title>
+
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+
+  <style type=&quot;text/css&quot;>
+    /* Resets */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #0A0D14; }
+
+    /* Hide preheader */
+    .preheader { display: none !important; visibility: hidden; mso-hide: all; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; }
+
+    /* Mobile */
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; max-width: 100% !important; }
+      .px-mobile { padding-left: 24px !important; padding-right: 24px !important; }
+      .stat-cell { display: block !important; width: 100% !important; padding: 12px 0 !important; }
+      .stat-divider-row { display: none !important; }
+      .h1 { font-size: 28px !important; line-height: 1.2 !important; }
+      .units { font-size: 36px !important; }
+    }
+
+    /* Dark mode hardening (Apple Mail, iOS Mail) */
+    @media (prefers-color-scheme: dark) {
+      .force-light { background-color: #0A0D14 !important; }
+    }
+
+    /* Link styling */
+    a { color: #4F86F7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+
+<body style=&quot;margin:0; padding:0; background-color:#0A0D14;&quot;>
+
+  <!-- Preheader (shown in inbox preview) -->
+  <div class=&quot;preheader&quot;>Verified result, full reasoning, closing line attached.</div>
+
+  <!-- Outer wrapper -->
+  <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#0A0D14&quot; style=&quot;background-color:#0A0D14;&quot;>
+    <tr>
+      <td align=&quot;center&quot; style=&quot;padding:32px 16px;&quot;>
+
+        <!-- Container -->
+        <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;600&quot; class=&quot;container&quot; style=&quot;width:600px; max-width:600px;&quot;>
+
+          <!-- ============================================ -->
+          <!-- HEADER: signal mark || + wordmark + meta     -->
+          <!-- Per BRAND_SPEC.md v3 — table-based for MSO   -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:8px 32px 28px 32px;&quot; align=&quot;center&quot;>
+
+              <!-- Signal mark || (centered, with Edge Green underline) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding:0; line-height:0; font-size:0;&quot;>
+                    <!-- Two pill bars -->
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                        <td width=&quot;6&quot; style=&quot;width:6px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <!-- Edge Green underline (brand signature, always present) -->
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding-top:5px; line-height:0; font-size:0;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;14&quot; bgcolor=&quot;#5A9E72&quot; style=&quot;width:14px; background-color:#5A9E72; border-radius:1px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;14&quot;>
+                            <tr><td width=&quot;14&quot; height=&quot;2&quot; style=&quot;width:14px; height:2px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Wordmark beneath the signal -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:18px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; font-weight:500; letter-spacing:4px; text-transform:uppercase; color:#E8EAED;&quot;>
+                    SHARPPICKS
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Meta line (campaign / segment) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:8px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.35);&quot;>
+                    Member · Day 5
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Top accent line -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td height=&quot;1&quot; style=&quot;font-size:1px; line-height:1px; background-color:#5A9E72; opacity:0.5; height:1px;&quot;>&amp;nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- BODY CARD                                    -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#121725&quot; style=&quot;background-color:#121725;&quot;>
+
+                <!-- Eyebrow -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:32px 36px 0 36px; font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:#5A9E72;&quot;>
+                    First signal logged
+                  </td>
+                </tr>
+
+                <!-- Headline (IBM Plex Serif via Georgia fallback) -->
+                <tr>
+                  <td class=&quot;px-mobile h1&quot; style=&quot;padding:14px 36px 0 36px; font-family: &#39;IBM Plex Serif&#39;, Georgia, &#39;Times New Roman&#39;, serif; font-size:34px; line-height:1.18; letter-spacing:-0.01em; color:#FFFFFF; font-weight:500;&quot;>
+                    This is what you paid for.
+                  </td>
+                </tr>
+
+                <!-- Subhead -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.55; color:rgba(255,255,255,0.7);&quot;>
+                    Five days into your subscription, the model issued its first signal on a slate you had access to. The reasoning, edge calculation, and verified result are documented below. Read the breakdown the way an analyst would, not the way a tout would.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- DATA STRIP (3 stats)                         -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Edge
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            +3.8%
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Result
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#5A9E72; letter-spacing:-0.01em;&quot;>
+                            +1.2u
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            CLV
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            +2.5
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Body paragraph -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:24px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.6; color:rgba(255,255,255,0.75);&quot;>
+                    One signal is one data point. The system is calibrated over thousands. What matters now is that you understand the framework: signals only fire when the model finds an edge that clears the threshold, and pass days are the rule. If you are looking for daily picks, this is not that platform. If you want a system that protects your bankroll on the days the market is efficient, you are in the right place.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- CTA (bulletproof button, MSO + WebKit)      -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; align=&quot;left&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;>
+                      <tr>
+                        <td align=&quot;center&quot; bgcolor=&quot;#4F86F7&quot; style=&quot;background-color:#4F86F7;&quot;>
+                          <!--[if mso]>
+                          <v:roundrect xmlns:v=&quot;urn:schemas-microsoft-com:vml&quot; xmlns:w=&quot;urn:schemas-microsoft-com:office:word&quot; href=&quot;https://app.sharppicks.ai/signals/latest&quot; style=&quot;height:46px; v-text-anchor:middle; width:200px;&quot; arcsize=&quot;0%&quot; stroke=&quot;f&quot; fillcolor=&quot;#4F86F7&quot;>
+                            <w:anchorlock/>
+                            <center style=&quot;color:#ffffff; font-family:Arial, sans-serif; font-size:14px; font-weight:500;&quot;>Read the full signal breakdown</center>
+                          </v:roundrect>
+                          <![endif]-->
+                          <!--[if !mso]><!-- -->
+                          <a href=&quot;https://app.sharppicks.ai/signals/latest&quot; style=&quot;display:inline-block; background-color:#4F86F7; color:#FFFFFF; font-family:-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:14px; font-weight:500; letter-spacing:0.02em; line-height:46px; text-align:center; text-decoration:none; min-width:200px; padding:0 24px; mso-hide:all;&quot;>
+                            Read the full signal breakdown
+                          </a>
+                          <!--<![endif]-->
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Secondary link (optional) -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:13px; color:rgba(255,255,255,0.5);&quot;>
+                    New here? <a href=&quot;https://app.sharppicks.ai/how-it-works&quot; style=&quot;color:#4F86F7; text-decoration:none;&quot;>Read the framework</a>
+                  </td>
+                </tr>
+
+                <!-- Sharp Principle quote block -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:36px 36px 32px 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td style=&quot;padding-top:20px; font-family: &#39;IBM Plex Serif&#39;, Georgia, serif; font-size:14px; font-style:italic; line-height:1.5; color:rgba(255,255,255,0.55);&quot;>
+                          &amp;ldquo;One pick beats five.&amp;rdquo;
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- FOOTER                                       -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:28px 32px 0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.3); line-height:1.6;&quot;>
+                    SharpPicks LLC &amp;middot; Market intelligence, not picks<br/>
+                    Verified by data, not talk
+                  </td>
+                </tr>
+                <tr>
+                  <td style=&quot;padding-top:16px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; line-height:1.6; color:rgba(255,255,255,0.35);&quot;>
+                    You&#39;re receiving this because you have a SharpPicks account.<br/>
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Unsubscribe</a>
+                    &amp;nbsp;&amp;middot;&amp;nbsp;
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Email preferences</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+"></iframe></div><div class="frame" id="frame-renewal_t14"><iframe srcdoc="<!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;>
+<html xmlns=&quot;http://www.w3.org/1999/xhtml&quot; lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; />
+  <meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot; />
+  <meta name=&quot;x-apple-disable-message-reformatting&quot; />
+  <meta name=&quot;color-scheme&quot; content=&quot;dark light&quot; />
+  <meta name=&quot;supported-color-schemes&quot; content=&quot;dark light&quot; />
+  <title>SharpPicks · Annual ledger</title>
+
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+
+  <style type=&quot;text/css&quot;>
+    /* Resets */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #0A0D14; }
+
+    /* Hide preheader */
+    .preheader { display: none !important; visibility: hidden; mso-hide: all; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; }
+
+    /* Mobile */
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; max-width: 100% !important; }
+      .px-mobile { padding-left: 24px !important; padding-right: 24px !important; }
+      .stat-cell { display: block !important; width: 100% !important; padding: 12px 0 !important; }
+      .stat-divider-row { display: none !important; }
+      .h1 { font-size: 28px !important; line-height: 1.2 !important; }
+      .units { font-size: 36px !important; }
+    }
+
+    /* Dark mode hardening (Apple Mail, iOS Mail) */
+    @media (prefers-color-scheme: dark) {
+      .force-light { background-color: #0A0D14 !important; }
+    }
+
+    /* Link styling */
+    a { color: #4F86F7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+
+<body style=&quot;margin:0; padding:0; background-color:#0A0D14;&quot;>
+
+  <!-- Preheader (shown in inbox preview) -->
+  <div class=&quot;preheader&quot;>12 months of signals, passes, and ROI. Renewal in 14 days.</div>
+
+  <!-- Outer wrapper -->
+  <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#0A0D14&quot; style=&quot;background-color:#0A0D14;&quot;>
+    <tr>
+      <td align=&quot;center&quot; style=&quot;padding:32px 16px;&quot;>
+
+        <!-- Container -->
+        <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;600&quot; class=&quot;container&quot; style=&quot;width:600px; max-width:600px;&quot;>
+
+          <!-- ============================================ -->
+          <!-- HEADER: signal mark || + wordmark + meta     -->
+          <!-- Per BRAND_SPEC.md v3 — table-based for MSO   -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:8px 32px 28px 32px;&quot; align=&quot;center&quot;>
+
+              <!-- Signal mark || (centered, with Edge Green underline) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding:0; line-height:0; font-size:0;&quot;>
+                    <!-- Two pill bars -->
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                        <td width=&quot;6&quot; style=&quot;width:6px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <!-- Edge Green underline (brand signature, always present) -->
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding-top:5px; line-height:0; font-size:0;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;14&quot; bgcolor=&quot;#5A9E72&quot; style=&quot;width:14px; background-color:#5A9E72; border-radius:1px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;14&quot;>
+                            <tr><td width=&quot;14&quot; height=&quot;2&quot; style=&quot;width:14px; height:2px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Wordmark beneath the signal -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:18px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; font-weight:500; letter-spacing:4px; text-transform:uppercase; color:#E8EAED;&quot;>
+                    SHARPPICKS
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Meta line (campaign / segment) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:8px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.35);&quot;>
+                    Renewal · T-14 days
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Top accent line -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td height=&quot;1&quot; style=&quot;font-size:1px; line-height:1px; background-color:#5A9E72; opacity:0.5; height:1px;&quot;>&amp;nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- BODY CARD                                    -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#121725&quot; style=&quot;background-color:#121725;&quot;>
+
+                <!-- Eyebrow -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:32px 36px 0 36px; font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:#5A9E72;&quot;>
+                    12-month ledger
+                  </td>
+                </tr>
+
+                <!-- Headline (IBM Plex Serif via Georgia fallback) -->
+                <tr>
+                  <td class=&quot;px-mobile h1&quot; style=&quot;padding:14px 36px 0 36px; font-family: &#39;IBM Plex Serif&#39;, Georgia, &#39;Times New Roman&#39;, serif; font-size:34px; line-height:1.18; letter-spacing:-0.01em; color:#FFFFFF; font-weight:500;&quot;>
+                    Twelve months. Every signal documented.
+                  </td>
+                </tr>
+
+                <!-- Subhead -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.55; color:rgba(255,255,255,0.7);&quot;>
+                    Your annual subscription renews in fourteen days. Before the charge hits, here is the verified ledger from the year that just ended. No marketing math, no cherry-picked windows. The same numbers the model writes to the database.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- DATA STRIP (3 stats)                         -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Signals · YTD
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            94
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            ROI
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#5A9E72; letter-spacing:-0.01em;&quot;>
+                            +11.4%
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Pass rate
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            82%
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Body paragraph -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:24px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.6; color:rgba(255,255,255,0.75);&quot;>
+                    Ninety-four signals over twelve months. The pass rate held above eighty percent, which is the system working as designed. ROI is computed on units risked at the closing line, not the line you may have gotten. If the data above does not justify the renewal, the cancel link below works in one click. If it does, no action needed. The card on file will run on schedule.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- CTA (bulletproof button, MSO + WebKit)      -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; align=&quot;left&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;>
+                      <tr>
+                        <td align=&quot;center&quot; bgcolor=&quot;#4F86F7&quot; style=&quot;background-color:#4F86F7;&quot;>
+                          <!--[if mso]>
+                          <v:roundrect xmlns:v=&quot;urn:schemas-microsoft-com:vml&quot; xmlns:w=&quot;urn:schemas-microsoft-com:office:word&quot; href=&quot;https://app.sharppicks.ai/ledger?range=12m&quot; style=&quot;height:46px; v-text-anchor:middle; width:200px;&quot; arcsize=&quot;0%&quot; stroke=&quot;f&quot; fillcolor=&quot;#4F86F7&quot;>
+                            <w:anchorlock/>
+                            <center style=&quot;color:#ffffff; font-family:Arial, sans-serif; font-size:14px; font-weight:500;&quot;>View the full annual ledger</center>
+                          </v:roundrect>
+                          <![endif]-->
+                          <!--[if !mso]><!-- -->
+                          <a href=&quot;https://app.sharppicks.ai/ledger?range=12m&quot; style=&quot;display:inline-block; background-color:#4F86F7; color:#FFFFFF; font-family:-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:14px; font-weight:500; letter-spacing:0.02em; line-height:46px; text-align:center; text-decoration:none; min-width:200px; padding:0 24px; mso-hide:all;&quot;>
+                            View the full annual ledger
+                          </a>
+                          <!--<![endif]-->
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Secondary link (optional) -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:13px; color:rgba(255,255,255,0.5);&quot;>
+                    Need to make a change? <a href=&quot;https://app.sharppicks.ai/settings/billing&quot; style=&quot;color:#4F86F7; text-decoration:none;&quot;>Manage subscription</a>
+                  </td>
+                </tr>
+
+                <!-- Sharp Principle quote block -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:36px 36px 32px 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td style=&quot;padding-top:20px; font-family: &#39;IBM Plex Serif&#39;, Georgia, serif; font-size:14px; font-style:italic; line-height:1.5; color:rgba(255,255,255,0.55);&quot;>
+                          &amp;ldquo;Verified by data, not talk.&amp;rdquo;
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- FOOTER                                       -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:28px 32px 0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.3); line-height:1.6;&quot;>
+                    SharpPicks LLC &amp;middot; Market intelligence, not picks<br/>
+                    Verified by data, not talk
+                  </td>
+                </tr>
+                <tr>
+                  <td style=&quot;padding-top:16px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; line-height:1.6; color:rgba(255,255,255,0.35);&quot;>
+                    You&#39;re receiving this because you have a SharpPicks account.<br/>
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Unsubscribe</a>
+                    &amp;nbsp;&amp;middot;&amp;nbsp;
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Email preferences</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+"></iframe></div><div class="frame" id="frame-pass_day_skeptic"><iframe srcdoc="<!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;>
+<html xmlns=&quot;http://www.w3.org/1999/xhtml&quot; lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; />
+  <meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot; />
+  <meta name=&quot;x-apple-disable-message-reformatting&quot; />
+  <meta name=&quot;color-scheme&quot; content=&quot;dark light&quot; />
+  <meta name=&quot;supported-color-schemes&quot; content=&quot;dark light&quot; />
+  <title>SharpPicks · The case for pass days</title>
+
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+
+  <style type=&quot;text/css&quot;>
+    /* Resets */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #0A0D14; }
+
+    /* Hide preheader */
+    .preheader { display: none !important; visibility: hidden; mso-hide: all; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; }
+
+    /* Mobile */
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; max-width: 100% !important; }
+      .px-mobile { padding-left: 24px !important; padding-right: 24px !important; }
+      .stat-cell { display: block !important; width: 100% !important; padding: 12px 0 !important; }
+      .stat-divider-row { display: none !important; }
+      .h1 { font-size: 28px !important; line-height: 1.2 !important; }
+      .units { font-size: 36px !important; }
+    }
+
+    /* Dark mode hardening (Apple Mail, iOS Mail) */
+    @media (prefers-color-scheme: dark) {
+      .force-light { background-color: #0A0D14 !important; }
+    }
+
+    /* Link styling */
+    a { color: #4F86F7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+
+<body style=&quot;margin:0; padding:0; background-color:#0A0D14;&quot;>
+
+  <!-- Preheader (shown in inbox preview) -->
+  <div class=&quot;preheader&quot;>The platforms that issue daily picks are the ones bleeding your bankroll.</div>
+
+  <!-- Outer wrapper -->
+  <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#0A0D14&quot; style=&quot;background-color:#0A0D14;&quot;>
+    <tr>
+      <td align=&quot;center&quot; style=&quot;padding:32px 16px;&quot;>
+
+        <!-- Container -->
+        <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;600&quot; class=&quot;container&quot; style=&quot;width:600px; max-width:600px;&quot;>
+
+          <!-- ============================================ -->
+          <!-- HEADER: signal mark || + wordmark + meta     -->
+          <!-- Per BRAND_SPEC.md v3 — table-based for MSO   -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:8px 32px 28px 32px;&quot; align=&quot;center&quot;>
+
+              <!-- Signal mark || (centered, with Edge Green underline) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding:0; line-height:0; font-size:0;&quot;>
+                    <!-- Two pill bars -->
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                        <td width=&quot;6&quot; style=&quot;width:6px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <!-- Edge Green underline (brand signature, always present) -->
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding-top:5px; line-height:0; font-size:0;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;14&quot; bgcolor=&quot;#5A9E72&quot; style=&quot;width:14px; background-color:#5A9E72; border-radius:1px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;14&quot;>
+                            <tr><td width=&quot;14&quot; height=&quot;2&quot; style=&quot;width:14px; height:2px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Wordmark beneath the signal -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:18px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; font-weight:500; letter-spacing:4px; text-transform:uppercase; color:#E8EAED;&quot;>
+                    SHARPPICKS
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Meta line (campaign / segment) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:8px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.35);&quot;>
+                    Framework note
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Top accent line -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td height=&quot;1&quot; style=&quot;font-size:1px; line-height:1px; background-color:#5A9E72; opacity:0.5; height:1px;&quot;>&amp;nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- BODY CARD                                    -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#121725&quot; style=&quot;background-color:#121725;&quot;>
+
+                <!-- Eyebrow -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:32px 36px 0 36px; font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:#5A9E72;&quot;>
+                    On pass days
+                  </td>
+                </tr>
+
+                <!-- Headline (IBM Plex Serif via Georgia fallback) -->
+                <tr>
+                  <td class=&quot;px-mobile h1&quot; style=&quot;padding:14px 36px 0 36px; font-family: &#39;IBM Plex Serif&#39;, Georgia, &#39;Times New Roman&#39;, serif; font-size:34px; line-height:1.18; letter-spacing:-0.01em; color:#FFFFFF; font-weight:500;&quot;>
+                    The model passed three days in a row. That is not a bug.
+                  </td>
+                </tr>
+
+                <!-- Subhead -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.55; color:rgba(255,255,255,0.7);&quot;>
+                    You logged in on Tuesday, Wednesday, and Thursday. Each time, the dashboard read pass. We noticed the short sessions. Before you assume the platform is quiet, read the math on what those pass days actually saved.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- DATA STRIP (3 stats)                         -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Pass days · 30d
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            23 of 30
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Forced bets avoided
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#5A9E72; letter-spacing:-0.01em;&quot;>
+                            ~46
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Estimated EV saved
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            +5.1u
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Body paragraph -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:24px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.6; color:rgba(255,255,255,0.75);&quot;>
+                    Most platforms issue a pick every day because subscribers expect content. That is the business model, not the math. The market is efficient on most slates, which means most days the correct answer is to do nothing. Twenty-three pass days in the last thirty is not the system being lazy. It is the system refusing to manufacture signals where the data does not support them. If you want daily content, that is a different product. If you want to stop bleeding to forced bets, this is the framework.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- CTA (bulletproof button, MSO + WebKit)      -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; align=&quot;left&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;>
+                      <tr>
+                        <td align=&quot;center&quot; bgcolor=&quot;#4F86F7&quot; style=&quot;background-color:#4F86F7;&quot;>
+                          <!--[if mso]>
+                          <v:roundrect xmlns:v=&quot;urn:schemas-microsoft-com:vml&quot; xmlns:w=&quot;urn:schemas-microsoft-com:office:word&quot; href=&quot;https://app.sharppicks.ai/framework/pass-days&quot; style=&quot;height:46px; v-text-anchor:middle; width:200px;&quot; arcsize=&quot;0%&quot; stroke=&quot;f&quot; fillcolor=&quot;#4F86F7&quot;>
+                            <w:anchorlock/>
+                            <center style=&quot;color:#ffffff; font-family:Arial, sans-serif; font-size:14px; font-weight:500;&quot;>Read the case for pass days</center>
+                          </v:roundrect>
+                          <![endif]-->
+                          <!--[if !mso]><!-- -->
+                          <a href=&quot;https://app.sharppicks.ai/framework/pass-days&quot; style=&quot;display:inline-block; background-color:#4F86F7; color:#FFFFFF; font-family:-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:14px; font-weight:500; letter-spacing:0.02em; line-height:46px; text-align:center; text-decoration:none; min-width:200px; padding:0 24px; mso-hide:all;&quot;>
+                            Read the case for pass days
+                          </a>
+                          <!--<![endif]-->
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Secondary link (optional) -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:13px; color:rgba(255,255,255,0.5);&quot;>
+                    Want a notification only when signals fire? <a href=&quot;https://app.sharppicks.ai/settings/notifications&quot; style=&quot;color:#4F86F7; text-decoration:none;&quot;>Adjust alerts</a>
+                  </td>
+                </tr>
+
+                <!-- Sharp Principle quote block -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:36px 36px 32px 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td style=&quot;padding-top:20px; font-family: &#39;IBM Plex Serif&#39;, Georgia, serif; font-size:14px; font-style:italic; line-height:1.5; color:rgba(255,255,255,0.55);&quot;>
+                          &amp;ldquo;Pass days are not missed opportunities. They are proof the system is working.&amp;rdquo;
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- FOOTER                                       -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:28px 32px 0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.3); line-height:1.6;&quot;>
+                    SharpPicks LLC &amp;middot; Market intelligence, not picks<br/>
+                    Verified by data, not talk
+                  </td>
+                </tr>
+                <tr>
+                  <td style=&quot;padding-top:16px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; line-height:1.6; color:rgba(255,255,255,0.35);&quot;>
+                    You&#39;re receiving this because you have a SharpPicks account.<br/>
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Unsubscribe</a>
+                    &amp;nbsp;&amp;middot;&amp;nbsp;
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Email preferences</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+"></iframe></div><div class="frame" id="frame-power_user"><iframe srcdoc="<!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;>
+<html xmlns=&quot;http://www.w3.org/1999/xhtml&quot; lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; />
+  <meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot; />
+  <meta name=&quot;x-apple-disable-message-reformatting&quot; />
+  <meta name=&quot;color-scheme&quot; content=&quot;dark light&quot; />
+  <meta name=&quot;supported-color-schemes&quot; content=&quot;dark light&quot; />
+  <title>SharpPicks · Founding Fifty invitation</title>
+
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+
+  <style type=&quot;text/css&quot;>
+    /* Resets */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #0A0D14; }
+
+    /* Hide preheader */
+    .preheader { display: none !important; visibility: hidden; mso-hide: all; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; }
+
+    /* Mobile */
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; max-width: 100% !important; }
+      .px-mobile { padding-left: 24px !important; padding-right: 24px !important; }
+      .stat-cell { display: block !important; width: 100% !important; padding: 12px 0 !important; }
+      .stat-divider-row { display: none !important; }
+      .h1 { font-size: 28px !important; line-height: 1.2 !important; }
+      .units { font-size: 36px !important; }
+    }
+
+    /* Dark mode hardening (Apple Mail, iOS Mail) */
+    @media (prefers-color-scheme: dark) {
+      .force-light { background-color: #0A0D14 !important; }
+    }
+
+    /* Link styling */
+    a { color: #4F86F7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+
+<body style=&quot;margin:0; padding:0; background-color:#0A0D14;&quot;>
+
+  <!-- Preheader (shown in inbox preview) -->
+  <div class=&quot;preheader&quot;>Invite-only access. No discount, no referral pitch.</div>
+
+  <!-- Outer wrapper -->
+  <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#0A0D14&quot; style=&quot;background-color:#0A0D14;&quot;>
+    <tr>
+      <td align=&quot;center&quot; style=&quot;padding:32px 16px;&quot;>
+
+        <!-- Container -->
+        <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;600&quot; class=&quot;container&quot; style=&quot;width:600px; max-width:600px;&quot;>
+
+          <!-- ============================================ -->
+          <!-- HEADER: signal mark || + wordmark + meta     -->
+          <!-- Per BRAND_SPEC.md v3 — table-based for MSO   -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:8px 32px 28px 32px;&quot; align=&quot;center&quot;>
+
+              <!-- Signal mark || (centered, with Edge Green underline) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding:0; line-height:0; font-size:0;&quot;>
+                    <!-- Two pill bars -->
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                        <td width=&quot;6&quot; style=&quot;width:6px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td>
+                        <td width=&quot;3&quot; style=&quot;width:3px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;3&quot; bgcolor=&quot;#E8EAED&quot; style=&quot;background-color:#E8EAED; border-radius:2px;&quot;>
+                            <tr><td width=&quot;3&quot; height=&quot;28&quot; style=&quot;width:3px; height:28px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <!-- Edge Green underline (brand signature, always present) -->
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;padding-top:5px; line-height:0; font-size:0;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:0 auto;&quot;>
+                      <tr>
+                        <td width=&quot;14&quot; bgcolor=&quot;#5A9E72&quot; style=&quot;width:14px; background-color:#5A9E72; border-radius:1px; line-height:0; font-size:0;&quot;>
+                          <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;14&quot;>
+                            <tr><td width=&quot;14&quot; height=&quot;2&quot; style=&quot;width:14px; height:2px; line-height:0; font-size:0;&quot;>&amp;nbsp;</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Wordmark beneath the signal -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:18px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; font-weight:500; letter-spacing:4px; text-transform:uppercase; color:#E8EAED;&quot;>
+                    SHARPPICKS
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Meta line (campaign / segment) -->
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; align=&quot;center&quot; style=&quot;margin:8px auto 0 auto;&quot;>
+                <tr>
+                  <td align=&quot;center&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.35);&quot;>
+                    Founding Fifty · Invitation
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Top accent line -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td height=&quot;1&quot; style=&quot;font-size:1px; line-height:1px; background-color:#5A9E72; opacity:0.5; height:1px;&quot;>&amp;nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- BODY CARD                                    -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; bgcolor=&quot;#121725&quot; style=&quot;background-color:#121725;&quot;>
+
+                <!-- Eyebrow -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:32px 36px 0 36px; font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:#5A9E72;&quot;>
+                    Top 4% by usage
+                  </td>
+                </tr>
+
+                <!-- Headline (IBM Plex Serif via Georgia fallback) -->
+                <tr>
+                  <td class=&quot;px-mobile h1&quot; style=&quot;padding:14px 36px 0 36px; font-family: &#39;IBM Plex Serif&#39;, Georgia, &#39;Times New Roman&#39;, serif; font-size:34px; line-height:1.18; letter-spacing:-0.01em; color:#FFFFFF; font-weight:500;&quot;>
+                    The system noticed.
+                  </td>
+                </tr>
+
+                <!-- Subhead -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.55; color:rgba(255,255,255,0.7);&quot;>
+                    You have logged in five days a week for the last four weeks. You read the framework on pass days. You opened the ledger after losses, not just wins. The model tracks user discipline the same way it tracks market signals, and yours puts you in the top four percent.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- DATA STRIP (3 stats)                         -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Sessions · 30d
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            27
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Pass-day reads
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#5A9E72; letter-spacing:-0.01em;&quot;>
+                            100%
+                          </div>
+                        </td>
+                        <td class=&quot;stat-divider-row&quot; width=&quot;1&quot; style=&quot;border-left:1px solid rgba(255,255,255,0.08); width:1px;&quot;></td>
+                        <td class=&quot;stat-cell&quot; align=&quot;center&quot; width=&quot;33%&quot; style=&quot;padding:18px 8px;&quot;>
+                          <div style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;&quot;>
+                            Tenure
+                          </div>
+                          <div class=&quot;units&quot; style=&quot;font-family: &#39;Courier New&#39;, Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;&quot;>
+                            5 months
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Body paragraph -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:24px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:15px; line-height:1.6; color:rgba(255,255,255,0.75);&quot;>
+                    This is an invitation to Founding Fifty, capped at fifty members. Founding Fifty members get early access to new sport models before public release, a private channel with the founder for framework questions, and locked pricing for the life of the subscription. There is no upsell here and no referral incentive attached. The seat is offered because the data says you treat the platform the way it was designed to be used.
+                  </td>
+                </tr>
+
+                <!-- ============================================ -->
+                <!-- CTA (bulletproof button, MSO + WebKit)      -->
+                <!-- ============================================ -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; align=&quot;left&quot; style=&quot;padding:28px 36px 0 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;>
+                      <tr>
+                        <td align=&quot;center&quot; bgcolor=&quot;#4F86F7&quot; style=&quot;background-color:#4F86F7;&quot;>
+                          <!--[if mso]>
+                          <v:roundrect xmlns:v=&quot;urn:schemas-microsoft-com:vml&quot; xmlns:w=&quot;urn:schemas-microsoft-com:office:word&quot; href=&quot;https://app.sharppicks.ai/founding-fifty&quot; style=&quot;height:46px; v-text-anchor:middle; width:200px;&quot; arcsize=&quot;0%&quot; stroke=&quot;f&quot; fillcolor=&quot;#4F86F7&quot;>
+                            <w:anchorlock/>
+                            <center style=&quot;color:#ffffff; font-family:Arial, sans-serif; font-size:14px; font-weight:500;&quot;>Accept Founding Fifty seat</center>
+                          </v:roundrect>
+                          <![endif]-->
+                          <!--[if !mso]><!-- -->
+                          <a href=&quot;https://app.sharppicks.ai/founding-fifty&quot; style=&quot;display:inline-block; background-color:#4F86F7; color:#FFFFFF; font-family:-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:14px; font-weight:500; letter-spacing:0.02em; line-height:46px; text-align:center; text-decoration:none; min-width:200px; padding:0 24px; mso-hide:all;&quot;>
+                            Accept Founding Fifty seat
+                          </a>
+                          <!--<![endif]-->
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Secondary link (optional) -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:13px; color:rgba(255,255,255,0.5);&quot;>
+                    Want to learn more first? <a href=&quot;https://app.sharppicks.ai/founding-fifty/about&quot; style=&quot;color:#4F86F7; text-decoration:none;&quot;>Read what is included</a>
+                  </td>
+                </tr>
+
+                <!-- Sharp Principle quote block -->
+                <tr>
+                  <td class=&quot;px-mobile&quot; style=&quot;padding:36px 36px 32px 36px;&quot;>
+                    <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot; style=&quot;border-top:1px solid rgba(255,255,255,0.08);&quot;>
+                      <tr>
+                        <td style=&quot;padding-top:20px; font-family: &#39;IBM Plex Serif&#39;, Georgia, serif; font-size:14px; font-style:italic; line-height:1.5; color:rgba(255,255,255,0.55);&quot;>
+                          &amp;ldquo;Discipline is the edge.&amp;rdquo;
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- ============================================ -->
+          <!-- FOOTER                                       -->
+          <!-- ============================================ -->
+          <tr>
+            <td class=&quot;px-mobile&quot; style=&quot;padding:28px 32px 0 32px;&quot;>
+              <table role=&quot;presentation&quot; border=&quot;0&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; width=&quot;100%&quot;>
+                <tr>
+                  <td style=&quot;font-family:&#39;Courier New&#39;, Courier, monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.3); line-height:1.6;&quot;>
+                    SharpPicks LLC &amp;middot; Market intelligence, not picks<br/>
+                    Verified by data, not talk
+                  </td>
+                </tr>
+                <tr>
+                  <td style=&quot;padding-top:16px; font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Helvetica, Arial, sans-serif; font-size:11px; line-height:1.6; color:rgba(255,255,255,0.35);&quot;>
+                    You&#39;re receiving this because you have a SharpPicks account.<br/>
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Unsubscribe</a>
+                    &amp;nbsp;&amp;middot;&amp;nbsp;
+                    <a href=&quot;#&quot; style=&quot;color:rgba(255,255,255,0.5); text-decoration:underline;&quot;>Email preferences</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+"></iframe></div>
+<script>
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const id = tab.dataset.id;
+      document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('frame-' + id).classList.add('active');
+      tab.classList.add('active');
+    });
+  });
+</script>
+</body></html>

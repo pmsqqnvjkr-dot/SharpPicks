@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0A0D14" />
+<title>Sharp Journal · Evening edition (mixed state)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:           #0A0D14;
+    --surface:      #121725;
+    --surface-2:    #1B2030;
+    --border:       rgba(255, 255, 255, 0.08);
+    --border-2:     rgba(255, 255, 255, 0.05);
+    --blue:         #4F86F7;
+    --green:        #5A9E72;
+    --amber:        #F59E0B;
+    --red-soft:     #C4868A;
+    --text:         #E8EAED;
+    --text-2:       rgba(232, 234, 237, 0.7);
+    --text-3:       rgba(232, 234, 237, 0.5);
+    --text-4:       rgba(232, 234, 237, 0.35);
+    --text-5:       rgba(232, 234, 237, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* ═══════════ NAV BAR ═══════════ */
+  .navbar {
+    padding: 18px 24px 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .back-arrow {
+    color: var(--text-3);
+    cursor: pointer;
+  }
+  .navbar-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+
+  /* ═══════════ ARTICLE CONTAINER ═══════════ */
+  .article {
+    padding: 24px 24px 60px;
+  }
+
+  /* ═══════════ LIVE BANNER (only shown when slate in progress) ═══════════ */
+  .live-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    margin-bottom: 22px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.06);
+    border-radius: 10px;
+  }
+  .live-pulse {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    background: var(--amber);
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
+    70%  { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  }
+  .live-content { flex: 1; min-width: 0; }
+  .live-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 4px;
+  }
+  .live-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.45;
+  }
+  .live-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 4px;
+  }
+
+  /* ═══════════ HEADER (Tag + Meta) ═══════════ */
+  .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .tag-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid var(--blue);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--blue);
+  }
+  .meta-sep {
+    color: var(--text-4);
+    font-size: 12px;
+  }
+  .meta-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+
+  /* ═══════════ HEADLINE ═══════════ */
+  .headline {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin-bottom: 16px;
+  }
+
+  /* ═══════════ DATE + BYLINE ═══════════ */
+  .date-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+  .byline {
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+  .byline-author { color: var(--text); }
+  .byline-sep { color: var(--text-4); margin: 0 6px; }
+  .byline-title { color: var(--text-3); }
+
+  /* ═══════════ DIVIDER ═══════════ */
+  .article-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 24px 0 28px;
+  }
+
+  /* ═══════════ SECTION (block container) ═══════════ */
+  .section-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 14px;
+  }
+  .section-eyebrow .preliminary {
+    color: var(--amber);
+    margin-left: 8px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+  }
+
+  /* ═══════════ OBSERVATION (serif body) ═══════════ */
+  .observation {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--text);
+    margin-bottom: 32px;
+  }
+
+  /* ═══════════ STAT CARD ═══════════ */
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 22px 24px;
+    margin-bottom: 16px;
+  }
+
+  /* Slate Result: 4-up stat grid (evening-specific) */
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr 1px 1fr 1px 1fr;
+    gap: 0;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .rg-cell { text-align: center; padding: 8px 4px; }
+  .rg-value {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .rg-value.green { color: var(--green); }
+  .rg-value.red { color: var(--red-soft); }
+  .rg-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .rg-divider {
+    width: 1px;
+    height: 44px;
+    background: var(--border);
+  }
+
+  /* Bias card: split bar */
+  .bias-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 8px;
+  }
+  .bias-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .bias-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+  .bias-dot.left { background: var(--red-soft); }
+  .bias-dot.right { background: var(--green); }
+  .bias-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface-2);
+    overflow: hidden;
+    display: flex;
+    margin: 6px 0 14px;
+  }
+  .bias-bar-left {
+    height: 100%;
+    background: var(--red-soft);
+  }
+  .bias-bar-right {
+    height: 100%;
+    background: var(--green);
+  }
+  .bias-counts {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  /* Top Edge card */
+  .top-edge-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 10px;
+    margin-bottom: 6px;
+  }
+  .te-pick {
+    font-family: 'Inter', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .te-edge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--green);
+  }
+  .te-matchup {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+  .te-stats {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-3);
+    margin-bottom: 14px;
+  }
+  .te-stats .num { color: var(--text); }
+  .te-stats .num.green { color: var(--green); }
+  .te-status-pill {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+  }
+  .te-status-pill.win {
+    background: rgba(90, 158, 114, 0.1);
+    border: 1px solid rgba(90, 158, 114, 0.3);
+    color: var(--green);
+  }
+  .te-status-pill.loss {
+    background: rgba(196, 134, 138, 0.1);
+    border: 1px solid rgba(196, 134, 138, 0.3);
+    color: var(--red-soft);
+  }
+  .te-status-pill.push {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+  }
+  .te-status-pill.live {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: var(--amber);
+  }
+
+  /* Quote-styled explainer paragraph */
+  .te-explainer {
+    border-left: 2px solid rgba(90, 158, 114, 0.5);
+    padding: 4px 0 4px 16px;
+    margin-top: 14px;
+  }
+  .te-explainer p {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-2);
+    margin-bottom: 10px;
+  }
+  .te-explainer p:last-child { margin-bottom: 0; }
+  .te-explainer.live {
+    border-left-color: rgba(245, 158, 11, 0.5);
+  }
+
+  /* ═══════════ EDGE MAP (diverging bars) ═══════════ */
+  .edge-map {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 18px 18px;
+    margin-bottom: 16px;
+  }
+  .edge-map-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 8px;
+  }
+  .em-row {
+    display: grid;
+    grid-template-columns: 90px 50px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .em-team {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .em-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+    text-align: right;
+  }
+  .em-pct.negative { color: var(--red-soft); }
+  .em-pct.positive { color: var(--green); }
+
+  .em-bar-track {
+    position: relative;
+    height: 10px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    margin: 0 8px;
+  }
+  .em-bar-track::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -2px;
+    bottom: -2px;
+    width: 1px;
+    background: var(--text-5);
+  }
+  .em-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 2px;
+  }
+  .em-bar.negative {
+    right: 50%;
+    background: var(--red-soft);
+  }
+  .em-bar.positive {
+    left: 50%;
+    background: var(--green);
+  }
+
+  /* Result/status indicator on right */
+  .em-result {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .em-result.win    { color: var(--green); }
+  .em-result.loss   { color: var(--red-soft); }
+  .em-result.push   { color: var(--text-3); }
+  .em-result.below  { color: var(--text-3); }
+  .em-result.live {
+    color: var(--amber);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+  .em-result.live::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--amber);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  .em-result-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-4);
+    margin-left: 6px;
+  }
+
+  /* ═══════════ CLOSING LINE AUDIT ═══════════ */
+  .closing-audit {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 22px 20px;
+    margin-bottom: 16px;
+  }
+  .ca-summary {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text-2);
+    margin: 8px 0 16px;
+  }
+  .ca-row {
+    padding: 12px 0;
+    border-top: 1px solid var(--border-2);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .ca-row:first-child { border-top: none; padding-top: 0; }
+  .ca-team {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .ca-detail {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 3px;
+  }
+  .ca-detail .num { color: var(--text-2); }
+  .ca-verdict {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-3);
+  }
+  .ca-verdict.market-right { color: var(--text-2); }
+  .ca-verdict.model-right { color: var(--green); }
+  .ca-verdict.live {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--amber);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ca-verdict.live::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--amber);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  /* ═══════════ PENDING SLATE (separated section) ═══════════ */
+  .pending-section {
+    background: var(--surface);
+    border: 1px solid rgba(245, 158, 11, 0.18);
+    border-radius: 12px;
+    padding: 20px 20px 16px;
+    margin-bottom: 16px;
+  }
+  .pending-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 14px;
+  }
+  .pending-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--amber);
+    animation: pulse 2s infinite;
+  }
+  .pending-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .pending-row {
+    padding: 12px 0;
+    border-top: 1px solid var(--border-2);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .pending-row:first-child { border-top: none; padding-top: 4px; }
+  .pending-team {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .pending-state {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 3px;
+  }
+  .pending-state .live-num { color: var(--amber); }
+  .pending-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--amber);
+  }
+  .pending-note {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+  }
+
+  /* ═══════════ NEAR MISSES ═══════════ */
+  .near-misses {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 22px 18px;
+    margin-bottom: 16px;
+  }
+  .nm-list { margin-top: 6px; }
+  .nm-row {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-2);
+  }
+  .nm-row:last-child { border-bottom: none; }
+  .nm-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .nm-team {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .nm-edge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--green);
+  }
+  .nm-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  /* ═══════════ IMPLICATION CALLOUT ═══════════ */
+  .implication {
+    border-left: 3px solid var(--green);
+    background: rgba(90, 158, 114, 0.04);
+    padding: 18px 20px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 28px;
+  }
+  .impl-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+  .impl-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+  .impl-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  /* ═══════════ SHARP PRINCIPLE ═══════════ */
+  .principle {
+    margin-bottom: 28px;
+  }
+  .principle-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 14px;
+  }
+  .principle-body {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+
+  /* ═══════════ NEXT READ TILE ═══════════ */
+  .next-read {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+    cursor: pointer;
+  }
+  .nr-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-4);
+    margin-bottom: 6px;
+  }
+  .nr-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .nr-arrow {
+    color: var(--text-4);
+  }
+
+  /* ═══════════ AUTO-REFRESH NOTE ═══════════ */
+  .refresh-note {
+    text-align: center;
+    padding: 18px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-4);
+    margin-top: 8px;
+  }
+  .refresh-note .accent { color: var(--amber); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ NAV BAR ═══════════ -->
+<nav class="navbar">
+  <svg class="back-arrow" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M19 12H5M12 19l-7-7 7-7"/>
+  </svg>
+  <span class="navbar-title">SHARP JOURNAL</span>
+</nav>
+
+<!-- ═══════════ ARTICLE ═══════════ -->
+<article class="article">
+
+  <!-- ═══════════ LIVE BANNER (mixed-state slate) ═══════════ -->
+  <div class="live-banner">
+    <div class="live-pulse"></div>
+    <div class="live-content">
+      <div class="live-eyebrow">Slate in progress</div>
+      <div class="live-text">12 of 15 games settled. Numbers below are preliminary and update as remaining games close.</div>
+      <div class="live-meta">Last updated 11:47 PM ET · Auto-refresh every 5 min</div>
+    </div>
+  </div>
+
+  <!-- META ROW -->
+  <div class="meta-row">
+    <span class="tag-pill">Slate Recap</span>
+    <span class="meta-sep">·</span>
+    <span class="meta-text">Sharp Journal</span>
+    <span class="meta-sep">·</span>
+    <span class="meta-text">Evening Edition</span>
+    <span class="meta-sep">·</span>
+    <span class="meta-text">2 min read</span>
+  </div>
+
+  <!-- HEADLINE -->
+  <h1 class="headline">
+    Two signals on the board. Three games still running on the West Coast.
+  </h1>
+
+  <!-- DATE + BYLINE -->
+  <div class="date-line">May 1, 2026 · 11:47 PM ET</div>
+  <div class="byline">
+    <span class="byline-author">Evan Cole</span>
+    <span class="byline-sep">·</span>
+    <span class="byline-title">Head of Signal Intelligence</span>
+  </div>
+
+  <div class="article-divider"></div>
+
+  <!-- ═══════════ OBSERVATION ═══════════ -->
+  <div class="section-eyebrow">Observation</div>
+  <p class="observation">
+    Twelve games settled, two signals graded, both pushed at the close. The market priced this slate inside model fair value on most boards. Three Pacific time games are still in progress and will update this report when they close.
+  </p>
+
+  <!-- ═══════════ SLATE RESULT (4-up grid) ═══════════ -->
+  <div class="stat-card">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">
+      Slate Result
+      <span class="preliminary">Preliminary · 12 of 15</span>
+    </div>
+    <div class="result-grid">
+      <div class="rg-cell">
+        <div class="rg-value">0.0u</div>
+        <div class="rg-label">Net</div>
+      </div>
+      <div class="rg-divider"></div>
+      <div class="rg-cell">
+        <div class="rg-value">0-0-2</div>
+        <div class="rg-label">Record</div>
+      </div>
+      <div class="rg-divider"></div>
+      <div class="rg-cell">
+        <div class="rg-value green">+0.4</div>
+        <div class="rg-label">CLV held</div>
+      </div>
+      <div class="rg-divider"></div>
+      <div class="rg-cell">
+        <div class="rg-value">9 / 12</div>
+        <div class="rg-label">Market beat</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ BIAS (Model right vs Market right, evening lens) ═══════════ -->
+  <div class="stat-card">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">
+      Bias
+      <span class="preliminary">Preliminary</span>
+    </div>
+    <div class="bias-row">
+      <span class="bias-label"><span class="bias-dot left"></span>Market right</span>
+      <span class="bias-label">Model right<span class="bias-dot right"></span></span>
+    </div>
+    <div class="bias-bar">
+      <div class="bias-bar-left" style="width: 75%"></div>
+      <div class="bias-bar-right" style="width: 25%"></div>
+    </div>
+    <div class="bias-counts">
+      <span>9 of 12</span>
+      <span>3 of 12</span>
+    </div>
+  </div>
+
+  <!-- ═══════════ TOP EDGE (with outcome) ═══════════ -->
+  <div class="stat-card">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">Top Edge · Settled</div>
+    <div class="top-edge-row">
+      <span class="te-pick">Minnesota Twins +1.5</span>
+      <span class="te-edge">+10.9%</span>
+    </div>
+    <div class="te-matchup">Toronto Blue Jays vs Minnesota Twins · Final: TOR 4, MIN 3</div>
+    <div class="te-stats">
+      Model: <span class="num green">1.2</span>
+      <span style="color: var(--text-4)">·</span>
+      Close: <span class="num">1.5</span>
+      <span style="color: var(--text-4)">·</span>
+      CLV: <span class="num green">+0.3</span>
+    </div>
+
+    <span class="te-status-pill push">Push · 0.0u</span>
+
+    <div class="te-explainer">
+      <p>Final: Toronto 4, Minnesota 3. Twins covered the +1.5, hooking the spread by half a run.</p>
+      <p>Closing line: +1.5 at -110. Same as open. CLV: zero on the book line, positive on model fair value.</p>
+      <p>Result graded as a push. Capital preserved. The signal did what it was supposed to do on a market the system correctly read as efficient.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ EDGE MAP (mixed state — settled + live) ═══════════ -->
+  <div class="edge-map">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">Edge Map</div>
+    <div class="edge-map-list">
+
+      <!-- SETTLED GAMES -->
+
+      <div class="em-row">
+        <span class="em-team">TOR vs MIN</span>
+        <span class="em-pct negative">-10.9%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 45.4%"></div>
+        </div>
+        <span class="em-result push">Final · TOR 4-3</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">CLE vs ATH</span>
+        <span class="em-pct negative">-10.3%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 42.9%"></div>
+        </div>
+        <span class="em-result below">Final · CLE 6-2</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">CIN vs PIT</span>
+        <span class="em-pct negative">-8%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 33.3%"></div>
+        </div>
+        <span class="em-result below">Final · PIT 5-3</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">TEX vs DET</span>
+        <span class="em-pct positive">+6%</span>
+        <div class="em-bar-track">
+          <div class="em-bar positive" style="width: 25%"></div>
+        </div>
+        <span class="em-result push">Push · 0.0u</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">BAL vs NYY</span>
+        <span class="em-pct positive">+6%</span>
+        <div class="em-bar-track">
+          <div class="em-bar positive" style="width: 25%"></div>
+        </div>
+        <span class="em-result push">Push · 0.0u</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">HOU vs BOS</span>
+        <span class="em-pct positive">+6%</span>
+        <div class="em-bar-track">
+          <div class="em-bar positive" style="width: 25%"></div>
+        </div>
+        <span class="em-result below">Final · HOU 7-4</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">PHI vs MIA</span>
+        <span class="em-pct positive">+6%</span>
+        <div class="em-bar-track">
+          <div class="em-bar positive" style="width: 25%"></div>
+        </div>
+        <span class="em-result below">Final · PHI 5-2</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">NYM vs LAA</span>
+        <span class="em-pct negative">-10.1%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 42.1%"></div>
+        </div>
+        <span class="em-result below">Final · LAA 4-1</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">MIL vs WSH</span>
+        <span class="em-pct negative">-4.6%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 19.2%"></div>
+        </div>
+        <span class="em-result below">Final · MIL 6-5</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">ARI vs CHC</span>
+        <span class="em-pct negative">-3.3%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 13.8%"></div>
+        </div>
+        <span class="em-result below">Final · CHC 3-1</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">LAD vs STL</span>
+        <span class="em-pct positive">+2.9%</span>
+        <div class="em-bar-track">
+          <div class="em-bar positive" style="width: 12.1%"></div>
+        </div>
+        <span class="em-result below">Final · LAD 5-3</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">ATL vs COL</span>
+        <span class="em-pct positive">+0.9%</span>
+        <div class="em-bar-track">
+          <div class="em-bar positive" style="width: 3.8%"></div>
+        </div>
+        <span class="em-result below">Final · ATL 8-6</span>
+      </div>
+
+      <!-- LIVE / PENDING GAMES (still in progress) -->
+
+      <div class="em-row">
+        <span class="em-team">SF vs TB</span>
+        <span class="em-pct negative">-2.9%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 12.1%"></div>
+        </div>
+        <span class="em-result live">Live · B7</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">CWS vs SD</span>
+        <span class="em-pct negative">-2.5%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 10.4%"></div>
+        </div>
+        <span class="em-result live">Live · T8</span>
+      </div>
+
+      <div class="em-row">
+        <span class="em-team">KC vs SEA</span>
+        <span class="em-pct negative">-3.5%</span>
+        <div class="em-bar-track">
+          <div class="em-bar negative" style="width: 14.6%"></div>
+        </div>
+        <span class="em-result live">Live · T6</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ STILL IN PROGRESS (dedicated section) ═══════════ -->
+  <div class="pending-section">
+    <div class="pending-eyebrow">
+      <span class="pending-dot"></span>
+      Still in progress · 3 games
+    </div>
+    <div class="pending-list">
+
+      <div class="pending-row">
+        <div>
+          <div class="pending-team">San Francisco @ Tampa Bay</div>
+          <div class="pending-state">B7 · TB <span class="live-num">3</span> SF <span class="live-num">2</span> · No signal issued</div>
+        </div>
+        <span class="pending-status">Live</span>
+      </div>
+
+      <div class="pending-row">
+        <div>
+          <div class="pending-team">Chicago White Sox @ San Diego</div>
+          <div class="pending-state">T8 · SD <span class="live-num">5</span> CWS <span class="live-num">1</span> · No signal issued</div>
+        </div>
+        <span class="pending-status">Live</span>
+      </div>
+
+      <div class="pending-row">
+        <div>
+          <div class="pending-team">Kansas City @ Seattle</div>
+          <div class="pending-state">T6 · SEA <span class="live-num">2</span> KC <span class="live-num">1</span> · No signal issued</div>
+        </div>
+        <span class="pending-status">Live</span>
+      </div>
+
+      <div class="pending-note">
+        None of the live games carry an active signal. Closing line audit and final ROI numbers update once these games settle.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ CLOSING LINE AUDIT (settled games only) ═══════════ -->
+  <div class="closing-audit">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">
+      Closing Line Audit
+      <span class="preliminary">Settled games only</span>
+    </div>
+    <p class="ca-summary">
+      Market closed within model fair value on 9 of 12 settled games. Both signals held positive CLV against model fair value at -0.3 points.
+    </p>
+
+    <div class="ca-row">
+      <div>
+        <div class="ca-team">TOR vs MIN · Push</div>
+        <div class="ca-detail">
+          Open: <span class="num">+1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Close: <span class="num">+1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Model: <span class="num">+1.2</span>
+        </div>
+      </div>
+      <span class="ca-verdict market-right">Market right</span>
+    </div>
+
+    <div class="ca-row">
+      <div>
+        <div class="ca-team">BAL vs NYY · Push</div>
+        <div class="ca-detail">
+          Open: <span class="num">-1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Close: <span class="num">-1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Model: <span class="num">-1.2</span>
+        </div>
+      </div>
+      <span class="ca-verdict market-right">Market right</span>
+    </div>
+
+    <div class="ca-row">
+      <div>
+        <div class="ca-team">TEX vs DET · Push</div>
+        <div class="ca-detail">
+          Open: <span class="num">-1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Close: <span class="num">-1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Model: <span class="num">-1.8</span>
+        </div>
+      </div>
+      <span class="ca-verdict model-right">Model right</span>
+    </div>
+
+    <div class="ca-row">
+      <div>
+        <div class="ca-team">SF vs TB</div>
+        <div class="ca-detail">
+          Open: <span class="num">-1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Close: <span class="num">-1.5</span>
+          <span style="color: var(--text-4)">·</span>
+          Live: in progress
+        </div>
+      </div>
+      <span class="ca-verdict live">Pending</span>
+    </div>
+  </div>
+
+  <!-- ═══════════ NEAR MISSES ═══════════ -->
+  <div class="near-misses">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">Near Misses</div>
+    <div class="nm-list">
+
+      <div class="nm-row">
+        <div class="nm-head">
+          <span class="nm-team">Arizona Diamondbacks vs Chicago Cubs</span>
+          <span class="nm-edge">+3.3%</span>
+        </div>
+        <div class="nm-sub">Edge below threshold. Market called it: CHC 3-1.</div>
+      </div>
+
+      <div class="nm-row">
+        <div class="nm-head">
+          <span class="nm-team">Los Angeles Dodgers vs St. Louis Cardinals</span>
+          <span class="nm-edge">+2.9%</span>
+        </div>
+        <div class="nm-sub">Edge below threshold. Model called it: LAD 5-3.</div>
+      </div>
+
+      <div class="nm-row">
+        <div class="nm-head">
+          <span class="nm-team">San Francisco Giants vs Tampa Bay Rays</span>
+          <span class="nm-edge">+2.9%</span>
+        </div>
+        <div class="nm-sub">Edge below threshold. Game in progress.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ IMPLICATION ═══════════ -->
+  <div class="implication">
+    <div class="impl-eyebrow"><span class="impl-dot"></span>Implication</div>
+    <div class="impl-text">Efficient market. System held discipline on a slate that did not reward forced bets.</div>
+  </div>
+
+  <!-- ═══════════ SHARP PRINCIPLE ═══════════ -->
+  <div class="principle">
+    <div class="principle-eyebrow">Sharp Principle</div>
+    <p class="principle-body">
+      Pass days are not missed opportunities. They are proof the system is working. Two pushes on a tight slate is the cost of staying out of trouble.
+    </p>
+  </div>
+
+  <!-- ═══════════ NEXT READ (cross-edition) ═══════════ -->
+  <div class="next-read">
+    <div>
+      <div class="nr-eyebrow">Tomorrow at 10:15 AM ET</div>
+      <div class="nr-title">Sat May 2 morning edition publishes after the model run.</div>
+    </div>
+    <svg class="nr-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  </div>
+
+  <!-- ═══════════ AUTO-REFRESH NOTE ═══════════ -->
+  <div class="refresh-note">
+    <span class="accent">●</span> This report updates automatically when games settle
+  </div>
+
+</article>
+
+</body>
+</html>

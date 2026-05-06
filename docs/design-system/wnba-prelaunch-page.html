@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0A0D14" />
+<title>WNBA Signals · Calibration Phase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:           #0A0D14;
+    --surface:      #121725;
+    --surface-2:    #1B2030;
+    --border:       rgba(255, 255, 255, 0.08);
+    --border-2:     rgba(255, 255, 255, 0.05);
+    --blue:         #4F86F7;
+    --green:        #5A9E72;
+    --amber:        #F59E0B;
+    --red-soft:     #C4868A;
+    --text:         #E8EAED;
+    --text-2:       rgba(232, 234, 237, 0.7);
+    --text-3:       rgba(232, 234, 237, 0.5);
+    --text-4:       rgba(232, 234, 237, 0.35);
+    --text-5:       rgba(232, 234, 237, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    max-width: 480px;
+    margin: 0 auto;
+    border-left: 1px solid rgba(255,255,255,0.04);
+    border-right: 1px solid rgba(255,255,255,0.04);
+  }
+
+  /* ═══════════ STATUS BAR (faux iOS) ═══════════ */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 22px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* ═══════════ NAV BAR ═══════════ */
+  .navbar {
+    padding: 14px 22px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-tabs {
+    display: flex;
+    gap: 6px;
+  }
+  .nav-tab {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 999px;
+    color: var(--text-3);
+    cursor: pointer;
+  }
+  .nav-tab.active {
+    background: rgba(79, 134, 247, 0.12);
+    color: var(--blue);
+  }
+  .nav-tab.wnba.active {
+    background: rgba(255, 138, 0, 0.12);
+    color: #FF8A00;
+  }
+
+  .nav-icons {
+    display: flex;
+    gap: 16px;
+    color: var(--text-3);
+  }
+
+  /* ═══════════ COUNTDOWN STRIP ═══════════ */
+  .countdown-strip {
+    background: rgba(245, 158, 11, 0.06);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.16);
+    padding: 14px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .pulse-dot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    background: var(--amber);
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
+    70%  { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  }
+  .countdown-content { flex: 1; min-width: 0; }
+  .countdown-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 3px;
+  }
+  .countdown-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.4;
+  }
+  .countdown-num {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--amber);
+    font-weight: 500;
+  }
+
+  /* ═══════════ CONTENT ═══════════ */
+  .content {
+    padding: 24px 22px 100px;
+  }
+
+  /* ═══════════ HERO SECTION ═══════════ */
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--amber);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 18px;
+  }
+  .hero-tag-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--amber);
+    border-radius: 50%;
+  }
+  .hero-headline {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+  }
+  .hero-headline .accent { color: var(--green); }
+  .hero-sub {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text-2);
+    margin-bottom: 28px;
+  }
+
+  /* ═══════════ FIRST READS CARD ═══════════ */
+  .first-reads-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .first-reads-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent);
+  }
+
+  .frc-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+  .frc-eyebrow-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--amber);
+    border-radius: 50%;
+  }
+
+  .frc-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 16px;
+  }
+
+  .frc-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-2);
+  }
+  .frc-row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 12px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .frc-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+  .frc-event {
+    color: var(--text-2);
+  }
+
+  /* ═══════════ SECTION HEADER ═══════════ */
+  .section-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.25;
+    margin-bottom: 20px;
+  }
+  .section-spacer { height: 36px; }
+
+  /* ═══════════ HOW THE MODEL THINKS (4 inputs) ═══════════ */
+  .inputs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .input-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .input-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    background: rgba(90, 158, 114, 0.12);
+    border-radius: 50%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--green);
+    margin-right: 12px;
+    vertical-align: middle;
+  }
+  .input-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    vertical-align: middle;
+    display: inline-block;
+  }
+  .input-desc {
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-2);
+  }
+  .input-weight {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .iw-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-4);
+  }
+  .iw-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .iw-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 2px;
+  }
+  .iw-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    min-width: 30px;
+    text-align: right;
+  }
+
+  /* ═══════════ METHODOLOGY CARD ═══════════ */
+  .methodology {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .meth-stat-row {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 0;
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border-2);
+  }
+  .meth-cell { text-align: center; padding: 0 10px; }
+  .meth-divider { background: var(--border); }
+  .meth-value {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .meth-value.green { color: var(--green); }
+  .meth-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .meth-body {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text-2);
+    margin-bottom: 14px;
+  }
+  .meth-body:last-child { margin-bottom: 0; }
+  .meth-body .highlight {
+    color: var(--green);
+    font-style: italic;
+  }
+  .meth-body strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* ═══════════ COMPARISON ═══════════ */
+  .compare-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .compare-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .compare-col.us {
+    border-color: rgba(90, 158, 114, 0.25);
+  }
+  .compare-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .compare-col.typical .compare-eyebrow { color: var(--text-4); }
+  .compare-col.us .compare-eyebrow { color: var(--green); }
+  .compare-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 14px;
+  }
+  .compare-list {
+    list-style: none;
+  }
+  .compare-list li {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-2);
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .compare-list li:last-child { margin-bottom: 0; }
+  .compare-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .compare-col.typical .compare-list li::before { background: var(--text-5); }
+  .compare-col.us .compare-list li::before { background: var(--green); }
+
+  /* ═══════════ SAMPLE FORMAT (locked Calibration Log preview) ═══════════ */
+  .sample-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .sample-watermark {
+    position: absolute;
+  }
+  .sample-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+  .sample-eyebrow-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--amber);
+    border-radius: 50%;
+  }
+  .sample-eyebrow .preview-tag {
+    margin-left: auto;
+    color: var(--text-4);
+    letter-spacing: 0.16em;
+  }
+  .sample-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 16px;
+  }
+  .sample-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-2);
+    margin-bottom: 12px;
+  }
+  .sample-row {
+    display: grid;
+    grid-template-columns: 90px 60px 1fr;
+    gap: 8px;
+    align-items: center;
+  }
+  .sr-team {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .sr-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-align: right;
+  }
+  .sr-pct.pos { color: var(--green); }
+  .sr-pct.neg { color: var(--red-soft); }
+  .sr-bar-track {
+    position: relative;
+    height: 8px;
+    background: var(--surface-2);
+    border-radius: 2px;
+  }
+  .sr-bar-track::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -2px;
+    bottom: -2px;
+    width: 1px;
+    background: var(--text-5);
+  }
+  .sr-bar-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 2px;
+  }
+  .sr-bar-fill.pos { left: 50%; background: var(--green); }
+  .sr-bar-fill.neg { right: 50%; background: var(--red-soft); }
+  .sr-status {
+    grid-column: 1 / -1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    padding-left: 0;
+  }
+  .sr-status.signal { color: var(--green); }
+  .sample-footer {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .sample-footer .live-marker { color: var(--amber); }
+
+  /* ═══════════ NOTIFY CTA ═══════════ */
+  .notify-cta {
+    margin-top: 12px;
+    background: linear-gradient(180deg, rgba(90, 158, 114, 0.06), rgba(90, 158, 114, 0.02));
+    border: 1px solid rgba(90, 158, 114, 0.2);
+    border-radius: 14px;
+    padding: 22px 20px;
+  }
+  .notify-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+  .notify-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+  .notify-sub {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+  .notify-btn {
+    display: block;
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--green);
+    border: none;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #062019;
+    text-align: center;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+  }
+  .notify-meta {
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-4);
+    text-align: center;
+  }
+
+  /* ═══════════ FOOTER PRINCIPLE ═══════════ */
+  .footer-principle {
+    margin-top: 28px;
+    padding: 16px 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--green);
+  }
+
+  /* ═══════════ BOTTOM NAV ═══════════ */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    background: rgba(10, 13, 20, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+    display: flex;
+    justify-content: space-around;
+    z-index: 100;
+  }
+  .bn-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+  }
+  .bn-item.active {
+    color: var(--green);
+  }
+  .bn-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 24px;
+    height: 2px;
+    background: var(--green);
+    border-radius: 0 0 2px 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Status bar -->
+<div class="status-bar">
+  <span>9:41</span>
+  <span style="display: inline-flex; gap: 6px; align-items: center;">
+    <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M1 6h2v4H1zm4-2h2v6H5zm4-2h2v8H9zm4-2h2v10h-2z"/></svg>
+    <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><path d="M7 0a7 7 0 0 1 7 7h-2a5 5 0 0 0-10 0H0a7 7 0 0 1 7-7z" opacity=".4"/><path d="M7 4a3 3 0 0 1 3 3H4a3 3 0 0 1 3-3z"/></svg>
+    <span>78%</span>
+  </span>
+</div>
+
+<!-- Nav bar with sport tabs -->
+<nav class="navbar">
+  <div class="nav-tabs">
+    <span class="nav-tab">NBA</span>
+    <span class="nav-tab">MLB</span>
+    <span class="nav-tab wnba active">WNBA</span>
+  </div>
+  <div class="nav-icons">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 6v6l4 2"/>
+    </svg>
+  </div>
+</nav>
+
+<!-- Countdown strip -->
+<div class="countdown-strip">
+  <div class="pulse-dot"></div>
+  <div class="countdown-content">
+    <div class="countdown-eyebrow">Signals go live</div>
+    <div class="countdown-text">
+      <span class="countdown-num">2 days</span> until tipoff · Friday May 8
+    </div>
+  </div>
+</div>
+
+<!-- Main content -->
+<div class="content">
+
+  <!-- HERO -->
+  <span class="hero-tag">
+    <span class="hero-tag-dot"></span>
+    Calibration Phase
+  </span>
+  <h1 class="hero-headline">
+    The model is learning the league. <span class="accent">In public.</span>
+  </h1>
+  <p class="hero-sub">
+    WNBA signals start firing Friday. Every read shipped, every closing line audited, every miss logged the same as every hit. Confidence levels calibrate as the season builds.
+  </p>
+
+  <!-- FIRST READS CARD -->
+  <div class="first-reads-card">
+    <div class="frc-eyebrow">
+      <span class="frc-eyebrow-dot"></span>
+      First reads · Friday May 8
+    </div>
+    <div class="frc-title">Aces and Mercury rematch the Finals on opening night.</div>
+    <div class="frc-timeline">
+      <div class="frc-row">
+        <span class="frc-time">5:30 PM ET</span>
+        <span class="frc-event">Pre-tipoff Calibration Log publishes</span>
+      </div>
+      <div class="frc-row">
+        <span class="frc-time">7:00 PM ET</span>
+        <span class="frc-event">Aces vs Mercury tipoff</span>
+      </div>
+      <div class="frc-row">
+        <span class="frc-time">As edges fire</span>
+        <span class="frc-event">Real-time signal alerts</span>
+      </div>
+      <div class="frc-row">
+        <span class="frc-time">11:30 PM ET</span>
+        <span class="frc-event">Closing line audit on every signal</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-spacer"></div>
+
+  <!-- HOW THE MODEL THINKS -->
+  <div class="section-eyebrow">How the model thinks about WNBA</div>
+  <h2 class="section-title">Four inputs the model weighs heaviest in early-season play.</h2>
+
+  <div class="inputs-list">
+
+    <div class="input-row">
+      <span class="input-num">1</span>
+      <span class="input-name">Pace differential</span>
+      <p class="input-desc">
+        WNBA pace shifts more between coaches than between rosters. New coaching hires and offseason philosophy changes get mispriced for the first 10-12 games. The model recalibrates pace expectations every game.
+      </p>
+      <div class="input-weight">
+        <span class="iw-label">Weight</span>
+        <div class="iw-bar"><div class="iw-fill" style="width: 88%"></div></div>
+        <span class="iw-pct">88%</span>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <span class="input-num">2</span>
+      <span class="input-name">Rest disadvantage</span>
+      <p class="input-desc">
+        Early-season back-to-backs and travel-heavy stretches are systematically underpriced. The model weights second-leg games 1.4x against rested opponents in the first month.
+      </p>
+      <div class="input-weight">
+        <span class="iw-label">Weight</span>
+        <div class="iw-bar"><div class="iw-fill" style="width: 76%"></div></div>
+        <span class="iw-pct">76%</span>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <span class="input-num">3</span>
+      <span class="input-name">Roster turnover impact</span>
+      <p class="input-desc">
+        Markets anchor to last season's playoff runs. The model fades that anchoring and reweights against current rotation projections, expansion draft losses, and offseason additions.
+      </p>
+      <div class="input-weight">
+        <span class="iw-label">Weight</span>
+        <div class="iw-bar"><div class="iw-fill" style="width: 64%"></div></div>
+        <span class="iw-pct">64%</span>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <span class="input-num">4</span>
+      <span class="input-name">Late line movement</span>
+      <p class="input-desc">
+        Sharp money on WNBA hits later in the day than other leagues. The model prioritizes closing lines over openers, especially on totals where market correction is sharpest in the final 90 minutes.
+      </p>
+      <div class="input-weight">
+        <span class="iw-label">Weight</span>
+        <div class="iw-bar"><div class="iw-fill" style="width: 58%"></div></div>
+        <span class="iw-pct">58%</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section-spacer"></div>
+
+  <!-- METHODOLOGY -->
+  <div class="section-eyebrow">Meet the model</div>
+  <h2 class="section-title">Confidence calibrates as the data builds.</h2>
+
+  <div class="methodology">
+    <div class="meth-stat-row">
+      <div class="meth-cell">
+        <div class="meth-value">2 yrs</div>
+        <div class="meth-label">Training data</div>
+      </div>
+      <div class="meth-divider"></div>
+      <div class="meth-cell">
+        <div class="meth-value green">Active</div>
+        <div class="meth-label">Calibration</div>
+      </div>
+      <div class="meth-divider"></div>
+      <div class="meth-cell">
+        <div class="meth-value">Public</div>
+        <div class="meth-label">Receipts</div>
+      </div>
+    </div>
+    <p class="meth-body">
+      The model has trained on 2024 and 2025 regular season and playoff data across the WNBA. <strong>That is enough to identify edges, not enough to issue signals at full confidence.</strong>
+    </p>
+    <p class="meth-body">
+      Every signal that fires this season carries a <span class="highlight">calibration tag</span>. That means the read is real, the math is real, the closing line audit is real. Confidence intervals tighten as the season produces more validated data.
+    </p>
+    <p class="meth-body">
+      Track records start from game one. No grace period, no quietly-removed early misses. If the model gets it wrong in May, that miss stays in the ledger for September.
+    </p>
+  </div>
+
+  <div class="section-spacer"></div>
+
+  <!-- COMPARISON -->
+  <div class="section-eyebrow">What this looks like in practice</div>
+  <h2 class="section-title">Calibration phase, in public.</h2>
+
+  <div class="compare-wrap">
+    <div class="compare-col typical">
+      <div class="compare-eyebrow">What other accounts do</div>
+      <div class="compare-title">Pick of the night, every night.</div>
+      <ul class="compare-list">
+        <li>Forced daily picks regardless of edge</li>
+        <li>Yesterday's losses quietly disappear</li>
+        <li>No closing line audit</li>
+        <li>Records reset when convenient</li>
+      </ul>
+    </div>
+    <div class="compare-col us">
+      <div class="compare-eyebrow">What we are doing</div>
+      <div class="compare-title">Every read shipped, every game.</div>
+      <ul class="compare-list">
+        <li>Live signals from day one of the season</li>
+        <li>Closing line audit on every read</li>
+        <li>Misses logged the same as hits</li>
+        <li>Confidence calibrates as data builds</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section-spacer"></div>
+
+  <!-- SAMPLE FORMAT -->
+  <div class="section-eyebrow">Sample format</div>
+  <h2 class="section-title">This is what posts every game day.</h2>
+
+  <div class="sample-card">
+    <div class="sample-eyebrow">
+      <span class="sample-eyebrow-dot"></span>
+      Calibration Log · Sample
+      <span class="preview-tag">PREVIEW</span>
+    </div>
+    <div class="sample-title">WNBA · Fri May 8 · Opening night · 2 games</div>
+
+    <div class="sample-rows">
+      <div class="sample-row">
+        <span class="sr-team">LVA @ PHX</span>
+        <span class="sr-pct pos">+6.2%</span>
+        <div class="sr-bar-track"><div class="sr-bar-fill pos" style="width: 26%"></div></div>
+        <span class="sr-status signal">Signal fires · Calibration tag · Ace +1.5 model line</span>
+      </div>
+      <div class="sample-row">
+        <span class="sr-team">SEA @ GSV</span>
+        <span class="sr-pct neg">-2.8%</span>
+        <div class="sr-bar-track"><div class="sr-bar-fill neg" style="width: 12%"></div></div>
+        <span class="sr-status">Below threshold · Tracked in receipts</span>
+      </div>
+    </div>
+
+    <div class="sample-footer">
+      <span class="live-marker">● Live signals</span> &nbsp;·&nbsp; Receipts tracked &nbsp;·&nbsp; Confidence calibrating
+    </div>
+  </div>
+
+  <!-- NOTIFY CTA -->
+  <div class="notify-cta">
+    <div class="notify-eyebrow">FRIDAY MAY 8 · OPENING NIGHT</div>
+    <div class="notify-title">Get notified when the first signal fires.</div>
+    <p class="notify-sub">
+      Push notifications for every WNBA signal during calibration phase. No spam, no marketing, no daily lottery picks. Just the reads when they fire.
+    </p>
+    <button class="notify-btn">Turn on signal alerts</button>
+    <div class="notify-meta">Already enabled for NBA and MLB</div>
+  </div>
+
+  <!-- FOOTER PRINCIPLE -->
+  <div class="footer-principle">
+    Calibration phase. Live signals. Receipts tracked publicly.
+  </div>
+
+</div>
+
+<!-- Bottom nav -->
+<div class="bottom-nav">
+  <div class="bn-item active" style="position: relative;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <span>Signals</span>
+  </div>
+  <div class="bn-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+    <span>Track</span>
+  </div>
+  <div class="bn-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    <span>Journal</span>
+  </div>
+  <div class="bn-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/></svg>
+    <span>Account</span>
+  </div>
+</div>
+
+</body>
+</html>

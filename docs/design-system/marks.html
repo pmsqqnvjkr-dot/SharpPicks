@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SharpPicks Brand Marks · v4.3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Serif:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ═══════════════════════════════════════════════════════════════
+     SHARPPICKS BRAND MARKS — LOCKED v4.3 (May 2026)
+
+     Color system (v4.2 warm dark):
+       Background     #0A0D14
+       Surface        #121725
+       Edge Green     #5A9E72  (sage, not mint)
+       Sharp White    #E8EAED
+       Sharp Navy     #111827  (app icon ONLY)
+
+     Geometry (v4.3 two-spec system):
+       Wordmark + standalone signal mark: M2 medium weight
+         (bars 0.12em wide x 1.30em tall, gap 0.20em)
+       App icon: light weight (bars 3.8% x 34% of icon dimensions)
+     ═══════════════════════════════════════════════════════════════ */
+
+  :root {
+    --sp-bg:        #0A0D14;
+    --sp-surface:   #121725;
+    --sp-surface-2: #1B2030;
+    --sp-border:    rgba(255, 255, 255, 0.08);
+    --sp-text:      #E8EAED;
+    --sp-text-2:    rgba(232, 234, 237, 0.7);
+    --sp-text-3:    rgba(232, 234, 237, 0.5);
+    --sp-text-4:    rgba(232, 234, 237, 0.35);
+    --sp-green:     #5A9E72;
+    --sp-amber:     #F59E0B;
+    --sp-blue:      #4F86F7;
+    --sp-navy:      #111827;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--sp-bg);
+    color: var(--sp-text);
+    font-family: 'Inter', system-ui, sans-serif;
+    padding: 40px 24px 80px;
+    min-height: 100vh;
+  }
+
+  .page-header {
+    max-width: 1200px;
+    margin: 0 auto 48px;
+    text-align: center;
+  }
+
+  .page-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--sp-green);
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    margin-bottom: 12px;
+  }
+
+  .page-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+
+  .page-subtitle {
+    color: var(--sp-text-2);
+    font-size: 15px;
+    line-height: 1.55;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .sheet {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .section {
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    padding: 22px 28px;
+    border-bottom: 1px solid var(--sp-border);
+  }
+
+  .section-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--sp-green);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-bottom: 6px;
+  }
+
+  .section-name {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+  }
+
+  .section-desc {
+    color: var(--sp-text-2);
+    font-size: 14px;
+    line-height: 1.55;
+    margin-top: 8px;
+    max-width: 800px;
+  }
+
+  .canvas {
+    background: var(--sp-bg);
+    padding: 80px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 200px;
+  }
+
+  .canvas-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--sp-border);
+  }
+
+  .canvas-cell {
+    background: var(--sp-bg);
+    padding: 64px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    min-height: 240px;
+  }
+
+  .canvas-light { background: var(--sp-text); }
+
+  .canvas-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--sp-text-4);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    margin-top: auto;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     WORDMARK · M2 MEDIUM · CANONICAL (inline-flex)
+     ═══════════════════════════════════════════════════════════════ */
+
+  .sp-wordmark {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    color: var(--sp-text);
+    font-size: 64px;
+  }
+
+  .sp-wordmark__text {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: currentColor;
+    line-height: 1;
+  }
+
+  .sp-wordmark__signal {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0 0.5em 0 0.22em;
+  }
+
+  .sp-wordmark__signal-bars {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.20em;
+  }
+
+  .sp-wordmark__signal-bars span {
+    display: block;
+    width: 0.12em;
+    height: 1.30em;
+    background: currentColor;
+    border-radius: 999px;
+  }
+
+  .sp-wordmark__signal-underline {
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    transform: translateX(-50%);
+    margin-top: 0.06em;
+    width: 0.5em;
+    height: 0.07em;
+    background: var(--sp-green);
+    border-radius: 999px;
+  }
+
+  .canvas-light .sp-wordmark { color: var(--sp-navy); }
+
+  .sp-wordmark.xl { font-size: 88px; }
+  .sp-wordmark.lg { font-size: 64px; }
+  .sp-wordmark.md { font-size: 40px; }
+  .sp-wordmark.sm { font-size: 24px; }
+  .sp-wordmark.xs { font-size: 16px; }
+
+  /* TAGLINE LOCKUP */
+  .sp-wordmark-lockup {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.4em;
+  }
+
+  .sp-tagline {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.35em;
+    color: var(--sp-green);
+    font-size: 0.35em;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     STANDALONE SIGNAL MARK · M2 MEDIUM
+     ═══════════════════════════════════════════════════════════════ */
+
+  .sp-signal-mark {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--sp-text);
+    line-height: 1;
+    font-size: 64px;
+  }
+
+  .sp-signal-mark__bars {
+    display: flex;
+    gap: 0.22em;
+    align-items: center;
+  }
+
+  .sp-signal-mark__bars span {
+    display: block;
+    width: 0.15em;
+    height: 1em;
+    background: currentColor;
+    border-radius: 999px;
+  }
+
+  .sp-signal-mark__underline {
+    width: 0.5em;
+    height: 0.07em;
+    background: var(--sp-green);
+    border-radius: 999px;
+    margin-top: 0.18em;
+  }
+
+  .canvas-light .sp-signal-mark { color: var(--sp-navy); }
+
+  .sp-signal-mark.xxl { font-size: 160px; }
+  .sp-signal-mark.xl  { font-size: 96px; }
+  .sp-signal-mark.lg  { font-size: 64px; }
+  .sp-signal-mark.md  { font-size: 40px; }
+  .sp-signal-mark.sm  { font-size: 24px; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     APP ICON · LIGHT WEIGHT (intentionally different from wordmark)
+     ═══════════════════════════════════════════════════════════════ */
+
+  .app-icon {
+    background: var(--sp-navy);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-icon-128 { width: 128px; height: 128px; border-radius: 28px; }
+  .app-icon-96  { width: 96px;  height: 96px;  border-radius: 22px; }
+  .app-icon-64  { width: 64px;  height: 64px;  border-radius: 16px; }
+  .app-icon-40  { width: 40px;  height: 40px;  border-radius: 10px; }
+
+  .app-icon-row {
+    display: flex;
+    gap: 24px;
+    align-items: flex-end;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .app-icon-128 .icon-bars { display: flex; gap: 5px; align-items: center; }
+  .app-icon-128 .icon-bars span { width: 4.9px; height: 44px; background: var(--sp-text); border-radius: 999px; }
+  .app-icon-128 .icon-accent { width: 19px; height: 1.5px; background: var(--sp-green); border-radius: 999px; margin-top: 7px; }
+
+  .app-icon-96 .icon-bars { display: flex; gap: 4px; align-items: center; }
+  .app-icon-96 .icon-bars span { width: 3.7px; height: 33px; background: var(--sp-text); border-radius: 999px; }
+  .app-icon-96 .icon-accent { width: 14px; height: 1.2px; background: var(--sp-green); border-radius: 999px; margin-top: 5px; }
+
+  .app-icon-64 .icon-bars { display: flex; gap: 3px; align-items: center; }
+  .app-icon-64 .icon-bars span { width: 2.5px; height: 22px; background: var(--sp-text); border-radius: 999px; }
+  .app-icon-64 .icon-accent { width: 9.5px; height: 1px; background: var(--sp-green); border-radius: 999px; margin-top: 4px; }
+
+  .app-icon-40 .icon-bars { display: flex; gap: 2px; align-items: center; }
+  .app-icon-40 .icon-bars span { width: 1.6px; height: 14px; background: var(--sp-text); border-radius: 999px; }
+
+  /* AVATAR */
+  .profile-circle {
+    width: 96px;
+    height: 96px;
+    background: var(--sp-navy);
+    border: 1px solid var(--sp-border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .profile-circle.light { background: var(--sp-text); }
+
+  /* NOTES */
+  .notes {
+    max-width: 1200px;
+    margin: 48px auto 0;
+    padding: 28px 32px;
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 16px;
+  }
+
+  .notes h3 {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 19px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    margin-top: 24px;
+  }
+
+  .notes h3:first-child { margin-top: 0; }
+
+  .notes p, .notes ul {
+    color: var(--sp-text-2);
+    font-size: 14px;
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+
+  .notes ul { margin-left: 22px; }
+  .notes li { margin-bottom: 5px; }
+  .notes strong { color: var(--sp-text); font-weight: 500; }
+
+  .notes code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--sp-bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--sp-green);
+  }
+
+  .notes-callout {
+    background: rgba(245, 158, 11, 0.06);
+    border-left: 2px solid var(--sp-amber);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 16px 0;
+  }
+
+  .notes-callout-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--sp-amber);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .notes-callout p {
+    margin-bottom: 0;
+    color: var(--sp-text);
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-meta">SHARPPICKS · BRAND MARKS · v4.3 · LOCKED MAY 2026</div>
+  <h1 class="page-title">Brand mark system</h1>
+  <p class="page-subtitle">
+    Per BRAND_SPEC.md v4.3. Wordmark and standalone signal mark use M2 medium weight (bars 0.12em x 1.30em, gap 0.20em). App icon uses light weight (3.8% x 34% of icon). Two-spec system by deliberate design.
+  </p>
+</div>
+
+<div class="sheet">
+
+  <!-- 01 · WORDMARK HERO -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-meta">01 · WORDMARK · HERO</div>
+      <div class="section-name">SHARP || PICKS</div>
+      <div class="section-desc">
+        The locked wordmark. Inter 500. 0.25em letter-spacing. M2 medium bars. Asymmetric margin around the signal cluster (0.5em right, 0.22em left) optically corrects for letter-spacing imbalance.
+      </div>
+    </div>
+    <div class="canvas" style="padding: 96px 40px;">
+      <div class="sp-wordmark xl">
+        <span class="sp-wordmark__text">SHARP</span>
+        <span class="sp-wordmark__signal">
+          <span class="sp-wordmark__signal-bars"><span></span><span></span></span>
+          <span class="sp-wordmark__signal-underline"></span>
+        </span>
+        <span class="sp-wordmark__text">PICKS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 · WORDMARK + TAGLINE -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-meta">02 · WORDMARK + TAGLINE LOCKUP</div>
+      <div class="section-name">With "One Pick Beats Five"</div>
+      <div class="section-desc">
+        Tagline in Inter 400, uppercase, 0.35em tracking, Edge Green. Sized at 35% of wordmark font-size. Used on hero sections and marketing surfaces.
+      </div>
+    </div>
+    <div class="canvas" style="padding: 96px 40px;">
+      <div class="sp-wordmark-lockup">
+        <div class="sp-wordmark xl">
+          <span class="sp-wordmark__text">SHARP</span>
+          <span class="sp-wordmark__signal">
+            <span class="sp-wordmark__signal-bars"><span></span><span></span></span>
+            <span class="sp-wordmark__signal-underline"></span>
+          </span>
+          <span class="sp-wordmark__text">PICKS</span>
+        </div>
+        <div class="sp-tagline">ONE PICK BEATS FIVE</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 · WORDMARK SCALE -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-meta">03 · WORDMARK · SCALE</div>
+      <div class="section-name">Every size, em-based</div>
+      <div class="section-desc">
+        All proportions scale together with font-size. Below 120px wordmark width, switch to standalone signal mark.
+      </div>
+    </div>
+    <div class="canvas" style="gap: 36px; padding: 56px 40px;">
+      <div class="sp-wordmark xl">
+        <span class="sp-wordmark__text">SHARP</span>
+        <span class="sp-wordmark__signal">
+          <span class="sp-wordmark__signal-bars"><span></span><span></span></span>
+          <span class="sp-wordmark__signal-underline"></span>
+        </span>
+        <span class="sp-wordmark__text">PICKS</span>
+      </div>
+      <div class="sp-wordmark lg">
+        <span class="sp-wordmark__text">SHARP</span>
+        <span class="sp-wordmark__signal">
+          <span class="sp-wordmark__signal-bars"><span></span><span></span></span>
+          <span class="sp-wordmark__signal-underline"></span>
+        </span>
+        <span class="sp-wordmark__text">PICKS</span>
+      </div>
+      <div class="sp-wordmark md">
+        <span class="sp-wordmark__text">SHARP</span>
+        <span class="sp-wordmark__signal">
+          <span class="sp-wordmark__signal-bars"><span></span><span></span></span>
+          <span class="sp-wordmark__signal-underline"></span>
+        </span>
+        <span class="sp-wordmark__text">PICKS</span>
+      </div>
+      <div class="sp-wordmark sm">
+        <span class="sp-wordmark__text">SHARP</span>
+        <span class="sp-wordmark__signal">
+          <span class="sp-wordmark__signal-bars"><span></span><span></span></span>
+          <span class="sp-wordmark__signal-underline"></span>
+        </span>
+        <span class="sp-wordmark__text">PICKS</span>
+      </div>
+      <div class="sp-wordmark xs">
+        <span class="sp-wordmark__text">SHARP</span>
+        <span class="sp-wordmark__signal">
+          <span class="sp-wordmark__signal-bars"><span></span><span></span></span>
+          <span class="sp-wordmark__signal-underline"></span>
+        </span>
+        <span class="sp-wordmark__text">PICKS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 · DARK + LIGHT -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-meta">04 · WORDMARK · BACKGROUNDS</div>
+      <div class="section-name">Dark and light contexts</div>
+      <div class="section-desc">
+        On dark, wordmark is Sharp White. On light, inverts to Sharp Navy. The Edge Green underline color stays the same on both.
+      </div>
+    </div>
+    <div class="canvas-row">
+      <div class="canvas-cell">
+        <div class="sp-wordmark lg">
+          <span class="sp-wordmark__text">SHARP</span>
+          <span class="sp-wordmark__signal">
+            <span class="sp-wordmark__signal-bars"><span></span><span></span></span>
+            <span class="sp-wordmark__signal-underline"></span>
+          </span>
+          <span class="sp-wordmark__text">PICKS</span>
+        </div>
+        <div class="canvas-label">DARK · #0A0D14</div>
+      </div>
+      <div class="canvas-cell canvas-light">
+        <div class="sp-wordmark lg">
+          <span class="sp-wordmark__text">SHARP</span>
+          <span class="sp-wordmark__signal">
+            <span class="sp-wordmark__signal-bars"><span></span><span></span></span>
+            <span class="sp-wordmark__signal-underline"></span>
+          </span>
+          <span class="sp-wordmark__text">PICKS</span>
+        </div>
+        <div class="canvas-label">LIGHT · #E8EAED</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 · STANDALONE SIGNAL -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-meta">05 · SIGNAL MARK · STANDALONE</div>
+      <div class="section-name">The || mark, alone</div>
+      <div class="section-desc">
+        For favicons, social avatars, watermarks, merchandise. The || is called THE SIGNAL. Its brand signature is the Edge Green underline, always present on every standalone use.
+      </div>
+    </div>
+    <div class="canvas" style="gap: 56px; padding: 80px 40px;">
+      <div class="sp-signal-mark xxl">
+        <div class="sp-signal-mark__bars"><span></span><span></span></div>
+        <div class="sp-signal-mark__underline"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 · SIGNAL MARK SCALE -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-meta">06 · SIGNAL MARK · SCALE</div>
+      <div class="section-name">Every size</div>
+      <div class="section-desc">
+        From 24px footer to 160px hero. All proportions em-based. The underline scales proportionally.
+      </div>
+    </div>
+    <div class="canvas" style="flex-direction: row; gap: 80px; align-items: flex-end; padding: 56px 40px;">
+      <div class="sp-signal-mark xxl"><div class="sp-signal-mark__bars"><span></span><span></span></div><div class="sp-signal-mark__underline"></div></div>
+      <div class="sp-signal-mark xl"><div class="sp-signal-mark__bars"><span></span><span></span></div><div class="sp-signal-mark__underline"></div></div>
+      <div class="sp-signal-mark lg"><div class="sp-signal-mark__bars"><span></span><span></span></div><div class="sp-signal-mark__underline"></div></div>
+      <div class="sp-signal-mark md"><div class="sp-signal-mark__bars"><span></span><span></span></div><div class="sp-signal-mark__underline"></div></div>
+      <div class="sp-signal-mark sm"><div class="sp-signal-mark__bars"><span></span><span></span></div><div class="sp-signal-mark__underline"></div></div>
+    </div>
+  </div>
+
+  <!-- 07 · APP ICON -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-meta">07 · APP ICON · LIGHT WEIGHT</div>
+      <div class="section-name">App icon — intentionally light</div>
+      <div class="section-desc">
+        Bars at 3.8% of icon width, 34% of icon height. Accent at 15% width, 1.2% height, Edge Green, centered below bars. At 40px and below, accent is omitted (too small to render cleanly). The app icon uses LIGHTER bars than the wordmark by deliberate design — at notification-badge sizes, anything heavier turns into chunky rectangles.
+      </div>
+    </div>
+    <div class="canvas">
+      <div class="app-icon-row">
+        <div style="text-align: center;">
+          <div class="app-icon app-icon-128">
+            <div class="icon-bars"><span></span><span></span></div>
+            <div class="icon-accent"></div>
+          </div>
+          <div class="canvas-label" style="margin-top: 12px;">128PX</div>
+        </div>
+        <div style="text-align: center;">
+          <div class="app-icon app-icon-96">
+            <div class="icon-bars"><span></span><span></span></div>
+            <div class="icon-accent"></div>
+          </div>
+          <div class="canvas-label" style="margin-top: 12px;">96PX</div>
+        </div>
+        <div style="text-align: center;">
+          <div class="app-icon app-icon-64">
+            <div class="icon-bars"><span></span><span></span></div>
+            <div class="icon-accent"></div>
+          </div>
+          <div class="canvas-label" style="margin-top: 12px;">64PX</div>
+        </div>
+        <div style="text-align: center;">
+          <div class="app-icon app-icon-40">
+            <div class="icon-bars"><span></span><span></span></div>
+          </div>
+          <div class="canvas-label" style="margin-top: 12px;">40PX · NO ACCENT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 08 · AVATAR -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-meta">08 · AVATAR · CIRCLE</div>
+      <div class="section-name">Profile and avatar use</div>
+      <div class="section-desc">
+        For X profile, Instagram, anywhere a platform crops to circle. Standalone signal mark only.
+      </div>
+    </div>
+    <div class="canvas">
+      <div style="display: flex; gap: 32px; align-items: center;">
+        <div class="profile-circle">
+          <div class="sp-signal-mark md">
+            <div class="sp-signal-mark__bars"><span></span><span></span></div>
+            <div class="sp-signal-mark__underline"></div>
+          </div>
+        </div>
+        <div class="profile-circle light">
+          <div class="sp-signal-mark md" style="color: var(--sp-navy);">
+            <div class="sp-signal-mark__bars"><span></span><span></span></div>
+            <div class="sp-signal-mark__underline"></div>
+          </div>
+        </div>
+      </div>
+      <div class="canvas-label" style="margin-top: 32px;">DARK · LIGHT</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- NOTES -->
+<div class="notes">
+
+  <h3>The two-spec system (v4.3 lock)</h3>
+
+  <div class="notes-callout">
+    <div class="notes-callout-eyebrow">DELIBERATE DECISION</div>
+    <p><strong>Wordmark and standalone signal mark use M2 medium bar weight. App icon uses light bar weight.</strong> These are different rendering contexts and need different geometry. Do not "harmonize" them.</p>
+  </div>
+
+  <p><strong>Why the two-spec system:</strong></p>
+  <ul>
+    <li><strong>App icon:</strong> renders at notification-badge sizes (29x29px) and tab icon sizes (60x60px) where bar widths are measured in fractional pixels. Light weight (3.8% x 34%) survives. Medium weight at those sizes turns into chunky rectangles that lose typographic identity.</li>
+    <li><strong>Wordmark and standalone signal mark:</strong> render in typographic contexts where bar weight should harmonize with surrounding letter weight. Medium weight (0.12em x 1.30em) has presence without dominating. Light weight at small wordmark sizes (16-18px UI headers) collapses visually.</li>
+  </ul>
+
+  <h3>Wordmark exact values (v4.3)</h3>
+  <ul>
+    <li>Font: Inter weight <code>500</code> (Medium) — never 300, never 600</li>
+    <li>Letter-spacing: <code>0.25em</code></li>
+    <li>Case: ALL UPPERCASE</li>
+    <li>Bar width: <code>0.12em</code> (M2 medium)</li>
+    <li>Bar height: <code>1.30em</code> (15% overshoot above and below cap-height)</li>
+    <li>Bar gap: <code>0.20em</code></li>
+    <li>Margin around signal cluster: <code>0 0.5em 0 0.22em</code> (asymmetric, optical correction)</li>
+    <li>Bar border-radius: <code>999px</code> (full pill)</li>
+    <li>Color on dark: Sharp White <code>#E8EAED</code></li>
+    <li>Color on light: Sharp Navy <code>#111827</code></li>
+    <li>Min render width: 120px (below this, switch to standalone signal mark)</li>
+  </ul>
+
+  <h3>Standalone signal mark exact values (v4.3)</h3>
+  <ul>
+    <li>Bar width: <code>0.15em</code> (slightly heavier than wordmark inline bars to compensate for standalone context)</li>
+    <li>Bar height: <code>1em</code></li>
+    <li>Bar gap: <code>0.22em</code></li>
+    <li>Underline width: <code>0.5em</code> · height: <code>0.07em</code> · margin-top: <code>0.18em</code></li>
+    <li>Underline color: Edge Green <code>#5A9E72</code> (always present, non-negotiable)</li>
+  </ul>
+
+  <h3>App icon exact values (v4.3, light weight intentionally)</h3>
+  <ul>
+    <li>Background: Sharp Navy <code>#111827</code> (the only place this color appears in the system)</li>
+    <li>Bars: Sharp White, <code>3.8%</code> width × <code>34%</code> height of icon</li>
+    <li>Bar gap: ~3.9% of icon width</li>
+    <li>Green accent: <code>15%</code> width × <code>1.2%</code> height, Edge Green, centered below bars</li>
+    <li>Below 40x40px: omit green accent</li>
+  </ul>
+
+  <h3>Tagline lockup exact values</h3>
+  <ul>
+    <li>Text: "ONE PICK BEATS FIVE" (uppercase) or rotates through other Sharp Principles</li>
+    <li>Font: Inter weight 400</li>
+    <li>Letter-spacing: <code>0.35em</code></li>
+    <li>Color: Edge Green <code>#5A9E72</code></li>
+    <li>Size: 35% of wordmark font-size</li>
+    <li>Position: centered below wordmark, gap of <code>1.4em</code> (relative to wordmark size)</li>
+  </ul>
+
+  <h3>Construction approaches</h3>
+
+  <p><strong>Canonical (modern browsers):</strong> uses <code>display: inline-flex</code> with <code>align-items: center</code>. Cleanest code. Implementation shown in the CSS at the top of this file.</p>
+
+  <p><strong>Fallback (render-anywhere):</strong> uses absolute positioning to force cap-line-to-baseline placement. Required when targeting PDF generators (wkhtmltoimage, wkhtmltopdf), server-side image renderers, or older WebKit. Full implementation in BRAND_SPEC.md v4.3.</p>
+
+  <h3>File location and authority</h3>
+  <p>This file is the canonical visual reference for SharpPicks brand marks. Save as <code>docs/brand/marks.html</code> in both repos (SharpPicks and evan_cole_hq). When this file conflicts with older mockups, this file wins. When this file conflicts with BRAND_SPEC.md, BRAND_SPEC wins.</p>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0A0D14" />
+<title>SharpPicks · Rate Prompt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #0A0D14;
+    color: #fff;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  .stage {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* Ambient grid */
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(#4F86F7 1px, transparent 1px),
+      linear-gradient(90deg, #4F86F7 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.04;
+    pointer-events: none;
+  }
+
+  /* Faux app behind sheet */
+  .app-bg {
+    position: absolute;
+    inset: 0;
+    padding: 24px 20px;
+    opacity: 0.55;
+  }
+  .app-header {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .app-title {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 22px;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 16px;
+  }
+  .app-card {
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(18,23,37,0.5);
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+  .app-card-row { display: flex; justify-content: space-between; align-items: center; }
+  .app-card-team {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+  }
+  .app-card-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: #5A9E72;
+  }
+
+  /* Backdrop */
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 10;
+  }
+
+  /* Sheet */
+  .sheet-wrap {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    z-index: 20;
+    display: flex;
+    justify-content: center;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  @media (min-width: 640px) {
+    .sheet-wrap {
+      top: 0;
+      align-items: center;
+      padding: 16px;
+    }
+  }
+  .sheet {
+    width: 100%;
+    max-width: 480px;
+    background: #121725;
+    border-top: 1px solid rgba(79,134,247,0.2);
+    box-shadow:
+      0 -20px 60px -20px rgba(79,134,247,0.18),
+      0 0 0 1px rgba(79,134,247,0.08);
+    animation: slideUp 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+  @media (min-width: 640px) {
+    .sheet {
+      border: 1px solid rgba(79,134,247,0.2);
+      max-width: 440px;
+    }
+  }
+
+  .accent-bar {
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(90,158,114,0.6), transparent);
+  }
+  .divider-soft {
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent);
+  }
+
+  .sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px 0;
+  }
+  .status-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #5A9E72;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    background: #5A9E72;
+    animation: pulse 2s infinite;
+  }
+  .close-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.3);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  .close-btn:hover { color: rgba(255,255,255,0.6); }
+
+  .sheet-body { padding: 22px 22px 24px; }
+
+  /* Footer signal id */
+  .sheet-footer {
+    padding: 12px 22px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+  }
+
+  /* Step views */
+  .view { display: none; }
+  .view.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+  /* Celebrate */
+  .celebrate { text-align: center; padding: 8px 0 4px; }
+  .celebrate-label {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 16px;
+  }
+  .celebrate-units {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 44px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: #5A9E72;
+    margin-bottom: 4px;
+    animation: countUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .celebrate-headline {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 20px;
+    line-height: 1.3;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 24px;
+  }
+  .stats-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+  }
+  .stat { text-align: center; }
+  .stat-label {
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+  }
+  .stat-value.green { color: #5A9E72; }
+  .stat-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
+
+  /* Ask */
+  .ask-headline {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 26px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: #fff;
+  }
+  .ask-body {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.6);
+    margin: 12px 0 26px;
+  }
+  .btn-stack { display: flex; flex-direction: column; gap: 10px; }
+  .btn {
+    width: 100%;
+    padding: 14px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary {
+    background: #4F86F7;
+    color: #fff;
+  }
+  .btn-primary:hover, .btn-primary:active { background: #3d72e0; }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.12), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.7s;
+  }
+  .btn-primary:hover::before { transform: translateX(100%); }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.8);
+    font-weight: 400;
+  }
+  .btn-secondary:hover, .btn-secondary:active {
+    border-color: rgba(255,255,255,0.3);
+    color: #fff;
+  }
+
+  .tagline {
+    margin-top: 20px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+  }
+
+  /* Feedback */
+  .feedback-headline {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 22px;
+    line-height: 1.2;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .feedback-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 16px;
+  }
+  .feedback-textarea {
+    width: 100%;
+    background: #0A0D14;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    padding: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .feedback-textarea::placeholder { color: rgba(255,255,255,0.25); }
+  .feedback-textarea:focus { border-color: rgba(79,134,247,0.5); }
+  .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-row .btn { flex: 1; padding: 12px; font-size: 14px; }
+  .btn:disabled {
+    background: rgba(79,134,247,0.3);
+    cursor: not-allowed;
+  }
+  .btn:disabled:hover::before { transform: translateX(-100%); }
+
+  /* Done */
+  .done { text-align: center; padding: 16px 0 8px; }
+  .check-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px; height: 40px;
+    border: 1px solid rgba(90,158,114,0.4);
+    margin-bottom: 16px;
+  }
+  .check-mark { color: #5A9E72; font-size: 18px; }
+  .done-headline {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 22px;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .done-body {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.55);
+    max-width: 280px;
+    margin: 0 auto 24px;
+  }
+  .done-close {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .done-close:hover { color: rgba(255,255,255,0.7); }
+
+  /* Replay button */
+  .replay-shell {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .replay-btn {
+    padding: 14px 24px;
+    border: 1px solid rgba(79,134,247,0.4);
+    background: transparent;
+    color: #4F86F7;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .replay-btn:hover, .replay-btn:active { background: rgba(79,134,247,0.1); }
+
+  /* Animations */
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Replay shell (when sheet is dismissed) -->
+<div id="replayShell" class="replay-shell" style="display:none">
+  <button class="replay-btn" onclick="openSheet()">Replay prompt</button>
+</div>
+
+<!-- Main stage -->
+<div id="stage" class="stage">
+  <div class="grid-bg"></div>
+
+  <!-- Faux app context behind sheet -->
+  <div class="app-bg">
+    <div class="app-header">SharpPicks · Today's slate</div>
+    <div class="app-title">NBA · 8 games</div>
+    <div class="app-card">
+      <div class="app-card-row">
+        <span class="app-card-team">LAL @ DEN</span>
+        <span class="app-card-num">+1.92u</span>
+      </div>
+    </div>
+    <div class="app-card">
+      <div class="app-card-row">
+        <span class="app-card-team">BOS @ MIA</span>
+        <span class="app-card-num" style="color: rgba(255,255,255,0.4)">pass</span>
+      </div>
+    </div>
+    <div class="app-card">
+      <div class="app-card-row">
+        <span class="app-card-team">PHX @ GSW</span>
+        <span class="app-card-num" style="color: rgba(255,255,255,0.4)">pass</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="backdrop" onclick="dismiss()"></div>
+
+  <div class="sheet-wrap">
+    <div class="sheet">
+      <div class="accent-bar"></div>
+
+      <div class="sheet-header">
+        <div class="status-label">
+          <span class="status-dot"></span>
+          Verified result
+        </div>
+        <button class="close-btn" onclick="dismiss()" aria-label="Close">×</button>
+      </div>
+
+      <div class="sheet-body">
+
+        <!-- Step 1: Celebrate -->
+        <div id="view-celebrate" class="view active">
+          <div class="celebrate">
+            <div class="celebrate-label">Result logged</div>
+            <div class="celebrate-units">+1.92u</div>
+            <div class="celebrate-headline">The signal cleared.</div>
+            <div class="stats-row">
+              <div class="stat">
+                <div class="stat-label">Last 7d</div>
+                <div class="stat-value">6-2</div>
+              </div>
+              <div class="stat-divider"></div>
+              <div class="stat">
+                <div class="stat-label">ROI</div>
+                <div class="stat-value green">+14.3%</div>
+              </div>
+              <div class="stat-divider"></div>
+              <div class="stat">
+                <div class="stat-label">Streak</div>
+                <div class="stat-value">3W</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Ask -->
+        <div id="view-ask" class="view">
+          <h2 class="ask-headline">Is the edge holding up?</h2>
+          <p class="ask-body">
+            Honest read only. If yes, a rating helps other disciplined bettors find the platform. If not, tell us what's missing.
+          </p>
+          <div class="btn-stack">
+            <button class="btn btn-primary" onclick="goEnjoying()">The edge is real</button>
+            <button class="btn btn-secondary" onclick="goFeedback()">Could be better</button>
+          </div>
+          <div class="tagline">One pick beats five</div>
+        </div>
+
+        <!-- Step 3: Feedback -->
+        <div id="view-feedback" class="view">
+          <h2 class="feedback-headline">Tell us what's off.</h2>
+          <p class="feedback-sub">Goes straight to the founder. Not the app store.</p>
+          <textarea
+            id="feedbackInput"
+            class="feedback-textarea"
+            rows="4"
+            placeholder="What would make SharpPicks more useful?"
+            oninput="updateSubmitState()"></textarea>
+          <div class="btn-row">
+            <button class="btn btn-secondary" onclick="dismiss()">Not now</button>
+            <button id="submitBtn" class="btn btn-primary" onclick="submitFeedback()" disabled>Send to founder</button>
+          </div>
+        </div>
+
+        <!-- Step 4: Done -->
+        <div id="view-done" class="view">
+          <div class="done">
+            <div class="check-box"><span class="check-mark">✓</span></div>
+            <h2 class="done-headline">Logged.</h2>
+            <p class="done-body">Discipline is the edge. Back to the slate.</p>
+            <button class="done-close" onclick="dismiss()">Close</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="divider-soft"></div>
+      <div class="sheet-footer">SharpPicks · Signal #4471</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Config
+  const IOS_STORE_URL = 'https://apps.apple.com/app/sharppicks/id000000000';
+  const ANDROID_PACKAGE = 'com.sharppicksllc.signals';
+  const ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=' + ANDROID_PACKAGE;
+  const FEEDBACK_ENDPOINT = 'https://app.sharppicks.ai/api/feedback';
+
+  let celebrateTimer;
+
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+  }
+
+  function startCelebrate() {
+    showView('celebrate');
+    clearTimeout(celebrateTimer);
+    celebrateTimer = setTimeout(() => showView('ask'), 2200);
+  }
+
+  function detectStoreUrl() {
+    // Capacitor: prefer Capacitor.getPlatform() === 'ios' | 'android'
+    // Web fallback: UA sniff
+    if (window.Capacitor && typeof window.Capacitor.getPlatform === 'function') {
+      const p = window.Capacitor.getPlatform();
+      if (p === 'ios') return IOS_STORE_URL;
+      if (p === 'android') return ANDROID_STORE_URL;
+    }
+    const ua = navigator.userAgent || '';
+    if (/iPhone|iPad|iPod/i.test(ua)) return IOS_STORE_URL;
+    if (/Android/i.test(ua)) return ANDROID_STORE_URL;
+    return IOS_STORE_URL;
+  }
+
+  async function goEnjoying() {
+    // Production: try native in-app review first, fall back to store URL
+    // import { AppReview } from '@capacitor-community/app-review'
+    // try { await AppReview.requestReview(); showView('done'); return; } catch (_) {}
+    //
+    // For Capacitor Browser:
+    // import { Browser } from '@capacitor/browser'
+    // await Browser.open({ url: detectStoreUrl() })
+
+    try {
+      await fetch(FEEDBACK_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: 'rate_prompt', outcome: 'positive' })
+      }).catch(() => {});
+    } catch (_) {}
+
+    window.open(detectStoreUrl(), '_blank', 'noopener');
+    showView('done');
+  }
+
+  function goFeedback() { showView('feedback'); }
+
+  function updateSubmitState() {
+    const v = document.getElementById('feedbackInput').value.trim();
+    document.getElementById('submitBtn').disabled = v.length < 4;
+  }
+
+  async function submitFeedback() {
+    const btn = document.getElementById('submitBtn');
+    const body = document.getElementById('feedbackInput').value.trim();
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    try {
+      const res = await fetch(FEEDBACK_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: 'rate_prompt',
+          outcome: 'negative',
+          body: body,
+          user_agent: navigator.userAgent,
+          submitted_at: new Date().toISOString()
+        })
+      });
+      if (!res.ok) throw new Error('Request failed');
+      showView('done');
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Try again';
+      console.error('Feedback submission failed', err);
+    }
+  }
+
+  function dismiss() {
+    clearTimeout(celebrateTimer);
+    document.getElementById('stage').style.display = 'none';
+    document.getElementById('replayShell').style.display = 'flex';
+  }
+
+  function openSheet() {
+    document.getElementById('replayShell').style.display = 'none';
+    document.getElementById('stage').style.display = 'block';
+    document.getElementById('feedbackInput').value = '';
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').textContent = 'Send to founder';
+    startCelebrate();
+  }
+
+  // Boot
+  startCelebrate();
+</script>
+</body>
+</html>

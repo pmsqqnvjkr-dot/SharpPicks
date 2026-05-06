@@ -488,7 +488,18 @@ def today():
     games_preview = []
     cfg_wait = get_sport_config(sport)
     model_run_hour = cfg_wait.get('model_run_hour', 10)
-    model_runs_at = f'{model_run_hour}:00 AM ET' if model_run_hour <= 12 else f'{model_run_hour - 12}:00 PM ET'
+    # Render the model_run_hour as a 12-hour wall-clock string. The previous
+    # one-liner used 'hour <= 12' for the AM branch, which mis-labelled
+    # noon (12) as "12:00 AM ET". Now correctly: 0 -> 12 AM, 1-11 -> AM,
+    # 12 -> 12 PM, 13-23 -> PM.
+    if model_run_hour == 0:
+        model_runs_at = '12:00 AM ET'
+    elif model_run_hour < 12:
+        model_runs_at = f'{model_run_hour}:00 AM ET'
+    elif model_run_hour == 12:
+        model_runs_at = '12:00 PM ET'
+    else:
+        model_runs_at = f'{model_run_hour - 12}:00 PM ET'
 
     def _format_utc_to_et(utc_str):
         """Convert UTC ISO timestamp to ET display string like '7:30 PM ET'."""

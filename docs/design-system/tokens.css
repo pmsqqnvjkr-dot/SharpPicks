@@ -1,0 +1,46 @@
+/* ═══════════════════════════════════════════════════════════════
+   SharpPicks Brand Tokens
+   Source of truth: docs/brand/BRAND_SPEC.md v4 (May 2026)
+
+   Drop this in:
+     - ~/Projects/SharpPicks/static/css/tokens.css
+     - ~/Projects/evan_cole_hq/styles/tokens.css
+
+   Or import via @import url('./tokens.css') from your global stylesheet.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Surfaces */
+  --sp-bg:               #0A0D14;
+  --sp-surface:          #121725;
+  --sp-surface-2:        #1B2030;
+  --sp-border:           rgba(255, 255, 255, 0.08);
+  --sp-border-strong:    rgba(255, 255, 255, 0.15);
+
+  /* Brand */
+  --sp-signal-blue:      #4F86F7;
+  --sp-signal-blue-hover:#3D72E0;
+  --sp-edge-green:       #5A9E72;
+  --sp-edge-green-muted: rgba(90, 158, 114, 0.4);
+
+  /* Text */
+  --sp-text-primary:     #E8EAED;
+  --sp-text-secondary:   rgba(232, 234, 237, 0.7);
+  --sp-text-tertiary:    rgba(232, 234, 237, 0.5);
+  --sp-text-quaternary:  rgba(232, 234, 237, 0.35);
+  --sp-text-muted:       rgba(232, 234, 237, 0.25);
+
+  /* Semantic */
+  --sp-positive:         #5A9E72;
+  --sp-negative:         #F87171;
+  --sp-warning:          #FBBF24;
+
+  /* Special — marks doc only */
+  --sp-navy:             #111827;
+
+  /* Typography */
+  --sp-font-serif:       'IBM Plex Serif', Georgia, 'Times New Roman', serif;
+  --sp-font-mono:        'JetBrains Mono', 'Courier New', monospace;
+  --sp-font-body:        'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --sp-font-label:       'Courier New', Courier, monospace;
+}

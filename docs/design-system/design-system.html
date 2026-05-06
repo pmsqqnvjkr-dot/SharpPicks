@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0A0D14" />
+<title>SharpPicks Design System v1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:           #0A0D14;
+    --surface:      #121725;
+    --surface-2:    #1B2030;
+    --border:       rgba(255, 255, 255, 0.08);
+    --border-2:     rgba(255, 255, 255, 0.05);
+    --blue:         #4F86F7;
+    --green:        #5A9E72;
+    --green-soft:   rgba(90, 158, 114, 0.12);
+    --amber:        #F59E0B;
+    --amber-soft:   rgba(245, 158, 11, 0.08);
+    --red-soft:     #C4868A;
+    --navy:         #111827;
+    --text:         #E8EAED;
+    --text-2:       rgba(232, 234, 237, 0.7);
+    --text-3:       rgba(232, 234, 237, 0.5);
+    --text-4:       rgba(232, 234, 237, 0.35);
+    --text-5:       rgba(232, 234, 237, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html { scroll-behavior: smooth; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+  }
+
+  /* ═══════════ SIDEBAR NAV ═══════════ */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 32px 24px;
+  }
+
+  .sidebar-header {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-version {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+
+  .sidebar-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .sidebar-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: var(--text-4);
+  }
+
+  .nav-section {
+    margin-bottom: 28px;
+  }
+
+  .nav-section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 10px;
+  }
+
+  .nav-list {
+    list-style: none;
+  }
+
+  .nav-list li {
+    margin-bottom: 2px;
+  }
+
+  .nav-list a {
+    display: block;
+    padding: 6px 10px;
+    color: var(--text-2);
+    text-decoration: none;
+    font-size: 13px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+
+  .nav-list a:hover {
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+  }
+
+  /* ═══════════ MAIN CONTENT ═══════════ */
+  .main {
+    padding: 56px 64px 120px;
+    max-width: 1080px;
+  }
+
+  .main h1.section-h {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  .main h2.subsection-h {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 64px 0 16px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  .main h2.subsection-h:first-child { border-top: none; padding-top: 0; }
+
+  .main h3.component-h {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    margin: 40px 0 12px;
+  }
+
+  .main p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-2);
+    margin-bottom: 16px;
+    max-width: 720px;
+  }
+
+  .main p code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    background: var(--surface);
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--green);
+  }
+
+  .lead {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 24px;
+    max-width: 720px;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 12px;
+  }
+
+  /* ═══════════ DEMO BLOCKS ═══════════ */
+  .demo {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px;
+    margin: 16px 0;
+  }
+
+  .demo-grid {
+    display: grid;
+    gap: 16px;
+  }
+
+  .demo-grid.two { grid-template-columns: 1fr 1fr; }
+  .demo-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .demo-grid.four { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+  .demo-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-4);
+    margin-top: 12px;
+  }
+
+  /* ═══════════ COLOR SWATCHES ═══════════ */
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .swatch {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .swatch-color {
+    height: 80px;
+  }
+
+  .swatch-info {
+    padding: 12px 14px;
+    background: var(--surface);
+  }
+
+  .swatch-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .swatch-token {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    margin-bottom: 4px;
+  }
+
+  .swatch-hex {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+  }
+
+  /* ═══════════ TYPE SAMPLES ═══════════ */
+  .type-row {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 32px;
+    align-items: baseline;
+  }
+
+  .type-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+
+  .type-meta strong {
+    color: var(--text);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .type-sample.hero { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 48px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; color: var(--text); }
+  .type-sample.section { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 22px; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; color: var(--text); }
+  .type-sample.card { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--text); }
+  .type-sample.body { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 400; line-height: 1.5; color: var(--text); }
+  .type-sample.subhead { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 400; line-height: 1.45; color: var(--text-2); }
+  .type-sample.button { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.01em; color: var(--text); }
+  .type-sample.number { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 500; line-height: 1; color: var(--green); }
+  .type-sample.eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.24em; text-transform: uppercase; color: var(--green); }
+  .type-sample.footer { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-4); }
+
+  /* ═══════════ WORDMARK DEMO ═══════════ */
+  .wordmark-demo {
+    text-align: center;
+    padding: 60px 40px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin: 16px 0;
+  }
+
+  .wordmark {
+    display: inline-block;
+    font-weight: 500;
+    letter-spacing: 0.25em;
+    color: var(--text);
+    line-height: 1;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .wordmark > span { vertical-align: baseline; }
+  .wordmark__signal {
+    position: relative;
+    display: inline-block;
+    margin: 0 0.5em 0 0.22em;
+    vertical-align: baseline;
+    width: 0.44em;
+    height: 0;
+  }
+  .wordmark__bars {
+    position: absolute;
+    bottom: 0.02em;
+    left: 0;
+    right: 0;
+    height: 0.85em;
+  }
+  .wordmark__bars .bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0.12em;
+    background: currentColor;
+    border-radius: 999px;
+  }
+  .wordmark__bars .bar:nth-child(1) { left: 0; }
+  .wordmark__bars .bar:nth-child(2) { right: 0; }
+  .wordmark__underline {
+    position: absolute;
+    left: 50%;
+    bottom: -0.18em;
+    transform: translateX(-50%);
+    width: 0.5em;
+    height: 0.07em;
+    background: var(--green);
+    border-radius: 999px;
+  }
+
+  /* ═══════════ APP ICON DEMO ═══════════ */
+  .app-icon {
+    width: 140px;
+    height: 140px;
+    background: var(--navy);
+    border-radius: 22.37%;
+    position: relative;
+    display: inline-block;
+    margin-right: 16px;
+  }
+  .app-icon__bars {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    gap: 6%;
+  }
+  .app-icon__bars span {
+    display: block;
+    width: 5.32px;          /* 3.8% × 140 */
+    height: 47.6px;          /* 34% × 140 */
+    background: var(--text);
+    border-radius: 999px;
+  }
+  .app-icon__accent {
+    position: absolute;
+    bottom: 32%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 21px;             /* 15% × 140 */
+    height: 1.68px;          /* 1.2% × 140 */
+    background: var(--green);
+    border-radius: 999px;
+  }
+
+  /* ═══════════ CARD DEMOS ═══════════ */
+  .card-standard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+  }
+
+  .card-accented {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-accented::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--green) 20%, var(--green) 80%, transparent);
+  }
+
+  .card-observation {
+    background: var(--green-soft);
+    border-left: 2px solid var(--green);
+    border-radius: 0 10px 10px 0;
+    padding: 18px 20px;
+  }
+
+  .card-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .card-body {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+
+  .obs-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+
+  .obs-body {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+
+  /* ═══════════ BUTTON DEMOS ═══════════ */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 22px;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: var(--green);
+    color: #062019;
+  }
+
+  .btn-tracking {
+    background: rgba(90, 158, 114, 0.1);
+    border: 1px solid rgba(90, 158, 114, 0.4);
+    color: var(--green);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-2);
+  }
+
+  /* ═══════════ TAG DEMOS ═══════════ */
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .tag-outlined {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 11px;
+    border: 1px solid var(--green);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--green);
+  }
+
+  .tag-outlined.amber { border-color: var(--amber); color: var(--amber); }
+  .tag-outlined.blue { border-color: var(--blue); color: var(--blue); }
+  .tag-outlined.muted { border-color: var(--border); color: var(--text-2); background: var(--surface-2); }
+
+  .pill-result {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    padding: 5px 10px;
+    border-radius: 4px;
+  }
+  .pill-win { background: rgba(90, 158, 114, 0.1); border: 1px solid rgba(90, 158, 114, 0.3); color: var(--green); }
+  .pill-loss { background: rgba(196, 134, 138, 0.1); border: 1px solid rgba(196, 134, 138, 0.3); color: var(--red-soft); }
+  .pill-push { background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border); color: var(--text-2); }
+  .pill-withdrawn { background: rgba(79, 134, 247, 0.08); border: 1px solid rgba(79, 134, 247, 0.25); color: var(--blue); }
+  .pill-live { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--amber); }
+
+  /* ═══════════ STAT GRID ═══════════ */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr 1px 1fr;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .stat-cell { padding: 18px 12px 16px; text-align: center; }
+  .stat-divider { background: var(--border); }
+  .stat-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--green);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .stat-suffix {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+  }
+
+  /* ═══════════ BAR DEMOS ═══════════ */
+  .bar-demo-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 50px;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .bar-demo-label {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .bar-track {
+    position: relative;
+    height: 8px;
+    background: var(--surface-2);
+    border-radius: 2px;
+  }
+  .bar-track::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -2px;
+    bottom: -2px;
+    width: 1px;
+    background: var(--text-5);
+  }
+  .bar-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 2px;
+  }
+  .bar-fill.pos { left: 50%; background: var(--green); }
+  .bar-fill.neg { right: 50%; background: var(--red-soft); }
+  .bar-fill.zero {
+    left: calc(50% - 1px);
+    width: 2px;
+    background: var(--text-3);
+    border-radius: 0;
+  }
+  .bar-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-align: right;
+  }
+  .bar-value.pos { color: var(--green); }
+  .bar-value.neg { color: var(--red-soft); }
+  .bar-value.zero { color: var(--text-4); }
+
+  .scale-bar-wrap {
+    margin: 16px 0;
+  }
+  .scale-bar {
+    position: relative;
+    height: 6px;
+    background: linear-gradient(90deg,
+      rgba(196, 134, 138, 0.3) 0%,
+      rgba(245, 158, 11, 0.3) 50%,
+      rgba(90, 158, 114, 0.3) 100%);
+    border-radius: 3px;
+  }
+  .scale-marker {
+    position: absolute;
+    top: -3px;
+    width: 4px;
+    height: 12px;
+    background: var(--green);
+    border-radius: 2px;
+    transform: translateX(-50%);
+  }
+
+  /* ═══════════ BANNER DEMO ═══════════ */
+  .banner-calibration {
+    background: var(--amber-soft);
+    border: 1px solid rgba(245, 158, 11, 0.22);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .banner-pulse {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    margin-top: 4px;
+    background: var(--amber);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
+    70%  { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  }
+  .banner-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 4px;
+  }
+  .banner-text {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-2);
+  }
+
+  /* ═══════════ CODE BLOCKS ═══════════ */
+  pre.code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-2);
+    overflow-x: auto;
+    margin: 16px 0;
+  }
+
+  pre.code-block .key { color: var(--blue); }
+  pre.code-block .val { color: var(--green); }
+  pre.code-block .comment { color: var(--text-4); }
+  pre.code-block .selector { color: var(--amber); }
+
+  /* ═══════════ PRINCIPLE QUOTE ═══════════ */
+  .principle-quote {
+    border-left: 3px solid var(--green);
+    background: var(--green-soft);
+    padding: 18px 22px;
+    border-radius: 0 8px 8px 0;
+    margin: 20px 0;
+  }
+  .principle-quote .principle-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+  .principle-quote .principle-body {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--text);
+    font-style: italic;
+  }
+
+  /* ═══════════ DO/DON'T ═══════════ */
+  .do-dont {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  .do-block, .dont-block {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+  }
+
+  .do-block { border-color: rgba(90, 158, 114, 0.3); background: var(--green-soft); }
+  .dont-block { border-color: rgba(196, 134, 138, 0.3); background: rgba(196, 134, 138, 0.04); }
+
+  .do-eyebrow, .dont-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .do-eyebrow { color: var(--green); }
+  .dont-eyebrow { color: var(--red-soft); }
+
+  .do-block ul, .dont-block ul { list-style: none; }
+  .do-block li, .dont-block li {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-2);
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .do-block li::before, .dont-block li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+  .do-block li::before { background: var(--green); }
+  .dont-block li::before { background: var(--red-soft); }
+
+  /* ═══════════ TABLE STYLES ═══════════ */
+  table.spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+  }
+  table.spec-table th {
+    text-align: left;
+    padding: 12px 14px;
+    background: var(--surface);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    border-bottom: 1px solid var(--border);
+  }
+  table.spec-table td {
+    padding: 14px;
+    border-bottom: 1px solid var(--border-2);
+    font-size: 13px;
+    color: var(--text-2);
+    vertical-align: top;
+  }
+  table.spec-table td:first-child {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--green);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* ═══════════ STANDALONE SIGNAL MARK ═══════════ */
+  .signal-mark {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text);
+    line-height: 1;
+  }
+  .signal-mark__bars {
+    display: flex;
+    gap: 0.22em;
+    align-items: center;
+  }
+  .signal-mark__bars span {
+    display: block;
+    width: 0.15em;
+    height: 1em;
+    background: currentColor;
+    border-radius: 999px;
+  }
+  .signal-mark__underline {
+    width: 0.5em;
+    height: 0.07em;
+    background: var(--green);
+    border-radius: 999px;
+    margin-top: 0.18em;
+  }
+
+  /* Section anchor signal mark — small, used between major sections */
+  .section-anchor {
+    display: flex;
+    justify-content: center;
+    margin: 64px 0 32px;
+    opacity: 0.5;
+  }
+  .section-anchor .signal-mark { font-size: 18px; color: var(--text-3); }
+  .section-anchor .signal-mark__underline { background: var(--green); opacity: 0.8; }
+
+  /* ═══════════ HERO MARK ═══════════ */
+  .hero-mark {
+    margin: 0 auto 32px;
+    text-align: center;
+  }
+
+  /* ═══════════ MOBILE FALLBACK ═══════════ */
+  @media (max-width: 900px) {
+    body { grid-template-columns: 1fr; }
+    .sidebar {
+      position: relative;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .main { padding: 32px 24px 80px; }
+    .main h1.section-h { font-size: 32px; }
+    .demo-grid.two, .demo-grid.three, .demo-grid.four { grid-template-columns: 1fr; }
+    .do-dont { grid-template-columns: 1fr; }
+    .type-row { grid-template-columns: 1fr; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-version">DESIGN SYSTEM v1.1</div>
+    <div class="wordmark" style="font-size: 22px; margin-bottom: 10px;">
+      <span>SHARP</span><span class="wordmark__signal"><span class="wordmark__bars"><span class="bar"></span><span class="bar"></span></span><span class="wordmark__underline"></span></span><span>PICKS</span>
+    </div>
+    <div class="sidebar-meta">Brand spec v4.3 · Locked May 2026</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Foundation</div>
+    <ul class="nav-list">
+      <li><a href="#positioning">Positioning &amp; voice</a></li>
+      <li><a href="#color">Color system</a></li>
+      <li><a href="#typography">Typography</a></li>
+      <li><a href="#spacing">Spacing &amp; layout</a></li>
+      <li><a href="#icons">Iconography</a></li>
+    </ul>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Marks</div>
+    <ul class="nav-list">
+      <li><a href="#wordmark">Wordmark</a></li>
+      <li><a href="#signal-mark">Signal mark</a></li>
+      <li><a href="#app-icon">App icon</a></li>
+    </ul>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Components</div>
+    <ul class="nav-list">
+      <li><a href="#cards">Cards</a></li>
+      <li><a href="#buttons">Buttons</a></li>
+      <li><a href="#tags">Tags &amp; pills</a></li>
+      <li><a href="#stats">Stat displays</a></li>
+      <li><a href="#bars">Bars</a></li>
+      <li><a href="#banners">Banners</a></li>
+    </ul>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Content</div>
+    <ul class="nav-list">
+      <li><a href="#voice">Voice rules</a></li>
+      <li><a href="#headlines">Headlines</a></li>
+      <li><a href="#numbers">Numbers</a></li>
+      <li><a href="#principles">Sharp Principles</a></li>
+    </ul>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">System</div>
+    <ul class="nav-list">
+      <li><a href="#calibration">Calibration phase</a></li>
+      <li><a href="#empty-states">Empty states</a></li>
+      <li><a href="#errors">Error states</a></li>
+      <li><a href="#motion">Motion</a></li>
+    </ul>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Operations</div>
+    <ul class="nav-list">
+      <li><a href="#audit">Audit checklist</a></li>
+      <li><a href="#open-questions">Open questions</a></li>
+    </ul>
+  </div>
+</aside>
+
+<!-- ═══════════ MAIN CONTENT ═══════════ -->
+<main class="main">
+
+  <!-- HERO with branded wordmark -->
+  <div class="hero-mark">
+    <div class="wordmark" style="font-size: 56px;">
+      <span>SHARP</span><span class="wordmark__signal"><span class="wordmark__bars"><span class="bar"></span><span class="bar"></span></span><span class="wordmark__underline"></span></span><span>PICKS</span>
+    </div>
+  </div>
+
+  <div class="eyebrow" style="text-align: center; margin-top: 40px;">v1.1 · BRAND SPEC v4.3 · LOCKED MAY 2026</div>
+  <h1 class="section-h" style="text-align: center; max-width: 720px; margin: 0 auto 16px;">The visual reference.</h1>
+  <p class="lead" style="text-align: center; margin: 0 auto 12px;">
+    The complete design guide. Every color, typeface, component, and content rule. This is the canonical visual companion to <code>DESIGN_SYSTEM.md</code>.
+  </p>
+
+  <p style="text-align: center; max-width: 680px; margin: 0 auto 48px;">
+    Every pattern shown below is locked. New patterns should be proposed by updating the markdown spec, not improvised in code. When in doubt, this document wins.
+  </p>
+
+  <!-- Section anchor signal mark -->
+  <div class="section-anchor">
+    <div class="signal-mark">
+      <div class="signal-mark__bars"><span></span><span></span></div>
+      <div class="signal-mark__underline"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ POSITIONING ═══════════ -->
+  <h2 id="positioning" class="subsection-h">Positioning and voice</h2>
+
+  <p>
+    SharpPicks is a sports betting market intelligence platform. It is NOT a sportsbook, NOT a tipster service, and NOT a hype-driven content brand.
+  </p>
+
+  <p>
+    The institutional voice is the moat. Every other betting account on Twitter sells lottery tickets. SharpPicks shows the math.
+  </p>
+
+  <div class="principle-quote">
+    <div class="principle-eyebrow">The register</div>
+    <div class="principle-body">Bloomberg analyst, not ESPN personality.</div>
+  </div>
+
+  <div class="principle-quote">
+    <div class="principle-eyebrow">The promise</div>
+    <div class="principle-body">Verified by data, not talk.</div>
+  </div>
+
+  <!-- ═══════════ COLOR ═══════════ -->
+  <h2 id="color" class="subsection-h">Color system</h2>
+
+  <h3 class="component-h">Surfaces</h3>
+  <div class="swatch-grid">
+    <div class="swatch">
+      <div class="swatch-color" style="background: #0A0D14"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">Background</div>
+        <div class="swatch-token">--sp-bg</div>
+        <div class="swatch-hex">#0A0D14</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #121725"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">Surface</div>
+        <div class="swatch-token">--sp-surface</div>
+        <div class="swatch-hex">#121725</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #1B2030"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">Surface 2</div>
+        <div class="swatch-token">--sp-surface-2</div>
+        <div class="swatch-hex">#1B2030</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #111827"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">Sharp Navy</div>
+        <div class="swatch-token">--sp-navy</div>
+        <div class="swatch-hex">#111827 · App icon only</div>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="component-h">Brand colors</h3>
+  <div class="swatch-grid">
+    <div class="swatch">
+      <div class="swatch-color" style="background: #4F86F7"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">Signal Blue</div>
+        <div class="swatch-token">--sp-signal-blue</div>
+        <div class="swatch-hex">#4F86F7</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #5A9E72"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">Edge Green</div>
+        <div class="swatch-token">--sp-edge-green</div>
+        <div class="swatch-hex">#5A9E72 · v4.2</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #F59E0B"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">Warning Amber</div>
+        <div class="swatch-token">--sp-warning</div>
+        <div class="swatch-hex">#F59E0B</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #C4868A"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">Negative Rose</div>
+        <div class="swatch-token">--sp-negative</div>
+        <div class="swatch-hex">#C4868A · muted by design</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="do-dont">
+    <div class="do-block">
+      <div class="do-eyebrow">Color rules</div>
+      <ul>
+        <li>Signal Blue means active signal</li>
+        <li>Edge Green means verified positive result</li>
+        <li>Amber means calibration / live state</li>
+        <li>Negative is muted rose, never red</li>
+      </ul>
+    </div>
+    <div class="dont-block">
+      <div class="dont-eyebrow">Forbidden</div>
+      <ul>
+        <li>No fire-truck red on losses</li>
+        <li>No Signal Blue for educational content</li>
+        <li>No green for active states</li>
+        <li>No Sharp Navy outside app icon</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════ TYPOGRAPHY ═══════════ -->
+  <h2 id="typography" class="subsection-h">Typography</h2>
+
+  <p>Four families. Each has a specific job.</p>
+
+  <table class="spec-table">
+    <thead>
+      <tr>
+        <th>Family</th>
+        <th>Use</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>IBM Plex Serif</td>
+        <td>Hero headlines, editorial moments, principle quotes (italic), section titles</td>
+      </tr>
+      <tr>
+        <td>JetBrains Mono</td>
+        <td>Numbers, units, ROI, stat values, percentages, line values</td>
+      </tr>
+      <tr>
+        <td>Inter</td>
+        <td>Body text, UI, button labels, wordmark</td>
+      </tr>
+      <tr>
+        <td>Courier New</td>
+        <td>Uppercase eyebrow labels, status badges, footer meta</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="component-h">Type scale</h3>
+
+  <div class="demo">
+    <div class="type-row">
+      <div class="type-meta">
+        <strong>Hero</strong>
+        IBM Plex Serif · 700 · 48px
+      </div>
+      <div class="type-sample hero">WNBA signals go live.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">
+        <strong>Section</strong>
+        IBM Plex Serif · 600 · 22px
+      </div>
+      <div class="type-sample section">Active regime, moderate opportunity.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">
+        <strong>Card title</strong>
+        IBM Plex Serif · 600 · 18px
+      </div>
+      <div class="type-sample card">Pick of the night, every night.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">
+        <strong>Body</strong>
+        Inter · 400 · 15px
+      </div>
+      <div class="type-sample body">The model is in calibration phase. Real reads, every game. You see everything we see.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">
+        <strong>Subhead</strong>
+        Inter · 400 · 14px · 70% white
+      </div>
+      <div class="type-sample subhead">14 edges detected with a clear lean toward underdogs.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">
+        <strong>Number</strong>
+        JetBrains Mono · 500 · 28px
+      </div>
+      <div class="type-sample number">+6.0%</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">
+        <strong>Eyebrow</strong>
+        JetBrains Mono · 500 · 11px · 0.24em tracking
+      </div>
+      <div class="type-sample eyebrow">CALIBRATION PHASE</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">
+        <strong>Footer meta</strong>
+        JetBrains Mono · 400 · 10px
+      </div>
+      <div class="type-sample footer">UPDATED 11:00 AM ET</div>
+    </div>
+  </div>
+
+  <!-- Section anchor — transition into Part II Marks -->
+  <div class="section-anchor">
+    <div class="signal-mark">
+      <div class="signal-mark__bars"><span></span><span></span></div>
+      <div class="signal-mark__underline"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ WORDMARK ═══════════ -->
+  <h2 id="wordmark" class="subsection-h">Wordmark</h2>
+
+  <p>
+    The locked wordmark is <code>SHARP || PICKS</code> in Inter 500, all caps, 0.25em letter-spacing, with the signal mark <code>||</code> set inline between SHARP and PICKS. Locked at <strong>M2 medium weight</strong> in v4.3 (bars 0.12em wide, 1.30em tall, 0.20em gap).
+  </p>
+
+  <div class="wordmark-demo">
+    <div class="wordmark" style="font-size: 80px;">
+      <span>SHARP</span><span class="wordmark__signal"><span class="wordmark__bars"><span class="bar"></span><span class="bar"></span></span><span class="wordmark__underline"></span></span><span>PICKS</span>
+    </div>
+  </div>
+
+  <h3 class="component-h">Scale samples</h3>
+
+  <div class="demo" style="text-align: center;">
+    <div class="wordmark" style="font-size: 18px; margin-right: 32px;">
+      <span>SHARP</span><span class="wordmark__signal"><span class="wordmark__bars"><span class="bar"></span><span class="bar"></span></span><span class="wordmark__underline"></span></span><span>PICKS</span>
+    </div>
+    <div class="wordmark" style="font-size: 30px; margin-right: 32px;">
+      <span>SHARP</span><span class="wordmark__signal"><span class="wordmark__bars"><span class="bar"></span><span class="bar"></span></span><span class="wordmark__underline"></span></span><span>PICKS</span>
+    </div>
+    <div class="wordmark" style="font-size: 60px;">
+      <span>SHARP</span><span class="wordmark__signal"><span class="wordmark__bars"><span class="bar"></span><span class="bar"></span></span><span class="wordmark__underline"></span></span><span>PICKS</span>
+    </div>
+    <div class="demo-label" style="text-align: center; margin-top: 16px;">18px · 30px · 60px</div>
+  </div>
+
+  <pre class="code-block"><span class="comment">/* Wordmark CSS · M2 medium · scales with font-size */</span>
+<span class="selector">.wordmark</span> {
+  display: inline-block;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  color: #E8EAED;
+  line-height: 1;
+  white-space: nowrap;
+}
+<span class="selector">.wordmark__signal</span> {
+  position: relative;
+  display: inline-block;
+  margin: 0 0.5em 0 0.22em;
+  width: 0.44em;
+  height: 0;
+}
+<span class="selector">.wordmark__bars</span> {
+  position: absolute;
+  bottom: 0.02em;
+  left: 0; right: 0;
+  height: 0.85em;
+}
+<span class="selector">.wordmark__bars .bar</span> {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 0.12em;
+  background: currentColor;
+  border-radius: 999px;
+}
+<span class="selector">.wordmark__underline</span> {
+  position: absolute;
+  left: 50%;
+  bottom: -0.18em;
+  transform: translateX(-50%);
+  width: 0.5em;
+  height: 0.07em;
+  background: <span class="val">#5A9E72</span>;
+  border-radius: 999px;
+}</pre>
+
+  <!-- ═══════════ STANDALONE SIGNAL MARK ═══════════ -->
+  <h2 id="signal-mark" class="subsection-h">Standalone signal mark</h2>
+
+  <p>
+    The two-bar pill cluster is THE SIGNAL. The standalone brand signature. Used for favicons, X avatars, watermarks, merchandise, and any context where the full wordmark would be too dense or too small to render.
+  </p>
+
+  <div class="wordmark-demo" style="padding: 80px 40px;">
+    <div class="signal-mark" style="font-size: 120px;">
+      <div class="signal-mark__bars"><span></span><span></span></div>
+      <div class="signal-mark__underline"></div>
+    </div>
+  </div>
+
+  <h3 class="component-h">Scale samples</h3>
+
+  <div class="demo" style="text-align: center;">
+    <div style="display: inline-flex; align-items: flex-end; gap: 60px;">
+      <div>
+        <div class="signal-mark" style="font-size: 24px;">
+          <div class="signal-mark__bars"><span></span><span></span></div>
+          <div class="signal-mark__underline"></div>
+        </div>
+        <div class="demo-label" style="margin-top: 12px;">24PX</div>
+      </div>
+      <div>
+        <div class="signal-mark" style="font-size: 40px;">
+          <div class="signal-mark__bars"><span></span><span></span></div>
+          <div class="signal-mark__underline"></div>
+        </div>
+        <div class="demo-label" style="margin-top: 12px;">40PX</div>
+      </div>
+      <div>
+        <div class="signal-mark" style="font-size: 64px;">
+          <div class="signal-mark__bars"><span></span><span></span></div>
+          <div class="signal-mark__underline"></div>
+        </div>
+        <div class="demo-label" style="margin-top: 12px;">64PX</div>
+      </div>
+      <div>
+        <div class="signal-mark" style="font-size: 96px;">
+          <div class="signal-mark__bars"><span></span><span></span></div>
+          <div class="signal-mark__underline"></div>
+        </div>
+        <div class="demo-label" style="margin-top: 12px;">96PX</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="do-dont">
+    <div class="do-block">
+      <div class="do-eyebrow">Geometry · M2 medium</div>
+      <ul>
+        <li>Bar width <code style="font-family: 'JetBrains Mono', monospace; color: var(--green); background: var(--bg); padding: 2px 6px; border-radius: 3px;">0.15em</code> (slightly heavier than wordmark inline bars)</li>
+        <li>Bar height <code style="font-family: 'JetBrains Mono', monospace; color: var(--green); background: var(--bg); padding: 2px 6px; border-radius: 3px;">1em</code></li>
+        <li>Gap <code style="font-family: 'JetBrains Mono', monospace; color: var(--green); background: var(--bg); padding: 2px 6px; border-radius: 3px;">0.22em</code></li>
+        <li>Underline 0.5em wide, 0.07em tall, Edge Green</li>
+      </ul>
+    </div>
+    <div class="dont-block">
+      <div class="dont-eyebrow">Non-negotiable</div>
+      <ul>
+        <li>The Edge Green underline is ALWAYS present on standalone use</li>
+        <li>Without the underline, this is just a generic vertical-bars glyph</li>
+        <li>Never substitute three bars or a single bar</li>
+        <li>Never recolor the underline</li>
+      </ul>
+    </div>
+  </div>
+
+  <pre class="code-block"><span class="comment">/* Standalone signal mark CSS */</span>
+<span class="selector">.signal-mark</span> {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  color: #E8EAED;
+  line-height: 1;
+}
+<span class="selector">.signal-mark__bars</span> {
+  display: flex;
+  gap: 0.22em;
+  align-items: center;
+}
+<span class="selector">.signal-mark__bars span</span> {
+  display: block;
+  width: 0.15em;
+  height: 1em;
+  background: currentColor;
+  border-radius: 999px;
+}
+<span class="selector">.signal-mark__underline</span> {
+  width: 0.5em;
+  height: 0.07em;
+  background: <span class="val">#5A9E72</span>;
+  border-radius: 999px;
+  margin-top: 0.18em;
+}</pre>
+
+  <!-- ═══════════ APP ICON ═══════════ -->
+  <h2 id="app-icon" class="subsection-h">App icon</h2>
+
+  <p>The app icon uses Sharp Navy <code>#111827</code> as its background. The only place this color appears in the system. Tested against ~30 wallpaper photos to ensure it holds against both bright and dark home screens.</p>
+
+  <p>
+    <strong>Two-spec system:</strong> the app icon uses LIGHT bar weight (3.8% × 34% of icon dimensions), intentionally different from the wordmark and standalone signal mark which use M2 medium. At notification-badge sizes (29×29px) and tab icon sizes (60×60px), bar widths are measured in fractional pixels. Anything heavier than 3.8% width turns into chunky rectangles that lose typographic identity. Do not "harmonize" the wordmark and app icon weights. They serve different rendering contexts.
+  </p>
+
+  <div class="demo" style="text-align: center;">
+    <div class="app-icon">
+      <div class="app-icon__bars">
+        <span></span><span></span>
+      </div>
+      <div class="app-icon__accent"></div>
+    </div>
+    <div class="demo-label">140×140 demo · 1024×1024 master</div>
+  </div>
+
+  <!-- Section anchor — transition into Part III Components -->
+  <div class="section-anchor">
+    <div class="signal-mark">
+      <div class="signal-mark__bars"><span></span><span></span></div>
+      <div class="signal-mark__underline"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ CARDS ═══════════ -->
+  <h2 id="cards" class="subsection-h">Cards</h2>
+
+  <h3 class="component-h">Standard card</h3>
+  <p>Used for stat displays, observation blocks, generic content containers.</p>
+
+  <div class="demo">
+    <div class="card-standard">
+      <div class="card-title">Standard card</div>
+      <div class="card-body">Used for stat displays, observation blocks, and generic content containers. 14px border-radius, 22px padding, surface background.</div>
+    </div>
+  </div>
+
+  <h3 class="component-h">Accented card</h3>
+  <p>Hero cards with a top accent line. Edge Green gradient by default; varies by context.</p>
+
+  <div class="demo">
+    <div class="card-accented">
+      <div class="card-title">Accented card</div>
+      <div class="card-body">A subtle gradient line at the top draws the eye. Used for daily top signals and primary content moments.</div>
+    </div>
+  </div>
+
+  <h3 class="component-h">Observation card</h3>
+  <p>The "this is editorial commentary" pattern. Bordered-left card with green accent.</p>
+
+  <div class="demo">
+    <div class="card-observation">
+      <div class="obs-eyebrow">Observation</div>
+      <div class="obs-body">Bullpen edge. New York's bullpen is significantly more fatigued. Late-inning advantage to Texas.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ BUTTONS ═══════════ -->
+  <h2 id="buttons" class="subsection-h">Buttons &amp; CTAs</h2>
+
+  <div class="demo">
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <button class="btn btn-primary">Track this signal</button>
+      <button class="btn btn-tracking">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+        Tracking · TEX +1.5 · 1.5u
+      </button>
+      <button class="btn btn-ghost">Less</button>
+    </div>
+    <div class="demo-label">Primary · Tracking confirmed · Ghost</div>
+  </div>
+
+  <div class="do-dont">
+    <div class="do-block">
+      <div class="do-eyebrow">Do</div>
+      <ul>
+        <li>Use verbs: "Track this signal"</li>
+        <li>Confirm what was tracked: "Tracking · TEX +1.5"</li>
+        <li>Make buttons full-width on mobile</li>
+        <li>Use Edge Green primary for action</li>
+      </ul>
+    </div>
+    <div class="dont-block">
+      <div class="dont-eyebrow">Don't</div>
+      <ul>
+        <li>No exclamation marks ever</li>
+        <li>No "Awesome edge!" hype copy</li>
+        <li>No multiple primary buttons in same view</li>
+        <li>No light-on-light text on green</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════ TAGS ═══════════ -->
+  <h2 id="tags" class="subsection-h">Tags &amp; pills</h2>
+
+  <h3 class="component-h">Outlined tags</h3>
+  <div class="demo">
+    <div class="tag-row">
+      <span class="tag-outlined">MLB</span>
+      <span class="tag-outlined">SLATE RECAP</span>
+      <span class="tag-outlined amber">CALIBRATION PHASE</span>
+      <span class="tag-outlined blue">DAILY TOP SIGNAL</span>
+      <span class="tag-outlined muted">v1</span>
+    </div>
+  </div>
+
+  <h3 class="component-h">Result pills</h3>
+  <div class="demo">
+    <div class="tag-row">
+      <span class="pill-result pill-win">Win · +1.2u</span>
+      <span class="pill-result pill-loss">Loss · -1.0u</span>
+      <span class="pill-result pill-push">Push · 0.0u</span>
+      <span class="pill-result pill-withdrawn">Withdrawn</span>
+      <span class="pill-result pill-live">Live · B7</span>
+    </div>
+    <div class="demo-label">Withdrawn picks are blue, never red. Capital was preserved.</div>
+  </div>
+
+  <!-- ═══════════ STATS ═══════════ -->
+  <h2 id="stats" class="subsection-h">Stat displays</h2>
+
+  <p>The N-up stat grid is the locked pattern for displaying related stats horizontally.</p>
+
+  <div class="demo">
+    <div class="stat-grid">
+      <div class="stat-cell">
+        <div class="stat-eyebrow">MEI</div>
+        <div class="stat-value">69</div>
+        <div class="stat-suffix">of 100</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-cell">
+        <div class="stat-eyebrow">Regime</div>
+        <div class="stat-value" style="font-size: 22px; color: var(--text); padding-top: 7px;">Active</div>
+        <div class="stat-suffix">moderate</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-cell">
+        <div class="stat-eyebrow">Top Edge</div>
+        <div class="stat-value">+12.8%</div>
+        <div class="stat-suffix">single signal</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ BARS ═══════════ -->
+  <h2 id="bars" class="subsection-h">Bars &amp; visualizations</h2>
+
+  <p>The diverging-axis bar is the SIGNATURE visualization across SharpPicks. Used in Edge Map, Model vs Market Delta, Bias indicator, and Signal Card edge displays.</p>
+
+  <div class="demo">
+    <div class="bar-demo-row">
+      <span class="bar-demo-label">Cincinnati</span>
+      <div class="bar-track"><div class="bar-fill pos" style="width: 50%;"></div></div>
+      <span class="bar-value pos">+1.5</span>
+    </div>
+    <div class="bar-demo-row">
+      <span class="bar-demo-label">Toronto</span>
+      <div class="bar-track"><div class="bar-fill pos" style="width: 43%;"></div></div>
+      <span class="bar-value pos">+1.3</span>
+    </div>
+    <div class="bar-demo-row">
+      <span class="bar-demo-label">Pittsburgh</span>
+      <div class="bar-track"><div class="bar-fill neg" style="width: 23%;"></div></div>
+      <span class="bar-value neg">-0.7</span>
+    </div>
+    <div class="bar-demo-row">
+      <span class="bar-demo-label">Minnesota</span>
+      <div class="bar-track"><div class="bar-fill zero"></div></div>
+      <span class="bar-value zero">0.0</span>
+    </div>
+    <div class="demo-label">Diverging axis · positive right · negative left · center marker for zero</div>
+  </div>
+
+  <h3 class="component-h">Gradient scale bar</h3>
+  <p>For values measured against a known scale (MEI 0–100, confidence levels).</p>
+
+  <div class="demo">
+    <div class="scale-bar-wrap">
+      <div class="scale-bar">
+        <div class="scale-marker" style="left: 69%;"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-4); letter-spacing: 0.04em;">
+        <span>0 · QUIET</span>
+        <span>50</span>
+        <span>100 · HOT</span>
+      </div>
+    </div>
+    <div class="demo-label">MEI scale · marker shows current score in context</div>
+  </div>
+
+  <!-- ═══════════ BANNERS ═══════════ -->
+  <h2 id="banners" class="subsection-h">Banners &amp; notes</h2>
+
+  <h3 class="component-h">Calibration banner</h3>
+  <p>The locked pattern for any "live / in-progress / calibration" state. Same vocabulary across every surface.</p>
+
+  <div class="demo">
+    <div class="banner-calibration">
+      <div class="banner-pulse"></div>
+      <div>
+        <div class="banner-eyebrow">Calibration Phase</div>
+        <div class="banner-text">Edges tracked live. Confidence intervals widen during early-season validation. Closing line audit publishes on every signal.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section anchor — transition into Part V Content -->
+  <div class="section-anchor">
+    <div class="signal-mark">
+      <div class="signal-mark__bars"><span></span><span></span></div>
+      <div class="signal-mark__underline"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ VOICE ═══════════ -->
+  <h2 id="voice" class="subsection-h">Voice rules</h2>
+
+  <div class="do-dont">
+    <div class="do-block">
+      <div class="do-eyebrow">Required posture</div>
+      <ul>
+        <li>Bloomberg analyst, not ESPN personality</li>
+        <li>Specific over general</li>
+        <li>Falsifiable over vague</li>
+        <li>Short over long</li>
+        <li>"10 of 14 edges on dogs" not "lots of underdog action"</li>
+      </ul>
+    </div>
+    <div class="dont-block">
+      <div class="dont-eyebrow">Forbidden in all copy</div>
+      <ul>
+        <li>No em-dashes (use periods)</li>
+        <li>No exclamation marks (zero exceptions)</li>
+        <li>No emoji anywhere</li>
+        <li>No hyphens-as-sentence-separators</li>
+        <li>No AI-speak ("let's dive in")</li>
+        <li>No CAPS for emphasis</li>
+        <li>No gambling slang ("lock", "hammer", "smash")</li>
+        <li>No hype words ("incredible", "huge", "fire")</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════ HEADLINES ═══════════ -->
+  <h2 id="headlines" class="subsection-h">Headline patterns</h2>
+
+  <p>Four locked headline structures cover almost everything SharpPicks publishes:</p>
+
+  <div class="demo">
+    <h3 style="font-family: 'IBM Plex Serif', Georgia, serif; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); line-height: 1.1; margin-bottom: 8px;">Two signals on the board. Three games still running on the West Coast.</h3>
+    <div class="demo-label">Pattern 1 · Declarative observation</div>
+
+    <h3 style="font-family: 'IBM Plex Serif', Georgia, serif; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); line-height: 1.1; margin: 32px 0 8px;">Is the edge holding up?</h3>
+    <div class="demo-label">Pattern 2 · Question framing</div>
+
+    <h3 style="font-family: 'IBM Plex Serif', Georgia, serif; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); line-height: 1.1; margin: 32px 0 8px;">Active regime, moderate opportunity.</h3>
+    <div class="demo-label">Pattern 3 · Subject + state</div>
+
+    <h3 style="font-family: 'IBM Plex Serif', Georgia, serif; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); line-height: 1.1; margin: 32px 0 8px;">WNBA signals go live.</h3>
+    <div class="demo-label">Pattern 4 · Subject + verb</div>
+  </div>
+
+  <!-- ═══════════ NUMBERS ═══════════ -->
+  <h2 id="numbers" class="subsection-h">Numbers &amp; units</h2>
+
+  <table class="spec-table">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Format</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>+6.0%</td>
+        <td>Percentages: one decimal for edges</td>
+      </tr>
+      <tr>
+        <td>+6.0pp</td>
+        <td>Percentage-point differences ("pp" suffix)</td>
+      </tr>
+      <tr>
+        <td>1.5u</td>
+        <td>Units: lowercase, no space</td>
+      </tr>
+      <tr>
+        <td>+204¢</td>
+        <td>Cent currency for line moves under $10</td>
+      </tr>
+      <tr>
+        <td>TOR 4-3</td>
+        <td>Scores: team abbreviation + dash</td>
+      </tr>
+      <tr>
+        <td>May 6, 2026</td>
+        <td>Dates: written form, never numeric</td>
+      </tr>
+      <tr>
+        <td>11:47 PM ET</td>
+        <td>Times: always include timezone</td>
+      </tr>
+      <tr>
+        <td>+1.5</td>
+        <td>Spreads: explicit sign always</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ═══════════ PRINCIPLES ═══════════ -->
+  <h2 id="principles" class="subsection-h">Sharp Principles</h2>
+
+  <p>Locked content. These appear across product, marketing, and email. They never change.</p>
+
+  <div class="principle-quote">
+    <div class="principle-eyebrow">Sharp Principle</div>
+    <div class="principle-body">One pick beats five.</div>
+  </div>
+
+  <div class="principle-quote">
+    <div class="principle-eyebrow">Sharp Principle</div>
+    <div class="principle-body">Discipline is the edge.</div>
+  </div>
+
+  <div class="principle-quote">
+    <div class="principle-eyebrow">Sharp Principle</div>
+    <div class="principle-body">Verified by data, not talk.</div>
+  </div>
+
+  <div class="principle-quote">
+    <div class="principle-eyebrow">Sharp Principle</div>
+    <div class="principle-body">Pass days are not missed opportunities. They are proof the system is working.</div>
+  </div>
+
+  <div class="principle-quote">
+    <div class="principle-eyebrow">Sharp Principle</div>
+    <div class="principle-body">No edge, no pick.</div>
+  </div>
+
+  <div class="principle-quote">
+    <div class="principle-eyebrow">Sharp Principle · WNBA 2026</div>
+    <div class="principle-body">Calibration phase. Live signals. Receipts tracked publicly.</div>
+  </div>
+
+  <!-- ═══════════ CALIBRATION ═══════════ -->
+  <h2 id="calibration" class="subsection-h">Calibration phase patterns</h2>
+
+  <p>When a model is in calibration phase (early-season validation, expansion sport, new methodology), specific patterns apply across every surface.</p>
+
+  <div class="demo">
+    <div class="banner-calibration">
+      <div class="banner-pulse"></div>
+      <div>
+        <div class="banner-eyebrow">Calibration Phase</div>
+        <div class="banner-text">Edges tracked live. Confidence intervals widen during early-season validation. Closing line audit publishes on every signal.</div>
+      </div>
+    </div>
+    <div class="demo-label">Banner appears on every signal card, market intelligence report, and Sharp Journal article during calibration</div>
+  </div>
+
+  <h3 class="component-h">Required language</h3>
+  <ul style="font-size: 14px; line-height: 1.8; color: var(--text-2); list-style: none; padding-left: 0;">
+    <li>● "Calibration phase. Live signals. Receipts tracked publicly." (footer mantra)</li>
+    <li>● "Confidence intervals widen during early-season validation."</li>
+    <li>● "Closing line audit publishes on every signal."</li>
+  </ul>
+
+  <!-- ═══════════ EMPTY STATES ═══════════ -->
+  <h2 id="empty-states" class="subsection-h">Empty states &amp; pass days</h2>
+
+  <p>A pass day is a day where no signal cleared the threshold. SharpPicks treats this as <strong>proof the system is working</strong>, not as a failure.</p>
+
+  <div class="demo">
+    <div class="card-accented">
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--blue); margin-bottom: 8px;">CAPITAL PRESERVED</div>
+      <div class="card-title">No signals cleared the threshold today.</div>
+      <div class="card-body">The slate did not produce edges meeting the discipline filter. Capital preserved for tomorrow.</div>
+    </div>
+  </div>
+
+  <div class="do-dont">
+    <div class="do-block">
+      <div class="do-eyebrow">Pass day rules</div>
+      <ul>
+        <li>Eyebrow always reads "Capital preserved"</li>
+        <li>Reference Sharp Principle within 1-2 sentences</li>
+        <li>Use neutral blue, never red</li>
+        <li>Single combined card, not multiple</li>
+      </ul>
+    </div>
+    <div class="dont-block">
+      <div class="dont-eyebrow">Forbidden on pass days</div>
+      <ul>
+        <li>No red anywhere</li>
+        <li>No "L" badges on withdrawn picks</li>
+        <li>No "Pass day" or "No signal" as primary framing</li>
+        <li>No triple-negative card stacks (the old pattern)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════ ERRORS ═══════════ -->
+  <h2 id="errors" class="subsection-h">Error states</h2>
+
+  <p>Errors in SharpPicks are rare and handled with restraint. No fire-truck red, no modal panic, no exclamation marks.</p>
+
+  <div class="demo">
+    <div style="background: rgba(196, 134, 138, 0.06); border: 1px solid rgba(196, 134, 138, 0.25); border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--text-2);">
+      Sync failed. Pull to refresh.
+    </div>
+  </div>
+
+  <!-- ═══════════ MOTION ═══════════ -->
+  <h2 id="motion" class="subsection-h">Motion &amp; animation</h2>
+
+  <p>Motion in SharpPicks is restrained. The institutional voice extends to interaction.</p>
+
+  <div class="do-dont">
+    <div class="do-block">
+      <div class="do-eyebrow">Locked motion</div>
+      <ul>
+        <li>Pulse on amber dots (2s cycle)</li>
+        <li>Fade in (200ms ease-out)</li>
+        <li>Slide up (240ms ease-out, 8px)</li>
+      </ul>
+    </div>
+    <div class="dont-block">
+      <div class="dont-eyebrow">Forbidden motion</div>
+      <ul>
+        <li>No bounce or spring physics</li>
+        <li>No parallax scrolling</li>
+        <li>No animated number counters</li>
+        <li>No hover lifts (translate/scale)</li>
+        <li>No confetti or celebration animations</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section anchor — transition into Part VII Operations -->
+  <div class="section-anchor">
+    <div class="signal-mark">
+      <div class="signal-mark__bars"><span></span><span></span></div>
+      <div class="signal-mark__underline"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ AUDIT CHECKLIST ═══════════ -->
+  <h2 id="audit" class="subsection-h">Brand audit checklist</h2>
+
+  <p>Run this before shipping any new surface (mockup, code, or marketing asset).</p>
+
+  <div class="demo">
+    <div style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.8; color: var(--text-2);">
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> Colors come exclusively from <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--green); background: var(--bg); padding: 2px 6px; border-radius: 3px;">tokens.css</code></div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> Typography uses only the four locked families</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> Wordmark renders with proper geometry (locked construction)</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> Edge Green is <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--green); background: var(--bg); padding: 2px 6px; border-radius: 3px;">#5A9E72</code>, not <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3); background: var(--bg); padding: 2px 6px; border-radius: 3px;">#34D399</code></div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> Background <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--green); background: var(--bg); padding: 2px 6px; border-radius: 3px;">#0A0D14</code>, surface <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--green); background: var(--bg); padding: 2px 6px; border-radius: 3px;">#121725</code></div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> No em-dashes, no exclamation marks, no emoji</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> No hyphens as sentence separators</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> No "L" badges on withdrawn picks</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> Pass days use "capital preserved" framing</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> Calibration contexts use amber, not blue</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> Active signal contexts use Signal Blue, not green</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> Verified result contexts use Edge Green</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> All tap targets ≥ 44×44px</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> Color contrast meets WCAG AA</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> Evan Cole title is "Head of Signal Intelligence" verbatim</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--text-4); margin-right: 8px;">☐</span> Numbers are JetBrains Mono with proper formatting</div>
+      <div><span style="color: var(--text-4); margin-right: 8px;">☐</span> Diverging-axis bars used for any directional data</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ OPEN QUESTIONS ═══════════ -->
+  <h2 id="open-questions" class="subsection-h">Open questions</h2>
+
+  <p>
+    Honest list of unresolved decisions, captured so they can be addressed deliberately rather than drift unresolved. Full detail in the markdown spec.
+  </p>
+
+  <div class="demo">
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="padding-bottom: 14px; border-bottom: 1px solid var(--border-2);">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px;">UNRESOLVED</div>
+        <div style="font-size: 14px; color: var(--text);">Bottom nav tab order: "Signals · Results · Insights · Account" (current) vs "Signals · Track · Journal · Account" (redesigned)</div>
+      </div>
+      <div style="padding-bottom: 14px; border-bottom: 1px solid var(--border-2);">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px;">CRITICAL GAP</div>
+        <div style="font-size: 14px; color: var(--text);">Field Guide content backlog: only one article exists, need 4-5 more before WNBA launch</div>
+      </div>
+      <div style="padding-bottom: 14px; border-bottom: 1px solid var(--border-2);">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px;">UNCONFIRMED</div>
+        <div style="font-size: 14px; color: var(--text);">Founding Fifty perks referenced in Power User email. Verify before next email send.</div>
+      </div>
+      <div style="padding-bottom: 14px; border-bottom: 1px solid var(--border-2);">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px;">MISSING</div>
+        <div style="font-size: 14px; color: var(--text);">OG images for evening edition: og-report-evening.png referenced but not designed</div>
+      </div>
+      <div style="padding-bottom: 14px; border-bottom: 1px solid var(--border-2);">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px;">DEFERRED</div>
+        <div style="font-size: 14px; color: var(--text);">Sport-specific accent colors for future sports (NHL, NCAAB, soccer, tennis)</div>
+      </div>
+      <div style="padding-bottom: 14px; border-bottom: 1px solid var(--border-2);">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px;">DOCUMENTED</div>
+        <div style="font-size: 14px; color: var(--text);">Dark mode is the only mode (light theme would require complete redesign)</div>
+      </div>
+      <div style="padding-bottom: 14px; border-bottom: 1px solid var(--border-2);">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px;">TO AUDIT</div>
+        <div style="font-size: 14px; color: var(--text);">Loss framing: verify iOS app + Flask backend follow muted-rose rule, no red L badges</div>
+      </div>
+      <div style="padding-bottom: 14px; border-bottom: 1px solid var(--border-2);">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px;">EXPLAINER NEEDED</div>
+        <div style="font-size: 14px; color: var(--text);">MEI scoring methodology is opaque. Tooltip alone is not enough.</div>
+      </div>
+      <div style="padding-bottom: 14px; border-bottom: 1px solid var(--border-2);">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px;">DECISION PENDING</div>
+        <div style="font-size: 14px; color: var(--text);">Calibration thresholds: publish to users (transparency) or keep internal (operational)?</div>
+      </div>
+      <div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--green); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px;">RESOLVED</div>
+        <div style="font-size: 14px; color: var(--text);">Sharp Journal articles ARE the market reports (one content type, three routes into it)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <div style="margin-top: 80px; padding-top: 32px; border-top: 1px solid var(--border); text-align: center;">
+    <div class="wordmark" style="font-size: 24px;">
+      <span>SHARP</span><span class="wordmark__signal"><span class="wordmark__bars"><span class="bar"></span><span class="bar"></span></span><span class="wordmark__underline"></span></span><span>PICKS</span>
+    </div>
+    <div style="margin-top: 16px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-4);">
+      DESIGN SYSTEM v1.1 · BRAND SPEC v4.3 · MAY 6, 2026
+    </div>
+    <div style="margin-top: 14px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--green);">
+      Verified by data, not talk.
+    </div>
+  </div>
+
+</main>
+
+</body>
+</html>

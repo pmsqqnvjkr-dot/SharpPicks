@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0A0D14" />
+<title>SharpPicks · Home (redesigned)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --sp-bg:          #0A0D14;
+    --sp-surface:     #121725;
+    --sp-surface-2:   #1B2030;
+    --sp-border:      rgba(255, 255, 255, 0.08);
+    --sp-border-2:    rgba(255, 255, 255, 0.05);
+    --sp-blue:        #4F86F7;
+    --sp-green:       #5A9E72;
+    --sp-amber:       #F59E0B;
+    --sp-text:        #E8EAED;
+    --sp-text-2:      rgba(232, 234, 237, 0.7);
+    --sp-text-3:      rgba(232, 234, 237, 0.5);
+    --sp-text-4:      rgba(232, 234, 237, 0.35);
+    --sp-text-5:      rgba(232, 234, 237, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--sp-bg);
+    color: var(--sp-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  /* ═══════════ HEADER ═══════════ */
+  .top-bar {
+    padding: 18px 24px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 19px;
+    letter-spacing: 0.25em;
+    color: var(--sp-text);
+  }
+  .wordmark__signal {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0 0.5em 0 0.22em;
+  }
+  .wordmark__bars {
+    display: inline-flex;
+    gap: 0.20em;
+    align-items: center;
+  }
+  .wordmark__bars span {
+    display: block;
+    width: 0.12em;
+    height: 1.30em;
+    background: currentColor;
+    border-radius: 999px;
+  }
+  .wordmark__underline {
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    transform: translateX(-50%);
+    margin-top: 0.06em;
+    width: 0.5em;
+    height: 0.07em;
+    background: var(--sp-green);
+    border-radius: 999px;
+  }
+
+  .greeting {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .greeting-text {
+    font-size: 13px;
+    color: var(--sp-text-2);
+  }
+  .gear {
+    width: 22px;
+    height: 22px;
+    color: var(--sp-text-3);
+  }
+
+  /* ═══════════ TAB PILLS ═══════════ */
+  .tabs {
+    display: flex;
+    gap: 10px;
+    padding: 16px 24px 22px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    flex-shrink: 0;
+    padding: 11px 20px;
+    border: 1px solid var(--sp-border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--sp-text-2);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+  .tab-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--sp-text-4);
+  }
+  .tab.active {
+    border-color: var(--sp-amber);
+    color: var(--sp-text);
+  }
+  .tab.active .tab-dot { background: var(--sp-amber); }
+  .tab.mlb-active {
+    border-color: var(--sp-blue);
+    color: var(--sp-text);
+  }
+  .tab.mlb-active .tab-dot { background: var(--sp-blue); }
+  .tab .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(79, 134, 247, 0.15);
+    color: var(--sp-blue);
+    text-transform: uppercase;
+  }
+  .tab .badge.soon {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--sp-text-4);
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--sp-border);
+    margin: 0 24px;
+  }
+
+  /* ═══════════ SECTION LABEL ═══════════ */
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sp-text-4);
+    padding: 28px 24px 14px;
+  }
+
+  /* ═══════════ CARDS ═══════════ */
+  .card {
+    margin: 0 24px 12px;
+    padding: 20px 22px;
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 16px;
+  }
+  .card-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sp-text-4);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .eyebrow-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sp-text-4);
+  }
+  .eyebrow-dot.green { background: var(--sp-green); }
+  .eyebrow-dot.blue { background: var(--sp-blue); }
+  .card-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--sp-text);
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  .card-body {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--sp-text-2);
+  }
+  .card-body.serif {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--sp-text-2);
+  }
+
+  /* Recap combined card pieces */
+  .recap-divider {
+    height: 1px;
+    background: var(--sp-border-2);
+    margin: 16px 0;
+  }
+  .recap-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .recap-pill {
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--sp-text-3);
+    border: 1px solid var(--sp-border);
+  }
+  .recap-pill.withdrawn {
+    background: rgba(79, 134, 247, 0.08);
+    color: var(--sp-blue);
+    border-color: rgba(79, 134, 247, 0.25);
+  }
+  .recap-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--sp-text);
+    line-height: 1.4;
+  }
+  .recap-text-muted {
+    color: var(--sp-text-3);
+  }
+  .edge-chip {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--sp-border);
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--sp-text-2);
+  }
+
+  /* Countdown card */
+  .countdown {
+    text-align: center;
+    padding: 32px 22px 28px;
+  }
+  .countdown-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sp-text-3);
+    margin-bottom: 18px;
+  }
+  .countdown-value {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 56px;
+    font-weight: 500;
+    color: var(--sp-text);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+  .countdown-value .unit {
+    font-size: 56px;
+    font-weight: 500;
+  }
+  .countdown-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--sp-text-3);
+  }
+
+  /* ═══════════ NEW: MARKET PULSE STRIP ═══════════ */
+  .pulse {
+    margin: 0 24px 12px;
+    padding: 16px 20px;
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr 1px 1fr;
+    gap: 16px;
+    align-items: center;
+  }
+  .pulse-cell {
+    text-align: center;
+  }
+  .pulse-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sp-text-4);
+    margin-bottom: 6px;
+  }
+  .pulse-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--sp-text);
+  }
+  .pulse-value.green { color: var(--sp-green); }
+  .pulse-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--sp-border);
+  }
+
+  /* ═══════════ MARKET INTELLIGENCE ROW ═══════════ */
+  .row-card {
+    margin: 0 24px 12px;
+    padding: 16px 18px;
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+  }
+  .row-icon {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    background: rgba(79, 134, 247, 0.1);
+    border: 1px solid rgba(79, 134, 247, 0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sp-blue);
+  }
+  .row-content { flex: 1; min-width: 0; }
+  .row-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--sp-text);
+    margin-bottom: 3px;
+  }
+  .row-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--sp-text-3);
+  }
+  .row-chevron {
+    color: var(--sp-text-4);
+    flex-shrink: 0;
+  }
+
+  /* ═══════════ UPCOMING SLATE ═══════════ */
+  .slate-card {
+    margin: 0 24px 12px;
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .slate-header {
+    padding: 14px 22px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--sp-text-3);
+    border-bottom: 1px solid var(--sp-border-2);
+  }
+  .slate-row {
+    padding: 14px 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--sp-border-2);
+  }
+  .slate-row:last-child { border-bottom: none; }
+  .slate-matchup {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--sp-text);
+  }
+  .slate-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--sp-text-3);
+  }
+
+  /* ═══════════ WHILE YOU WAIT (NEW 3-CARD STACK) ═══════════ */
+  .ww-stack {
+    margin: 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Card 1: Watchlist */
+  .ww-watchlist {
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .ww-card-head {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--sp-border-2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ww-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sp-text-4);
+  }
+  .ww-eyebrow .accent {
+    color: var(--sp-green);
+  }
+  .ww-cta-mini {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sp-blue);
+    text-decoration: none;
+  }
+  .ww-card-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 19px;
+    font-weight: 500;
+    color: var(--sp-text);
+    padding: 14px 20px 6px;
+    line-height: 1.3;
+  }
+  .ww-card-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--sp-text-3);
+    padding: 0 20px 16px;
+    line-height: 1.5;
+  }
+  .ww-watch-row {
+    padding: 12px 20px;
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 12px;
+    align-items: center;
+    border-top: 1px solid var(--sp-border-2);
+    font-size: 13px;
+  }
+  .ww-watch-team {
+    font-family: 'Inter', sans-serif;
+    color: var(--sp-text);
+    font-weight: 500;
+  }
+  .ww-watch-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--sp-text-2);
+    min-width: 36px;
+    text-align: right;
+  }
+  .ww-watch-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--sp-text-4);
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--sp-border);
+  }
+
+  /* Card 2: Sharp Journal entry */
+  .ww-journal {
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 16px;
+    padding: 22px 22px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ww-journal::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, var(--sp-green), transparent);
+    opacity: 0.5;
+  }
+  .ww-journal-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sp-text-4);
+    margin-bottom: 12px;
+  }
+  .ww-journal-eyebrow .author {
+    color: var(--sp-green);
+  }
+  .ww-journal-text {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--sp-text);
+    font-style: italic;
+  }
+  .ww-journal-meta {
+    margin-top: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--sp-text-4);
+    letter-spacing: 0.12em;
+  }
+
+  /* Card 3: Field Guide */
+  .ww-field {
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    cursor: pointer;
+  }
+  .ww-field-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sp-green);
+    border: 1px solid rgba(90, 158, 114, 0.3);
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+  .ww-field-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--sp-text-3);
+  }
+  .ww-field-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--sp-text);
+    margin-top: 12px;
+    line-height: 1.3;
+  }
+  .ww-field-blurb {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--sp-text-3);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  /* ═══════════ NIGHTLY RECAP CTA ═══════════ */
+  .nightly-card {
+    margin: 0 24px 12px;
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 16px;
+    padding: 22px 22px 20px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .nightly-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(79, 134, 247, 0.4), transparent);
+  }
+  .nightly-card:hover, .nightly-card:active {
+    border-color: rgba(79, 134, 247, 0.3);
+  }
+  .nightly-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .nightly-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sp-text-3);
+  }
+  .nightly-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sp-blue);
+  }
+  .nightly-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--sp-text-4);
+  }
+  .nightly-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 21px;
+    font-weight: 500;
+    color: var(--sp-text);
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  .nightly-body {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--sp-text-2);
+    margin-bottom: 18px;
+  }
+  .nightly-stats {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr 1px 1fr 1px 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 0;
+    border-top: 1px solid var(--sp-border-2);
+    border-bottom: 1px solid var(--sp-border-2);
+  }
+  .nightly-stat {
+    text-align: center;
+  }
+  .nightly-stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sp-text-4);
+    margin-bottom: 5px;
+  }
+  .nightly-stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--sp-text);
+  }
+  .nightly-stat-value.green { color: var(--sp-green); }
+  .nightly-stat-divider {
+    width: 1px;
+    height: 22px;
+    background: var(--sp-border);
+  }
+  .nightly-cta {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--sp-blue);
+  }
+
+  /* ═══════════ KEEP EXPLORING ═══════════ */
+  .explore-grid {
+    margin: 0 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .explore-card {
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 14px;
+    padding: 18px 18px 20px;
+    cursor: pointer;
+  }
+  .explore-icon {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 14px;
+  }
+  .explore-icon.green { color: var(--sp-green); }
+  .explore-icon.blue { color: var(--sp-blue); }
+  .explore-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--sp-text);
+    margin-bottom: 4px;
+  }
+  .explore-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--sp-text-3);
+    letter-spacing: 0.04em;
+  }
+
+  /* ═══════════ BOTTOM NAV ═══════════ */
+  .nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--sp-bg);
+    border-top: 1px solid var(--sp-border);
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    z-index: 50;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--sp-text-4);
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .nav-item.active {
+    color: var(--sp-green);
+  }
+  .nav-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .stagger > * {
+    opacity: 0;
+    animation: fadeInUp 0.5s ease-out forwards;
+  }
+  .stagger > *:nth-child(1) { animation-delay: 0.05s; }
+  .stagger > *:nth-child(2) { animation-delay: 0.10s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.15s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.20s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.25s; }
+  .stagger > *:nth-child(6) { animation-delay: 0.30s; }
+  .stagger > *:nth-child(7) { animation-delay: 0.35s; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ TOP BAR ═══════════ -->
+<div class="top-bar">
+  <div class="wordmark">
+    <span>SHARP</span>
+    <span class="wordmark__signal">
+      <span class="wordmark__bars"><span></span><span></span></span>
+      <span class="wordmark__underline"></span>
+    </span>
+    <span>PICKS</span>
+  </div>
+  <div class="greeting">
+    <span class="greeting-text">Welcome back, Evan</span>
+    <svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══════════ TABS ═══════════ -->
+<div class="tabs">
+  <button class="tab active">
+    <span class="tab-dot"></span>NBA
+  </button>
+  <button class="tab">
+    <span class="tab-dot"></span>MLB <span class="badge">BETA</span>
+  </button>
+  <button class="tab">
+    <span class="tab-dot"></span>WNBA <span class="badge soon">SOON</span>
+  </button>
+</div>
+<div class="divider"></div>
+
+<div class="stagger">
+
+<!-- ═══════════ MARKET PULSE STRIP (NEW) ═══════════
+     Tier 1 slot #3 — frames the wait as system working,
+     shows the user where they are in the cycle. -->
+<div class="section-label" style="padding-top: 22px;">Market pulse · 30d</div>
+<div class="pulse">
+  <div class="pulse-cell">
+    <div class="pulse-label">Pass days</div>
+    <div class="pulse-value">23 / 30</div>
+  </div>
+  <div class="pulse-divider"></div>
+  <div class="pulse-cell">
+    <div class="pulse-label">Last signal</div>
+    <div class="pulse-value green">+1.2u</div>
+  </div>
+  <div class="pulse-divider"></div>
+  <div class="pulse-cell">
+    <div class="pulse-label">CLV · 30d</div>
+    <div class="pulse-value green">+2.4</div>
+  </div>
+</div>
+
+<!-- ═══════════ COMBINED RECAP CARD (FIXED) ═══════════
+     Replaces the old separate "Signal Withdrawn" + "No Signal Issued"
+     + "Full Slate Results" cards. One card, one read.
+     No L badge, no red, no duplicate row. -->
+<div class="section-label">Fri May 1 · Recap</div>
+<div class="card">
+  <div class="card-eyebrow">
+    <span class="eyebrow-dot blue"></span>
+    Capital preserved
+  </div>
+  <div class="card-title">No signals cleared the threshold.</div>
+  <div class="card-body" style="margin-top: 4px;">
+    Analyzed 8 games. The system withdrew one signal before tip and passed on the rest. Edge thresholds held.
+  </div>
+
+  <div class="recap-divider"></div>
+
+  <div class="recap-row">
+    <span class="recap-pill withdrawn">Withdrawn</span>
+    <div class="recap-text">
+      Cleveland Cavaliers <span class="recap-text-muted">−4.5</span>
+    </div>
+  </div>
+  <div class="edge-chip">Edge at entry +5.8% · pulled before tip</div>
+</div>
+
+<!-- ═══════════ COUNTDOWN ═══════════ -->
+<div class="section-label">Upcoming slate</div>
+<div class="card">
+  <div class="countdown">
+    <div class="countdown-label">Edges publish at 10:00 AM ET</div>
+    <div class="countdown-value">9<span class="unit">h</span>  22<span class="unit">m</span></div>
+    <div class="countdown-sub">Lines are live from 6 books</div>
+  </div>
+</div>
+
+<!-- ═══════════ MARKET INTELLIGENCE ROW ═══════════ -->
+<div class="row-card">
+  <div class="row-icon">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 17l6-6 4 4 8-8"/>
+      <path d="M14 7h7v7"/>
+    </svg>
+  </div>
+  <div class="row-content">
+    <div class="row-title">Market Intelligence</div>
+    <div class="row-sub">3 games on the upcoming slate · Analysis pending</div>
+  </div>
+  <svg class="row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M9 18l6-6-6-6"/>
+  </svg>
+</div>
+
+<!-- ═══════════ TONIGHT'S SLATE PREVIEW ═══════════ -->
+<div class="slate-card">
+  <div class="slate-header">Edges publish after the 10:00 AM ET model run</div>
+  <div class="slate-row">
+    <span class="slate-matchup">Detroit @ Orlando</span>
+    <span class="slate-time">Fri May 1 · 7:09 PM ET</span>
+  </div>
+  <div class="slate-row">
+    <span class="slate-matchup">Cleveland @ Toronto</span>
+    <span class="slate-time">Fri May 1 · 7:41 PM ET</span>
+  </div>
+  <div class="slate-row">
+    <span class="slate-matchup">LA Lakers @ Houston</span>
+    <span class="slate-time">Fri May 1 · 9:48 PM ET</span>
+  </div>
+</div>
+
+<!-- ═══════════ WHILE YOU WAIT (3-CARD STACK) ═══════════ -->
+<div class="section-label">While you wait</div>
+<div class="ww-stack">
+
+  <!-- Card 1: Watchlist (Tier 1, slot #2) -->
+  <div class="ww-watchlist">
+    <div class="ww-card-head">
+      <span class="ww-eyebrow">What the model is watching</span>
+      <a class="ww-cta-mini">View all →</a>
+    </div>
+    <div class="ww-card-title">Tonight's slate, pre-edge.</div>
+    <div class="ww-card-sub">Market lines as of 12:38 ET. The model runs at 10:00 AM and edges publish after.</div>
+
+    <div class="ww-watch-row">
+      <span class="ww-watch-team">DET @ ORL</span>
+      <span class="ww-watch-num">−6.5</span>
+      <span class="ww-watch-num">o225.5</span>
+      <span class="ww-watch-status">Watching</span>
+    </div>
+    <div class="ww-watch-row">
+      <span class="ww-watch-team">CLE @ TOR</span>
+      <span class="ww-watch-num">−2.5</span>
+      <span class="ww-watch-num">o218.0</span>
+      <span class="ww-watch-status">Watching</span>
+    </div>
+    <div class="ww-watch-row">
+      <span class="ww-watch-team">LAL @ HOU</span>
+      <span class="ww-watch-num">+3.5</span>
+      <span class="ww-watch-num">o231.5</span>
+      <span class="ww-watch-status">Watching</span>
+    </div>
+  </div>
+
+  <!-- Card 2: Sharp Journal (Tier 2, slot #5) — auto-generated by Evan Cole pipeline -->
+  <div class="ww-journal">
+    <div class="ww-journal-eyebrow">
+      <span class="author">Evan Cole</span>
+      <span>·</span>
+      <span>Today's read</span>
+    </div>
+    <div class="ww-journal-text">
+      Three NBA games tonight is a thin slate. Thin slates favor the books, not the model. If the system passes on all three, that is the correct read. Forced bets on light slates are how disciplined bankrolls die slow.
+    </div>
+    <div class="ww-journal-meta">2 MIN READ · 12:30 ET</div>
+  </div>
+
+  <!-- Card 3: Field Guide (Tier 2, slot #6) — rotates from evergreen backlog -->
+  <div class="ww-field">
+    <span class="ww-field-tag">Discipline</span>
+    <span class="ww-field-meta">5 min read</span>
+    <div class="ww-field-title">A Field Guide to Surviving a Losing Streak</div>
+    <div class="ww-field-blurb">Variance is the cost of doing business. Here is how the math works, and what to do when it stops feeling like math.</div>
+  </div>
+
+</div>
+
+<!-- ═══════════ NIGHTLY RECAP CTA ═══════════
+     Evening edition of Sharp Journal — same article format,
+     retrospective lens. Generated by the Evan Cole pipeline at 11:30 PM ET.
+     Links to /journal/{slug} with phase=evening. -->
+<div class="section-label">Last night's read</div>
+<div class="nightly-card" id="nightlyCard">
+  <div class="nightly-head">
+    <div class="nightly-eyebrow">
+      <span class="nightly-dot"></span>
+      <span>Sharp Journal · Evening edition</span>
+    </div>
+    <span class="nightly-time">Posted 11:47 PM ET</span>
+  </div>
+
+  <div class="nightly-title">The slate closed quiet.</div>
+  <div class="nightly-body">
+    8 games scanned. 0 signals issued. The market closed within 0.4 points of model fair value on six of eight games. Capital preserved on a slate where forced bets would have leaked.
+  </div>
+
+  <div class="nightly-stats">
+    <div class="nightly-stat">
+      <div class="nightly-stat-label">Games</div>
+      <div class="nightly-stat-value">8</div>
+    </div>
+    <div class="nightly-stat-divider"></div>
+    <div class="nightly-stat">
+      <div class="nightly-stat-label">Signals</div>
+      <div class="nightly-stat-value">0</div>
+    </div>
+    <div class="nightly-stat-divider"></div>
+    <div class="nightly-stat">
+      <div class="nightly-stat-label">CLV held</div>
+      <div class="nightly-stat-value green">+0.6</div>
+    </div>
+    <div class="nightly-stat-divider"></div>
+    <div class="nightly-stat">
+      <div class="nightly-stat-label">Market beat</div>
+      <div class="nightly-stat-value">6 / 8</div>
+    </div>
+  </div>
+
+  <div class="nightly-cta">
+    <span>Read the evening edition</span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+      <path d="M5 12h14M13 5l7 7-7 7"/>
+    </svg>
+  </div>
+</div>
+
+</div><!-- /stagger -->
+
+<!-- ═══════════ BOTTOM NAV ═══════════ -->
+<nav class="nav">
+  <div class="nav-item active">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <circle cx="12" cy="12" r="6"/>
+      <circle cx="12" cy="12" r="2"/>
+    </svg>
+    <span>Signals</span>
+  </div>
+  <div class="nav-item">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <path d="M3 12h3l3-9 6 18 3-9h3"/>
+    </svg>
+    <span>Results</span>
+  </div>
+  <div class="nav-item">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>
+    <span>Insights</span>
+  </div>
+  <div class="nav-item">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 21c0-4 4-7 8-7s8 3 8 7"/>
+    </svg>
+    <span>Account</span>
+  </div>
+</nav>
+
+<script>
+  // Tab switching just for demo polish
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => {
+        t.classList.remove('active', 'mlb-active');
+      });
+      const text = tab.textContent.trim();
+      if (text.startsWith('NBA')) tab.classList.add('active');
+      else if (text.startsWith('MLB')) tab.classList.add('mlb-active');
+      else tab.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
