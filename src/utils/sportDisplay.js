@@ -31,6 +31,19 @@ const SPORT_CONFIG = {
     spreadLabel: 'RL',
     tomorrowLabel: 'Tomorrow',
   },
+  wnba: {
+    periodLabel: (period) => {
+      if (!period) return '';
+      return period <= 4 ? `Q${period}` : `OT${period - 4}`;
+    },
+    showClock: true,
+    preGameVerb: 'Tips',
+    tipLabel: 'Tip',
+    tipoffLabel: 'Tipoff',
+    halftimeLabel: 'HALF',
+    spreadLabel: 'Spread',
+    tomorrowLabel: 'Tips tomorrow',
+  },
 };
 
 const DEFAULT_SPORT = 'nba';

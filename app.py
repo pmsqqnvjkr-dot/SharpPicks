@@ -4240,7 +4240,7 @@ def cron_diagnostic():
             diag['sqlite_error'] = str(e)
 
         try:
-            for sport in ['nba', 'mlb']:
+            for sport in ['nba', 'mlb', 'wnba']:
                 pick = Pick.query.filter_by(game_date=today_str, sport=sport).first()
                 pass_entry = Pass.query.filter_by(date=today_str, sport=sport).first()
                 diag[f'{sport}_today'] = {
@@ -7749,7 +7749,7 @@ def get_trackable_picks():
     per_page = min(100, max(10, int(request.args.get('per_page', 50))))
     search = (request.args.get('q') or '').strip().lower()
 
-    season_starts = {'nba': '2025-10-01', 'mlb': '2026-03-20', 'wnba': '2026-05-01'}
+    season_starts = {'nba': '2025-10-01', 'mlb': '2026-03-20', 'wnba': '2026-05-08'}
     season_start = season_starts.get(sport, '2025-10-01')
 
     q = Pick.query.filter(

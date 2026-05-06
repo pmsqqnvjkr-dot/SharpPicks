@@ -75,7 +75,7 @@ export default function AppHeader({ onNavigate }) {
 const SPORT_CONFIG = {
   nba: { label: 'NBA', color: '#d4874d', active: true },
   mlb: { label: 'MLB', color: '#3B82F6', active: true, badge: 'BETA' },
-  wnba: { label: 'WNBA', color: '#EC4899', active: false },
+  wnba: { label: 'WNBA', color: '#EC4899', active: true, badge: 'BETA' },
 };
 
 function SportFilterPills({ sport, setSport }) {
