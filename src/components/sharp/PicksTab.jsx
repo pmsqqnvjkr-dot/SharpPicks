@@ -346,8 +346,9 @@ export default function PicksTab({ onNavigate }) {
       <PullToRefresh onRefresh={async () => {
         await Promise.all([refetchToday(true), refetchStats(true), refetchMarketReport(true)]);
       }}>
-      <div style={{ padding: '20px 20px 0' }}>
-
+      <div style={{ padding: '20px 20px calc(100px + env(safe-area-inset-bottom, 0px))' }}>
+        {/* ↑ bottom padding clears the fixed TabNav (~70px) + safe-area inset
+             so the last 'While You Wait' card never gets hidden behind it. */}
         {/* Kill Switch Banner */}
         {killSwitch?.active && isPro && (
           <div style={{
