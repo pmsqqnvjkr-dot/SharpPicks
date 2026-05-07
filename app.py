@@ -444,7 +444,7 @@ def _upsert_market_note_insight(report, sport='nba'):
     return insight
 
 
-from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent, CronLog, PageView, UserEvent, AdminAlert, MrrSnapshot, KillSwitch
+from models import db, User, TrackedBet, Pick, Pass, ModelRun, FoundingCounter, Insight, ProcessedEvent, CronLog, PageView, UserEvent, AdminAlert, MrrSnapshot, KillSwitch, OAuthNonce
 from picks_api import picks_bp
 from public_api import public_bp
 from insights_api import insights_bp
@@ -597,20 +597,43 @@ def generate_auth_token(user):
     return s.dumps({'uid': user.id, 'st': user.session_token}, salt='auth-token')
 
 import time as _time
-_oauth_nonces = {}
+
+# OAuth nonce TTL — covers the SPA's 120s poll window plus a slack buffer.
+_OAUTH_NONCE_TTL_SECONDS = 300
 
 def _store_oauth_nonce(nonce, token):
-    now = _time.time()
-    _oauth_nonces[nonce] = (token, now)
-    for k in list(_oauth_nonces):
-        if now - _oauth_nonces[k][1] > 300:
-            del _oauth_nonces[k]
+    # DB-backed so the callback worker and the polling worker see the same
+    # store under gunicorn --workers > 1. Prune stale rows opportunistically
+    # on every write so we don't need a separate sweeper.
+    from datetime import datetime as _dt, timedelta as _td
+    cutoff = _dt.utcnow() - _td(seconds=_OAUTH_NONCE_TTL_SECONDS)
+    try:
+        OAuthNonce.query.filter(OAuthNonce.created_at < cutoff).delete(synchronize_session=False)
+        existing = db.session.get(OAuthNonce, nonce)
+        if existing:
+            existing.token = token
+            existing.created_at = _dt.utcnow()
+        else:
+            db.session.add(OAuthNonce(nonce=nonce, token=token, created_at=_dt.utcnow()))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
 
 def _pop_oauth_nonce(nonce):
-    entry = _oauth_nonces.pop(nonce, None)
-    if entry and _time.time() - entry[1] < 300:
-        return entry[0]
-    return None
+    from datetime import datetime as _dt, timedelta as _td
+    cutoff = _dt.utcnow() - _td(seconds=_OAUTH_NONCE_TTL_SECONDS)
+    try:
+        row = db.session.get(OAuthNonce, nonce)
+        if not row:
+            return None
+        token = row.token if row.created_at >= cutoff else None
+        db.session.delete(row)
+        db.session.commit()
+        return token
+    except Exception:
+        db.session.rollback()
+        return None
 
 def verify_auth_token():
     auth_header = request.headers.get('Authorization', '')
@@ -7324,88 +7347,6 @@ def set_unit_size():
     user.unit_size = unit_size
     db.session.commit()
     return jsonify({'success': True, 'unit_size': user.unit_size})
-
-@app.route('/api/auth/trial', methods=['POST'])
-def start_trial():
-    """Start 14-day trial — creates free account, returns Stripe checkout URL for card collection"""
-    from flask import request
-    import re
-
-    data = request.get_json() or {}
-    email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
-
-    # iOS clients must use IAP (App Store Guideline 3.1.1); never hand
-    # them a Stripe checkout URL even via this legacy endpoint.
-    ua_lower = (request.headers.get('User-Agent') or '').lower()
-    is_ios = 'iphone' in ua_lower or 'ipad' in ua_lower or 'ipod' in ua_lower
-
-    if not email:
-        return jsonify({'error': 'Email required'}), 400
-
-    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-        return jsonify({'error': 'Invalid email format'}), 400
-
-    user = User.query.filter(func.lower(User.email) == email.lower()).first()
-
-    if user:
-        if user.trial_used:
-            return jsonify({
-                'success': False,
-                'error': 'Trial already used for this email. Subscribe to continue.',
-                'trial_expired': True
-            }), 400
-
-        login_user(user, remember=True)
-        session.permanent = True
-        session['user_id'] = user.id
-        session['session_token'] = user.session_token
-
-        if not is_ios and not user.is_premium:
-            checkout_url = _create_trial_checkout_url(user)
-            if checkout_url:
-                return jsonify({'success': True, 'needs_checkout': True, 'checkout_url': checkout_url})
-
-        return jsonify({
-            'success': True,
-            'user': serialize_user(user),
-        })
-
-    if not password or len(password) < 6:
-        return jsonify({'error': 'Password required (6+ characters)'}), 400
-
-    user = User()
-    user.id = str(uuid.uuid4())
-    user.email = email
-    user.first_name = email.split('@')[0]
-    user.set_password(password)
-    user.is_premium = False
-    user.subscription_status = 'free'
-    user.email_verified = True
-
-    db.session.add(user)
-    db.session.commit()
-    login_user(user, remember=True)
-    session.permanent = True
-    session['user_id'] = user.id
-    session['session_token'] = user.session_token
-
-    if not is_ios:
-        checkout_url = _create_trial_checkout_url(user)
-        if checkout_url:
-            return jsonify({'success': True, 'needs_checkout': True, 'checkout_url': checkout_url})
-
-    return jsonify({
-        'success': True,
-        'user': {
-            'id': user.id,
-            'email': user.email,
-            'is_premium': True,
-            'subscription_status': 'trial',
-            'trial_ends': user.trial_ends.isoformat(),
-            'message': 'Welcome! Your account is active. Explore SharpPicks Pro.'
-        }
-    })
 
 @app.route('/api/auth/check-trial')
 def check_trial():

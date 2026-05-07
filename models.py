@@ -319,6 +319,17 @@ class ProcessedEvent(db.Model):
     processed_at = db.Column(db.DateTime, default=datetime.now)
 
 
+class OAuthNonce(db.Model):
+    # Short-lived bridge between an OAuth callback (handled by one gunicorn
+    # worker) and the SPA poll that exchanges the nonce for a Bearer token
+    # (which can land on a different worker). Process-local dicts can't
+    # cross workers; this table can. Rows are TTL-pruned on every write.
+    __tablename__ = 'oauth_nonces'
+    nonce = db.Column(db.String, primary_key=True)
+    token = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, index=True)
+
+
 class FCMToken(db.Model):
     __tablename__ = 'fcm_tokens'
     id = db.Column(db.Integer, primary_key=True)
