@@ -370,9 +370,13 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
               return d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true }) + ' ET';
             } catch { return null; }
           })();
+          // Routes via ProfileTab subscreen='resolution', which renders
+          // ResolutionScreen with the pick — that component routes
+          // result==='revoked' picks to WithdrawnDetailScreen.
+          // (See ProfileTab.jsx:51 + ResolutionScreen.jsx:19-21.)
           return (
             <div
-              onClick={onNavigate ? () => onNavigate('resolution', pick) : undefined}
+              onClick={onNavigate ? () => onNavigate('profile', 'resolution', { screenData: pick }) : undefined}
               style={{
                 padding: '10px 12px', borderRadius: '5px', marginBottom: '12px',
                 border: `1px solid rgba(79, 134, 247, 0.22)`,
