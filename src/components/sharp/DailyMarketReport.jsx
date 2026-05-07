@@ -186,7 +186,8 @@ export default function DailyMarketReport({ report: reportProp }) {
             background: 'linear-gradient(90deg, rgba(196, 134, 138, 0.3) 0%, rgba(245, 158, 11, 0.3) 50%, rgba(90, 158, 114, 0.3) 100%)',
           }}>
             <div style={{
-              position: 'absolute', top: '-3px', left: `${Math.max(0, Math.min(100, meiCurrent))}%`,
+              position: 'absolute', top: '-3px',
+              left: `${Math.max(2, Math.min(98, meiCurrent))}%`,
               width: '4px', height: '12px', background: SP.green, borderRadius: '2px',
               transform: 'translateX(-50%)',
             }} />
@@ -284,8 +285,11 @@ export default function DailyMarketReport({ report: reportProp }) {
             borderRadius: '12px', overflow: 'hidden', marginBottom: '12px',
           }}>
             {lmGames.map((g, i) => {
-              const significant = (g.movement || 0) >= 20;
+              const isML = lmType === 'moneyline';
+              const movement = Number(g.movement) || 0;
               const direction = g.direction;
+              const isFlat = direction === 'flat' || direction === 'none' || !direction;
+              const significant = isML ? movement >= 20 : movement >= 1.5;
               const tint = direction === 'away' ? SP.redSoft : direction === 'toward' ? SP.green : null;
               const moveColor = direction === 'toward' ? SP.green : direction === 'away' ? SP.redSoft : SP.text4;
               const deltaColor = direction === 'toward'
@@ -293,6 +297,8 @@ export default function DailyMarketReport({ report: reportProp }) {
                 : direction === 'away'
                   ? 'rgba(196, 134, 138, 0.6)'
                   : SP.text3;
+              const unit = isML ? '¢' : 'pts';
+              const showOpenClose = isML && g.ml_open != null && g.ml_now != null;
               return (
                 <div
                   key={i}
@@ -316,14 +322,12 @@ export default function DailyMarketReport({ report: reportProp }) {
                     fontFamily: SP.fontMono, fontSize: '11px',
                     textAlign: 'right', whiteSpace: 'nowrap', color: moveColor,
                   }}>
-                    {direction === 'none' || !direction
+                    {isFlat
                       ? <span style={{ color: SP.text4 }}>No movement</span>
                       : <>
-                          {g.ml_open != null && g.ml_now != null
-                            ? <>{g.ml_open > 0 ? '+' : ''}{g.ml_open} → {g.ml_now > 0 ? '+' : ''}{g.ml_now}</>
-                            : null}
-                          <span style={{ display: 'block', fontSize: '10px', color: deltaColor, marginTop: '2px', letterSpacing: '0.02em' }}>
-                            {Math.round(g.movement || 0)}¢ {direction}{significant ? (g.movement >= 100 ? ' · large move' : ' · sharp move') : ''}
+                          {showOpenClose ? <>{g.ml_open > 0 ? '+' : ''}{g.ml_open} → {g.ml_now > 0 ? '+' : ''}{g.ml_now}</> : null}
+                          <span style={{ display: showOpenClose ? 'block' : 'inline', fontSize: showOpenClose ? '10px' : '11px', color: showOpenClose ? deltaColor : moveColor, marginTop: showOpenClose ? '2px' : 0, letterSpacing: '0.02em' }}>
+                            {isML ? Math.round(movement) : movement.toFixed(1)}{unit} {direction}{significant ? (isML && movement >= 100 ? ' · large move' : ' · sharp move') : ''}
                           </span>
                         </>
                     }
