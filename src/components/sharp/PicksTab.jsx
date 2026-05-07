@@ -567,7 +567,7 @@ export default function PicksTab({ onNavigate }) {
             {/* ── LAST NIGHT'S READ (post-midnight) section header ── */}
             {postMidnightNight && (
               <div style={{
-                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 500,
+                fontFamily: "'JetBrains Mono', 'Menlo', ui-monospace, monospace", fontSize: '10px', fontWeight: 500,
                 letterSpacing: '0.24em', textTransform: 'uppercase', color: '#5A9E72',
                 padding: '4px 4px 12px',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
@@ -596,7 +596,7 @@ export default function PicksTab({ onNavigate }) {
             {postMidnightNight && insightsData?.insights && (
               <>
                 <div style={{
-                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 500,
+                  fontFamily: "'JetBrains Mono', 'Menlo', ui-monospace, monospace", fontSize: '10px', fontWeight: 500,
                   letterSpacing: '0.24em', textTransform: 'uppercase', color: '#5A9E72',
                   padding: '4px 4px 12px',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
@@ -944,6 +944,13 @@ export default function PicksTab({ onNavigate }) {
               );
             })()}
 
+            {/* ── KEEP EXPLORING + Push opt-in + Legacy While You Wait stack
+                ── all suppressed during postMidnight; v4.3 hero + Last
+                night's read + Today's read + Tomorrow's slate replace this
+                content. Same-day evening (sameDayNight) keeps these
+                cards as-is. */}
+            {!postMidnightNight && (<>
+
             {/* ── KEEP EXPLORING (engagement CTAs for overnight users) ── */}
             <div style={{
               fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
@@ -1171,6 +1178,7 @@ export default function PicksTab({ onNavigate }) {
                 </>
               );
             })()}
+            </>)}
 
             {/* ── NIGHTLY RECAP CTA (Phase 7 home redesign) ──
                 "Last night's read" links to the Sharp Journal evening
