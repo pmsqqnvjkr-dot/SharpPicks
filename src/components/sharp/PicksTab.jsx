@@ -1596,31 +1596,102 @@ function RevokedPassCard({ pick, onViewDetails }) {
   const sideLabel = !pick.side ? 'Signal' : (pick.line != null && pick.side.includes(String(Math.abs(pick.line)))
     ? pick.side
     : `${pick.side}${pick.line != null ? ` ${pick.line > 0 ? '+' : ''}${pick.line}` : ''}`);
+  const sportLabel = (pick.sport || 'mlb').toUpperCase();
+  const isCalibration = pick?.model_phase === 'calibration';
+  const matchup = pick?.away_team && pick?.home_team
+    ? `${pick.away_team} @ ${pick.home_team}`
+    : (pick?.matchup || 'Matchup unavailable');
+  const sizeUnits = pick?.position_size_pct != null
+    ? `${(Number(pick.position_size_pct) / 100).toFixed(1)}u`
+    : null;
+
+  const fmtTime = (iso) => {
+    if (!iso) return null;
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return null;
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true,
+      }).formatToParts(d);
+      const h = parts.find((p) => p.type === 'hour')?.value || '';
+      const m = parts.find((p) => p.type === 'minute')?.value || '';
+      const a = (parts.find((p) => p.type === 'dayPeriod')?.value || '').toUpperCase();
+      return `${h}:${m} ${a} ET`;
+    } catch { return null; }
+  };
+
+  const firedTime = fmtTime(pick?.published_at);
+  const withdrawnTime = fmtTime(pick?.result_resolved_at);
+  const firstPitchTime = fmtTime(pick?.start_time);
+
   return (
     <div onClick={onViewDetails} style={{
-      background: '#0F1424',
-      border: '1px solid rgba(142,154,175,0.15)',
-      borderLeft: '3px solid #7A8494',
-      borderRadius: '10px',
-      padding: '12px 16px',
-      marginBottom: '14px',
+      background: 'var(--sp-surface, #121725)',
+      border: '1px solid rgba(255, 255, 255, 0.08)',
+      borderRadius: '14px',
+      padding: '22px 22px 20px',
+      marginBottom: '22px',
       cursor: 'pointer',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-        <svg viewBox="0 0 24 24" width="16" height="16" stroke="#7A8494" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494', marginBottom: '2px' }}>Signal Withdrawn</div>
-          <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '13px', fontWeight: 600, color: '#E8ECF4', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {sideLabel} <span style={{ color: '#7A8494', fontWeight: 400, fontSize: '11px' }}>&middot; {pick.away_team} @ {pick.home_team}</span>
-          </div>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center',
+          padding: '4px 10px', border: '1px solid #F59E0B', borderRadius: '4px',
+          fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+          fontSize: '9px', fontWeight: 500, letterSpacing: '0.2em', textTransform: 'uppercase',
+          color: '#F59E0B',
+        }}>
+          {sportLabel}{isCalibration ? ' · Calibration' : ''}
+        </span>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: '5px',
+          padding: '4px 10px',
+          border: '1px solid rgba(79, 134, 247, 0.3)',
+          background: 'rgba(79, 134, 247, 0.12)',
+          borderRadius: '4px',
+          fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+          fontSize: '9px', fontWeight: 500, letterSpacing: '0.2em', textTransform: 'uppercase',
+          color: '#4F86F7',
+        }}>
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#4F86F7' }} />
+          Withdrawn
+        </span>
       </div>
-      <svg viewBox="0 0 24 24" width="14" height="14" stroke="#7A8494" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginLeft: 8 }}>
-        <polyline points="9 18 15 12 9 6"/>
-      </svg>
+      <h2 style={{
+        fontFamily: '"IBM Plex Serif", Georgia, serif',
+        fontSize: '22px', fontWeight: 600, color: '#E8EAED',
+        lineHeight: 1.25, marginBottom: '6px', margin: 0,
+      }}>{matchup}</h2>
+      <div style={{
+        fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+        fontSize: '13px', color: 'rgba(232, 234, 237, 0.7)',
+        marginTop: '6px', marginBottom: '14px', letterSpacing: '0.04em',
+      }}>
+        Original signal: <span style={{ color: '#E8EAED', fontWeight: 500 }}>{sideLabel}</span>
+        {sizeUnits ? ` · ${sizeUnits}` : ''}
+      </div>
+      <div style={{
+        display: 'flex', paddingTop: '14px',
+        borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+      }}>
+        {[
+          { label: 'Signal Fired', value: firedTime || '—' },
+          { label: 'Withdrawn', value: withdrawnTime || '—' },
+          { label: 'First Pitch', value: firstPitchTime || '—' },
+        ].map((cell) => (
+          <div key={cell.label} style={{ flex: 1, textAlign: 'left' }}>
+            <div style={{
+              fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+              fontSize: '9px', letterSpacing: '0.22em', textTransform: 'uppercase',
+              color: 'rgba(232, 234, 237, 0.35)', marginBottom: '4px',
+            }}>{cell.label}</div>
+            <div style={{
+              fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+              fontSize: '12px', color: '#E8EAED', letterSpacing: '0.04em',
+            }}>{cell.value}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

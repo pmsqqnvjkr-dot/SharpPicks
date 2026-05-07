@@ -377,6 +377,7 @@ def today():
             'home_score': pick.home_score,
             'away_score': pick.away_score,
             'published_at': (pick.published_at.isoformat() + 'Z') if pick.published_at else None,
+            'result_resolved_at': (pick.result_resolved_at.isoformat() + 'Z') if pick.result_resolved_at else None,
             'posted_time': '2h before tip',
             'best_book': pick.sportsbook or 'DraftKings',
             'stake_guidance': stake,

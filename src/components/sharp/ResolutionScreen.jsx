@@ -254,7 +254,7 @@ function WithdrawnDetailScreen({ pick, onBack }) {
     : (pick?.matchup || 'Matchup unavailable');
 
   const sizeUnits = pick?.position_size_pct != null
-    ? `${Number(pick.position_size_pct).toFixed(1)}u`
+    ? `${(Number(pick.position_size_pct) / 100).toFixed(1)}u`
     : null;
 
   const firedTime = fmtTimeET(pick?.published_at);
