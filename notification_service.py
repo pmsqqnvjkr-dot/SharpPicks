@@ -54,25 +54,18 @@ def send_pick_notification(pick):
     if not send_push_to_all:
         return False
     try:
-        from sport_config import get_sport_config
+        from lib.notifications.sport_labels import sport_label
         edge = round(pick.edge_pct, 1) if pick.edge_pct is not None else 0
         confidence = pick.model_confidence or 0
         rating = "STRONG" if confidence >= 0.60 else "LEAN"
         sport = getattr(pick, 'sport', 'nba') or 'nba'
-        cfg = get_sport_config(sport)
-        phase = cfg.get('model_phase', 'deployment')
+        tag = sport_label(sport)
 
-        if phase == 'calibration':
-            sport_tag = cfg.get('name', sport.upper())
-            title = f"{rating} {sport_tag} Pick \u00b7 {edge}% Edge"
-            body = f"{pick.side} ({_abbr(pick.away_team)} @ {_abbr(pick.home_team)}). {confidence * 100:.0f}% confidence."
-        else:
-            title = f"{rating} Pick \u00b7 {edge}% Edge"
-            body = f"{pick.side} ({_abbr(pick.away_team)} @ {_abbr(pick.home_team)}). {confidence * 100:.0f}% confidence."
+        title = f"{tag} \u00b7 {rating} Pick \u00b7 {edge}% Edge"
+        body = f"{pick.side} ({_abbr(pick.away_team)} @ {_abbr(pick.home_team)}). {confidence * 100:.0f}% confidence."
         data = {'type': 'pick', 'pick_id': str(pick.id), 'sport': sport}
 
-        sport_label = cfg.get('name', sport.upper())
-        free_title = f"{sport_label} Signal Published"
+        free_title = f"{tag} \u00b7 Signal Published"
         free_body = "A qualifying signal was found today. Upgrade to Pro to see the full pick."
         free_data = {'type': 'pick', 'sport': sport}
 
@@ -91,18 +84,15 @@ def send_pass_notification(pass_entry):
         return False
     try:
         from sport_config import get_sport_config
+        from lib.notifications.sport_labels import sport_label
         games_analyzed = pass_entry.games_analyzed or 0
         closest_edge = getattr(pass_entry, 'closest_edge_pct', None)
         sport = getattr(pass_entry, 'sport', 'nba') or 'nba'
         cfg = get_sport_config(sport)
-        phase = cfg.get('model_phase', 'deployment')
         threshold = cfg.get('edge_threshold_pct', 3.5)
+        tag = sport_label(sport)
 
-        if phase == 'calibration':
-            sport_tag = cfg.get('name', sport.upper())
-            title = f"Pass Day \u00b7 {sport_tag} \u00b7 No Qualifying Edge"
-        else:
-            title = "Pass Day \u00b7 No Qualifying Edge"
+        title = f"{tag} \u00b7 Pass Day \u00b7 No Qualifying Edge"
 
         if closest_edge and closest_edge > 0:
             body = f"{games_analyzed} games analyzed. Closest edge: {closest_edge:.1f}% (need {threshold}%+)."

@@ -174,7 +174,7 @@ def dispatch_result_emails(pick):
         return 0
 
 
-def dispatch_no_signal_emails(games_analyzed=0, edges_detected=0, efficiency=0):
+def dispatch_no_signal_emails(games_analyzed=0, edges_detected=0, efficiency=0, sport='nba'):
     """Send no-signal email to all eligible premium users."""
     try:
         from email_service import send_no_signal_email
@@ -182,11 +182,11 @@ def dispatch_no_signal_emails(games_analyzed=0, edges_detected=0, efficiency=0):
         sent = 0
         for user_id, email, first_name in recipients:
             try:
-                if send_no_signal_email(email, games_analyzed, edges_detected, efficiency):
+                if send_no_signal_email(email, games_analyzed, edges_detected, efficiency, sport=sport):
                     sent += 1
             except Exception as e:
                 logging.error(f"No-signal email to {email} failed: {e}")
-        logging.info(f"No-signal emails dispatched: {sent}/{len(recipients)}")
+        logging.info(f"No-signal emails dispatched ({sport}): {sent}/{len(recipients)}")
         return sent
     except Exception as e:
         logging.error(f"dispatch_no_signal_emails failed: {e}")

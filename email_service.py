@@ -461,6 +461,10 @@ def send_signal_email(to, pick):
     market_prob_raw = float(d.get('implied_prob', 0) if d else (pick.implied_prob or 0))
     margin = d.get('predicted_margin') if d else getattr(pick, 'predicted_margin', None)
     sportsbook = (d.get('sportsbook', 'DraftKings') if d else (pick.sportsbook or 'DraftKings'))
+    sport = (d.get('sport') if d else getattr(pick, 'sport', None)) or 'nba'
+
+    from lib.notifications.sport_labels import sport_label
+    sport_tag = sport_label(sport)
 
     home_team = (d.get('home_team', '') if d else getattr(pick, 'home_team', ''))
     away_team = (d.get('away_team', '') if d else getattr(pick, 'away_team', ''))
@@ -497,6 +501,7 @@ def send_signal_email(to, pick):
         'edge_strength': get_edge_strength(edge),
         'signal_date': now_et.strftime('%b %d, %Y').upper(),
         'signal_time': now_et.strftime('%-I:%M %p EST'),
+        'sport_label': sport_tag,
         'app_url': f'{base}/',
         'unsubscribe_url': _make_unsub_url(to, 'email_signals'),
     })
@@ -522,7 +527,7 @@ def send_signal_email(to, pick):
             to_email=to, unsub_category='email_signals',
             show_store_badge=True,
         )
-    return send_email(to, f'SharpPicks: {side} Signal', html)
+    return send_email(to, f'SharpPicks: {sport_tag} · {side} Signal', html)
 
 
 def send_free_signal_email(to, sport='nba', first_name=None):
@@ -530,22 +535,23 @@ def send_free_signal_email(to, sport='nba', first_name=None):
     if not check_email_pref(to, 'email_signals'):
         return False
     base = get_base_url()
-    sport_label = sport.upper() if sport else 'NBA'
+    from lib.notifications.sport_labels import sport_label as _sport_label
+    sport_tag = _sport_label(sport) or 'NBA'
     greeting = f'{first_name}, a' if first_name else 'A'
     body = f'''
         <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0 0 16px;">
-          {greeting} qualifying {sport_label} signal was published today. The model found an edge above threshold.
+          {greeting} qualifying {sport_tag} signal was published today. The model found an edge above threshold.
         </p>
         <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
           Upgrade to Pro to see the full pick, edge analysis, and track outcomes.
         </p>'''
     html = _base_template(
-        f'{sport_label} SIGNAL PUBLISHED', body,
+        f'{sport_tag} SIGNAL PUBLISHED', body,
         cta_text='UPGRADE TO PRO', cta_url=f'{base}/?view=signup',
         to_email=to, unsub_category='email_signals',
         show_store_badge=True,
     )
-    return send_email(to, f'SharpPicks: {sport_label} signal published today', html)
+    return send_email(to, f'SharpPicks: {sport_tag} · Signal published today', html)
 
 
 # ── 10. Signal Result ──
@@ -838,14 +844,16 @@ def send_founding_member_email(to, member_number=None, total=100, joined_date=No
 
 # ── 13. Daily Market Scan Complete (No Signal) ──
 
-def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0):
+def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0, sport='nba'):
     if not check_email_pref(to, 'email_marketing'):
         logging.info(f"Skipping no-signal email to {to} — unsubscribed")
         return False
     base = get_base_url()
     from datetime import datetime as _dt
     from zoneinfo import ZoneInfo as _ZI
+    from lib.notifications.sport_labels import sport_label
     now_et = _dt.now(_ZI('America/New_York'))
+    sport_tag = sport_label(sport) or 'NBA'
 
     ctx = _get_shared_email_context()
     s_wins = ctx.get('season_record_wins', 0)
@@ -873,6 +881,7 @@ def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0):
         'season_roi': s_roi,
         'pass_days': pass_count,
         'signal_date': now_et.strftime('%b %d, %Y').upper(),
+        'sport_label': sport_tag,
         'app_url': f'{base}/',
         'unsubscribe_url': _make_unsub_url(to, 'email_marketing'),
     })
@@ -899,7 +908,7 @@ def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0):
             cta_text='VIEW MARKET REPORT', cta_url=f'{base}/',
             to_email=to, unsub_category='email_marketing',
         )
-    return send_email(to, 'SharpPicks: Market scan complete \u00b7 No qualifying signal', html)
+    return send_email(to, f'SharpPicks: {sport_tag} \u00b7 Market scan complete \u00b7 No qualifying signal', html)
 
 
 # ── Legacy: Welcome email (preserving for backward compat) ──

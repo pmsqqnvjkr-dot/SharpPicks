@@ -5406,8 +5406,9 @@ def _send_consolidated_model_notification(results, live_sports):
     if not parts:
         return
 
+    from lib.notifications.sport_labels import sport_label as _sport_label
     if has_pick and len(parts) == 1:
-        title = f"New Signal \u00b7 {get_sport_config(pick_sport).get('name', pick_sport.upper())}"
+        title = f"{_sport_label(pick_sport)} \u00b7 New Signal"
         edge = pick_result.get('edge', 0)
         body = f"{pick_result.get('side', 'Pick available')} \u00b7 {edge}% edge. Open to view."
         data = {'type': 'pick', 'pick_id': str(pick_result.get('pick_id', '')), 'sport': pick_sport}
@@ -5416,7 +5417,11 @@ def _send_consolidated_model_notification(results, live_sports):
         body = ' | '.join(parts)
         data = {'type': 'pick', 'pick_id': str(pick_result.get('pick_id', '')), 'sport': pick_sport}
     else:
-        title = "No Edge Today"
+        pass_sports = [s for s in live_sports if results.get(s, {}).get('status') == 'pass']
+        if len(pass_sports) == 1:
+            title = f"{_sport_label(pass_sports[0])} \u00b7 No Edge Today"
+        else:
+            title = "No Edge Today"
         all_pass_parts = []
         for sport in live_sports:
             r = results.get(sport, {})
@@ -5431,9 +5436,8 @@ def _send_consolidated_model_notification(results, live_sports):
     try:
         free_kw = {}
         if has_pick:
-            sport_name = get_sport_config(pick_sport).get('name', pick_sport.upper())
             free_kw = {
-                'free_title': f'{sport_name} Signal Published',
+                'free_title': f'{_sport_label(pick_sport)} · Signal Published',
                 'free_body': 'A qualifying signal was found today. Upgrade to Pro to see the full pick.',
                 'free_data': {'type': 'pick', 'sport': pick_sport},
             }
@@ -5461,6 +5465,7 @@ def _send_consolidated_model_notification(results, live_sports):
                     games_analyzed=r.get('games_analyzed', 0),
                     edges_detected=0,
                     efficiency=100,
+                    sport=sport,
                 )
         except Exception:
             pass

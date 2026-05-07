@@ -726,6 +726,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                                 games_analyzed=diag['games_with_spreads'],
                                 edges_detected=0,
                                 efficiency=100,
+                                sport=sport,
                             )
                         except Exception as email_err:
                             import logging
@@ -971,6 +972,7 @@ def run_model_and_log(app, sport='nba', force=False, date_override=None, send_no
                             games_analyzed=len(predictions),
                             edges_detected=n_edges,
                             efficiency=eff,
+                            sport=sport,
                         )
                     except Exception as email_err:
                         import logging

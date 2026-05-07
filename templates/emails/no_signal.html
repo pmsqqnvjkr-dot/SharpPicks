@@ -30,10 +30,15 @@
           <tr>
             <td class="inner-pad" style="padding:24px 28px 0;">
 
-              {# Badge #}
+              {# Badge + sport pill #}
               <div style="display:inline-block;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;padding:6px 14px;border-radius:4px;letter-spacing:0.15em;text-transform:uppercase;background-color:rgba(232,234,237,0.08);color:rgba(232,234,237,0.5);">
                 NO SIGNAL
               </div>
+              {% if sport_label %}
+              <div style="display:inline-block;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;padding:6px 14px;border-radius:4px;letter-spacing:0.15em;text-transform:uppercase;background-color:rgba(232,234,237,0.06);color:rgba(232,234,237,0.7);margin-left:6px;">
+                {{ sport_label }}
+              </div>
+              {% endif %}
 
               {# Hero number #}
               <div style="text-align:center;padding:28px 0 4px;">
