@@ -203,10 +203,10 @@ export default function WNBAPreLaunchScreen({ onNavigate }) {
           paddingTop: '14px', borderTop: `1px solid ${SP.border2}`,
         }}>
           {[
-            ['12:00 PM ET', 'Day’s reads publish (model run)'],
+            ['Morning ET', 'Day’s reads publish (model run)'],
             ['7:00 PM ET', 'Aces vs Mercury tipoff'],
             ['As edges fire', 'Real-time signal alerts'],
-            ['11:30 PM ET', 'Closing line audit on every signal'],
+            ['Late night ET', 'Closing line audit on every signal'],
           ].map(([time, event]) => (
             <div key={time} style={{
               display: 'grid', gridTemplateColumns: '110px 1fr', gap: '12px',
