@@ -519,11 +519,6 @@ export default function WNBAPreLaunchScreen() {
         >
           {busy ? 'Enabling…' : pushEnabled ? '✓ Signal alerts enabled' : 'Turn on signal alerts'}
         </button>
-        <div style={{
-          marginTop: '12px', fontFamily: SP.fontMono, fontSize: '10px',
-          letterSpacing: '0.18em', textTransform: 'uppercase', color: SP.text4,
-          textAlign: 'center',
-        }}>Already enabled for NBA and MLB</div>
       </div>
 
       {/* Footer principle */}
