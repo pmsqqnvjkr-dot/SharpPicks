@@ -634,6 +634,11 @@ export default function PicksTab({ onNavigate }) {
                   clv={ydClv}
                   clvLabel={settledClv != null ? 'CLV vs close' : 'Avg CLV (season)'}
                   dateIso={yesterdayDate}
+                  sport={sport}
+                  // Card click opens the Sharp Journal evening edition URL
+                  // by default. The fallback onClick keeps the prior in-app
+                  // resolution-screen open for callers that pass it
+                  // explicitly without a journalUrl override.
                   onClick={nightRecapPick ? () => { setResolutionPick(nightRecapPick); setShowResolution(true); } : undefined}
                 />
               );

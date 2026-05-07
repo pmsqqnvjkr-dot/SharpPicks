@@ -2,12 +2,17 @@
 // home view. Editorial format (eyebrow / serif title / excerpt / 3-stat row /
 // date + Read → CTA) matching the May 2026 Midnight State mockup.
 //
+// Tap routes to the actual Sharp Journal evening edition rendered by the
+// Flask app at /market-report/<date>/evening?sport=<sport> — opened in an
+// in-app browser on Capacitor or a new tab on web.
+//
 // Pulls from already-fetched home data:
 //   pick: nightRecapPick (yesterday's signal) — used for matchup, edge,
 //         clv, profit_units, result
 //   gamesScanned: total games yesterday (data.games_analyzed equivalent)
 //   signalsIssued: 0 or 1 derived from pick presence + non-revoked
-//   onClick: opens the resolution detail screen for the pick
+//   sport: sport key for the evening-edition URL query param
+//   journalUrl (optional): override the default evening-edition URL
 
 const SP = {
   surface: '#121725',
@@ -38,6 +43,8 @@ function fmtDateShort(iso) {
 
 export default function LastNightsReadCard({
   pick, gamesScanned, signalsIssued, dateIso, onClick,
+  sport = 'nba',
+  journalUrl,  // override; defaults to /market-report/<date>/evening?sport=<sport>
   // clv: numeric value (null when no source available). PicksTab passes
   //   either the night's single-pick CLV (graded W/L/Push) or the season
   //   aggregate from /api/public/stats?sport=X so the cell always shows
@@ -93,7 +100,37 @@ export default function LastNightsReadCard({
   const clvColor = clvNum == null ? SP.text3 : clvNum > 0 ? SP.green : clvNum < 0 ? SP.redSoft : SP.text2;
   const clvCellLabel = clvLabel || 'CLV vs close';
 
-  const isClickable = typeof onClick === 'function' && !!pick;
+  // Build the Sharp Journal evening-edition URL from the date the recap is
+  // showing. The Flask app renders at /market-report/<date>/evening; we
+  // open this URL via the Capacitor in-app browser on iOS, or a new tab
+  // on web. Falls back to the onClick callback for legacy callers (e.g.
+  // routing to ResolutionScreen) when no journalUrl can be built.
+  const computedJournalUrl = (() => {
+    if (journalUrl) return journalUrl;
+    if (!dateIso) return null;
+    // dateIso may be 'YYYY-MM-DD' or full ISO; we want just the date.
+    const ymd = String(dateIso).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+    const sportParam = encodeURIComponent(String(sport || 'nba').toLowerCase());
+    return `https://app.sharppicks.ai/market-report/${ymd}/evening?sport=${sportParam}`;
+  })();
+
+  const handleOpenJournal = async () => {
+    if (computedJournalUrl) {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({ url: computedJournalUrl });
+          return;
+        }
+      } catch { /* fall through to web open */ }
+      try { window.open(computedJournalUrl, '_blank', 'noopener,noreferrer'); return; } catch { /* swallow */ }
+    }
+    if (typeof onClick === 'function') onClick();
+  };
+
+  const isClickable = !!computedJournalUrl || (typeof onClick === 'function' && !!pick);
 
   return (
     <div style={{
@@ -105,10 +142,10 @@ export default function LastNightsReadCard({
       cursor: isClickable ? 'pointer' : 'default',
       fontFamily: SP.fontSans,
     }}
-      onClick={isClickable ? onClick : undefined}
+      onClick={isClickable ? handleOpenJournal : undefined}
       role={isClickable ? 'button' : undefined}
       tabIndex={isClickable ? 0 : undefined}
-      onKeyDown={isClickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      onKeyDown={isClickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenJournal(); } } : undefined}
     >
       <div style={{
         display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '14px',
