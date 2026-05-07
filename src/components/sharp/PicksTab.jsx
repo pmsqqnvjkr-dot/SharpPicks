@@ -1358,53 +1358,90 @@ export default function PicksTab({ onNavigate }) {
         {/* ═══════════════ STATE 1: PRE-MODEL ═══════════════ */}
         {pageState === 'pre-model' && (
           <>
-            {/* Model Status Banner */}
+            {/* Model Status Banner — v4.3 surface + top-edge green gradient
+                accent, canonical token text colors, serif countdown value
+                so the focal number reads with the same weight pattern as
+                MidnightHero. */}
             <div style={{
-              background: '#111e33',
-              border: '0.5px solid #1e3050',
-              borderLeft: '3px solid #5A9E72',
-              borderRadius: '10px',
-              padding: '16px 18px',
+              position: 'relative',
+              background: '#121725',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '22px 22px 20px',
               marginBottom: '16px',
+              overflow: 'hidden',
             }}>
+              <div aria-hidden style={{
+                position: 'absolute', top: 0, left: 20, right: 20, height: '2px',
+                background: 'linear-gradient(90deg, transparent, #5A9E72 20%, #5A9E72 80%, transparent)',
+                opacity: 0.7,
+              }} />
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
-                letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: '#5A9E72', marginBottom: '6px',
-              }}>MODEL RUNS AT {modelRunLabel}</div>
+                fontFamily: "'JetBrains Mono', 'Menlo', ui-monospace, monospace",
+                fontSize: '10px', fontWeight: 500,
+                letterSpacing: '0.22em', textTransform: 'uppercase',
+                color: '#5A9E72', marginBottom: '10px',
+              }}>Model runs at {modelRunLabel}</div>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '24px', fontWeight: 600,
-                color: '#c8cdd4', marginBottom: '8px',
+                fontFamily: "'IBM Plex Serif', Georgia, serif",
+                fontSize: '32px', fontWeight: 600, lineHeight: 1, letterSpacing: '-0.01em',
+                color: '#E8EAED', marginBottom: '12px',
               }}>{countdown}</div>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '11px',
-                color: '#6b7a8d', lineHeight: 1.5,
+                fontFamily: "'Inter', -apple-system, sans-serif",
+                fontSize: '13px', lineHeight: 1.55,
+                color: 'rgba(232, 234, 237, 0.7)',
               }}>Lines are live from 6 books. Edges publish after the run.</div>
             </div>
 
-            {/* MI Card — pending state */}
-            <div style={{
-              padding: '12px 16px', marginBottom: '16px',
-              background: '#111e33', border: '0.5px solid #1e3050',
-              borderRadius: '10px',
-              display: 'flex', alignItems: 'center', gap: '10px',
-            }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: 6,
-                background: 'rgba(122,132,148,0.1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A8494" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/>
-                </svg>
-              </div>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#E8ECF4' }}>Market Intelligence</div>
-                <div style={{ fontSize: '11px', color: '#7A8494', marginTop: '1px' }}>
-                  {totalGames > 0 ? `${totalGames} games on today's slate` : "Today's slate"} &middot; Analysis pending
+            {/* MI Card — pending state, matches the pick-day MI card surface
+                + token set so the home flow doesn't visually swap surfaces
+                across pageStates. */}
+            <button
+              onClick={() => setMiExpanded(!isMiExpanded)}
+              style={{
+                width: '100%',
+                padding: '14px 16px', marginBottom: '16px',
+                background: '#121725',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+                fontFamily: 'inherit', textAlign: 'left',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 7,
+                  background: 'rgba(79, 134, 247, 0.1)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4F86F7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/>
+                  </svg>
+                </div>
+                <div>
+                  <div style={{
+                    fontFamily: "'IBM Plex Serif', Georgia, serif",
+                    fontSize: '14px', color: '#E8EAED',
+                  }}>Market Intelligence</div>
+                  <div style={{
+                    fontFamily: "'JetBrains Mono', 'Menlo', ui-monospace, monospace",
+                    fontSize: '11px', color: 'rgba(232, 234, 237, 0.5)',
+                    letterSpacing: '0.04em', marginTop: '2px',
+                  }}>
+                    {totalGames > 0 ? `${totalGames} games on today's slate` : "Today's slate"} &middot; Analysis pending
+                  </div>
                 </div>
               </div>
-            </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232, 234, 237, 0.35)" strokeWidth="2" style={{ transform: isMiExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            {isMiExpanded && (
+              <div style={{ marginBottom: '16px' }}>
+                <DailyMarketReport report={marketReport} />
+              </div>
+            )}
 
             {/* Section: TODAY'S SLATE */}
             {totalGames > 0 && (
