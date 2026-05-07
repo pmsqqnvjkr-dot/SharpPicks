@@ -831,6 +831,24 @@ def seed_database():
                 db.session.rollback()
                 logging.warning(f"Column migration note: {e}")
 
+            # Backfill for invoice.paid handler that used to flip $0 trial-start
+            # invoices to subscription_status='active'. Idempotent — once a user's
+            # trial_end_date passes, they fall out of the WHERE clause.
+            try:
+                result = db.session.execute(db.text(
+                    "UPDATE users SET subscription_status = 'trial' "
+                    "WHERE subscription_status = 'active' "
+                    "AND trial_end_date IS NOT NULL "
+                    "AND trial_end_date > NOW() "
+                    "AND trial_converted_at IS NULL"
+                ))
+                if result.rowcount:
+                    logging.info(f"Trial-status backfill: corrected {result.rowcount} mislabeled users")
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                logging.warning(f"Trial-status backfill note: {e}")
+
             # One-time: dedup FCM tokens so each user keeps only the most recent
             # token per platform (fixes Safari + PWA double-notification).
             try:
@@ -7119,13 +7137,20 @@ def stripe_webhook():
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
-                    # If this is the first paid invoice after a trial,
-                    # record the conversion timestamp. Idempotent.
-                    was_trial = user.subscription_status == 'trial'
-                    if was_trial and user.trial_converted_at is None:
-                        user.trial_converted_at = datetime.utcnow()
-                    user.subscription_status = 'active'
-                    user.is_premium = True
+                    # Stripe fires invoice.paid for the $0 invoice that opens
+                    # a trial. If we treat that as a real payment we'd flip
+                    # the user from 'trial' -> 'active' on day one and the
+                    # admin dashboard renders them as paid. Only flip status
+                    # when actual money moved. The 'subscription.created/
+                    # updated' handlers above keep status='trial' until the
+                    # trial actually ends.
+                    amount_paid = _safe_get(data_obj, 'amount_paid', 0) or 0
+                    if amount_paid > 0:
+                        was_trial = user.subscription_status == 'trial'
+                        if was_trial and user.trial_converted_at is None:
+                            user.trial_converted_at = datetime.utcnow()
+                        user.subscription_status = 'active'
+                        user.is_premium = True
                     lines_obj = _safe_get(data_obj, 'lines', {})
                     lines = _safe_get(lines_obj, 'data', []) if lines_obj else []
                     for line in lines:
@@ -7135,7 +7160,7 @@ def stripe_webhook():
                             user.current_period_end = datetime.fromtimestamp(period_end)
                             break
                     db.session.commit()
-                    logging.info(f'Invoice paid for user {user.email}')
+                    logging.info(f'Invoice paid for user {user.email} (amount_paid={amount_paid})')
 
         elif event_type == 'invoice.payment_failed':
             cust_id = _safe_get(data_obj, 'customer')

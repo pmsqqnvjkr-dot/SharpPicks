@@ -109,6 +109,13 @@ def _fetch_raw() -> dict:
     new_subs_24h = 0
     new_subs_7d = 0
     new_subs_30d = 0
+    # Split by current sub status. Most newly-created Stripe subs are in
+    # 'trialing' (we route web checkouts through a trial); a non-trial
+    # sub means the customer paid a real invoice immediately.
+    new_trial_subs_24h = 0
+    new_paid_subs_24h = 0
+    new_trial_subs_7d = 0
+    new_paid_subs_7d = 0
     canceled_30d = 0
     # Cancel-state breakdowns (Phase 3 audit fix).
     trials_with_cancel_scheduled = 0
@@ -212,8 +219,16 @@ def _fetch_raw() -> dict:
 
         if created >= window_24h_ts:
             new_subs_24h += 1
+            if status == 'trialing':
+                new_trial_subs_24h += 1
+            elif status == 'active':
+                new_paid_subs_24h += 1
         if created >= window_7d_ts:
             new_subs_7d += 1
+            if status == 'trialing':
+                new_trial_subs_7d += 1
+            elif status == 'active':
+                new_paid_subs_7d += 1
         if created >= window_30d_ts:
             new_subs_30d += 1
         if canceled_at and canceled_at >= window_30d_ts:
@@ -347,6 +362,10 @@ def _fetch_raw() -> dict:
         'new_subs_24h': new_subs_24h,
         'new_subs_7d': new_subs_7d,
         'new_subs_30d': new_subs_30d,
+        'new_trial_subs_24h': new_trial_subs_24h,
+        'new_paid_subs_24h': new_paid_subs_24h,
+        'new_trial_subs_7d': new_trial_subs_7d,
+        'new_paid_subs_7d': new_paid_subs_7d,
         'canceled_30d': canceled_30d,
         # Cancel-state breakdowns
         'trials_with_cancel_scheduled': trials_with_cancel_scheduled,

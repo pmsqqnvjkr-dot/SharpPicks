@@ -598,17 +598,31 @@ function bindLiveData(metrics) {
   if (stripeTrials != null) setStat('Trials in flight', SP_FMT.num(stripeTrials));
 
   // -- What Moved: bind every row with real data. Sources cross-cut
-  // multiple metrics envelopes; some rows (DAU, Logins 24h) come in via
-  // bindUsersActivity which fires after this on page load.
-  const newSubs24h = (metrics.stripe?.payload?.new_subs_24h ?? 0) + (metrics.revenuecat?.payload?.new_subs_24h ?? 0);
-  const newSubs7d = (metrics.stripe?.payload?.new_subs_7d || 0) + (metrics.revenuecat?.payload?.new_subs_7d || 0);
-  const newSubs7dAvg = newSubs7d / 7.0;
-  const newSubsDelta = newSubs24h - newSubs7dAvg;
-  const newSubsDeltaText = Math.abs(newSubsDelta) < 0.5
-    ? 'on track'
-    : (newSubsDelta > 0 ? `+${Math.round(newSubsDelta)} vs avg` : `${Math.round(newSubsDelta)} vs avg`);
-  const newSubsDeltaClass = newSubsDelta > 0 ? 'up' : (newSubsDelta < 0 ? 'down' : '');
-  setMovedRow('New subscribers today', SP_FMT.num(newSubs24h), newSubsDeltaText, newSubsDeltaClass);
+  // multiple metrics envelopes; some rows (DAU, Logins 24h, Free
+  // signups today) come in via bindUsersActivity which fires after
+  // this on page load.
+  // Stripe split: trialing-status subs vs active-status subs created
+  // in the last 24h. RC's new_subs_24h is iOS IAP paid (no trial split
+  // exposed yet) so it's lumped into "Paid signups today".
+  const newTrialSubs24h = metrics.stripe?.payload?.new_trial_subs_24h ?? 0;
+  const newPaidSubs24h  = (metrics.stripe?.payload?.new_paid_subs_24h ?? 0) + (metrics.revenuecat?.payload?.new_subs_24h ?? 0);
+  const newTrialSubs7d  = metrics.stripe?.payload?.new_trial_subs_7d ?? 0;
+  const newPaidSubs7d   = (metrics.stripe?.payload?.new_paid_subs_7d  ?? 0) + (metrics.revenuecat?.payload?.new_subs_7d  ?? 0);
+
+  const _movedDelta = (today, sevenDayTotal) => {
+    const avg = sevenDayTotal / 7.0;
+    const d = today - avg;
+    const text = Math.abs(d) < 0.5
+      ? 'on track'
+      : (d > 0 ? `+${Math.round(d)} vs avg` : `${Math.round(d)} vs avg`);
+    const cls = d > 0 ? 'up' : (d < 0 ? 'down' : '');
+    return { text, cls };
+  };
+
+  const trialDelta = _movedDelta(newTrialSubs24h, newTrialSubs7d);
+  setMovedRow('Trials started today', SP_FMT.num(newTrialSubs24h), trialDelta.text, trialDelta.cls);
+  const paidDelta = _movedDelta(newPaidSubs24h, newPaidSubs7d);
+  setMovedRow('Paid signups today', SP_FMT.num(newPaidSubs24h), paidDelta.text, paidDelta.cls);
 
   // Failed payments — segmented by user. The headline number is
   // distinct USERS with failed payments 7d; we annotate with the total
@@ -1063,6 +1077,18 @@ function bindUsersActivity(data) {
       : (lPct > 0 ? `+${lPct}% vs avg` : `${lPct}% vs avg`);
     const lClass = lPct > 0 ? 'up' : (lPct < 0 ? 'down' : '');
     setMovedRow('Logins last 24h', SP_FMT.num(s.logins_24h), lText, lClass);
+  }
+
+  // Free signups today — counted server-side as users.subscription_status='free'
+  // created in the last 24h. Lives here (not in bindLiveData) because it
+  // comes from the /users/activity endpoint, not the /metrics envelope.
+  if (s.free_signups_24h != null && s.free_signups_7d_avg != null) {
+    const fDelta = s.free_signups_24h - s.free_signups_7d_avg;
+    const fText = Math.abs(fDelta) < 0.5
+      ? 'on track'
+      : (fDelta > 0 ? `+${Math.round(fDelta)} vs avg` : `${Math.round(fDelta)} vs avg`);
+    const fClass = fDelta > 0 ? 'up' : (fDelta < 0 ? 'down' : '');
+    setMovedRow('Free signups today', SP_FMT.num(s.free_signups_24h), fText, fClass);
   }
 
   // Login Frequency tier counts — labels match: "Power (15+)",

@@ -110,6 +110,24 @@ def _snapshot(now: datetime) -> dict:
         User.created_at >= cutoff_7d,
     ).scalar() or 0
 
+    # Free-tier signups: never started a trial, never paid. Used by the
+    # admin "what moved" Free / Trial / Paid breakdown so the operator
+    # can see whether top-of-funnel growth is from free signups vs
+    # checkout-paid trials vs direct paid.
+    free_signups_24h = db.session.query(func.count(User.id)).filter(
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+        User.created_at >= cutoff_24h,
+        User.subscription_status == 'free',
+    ).scalar() or 0
+
+    free_signups_7d = db.session.query(func.count(User.id)).filter(
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+        User.created_at >= cutoff_7d,
+        User.subscription_status == 'free',
+    ).scalar() or 0
+
     # logins_24h: total ACTIVE_EVENT_TYPE events in the last 24h (not
     # distinct users; that's dau). Used by the dashboard "what moved"
     # section to give a sense of session volume even if few people came
@@ -139,6 +157,9 @@ def _snapshot(now: datetime) -> dict:
         'total_registered': total_registered,
         'stickiness_pct': stickiness_pct,
         'new_7d': new_7d,
+        'free_signups_24h': free_signups_24h,
+        'free_signups_7d': free_signups_7d,
+        'free_signups_7d_avg': round(free_signups_7d / 7.0, 1),
         'logins_24h': logins_24h,
         'logins_7d_avg': round(logins_7d / 7.0, 1),
         'dau_7d_avg': round(wau / 7.0, 1),
