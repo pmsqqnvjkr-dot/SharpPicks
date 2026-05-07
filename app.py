@@ -5533,16 +5533,15 @@ def cron_run_model():
         # schedule.
         sports_with_own_cron = {'mlb'}
         run_sports = [s for s in live if s not in sports_with_own_cron]
+        # Per-sport synchronous push notifications. send_notifications=True
+        # makes run_model_and_log fire send_pick_notification(pick) inline
+        # for any sport that publishes a pick, matching MLB's reliable
+        # synchronous path. Previously NBA ran with send_notifications=False
+        # and relied on a nested daemon thread for a "consolidated" push,
+        # which got killed by Gunicorn worker recycles / Railway SIGTERMs
+        # — surface area was "only got MLB pushes today, not NBA".
         for sport in run_sports:
-            results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override, send_notifications=False)
-
-        # Single consolidated push notification for all sports (with timeout)
-        import threading
-        notif_thread = threading.Thread(target=_send_consolidated_model_notification, args=(results, run_sports))
-        notif_thread.start()
-        notif_thread.join(timeout=60)
-        if notif_thread.is_alive():
-            logging.warning("[cron] Consolidated notification still running after 60s — continuing without waiting")
+            results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override, send_notifications=True)
 
         # Generate market note insight for each live sport (no push)
         today_str = date_override or _get_et_today()
