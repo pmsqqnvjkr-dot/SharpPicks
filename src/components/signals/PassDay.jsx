@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DailyMarketReport from '../sharp/DailyMarketReport';
 
 // v4.3 Pass Day. Consolidated single-card hero replaces the seven-card
 // stack of the previous design (HeroCard + CapitalCard + SharpPrinciple +
@@ -84,8 +85,8 @@ export default function PassDay({
   marketReport,
   furtherReading,
   furtherReadings,
-  onOpenMarketReport,
 }) {
+  const [miExpanded, setMiExpanded] = useState(false);
   const articles = (furtherReadings && furtherReadings.length > 0)
     ? furtherReadings
     : (furtherReading ? [furtherReading] : FALLBACK_ARTICLES);
@@ -274,9 +275,10 @@ export default function PassDay({
       <SectionEyebrow title="Market Intelligence" meta={miUpdated ? `UPDATED ${miUpdated.toUpperCase()}` : null} />
 
       <div
-        onClick={onOpenMarketReport}
-        role={onOpenMarketReport ? 'button' : undefined}
-        tabIndex={onOpenMarketReport ? 0 : undefined}
+        onClick={() => setMiExpanded((v) => !v)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={miExpanded}
         style={{
           background: 'var(--sp-surface, #121725)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -285,10 +287,10 @@ export default function PassDay({
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          marginBottom: '22px',
+          marginBottom: miExpanded ? '12px' : '22px',
           position: 'relative',
           overflow: 'hidden',
-          cursor: onOpenMarketReport ? 'pointer' : 'default',
+          cursor: 'pointer',
         }}>
         <div style={{
           position: 'absolute',
@@ -334,11 +336,22 @@ export default function PassDay({
         <svg
           width="18" height="18" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2"
-          style={{ color: 'var(--sp-text-4, rgba(232, 234, 237, 0.35))', flexShrink: 0 }}
+          style={{
+            color: 'var(--sp-text-4, rgba(232, 234, 237, 0.35))',
+            flexShrink: 0,
+            transform: miExpanded ? 'rotate(90deg)' : 'none',
+            transition: 'transform 0.2s',
+          }}
         >
           <path d="M9 18l6-6-6-6" />
         </svg>
       </div>
+
+      {miExpanded && (
+        <div style={{ marginBottom: '22px' }}>
+          <DailyMarketReport report={marketReport} />
+        </div>
+      )}
 
       {article && (
         <>
