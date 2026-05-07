@@ -813,7 +813,21 @@ export default function PicksTab({ onNavigate }) {
                 games={tomorrowGames}
                 sport={sport}
                 publishTimeLabel={modelRunLabel}
-                onViewAll={() => onNavigate && onNavigate('picks')}
+                onViewAll={() => {
+                  // Expand the inline Market Intelligence card and scroll
+                  // to it — same pattern the DTS Sharp Journal cross-link
+                  // uses, so View all gives the full slate context without
+                  // leaving the home tab.
+                  setMiExpanded(true);
+                  try {
+                    requestAnimationFrame(() => {
+                      const el = document.getElementById('mi-card');
+                      if (el && typeof el.scrollIntoView === 'function') {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    });
+                  } catch { /* swallow */ }
+                }}
               />
             )}
 
@@ -1385,6 +1399,7 @@ export default function PicksTab({ onNavigate }) {
           <>
             {/* MI Card — collapsed/expandable (always visible on pick day) */}
             <button
+              id="mi-card"
               onClick={() => setMiExpanded(!isMiExpanded)}
               style={{
                 width: '100%', padding: '14px 16px', marginBottom: '16px',

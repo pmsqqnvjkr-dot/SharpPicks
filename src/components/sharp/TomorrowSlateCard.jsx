@@ -4,6 +4,9 @@
 //
 // Pure presentational; PicksTab supplies the games array (already
 // fetched in the night-mode useEffect) and the publish-time label.
+// The "View all" button toggles in-place expansion to show all games.
+
+import { useState } from 'react';
 
 const SP = {
   surface: '#121725',
@@ -37,10 +40,16 @@ function fmtTimeET(timeStr) {
 }
 
 export default function TomorrowSlateCard({ games, sport = 'nba', publishTimeLabel, onViewAll }) {
+  const [expanded, setExpanded] = useState(false);
   const sportLabel = (sport || 'nba').toUpperCase();
   const total = games?.length || 0;
-  const previewGames = (games || []).slice(0, 5);
+  const previewCount = expanded ? total : 5;
+  const previewGames = (games || []).slice(0, previewCount);
   const remaining = Math.max(0, total - previewGames.length);
+  const handleToggle = () => {
+    setExpanded((v) => !v);
+    if (typeof onViewAll === 'function') onViewAll();
+  };
 
   return (
     <div style={{ marginBottom: '22px' }}>
@@ -104,7 +113,7 @@ export default function TomorrowSlateCard({ games, sport = 'nba', publishTimeLab
               })}
             </div>
 
-            {(remaining > 0 || onViewAll) && (
+            {total > 5 && (
               <div style={{
                 marginTop: '14px', paddingTop: '14px',
                 borderTop: `1px solid ${SP.border2}`,
@@ -114,19 +123,17 @@ export default function TomorrowSlateCard({ games, sport = 'nba', publishTimeLab
                   fontFamily: SP.fontMono, fontSize: '10px', color: SP.text4,
                   letterSpacing: '0.16em', textTransform: 'uppercase',
                 }}>
-                  {remaining > 0 ? `+ ${remaining} more` : 'Full slate'}
+                  {expanded ? 'Full slate' : `+ ${remaining} more`}
                 </span>
-                {onViewAll && (
-                  <button
-                    onClick={onViewAll}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
-                      letterSpacing: '0.16em', textTransform: 'uppercase',
-                      color: SP.green, padding: 0,
-                    }}
-                  >View all →</button>
-                )}
+                <button
+                  onClick={handleToggle}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
+                    letterSpacing: '0.16em', textTransform: 'uppercase',
+                    color: SP.green, padding: 0,
+                  }}
+                >{expanded ? 'Show less ↑' : 'View all →'}</button>
               </div>
             )}
           </>
