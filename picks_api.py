@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, Pick, Pass, ModelRun, UserBet, TrackedBet, WatchedGame
+from models import db, Pick, Pass, ModelRun, UserBet, TrackedBet, WatchedGame, EdgeSnapshot
 from datetime import datetime, timedelta, timezone
 from sport_config import get_sport_config, get_phase_label
 from db_path import get_sqlite_path
@@ -319,6 +319,19 @@ def today():
                 else:
                     model_signals.append(s)
 
+        # Edge at recheck: pulled from the pre_tip EdgeSnapshot row written
+        # by model_service.pretip_revalidate at the moment of the re-check.
+        # Surfaces the actual edge value at withdrawal time on revoked picks.
+        edge_at_close = None
+        try:
+            snap = EdgeSnapshot.query.filter_by(
+                pick_id=pick.id, snapshot_label='pre_tip'
+            ).order_by(EdgeSnapshot.created_at.desc()).first()
+            if snap:
+                edge_at_close = round(snap.edge_pct, 1)
+        except Exception:
+            pass
+
         # Model vs Market: market_line = spread we're betting at; model_projection = model's fair spread
         market_line = round(pick.line, 1) if pick.line is not None else None
         if pick.predicted_margin is not None:
@@ -354,6 +367,7 @@ def today():
             'side': pick.side,
             'line': pick.line,
             'edge_pct': pick.edge_pct,
+            'edge_at_close': edge_at_close,
             'model_confidence': pick.model_confidence,
             'predicted_margin': pick.predicted_margin,
             'sigma': pick.sigma,
@@ -392,6 +406,7 @@ def today():
             pick_data['side'] = 'Upgrade to see pick'
             pick_data['line'] = None
             pick_data['edge_pct'] = None
+            pick_data['edge_at_close'] = None
             pick_data['model_confidence'] = None
             pick_data['predicted_margin'] = None
             pick_data['sigma'] = None
@@ -783,9 +798,20 @@ def get_pick(pick_id):
     actual_odds = pick.market_odds or -110
     stake = calculate_stake_guidance(pick.edge_pct or 0, pick.model_confidence or 0.5, actual_odds)
 
+    edge_at_close = None
+    try:
+        snap = EdgeSnapshot.query.filter_by(
+            pick_id=pick.id, snapshot_label='pre_tip'
+        ).order_by(EdgeSnapshot.created_at.desc()).first()
+        if snap:
+            edge_at_close = round(snap.edge_pct, 1)
+    except Exception:
+        pass
+
     return jsonify({
         'id': pick.id,
         'published_at': (pick.published_at.isoformat() + 'Z') if pick.published_at else None,
+        'result_resolved_at': (pick.result_resolved_at.isoformat() + 'Z') if pick.result_resolved_at else None,
         'sport': pick.sport,
         'away_team': pick.away_team,
         'home_team': pick.home_team,
@@ -796,6 +822,7 @@ def get_pick(pick_id):
         'line_open': pick.line_open,
         'line_close': pick.line_close,
         'edge_pct': pick.edge_pct,
+        'edge_at_close': edge_at_close,
         'model_confidence': pick.model_confidence,
         'predicted_margin': pick.predicted_margin,
         'cover_prob': pick.cover_prob,

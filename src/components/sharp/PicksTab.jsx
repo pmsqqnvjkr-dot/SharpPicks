@@ -624,7 +624,7 @@ export default function PicksTab({ onNavigate }) {
               const revokedPick = isRevokedRecap ? todayData
                 : (isPostMidnightRevoked ? nightRecapPick : null);
               const gamesCount = todayData?.games_analyzed || totalGames || 0;
-              const thresholdLabel = sport === 'mlb' ? '+3.5%' : '+8.0%';
+              const thresholdLabel = sport === 'wnba' ? '+4.5%' : '+3.5%';
               const bodyText = gamesCount > 0
                 ? `Analyzed ${gamesCount} games. None cleared the ${thresholdLabel} edge threshold.`
                 : 'Model analysis complete. No qualifying edge above threshold.';
@@ -637,8 +637,8 @@ export default function PicksTab({ onNavigate }) {
                 <div
                   onClick={revokedPick ? () => { setResolutionPick(revokedPick); setShowResolution(true); } : undefined}
                   style={{
-                    background: '#111e33', border: '0.5px solid #1e3050',
-                    borderLeft: '3px solid #6b7a8d',
+                    background: '#121725', border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderLeft: '3px solid rgba(90, 158, 114, 0.4)',
                     borderRadius: 8, padding: 12, marginBottom: 12,
                     cursor: revokedPick ? 'pointer' : 'default',
                   }}
@@ -649,31 +649,31 @@ export default function PicksTab({ onNavigate }) {
                   }}>CAPITAL PRESERVED</div>
                   <div style={{
                     fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600,
-                    color: '#E8ECF4', marginBottom: 6,
+                    color: '#E8EAED', marginBottom: 6,
                   }}>No signals cleared the threshold.</div>
                   <div style={{
                     fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '12px',
-                    color: '#9aa5b4', lineHeight: 1.6,
+                    color: 'rgba(232, 234, 237, 0.7)', lineHeight: 1.6,
                   }}>{bodyText}</div>
 
                   {revokedPick && (
                     <>
-                      <div style={{ borderTop: '0.5px solid rgba(30,48,80,0.5)', margin: '12px 0' }}></div>
+                      <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', margin: '12px 0' }}></div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{
                           fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
                           letterSpacing: '0.06em', textTransform: 'uppercase',
                           padding: '3px 8px', borderRadius: 4,
-                          background: 'rgba(79, 134, 247, 0.10)', color: '#7AA0E5',
+                          background: 'rgba(79, 134, 247, 0.12)', color: '#4F86F7',
                         }}>Withdrawn</span>
                         <div style={{
-                          fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '13px', color: '#E8ECF4',
+                          fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '13px', color: '#E8EAED',
                           display: 'flex', alignItems: 'baseline', gap: 6, flex: 1, minWidth: 0,
                         }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {revokedPick.side || 'Signal'}
                           </span>
-                          {lineStr && <span style={{ color: '#7A8494', fontSize: '12px' }}>{lineStr}</span>}
+                          {lineStr && <span style={{ color: 'rgba(232, 234, 237, 0.5)', fontSize: '12px' }}>{lineStr}</span>}
                         </div>
                       </div>
                       {revokedPick.edge_pct != null && (
@@ -681,7 +681,7 @@ export default function PicksTab({ onNavigate }) {
                           <span style={{
                             fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px',
                             padding: '3px 8px', borderRadius: 4,
-                            background: 'rgba(30,48,80,0.4)', color: '#9aa5b4',
+                            background: 'rgba(255, 255, 255, 0.04)', color: 'rgba(232, 234, 237, 0.7)',
                           }}>Edge at entry +{Number(revokedPick.edge_pct).toFixed(1)}%</span>
                         </div>
                       )}

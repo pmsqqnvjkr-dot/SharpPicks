@@ -66,6 +66,7 @@
 .sj-te-status-pill.win { background: rgba(90, 158, 114, 0.15); border-color: rgba(90, 158, 114, 0.3); color: var(--sj-green); }
 .sj-te-status-pill.loss { background: rgba(196, 104, 107, 0.12); border-color: rgba(196, 104, 107, 0.3); color: var(--sj-red-soft); }
 .sj-te-status-pill.push { background: rgba(255, 255, 255, 0.05); color: var(--sj-text-2); }
+.sj-te-status-pill.withdrawn { background: rgba(107, 142, 194, 0.10); border-color: rgba(107, 142, 194, 0.28); color: var(--sj-blue); }
 .sj-te-outcome { border-left: 2px solid rgba(90, 158, 114, 0.5); padding: 2px 0 2px 12px; margin-top: 10px; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.6; color: var(--sj-text-2); }
 .sj-edge-map { background: var(--sj-surface); border: 1px solid var(--sj-border); border-radius: 8px; padding: 14px 12px 12px; margin-bottom: 12px; }
 .sj-em-list { display: flex; flex-direction: column; gap: 9px; margin-top: 6px; }
@@ -233,6 +234,8 @@
     <span class="sj-te-status-pill loss">Loss &middot; {{ '%.1f'|format(data.signal.units_won or 0) }}u</span>
     {% elif data.signal.outcome == 'Push' %}
     <span class="sj-te-status-pill push">Push &middot; 0.0u</span>
+    {% elif data.signal.outcome == 'Withdrawn' %}
+    <span class="sj-te-status-pill withdrawn">Withdrawn &middot; 0.0u</span>
     {% else %}
     <span class="sj-te-status-pill">Pending</span>
     {% endif %}
@@ -246,6 +249,8 @@
       Signal cleared. The model's read held against close.
       {% elif data.signal.outcome == 'L' %}
       Variance is the cost of doing business. CLV held against close.
+      {% elif data.signal.outcome == 'Withdrawn' %}
+      Pre-tip validation pulled the signal before first pitch. Capital preserved.
       {% endif %}
     </div>
     {% endif %}

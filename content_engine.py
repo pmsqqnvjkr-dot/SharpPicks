@@ -724,6 +724,10 @@ def _enrich_with_evening_fields(data, date_str, sport):
     from sqlalchemy import and_
 
     # ---- per-Pick aggregates: net_units, signals_record, clv_held ----
+    # Revoked picks are excluded from W/L/Push tallies (a withdrawal is not a
+    # graded outcome), but we keep them in `revoked_lookup` so the evening
+    # report can surface "Withdrawn" status on data.signal instead of falsely
+    # rendering it as "Pending" forever.
     try:
         picks = Pick.query.filter(
             Pick.sport == sport,
@@ -732,6 +736,15 @@ def _enrich_with_evening_fields(data, date_str, sport):
         ).all()
     except Exception:
         picks = []
+
+    try:
+        revoked_picks = Pick.query.filter(
+            Pick.sport == sport,
+            Pick.game_date == date_str,
+            Pick.result == 'revoked',
+        ).all()
+    except Exception:
+        revoked_picks = []
 
     wins = sum(1 for p in picks if (p.result or '').lower() == 'win')
     losses = sum(1 for p in picks if (p.result or '').lower() == 'loss')
@@ -745,6 +758,7 @@ def _enrich_with_evening_fields(data, date_str, sport):
     data['signals_record'] = f"{wins}-{losses}-{pushes}"
     data['clv_held'] = clv_held
     data['picks_pending'] = pending_picks
+    data['signals_withdrawn'] = len(revoked_picks)
 
     # ---- per-game final_score lookup from sport-specific games table ----
     # Resolve both sides of the join to canonical abbreviations so naming
@@ -828,12 +842,33 @@ def _enrich_with_evening_fields(data, date_str, sport):
                 g['signal_units_won'] = None
 
     # ---- enrich data.signal with outcome + closing line + clv ----
+    revoked_lookup = {}
+    for rp in revoked_picks:
+        a_abbr = _resolve_team_abbr(rp.away_team, sport)
+        h_abbr = _resolve_team_abbr(rp.home_team, sport)
+        revoked_lookup[(a_abbr, h_abbr)] = rp
+
     sig = data.get('signal')
     if sig:
         away_abbr = sig.get('away_team', '')
         home_abbr = sig.get('home_team', '')
         p = pick_lookup.get((away_abbr, home_abbr))
-        if p:
+        rp = revoked_lookup.get((away_abbr, home_abbr))
+        if rp and not p:
+            withdraw_reason = None
+            if rp.notes:
+                for s in rp.notes.split('|'):
+                    s = s.strip()
+                    if s.startswith('REVOKED:'):
+                        withdraw_reason = s[len('REVOKED:'):].strip()
+                        break
+            sig['outcome'] = 'Withdrawn'
+            sig['units_won'] = 0.0
+            sig['closing_line'] = rp.closing_spread if rp.closing_spread is not None else rp.line
+            sig['clv'] = rp.clv
+            sig['withdraw_reason'] = withdraw_reason
+            sig['final_score'] = None
+        elif p:
             outcome = (p.result or '').lower()
             sig['outcome'] = (
                 'W' if outcome == 'win'
