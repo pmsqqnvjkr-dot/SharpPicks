@@ -301,39 +301,104 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
           )}
         </div>
 
-        {/* Settled banner */}
-        {settled && (
-          <div style={{
-            padding: '8px 10px', borderRadius: '5px', textAlign: 'center',
-            marginBottom: '12px',
-            border: `1px solid ${pick.result === 'win' ? 'rgba(90,158,114,0.25)' : pick.result === 'push' ? borderColor : 'rgba(139,111,112,0.22)'}`,
-            background: pick.result === 'win' ? 'rgba(90,158,114,0.08)' : pick.result === 'push' ? 'rgba(255,255,255,0.03)' : 'rgba(139,111,112,0.08)',
-          }}>
-            <span style={{
-              fontFamily: mono, fontSize: '13px', fontWeight: 600,
-              color: pick.result === 'win' ? green : pick.result === 'push' ? textSec : '#8B6F70',
-            }}>
-              {pick.result === 'win' ? `Win ${pick.pnl != null ? `+${pick.pnl}u` : ''}` : pick.result === 'push' ? 'Push · 0.0u' : `Loss ${pick.pnl != null ? `${pick.pnl}u` : ''}`}
-            </span>
-          </div>
-        )}
-
-        {/* Revoked banner */}
-        {isRevoked && (
-          <div style={{
-            padding: '8px 10px', borderRadius: '5px', marginBottom: '12px',
-            border: '1px solid rgba(245,158,11,0.2)', background: 'rgba(245,158,11,0.04)',
-          }}>
+        {/* Settled banner: result pill + final score + cover margin.
+            Final score and cover margin both pulled from the API payload
+            so the home-screen recap matches what the WithdrawnDetailScreen
+            and the share/og card already render. */}
+        {settled && (() => {
+          const isWin = pick.result === 'win';
+          const isPush = pick.result === 'push';
+          const isLoss = pick.result === 'loss';
+          const pnlNum = pick.pnl != null ? Number(pick.pnl) : (pick.profit_units != null ? Number(pick.profit_units) : null);
+          const pnlLabel = pnlNum != null
+            ? `${pnlNum >= 0 ? '+' : ''}${Math.abs(pnlNum) < 10 ? pnlNum.toFixed(1) : pnlNum.toFixed(0)}u`
+            : (isPush ? '0.0u' : '');
+          const hasScore = pick.home_score != null && pick.away_score != null;
+          const coverMargin = (() => {
+            if (!hasScore || pick.line == null) return null;
+            const sLow = (pick.side || '').toLowerCase();
+            const homeKey = ((pick.home_team || '').split(' ').pop() || '').toLowerCase();
+            const isHome = homeKey && sLow.includes(homeKey);
+            const m = isHome
+              ? (pick.home_score - pick.away_score) + Number(pick.line)
+              : (pick.away_score - pick.home_score) + Number(pick.line);
+            return m;
+          })();
+          return (
             <div style={{
-              fontFamily: mono, fontSize: '10px', fontWeight: 600,
-              color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.5px',
-              marginBottom: '3px',
-            }}>Signal Withdrawn</div>
-            <div style={{ fontFamily: sans, fontSize: '11px', color: textSec }}>
-              {pick.withdraw_reason || 'Edge shifted before tip-off.'}
+              padding: '10px 12px', borderRadius: '5px',
+              marginBottom: '12px',
+              border: `1px solid ${isWin ? 'rgba(90,158,114,0.25)' : isPush ? borderColor : 'rgba(139,111,112,0.22)'}`,
+              background: isWin ? 'rgba(90,158,114,0.08)' : isPush ? 'rgba(255,255,255,0.03)' : 'rgba(139,111,112,0.08)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{
+                  fontFamily: mono, fontSize: '13px', fontWeight: 600,
+                  color: isWin ? green : isPush ? textSec : '#8B6F70',
+                }}>
+                  {isWin ? `Win ${pnlLabel}` : isPush ? 'Push · 0.0u' : `Loss ${pnlLabel}`}
+                </span>
+                {hasScore && (
+                  <span style={{
+                    fontFamily: mono, fontSize: '12px', fontWeight: 500, color: textSec,
+                  }}>{pick.away_team_abbr || pick.away_team} {pick.away_score} – {pick.home_score} {pick.home_team_abbr || pick.home_team}</span>
+                )}
+              </div>
+              {coverMargin != null && !isPush && (
+                <div style={{
+                  fontFamily: mono, fontSize: '10px', color: textDim, marginTop: 4,
+                }}>Cover by {Math.abs(coverMargin).toFixed(1)}</div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
+
+        {/* Revoked banner: aligned with WithdrawnDetailScreen (slate-blue,
+            not amber) and now surfaces edge_at_fire / edge_at_recheck plus
+            the withdrawal timestamp from the new picks_api wiring. Tappable
+            to open the full WithdrawnDetailScreen via onNavigate. */}
+        {isRevoked && (() => {
+          const slateBlue = '#4F86F7';
+          const edgeAtFire = pick.edge_pct != null ? `+${Number(pick.edge_pct).toFixed(1)}%` : '—';
+          const edgeAtRecheck = pick.edge_at_close != null ? `+${Number(pick.edge_at_close).toFixed(1)}%` : '—';
+          const withdrawnAt = (() => {
+            const ts = pick.result_resolved_at;
+            if (!ts) return null;
+            try {
+              const d = new Date(ts);
+              if (Number.isNaN(d.getTime())) return null;
+              return d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true }) + ' ET';
+            } catch { return null; }
+          })();
+          return (
+            <div
+              onClick={onNavigate ? () => onNavigate('resolution', pick) : undefined}
+              style={{
+                padding: '10px 12px', borderRadius: '5px', marginBottom: '12px',
+                border: `1px solid rgba(79, 134, 247, 0.22)`,
+                background: 'rgba(79, 134, 247, 0.06)',
+                cursor: onNavigate ? 'pointer' : 'default',
+              }}
+            >
+              <div style={{
+                fontFamily: mono, fontSize: '10px', fontWeight: 600,
+                color: slateBlue, textTransform: 'uppercase', letterSpacing: '0.5px',
+                marginBottom: '4px',
+              }}>Signal Withdrawn{withdrawnAt ? ` · ${withdrawnAt}` : ''}</div>
+              <div style={{ fontFamily: sans, fontSize: '11px', color: textSec, marginBottom: '8px' }}>
+                {pick.withdraw_reason || 'Edge shifted before tip-off.'}
+              </div>
+              <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: mono, fontSize: '10px', color: textDim }}>
+                  Edge at fire <span style={{ color: green }}>{edgeAtFire}</span>
+                </span>
+                <span style={{ fontFamily: mono, fontSize: '10px', color: textDim }}>
+                  Edge at recheck <span style={{ color: textSec }}>{edgeAtRecheck}</span>
+                </span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 4-column stat grid */}
         {!isRevoked && (

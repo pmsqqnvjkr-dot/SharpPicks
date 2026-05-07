@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
+import teamAbbr from '../../utils/teamAbbr';
+import sportDisplay from '../../utils/sportDisplay';
 
 // v4.3 Daily Top Signal card. Pro-only render path. Replaces the older
 // PickCard for the home pick-day slot. Source: docs mockup approved
@@ -107,7 +109,7 @@ function fmtSide(side, line) {
   return { team: side, line: line != null ? fmtSpread(line) : null };
 }
 
-export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, marketReport }) {
+export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, marketReport, liveScore }) {
   const [tracking, setTracking] = useState(false);
   const [tracked, setTracked] = useState(false);
   const [trackedBetId, setTrackedBetId] = useState(null);
@@ -311,6 +313,10 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
             {countdown}
           </div>
         )}
+
+        {liveScore && (liveScore.state === 'STATUS_IN_PROGRESS' || liveScore.state === 'STATUS_HALFTIME' || liveScore.state === 'STATUS_FINAL') && (
+          <DtsLiveBlock liveScore={liveScore} pick={pick} />
+        )}
       </div>
 
       <div style={{
@@ -426,11 +432,9 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
             <span style={{
               fontFamily: SP.fontMono, fontSize: '10px',
               letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
-            }}>Playability</span>
-            <span style={{ fontFamily: SP.fontMono, fontSize: '11px', color: SP.text3, letterSpacing: '0.04em' }}>
-              <span style={{ color: SP.green }}>{fmtSpread(playTarget)} target</span>
-              {' · '}
-              <span style={{ color: SP.text2 }}>{fmtSpread(playFloor)} floor</span>
+            }}>Value</span>
+            <span style={{ fontFamily: SP.fontMono, fontSize: '11px', color: SP.text2, letterSpacing: '0.04em' }}>
+              Playable down to <span style={{ color: SP.green }}>{fmtSpread(playableTo)}</span>
             </span>
           </div>
           <div style={{
@@ -587,6 +591,101 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
             ? `Tracking · ${teamName?.split(' ').slice(-1)[0] || ''} ${lineText || ''}${flatLabel ? ` · ${flatLabel}` : ''}`
             : `Track this signal${flatLabel ? ` · ${flatLabel}` : ''}`}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function DtsLiveBlock({ liveScore, pick }) {
+  const isFinal = liveScore.state === 'STATUS_FINAL';
+  const isLive = !isFinal;
+  const cfg = sportDisplay(pick?.sport);
+  const periodDisplay = cfg.periodLabel(liveScore.period);
+  const clockDisplay = cfg.showClock ? (liveScore.clock || '') : '';
+  const awayShort = teamAbbr(pick?.away_team) || '—';
+  const homeShort = teamAbbr(pick?.home_team) || '—';
+
+  return (
+    <div style={{ marginTop: '14px' }}>
+      <style>{`@keyframes dtsLivePulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 12px', borderRadius: '8px',
+        background: isLive ? 'rgba(90,158,114,0.06)' : 'rgba(255,255,255,0.03)',
+        border: isLive ? '1px solid rgba(90,158,114,0.2)' : '1px solid rgba(255,255,255,0.08)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isLive && (
+            <span style={{
+              width: 6, height: 6, borderRadius: '50%', background: '#5A9E72',
+              display: 'inline-block', animation: 'dtsLivePulse 2s ease-in-out infinite',
+            }} />
+          )}
+          <span style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '11px', fontWeight: 600,
+            color: isLive ? '#5A9E72' : 'rgba(232, 234, 237, 0.5)',
+            textTransform: 'uppercase', letterSpacing: '0.08em',
+          }}>{isLive ? `${periodDisplay}${clockDisplay ? ` · ${clockDisplay}` : ''}` : 'Final'}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'JetBrains Mono', monospace" }}>
+          <span style={{ fontSize: 11, color: 'rgba(232, 234, 237, 0.5)' }}>{awayShort}</span>
+          <span style={{ fontSize: 16, fontWeight: 600, color: '#E8EAED' }}>{liveScore.away_score ?? '—'}</span>
+          <span style={{ fontSize: 11, color: 'rgba(232, 234, 237, 0.35)', margin: '0 4px' }}>·</span>
+          <span style={{ fontSize: 11, color: 'rgba(232, 234, 237, 0.5)' }}>{homeShort}</span>
+          <span style={{ fontSize: 16, fontWeight: 600, color: '#E8EAED' }}>{liveScore.home_score ?? '—'}</span>
+        </div>
+      </div>
+      {isLive && pick?.line != null && pick?.side && (
+        <DtsCoverTracker pick={pick} liveScore={liveScore} />
+      )}
+    </div>
+  );
+}
+
+function DtsCoverTracker({ pick, liveScore }) {
+  const spread = parseFloat(pick.line);
+  if (!Number.isFinite(spread)) return null;
+  const sideStr = pick.side || '';
+  const homeKey = ((pick.home_team || '').split(' ').pop() || '').toLowerCase();
+  const isHomeSide = homeKey ? sideStr.toLowerCase().includes(homeKey) : false;
+
+  const signalScore = isHomeSide ? (liveScore.home_score || 0) : (liveScore.away_score || 0);
+  const oppScore = isHomeSide ? (liveScore.away_score || 0) : (liveScore.home_score || 0);
+  const adjustedMargin = (signalScore - oppScore) + spread;
+  const covering = adjustedMargin > 0;
+  const marginAbs = Math.abs(adjustedMargin).toFixed(1);
+  const statusColor = covering ? '#5A9E72' : '#C4868A';
+  const sideTeamName = sideStr.match(/^(.*?)(\s[+-]?\d+)/)?.[1] || sideStr.split(' ').slice(0, -1).join(' ') || sideStr;
+  const sideShort = teamAbbr(sideTeamName) || sideStr.split(' ')[0];
+  const spreadStr = spread > 0 ? `+${spread}` : `${spread}`;
+  const barFill = Math.min(100, Math.max(5, (Math.abs(adjustedMargin) / (Math.abs(spread) + 10)) * 100));
+
+  return (
+    <div style={{ marginTop: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+        <span style={{
+          fontFamily: "'JetBrains Mono', monospace", fontSize: '10px',
+          color: 'rgba(232, 234, 237, 0.5)', textTransform: 'uppercase', letterSpacing: '0.08em',
+        }}>Cover Tracker</span>
+        <span style={{
+          fontFamily: "'JetBrains Mono', monospace", fontSize: '11px',
+          color: statusColor,
+        }}>{sideShort} {spreadStr} · {covering ? 'covering' : 'not covering'} by {marginAbs}</span>
+      </div>
+      <div style={{
+        height: 4, background: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 2, position: 'relative', overflow: 'visible',
+      }}>
+        <div style={{
+          height: '100%', borderRadius: 2,
+          width: `${barFill}%`, background: statusColor, transition: 'width 0.5s ease',
+        }} />
+        <div style={{
+          position: 'absolute', top: -2, bottom: -2,
+          left: '50%', width: '1.5px',
+          background: '#E8EAED', borderRadius: 1,
+        }} />
       </div>
     </div>
   );

@@ -566,18 +566,23 @@ export default function PicksTab({ onNavigate }) {
                     return margin;
                   })()
                 : null;
+              const mindsetNote = isWin
+                ? 'No victory laps. The model does not feel. Next signal when the edge is there.'
+                : isPushR
+                ? 'Push changes nothing. Next signal when the edge is there.'
+                : 'No revenge bets. Process was correct. Next signal when the edge is there.';
               return (
                 <div onClick={() => { setResolutionPick(rp); setShowResolution(true); }} style={{
-                  background: '#111e33', border: '0.5px solid #1e3050',
+                  background: '#121725', border: '1px solid rgba(255, 255, 255, 0.08)',
                   borderLeft: `3px solid ${borderAccent}`,
                   borderRadius: 8, padding: 12, marginBottom: 12, cursor: 'pointer',
                 }}>
                   <div style={{
                     fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
                     letterSpacing: '0.1em', textTransform: 'uppercase', color: '#5A9E72', marginBottom: 8,
-                  }}>SIGNAL RESULT</div>
+                  }}>OUTCOME RESOLVED</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8ECF4' }}>{sideLabel}</div>
+                    <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8EAED' }}>{sideLabel}</div>
                     <span style={{
                       fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
                       padding: '2px 8px', borderRadius: 4, background: resultBg, color: resultColor,
@@ -585,24 +590,28 @@ export default function PicksTab({ onNavigate }) {
                   </div>
                   {rp.home_score != null && rp.away_score != null && (
                     <div style={{
-                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: '#9aa5b4',
+                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: 'rgba(232, 234, 237, 0.7)',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
                     }}>
                       <span>{teamAbbr(rp.away_team)} {rp.away_score} &middot; {teamAbbr(rp.home_team)} {rp.home_score}</span>
                       <span style={{ color: resultColor, fontWeight: 600 }}>{pnl >= 0 ? '+' : ''}{pnl.toFixed(1)}u</span>
                     </div>
                   )}
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                     {rp.edge_pct != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: '#9aa5b4' }}>Edge +{Number(rp.edge_pct).toFixed(1)}%</span>
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.04)', color: 'rgba(232, 234, 237, 0.7)' }}>Edge +{Number(rp.edge_pct).toFixed(1)}%</span>
                     )}
                     {rp.clv != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: parseFloat(rp.clv) > 0 ? '#5A9E72' : '#9aa5b4' }}>CLV {parseFloat(rp.clv) > 0 ? '+' : ''}{parseFloat(rp.clv).toFixed(1)}</span>
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.04)', color: parseFloat(rp.clv) > 0 ? '#5A9E72' : 'rgba(232, 234, 237, 0.7)' }}>CLV {parseFloat(rp.clv) > 0 ? '+' : ''}{parseFloat(rp.clv).toFixed(1)}</span>
                     )}
                     {coverMargin != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(30,48,80,0.4)', color: coverMargin > 0 ? '#5A9E72' : '#D4787B' }}>Cover by {Math.abs(coverMargin).toFixed(1)}</span>
+                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.04)', color: coverMargin > 0 ? '#5A9E72' : '#C4868A' }}>Cover by {Math.abs(coverMargin).toFixed(1)}</span>
                     )}
                   </div>
+                  <div style={{
+                    fontFamily: "'IBM Plex Serif', var(--font-serif), serif", fontStyle: 'italic',
+                    fontSize: '12px', color: 'rgba(232, 234, 237, 0.5)', lineHeight: 1.5,
+                  }}>{mindsetNote}</div>
                 </div>
               );
             })()}
