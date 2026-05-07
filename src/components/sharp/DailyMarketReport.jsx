@@ -289,7 +289,7 @@ export default function DailyMarketReport({ report: reportProp }) {
         </div>
       )}
 
-      {lmGames.length > 0 && (
+      {lmGames.length > 0 ? (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
             <h2 style={{ fontFamily: SP.fontSerif, fontSize: '18px', fontWeight: 600, color: SP.text }}>
@@ -380,9 +380,23 @@ export default function DailyMarketReport({ report: reportProp }) {
             ))}
           </div>
         </>
-      )}
+      ) : totalGames > 0 ? (
+        <div style={{
+          background: SP.surface, border: `1px solid ${SP.border}`,
+          borderRadius: '12px', padding: '16px 18px', marginBottom: '24px',
+        }}>
+          <div style={{
+            fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
+            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
+            marginBottom: '6px',
+          }}>{lmType === 'moneyline' ? 'Moneyline Movement' : 'Line Movement'}</div>
+          <div style={{ fontSize: '12px', lineHeight: 1.5, color: SP.text3 }}>
+            Open-line history not yet recorded for this slate. Movement table populates once an opening snapshot exists for each game.
+          </div>
+        </div>
+      ) : null}
 
-      {mmdGames.length > 0 && (
+      {mmdGames.length > 0 ? (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
             <h2 style={{ fontFamily: SP.fontSerif, fontSize: '18px', fontWeight: 600, color: SP.text }}>
@@ -483,7 +497,21 @@ export default function DailyMarketReport({ report: reportProp }) {
             )}
           </div>
         </>
-      )}
+      ) : totalGames > 0 ? (
+        <div style={{
+          background: SP.surface, border: `1px solid ${SP.border}`,
+          borderRadius: '12px', padding: '16px 18px', marginBottom: '18px',
+        }}>
+          <div style={{
+            fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
+            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
+            marginBottom: '6px',
+          }}>Model vs Market Delta</div>
+          <div style={{ fontSize: '12px', lineHeight: 1.5, color: SP.text3 }}>
+            Per-game delta ranking populates once today's model run reaches every game in the slate.
+          </div>
+        </div>
+      ) : null}
 
       {updatedTime && (
         <div style={{
