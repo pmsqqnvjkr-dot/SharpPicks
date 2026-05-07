@@ -61,8 +61,8 @@ def send_pick_notification(pick):
         sport = getattr(pick, 'sport', 'nba') or 'nba'
         tag = sport_label(sport)
 
-        title = f"{tag} \u00b7 {rating} Pick \u00b7 {edge}% Edge"
-        body = f"{pick.side} ({_abbr(pick.away_team)} @ {_abbr(pick.home_team)}). {confidence * 100:.0f}% confidence."
+        title = f"{tag} \u00b7 Signal Locked"
+        body = f"{rating} \u00b7 {edge}% edge \u00b7 {pick.side} ({_abbr(pick.away_team)} @ {_abbr(pick.home_team)})"
         data = {'type': 'pick', 'pick_id': str(pick.id), 'sport': sport}
 
         free_title = f"{tag} \u00b7 Signal Published"

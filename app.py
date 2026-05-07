@@ -5408,9 +5408,9 @@ def _send_consolidated_model_notification(results, live_sports):
 
     from lib.notifications.sport_labels import sport_label as _sport_label
     if has_pick and len(parts) == 1:
-        title = f"{_sport_label(pick_sport)} \u00b7 New Signal"
+        title = f"{_sport_label(pick_sport)} \u00b7 Signal Locked"
         edge = pick_result.get('edge', 0)
-        body = f"{pick_result.get('side', 'Pick available')} \u00b7 {edge}% edge. Open to view."
+        body = f"{edge}% edge \u00b7 {pick_result.get('side', 'Pick available')}"
         data = {'type': 'pick', 'pick_id': str(pick_result.get('pick_id', '')), 'sport': pick_sport}
     elif has_pick:
         title = "Today's Model Results"
