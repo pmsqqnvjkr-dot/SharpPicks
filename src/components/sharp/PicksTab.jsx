@@ -1247,31 +1247,44 @@ export default function PicksTab({ onNavigate }) {
             <button
               onClick={() => setMiExpanded(!isMiExpanded)}
               style={{
-                width: '100%', padding: '12px 16px', marginBottom: '16px',
-                background: '#111e33', border: '0.5px solid #1e3050',
-                borderLeft: '3px solid #5A9E72',
-                borderRadius: '10px', cursor: 'pointer',
+                width: '100%', padding: '14px 16px', marginBottom: '16px',
+                background: 'var(--sp-surface, #121725)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '12px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
-                  width: 32, height: 32, borderRadius: 6,
-                  background: 'rgba(90,158,114,0.1)',
+                  width: 32, height: 32, borderRadius: 7,
+                  background: 'rgba(79, 134, 247, 0.1)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  color: '#4F86F7',
                 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A9E72" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M3 17l6-6 4 4 8-8"/>
                   </svg>
                 </div>
                 <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#E8ECF4' }}>Market Intelligence</div>
-                  <div style={{ fontSize: '11px', color: '#7A8494', marginTop: '1px' }}>
-                    {totalGames} games &middot; {edgeCount} edges &middot; {signalCount} signal{signalCount !== 1 ? 's' : ''} &middot; {density}% density
+                  <div style={{
+                    fontFamily: '"IBM Plex Serif", Georgia, serif',
+                    fontSize: '14px', color: '#E8EAED',
+                  }}>Market Intelligence</div>
+                  <div style={{
+                    fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+                    fontSize: '11px', color: 'rgba(232, 234, 237, 0.5)',
+                    letterSpacing: '0.04em', marginTop: '2px',
+                  }}>
+                    <strong style={{ color: '#E8EAED', fontWeight: 500 }}>
+                      {totalGames} game{totalGames === 1 ? '' : 's'}
+                    </strong>
+                    {' · '}{edgeCount} edge{edgeCount === 1 ? '' : 's'}
+                    {' · '}{signalCount} signal{signalCount !== 1 ? 's' : ''}
+                    {' · '}{density}% density
                   </div>
                 </div>
               </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A8494" strokeWidth="2" style={{ transform: isMiExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="9 18 15 12 9 6"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232, 234, 237, 0.35)" strokeWidth="2" style={{ transform: isMiExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="9 18 15 12 9 6"/></svg>
             </button>
 
             {isMiExpanded && (

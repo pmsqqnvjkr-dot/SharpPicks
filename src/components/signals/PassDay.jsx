@@ -293,44 +293,40 @@ export default function PassDay({
           cursor: 'pointer',
         }}>
         <div style={{
-          position: 'absolute',
-          top: 0, bottom: 0, left: 0,
-          width: '2px',
-          background: 'var(--sp-green, #5A9E72)',
-        }} />
-        <div style={{
           flexShrink: 0,
-          width: '36px',
-          height: '36px',
-          background: 'var(--sp-green-soft, rgba(90, 158, 114, 0.12))',
-          borderRadius: '8px',
+          width: '32px',
+          height: '32px',
+          background: 'rgba(79, 134, 247, 0.1)',
+          borderRadius: '7px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'var(--sp-green, #5A9E72)',
+          color: 'var(--sp-blue, #4F86F7)',
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M3 17l6-6 4 4 8-8" />
           </svg>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontFamily: '"IBM Plex Serif", Georgia, serif',
-            fontSize: '16px',
-            fontWeight: 600,
+            fontSize: '14px',
             color: 'var(--sp-text, #E8EAED)',
             lineHeight: 1.3,
-            marginBottom: '3px',
-          }}>
-            {gamesScanned} game{gamesScanned === 1 ? '' : 's'} · {edgeCount} edge{edgeCount === 1 ? '' : 's'} · {signals} signal{signals === 1 ? '' : 's'}
-          </div>
+          }}>Market Intelligence</div>
           <div style={{
             fontFamily: 'var(--sp-font-mono, "JetBrains Mono", monospace)',
             fontSize: '11px',
             color: 'var(--sp-text-3, rgba(232, 234, 237, 0.5))',
             letterSpacing: '0.04em',
+            marginTop: '2px',
           }}>
-            Density {density}%{mei != null ? ` · MEI ${mei}` : ''} · {regimeLabel}
+            <strong style={{ color: 'var(--sp-text, #E8EAED)', fontWeight: 500 }}>
+              {gamesScanned} game{gamesScanned === 1 ? '' : 's'}
+            </strong>
+            {' · '}{edgeCount} edge{edgeCount === 1 ? '' : 's'}
+            {' · '}{signals} signal{signals === 1 ? '' : 's'}
+            {' · '}{density}% density
           </div>
         </div>
         <svg
