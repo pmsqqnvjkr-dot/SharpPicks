@@ -38,6 +38,12 @@ function fmtDateShort(iso) {
 
 export default function LastNightsReadCard({
   pick, gamesScanned, signalsIssued, dateIso, onClick,
+  // clv: numeric value (null when no source available). PicksTab passes
+  //   either the night's single-pick CLV (graded W/L/Push) or the season
+  //   aggregate from /api/public/stats?sport=X so the cell always shows
+  //   a populated, sport-specific value instead of '—'.
+  // clvLabel: 'CLV vs close' (single-pick) | 'Avg CLV (season)' (aggregate).
+  clv, clvLabel,
 }) {
   const result = (pick?.result || '').toLowerCase();
   const isWin = result === 'win';
@@ -75,11 +81,17 @@ export default function LastNightsReadCard({
     return `${gamesScanned || 0} games scanned, ${signalsIssued || 0} signal${signalsIssued === 1 ? '' : 's'} issued.`;
   })();
 
-  const clvNum = pick?.clv != null ? parseFloat(pick.clv) : null;
-  const clvLabel = clvNum != null
+  // Prefer caller-provided clv (PicksTab supplies either the night's
+  // single-pick CLV or the sport-scoped season aggregate); fall back to
+  // the pick's own clv field for backwards compat.
+  const clvNum = clv != null
+    ? Number(clv)
+    : (pick?.clv != null ? parseFloat(pick.clv) : null);
+  const clvValueLabel = clvNum != null
     ? `${clvNum > 0 ? '+' : ''}${clvNum.toFixed(1)}`
     : '—';
   const clvColor = clvNum == null ? SP.text3 : clvNum > 0 ? SP.green : clvNum < 0 ? SP.redSoft : SP.text2;
+  const clvCellLabel = clvLabel || 'CLV vs close';
 
   const isClickable = typeof onClick === 'function' && !!pick;
 
@@ -128,7 +140,7 @@ export default function LastNightsReadCard({
         {[
           { label: 'Games', value: String(gamesScanned ?? 0), color: SP.text },
           { label: 'Signals', value: String(signalsIssued ?? 0), color: SP.text },
-          { label: 'CLV vs close', value: clvLabel, color: clvColor },
+          { label: clvCellLabel, value: clvValueLabel, color: clvColor },
         ].flatMap((cell, i, arr) => [
           <div key={`l-${cell.label}`} style={{ padding: '14px 8px 12px', textAlign: 'center' }}>
             <div style={{

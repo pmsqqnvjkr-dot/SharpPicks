@@ -614,11 +614,25 @@ export default function PicksTab({ onNavigate }) {
               // signals tally.
               const ydSignals = yesterdayReport?.qualified_signals
                 ?? (nightRecapPick && nightRecapPick.result ? 1 : 0);
+              // CLV stat: prefer the night's single-pick CLV when graded
+              // (Win/Loss/Push), fall back to the season aggregate from
+              // /api/public/stats so the cell never shows '—' just because
+              // yesterday's signal was revoked or no signal fired. Season
+              // CLV is sport-scoped (stats refetches on sport change).
+              const settledClv = ['win', 'loss', 'push'].includes((nightRecapPick?.result || '').toLowerCase())
+                && nightRecapPick?.clv != null
+                ? Number(nightRecapPick.clv)
+                : null;
+              const seasonClv = stats?.avg_clv != null ? Number(stats.avg_clv) : null;
+              const ydClv = settledClv != null ? settledClv : seasonClv;
+              const ydClvLabel = ydClv != null ? 'CLV vs close' : 'Avg CLV';
               return (
                 <LastNightsReadCard
                   pick={nightRecapPick}
                   gamesScanned={ydGames}
                   signalsIssued={ydSignals}
+                  clv={ydClv}
+                  clvLabel={settledClv != null ? 'CLV vs close' : 'Avg CLV (season)'}
                   dateIso={yesterdayDate}
                   onClick={nightRecapPick ? () => { setResolutionPick(nightRecapPick); setShowResolution(true); } : undefined}
                 />
