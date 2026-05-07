@@ -154,9 +154,39 @@ a{color:var(--green);text-decoration:none}a:hover{text-decoration:underline}
     <div class="nav-left">
       <a href="https://sharppicks.ai" class="css-wm" style="font-size:13px"><span style="margin-right:4.5px">SHARP</span><span class="wm-bars" style="gap:2px"><span class="wm-bars-row" style="gap:1.6px"><span class="wm-bar" style="width:2px;height:16px;border-radius:1px"></span><span class="wm-bar" style="width:2px;height:16px;border-radius:1px"></span></span><span class="wm-ul" style="width:5.6px;height:1.5px"></span></span><span style="margin-left:5.5px">PICKS</span></a>
     </div>
-    <a class="nav-btn" href="https://sharppicks.ai/#pricing">Start Free Trial</a>
+    <a class="nav-btn" id="sp-trial-btn" href="https://sharppicks.ai/#pricing">Start Free Trial</a>
+    <button type="button" class="nav-btn" id="sp-back-btn" style="display:none;background:transparent;border:1px solid var(--green);color:var(--green);cursor:pointer;font-family:inherit">&larr; Back to app</button>
   </div>
 </nav>
+<script>
+  // When this page is opened from inside the SharpPicks app
+  // (Capacitor Browser on Android, or any path that adds ?app=1),
+  // swap the "Start Free Trial" CTA for a "Back to app" button so
+  // we don't (a) advertise an external payment flow per Apple's
+  // 3.1.1 rule, and (b) leave users without a visible way out of
+  // the in-app browser sheet.
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var inApp = params.get('app') === '1';
+      if (!inApp) return;
+      var trial = document.getElementById('sp-trial-btn');
+      var back = document.getElementById('sp-back-btn');
+      if (trial) trial.style.display = 'none';
+      if (back) {
+        back.style.display = '';
+        back.addEventListener('click', function () {
+          // Capacitor Browser sheet has its own close affordance;
+          // history.back works in web tabs and on Android in-app
+          // browser when this page wasn't the first entry. window.close
+          // is a fallback for popup-style new tabs.
+          try { if (window.history.length > 1) { window.history.back(); return; } } catch (e) {}
+          try { window.close(); } catch (e) {}
+        });
+      }
+    } catch (e) { /* swallow — better to show nothing than to break the page */ }
+  })();
+</script>
 <main class="container fade-in">
 {% block content %}{% endblock %}
 </main>

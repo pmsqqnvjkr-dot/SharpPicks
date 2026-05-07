@@ -39,13 +39,29 @@ function fmtTimeET(timeStr) {
   return String(timeStr);
 }
 
-export default function TomorrowSlateCard({ games, sport = 'nba', publishTimeLabel, onViewAll }) {
+function fmtSlateDate(iso) {
+  if (!iso) return '';
+  try {
+    // Accept either YYYY-MM-DD or full ISO; normalize to date-only.
+    const ymd = String(iso).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return '';
+    const d = new Date(`${ymd}T12:00:00Z`);
+    if (Number.isNaN(d.getTime())) return '';
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      weekday: 'short', month: 'short', day: 'numeric',
+    }).format(d).toUpperCase();
+  } catch { return ''; }
+}
+
+export default function TomorrowSlateCard({ games, sport = 'nba', publishTimeLabel, slateDate, onViewAll }) {
   const [expanded, setExpanded] = useState(false);
   const sportLabel = (sport || 'nba').toUpperCase();
   const total = games?.length || 0;
   const previewCount = expanded ? total : 5;
   const previewGames = (games || []).slice(0, previewCount);
   const remaining = Math.max(0, total - previewGames.length);
+  const slateDateLabel = fmtSlateDate(slateDate);
   const handleToggle = () => {
     setExpanded((v) => !v);
     if (typeof onViewAll === 'function') onViewAll();
@@ -59,7 +75,14 @@ export default function TomorrowSlateCard({ games, sport = 'nba', publishTimeLab
         marginBottom: '12px', paddingLeft: '4px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
       }}>
-        <span>Tomorrow’s slate</span>
+        <span>
+          Tomorrow’s slate
+          {slateDateLabel && (
+            <span style={{ color: SP.text4, marginLeft: '8px', letterSpacing: '0.04em', fontWeight: 400 }}>
+              {slateDateLabel}
+            </span>
+          )}
+        </span>
         {publishTimeLabel && (
           <span style={{ color: SP.text4, letterSpacing: '0.16em' }}>
             EDGES PUBLISH {publishTimeLabel}

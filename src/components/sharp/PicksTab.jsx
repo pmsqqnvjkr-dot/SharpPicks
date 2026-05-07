@@ -832,6 +832,7 @@ export default function PicksTab({ onNavigate }) {
                 games={tomorrowGames}
                 sport={sport}
                 publishTimeLabel={modelRunLabel}
+                slateDate={tomorrowDate}
                 onViewAll={() => {
                   // Expand the inline Market Intelligence card and scroll
                   // to it — same pattern the DTS Sharp Journal cross-link

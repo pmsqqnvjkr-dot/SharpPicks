@@ -42,6 +42,27 @@ function fmtClockET(hourEt) {
   return `${h12}:00 ${ampm} ET`;
 }
 
+function useNowET() {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
+  return useMemo(() => {
+    try {
+      const dateLine = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        weekday: 'short', month: 'short', day: 'numeric',
+      }).format(new Date(now)).toUpperCase();
+      const timeLine = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        hour: 'numeric', minute: '2-digit', hour12: true,
+      }).format(new Date(now)).replace(' AM', ' AM ET').replace(' PM', ' PM ET');
+      return { dateLine, timeLine };
+    } catch { return { dateLine: '', timeLine: '' }; }
+  }, [now]);
+}
+
 function useNextRunCountdown(targetHourEt) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -73,12 +94,33 @@ export default function MidnightHero({ sport = 'nba', yesterdayGames, yesterdayS
   const runHour = MODEL_RUN_HOUR_ET[sport] ?? 9;
   const publishHour = PUBLISH_HOUR_ET[sport] ?? 10;
   const countdown = useNextRunCountdown(runHour);
+  const { dateLine: nowDateET, timeLine: nowTimeET } = useNowET();
 
   const scannedLine = (yesterdayGames != null && yesterdayGames > 0)
     ? `${yesterdayGames} game${yesterdayGames === 1 ? '' : 's'} scanned tonight, ${yesterdaySignals || 0} signal${yesterdaySignals === 1 ? '' : 's'} issued.`
     : null;
 
   return (
+    <>
+      {/* Date / time greeting line — sits above the hero card per the
+          May 2026 Midnight State mockup: "TUE MAY 7 · 12:32 AM ET" /
+          "Quiet hours". Auto-updates every minute. */}
+      {(nowDateET || nowTimeET) && (
+        <div style={{
+          padding: '4px 4px 14px',
+          display: 'flex', flexDirection: 'column', gap: '2px',
+        }}>
+          <div style={{
+            fontFamily: SP.fontMono, fontSize: '9px',
+            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text4,
+          }}>
+            {nowDateET}{nowDateET && nowTimeET ? ' · ' : ''}{nowTimeET}
+          </div>
+          <div style={{ fontSize: '13px', color: SP.text2, fontWeight: 500 }}>
+            Quiet hours
+          </div>
+        </div>
+      )}
     <div style={{
       background: SP.surface,
       border: `1px solid ${SP.border}`,
@@ -144,5 +186,6 @@ export default function MidnightHero({ sport = 'nba', yesterdayGames, yesterdayS
         </div>
       </div>
     </div>
+    </>
   );
 }

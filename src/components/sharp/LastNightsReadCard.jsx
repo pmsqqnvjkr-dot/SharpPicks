@@ -116,7 +116,9 @@ export default function LastNightsReadCard({
     const ymd = String(dateIso).slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
     const sportParam = encodeURIComponent(String(sport || 'nba').toLowerCase());
-    return `https://app.sharppicks.ai/market-report/${ymd}/evening?sport=${sportParam}`;
+    // ?app=1 tells the Flask SEO base template to swap the "Start Free
+    // Trial" CTA for a "← Back to app" button. See base.html.
+    return `https://app.sharppicks.ai/market-report/${ymd}/evening?sport=${sportParam}&app=1`;
   })();
 
   // iOS detection: the Flask-rendered Sharp Journal evening-edition page
