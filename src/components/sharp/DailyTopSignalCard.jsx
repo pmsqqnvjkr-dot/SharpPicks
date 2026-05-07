@@ -434,26 +434,25 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
           </div>
         </div>
 
-        {/* CTA section. Web + Android show the green button + subtext.
-            iOS hides the button per Apple 3.1.1 (no external payment
-            promotion); the rest of the card stays so users still see
-            the value of Pro. The "Cancel anytime" subtext is informational
-            and renders on both platforms. */}
+        {/* CTA section. Routes through onNavigate('profile', 'upgrade') on
+            all platforms — UpgradeScreen.jsx handles platform-specific
+            payment flow internally (RevenueCat IAP on iOS, Stripe on
+            Android + web). Subtext is platform-conditional only because
+            iOS IAP doesn't take a card up front, so "Card required" copy
+            would be inaccurate there. */}
         <div style={{ padding: '8px 18px 18px' }}>
-          {!isIOSPlatform && (
-            <button
-              onClick={() => {
-                if (typeof onNavigate === 'function') onNavigate('profile', 'upgrade');
-              }}
-              style={{
-                width: '100%', padding: '16px',
-                background: SP.green, border: 'none', borderRadius: '10px',
-                fontFamily: SP.fontSans, fontSize: '15px', fontWeight: 600,
-                color: '#062019', letterSpacing: '0.01em',
-                cursor: 'pointer', marginBottom: '8px',
-              }}
-            >Start 14-day free trial</button>
-          )}
+          <button
+            onClick={() => {
+              if (typeof onNavigate === 'function') onNavigate('profile', 'upgrade');
+            }}
+            style={{
+              width: '100%', padding: '16px',
+              background: SP.green, border: 'none', borderRadius: '10px',
+              fontFamily: SP.fontSans, fontSize: '15px', fontWeight: 600,
+              color: '#062019', letterSpacing: '0.01em',
+              cursor: 'pointer', marginBottom: '8px',
+            }}
+          >Start 14-day free trial</button>
           <div style={{
             textAlign: 'center', fontFamily: SP.fontMono, fontSize: '10px',
             color: SP.text4, letterSpacing: '0.16em', textTransform: 'uppercase',
