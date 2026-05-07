@@ -152,15 +152,15 @@ export default function DailyMarketReport({ report: reportProp }) {
   // Edge Map: derive per-game rows from data.board if present.
   // Each row: matchup, edge_pct (signed via pick_side), is_signal, status text.
   const board = Array.isArray(data.board) ? data.board : [];
+  // Per-game board rows from /api/public/market-report use `signal` (boolean)
+  // and `edge` (signed pct). Field names match public_api.py:1098-1112.
   const edgeMap = board
     .map((g) => {
-      const edge = g?.edge != null ? Number(g.edge) : (g?.adjusted_edge != null ? Number(g.adjusted_edge) : null);
+      const edge = g?.edge != null ? Number(g.edge) : null;
       if (edge == null || Number.isNaN(edge)) return null;
       const away = g.away_team || g.away || '?';
       const home = g.home_team || g.home || '?';
-      const isSignal = !!g.passes;
-      // Sign convention: positive = model favors home/pick_side, negative = market right
-      // For display we render absolute edge + sign indicating signal vs sub-threshold
+      const isSignal = !!g.signal;
       return {
         matchup: `${away} vs ${home}`,
         away, home,
@@ -173,11 +173,11 @@ export default function DailyMarketReport({ report: reportProp }) {
     .sort((a, b) => Math.abs(b.signed) - Math.abs(a.signed))
     .slice(0, 15);
 
-  // Near misses: sub-threshold positive edges
+  // Near misses: sub-threshold positive edges that didn't fire as signals.
   const nearMisses = board
     .filter((g) => {
       const edge = g?.edge != null ? Number(g.edge) : null;
-      return edge != null && !g.passes && edge > 0 && edge < 3.5;
+      return edge != null && !g.signal && edge > 0 && edge < 3.5;
     })
     .sort((a, b) => Number(b.edge) - Number(a.edge))
     .slice(0, 3)
