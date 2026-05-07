@@ -12,6 +12,8 @@ import PickCard from './PickCard';
 import DailyTopSignalCard from './DailyTopSignalCard';
 import MidnightHero from './MidnightHero';
 import TomorrowSlateCard from './TomorrowSlateCard';
+import LastNightsReadCard from './LastNightsReadCard';
+import TodaysReadCard from './TodaysReadCard';
 import OnboardingCard from './OnboardingCard';
 import DailyMarketReport from './DailyMarketReport';
 import { GameSlate } from './MarketView';
@@ -563,7 +565,7 @@ export default function PicksTab({ onNavigate }) {
             )}
 
             {/* ── LAST NIGHT'S READ (post-midnight) section header ── */}
-            {postMidnightNight && hasAnyRecapContent && (
+            {postMidnightNight && (
               <div style={{
                 fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 500,
                 letterSpacing: '0.24em', textTransform: 'uppercase', color: '#5A9E72',
@@ -577,8 +579,42 @@ export default function PicksTab({ onNavigate }) {
               </div>
             )}
 
-            {/* Signal Result Card */}
-            {nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'pending' && nightRecapPick.result !== 'revoked' && (() => {
+            {/* ── Sharp Journal evening recap card (post-midnight only) ── */}
+            {postMidnightNight && (
+              <LastNightsReadCard
+                pick={nightRecapPick}
+                gamesScanned={nightRecapPick?.games_analyzed || todayData?.games_analyzed || 0}
+                signalsIssued={
+                  nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'revoked' ? 1 : 0
+                }
+                dateIso={yesterdayDate}
+                onClick={nightRecapPick ? () => { setResolutionPick(nightRecapPick); setShowResolution(true); } : undefined}
+              />
+            )}
+
+            {/* ── TODAY'S READ (post-midnight, rotating Field Guide article) ── */}
+            {postMidnightNight && insightsData?.insights && (
+              <>
+                <div style={{
+                  fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 500,
+                  letterSpacing: '0.24em', textTransform: 'uppercase', color: '#5A9E72',
+                  padding: '4px 4px 12px',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                }}>
+                  <span>Today’s read</span>
+                  <span style={{ color: 'rgba(232, 234, 237, 0.35)', letterSpacing: '0.04em' }}>
+                    ROTATES DAILY
+                  </span>
+                </div>
+                <TodaysReadCard
+                  articles={insightsData.insights}
+                  onOpen={(a) => onNavigate && onNavigate('insights', null, { insight: a })}
+                />
+              </>
+            )}
+
+            {/* Signal Result Card (legacy — same-day evening; LastNightsReadCard replaces during postMidnight) */}
+            {!postMidnightNight && nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'pending' && nightRecapPick.result !== 'revoked' && (() => {
               const rp = nightRecapPick;
               const isWin = rp.result === 'win';
               const isPushR = rp.result === 'push';
@@ -658,10 +694,15 @@ export default function PicksTab({ onNavigate }) {
                 blue "Withdrawn" pill below a divider, never as a red L
                 badge. */}
             {(() => {
+              // LastNightsReadCard above covers all postMidnight states
+              // (pass / revoked / settled). Suppress the legacy combined
+              // "Capital preserved" recap card during postMidnight to avoid
+              // showing two recap cards back-to-back.
+              if (postMidnightNight) return null;
               const isPassRecap = sameDayNight && todayData?.type === 'pass';
               const isRevokedRecap = sameDayNight && todayData?.type === 'pick' && todayData?.result === 'revoked';
-              const isPostMidnightRevoked = postMidnightNight && nightRecapPick?.result === 'revoked';
-              if (!isPassRecap && !isRevokedRecap && !isPostMidnightRevoked) return null;
+              const isPostMidnightRevoked = false; // suppressed above; kept for downstream var refs
+              if (!isPassRecap && !isRevokedRecap) return null;
 
               const revokedPick = isRevokedRecap ? todayData
                 : (isPostMidnightRevoked ? nightRecapPick : null);
