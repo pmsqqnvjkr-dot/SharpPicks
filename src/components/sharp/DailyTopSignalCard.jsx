@@ -284,146 +284,183 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
   };
 
   // Free user paywall: render the v4.3 "qualified edge detected" lock card
-  // with [Pro] placeholders + Start trial CTA. Mirrors PickCard.jsx:159-216
-  // pattern. Reads pick.locked from /api/picks/today (the existing
-  // paywall mask), so the gate matches the server-side mask shape.
+  // with blurred sample values + Observation teaser + Pro unlocks list +
+  // Start trial CTA. Reads pick.locked from /api/picks/today (the existing
+  // server-side paywall mask) so the gate matches the data shape.
   const isLocked = (pick?.locked === true) || !isPro;
   if (isLocked) {
+    const isIOSPlatform = (() => {
+      try { return typeof Capacitor.getPlatform === 'function' && Capacitor.getPlatform() === 'ios'; }
+      catch { return false; }
+    })();
     return (
       <div style={{
         background: SP.surface,
         border: `1px solid ${SP.border}`,
-        borderRadius: '16px',
+        borderRadius: '14px',
         overflow: 'hidden',
         position: 'relative',
         marginBottom: '18px',
       }}>
         <div aria-hidden style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+          position: 'absolute', top: 0, left: 20, right: 20, height: '2px',
           background: `linear-gradient(90deg, transparent, ${SP.green} 20%, ${SP.green} 80%, transparent)`,
-          opacity: 0.7,
+          opacity: 0.55,
         }} />
-        <div style={{ padding: '22px 22px 0' }}>
+
+        {/* HEADER: qualified-edge pill, matchup serif title, time + countdown */}
+        <div style={{ padding: '18px 18px 14px' }}>
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            padding: '6px 12px', border: `1px solid ${SP.green}`, borderRadius: '4px',
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            padding: '5px 11px', border: `1px solid ${SP.green}`, borderRadius: '4px',
             fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
-            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.green,
-            marginBottom: '18px',
+            letterSpacing: '0.2em', textTransform: 'uppercase', color: SP.green,
+            marginBottom: '14px',
           }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: SP.green }} />
             Qualified edge detected
           </div>
           {matchup && (
-            <div style={{
-              fontFamily: SP.fontSerif, fontSize: '20px', fontWeight: 600,
-              color: SP.text, lineHeight: 1.2, letterSpacing: '-0.005em',
-              marginBottom: '8px',
-            }}>{matchup}</div>
+            <h1 style={{
+              margin: '0 0 6px', fontFamily: SP.fontSerif, fontSize: '22px',
+              fontWeight: 600, color: SP.text, lineHeight: 1.2, letterSpacing: '-0.005em',
+            }}>{matchup}</h1>
           )}
-          {(startInfo || oddsText) && (
-            <div style={{
-              fontFamily: SP.fontMono, fontSize: '11px', color: SP.text3,
-              marginBottom: '8px',
-            }}>
-              {startInfo?.date && <>{startInfo.date} <span style={{ color: SP.text5 }}>·</span> </>}
-              {startInfo?.time && <span style={{ color: SP.text2 }}>{startInfo.time}</span>}
-              {oddsText && <> <span style={{ color: SP.text5 }}>·</span> <span style={{ color: SP.text2 }}>{oddsText}</span></>}
-            </div>
-          )}
-          {countdown && (
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: '8px',
-              padding: '6px 11px', marginBottom: '4px',
-              background: SP.amberSoft,
-              border: '1px solid rgba(245, 158, 11, 0.25)',
-              borderRadius: '6px',
-              fontFamily: SP.fontMono, fontSize: '11px',
-              color: SP.amber, letterSpacing: '0.04em',
-            }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: SP.amber }} />
-              {countdown}
-            </div>
-          )}
-        </div>
-
-        {/* 4-cell grid with [Pro] placeholders */}
-        <div style={{
-          margin: '22px',
-          display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr 1px 1fr',
-          background: SP.bg, border: `1px solid ${SP.border}`,
-          borderRadius: '10px', overflow: 'hidden',
-        }}>
-          {['Side', 'Line', 'Edge', 'Size'].flatMap((label, i, arr) => [
-            <div key={`p-${label}`} style={{ padding: '14px 8px', textAlign: 'center' }}>
-              <div style={{
-                fontFamily: SP.fontMono, fontSize: '9px',
-                letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
-                marginBottom: '6px',
-              }}>{label}</div>
-              <div style={{
-                fontFamily: SP.fontMono, fontSize: '13px', fontWeight: 500,
-                color: SP.text4, lineHeight: 1,
-              }}>[Pro]</div>
-            </div>,
-            i < arr.length - 1 ? <div key={`pd-${i}`} style={{ background: SP.border }} /> : null,
-          ])}
-        </div>
-
-        {/* Quant teaser: locked Observation block with CTA hint */}
-        <div style={{
-          margin: '0 22px 18px',
-          padding: '16px 18px',
-          background: SP.bg,
-          border: `1px solid ${SP.border}`,
-          borderRadius: '10px',
-        }}>
           <div style={{
-            fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
-            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
-            marginBottom: '8px',
-          }}>Observation · Quant analysis</div>
-          <div style={{
-            fontFamily: SP.fontSerif, fontSize: '14px', fontStyle: 'italic',
-            color: SP.text3, lineHeight: 1.5,
+            display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
+            fontFamily: SP.fontMono, fontSize: '11px', color: SP.text3,
+            letterSpacing: '0.04em',
           }}>
-            Why the model fired this signal: bullpen edge, schedule density, line movement, ensemble agreement, market context. Full reasoning unlocks with Pro.
+            {startInfo?.time && <span>{startInfo.time}</span>}
+            {startInfo?.time && countdown && <span>·</span>}
+            {countdown && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '3px 9px', border: '1px solid rgba(245, 158, 11, 0.4)',
+                background: SP.amberSoft, borderRadius: '4px', color: SP.amber,
+                fontWeight: 500, letterSpacing: '0.06em',
+              }}>
+                <span style={{
+                  width: 5, height: 5, background: SP.amber, borderRadius: '50%',
+                  animation: 'spDtsPulse 2s infinite',
+                }} />
+                {countdown}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Start 14-day free trial CTA — Android + web only.
-            iOS hides the CTA entirely per Apple's external-payment rules
-            (App Store guideline 3.1.1: apps can't direct users to external
-            payment methods). iOS users see the same lock card without the
-            trial button; the upgrade flow lives elsewhere on iOS. */}
-        {!Capacitor.getPlatform || Capacitor.getPlatform() !== 'ios' ? (
-          <div style={{ padding: '0 22px 22px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* 4-cell stat grid with BLURRED sample values. Lets the user see
+            the SHAPE of the data without the actual signal. Static
+            placeholder values rendered with filter:blur — no real
+            backend numbers leak through. */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr 1px 1fr',
+          background: SP.bg,
+          borderTop: `1px solid ${SP.border2}`,
+          borderBottom: `1px solid ${SP.border2}`,
+        }}>
+          {[
+            { label: 'Side', value: '+1.5', tone: 'mono' },
+            { label: 'Line', value: '-115', tone: 'mono' },
+            { label: 'Edge', value: '+6.0%', tone: 'mono' },
+            { label: 'Size', value: '1.5u', tone: 'mono' },
+          ].flatMap((cell, i, arr) => [
+            <div key={`bp-${cell.label}`} style={{ padding: '14px 4px 13px', textAlign: 'center' }}>
+              <div style={{
+                fontFamily: SP.fontMono, fontSize: '9px',
+                letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text4,
+                marginBottom: '6px',
+              }}>{cell.label}</div>
+              <div
+                aria-hidden
+                style={{
+                  fontFamily: SP.fontMono, fontSize: '14px', fontWeight: 500,
+                  color: SP.text, lineHeight: 1,
+                  filter: 'blur(6px)',
+                  userSelect: 'none', pointerEvents: 'none',
+                }}
+              >{cell.value}</div>
+            </div>,
+            i < arr.length - 1 ? <div key={`bpd-${i}`} style={{ background: SP.border2 }} /> : null,
+          ])}
+        </div>
+
+        {/* OBSERVATION: green-soft teaser card. Generic free-user copy,
+            ends with the Pro hint that surfaces what's behind the gate. */}
+        <div style={{
+          background: SP.greenSoft,
+          borderLeft: `2px solid ${SP.green}`,
+          margin: '14px 14px 0',
+          padding: '12px 14px',
+          borderRadius: '0 8px 8px 0',
+        }}>
+          <div style={{
+            fontFamily: SP.fontMono, fontSize: '9px', fontWeight: 500,
+            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.green,
+            marginBottom: '6px',
+          }}>Observation</div>
+          <div style={{
+            fontFamily: SP.fontSerif, fontSize: '13px', lineHeight: 1.5, color: SP.text,
+          }}>
+            Bullpen edge with late-inning advantage. Ensemble agreement across all four models. Specific reasoning, line, and sizing visible with Pro.
+          </div>
+        </div>
+
+        {/* PRO UNLOCKS benefit list — checkmark + label rows */}
+        <div style={{ padding: '16px 18px 6px' }}>
+          <div style={{
+            fontFamily: SP.fontMono, fontSize: '9px', fontWeight: 500,
+            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
+            marginBottom: '10px',
+          }}>Pro unlocks</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+            {[
+              'Side, line, edge',
+              'Flat and Kelly sizing',
+              'Full quant reasoning',
+              'CLV audit and tracked record',
+            ].map((label) => (
+              <div key={label} style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                fontSize: '13px', color: SP.text,
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={SP.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                <span style={{ fontFamily: SP.fontSans, fontWeight: 500 }}>{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA section. Web + Android show the green button + subtext.
+            iOS hides the button per Apple 3.1.1 (no external payment
+            promotion); the rest of the card stays so users still see
+            the value of Pro. The "Cancel anytime" subtext is informational
+            and renders on both platforms. */}
+        <div style={{ padding: '8px 18px 18px' }}>
+          {!isIOSPlatform && (
             <button
               onClick={() => {
                 if (typeof onNavigate === 'function') onNavigate('profile', 'upgrade');
               }}
               style={{
-                width: '100%', padding: '14px 16px',
-                background: SP.green,
-                border: 'none', borderRadius: '10px',
-                fontFamily: SP.fontSans, fontSize: '14px', fontWeight: 600,
+                width: '100%', padding: '16px',
+                background: SP.green, border: 'none', borderRadius: '10px',
+                fontFamily: SP.fontSans, fontSize: '15px', fontWeight: 600,
                 color: '#062019', letterSpacing: '0.01em',
-                cursor: 'pointer',
+                cursor: 'pointer', marginBottom: '8px',
               }}
             >Start 14-day free trial</button>
-            <div style={{
-              textAlign: 'center', fontFamily: SP.fontMono, fontSize: '10px',
-              letterSpacing: '0.18em', textTransform: 'uppercase', color: SP.text4,
-            }}>Full pick · model lines · sizing · CLV audit</div>
+          )}
+          <div style={{
+            textAlign: 'center', fontFamily: SP.fontMono, fontSize: '10px',
+            color: SP.text4, letterSpacing: '0.16em', textTransform: 'uppercase',
+          }}>
+            {isIOSPlatform ? 'Cancel anytime' : 'Card required · Cancel anytime'}
           </div>
-        ) : (
-          <div style={{ padding: '0 22px 22px' }}>
-            <div style={{
-              textAlign: 'center', fontFamily: SP.fontMono, fontSize: '10px',
-              letterSpacing: '0.18em', textTransform: 'uppercase', color: SP.text4,
-            }}>Full pick · model lines · sizing · CLV audit</div>
-          </div>
-        )}
+        </div>
       </div>
     );
   }
