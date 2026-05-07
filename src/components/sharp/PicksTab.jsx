@@ -10,6 +10,8 @@ const PT_API_BASE = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' :
 import PullToRefresh from '../shared/PullToRefresh';
 import PickCard from './PickCard';
 import DailyTopSignalCard from './DailyTopSignalCard';
+import MidnightHero from './MidnightHero';
+import TomorrowSlateCard from './TomorrowSlateCard';
 import OnboardingCard from './OnboardingCard';
 import DailyMarketReport from './DailyMarketReport';
 import { GameSlate } from './MarketView';
@@ -538,13 +540,41 @@ export default function PicksTab({ onNavigate }) {
               );
             })()}
 
-            {/* ── DATE RECAP ── */}
-            {hasAnyRecapContent && (
+            {/* ── MIDNIGHT HERO (post-midnight ET window only) ── */}
+            {postMidnightNight && (
+              <MidnightHero
+                sport={sport}
+                yesterdayGames={todayData?.games_analyzed || 0}
+                yesterdaySignals={
+                  (todayData?.type === 'pick' && todayData?.result !== 'revoked') ? 1 :
+                  (nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'revoked') ? 1 : 0
+                }
+                tomorrowGameCount={tomorrowGames ? tomorrowGames.length : null}
+              />
+            )}
+
+            {/* ── DATE RECAP (same-day evening only — postMidnight has its own hero) ── */}
+            {hasAnyRecapContent && !postMidnightNight && (
               <div style={{
                 fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
                 letterSpacing: '2px', textTransform: 'uppercase', color: '#8494a7',
                 padding: '0 0 8px',
-              }}>{formatDateShort(postMidnightNight ? yesterdayDate : todayET)} RECAP</div>
+              }}>{formatDateShort(todayET)} RECAP</div>
+            )}
+
+            {/* ── LAST NIGHT'S READ (post-midnight) section header ── */}
+            {postMidnightNight && hasAnyRecapContent && (
+              <div style={{
+                fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 500,
+                letterSpacing: '0.24em', textTransform: 'uppercase', color: '#5A9E72',
+                padding: '4px 4px 12px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+              }}>
+                <span>Last night’s read</span>
+                <span style={{ color: 'rgba(232, 234, 237, 0.35)', letterSpacing: '0.04em' }}>
+                  {formatDateShort(yesterdayDate)}
+                </span>
+              </div>
             )}
 
             {/* Signal Result Card */}
@@ -703,13 +733,26 @@ export default function PicksTab({ onNavigate }) {
               );
             })()}
 
-            {/* ── UPCOMING SLATE ── */}
+            {/* ── TOMORROW'S SLATE (postMidnight only — replaces verbose UPCOMING block) ── */}
+            {postMidnightNight && (
+              <TomorrowSlateCard
+                games={tomorrowGames}
+                sport={sport}
+                publishTimeLabel={modelRunLabel}
+                onViewAll={() => onNavigate && onNavigate('picks')}
+              />
+            )}
+
+            {/* ── UPCOMING SLATE (legacy — same-day evening only) ── */}
+            {!postMidnightNight && (
             <div style={{
               fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
               letterSpacing: '2px', textTransform: 'uppercase', color: '#8494a7',
               padding: '16px 0 8px',
             }}>UPCOMING SLATE</div>
+            )}
 
+            {!postMidnightNight && (<>
             {/* Countdown Card */}
             <div style={{
               background: '#111e33', border: '0.5px solid #1e3050',
@@ -789,6 +832,7 @@ export default function PicksTab({ onNavigate }) {
                 })()}
               </div>
             )}
+            </>)}
 
             {/* ── WHILE YOU WAIT ── */}
             {/* Gated off: this evergreen-article stack duplicates the Field
