@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import DailyMarketReport from '../sharp/DailyMarketReport';
 
 // v4.3 Pass Day. Consolidated single-card hero replaces the seven-card
@@ -85,7 +86,13 @@ export default function PassDay({
   marketReport,
   furtherReading,
   furtherReadings,
+  isPro = false,
+  onUpgrade,
 }) {
+  const isIOSPlatform = (() => {
+    try { return typeof Capacitor.getPlatform === 'function' && Capacitor.getPlatform() === 'ios'; }
+    catch { return false; }
+  })();
   const [miExpanded, setMiExpanded] = useState(false);
   const articles = (furtherReadings && furtherReadings.length > 0)
     ? furtherReadings
@@ -282,6 +289,70 @@ export default function PassDay({
           </div>
         </div>
       </div>
+
+      {/* Free-user CTA — pass-day version. Reinforces the discipline value
+          prop ("even pass days are part of the system") and routes through
+          UpgradeScreen which handles the platform-specific payment flow
+          internally (RevenueCat IAP on iOS, Stripe on Android + web).
+          Pro users skip this block. */}
+      {!isPro && (
+        <div style={{
+          background: 'var(--sp-surface, #121725)',
+          border: '1px solid rgba(90, 158, 114, 0.25)',
+          borderRadius: '14px',
+          padding: '20px 18px 18px',
+          marginBottom: '22px',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div aria-hidden style={{
+            position: 'absolute', top: 0, left: 20, right: 20, height: '2px',
+            background: 'linear-gradient(90deg, transparent, var(--sp-green, #5A9E72) 20%, var(--sp-green, #5A9E72) 80%, transparent)',
+            opacity: 0.55,
+          }} />
+          <div style={{
+            fontFamily: 'var(--sp-font-mono, "JetBrains Mono", monospace)',
+            fontSize: '10px', fontWeight: 500,
+            letterSpacing: '0.22em', textTransform: 'uppercase',
+            color: 'var(--sp-green, #5A9E72)',
+            marginBottom: '10px',
+          }}>Pro unlocks the full read</div>
+          <div style={{
+            fontFamily: '"IBM Plex Serif", Georgia, serif',
+            fontSize: '17px', fontWeight: 600, lineHeight: 1.3,
+            color: 'var(--sp-text, #E8EAED)',
+            marginBottom: '8px',
+          }}>Pass days are part of the edge.</div>
+          <div style={{
+            fontSize: '13px', lineHeight: 1.5,
+            color: 'var(--sp-text-2, rgba(232, 234, 237, 0.7))',
+            marginBottom: '16px',
+          }}>
+            See exactly why the model passed today, what almost cleared, and tomorrow's full edge breakdown.
+          </div>
+          <button
+            type="button"
+            onClick={() => { if (typeof onUpgrade === 'function') onUpgrade(); }}
+            style={{
+              width: '100%', padding: '14px 16px',
+              background: 'var(--sp-green, #5A9E72)',
+              border: 'none', borderRadius: '10px',
+              fontFamily: '"Inter", -apple-system, sans-serif',
+              fontSize: '14px', fontWeight: 600,
+              color: '#062019', letterSpacing: '0.01em',
+              cursor: 'pointer', marginBottom: '8px',
+            }}
+          >Start 14-day free trial</button>
+          <div style={{
+            textAlign: 'center',
+            fontFamily: 'var(--sp-font-mono, "JetBrains Mono", monospace)',
+            fontSize: '10px', letterSpacing: '0.16em', textTransform: 'uppercase',
+            color: 'var(--sp-text-4, rgba(232, 234, 237, 0.35))',
+          }}>
+            {isIOSPlatform ? 'Cancel anytime' : 'Card required · Cancel anytime'}
+          </div>
+        </div>
+      )}
 
       <SectionEyebrow title="Market Intelligence" meta={miUpdated ? `UPDATED ${miUpdated.toUpperCase()}` : null} />
 

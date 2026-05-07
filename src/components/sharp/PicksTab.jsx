@@ -1662,6 +1662,8 @@ export default function PicksTab({ onNavigate }) {
               marketReport={marketReport}
               furtherReading={passArticle}
               furtherReadings={passArticles}
+              isPro={isPro}
+              onUpgrade={() => onNavigate && onNavigate('profile', 'upgrade')}
             />
           );
         })()}
