@@ -783,6 +783,10 @@ def weekly_summary():
 def get_pick(pick_id):
     pick = Pick.query.get_or_404(pick_id)
 
+    from app import get_current_user_obj
+    cu = get_current_user_obj()
+    is_pro = cu is not None and cu.is_pro
+
     model_signals = []
     withdraw_reason = None
     if pick.notes:
@@ -808,7 +812,7 @@ def get_pick(pick_id):
     except Exception:
         pass
 
-    return jsonify({
+    payload = {
         'id': pick.id,
         'published_at': (pick.published_at.isoformat() + 'Z') if pick.published_at else None,
         'result_resolved_at': (pick.result_resolved_at.isoformat() + 'Z') if pick.result_resolved_at else None,
@@ -839,8 +843,32 @@ def get_pick(pick_id):
         'away_score': pick.away_score,
         'notes': pick.notes,
         'withdraw_reason': withdraw_reason,
+        'closing_spread': pick.closing_spread,
+        'clv': pick.clv,
         'disclaimer': 'For informational and entertainment purposes only. No guaranteed outcomes. Past performance does not guarantee future results. Please gamble responsibly.',
-    })
+    }
+
+    if not is_pro:
+        payload['side'] = 'Upgrade to see pick'
+        payload['line'] = None
+        payload['line_open'] = None
+        payload['line_close'] = None
+        payload['edge_pct'] = None
+        payload['edge_at_close'] = None
+        payload['model_confidence'] = None
+        payload['predicted_margin'] = None
+        payload['cover_prob'] = None
+        payload['implied_prob'] = None
+        payload['market_odds'] = None
+        payload['sportsbook'] = None
+        payload['model_signals'] = []
+        payload['stake_guidance'] = None
+        payload['notes'] = None
+        payload['closing_spread'] = None
+        payload['clv'] = None
+        payload['paywalled'] = True
+
+    return jsonify(payload)
 
 
 @picks_bp.route('/market')
@@ -1190,6 +1218,20 @@ def market_view():
                         })
         except Exception:
             pass
+
+    from app import get_current_user_obj
+    cu = get_current_user_obj()
+    is_pro = cu is not None and cu.is_pro
+    if not is_pro:
+        # Strip Pro-only model insights from every game. Free users see raw
+        # market data (spreads, totals, books, scores) but never the model's
+        # edge, pick, rating, or sharp-action signals.
+        for g in games:
+            g.pop('model', None)
+            g.pop('sharp_action', None)
+            g.pop('rlm', None)
+            g.pop('pick_result', None)
+            g.pop('line_stability', None)
 
     return jsonify({'games': games, 'date': active_date, 'count': len(games)})
 
