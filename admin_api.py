@@ -390,6 +390,53 @@ def tap_grade():
     })
 
 
+@admin_bp.route('/api/admin/tap-run-model', methods=['GET', 'POST'])
+def tap_run_model():
+    """Phone-friendly model-run trigger. Same shape as /api/admin/tap-grade.
+    Tap a single URL with the cron secret to force a model run for a
+    sport from a phone browser when cron-job.org missed the schedule.
+
+    Example URL:
+      /api/admin/tap-run-model?secret=<CRON_SECRET>&sport=nba&force=true
+
+    Defaults: sport=nba, force=false. Returns JSON with the same shape
+    run_model_and_log produces ({status, picks_created, run_id, ...}).
+    Accepts secret in the query string because phone browsers can't
+    easily set the X-Cron-Secret header.
+    """
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    supplied = request.args.get('secret') or request.headers.get('X-Cron-Secret')
+    if not cron_secret or supplied != cron_secret:
+        return jsonify({'error': 'unauthorized'}), 403
+
+    sport = (request.args.get('sport') or 'nba').lower()
+    if sport not in ('nba', 'mlb', 'wnba'):
+        return jsonify({'error': "sport must be one of nba, mlb, wnba"}), 400
+    force = (request.args.get('force', 'false').lower() == 'true')
+
+    # Fresh game collection before the run, mirrors /api/admin/trigger-model.
+    try:
+        if sport in ('nba', 'wnba'):
+            from app import collect_todays_games
+            collect_todays_games()
+        elif sport == 'mlb':
+            from app import collect_mlb_games_job
+            collect_mlb_games_job()
+    except Exception as e:
+        import logging
+        logging.warning(f"[tap-run-model] Game collection failed (continuing): {e}")
+
+    from model_service import run_model_and_log
+    from flask import current_app
+    result = run_model_and_log(
+        current_app._get_current_object(),
+        sport=sport,
+        force=force,
+        send_notifications=True,
+    )
+    return jsonify({'sport': sport, 'force': force, 'result': result})
+
+
 @admin_bp.route('/api/admin/rerun-model', methods=['POST'])
 def rerun_model():
     cron_secret = os.environ.get('CRON_SECRET', '')
