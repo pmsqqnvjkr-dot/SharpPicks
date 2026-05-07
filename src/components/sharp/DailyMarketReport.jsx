@@ -188,13 +188,14 @@ export default function DailyMarketReport({ report: reportProp }) {
           </div>
           <div style={{
             position: 'relative', height: '6px', borderRadius: '3px', marginBottom: '6px',
-            background: 'linear-gradient(90deg, rgba(196, 134, 138, 0.3) 0%, rgba(245, 158, 11, 0.3) 50%, rgba(90, 158, 114, 0.3) 100%)',
+            background: `linear-gradient(90deg, ${SP.surface2} 0%, rgba(90, 158, 114, 0.28) 100%)`,
           }}>
             <div style={{
               position: 'absolute', top: '-3px',
               left: `${Math.max(2, Math.min(98, meiCurrent))}%`,
               width: '4px', height: '12px', background: SP.green, borderRadius: '2px',
               transform: 'translateX(-50%)',
+              boxShadow: '0 0 0 2px rgba(10, 13, 20, 0.6)',
             }} />
           </div>
           <div style={{
