@@ -219,7 +219,137 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
     } catch { /* swallow */ }
   };
 
-  if (!isPro) return null;
+  // Free user paywall: render the v4.3 "qualified edge detected" lock card
+  // with [Pro] placeholders + Start trial CTA. Mirrors PickCard.jsx:159-216
+  // pattern. Reads pick.locked from /api/picks/today (the existing
+  // paywall mask), so the gate matches the server-side mask shape.
+  const isLocked = (pick?.locked === true) || !isPro;
+  if (isLocked) {
+    return (
+      <div style={{
+        background: SP.surface,
+        border: `1px solid ${SP.border}`,
+        borderRadius: '16px',
+        overflow: 'hidden',
+        position: 'relative',
+        marginBottom: '18px',
+      }}>
+        <div aria-hidden style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+          background: `linear-gradient(90deg, transparent, ${SP.green} 20%, ${SP.green} 80%, transparent)`,
+          opacity: 0.7,
+        }} />
+        <div style={{ padding: '22px 22px 0' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '6px 12px', border: `1px solid ${SP.green}`, borderRadius: '4px',
+            fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
+            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.green,
+            marginBottom: '18px',
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: SP.green }} />
+            Qualified edge detected
+          </div>
+          {matchup && (
+            <div style={{
+              fontFamily: SP.fontSerif, fontSize: '20px', fontWeight: 600,
+              color: SP.text, lineHeight: 1.2, letterSpacing: '-0.005em',
+              marginBottom: '8px',
+            }}>{matchup}</div>
+          )}
+          {(startInfo || oddsText) && (
+            <div style={{
+              fontFamily: SP.fontMono, fontSize: '11px', color: SP.text3,
+              marginBottom: '8px',
+            }}>
+              {startInfo?.date && <>{startInfo.date} <span style={{ color: SP.text5 }}>·</span> </>}
+              {startInfo?.time && <span style={{ color: SP.text2 }}>{startInfo.time}</span>}
+              {oddsText && <> <span style={{ color: SP.text5 }}>·</span> <span style={{ color: SP.text2 }}>{oddsText}</span></>}
+            </div>
+          )}
+          {countdown && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              padding: '6px 11px', marginBottom: '4px',
+              background: SP.amberSoft,
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              borderRadius: '6px',
+              fontFamily: SP.fontMono, fontSize: '11px',
+              color: SP.amber, letterSpacing: '0.04em',
+            }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: SP.amber }} />
+              {countdown}
+            </div>
+          )}
+        </div>
+
+        {/* 4-cell grid with [Pro] placeholders */}
+        <div style={{
+          margin: '22px',
+          display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr 1px 1fr',
+          background: SP.bg, border: `1px solid ${SP.border}`,
+          borderRadius: '10px', overflow: 'hidden',
+        }}>
+          {['Side', 'Line', 'Edge', 'Size'].flatMap((label, i, arr) => [
+            <div key={`p-${label}`} style={{ padding: '14px 8px', textAlign: 'center' }}>
+              <div style={{
+                fontFamily: SP.fontMono, fontSize: '9px',
+                letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
+                marginBottom: '6px',
+              }}>{label}</div>
+              <div style={{
+                fontFamily: SP.fontMono, fontSize: '13px', fontWeight: 500,
+                color: SP.text4, lineHeight: 1,
+              }}>[Pro]</div>
+            </div>,
+            i < arr.length - 1 ? <div key={`pd-${i}`} style={{ background: SP.border }} /> : null,
+          ])}
+        </div>
+
+        {/* Quant teaser: locked Observation block with CTA hint */}
+        <div style={{
+          margin: '0 22px 18px',
+          padding: '16px 18px',
+          background: SP.bg,
+          border: `1px solid ${SP.border}`,
+          borderRadius: '10px',
+        }}>
+          <div style={{
+            fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
+            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
+            marginBottom: '8px',
+          }}>Observation · Quant analysis</div>
+          <div style={{
+            fontFamily: SP.fontSerif, fontSize: '14px', fontStyle: 'italic',
+            color: SP.text3, lineHeight: 1.5,
+          }}>
+            Why the model fired this signal: bullpen edge, schedule density, line movement, ensemble agreement, market context. Full reasoning unlocks with Pro.
+          </div>
+        </div>
+
+        {/* Start 14-day free trial CTA */}
+        <div style={{ padding: '0 22px 22px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <button
+            onClick={() => {
+              if (typeof onNavigate === 'function') onNavigate('profile', 'upgrade');
+            }}
+            style={{
+              width: '100%', padding: '14px 16px',
+              background: SP.green,
+              border: 'none', borderRadius: '10px',
+              fontFamily: SP.fontSans, fontSize: '14px', fontWeight: 600,
+              color: '#062019', letterSpacing: '0.01em',
+              cursor: 'pointer',
+            }}
+          >Start 14-day free trial</button>
+          <div style={{
+            textAlign: 'center', fontFamily: SP.fontMono, fontSize: '10px',
+            letterSpacing: '0.18em', textTransform: 'uppercase', color: SP.text4,
+          }}>Full pick · model lines · sizing · CLV audit</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{

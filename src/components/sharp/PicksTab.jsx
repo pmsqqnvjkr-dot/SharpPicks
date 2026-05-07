@@ -1373,7 +1373,12 @@ export default function PicksTab({ onNavigate }) {
                   )}
                 </div>
 
-                {isPro ? (
+                {/* Always render DailyTopSignalCard. The component renders
+                    the v4.3 lock card with [Pro] placeholders + Start trial
+                    CTA when pick.locked OR !isPro. Free users get the same
+                    surface area as Pro (matchup, countdown, lock grid)
+                    instead of being shunted to a separate FreePickNotice. */}
+                {true ? (
                   <DailyTopSignalCard
                     pick={todayData}
                     isPro={isPro}
