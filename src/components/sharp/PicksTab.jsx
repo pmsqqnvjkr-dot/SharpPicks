@@ -412,7 +412,10 @@ export default function PicksTab({ onNavigate }) {
             Renders only when the sport is in calibration phase. NBA is in
             deployment phase so it doesn't show. */}
         {todayData?.model_phase === 'calibration' && CALIBRATION_COPY[sport] && (
-          <CalibrationBanner eyebrow={CALIBRATION_COPY[sport].eyebrow}>
+          <CalibrationBanner
+            eyebrow={CALIBRATION_COPY[sport].eyebrow}
+            dismissKey={`calibration-${sport}`}
+          >
             {CALIBRATION_COPY[sport].body}
           </CalibrationBanner>
         )}
@@ -1335,6 +1338,19 @@ export default function PicksTab({ onNavigate }) {
                     onUpgrade={() => setShowAuth(true)}
                     onNavigate={onNavigate}
                     unitSize={user?.unit_size || 100}
+                    onOpenJournal={() => {
+                      setMiExpanded(true);
+                      try {
+                        // Defer to next paint so the expanded section is mounted
+                        // before we scroll into view.
+                        requestAnimationFrame(() => {
+                          const el = document.getElementById('mi-card');
+                          if (el && typeof el.scrollIntoView === 'function') {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        });
+                      } catch { /* swallow */ }
+                    }}
                     onTrack={() => {
                       if (onNavigate) onNavigate('profile', 'bets', {
                         pickToTrack: { id: todayData.id, away_team: todayData.away_team, home_team: todayData.home_team, game_date: todayData.game_date, side: todayData.side, line: todayData.line, edge_pct: todayData.edge_pct, market_odds: todayData.market_odds }

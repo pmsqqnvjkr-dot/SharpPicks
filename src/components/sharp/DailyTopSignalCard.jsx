@@ -109,11 +109,14 @@ function fmtSide(side, line) {
   return { team: side, line: line != null ? fmtSpread(line) : null };
 }
 
-export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, marketReport, liveScore }) {
+export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, marketReport, liveScore, onOpenJournal }) {
   const [tracking, setTracking] = useState(false);
   const [tracked, setTracked] = useState(false);
   const [trackedBetId, setTrackedBetId] = useState(null);
   const [reasoningOpen, setReasoningOpen] = useState(false);
+  const [calibrationNoteDismissed, setCalibrationNoteDismissed] = useState(() => {
+    try { return typeof window !== 'undefined' && window.localStorage.getItem('sp_banner_dismissed:dts-calibration-note') === '1'; } catch { return false; }
+  });
 
   useEffect(() => {
     if (!isPro || !pick?.id) return;
@@ -406,8 +409,9 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
         </div>
       )}
 
-      {isCalibration && (
+      {isCalibration && !calibrationNoteDismissed && (
         <div style={{
+          position: 'relative',
           margin: '0 22px 18px', padding: '12px 14px',
           background: 'rgba(245, 158, 11, 0.05)',
           border: '1px solid rgba(245, 158, 11, 0.18)',
@@ -419,10 +423,29 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
             <circle cx="12" cy="12" r="10" />
             <path d="M12 8v4M12 16h.01" />
           </svg>
-          <div style={{ fontSize: '12px', lineHeight: 1.45, color: SP.text2 }}>
+          <div style={{ fontSize: '12px', lineHeight: 1.45, color: SP.text2, paddingRight: '20px' }}>
             <strong style={{ color: SP.amber, fontWeight: 500 }}>Calibration phase.</strong>
             {' '}Confidence intervals widen during early-season validation. Closing line audit publishes on every signal.
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              try { window.localStorage.setItem('sp_banner_dismissed:dts-calibration-note', '1'); } catch { /* noop */ }
+              setCalibrationNoteDismissed(true);
+            }}
+            aria-label="Dismiss calibration note"
+            style={{
+              position: 'absolute', top: '6px', right: '6px',
+              width: '24px', height: '24px',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              color: 'rgba(245, 158, 11, 0.6)', padding: 0, borderRadius: '6px',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
 
@@ -591,6 +614,60 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
             ? `Tracking · ${teamName?.split(' ').slice(-1)[0] || ''} ${lineText || ''}${flatLabel ? ` · ${flatLabel}` : ''}`
             : `Track this signal${flatLabel ? ` · ${flatLabel}` : ''}`}
         </button>
+      </div>
+
+      {/* Sharp Journal cross-link tile. Surfaces today's market commentary
+          inline so users can drill from the pick into the broader read. */}
+      {onOpenJournal && (
+        <div
+          onClick={onOpenJournal}
+          role="link"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenJournal(); } }}
+          style={{
+            margin: '4px 22px 18px',
+            background: SP.bg,
+            border: `1px solid ${SP.border}`,
+            borderRadius: '12px',
+            padding: '16px 18px',
+            display: 'grid', gridTemplateColumns: '1fr auto',
+            gap: '14px', alignItems: 'center',
+            cursor: 'pointer', position: 'relative', overflow: 'hidden',
+          }}
+        >
+          <div aria-hidden style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+            background: `linear-gradient(90deg, transparent, ${SP.blue}, transparent)`,
+            opacity: 0.4,
+          }} />
+          <div>
+            <div style={{
+              fontFamily: SP.fontMono, fontSize: '10px',
+              letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.blue,
+              marginBottom: '6px',
+            }}>Today's Sharp Journal</div>
+            <div style={{
+              fontFamily: SP.fontSerif, fontSize: '15px', fontWeight: 600,
+              color: SP.text, lineHeight: 1.3, marginBottom: '4px',
+            }}>{(marketReport?.insight || 'Read today\'s market commentary.').slice(0, 80)}{(marketReport?.insight?.length || 0) > 80 ? '…' : ''}</div>
+            <div style={{
+              fontFamily: SP.fontMono, fontSize: '10px', letterSpacing: '0.04em', color: SP.text4,
+            }}>Morning edition · 2 min read · Evan Cole</div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={SP.text3} strokeWidth="2">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </div>
+      )}
+
+      {/* Disclaimer footer */}
+      <div style={{
+        margin: '0 22px 18px', padding: '0 8px',
+        textAlign: 'center',
+        fontFamily: SP.fontMono, fontSize: '9px',
+        letterSpacing: '0.08em', color: SP.text4, lineHeight: 1.6,
+      }}>
+        For informational purposes only. Past performance does not guarantee future results. Please gamble responsibly.
       </div>
     </div>
   );

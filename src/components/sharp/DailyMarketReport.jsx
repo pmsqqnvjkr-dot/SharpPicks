@@ -1,5 +1,6 @@
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
+import CalibrationBanner from '../brand/CalibrationBanner';
 
 // v4.3 inline Market Intelligence report. Renders below the MI card
 // when the user expands it on home (pick day or pass day).
@@ -251,25 +252,16 @@ export default function DailyMarketReport({ report: reportProp }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {/* Calibration banner — preserved from prior version */}
+      {/* Calibration banner — uses shared CalibrationBanner so it inherits
+          the X dismiss button. Per-sport dismissKey so dismissing on MLB
+          doesn't auto-dismiss WNBA. */}
       {isCalibration && (
-        <div style={{
-          background: SP.amberSoft, border: `1px solid ${SP.amberBorder}`,
-          borderRadius: '10px', padding: '14px 16px', marginBottom: '16px',
-          display: 'flex', alignItems: 'flex-start', gap: '12px',
-        }}>
-          <div style={{ flexShrink: 0, width: '8px', height: '8px', marginTop: '4px', background: SP.amber, borderRadius: '50%' }} />
-          <div style={{ flex: 1 }}>
-            <div style={{
-              fontFamily: SP.fontMono, fontSize: '9px',
-              letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.amber,
-              marginBottom: '4px',
-            }}>Calibration Phase</div>
-            <div style={{ fontSize: '12px', lineHeight: 1.45, color: SP.text2 }}>
-              Edges tracked live. Confidence intervals widen during early-season validation.
-            </div>
-          </div>
-        </div>
+        <CalibrationBanner
+          eyebrow="Calibration Phase"
+          dismissKey={`mi-calibration-${sport}`}
+        >
+          Edges tracked live. Confidence intervals widen during early-season validation.
+        </CalibrationBanner>
       )}
 
       {/* Live banner — only when slate has games still in progress */}
@@ -449,14 +441,14 @@ export default function DailyMarketReport({ report: reportProp }) {
           }}>
             <div title="Strong" style={{ height: '100%', width: `${(strongEdges / Math.max(1, totalGames)) * 100}%`, background: SP.green }} />
             <div title="Moderate" style={{ height: '100%', width: `${(moderateEdges / Math.max(1, totalGames)) * 100}%`, background: 'rgba(90, 158, 114, 0.55)' }} />
-            <div title="Weak" style={{ height: '100%', width: `${(weakEdges / Math.max(1, totalGames)) * 100}%`, background: 'rgba(245, 158, 11, 0.55)' }} />
+            <div title="Weak" style={{ height: '100%', width: `${(weakEdges / Math.max(1, totalGames)) * 100}%`, background: 'rgba(90, 158, 114, 0.28)' }} />
             <div title="Below threshold" style={{ height: '100%', flex: 1, background: SP.surface2 }} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
             {[
               { label: 'Strong', sublabel: '≥ 10pp', count: strongEdges, dot: SP.green, muted: strongEdges === 0 },
               { label: 'Moderate', sublabel: '7–10pp', count: moderateEdges, dot: 'rgba(90, 158, 114, 0.55)', muted: moderateEdges === 0 },
-              { label: 'Weak', sublabel: '3.5–7pp', count: weakEdges, dot: 'rgba(245, 158, 11, 0.55)', muted: weakEdges === 0 },
+              { label: 'Weak', sublabel: '3.5–7pp', count: weakEdges, dot: 'rgba(90, 158, 114, 0.28)', muted: weakEdges === 0 },
               { label: 'Below threshold', sublabel: '< 3.5pp', count: belowThreshold, dot: SP.text5, muted: true },
             ].map((c) => (
               <div key={c.label}>
