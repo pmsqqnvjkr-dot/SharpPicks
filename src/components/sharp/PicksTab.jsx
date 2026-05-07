@@ -9,6 +9,7 @@ import openSignup from '../../utils/openSignup';
 const PT_API_BASE = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' : '';
 import PullToRefresh from '../shared/PullToRefresh';
 import PickCard from './PickCard';
+import DailyTopSignalCard from './DailyTopSignalCard';
 import OnboardingCard from './OnboardingCard';
 import DailyMarketReport from './DailyMarketReport';
 import { GameSlate } from './MarketView';
@@ -1302,11 +1303,20 @@ export default function PicksTab({ onNavigate }) {
                 </div>
 
                 {isPro ? (
-                  <PickCard pick={todayData} isPro={isPro} liveScore={liveScore} onUpgrade={() => setShowAuth(true)} onNavigate={onNavigate} unitSize={user?.unit_size || 100} onTrack={() => {
-                    if (onNavigate) onNavigate('profile', 'bets', {
-                      pickToTrack: { id: todayData.id, away_team: todayData.away_team, home_team: todayData.home_team, game_date: todayData.game_date, side: todayData.side, line: todayData.line, edge_pct: todayData.edge_pct, market_odds: todayData.market_odds }
-                    });
-                  }} />
+                  <DailyTopSignalCard
+                    pick={todayData}
+                    isPro={isPro}
+                    liveScore={liveScore}
+                    marketReport={marketReport}
+                    onUpgrade={() => setShowAuth(true)}
+                    onNavigate={onNavigate}
+                    unitSize={user?.unit_size || 100}
+                    onTrack={() => {
+                      if (onNavigate) onNavigate('profile', 'bets', {
+                        pickToTrack: { id: todayData.id, away_team: todayData.away_team, home_team: todayData.home_team, game_date: todayData.game_date, side: todayData.side, line: todayData.line, edge_pct: todayData.edge_pct, market_odds: todayData.market_odds }
+                      });
+                    }}
+                  />
                 ) : (
                   <FreePickNotice onUpgrade={() => { if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); } else { setShowAuth(true); } }} />
                 )}
