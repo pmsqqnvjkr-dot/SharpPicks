@@ -7,15 +7,18 @@
 
 :root {
   /* ── Surface & Background ── */
+  /* Aligned to v4.3 spec hexes. The legacy variable names stay so existing
+     consumers keep working without a sweep, but each one now resolves to
+     the same value as the canonical --sp-* token. */
   --bg-primary: #0A0D14;
   --surface-0: #0D1017;
   --surface-1: #121725;
-  --surface-2: #161C2E;
+  --surface-2: #1B2030;
 
   /* ── Text Hierarchy ── */
-  --text-primary: #EEF2FF;
-  --text-secondary: #9AA3B2;
-  --text-tertiary: #6B7280;
+  --text-primary: #E8EAED;
+  --text-secondary: rgba(232, 234, 237, 0.7);
+  --text-tertiary: rgba(232, 234, 237, 0.5);
 
   /* ── Signal (green = edge/signal ONLY) ── */
   --color-signal: #5A9E72;
@@ -23,15 +26,15 @@
   --color-signal-bg: rgba(90, 158, 114, 0.08);
   --color-signal-border: rgba(90, 158, 114, 0.22);
   --green-profit: #5A9E72;
-  --green-dark: #3D8B5E;
+  --green-dark: #5A9E72;
 
   /* ── Semantic Colors ── */
-  --color-loss: #8B6F70;
-  --red-loss: #8B6F70;
-  --color-info: #4F7DF3;
-  --blue-primary: #4F7DF3;
+  --color-loss: #C4868A;
+  --red-loss: #C4868A;
+  --color-info: #4F86F7;
+  --blue-primary: #4F86F7;
   --blue-deep: #2F5FD6;
-  --withdrawn: #8E9AAF;
+  --withdrawn: #4F86F7;
   --gold-pro: #F59E0B;
 
   /* ── Borders & Strokes ── */

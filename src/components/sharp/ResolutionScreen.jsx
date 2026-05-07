@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 
 const C = {
-  bg: '#0c1018', card: '#111827', bdr: '#1e2a3a', bdr2: '#2a3654',
-  t1: '#e8eaf0', t2: '#9098b3', t3: '#616a8a', t4: '#4a5274',
+  bg: '#0A0D14', card: '#121725', bdr: 'rgba(255, 255, 255, 0.08)', bdr2: 'rgba(255, 255, 255, 0.12)',
+  t1: '#E8EAED', t2: 'rgba(232, 234, 237, 0.7)', t3: 'rgba(232, 234, 237, 0.5)', t4: 'rgba(232, 234, 237, 0.35)',
   grn: '#5A9E72', grnD: 'rgba(90,158,114,.10)', grnB: 'rgba(90,158,114,.15)',
 };
 

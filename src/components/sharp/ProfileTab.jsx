@@ -179,14 +179,14 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
             <button onClick={() => setDeleteConfirm(true)} style={{
               width: '100%', padding: '14px',
               backgroundColor: 'transparent',
-              border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px',
+              border: '1px solid rgba(196,134,138,0.3)', borderRadius: '12px',
               color: 'var(--red-loss)', fontSize: '14px',
               fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)',
             }}>Delete Account</button>
           ) : (
             <div style={{
               backgroundColor: 'var(--surface-1)', borderRadius: '12px',
-              padding: '20px', border: '1px solid rgba(239,68,68,0.3)',
+              padding: '20px', border: '1px solid rgba(196,134,138,0.3)',
             }}>
               <p style={{
                 fontSize: '14px', color: 'var(--text-primary)',
@@ -217,9 +217,9 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
                   disabled={deleting}
                   style={{
                     flex: 1, padding: '12px',
-                    backgroundColor: 'rgba(239,68,68,0.15)',
+                    backgroundColor: 'rgba(196,134,138,0.15)',
                     border: 'none', borderRadius: '8px',
-                    color: '#ef4444', fontSize: '14px',
+                    color: '#C4868A', fontSize: '14px',
                     fontWeight: 700, cursor: 'pointer',
                     fontFamily: 'var(--font-sans)',
                     opacity: deleting ? 0.5 : 1,
@@ -608,8 +608,8 @@ function TrialSignup({ onBack }) {
 
             {error && (
               <p style={{
-                color: '#ef4444', fontSize: '13px', margin: '0 0 12px',
-                padding: '10px 12px', backgroundColor: 'rgba(239,68,68,0.08)',
+                color: '#C4868A', fontSize: '13px', margin: '0 0 12px',
+                padding: '10px 12px', backgroundColor: 'rgba(196,134,138,0.08)',
                 borderRadius: '8px',
               }}>{error}</p>
             )}
@@ -695,12 +695,12 @@ function AccessStatusCard({ user, isPro, stats }) {
       : 'var(--stroke-subtle)';
 
   const progressColor = isUrgent
-    ? '#ef4444'
+    ? '#C4868A'
     : trialDaysLeft != null && trialDaysLeft <= 7
       ? '#f59e0b'
       : 'var(--green-profit, #5A9E72)';
   const progressGlow = isUrgent
-    ? '0 0 8px rgba(239,68,68,0.5)'
+    ? '0 0 8px rgba(196,134,138,0.5)'
     : '0 0 6px rgba(90,158,114,0.3)';
 
   const pnl = stats?.pnl;
@@ -710,7 +710,7 @@ function AccessStatusCard({ user, isPro, stats }) {
 
   return (
     <div style={{
-      borderRadius: '20px',
+      borderRadius: '14px',
       padding: '1.5px',
       background: borderBg,
       backgroundSize: '200% 200%',
@@ -768,7 +768,7 @@ function AccessStatusCard({ user, isPro, stats }) {
           {trialDaysLeft != null && (
             <span style={{
               fontFamily: 'var(--font-mono)', fontSize: '12px',
-              fontWeight: 700, color: isUrgent ? '#ef4444' : 'var(--text-secondary)',
+              fontWeight: 700, color: isUrgent ? '#C4868A' : 'var(--text-secondary)',
             }}>
               {trialDaysLeft} {trialDaysLeft === 1 ? 'Day' : 'Days'} Remaining
             </span>

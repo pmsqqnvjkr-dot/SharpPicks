@@ -31,9 +31,9 @@ const CATEGORY_ABBR = {
 
 const CATEGORY_BADGE_STYLES = {
   market_notes: { bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
-  philosophy:   { bg: 'rgba(212,160,84,0.12)', color: '#D4A054' },
-  how_it_works: { bg: 'rgba(130,160,210,0.12)', color: '#82A0D2' },
-  discipline:   { bg: 'rgba(196,104,107,0.12)', color: '#C4686B' },
+  philosophy:   { bg: 'rgba(245,158,11,0.12)', color: '#F59E0B' },
+  how_it_works: { bg: 'rgba(79,134,247,0.12)',  color: '#4F86F7' },
+  discipline:   { bg: 'rgba(196,134,138,0.12)', color: '#C4868A' },
   founder_note: { bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
 };
 
@@ -154,10 +154,10 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
                 onClick={() => { setActiveCategory(cat.id); setShowAll(false); }}
                 style={{
                   padding: '6px 12px',
-                  borderRadius: '6px',
+                  borderRadius: '8px',
                   border: 'none',
-                  backgroundColor: isActive ? 'rgba(90,158,114,0.15)' : '#131720',
-                  color: isActive ? '#5A9E72' : '#626878',
+                  backgroundColor: isActive ? 'rgba(90,158,114,0.15)' : '#121725',
+                  color: isActive ? '#5A9E72' : 'rgba(232, 234, 237, 0.5)',
                   fontSize: '12px', fontWeight: 500,
                   fontFamily: "'Inter', var(--font-sans), sans-serif",
                   cursor: 'pointer',
@@ -336,7 +336,7 @@ function CategoryBadge({ category, abbreviated = false }) {
   if (abbreviated) {
     return (
       <div style={{
-        width: '28px', height: '28px', borderRadius: '6px',
+        width: '28px', height: '28px', borderRadius: '8px',
         backgroundColor: badgeStyle.bg, color: badgeStyle.color,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
@@ -1865,10 +1865,10 @@ function WhyThisMatters({ insight }) {
 }
 
 const HERO_TAG_STYLES = {
-  philosophy:   { bg: 'rgba(212,160,84,0.12)', color: '#D4A054' },
-  discipline:   { bg: 'rgba(196,104,107,0.12)', color: '#C4686B' },
+  philosophy:   { bg: 'rgba(245,158,11,0.12)', color: '#F59E0B' },
+  discipline:   { bg: 'rgba(196,134,138,0.12)', color: '#C4868A' },
   market_notes: { bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
-  how_it_works: { bg: 'rgba(130,160,210,0.12)', color: '#82A0D2' },
+  how_it_works: { bg: 'rgba(79,134,247,0.12)',  color: '#4F86F7' },
   founder_note: { bg: 'rgba(90,158,114,0.15)', color: '#5A9E72' },
 };
 

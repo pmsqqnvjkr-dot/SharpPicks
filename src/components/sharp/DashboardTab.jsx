@@ -164,7 +164,7 @@ function PerformanceCore({ perf, equityCurve }) {
     <>
       <SectionLabel>Model Performance</SectionLabel>
       <div style={{
-        backgroundColor: 'var(--surface-1)', borderRadius: '20px',
+        backgroundColor: 'var(--surface-1)', borderRadius: '14px',
         border: '1px solid var(--stroke-subtle)', padding: '24px',
         marginBottom: '16px',
       }}>
@@ -251,7 +251,7 @@ function CLVTracker({ clv }) {
         text="CLV measures whether you bet before the market moved your way. Consistently beating closing lines means the model identifies real edges, regardless of individual outcomes."
       />
       <div style={{
-        backgroundColor: 'var(--surface-1)', borderRadius: '20px',
+        backgroundColor: 'var(--surface-1)', borderRadius: '14px',
         border: '1px solid var(--stroke-subtle)', padding: '24px',
         marginBottom: '16px',
       }}>
@@ -358,7 +358,7 @@ function DisciplineScore({ discipline, modelPhase }) {
         text="Volume increases variance. Filtration preserves capital. Edge only matters when it exceeds risk."
       />
       <div style={{
-        backgroundColor: 'var(--surface-1)', borderRadius: '20px',
+        backgroundColor: 'var(--surface-1)', borderRadius: '14px',
         border: '1px solid var(--stroke-subtle)', padding: '24px',
         marginBottom: '16px',
       }}>
@@ -1170,10 +1170,10 @@ function DashboardSkeleton() {
   return (
     <div style={{ padding: '0 20px' }}>
       <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
-      <div style={{ ...shimmer, height: '180px', marginBottom: '16px', borderRadius: '20px' }} />
-      <div style={{ ...shimmer, height: '120px', marginBottom: '16px', borderRadius: '20px' }} />
-      <div style={{ ...shimmer, height: '100px', marginBottom: '16px', borderRadius: '20px' }} />
-      <div style={{ ...shimmer, height: '140px', marginBottom: '16px', borderRadius: '20px' }} />
+      <div style={{ ...shimmer, height: '180px', marginBottom: '16px', borderRadius: '14px' }} />
+      <div style={{ ...shimmer, height: '120px', marginBottom: '16px', borderRadius: '14px' }} />
+      <div style={{ ...shimmer, height: '100px', marginBottom: '16px', borderRadius: '14px' }} />
+      <div style={{ ...shimmer, height: '140px', marginBottom: '16px', borderRadius: '14px' }} />
     </div>
   );
 }
