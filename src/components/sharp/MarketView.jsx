@@ -2034,7 +2034,7 @@ export function GameSlate({ preModel = false, onGameCount }) {
                 <>
                   <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568', padding: '8px 2px 4px' }}>FINAL</div>
                   {stateSorted.finals.map(g => (
-                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} slateDate={data?.date} />
+                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro} onLineHistory={setLineHistoryGame} sport={sport} slateDate={data?.date} />
                   ))}
                 </>
               )}
@@ -2042,7 +2042,7 @@ export function GameSlate({ preModel = false, onGameCount }) {
                 <>
                   <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: '#5A9E72', padding: '8px 2px 4px' }}>LIVE</div>
                   {stateSorted.live.map(g => (
-                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} slateDate={data?.date} />
+                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro} onLineHistory={setLineHistoryGame} sport={sport} slateDate={data?.date} />
                   ))}
                 </>
               )}
@@ -2050,14 +2050,14 @@ export function GameSlate({ preModel = false, onGameCount }) {
                 <>
                   <div style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: '#4a5568', padding: '8px 2px 4px' }}>UPCOMING</div>
                   {stateSorted.upcoming.map(g => (
-                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} slateDate={data?.date} />
+                    <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro} onLineHistory={setLineHistoryGame} sport={sport} slateDate={data?.date} />
                   ))}
                 </>
               )}
             </>
           ) : (
             sorted.map(g => (
-              <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro && !preModel} onLineHistory={setLineHistoryGame} sport={sport} slateDate={data?.date} />
+              <GameRow key={g.id} game={g} expanded={expandedId === g.id} onToggle={() => handleToggle(g.id)} watching={watchedIds.has(g.id)} onWatch={() => handleWatch(g)} isPro={isPro} onLineHistory={setLineHistoryGame} sport={sport} slateDate={data?.date} />
             ))
           )}
         </div>
