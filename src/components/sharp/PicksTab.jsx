@@ -100,7 +100,13 @@ function useCountdownTo(targetHourEt = 10) {
 export default function PicksTab({ onNavigate }) {
   const { user, loading: authLoading, enablePush, pushStatus } = useAuth();
   const { sport, setSport } = useSport();
-  const { data: todayData, loading, error, refetch: refetchToday } = useApi(sportQuery('/picks/today', sport));
+  // Poll /picks/today every 60s. Without this, a user who opens the
+  // app pre-model-run sees type='waiting' and stays stuck on that
+  // state even after the model fires (e.g. opened at 9:55 AM, model
+  // runs at 10:00 AM — the cached 'waiting' response sticks until a
+  // manual pull-to-refresh). Auto-detects 'waiting' → 'pick' / 'pass'
+  // and 'pick' → revoked/graded transitions during live games.
+  const { data: todayData, loading, error, refetch: refetchToday } = useApi(sportQuery('/picks/today', sport), { pollInterval: 60000 });
   const { data: stats, refetch: refetchStats } = useApi(sportQuery('/public/stats', sport));
   const { data: marketReport, refetch: refetchMarketReport } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
   const { data: killSwitch } = useApi(sportQuery('/public/kill-switch', sport), { pollInterval: 600000 });
