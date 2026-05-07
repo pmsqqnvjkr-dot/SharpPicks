@@ -10,6 +10,12 @@ import teamAbbr from '../../utils/teamAbbr';
 import sportDisplay from '../../utils/sportDisplay';
 import openSignup from '../../utils/openSignup';
 import inferGameStatus from '../../utils/inferGameStatus';
+import {
+  isFinalState,
+  isInPlayState,
+  isHomeSidePick,
+  computeLiveCover,
+} from '../../utils/liveScore';
 
 const PROD_URL = 'https://app.sharppicks.ai';
 const MV_API_BASE = Capacitor.isNativePlatform() ? PROD_URL : '';
@@ -42,19 +48,6 @@ function fmtTotal(val) {
   if (val == null || val === '') return 'Pending';
   const n = parseFloat(val);
   return Number.isInteger(n) ? `${n}` : n.toFixed(1);
-}
-
-// `line` is the picked-side spread (negative when picked side is favored,
-// positive when dog), so the same formula works for home and away picks.
-function computeLiveCover(pickSide, line, homeScore, awayScore) {
-  if (line == null || pickSide == null) return null;
-  const isHomePick = String(pickSide).toLowerCase().includes('home');
-  const margin = isHomePick ? (homeScore - awayScore) : (awayScore - homeScore);
-  const adjusted = margin + parseFloat(line);
-  return {
-    status: adjusted > 0 ? 'covering' : 'not_covering',
-    margin: Math.round(Math.abs(adjusted) * 10) / 10,
-  };
 }
 
 function formatSlateDate(dateStr) {
@@ -998,12 +991,12 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
         {/* Cover Tracker (live signal games only) */}
         {(() => {
           if (!isLive || !hasSignal) return null;
-          const cover = computeLiveCover(
-            game.model?.pick_side,
-            game.model?.line,
-            game.home_score ?? 0,
-            game.away_score ?? 0,
-          );
+          const cover = computeLiveCover({
+            isHomePick: isHomeSidePick({ pickSide: game.model?.pick_side }),
+            line: game.model?.line,
+            homeScore: game.home_score ?? 0,
+            awayScore: game.away_score ?? 0,
+          });
           if (!cover) return null;
           const isCovering = cover.status === 'covering';
           const coverColor = isCovering ? brandGreen : brandRed;
@@ -1522,8 +1515,8 @@ export default function MarketView({ onBack }) {
         const key = `${normalizeTeam(g.away)}@${normalizeTeam(g.home)}`;
         const live = liveScores[key];
         if (!live) return g;
-        const isLive = live.state === 'STATUS_IN_PROGRESS' || live.state === 'STATUS_HALFTIME';
-        const isFinal = live.state === 'STATUS_FINAL';
+        const isLive = isInPlayState(live.state);
+        const isFinal = isFinalState(live.state);
         const updated = { ...g };
         if (live.home_record && (!g.home_record || g.home_record === 'N/A')) updated.home_record = live.home_record;
         if (live.away_record && (!g.away_record || g.away_record === 'N/A')) updated.away_record = live.away_record;
@@ -1891,8 +1884,8 @@ export function GameSlate({ preModel = false, onGameCount }) {
         const key = `${normalizeTeam(g.away)}@${normalizeTeam(g.home)}`;
         const live = liveScores[key];
         if (!live) return g;
-        const isLive = live.state === 'STATUS_IN_PROGRESS' || live.state === 'STATUS_HALFTIME';
-        const isFinal = live.state === 'STATUS_FINAL';
+        const isLive = isInPlayState(live.state);
+        const isFinal = isFinalState(live.state);
         const updated = { ...g };
         if (live.home_record && (!g.home_record || g.home_record === 'N/A')) updated.home_record = live.home_record;
         if (live.away_record && (!g.away_record || g.away_record === 'N/A')) updated.away_record = live.away_record;

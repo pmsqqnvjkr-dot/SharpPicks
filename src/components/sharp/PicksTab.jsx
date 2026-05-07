@@ -5,6 +5,7 @@ import { useApi, getAuthToken } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import teamAbbr, { teamCity } from '../../utils/teamAbbr';
 import openSignup from '../../utils/openSignup';
+import { isPreGameState, isInPlayState } from '../../utils/liveScore';
 
 const PT_API_BASE = Capacitor.isNativePlatform() ? 'https://app.sharppicks.ai' : '';
 import PullToRefresh from '../shared/PullToRefresh';
@@ -199,7 +200,7 @@ export default function PicksTab({ onNavigate }) {
         const normalize = s => s.toLowerCase().replace(/[^a-z]/g, '');
         const homeKey = normalize(todayData.home_team);
         const match = json.scores.find(s => normalize(s.home) === homeKey);
-        if (match && (match.state === 'STATUS_IN_PROGRESS' || match.state === 'STATUS_HALFTIME' || match.state === 'STATUS_FINAL')) {
+        if (match && !isPreGameState(match.state)) {
           setLiveScore(match);
         } else {
           setLiveScore(null);
@@ -210,7 +211,7 @@ export default function PicksTab({ onNavigate }) {
 
   useEffect(() => {
     fetchLiveForPick();
-    const fast = liveScore && (liveScore.state === 'STATUS_IN_PROGRESS' || liveScore.state === 'STATUS_HALFTIME');
+    const fast = liveScore && isInPlayState(liveScore.state);
     const interval = setInterval(fetchLiveForPick, fast ? 15000 : 60000);
     return () => clearInterval(interval);
   }, [fetchLiveForPick, liveScore]);
@@ -1524,7 +1525,7 @@ export default function PicksTab({ onNavigate }) {
                   display: 'flex', alignItems: 'center', gap: '8px',
                 }}>
                   Daily Top Signal
-                  {liveScore && (liveScore.state === 'STATUS_IN_PROGRESS' || liveScore.state === 'STATUS_HALFTIME') && (
+                  {liveScore && isInPlayState(liveScore.state) && (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#5A9E72' }}>
                       <span style={{ fontSize: '10px' }}>&middot;</span>
                       <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: '#5A9E72', animation: 'live-pulse 2s ease-in-out infinite', display: 'inline-block' }} />

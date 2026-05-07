@@ -3,6 +3,13 @@ import { Capacitor } from '@capacitor/core';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
 import teamAbbr from '../../utils/teamAbbr';
 import sportDisplay from '../../utils/sportDisplay';
+import {
+  shouldShowLiveBlock,
+  isFinalState,
+  isInPlayState,
+  isHomeSidePick,
+  computeLiveCover,
+} from '../../utils/liveScore';
 
 // v4.3 Daily Top Signal card. Pro-only render path. Replaces the older
 // PickCard for the home pick-day slot. Source: docs mockup approved
@@ -560,7 +567,7 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
           </div>
         )}
 
-        {liveScore && (liveScore.state === 'STATUS_IN_PROGRESS' || liveScore.state === 'STATUS_HALFTIME' || liveScore.state === 'STATUS_FINAL') && (
+        {liveScore && shouldShowLiveBlock(liveScore.state) && (
           <DtsLiveBlock liveScore={liveScore} pick={pick} />
         )}
       </div>
@@ -1030,8 +1037,8 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
 }
 
 function DtsLiveBlock({ liveScore, pick }) {
-  const isFinal = liveScore.state === 'STATUS_FINAL';
-  const isLive = !isFinal;
+  const isFinal = isFinalState(liveScore.state);
+  const isLive = isInPlayState(liveScore.state);
   const cfg = sportDisplay(pick?.sport);
   const periodDisplay = cfg.periodLabel(liveScore.period);
   const clockDisplay = cfg.showClock ? (liveScore.clock || '') : '';
@@ -1078,21 +1085,23 @@ function DtsLiveBlock({ liveScore, pick }) {
 
 function DtsCoverTracker({ pick, liveScore }) {
   const spread = parseFloat(pick.line);
-  if (!Number.isFinite(spread)) return null;
   const sideStr = pick.side || '';
-  const homeKey = ((pick.home_team || '').split(' ').pop() || '').toLowerCase();
-  const isHomeSide = homeKey ? sideStr.toLowerCase().includes(homeKey) : false;
+  const isHomeSide = isHomeSidePick({ pickSide: pick.pick_side, side: sideStr, homeTeam: pick.home_team });
+  const cover = computeLiveCover({
+    isHomePick: isHomeSide,
+    line: pick.line,
+    homeScore: liveScore.home_score || 0,
+    awayScore: liveScore.away_score || 0,
+  });
+  if (!cover) return null;
 
-  const signalScore = isHomeSide ? (liveScore.home_score || 0) : (liveScore.away_score || 0);
-  const oppScore = isHomeSide ? (liveScore.away_score || 0) : (liveScore.home_score || 0);
-  const adjustedMargin = (signalScore - oppScore) + spread;
-  const covering = adjustedMargin > 0;
-  const marginAbs = Math.abs(adjustedMargin).toFixed(1);
+  const covering = cover.status === 'covering';
+  const marginAbs = cover.margin.toFixed(1);
   const statusColor = covering ? '#5A9E72' : '#C4868A';
   const sideTeamName = sideStr.match(/^(.*?)(\s[+-]?\d+)/)?.[1] || sideStr.split(' ').slice(0, -1).join(' ') || sideStr;
   const sideShort = teamAbbr(sideTeamName) || sideStr.split(' ')[0];
   const spreadStr = spread > 0 ? `+${spread}` : `${spread}`;
-  const barFill = Math.min(100, Math.max(5, (Math.abs(adjustedMargin) / (Math.abs(spread) + 10)) * 100));
+  const barFill = Math.min(100, Math.max(5, (Math.abs(cover.adjusted) / (Math.abs(spread) + 10)) * 100));
 
   return (
     <div style={{ marginTop: '8px' }}>
