@@ -377,7 +377,7 @@ export default function PicksTab({ onNavigate }) {
   if (sport === 'wnba' && isWNBAPreLaunch()) {
     return (
       <div style={{ padding: '0' }}>
-        <WNBAPreLaunchScreen />
+        <WNBAPreLaunchScreen onNavigate={onNavigate} />
       </div>
     );
   }

@@ -6,7 +6,7 @@
 // stat row, comparison columns, sample Calibration Log preview, push opt-in,
 // closing principle. Replaces the bare-minimum 147-line stub.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react'; // useState used by useCountdown
 import { useAuth } from '../../hooks/useAuth';
 
 const SP = {
@@ -82,19 +82,15 @@ function useCountdown(targetIso) {
   }, [now, targetIso]);
 }
 
-export default function WNBAPreLaunchScreen() {
-  const { enablePush, pushStatus } = useAuth();
-  const [busy, setBusy] = useState(false);
+export default function WNBAPreLaunchScreen({ onNavigate }) {
+  const { pushStatus } = useAuth();
   const countdown = useCountdown(TIPOFF_ISO);
   useEffect(() => { injectKeyframes(); }, []);
 
-  const handleEnable = async () => {
-    if (busy) return;
-    setBusy(true);
-    try { await enablePush?.(); } catch { /* swallow */ }
-    setBusy(false);
-  };
   const pushEnabled = pushStatus === 'granted' || pushStatus === 'enabled';
+  const handleOpenNotifications = () => {
+    if (typeof onNavigate === 'function') onNavigate('profile', 'notifications');
+  };
 
   const eyebrow = (color, children) => (
     <div style={{
@@ -207,7 +203,7 @@ export default function WNBAPreLaunchScreen() {
           paddingTop: '14px', borderTop: `1px solid ${SP.border2}`,
         }}>
           {[
-            ['5:30 PM ET', 'Pre-tipoff Calibration Log publishes'],
+            ['12:00 PM ET', 'Day’s reads publish (model run)'],
             ['7:00 PM ET', 'Aces vs Mercury tipoff'],
             ['As edges fire', 'Real-time signal alerts'],
             ['11:30 PM ET', 'Closing line audit on every signal'],
@@ -504,8 +500,7 @@ export default function WNBAPreLaunchScreen() {
           Push notifications for every WNBA signal during calibration phase. No spam, no marketing, no daily lottery picks. Just the reads when they fire.
         </p>
         <button
-          onClick={handleEnable}
-          disabled={busy || pushEnabled}
+          onClick={handleOpenNotifications}
           style={{
             display: 'block', width: '100%', padding: '14px 16px',
             background: pushEnabled ? 'rgba(90, 158, 114, 0.1)' : SP.green,
@@ -513,11 +508,11 @@ export default function WNBAPreLaunchScreen() {
             borderRadius: '10px',
             fontFamily: SP.fontSans, fontSize: '14px', fontWeight: 600,
             color: pushEnabled ? SP.green : '#062019',
-            textAlign: 'center', cursor: busy ? 'wait' : pushEnabled ? 'default' : 'pointer',
-            letterSpacing: '0.01em', opacity: busy ? 0.7 : 1,
+            textAlign: 'center', cursor: 'pointer',
+            letterSpacing: '0.01em',
           }}
         >
-          {busy ? 'Enabling…' : pushEnabled ? '✓ Signal alerts enabled' : 'Turn on signal alerts'}
+          {pushEnabled ? 'Manage notification settings →' : 'Turn on signal alerts →'}
         </button>
       </div>
 

@@ -48,7 +48,18 @@ All times **Eastern (ET)**. Use `X-Cron-Secret` header with your `CRON_SECRET` v
 | mlb_validate | `https://app.sharppicks.ai/api/cron/mlb-validate` | 10:30 AM |
 | retrain_model | `https://app.sharppicks.ai/api/cron/retrain-model` | Sun 7:00 AM |
 
-> **CRITICAL:** `run-model` and `mlb-run-model` MUST use `?force=true`. Without it, no data is collected before the model runs, stale passes aren't cleared, and the run can silently no-op.
+### WNBA-Specific Jobs
+
+| Job | URL | Schedule (ET) |
+|-----|-----|---------------|
+| wnba_collect | `https://app.sharppicks.ai/api/cron/wnba-collect` | 10:30 AM, 11:30 AM |
+| **wnba_run_model** | **`https://app.sharppicks.ai/api/cron/wnba-run-model?force=true`** | **12:00 PM** |
+| wnba_closing_lines | `https://app.sharppicks.ai/api/cron/wnba-closing-lines` | Every 2 min, 12 PM–1 AM |
+| wnba_grade | `https://app.sharppicks.ai/api/cron/wnba-grade` | 3:35 AM, 12:00 PM |
+| wnba_roster_continuity | `https://app.sharppicks.ai/api/cron/wnba-roster-continuity` | Sun 6:00 AM |
+| wnba_shadow | `https://app.sharppicks.ai/api/cron/wnba-shadow` | 11:45 AM |
+
+> **CRITICAL:** `run-model`, `mlb-run-model`, and `wnba-run-model` MUST use `?force=true`. Without it, no data is collected before the model runs, stale passes aren't cleared, and the run can silently no-op.
 
 ## How NBA and MLB stay separated
 - **9:00 AM** — `run-model?force=true` collects NBA + MLB games, then runs **only the NBA model**
