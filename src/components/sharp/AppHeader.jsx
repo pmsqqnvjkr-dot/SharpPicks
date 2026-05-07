@@ -72,11 +72,22 @@ export default function AppHeader({ onNavigate }) {
   );
 }
 
+// Sport pills use the v4.3 brand palette: sage Edge Green for the active
+// pill, neutral text-3 for inactive. Per-sport identity colors (NBA orange,
+// MLB blue, WNBA pink) were retired 2026-05-06 in favor of brand consistency.
+// Calibration badge stays amber.
 const SPORT_CONFIG = {
-  nba: { label: 'NBA', color: '#d4874d', active: true },
-  mlb: { label: 'MLB', color: '#3B82F6', active: true, badge: 'CAL' },
-  wnba: { label: 'WNBA', color: '#EC4899', active: true, badge: 'CAL' },
+  nba: { label: 'NBA', active: true },
+  mlb: { label: 'MLB', active: true, badge: 'CAL' },
+  wnba: { label: 'WNBA', active: true, badge: 'CAL' },
 };
+
+const SP_GREEN = '#5A9E72';
+const SP_GREEN_SOFT = 'rgba(90, 158, 114, 0.10)';
+const SP_GREEN_BORDER = 'rgba(90, 158, 114, 0.45)';
+const SP_BORDER = 'rgba(255, 255, 255, 0.08)';
+const SP_TEXT_2 = 'rgba(232, 234, 237, 0.7)';
+const SP_TEXT_3 = 'rgba(232, 234, 237, 0.5)';
 
 function SportFilterPills({ sport, setSport }) {
   const pills = ['nba', 'mlb', 'wnba'];
@@ -94,41 +105,41 @@ function SportFilterPills({ sport, setSport }) {
             onClick={() => { if (!comingSoon) setSport(key); }}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '10px 16px', borderRadius: '20px',
+              padding: '10px 16px', borderRadius: '999px',
               minHeight: '40px',
-              fontSize: '11px', fontWeight: 700,
-              fontFamily: 'var(--font-mono)',
+              fontSize: '11px', fontWeight: 500,
+              fontFamily: '"JetBrains Mono", "JetBrains Mono Variable", monospace',
               textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              border: selected ? `1px solid ${cfg.color}` : '1px solid var(--stroke-subtle)',
-              backgroundColor: selected ? `${cfg.color}15` : 'transparent',
-              color: comingSoon ? 'var(--text-tertiary)' : selected ? cfg.color : 'var(--text-secondary)',
+              letterSpacing: '0.16em',
+              border: `1px solid ${selected ? SP_GREEN_BORDER : SP_BORDER}`,
+              backgroundColor: selected ? SP_GREEN_SOFT : 'transparent',
+              color: comingSoon ? SP_TEXT_3 : selected ? SP_GREEN : SP_TEXT_2,
               cursor: comingSoon ? 'default' : 'pointer',
               opacity: comingSoon ? 0.5 : 1,
-              transition: 'all 0.2s',
+              transition: 'background-color 0.15s, border-color 0.15s, color 0.15s',
             }}
           >
             <span style={{
               width: '6px', height: '6px', borderRadius: '50%',
-              backgroundColor: selected ? cfg.color : comingSoon ? 'var(--text-tertiary)' : 'var(--text-secondary)',
+              backgroundColor: selected ? SP_GREEN : comingSoon ? SP_TEXT_3 : SP_TEXT_3,
             }} />
             {cfg.label}
             {cfg.badge && (
               <span style={{
                 fontSize: '8px', fontWeight: 600,
-                padding: '1px 4px', borderRadius: '4px',
+                padding: '1px 5px', borderRadius: '4px',
                 backgroundColor: 'rgba(245, 158, 11, 0.18)',
                 color: '#F59E0B',
-                letterSpacing: '0',
+                letterSpacing: '0.18em',
               }}>{cfg.badge}</span>
             )}
             {comingSoon && (
               <span style={{
                 fontSize: '8px', fontWeight: 600,
-                padding: '1px 4px', borderRadius: '4px',
-                backgroundColor: 'rgba(255,255,255,0.06)',
-                color: 'var(--text-tertiary)',
-                letterSpacing: '0',
+                padding: '1px 5px', borderRadius: '4px',
+                backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                color: SP_TEXT_3,
+                letterSpacing: '0.18em',
               }}>SOON</span>
             )}
           </button>
