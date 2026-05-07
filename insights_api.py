@@ -72,10 +72,13 @@ def get_insights():
     query = query.order_by(Insight.publish_date.desc())
     total = query.count()
 
-    # Daily rotation for small "recommended reads" requests:
-    # Use the day-of-year as an offset into the full article pool so
-    # different articles surface each day.
-    if rotate and limit <= 5 and offset == 0 and total > limit:
+    # Daily rotation for "recommended reads" requests: use the day-of-year
+    # as an offset into the full article pool so a different slice of
+    # articles surfaces each day. Previous limit<=5 guard was too tight —
+    # PicksTab + PassDay both call with limit=8 (need 6 evergreen + a few
+    # market_notes for slot filling) and were missing the rotation,
+    # leaving the same article on top forever. Bumped to limit<=10.
+    if rotate and limit <= 10 and offset == 0 and total > limit:
         today_et = datetime.now(ET)
         day_offset = (today_et.timetuple().tm_yday * 2) % max(total - limit + 1, 1)
         insights = query.offset(day_offset).limit(limit).all()
