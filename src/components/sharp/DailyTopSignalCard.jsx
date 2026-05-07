@@ -193,22 +193,18 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
   const edgePct = parseFloat(pick?.edge_pct) || 0;
   const edgeBarPct = Math.min(50, Math.abs(edgePct) / 10 * 50);
 
-  const handleTrack = async () => {
-    if (tracking || tracked || !isPro) return;
-    setTracking(true);
-    try {
-      const res = await apiPost('/bets', {
-        pick_id: pick.id,
-        bet_amount: Math.round((flatStake || 1) * 100),
-        units_wagered: flatStake || 1,
-      });
-      if (res?.bet?.id) {
-        setTracked(true);
-        setTrackedBetId(res.bet.id);
-        if (typeof onTrack === 'function') onTrack();
-      }
-    } catch { /* swallow; user retains untracked state */ }
-    setTracking(false);
+  const handleTrack = () => {
+    // Don't post to /api/bets here. PicksTab's onTrack callback navigates
+    // to ProfileTab → BetTrackingScreen with pickToTrack data, where the
+    // user confirms line / odds / units / $ amount in the form before
+    // the bet is actually created. The previous inline apiPost('/bets',
+    // ...) was creating tracked bets with default flatStake values
+    // silently — no form, no feedback, often the wrong line. If a bet
+    // was already tracked the API returned 400 'Already tracking' and
+    // the catch swallowed it, so the user just saw the button do
+    // nothing. Now we let the form-driven flow handle it end to end.
+    if (!isPro) return;
+    if (typeof onTrack === 'function') onTrack();
   };
 
   const handleUntrack = async () => {
