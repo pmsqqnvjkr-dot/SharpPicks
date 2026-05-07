@@ -99,15 +99,26 @@ export default function PassDay({
   const sportUpper = (sport || 'NBA').toUpperCase();
   const gap = Math.max(0, Number(thresholdPct) - Number(topEdgePct));
 
-  const edgeCount = marketReport?.edge_distribution
-    ? (marketReport.edge_distribution.strong || 0)
-      + (marketReport.edge_distribution.moderate || 0)
-      + (marketReport.edge_distribution.weak || 0)
-    : (marketReport?.edge_count || 0);
-  const signals = signalsIssued || 0;
-  const density = gamesScanned > 0 ? Math.round((signals / gamesScanned) * 100) : 0;
-  const mei = marketReport?.mei != null
-    ? Math.round(marketReport.mei)
+  // Prefer marketReport's authoritative counts (games_analyzed, edges_detected,
+  // qualified_signals, signal_density) over the prop-based fallbacks. PicksTab
+  // hardcodes signalsIssued=0 and gamesScanned from todayData.games_analyzed,
+  // which can be stale or zero while the report API has the real numbers.
+  const totalGamesUnified = marketReport?.games_analyzed || gamesScanned || 0;
+  const edgeCount = marketReport?.edges_detected != null
+    ? marketReport.edges_detected
+    : (marketReport?.edge_distribution
+      ? (marketReport.edge_distribution.strong || 0)
+        + (marketReport.edge_distribution.moderate || 0)
+        + (marketReport.edge_distribution.weak || 0)
+      : 0);
+  const signals = marketReport?.qualified_signals != null
+    ? marketReport.qualified_signals
+    : (signalsIssued || 0);
+  const density = marketReport?.signal_density != null
+    ? Math.round(marketReport.signal_density)
+    : (totalGamesUnified > 0 ? Math.round((signals / totalGamesUnified) * 100) : 0);
+  const mei = marketReport?.mei?.current != null
+    ? Math.round(marketReport.mei.current)
     : (marketReport?.market_efficiency_index != null ? Math.round(marketReport.market_efficiency_index) : null);
   const regimeLabel = marketReport?.regime_label || marketReport?.regime || (edgeCount === 0 ? 'Quiet regime' : 'Active regime');
   const miUpdated = marketReport?.last_updated_label || marketReport?.updated_label || '';
@@ -322,7 +333,7 @@ export default function PassDay({
             marginTop: '2px',
           }}>
             <strong style={{ color: 'var(--sp-text, #E8EAED)', fontWeight: 500 }}>
-              {gamesScanned} game{gamesScanned === 1 ? '' : 's'}
+              {totalGamesUnified} game{totalGamesUnified === 1 ? '' : 's'}
             </strong>
             {' · '}{edgeCount} edge{edgeCount === 1 ? '' : 's'}
             {' · '}{signals} signal{signals === 1 ? '' : 's'}

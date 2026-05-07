@@ -358,10 +358,12 @@ export default function PicksTab({ onNavigate }) {
   });
 
   const sportName = (sport || 'nba').toUpperCase();
-  const edgeCount = gameInfo?.edges || 0;
-  const signalCount = gameInfo?.signals || 0;
-  const totalGames = gameInfo?.total || (todayData?.games_analyzed || 0);
-  const density = totalGames > 0 ? Math.round((signalCount / totalGames) * 100) : 0;
+  const edgeCount = gameInfo?.edges || marketReport?.edges_detected || 0;
+  const signalCount = gameInfo?.signals || marketReport?.qualified_signals || 0;
+  const totalGames = gameInfo?.total || marketReport?.games_analyzed || todayData?.games_analyzed || 0;
+  const density = marketReport?.signal_density != null
+    ? Math.round(marketReport.signal_density)
+    : (totalGames > 0 ? Math.round((signalCount / totalGames) * 100) : 0);
 
   const topEdge = todayData?.whatif?.edge_pct || (marketReport?.largest_edge) || 0;
   const threshold = 3.5;
