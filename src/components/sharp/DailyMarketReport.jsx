@@ -66,14 +66,19 @@ export default function DailyMarketReport({ report: reportProp }) {
 
   const totalGames = data.games_analyzed || 0;
   const signalsFired = data.qualified_signals || 0;
-  const edgeCount = data.edges_detected != null ? data.edges_detected : (
-    (data.edge_distribution?.strong || 0) +
-    (data.edge_distribution?.moderate || 0) +
-    (data.edge_distribution?.weak || 0)
-  );
   const dist = data.edge_distribution || {};
-  const qualifying = dist.moderate || 0;
-  const belowThreshold = Math.max(0, totalGames - signalsFired - qualifying);
+  // Backend bucketizes detected edges (>= qualifying threshold) into:
+  //   strong   = edge >= 10pp  (STR tier)
+  //   moderate = 7 <= edge < 10pp  (MOD tier)
+  //   weak     = qualifying threshold <= edge < 7pp  (WK tier)
+  // Plus belowThreshold = games with no qualifying edge at all.
+  // Beginner's guide promises this exact STR/MOD/WK breakdown.
+  const strongEdges = dist.strong || 0;
+  const moderateEdges = dist.moderate || 0;
+  const weakEdges = dist.weak || 0;
+  const edgeCount = data.edges_detected != null ? data.edges_detected : (strongEdges + moderateEdges + weakEdges);
+  const belowThreshold = Math.max(0, totalGames - edgeCount);
+  const qualifying = moderateEdges; // legacy alias; kept so other call sites compile
   const density = data.signal_density != null
     ? Math.round(data.signal_density)
     : (totalGames > 0 ? Math.round((signalsFired / totalGames) * 100) : 0);
@@ -209,21 +214,31 @@ export default function DailyMarketReport({ report: reportProp }) {
           <div style={{
             fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
             letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
-            marginBottom: '14px',
+            marginBottom: '6px',
           }}>Edge Distribution · {edgeCount} detected across {totalGames} games</div>
           <div style={{
-            height: '10px', background: SP.surface2, borderRadius: '3px',
-            overflow: 'hidden', display: 'flex', marginBottom: '14px',
+            fontFamily: SP.fontMono, fontSize: '11px', color: SP.text2, letterSpacing: '0.04em',
+            marginBottom: '14px',
           }}>
-            <div style={{ height: '100%', width: `${(signalsFired / Math.max(1, totalGames)) * 100}%`, background: SP.green }} />
-            <div style={{ height: '100%', width: `${(qualifying / Math.max(1, totalGames)) * 100}%`, background: 'rgba(245, 158, 11, 0.6)' }} />
-            <div style={{ height: '100%', flex: 1, background: SP.surface2 }} />
+            <span style={{ color: SP.green, fontWeight: 600 }}>{signalsFired}</span> signal{signalsFired === 1 ? '' : 's'} fired ·{' '}
+            only Strong (and sometimes Moderate) edges become signals
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+          {/* Stacked bar: 4 segments (Strong / Moderate / Weak / Below threshold) */}
+          <div style={{
+            height: '10px', background: SP.surface2, borderRadius: '3px',
+            overflow: 'hidden', display: 'flex', marginBottom: '14px', gap: '1px',
+          }}>
+            <div title="Strong" style={{ height: '100%', width: `${(strongEdges / Math.max(1, totalGames)) * 100}%`, background: SP.green }} />
+            <div title="Moderate" style={{ height: '100%', width: `${(moderateEdges / Math.max(1, totalGames)) * 100}%`, background: 'rgba(90, 158, 114, 0.55)' }} />
+            <div title="Weak" style={{ height: '100%', width: `${(weakEdges / Math.max(1, totalGames)) * 100}%`, background: 'rgba(245, 158, 11, 0.55)' }} />
+            <div title="Below threshold" style={{ height: '100%', flex: 1, background: SP.surface2 }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
             {[
-              { label: 'Signals fired', count: signalsFired, dot: SP.green, muted: false },
-              { label: 'Qualifying', count: qualifying, dot: SP.amber, muted: qualifying === 0 },
-              { label: 'Below threshold', count: belowThreshold, dot: SP.text5, muted: true },
+              { label: 'Strong', sublabel: '≥ 10pp', count: strongEdges, dot: SP.green, muted: strongEdges === 0 },
+              { label: 'Moderate', sublabel: '7–10pp', count: moderateEdges, dot: 'rgba(90, 158, 114, 0.55)', muted: moderateEdges === 0 },
+              { label: 'Weak', sublabel: '3.5–7pp', count: weakEdges, dot: 'rgba(245, 158, 11, 0.55)', muted: weakEdges === 0 },
+              { label: 'Below threshold', sublabel: '< 3.5pp', count: belowThreshold, dot: SP.text5, muted: true },
             ].map((c) => (
               <div key={c.label}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
@@ -235,8 +250,12 @@ export default function DailyMarketReport({ report: reportProp }) {
                 </div>
                 <div style={{
                   fontFamily: SP.fontMono, fontSize: '9px',
-                  letterSpacing: '0.18em', textTransform: 'uppercase', color: SP.text3,
+                  letterSpacing: '0.16em', textTransform: 'uppercase', color: SP.text3,
                 }}>{c.label}</div>
+                <div style={{
+                  fontFamily: SP.fontMono, fontSize: '8px', color: SP.text4,
+                  letterSpacing: '0.04em', marginTop: '2px',
+                }}>{c.sublabel}</div>
               </div>
             ))}
           </div>
