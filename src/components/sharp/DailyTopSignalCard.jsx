@@ -110,14 +110,33 @@ function fmtSide(side, line) {
   return { team: side, line: line != null ? fmtSpread(line) : null };
 }
 
-export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, marketReport, liveScore, onOpenJournal }) {
+export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, marketReport, liveScore, onOpenJournal, unitSize = 100 }) {
   const [tracking, setTracking] = useState(false);
   const [tracked, setTracked] = useState(false);
   const [trackedBetId, setTrackedBetId] = useState(null);
   const [reasoningOpen, setReasoningOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [trackError, setTrackError] = useState(null);
+  const [formLine, setFormLine] = useState('');
+  const [formOdds, setFormOdds] = useState('-110');
+  const [formUnits, setFormUnits] = useState('1');
+  const [formWager, setFormWager] = useState(String(unitSize));
   const [calibrationNoteDismissed, setCalibrationNoteDismissed] = useState(() => {
     try { return typeof window !== 'undefined' && window.localStorage.getItem('sp_banner_dismissed:dts-calibration-note') === '1'; } catch { return false; }
   });
+
+  // Sync form defaults when pick or unitSize lands.
+  useEffect(() => {
+    if (pick?.line != null) setFormLine(String(pick.line));
+    if (pick?.market_odds != null) setFormOdds(String(pick.market_odds));
+    if (pick?.stake_guidance?.flat_stake != null) {
+      const u = Number(pick.stake_guidance.flat_stake);
+      setFormUnits(String(u));
+      setFormWager(String(Math.round(u * unitSize)));
+    } else {
+      setFormWager(String(unitSize));
+    }
+  }, [pick?.id, pick?.line, pick?.market_odds, pick?.stake_guidance?.flat_stake, unitSize]);
 
   useEffect(() => {
     if (!isPro || !pick?.id) return;
@@ -193,18 +212,60 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
   const edgePct = parseFloat(pick?.edge_pct) || 0;
   const edgeBarPct = Math.min(50, Math.abs(edgePct) / 10 * 50);
 
+  const handleUnitsChange = (val) => {
+    setFormUnits(val);
+    const u = parseFloat(val) || 1;
+    setFormWager(String(Math.round(u * unitSize)));
+  };
+  const handleWagerChange = (val) => {
+    setFormWager(val);
+    const w = parseFloat(val) || unitSize;
+    setFormUnits(String(parseFloat((w / unitSize).toFixed(2))));
+  };
+
   const handleTrack = () => {
-    // Don't post to /api/bets here. PicksTab's onTrack callback navigates
-    // to ProfileTab → BetTrackingScreen with pickToTrack data, where the
-    // user confirms line / odds / units / $ amount in the form before
-    // the bet is actually created. The previous inline apiPost('/bets',
-    // ...) was creating tracked bets with default flatStake values
-    // silently — no form, no feedback, often the wrong line. If a bet
-    // was already tracked the API returned 400 'Already tracking' and
-    // the catch swallowed it, so the user just saw the button do
-    // nothing. Now we let the form-driven flow handle it end to end.
-    if (!isPro) return;
-    if (typeof onTrack === 'function') onTrack();
+    if (!isPro || tracked) return;
+    setShowForm((v) => !v);
+    setTrackError(null);
+  };
+
+  const handleSubmit = async () => {
+    if (tracking) return;
+    setTracking(true);
+    setTrackError(null);
+    try {
+      const res = await apiPost('/bets', {
+        pick_id: pick.id,
+        units_wagered: parseFloat(formUnits) || 1,
+        bet_amount: parseInt(formWager, 10) || unitSize,
+        odds: parseInt(formOdds, 10) || pick.market_odds || -110,
+        line_at_bet: parseFloat(formLine) || pick.line,
+        bet_type: 'spread',
+      });
+      if (res?.success === false) {
+        if ((res.error || '').toLowerCase().includes('already tracking')) {
+          setTracked(true); setShowForm(false);
+        } else {
+          setTrackError(res.error || 'Failed to track');
+        }
+      } else if (res?.bet?.id) {
+        setTracked(true);
+        setTrackedBetId(res.bet.id);
+        setShowForm(false);
+        if (typeof onTrack === 'function') onTrack();
+      } else {
+        setTrackError('Failed to track');
+      }
+    } catch (e) {
+      const msg = e?.message || 'Failed to track';
+      if (msg.toLowerCase().includes('already tracking')) {
+        setTracked(true); setShowForm(false);
+      } else {
+        setTrackError(msg);
+      }
+    } finally {
+      setTracking(false);
+    }
   };
 
   const handleUntrack = async () => {
@@ -734,11 +795,17 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
           disabled={tracking}
           style={{
             width: '100%', padding: '14px 16px',
-            background: tracked ? 'rgba(90, 158, 114, 0.1)' : SP.green,
-            border: tracked ? '1px solid rgba(90, 158, 114, 0.4)' : 'none',
+            background: tracked
+              ? 'rgba(90, 158, 114, 0.1)'
+              : showForm
+                ? 'rgba(90, 158, 114, 0.06)'
+                : SP.green,
+            border: tracked || showForm
+              ? '1px solid rgba(90, 158, 114, 0.4)'
+              : 'none',
             borderRadius: '10px',
             fontFamily: SP.fontSans, fontSize: '14px', fontWeight: 600,
-            color: tracked ? SP.green : '#062019',
+            color: tracked || showForm ? SP.green : '#062019',
             letterSpacing: '0.01em',
             cursor: tracking ? 'wait' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -752,8 +819,115 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
           )}
           {tracking ? 'Tracking…' : tracked
             ? `Tracking · ${teamName?.split(' ').slice(-1)[0] || ''} ${lineText || ''}${flatLabel ? ` · ${flatLabel}` : ''}`
-            : `Track this signal${flatLabel ? ` · ${flatLabel}` : ''}`}
+            : showForm
+              ? 'Cancel'
+              : `Track this signal${flatLabel ? ` · ${flatLabel}` : ''}`}
         </button>
+
+        {/* Inline track-bet form. Mirrors PickCard.jsx:976-1023 pattern —
+            line / odds / units / wager fields with live unit↔wager sync,
+            posted to /api/bets directly so the user stays on the home
+            screen instead of navigating to BetTrackingScreen. */}
+        {showForm && !tracked && (
+          <div style={{
+            padding: '14px',
+            borderRadius: '10px',
+            background: SP.bg,
+            border: '1px solid rgba(90, 158, 114, 0.15)',
+          }}>
+            <div style={{
+              fontFamily: SP.fontMono, fontSize: '11px', color: SP.text2,
+              marginBottom: '12px', lineHeight: 1.4,
+            }}>
+              {pick?.side} · {pick?.market_odds > 0 ? '+' : ''}{pick?.market_odds || -110}
+              {pick?.edge_pct != null ? ` · ${Number(pick.edge_pct).toFixed(1)}% edge` : ''}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+              <div>
+                <div style={{
+                  fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
+                  color: SP.text3, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px',
+                }}>Line bought</div>
+                <input
+                  type="text" inputMode="decimal" value={formLine}
+                  onChange={(e) => setFormLine(e.target.value)}
+                  style={{
+                    background: SP.bg, border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '8px', padding: '10px 12px',
+                    fontFamily: SP.fontMono, fontSize: '14px', fontWeight: 500,
+                    color: SP.text, outline: 'none', width: '100%', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div>
+                <div style={{
+                  fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
+                  color: SP.text3, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px',
+                }}>Price (odds)</div>
+                <input
+                  type="text" inputMode="numeric" value={formOdds}
+                  onChange={(e) => setFormOdds(e.target.value)}
+                  placeholder="-110"
+                  style={{
+                    background: SP.bg, border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '8px', padding: '10px 12px',
+                    fontFamily: SP.fontMono, fontSize: '14px', fontWeight: 500,
+                    color: SP.text, outline: 'none', width: '100%', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div>
+                <div style={{
+                  fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
+                  color: SP.text3, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px',
+                }}>Units</div>
+                <input
+                  type="text" inputMode="decimal" value={formUnits}
+                  onChange={(e) => handleUnitsChange(e.target.value)}
+                  style={{
+                    background: SP.bg, border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '8px', padding: '10px 12px',
+                    fontFamily: SP.fontMono, fontSize: '14px', fontWeight: 500,
+                    color: SP.text, outline: 'none', width: '100%', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div>
+                <div style={{
+                  fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
+                  color: SP.text3, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px',
+                }}>Wager ($)</div>
+                <input
+                  type="text" inputMode="numeric" value={formWager}
+                  onChange={(e) => handleWagerChange(e.target.value)}
+                  style={{
+                    background: SP.bg, border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '8px', padding: '10px 12px',
+                    fontFamily: SP.fontMono, fontSize: '14px', fontWeight: 500,
+                    color: SP.green, outline: 'none', width: '100%', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={tracking}
+              style={{
+                width: '100%', padding: '12px', border: 'none', borderRadius: '8px',
+                fontFamily: SP.fontSans, fontSize: '13px', fontWeight: 600,
+                color: '#062019', background: SP.green,
+                cursor: tracking ? 'default' : 'pointer',
+                letterSpacing: '0.02em', opacity: tracking ? 0.5 : 1,
+              }}
+            >{tracking ? 'Tracking…' : 'Track this bet'}</button>
+            {trackError && (
+              <div style={{
+                marginTop: '8px', fontFamily: SP.fontMono, fontSize: '11px',
+                color: SP.redSoft, textAlign: 'center',
+              }}>{trackError}</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Sharp Journal cross-link tile. Surfaces today's market commentary
