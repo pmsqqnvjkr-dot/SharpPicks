@@ -40,6 +40,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
     if (onScreenChange) onScreenChange(s);
   };
 
+  if (screen === 'trial') return <TrialSignup onBack={() => navigate(null)} />;
   if (screen === 'how') return <HowItWorksScreen onBack={() => navigate(null)} />;
   if (screen === 'bets') return <BetTrackingScreen onBack={() => { navigate(null); if (onPickTracked) onPickTracked(); }} pickToTrack={pickToTrack} />;
   if (screen === 'notifications') return <NotificationsScreen onBack={() => navigate(null)} />;
@@ -460,6 +461,183 @@ function LegalSection() {
         }}>
           v1.0.0
         </p>
+      </div>
+    </div>
+  );
+}
+
+function TrialSignup({ onBack }) {
+  const { checkAuth } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const handleStart = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await apiPost('/auth/trial', { email, password });
+      if (res.success) {
+        setSuccess(true);
+        await checkAuth();
+        setTimeout(() => onBack(), 1500);
+      } else {
+        setError(res.error || 'Something went wrong');
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.message || 'Something went wrong';
+      setError(msg);
+    }
+    setLoading(false);
+  };
+
+  if (success) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center', paddingTop: '80px' }}>
+        <div style={{
+          width: '64px', height: '64px', borderRadius: '50%',
+          backgroundColor: 'rgba(90, 158, 114, 0.1)', margin: '0 auto 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green-profit)" strokeWidth="2">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+        </div>
+        <h2 style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-serif)', fontSize: '22px', margin: '0 0 8px' }}>
+          Trial Started
+        </h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+          Full access activated. Explore your dashboard.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '0', paddingBottom: '100px' }}>
+      <div style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <button onClick={onBack} style={{
+          background: 'none', border: 'none', color: 'var(--text-secondary)',
+          cursor: 'pointer', padding: '4px', display: 'flex',
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+          letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-primary)',
+        }}>Free Trial</span>
+      </div>
+
+      <div style={{ padding: '0 20px' }}>
+        <div style={{
+          backgroundColor: 'var(--surface-1)', borderRadius: '16px',
+          border: '1px solid var(--stroke-subtle)', padding: '28px 24px',
+        }}>
+          <h2 style={{
+            fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: 700,
+            color: 'var(--text-primary)', margin: '0 0 6px', textAlign: 'center',
+          }}>14-Day Trial</h2>
+          <p style={{
+            color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center',
+            margin: '0 0 24px', lineHeight: '1.5',
+          }}>Full access to all picks and features. Cancel anytime.</p>
+
+          <form onSubmit={handleStart}>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{
+                display: 'block', fontSize: '12px', fontWeight: 600,
+                color: 'var(--text-tertiary)', marginBottom: '6px',
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+              }}>Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+                style={{
+                  width: '100%', padding: '12px 14px', fontSize: '15px',
+                  backgroundColor: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
+                  borderRadius: '10px', color: 'var(--text-primary)',
+                  outline: 'none', boxSizing: 'border-box',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block', fontSize: '12px', fontWeight: 600,
+                color: 'var(--text-tertiary)', marginBottom: '6px',
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+              }}>Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder="6+ characters"
+                  style={{
+                    width: '100%', padding: '12px 44px 12px 14px', fontSize: '15px',
+                    backgroundColor: 'var(--surface-2)', border: '1px solid var(--stroke-subtle)',
+                    borderRadius: '10px', color: 'var(--text-primary)',
+                    outline: 'none', boxSizing: 'border-box',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} style={{
+                  position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)',
+                }}>
+                  {showPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <p style={{
+                color: '#C4868A', fontSize: '13px', margin: '0 0 12px',
+                padding: '10px 12px', backgroundColor: 'rgba(196,134,138,0.08)',
+                borderRadius: '8px',
+              }}>{error}</p>
+            )}
+
+            <button type="submit" disabled={loading} style={{
+              width: '100%', padding: '14px', fontSize: '13px', fontWeight: 600,
+              backgroundColor: '#5A9E72', border: 'none',
+              borderRadius: '8px', color: '#0A0D14', cursor: 'pointer',
+              fontFamily: 'var(--font-mono)', letterSpacing: '1px', opacity: loading ? 0.6 : 1,
+            }}>
+              {loading ? 'Starting trial...' : 'Start Trial'}
+            </button>
+          </form>
+
+          <div style={{
+            marginTop: '20px', padding: '14px', backgroundColor: 'var(--surface-2)',
+            borderRadius: '10px',
+          }}>
+            <p style={{
+              fontSize: '12px', color: 'var(--text-tertiary)', margin: 0,
+              textAlign: 'center', lineHeight: '1.6',
+            }}>
+              {isNative
+                ? 'Full access to all picks and features during your trial. Cancel anytime.'
+                : 'Full access to all picks and features during your trial. Cancel anytime.'}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
