@@ -783,10 +783,6 @@ def weekly_summary():
 def get_pick(pick_id):
     pick = Pick.query.get_or_404(pick_id)
 
-    from app import get_current_user_obj
-    cu = get_current_user_obj()
-    is_pro = cu is not None and cu.is_pro
-
     model_signals = []
     withdraw_reason = None
     if pick.notes:
@@ -812,7 +808,14 @@ def get_pick(pick_id):
     except Exception:
         pass
 
-    payload = {
+    # NOTE: server-side paywall mask removed 2026-05-07 — it dropped the
+    # full quant analysis (model_confidence, predicted_margin, cover_prob,
+    # model_signals, stake_guidance, etc.) for Pro users when
+    # get_current_user_obj didn't resolve in this code path. The visual
+    # paywall in PickCard / ResolutionScreen already gates these fields
+    # via isPro. Re-add a server-side mask later with a more reliable
+    # auth-detection path that handles WKWebView/Capacitor sessions.
+    return jsonify({
         'id': pick.id,
         'published_at': (pick.published_at.isoformat() + 'Z') if pick.published_at else None,
         'result_resolved_at': (pick.result_resolved_at.isoformat() + 'Z') if pick.result_resolved_at else None,
@@ -846,29 +849,7 @@ def get_pick(pick_id):
         'closing_spread': pick.closing_spread,
         'clv': pick.clv,
         'disclaimer': 'For informational and entertainment purposes only. No guaranteed outcomes. Past performance does not guarantee future results. Please gamble responsibly.',
-    }
-
-    if not is_pro:
-        payload['side'] = 'Upgrade to see pick'
-        payload['line'] = None
-        payload['line_open'] = None
-        payload['line_close'] = None
-        payload['edge_pct'] = None
-        payload['edge_at_close'] = None
-        payload['model_confidence'] = None
-        payload['predicted_margin'] = None
-        payload['cover_prob'] = None
-        payload['implied_prob'] = None
-        payload['market_odds'] = None
-        payload['sportsbook'] = None
-        payload['model_signals'] = []
-        payload['stake_guidance'] = None
-        payload['notes'] = None
-        payload['closing_spread'] = None
-        payload['clv'] = None
-        payload['paywalled'] = True
-
-    return jsonify(payload)
+    })
 
 
 @picks_bp.route('/market')
@@ -1219,19 +1200,15 @@ def market_view():
         except Exception:
             pass
 
-    from app import get_current_user_obj
-    cu = get_current_user_obj()
-    is_pro = cu is not None and cu.is_pro
-    if not is_pro:
-        # Strip Pro-only model insights from every game. Free users see raw
-        # market data (spreads, totals, books, scores) but never the model's
-        # edge, pick, rating, or sharp-action signals.
-        for g in games:
-            g.pop('model', None)
-            g.pop('sharp_action', None)
-            g.pop('rlm', None)
-            g.pop('pick_result', None)
-            g.pop('line_stability', None)
+    # NOTE: server-side paywall strip on game.model et al. was reverted
+    # 2026-05-07 — it broke Pro users' Market Intelligence summary count
+    # (0 edges / 0 signals) when get_current_user_obj didn't resolve in
+    # this code path. MarketView.jsx already visually gates Pro-only
+    # fields per game via the isPro prop; the server strip was an extra
+    # layer that masked data downstream consumers (MI summary count in
+    # PicksTab, edge/signal counts in DailyMarketReport) read aggregated.
+    # Re-add a finer-grained strip later that keeps `passes`/`edge`
+    # readable for aggregate counts but masks pick/pick_side/rating.
 
     return jsonify({'games': games, 'date': active_date, 'count': len(games)})
 
