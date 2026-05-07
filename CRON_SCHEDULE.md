@@ -4,19 +4,24 @@ All times **Eastern (ET)**. Use `X-Cron-Secret` header with your `CRON_SECRET` v
 
 ## Pipeline Order (Critical)
 1. **Collect games** runs first (5:05 AM) to seed the database
-2. **update-ratings** refreshes NBA team ratings (8:30 AM)
-3. **run-model?force=true** collects fresh data + runs NBA model (9:00 AM)
+2. **update-ratings** refreshes NBA team ratings (9:30 AM)
+3. **run-model?force=true** collects fresh data + runs NBA model (10:00 AM)
 4. **mlb-run-model?force=true** collects fresh MLB data + runs MLB model (11:00 AM)
-5. **model-watchdog** catches silent failures (9:30 AM, 11:30 AM, 12:30 PM)
+5. **model-watchdog** catches silent failures (10:30 AM, 11:30 AM, 12:30 PM)
 6. **grade-picks** runs after games finish (overnight + midday)
+
+> NBA's `model_run_hour` is **10** in `sport_config.py:19`. The `/picks/today`
+> waiting-state copy ("Edges publish at …") and the `model-watchdog`
+> trigger at `app.py:5577` (`et_hour >= 10`) both read from that. Keep
+> the cron-job.org schedule and these docs in sync with the config.
 
 ## Recommended Schedule
 
 | Job | URL | Schedule (ET) |
 |-----|-----|---------------|
 | collect_games | `https://app.sharppicks.ai/api/cron/collect-games` | 5:05 AM |
-| update_ratings | `https://app.sharppicks.ai/api/cron/update-ratings` | 8:30 AM |
-| **run_model** | **`https://app.sharppicks.ai/api/cron/run-model?force=true`** | **9:00 AM**, 2:15 PM |
+| update_ratings | `https://app.sharppicks.ai/api/cron/update-ratings` | 9:30 AM |
+| **run_model** | **`https://app.sharppicks.ai/api/cron/run-model?force=true`** | **10:00 AM**, 2:15 PM |
 | refresh_lines | `https://app.sharppicks.ai/api/cron/refresh-lines` | Every 10 min, 10 AM–2 AM |
 | closing_lines | `https://app.sharppicks.ai/api/cron/closing-lines` | Every 2 min, 10 AM–1 AM |
 | live_scores | `https://app.sharppicks.ai/api/cron/live-scores` | Every 5 min, 10 AM–2 AM |

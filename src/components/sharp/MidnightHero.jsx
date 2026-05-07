@@ -31,10 +31,14 @@ const SP = {
   fontSerif: "'IBM Plex Serif', Georgia, serif",
 };
 
-// Sport-specific morning model-run time (ET). Mirrors the cron schedule
-// in CRON_SCHEDULE.md; if the schedule moves, update here too.
-const MODEL_RUN_HOUR_ET = { nba: 9, mlb: 11, wnba: 12 };
-const PUBLISH_HOUR_ET = { nba: 10, mlb: 12, wnba: 13 };
+// Sport-specific morning model-run time (ET). Mirrors sport_config.py
+// model_run_hour exactly so this UI countdown lines up with the backend
+// watchdog threshold (app.py:5577 fires for NBA when et_hour >= 10).
+//   NBA  10:00 AM ET
+//   MLB  11:00 AM ET
+//   WNBA 12:00 PM ET (calibration phase)
+const MODEL_RUN_HOUR_ET = { nba: 10, mlb: 11, wnba: 12 };
+const PUBLISH_HOUR_ET = { nba: 11, mlb: 12, wnba: 13 };
 
 function fmtClockET(hourEt) {
   const h12 = ((hourEt + 11) % 12) + 1;
