@@ -124,6 +124,7 @@ export default function PicksTab({ onNavigate }) {
   const [tomorrowGames, setTomorrowGames] = useState(null);
   const [tomorrowDate, setTomorrowDate] = useState(null);
   const [tonightBets, setTonightBets] = useState(null);
+  const [yesterdayReport, setYesterdayReport] = useState(null);
   const modelRunHour = todayData?.model_run_hour
     || ({ mlb: 11, wnba: 12 }[sport])
     || 10;
@@ -325,8 +326,28 @@ export default function PicksTab({ onNavigate }) {
         }
       } catch { setTonightBets(null); }
     };
+    // Yesterday's market report — used by LastNightsReadCard for the
+    // games_analyzed / qualified_signals stat row. /api/picks/last-resolved
+    // returns just the pick row without daily aggregates, so without this
+    // fetch the recap card shows "0 games / 0 signals" even on a slate
+    // that actually had reads.
+    const fetchYesterdayReport = async () => {
+      if (!isPostMidnight) { setYesterdayReport(null); return; }
+      try {
+        const yDate = (() => {
+          const dd = new Date(); dd.setDate(dd.getDate() - 1);
+          return dd.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+        })();
+        const resp = await fetch(`${PT_API_BASE}/api/public/market-report?sport=${sport}&date=${yDate}`);
+        const json = await resp.json();
+        if (json && json.available) setYesterdayReport(json);
+        else setYesterdayReport(null);
+      } catch { setYesterdayReport(null); }
+    };
+
     fetchSlatePreview();
     fetchTonightBets();
+    fetchYesterdayReport();
   }, [isNightMode, sport, postMidnightNight]);
 
   // Determine the 5-state: night, pre-model, pick, pass, off-day
@@ -580,17 +601,29 @@ export default function PicksTab({ onNavigate }) {
             )}
 
             {/* ── Sharp Journal evening recap card (post-midnight only) ── */}
-            {postMidnightNight && (
-              <LastNightsReadCard
-                pick={nightRecapPick}
-                gamesScanned={nightRecapPick?.games_analyzed || todayData?.games_analyzed || 0}
-                signalsIssued={
-                  nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'revoked' ? 1 : 0
-                }
-                dateIso={yesterdayDate}
-                onClick={nightRecapPick ? () => { setResolutionPick(nightRecapPick); setShowResolution(true); } : undefined}
-              />
-            )}
+            {postMidnightNight && (() => {
+              // Prefer yesterday's market report aggregates (games_analyzed
+              // + qualified_signals) since /api/picks/last-resolved returns
+              // just the pick row without daily counts. Fall back to derived
+              // values only when the report fetch hasn't returned yet.
+              const ydGames = yesterdayReport?.games_analyzed
+                ?? nightRecapPick?.games_analyzed
+                ?? 0;
+              // Revoked picks DID fire as a signal (then got pulled
+              // pre-tip), so count them as 1 in the slate-level
+              // signals tally.
+              const ydSignals = yesterdayReport?.qualified_signals
+                ?? (nightRecapPick && nightRecapPick.result ? 1 : 0);
+              return (
+                <LastNightsReadCard
+                  pick={nightRecapPick}
+                  gamesScanned={ydGames}
+                  signalsIssued={ydSignals}
+                  dateIso={yesterdayDate}
+                  onClick={nightRecapPick ? () => { setResolutionPick(nightRecapPick); setShowResolution(true); } : undefined}
+                />
+              );
+            })()}
 
             {/* ── TODAY'S READ (post-midnight, rotating Field Guide article) ── */}
             {postMidnightNight && insightsData?.insights && (

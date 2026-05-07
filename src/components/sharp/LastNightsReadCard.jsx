@@ -44,22 +44,24 @@ export default function LastNightsReadCard({
   const isLoss = result === 'loss';
   const isPush = result === 'push';
   const isRevoked = result === 'revoked';
-  const noSignal = (signalsIssued || 0) === 0 && !pick;
+  const noSignal = !pick && (signalsIssued || 0) === 0;
 
   const title = (() => {
-    if (noSignal || isRevoked) return 'The slate closed quiet.';
+    if (isRevoked) return 'Signal withdrawn before tip.';
+    if (noSignal) return 'The slate closed quiet.';
     if (isWin) return 'The model held against close.';
     if (isLoss) return 'Variance is the cost of doing business.';
     if (isPush) return 'Capital preserved on a tight market.';
+    if (signalsIssued > 0) return `${signalsIssued} signal${signalsIssued === 1 ? '' : 's'} issued. Slate closed.`;
     return 'Slate closed.';
   })();
 
   const excerpt = (() => {
+    if (isRevoked) {
+      return `Pre-tip validation pulled the signal before first pitch. Capital preserved on a slate of ${gamesScanned || 0} games.`;
+    }
     if (noSignal) {
       return `${gamesScanned || 0} games scanned, zero signals issued. Capital preserved on a slate the model read as efficient.`;
-    }
-    if (isRevoked) {
-      return 'Pre-tip validation pulled the signal before first pitch. Capital preserved.';
     }
     if (isWin) {
       return `Signal cleared at +${Number(pick?.edge_pct || 0).toFixed(1)}%. The model's read held against close.`;
