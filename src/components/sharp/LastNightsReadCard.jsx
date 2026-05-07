@@ -2,9 +2,11 @@
 // home view. Editorial format (eyebrow / serif title / excerpt / 3-stat row /
 // date + Read → CTA) matching the May 2026 Midnight State mockup.
 //
-// Tap routes to the actual Sharp Journal evening edition rendered by the
-// Flask app at /market-report/<date>/evening?sport=<sport> — opened in an
-// in-app browser on Capacitor or a new tab on web.
+// Tap routes (Android + web only) to the Sharp Journal evening edition
+// rendered by the Flask app at /market-report/<date>/evening?sport=<sport>.
+// On iOS we skip that URL — the Flask SEO page header has a "Start Free
+// Trial" CTA that violates Apple's external-payment rule — and fall back
+// to the in-app ResolutionScreen path via onClick.
 //
 // Pulls from already-fetched home data:
 //   pick: nightRecapPick (yesterday's signal) — used for matchup, edge,
@@ -13,6 +15,8 @@
 //   signalsIssued: 0 or 1 derived from pick presence + non-revoked
 //   sport: sport key for the evening-edition URL query param
 //   journalUrl (optional): override the default evening-edition URL
+
+import { Capacitor } from '@capacitor/core';
 
 const SP = {
   surface: '#121725',
@@ -115,11 +119,21 @@ export default function LastNightsReadCard({
     return `https://app.sharppicks.ai/market-report/${ymd}/evening?sport=${sportParam}`;
   })();
 
+  // iOS detection: the Flask-rendered Sharp Journal evening-edition page
+  // includes a "Start Free Trial" CTA in the SEO header — Apple flags
+  // external payment promos in the iOS app, so on iOS we skip the URL
+  // open entirely and fall back to the in-app ResolutionScreen path.
+  // Android + web get the full evening edition.
+  const isIOS = (() => {
+    try { return typeof Capacitor.getPlatform === 'function' && Capacitor.getPlatform() === 'ios'; }
+    catch { return false; }
+  })();
+
   const handleOpenJournal = async () => {
-    if (computedJournalUrl) {
+    if (!isIOS && computedJournalUrl) {
       try {
-        const { Capacitor } = await import('@capacitor/core');
-        if (Capacitor.isNativePlatform()) {
+        if (Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
+          // Android: in-app browser is fine (no Apple rule).
           const { Browser } = await import('@capacitor/browser');
           await Browser.open({ url: computedJournalUrl });
           return;
@@ -130,7 +144,9 @@ export default function LastNightsReadCard({
     if (typeof onClick === 'function') onClick();
   };
 
-  const isClickable = !!computedJournalUrl || (typeof onClick === 'function' && !!pick);
+  // iOS card is only clickable when an in-app pick exists to route to.
+  const isClickable = (!isIOS && !!computedJournalUrl)
+    || (typeof onClick === 'function' && !!pick);
 
   return (
     <div style={{

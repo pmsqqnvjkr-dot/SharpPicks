@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
 import teamAbbr from '../../utils/teamAbbr';
 import sportDisplay from '../../utils/sportDisplay';
@@ -327,26 +328,39 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
           </div>
         </div>
 
-        {/* Start 14-day free trial CTA */}
-        <div style={{ padding: '0 22px 22px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <button
-            onClick={() => {
-              if (typeof onNavigate === 'function') onNavigate('profile', 'upgrade');
-            }}
-            style={{
-              width: '100%', padding: '14px 16px',
-              background: SP.green,
-              border: 'none', borderRadius: '10px',
-              fontFamily: SP.fontSans, fontSize: '14px', fontWeight: 600,
-              color: '#062019', letterSpacing: '0.01em',
-              cursor: 'pointer',
-            }}
-          >Start 14-day free trial</button>
-          <div style={{
-            textAlign: 'center', fontFamily: SP.fontMono, fontSize: '10px',
-            letterSpacing: '0.18em', textTransform: 'uppercase', color: SP.text4,
-          }}>Full pick · model lines · sizing · CLV audit</div>
-        </div>
+        {/* Start 14-day free trial CTA — Android + web only.
+            iOS hides the CTA entirely per Apple's external-payment rules
+            (App Store guideline 3.1.1: apps can't direct users to external
+            payment methods). iOS users see the same lock card without the
+            trial button; the upgrade flow lives elsewhere on iOS. */}
+        {!Capacitor.getPlatform || Capacitor.getPlatform() !== 'ios' ? (
+          <div style={{ padding: '0 22px 22px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button
+              onClick={() => {
+                if (typeof onNavigate === 'function') onNavigate('profile', 'upgrade');
+              }}
+              style={{
+                width: '100%', padding: '14px 16px',
+                background: SP.green,
+                border: 'none', borderRadius: '10px',
+                fontFamily: SP.fontSans, fontSize: '14px', fontWeight: 600,
+                color: '#062019', letterSpacing: '0.01em',
+                cursor: 'pointer',
+              }}
+            >Start 14-day free trial</button>
+            <div style={{
+              textAlign: 'center', fontFamily: SP.fontMono, fontSize: '10px',
+              letterSpacing: '0.18em', textTransform: 'uppercase', color: SP.text4,
+            }}>Full pick · model lines · sizing · CLV audit</div>
+          </div>
+        ) : (
+          <div style={{ padding: '0 22px 22px' }}>
+            <div style={{
+              textAlign: 'center', fontFamily: SP.fontMono, fontSize: '10px',
+              letterSpacing: '0.18em', textTransform: 'uppercase', color: SP.text4,
+            }}>Full pick · model lines · sizing · CLV audit</div>
+          </div>
+        )}
       </div>
     );
   }
