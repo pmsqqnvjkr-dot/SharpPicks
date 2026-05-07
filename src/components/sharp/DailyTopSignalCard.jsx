@@ -249,10 +249,16 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
           setTrackError(res.error || 'Failed to track');
         }
       } else if (res?.bet?.id) {
+        // Bet created. Flip local state so the button shows the
+        // persistent "Tracking · TEX +1.5 · 1.5u" affordance and
+        // collapse the form. Do NOT call onTrack() here — that
+        // callback is wired to onNavigate('profile', 'bets', ...)
+        // which would page-redirect the user away from home. The
+        // inline form is the whole point of tracking on this card,
+        // so we stay put.
         setTracked(true);
         setTrackedBetId(res.bet.id);
         setShowForm(false);
-        if (typeof onTrack === 'function') onTrack();
       } else {
         setTrackError('Failed to track');
       }
