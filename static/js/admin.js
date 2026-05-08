@@ -1363,24 +1363,93 @@ function _setSegmentCount(scopeSelector, labelWord, count) {
   }
 }
 
+// Tags that describe a user's billing state. Replaced by the single
+// descriptive billing label below; we still render overlay tags
+// (power, ios, internal, comped, pending_verify) alongside it so the
+// row keeps surfacing platform/activity flags.
+const BILLING_TAG_SET = new Set([
+  'founding', 'paid', 'paid_annual', 'paid_monthly',
+  'trial', 'trial_annual', 'trial_monthly', 'trial_founding',
+  'cancel_scheduled', 'past_due', 'churned', 'free',
+]);
+
+function _fmtMonthDay(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch { return ''; }
+}
+
+// Build the descriptive billing-state label per the operator spec:
+//   Free
+//   Trialing · converts to Pro {date}
+//   Trialing · cancel scheduled {date}
+//   Paid · Monthly
+//   Paid · Annual
+//   Paid · {plan} · cancels {date}
+//   Founding · #N
+// Returned `kind` maps to the existing user-tag CSS classes so colour
+// stays consistent (founding gold, paid blue, trial amber, cancel
+// amber-warn, churned red, free muted).
+function _billingStatus(u) {
+  const status = (u.subscription_status || '').toLowerCase();
+  const plan = (u.subscription_plan || '').toLowerCase();
+  const isAnnual = plan.includes('annual') || plan.includes('year') || plan.includes('founding');
+  const isMonthly = plan.includes('month');
+
+  if (u.founding_member) {
+    const num = u.founding_number ? ` · #${u.founding_number}` : '';
+    return { kind: 'founding', label: `Founding${num}` };
+  }
+  if (status === 'active') {
+    if (isAnnual)  return { kind: 'paid_annual',  label: 'Paid · Annual' };
+    if (isMonthly) return { kind: 'paid_monthly', label: 'Paid · Monthly' };
+    return { kind: 'paid', label: 'Paid' };
+  }
+  if (status === 'cancelling') {
+    const eff = _fmtMonthDay(u.cancel_effective_at);
+    const planLabel = isAnnual ? 'Annual' : isMonthly ? 'Monthly' : '';
+    const head = planLabel ? `Paid · ${planLabel}` : 'Paid';
+    const tail = eff ? ` · cancels ${eff}` : ' · cancel scheduled';
+    return { kind: 'cancel_scheduled', label: `${head}${tail}` };
+  }
+  if (status === 'trial' || status === 'trialing') {
+    if (u.cancel_scheduled_at) {
+      const eff = _fmtMonthDay(u.cancel_effective_at);
+      const tail = eff ? ` ${eff}` : '';
+      return { kind: 'cancel_scheduled', label: `Trialing · cancel scheduled${tail}` };
+    }
+    const end = _fmtMonthDay(u.trial_end_date);
+    const tail = end ? ` ${end}` : '';
+    return { kind: 'trial', label: `Trialing · converts to Pro${tail}` };
+  }
+  if (status === 'past_due') return { kind: 'past_due', label: 'Past due' };
+  if (status === 'cancelled' || status === 'expired') {
+    return { kind: 'churned', label: 'Free · was Pro' };
+  }
+  return { kind: 'free', label: 'Free' };
+}
+
 // Render a single user-row inside the given section. Used by both the
 // Power Users leaderboard and the All Users list — same card shape, just
 // different containers.
 function _renderUserRow(u) {
   const row = document.createElement('div');
   row.className = 'user-row';
-  const tagsHtml = (u.tags || []).slice(0, 4).map(_renderTag).join('');
-  let cancelHint = '';
-  if (u.cancel_scheduled_at && u.cancel_effective_at) {
-    const eff = new Date(u.cancel_effective_at);
-    const today = new Date();
-    const days = Math.max(0, Math.ceil((eff - today) / (1000 * 60 * 60 * 24)));
-    cancelHint = `<span class="user-cancel-hint">drops ${u.cancel_effective_at.slice(5, 10)} (${days}d)</span>`;
-  }
+
+  const billing = _billingStatus(u);
+  const billingChip = `<span class="user-tag ${billing.kind}">${billing.label}</span>`;
+  const overlayTags = (u.tags || [])
+    .filter(t => !BILLING_TAG_SET.has(t))
+    .slice(0, 3)
+    .map(_renderTag).join('');
+
   row.innerHTML = `
     <div class="user-identity">
       <span class="user-email">${u.email}</span>
-      <div class="user-tags">${tagsHtml}${cancelHint}</div>
+      <div class="user-tags">${billingChip}${overlayTags}</div>
     </div>
     <div class="user-numeric" data-label="Logins 30d">${u.logins_30d}</div>
     <div class="user-numeric muted" data-label="Bet taps">${u.bet_taps_30d}</div>
