@@ -121,21 +121,17 @@ export default function LastNightsReadCard({
     return `https://app.sharppicks.ai/market-report/${ymd}/evening?sport=${sportParam}&app=1`;
   })();
 
-  // iOS detection: the Flask-rendered Sharp Journal evening-edition page
-  // includes a "Start Free Trial" CTA in the SEO header — Apple flags
-  // external payment promos in the iOS app, so on iOS we skip the URL
-  // open entirely and fall back to the in-app ResolutionScreen path.
-  // Android + web get the full evening edition.
-  const isIOS = (() => {
-    try { return typeof Capacitor.getPlatform === 'function' && Capacitor.getPlatform() === 'ios'; }
-    catch { return false; }
-  })();
-
+  // iOS users now CAN open the journal evening edition. Both the navbar
+  // CTA (templates/content/base.html) and the in-content CTA
+  // (templates/content/market_report.html) are gated on the ?app=1
+  // query the URL builder above always sets, so the page renders
+  // without any external payment promo and complies with Apple 3.1.1.
+  // The earlier code path that fell back to ResolutionScreen on iOS
+  // left pass-day cards (no `pick`) completely unclickable on iPhone.
   const handleOpenJournal = async () => {
-    if (!isIOS && computedJournalUrl) {
+    if (computedJournalUrl) {
       try {
         if (Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
-          // Android: in-app browser is fine (no Apple rule).
           const { Browser } = await import('@capacitor/browser');
           await Browser.open({ url: computedJournalUrl });
           return;
@@ -146,8 +142,7 @@ export default function LastNightsReadCard({
     if (typeof onClick === 'function') onClick();
   };
 
-  // iOS card is only clickable when an in-app pick exists to route to.
-  const isClickable = (!isIOS && !!computedJournalUrl)
+  const isClickable = !!computedJournalUrl
     || (typeof onClick === 'function' && !!pick);
 
   return (
