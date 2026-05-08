@@ -23,7 +23,7 @@ app = Flask(__name__, static_folder='dist', static_url_path='/static-disabled')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.config['SECRET_KEY'] = app.secret_key
 
-DEPLOY_VERSION = '106b1d6-diag2'
+DEPLOY_VERSION = '106b1d6-diag3'
 
 @app.route('/health')
 def health():
@@ -35,6 +35,20 @@ def health():
             cur = conn.cursor()
             diag['date'] = today_str
             diag['db_path'] = get_sqlite_path()
+            # Surface SQLite mode so we can verify WAL stuck on the volume.
+            # Lists the wal/shm sidecar files when present.
+            try:
+                diag['sqlite_journal_mode'] = cur.execute('PRAGMA journal_mode;').fetchone()[0]
+                diag['sqlite_synchronous'] = cur.execute('PRAGMA synchronous;').fetchone()[0]
+                diag['sqlite_busy_timeout_ms'] = cur.execute('PRAGMA busy_timeout;').fetchone()[0]
+                _db_dir = os.path.dirname(get_sqlite_path()) or '.'
+                _siblings = []
+                for _f in sorted(os.listdir(_db_dir)):
+                    if _f.startswith('sharp_picks.db'):
+                        _siblings.append({'name': _f, 'size': os.path.getsize(os.path.join(_db_dir, _f))})
+                diag['sqlite_files'] = _siblings
+            except Exception as _wal_err:
+                diag['sqlite_diag_error'] = str(_wal_err)[:200]
             diag['nba_games'] = cur.execute("SELECT COUNT(*) FROM games WHERE game_date = ?", (today_str,)).fetchone()[0]
             diag['nba_with_spreads'] = cur.execute("SELECT COUNT(*) FROM games WHERE game_date = ? AND spread_home IS NOT NULL", (today_str,)).fetchone()[0]
             diag['nba_unscored'] = cur.execute("SELECT COUNT(*) FROM games WHERE game_date = ? AND home_score IS NULL", (today_str,)).fetchone()[0]
