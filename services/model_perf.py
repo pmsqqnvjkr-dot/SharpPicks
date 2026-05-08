@@ -26,7 +26,11 @@ from models import db, Pick
 
 
 # Resolved means we know the outcome (not pending and not push).
-RESOLVED = ('won', 'lost')
+# Pick.result enum is ('win' | 'loss' | 'push' | 'revoked' | 'pending').
+# Earlier versions of this module used ('won', 'lost') which silently
+# matched no rows — every aggregate downstream came back empty. Match
+# the actual schema.
+RESOLVED = ('win', 'loss')
 
 
 def _win_rate_by_sport_daily(now: datetime, days: int = 90, window: int = 14) -> dict:
@@ -48,7 +52,7 @@ def _win_rate_by_sport_daily(now: datetime, days: int = 90, window: int = 14) ->
         s = sport or 'unknown'
         d = day if isinstance(day, str) else day.isoformat()
         by_day[s][d][1] += 1
-        if result == 'won':
+        if result == 'win':
             by_day[s][d][0] += 1
 
     out = {}
@@ -93,7 +97,7 @@ def _hit_rate_by_edge_tier(now: datetime, days: int = 90) -> list:
     for label, predicate in TIERS:
         sample = [r for r in rows if predicate(r.edge_pct)]
         n = len(sample)
-        wins = sum(1 for r in sample if r.result == 'won')
+        wins = sum(1 for r in sample if r.result == 'win')
         rate = round(100.0 * wins / n, 1) if n else None
         out.append({'tier': label, 'hit_rate': rate, 'sample_n': n})
     return out
@@ -117,7 +121,7 @@ def _calibration(now: datetime, days: int = 180) -> dict:
         for lo, hi in BINS:
             if lo <= cp < hi:
                 by_sport[sport][(lo + hi) / 2][1] += 1
-                if result == 'won':
+                if result == 'win':
                     by_sport[sport][(lo + hi) / 2][0] += 1
                 break
 
@@ -161,7 +165,7 @@ def _last_10_signals(now: datetime) -> list:
     rows = Pick.query.order_by(Pick.published_at.desc()).limit(10).all()
     out = []
     for p in rows:
-        result = p.result if p.result in ('won', 'lost', 'push') else 'pending'
+        result = p.result if p.result in ('win', 'loss', 'push') else 'pending'
         out.append({
             'id': p.id,
             'sport': p.sport,

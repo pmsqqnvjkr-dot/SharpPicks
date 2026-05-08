@@ -40,64 +40,97 @@ def _payload(metrics: dict, source: str) -> dict:
 
 
 def compute_headline(metrics: dict) -> dict:
-    """Pick exactly one of the five headline templates based on revenue
-    and activity signals. Order matters: bad_day wins over mixed wins
-    over good wins over quiet.
+    """Growth-led headline. Lead with MRR + new signups + trial pipeline,
+    not payment failures. Order: bad_day (only if material) > good_day
+    (revenue + signups) > trial_day (pipeline loaded, no new bookings yet)
+    > mixed_day (growth with friction) > quiet_day (default).
+
+    'bad_day' now requires both >=2 distinct customers in payment failure
+    AND material churn (>=1 cancellation in 30d). Single dunning loops
+    or zero-failure signals don't count as "today's headline".
 
     Failed-payment signals use the *distinct user* count, not the raw
     attempt count — one customer with 14 retries shouldn't read the
-    same as 14 different customers in trouble. Cancellations include
-    BOTH already-executed cancellations (canceled_30d) and scheduled-
-    but-not-yet-executed ones (paid_with_cancel_scheduled +
-    trials_with_cancel_scheduled), so the headline doesn't read 'no
-    churn' when 5 cancellations are queued for next week.
+    same as 14 different customers in trouble.
     """
     stripe = _payload(metrics, 'stripe')
     rc     = _payload(metrics, 'revenuecat')
-    events = _payload(metrics, 'events')
+    gp     = _payload(metrics, 'google_play')
 
     # mrr_cents is the ACTUAL paying revenue (status='active' only).
     # Trial subs are counted separately in stripe.trial_subs and
     # contribute to expected_mrr_cents but NOT mrr_cents.
     mrr_cents      = (stripe.get('mrr_cents') or 0) + (rc.get('mrr_cents') or 0)
     new_subs_7d    = (stripe.get('new_subs_7d') or 0) + (rc.get('new_subs_7d') or 0)
+    trials         = stripe.get('trials') or 0
+    trials_likely  = stripe.get('trials_likely_to_convert') or 0
+    trial_conv_7d  = stripe.get('trial_conversions_7d') or 0
     canceled_30d   = (stripe.get('canceled_30d') or 0) + (rc.get('canceled_30d') or 0)
     cancels_scheduled = (stripe.get('paid_with_cancel_scheduled') or 0) + (stripe.get('trials_with_cancel_scheduled') or 0)
-    # Use distinct user count, not raw attempt count.
     failed_users = stripe.get('failed_payment_users_30d')
     if failed_users is None:
         failed_users = stripe.get('failed_payments_30d') or 0  # legacy fallback
-    signals_today  = sum((events.get('signals_issued') or {}).values())
+    installs_28d   = gp.get('user_installs_28d') or 0
+    dau_avg        = gp.get('dau_avg_28d') or 0
 
-    # bad_day: real revenue trouble — multiple users in payment failure
-    # AND actual cancellations executed
-    if failed_users > 0 and canceled_30d > 0:
+    # bad_day: only when payment trouble is material, churn is real,
+    # AND there's no growth offsetting it. New subs + trial conversions
+    # this week qualify as growth — even one positive signal is enough
+    # to drop into mixed_day instead. The payment-failures action item
+    # still surfaces below the headline when material.
+    has_growth = (new_subs_7d > 0) or (trial_conv_7d > 0)
+    if failed_users >= 2 and canceled_30d >= 1 and not has_growth:
         return {
             'template': 'bad_day',
             'sentence': (
-                f'{failed_users} customer'
-                + ('s' if failed_users != 1 else '')
-                + f' in payment failure and {canceled_30d} cancellation'
+                f'{failed_users} customers in payment failure and {canceled_30d} cancellation'
                 + ('s' if canceled_30d != 1 else '')
-                + ' in the last 30 days. Check the failed-payments list and at-risk users.'
+                + ' in 30d, no offsetting growth. Top of the action queue today.'
             ),
             'color': 'red',
         }
 
-    # good_day: revenue moving up, no actual churn AND nothing queued
-    if new_subs_7d > 0 and canceled_30d == 0 and cancels_scheduled == 0 and mrr_cents > 0:
+    # good_day: actual paying customers + new signups this week. Adds
+    # acquisition context (installs, DAU) when present so the headline
+    # carries the full top-of-funnel signal, not just billings.
+    if new_subs_7d > 0 and mrr_cents > 0:
+        bits = [
+            f'MRR {_money(mrr_cents)}',
+            f'{new_subs_7d} new subscriber' + ('s' if new_subs_7d != 1 else '') + ' this week',
+        ]
+        if trials > 0:
+            bits.append(f'{trials} trial' + ('s' if trials != 1 else '') + ' in flight')
+        if installs_28d > 0:
+            bits.append(f'{installs_28d} install' + ('s' if installs_28d != 1 else '') + ' (28d)')
         return {
             'template': 'good_day',
-            'sentence': (
-                f'MRR holding at {_money(mrr_cents)}. {new_subs_7d} new subscriber'
-                + ('s' if new_subs_7d != 1 else '')
-                + ' this week, no churn, no cancellations queued.'
-            ),
+            'sentence': '. '.join(bits) + '.',
             'color': 'green',
         }
 
-    # mixed_day: any combination of growth + friction (executed churn,
-    # scheduled cancellation, or distinct payment failures)
+    # trial_day: pipeline filling even if no new paying conversions
+    # this week. Distinct from quiet_day so the headline acknowledges
+    # demand exists; the conversion is just downstream.
+    if trials > 0 or trial_conv_7d > 0:
+        head = f'MRR {_money(mrr_cents)}.' if mrr_cents > 0 else 'No paying customers yet.'
+        bits = [head]
+        if trials > 0:
+            bits.append(
+                f'{trials} trial' + ('s' if trials != 1 else '') + ' in flight'
+                + (f' ({trials_likely} likely to convert)' if trials_likely else '')
+            )
+        if trial_conv_7d > 0:
+            bits.append(f'{trial_conv_7d} trial' + ('s' if trial_conv_7d != 1 else '') + ' converted this week')
+        if installs_28d > 0:
+            bits.append(f'{installs_28d} install' + ('s' if installs_28d != 1 else '') + ' driving the funnel (28d)')
+        return {
+            'template': 'trial_day',
+            'sentence': ' '.join(bits) + '.',
+            'color': 'blue',
+        }
+
+    # mixed_day: growth and friction together. Friction is real but
+    # subordinated — the headline still leads with the win.
     if new_subs_7d > 0 and (canceled_30d > 0 or cancels_scheduled > 0 or failed_users > 0):
         friction_bits = []
         if cancels_scheduled > 0:
@@ -107,90 +140,145 @@ def compute_headline(metrics: dict) -> dict:
                 + ' scheduled'
             )
         if canceled_30d > 0:
-            friction_bits.append(
-                f'{canceled_30d} cancelled in 30d'
-            )
+            friction_bits.append(f'{canceled_30d} cancelled in 30d')
         if failed_users > 0:
             friction_bits.append(
                 f'{failed_users} customer'
                 + ('s' if failed_users != 1 else '')
                 + ' in payment failure'
             )
-        friction = ', '.join(friction_bits)
         return {
             'template': 'mixed_day',
             'sentence': (
                 f'{new_subs_7d} new subscriber'
                 + ('s' if new_subs_7d != 1 else '')
-                + f' this week. {friction}. Net positive.'
+                + f' this week. {", ".join(friction_bits)}. Net positive.'
             ),
             'color': 'amber',
         }
 
-    # anomaly_day: signal volume notably high
-    if signals_today >= 5:
-        return {
-            'template': 'anomaly_day',
-            'sentence': (
-                f'{signals_today} signals issued this week. Above normal volume — review the Signals section.'
-            ),
-            'color': 'blue',
-        }
-
-    # quiet_day: default — nothing eventful, no movement
+    # quiet_day: default — nothing happening on the revenue or pipeline
+    # surfaces. Acknowledge install funnel if any.
+    parts = [f'MRR steady at {_money(mrr_cents)}.']
+    if installs_28d > 0:
+        parts.append(f'{installs_28d} app install' + ('s' if installs_28d != 1 else '') + ' (28d), no new bookings this week.')
+    elif dau_avg > 0:
+        parts.append(f'{dau_avg:.1f} DAU avg, no new bookings this week.')
+    else:
+        parts.append('No new subscribers, no trials in flight, no churn.')
     return {
         'template': 'quiet_day',
-        'sentence': (
-            f'MRR steady at {_money(mrr_cents)}. No new subscribers, no churn this week. '
-            f'{signals_today} signal' + ('s' if signals_today != 1 else '') + ' issued.'
-        ),
+        'sentence': ' '.join(parts),
         'color': 'blue',
     }
 
 
 def compute_actions(metrics: dict) -> list:
-    """Surface up to 3 prioritized "what to do today" lines. Order:
-    warn (action needed) > info (worth a look) > good (validation)."""
+    """Growth-led action surface for Today's Read. Items render in this
+    fixed order regardless of how many fire:
+
+      1. growth          — new signups + trial conversions (good)
+      2. acquisition     — GSC clicks, GA4 sessions, Play Store installs (info)
+      3. model_perf      — last-30d win/loss + ROI per sport (info)
+      4. signal_volume   — signals issued this week (info, lower)
+      5. cancel_scheduled— cancellations queued, save window open (warn)
+      6. failed_payments — distinct customers in payment failure (warn,
+                           only if material — >=2 distinct users)
+
+    Cap at 4 items. Payment-failure copy now requires >=2 distinct
+    customers; a single retry loop dunning case doesn't qualify as a
+    Today's Read item — it lives on the Failing Customers section.
+    """
     stripe = _payload(metrics, 'stripe')
     rc     = _payload(metrics, 'revenuecat')
     events = _payload(metrics, 'events')
     gsc    = _payload(metrics, 'gsc')
+    ga4    = _payload(metrics, 'ga4')
+    gp     = _payload(metrics, 'google_play')
+    model  = _payload(metrics, 'model_perf')
 
     items = []
 
-    # warn: failed payments — distinct USERS, with attempt context if
-    # the same customer is retrying. One person on a dead card vs. ten
-    # people in dunning are very different problems.
-    failed_users = stripe.get('failed_payment_users_30d')
-    failed_attempts = stripe.get('failed_payment_attempts_30d')
-    failing_users_list = stripe.get('failing_users') or []
-    if failed_users is None:
-        # Legacy fallback — old payload only had raw count
-        failed_users = stripe.get('failed_payments_30d') or 0
-        failed_attempts = failed_users
-    if failed_users > 0:
-        # If the worst offender accounts for most attempts, name them.
-        worst = failing_users_list[0] if failing_users_list else None
-        if worst and worst.get('attempts_30d', 0) >= max(3, failed_attempts * 0.5):
-            who = worst.get('email') or worst.get('customer_id', 'one customer')
-            msg = (
-                f'{worst["attempts_30d"]} of {failed_attempts} failed payment'
-                + ('s' if failed_attempts != 1 else '')
-                + f' in 30 days are from {who}. Likely a single dead card; reach out before churning them.'
-            )
-        else:
-            msg = (
-                f'{failed_users} customer'
-                + ('s' if failed_users != 1 else '')
-                + f' with failed payments in 30 days ({failed_attempts} attempts total). Review the failed-payments list.'
-            )
+    # 1. growth — new signups + trial conversions
+    new_subs = (stripe.get('new_subs_7d') or 0) + (rc.get('new_subs_7d') or 0)
+    trial_conv_7d = stripe.get('trial_conversions_7d') or 0
+    trials = stripe.get('trials') or 0
+    trials_likely = stripe.get('trials_likely_to_convert') or 0
+    if new_subs > 0 or trial_conv_7d > 0 or trials > 0:
+        bits = []
+        if new_subs > 0:
+            bits.append(f'{new_subs} new subscriber' + ('s' if new_subs != 1 else ''))
+        if trial_conv_7d > 0:
+            bits.append(f'{trial_conv_7d} trial conversion' + ('s' if trial_conv_7d != 1 else ''))
+        if trials > 0:
+            tail = f' ({trials_likely} likely to convert)' if trials_likely else ''
+            bits.append(f'{trials} trial' + ('s' if trials != 1 else '') + ' in flight' + tail)
         items.append({
-            'type': 'failed_payments',
-            'priority': 'warn',
-            'message': msg,
+            'type': 'growth',
+            'priority': 'good',
+            'message': ', '.join(bits) + '.',
         })
 
-    # warn: cancellations scheduled but not yet executed
+    # 2. acquisition — GSC + GA4 + Play Store
+    gsc_clicks   = gsc.get('clicks') or 0
+    ga4_sessions = ga4.get('sessions') or ga4.get('sessions_30d') or 0
+    installs_28d = gp.get('user_installs_28d') or 0
+    dau_avg      = gp.get('dau_avg_28d') or 0
+    if gsc_clicks or ga4_sessions or installs_28d:
+        bits = []
+        if ga4_sessions:
+            bits.append(f'{int(ga4_sessions):,} web session' + ('s' if int(ga4_sessions) != 1 else ''))
+        if gsc_clicks:
+            bits.append(f'{int(gsc_clicks):,} GSC click' + ('s' if int(gsc_clicks) != 1 else ''))
+        if installs_28d:
+            bits.append(f'{installs_28d} install' + ('s' if installs_28d != 1 else ''))
+        if dau_avg:
+            bits.append(f'{dau_avg:.1f} DAU avg')
+        items.append({
+            'type': 'acquisition',
+            'priority': 'info',
+            'message': 'Acquisition (28d): ' + ', '.join(bits) + '.',
+        })
+
+    # 3. model_perf — last-30d win/loss + unit ROI per sport. Threshold
+    # of 3 graded picks per sport so a single revoked-but-graded outlier
+    # doesn't get headlined as the model's read.
+    by_sport = (model.get('by_sport') or {}) if isinstance(model, dict) else {}
+    sport_summaries = []
+    sport_order = ['nba', 'mlb', 'wnba']
+    for sport in sport_order + [s for s in by_sport.keys() if s not in sport_order]:
+        agg = by_sport.get(sport)
+        if not agg or agg.get('graded', 0) < 3:
+            continue
+        wins, losses = agg['wins'], agg['losses']
+        wr = agg.get('win_rate')
+        roi = agg.get('profit_units') or 0
+        seg = f"{sport.upper()} {wins}-{losses}"
+        if wr is not None:
+            seg += f" ({wr}%)"
+        if roi:
+            seg += f" {roi:+.1f}u"
+        sport_summaries.append(seg)
+    if sport_summaries:
+        items.append({
+            'type': 'model_performance',
+            'priority': 'info',
+            'message': 'Model 30d: ' + '; '.join(sport_summaries) + '.',
+        })
+
+    # 4. signal volume — informational, lower priority than acquisition.
+    signals_total = sum((events.get('signals_issued') or {}).values())
+    if signals_total > 0:
+        breakdown = ', '.join(
+            f'{sport.upper()} {n}' for sport, n in sorted((events.get('signals_issued') or {}).items()) if n
+        )
+        items.append({
+            'type': 'signal_volume',
+            'priority': 'info',
+            'message': f'{signals_total} signal' + ('s' if signals_total != 1 else '') + f' issued this week ({breakdown}).',
+        })
+
+    # 5. warn — cancellations scheduled (save window)
     cancels_scheduled = (stripe.get('paid_with_cancel_scheduled') or 0) + (stripe.get('trials_with_cancel_scheduled') or 0)
     if cancels_scheduled > 0:
         items.append({
@@ -199,63 +287,30 @@ def compute_actions(metrics: dict) -> list:
             'message': (
                 f'{cancels_scheduled} cancellation'
                 + ('s' if cancels_scheduled != 1 else '')
-                + ' scheduled but not yet effective. Save attempts have a window.'
+                + ' scheduled. Save window open.'
             ),
         })
 
-    # warn: canceled subs in 30d window (already executed)
-    canceled = (stripe.get('canceled_30d') or 0) + (rc.get('canceled_30d') or 0)
-    if canceled >= 3:
+    # 6. warn — payment failures (only if material: >=2 distinct customers)
+    failed_users = stripe.get('failed_payment_users_30d')
+    failed_attempts = stripe.get('failed_payment_attempts_30d')
+    if failed_users is None:
+        failed_users = stripe.get('failed_payments_30d') or 0  # legacy
+        failed_attempts = failed_users
+    if failed_users >= 2:
         items.append({
-            'type': 'churn_burst',
+            'type': 'failed_payments',
             'priority': 'warn',
             'message': (
-                f'{canceled} cancellations in the last 30 days. Worth a churn-survey pass.'
+                f'{failed_users} customers with failed payments in 30d '
+                f'({failed_attempts} attempts total). Review the failed-payments list.'
             ),
         })
 
-    # info: GSC clicks growth signal
-    gsc_clicks = gsc.get('clicks')
-    if gsc_clicks and gsc_clicks > 50:
-        items.append({
-            'type': 'gsc_traffic',
-            'priority': 'info',
-            'message': (
-                f'GSC: {gsc_clicks:,} clicks last 7 days. Review top queries for content opportunities.'
-            ),
-        })
-
-    # info: signal volume context
-    signals_total = sum((events.get('signals_issued') or {}).values())
-    if signals_total > 0:
-        sport_breakdown = ', '.join(
-            f'{sport.upper()}: {n}' for sport, n in (events.get('signals_issued') or {}).items() if n
-        )
-        items.append({
-            'type': 'signal_volume',
-            'priority': 'info',
-            'message': f'{signals_total} signals issued this week ({sport_breakdown}).',
-        })
-
-    # good: clean revenue health (no payment failures, no churn, no
-    # cancellations queued)
-    new_subs = (stripe.get('new_subs_7d') or 0) + (rc.get('new_subs_7d') or 0)
-    if failed_users == 0 and canceled == 0 and cancels_scheduled == 0 and new_subs > 0:
-        items.append({
-            'type': 'clean_revenue',
-            'priority': 'good',
-            'message': (
-                f'No failed payments, no cancellations executed or scheduled, '
-                f'{new_subs} new subscriber'
-                + ('s' if new_subs != 1 else '')
-                + ' this week. Revenue health is clean.'
-            ),
-        })
-
-    # Sort by priority and cap at 3
-    PRIORITY_ORDER = {'warn': 0, 'info': 1, 'good': 2}
-    items.sort(key=lambda a: PRIORITY_ORDER.get(a['priority'], 9))
-    return items[:3]
+    # Cap at 4. Items are already in the desired display order so no
+    # priority sort here — that would put warns at the bottom and undo
+    # the operator's "growth-led" ordering.
+    return items[:4]
 
 
 def _pluralize(n: int, word: str, plural: str = None) -> str:

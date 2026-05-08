@@ -519,14 +519,15 @@
 
       <div class="users-grid-header">
         <span>User</span>
-        <span>Logins 30d</span>
+        <span class="sortable" data-sort-key="logins">Logins 30d</span>
+        <span class="sortable" data-sort-key="days_active">Days active</span>
+        <span class="sortable" data-sort-key="last_seen">Last seen</span>
         <span>Bet taps</span>
-        <span>Days active</span>
-        <span>Last seen</span>
       </div>
 
-      <div class="users-list-footer" style="text-align: center; padding: 24px 0; font-family: var(--label); font-size: 10px; letter-spacing: 1.8px; color: var(--text-faint); border-top: 1px solid var(--border); margin-top: 8px;">
-        loading…
+      <div class="users-list-footer" style="text-align: center; padding: 16px 0 24px; font-family: var(--label); font-size: 10px; letter-spacing: 1.8px; color: var(--text-faint); border-top: 1px solid var(--border); margin-top: 8px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <span class="users-list-status">loading…</span>
+        <button class="users-list-load-more" style="display: none; background: transparent; border: 1px solid var(--border-strong); color: var(--text-secondary); font-family: var(--label); font-size: 10px; letter-spacing: 1.8px; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Load 10 more</button>
       </div>
     </section>
 
