@@ -5,11 +5,13 @@ import CalibrationBanner from '../brand/CalibrationBanner';
 // v4.3 inline Market Intelligence report. Renders below the MI card
 // when the user expands it on home (pick day or pass day).
 //
-// May 2026 redesign: Sharp Journal editorial format. Tag pill, headline,
-// observation, then the same data the prior version surfaced reorganized
-// into Market Structure / Bias / Top Edge / Edge Distribution / Edge Map /
-// Line Movement / Model vs Market Delta / Implication / Sharp Principle /
-// Cross-edition tile. Source: docs mockup approved 2026-05-07.
+// Free tier sees summary metrics only (headline + observation +
+// Market Structure + Top Edge + Edge Distribution + MEI/Regime card +
+// Sharp Principle + upgrade CTA). Pro tier sees the full report
+// including Bias, Edge Map, Line Movement, Model vs Market Delta,
+// Near Misses, and the Implication callout. Caller is responsible
+// for passing isPro. Default is false so a caller that forgets fails
+// closed (no Pro content leaks to free).
 //
 // Reads the canonical /public/market-report payload directly when no
 // report prop is supplied; otherwise consumes the prop. Field
@@ -87,7 +89,7 @@ function getPhase(data) {
   return 'morning';
 }
 
-export default function DailyMarketReport({ report: reportProp }) {
+export default function DailyMarketReport({ report: reportProp, isPro = false, onUpgrade }) {
   const { sport } = useSport();
   const { data: fetchedData, loading } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
   const data = reportProp ?? fetchedData;
@@ -371,8 +373,8 @@ export default function DailyMarketReport({ report: reportProp }) {
         </div>
       </Card>
 
-      {/* Bias card */}
-      {leanCounts.total > 0 && (
+      {/* Bias card — Pro only */}
+      {isPro && leanCounts.total > 0 && (
         <Card>
           <Eyebrow color={SP.green}>Bias</Eyebrow>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', marginBottom: '8px' }}>
@@ -529,8 +531,8 @@ export default function DailyMarketReport({ report: reportProp }) {
         )}
       </Card>
 
-      {/* Edge Map: per-game diverging bars */}
-      {edgeMap.length > 0 && (
+      {/* Edge Map: per-game diverging bars — Pro only */}
+      {isPro && edgeMap.length > 0 && (
         <Card>
           <Eyebrow color={SP.green}>Edge Map</Eyebrow>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
@@ -575,8 +577,8 @@ export default function DailyMarketReport({ report: reportProp }) {
         </Card>
       )}
 
-      {/* Line Movement */}
-      {lmGames.length > 0 ? (
+      {/* Line Movement — Pro only */}
+      {isPro && lmGames.length > 0 ? (
         <Card>
           <Eyebrow color={SP.green}>{lmType === 'moneyline' ? 'Moneyline Movement' : 'Line Movement'} · {lmGames.length} game{lmGames.length === 1 ? '' : 's'}</Eyebrow>
           <div style={{ marginTop: '8px' }}>
@@ -624,7 +626,7 @@ export default function DailyMarketReport({ report: reportProp }) {
             </div>
           </div>
         </Card>
-      ) : totalGames > 0 ? (
+      ) : isPro && totalGames > 0 ? (
         <Card>
           <Eyebrow color={SP.green}>{lmType === 'moneyline' ? 'Moneyline Movement' : 'Line Movement'}</Eyebrow>
           <div style={{ fontSize: '12px', lineHeight: 1.5, color: SP.text3, marginTop: '4px' }}>
@@ -633,8 +635,8 @@ export default function DailyMarketReport({ report: reportProp }) {
         </Card>
       ) : null}
 
-      {/* Model vs Market Delta */}
-      {mmdGames.length > 0 ? (
+      {/* Model vs Market Delta — Pro only */}
+      {isPro && mmdGames.length > 0 ? (
         <Card>
           <Eyebrow color={SP.green}>Model vs Market Delta · {sportRunsLabel}</Eyebrow>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
@@ -689,7 +691,7 @@ export default function DailyMarketReport({ report: reportProp }) {
             </div>
           )}
         </Card>
-      ) : totalGames > 0 ? (
+      ) : isPro && totalGames > 0 ? (
         <Card>
           <Eyebrow color={SP.green}>Model vs Market Delta</Eyebrow>
           <div style={{ fontSize: '12px', lineHeight: 1.5, color: SP.text3, marginTop: '4px' }}>
@@ -698,8 +700,8 @@ export default function DailyMarketReport({ report: reportProp }) {
         </Card>
       ) : null}
 
-      {/* Near Misses */}
-      {nearMisses.length > 0 && (
+      {/* Near Misses — Pro only */}
+      {isPro && nearMisses.length > 0 && (
         <Card>
           <Eyebrow color={SP.green}>Near Misses</Eyebrow>
           <div style={{ marginTop: '6px' }}>
@@ -723,25 +725,61 @@ export default function DailyMarketReport({ report: reportProp }) {
         </Card>
       )}
 
-      {/* Implication callout */}
-      <div style={{
-        borderLeft: `3px solid ${SP.green}`, background: 'rgba(90, 158, 114, 0.04)',
-        padding: '18px 20px', borderRadius: '0 8px 8px 0',
-        marginTop: '4px', marginBottom: '24px',
-      }}>
+      {/* Implication callout — Pro only */}
+      {isPro && (
         <div style={{
-          display: 'flex', alignItems: 'center', gap: '8px',
-          fontFamily: SP.fontMono, fontSize: '11px', fontWeight: 500,
-          letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.green,
-          marginBottom: '8px',
+          borderLeft: `3px solid ${SP.green}`, background: 'rgba(90, 158, 114, 0.04)',
+          padding: '18px 20px', borderRadius: '0 8px 8px 0',
+          marginTop: '4px', marginBottom: '24px',
         }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: SP.green }} />
-          Implication
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            fontFamily: SP.fontMono, fontSize: '11px', fontWeight: 500,
+            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.green,
+            marginBottom: '8px',
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: SP.green }} />
+            Implication
+          </div>
+          <div style={{ fontFamily: SP.fontSans, fontSize: '15px', fontWeight: 500, color: SP.text, lineHeight: 1.4 }}>
+            {implication}
+          </div>
         </div>
-        <div style={{ fontFamily: SP.fontSans, fontSize: '15px', fontWeight: 500, color: SP.text, lineHeight: 1.4 }}>
-          {implication}
+      )}
+
+      {/* Free upgrade CTA — replaces the Pro deep-analysis sections */}
+      {!isPro && (
+        <div style={{
+          background: SP.surface, border: `1px solid ${SP.border}`,
+          borderRadius: '12px', padding: '20px', marginTop: '4px', marginBottom: '24px',
+          display: 'flex', flexDirection: 'column', gap: '12px',
+        }}>
+          <div style={{
+            fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
+            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.green,
+          }}>
+            Pro Market Detail
+          </div>
+          <div style={{ fontFamily: SP.fontSerif, fontSize: '17px', lineHeight: 1.4, color: SP.text }}>
+            Bias, edge map, line movement, model vs market delta, near misses, and the daily implication read are Pro.
+          </div>
+          {typeof onUpgrade === 'function' && (
+            <button
+              type="button"
+              onClick={onUpgrade}
+              style={{
+                marginTop: '4px', alignSelf: 'flex-start',
+                background: SP.green, color: '#0A0D14', border: 'none',
+                borderRadius: '8px', padding: '10px 16px',
+                fontFamily: SP.fontSans, fontSize: '13px', fontWeight: 600,
+                letterSpacing: '0.02em', cursor: 'pointer',
+              }}
+            >
+              Upgrade to Pro
+            </button>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Sharp Principle */}
       <div style={{ marginBottom: '24px' }}>

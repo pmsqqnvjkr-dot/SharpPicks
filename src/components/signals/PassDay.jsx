@@ -427,7 +427,7 @@ export default function PassDay({
 
       {miExpanded && (
         <div style={{ marginBottom: '22px' }}>
-          <DailyMarketReport report={marketReport} />
+          <DailyMarketReport report={marketReport} isPro={isPro} onUpgrade={onUpgrade} />
         </div>
       )}
 

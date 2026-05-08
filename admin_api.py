@@ -687,6 +687,46 @@ def admin_mlb_collect():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@admin_bp.route('/api/admin/articles/cross-sport-flip', methods=['POST'])
+def articles_cross_sport_flip():
+    """One-off: flip non-product Insight articles to sport=NULL so they
+    show in every sport's feed. Cross-sport categories are philosophy,
+    discipline, founder_note. Excludes market_notes (always sport-specific
+    by design) and how_it_works (case by case: MLB sample-size articles
+    are intentionally sport=mlb).
+
+    The Insight visibility filter at insights_api.py:62 is
+    `Insight.sport == sport OR Insight.sport IS NULL`, so flipping to
+    NULL makes the article visible to NBA, MLB, and WNBA users.
+
+    Authed via X-Cron-Secret. Idempotent: only touches rows where
+    sport is currently set."""
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    if not cron_secret or request.headers.get('X-Cron-Secret') != cron_secret:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    cross_sport_categories = ('philosophy', 'discipline', 'founder_note')
+    rows = Insight.query.filter(
+        Insight.category.in_(cross_sport_categories),
+        Insight.sport.isnot(None),
+    ).all()
+
+    flipped = []
+    for r in rows:
+        flipped.append({
+            'slug': r.slug,
+            'category': r.category,
+            'old_sport': r.sport,
+        })
+        r.sport = None
+
+    db.session.commit()
+    return jsonify({
+        'flipped_count': len(flipped),
+        'rows': flipped,
+    })
+
+
 def run_admin_alert_check(include_health=True):
     """
     Check for issues (cron, model, kill switch, optional health).

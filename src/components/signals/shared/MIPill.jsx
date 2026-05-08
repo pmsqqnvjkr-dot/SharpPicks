@@ -6,6 +6,8 @@ export default function MIPill({
   subline = '',
   marketReport,
   zeroState = false,
+  isPro = false,
+  onUpgrade,
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -98,7 +100,7 @@ export default function MIPill({
               No slate today
             </div>
           ) : (
-            <DailyMarketReport report={marketReport} />
+            <DailyMarketReport report={marketReport} isPro={isPro} onUpgrade={onUpgrade} />
           )}
         </div>
       )}
