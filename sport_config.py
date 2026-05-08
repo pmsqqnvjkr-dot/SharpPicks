@@ -52,7 +52,12 @@ SPORT_CONFIG = {
         'active': True,
         'live': True,
         'model_phase': 'calibration',
-        'model_run_hour': 9,
+        # WNBA piggybacks on the 10 AM ET NBA run via /api/cron/run-model
+        # rather than its own dedicated cron, so the UI countdown should
+        # match. Previously 9 here, which made the home countdown card
+        # render 'MODEL RUNS AT 9:00 AM ET' on WNBA tab even though the
+        # cron actually fires at 10. Confirmed with Evan 2026-05-08.
+        'model_run_hour': 10,
         'season_start_date': '2026-05-08',
 
         # Initial 2022-2024 train: cv_std_raw 11.3, MAE 13.3 (calib_ratio 0.85,
