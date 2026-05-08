@@ -82,8 +82,8 @@ export default function DisciplineScore() {
 
 function GradeLabel({ grade }) {
   const labels = {
-    'A+': 'Elite discipline', 'A': 'Sharp bettor', 'B+': 'Strong discipline',
-    'B': 'Improving', 'C': 'Casual bettor', 'D': 'Overbetting',
+    'A+': 'Elite discipline', 'A': 'Sharp', 'B+': 'Strong discipline',
+    'B': 'Improving', 'C': 'Inconsistent', 'D': 'Overexposed',
   };
   return (
     <span style={{

@@ -272,7 +272,7 @@ function CLVTracker({ clv }) {
               fontFamily: 'var(--font-mono)', fontSize: '10px',
               color: 'var(--text-tertiary)', letterSpacing: '0.5px',
             }}>
-              Edge vs closing line · {clv.total_tracked} pick{clv.total_tracked !== 1 ? 's' : ''} tracked
+              Edge vs closing line · {clv.total_tracked} signal{clv.total_tracked !== 1 ? 's' : ''} tracked
             </div>
             {avgClv != null && (
               <div style={{
@@ -305,7 +305,7 @@ function CLVTracker({ clv }) {
               fontFamily: 'var(--font-mono)', fontSize: '10px',
               color: 'var(--text-tertiary)', marginTop: '4px',
             }}>
-              {clv.positive ?? 0}/{clv.total_tracked} picks
+              {clv.positive ?? 0}/{clv.total_tracked} signals
             </div>
           </div>
         </div>

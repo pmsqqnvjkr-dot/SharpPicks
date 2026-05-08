@@ -7,8 +7,8 @@ export function EmptyNoPicks() {
           <circle cx="12" cy="12" r="10"/>
         </svg>
       }
-      title="No picks yet"
-      description="We publish only when the data shows an edge. Your first pick may not be today."
+      title="No signals yet"
+      description="We publish only when the data shows an edge. Your first signal may not be today."
     />
   );
 }

@@ -515,13 +515,13 @@ export default function LandingPage({ autoView }) {
               body="Log wagers at actual stakes, track results, and see your total P/L with an equity curve over time. ROI, record, units, all calculated from your real bets." />
             <FeatureCard accent="rgba(90,158,114,0.6)"
               title="The bets you don't take are tracked too"
-              body="Selectivity rate, picks followed vs passed, and a discipline grade. The only platform that measures restraint and compares you to the industry average." />
+              body="Selectivity rate, signals followed vs passed, and a discipline grade. The only platform that measures restraint and compares you to the industry average." />
             <FeatureCard accent="rgba(90,158,114,0.35)"
               title="Sharp Journal, market notes and philosophy"
-              body="Signal intelligence notes, market analysis, and discipline essays. Content designed to make you a sharper bettor by understanding when not to bet." />
+              body="Signal intelligence notes, market analysis, and discipline essays. Content designed to sharpen your read by understanding when to pass." />
             <FeatureCard accent="rgba(90,158,114,0.35)"
               title="Live tracking and a permanent public record"
-              body="Watch your picks play out in real time. Every result graded against the closing line, published publicly, and permanently on record. Zero picks deleted." />
+              body="Watch your signals play out in real time. Every result graded against the closing line, published publicly, and permanently on record. Zero records deleted." />
           </div>
         </div>
       </section>
@@ -632,7 +632,7 @@ export default function LandingPage({ autoView }) {
           <p style={{
             fontFamily: 'var(--font-sans)', fontSize: 14,
             color: 'var(--text-tertiary)', marginBottom: 32,
-          }}>Watch picks play out live. Every result graded against the closing line.</p>
+          }}>Watch signals play out live. Every result graded against the closing line.</p>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
@@ -695,7 +695,7 @@ export default function LandingPage({ autoView }) {
               tier="Free"
               price="$0"
               sub="Forever"
-              features={['See if a pick exists today', 'Public record access', 'Market overview']}
+              features={['See if a signal fired today', 'Public record access', 'Market overview']}
               ctaLabel="Sign Up Free"
               onCta={openFreeRegister}
               highlight={false}
@@ -706,7 +706,7 @@ export default function LandingPage({ autoView }) {
               sub={isIOS ? 'Cancel anytime' : 'Cancel anytime'}
               features={[
                 'Daily market brief with MEI score',
-                'Full pick details, edge %, side, line',
+                'Full signal data, edge %, side, line',
                 'Full market board, signals + passes',
                 'Bet tracking and portfolio P/L',
                 'Discipline score and behavioral insights',

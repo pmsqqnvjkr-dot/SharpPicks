@@ -1289,7 +1289,7 @@ function CapitalPreservedCard({ amount, passes }) {
 
       <InfoCallout
         header="More on discipline"
-        text="The average bettor plays 78% of opportunities. You play fewer. Fewer decisions reduce error exposure. Discipline protects downside before upside appears."
+        text="Most users play 78% of opportunities. You play fewer. Fewer decisions reduce error exposure. Discipline protects downside before upside appears."
       />
     </div>
   );
@@ -1387,7 +1387,7 @@ function SelectivitySpectrum({ selectivity, industryAvg }) {
 
       <InfoCallout
         header="Behavioral Edge"
-        text="The average bettor plays 78% of opportunities. You play fewer. Fewer decisions reduce error exposure."
+        text="Most users play 78% of opportunities. You play fewer. Fewer decisions reduce error exposure."
       />
     </div>
   );

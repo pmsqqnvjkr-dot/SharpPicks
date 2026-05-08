@@ -347,9 +347,9 @@ export default function WNBAPreLaunchScreen({ onNavigate }) {
           {
             tone: 'typical',
             eyebrow: 'What other accounts do',
-            title: 'Pick of the night, every night.',
+            title: 'Daily signal, no exceptions.',
             items: [
-              'Forced daily picks regardless of edge',
+              'Forced daily signals regardless of edge',
               "Yesterday's losses quietly disappear",
               'No closing line audit',
               'Records reset when convenient',
@@ -497,7 +497,7 @@ export default function WNBAPreLaunchScreen({ onNavigate }) {
         <p style={{
           fontSize: '13px', color: SP.text2, lineHeight: 1.5, marginBottom: '16px',
         }}>
-          Push notifications for every WNBA signal during calibration phase. No spam, no marketing, no daily lottery picks. Just the reads when they fire.
+          Push notifications for every WNBA signal during calibration phase. No spam, no marketing, no daily noise. Just the reads when they fire.
         </p>
         <button
           onClick={handleOpenNotifications}

@@ -26,7 +26,7 @@ const FALLBACK_ARTICLES = [
     readMinutes: 3,
     publishedDate: 'Mar 18, 2026',
     title: 'Shadow mode: how we test a model before you see it.',
-    snippet: 'Before any model goes live on SharpPicks, it runs in shadow mode. Shadow mode means the model generates picks in real time against real lines, but those picks are tracked privately for at least 60 days before any user sees them.',
+    snippet: 'Before any model goes live on SharpPicks, it runs in shadow mode. Shadow mode means the model generates signals in real time against real lines, but those signals are tracked privately for at least 60 days before any user sees them.',
     source: 'How it works',
   },
 ];
