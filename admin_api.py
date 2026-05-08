@@ -2433,12 +2433,16 @@ def cf_analytics():
     if not admin:
         return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
-    token = os.environ.get('CF_API_TOKEN')
-    account_id = os.environ.get('CF_ACCOUNT_ID')
-    site_tag = os.environ.get('CF_WEB_ANALYTICS_SITE_TAG')
+    # Prefer CLOUDFLARE_* (single source of truth, shared with
+    # services/sources/cloudflare.py). Fall back to legacy CF_* names
+    # so a Railway env that still has the old keys keeps working until
+    # they're cleaned up.
+    token = os.environ.get('CLOUDFLARE_API_TOKEN') or os.environ.get('CF_API_TOKEN')
+    account_id = os.environ.get('CLOUDFLARE_ACCOUNT_ID') or os.environ.get('CF_ACCOUNT_ID')
+    site_tag = os.environ.get('CLOUDFLARE_SITE_TAG') or os.environ.get('CF_WEB_ANALYTICS_SITE_TAG')
 
     if not token or not account_id:
-        return jsonify({'error': 'CF_API_TOKEN or CF_ACCOUNT_ID not configured'}), 503
+        return jsonify({'error': 'CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID not configured'}), 503
 
     days = _analytics_period_days()
     today = datetime.now(ET).date()
