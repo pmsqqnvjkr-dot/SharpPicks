@@ -161,6 +161,38 @@ def stats():
 
     founding_claimed = User.query.filter_by(founding_member=True).count()
 
+    # Last signal — surfaces the most recently graded pick on /public/stats
+    # so the home-screen Market Pulse strip can render its "Last signal"
+    # cell without depending on the pro-gated /picks/last-resolved
+    # endpoint. Picks with null profit_units (older rows that pre-date the
+    # backfill, or pushes which the seed-time backfill skips) get computed
+    # on read so the cell never falls back to "—" just because of stale
+    # column data.
+    last_signal_units = None
+    last_signal_result = None
+    last_signal_date = None
+    try:
+        last_pick = pick_q.filter(
+            Pick.result.in_(['win', 'loss', 'push'])
+        ).order_by(Pick.published_at.desc()).first()
+        if last_pick:
+            units = last_pick.profit_units
+            if units is None:
+                if last_pick.result == 'push':
+                    units = 0.0
+                elif last_pick.pnl is not None:
+                    units = round(last_pick.pnl / 100.0, 2)
+                elif last_pick.result == 'win':
+                    odds = last_pick.market_odds or -110
+                    units = round(100 / abs(odds), 2) if odds < 0 else round(odds / 100, 2)
+                elif last_pick.result == 'loss':
+                    units = -1.0
+            last_signal_units = units
+            last_signal_result = last_pick.result
+            last_signal_date = str(last_pick.game_date) if last_pick.game_date else None
+    except Exception as e:
+        logging.debug(f"last_signal compute failed: {e}")
+
     return jsonify({
         'record': f'{wins}-{losses}',
         'wins': wins,
@@ -176,6 +208,9 @@ def stats():
         'capital_preserved_days': total_passes,
         'avg_clv': avg_clv,
         'clv_beat_rate': clv_beat_rate,
+        'last_signal_units': last_signal_units,
+        'last_signal_result': last_signal_result,
+        'last_signal_date': last_signal_date,
         'model_phase': phase,
         'phase_label': get_phase_label(phase),
         'founding_spots_claimed': founding_claimed,
@@ -898,6 +933,25 @@ def build_market_report_dict(date_param, sport=None):
         return {'available': False, 'date': date_param}
 
     games_analyzed = run.games_analyzed or 0
+    # Fallback: when the model run logged 0 games (early-morning runs that
+    # ran before the schedule scrape, or runs that errored before counting)
+    # but games actually existed on the sport's slate that day, count from
+    # the sport-specific games table so the home recap card doesn't render
+    # "0 games scanned" on a real slate.
+    if games_analyzed == 0 and sport:
+        try:
+            import sqlite3
+            from db_path import get_sqlite_path
+            games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
+            conn = sqlite3.connect(get_sqlite_path())
+            cur = conn.cursor()
+            cur.execute(f"SELECT COUNT(*) FROM {games_table} WHERE game_date = ?", (date_param,))
+            slate_games = cur.fetchone()[0] or 0
+            conn.close()
+            if slate_games > 0:
+                games_analyzed = slate_games
+        except Exception:
+            pass
     edges_detected = 0
     qualified_signals = 0
     detail = []

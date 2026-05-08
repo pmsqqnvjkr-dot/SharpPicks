@@ -63,9 +63,13 @@ export default function LastNightsReadCard({
   const isRevoked = result === 'revoked';
   const noSignal = !pick && (signalsIssued || 0) === 0;
 
+  // Title leads with the operator's terminology — "Pass" when the model
+  // didn't issue a signal at all, "Withdrawn" when one fired then got
+  // pulled. The MLB pre-tip pull window means revoked happens often
+  // enough that lumping both into "slate closed quiet" reads as a bug.
   const title = (() => {
     if (isRevoked) return 'Signal withdrawn before tip.';
-    if (noSignal) return 'The slate closed quiet.';
+    if (noSignal) return 'Pass. The slate closed quiet.';
     if (isWin) return 'The model held against close.';
     if (isLoss) return 'Variance is the cost of doing business.';
     if (isPush) return 'Capital preserved on a tight market.';

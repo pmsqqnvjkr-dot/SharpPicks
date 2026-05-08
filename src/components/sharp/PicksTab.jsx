@@ -520,9 +520,17 @@ export default function PicksTab({ onNavigate }) {
                 where they are in the cycle. */}
             {(() => {
               const passDays = stats?.capital_preserved_days;
-              const lastUnits = lastResolved?.profit_units;
+              // Prefer /public/stats.last_signal_units (always populated,
+              // no auth required) over the pro-gated /picks/last-resolved
+              // payload — that endpoint can return null on cold sessions
+              // or for free-tier viewers, leaving the cell blank.
+              const lastUnitsRaw = stats?.last_signal_units != null
+                ? stats.last_signal_units
+                : lastResolved?.profit_units;
+              const lastResult = (stats?.last_signal_result || lastResolved?.result || '').toLowerCase();
+              const lastUnits = lastResult === 'push' ? 0 : lastUnitsRaw;
               const lastIsWin = lastUnits != null && lastUnits > 0;
-              const lastIsPush = lastUnits != null && lastUnits === 0;
+              const lastIsPush = lastResult === 'push' || (lastUnits != null && lastUnits === 0);
               const clv30 = stats?.avg_clv;
               const fmtUnits = (n) => n == null ? '—' : `${n > 0 ? '+' : ''}${Number(n).toFixed(1)}u`;
               const fmtClv = (n) => n == null ? '—' : `${n > 0 ? '+' : ''}${Number(n).toFixed(1)}`;
