@@ -75,9 +75,12 @@ export default function LastNightsReadCard({
     return 'Slate closed.';
   })();
 
+  // MLB tips with first pitch; basketball (NBA, WNBA) uses tipoff.
+  const tipNoun = (String(sport || '').toLowerCase() === 'mlb') ? 'first pitch' : 'tipoff';
+
   const excerpt = (() => {
     if (isRevoked) {
-      return `Pre-tip validation pulled the signal before first pitch. Capital preserved on a slate of ${gamesScanned || 0} games.`;
+      return `Pre-tip validation pulled the signal before ${tipNoun}. Capital preserved on a slate of ${gamesScanned || 0} games.`;
     }
     if (noSignal) {
       return `${gamesScanned || 0} games scanned, zero signals issued. Capital preserved on a slate the model read as efficient.`;
