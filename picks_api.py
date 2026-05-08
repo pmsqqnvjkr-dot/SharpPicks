@@ -871,6 +871,21 @@ def market_view():
                     home_record, away_record,
                     home_score, away_score,
                     home_pitcher, away_pitcher"""
+    elif sport == 'wnba':
+        # wnba_games does not carry h1 lines or rundown consensus columns
+        # (those exist only on the NBA `games` table). Selecting them here
+        # raised 'no such column', the outer except returned silently, and
+        # the endpoint shipped an empty array for every WNBA date including
+        # historicals. Symptom surfaced today (2026-05-08) as the WNBA tab
+        # showed no slate on launch day. The schema is the source of
+        # truth; the SELECT is now scoped to columns that exist.
+        _select_cols = """id, home_team, away_team, game_time, game_date,
+                    spread_home, spread_away, total, home_ml, away_ml,
+                    spread_home_open, total_open, home_ml_open, away_ml_open,
+                    home_spread_odds, away_spread_odds,
+                    home_spread_book, away_spread_book,
+                    home_record, away_record,
+                    home_score, away_score"""
     else:
         _select_cols = """id, home_team, away_team, game_time, game_date,
                     spread_home, spread_away, total, home_ml, away_ml,
