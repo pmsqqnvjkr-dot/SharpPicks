@@ -3562,3 +3562,113 @@ def admin_push_tokens():
     return jsonify({'tokens': result})
 
 
+# ─── Diagnostic: revoked-pick CLV audit ──────────────────────────────────
+# One-shot health check for the question "are we capturing CLV on picks
+# the model pulls before tip?". Closing-lines cron writes pick.clv by
+# matching home/away/date and DOES NOT filter on result, so revoked picks
+# should get clv populated when the cron fires in the T-10min window. This
+# endpoint reports the actual hit rate — total revoked, how many have
+# clv, sign distribution, sport breakdown, and a few recent examples so
+# the operator can eyeball the pattern. No mutations.
+@admin_bp.route('/api/admin/diagnose/revoked-clv')
+def admin_diagnose_revoked_clv():
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Unauthorized'}), err_code or 403
+
+    def _bucket(rows):
+        with_clv = [p for p in rows if p.clv is not None]
+        without_clv = [p for p in rows if p.clv is None]
+        clv_vals = [float(p.clv) for p in with_clv]
+        return {
+            'total_revoked': len(rows),
+            'with_clv': len(with_clv),
+            'without_clv': len(without_clv),
+            'capture_rate_pct': round(100.0 * len(with_clv) / len(rows), 1) if rows else 0.0,
+            'avg_clv': round(sum(clv_vals) / len(clv_vals), 2) if clv_vals else None,
+            'positive_clv_count': sum(1 for v in clv_vals if v > 0),
+            'negative_clv_count': sum(1 for v in clv_vals if v < 0),
+            'zero_clv_count': sum(1 for v in clv_vals if v == 0),
+            'positive_pct': round(100.0 * sum(1 for v in clv_vals if v > 0) / len(clv_vals), 1) if clv_vals else 0.0,
+        }
+
+    now = datetime.utcnow()
+    cutoff_7d = now - timedelta(days=7)
+    cutoff_30d = now - timedelta(days=30)
+    cutoff_90d = now - timedelta(days=90)
+
+    base = Pick.query.filter(Pick.result == 'revoked')
+    lifetime = base.all()
+    last_7d = base.filter(Pick.published_at >= cutoff_7d).all()
+    last_30d = base.filter(Pick.published_at >= cutoff_30d).all()
+    last_90d = base.filter(Pick.published_at >= cutoff_90d).all()
+
+    by_sport = {}
+    for sport in ('nba', 'mlb', 'wnba'):
+        sport_rows = base.filter(Pick.sport == sport).all()
+        if sport_rows:
+            by_sport[sport] = _bucket(sport_rows)
+
+    # Most-recent 10 revoked picks with clv-relevant context. line_open
+    # comes from pick.line (what we published at); closing_spread is what
+    # the closing-lines cron snapshotted near tipoff. revoke_reason lives
+    # in pick.notes (appended as " | REVOKED: <reason>" in pretip path).
+    recent_examples = []
+    recent_rows = base.order_by(Pick.published_at.desc()).limit(10).all()
+    for p in recent_rows:
+        notes = p.notes or ''
+        revoke_marker = 'REVOKED:'
+        revoke_reason = None
+        if revoke_marker in notes:
+            after = notes.split(revoke_marker, 1)[1].strip()
+            revoke_reason = after.split(' | ')[0].strip()
+        recent_examples.append({
+            'id': p.id,
+            'sport': p.sport,
+            'game_date': str(p.game_date) if p.game_date else None,
+            'published_at': p.published_at.isoformat() if p.published_at else None,
+            'matchup': f'{p.away_team} @ {p.home_team}',
+            'side': p.side,
+            'line_published': p.line,
+            'closing_spread': p.closing_spread,
+            'clv': float(p.clv) if p.clv is not None else None,
+            'edge_pct': p.edge_pct,
+            'revoke_reason': revoke_reason,
+        })
+
+    # Bonus: how does revoked CLV compare to settled CLV? Useful for
+    # answering "is including revoked in avg_clv net-positive or net-
+    # negative?" without flipping the filter and breaking the existing
+    # number.
+    settled_30d = Pick.query.filter(
+        Pick.result.in_(['win', 'loss', 'push']),
+        Pick.published_at >= cutoff_30d,
+        Pick.clv.isnot(None),
+    ).all()
+    settled_clv_vals = [float(p.clv) for p in settled_30d if p.clv is not None]
+    settled_30d_avg_clv = round(sum(settled_clv_vals) / len(settled_clv_vals), 2) if settled_clv_vals else None
+
+    return jsonify({
+        'lifetime': _bucket(lifetime),
+        'last_7d': _bucket(last_7d),
+        'last_30d': _bucket(last_30d),
+        'last_90d': _bucket(last_90d),
+        'by_sport_lifetime': by_sport,
+        'compare_30d': {
+            'settled_avg_clv': settled_30d_avg_clv,
+            'revoked_avg_clv': _bucket(last_30d).get('avg_clv'),
+            'settled_count': len(settled_30d),
+            'revoked_count': len(last_30d),
+        },
+        'recent_examples': recent_examples,
+        'note': (
+            "capture_rate_pct = % of revoked picks with pick.clv populated. "
+            "If lifetime capture is well below 100%, the closing-lines cron "
+            "missed the game (game scored before T-10min snapshot, or "
+            "matchup row didn't match by team-name+date). avg_clv is the "
+            "mean CLV across all revoked picks in the window — net positive "
+            "means the model was usually right and books moved to our side."
+        ),
+    })
+
+
