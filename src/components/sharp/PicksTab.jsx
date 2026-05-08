@@ -588,6 +588,7 @@ export default function PicksTab({ onNavigate }) {
                   (nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'revoked') ? 1 : 0
                 }
                 tomorrowGameCount={tomorrowGames ? tomorrowGames.length : null}
+                nextSlateDate={tomorrowDate}
               />
             )}
 

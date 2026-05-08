@@ -46,6 +46,24 @@ function fmtClockET(hourEt) {
   return `${h12}:00 ${ampm} ET`;
 }
 
+// Format a YYYY-MM-DD string (already in the slate's ET calendar day)
+// as e.g. "Sat May 9". Avoids new Date(str) parsing into the local tz
+// which would shift to the previous day for west-of-UTC users.
+function fmtNextSlateDate(ymd) {
+  if (!ymd || typeof ymd !== 'string') return null;
+  const m = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const yr = Number(m[1]);
+  const mo = Number(m[2]);
+  const da = Number(m[3]);
+  if (mo < 1 || mo > 12 || da < 1 || da > 31) return null;
+  const dt = new Date(yr, mo - 1, da);
+  if (Number.isNaN(dt.getTime()) || dt.getMonth() !== mo - 1) return null;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return `${days[dt.getDay()]} ${months[dt.getMonth()]} ${dt.getDate()}`;
+}
+
 function useNowET() {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -93,7 +111,7 @@ function useNextRunCountdown(targetHourEt) {
   }, [now, targetHourEt]);
 }
 
-export default function MidnightHero({ sport = 'nba', yesterdayGames, yesterdaySignals, tomorrowGameCount }) {
+export default function MidnightHero({ sport = 'nba', yesterdayGames, yesterdaySignals, tomorrowGameCount, nextSlateDate }) {
   const sportLabel = (sport || 'nba').toUpperCase();
   const runHour = MODEL_RUN_HOUR_ET[sport] ?? 9;
   const publishHour = PUBLISH_HOUR_ET[sport] ?? 10;
@@ -183,7 +201,12 @@ export default function MidnightHero({ sport = 'nba', yesterdayGames, yesterdayS
           }}>Next slate</span>
           <span style={{ fontFamily: SP.fontMono, fontSize: '13px', fontWeight: 500, color: SP.text, letterSpacing: '0.04em' }}>
             {tomorrowGameCount != null
-              ? <>{tomorrowGameCount} {sportLabel} game{tomorrowGameCount === 1 ? '' : 's'}<span style={{ color: SP.text3, marginLeft: '6px' }}>· tomorrow</span></>
+              ? <>
+                  {tomorrowGameCount} {sportLabel} game{tomorrowGameCount === 1 ? '' : 's'}
+                  {fmtNextSlateDate(nextSlateDate) && (
+                    <span style={{ color: SP.text3, marginLeft: '6px' }}>· {fmtNextSlateDate(nextSlateDate)}</span>
+                  )}
+                </>
               : <span style={{ color: SP.text3 }}>Loading…</span>
             }
           </span>
