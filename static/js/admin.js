@@ -1446,15 +1446,18 @@ function _renderUserRow(u) {
     .slice(0, 3)
     .map(_renderTag).join('');
 
+  // Bet taps used to live as the second numeric column; demoted to last
+  // (faint, after Last seen) so logins / days active / last seen lead.
+  // Bet taps signal is noisy until tracking is more mature.
   row.innerHTML = `
     <div class="user-identity">
       <span class="user-email">${u.email}</span>
       <div class="user-tags">${billingChip}${overlayTags}</div>
     </div>
     <div class="user-numeric" data-label="Logins 30d">${u.logins_30d}</div>
-    <div class="user-numeric muted" data-label="Bet taps">${u.bet_taps_30d}</div>
     <div class="user-numeric muted" data-label="Days active">${u.days_active_30d}</div>
     <div class="user-numeric faint" data-label="Last seen">${u.last_seen_at ? u.last_seen_at.slice(5, 10) : '—'}</div>
+    <div class="user-numeric faint" data-label="Bet taps">${u.bet_taps_30d}</div>
   `;
   return row;
 }
@@ -1475,21 +1478,61 @@ function _replaceUserRows(sectionId, users) {
   anchor.after(frag);
 }
 
-function bindUsersList(data) {
+// All Users list pagination + sort state. Held in module scope so segment
+// clicks, sort changes, and Load More can coordinate without a render
+// store. Reset whenever segment or sort changes.
+const ALL_USERS_PAGE_SIZE = 10;
+const _allUsersState = {
+  segment: 'all',
+  sort: 'created',
+  offset: 0,
+  total: null,        // server-reported `total`
+  filtered: null,     // server-reported `filtered` (post-segment count)
+};
+
+function _allUsersFetch({ append = false } = {}) {
+  const s = _allUsersState;
+  const url = `/api/admin/users/list?segment=${encodeURIComponent(s.segment)}`
+            + `&sort=${encodeURIComponent(s.sort)}`
+            + `&limit=${ALL_USERS_PAGE_SIZE}&offset=${s.offset}`;
+  return fetch(url, { credentials: 'same-origin' })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (!data || !Array.isArray(data.users)) return;
+      bindUsersList(data, { append });
+    })
+    .catch(() => {});
+}
+
+function bindUsersList(data, { append = false } = {}) {
   if (!data || !Array.isArray(data.users)) return;
 
   // Counts on the All Users segment chips — total is "all real users".
   _setSegmentCount('#section-all-users .segment-chips', 'All', data.total);
+  _allUsersState.total = data.total ?? _allUsersState.total;
+  _allUsersState.filtered = data.filtered ?? _allUsersState.filtered;
 
-  _replaceUserRows('section-all-users', data.users);
+  if (append) {
+    const sec = document.getElementById('section-all-users');
+    const footer = sec?.querySelector('.users-list-footer');
+    const frag = document.createDocumentFragment();
+    data.users.forEach(u => frag.appendChild(_renderUserRow(u)));
+    if (footer) footer.before(frag);
+  } else {
+    _replaceUserRows('section-all-users', data.users);
+  }
 
-  // Footer: "showing N of M · load more". Only show "load more" affordance
-  // if we got the full page (filtered > limit suggests more exist).
-  const footer = document.querySelector('#section-all-users .users-list-footer');
-  if (footer) {
-    const showing = data.users.length;
-    const more = data.filtered != null && data.filtered > showing;
-    footer.textContent = `showing ${showing} of ${data.filtered ?? data.total ?? showing}${more ? ' · load more' : ''}`;
+  // Footer: "showing N of M". Load more button toggles based on whether
+  // there are more rows behind the current offset.
+  const sec = document.getElementById('section-all-users');
+  const status = sec?.querySelector('.users-list-status');
+  const loadMore = sec?.querySelector('.users-list-load-more');
+  const renderedCount = sec?.querySelectorAll('.user-row').length || 0;
+  const filtered = _allUsersState.filtered ?? renderedCount;
+  if (status) status.textContent = `showing ${renderedCount} of ${filtered}`;
+  if (loadMore) {
+    const hasMore = filtered > renderedCount;
+    loadMore.style.display = hasMore ? 'inline-block' : 'none';
   }
 }
 
@@ -1604,14 +1647,16 @@ let _usersDataPromise = null;
 function loadUsersTabData() {
   if (_usersDataPromise) return _usersDataPromise;
   const opts = { credentials: 'same-origin' };
+  // All Users list flows through _allUsersFetch so segment / sort /
+  // pagination state stays consistent. Power users + needs-attention
+  // are independent panes with their own bind fns.
   _usersDataPromise = Promise.all([
     fetch('/api/admin/users/activity?range=30d', opts).then(r => r.ok ? r.json() : null),
-    fetch('/api/admin/users/list?segment=all&limit=50', opts).then(r => r.ok ? r.json() : null),
+    _allUsersFetch(),
     fetch('/api/admin/users/list?segment=power&limit=20', opts).then(r => r.ok ? r.json() : null),
     fetch('/api/admin/users/list?segment=attention&limit=10', opts).then(r => r.ok ? r.json() : null),
-  ]).then(([activity, allUsers, powerUsers, attention]) => {
+  ]).then(([activity, _all, powerUsers, attention]) => {
     bindUsersActivity(activity);
-    bindUsersList(allUsers);
     bindPowerUsersList(powerUsers);
     bindNeedsAttention(attention);
   }).finally(() => {
@@ -2008,14 +2053,51 @@ document.querySelector('.tab[data-tab="infra"]')?.addEventListener('click', load
 // Wire segment chip clicks ONLY for the All Users section. The Power
 // Users chips below are visual-only filters of the leaderboard and must
 // not refetch the All Users list (a previous selector-overlap bug did).
+// Switching segments resets pagination offset to 0 and re-fetches with
+// the current sort. Active-chip toggling is handled here too so the
+// visual selection stays in sync with the server-side filter.
 document.querySelectorAll('#section-all-users .segment-chips .segment-chip').forEach(chip => {
   chip.addEventListener('click', () => {
     const seg = (chip.dataset.segment || chip.textContent.trim().split(/\s+/)[0] || 'all').toLowerCase();
-    fetch(`/api/admin/users/list?segment=${seg}&limit=50`, { credentials: 'same-origin' })
-      .then(r => r.ok ? r.json() : null)
-      .then(bindUsersList)
-      .catch(() => {});
+    _allUsersState.segment = seg;
+    _allUsersState.offset = 0;
+    document.querySelectorAll('#section-all-users .segment-chips .segment-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    _allUsersFetch();
   });
+});
+
+// Sortable column-header clicks. Cycles through created -> logins ->
+// last_active -> days_active. The data-sort-key attribute on each
+// `<span class="sortable">` in the users-grid-header determines the
+// key. Updates the header to mark the active sort column with a
+// caret indicator.
+function _setActiveSortHeader(activeKey) {
+  document.querySelectorAll('#section-all-users .users-grid-header .sortable').forEach(el => {
+    const key = el.dataset.sortKey;
+    el.classList.toggle('active-sort', key === activeKey);
+    // Strip any prior caret then re-apply for active.
+    const base = el.textContent.replace(/[▼↓•]\s*$/, '').trim();
+    el.textContent = key === activeKey ? `${base} ↓` : base;
+  });
+}
+
+document.querySelectorAll('#section-all-users .users-grid-header .sortable').forEach(el => {
+  el.addEventListener('click', () => {
+    const key = el.dataset.sortKey;
+    if (!key) return;
+    _allUsersState.sort = key;
+    _allUsersState.offset = 0;
+    _setActiveSortHeader(key);
+    _allUsersFetch();
+  });
+});
+
+// Load more — appends the next page (offset += page size) without
+// re-fetching the rows already on screen. Hidden when filtered <= rendered.
+document.querySelector('#section-all-users .users-list-load-more')?.addEventListener('click', () => {
+  _allUsersState.offset += ALL_USERS_PAGE_SIZE;
+  _allUsersFetch({ append: true });
 });
 
 // Power Users chips: filter the rendered leaderboard rows by tag

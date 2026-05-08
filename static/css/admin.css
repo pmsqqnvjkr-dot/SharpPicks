@@ -700,6 +700,13 @@
     color: var(--text-faint);
   }
   .users-grid-header > span:nth-child(n+2) { text-align: right; }
+  .users-grid-header .sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 120ms ease;
+  }
+  .users-grid-header .sortable:hover { color: var(--text-secondary); }
+  .users-grid-header .sortable.active-sort { color: var(--edge-green); }
 
   .user-row {
     display: grid;

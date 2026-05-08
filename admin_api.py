@@ -2735,15 +2735,18 @@ def admin_users_list():
     if segment not in ('all', 'paid', 'trial', 'power', 'dormant', 'churned', 'attention'):
         return jsonify({'error': 'invalid segment'}), 400
     search = (request.args.get('search') or '').strip()
+    sort = (request.args.get('sort') or 'created').strip().lower()
+    if sort not in ('created', 'logins', 'last_active', 'days_active'):
+        sort = 'created'
     try:
-        limit = max(1, min(int(request.args.get('limit', 50)), 200))
+        limit = max(1, min(int(request.args.get('limit', 10)), 200))
         offset = max(0, int(request.args.get('offset', 0)))
     except ValueError:
         return jsonify({'error': 'limit/offset must be integers'}), 400
 
     try:
         from services import users_metrics
-        return jsonify(users_metrics.fetch_list(segment=segment, search=search, limit=limit, offset=offset))
+        return jsonify(users_metrics.fetch_list(segment=segment, search=search, limit=limit, offset=offset, sort=sort))
     except Exception as e:
         logging.exception('admin_users_list failed')
         return jsonify({'error': str(e)[:200]}), 500
@@ -2778,6 +2781,7 @@ def admin_metrics():
     from services.sources import gsc as gsc_source
     from services.sources import revenuecat as rc_source
     from services.sources import google_play as gp_source
+    from services.sources import model_perf as model_perf_source
 
     # When ?nocache=1 is set (manual refresh from the dashboard), expire
     # every source's cache row first so the next fetch hits the upstream
@@ -2787,7 +2791,8 @@ def admin_metrics():
     if nocache:
         from services.metrics_cache import invalidate
         for key in (f'cloudflare:{range_}', 'stripe:summary', f'ga4:{range_}',
-                    'gsc:summary', 'revenuecat:summary', 'google_play:summary'):
+                    'gsc:summary', 'revenuecat:summary', 'google_play:summary',
+                    'model_perf:summary'):
             invalidate(key)
 
     sources = {
@@ -2798,6 +2803,7 @@ def admin_metrics():
         'gsc':          lambda: gsc_source.fetch(),
         'revenuecat':   lambda: rc_source.fetch(),
         'google_play':  lambda: gp_source.fetch(),
+        'model_perf':   lambda: model_perf_source.fetch(),
     }
 
     # Each worker thread needs its own Flask app context for db.session.
@@ -2808,7 +2814,7 @@ def admin_metrics():
             return _metrics_safe_envelope(name, fn)
 
     results = {}
-    with ThreadPoolExecutor(max_workers=7) as executor:
+    with ThreadPoolExecutor(max_workers=8) as executor:
         futures = [executor.submit(_wrap, name, fn) for name, fn in sources.items()]
         for fut in as_completed(futures):
             name, envelope = fut.result()

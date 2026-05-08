@@ -431,7 +431,11 @@ def _user_tags(u: User, logins_30d: int, has_ios_purchase: bool, days_since_logi
     return tags
 
 
-def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: int = 0) -> dict:
+SORT_KEYS = ('created', 'logins', 'last_active', 'days_active')
+
+
+def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: int = 0,
+               sort: str = 'created') -> dict:
     """Returns a filtered, paginated user list with per-user activity stats.
 
     Segments:
@@ -441,9 +445,23 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
       power   — logins_30d >= 15
       dormant — registered > 30d ago, logins_30d == 0
       churned — was active, now cancelled, > 30 days since cancellation
+
+    Sort keys (default 'created'):
+      created      — User.created_at desc (cheap; index)
+      logins       — logins_30d desc (forces full-set event aggregation)
+      last_active  — last_seen_at desc (forces full-set event aggregation)
+      days_active  — days_active_30d desc (forces full-set event aggregation)
+
+    Event-based sorts compute UserEvent stats across the entire filtered
+    candidate set before slicing, so the cost scales with the segment
+    size rather than the page size. Default 'created' keeps the fast
+    path that only aggregates for the visible page.
     """
     now = datetime.utcnow()
     cutoff_30d = now - timedelta(days=30)
+
+    if sort not in SORT_KEYS:
+        sort = 'created'
 
     # Base query
     q = User.query.filter(
@@ -487,11 +505,15 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
     else:
         candidate_users = q.order_by(User.created_at.desc()).all()
 
-    # Tier-filter post hoc if needed
+    # Tier-filter post hoc if needed. Power/dormant already need full-set
+    # login_counts; we cache them in `precomputed_logins` so the sort
+    # path below can reuse instead of re-querying.
+    precomputed_logins = None
+    precomputed_last_seen = None
+    precomputed_days_active = None
     if segment in ('power', 'dormant'):
-        # Compute logins_30d for everyone in candidate_users to filter
         ids = [u.id for u in candidate_users]
-        login_counts = dict(db.session.query(
+        precomputed_logins = dict(db.session.query(
             UserEvent.user_id, func.count(UserEvent.id),
         ).filter(
             UserEvent.event_type == ACTIVE_EVENT_TYPE,
@@ -500,12 +522,51 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
             UserEvent.is_internal == False,  # noqa: E712
         ).group_by(UserEvent.user_id).all())
         if segment == 'power':
-            candidate_users = [u for u in candidate_users if login_counts.get(u.id, 0) >= 15]
+            candidate_users = [u for u in candidate_users if precomputed_logins.get(u.id, 0) >= 15]
         else:  # dormant
             candidate_users = [
                 u for u in candidate_users
-                if login_counts.get(u.id, 0) == 0 and u.created_at and u.created_at < cutoff_30d
+                if precomputed_logins.get(u.id, 0) == 0 and u.created_at and u.created_at < cutoff_30d
             ]
+
+    # Event-based sort: aggregate metrics for the full candidate set
+    # before slicing. Cheap-sort path (created) skips this and lets the
+    # default User.created_at desc order from the queries above stand.
+    if sort != 'created' and candidate_users:
+        ids = [u.id for u in candidate_users]
+        if precomputed_logins is None:
+            precomputed_logins = dict(db.session.query(
+                UserEvent.user_id, func.count(UserEvent.id),
+            ).filter(
+                UserEvent.event_type == ACTIVE_EVENT_TYPE,
+                UserEvent.created_at >= cutoff_30d,
+                UserEvent.user_id.in_(ids),
+                UserEvent.is_internal == False,  # noqa: E712
+            ).group_by(UserEvent.user_id).all())
+        if sort == 'last_active':
+            precomputed_last_seen = dict(db.session.query(
+                UserEvent.user_id, func.max(UserEvent.created_at),
+            ).filter(
+                UserEvent.user_id.in_(ids),
+                UserEvent.is_internal == False,  # noqa: E712
+            ).group_by(UserEvent.user_id).all())
+        elif sort == 'days_active':
+            precomputed_days_active = dict(db.session.query(
+                UserEvent.user_id, func.count(func.distinct(func.date(UserEvent.created_at))),
+            ).filter(
+                UserEvent.event_type == ACTIVE_EVENT_TYPE,
+                UserEvent.created_at >= cutoff_30d,
+                UserEvent.user_id.in_(ids),
+                UserEvent.is_internal == False,  # noqa: E712
+            ).group_by(UserEvent.user_id).all())
+
+        if sort == 'logins':
+            candidate_users.sort(key=lambda u: precomputed_logins.get(u.id, 0), reverse=True)
+        elif sort == 'last_active':
+            far_past = datetime(1970, 1, 1)
+            candidate_users.sort(key=lambda u: precomputed_last_seen.get(u.id) or far_past, reverse=True)
+        elif sort == 'days_active':
+            candidate_users.sort(key=lambda u: precomputed_days_active.get(u.id, 0), reverse=True)
 
     filtered_count = len(candidate_users)
     page = candidate_users[offset:offset + limit]
