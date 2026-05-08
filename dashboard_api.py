@@ -7,7 +7,7 @@ from flask import Flask, jsonify, render_template
 from flask_cors import CORS
 import sqlite3
 from datetime import datetime, timedelta
-from db_path import get_sqlite_path
+from db_path import get_sqlite_conn
 
 app = Flask(__name__)
 CORS(app)
@@ -15,7 +15,7 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 def get_db_connection():
     """Connect to SQLite database"""
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     conn.row_factory = sqlite3.Row
     return conn
 

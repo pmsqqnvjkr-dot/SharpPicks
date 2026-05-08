@@ -6,7 +6,7 @@ Enhanced with pace/ratings features, sample weighting, and betting filters
 
 import sqlite3
 import pandas as pd
-from db_path import get_sqlite_path
+from db_path import get_sqlite_conn
 import numpy as np
 from datetime import datetime, timedelta, timezone
 import pickle
@@ -316,7 +316,7 @@ class EnsemblePredictor:
     def _has_ratings_data(self):
         """Check if team_ratings table has real data (not just schema)."""
         try:
-            conn = sqlite3.connect(get_sqlite_path())
+            conn = get_sqlite_conn()
             tbl = self._ratings_table()
             if not self._has_table(conn, tbl):
                 conn.close()
@@ -329,7 +329,7 @@ class EnsemblePredictor:
 
     def load_data(self):
         """Load training data from database with team ratings"""
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
 
         games_tbl = self._games_table()
         ratings_tbl = self._ratings_table()
@@ -604,7 +604,7 @@ class EnsemblePredictor:
                             start_date = (pd.Timestamp(ref_date) - pd.Timedelta(days=8)).strftime('%Y-%m-%d')
                             end_date = pd.Timestamp(ref_date).strftime('%Y-%m-%d')
                             tbl = self._games_table()
-                            hist_conn = sqlite3.connect(get_sqlite_path())
+                            hist_conn = get_sqlite_conn()
                             hist_rows = hist_conn.execute(
                                 f"SELECT game_date, home_team, away_team FROM {tbl} "
                                 f"WHERE game_date >= ? AND game_date < ? AND home_score IS NOT NULL",
@@ -655,7 +655,7 @@ class EnsemblePredictor:
                     ratings_tbl = 'wnba_rolling_ratings' if self.sport == 'wnba' else 'team_ratings'
                     team_ratings = {}
                     try:
-                        rat_conn = sqlite3.connect(get_sqlite_path())
+                        rat_conn = get_sqlite_conn()
                         if self._has_table(rat_conn, ratings_tbl):
                             if self.sport == 'wnba':
                                 # wnba_rolling_ratings is time-series; take latest game_date per team
@@ -698,7 +698,7 @@ class EnsemblePredictor:
                                 start_date = (pd.Timestamp(ref_date) - pd.Timedelta(days=21)).strftime('%Y-%m-%d')
                                 end_date = pd.Timestamp(ref_date).strftime('%Y-%m-%d')
                                 tbl = self._games_table()
-                                hist_conn = sqlite3.connect(get_sqlite_path())
+                                hist_conn = get_sqlite_conn()
                                 hist_rows = hist_conn.execute(
                                     f"SELECT game_date, home_team, away_team FROM {tbl} "
                                     f"WHERE game_date >= ? AND game_date < ? AND home_score IS NOT NULL",
@@ -766,7 +766,7 @@ class EnsemblePredictor:
         features['snap_count'] = pd.Series(0.0, index=df.index)
         try:
             if 'game_date' in df.columns and 'home_team' in df.columns:
-                snap_conn = sqlite3.connect(get_sqlite_path())
+                snap_conn = get_sqlite_conn()
                 game_dates = df['game_date'].dropna().unique().tolist()
                 if game_dates:
                     placeholders = ','.join('?' * len(game_dates))
@@ -944,7 +944,7 @@ class EnsemblePredictor:
                                 start_date = (pd.Timestamp(ref_date) - pd.Timedelta(days=8)).strftime('%Y-%m-%d')
                                 end_date = pd.Timestamp(ref_date).strftime('%Y-%m-%d')
                                 tbl = self._games_table()
-                                hist_conn = sqlite3.connect(get_sqlite_path())
+                                hist_conn = get_sqlite_conn()
                                 hist_rows = hist_conn.execute(
                                     f"SELECT game_date, home_team, away_team FROM {tbl} "
                                     f"WHERE game_date >= ? AND game_date < ? AND home_score IS NOT NULL",
@@ -1412,7 +1412,7 @@ class EnsemblePredictor:
             age = self.model_age_days()
             print(f"⚠️  MODEL STALE: trained {age} days ago (threshold: {self.MODEL_STALE_DAYS}d). Consider retraining.")
 
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
 
         games_tbl = self._games_table()
         ratings_tbl = self._ratings_table()

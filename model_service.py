@@ -10,7 +10,7 @@ import logging
 import os
 import time
 import sqlite3
-from db_path import get_sqlite_path
+from db_path import get_sqlite_path, get_sqlite_conn
 
 PRETIP_MIN_EDGE = 2.0       # Revoke if edge decays below this (was 1.5, raised 2026-03-07)
 PRETIP_LINE_DRIFT = 2.0     # Revoke if line moves this many points from publication
@@ -86,7 +86,7 @@ def _build_games_detail_from_sqlite(today_str, sport='nba', reason=''):
     """Build games_detail from SQLite when model returns no predictions (stale_data, no_eligible)."""
     games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
     try:
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         cur = conn.cursor()
         cur.execute(
             f"SELECT away_team, home_team, spread_home FROM {games_table} WHERE game_date = ? AND spread_home IS NOT NULL ORDER BY home_team",
@@ -122,7 +122,7 @@ def _games_funnel_diagnostic(today_str, sport='nba'):
     games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
     diag = {'total': 0, 'with_spreads': 0, 'unscored': 0, 'time_eligible': 0, 'cutoff_utc': None}
     try:
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         cur = conn.cursor()
         if not cur.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (games_table,)).fetchone():
             conn.close()
@@ -161,7 +161,7 @@ def _diagnose_no_games(today_str, sport='nba'):
     """
     games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
     try:
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         cur = conn.cursor()
 
         has_table = cur.execute(

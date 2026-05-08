@@ -24,10 +24,12 @@ import sqlite3
 from typing import Optional
 
 try:
-    from db_path import get_sqlite_path  # type: ignore
+    from db_path import get_sqlite_path, get_sqlite_conn  # type: ignore
 except Exception:  # pragma: no cover - fallback for ad-hoc invocation
     def get_sqlite_path() -> str:
         return "sharp_picks.db"
+    def get_sqlite_conn(path=None, timeout=15.0):
+        return sqlite3.connect(path or get_sqlite_path(), timeout=timeout)
 
 WHIP_DEFAULT = 1.30
 IP_DEFAULT = 0
@@ -85,7 +87,7 @@ def compute_coverage(
         ),
     }
 
-    conn = sqlite3.connect(resolved_db)
+    conn = get_sqlite_conn(path=resolved_db)
     try:
         cur = conn.cursor()
 

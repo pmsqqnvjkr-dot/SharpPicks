@@ -7,7 +7,7 @@ import requests
 import sqlite3
 import numpy as np
 from datetime import datetime, timedelta
-from db_path import get_sqlite_path
+from db_path import get_sqlite_conn
 
 
 class LiveGamePredictor:
@@ -109,7 +109,7 @@ class LiveGamePredictor:
     def get_pregame_spread(self, home_team, away_team):
         """Get pregame spread from database"""
         try:
-            conn = sqlite3.connect(get_sqlite_path())
+            conn = get_sqlite_conn()
             cursor = conn.cursor()
             
             try:

@@ -11,7 +11,7 @@ from datetime import datetime
 import time
 import json
 import os
-from db_path import get_sqlite_path
+from db_path import get_sqlite_conn
 
 NBA_STATS_HEADERS = {
     'Host': 'stats.nba.com',
@@ -95,7 +95,7 @@ def load_cached_ratings():
 
 def ensure_ratings_table():
     """Create team_ratings table if not exists"""
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -207,7 +207,7 @@ def save_team_ratings(team_stats):
         return
     
     ensure_ratings_table()
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     now = datetime.now().isoformat()
@@ -239,7 +239,7 @@ def save_team_ratings(team_stats):
 def get_team_ratings():
     """Get team ratings from database as dict"""
     ensure_ratings_table()
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     cursor.execute('SELECT * FROM team_ratings')

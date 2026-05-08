@@ -16,12 +16,12 @@ import time
 import json
 from datetime import datetime
 
-from db_path import get_sqlite_path
+from db_path import get_sqlite_conn
 
 
 def data_summary():
     """Print current MLB data in the database."""
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     c = conn.cursor()
 
     c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='mlb_games'")
@@ -82,7 +82,7 @@ def run_backfill(seasons=None):
     if seasons is None:
         seasons = [2023, 2024, 2025]
 
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     setup_mlb_table(cursor)
     conn.commit()
@@ -103,7 +103,7 @@ def run_backfill(seasons=None):
 
 def compute_spread_results():
     """Compute spread_result for any games that have scores + spreads but no result."""
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     c = conn.cursor()
 
     c.execute('''

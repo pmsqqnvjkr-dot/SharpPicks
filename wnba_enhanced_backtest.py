@@ -24,7 +24,9 @@ from sklearn.preprocessing import StandardScaler
 from bs4 import BeautifulSoup
 import xgboost as xgb
 
-DB_PATH = 'sharp_picks.db'
+from db_path import get_sqlite_path, get_sqlite_conn
+
+DB_PATH = get_sqlite_path()
 
 SHRINKAGE_WEIGHTS = [0.3, 0.4, 0.5, 0.6, 0.7]
 EDGE_THRESHOLDS = [3.0, 3.5, 4.0, 5.0]
@@ -56,7 +58,7 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_sqlite_conn(path=DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 

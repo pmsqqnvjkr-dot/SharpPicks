@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from models import db, Pick, Pass, ModelRun, UserBet, TrackedBet, WatchedGame, EdgeSnapshot
 from datetime import datetime, timedelta, timezone
 from sport_config import get_sport_config, get_phase_label
-from db_path import get_sqlite_path
+from db_path import get_sqlite_conn
 import sqlite3
 
 picks_bp = Blueprint('picks', __name__)
@@ -561,7 +561,7 @@ def today():
     if not games_preview:
         games_table = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')
         try:
-            conn = sqlite3.connect(get_sqlite_path())
+            conn = get_sqlite_conn()
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
             cur.execute(
@@ -899,7 +899,7 @@ def market_view():
                     rundown_spread_consensus, rundown_spread_range, rundown_num_books"""
 
     try:
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         try:

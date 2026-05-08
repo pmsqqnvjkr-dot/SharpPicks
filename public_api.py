@@ -1033,9 +1033,10 @@ def build_market_report_dict(date_param, sport=None):
     market_stability = None
     try:
         import sqlite3
+        from db_path import get_sqlite_conn
         db_path = current_app.config.get('SQLALCHEMY_DATABASE_URI', '').replace('sqlite:///', '')
         if db_path:
-            conn = sqlite3.connect(db_path)
+            conn = get_sqlite_conn(path=db_path)
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
             cur.execute(
@@ -1113,9 +1114,8 @@ def build_market_report_dict(date_param, sport=None):
 
     # Persist MEI to daily_market_reports for sparkline history
     try:
-        import sqlite3 as _sq_persist
-        from db_path import get_sqlite_path as _get_sq_persist
-        _conn_p = _sq_persist.connect(_get_sq_persist())
+        from db_path import get_sqlite_conn as _get_sq_conn_p
+        _conn_p = _get_sq_conn_p()
         _cur_p = _conn_p.cursor()
         _s_p = sport or 'nba'
         _cur_p.execute(
@@ -1139,8 +1139,8 @@ def build_market_report_dict(date_param, sport=None):
     mei_season_avg = None
     try:
         import sqlite3 as _sq
-        from db_path import get_sqlite_path as _get_sq
-        _conn = _sq.connect(_get_sq())
+        from db_path import get_sqlite_conn as _get_sq_conn
+        _conn = _get_sq_conn()
         _conn.row_factory = _sq.Row
         _cur = _conn.cursor()
 
@@ -1167,8 +1167,8 @@ def build_market_report_dict(date_param, sport=None):
     model_market_delta_data = {'avg_delta': 0, 'games': []}
     try:
         import sqlite3 as _sq2
-        from db_path import get_sqlite_path as _get_sq2
-        _conn2 = _sq2.connect(_get_sq2())
+        from db_path import get_sqlite_conn as _get_sq_conn2
+        _conn2 = _get_sq_conn2()
         _conn2.row_factory = _sq2.Row
         _cur2 = _conn2.cursor()
         _tbl = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')

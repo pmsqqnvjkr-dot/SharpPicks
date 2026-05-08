@@ -6,10 +6,12 @@ Quick overview of your betting data
 import sqlite3
 from datetime import datetime, timedelta
 
+from db_path import get_sqlite_conn
+
 
 def get_collection_stats():
     """Get game collection statistics"""
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     # Total games
@@ -56,7 +58,7 @@ def get_collection_stats():
 
 def get_betting_stats():
     """Get betting performance stats"""
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     # Check if bets table exists
