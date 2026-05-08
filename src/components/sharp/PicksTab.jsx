@@ -667,15 +667,12 @@ export default function PicksTab({ onNavigate }) {
                   fontFamily: "'JetBrains Mono', 'Menlo', ui-monospace, monospace", fontSize: '10px', fontWeight: 500,
                   letterSpacing: '0.24em', textTransform: 'uppercase', color: '#5A9E72',
                   padding: '4px 4px 12px',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
                 }}>
-                  <span>Today’s read</span>
-                  <span style={{ color: 'rgba(232, 234, 237, 0.35)', letterSpacing: '0.04em' }}>
-                    ROTATES DAILY
-                  </span>
+                  Today’s read
                 </div>
                 <TodaysReadCard
                   articles={insightsData.insights}
+                  sport={sport}
                   onOpen={(a) => onNavigate && onNavigate('insights', null, { insight: a })}
                 />
               </>

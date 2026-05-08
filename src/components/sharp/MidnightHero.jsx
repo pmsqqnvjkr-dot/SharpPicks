@@ -174,7 +174,7 @@ export default function MidnightHero({ sport = 'nba', yesterdayGames, yesterdayS
         fontSize: '13px', lineHeight: 1.55, color: SP.text2, margin: '0 0 18px',
       }}>
         {scannedLine && <><strong style={{ color: SP.text, fontWeight: 500 }}>{scannedLine}</strong>{' '}</>}
-        Tomorrow’s {sportLabel} slate enters the model at{' '}
+        The next {sportLabel} slate enters the model at{' '}
         <strong style={{ color: SP.text, fontWeight: 500 }}>{fmtClockET(runHour)}</strong>.{' '}
         Edges publish after the run completes, typically by{' '}
         <strong style={{ color: SP.text, fontWeight: 500 }}>{fmtClockET(publishHour)}</strong>.

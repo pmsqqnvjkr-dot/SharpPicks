@@ -29,25 +29,28 @@ const CAT_LABELS = {
   education: 'Education',
 };
 
-function pickEvergreenArticle(articles) {
+function pickEvergreenArticle(articles, sport) {
   if (!Array.isArray(articles) || articles.length === 0) return null;
   // Filter out daily Market Notes — those rotate via the morning report.
   // Field Guide cards should be evergreen content (Philosophy / Discipline /
   // How It Works / Founder Notes / Education).
   const evergreen = articles.filter((a) => a && a.category && a.category !== 'market_notes');
   if (!evergreen.length) return null;
-  // Date-seeded rotation: same article for the whole ET day.
+  // Date-seeded rotation, offset by sport so NBA / MLB / WNBA tabs each
+  // get a different article on the same ET day instead of all surfacing
+  // the same one. Stable for the whole day per (sport, date) pair.
+  const sportOffset = { nba: 0, mlb: 1, wnba: 2 }[(sport || 'nba').toLowerCase()] ?? 0;
   const seed = (() => {
     try {
       const ymd = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
       return ymd.split('-').reduce((a, b) => a + parseInt(b, 10), 0);
     } catch { return 0; }
   })();
-  return evergreen[seed % evergreen.length];
+  return evergreen[(seed + sportOffset) % evergreen.length];
 }
 
-export default function TodaysReadCard({ articles, onOpen }) {
-  const article = pickEvergreenArticle(articles);
+export default function TodaysReadCard({ articles, onOpen, sport }) {
+  const article = pickEvergreenArticle(articles, sport);
   if (!article) return null;
 
   const catLabel = CAT_LABELS[article.category] || article.category || 'Field Guide';

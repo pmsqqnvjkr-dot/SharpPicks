@@ -164,7 +164,7 @@ export default function TomorrowSlateCard({ games, sport = 'nba', publishTimeLab
           <div style={{
             fontSize: '12px', lineHeight: 1.5, color: SP.text3, marginTop: '4px',
           }}>
-            Tomorrow’s schedule populates after the overnight games-collect cron.
+            Tomorrow’s schedule will appear here once the league posts it.
           </div>
         )}
       </div>
