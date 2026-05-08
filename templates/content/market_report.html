@@ -137,9 +137,24 @@
   {% endfor %}
 </div>
 
-<div class="cta">
+<div class="cta" data-sp-trial-cta>
   <h3>{{ cta.headline }}</h3>
   <p>{{ cta.body }}</p>
   <a class="cta-btn" href="https://sharppicks.ai/#pricing">Start Free Trial</a>
 </div>
+<script>
+  // Hide the in-content trial CTA when the page is opened from inside
+  // the SharpPicks app (Capacitor in-app browser passes ?app=1). Mirrors
+  // the navbar swap in templates/content/base.html so iOS users opening
+  // the Sharp Journal evening edition from "Last Night's Read" don't see
+  // an external payment promo (Apple 3.1.1).
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('app') !== '1') return;
+      var nodes = document.querySelectorAll('[data-sp-trial-cta]');
+      for (var i = 0; i < nodes.length; i++) nodes[i].style.display = 'none';
+    } catch (e) { /* swallow */ }
+  })();
+</script>
 {% endblock %}
