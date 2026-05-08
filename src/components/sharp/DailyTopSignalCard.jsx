@@ -412,7 +412,7 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
           <div style={{
             fontFamily: SP.fontSerif, fontSize: '13px', lineHeight: 1.5, color: SP.text,
           }}>
-            Bullpen edge with late-inning advantage. Ensemble agreement across all four models. Specific reasoning, line, and sizing visible with Pro.
+            Multi-factor model edge with ensemble agreement across all four models. Specific reasoning, line, and sizing visible with Pro.
           </div>
         </div>
 

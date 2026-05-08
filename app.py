@@ -5075,9 +5075,14 @@ def cron_mlb_closing_lines():
     return log_cron_async('mlb_closing_lines', collect_mlb_closing_lines_job)
 
 
-def run_mlb_model_job(force=False):
-    """Run the MLB model to generate picks, then generate market note."""
-    print(f"[{datetime.now()}] Running MLB model (force={force})...")
+def run_mlb_model_job(force=False, notify=True):
+    """Run the MLB model to generate picks, then generate market note.
+
+    notify=False lets a caller refresh pick.notes (e.g. after a reasoning
+    template fix) without firing another round of push notifications.
+    Default True preserves the scheduled-cron behavior.
+    """
+    print(f"[{datetime.now()}] Running MLB model (force={force}, notify={notify})...")
     if force:
         from model_service import invalidate_model_cache
         invalidate_model_cache('mlb')
@@ -5089,7 +5094,7 @@ def run_mlb_model_job(force=False):
     except Exception as e:
         print(f"[{datetime.now()}] MLB collection failed (non-fatal): {e}")
     from model_service import run_model_and_log
-    result = run_model_and_log(app, sport='mlb', force=force)
+    result = run_model_and_log(app, sport='mlb', force=force, send_notifications=notify)
     print(f"[{datetime.now()}] MLB model run completed: {result.get('status', '?')}")
     try:
         from public_api import build_market_report_dict
@@ -5107,7 +5112,8 @@ def run_mlb_model_job(force=False):
 @verify_cron
 def cron_mlb_run_model():
     force = request.args.get('force', 'false').lower() == 'true'
-    return log_cron_async('mlb_run_model', lambda: run_mlb_model_job(force=force), skip_throttle=True)
+    notify = request.args.get('notify', 'true').lower() != 'false'
+    return log_cron_async('mlb_run_model', lambda: run_mlb_model_job(force=force, notify=notify), skip_throttle=True)
 
 
 @app.route('/api/cron/mlb-grade', methods=['GET', 'POST'])
@@ -5119,18 +5125,19 @@ def cron_mlb_grade():
 @app.route('/api/cron/wnba-run-model', methods=['GET', 'POST'])
 @verify_cron
 def cron_wnba_run_model():
-    """Dedicated WNBA model run, scheduled separately from NBA so calibration
-    runs land in their own slot (noon ET) rather than sharing NBA's 10 AM
-    window. Mirrors mlb-run-model. Excluded from generic /run-model below
-    via sports_with_own_cron."""
+    """Dedicated WNBA model run. WNBA actually piggybacks on the generic
+    /api/cron/run-model 10 AM ET cron (sports_with_own_cron = {'mlb'} so
+    only MLB is excluded). This endpoint is dormant in the daily flow and
+    only used for ad-hoc force fires. Stale comment removed."""
     force = request.args.get('force', 'false').lower() == 'true'
+    notify = request.args.get('notify', 'true').lower() != 'false'
     date_override = request.args.get('date', '').strip() or None
 
     def _run():
         from model_service import run_model_and_log
         return run_model_and_log(
             app, sport='wnba', force=force, date_override=date_override,
-            send_notifications=True,
+            send_notifications=notify,
         )
     return log_cron_async('wnba_run_model', _run, skip_throttle=True)
 
@@ -5493,6 +5500,10 @@ def _send_consolidated_model_notification(results, live_sports):
 @verify_cron
 def cron_run_model():
     force = request.args.get('force', '').lower() == 'true'
+    # notify=false lets a caller refresh pick.notes (e.g. after a reasoning
+    # template fix) without firing another round of push notifications.
+    # Default true preserves the scheduled-cron behavior.
+    notify = request.args.get('notify', 'true').lower() != 'false'
     date_override = request.args.get('date', '').strip() or None
     if date_override and len(date_override) == 10 and date_override[4] == '-' and date_override[7] == '-':
         pass
@@ -5564,7 +5575,7 @@ def cron_run_model():
         # which got killed by Gunicorn worker recycles / Railway SIGTERMs
         # — surface area was "only got MLB pushes today, not NBA".
         for sport in run_sports:
-            results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override, send_notifications=True)
+            results[sport] = run_model_and_log(app, sport=sport, force=force, date_override=date_override, send_notifications=notify)
 
         # Generate market note insight for each live sport (no push)
         today_str = date_override or _get_et_today()
