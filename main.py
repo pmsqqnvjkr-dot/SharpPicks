@@ -908,6 +908,49 @@ def _normalize_team(name):
     return _TEAM_ALIASES.get(n, n)
 
 
+def _fetch_espn_wnba_schedule(today_str_et):
+    """ESPN scoreboard for WNBA on today_str_et (YYYY-MM-DD ET).
+
+    Used as the seed source for wnba_games when The Odds API has not yet
+    posted lines for opening day or off-peak slots. ESPN publishes the
+    schedule earlier than the books, so seeding from here lets the home
+    screen populate while we wait for odds.
+
+    Returns a list of dicts: [{'away': str, 'home': str,
+    'commence_time': iso_str, 'event_id': str}], or [] on failure.
+    """
+    date_str = today_str_et.replace('-', '')
+    url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard?dates={date_str}"
+    try:
+        resp = _get_espn_session().get(url, timeout=10)
+        if resp.status_code != 200:
+            return []
+        data = resp.json()
+        out = []
+        for ev in data.get('events', []):
+            comps = ev.get('competitions', [])
+            if not comps:
+                continue
+            comp = comps[0]
+            home = away = None
+            for c in comp.get('competitors', []):
+                name = c.get('team', {}).get('displayName', '')
+                if c.get('homeAway') == 'home':
+                    home = name
+                else:
+                    away = name
+            if home and away:
+                out.append({
+                    'away': away,
+                    'home': home,
+                    'commence_time': ev.get('date', '') or '',
+                    'event_id': str(ev.get('id') or ''),
+                })
+        return out
+    except Exception:
+        return []
+
+
 def _fetch_espn_expected_games(today_str_et):
     """Fetch ESPN scoreboard for today — source of truth for expected game count.
     Returns (count, matchups_list) or (0, []) on failure.
@@ -3243,23 +3286,60 @@ def collect_wnba_odds():
     }
 
     try:
+        # Open the DB and seed today's slate from ESPN BEFORE asking The Odds
+        # API. ESPN publishes the schedule earlier than the books on opening
+        # day and off-peak slots; if we wait on the books we render an empty
+        # slate. Each ESPN row is inserted with NULL odds and a deterministic
+        # id of espn_<event_id>; the Odds API loop below later UPSERTs the
+        # same row by (game_date, away_team, home_team) when lines arrive.
+        conn = sqlite3.connect(get_sqlite_path())
+        cursor = conn.cursor()
+        setup_wnba_table(cursor)
+
+        try:
+            today_et = get_today_et_string() if 'get_today_et_string' in globals() else datetime.now().strftime('%Y-%m-%d')
+        except Exception:
+            today_et = datetime.now().strftime('%Y-%m-%d')
+
+        espn_games = _fetch_espn_wnba_schedule(today_et)
+        if espn_games:
+            print(f"📅 ESPN schedule: {len(espn_games)} WNBA games on {today_et}")
+            for eg in espn_games:
+                game_date = utc_to_eastern_date(eg['commence_time']) or today_et
+                cursor.execute(
+                    'SELECT id FROM wnba_games WHERE game_date = ? AND away_team = ? AND home_team = ?',
+                    (game_date, eg['away'], eg['home']),
+                )
+                if cursor.fetchone() is None:
+                    seed_id = f"espn_{eg['event_id']}" if eg['event_id'] else f"espn_{game_date}_{eg['away'][:8]}_{eg['home'][:8]}"
+                    cursor.execute(
+                        '''INSERT OR IGNORE INTO wnba_games
+                           (id, game_date, game_time, home_team, away_team,
+                            commence_time, collected_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                        (seed_id, game_date, eg['commence_time'] or None,
+                         eg['home'], eg['away'], eg['commence_time'] or '',
+                         datetime.now().isoformat()),
+                    )
+                    print(f"   📅 Seeded {eg['away']} @ {eg['home']} ({game_date}) — odds pending")
+            conn.commit()
+        else:
+            print(f"📅 ESPN schedule: 0 WNBA games on {today_et}\n")
+
         response = api_request_with_retry(url, params)
         if response is None or response.status_code != 200:
             print("❌ Failed to fetch WNBA odds")
+            conn.close()
             return
 
         games = response.json()
-        print(f"✅ Found {len(games)} WNBA games")
+        print(f"✅ The Odds API: {len(games)} WNBA games")
         print(f"   API calls left: {API_USAGE['remaining']}/500\n")
 
         if not games:
-            print("ℹ️  No WNBA games available today\n")
+            print("ℹ️  No WNBA odds available yet — slate seeded from ESPN, lines will fill in on next run\n")
+            conn.close()
             return
-
-        conn = sqlite3.connect(get_sqlite_path())
-        cursor = conn.cursor()
-
-        setup_wnba_table(cursor)
 
         stored = 0
         for game in games:
@@ -3335,10 +3415,19 @@ def collect_wnba_odds():
             home_injuries = injuries.get(home, '')
             away_injuries = injuries.get(away, '')
 
-            cursor.execute('SELECT id, spread_home_open FROM wnba_games WHERE id = ?', (game_id,))
+            # Match by (date, away, home) so we merge with any ESPN seed row
+            # inserted earlier in this run. Existing row's id is preserved
+            # whether it came from ESPN (espn_*) or a prior Odds API run
+            # (the original Odds API uuid). Only fall through to a new INSERT
+            # when no row matches the matchup tuple.
+            cursor.execute(
+                'SELECT id, spread_home_open FROM wnba_games WHERE game_date = ? AND away_team = ? AND home_team = ?',
+                (commence_time, away, home),
+            )
             existing = cursor.fetchone()
 
             is_new_game = existing is None
+            existing_id = existing[0] if existing else game_id
             has_opening = existing and existing[1] is not None
 
             if is_new_game:
@@ -3367,6 +3456,20 @@ def collect_wnba_odds():
                      game.get('commence_time', '')))
                 line_status = "📌 OPENING"
             else:
+                # Backfill opening fields if the existing row came from an
+                # ESPN seed (no opening odds yet). Otherwise this is a
+                # mid-day refresh, leave opening untouched.
+                if not has_opening:
+                    cursor.execute(
+                        '''UPDATE wnba_games SET
+                            spread_home_open = ?, total_open = ?,
+                            home_ml_open = ?, away_ml_open = ?,
+                            open_collected_at = ?
+                           WHERE id = ?''',
+                        (spread_home, total, home_ml, away_ml,
+                         datetime.now().isoformat(), existing_id),
+                    )
+
                 cursor.execute('''UPDATE wnba_games SET
                     spread_home = ?, spread_away = ?, total = ?,
                     home_ml = ?, away_ml = ?, collected_at = ?,
@@ -3387,19 +3490,19 @@ def collect_wnba_odds():
                      home_injuries, away_injuries,
                      best_home_odds, best_away_odds,
                      best_home_book, best_away_book,
-                     game_id))
+                     existing_id))
 
                 if has_opening:
                     open_spread = existing[1]
                     if open_spread and spread_home:
                         movement = spread_home - open_spread
                         cursor.execute('UPDATE wnba_games SET line_movement = ? WHERE id = ?',
-                                      (movement, game_id))
+                                      (movement, existing_id))
                         line_status = f"📊 CURRENT (moved {movement:+.1f})" if movement != 0 else "📊 CURRENT"
                     else:
                         line_status = "📊 CURRENT"
                 else:
-                    line_status = "📊 CURRENT"
+                    line_status = "📊 CURRENT (odds added to ESPN seed)"
 
             stored += 1
             spread_display = f"{spread_home:+.1f}" if spread_home else "N/A"
