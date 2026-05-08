@@ -63,6 +63,33 @@ function formatSlateDate(dateStr) {
   }
 }
 
+// Derive the ET calendar date a game actually starts on. The slate's
+// game_date column comes from the upstream feed and for late-night
+// West-Coast home games crosses UTC midnight, putting (e.g.) a 10pm ET
+// Thu start onto Fri's slate. Format the card label off the UTC start
+// time instead so the date never contradicts the inning indicator on
+// the post-midnight screen. Falls back to the slate date when the
+// game's UTC time is missing or unparseable.
+function gameEtDate(game, slateDate) {
+  const utcIso = game && (game.game_time_sort || game.game_time);
+  if (utcIso) {
+    try {
+      const d = new Date(utcIso);
+      if (!isNaN(d.getTime())) {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'America/New_York',
+          year: 'numeric', month: '2-digit', day: '2-digit',
+        }).formatToParts(d);
+        const y = parts.find(p => p.type === 'year')?.value;
+        const m = parts.find(p => p.type === 'month')?.value;
+        const day = parts.find(p => p.type === 'day')?.value;
+        if (y && m && day) return `${y}-${m}-${day}`;
+      }
+    } catch { /* fall through */ }
+  }
+  return slateDate;
+}
+
 function Movement({ current, open }) {
   if (current == null || open == null) return null;
   const diff = parseFloat(current) - parseFloat(open);
@@ -877,7 +904,10 @@ function GameRow({ game, expanded, onToggle, watching, onWatch, isPro, onLineHis
             </div>
             {/* Game date / time */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-              {slateDate && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{formatSlateDate(slateDate)}</span>}
+              {(() => {
+                const dateLabel = gameEtDate(game, slateDate);
+                return dateLabel && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{formatSlateDate(dateLabel)}</span>;
+              })()}
               {slateDate && game.time && !isLive && !isFinal && <span style={{ fontFamily: mono, fontSize: '10px', color: grayBorder }}>&middot;</span>}
               {game.time && !isLive && !isFinal && <span style={{ fontFamily: mono, fontSize: '10px', color: textMuted }}>{game.time}</span>}
             </div>
