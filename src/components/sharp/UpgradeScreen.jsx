@@ -160,18 +160,18 @@ export default function UpgradeScreen({ onBack, user }) {
           <h1 style={{
             fontFamily: 'var(--font-serif)', fontSize: '24px', fontWeight: 600,
             color: 'var(--text-primary)', marginBottom: '8px',
-          }}>Sharp Picks Pro</h1>
+          }}>SharpPicks Pro</h1>
           <p style={{
             fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6',
             maxWidth: '300px', margin: '0 auto',
           }}>
-            Full access to every qualified decision. Not more picks. More transparency.
+            Full access to every qualified signal. Selective by design.
           </p>
           <p style={{
             fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5',
             maxWidth: '300px', margin: '8px auto 0',
           }}>
-            This is how disciplined bettors compound.
+            Discipline is the edge.
           </p>
         </div>
 
@@ -411,11 +411,11 @@ export default function UpgradeScreen({ onBack, user }) {
           marginBottom: '16px',
         }}>
           <SectionLabel>What You Get</SectionLabel>
-          <FeatureRow icon="unlock" text="Full pick transparency: side, line, edge %" />
+          <FeatureRow icon="unlock" text="Full signal data: side, line, edge %, sizing" />
           <FeatureRow icon="chart" text="Quantified performance dashboard" />
-          <FeatureRow icon="bell" text="Real-time pick alerts" />
-          <FeatureRow icon="track" text="Pick-linked tracking with CLV" />
-          <FeatureRow icon="history" text="Complete historical analysis" />
+          <FeatureRow icon="bell" text="Real-time push notifications" />
+          <FeatureRow icon="track" text="Signal-linked tracking with closing line value" />
+          <FeatureRow icon="history" text="Complete historical record" />
           <FeatureRow icon="unlock" text="Discipline scoring with benchmarks" />
         </div>
 
@@ -426,9 +426,9 @@ export default function UpgradeScreen({ onBack, user }) {
         }}>
           <SectionLabel>What Doesn't Change</SectionLabel>
           <FeatureRow icon="same" text="Same model. Same thresholds." />
-          <FeatureRow icon="same" text="Max one pick per day." />
-          <FeatureRow icon="same" text="Quiet days are intentional." />
-          <FeatureRow icon="same" text="No hype. No FOMO. No volume plays." />
+          <FeatureRow icon="same" text="One signal per day, maximum." />
+          <FeatureRow icon="same" text="Pass days are intentional." />
+          <FeatureRow icon="same" text="Verified by data, not talk." />
         </div>
 
         <p style={{
