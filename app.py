@@ -5685,11 +5685,13 @@ def cron_run_model():
             print(f"[model-run] Ratings refresh failed (non-fatal): {e}")
         results = {}
         live = get_live_sports()
-        # MLB has its own dedicated /api/cron/mlb-run-model. NBA + WNBA both
-        # run on this shared cron at 9 AM and 2:15 PM ET, with WNBA in
-        # calibration mode. The /api/cron/wnba-run-model endpoint stays
-        # available for manual force-fires but isn't needed in the daily
-        # schedule.
+        # MLB has its own dedicated /api/cron/mlb-run-model at 11 AM ET.
+        # NBA + WNBA both run on this shared cron at 10 AM ET (one publish
+        # per sport per day), with WNBA in calibration mode. The 2:15 PM
+        # second run was removed in May 2026 because force=true regenerated
+        # the morning pick and re-fired push notifications. The /api/cron/
+        # wnba-run-model endpoint stays available for manual force-fires
+        # but isn't needed in the daily schedule.
         sports_with_own_cron = {'mlb'}
         run_sports = [s for s in live if s not in sports_with_own_cron]
         # Per-sport synchronous push notifications. send_notifications=True
