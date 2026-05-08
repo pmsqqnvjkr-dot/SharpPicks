@@ -7046,6 +7046,17 @@ def stripe_webhook():
                     _log_revenue_alert('subscription_created', user.email,
                         f'New subscriber: {user.email} — {plan_meta or status}')
 
+                    # Direct active-on-annual signup (no trial) still
+                    # claims a founding slot. Same idempotent helper as
+                    # the trial->paid path below.
+                    if (user.subscription_status == 'active'
+                            and user.subscription_plan in ('annual', 'founding', 'annual_founding')
+                            and not user.founding_member):
+                        try:
+                            maybe_assign_founding(user.id)
+                        except Exception as fa_err:
+                            logging.error(f'Founding auto-assign (subscription.created) failed: {fa_err}')
+
         elif event_type == 'customer.subscription.updated':
             cust_id = _safe_get(data_obj, 'customer')
             status = _safe_get(data_obj, 'status')
@@ -7125,6 +7136,24 @@ def stripe_webhook():
                     _log_revenue_alert('subscription_updated', user.email,
                         f'Plan change: {user.email} — {old_status} → {user.subscription_status}'
                         + (' (cancel scheduled)' if cancel_at_period_end else ''))
+
+                    # Trial -> paid annual (or any path that lands them on an
+                    # active annual plan without a checkout.session.completed
+                    # event — Customer Portal upgrades, retried payments,
+                    # etc.) should also try to claim a founding slot.
+                    # maybe_assign_founding is idempotent: if the user is
+                    # already founding or the 50-slot cap is hit, it bails
+                    # safely. Same plan-string set as the
+                    # checkout.session.completed handler above so a
+                    # founding-rate trial that converts here gets the same
+                    # treatment as one that came in through checkout.
+                    if (user.subscription_status == 'active'
+                            and user.subscription_plan in ('annual', 'founding', 'annual_founding')
+                            and not user.founding_member):
+                        try:
+                            maybe_assign_founding(user.id)
+                        except Exception as fa_err:
+                            logging.error(f'Founding auto-assign (subscription.updated) failed: {fa_err}')
 
         elif event_type == 'customer.subscription.deleted':
             cust_id = _safe_get(data_obj, 'customer')

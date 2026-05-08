@@ -13,7 +13,27 @@ import { Capacitor } from '@capacitor/core';
 // MIGRATION_CHECKLIST.md P1.4.2.
 
 export function isIOSPlatform() {
-  return Capacitor.getPlatform() === 'ios';
+  // Capacitor's native bridge is the source of truth inside the iOS app.
+  // Outside the bridge (Safari / standalone PWA on iPhone, or any iPad
+  // browser an Apple reviewer might use) we fall back to the user-agent
+  // string. We must hide "Card required" copy on every iOS surface
+  // regardless of whether the user is in the WebView or in mobile
+  // Safari, since either path can be how App Review evaluates the
+  // experience.
+  try {
+    if (Capacitor && typeof Capacitor.getPlatform === 'function' && Capacitor.getPlatform() === 'ios') {
+      return true;
+    }
+  } catch { /* fall through to UA */ }
+  if (typeof navigator !== 'undefined' && navigator.userAgent) {
+    const ua = navigator.userAgent;
+    if (/iPad|iPhone|iPod/.test(ua)) return true;
+    // iPadOS 13+ reports as Macintosh; touch support disambiguates from a Mac.
+    if (/Macintosh/.test(ua) && typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 1) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function getTrialCtaSubtext() {
