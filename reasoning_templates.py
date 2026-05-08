@@ -23,6 +23,27 @@ def _pick_rest(ctx):
 def _opp_rest(ctx):
     return ctx['away_rest'] if ctx['is_pick_home'] else ctx['home_rest']
 
+def _rest_valid(ctx):
+    """True only when both teams have a real rest-day count.
+
+    Opening day produces None or float('nan') because there is no prior
+    game to compute rest from. Without this gate, the rest_advantage
+    template would render 'nand vs 4d' (NaN formatted as %0.0f then
+    the literal 'd' suffix) which surfaced live on WNBA launch day.
+    """
+    import math
+    h = ctx.get('home_rest')
+    a = ctx.get('away_rest')
+    for r in (h, a):
+        if r is None:
+            return False
+        try:
+            if math.isnan(float(r)):
+                return False
+        except (TypeError, ValueError):
+            return False
+    return True
+
 TEMPLATES = {
 
     # ═══ SCHEDULE / REST ═══
@@ -30,16 +51,18 @@ TEMPLATES = {
     'rest_advantage': {
         'category': 'schedule',
         'render': lambda v, ctx: (
-            f"Rest advantage: {ctx['pick_team']} on {_pick_rest(ctx):.0f}d rest "
-            f"vs {ctx['opp_team']} on {_opp_rest(ctx):.0f}d. "
-            f"Rest differential is the top model contributor for this game."
-            if (v > 0 and ctx['is_pick_home']) or (v < 0 and not ctx['is_pick_home'])
-            else (
-                f"Rest disadvantage: {ctx['pick_team']} on shorter rest "
-                f"({_pick_rest(ctx):.0f}d vs {_opp_rest(ctx):.0f}d). "
-                f"Model finds edge despite the schedule spot."
-                if (v < 0 and ctx['is_pick_home']) or (v > 0 and not ctx['is_pick_home'])
-                else None
+            None if not _rest_valid(ctx) else (
+                f"Rest advantage: {ctx['pick_team']} on {_pick_rest(ctx):.0f}d rest "
+                f"vs {ctx['opp_team']} on {_opp_rest(ctx):.0f}d. "
+                f"Rest differential is the top model contributor for this game."
+                if (v > 0 and ctx['is_pick_home']) or (v < 0 and not ctx['is_pick_home'])
+                else (
+                    f"Rest disadvantage: {ctx['pick_team']} on shorter rest "
+                    f"({_pick_rest(ctx):.0f}d vs {_opp_rest(ctx):.0f}d). "
+                    f"Model finds edge despite the schedule spot."
+                    if (v < 0 and ctx['is_pick_home']) or (v > 0 and not ctx['is_pick_home'])
+                    else None
+                )
             )
         ),
     },
@@ -47,16 +70,20 @@ TEMPLATES = {
     'home_rest': {
         'category': 'schedule',
         'render': lambda v, ctx: (
-            f"{ctx['home_team']} on {v:.0f} days rest."
-            if v >= 3 or v <= 1 else None
+            None if v is None or (isinstance(v, float) and v != v) else (
+                f"{ctx['home_team']} on {v:.0f} days rest."
+                if v >= 3 or v <= 1 else None
+            )
         ),
     },
 
     'away_rest': {
         'category': 'schedule',
         'render': lambda v, ctx: (
-            f"{ctx['away_team']} on {v:.0f} days rest."
-            if v >= 3 or v <= 1 else None
+            None if v is None or (isinstance(v, float) and v != v) else (
+                f"{ctx['away_team']} on {v:.0f} days rest."
+                if v >= 3 or v <= 1 else None
+            )
         ),
     },
 
@@ -327,6 +354,9 @@ TEMPLATES = {
             f"Win rate edge: {ctx['pick_team']} at {_pct(ctx, 'pick', 'bdl_win_pct')}% "
             f"vs {ctx['opp_team']} at {_pct(ctx, 'opp', 'bdl_win_pct')}%."
             if abs(v) > 0.10
+                and _has_pct(ctx, 'pick', 'bdl_win_pct')
+                and _has_pct(ctx, 'opp', 'bdl_win_pct')
+                and _pct(ctx, 'pick', 'bdl_win_pct') != _pct(ctx, 'opp', 'bdl_win_pct')
             else None
         ),
     },
@@ -467,6 +497,35 @@ def _pct(ctx, side, key):
         return round(float(raw) * 100)
     except (ValueError, TypeError):
         return 50
+
+
+def _has_pct(ctx, side, key):
+    """True only when the underlying win-rate / pct value is actually
+    present in ctx (not relying on the 0.5 fallback in _pct).
+
+    Without this gate, opening-day teams with no record fall back to 0.5
+    on both sides and the bdl_win_pct_diff template renders nonsense
+    like 'Win rate edge: Knicks at 50% vs 76ers at 50%' even though
+    the diff feature `v` was non-zero from elsewhere in the pipeline.
+    """
+    if side == 'pick':
+        full_key = f"{'home' if ctx['is_pick_home'] else 'away'}_{key}"
+    elif side == 'opp':
+        full_key = f"{'away' if ctx['is_pick_home'] else 'home'}_{key}"
+    else:
+        full_key = f"{side}_{key}"
+    raw = ctx.get(full_key)
+    if raw is None:
+        return False
+    try:
+        f = float(raw)
+        # Treat NaN / inf as missing too. NaN != NaN is the canonical
+        # NaN check that doesn't require importing math here.
+        if f != f or f in (float('inf'), float('-inf')):
+            return False
+        return True
+    except (ValueError, TypeError):
+        return False
 
 
 # ─── RENDERING ────────────────────────────────────────────────────────────────
