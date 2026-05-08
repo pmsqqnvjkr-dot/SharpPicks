@@ -169,8 +169,8 @@ export default function NotificationsScreen({ onBack }) {
           opacity: user ? 1 : 0.6, marginBottom: '16px',
         }}>
           <ToggleRow
-            label="Pick alerts"
-            subtitle="Notified when a qualifying pick is published"
+            label="Signal alerts"
+            subtitle="Notified when a qualifying signal is published"
             active={prefs.pick_alert}
             onToggle={() => togglePref('pick_alert')}
             disabled={!user}
@@ -184,7 +184,7 @@ export default function NotificationsScreen({ onBack }) {
           />
           <ToggleRow
             label="Outcome results"
-            subtitle="Notified when a pick is graded win or loss"
+            subtitle="Notified when a signal is graded win or loss"
             active={prefs.outcome}
             onToggle={() => togglePref('outcome')}
             disabled={!user}
@@ -198,7 +198,7 @@ export default function NotificationsScreen({ onBack }) {
           />
           <ToggleRow
             label="Weekly summary"
-            subtitle="Weekly recap of picks, passes, and performance"
+            subtitle="Weekly recap of signals, passes, and performance"
             active={prefs.weekly_summary}
             onToggle={() => togglePref('weekly_summary')}
             disabled={!user}

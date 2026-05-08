@@ -267,7 +267,7 @@ function FreeResultsEmptyState() {
   const trackingFeatures = [
     'Equity curve with cumulative P&L',
     'Discipline score vs industry average',
-    'Capital preserved from passed picks',
+    'Capital preserved from passed signals',
     'Model vs off-model comparison',
   ];
   return (

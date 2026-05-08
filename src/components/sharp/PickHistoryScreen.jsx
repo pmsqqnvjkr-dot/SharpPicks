@@ -49,11 +49,11 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
           <h1 style={{
             fontFamily: 'var(--font-serif)', fontSize: '22px',
             fontWeight: 600, color: 'var(--text-primary)',
-          }}>Pick History</h1>
+          }}>Signal History</h1>
           <p style={{
             fontFamily: 'var(--font-mono)', fontSize: '12px',
             color: 'var(--text-tertiary)', marginTop: '2px',
-          }}>{picks.length} total picks</p>
+          }}>{picks.length} total signals</p>
         </div>
       </div>
 
@@ -113,7 +113,7 @@ export default function PickHistoryScreen({ onBack, onViewResolution }) {
           </p>
         ) : filtered.length === 0 ? (
           <p style={{ color: 'var(--text-tertiary)', fontSize: '14px', textAlign: 'center', padding: '40px 0' }}>
-            {filter === 'wins' ? 'No wins yet this season.' : filter === 'losses' ? 'No losses yet this season.' : filter === 'pending' ? 'No pending picks.' : 'No picks found'}
+            {filter === 'wins' ? 'No wins yet this season.' : filter === 'losses' ? 'No losses yet this season.' : filter === 'pending' ? 'No pending signals.' : 'No signals found'}
           </p>
         ) : (
           <div style={{
