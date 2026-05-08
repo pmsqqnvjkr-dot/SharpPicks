@@ -23,7 +23,7 @@ app = Flask(__name__, static_folder='dist', static_url_path='/static-disabled')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.config['SECRET_KEY'] = app.secret_key
 
-DEPLOY_VERSION = '106b1d6-diag4'
+DEPLOY_VERSION = '106b1d6-diag5-fastfail'
 
 @app.route('/health')
 def health():
