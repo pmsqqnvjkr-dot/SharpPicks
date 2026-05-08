@@ -31,7 +31,9 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.preprocessing import StandardScaler
 
 
-DB_PATH = 'sharp_picks.db'
+from db_path import get_sqlite_path, get_sqlite_conn
+
+DB_PATH = get_sqlite_path()
 
 WNBA_SEASONS = {
     2022: ('2022-05-06', '2022-09-18'),
@@ -68,7 +70,7 @@ LINE_MOVE_HARD_STOP_MIN_EDGE = 8.0
 
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_sqlite_conn(path=DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 

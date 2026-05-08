@@ -13,7 +13,7 @@ import os
 import sys
 from datetime import datetime, timedelta, timezone
 
-from db_path import get_sqlite_path
+from db_path import get_sqlite_conn
 from main import setup_mlb_table, MLB_TEAM_ABBR_MAP, _extract_pitcher_stats
 
 ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
@@ -172,7 +172,7 @@ def backfill(start_date=None, end_date=None, use_rundown=True):
     if end_date > today:
         end_date = today - timedelta(days=1)
 
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     setup_mlb_table(cursor)
     conn.commit()
@@ -360,7 +360,7 @@ if __name__ == '__main__':
     if not seasons_arg:
         seasons_arg = [2023, 2024, 2025]
 
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     setup_mlb_table(cursor)
     conn.commit()

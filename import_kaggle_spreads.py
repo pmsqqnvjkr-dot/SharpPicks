@@ -7,6 +7,8 @@ import pandas as pd
 import sqlite3
 from datetime import datetime
 
+from db_path import get_sqlite_conn
+
 DATA_PATH = "/home/runner/.cache/kagglehub/datasets/ehallmar/nba-historical-stats-and-betting-data/versions/1"
 
 TEAM_ID_MAP = {
@@ -127,7 +129,7 @@ def import_to_database(df, limit=None):
         df = df.tail(limit)
         print(f"   Limiting to most recent {limit} games")
     
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     imported = 0
@@ -191,7 +193,7 @@ def import_to_database(df, limit=None):
 
 def show_stats():
     """Show database statistics after import"""
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     cursor.execute('SELECT COUNT(*) FROM games')

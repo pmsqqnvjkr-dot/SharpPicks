@@ -30,9 +30,8 @@ def health():
     diag = {'status': 'ok', 'version': DEPLOY_VERSION}
     if request.args.get('diag') == '1':
         try:
-            import sqlite3
             today_str = _get_et_today()
-            conn = sqlite3.connect(get_sqlite_path())
+            conn = get_sqlite_conn()
             cur = conn.cursor()
             diag['date'] = today_str
             diag['db_path'] = get_sqlite_path()
@@ -247,7 +246,7 @@ from flask_login import LoginManager, login_required, current_user, login_user, 
 from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3
 import subprocess
-from db_path import get_sqlite_path
+from db_path import get_sqlite_path, get_sqlite_conn
 import requests as http_requests
 from datetime import datetime, timedelta, timezone
 
@@ -895,7 +894,7 @@ def seed_database():
                 logging.info(f"Backfilled profit_units on {len(null_unit_picks)} picks")
 
             try:
-                sconn = sqlite3.connect(get_sqlite_path())
+                sconn = get_sqlite_conn()
                 sconn.execute('CREATE INDEX IF NOT EXISTS idx_games_game_time ON games(game_time)')
                 sconn.execute('CREATE INDEX IF NOT EXISTS idx_games_home_score ON games(home_score)')
                 sconn.execute('CREATE INDEX IF NOT EXISTS idx_games_game_date ON games(game_date)')
@@ -3293,7 +3292,7 @@ def grade_pending_picks():
 
         sqlite_conn = None
         try:
-            sqlite_conn = sqlite3.connect(get_sqlite_path())
+            sqlite_conn = get_sqlite_conn()
             sqlite_conn.row_factory = sqlite3.Row
             sqlite_cursor = sqlite_conn.cursor()
         except Exception:
@@ -3560,7 +3559,7 @@ def collect_closing_lines():
     to keep lines current."""
     with app.app_context():
         try:
-            conn = sqlite3.connect(get_sqlite_path())
+            conn = get_sqlite_conn()
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -3673,7 +3672,7 @@ def collect_wnba_closing_lines_job():
     print(f"[{datetime.now()}] Capturing WNBA closing lines...")
     with app.app_context():
         try:
-            conn = sqlite3.connect(get_sqlite_path())
+            conn = get_sqlite_conn()
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
@@ -3740,7 +3739,7 @@ def check_data_quality():
     issues = []
     
     try:
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         today_str = _get_et_today()
@@ -3828,7 +3827,7 @@ def grade_whatif_passes():
                 print(f"[{datetime.now()}] No ungraded what-if passes")
                 return
 
-            conn = sqlite3.connect(get_sqlite_path())
+            conn = get_sqlite_conn()
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -4242,7 +4241,7 @@ def cron_diagnostic():
             diag['cron_logs_error'] = str(e)
 
         try:
-            conn = sqlite3.connect(get_sqlite_path())
+            conn = get_sqlite_conn()
             cur = conn.cursor()
             for tbl in ['games', 'mlb_games', 'wnba_games']:
                 try:
@@ -4269,7 +4268,7 @@ def cron_diagnostic():
             diag['picks_error'] = str(e)
 
         try:
-            conn = sqlite3.connect(get_sqlite_path())
+            conn = get_sqlite_conn()
             cur = conn.cursor()
             if cur.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='team_ratings'").fetchone():
                 count = cur.execute("SELECT COUNT(*) FROM team_ratings").fetchone()[0]
@@ -4320,7 +4319,7 @@ def cron_diagnose_bdl_conf_rank():
     in a follow-up commit after Phase 5 lands.
     """
     try:
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         cur = conn.execute(
             "SELECT COUNT(*) AS total, "
             "       SUM(CASE WHEN bdl_home_conf_rank IS NOT NULL THEN 1 ELSE 0 END) AS home_non_null, "
@@ -4626,7 +4625,7 @@ def cron_live_scores():
 
         for sport in get_live_sports():
             table = 'games' if sport == 'nba' else f'{sport}_games'
-            conn = sqlite3.connect(get_sqlite_path())
+            conn = get_sqlite_conn()
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -4886,7 +4885,7 @@ def collect_mlb_closing_lines_job():
     print(f"[{datetime.now()}] Capturing MLB closing snapshots...")
     with app.app_context():
         try:
-            conn = sqlite3.connect(get_sqlite_path())
+            conn = get_sqlite_conn()
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -4972,7 +4971,7 @@ def grade_mlb_picks_job():
                 print("  No pending MLB picks to grade")
                 return
 
-            conn = sqlite3.connect(get_sqlite_path())
+            conn = get_sqlite_conn()
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -5805,7 +5804,7 @@ def start_background_services():
         logging.error(f"Background services failed (non-fatal): {e}")
 
 def get_db():
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -8712,8 +8711,7 @@ def game_board():
     if not user.is_pro:
         return jsonify({'error': 'Pro subscription required', 'upgrade': True}), 403
 
-    import sqlite3
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 

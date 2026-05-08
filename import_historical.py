@@ -10,11 +10,13 @@ from datetime import datetime, timedelta
 import time
 import os
 
+from db_path import get_sqlite_conn
+
 API_KEY = os.environ.get('ODDS_API_KEY')
 BASE_URL = "https://api.the-odds-api.com/v4"
 
 def get_db():
-    conn = sqlite3.connect('sharp_picks.db')
+    conn = get_sqlite_conn()
     conn.row_factory = sqlite3.Row
     return conn
 

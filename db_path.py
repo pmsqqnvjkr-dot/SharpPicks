@@ -1,10 +1,14 @@
 """
 Central SQLite path for Railway persistent volumes.
 All production code (app.py, main.py, model.py, model_service.py) MUST use
-get_sqlite_path() — never hardcode 'sharp_picks.db'. Railway sets
+get_sqlite_path() - never hardcode 'sharp_picks.db'. Railway sets
 RAILWAY_VOLUME_MOUNT_PATH=/data when a volume is attached.
 """
+import logging
 import os
+import sqlite3
+
+logger = logging.getLogger(__name__)
 
 
 def get_sqlite_path():
@@ -22,6 +26,67 @@ def get_sqlite_path():
         except OSError:
             pass  # May fail if volume not writable; SQLite will fail on connect
     return path
+
+
+# PRAGMAs run on every new connection. journal_mode=WAL is persistent
+# on the database file itself so the first successful set converts
+# the .db permanently; setting it on every subsequent connection is
+# idempotent. synchronous and busy_timeout are per-connection and
+# must be applied each time.
+_CONN_PRAGMAS = (
+    ('journal_mode', 'WAL'),
+    ('synchronous', 'NORMAL'),
+    ('busy_timeout', '15000'),  # 15s, up from sqlite default 5s
+    ('foreign_keys', 'ON'),
+)
+
+
+def get_sqlite_conn(path=None, timeout=15.0):
+    """Open a sqlite3 connection with WAL mode and tuned pragmas.
+
+    All raw sqlite3 callers in the runtime should use this instead of
+    sqlite3.connect() directly so journal_mode=WAL is reliably set
+    before any other query runs.
+
+    Once WAL is active on the database file, two extra files appear
+    next to it on the Railway volume: sharp_picks.db-wal and
+    sharp_picks.db-shm. SQLite manages them. They should not be
+    deleted or excluded from the volume.
+
+    Parameters
+    ----------
+    path : str, optional
+        Explicit path. Defaults to get_sqlite_path(). Pass a path only
+        for callers that already resolved one (e.g. admin status
+        endpoints reading get_sqlite_status()['path']).
+    timeout : float, default 15.0
+        sqlite3.connect timeout, the window to wait for the file lock
+        at connection-open time. Distinct from busy_timeout, which is
+        the per-statement retry window after the connection is open.
+
+    Returns
+    -------
+    sqlite3.Connection
+        Caller is responsible for close().
+    """
+    if path is None:
+        path = get_sqlite_path()
+    conn = sqlite3.connect(path, timeout=timeout)
+    cur = conn.cursor()
+    for name, value in _CONN_PRAGMAS:
+        cur.execute(f'PRAGMA {name}={value};')
+    # Read back journal_mode to confirm WAL stuck. Railway volumes (ext4)
+    # support WAL fine; this guards against accidentally running on a
+    # filesystem that doesn't (network mounts, some shared volumes).
+    actual = cur.execute('PRAGMA journal_mode;').fetchone()
+    if actual and str(actual[0]).lower() != 'wal':
+        logger.warning(
+            'sqlite WAL pragma did not stick at %s, got journal_mode=%r. '
+            'Lock contention will continue under concurrent writers.',
+            path, actual[0],
+        )
+    cur.close()
+    return conn
 
 
 def get_sqlite_status():

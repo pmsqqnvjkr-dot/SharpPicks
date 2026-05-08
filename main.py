@@ -7,7 +7,7 @@ import requests
 import sqlite3
 import os
 import logging
-from db_path import get_sqlite_path
+from db_path import get_sqlite_conn
 import time
 import random
 import statistics
@@ -240,7 +240,7 @@ WNBA_TEAM_ABBR_MAP = {
 
 def setup_database():
     """Create database if it doesn't exist"""
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -755,7 +755,7 @@ def collect_yesterdays_scores(date_offset=1):
         
         print(f"✅ Found {len(events)} games\n")
         
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         cursor = conn.cursor()
         
         updated_count = 0
@@ -864,7 +864,7 @@ def collect_yesterdays_scores(date_offset=1):
 
 def show_spread_stats():
     """Show spread hit/miss statistics"""
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -1014,7 +1014,7 @@ def collect_todays_games():
 
     # Step 0: Clean up stale Rundown entries (scored games from previous days stored with today's date)
     try:
-        _cleanup_conn = sqlite3.connect(get_sqlite_path())
+        _cleanup_conn = get_sqlite_conn()
         _cleanup_cur = _cleanup_conn.cursor()
         stale_deleted = _cleanup_cur.execute(
             "DELETE FROM games WHERE game_date = ? AND id LIKE 'rundown_%' AND home_score IS NOT NULL",
@@ -1334,7 +1334,7 @@ def collect_todays_games():
             for m in missing_from_odds:
                 print(f"      ? {m}")
             try:
-                _conn_espn = sqlite3.connect(get_sqlite_path())
+                _conn_espn = get_sqlite_conn()
                 _cur_espn = _conn_espn.cursor()
                 for away, home, *_espn_gt in espn_matchups:
                     key = _normalize_team(away) + '@' + _normalize_team(home)
@@ -1388,7 +1388,7 @@ def collect_todays_games():
         rd_for_game.append(rd_game)
 
     try:
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         cursor = conn.cursor()
 
         for idx, gp in enumerate(games_to_process):
@@ -1657,7 +1657,7 @@ def collect_todays_games():
 
 def show_stats():
     """Display collection statistics"""
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     cursor.execute('SELECT COUNT(*) FROM games')
@@ -1735,7 +1735,7 @@ def collect_player_props():
     credit_cost = len(today_events) * len(PROP_MARKETS)
     print(f"   Estimated API cost: {credit_cost} credits")
 
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     total_props = 0
 
@@ -1858,7 +1858,7 @@ def collect_closing_lines():
         
         check_api_usage()
         
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         cursor = conn.cursor()
         
         updated = 0
@@ -1996,7 +1996,7 @@ def collect_wnba_closing_lines():
 
         check_api_usage()
 
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         cursor = conn.cursor()
 
         updated = 0
@@ -2088,7 +2088,7 @@ def show_visualization():
     print("📈 SHARP PICKS - COLLECTION VISUALIZATION")
     print("="*60 + "\n")
     
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     # Get games per day
@@ -2208,7 +2208,7 @@ def generate_report():
     print("📊 SHARP PICKS - DATA COLLECTION REPORT")
     print("="*60 + "\n")
     
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     # 1. Total games collected
@@ -2374,7 +2374,7 @@ def generate_report():
 
 def show_welcome():
     """Show welcome message with progress stats"""
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     # Total games
@@ -2576,7 +2576,7 @@ def collect_wnba_scores(date_offset=1):
 
         print(f"✅ Found {len(events)} WNBA games\n")
 
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         cursor = conn.cursor()
 
         setup_wnba_table(cursor)
@@ -2699,7 +2699,7 @@ def update_wnba_rolling_ratings():
     print("📊 WNBA ROLLING RATINGS UPDATE")
     print(f"{'='*60}\n")
 
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS wnba_rolling_ratings (
@@ -2841,7 +2841,7 @@ def check_wnba_star_availability(home_team, away_team, home_injuries_str, away_i
     Returns structured availability data for both teams."""
     import re
 
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
 
     cursor.execute('SELECT MAX(season) FROM wnba_top_players')
@@ -2990,7 +2990,7 @@ def run_wnba_shadow_predictions():
     print("🔮 WNBA SHADOW MODE — PREDICTIONS (NOT PUBLISHED)")
     print(f"{'='*60}\n")
 
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
@@ -3177,7 +3177,7 @@ def grade_wnba_shadow_picks():
     print("📝 GRADING WNBA SHADOW PICKS")
     print(f"{'='*60}\n")
 
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
 
     setup_wnba_shadow_table(cursor)
@@ -3292,7 +3292,7 @@ def collect_wnba_odds():
         # slate. Each ESPN row is inserted with NULL odds and a deterministic
         # id of espn_<event_id>; the Odds API loop below later UPSERTs the
         # same row by (game_date, away_team, home_team) when lines arrive.
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         cursor = conn.cursor()
         setup_wnba_table(cursor)
 
@@ -3884,7 +3884,7 @@ def collect_mlb_scores():
     yesterday = (datetime.now(et) - timedelta(days=1)).strftime('%Y-%m-%d')
     tomorrow = (datetime.now(et) + timedelta(days=1)).strftime('%Y-%m-%d')
 
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     setup_mlb_table(cursor)
 
@@ -4035,7 +4035,7 @@ def collect_mlb_odds():
             print("ℹ️  No MLB games available today\n")
             return
 
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         cursor = conn.cursor()
         setup_mlb_table(cursor)
 
@@ -4361,7 +4361,7 @@ def collect_mlb_closing_lines():
         games = response.json()
         print(f"✅ Found {len(games)} MLB games for closing snapshot\n")
 
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         cursor = conn.cursor()
         setup_mlb_table(cursor)
 

@@ -1536,7 +1536,8 @@ def health_checks():
             if not status['writable']:
                 return {'status': 'error', 'message': 'Volume not writable (try RAILWAY_RUN_UID=0)', **status}
             import sqlite3
-            conn = sqlite3.connect(status['path'])
+            from db_path import get_sqlite_conn
+            conn = get_sqlite_conn(path=status['path'])
             try:
                 cur = conn.execute("SELECT COUNT(*) FROM games")
                 count = cur.fetchone()[0]

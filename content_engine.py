@@ -15,7 +15,7 @@ from flask import Blueprint, render_template, abort, request, make_response, red
 from models import db, Pick, Pass, ModelRun, ContentPageView
 from public_api import build_market_report_dict
 from sport_config import get_sport_config, get_live_sports, SPORT_CONFIG
-from db_path import get_sqlite_path
+from db_path import get_sqlite_conn
 
 log = logging.getLogger(__name__)
 ET = ZoneInfo('America/New_York')
@@ -769,7 +769,7 @@ def _enrich_with_evening_fields(data, date_str, sport):
     market_beat_count = 0
     snap_rows = {}
     try:
-        conn = sqlite3.connect(get_sqlite_path())
+        conn = get_sqlite_conn()
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         tbl = 'mlb_games' if sport == 'mlb' else ('wnba_games' if sport == 'wnba' else 'games')

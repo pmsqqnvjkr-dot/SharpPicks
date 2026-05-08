@@ -17,8 +17,10 @@ import sys
 import time
 from datetime import datetime, timedelta
 
+from db_path import get_sqlite_path, get_sqlite_conn
+
 ODDS_API_KEY = os.environ.get('ODDS_API_KEY', '')
-DB_PATH = 'sharp_picks.db'
+DB_PATH = get_sqlite_path()
 
 WNBA_SEASONS = {
     2022: ('2022-05-06', '2022-09-18'),
@@ -31,7 +33,7 @@ SPORTSBOOKS = ['draftkings', 'fanduel', 'betmgm', 'caesars', 'pointsbetus', 'bet
 
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_sqlite_conn(path=DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 

@@ -13,7 +13,7 @@ import logging
 import requests
 from datetime import datetime, timedelta
 
-from db_path import get_sqlite_path
+from db_path import get_sqlite_conn
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ BDL_WNBA_BASE = "https://api.balldontlie.io/wnba/v1"
 
 
 def _get_db():
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     conn.row_factory = sqlite3.Row
     return conn
 

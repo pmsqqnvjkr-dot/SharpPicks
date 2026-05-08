@@ -8,12 +8,12 @@ from datetime import datetime, timedelta
 import pickle
 import numpy as np
 import pandas as pd
-from db_path import get_sqlite_path
+from db_path import get_sqlite_conn
 
 
 def ensure_tracking_table():
     """Create prediction tracking table"""
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -92,7 +92,7 @@ def log_prediction(game_id, game_date, home_team, away_team, spread_home,
                    adjusted_edge=None):
     """Log a new prediction with margin, sigma, z_score, EV, and audit trail"""
     ensure_tracking_table()
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -131,7 +131,7 @@ def log_prediction(game_id, game_date, home_team, away_team, spread_home,
 def update_closing_line(game_id, closing_line):
     """Update closing line for a game and calculate if we beat it"""
     ensure_tracking_table()
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -170,7 +170,7 @@ def update_closing_line(game_id, closing_line):
 def get_closing_line_stats():
     """Get stats on how often we beat the closing line"""
     ensure_tracking_table()
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -204,7 +204,7 @@ def get_closing_line_stats():
 def update_results():
     """Update prediction results from completed games"""
     ensure_tracking_table()
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -243,7 +243,7 @@ def update_results():
 def get_performance_stats(days=None):
     """Get performance statistics"""
     ensure_tracking_table()
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     
     if days:
         cutoff = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
@@ -305,7 +305,7 @@ def get_performance_stats(days=None):
 def get_recent_predictions(limit=20):
     """Get recent prediction results"""
     ensure_tracking_table()
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     
     query = '''
         SELECT game_date, home_team, away_team, prediction, confidence,
@@ -324,7 +324,7 @@ def get_recent_predictions(limit=20):
 def check_calibration():
     """Check model calibration by confidence bucket"""
     ensure_tracking_table()
-    conn = sqlite3.connect(get_sqlite_path())
+    conn = get_sqlite_conn()
     
     query = '''
         SELECT confidence, is_correct, actual_result

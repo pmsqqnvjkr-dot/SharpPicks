@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from typing import List, Optional
 import os
 
+from db_path import get_sqlite_path, get_sqlite_conn
+
 
 @dataclass
 class Bet:
@@ -29,13 +31,16 @@ class Bet:
 class BankrollManager:
     """Manages bankroll tracking and responsible gambling features"""
     
-    def __init__(self, db_path='sharp_picks.db'):
-        self.db_path = db_path
+    def __init__(self, db_path=None):
+        # Default to the Railway-aware path so this class doesn't
+        # silently open a local sharp_picks.db when running on prod.
+        # Pass an explicit db_path only for tests / one-off scripts.
+        self.db_path = db_path or get_sqlite_path()
         self.setup_tables()
     
     def setup_tables(self):
         """Create betting log tables"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_sqlite_conn(path=self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -76,7 +81,7 @@ class BankrollManager:
     def log_bet(self, game: str, bet_type: str, pick: str, odds: int, 
                 stake: float, was_recommended: bool = False) -> int:
         """Log a new bet"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_sqlite_conn(path=self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -94,7 +99,7 @@ class BankrollManager:
     
     def update_bet_result(self, bet_id: int, result: str, payout: float):
         """Update bet with result"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_sqlite_conn(path=self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -106,7 +111,7 @@ class BankrollManager:
     
     def get_recent_bets(self, num_bets: int = 10) -> List[Bet]:
         """Get most recent bets"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_sqlite_conn(path=self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -277,7 +282,7 @@ class BankrollManager:
         result = self.detect_tilt()
         
         if result['tilt_detected']:
-            conn = sqlite3.connect(self.db_path)
+            conn = get_sqlite_conn(path=self.db_path)
             cursor = conn.cursor()
             
             cursor.execute('''
@@ -295,7 +300,7 @@ class BankrollManager:
     
     def get_stats(self) -> dict:
         """Get overall betting statistics"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_sqlite_conn(path=self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('SELECT COUNT(*), SUM(stake), SUM(payout) FROM bets')

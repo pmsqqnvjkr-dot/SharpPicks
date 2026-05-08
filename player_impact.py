@@ -16,7 +16,7 @@ from difflib import SequenceMatcher
 BDL_API_KEY = os.environ.get('BALLDONTLIE_API_KEY', '')
 BDL_BASE = "https://api.balldontlie.io"
 
-from db_path import get_sqlite_path as _get_sqlite_path
+from db_path import get_sqlite_conn as _get_sqlite_conn
 
 STATUS_MULTIPLIER = {
     'out': 1.0,
@@ -71,7 +71,7 @@ def _bdl_headers():
 
 
 def _get_db():
-    conn = sqlite3.connect(_get_sqlite_path())
+    conn = _get_sqlite_conn()
     conn.row_factory = sqlite3.Row
     return conn
 
