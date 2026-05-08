@@ -23,6 +23,27 @@ def _pick_rest(ctx):
 def _opp_rest(ctx):
     return ctx['away_rest'] if ctx['is_pick_home'] else ctx['home_rest']
 
+def _rest_valid(ctx):
+    """True only when both teams have a real rest-day count.
+
+    Opening day produces None or float('nan') because there is no prior
+    game to compute rest from. Without this gate, the rest_advantage
+    template would render 'nand vs 4d' (NaN formatted as %0.0f then
+    the literal 'd' suffix) which surfaced live on WNBA launch day.
+    """
+    import math
+    h = ctx.get('home_rest')
+    a = ctx.get('away_rest')
+    for r in (h, a):
+        if r is None:
+            return False
+        try:
+            if math.isnan(float(r)):
+                return False
+        except (TypeError, ValueError):
+            return False
+    return True
+
 TEMPLATES = {
 
     # ═══ SCHEDULE / REST ═══
@@ -30,16 +51,18 @@ TEMPLATES = {
     'rest_advantage': {
         'category': 'schedule',
         'render': lambda v, ctx: (
-            f"Rest advantage: {ctx['pick_team']} on {_pick_rest(ctx):.0f}d rest "
-            f"vs {ctx['opp_team']} on {_opp_rest(ctx):.0f}d. "
-            f"Rest differential is the top model contributor for this game."
-            if (v > 0 and ctx['is_pick_home']) or (v < 0 and not ctx['is_pick_home'])
-            else (
-                f"Rest disadvantage: {ctx['pick_team']} on shorter rest "
-                f"({_pick_rest(ctx):.0f}d vs {_opp_rest(ctx):.0f}d). "
-                f"Model finds edge despite the schedule spot."
-                if (v < 0 and ctx['is_pick_home']) or (v > 0 and not ctx['is_pick_home'])
-                else None
+            None if not _rest_valid(ctx) else (
+                f"Rest advantage: {ctx['pick_team']} on {_pick_rest(ctx):.0f}d rest "
+                f"vs {ctx['opp_team']} on {_opp_rest(ctx):.0f}d. "
+                f"Rest differential is the top model contributor for this game."
+                if (v > 0 and ctx['is_pick_home']) or (v < 0 and not ctx['is_pick_home'])
+                else (
+                    f"Rest disadvantage: {ctx['pick_team']} on shorter rest "
+                    f"({_pick_rest(ctx):.0f}d vs {_opp_rest(ctx):.0f}d). "
+                    f"Model finds edge despite the schedule spot."
+                    if (v < 0 and ctx['is_pick_home']) or (v > 0 and not ctx['is_pick_home'])
+                    else None
+                )
             )
         ),
     },
@@ -47,16 +70,20 @@ TEMPLATES = {
     'home_rest': {
         'category': 'schedule',
         'render': lambda v, ctx: (
-            f"{ctx['home_team']} on {v:.0f} days rest."
-            if v >= 3 or v <= 1 else None
+            None if v is None or (isinstance(v, float) and v != v) else (
+                f"{ctx['home_team']} on {v:.0f} days rest."
+                if v >= 3 or v <= 1 else None
+            )
         ),
     },
 
     'away_rest': {
         'category': 'schedule',
         'render': lambda v, ctx: (
-            f"{ctx['away_team']} on {v:.0f} days rest."
-            if v >= 3 or v <= 1 else None
+            None if v is None or (isinstance(v, float) and v != v) else (
+                f"{ctx['away_team']} on {v:.0f} days rest."
+                if v >= 3 or v <= 1 else None
+            )
         ),
     },
 

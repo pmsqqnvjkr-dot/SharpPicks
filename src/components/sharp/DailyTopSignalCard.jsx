@@ -85,7 +85,7 @@ function fmtMatchupTime(startTime) {
   } catch { return null; }
 }
 
-function fmtCountdown(startTime) {
+function fmtCountdown(startTime, sport) {
   if (!startTime) return null;
   try {
     const start = new Date(startTime).getTime();
@@ -95,8 +95,10 @@ function fmtCountdown(startTime) {
     const totalMin = Math.floor(diffMs / 60000);
     const h = Math.floor(totalMin / 60);
     const m = totalMin % 60;
-    if (h === 0) return `First pitch in ${m}m`;
-    return `First pitch in ${h}h ${String(m).padStart(2, '0')}m`;
+    // MLB tips with first pitch; basketball (NBA, WNBA) tips with tipoff.
+    const verb = (String(sport || '').toLowerCase() === 'mlb') ? 'First pitch' : 'Tipoff';
+    if (h === 0) return `${verb} in ${m}m`;
+    return `${verb} in ${h}h ${String(m).padStart(2, '0')}m`;
   } catch { return null; }
 }
 
@@ -162,7 +164,7 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
   const oddsText = pick?.market_odds != null
     ? (pick.market_odds > 0 ? `+${pick.market_odds}` : `${pick.market_odds}`)
     : null;
-  const countdown = fmtCountdown(pick?.start_time);
+  const countdown = fmtCountdown(pick?.start_time, pick?.sport);
 
   const marketLine = pick?.line != null ? fmtSpread(pick.line) : '—';
   const modelLine = pick?.model_projection != null
