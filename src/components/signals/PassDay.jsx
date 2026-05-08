@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Capacitor } from '@capacitor/core';
+import { isIOSPlatform as detectIOSPlatform } from '../../utils/platformCta';
 import DailyMarketReport from '../sharp/DailyMarketReport';
 
 // v4.3 Pass Day. Consolidated single-card hero replaces the seven-card
@@ -89,10 +89,10 @@ export default function PassDay({
   isPro = false,
   onUpgrade,
 }) {
-  const isIOSPlatform = (() => {
-    try { return typeof Capacitor.getPlatform === 'function' && Capacitor.getPlatform() === 'ios'; }
-    catch { return false; }
-  })();
+  // Use the shared util so iOS Safari is detected via UA fallback, not
+  // only the Capacitor bridge. Apple reviewers sometimes land via mobile
+  // Safari and the inline detection let "Card required" show through.
+  const isIOSPlatform = detectIOSPlatform();
   const [miExpanded, setMiExpanded] = useState(false);
   const articles = (furtherReadings && furtherReadings.length > 0)
     ? furtherReadings

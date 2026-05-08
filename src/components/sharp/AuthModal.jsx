@@ -2,11 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiGet, setAuthToken } from '../../hooks/useApi';
 import { Capacitor } from '@capacitor/core';
+import { isIOSPlatform } from '../../utils/platformCta';
 
 const PROD_URL = 'https://app.sharppicks.ai';
 const API_BASE = Capacitor.isNativePlatform() ? PROD_URL + '/api' : '/api';
 const isNative = Capacitor.isNativePlatform();
-const isIOS = Capacitor.getPlatform() === 'ios';
+// Cover both Capacitor iOS and mobile Safari/iPadOS browser; either
+// path can be how an Apple reviewer evaluates auth, and "Card required"
+// must not appear on iOS in any context.
+const isIOS = isIOSPlatform();
 
 export default function AuthModal({ onClose, initialMode, initialAccountType }) {
   const [mode, setMode] = useState(initialMode || 'login');

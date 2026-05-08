@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Capacitor } from '@capacitor/core';
 import { apiGet, apiPost, apiDelete } from '../../hooks/useApi';
 import teamAbbr from '../../utils/teamAbbr';
 import sportDisplay from '../../utils/sportDisplay';
+import { isIOSPlatform } from '../../utils/platformCta';
 
 // v4.3 Daily Top Signal card. Pro-only render path. Replaces the older
 // PickCard for the home pick-day slot. Source: docs mockup approved
@@ -291,10 +291,11 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
   // server-side paywall mask) so the gate matches the data shape.
   const isLocked = (pick?.locked === true) || !isPro;
   if (isLocked) {
-    const isIOSPlatform = (() => {
-      try { return typeof Capacitor.getPlatform === 'function' && Capacitor.getPlatform() === 'ios'; }
-      catch { return false; }
-    })();
+    // Use the shared isIOSPlatform util so iOS Safari (UA-based) is also
+    // covered, not just the Capacitor WebView. The earlier inline check
+    // returned false when Apple reviewers landed via Safari and let
+    // "Card required" through.
+    const iosCta = isIOSPlatform();
     return (
       <div style={{
         background: SP.surface,
@@ -459,7 +460,7 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
             textAlign: 'center', fontFamily: SP.fontMono, fontSize: '10px',
             color: SP.text4, letterSpacing: '0.16em', textTransform: 'uppercase',
           }}>
-            {isIOSPlatform ? 'Cancel anytime' : 'Card required · Cancel anytime'}
+            {iosCta ? 'Cancel anytime' : 'Card required · Cancel anytime'}
           </div>
         </div>
       </div>
