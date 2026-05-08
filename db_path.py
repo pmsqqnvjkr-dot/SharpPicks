@@ -33,10 +33,21 @@ def get_sqlite_path():
 # the .db permanently; setting it on every subsequent connection is
 # idempotent. synchronous and busy_timeout are per-connection and
 # must be applied each time.
+#
+# busy_timeout=60s: the closing_lines cron processes 7 games in a
+# single transaction (one BEGIN, 7 UPDATEs, one COMMIT) and the
+# whole loop including API parsing can run 15-25s while holding the
+# write lock. With 3 gunicorn workers each scheduling their own
+# crons, two workers can target the same write window. 15s wasn't
+# enough headroom; 60s comfortably absorbs the natural cron length
+# without producing 'database is locked' errors. The proper fix is
+# to commit-per-row inside the cron loops so the lock releases
+# faster, but until those crons are restructured, the bigger
+# busy_timeout prevents the failure mode.
 _CONN_PRAGMAS = (
     ('journal_mode', 'WAL'),
     ('synchronous', 'NORMAL'),
-    ('busy_timeout', '15000'),  # 15s, up from sqlite default 5s
+    ('busy_timeout', '60000'),  # 60s, up from sqlite default 5s
     ('foreign_keys', 'ON'),
 )
 
