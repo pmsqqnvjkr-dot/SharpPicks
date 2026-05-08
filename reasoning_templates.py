@@ -354,6 +354,9 @@ TEMPLATES = {
             f"Win rate edge: {ctx['pick_team']} at {_pct(ctx, 'pick', 'bdl_win_pct')}% "
             f"vs {ctx['opp_team']} at {_pct(ctx, 'opp', 'bdl_win_pct')}%."
             if abs(v) > 0.10
+                and _has_pct(ctx, 'pick', 'bdl_win_pct')
+                and _has_pct(ctx, 'opp', 'bdl_win_pct')
+                and _pct(ctx, 'pick', 'bdl_win_pct') != _pct(ctx, 'opp', 'bdl_win_pct')
             else None
         ),
     },
@@ -494,6 +497,35 @@ def _pct(ctx, side, key):
         return round(float(raw) * 100)
     except (ValueError, TypeError):
         return 50
+
+
+def _has_pct(ctx, side, key):
+    """True only when the underlying win-rate / pct value is actually
+    present in ctx (not relying on the 0.5 fallback in _pct).
+
+    Without this gate, opening-day teams with no record fall back to 0.5
+    on both sides and the bdl_win_pct_diff template renders nonsense
+    like 'Win rate edge: Knicks at 50% vs 76ers at 50%' even though
+    the diff feature `v` was non-zero from elsewhere in the pipeline.
+    """
+    if side == 'pick':
+        full_key = f"{'home' if ctx['is_pick_home'] else 'away'}_{key}"
+    elif side == 'opp':
+        full_key = f"{'away' if ctx['is_pick_home'] else 'home'}_{key}"
+    else:
+        full_key = f"{side}_{key}"
+    raw = ctx.get(full_key)
+    if raw is None:
+        return False
+    try:
+        f = float(raw)
+        # Treat NaN / inf as missing too. NaN != NaN is the canonical
+        # NaN check that doesn't require importing math here.
+        if f != f or f in (float('inf'), float('-inf')):
+            return False
+        return True
+    except (ValueError, TypeError):
+        return False
 
 
 # ─── RENDERING ────────────────────────────────────────────────────────────────
