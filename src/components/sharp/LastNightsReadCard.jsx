@@ -2,11 +2,13 @@
 // home view. Editorial format (eyebrow / serif title / excerpt / 3-stat row /
 // date + Read → CTA) matching the May 2026 Midnight State mockup.
 //
-// Tap routes (Android + web only) to the Sharp Journal evening edition
-// rendered by the Flask app at /market-report/<date>/evening?sport=<sport>.
-// On iOS we skip that URL — the Flask SEO page header has a "Start Free
-// Trial" CTA that violates Apple's external-payment rule — and fall back
-// to the in-app ResolutionScreen path via onClick.
+// Tap routes to the Sharp Journal evening edition rendered by the Flask
+// app at /market-report/<date>/evening?sport=<sport>&app=1. The ?app=1
+// query strips the "Start Free Trial" CTAs (in templates/content/base.html
+// and templates/content/market_report.html) so the page complies with
+// Apple 3.1.1 and the same URL works for iOS, Android, and web.
+// onClick is preserved as a fallback for legacy callers that route to
+// ResolutionScreen instead of the journal.
 //
 // Pulls from already-fetched home data:
 //   pick: nightRecapPick (yesterday's signal) — used for matchup, edge,
