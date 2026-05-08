@@ -57,6 +57,12 @@ export default function LastNightsReadCard({
   //   a populated, sport-specific value instead of '—'.
   // clvLabel: 'CLV vs close' (single-pick) | 'Avg CLV (season)' (aggregate).
   clv, clvLabel,
+  // Pro gate. Free users still see the card (title + 3-stat row) but
+  // the journal evening edition tap is replaced with onUpgrade — the
+  // Sharp Journal market report is Pro only inside the app. Web SEO
+  // page at /market-report/<date>/evening is unaffected.
+  isPro = false,
+  onUpgrade,
 }) {
   const result = (pick?.result || '').toLowerCase();
   const isWin = result === 'win';
@@ -126,14 +132,18 @@ export default function LastNightsReadCard({
     return `https://app.sharppicks.ai/market-report/${ymd}/evening?sport=${sportParam}&app=1`;
   })();
 
-  // iOS users now CAN open the journal evening edition. Both the navbar
-  // CTA (templates/content/base.html) and the in-content CTA
-  // (templates/content/market_report.html) are gated on the ?app=1
-  // query the URL builder above always sets, so the page renders
-  // without any external payment promo and complies with Apple 3.1.1.
-  // The earlier code path that fell back to ResolutionScreen on iOS
-  // left pass-day cards (no `pick`) completely unclickable on iPhone.
+  // Free users in-app cannot open the Sharp Journal market report
+  // (the evening edition is the previous day's market report). They
+  // still see the card with the 3-stat row above; the tap routes to
+  // onUpgrade instead. Pro users open the journal via Capacitor
+  // in-app browser on iOS/Android, or a new tab on web. The Flask
+  // page at /market-report/<date>/evening stays open for SEO and
+  // web visitors regardless of who taps from the app.
   const handleOpenJournal = async () => {
+    if (!isPro) {
+      if (typeof onUpgrade === 'function') onUpgrade();
+      return;
+    }
     if (computedJournalUrl) {
       try {
         if (Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
@@ -147,8 +157,9 @@ export default function LastNightsReadCard({
     if (typeof onClick === 'function') onClick();
   };
 
-  const isClickable = !!computedJournalUrl
-    || (typeof onClick === 'function' && !!pick);
+  const isClickable = isPro
+    ? (!!computedJournalUrl || (typeof onClick === 'function' && !!pick))
+    : (typeof onUpgrade === 'function');
 
   return (
     <div style={{
@@ -226,7 +237,7 @@ export default function LastNightsReadCard({
             letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.green,
             display: 'inline-flex', alignItems: 'center', gap: '5px',
           }}>
-            Read
+            {isPro ? 'Read' : 'Pro · Upgrade'}
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 18l6-6-6-6" />
             </svg>

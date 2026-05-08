@@ -1686,7 +1686,7 @@ export default function MarketView({ onBack }) {
             letterSpacing: '0.12em', textTransform: 'uppercase',
             color: 'var(--text-tertiary)', marginBottom: '10px',
           }}>Daily Market Brief</div>
-          <DailyMarketReport report={reportData} />
+          <DailyMarketReport report={reportData} isPro={isPro} />
         </section>
 
         {games.length > 0 && (

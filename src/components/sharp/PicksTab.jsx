@@ -641,10 +641,13 @@ export default function PicksTab({ onNavigate }) {
                   clvLabel={settledClv != null ? 'CLV vs close' : 'Avg CLV (season)'}
                   dateIso={yesterdayDate}
                   sport={sport}
+                  isPro={isPro}
+                  onUpgrade={() => { if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); } else { setShowAuth(true); } }}
                   // Card click opens the Sharp Journal evening edition URL
-                  // by default. The fallback onClick keeps the prior in-app
-                  // resolution-screen open for callers that pass it
-                  // explicitly without a journalUrl override.
+                  // for Pro users. The fallback onClick keeps the prior
+                  // in-app resolution-screen for callers that pass it
+                  // explicitly without a journalUrl override. Free users
+                  // route to onUpgrade above.
                   onClick={nightRecapPick ? () => { setResolutionPick(nightRecapPick); setShowResolution(true); } : undefined}
                 />
               );
@@ -1439,7 +1442,11 @@ export default function PicksTab({ onNavigate }) {
 
             {isMiExpanded && (
               <div style={{ marginBottom: '16px' }}>
-                <DailyMarketReport report={marketReport} />
+                <DailyMarketReport
+                  report={marketReport}
+                  isPro={isPro}
+                  onUpgrade={() => { if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); } else { setShowAuth(true); } }}
+                />
               </div>
             )}
 
@@ -1507,7 +1514,11 @@ export default function PicksTab({ onNavigate }) {
 
             {isMiExpanded && (
               <div style={{ marginBottom: '16px' }}>
-                <DailyMarketReport report={marketReport} />
+                <DailyMarketReport
+                  report={marketReport}
+                  isPro={isPro}
+                  onUpgrade={() => { if (user) { if (onNavigate) onNavigate('profile', 'upgrade'); } else { setShowAuth(true); } }}
+                />
               </div>
             )}
 
