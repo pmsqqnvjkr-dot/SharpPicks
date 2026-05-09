@@ -78,8 +78,8 @@ export default function AppHeader({ onNavigate }) {
 // Calibration badge stays amber.
 const SPORT_CONFIG = {
   nba: { label: 'NBA', active: true },
-  mlb: { label: 'MLB', active: true, badge: 'CAL' },
-  wnba: { label: 'WNBA', active: true, badge: 'CAL' },
+  mlb: { label: 'MLB', active: true, badge: 'PREV' },
+  wnba: { label: 'WNBA', active: true, badge: 'PREV' },
 };
 
 const SP_GREEN = '#5A9E72';

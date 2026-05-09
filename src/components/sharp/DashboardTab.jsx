@@ -387,7 +387,7 @@ function DisciplineScore({ discipline, modelPhase }) {
               <span style={{
                 fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
                 letterSpacing: '0.08em', color: '#6b7a8d',
-              }}>CAL</span>
+              }}>PREV</span>
             </div>
           ) : (
             <div style={{
