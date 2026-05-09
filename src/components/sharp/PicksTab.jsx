@@ -34,11 +34,11 @@ import { FEATURE_EVAN_COLE_READ, FEATURE_DISCIPLINE_ARTICLES, FEATURE_EVENING_RE
 const CALIBRATION_COPY = {
   mlb: {
     eyebrow: 'Calibration Phase · MLB',
-    body: <><strong>MLB signals run on the same pipeline as NBA</strong> while building a live track record. Edges are real, sizing is identical, every signal is graded. The calibration tag comes off when the data justifies it.</>,
+    body: <><strong>MLB signals use the same model pipeline as NBA.</strong> While we build the live track record, MLB is labeled Preview. Edges are real. Sizing is identical. Every signal is tracked and graded.</>,
   },
   wnba: {
     eyebrow: 'Calibration Phase · WNBA',
-    body: <><strong>WNBA signals run on the same pipeline as NBA</strong> while building a live track record this season. Edges are real, sizing is identical, every signal is graded. The calibration tag comes off when the data justifies it.</>,
+    body: <><strong>WNBA signals use the same model pipeline as NBA.</strong> While we build the live track record, WNBA is labeled Preview. Edges are real. Sizing is identical. Every signal is tracked and graded.</>,
   },
 };
 
