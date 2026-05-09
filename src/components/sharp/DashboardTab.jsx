@@ -174,7 +174,7 @@ function PerformanceCore({ perf, equityCurve }) {
               fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
               color: 'var(--text-tertiary)', letterSpacing: '0.5px',
               marginBottom: '6px',
-            }}>Calibration in progress</div>
+            }}>Preview</div>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '10px',
               color: 'var(--text-tertiary)',
@@ -375,7 +375,7 @@ function DisciplineScore({ discipline, modelPhase }) {
             </div>
             <div style={{
               fontSize: '11px', color: 'var(--text-tertiary)',
-            }}>{isCal ? 'Calibration mode. Selectivity filters are widened to build the dataset.' : 'How often the model signals on available games'}</div>
+            }}>{isCal ? 'Preview. Selectivity filters are widened during the live track-record build.' : 'How often the model signals on available games'}</div>
           </div>
           {isCal ? (
             <div style={{
@@ -807,7 +807,7 @@ function ModelHealthBadge({ health }) {
 
 function PhaseTimeline({ phase }) {
   const steps = [
-    { key: 'calibration', label: 'Calibration' },
+    { key: 'calibration', label: 'Preview' },
     { key: 'validation', label: 'Validation' },
     { key: 'deployment', label: 'Deployment' },
   ];

@@ -144,7 +144,7 @@ export default function NoPickCard({ data, sport, modelPhase, onInsightTap }) {
           <>
             <InsightCard title="Restraint builds the edge" desc="Early-phase discipline. No forced edges. The model earns trust through selectivity." />
             <InsightCard title="Building the edge in public" desc="Every signal tracked from Day 1. No resets, no hiding. Full transparency." />
-            <InsightCard title="Process over outcomes" desc="Calibration means proving the model before scaling it. This is how real edges are built." />
+            <InsightCard title="Process over outcomes" desc="Preview means proving the model in public before scaling. This is how real edges are built." />
           </>
         ) : (
           <>

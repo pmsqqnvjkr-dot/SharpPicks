@@ -1124,7 +1124,7 @@ function BeginnersGuideContent({ insight, fadeIn, onNavigate }) {
           SharpPicks is a sports market intelligence platform. It uses a mathematical model to identify games where the betting market has gotten the number wrong. When the model finds a big enough difference, it generates a signal: essentially a recommendation worth considering.
         </p>
         <p style={{ fontFamily: serif, fontSize: '16px', lineHeight: 1.8, color: c.secondary, marginBottom: '24px' }}>
-          It currently covers the NBA, with MLB in beta and WNBA coming soon.
+          It currently covers the NBA, with MLB and WNBA in preview.
         </p>
         <div style={{ borderLeft: `2px solid ${c.green}`, padding: '16px 20px', margin: '28px 0', background: 'rgba(90,158,114,0.06)', borderRadius: '0 6px 6px 0' }}>
           <p style={{ fontFamily: serif, fontSize: '14px', lineHeight: 1.7, color: c.secondary, fontStyle: 'italic', margin: 0 }}>

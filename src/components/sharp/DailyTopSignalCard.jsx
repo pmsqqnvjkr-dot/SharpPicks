@@ -506,7 +506,7 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
               letterSpacing: '0.16em', textTransform: 'uppercase', color: SP.amber,
             }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: SP.amber }} />
-              Calibration v1
+              Preview v1
             </span>
           )}
           {matchup && (
@@ -677,8 +677,8 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
             <path d="M12 8v4M12 16h.01" />
           </svg>
           <div style={{ fontSize: '12px', lineHeight: 1.45, color: SP.text2, paddingRight: '20px' }}>
-            <strong style={{ color: SP.amber, fontWeight: 500 }}>Calibration phase.</strong>
-            {' '}Confidence intervals widen during early-season validation. Closing line audit publishes on every signal.
+            <strong style={{ color: SP.amber, fontWeight: 500 }}>Preview.</strong>
+            {' '}Edges tracked live. Closing line audit publishes on every signal.
           </div>
           <button
             type="button"
@@ -686,7 +686,7 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
               try { window.localStorage.setItem('sp_banner_dismissed:dts-calibration-note', '1'); } catch { /* noop */ }
               setCalibrationNoteDismissed(true);
             }}
-            aria-label="Dismiss calibration note"
+            aria-label="Dismiss preview note"
             style={{
               position: 'absolute', top: '6px', right: '6px',
               width: '24px', height: '24px',

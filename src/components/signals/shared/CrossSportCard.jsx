@@ -77,7 +77,7 @@ export default function CrossSportCard({
             borderRadius: 4,
             fontWeight: 700,
           }}>
-            {sport.toUpperCase()}{isBeta ? ' \u00B7 BETA' : ''}
+            {sport.toUpperCase()}{isBeta ? ' \u00B7 PREVIEW' : ''}
           </span>
           <span style={{
             fontFamily: fonts.mono,
