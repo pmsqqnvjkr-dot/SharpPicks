@@ -404,7 +404,7 @@ function WithdrawnDetailScreen({ pick, onBack }) {
                 textTransform: 'uppercase',
                 color: SP.amber,
               }}>
-                {sport}{isCalibration ? ' · Calibration' : ''}
+                {sport}{isCalibration ? ' · Preview' : ''}
               </span>
               <span style={{
                 display: 'inline-flex',

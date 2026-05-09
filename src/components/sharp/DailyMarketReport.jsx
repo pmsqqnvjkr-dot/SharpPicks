@@ -259,10 +259,10 @@ export default function DailyMarketReport({ report: reportProp, isPro = false, o
           doesn't auto-dismiss WNBA. */}
       {isCalibration && (
         <CalibrationBanner
-          eyebrow="Calibration Phase"
+          eyebrow="Preview"
           dismissKey={`mi-calibration-${sport}`}
         >
-          Edges tracked live. Confidence intervals widen during early-season validation.
+          Edges tracked live. Receipts published on every signal.
         </CalibrationBanner>
       )}
 
