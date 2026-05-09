@@ -370,7 +370,7 @@ function DisciplineScore({ discipline, modelPhase }) {
             </div>
             <div style={{
               fontSize: '11px', color: 'var(--text-tertiary)',
-            }}>{isCal ? 'Preview. Selectivity filters are widened during the live track-record build.' : 'How often the model signals on available games'}</div>
+            }}>{isCal ? 'Selectivity filters are widened while the live track record builds.' : 'How often the model signals on available games'}</div>
           </div>
           {isCal ? (
             <div style={{

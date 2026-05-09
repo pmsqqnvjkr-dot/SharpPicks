@@ -666,8 +666,7 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
             <path d="M12 8v4M12 16h.01" />
           </svg>
           <div style={{ fontSize: '12px', lineHeight: 1.45, color: SP.text2, paddingRight: '20px' }}>
-            <strong style={{ color: SP.amber, fontWeight: 500 }}>Preview.</strong>
-            {' '}Edges tracked live. Closing line audit publishes on every signal.
+            Edges tracked live. Closing line audit publishes on every signal.
           </div>
           <button
             type="button"
