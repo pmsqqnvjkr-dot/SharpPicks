@@ -7054,6 +7054,27 @@ def stripe_webhook():
         except (AttributeError, TypeError):
             return getattr(obj, key, default)
 
+    def _infer_plan_from_subscription(sub_obj, fallback=None):
+        """Read 'annual' / 'monthly' from the subscription's first line
+        item's price.recurring.interval. Used when metadata.plan is
+        missing or stuck at 'trial' (Stripe doesn't reliably re-emit
+        metadata on update, so the auto-flip-founding gate can never
+        see a real plan string). Subscription objects carry the price
+        on every event, so this is the canonical source of truth."""
+        items = _safe_get(sub_obj, 'items', {})
+        item_data = _safe_get(items, 'data', []) if items else []
+        if not item_data:
+            return fallback
+        first = item_data[0] if item_data else {}
+        price = _safe_get(first, 'price', {})
+        recurring = _safe_get(price, 'recurring', {}) if price else {}
+        interval = _safe_get(recurring, 'interval') if recurring else None
+        if interval == 'year':
+            return 'annual'
+        if interval == 'month':
+            return 'monthly'
+        return fallback
+
     try:
         if webhook_secret and sig:
             try:
@@ -7153,8 +7174,17 @@ def stripe_webhook():
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
                     plan_meta = _safe_get(_safe_get(data_obj, 'metadata', {}), 'plan')
-                    if plan_meta:
+                    # Stripe leaves metadata.plan='trial' on the subscription
+                    # during the trial period and never overwrites it on
+                    # conversion, so 'trial' is a useless value for our enum.
+                    # Treat it as missing and fall back to inferring the plan
+                    # from the subscription's price.recurring.interval.
+                    if plan_meta and plan_meta != 'trial':
                         user.subscription_plan = plan_meta
+                    else:
+                        inferred = _infer_plan_from_subscription(data_obj)
+                        if inferred:
+                            user.subscription_plan = inferred
                     if status == 'active':
                         user.subscription_status = 'active'
                         user.is_premium = True
@@ -7193,8 +7223,15 @@ def stripe_webhook():
                 if user:
                     old_status = user.subscription_status
                     plan_meta = _safe_get(_safe_get(data_obj, 'metadata', {}), 'plan')
-                    if plan_meta:
+                    # See the matching block in subscription.created above:
+                    # metadata.plan is unreliable on update events (often
+                    # stuck at 'trial'), so prefer the price-inferred plan.
+                    if plan_meta and plan_meta != 'trial':
                         user.subscription_plan = plan_meta
+                    else:
+                        inferred = _infer_plan_from_subscription(data_obj)
+                        if inferred:
+                            user.subscription_plan = inferred
 
                     # Detect trial -> paid conversion. Only fires once per
                     # user (idempotent via the null check) so re-deliveries
@@ -7236,8 +7273,20 @@ def stripe_webhook():
                         user.subscription_status = 'active' if status == 'active' else 'trial'
                         user.is_premium = True
                     elif status == 'active':
-                        user.subscription_status = 'active'
-                        user.is_premium = True
+                        # Stripe's status='active' on subscription.updated only
+                        # signals that the trial period ended. It does NOT
+                        # mean a payment cleared. invoice.payment_succeeded
+                        # with amount_paid > 0 is the real signal. If we
+                        # flipped to 'active' here, users in their post-trial
+                        # pre-charge window render as 'Paid' in the admin
+                        # dashboard while still inside the original trial
+                        # commitment. Hold at 'trial' until the first
+                        # non-zero invoice clears.
+                        if old_status == 'trial':
+                            user.is_premium = True  # access continues while we wait for the charge
+                        else:
+                            user.subscription_status = 'active'
+                            user.is_premium = True
                     elif status == 'trialing':
                         user.subscription_status = 'trial'
                         user.is_premium = True
@@ -7326,6 +7375,23 @@ def stripe_webhook():
                             break
                     db.session.commit()
                     logging.info(f'Invoice paid for user {user.email} (amount_paid={amount_paid})')
+
+                    # Founding slot claim only after real money clears.
+                    # Previously this fired in subscription.updated on
+                    # the trial -> active transition, which assigned
+                    # founding numbers to users still inside their
+                    # year-1-free window before any $99 had moved.
+                    # The slot now claims exactly when the first
+                    # non-zero invoice succeeds on a founding-rate plan.
+                    # maybe_assign_founding is idempotent (caps at 50
+                    # and bails if already founding).
+                    if (amount_paid > 0
+                            and user.subscription_plan in ('annual', 'founding', 'annual_founding')
+                            and not user.founding_member):
+                        try:
+                            maybe_assign_founding(user.id)
+                        except Exception as fa_err:
+                            logging.error(f'Founding auto-assign (invoice.paid) failed: {fa_err}')
 
         elif event_type == 'invoice.payment_failed':
             cust_id = _safe_get(data_obj, 'customer')

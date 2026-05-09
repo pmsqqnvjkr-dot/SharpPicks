@@ -1082,6 +1082,8 @@ def upgrade_user_by_email():
         user.founding_number = data['founding_number']
     if 'subscription_status' in data:
         user.subscription_status = data['subscription_status']
+    if 'subscription_plan' in data:
+        user.subscription_plan = data['subscription_plan']
     db.session.commit()
     return jsonify({
         'success': True,
@@ -1092,7 +1094,8 @@ def upgrade_user_by_email():
             'is_superuser': user.is_superuser,
             'founding_member': user.founding_member,
             'founding_number': user.founding_number,
-            'subscription_status': user.subscription_status
+            'subscription_status': user.subscription_status,
+            'subscription_plan': user.subscription_plan
         }
     })
 
