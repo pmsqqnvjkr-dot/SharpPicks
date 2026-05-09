@@ -46,6 +46,18 @@ export default function UpgradeScreen({ onBack, user }) {
     loadOfferings();
   }, []);
 
+  // Open a legal URL via the Capacitor in-app browser when running
+  // inside the WebView (iOS, Android), or a new tab on the web. Used
+  // for the Privacy Policy and Terms of Use links required by 3.1.2(c).
+  const openLegal = async (url) => {
+    try {
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.open({ url });
+    } catch {
+      try { window.open(url, '_blank', 'noopener,noreferrer'); } catch { /* swallow */ }
+    }
+  };
+
   const handleStripeSubscribe = async (plan) => {
     if (isNative) {
       const { Browser } = await import('@capacitor/browser');
@@ -325,6 +337,7 @@ export default function UpgradeScreen({ onBack, user }) {
               <PlanToggle
                 label="Annual"
                 price={yearlyPrice}
+                duration="year"
                 selected={selectedPlan === 'yearly'}
                 onSelect={() => setSelectedPlan('yearly')}
                 badge="14-day trial"
@@ -332,6 +345,7 @@ export default function UpgradeScreen({ onBack, user }) {
               <PlanToggle
                 label="Monthly"
                 price={monthlyPrice}
+                duration="month"
                 selected={selectedPlan === 'monthly'}
                 onSelect={() => setSelectedPlan('monthly')}
               />
@@ -353,6 +367,15 @@ export default function UpgradeScreen({ onBack, user }) {
               {checkoutLoading ? 'Processing...' : 'Subscribe with Apple'}
             </button>
 
+            {/* Apple-required auto-renewal disclosure (3.1.2(c)). */}
+            <p style={{
+              fontFamily: 'var(--font-sans)', fontSize: '11px',
+              lineHeight: 1.5, color: 'var(--text-tertiary)',
+              textAlign: 'left', margin: '0 0 12px',
+            }}>
+              Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless canceled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions in your App Store account settings after purchase.
+            </p>
+
             <button
               onClick={handleRestore}
               disabled={restoringPurchases}
@@ -361,12 +384,43 @@ export default function UpgradeScreen({ onBack, user }) {
                 background: 'none', border: 'none',
                 color: 'var(--text-tertiary)', fontSize: '11px',
                 cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                textAlign: 'center', marginBottom: '16px',
+                textAlign: 'center', marginBottom: '12px',
                 opacity: restoringPurchases ? 0.5 : 1,
               }}
             >
               {restoringPurchases ? 'Restoring...' : 'Restore Purchase'}
             </button>
+
+            {/* Required legal links (3.1.2(c)). Privacy on the
+                SharpPicks domain, Terms uses Apple's standard EULA URL. */}
+            <div style={{
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+              gap: '8px', marginBottom: '4px',
+              fontFamily: 'var(--font-sans)', fontSize: '12px',
+              color: 'var(--text-tertiary)',
+            }}>
+              <button
+                type="button"
+                onClick={() => openLegal('https://sharppicks.ai/privacy')}
+                style={{
+                  background: 'none', border: 'none', padding: 0,
+                  color: 'var(--text-tertiary)', fontSize: '12px',
+                  fontFamily: 'var(--font-sans)', cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >Privacy Policy</button>
+              <span aria-hidden="true">·</span>
+              <button
+                type="button"
+                onClick={() => openLegal('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}
+                style={{
+                  background: 'none', border: 'none', padding: 0,
+                  color: 'var(--text-tertiary)', fontSize: '12px',
+                  fontFamily: 'var(--font-sans)', cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >Terms of Use</button>
+            </div>
           </>
         ) : (
           <>
@@ -442,7 +496,7 @@ export default function UpgradeScreen({ onBack, user }) {
   );
 }
 
-function PlanToggle({ label, price, selected, onSelect, badge }) {
+function PlanToggle({ label, price, duration, selected, onSelect, badge }) {
   return (
     <button
       onClick={onSelect}
@@ -471,7 +525,7 @@ function PlanToggle({ label, price, selected, onSelect, badge }) {
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 700,
         color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)',
-      }}>{price}</div>
+      }}>{price}{duration ? ` / ${duration}` : ''}</div>
     </button>
   );
 }
