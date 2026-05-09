@@ -184,6 +184,7 @@ struct MediumView: View {
 
 struct LargeView: View {
     let entry: WidgetEntry
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
@@ -199,14 +200,24 @@ struct LargeView: View {
                 .fill(SP.textSecondary.opacity(SP.dividerOpacity))
                 .frame(height: 1)
 
+            // 2x2 stat grid. All cells render public data so the
+            // widget delivers the same value to free and Pro users.
+            // Pro paywall stays in the app where it belongs (full
+            // reasoning, sizing, multi-sport coverage).
             VStack(spacing: 10) {
                 HStack(spacing: 10) {
-                    proCell(label: "SIDE")
-                    proCell(label: "LINE")
+                    statCell(label: "SIDE",
+                             value: entry.topPickLabel ?? "—",
+                             emphasized: entry.topPickLabel != nil)
+                    statCell(label: "EDGE",
+                             value: edgeText,
+                             emphasized: entry.topEdgePct != nil)
                 }
                 HStack(spacing: 10) {
-                    proCell(label: "EDGE")
-                    proCell(label: "SIZE")
+                    statCell(label: "REGIME",
+                             value: entry.regime?.uppercased() ?? "—")
+                    statCell(label: "SLATE",
+                             value: slateText)
                 }
             }
             .padding(16)
@@ -214,16 +225,30 @@ struct LargeView: View {
         }
     }
 
+    private var edgeText: String {
+        guard let edge = entry.topEdgePct else { return "—" }
+        return String(format: "+%.1f%%", edge)
+    }
+
+    private var slateText: String {
+        if let q = entry.qualifiedCount, let g = entry.gamesAnalyzed {
+            return "\(q) of \(g)"
+        }
+        return "—"
+    }
+
     @ViewBuilder
-    private func proCell(label: String) -> some View {
+    private func statCell(label: String, value: String, emphasized: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(.system(size: 9, weight: .bold))
                 .tracking(2.5)
                 .foregroundColor(SP.textSecondary)
-            Text("[Pro]")
+            Text(value)
                 .font(.system(size: 16, weight: .bold, design: .monospaced))
-                .foregroundColor(SP.signalBlue)
+                .foregroundColor(emphasized ? SP.edgeGreen : SP.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(12)

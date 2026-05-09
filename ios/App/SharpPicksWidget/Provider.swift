@@ -22,6 +22,7 @@ struct MarketReport: Decodable {
     let mei: MEI?
     let regime: String?
     let qualified_signals: Int?
+    let games_analyzed: Int?
     let top_edge_pct: Double?
     let top_edge_team: String?
     let board: [BoardGame]?
@@ -56,6 +57,13 @@ struct WidgetEntry: TimelineEntry, Codable {
     let regime: String?
     let topMatchup: String?
     let topEdgePct: Double?
+    // v1.1: large-widget bottom grid populated from public endpoint
+    // (no Pro gate). topPickLabel mirrors what the SEO market report
+    // already shows publicly. qualifiedCount + gamesAnalyzed feed the
+    // SLATE cell ("1 of 6").
+    let topPickLabel: String?
+    let qualifiedCount: Int?
+    let gamesAnalyzed: Int?
 }
 
 // MARK: - Provider
@@ -75,7 +83,10 @@ struct Provider: TimelineProvider {
             mei: 50,
             regime: "NORMAL",
             topMatchup: "Lakers @ Celtics",
-            topEdgePct: 8.0
+            topEdgePct: 8.0,
+            topPickLabel: "Lakers -3.5",
+            qualifiedCount: 1,
+            gamesAnalyzed: 6
         )
     }
 
@@ -140,12 +151,14 @@ struct Provider: TimelineProvider {
 
     private func entryFromReport(_ report: MarketReport) -> WidgetEntry {
         let qualifiedSignals = report.qualified_signals ?? 0
+        let gamesAnalyzed = report.games_analyzed
         let mei = report.market_efficiency_index ?? report.mei?.current
 
         // Find the top signal by iterating the board and picking the
         // entry with signal=true and the highest edge.
         var topMatchup: String? = nil
         var topEdgePct: Double? = report.top_edge_pct
+        var topPickLabel: String? = nil
         if let board = report.board {
             let signalGames = board.filter { $0.signal == true }
             if let top = signalGames.max(by: { ($0.edge ?? 0) < ($1.edge ?? 0) }) {
@@ -153,6 +166,9 @@ struct Provider: TimelineProvider {
                     topMatchup = "\(teamShort(away)) @ \(teamShort(home))"
                 }
                 if topEdgePct == nil { topEdgePct = top.edge }
+                if let label = top.pick_label {
+                    topPickLabel = shortenPickLabel(label)
+                }
             }
         }
 
@@ -171,8 +187,23 @@ struct Provider: TimelineProvider {
             mei: mei,
             regime: report.regime,
             topMatchup: topMatchup,
-            topEdgePct: topEdgePct
+            topEdgePct: topEdgePct,
+            topPickLabel: topPickLabel,
+            qualifiedCount: qualifiedSignals,
+            gamesAnalyzed: gamesAnalyzed
         )
+    }
+
+    // "Detroit Pistons +4.5" -> "Pistons +4.5". The last token is the
+    // line, the token before it is the team nickname. Compresses the
+    // pick label so it fits in the large-widget cell at 16pt mono.
+    private func shortenPickLabel(_ label: String) -> String {
+        let parts = label.split(separator: " ").map(String.init)
+        guard parts.count >= 2 else { return label }
+        let line = parts.last ?? ""
+        let teamWords = parts.dropLast()
+        let lastTeamWord = teamWords.last ?? ""
+        return "\(lastTeamWord) \(line)".trimmingCharacters(in: .whitespaces)
     }
 
     // Simple team-name short form: take the last word of the team
@@ -189,7 +220,10 @@ struct Provider: TimelineProvider {
             mei: nil,
             regime: nil,
             topMatchup: nil,
-            topEdgePct: nil
+            topEdgePct: nil,
+            topPickLabel: nil,
+            qualifiedCount: nil,
+            gamesAnalyzed: nil
         )
     }
 
