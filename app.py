@@ -23,7 +23,7 @@ app = Flask(__name__, static_folder='dist', static_url_path='/static-disabled')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.config['SECRET_KEY'] = app.secret_key
 
-DEPLOY_VERSION = '106b1d6-diag7-connleak'
+DEPLOY_VERSION = '106b1d6-diag8-connleak2'
 
 @app.route('/health')
 def health():
@@ -3572,6 +3572,17 @@ def collect_closing_lines():
     Does NOT re-fetch from external APIs — relies on refresh-lines cron
     to keep lines current."""
     with app.app_context():
+        # Same connection-leak guard as collect_wnba_closing_lines_job:
+        # close conn in finally so a mid-loop OperationalError doesn't
+        # leak the SQLite write lock until Python GC.
+        conn = None
+        all_today = []
+        evaluated = 0
+        updated = 0
+        skipped_scored = 0
+        skipped_outside = 0
+        now_iso = ''
+        end_iso = ''
         try:
             conn = get_sqlite_conn()
             conn.row_factory = sqlite3.Row
@@ -3594,10 +3605,6 @@ def collect_closing_lines():
             ''', (today_str,))
 
             all_today = cursor.fetchall()
-            evaluated = 0
-            updated = 0
-            skipped_scored = 0
-            skipped_outside = 0
 
             for game in all_today:
                 gt = game['game_time']
@@ -3646,7 +3653,6 @@ def collect_closing_lines():
                             )
 
             conn.commit()
-            conn.close()
             db.session.commit()
             print(f"[{datetime.now()}] closing-lines: {len(all_today)} today, {evaluated} in window, {updated} snapshotted, {skipped_scored} already scored, {skipped_outside} outside window")
             return {
@@ -3660,6 +3666,12 @@ def collect_closing_lines():
         except Exception as e:
             print(f"[{datetime.now()}] Closing line error: {e}")
             raise
+        finally:
+            if conn is not None:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
 def collect_wnba_games_job():
     """Run the WNBA data collector"""
@@ -3685,11 +3697,20 @@ def collect_wnba_closing_lines_job():
     
     print(f"[{datetime.now()}] Capturing WNBA closing lines...")
     with app.app_context():
+        # conn declared upfront so the finally below closes it on any
+        # mid-loop OperationalError. The previous shape only closed
+        # conn at the end of the happy path; a leaked connection
+        # holding the SQLite write lock was the root cause of
+        # cascading 'database is locked' errors after WAL + cron
+        # mutex were already in place. Same fix as
+        # main.collect_wnba_closing_lines.
+        conn = None
+        updated = 0
         try:
             conn = get_sqlite_conn()
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            
+
             today_str = _get_et_today()
             cursor.execute('''
                 SELECT id, home_team, away_team, spread_home, total,
@@ -3699,10 +3720,9 @@ def collect_wnba_closing_lines_job():
                 AND home_score IS NULL
                 AND spread_home IS NOT NULL
             ''', (f'{today_str}%',))
-            
+
             games = cursor.fetchall()
-            updated = 0
-            
+
             for game in games:
                 cursor.execute('''
                     UPDATE wnba_games SET
@@ -3715,7 +3735,7 @@ def collect_wnba_closing_lines_job():
                 ''', (game['spread_home'], game['total'],
                       game['home_ml'], game['away_ml'],
                       datetime.now().isoformat(), game['id']))
-                
+
                 from performance_tracker import update_closing_line
                 update_closing_line(game['id'], game['spread_home'])
                 updated += 1
@@ -3740,11 +3760,16 @@ def collect_wnba_closing_lines_job():
                             )
 
             conn.commit()
-            conn.close()
             db.session.commit()
             print(f"[{datetime.now()}] Captured WNBA closing lines for {updated} games")
         except Exception as e:
             print(f"[{datetime.now()}] WNBA closing line error: {e}")
+        finally:
+            if conn is not None:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
 
 def check_data_quality():
@@ -4977,6 +5002,12 @@ def collect_mlb_closing_lines_job():
 
     print(f"[{datetime.now()}] Capturing MLB closing snapshots...")
     with app.app_context():
+        # Same connection-leak guard as the NBA + WNBA closing-line jobs.
+        conn = None
+        games = []
+        updated = 0
+        skipped_outside = 0
+        skipped_scored = 0
         try:
             conn = get_sqlite_conn()
             conn.row_factory = sqlite3.Row
@@ -4999,9 +5030,6 @@ def collect_mlb_closing_lines_job():
             ''', (f'{today_str}%',))
 
             games = cursor.fetchall()
-            updated = 0
-            skipped_outside = 0
-            skipped_scored = 0
 
             for game in games:
                 gt = game['game_time']
@@ -5044,11 +5072,16 @@ def collect_mlb_closing_lines_job():
                             )
 
             conn.commit()
-            conn.close()
             db.session.commit()
             print(f"[{datetime.now()}] MLB closing-lines: {len(games)} today, {updated} snapshotted, {skipped_scored} already scored, {skipped_outside} outside window")
         except Exception as e:
             print(f"[{datetime.now()}] MLB closing line error: {e}")
+        finally:
+            if conn is not None:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
 
 def grade_mlb_picks_job():
