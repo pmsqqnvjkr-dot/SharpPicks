@@ -171,11 +171,6 @@ function PerformanceCore({ perf, equityCurve }) {
         {!hasPicks ? (
           <div style={{ textAlign: 'center', padding: '16px 0' }}>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-              color: 'var(--text-tertiary)', letterSpacing: '0.5px',
-              marginBottom: '6px',
-            }}>Preview</div>
-            <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '10px',
               color: 'var(--text-tertiary)',
             }}>Results will appear after the first resolved signal.</div>
@@ -387,7 +382,7 @@ function DisciplineScore({ discipline, modelPhase }) {
               <span style={{
                 fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700,
                 letterSpacing: '0.08em', color: '#6b7a8d',
-              }}>PREV</span>
+              }}>-</span>
             </div>
           ) : (
             <div style={{
@@ -807,7 +802,7 @@ function ModelHealthBadge({ health }) {
 
 function PhaseTimeline({ phase }) {
   const steps = [
-    { key: 'calibration', label: 'Preview' },
+    { key: 'calibration', label: 'Build' },
     { key: 'validation', label: 'Validation' },
     { key: 'deployment', label: 'Deployment' },
   ];

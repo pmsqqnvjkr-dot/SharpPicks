@@ -258,10 +258,7 @@ export default function DailyMarketReport({ report: reportProp, isPro = false, o
           the X dismiss button. Per-sport dismissKey so dismissing on MLB
           doesn't auto-dismiss WNBA. */}
       {isCalibration && (
-        <CalibrationBanner
-          eyebrow="Preview"
-          dismissKey={`mi-calibration-${sport}`}
-        >
+        <CalibrationBanner dismissKey={`mi-calibration-${sport}`}>
           Edges tracked live. Receipts published on every signal.
         </CalibrationBanner>
       )}

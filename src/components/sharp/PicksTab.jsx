@@ -33,11 +33,9 @@ import { FEATURE_EVAN_COLE_READ, FEATURE_DISCIPLINE_ARTICLES, FEATURE_EVENING_RE
 // MLB and WNBA in calibration phase share the same framing pattern.
 const CALIBRATION_COPY = {
   mlb: {
-    eyebrow: 'Preview · MLB',
     body: <><strong>MLB signals use the same model pipeline as NBA.</strong> While we build the live track record, MLB is labeled Preview. Edges are real. Sizing is identical. Every signal is tracked and graded.</>,
   },
   wnba: {
-    eyebrow: 'Preview · WNBA',
     body: <><strong>WNBA signals use the same model pipeline as NBA.</strong> While we build the live track record, WNBA is labeled Preview. Edges are real. Sizing is identical. Every signal is tracked and graded.</>,
   },
 };
@@ -444,10 +442,7 @@ export default function PicksTab({ onNavigate }) {
             Renders only when the sport is in calibration phase. NBA is in
             deployment phase so it doesn't show. */}
         {todayData?.model_phase === 'calibration' && CALIBRATION_COPY[sport] && (
-          <CalibrationBanner
-            eyebrow={CALIBRATION_COPY[sport].eyebrow}
-            dismissKey={`calibration-${sport}`}
-          >
+          <CalibrationBanner dismissKey={`calibration-${sport}`}>
             {CALIBRATION_COPY[sport].body}
           </CalibrationBanner>
         )}
@@ -1920,7 +1915,7 @@ function RevokedPassCard({ pick, onViewDetails }) {
           fontSize: '9px', fontWeight: 500, letterSpacing: '0.2em', textTransform: 'uppercase',
           color: '#F59E0B',
         }}>
-          {sportLabel}{isCalibration ? ' · Preview' : ''}
+          {sportLabel}
         </span>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: '5px',

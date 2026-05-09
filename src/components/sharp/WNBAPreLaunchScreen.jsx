@@ -422,7 +422,6 @@ export default function WNBAPreLaunchScreen({ onNavigate }) {
         }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: SP.amber }} />
           Calibration Log · Sample
-          <span style={{ marginLeft: 'auto', color: SP.text4, letterSpacing: '0.16em' }}>PREVIEW</span>
         </div>
         <div style={{
           fontFamily: SP.fontSerif, fontSize: '18px', fontWeight: 500,

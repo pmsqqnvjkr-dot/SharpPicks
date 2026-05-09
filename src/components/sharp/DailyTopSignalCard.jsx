@@ -498,17 +498,6 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
             letterSpacing: '0.18em', textTransform: 'uppercase', color: SP.text2,
             background: SP.surface2,
           }}>{sportLabel}</span>
-          {isCalibration && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              padding: '4px 10px', border: `1px solid ${SP.amber}`, borderRadius: '4px',
-              fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
-              letterSpacing: '0.16em', textTransform: 'uppercase', color: SP.amber,
-            }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: SP.amber }} />
-              Preview v1
-            </span>
-          )}
           {matchup && (
             <span style={{
               flexBasis: '100%', marginTop: '6px',
