@@ -23,7 +23,7 @@ app = Flask(__name__, static_folder='dist', static_url_path='/static-disabled')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.config['SECRET_KEY'] = app.secret_key
 
-DEPLOY_VERSION = '106b1d6-diag5-fastfail'
+DEPLOY_VERSION = '106b1d6-diag6-cronmutex'
 
 @app.route('/health')
 def health():
@@ -3952,9 +3952,69 @@ def expire_trials():
 
 
 import time as _time
+import contextlib as _contextlib
 
 _cron_locks = {}
 _cron_lock_mutex = threading.Lock()
+
+
+class CronBusyError(Exception):
+    """Raised when the Postgres-backed cron mutex is held by another worker.
+    Caller should treat as a clean skip, not an error."""
+    pass
+
+
+@_contextlib.contextmanager
+def sqlite_writer_mutex(job_name):
+    """Postgres advisory lock to serialize SQLite-touching cron jobs across
+    every gunicorn worker. The pre-existing _cron_locks dict only protects
+    the same worker from running a job twice concurrently; two crons
+    landing on different workers (the normal case for cronjobs.org HTTP
+    fan-out) used to grab the SQLite write lock simultaneously and stall
+    each other for the full busy_timeout. This mutex serializes the cron
+    set globally so the second arrival skips immediately rather than
+    queueing on the SQLite file lock for tens of seconds.
+
+    Implementation notes:
+      - pg_try_advisory_lock returns immediately. False -> we raise
+        CronBusyError so the caller logs a clean skip and cronjobs.org
+        retries on the next tick.
+      - The lock is held on a dedicated raw_connection so it spans the
+        full cron duration regardless of the SQLAlchemy session pool's
+        churn. Released in finally; if a worker crashes before reaching
+        finally, Postgres releases the lock automatically when the TCP
+        connection drops, so a stuck cron can never block forever.
+      - hashtext('sqlite_cron_writer') gives a stable int key without
+        having to hand-pick one. Same string, same int, every worker.
+    """
+    raw_conn = db.engine.raw_connection()
+    cur = raw_conn.cursor()
+    got = False
+    try:
+        cur.execute("SELECT pg_try_advisory_lock(hashtext('sqlite_cron_writer'))")
+        got = bool(cur.fetchone()[0])
+        if not got:
+            raise CronBusyError(
+                f"{job_name} skipped, another sqlite-touching cron is running"
+            )
+        yield
+    finally:
+        if got:
+            try:
+                cur.execute("SELECT pg_advisory_unlock(hashtext('sqlite_cron_writer'))")
+                raw_conn.commit()
+            except Exception as _release_err:
+                logging.warning(
+                    f"[cron-mutex] release failed for {job_name}: {_release_err}"
+                )
+        try:
+            cur.close()
+        except Exception:
+            pass
+        try:
+            raw_conn.close()
+        except Exception:
+            pass
 
 CRON_MIN_INTERVAL = {
     'admin_alert': 7200,
@@ -3985,7 +4045,15 @@ def _run_cron_sync(job_name, fn):
     """Execute cron job synchronously, log result. Used by both sync and async paths."""
     start = _time.time()
     try:
-        result = fn()
+        try:
+            with sqlite_writer_mutex(job_name):
+                result = fn()
+        except CronBusyError as busy:
+            # Another worker is mid-cron. Skip cleanly; cronjobs.org will
+            # retry next tick. Don't write to CronLog (clutters the table)
+            # and don't send admin alerts (this isn't a failure).
+            logging.info(f"[cron] {busy}")
+            return {'status': 'skipped', 'job': job_name, 'reason': 'mutex_held'}
         dur = int((_time.time() - start) * 1000)
         log = CronLog(job_name=job_name, status='ok', duration_ms=dur,
                       message=str(result) if result else None)
