@@ -4,6 +4,7 @@ All production code (app.py, main.py, model.py, model_service.py) MUST use
 get_sqlite_path() - never hardcode 'sharp_picks.db'. Railway sets
 RAILWAY_VOLUME_MOUNT_PATH=/data when a volume is attached.
 """
+import contextlib
 import logging
 import os
 import sqlite3
@@ -97,6 +98,50 @@ def get_sqlite_conn(path=None, timeout=15.0):
         )
     cur.close()
     return conn
+
+
+@contextlib.contextmanager
+def sqlite_conn(path=None, timeout=15.0):
+    """Context manager wrapper around get_sqlite_conn() that guarantees
+    conn.close() runs even when the body raises.
+
+    Without this, the common cron pattern -
+
+        try:
+            conn = get_sqlite_conn()
+            for row in rows:
+                cur.execute('UPDATE ...')   # raises OperationalError
+            conn.commit()
+            conn.close()
+        except:
+            log_error()                     # close() never reached
+
+    leaks the connection with the implicit BEGIN's write lock held
+    until Python GC eventually collects it. Subsequent cron runs and
+    request handlers waiting for the write lock then time out at
+    busy_timeout even though the cron looks 'finished'. This is the
+    failure mode driving the cascading database-is-locked admin
+    alerts after WAL + advisory lock + cron stagger were already in
+    place.
+
+    Use as:
+
+        with sqlite_conn() as conn:
+            cur = conn.cursor()
+            cur.execute(...)
+            conn.commit()
+    """
+    conn = get_sqlite_conn(path=path, timeout=timeout)
+    try:
+        yield conn
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            # Best-effort close. If the connection is already in a
+            # weird state, don't propagate a secondary exception that
+            # would mask the original error.
+            pass
 
 
 def get_sqlite_status():

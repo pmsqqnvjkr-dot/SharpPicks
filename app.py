@@ -23,7 +23,7 @@ app = Flask(__name__, static_folder='dist', static_url_path='/static-disabled')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.config['SECRET_KEY'] = app.secret_key
 
-DEPLOY_VERSION = '106b1d6-diag6-cronmutex'
+DEPLOY_VERSION = '106b1d6-diag7-connleak'
 
 @app.route('/health')
 def health():
@@ -4851,8 +4851,19 @@ def cron_live_scores():
                     logging.warning(f"Live scores: error processing {sport} game {row.get('id', '?')}: {e}")
                     errors.append(f"{sport}:{row.get('id', '?')}:{e}")
 
-            conn.commit()
-            conn.close()
+            # Ensure conn always closes even if commit() raises. The
+            # row-loop UPDATEs are individually try/excepted, so the
+            # most likely leak point left is commit() under write-lock
+            # contention. The other early-exit `continue` branches
+            # above each call conn.close() explicitly, so this finally
+            # only runs in the success path.
+            try:
+                conn.commit()
+            finally:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
             updated_total += updated
             if updated:
                 logging.info(f"Live scores: updated {updated} {sport} games")

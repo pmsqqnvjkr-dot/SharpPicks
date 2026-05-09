@@ -1840,34 +1840,36 @@ def collect_closing_lines():
         'bookmakers': ','.join(PREFERRED_BOOKS)
     }
     
+    # See note in collect_wnba_closing_lines: declare conn upfront so
+    # the finally below closes it on any mid-loop OperationalError.
+    conn = None
+    updated = 0
     try:
         response = api_request_with_retry(url, params)
-        
+
         if response is None:
             print("\n❌ Failed to connect after 3 attempts.")
             print("   Please check your internet connection and try again.\n")
             return
-        
+
         if response.status_code != 200:
             print(f"❌ API Error: {response.status_code}")
             return
-        
+
         games = response.json()
-        
+
         print(f"✅ Connected! API calls left: {API_USAGE['remaining']}/500\n")
-        
+
         check_api_usage()
-        
+
         conn = get_sqlite_conn()
         cursor = conn.cursor()
-        
-        updated = 0
-        
+
         for game in games:
             game_id = game['id']
             home = game['home_team']
             away = game['away_team']
-            
+
             cursor.execute('SELECT id, spread_home_open FROM games WHERE id = ? AND home_score IS NULL', (game_id,))
             existing = cursor.fetchone()
             
@@ -1949,12 +1951,17 @@ def collect_closing_lines():
             print(f"🔒 {away} @ {home}: Close {spread_home:+.1f}{move_str}")
         
         conn.commit()
-        conn.close()
-        
+
         print(f"\n✅ Captured closing lines for {updated} games\n")
-        
+
     except Exception as e:
         print(f"❌ Error: {e}\n")
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def collect_wnba_closing_lines():
@@ -1979,6 +1986,13 @@ def collect_wnba_closing_lines():
         'bookmakers': ','.join(PREFERRED_BOOKS)
     }
 
+    # conn declared upfront so the finally below can close it on any
+    # mid-loop OperationalError. Without this, a single 'database is
+    # locked' on one of the UPDATEs leaks the connection (and its
+    # implicit BEGIN's write lock) until Python GC, cascading to
+    # every subsequent writer.
+    conn = None
+    updated = 0
     try:
         response = api_request_with_retry(url, params)
 
@@ -1998,8 +2012,6 @@ def collect_wnba_closing_lines():
 
         conn = get_sqlite_conn()
         cursor = conn.cursor()
-
-        updated = 0
 
         for game in games:
             game_id = game['id']
@@ -2074,12 +2086,17 @@ def collect_wnba_closing_lines():
             print(f"🔒 {away} @ {home}: Close {spread_display}{move_str}")
 
         conn.commit()
-        conn.close()
 
         print(f"\n✅ Captured WNBA closing lines for {updated} games\n")
 
     except Exception as e:
         print(f"❌ Error: {e}\n")
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def show_visualization():
@@ -4352,6 +4369,9 @@ def collect_mlb_closing_lines():
         'bookmakers': 'draftkings,fanduel,betmgm,caesars_sportsbook'
     }
 
+    # Same connection-leak guard as the NBA + WNBA closing line crons.
+    conn = None
+    updated = 0
     try:
         response = api_request_with_retry(url, params)
         if response is None or response.status_code != 200:
@@ -4365,7 +4385,6 @@ def collect_mlb_closing_lines():
         cursor = conn.cursor()
         setup_mlb_table(cursor)
 
-        updated = 0
         for game in games:
             game_id = game['id']
             spread_close = None
@@ -4406,11 +4425,16 @@ def collect_mlb_closing_lines():
                 print(f"   📌 Close: {game['away_team']} @ {home} | RL {spread_close} | O/U {total_close} | ML {home_ml_close}")
 
         conn.commit()
-        conn.close()
         print(f"\n✅ Closing lines captured for {updated} MLB games\n")
 
     except Exception as e:
         print(f"❌ MLB closing line error: {e}")
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 # Main execution
