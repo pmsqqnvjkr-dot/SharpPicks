@@ -207,7 +207,7 @@ struct LargeView: View {
             VStack(spacing: 10) {
                 HStack(spacing: 10) {
                     statCell(label: "SIDE",
-                             value: entry.topPickLabel ?? "—",
+                             value: entry.topPickLabel ?? "-",
                              emphasized: entry.topPickLabel != nil)
                     statCell(label: "EDGE",
                              value: edgeText,
@@ -215,7 +215,7 @@ struct LargeView: View {
                 }
                 HStack(spacing: 10) {
                     statCell(label: "REGIME",
-                             value: entry.regime?.uppercased() ?? "—")
+                             value: entry.regime?.uppercased() ?? "-")
                     statCell(label: "SLATE",
                              value: slateText)
                 }
@@ -226,7 +226,7 @@ struct LargeView: View {
     }
 
     private var edgeText: String {
-        guard let edge = entry.topEdgePct else { return "—" }
+        guard let edge = entry.topEdgePct else { return "-" }
         return String(format: "+%.1f%%", edge)
     }
 
@@ -234,7 +234,7 @@ struct LargeView: View {
         if let q = entry.qualifiedCount, let g = entry.gamesAnalyzed {
             return "\(q) of \(g)"
         }
-        return "—"
+        return "-"
     }
 
     @ViewBuilder
