@@ -504,7 +504,7 @@ All secured by `X-Cron-Secret` header. All log execution to `cron_logs` table.
 | Method | Path | Schedule (ET) | Purpose |
 |--------|------|----------------|---------|
 | POST | `/api/cron/collect-games` | 5:05 AM + 9:00 AM + 1:05 PM | Fetch today's NBA games (9 AM before first model run) |
-| POST | `/api/cron/run-model` | 10:15 AM + 2:15 PM | Run model, publish pick or pass |
+| POST | `/api/cron/run-model` | 10:00 AM | Run model, publish pick or pass (single daily run; second run was removed because force=true regenerated picks and re-fired push notifications) |
 | POST | `/api/cron/refresh-lines` | Every 10 min, 6 AM–2 AM | Refresh odds between collects |
 | POST | `/api/cron/closing-lines` | Every min, 10 AM–1 AM (×4 shards) | Capture closing lines before tipoff |
 | POST | `/api/cron/grade-picks` | 3:45 AM + 11:30 AM | Grade pending picks (after games finish) |

@@ -21,7 +21,7 @@ All times **Eastern (ET)**. Use `X-Cron-Secret` header with your `CRON_SECRET` v
 |-----|-----|---------------|
 | collect_games | `https://app.sharppicks.ai/api/cron/collect-games` | 5:05 AM |
 | update_ratings | `https://app.sharppicks.ai/api/cron/update-ratings` | 9:30 AM |
-| **run_model** | **`https://app.sharppicks.ai/api/cron/run-model?force=true`** | **10:00 AM**, 2:15 PM |
+| **run_model** | **`https://app.sharppicks.ai/api/cron/run-model?force=true`** | **10:00 AM** |
 | refresh_lines | `https://app.sharppicks.ai/api/cron/refresh-lines` | Every 10 min, 10 AM–2 AM |
 | closing_lines | `https://app.sharppicks.ai/api/cron/closing-lines` | Every 2 min, 10 AM–1 AM |
 | live_scores | `https://app.sharppicks.ai/api/cron/live-scores` | Every 5 min, 10 AM–2 AM |
