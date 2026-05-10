@@ -2635,7 +2635,6 @@ def collect_wnba_scores(date_offset=1):
                     SELECT id, spread_home, total FROM wnba_games
                     WHERE game_date = ?
                     AND (home_team LIKE ? OR home_team LIKE ?)
-                    AND home_score IS NULL
                 ''', (try_date, f'%{home_team.split()[-1]}%', f'%{home_team}%'))
                 game = cursor.fetchone()
                 if game:
