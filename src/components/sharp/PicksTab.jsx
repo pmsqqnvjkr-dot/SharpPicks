@@ -131,7 +131,7 @@ export default function PicksTab({ onNavigate }) {
   const [tonightBets, setTonightBets] = useState(null);
   const [yesterdayReport, setYesterdayReport] = useState(null);
   const modelRunHour = todayData?.model_run_hour
-    || ({ mlb: 11, wnba: 12 }[sport])
+    || ({ mlb: 11, wnba: 10 }[sport])
     || 10;
   const modelRunLabel = todayData?.model_runs_at || (modelRunHour <= 12 ? `${modelRunHour}:00 AM ET` : `${modelRunHour - 12}:00 PM ET`);
   const countdown = useCountdownTo(modelRunHour);
