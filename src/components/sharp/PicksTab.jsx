@@ -928,8 +928,8 @@ export default function PicksTab({ onNavigate }) {
                     const catLabel = catLabels[a.category] || a.category || 'Journal';
                     const isDiscipline = a.category === 'discipline';
                     const isHow = a.category === 'how_it_works';
-                    const catColor = isDiscipline ? '#5A9E72' : isHow ? '#6B8AC4' : '#8C9AB0';
-                    const catBg = isDiscipline ? 'rgba(90,158,114,0.1)' : isHow ? 'rgba(107,138,196,0.1)' : 'rgba(140,154,176,0.08)';
+                    const catColor = isDiscipline ? '#5A9E72' : isHow ? '#4F86F7' : 'rgba(232, 234, 237, 0.5)';
+                    const catBg = isDiscipline ? 'rgba(90,158,114,0.1)' : isHow ? 'rgba(79,134,247,0.1)' : 'rgba(255,255,255,0.04)';
                     return (
                       <button
                         key={a.id || i}
@@ -955,8 +955,8 @@ export default function PicksTab({ onNavigate }) {
                             color: catColor, background: catBg,
                             padding: '3px 8px', borderRadius: 4,
                           }}>{catLabel}</span>
-                          <span style={{ fontSize: '10px', color: '#5A6886', fontFamily: "'IBM Plex Mono', var(--font-mono), monospace" }}>·</span>
-                          <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', color: '#5A6886' }}>
+                          <span style={{ fontSize: '10px', color: 'rgba(232, 234, 237, 0.5)', fontFamily: "'IBM Plex Mono', var(--font-mono), monospace" }}>·</span>
+                          <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', color: 'rgba(232, 234, 237, 0.5)' }}>
                             {a.reading_time_minutes || a.read_time || 4} min read
                           </span>
                         </div>
@@ -1021,7 +1021,7 @@ export default function PicksTab({ onNavigate }) {
                   color: 'inherit',
                 }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B8AC4" strokeWidth="1.8" style={{ marginBottom: 8 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4F86F7" strokeWidth="1.8" style={{ marginBottom: 8 }}>
                   <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                   <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
                 </svg>

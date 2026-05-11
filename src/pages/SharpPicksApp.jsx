@@ -85,7 +85,7 @@ function PaymentFailedGate({ user }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         margin: '0 auto 24px',
       }}>
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6B8AC4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4F86F7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="2" y="6" width="20" height="13" rx="2" />
           <line x1="2" y1="11" x2="22" y2="11" />
           <line x1="6" y1="15" x2="10" y2="15" />
@@ -124,9 +124,9 @@ function PaymentFailedGate({ user }) {
         disabled={busy && !isIOSNative}
         style={{
           padding: '14px 28px',
-          backgroundColor: (busy && !isIOSNative) ? 'var(--text-tertiary)' : '#4ADE80',
+          backgroundColor: (busy && !isIOSNative) ? 'var(--text-tertiary)' : '#5A9E72',
           border: 'none', borderRadius: '12px',
-          color: '#0A0E1A', fontSize: '15px', fontWeight: 600,
+          color: '#0A0D14', fontSize: '15px', fontWeight: 600,
           cursor: (busy && !isIOSNative) ? 'wait' : 'pointer',
           fontFamily: 'var(--font-sans)', marginBottom: '14px',
           minWidth: '240px', minHeight: '48px',
