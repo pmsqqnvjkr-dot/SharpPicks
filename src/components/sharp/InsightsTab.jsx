@@ -107,8 +107,13 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
       && /^market-note-(\w+-)?[0-9]{4}/.test(selectedInsight.slug || '');
     const isBeginnersGuide = selectedInsight.slug === 'beginners-guide';
     if (!isMarketNote && !isBeginnersGuide) {
+      // Always surface a 'next read' at the bottom of the article. If the
+      // current article is the last in the list, wrap back to the first
+      // one so the reader never hits a dead end.
       const idx = insights.findIndex(i => i.id === selectedInsight.id);
-      const nextInsight = idx >= 0 && idx < insights.length - 1 ? insights[idx + 1] : null;
+      const nextInsight = insights.length > 1
+        ? (idx >= 0 && idx < insights.length - 1 ? insights[idx + 1] : insights[0])
+        : null;
       return (
         <SharpJournalArticle
           insight={selectedInsight}

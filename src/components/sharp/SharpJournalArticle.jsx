@@ -37,26 +37,29 @@ import { useState, useEffect, useRef } from 'react';
  * enforced at render time. Authoring linter is a separate concern per the spec.
  */
 
+// "Field Guide" as a brand was retired. Sharp Journal is the umbrella;
+// each article is tagged with the section it belongs to. Green is the
+// default section color; how-it-works gets blue for technical pieces and
+// editorial / market notes get amber for opinion-shaped content.
 const CATEGORY_TAG = {
-  how_it_works: { label: 'How it works', className: 'how-it-works' },
-  field_guide: { label: 'Field Guide', className: 'field-guide' },
-  discipline: { label: 'Field Guide', className: 'field-guide' },
-  philosophy: { label: 'Field Guide', className: 'field-guide' },
-  education: { label: 'Field Guide', className: 'field-guide' },
-  founder_note: { label: 'Editorial', className: 'editorial' },
-  editorial: { label: 'Editorial', className: 'editorial' },
-  market_notes: { label: 'Editorial', className: 'editorial' },
-  morning_edition: { label: 'Morning Edition', className: 'field-guide' },
-  evening_edition: { label: 'Evening Edition', className: 'field-guide' },
+  how_it_works: { label: 'How it works', className: 'tech' },
+  discipline:   { label: 'Discipline',   className: 'section' },
+  philosophy:   { label: 'Philosophy',   className: 'section' },
+  education:    { label: 'Education',    className: 'section' },
+  founder_note: { label: 'Editorial',    className: 'editorial' },
+  editorial:    { label: 'Editorial',    className: 'editorial' },
+  market_notes: { label: 'Market notes', className: 'editorial' },
+  morning_edition: { label: 'Morning Edition', className: 'section' },
+  evening_edition: { label: 'Evening Edition', className: 'section' },
 };
 
 const TAG_STYLE = {
-  'how-it-works': {
+  tech: {
     background: 'var(--sp-blue-soft)',
     color: 'var(--sp-blue)',
     border: '1px solid rgba(79, 134, 247, 0.3)',
   },
-  'field-guide': {
+  section: {
     background: 'var(--sp-green-soft)',
     color: 'var(--sp-green)',
     border: '1px solid rgba(90, 158, 114, 0.3)',
@@ -481,8 +484,8 @@ export default function SharpJournalArticle({
   const { blocks, whyMattersText } = extractWhyMatters(allBlocks);
   const why = insight.why_this_matters || whyMattersText || insight.excerpt || '';
 
-  const tagInfo = CATEGORY_TAG[insight.category] || CATEGORY_TAG.field_guide;
-  const tagStyle = TAG_STYLE[tagInfo.className] || TAG_STYLE['field-guide'];
+  const tagInfo = CATEGORY_TAG[insight.category] || { label: 'Sharp Journal', className: 'section' };
+  const tagStyle = TAG_STYLE[tagInfo.className] || TAG_STYLE.section;
   const readMinutes = insight.reading_time_minutes || insight.read_time || 2;
 
   const dateStr = formatArticleDate(insight.publish_date || insight.created_at || insight.date);
@@ -490,10 +493,7 @@ export default function SharpJournalArticle({
   const authorName = insight.author_name || 'Evan Cole';
   const authorTitle = insight.author_title || 'Head of Signal Intelligence';
 
-  const contentType = insight.content_type
-    || (tagInfo.label === 'How it works' ? 'How it works'
-      : tagInfo.label === 'Editorial' ? 'Editorial'
-      : 'Field Guide');
+  const contentType = insight.content_type || 'Sharp Journal';
   const version = insight.version || 'v1.0';
 
   // Track whether the next H2 needs a divider above it. The first H2 in the

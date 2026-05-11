@@ -1239,7 +1239,7 @@ export default function PicksTab({ onNavigate }) {
                           letterSpacing: '0.10em', textTransform: 'uppercase',
                           padding: '2px 8px', borderRadius: 3,
                           background: 'rgba(79,134,247,0.10)', color: '#7AA0E5',
-                        }}>{(featuredArticle.category || 'Field Guide').replace(/_/g, ' ')}</span>
+                        }}>{(featuredArticle.category || 'Sharp Journal').replace(/_/g, ' ')}</span>
                         <span style={{
                           fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px',
                           letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494',

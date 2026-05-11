@@ -53,7 +53,7 @@ export default function TodaysReadCard({ articles, onOpen, sport }) {
   const article = pickEvergreenArticle(articles, sport);
   if (!article) return null;
 
-  const catLabel = CAT_LABELS[article.category] || article.category || 'Field Guide';
+  const catLabel = CAT_LABELS[article.category] || article.category || 'Sharp Journal';
   const minutes = article.reading_time_minutes || article.read_time || 3;
   const isClickable = typeof onOpen === 'function';
   const handleOpen = () => { if (isClickable) onOpen(article); };
@@ -80,7 +80,7 @@ export default function TodaysReadCard({ articles, onOpen, sport }) {
       }}>
         <span style={{ color: SP.green, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
           <span style={{ width: 5, height: 5, background: SP.green, borderRadius: '50%' }} />
-          Field Guide
+          Sharp Journal
         </span>
         <span style={{ color: SP.text4 }}>·</span>
         <span>{catLabel}</span>
@@ -107,7 +107,7 @@ export default function TodaysReadCard({ articles, onOpen, sport }) {
         <span style={{
           fontFamily: SP.fontMono, fontSize: '10px', color: SP.text4,
           letterSpacing: '0.04em',
-        }}>From the SharpPicks Field Guide</span>
+        }}>From the Sharp Journal</span>
         {isClickable && (
           <span style={{
             fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
