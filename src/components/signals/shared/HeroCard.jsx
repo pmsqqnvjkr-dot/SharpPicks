@@ -210,7 +210,7 @@ function renderTitle(title) {
   return (
     <>
       {before}
-      <span style={{ fontStyle: 'italic', color: '#4ADE80' }}>{word}</span>
+      <span style={{ fontStyle: 'italic', color: '#5A9E72' }}>{word}</span>
       {after}
     </>
   );
@@ -225,7 +225,7 @@ function renderSubtitle(subtitle) {
       const isFirstEdge = parts.slice(0, i).filter(p => /^\+\d+(?:\.\d+)?%$/.test(p)).length === 0;
       return (
         <span key={i} style={{
-          color: isFirstEdge ? '#4ADE80' : '#9BA8C2',
+          color: isFirstEdge ? '#5A9E72' : 'rgba(232, 234, 237, 0.7)',
           fontWeight: 500,
         }}>{part}</span>
       );
