@@ -474,88 +474,113 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
     );
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // ONE-SCREEN UNLOCKED RENDER (spec: docs/wnba-signal-card-one-screen.html)
+  //
+  // Consolidations vs the prior layout:
+  //   - 4-cell stat grid + separate Flat/Kelly block -> single 5-cell grid
+  //     (Market/Model/Tier/Flat/Kelly). SIZE cell dropped; flat stake is
+  //     now the primary sizing display.
+  //   - Standalone Observation + Market Context cards -> one combined
+  //     green-bordered block, separated by a thin green-soft divider.
+  //   - Edge + Value bars compressed to 4px tracks, no card chrome.
+  //   - Signal reasoning accordion header + posted-time/best-book row
+  //     merged into one row. Expanded content drops below the row.
+  //   - Sharp Journal cross-link converted from a freestanding card into
+  //     an inline footer with a subtle blue tint.
+  //   - Calibration chip in the header REMOVED entirely (per the WNBA
+  //     spec note). Same component renders for MLB/WNBA/NBA: no chip.
+  //   - "For informational purposes only" disclaimer REMOVED from this
+  //     view; it lives in Account > Disclosures.
+  //
+  // Tracking flow is unchanged: same button states, same inline form,
+  // same handleTrack / handleUntrack / handleSubmit handlers.
+  // ─────────────────────────────────────────────────────────────
   return (
     <div style={{
       background: SP.surface,
       border: `1px solid ${SP.border}`,
-      borderRadius: '16px',
+      borderRadius: '14px',
       overflow: 'hidden',
       position: 'relative',
-      marginBottom: '18px',
+      marginBottom: '14px',
     }}>
       <div aria-hidden style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+        position: 'absolute', top: 0, left: '20px', right: '20px', height: 2,
         background: `linear-gradient(90deg, transparent, ${SP.green} 20%, ${SP.green} 80%, transparent)`,
-        opacity: 0.7,
+        opacity: 0.55,
       }} />
 
-      <div style={{ padding: '22px 22px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
+      <style>{`
+        @keyframes spDtsPulse {
+          0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+          70%  { box-shadow: 0 0 0 5px rgba(245, 158, 11, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [data-sp-pulse] { animation: none !important; }
+        }
+      `}</style>
+
+      {/* HEADER (compact) */}
+      <div style={{ padding: '14px 16px 10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center',
-            padding: '4px 10px', border: `1px solid ${SP.border}`, borderRadius: '4px',
-            fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
-            letterSpacing: '0.18em', textTransform: 'uppercase', color: SP.text2,
-            background: SP.surface2,
+            padding: '3px 8px', border: `1px solid ${SP.border}`, borderRadius: '4px',
+            fontFamily: SP.fontMono, fontSize: '9px', fontWeight: 500,
+            letterSpacing: '0.2em', textTransform: 'uppercase', color: SP.text2,
           }}>{sportLabel}</span>
-          {matchup && (
-            <span style={{
-              flexBasis: '100%', marginTop: '6px',
-              fontFamily: SP.fontMono, fontSize: '11px',
-              color: SP.text3, letterSpacing: '0.04em',
-            }}>{matchup}</span>
-          )}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', marginBottom: '8px' }}>
+        {matchup && (
+          <div style={{
+            fontFamily: SP.fontMono, fontSize: '10px',
+            color: SP.text3, letterSpacing: '0.04em',
+            marginBottom: '4px',
+          }}>{matchup}</div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px', marginBottom: '4px', flexWrap: 'wrap' }}>
           <span style={{
-            fontFamily: SP.fontSerif, fontSize: '24px', fontWeight: 600,
-            color: SP.text, lineHeight: 1.15, letterSpacing: '-0.01em',
+            fontFamily: SP.fontSerif, fontSize: '21px', fontWeight: 600,
+            color: SP.text, lineHeight: 1.15, letterSpacing: '-0.005em',
           }}>
             {teamName}
             {lineText && <span style={{ color: SP.green, marginLeft: '6px' }}>{lineText}</span>}
           </span>
           <span style={{
-            fontFamily: SP.fontMono, fontSize: '22px', fontWeight: 500,
-            color: SP.green, whiteSpace: 'nowrap',
+            fontFamily: SP.fontMono, fontSize: '21px', fontWeight: 500,
+            color: SP.green, lineHeight: 1, whiteSpace: 'nowrap',
           }}>{edgeText}</span>
         </div>
 
-        {(startInfo || oddsText) && (
+        {(startInfo || oddsText || countdown) && (
           <div style={{
-            fontFamily: SP.fontMono, fontSize: '11px', color: SP.text3, marginTop: '8px',
+            display: 'flex', alignItems: 'center', gap: '8px',
+            flexWrap: 'wrap',
+            fontFamily: SP.fontMono, fontSize: '10px',
+            color: SP.text3, letterSpacing: '0.04em',
           }}>
-            {startInfo?.date && <>{startInfo.date} <span style={{ color: SP.text5 }}>·</span> </>}
-            {startInfo?.time && <span style={{ color: SP.text2 }}>{startInfo.time}</span>}
-            {oddsText && <> <span style={{ color: SP.text5 }}>·</span> <span style={{ color: SP.text2 }}>{oddsText}</span></>}
-          </div>
-        )}
-
-        {countdown && (
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            padding: '6px 11px', marginTop: '10px',
-            background: SP.amberSoft,
-            border: '1px solid rgba(245, 158, 11, 0.25)',
-            borderRadius: '6px',
-            fontFamily: SP.fontMono, fontSize: '11px',
-            color: SP.amber, letterSpacing: '0.04em',
-          }}>
-            <span style={{
-              width: '6px', height: '6px', borderRadius: '50%', background: SP.amber,
-              animation: 'spDtsPulse 2s infinite',
-            }} />
-            <style>{`
-              @keyframes spDtsPulse {
-                0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
-                70%  { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
-                100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-              }
-              @media (prefers-reduced-motion: reduce) {
-                [data-sp-pulse] { animation: none !important; }
-              }
-            `}</style>
-            {countdown}
+            {startInfo?.time && <span>{startInfo.time}</span>}
+            {startInfo?.time && (oddsText || countdown) && <span style={{ color: SP.text5 }}>·</span>}
+            {oddsText && <span>{oddsText}</span>}
+            {countdown && (
+              <span data-sp-pulse style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '3px 9px',
+                background: SP.amberSoft,
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                borderRadius: '4px',
+                color: SP.amber, fontWeight: 500, letterSpacing: '0.06em',
+              }}>
+                <span aria-hidden style={{
+                  width: '5px', height: '5px', borderRadius: '50%',
+                  background: SP.amber, animation: 'spDtsPulse 2s infinite',
+                }} />
+                {countdown}
+              </span>
+            )}
           </div>
         )}
 
@@ -564,248 +589,200 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
         )}
       </div>
 
+      {/* 5-CELL STAT GRID (replaces 4-cell + Flat/Kelly block) */}
       <div style={{
-        margin: '22px',
-        display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr 1px 1fr',
-        background: SP.bg, border: `1px solid ${SP.border}`,
-        borderRadius: '10px', overflow: 'hidden',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1px 1fr 1px 1fr 1px 1fr 1px 1fr',
+        background: SP.bg,
+        borderTop: `1px solid ${SP.border2}`,
+        borderBottom: `1px solid ${SP.border2}`,
       }}>
         {[
           { label: 'Market', value: marketLine, tone: 'plain' },
           { label: 'Model', value: modelLine, tone: 'green' },
           { label: 'Tier', value: tier, tone: 'serif' },
-          { label: 'Size', value: sizeUnits || '—', tone: 'plain' },
+          { label: 'Flat', value: flatLabel || '—', tone: 'plain' },
+          { label: 'Kelly', value: kellyLabel || '—', tone: 'plain' },
         ].flatMap((cell, i, arr) => [
-          <div key={`c-${cell.label}`} style={{ padding: '14px 8px', textAlign: 'center' }}>
+          <div key={`c-${cell.label}`} style={{ padding: '10px 4px 9px', textAlign: 'center' }}>
             <div style={{
-              fontFamily: SP.fontMono, fontSize: '9px',
-              letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
-              marginBottom: '6px',
+              fontFamily: SP.fontMono, fontSize: '8px',
+              letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text4,
+              marginBottom: '4px',
             }}>{cell.label}</div>
             <div style={{
               fontFamily: cell.tone === 'serif' ? SP.fontSerif : SP.fontMono,
-              fontSize: cell.tone === 'serif' ? '18px' : '16px',
+              fontSize: '13px',
               fontWeight: cell.tone === 'serif' ? 600 : 500,
               color: cell.tone === 'green' ? SP.green : SP.text,
               lineHeight: 1,
             }}>{cell.value}</div>
           </div>,
-          i < arr.length - 1 ? <div key={`d-${i}`} style={{ background: SP.border }} /> : null,
+          i < arr.length - 1 ? <div key={`d-${i}`} style={{ background: SP.border2 }} /> : null,
         ])}
       </div>
 
-      {observationText && (
+      {/* OBSERVATION + MARKET CONTEXT (combined) */}
+      {(observationText || contextText) && (
         <div style={{
-          margin: '0 22px 22px',
-          padding: '18px',
-          background: SP.bg,
+          background: SP.greenSoft,
           borderLeft: `2px solid ${SP.green}`,
+          margin: '12px 12px 10px',
+          padding: '11px 13px',
           borderRadius: '0 8px 8px 0',
         }}>
-          <div style={{
-            fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
-            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.green,
-            marginBottom: '8px',
-          }}>Observation</div>
-          <div style={{
-            fontFamily: SP.fontSerif, fontSize: '15px',
-            lineHeight: 1.55, color: SP.text,
-          }}>{observationText}</div>
-        </div>
-      )}
-
-      {pick?.edge_pct != null && (
-        <div style={{ margin: '0 22px 18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{
-              fontFamily: SP.fontMono, fontSize: '10px',
-              letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
-            }}>Edge</span>
-            <span style={{
-              fontFamily: SP.fontMono, fontSize: '14px',
-              color: edgePct >= 0 ? SP.green : SP.redSoft, fontWeight: 500,
-            }}>{edgePct >= 0 ? '+' : ''}{edgePct.toFixed(1)}pp</span>
-          </div>
-          <div style={{
-            position: 'relative', height: '8px', background: SP.surface2,
-            borderRadius: '2px', overflow: 'hidden',
-          }}>
-            <span aria-hidden style={{
-              position: 'absolute', left: '50%', top: '-2px', bottom: '-2px',
-              width: '1px', background: SP.text5,
-            }} />
+          {observationText && (
+            <>
+              <div style={{
+                fontFamily: SP.fontMono, fontSize: '9px', fontWeight: 500,
+                letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.green,
+                marginBottom: '5px',
+              }}>Observation</div>
+              <div style={{
+                fontFamily: SP.fontSerif, fontSize: '13px',
+                lineHeight: 1.42, color: SP.text,
+              }}>{observationText}</div>
+            </>
+          )}
+          {contextText && (
             <div style={{
-              position: 'absolute', top: 0, bottom: 0,
-              [edgePct >= 0 ? 'left' : 'right']: '50%',
-              width: `${edgeBarPct}%`,
-              background: edgePct >= 0 ? SP.green : SP.redSoft,
-              borderRadius: '2px',
-            }} />
-          </div>
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', marginTop: '6px',
-            fontFamily: SP.fontMono, fontSize: '9px', color: SP.text4, letterSpacing: '0.04em',
-          }}>
-            <span>-10pp</span><span>0</span><span>+10pp</span>
-          </div>
+              marginTop: observationText ? '7px' : 0,
+              paddingTop: observationText ? '7px' : 0,
+              borderTop: observationText ? '1px solid rgba(90, 158, 114, 0.15)' : 'none',
+              fontFamily: SP.fontSans, fontSize: '11px',
+              lineHeight: 1.42, color: SP.text2,
+            }}>
+              <strong style={{ color: SP.text, fontWeight: 500 }}>Slate:</strong>{' '}
+              {contextText.lead} {contextText.detail}
+            </div>
+          )}
         </div>
       )}
 
-      {isCalibration && !calibrationNoteDismissed && (
-        <div style={{
-          position: 'relative',
-          margin: '0 22px 18px', padding: '12px 14px',
-          background: 'rgba(245, 158, 11, 0.05)',
-          border: '1px solid rgba(245, 158, 11, 0.18)',
-          borderRadius: '8px',
-          display: 'flex', alignItems: 'flex-start', gap: '10px',
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-               stroke={SP.amber} strokeWidth="2" style={{ flexShrink: 0, marginTop: '1px' }}>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 8v4M12 16h.01" />
-          </svg>
-          <div style={{ fontSize: '12px', lineHeight: 1.45, color: SP.text2, paddingRight: '20px' }}>
-            Edges tracked live. Closing line audit publishes on every signal.
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              try { window.localStorage.setItem('sp_banner_dismissed:dts-calibration-note', '1'); } catch { /* noop */ }
-              setCalibrationNoteDismissed(true);
-            }}
-            aria-label="Dismiss preview note"
-            style={{
-              position: 'absolute', top: '6px', right: '6px',
-              width: '24px', height: '24px',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              color: 'rgba(245, 158, 11, 0.6)', padding: 0, borderRadius: '6px',
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {hasPlayability && (
-        <div style={{ margin: '0 22px 18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
-            <span style={{
-              fontFamily: SP.fontMono, fontSize: '10px',
-              letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
-            }}>Value</span>
-            <span style={{ fontFamily: SP.fontMono, fontSize: '11px', color: SP.text2, letterSpacing: '0.04em' }}>
-              Playable down to <span style={{ color: SP.green }}>{fmtSpread(playableTo)}</span>
-            </span>
-          </div>
-          <div style={{
-            position: 'relative', height: '6px', background: SP.surface2,
-            borderRadius: '2px', overflow: 'hidden',
-          }}>
-            <div style={{
-              position: 'absolute', height: '100%',
-              width: '100%',
-              background: `linear-gradient(90deg, ${SP.green}, rgba(90, 158, 114, 0.3))`,
-              borderRadius: '2px',
-            }} />
-          </div>
-        </div>
-      )}
-
-      {(flatLabel || kellyLabel) && (
-        <div style={{
-          margin: '0 22px 18px',
-          padding: '14px 16px',
-          background: SP.bg, border: `1px solid ${SP.border}`,
-          borderRadius: '10px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', gap: '22px' }}>
-            {flatLabel && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      {/* COMPACT BAR PAIR */}
+      {(pick?.edge_pct != null || hasPlayability) && (
+        <div style={{ padding: '0 16px 11px' }}>
+          {pick?.edge_pct != null && (
+            <div style={{ marginBottom: hasPlayability ? '8px' : 0 }}>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                marginBottom: '4px',
+              }}>
                 <span style={{
                   fontFamily: SP.fontMono, fontSize: '9px',
-                  letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text4,
-                }}>Flat</span>
-                <span style={{ fontFamily: SP.fontMono, fontSize: '14px', color: SP.text, fontWeight: 500 }}>
-                  {flatLabel}
-                </span>
+                  letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
+                }}>Edge</span>
+                <span style={{
+                  fontFamily: SP.fontMono, fontSize: '11px', fontWeight: 500,
+                  color: edgePct >= 0 ? SP.green : SP.redSoft,
+                }}>{edgePct >= 0 ? '+' : ''}{edgePct.toFixed(1)}pp</span>
               </div>
-            )}
-            {kellyLabel && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <div style={{
+                position: 'relative', height: '4px',
+                background: SP.surface2, borderRadius: '2px',
+              }}>
+                <span aria-hidden style={{
+                  position: 'absolute', left: '50%', top: '-2px', bottom: '-2px',
+                  width: '1px', background: SP.text5,
+                }} />
+                <div style={{
+                  position: 'absolute', top: 0, bottom: 0,
+                  [edgePct >= 0 ? 'left' : 'right']: '50%',
+                  width: `${edgeBarPct}%`,
+                  background: edgePct >= 0 ? SP.green : SP.redSoft,
+                  borderRadius: '2px',
+                }} />
+              </div>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', marginTop: '2px',
+                fontFamily: SP.fontMono, fontSize: '8px', color: SP.text4, letterSpacing: '0.04em',
+              }}>
+                <span>-10pp</span><span>0</span><span>+10pp</span>
+              </div>
+            </div>
+          )}
+          {hasPlayability && (
+            <div>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                marginBottom: '4px',
+              }}>
                 <span style={{
                   fontFamily: SP.fontMono, fontSize: '9px',
-                  letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text4,
-                }}>Kelly</span>
-                <span style={{ fontFamily: SP.fontMono, fontSize: '14px', color: SP.text, fontWeight: 500 }}>
-                  {kellyLabel}
-                </span>
+                  letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
+                }}>Value</span>
+                <span style={{
+                  fontFamily: SP.fontMono, fontSize: '10px', color: SP.text3,
+                  letterSpacing: '0.04em',
+                }}>Playable down to <span style={{ color: SP.green }}>{fmtSpread(playableTo)}</span></span>
               </div>
-            )}
-          </div>
+              <div style={{
+                height: '4px', background: SP.surface2,
+                borderRadius: '2px', overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%', width: '100%',
+                  background: SP.green, borderRadius: '2px',
+                }} />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {contextText && (
-        <div style={{
-          margin: '0 22px 22px',
-          padding: '16px 18px',
-          background: SP.bg, border: `1px solid ${SP.border}`,
-          borderRadius: '10px',
-        }}>
-          <div style={{
-            fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
-            letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
-            marginBottom: '8px',
-          }}>Market Context</div>
-          <div style={{ fontSize: '13px', lineHeight: 1.5, color: SP.text2 }}>
-            {contextText.lead}{' '}
-            <span style={{ color: SP.text, fontFamily: SP.fontMono, fontSize: '12px' }}>
-              {contextText.detail.match(/\d+ of \d+/)?.[0]}
-            </span>
-            {' '}{contextText.detail.replace(/\d+ of \d+/, '').trim()}
-          </div>
-        </div>
-      )}
-
-      {reasoningSignals.length > 0 && (
-        <div style={{
-          margin: '0 22px 22px',
-          border: `1px solid ${SP.border}`, borderRadius: '10px', overflow: 'hidden',
-        }}>
+      {/* SIGNAL REASONING + TIMING (single row) */}
+      {(reasoningSignals.length > 0 || bestBook || postedLabel) && (
+        <>
           <div
-            onClick={() => setReasoningOpen((v) => !v)}
-            role="button" tabIndex={0} aria-expanded={reasoningOpen}
+            onClick={reasoningSignals.length > 0 ? () => setReasoningOpen((v) => !v) : undefined}
+            role={reasoningSignals.length > 0 ? 'button' : undefined}
+            tabIndex={reasoningSignals.length > 0 ? 0 : undefined}
+            aria-expanded={reasoningSignals.length > 0 ? reasoningOpen : undefined}
             style={{
-              padding: '14px 18px',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              cursor: 'pointer',
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', gap: '12px',
+              padding: '10px 16px',
+              borderTop: `1px solid ${SP.border2}`,
+              cursor: reasoningSignals.length > 0 ? 'pointer' : 'default',
+              minHeight: '44px',
             }}
           >
+            {reasoningSignals.length > 0 ? (
+              <span style={{
+                fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
+                letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text2,
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+              }}>
+                Signal reasoning
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={SP.text3} strokeWidth="2.5"
+                     style={{ transform: reasoningOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </span>
+            ) : <span />}
             <span style={{
-              fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
-              letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.text3,
-            }}>Signal Reasoning</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                 stroke={SP.text4} strokeWidth="2"
-                 style={{ transform: reasoningOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-              <path d="M6 9l6 6 6-6" />
-            </svg>
+              fontFamily: SP.fontMono, fontSize: '9px',
+              letterSpacing: '0.16em', textTransform: 'uppercase',
+              color: SP.text3, textAlign: 'right',
+            }}>
+              {postedLabel && <span style={{ color: SP.text, fontWeight: 500 }}>{postedLabel}</span>}
+              {postedLabel && bestBook && <span style={{ color: SP.text5, margin: '0 6px' }}>·</span>}
+              {bestBook && <>Best at <span style={{ color: SP.text, fontWeight: 500 }}>{bestBook}</span></>}
+            </span>
           </div>
-          {reasoningOpen && (
-            <div style={{ padding: '0 18px 16px', borderTop: `1px solid ${SP.border2}` }}>
-              <ul style={{ margin: '14px 0 0', padding: 0, listStyle: 'none' }}>
+          {reasoningOpen && reasoningSignals.length > 0 && (
+            <div style={{
+              padding: '0 16px 12px',
+              borderTop: `1px solid ${SP.border2}`,
+            }}>
+              <ul style={{ margin: '10px 0 0', padding: 0, listStyle: 'none' }}>
                 {reasoningSignals.map((s, i) => (
                   <li key={i} style={{
-                    fontSize: '13px', lineHeight: 1.55, color: SP.text2,
-                    paddingLeft: '14px', position: 'relative', marginBottom: '8px',
+                    fontSize: '12px', lineHeight: 1.5, color: SP.text2,
+                    paddingLeft: '12px', position: 'relative', marginBottom: '6px',
                   }}>
                     <span aria-hidden style={{
-                      position: 'absolute', left: 0, top: '8px',
+                      position: 'absolute', left: 0, top: '7px',
                       width: '4px', height: '4px', borderRadius: '50%', background: SP.green,
                     }} />
                     {s}
@@ -814,27 +791,16 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
               </ul>
             </div>
           )}
-        </div>
+        </>
       )}
 
-      <div style={{
-        margin: '0 22px 22px', textAlign: 'center',
-        fontFamily: SP.fontMono, fontSize: '11px',
-        letterSpacing: '0.16em', textTransform: 'uppercase', color: SP.text3,
-      }}>
-        <span style={{ color: SP.text }}>{postedLabel}</span>
-        {bestBook && <>
-          <span style={{ color: SP.text5, margin: '0 8px' }}>·</span>
-          <span>Best at <span style={{ color: SP.text }}>{bestBook}</span></span>
-        </>}
-      </div>
-
-      <div style={{ padding: '0 22px 22px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {/* TRACKING BUTTON + INLINE FORM (unchanged flow) */}
+      <div style={{ padding: '12px 16px 14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <button
           onClick={tracked ? handleUntrack : handleTrack}
           disabled={tracking}
           style={{
-            width: '100%', padding: '14px 16px',
+            width: '100%', padding: '12px 16px',
             background: tracked
               ? 'rgba(90, 158, 114, 0.1)'
               : showForm
@@ -850,6 +816,7 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
             cursor: tracking ? 'wait' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             opacity: tracking ? 0.7 : 1,
+            minHeight: '44px',
           }}
         >
           {tracked && (
@@ -864,10 +831,10 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
               : `Track this signal${flatLabel ? ` · ${flatLabel}` : ''}`}
         </button>
 
-        {/* Inline track-bet form. Mirrors PickCard.jsx:976-1023 pattern —
-            line / odds / units / wager fields with live unit↔wager sync,
-            posted to /api/bets directly so the user stays on the home
-            screen instead of navigating to BetTrackingScreen. */}
+        {/* Inline track-bet form (kept verbatim from prior layout). Mirrors
+            PickCard.jsx:976-1023: line / odds / units / wager with live
+            unit<->wager sync, posts to /api/bets so the user stays on the
+            home screen instead of routing to BetTrackingScreen. */}
         {showForm && !tracked && (
           <div style={{
             padding: '14px',
@@ -970,59 +937,42 @@ export default function DailyTopSignalCard({ pick, isPro, onTrack, onNavigate, m
         )}
       </div>
 
-      {/* Sharp Journal cross-link tile. Surfaces today's market commentary
-          inline so users can drill from the pick into the broader read. */}
+      {/* SHARP JOURNAL INLINE FOOTER (conditional on onOpenJournal) */}
       {onOpenJournal && (
-        <div
+        <a
           onClick={onOpenJournal}
           role="link"
           tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenJournal(); } }}
           style={{
-            margin: '4px 22px 18px',
-            background: SP.bg,
-            border: `1px solid ${SP.border}`,
-            borderRadius: '12px',
-            padding: '16px 18px',
-            display: 'grid', gridTemplateColumns: '1fr auto',
-            gap: '14px', alignItems: 'center',
-            cursor: 'pointer', position: 'relative', overflow: 'hidden',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: '10px',
+            padding: '10px 16px 11px',
+            borderTop: `1px solid ${SP.border2}`,
+            background: 'rgba(79, 134, 247, 0.04)',
+            cursor: 'pointer', textDecoration: 'none',
+            minHeight: '44px',
           }}
         >
-          <div aria-hidden style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
-            background: `linear-gradient(90deg, transparent, ${SP.blue}, transparent)`,
-            opacity: 0.4,
-          }} />
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-              fontFamily: SP.fontMono, fontSize: '10px',
+              fontFamily: SP.fontMono, fontSize: '9px', fontWeight: 500,
               letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.blue,
-              marginBottom: '6px',
+              marginBottom: '2px',
             }}>Today's Sharp Journal</div>
             <div style={{
-              fontFamily: SP.fontSerif, fontSize: '15px', fontWeight: 600,
-              color: SP.text, lineHeight: 1.3, marginBottom: '4px',
-            }}>{(marketReport?.insight || 'Read today\'s market commentary.').slice(0, 80)}{(marketReport?.insight?.length || 0) > 80 ? '…' : ''}</div>
-            <div style={{
-              fontFamily: SP.fontMono, fontSize: '10px', letterSpacing: '0.04em', color: SP.text4,
-            }}>Morning edition · 2 min read · Evan Cole</div>
+              fontFamily: SP.fontSerif, fontSize: '13px', fontWeight: 600,
+              color: SP.text, lineHeight: 1.3,
+            }}>
+              {(marketReport?.insight || 'Read today\'s market commentary.').slice(0, 80)}
+              {(marketReport?.insight?.length || 0) > 80 ? '…' : ''}
+            </div>
           </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={SP.text3} strokeWidth="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={SP.text3} strokeWidth="2.5" style={{ flexShrink: 0 }}>
             <path d="M9 18l6-6-6-6" />
           </svg>
-        </div>
+        </a>
       )}
-
-      {/* Disclaimer footer */}
-      <div style={{
-        margin: '0 22px 18px', padding: '0 8px',
-        textAlign: 'center',
-        fontFamily: SP.fontMono, fontSize: '9px',
-        letterSpacing: '0.08em', color: SP.text4, lineHeight: 1.6,
-      }}>
-        For informational purposes only. Past performance does not guarantee future results. Please gamble responsibly.
-      </div>
     </div>
   );
 }
