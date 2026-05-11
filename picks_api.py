@@ -581,6 +581,45 @@ def today():
         except Exception:
             pass
 
+    # No games on the schedule today. Flip to off_day so the frontend
+    # renders the DarkDay card (PicksTab.jsx:1686) with the next-slate
+    # countdown, instead of the misleading "Model has not run yet today.
+    # Check back later." copy that currently fires when there is nothing
+    # to wait for. Looks ahead up to 14 days for the next ESPN events to
+    # populate resume_date and next_game_count for the card.
+    if not games_preview:
+        cfg_name = cfg_wait.get('name', sport.upper())
+        next_date = None
+        next_game_count = 0
+        try:
+            import requests as _req
+            from datetime import datetime as _dt, timedelta as _td
+            today_dt = _dt.strptime(today_str, '%Y-%m-%d')
+            for i in range(1, 15):
+                d = today_dt + _td(days=i)
+                url = f'https://site.api.espn.com/apis/site/v2/sports/{espn_sport}/scoreboard?dates={d.strftime("%Y%m%d")}'
+                try:
+                    r = _req.get(url, timeout=3)
+                    if r.status_code == 200:
+                        events = r.json().get('events', [])
+                        if events:
+                            next_date = d.strftime('%Y-%m-%d')
+                            next_game_count = len(events)
+                            break
+                except Exception:
+                    continue
+        except Exception:
+            pass
+        return jsonify({
+            'type': 'off_day',
+            'date': today_str,
+            'message': f'No {cfg_name} games are scheduled today. The model will resume when the next slate opens.',
+            'resume_date': next_date,
+            'next_game_count': next_game_count,
+            'model_runs_at': model_runs_at,
+            'model_run_hour': model_run_hour,
+        })
+
     return jsonify({
         'type': 'waiting',
         'message': 'Model has not run yet today. Check back later.',
