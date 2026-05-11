@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:ios": "BUILD_TARGET=ios vite build && npx cap sync ios",
+    "build:ios": "BUILD_TARGET=ios vite build && node scripts/verify-ios-bundle.mjs && npx cap sync ios",
     "lint": "eslint .",
     "preview": "vite preview",
     "postinstall": "patch-package",
