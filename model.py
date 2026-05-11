@@ -343,7 +343,15 @@ class EnsemblePredictor:
                 hr.pace as home_pace, hr.ortg as home_off_rtg,
                 hr.drtg as home_def_rtg, hr.nrtg as home_net_rtg,
                 ar.pace as away_pace, ar.ortg as away_off_rtg,
-                ar.drtg as away_def_rtg, ar.nrtg as away_net_rtg"""
+                ar.drtg as away_def_rtg, ar.nrtg as away_net_rtg,
+                hr.off_efg as home_off_efg, hr.def_efg as home_def_efg,
+                hr.off_tov_pct as home_off_tov, hr.def_tov_pct as home_def_tov,
+                hr.off_orb_pct as home_off_orb, hr.def_drb_pct as home_def_drb,
+                hr.off_ft_rate as home_off_ft, hr.def_ft_rate as home_def_ft,
+                ar.off_efg as away_off_efg, ar.def_efg as away_def_efg,
+                ar.off_tov_pct as away_off_tov, ar.def_tov_pct as away_def_tov,
+                ar.off_orb_pct as away_off_orb, ar.def_drb_pct as away_def_drb,
+                ar.off_ft_rate as away_off_ft, ar.def_ft_rate as away_def_ft"""
                 ratings_join = f"""
             LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team AND g.season = hr.season
             LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team AND g.season = ar.season"""
@@ -517,6 +525,31 @@ class EnsemblePredictor:
 
             features['off_matchup'] = features['home_off_rtg'] - features['away_def_rtg']
             features['def_matchup'] = features['away_off_rtg'] - features['home_def_rtg']
+
+            if self.sport == 'wnba':
+                h_off_efg = pd.to_numeric(df.get('home_off_efg', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
+                h_def_efg = pd.to_numeric(df.get('home_def_efg', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
+                a_off_efg = pd.to_numeric(df.get('away_off_efg', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
+                a_def_efg = pd.to_numeric(df.get('away_def_efg', pd.Series([0.5]*len(df))), errors='coerce').fillna(0.5)
+                features['efg_advantage'] = (h_off_efg - h_def_efg) - (a_off_efg - a_def_efg)
+
+                h_off_tov = pd.to_numeric(df.get('home_off_tov', pd.Series([15.0]*len(df))), errors='coerce').fillna(15.0)
+                h_def_tov = pd.to_numeric(df.get('home_def_tov', pd.Series([15.0]*len(df))), errors='coerce').fillna(15.0)
+                a_off_tov = pd.to_numeric(df.get('away_off_tov', pd.Series([15.0]*len(df))), errors='coerce').fillna(15.0)
+                a_def_tov = pd.to_numeric(df.get('away_def_tov', pd.Series([15.0]*len(df))), errors='coerce').fillna(15.0)
+                features['tov_advantage'] = (h_def_tov - h_off_tov) - (a_def_tov - a_off_tov)
+
+                h_off_orb = pd.to_numeric(df.get('home_off_orb', pd.Series([25.0]*len(df))), errors='coerce').fillna(25.0)
+                h_def_drb = pd.to_numeric(df.get('home_def_drb', pd.Series([75.0]*len(df))), errors='coerce').fillna(75.0)
+                a_off_orb = pd.to_numeric(df.get('away_off_orb', pd.Series([25.0]*len(df))), errors='coerce').fillna(25.0)
+                a_def_drb = pd.to_numeric(df.get('away_def_drb', pd.Series([75.0]*len(df))), errors='coerce').fillna(75.0)
+                features['reb_advantage'] = (h_off_orb + h_def_drb) - (a_off_orb + a_def_drb)
+
+                h_off_ft = pd.to_numeric(df.get('home_off_ft', pd.Series([0.25]*len(df))), errors='coerce').fillna(0.25)
+                h_def_ft = pd.to_numeric(df.get('home_def_ft', pd.Series([0.25]*len(df))), errors='coerce').fillna(0.25)
+                a_off_ft = pd.to_numeric(df.get('away_off_ft', pd.Series([0.25]*len(df))), errors='coerce').fillna(0.25)
+                a_def_ft = pd.to_numeric(df.get('away_def_ft', pd.Series([0.25]*len(df))), errors='coerce').fillna(0.25)
+                features['ft_advantage'] = (h_off_ft - h_def_ft) - (a_off_ft - a_def_ft)
 
         features['rundown_consensus'] = pd.to_numeric(df.get('rundown_spread_consensus', pd.Series([0]*len(df))), errors='coerce').fillna(features['spread_home'])
         features['spread_vs_consensus'] = features['spread_home'] - features['rundown_consensus']
@@ -730,6 +763,48 @@ class EnsemblePredictor:
                                     features.at[idx, col] = avg_rtg
             except Exception as e:
                 print(f"   ⚠️ Opponent-adjusted form error: {e}")
+
+        if self.sport == 'wnba':
+            features['home_margin_std'] = pd.Series(11.0, index=df.index, dtype=float)
+            features['away_margin_std'] = pd.Series(11.0, index=df.index, dtype=float)
+            features['home_pythag'] = pd.Series(0.5, index=df.index, dtype=float)
+            features['away_pythag'] = pd.Series(0.5, index=df.index, dtype=float)
+            features['pythag_diff'] = pd.Series(0.0, index=df.index, dtype=float)
+            try:
+                rat_conn = get_sqlite_conn()
+                if self._has_table(rat_conn, 'wnba_rolling_ratings'):
+                    rows = rat_conn.execute(
+                        "SELECT r.team, r.margin_std, r.avg_pf, r.avg_pa "
+                        "FROM wnba_rolling_ratings r WHERE r.game_date = ("
+                        "  SELECT MAX(game_date) FROM wnba_rolling_ratings WHERE team = r.team"
+                        ")"
+                    ).fetchall()
+                    team_stats = {}
+                    for team, mstd, pf, pa in rows:
+                        pythag = 0.5
+                        if pf and pa and pf > 0 and pa > 0:
+                            pf14 = pf ** 14
+                            pa14 = pa ** 14
+                            pythag = pf14 / (pf14 + pa14)
+                        team_stats[team] = {
+                            'margin_std': float(mstd) if mstd else 11.0,
+                            'pythag': pythag,
+                        }
+                    for idx, row in df.iterrows():
+                        ht = row.get('home_team', '')
+                        at = row.get('away_team', '')
+                        hs = team_stats.get(ht)
+                        as_ = team_stats.get(at)
+                        if hs:
+                            features.at[idx, 'home_margin_std'] = hs['margin_std']
+                            features.at[idx, 'home_pythag'] = hs['pythag']
+                        if as_:
+                            features.at[idx, 'away_margin_std'] = as_['margin_std']
+                            features.at[idx, 'away_pythag'] = as_['pythag']
+                    features['pythag_diff'] = features['home_pythag'] - features['away_pythag']
+                rat_conn.close()
+            except Exception as e:
+                print(f"   ⚠️ WNBA rolling-stats feature error: {e}")
 
         # GATED: referee crew features disabled until reliable data source confirmed.
         # Re-enable when NBA referee API works consistently from cloud servers.
@@ -1426,7 +1501,15 @@ class EnsemblePredictor:
                 hr.pace as home_pace, hr.ortg as home_off_rtg,
                 hr.drtg as home_def_rtg, hr.nrtg as home_net_rtg,
                 ar.pace as away_pace, ar.ortg as away_off_rtg,
-                ar.drtg as away_def_rtg, ar.nrtg as away_net_rtg"""
+                ar.drtg as away_def_rtg, ar.nrtg as away_net_rtg,
+                hr.off_efg as home_off_efg, hr.def_efg as home_def_efg,
+                hr.off_tov_pct as home_off_tov, hr.def_tov_pct as home_def_tov,
+                hr.off_orb_pct as home_off_orb, hr.def_drb_pct as home_def_drb,
+                hr.off_ft_rate as home_off_ft, hr.def_ft_rate as home_def_ft,
+                ar.off_efg as away_off_efg, ar.def_efg as away_def_efg,
+                ar.off_tov_pct as away_off_tov, ar.def_tov_pct as away_def_tov,
+                ar.off_orb_pct as away_off_orb, ar.def_drb_pct as away_def_drb,
+                ar.off_ft_rate as away_off_ft, ar.def_ft_rate as away_def_ft"""
                 ratings_join = f"""
             LEFT JOIN {ratings_tbl} hr ON g.home_team = hr.team AND g.season = hr.season
             LEFT JOIN {ratings_tbl} ar ON g.away_team = ar.team AND g.season = ar.season"""
