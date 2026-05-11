@@ -3,6 +3,7 @@ import { apiGet } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import { trackEvent } from '../../utils/eventTracker';
 import OnboardingCard from './OnboardingCard';
+import SharpJournalArticle from './SharpJournalArticle';
 
 const CATEGORIES = [
   { id: 'all', label: 'All' },
@@ -98,6 +99,25 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
   };
 
   if (selectedInsight) {
+    // Standard articles render through the locked SharpJournalArticle
+    // component. Market notes and the Beginners Guide keep their bespoke
+    // InsightDetail rendering (specialized layouts that don't map onto the
+    // spec).
+    const isMarketNote = selectedInsight.category === 'market_notes'
+      && /^market-note-(\w+-)?[0-9]{4}/.test(selectedInsight.slug || '');
+    const isBeginnersGuide = selectedInsight.slug === 'beginners-guide';
+    if (!isMarketNote && !isBeginnersGuide) {
+      const idx = insights.findIndex(i => i.id === selectedInsight.id);
+      const nextInsight = idx >= 0 && idx < insights.length - 1 ? insights[idx + 1] : null;
+      return (
+        <SharpJournalArticle
+          insight={selectedInsight}
+          onBack={() => setSelectedInsight(null)}
+          nextInsight={nextInsight}
+          onSelectNext={(insight) => { selectAndTrack(insight); }}
+        />
+      );
+    }
     return (
       <InsightDetail
         insight={selectedInsight}
