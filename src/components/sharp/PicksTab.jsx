@@ -28,6 +28,7 @@ import DarkDay from '../signals/DarkDay';
 import WNBAPreLaunchScreen from './WNBAPreLaunchScreen';
 import CalibrationBanner from '../brand/CalibrationBanner';
 import { FEATURE_EVAN_COLE_READ, FEATURE_DISCIPLINE_ARTICLES, FEATURE_EVENING_RECAP } from '../../config/featureFlags';
+import { pickPrimaryArticle, pickArticlesForSport } from '../../utils/articleRotation';
 
 // Sport-aware calibration banner copy. NBA in deployment phase -> no banner.
 // MLB and WNBA in calibration phase share the same framing pattern.
@@ -1137,8 +1138,7 @@ export default function PicksTab({ onNavigate }) {
               const upcoming = (tomorrowGames && tomorrowGames.length > 0
                 ? tomorrowGames.slice(0, 3)
                 : (gameInfo?.games || []).filter(g => g && (g.away_team || g.home_team)).slice(0, 3));
-              const featuredArticle = (insightsData?.insights || [])
-                .find(a => a && a.category !== 'market_notes' && a.title);
+              const featuredArticle = pickPrimaryArticle(insightsData?.insights || [], sport);
 
               const wwCard = {
                 background: '#111e33', border: '0.5px solid #1e3050',
@@ -1636,7 +1636,7 @@ export default function PicksTab({ onNavigate }) {
             } catch { return ''; }
           };
           const passArticles = (() => {
-            const evergreen = insightsData?.insights?.filter(a => a.category !== 'market_notes') || [];
+            const evergreen = pickArticlesForSport(insightsData?.insights || [], sport);
             if (!evergreen.length) return [];
             const catLabels = {
               philosophy: 'Philosophy',
@@ -1740,19 +1740,12 @@ export default function PicksTab({ onNavigate }) {
             daysCovered: 7,
             selectivityPct: stats.selectivity || 0,
           } : undefined;
-          // Off-day reading: prefer a Sharp Journal article that matches
-          // the current sport; fall back to the most recent evergreen.
-          // Dated market notes are excluded (they're stale by definition).
-          const offDayArticle = (() => {
-            const articles = (insightsData?.insights || []).filter((a) =>
-              a && a.category !== 'market_notes' &&
-              !/^market-note-(\w+-)?[0-9]{4}/.test(a.slug || '')
-            );
-            if (!articles.length) return null;
-            const sportLower = (sport || '').toLowerCase();
-            const sportMatch = articles.find((a) => (a.sport || '').toLowerCase() === sportLower);
-            return sportMatch || articles[0];
-          })();
+          // Off-day reading: delegated to pickPrimaryArticle so it follows
+          // the same per-sport rotation rules as every other journal-card
+          // surface. See src/utils/articleRotation.js for the priority chain
+          // (universal-today wins, then sport-matched, then sport-rotated
+          // universal, then first evergreen).
+          const offDayArticle = pickPrimaryArticle(insightsData?.insights || [], sport);
           return (
             <DarkDay
               date={darkDateStr}
@@ -1785,7 +1778,7 @@ export default function PicksTab({ onNavigate }) {
 
         {/* Recommended Reads — after today's slate (excluded on off-day, pass, and night, which have their own layouts) */}
         {pageState !== 'off-day' && pageState !== 'pass' && pageState !== 'night' && insightsData?.insights?.length > 0 && (() => {
-          const evergreen = insightsData.insights.filter(a => a.category !== 'market_notes');
+          const evergreen = pickArticlesForSport(insightsData.insights, sport);
           if (!evergreen.length) return null;
           return (
           <div style={{ marginTop: '20px', marginBottom: '20px' }}>
