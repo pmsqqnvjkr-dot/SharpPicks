@@ -42,7 +42,7 @@ async function nativeShare(blob, filename) {
   });
 
   await Share.share({
-    title: 'Sharp Picks Weekly Recap',
+    title: 'SharpPicks Weekly Recap',
     text: 'Beat the market, not the scoreboard.\n\nsharppicks.ai',
     files: [file.uri],
     dialogTitle: 'Share your results',
@@ -57,7 +57,7 @@ function webShare(blob, filename) {
   const file = new File([blob], filename, { type: 'image/png' });
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     return navigator.share({
-      title: 'Sharp Picks Weekly Recap',
+      title: 'SharpPicks Weekly Recap',
       text: 'Beat the market, not the scoreboard. sharppicks.ai',
       files: [file],
     });

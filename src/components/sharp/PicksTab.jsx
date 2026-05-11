@@ -172,12 +172,12 @@ export default function PicksTab({ onNavigate }) {
         const reader = new FileReader();
         const base64 = await new Promise((resolve, reject) => { reader.onloadend = () => resolve(reader.result.split(',')[1]); reader.onerror = reject; reader.readAsDataURL(blob); });
         const file = await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache });
-        await Share.share({ title: 'Sharp Picks Result', text: 'sharppicks.ai', files: [file.uri] });
+        await Share.share({ title: 'SharpPicks Result', text: 'sharppicks.ai', files: [file.uri] });
         try { await Filesystem.deleteFile({ path: filename, directory: Directory.Cache }); } catch {}
       } else {
         const file = new File([blob], filename, { type: 'image/png' });
         if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], text: 'Sharp Picks result' });
+          await navigator.share({ files: [file], text: 'SharpPicks result' });
         } else {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a'); a.href = url; a.download = filename; a.click();

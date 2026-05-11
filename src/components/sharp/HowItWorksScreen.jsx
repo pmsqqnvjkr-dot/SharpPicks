@@ -73,7 +73,7 @@ export default function HowItWorksScreen({ onBack }) {
             fontSize: '15px', color: 'var(--text-secondary)',
             lineHeight: '1.7', fontFamily: 'var(--font-sans)',
           }}>
-            Sharp Picks is a discipline system, not a tips service. The model runs daily, analyzes every NBA game, and publishes a pick only when the statistical edge exceeds a strict threshold. Most days, it says nothing. That restraint is the product.
+            SharpPicks is a discipline system, not a tips service. The model runs daily, analyzes every NBA game, and publishes a pick only when the statistical edge exceeds a strict threshold. Most days, it says nothing. That restraint is the product.
           </p>
         </div>
 
