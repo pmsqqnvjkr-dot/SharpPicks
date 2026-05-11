@@ -135,7 +135,7 @@ export default function NotificationsScreen({ onBack }) {
               </button>
             )}
             {pushResult === 'enabled' && (
-              <div style={{ fontSize: '12px', color: '#22C55E', marginTop: '8px' }}>
+              <div style={{ fontSize: '12px', color: '#5A9E72', marginTop: '8px' }}>
                 Notifications enabled successfully
               </div>
             )}
@@ -150,14 +150,14 @@ export default function NotificationsScreen({ onBack }) {
         {user && pushStatus === 'granted' && (
           <div style={{
             borderRadius: '12px', padding: '12px 16px', marginBottom: '12px',
-            border: '1px solid rgba(34, 197, 94, 0.2)',
-            backgroundColor: 'rgba(34, 197, 94, 0.06)',
+            border: '1px solid rgba(90, 158, 114, 0.2)',
+            backgroundColor: 'rgba(90, 158, 114, 0.06)',
             display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center',
           }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A9E72" strokeWidth="2">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
-            <span style={{ fontSize: '13px', color: '#22C55E' }}>Push notifications enabled</span>
+            <span style={{ fontSize: '13px', color: '#5A9E72' }}>Push notifications enabled</span>
           </div>
         )}
 

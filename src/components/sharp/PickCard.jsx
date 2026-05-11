@@ -255,8 +255,8 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
             <span style={{
               fontSize: '8px', fontWeight: 700,
               padding: '1px 4px', borderRadius: '3px',
-              backgroundColor: 'rgba(59,130,246,0.15)',
-              color: '#3B82F6',
+              backgroundColor: 'rgba(79,134,247,0.15)',
+              color: '#4F86F7',
               letterSpacing: '0.04em',
             }}>{pick.phase_label.toUpperCase()}</span>
           )}
@@ -471,7 +471,7 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
         {pick.model_phase === 'calibration' && !settled && !isRevoked && (
           <div style={{
             fontFamily: mono, fontSize: '10px',
-            color: '#3B82F6', opacity: 0.7,
+            color: '#4F86F7', opacity: 0.7,
             marginBottom: '12px',
             letterSpacing: '0.04em',
           }}>Early-stage signal. Full transparency.</div>
