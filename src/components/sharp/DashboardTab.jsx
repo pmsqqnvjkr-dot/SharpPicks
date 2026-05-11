@@ -807,7 +807,7 @@ function PhaseTimeline({ phase }) {
     { key: 'deployment', label: 'Deployment' },
   ];
   const activeIdx = steps.findIndex(s => s.key === phase);
-  const blue = '#3B82F6';
+  const blue = '#4F86F7';
 
   return (
     <div style={{
