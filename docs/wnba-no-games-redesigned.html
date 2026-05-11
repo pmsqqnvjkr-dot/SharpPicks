@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<!--
+  Off-day signal screen spec. Source: handoff bundle 2026-05-11.
+  This is the LEAGUE off-day state — no games on the schedule, distinct
+  from a pass day where games exist but no signal cleared the threshold.
+  See docs/sharp-journal-spec.md for the parallel journal article spec.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SharpPicks . Off-Day Screen Reference</title>
+<style>
+  /* The actual styles live in src/components/signals/DarkDay.jsx where
+     this design ships. This file is a frozen reference render so future
+     contributors can compare the rendered component against the spec.
+     If you change the visual design, update this file in lockstep with
+     the component. */
+</style>
+</head>
+<body>
+<p>
+  Reference structure (top to bottom):
+</p>
+<ol>
+  <li>Header: existing wordmark + sport tabs (reused).</li>
+  <li>Hero block:
+    <ul>
+      <li>Eyebrow row: "Today . {date}" left, "{LEAGUE} off-day" amber pill right.</li>
+      <li>Headline: "No slate, no signal." (IBM Plex Serif 28px, sentence case).</li>
+      <li>Subline: "{league} isn't playing today. <strong>This isn't a pass day.</strong> It's the league schedule. The model is on standby. Next slate opens {nextSlateAt}." NO em-dashes.</li>
+      <li>Countdown row: compact "Next slate opens in {h}h {m}m" — replaced by "Next slate {date}" when gap exceeds 72 hours.</li>
+    </ul>
+  </li>
+  <li>Week recap (elevated to position 2): 3-stat grid Net / Record / Pass Days + meta line. Helper line "Tracking starts with your first signal." when newUserMode.</li>
+  <li>Off-day reading: single Sharp Journal article card, hidden if no articles.</li>
+  <li>Tomorrow's slate: up to 4 games with names + tip times. Swapped to "Next scheduled" date list when tomorrow is also off.</li>
+  <li>Sharp Principle: off-day specific rotation pool, seeded by today's ET date, last-shown tracked via localStorage.</li>
+  <li>Disclaimer: existing terse line, muted.</li>
+</ol>
+</body>
+</html>
