@@ -3144,6 +3144,17 @@ Head of Signal Intelligence, SharpPicks""",
                 db.session.commit()
                 logging.info(f"Backfilled {backfilled} model runs from picks/passes")
 
+            # Sharp Journal articles from content/journal/*.md. Idempotent
+            # upsert keyed by slug, safe to call on every boot. New articles
+            # land the moment Railway redeploys; edits propagate the same
+            # way. See journal_seeder.py for the parser + field mapping.
+            try:
+                from journal_seeder import seed_journal_articles_from_dir
+                content_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'content', 'journal')
+                seed_journal_articles_from_dir(content_dir, Insight, db)
+            except Exception as je:
+                logging.error(f"Journal seeder failed: {je}")
+
             logging.info("Database seed completed")
         except Exception as e:
             logging.error(f"Database seed error: {e}")

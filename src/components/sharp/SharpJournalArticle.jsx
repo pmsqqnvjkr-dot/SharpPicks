@@ -82,13 +82,18 @@ function formatArticleDate(iso) {
 // Inline markdown: bold, italic, code, and stat tokens. Returns an array of
 // React nodes. Spec calls out <strong>/<em>/<code>/.stat as the only inline
 // formats. Em-dashes deliberately not rendered specially; spec forbids them.
+//
+// Stat token shapes accepted:
+//   [stat:+1.4]               neutral
+//   [stat green:+2.0]         positive
+//   [stat-:-3.4]              negative
+//   <span class="stat">+1.4</span>          (matches the locked HTML in the spec)
+//   <span class="stat green">+2.0</span>
+//   <span class="stat negative">-3.4</span>
 function renderInline(text, keyPrefix = 'i') {
   if (!text) return [];
-  // Split on protected segments first so we can preserve the markup tokens
-  // without nesting regex replacement headaches.
   const tokens = [];
-  let i = 0;
-  const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[stat[-+]?(?:\s+green)?\s*:[^\]]+\])/g;
+  const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[stat[-+]?(?:\s+green)?\s*:[^\]]+\]|<span class="stat(?:\s+(?:green|negative))?">[^<]+<\/span>)/g;
   let lastIndex = 0;
   let match;
   while ((match = pattern.exec(text)) !== null) {
@@ -126,6 +131,10 @@ function renderInline(text, keyPrefix = 'i') {
         const variant = /\bgreen\b/.test(tok) ? 'green' : (m[1] === '-' ? 'negative' : null);
         return <Stat key={key} variant={variant}>{m[2].trim()}</Stat>;
       }
+    }
+    if (tok.startsWith('<span class="stat')) {
+      const m = tok.match(/^<span class="stat(?:\s+(green|negative))?">([^<]+)<\/span>$/);
+      if (m) return <Stat key={key} variant={m[1] || null}>{m[2]}</Stat>;
     }
     return tok;
   });
@@ -325,20 +334,59 @@ function ArticleFooter({ updatedDate, contentType, version }) {
   );
 }
 
+// Extract the inner text of a single class="X-Y" div from a chunk. Strips
+// surrounding tags. Returns '' if not found. Used by the HTML-block parser
+// for sharp-principle / observation / why-matters constructs since the
+// articles encode those blocks as raw HTML per the spec's reference render.
+function extractInner(chunk, klass) {
+  const re = new RegExp(`<div class="${klass}">([\\s\\S]*?)</div>`);
+  const m = chunk.match(re);
+  return m ? m[1].trim() : '';
+}
+
 // Parse content blocks. Each \n\n separated chunk becomes one block of a
 // specific kind. The first matching pattern wins.
+//
+// Recognizes both markdown-ish authoring (## H2, > **Sharp Principle**,
+// >>> pull-quote) and the locked HTML constructions from the spec
+// (<div class="sharp-principle"> etc.). HTML form is preferred for new
+// content because it matches the reference render in docs/.
 function parseContent(content) {
   if (!content) return [];
   const chunks = content.split(/\n\n+/).map(c => c.trim()).filter(Boolean);
   const blocks = [];
 
   for (const chunk of chunks) {
-    // Pull quote: >>> text (rare, editorial only)
+    // Skip a body-level H1: the article container renders the title from
+    // frontmatter / insight.title, so an inline H1 in content would be
+    // duplicate noise.
+    if (/^#\s+/.test(chunk) && !chunk.startsWith('##')) continue;
+
+    // Locked HTML constructs (per docs/sharp-journal-locked.html).
+    if (chunk.includes('class="sharp-principle"')) {
+      const quote = extractInner(chunk, 'sharp-principle-quote');
+      if (quote) { blocks.push({ type: 'sharp-principle', text: quote }); continue; }
+    }
+    if (chunk.includes('class="observation"')) {
+      const text = extractInner(chunk, 'observation-text');
+      if (text) { blocks.push({ type: 'observation', text }); continue; }
+    }
+    if (chunk.includes('class="why-matters"')) {
+      const text = extractInner(chunk, 'why-matters-text');
+      if (text) { blocks.push({ type: 'why-matters', text }); continue; }
+    }
+    if (chunk.includes('class="pull-quote"')) {
+      // Render whatever the div contains, stripped of its outer div tags.
+      const m = chunk.match(/<div class="pull-quote">([\s\S]*?)<\/div>/);
+      if (m) { blocks.push({ type: 'pull-quote', text: m[1].trim() }); continue; }
+    }
+
+    // Pull quote (rare, editorial only): >>> text
     if (chunk.startsWith('>>>')) {
       blocks.push({ type: 'pull-quote', text: chunk.replace(/^>>>\s*/, '') });
       continue;
     }
-    // Sharp Principle / Observation / Why This Matters: blockquote with label
+    // Markdown blockquote with label: > **Sharp Principle** / > **Observation** / etc.
     if (chunk.startsWith('>')) {
       const stripped = chunk.split('\n').map(line => line.replace(/^>\s*/, '')).join('\n').trim();
       const labelMatch = stripped.match(/^\*\*([^*]+)\*\*\s*\n?([\s\S]*)/);
