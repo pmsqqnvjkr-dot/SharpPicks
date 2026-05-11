@@ -351,16 +351,36 @@ function extractInner(chunk, klass) {
 // >>> pull-quote) and the locked HTML constructions from the spec
 // (<div class="sharp-principle"> etc.). HTML form is preferred for new
 // content because it matches the reference render in docs/.
-function parseContent(content) {
+//
+// Pass articleTitle to suppress a body-level H2 that exactly matches the
+// article title (legacy MLB articles authored their body with `## <Title>`
+// at the top, which duplicates the H1 the article container already renders).
+function parseContent(content, articleTitle = '') {
   if (!content) return [];
   const chunks = content.split(/\n\n+/).map(c => c.trim()).filter(Boolean);
   const blocks = [];
+  const normalizedTitle = articleTitle.trim().toLowerCase().replace(/\.$/, '');
 
   for (const chunk of chunks) {
+    // Skip markdown horizontal rules (---) entirely. Old articles used them
+    // as section separators; the spec's auto-divider before every H2 makes
+    // them redundant, and rendering '---' as body text reads as a typo.
+    if (/^-{3,}$/.test(chunk)) continue;
+
     // Skip a body-level H1: the article container renders the title from
     // frontmatter / insight.title, so an inline H1 in content would be
     // duplicate noise.
     if (/^#\s+/.test(chunk) && !chunk.startsWith('##')) continue;
+
+    // Skip a body-level H2 that matches the article title (legacy authoring
+    // pattern where MLB articles mirrored their title as `## Title`).
+    if (normalizedTitle) {
+      const h2Match = chunk.match(/^##\s+(.+)/);
+      if (h2Match) {
+        const heading = h2Match[1].trim().toLowerCase().replace(/\.$/, '');
+        if (heading === normalizedTitle) continue;
+      }
+    }
 
     // Locked HTML constructs (per docs/sharp-journal-locked.html).
     if (chunk.includes('class="sharp-principle"')) {
@@ -457,7 +477,7 @@ export default function SharpJournalArticle({
 
   if (!insight) return null;
 
-  const allBlocks = parseContent(insight.content || '');
+  const allBlocks = parseContent(insight.content || '', insight.title || '');
   const { blocks, whyMattersText } = extractWhyMatters(allBlocks);
   const why = insight.why_this_matters || whyMattersText || insight.excerpt || '';
 
