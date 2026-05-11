@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<!--
+  Full-screen LOSS outcome detail spec. Source: handoff bundle 2026-05-11.
+  Maps to src/components/sharp/ResolutionScreen.jsx (already implemented).
+  See outcome-resolved-win.html for the win variant.
+-->
+<html lang="en">
+<head><meta charset="UTF-8" /><title>SharpPicks . Outcome Detail (Loss) Reference</title></head>
+<body>
+<p>Reference for the full-screen LOSS outcome detail view. Same structure
+as the win variant with these state-specific differences:</p>
+<ul>
+  <li>State banner: muted rose "Outcome resolved dot Loss". Never red.</li>
+  <li>Pick edge percent rendered with strike-through to signal the edge did not convert.</li>
+  <li>Model P&L and Your P&L cells: rose.</li>
+  <li>CLV card: still sage when CLV beat close (a loss with positive CLV is institutionally still good).</li>
+  <li>Sharp Principle accent: neutral (not sage). Quote should reframe variance, not celebrate.</li>
+  <li>Discipline note callout: sage-bordered tile reminding that tracked losses on qualified signals don't ding the selectivity score. Only off-model bets do.</li>
+</ul>
+<p>All other sections (final score, model context, audit CTA, share, footer)
+render identically to the win variant.</p>
+</body>
+</html>

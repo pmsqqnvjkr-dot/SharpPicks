@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!--
+  Compact outcome card spec. Source: handoff bundle 2026-05-11.
+  Maps to src/components/sharp/OutcomeCard.jsx. Replaces the legacy
+  ResolvedPickBanner (PicksTab.jsx, inline) and the same-day evening
+  "Signal Result Card" inline render. Post-midnight Sharp Journal
+  recap stays in LastNightsReadCard (different surface, different CTA).
+
+  Variants in this mockup (only the standard card ships in v1):
+    .outcome-card  -> ships now as OutcomeCard
+    .outcome-row   -> deferred (no Results history feed yet)
+    .outcome-toast -> deferred (no push-notif surface yet)
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SharpPicks . Compact Outcome Card Reference</title>
+</head>
+<body>
+<p>See src/components/sharp/OutcomeCard.jsx for the rendered component.
+This file is a frozen reference. If you change the visual design, update
+this file in lockstep with the component.</p>
+<p>Standard card structure (top to bottom):</p>
+<ol>
+  <li>Left state accent bar: sage on win, rose on loss, neutral on push.</li>
+  <li>Header row: state pill (Win / Loss / Push) left, date dot sport right.</li>
+  <li>Body:
+    <ul>
+      <li>Matchup eyebrow ("Indiana Fever vs Washington Mystics", mono).</li>
+      <li>Pick row: serif pick name plus muted line, P&L units right-aligned.</li>
+      <li>Score row: "Final dot AWY 98 dot HOM 93" left, dollar P&L right (hidden when bet not tracked).</li>
+    </ul>
+  </li>
+  <li>Footer: CLV pill + value left, Share + View outcome actions right.</li>
+</ol>
+<p>Actions in footer:</p>
+<ul>
+  <li>"Share" (secondary, muted) -> existing share infrastructure (handleShareResult).</li>
+  <li>"View outcome" (primary, Signal Blue) -> opens ResolutionScreen via setResolutionPick + setShowResolution.</li>
+</ul>
+</body>
+</html>

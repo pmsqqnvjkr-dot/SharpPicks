@@ -14,6 +14,7 @@ import DailyTopSignalCard from './DailyTopSignalCard';
 import MidnightHero from './MidnightHero';
 import TomorrowSlateCard from './TomorrowSlateCard';
 import LastNightsReadCard from './LastNightsReadCard';
+import OutcomeCard from './OutcomeCard';
 import TodaysReadCard from './TodaysReadCard';
 import OnboardingCard from './OnboardingCard';
 import DailyMarketReport from './DailyMarketReport';
@@ -483,19 +484,21 @@ export default function PicksTab({ onNavigate }) {
             CalibrationBanner above (see CALIBRATION_COPY map). One banner
             per screen, not two stacked cards. */}
 
-        {/* Resolved Pick Banner (suppressed in night mode; recap handles it) */}
+        {/* Resolved outcome card (suppressed in night mode; recap handles it) */}
         {!isNightMode && lastResolved && lastResolved.id && !isResolved && !dismissedOutcomes.has(lastResolved.id) && (
-          <ResolvedPickBanner
+          <OutcomeCard
             pick={lastResolved}
-            onViewDetails={() => { setResolutionPick(lastResolved); setShowResolution(true); }}
+            sport={sport}
+            onViewOutcome={() => { setResolutionPick(lastResolved); setShowResolution(true); }}
             onDismiss={() => handleDismissResolution(lastResolved.id)}
             onShare={isPro ? handleShareResult : undefined}
           />
         )}
         {!isNightMode && todayData?.type === 'pick' && isResolved && isPro && !dismissedOutcomes.has(todayData.id) && (
-          <ResolvedPickBanner
+          <OutcomeCard
             pick={todayData}
-            onViewDetails={() => { setResolutionPick(todayData); setShowResolution(true); }}
+            sport={sport}
+            onViewOutcome={() => { setResolutionPick(todayData); setShowResolution(true); }}
             onDismiss={() => handleDismissResolution(todayData.id)}
             onShare={handleShareResult}
           />
@@ -682,77 +685,17 @@ export default function PicksTab({ onNavigate }) {
               </>
             )}
 
-            {/* Signal Result Card (legacy — same-day evening; LastNightsReadCard replaces during postMidnight) */}
-            {!postMidnightNight && nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'pending' && nightRecapPick.result !== 'revoked' && (() => {
-              const rp = nightRecapPick;
-              const isWin = rp.result === 'win';
-              const isPushR = rp.result === 'push';
-              const borderAccent = isWin ? '#5A9E72' : isPushR ? '#8494a7' : '#D4787B';
-              const resultLabel = isWin ? 'WIN' : isPushR ? 'PUSH' : 'LOSS';
-              const resultBg = isWin ? 'rgba(90,158,114,0.15)' : isPushR ? 'rgba(132,148,167,0.15)' : 'rgba(212,120,123,0.15)';
-              const resultColor = isWin ? '#5A9E72' : isPushR ? '#8494a7' : '#D4787B';
-              const sideLabel = rp.side && rp.line != null && rp.side.includes(String(Math.abs(rp.line)))
-                ? rp.side : `${rp.side} ${rp.line > 0 ? '+' : ''}${rp.line}`;
-              const pnl = rp.profit_units != null ? Number(rp.profit_units) : (isWin ? 0.9 : isPushR ? 0 : -1.0);
-              const coverMargin = (rp.home_score != null && rp.away_score != null && rp.line != null)
-                ? (() => {
-                    const sLow = (rp.side || '').toLowerCase();
-                    const isHome = sLow.includes((rp.home_team || '').split(' ').pop().toLowerCase());
-                    const margin = isHome
-                      ? (rp.home_score - rp.away_score) + rp.line
-                      : (rp.away_score - rp.home_score) + rp.line;
-                    return margin;
-                  })()
-                : null;
-              const mindsetNote = isWin
-                ? 'No victory laps. The model does not feel. Next signal when the edge is there.'
-                : isPushR
-                ? 'Push changes nothing. Next signal when the edge is there.'
-                : 'No revenge bets. Process was correct. Next signal when the edge is there.';
-              return (
-                <div onClick={() => { setResolutionPick(rp); setShowResolution(true); }} style={{
-                  background: '#121725', border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderLeft: `3px solid ${borderAccent}`,
-                  borderRadius: 8, padding: 12, marginBottom: 12, cursor: 'pointer',
-                }}>
-                  <div style={{
-                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
-                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#5A9E72', marginBottom: 8,
-                  }}>OUTCOME RESOLVED</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8EAED' }}>{sideLabel}</div>
-                    <span style={{
-                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
-                      padding: '2px 8px', borderRadius: 4, background: resultBg, color: resultColor,
-                    }}>{resultLabel}</span>
-                  </div>
-                  {rp.home_score != null && rp.away_score != null && (
-                    <div style={{
-                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: 'rgba(232, 234, 237, 0.7)',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
-                    }}>
-                      <span>{teamAbbr(rp.away_team)} {rp.away_score} &middot; {teamAbbr(rp.home_team)} {rp.home_score}</span>
-                      <span style={{ color: resultColor, fontWeight: 600 }}>{pnl >= 0 ? '+' : ''}{pnl.toFixed(1)}u</span>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                    {rp.edge_pct != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.04)', color: 'rgba(232, 234, 237, 0.7)' }}>Edge +{Number(rp.edge_pct).toFixed(1)}%</span>
-                    )}
-                    {rp.clv != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.04)', color: parseFloat(rp.clv) > 0 ? '#5A9E72' : 'rgba(232, 234, 237, 0.7)' }}>CLV {parseFloat(rp.clv) > 0 ? '+' : ''}{parseFloat(rp.clv).toFixed(1)}</span>
-                    )}
-                    {coverMargin != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.04)', color: coverMargin > 0 ? '#5A9E72' : '#C4868A' }}>Cover by {Math.abs(coverMargin).toFixed(1)}</span>
-                    )}
-                  </div>
-                  <div style={{
-                    fontFamily: "'IBM Plex Serif', var(--font-serif), serif", fontStyle: 'italic',
-                    fontSize: '12px', color: 'rgba(232, 234, 237, 0.5)', lineHeight: 1.5,
-                  }}>{mindsetNote}</div>
-                </div>
-              );
-            })()}
+            {/* Same-day evening outcome card (post-midnight handled by
+                LastNightsReadCard above). Compact card matches
+                docs/outcome-resolved-compact.html. */}
+            {!postMidnightNight && nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'pending' && nightRecapPick.result !== 'revoked' && (
+              <OutcomeCard
+                pick={nightRecapPick}
+                sport={sport}
+                onViewOutcome={() => { setResolutionPick(nightRecapPick); setShowResolution(true); }}
+                onShare={isPro ? handleShareResult : undefined}
+              />
+            )}
 
             {/* Combined recap card — "Capital preserved" framing.
                 Replaces the previous three separate cards (Signal Withdrawn,
@@ -2040,133 +1983,6 @@ function clvNarrative(pick) {
   }
 
   return { clvVal, lineStr, closeStr, movement, narrative };
-}
-
-function ResolvedPickBanner({ pick, onViewDetails, onDismiss, onShare }) {
-  const isWin = pick.result === 'win';
-  const isLoss = pick.result === 'loss';
-  const isPush = pick.result === 'push';
-
-  const brandGreen = '#5A9E72';
-  const neutral = '#616a8a';
-  const muted = '#4a5274';
-
-  const borderColor = isWin ? brandGreen : muted;
-  const dotColor = isWin ? brandGreen : neutral;
-  const labelColor = isWin ? brandGreen : neutral;
-  const statValColor = isWin ? brandGreen : '#9098b3';
-
-  const profitDisplay = pick.profit_units != null ? `${pick.profit_units >= 0 ? '+' : ''}${Number(pick.profit_units).toFixed(1)}u` : isPush ? '0.0u' : isWin ? '+0.9u' : '-1.0u';
-  const edgePct = pick.edge_pct || '--';
-  const modelProb = pick.edge_pct ? `${Math.round(50 + pick.edge_pct)}%` : '--';
-  const sideDisplay = !pick.side ? 'Signal' : (pick.line != null && pick.side.includes(String(Math.abs(pick.line))) ? pick.side : `${pick.side}${pick.line != null ? ` ${pick.line > 0 ? '+' : ''}${pick.line}` : ''}`);
-  const edgeDisplay = pick.edge_pct != null ? `+${Number(pick.edge_pct).toFixed(1)}%` : null;
-  const resultLabel = isPush ? 'OUTCOME RESOLVED \u00B7 PUSH' : isWin ? 'OUTCOME RESOLVED \u00B7 WIN' : 'OUTCOME RESOLVED \u00B7 LOSS';
-  const reviewText = getProcessCopy(pick.result, pick.id);
-  const clv = clvNarrative(pick);
-
-  const scoreDisplay = (pick.home_score != null && pick.away_score != null)
-    ? { away: pick.away_team, home: pick.home_team, awayScore: pick.away_score, homeScore: pick.home_score }
-    : null;
-
-  return (
-    <div style={{
-      background: 'var(--surface-1)', border: '1px solid var(--color-border)',
-      borderLeft: `3px solid ${borderColor}`,
-      borderRadius: '12px', overflow: 'hidden', marginBottom: 'var(--space-md)',
-    }}>
-      {/* Header: OUTCOME RESOLVED · WIN/LOSS/PUSH + dismiss */}
-      <div style={{ padding: '20px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', color: labelColor }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-          {resultLabel}
-        </div>
-        {onDismiss && <button onClick={(e) => { e.stopPropagation(); onDismiss(); }} style={{ background: 'none', border: 'none', color: '#4a5274', cursor: 'pointer', fontSize: '16px', padding: '4px', lineHeight: 1 }} aria-label="Dismiss">&times;</button>}
-      </div>
-
-      {/* Side + Edge */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 20px 0' }}>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)' }}>{sideDisplay}</div>
-        {edgeDisplay && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500, color: brandGreen }}>{edgeDisplay}</div>}
-      </div>
-
-      {/* Final Score Bar */}
-      {scoreDisplay && (
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: 'rgba(74,85,104,0.1)', border: '0.5px solid rgba(74,85,104,0.2)',
-          borderRadius: 5, padding: '6px 10px', margin: '10px 20px 0',
-        }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#4a5568' }}>FINAL</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-mono)' }}>
-            <span style={{ fontSize: '10px', color: '#7A8494' }}>{teamAbbr(scoreDisplay.away)}</span>
-            <span style={{ fontSize: '15px', fontWeight: 500, color: '#E8ECF4' }}>{scoreDisplay.awayScore}</span>
-            <span style={{ fontSize: '10px', color: '#4a5568' }}>&middot;</span>
-            <span style={{ fontSize: '10px', color: '#7A8494' }}>{teamAbbr(scoreDisplay.home)}</span>
-            <span style={{ fontSize: '15px', fontWeight: 500, color: '#E8ECF4' }}>{scoreDisplay.homeScore}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Process Copy */}
-      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: '#616a8a', padding: '10px 20px 0', lineHeight: 1.55, fontStyle: 'italic' }}>{reviewText}</div>
-
-      {/* Stats Grid: P&L | Edge at Entry | Model Prob */}
-      <div style={{ display: 'flex', margin: '16px 20px 0', border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden' }}>
-        {[{ val: profitDisplay, lbl: 'P&L' }, { val: typeof edgePct === 'number' ? `${edgePct}%` : edgePct, lbl: 'EDGE AT ENTRY' }, { val: modelProb, lbl: 'MODEL PROB' }].map((s, i) => (
-          <div key={i} style={{ flex: 1, padding: '10px 12px', textAlign: 'center', borderRight: i < 2 ? '1px solid var(--color-border)' : 'none' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500, color: i === 0 ? statValColor : '#9098b3' }}>{s.val}</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#4a5274', marginTop: '2px' }}>{s.lbl}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* CLV Block */}
-      {clv && (
-        <div style={{
-          margin: '12px 20px 0', padding: '10px 12px',
-          background: 'rgba(15,20,36,0.6)', border: '1px solid var(--color-border)', borderRadius: '8px',
-        }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#9098b3', lineHeight: 1.6 }}>
-            CLV: Pick at {clv.lineStr}, closed at {clv.closeStr}
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#9098b3', lineHeight: 1.6 }}>
-            Line moved {clv.movement} pts {clv.clvVal > 0 ? 'toward' : 'against'} model.
-          </div>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '11px', lineHeight: 1.6, marginTop: '2px',
-            color: clv.clvVal > 0 ? brandGreen : clv.clvVal < 0 ? '#9098b3' : '#9098b3',
-          }}>
-            {clv.narrative}
-          </div>
-        </div>
-      )}
-
-      {/* Footer: View outcome log + Share Result */}
-      <div style={{ padding: '0 20px', marginTop: '14px' }}>
-        <div onClick={onViewDetails} style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-          padding: '12px 0',
-          fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.04em', color: brandGreen, cursor: 'pointer',
-        }}>
-          View outcome log &rarr;
-        </div>
-        {onShare && (
-          <button onClick={(e) => { e.stopPropagation(); onShare(pick); }} style={{
-            width: '100%', padding: '10px', marginBottom: '16px',
-            borderRadius: '8px', cursor: 'pointer',
-            fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '11px',
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: '#9098b3', background: 'transparent',
-            border: '1px solid var(--color-border)',
-          }}>
-            SHARE RESULT
-          </button>
-        )}
-        {!onShare && <div style={{ height: '4px' }} />}
-      </div>
-    </div>
-  );
 }
 
 function PushPromptInline({ onEnable, onDismiss }) {
