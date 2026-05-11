@@ -283,7 +283,12 @@ export default function PicksTab({ onNavigate }) {
     || (sameDayNight && todayData?.type === 'pass');
 
   useEffect(() => {
-    if (!isNightMode) { setTomorrowGames(null); setTomorrowDate(null); setTonightBets(null); return; }
+    // Also fetch tomorrow's slate when in off-day mode so DarkDay can show
+    // the "Tomorrow's {LEAGUE} slate" preview card. The fetch path is the
+    // same as the night-mode pre-midnight branch (tomorrow's date via
+    // /api/picks/market). tonightBets stays off-day-irrelevant.
+    const isOffDay = todayData?.type === 'off_day';
+    if (!isNightMode && !isOffDay) { setTomorrowGames(null); setTomorrowDate(null); setTonightBets(null); return; }
 
     const isPostMidnight = postMidnightNight;
     const fetchSlatePreview = async () => {
@@ -1704,40 +1709,66 @@ export default function PicksTab({ onNavigate }) {
               return { h: parseInt(p.find(x => x.type === 'hour')?.value || '0', 10), m: parseInt(p.find(x => x.type === 'minute')?.value || '0', 10) };
             } catch { return { h: 12, m: 0 }; }
           })();
+          // Minutes from now until the next slate's model_run_hour. When
+          // resume_date is later than tomorrow (extended off-period), add
+          // the day-gap to the countdown so it stays accurate.
           const minsUntilReturn = (() => {
-            let r = modelRunHour * 60 - (etNow2.h * 60 + etNow2.m);
-            if (r <= 0) r += 24 * 60;
-            return r;
+            const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+            const resumeDate = todayData?.resume_date || '';
+            let baseMins = modelRunHour * 60 - (etNow2.h * 60 + etNow2.m);
+            const wrap = baseMins <= 0 ? 24 * 60 : 0;
+            if (resumeDate && resumeDate > todayET) {
+              try {
+                const [y, mo, da] = resumeDate.split('-').map((x) => parseInt(x, 10));
+                const [ty, tmo, tda] = todayET.split('-').map((x) => parseInt(x, 10));
+                const dToday = Date.UTC(ty, tmo - 1, tda);
+                const dResume = Date.UTC(y, mo - 1, da);
+                const dayGap = Math.max(0, Math.round((dResume - dToday) / (24 * 60 * 60 * 1000)));
+                return baseMins + wrap + (dayGap - 1) * 24 * 60;
+              } catch { /* fall through */ }
+            }
+            return baseMins + wrap;
           })();
-          const darkTotalMins = 24 * 60;
-          const darkElapsedPct = Math.round(((darkTotalMins - minsUntilReturn) / darkTotalMins) * 100);
+          const nextSlateAt = returnDateFmt
+            ? `${returnDateFmt} \u00B7 ${modelRunLabel}`
+            : modelRunLabel;
           const weekRecapData = stats ? {
-            netUsd: Math.round(Number(stats.pnl || 0)),
+            netUnits: Number(stats.pnl || 0),
             record: stats.record || `${stats.wins || 0}-${stats.losses || 0}`,
             passDays: stats.passes_this_week || 0,
             signalsIssued: stats.total_picks || 0,
             daysCovered: 7,
             selectivityPct: stats.selectivity || 0,
-            sparkline: [],
           } : undefined;
+          // Off-day reading: prefer a Sharp Journal article that matches
+          // the current sport; fall back to the most recent evergreen.
+          // Dated market notes are excluded (they're stale by definition).
+          const offDayArticle = (() => {
+            const articles = (insightsData?.insights || []).filter((a) =>
+              a && a.category !== 'market_notes' &&
+              !/^market-note-(\w+-)?[0-9]{4}/.test(a.slug || '')
+            );
+            if (!articles.length) return null;
+            const sportLower = (sport || '').toLowerCase();
+            const sportMatch = articles.find((a) => (a.sport || '').toLowerCase() === sportLower);
+            return sportMatch || articles[0];
+          })();
           return (
             <DarkDay
               date={darkDateStr}
               sport={sportName}
-              returnDate={returnDateFmt}
-              nextWindow={{
+              nextSlateAt={nextSlateAt}
+              countdown={{
                 hours: Math.floor(minsUntilReturn / 60),
                 minutes: minsUntilReturn % 60,
-                gamesCount: todayData?.next_game_count || 0,
-                openLocal: `${returnDateFmt} \u00B7 ${modelRunLabel}`,
               }}
-              elapsedPct={darkElapsedPct}
-              onSwitchSport={() => {
-                const other = ['nba', 'mlb', 'wnba'].find(s => s !== sport);
-                if (other) setSport(other);
-              }}
+              nextSlateDate={returnDateFmt}
               weekRecap={weekRecapData}
-              weekAhead={[]}
+              offDayArticle={offDayArticle}
+              tomorrowGames={tomorrowGames}
+              tomorrowDate={tomorrowDate}
+              onSelectArticle={(a) => onNavigate && onNavigate('insights', null, { insight: a })}
+              onNavigate={onNavigate}
             />
           );
         })()}
