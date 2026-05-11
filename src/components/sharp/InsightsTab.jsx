@@ -107,13 +107,26 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
       && /^market-note-(\w+-)?[0-9]{4}/.test(selectedInsight.slug || '');
     const isBeginnersGuide = selectedInsight.slug === 'beginners-guide';
     if (!isMarketNote && !isBeginnersGuide) {
-      // Always surface a 'next read' at the bottom of the article. If the
-      // current article is the last in the list, wrap back to the first
-      // one so the reader never hits a dead end.
+      // Pick the next evergreen article for the bottom-of-article 'Read
+      // next' link. Daily dated market notes (slugs like
+      // market-note-YYYY-MM-DD) are excluded since they're stale by
+      // definition once their day passes. Walk forward in the list from
+      // the current article and wrap to the top if needed so the reader
+      // never hits a dead end. The current article itself is always
+      // skipped.
+      const isEvergreen = (a) => !!a && a.id !== selectedInsight.id
+        && !/^market-note-(\w+-)?[0-9]{4}/.test(a.slug || '');
       const idx = insights.findIndex(i => i.id === selectedInsight.id);
-      const nextInsight = insights.length > 1
-        ? (idx >= 0 && idx < insights.length - 1 ? insights[idx + 1] : insights[0])
-        : null;
+      const startIdx = idx >= 0 ? idx + 1 : 0;
+      let nextInsight = null;
+      for (let j = startIdx; j < insights.length && !nextInsight; j++) {
+        if (isEvergreen(insights[j])) nextInsight = insights[j];
+      }
+      if (!nextInsight) {
+        for (let j = 0; j < startIdx && !nextInsight; j++) {
+          if (isEvergreen(insights[j])) nextInsight = insights[j];
+        }
+      }
       return (
         <SharpJournalArticle
           insight={selectedInsight}
