@@ -17,6 +17,25 @@ export default defineConfig(({ mode }) => {
   const rcKey = fileEnv.VITE_REVENUECAT_IOS_KEY
     || process.env.VITE_REVENUECAT_IOS_KEY
     || '';
+  // Fail loud when building for iOS without a RevenueCat key. A bundle
+  // without VITE_REVENUECAT_IOS_KEY silently ships an iOS app whose
+  // paywall can't load IAP products, which is the 2.1(b) Apple
+  // rejection we've already eaten twice. The previous behavior here
+  // was console.warn + empty string, which made it possible to ship
+  // the broken bundle whenever a build process was missing the var.
+  //
+  // Only fires when BUILD_TARGET=ios is set, since web builds (Railway
+  // deploys app.sharppicks.ai) use Stripe for paywall and don't need
+  // the RevenueCat key at all. Cap-sync workflow should use
+  // `npm run build:ios` which sets this flag automatically.
+  if (process.env.BUILD_TARGET === 'ios' && !rcKey) {
+    throw new Error(
+      '[vite.config] VITE_REVENUECAT_IOS_KEY is empty and BUILD_TARGET=ios. '
+      + 'iOS IAP will not load products with this bundle. Set the variable '
+      + 'in .env (local) or in the build environment, then rerun. Refusing '
+      + 'to produce a broken iOS bundle.'
+    );
+  }
   if (!rcKey) {
     console.warn('[vite.config] WARNING: VITE_REVENUECAT_IOS_KEY is empty. iOS IAP will not work in this build.');
   } else {

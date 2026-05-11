@@ -14,6 +14,7 @@ firebase-service-account.json
 secrets/
 uv.lock
 node_modules
+dist/
 sharp-picks-release.keystore
 *.keystore.old
 .cache/
