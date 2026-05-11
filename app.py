@@ -7494,6 +7494,13 @@ def revenuecat_webhook():
             product_id = event.get('product_id', '')
             if product_id:
                 user.subscription_plan = 'annual' if 'yearly' in product_id or 'annual' in product_id else 'monthly'
+            # UNCANCELLATION reverses a prior CANCELLATION inside the same
+            # period. Wipe the scheduled-cancel timestamps so the user no
+            # longer surfaces in the cancellation queue and the UI badge
+            # disappears. Mirrors the Stripe reactivation path.
+            if event_type == 'UNCANCELLATION':
+                user.cancel_scheduled_at = None
+                user.cancel_effective_at = None
             db.session.commit()
             logging.info(f'RevenueCat: Pro activated for {user.email} via {event_type}')
             try:
@@ -7515,13 +7522,42 @@ def revenuecat_webhook():
             except Exception:
                 pass
 
-        elif event_type in ('CANCELLATION', 'BILLING_ISSUE'):
-            logging.warning(f'RevenueCat: {event_type} for {user.email} — retaining access until expiry')
-            if event_type == 'BILLING_ISSUE':
-                user.subscription_status = 'past_due'
-                db.session.commit()
+        elif event_type == 'CANCELLATION':
+            # Mirror Stripe's cancel_at_period_end flow so the user appears
+            # in the admin cancellation queue and the UI can render the
+            # 'Cancel scheduled' badge. Apple fires CANCELLATION when the
+            # user taps Cancel in App Store settings; access is retained
+            # until expiration_at_ms. cancel_reason=CUSTOMER_SUPPORT is a
+            # refund issued by Apple Support and revokes access immediately
+            # (no period-end grace).
+            cancel_reason = event.get('cancel_reason', 'UNKNOWN')
+            if cancel_reason == 'CUSTOMER_SUPPORT':
+                user.is_premium = False
+                user.subscription_status = 'cancelled'
+                user.cancel_scheduled_at = datetime.utcnow()
+                user.cancel_effective_at = datetime.utcnow()
+            else:
+                if user.cancel_scheduled_at is None:
+                    user.cancel_scheduled_at = datetime.utcnow()
+                if expires_at:
+                    user.cancel_effective_at = expires_at
+                if user.subscription_status == 'active':
+                    user.subscription_status = 'cancelling'
+            db.session.commit()
+            logging.info(f'RevenueCat: CANCELLATION for {user.email} (reason={cancel_reason})')
             try:
-                send_admin_alert(f'RC {event_type}', f'{user.email} — {event_type.lower()} (access retained)')
+                send_admin_alert(
+                    'RC CANCELLATION',
+                    f'{user.email} - cancelled ({cancel_reason})'
+                )
+            except Exception:
+                pass
+
+        elif event_type == 'BILLING_ISSUE':
+            user.subscription_status = 'past_due'
+            db.session.commit()
+            try:
+                send_admin_alert('RC BILLING_ISSUE', f'{user.email} - billing issue (access retained)')
             except Exception:
                 pass
 
