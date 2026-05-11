@@ -292,17 +292,75 @@ VARIANT_POWER_USER = {
 }
 
 
+# ─────────────────────────────────────────────────────────────────────────
+# Weekly recap (Monday 7 AM ET). Two variants, routed by whether the
+# model issued at least one signal in the prior 7 days. The fields below
+# are baseline copy; the cron in app.py.send_weekly_summary_job replaces
+# `header_meta`, `headline`, `subhead`, the three stat cells, and the
+# `body_paragraph` per-send with computed values, then layers an optional
+# user-tracked inset onto `body_paragraph` for users who tracked at least
+# one bet in the same window. See services/weekly_recap_data.py.
+# ─────────────────────────────────────────────────────────────────────────
+
+VARIANT_WEEKLY_RECAP = {
+    'subject': 'Last week in review',
+    'preheader_title': 'SharpPicks · Weekly recap',
+    'preheader_text': 'The model ran. Here is what cleared and what closed.',
+    'header_meta': 'Weekly recap',
+    'eyebrow': 'Last week in review',
+    'headline': 'The model worked.',
+    'subhead': '',  # filled per-send
+    'stat1_label': 'CLV beat rate', 'stat1_value': '—',
+    'stat2_label': 'Record',        'stat2_value': '—',
+    'stat3_label': 'Pass days',     'stat3_value': '—',
+    'body_paragraph': '',  # filled per-send
+    'cta_label': 'View your results',
+    'cta_url': f'{APP_URL}/today?utm_source=email&utm_campaign=weekly_recap',
+    'secondary_text': "This week's reading",
+    'secondary_label': 'Why CLV beats win rate every time',
+    'secondary_url': f'{APP_URL}/journal/clv-is-the-only-scoreboard-that-matters-early?utm_source=email&utm_campaign=weekly_recap',
+    'principle_quote': 'One win is not the proof. The track record is.',
+    'unsubscribe_url': '{{resend_unsubscribe}}',
+    'preferences_url': f'{APP_URL}/settings/email',
+}
+
+
+VARIANT_QUIET_WEEK = {
+    'subject': 'Last week · pass days, capital preserved',
+    'preheader_title': 'SharpPicks · Weekly recap',
+    'preheader_text': 'Seven days, no qualifying edge. That is the model working.',
+    'header_meta': 'Weekly recap',
+    'eyebrow': 'A quiet week',
+    'headline': 'No signal. Capital preserved.',
+    'subhead': '',  # filled per-send
+    'stat1_label': 'Slates scanned',        'stat1_value': '—',
+    'stat2_label': 'Best edge seen',        'stat2_value': '—',
+    'stat3_label': 'Qualifying threshold',  'stat3_value': '—',
+    'body_paragraph': '',  # filled per-send
+    'cta_label': 'Read why we pass more than we play',
+    'cta_url': f'{APP_URL}/journal/why-we-pass-more-than-we-play?utm_source=email&utm_campaign=weekly_recap_quiet',
+    'secondary_text': "Today's slate",
+    'secondary_label': 'Open the app',
+    'secondary_url': f'{APP_URL}/?utm_source=email&utm_campaign=weekly_recap_quiet',
+    'principle_quote': 'Pass days are not missed opportunities. They are proof the system is working.',
+    'unsubscribe_url': '{{resend_unsubscribe}}',
+    'preferences_url': f'{APP_URL}/settings/email',
+}
+
+
 # Map lifecycle_stage string → variant dict. The cron and the eligibility
 # layer use these keys; the keys also flow into email_events.variant and
 # email_send_history.variant for analytics.
 VARIANTS = {
-    'never_activated':   VARIANT_NEVER_ACTIVATED,
-    'dormant':           VARIANT_DORMANT,
-    'cancelled':         VARIANT_CANCELLED,
-    'newly_converted':   VARIANT_NEWLY_CONVERTED,
-    'renewal_t14':       VARIANT_RENEWAL_T14,
-    'pass_day_skeptic':  VARIANT_PASS_DAY_SKEPTIC,
-    'power_user':        VARIANT_POWER_USER,
+    'never_activated':     VARIANT_NEVER_ACTIVATED,
+    'dormant':             VARIANT_DORMANT,
+    'cancelled':           VARIANT_CANCELLED,
+    'newly_converted':     VARIANT_NEWLY_CONVERTED,
+    'renewal_t14':         VARIANT_RENEWAL_T14,
+    'pass_day_skeptic':    VARIANT_PASS_DAY_SKEPTIC,
+    'power_user':          VARIANT_POWER_USER,
+    'weekly_recap':        VARIANT_WEEKLY_RECAP,
+    'weekly_recap_quiet':  VARIANT_QUIET_WEEK,
 }
 
 
@@ -491,6 +549,50 @@ Verified by data, not talk
 Unsubscribe: {{{{resend_unsubscribe}}}}
 Preferences: {APP_URL}/settings/email
 """,
+    'weekly_recap': f"""SHARPPICKS · WEEKLY RECAP
+
+Last week in review.
+
+The recap body, stats, and date range are filled in per-send. The cron
+that calls dispatch_lifecycle_email passes overrides for headline,
+subhead, stats, and body_paragraph. The plain-text fallback is built
+from the same overrides at render time.
+
+View your results: {APP_URL}/today
+This week's reading: Why CLV beats win rate every time
+{APP_URL}/journal/clv-is-the-only-scoreboard-that-matters-early
+
+"One win is not the proof. The track record is."
+
+--
+SharpPicks LLC
+Verified by data, not talk
+
+Unsubscribe: {{{{resend_unsubscribe}}}}
+Preferences: {APP_URL}/settings/email
+""",
+    'weekly_recap_quiet': f"""SHARPPICKS · WEEKLY RECAP
+
+A quiet week.
+
+The model scanned every slate. No edge cleared the qualifying threshold.
+This is not a bug or an outage. The system refused to manufacture signals
+where the data did not support them.
+
+Read why we pass more than we play:
+{APP_URL}/journal/why-we-pass-more-than-we-play
+
+Today's slate: {APP_URL}/
+
+"Pass days are not missed opportunities. They are proof the system is working."
+
+--
+SharpPicks LLC
+Verified by data, not talk
+
+Unsubscribe: {{{{resend_unsubscribe}}}}
+Preferences: {APP_URL}/settings/email
+""",
 }
 
 
@@ -511,20 +613,29 @@ def _render(variant: dict) -> str:
     return html
 
 
-def dispatch_lifecycle_email(user, variant_key: str) -> bool:
+def dispatch_lifecycle_email(user, variant_key: str, overrides: dict = None) -> bool:
     """Render + send a lifecycle email to `user` and write to email_events
     + email_send_history. Returns True on Resend acceptance, False on any
     failure (template missing, no API key, send error). Does NOT enforce
-    frequency caps or eligibility — the caller (cron) does that.
+    frequency caps or eligibility, the caller (cron) does that.
 
     `user` must be a User model instance with .id and .email.
     `variant_key` must be one of VARIANTS' keys.
+    `overrides` is an optional dict whose keys override the matching keys
+        in the base variant. Used by the weekly recap cron so each send
+        carries computed values (date range in header_meta, the per-week
+        headline/subhead/stats/body_paragraph) without one variant dict
+        per user. Overrides apply to the rendered HTML only; the plain-
+        text fallback uses the baseline copy from PLAIN_TEXT.
     """
     variant = VARIANTS.get(variant_key)
     text = PLAIN_TEXT.get(variant_key)
     if not variant or not text:
         logger.error('dispatch_lifecycle_email: unknown variant_key=%r', variant_key)
         return False
+
+    if overrides:
+        variant = {**variant, **overrides}
 
     html = _render(variant)
     if not html:

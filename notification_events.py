@@ -54,7 +54,11 @@ NOTIFICATION_EVENTS = {
     },
     'weekly_summary': {
         'push_fn': 'send_weekly_summary_notification',
-        'email_fn': 'send_weekly_summary',
+        # Weekly recap email no longer dispatches through this registry. It
+        # is sent directly by send_weekly_summary_job in app.py via the
+        # lifecycle dispatcher (services.lifecycle_emails). Push notification
+        # still flows through this entry, so the row stays.
+        'email_fn': None,
         'email_pref': 'email_weekly',
         'premium_only': True,
         'description': 'Weekly performance recap',
