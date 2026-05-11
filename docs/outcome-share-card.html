@@ -1,26 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>SharpPicks Outcome</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SharpPicks . Outcome Share Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
-  @font-face { font-family: 'IBM Plex Serif'; font-style: normal; font-weight: 400; src: url('{{ ibm_plex_serif_400 }}') format('woff2'); font-display: block; }
-  @font-face { font-family: 'IBM Plex Serif'; font-style: normal; font-weight: 500; src: url('{{ ibm_plex_serif_500 }}') format('woff2'); font-display: block; }
-  @font-face { font-family: 'IBM Plex Serif'; font-style: normal; font-weight: 700; src: url('{{ ibm_plex_serif_700 }}') format('woff2'); font-display: block; }
-  @font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; src: url('{{ inter_400 }}') format('woff2'); font-display: block; }
-  @font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; src: url('{{ inter_500 }}') format('woff2'); font-display: block; }
-  @font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; src: url('{{ inter_600 }}') format('woff2'); font-display: block; }
-  @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; src: url('{{ jetbrains_mono_400 }}') format('woff2'); font-display: block; }
-  @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 500; src: url('{{ jetbrains_mono_500 }}') format('woff2'); font-display: block; }
-</style>
-<style>
-  /* Outcome share card. Spec: docs/outcome-share-card.html. Canvas 1200x1200.
-     States: win (green), loss (rose), push (muted), revoked (muted).
-     CLV grade: 'Beat close' (+CLV) / 'Below close' (-CLV) / 'Flat' (~=0). */
-
   :root {
     --sp-bg:           #0A0D14;
     --sp-surface:      #121725;
+    --sp-surface-2:    #1B2030;
     --sp-border:       rgba(255, 255, 255, 0.08);
     --sp-border-2:     rgba(255, 255, 255, 0.05);
     --sp-blue:         #4F86F7;
@@ -37,7 +28,13 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--sp-bg); }
+
+  html, body {
+    background: var(--sp-bg);
+    color: var(--sp-text);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
 
   .share-card {
     width: 1200px;
@@ -46,52 +43,46 @@
     position: relative;
     overflow: hidden;
     font-family: 'Inter', sans-serif;
-    color: var(--sp-text);
-    -webkit-font-smoothing: antialiased;
   }
 
-  /* Top accent strip — state color, fades at edges. */
   .sc-accent-strip {
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 8px;
   }
   .share-card.win .sc-accent-strip {
-    background: linear-gradient(90deg, transparent, var(--sp-green) 20%, var(--sp-green) 80%, transparent);
+    background: linear-gradient(90deg,
+      transparent,
+      var(--sp-green) 20%,
+      var(--sp-green) 80%,
+      transparent);
     opacity: 0.7;
   }
   .share-card.loss .sc-accent-strip {
-    background: linear-gradient(90deg, transparent, var(--sp-negative) 20%, var(--sp-negative) 80%, transparent);
+    background: linear-gradient(90deg,
+      transparent,
+      var(--sp-negative) 20%,
+      var(--sp-negative) 80%,
+      transparent);
     opacity: 0.6;
   }
   .share-card.push .sc-accent-strip,
   .share-card.dim .sc-accent-strip {
-    background: linear-gradient(90deg, transparent, var(--sp-text-4) 20%, var(--sp-text-4) 80%, transparent);
+    background: linear-gradient(90deg,
+      transparent,
+      var(--sp-text-4) 20%,
+      var(--sp-text-4) 80%,
+      transparent);
     opacity: 0.5;
   }
 
-  /* Dotted-grid bg pattern for institutional feel. */
-  .sc-bg-pattern {
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px);
-    background-size: 32px 32px;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .sc-content {
-    position: relative;
-    z-index: 1;
-    height: 100%;
-  }
-
-  /* Header: wordmark + state pill. */
   .sc-header {
     padding: 80px 90px 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
+
   .sc-wordmark {
     display: inline-flex;
     align-items: baseline;
@@ -115,6 +106,7 @@
     background: var(--sp-text);
     display: inline-block;
   }
+
   .sc-state-pill {
     display: inline-flex;
     align-items: center;
@@ -150,8 +142,8 @@
     border-radius: 50%;
   }
 
-  /* Main hero block. */
   .sc-main { padding: 80px 90px 0; }
+
   .sc-matchup {
     font-family: 'JetBrains Mono', monospace;
     font-size: 22px;
@@ -159,6 +151,7 @@
     letter-spacing: 0.04em;
     margin-bottom: 18px;
   }
+
   .sc-pick-row {
     display: flex;
     align-items: baseline;
@@ -167,10 +160,11 @@
     margin-bottom: 20px;
     flex-wrap: wrap;
   }
+
   .sc-pick {
     font-family: 'IBM Plex Serif', Georgia, serif;
     font-size: 64px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--sp-text);
     line-height: 1.1;
     letter-spacing: -0.012em;
@@ -180,6 +174,7 @@
     color: var(--sp-text-2);
     font-weight: 500;
   }
+
   .sc-pnl-block {
     display: flex;
     flex-direction: column;
@@ -205,7 +200,6 @@
     text-transform: uppercase;
   }
 
-  /* Final score card. */
   .sc-final-score {
     display: flex;
     align-items: center;
@@ -239,7 +233,6 @@
     font-weight: 500;
   }
 
-  /* CLV card — institutional metric. */
   .sc-clv-card {
     background: var(--sp-surface);
     border: 1px solid var(--sp-border);
@@ -255,8 +248,6 @@
     width: 4px;
     background: var(--sp-green);
   }
-  .sc-clv-card.below::before { background: var(--sp-negative); }
-  .sc-clv-card.flat::before { background: var(--sp-text-4); }
   .sc-clv-top {
     display: flex;
     align-items: center;
@@ -271,8 +262,6 @@
     text-transform: uppercase;
     color: var(--sp-green);
   }
-  .sc-clv-card.below .sc-clv-label { color: var(--sp-negative); }
-  .sc-clv-card.flat .sc-clv-label { color: var(--sp-text-3); }
   .sc-clv-pill {
     display: inline-flex;
     align-items: center;
@@ -287,16 +276,6 @@
     text-transform: uppercase;
     color: var(--sp-green);
   }
-  .sc-clv-card.below .sc-clv-pill {
-    background: var(--sp-negative-soft);
-    border-color: rgba(196, 134, 138, 0.4);
-    color: var(--sp-negative);
-  }
-  .sc-clv-card.flat .sc-clv-pill {
-    background: rgba(232, 234, 237, 0.06);
-    border-color: rgba(232, 234, 237, 0.2);
-    color: var(--sp-text-3);
-  }
   .sc-clv-bottom {
     display: flex;
     align-items: baseline;
@@ -310,8 +289,6 @@
     color: var(--sp-green);
     line-height: 1;
   }
-  .sc-clv-card.below .sc-clv-value { color: var(--sp-negative); }
-  .sc-clv-card.flat .sc-clv-value { color: var(--sp-text-2); }
   .sc-clv-explain {
     font-family: 'IBM Plex Serif', Georgia, serif;
     font-size: 22px;
@@ -321,15 +298,17 @@
     flex: 1;
   }
 
-  /* Marketing block: season stats + soft CTA. */
   .sc-marketing {
     margin: 40px 90px 0;
     padding: 28px 32px;
-    background: linear-gradient(180deg, rgba(90, 158, 114, 0.06) 0%, rgba(90, 158, 114, 0.02) 100%);
+    background: linear-gradient(180deg,
+      rgba(90, 158, 114, 0.06) 0%,
+      rgba(90, 158, 114, 0.02) 100%);
     border: 1px solid rgba(90, 158, 114, 0.18);
     border-radius: 16px;
     position: relative;
   }
+
   .sc-marketing-eyebrow {
     font-family: 'JetBrains Mono', monospace;
     font-size: 14px;
@@ -340,22 +319,27 @@
     margin-bottom: 18px;
     text-align: center;
   }
+
   .sc-stats-strip {
     display: grid;
     grid-template-columns: 1fr 1px 1fr 1px 1fr;
     align-items: center;
+    gap: 0;
     margin-bottom: 22px;
   }
-  /* Fallback layouts when fewer than 3 season stats are available. */
-  .sc-stats-strip.cols-2 { grid-template-columns: 1fr 1px 1fr; }
-  .sc-stats-strip.cols-1 { grid-template-columns: 1fr; }
-  .sc-stats-strip.cols-0 { display: none; }
-  .sc-stat-cell { text-align: center; padding: 0 8px; }
+
+  .sc-stat-cell {
+    text-align: center;
+    padding: 0 8px;
+  }
+
   .sc-stat-divider {
-    width: 1px; height: 56px;
+    width: 1px;
+    height: 56px;
     background: rgba(90, 158, 114, 0.2);
     justify-self: center;
   }
+
   .sc-stat-value {
     font-family: 'JetBrains Mono', monospace;
     font-size: 36px;
@@ -365,7 +349,7 @@
     margin-bottom: 8px;
   }
   .sc-stat-value.green { color: var(--sp-green); }
-  .sc-stat-value.negative { color: var(--sp-negative); }
+
   .sc-stat-label {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
@@ -373,6 +357,7 @@
     text-transform: uppercase;
     color: var(--sp-text-3);
   }
+
   .sc-cta-line {
     text-align: center;
     padding-top: 18px;
@@ -383,10 +368,6 @@
     color: var(--sp-text);
     letter-spacing: -0.003em;
   }
-  .sc-stats-strip.cols-0 + .sc-cta-line {
-    padding-top: 0;
-    border-top: none;
-  }
   .sc-cta-line .url {
     font-family: 'JetBrains Mono', monospace;
     font-size: 18px;
@@ -396,7 +377,6 @@
     margin-left: 4px;
   }
 
-  /* Footer band: handle + date + url. */
   .sc-footer {
     position: absolute;
     bottom: 110px;
@@ -418,7 +398,9 @@
     color: var(--sp-text-2);
     letter-spacing: 0.08em;
   }
-  .sc-footer-divider { color: var(--sp-text-5); }
+  .sc-footer-divider {
+    color: var(--sp-text-5);
+  }
   .sc-footer-tag {
     font-family: 'JetBrains Mono', monospace;
     font-size: 14px;
@@ -433,11 +415,11 @@
     letter-spacing: 0.08em;
   }
 
-  /* Tagline. */
   .sc-tagline {
     position: absolute;
     bottom: 50px;
-    left: 0; right: 0;
+    left: 0;
+    right: 0;
     text-align: center;
     font-family: 'IBM Plex Serif', Georgia, serif;
     font-style: italic;
@@ -456,109 +438,92 @@
     margin: 0 auto 18px;
     border-radius: 1px;
   }
+
+  .sc-bg-pattern {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .sc-content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+  }
 </style>
 </head>
 <body>
-
-<div class="share-card {{ state_class }}">
+<div class="share-card win">
   <div class="sc-bg-pattern"></div>
   <div class="sc-accent-strip"></div>
-
   <div class="sc-content">
-
     <div class="sc-header">
       <div class="sc-wordmark">
         <span>SHARP</span>
         <span class="sc-wordmark-bars"><span></span><span></span></span>
         <span>PICKS</span>
       </div>
-      <div class="sc-state-pill">
-        <span class="sc-state-dot"></span>
-        <span>{{ state_label }}</span>
-      </div>
+      <div class="sc-state-pill"><span class="sc-state-dot"></span><span>Win</span></div>
     </div>
-
     <div class="sc-main">
-      <div class="sc-matchup">{{ matchup_line }}</div>
-
+      <div class="sc-matchup">WNBA . Indiana Fever vs Washington Mystics</div>
       <div class="sc-pick-row">
-        <h1 class="sc-pick">
-          {{ pick_team }}{% if pick_line %}<br><span class="sc-pick-line">{{ pick_line }}</span>{% endif %}
-        </h1>
+        <h1 class="sc-pick">Washington Mystics<br><span class="sc-pick-line">+5.5</span></h1>
         <div class="sc-pnl-block">
-          <div class="sc-pnl-value">{{ pnl_value }}</div>
-          {% if pnl_meta %}<div class="sc-pnl-meta">{{ pnl_meta }}</div>{% endif %}
+          <div class="sc-pnl-value">+0.9u</div>
+          <div class="sc-pnl-meta">+$86 . 1u flat</div>
         </div>
       </div>
-
-      {% if final_score_line %}
       <div class="sc-final-score">
         <span class="sc-fs-label">Final</span>
         <span class="sc-fs-divider"></span>
-        <span class="sc-fs-score">{{ final_score_line|safe }}</span>
+        <span class="sc-fs-score">IND <span class="sc-fs-num">98</span> . WMY <span class="sc-fs-num">93</span></span>
       </div>
-      {% endif %}
-
-      {% if has_clv %}
-      <div class="sc-clv-card {{ clv_grade_class }}">
+      <div class="sc-clv-card">
         <div class="sc-clv-top">
           <span class="sc-clv-label">Closing Line Value</span>
-          <span class="sc-clv-pill">{{ clv_grade_label }}</span>
+          <span class="sc-clv-pill">Beat close</span>
         </div>
         <div class="sc-clv-bottom">
-          <span class="sc-clv-value">{{ clv_value }}</span>
-          <span class="sc-clv-explain">{{ clv_explain }}</span>
+          <span class="sc-clv-value">+1.5</span>
+          <span class="sc-clv-explain">Entered at +5.5, closed at +4.0. The market moved your way.</span>
         </div>
       </div>
-      {% endif %}
     </div>
-
     <div class="sc-marketing">
       <div class="sc-marketing-eyebrow">Season to date</div>
-      <div class="sc-stats-strip cols-{{ season_stats_count }}">
-        {% if season_roi_label %}
+      <div class="sc-stats-strip">
         <div class="sc-stat-cell">
-          <div class="sc-stat-value {{ season_roi_class }}">{{ season_roi_label }}</div>
+          <div class="sc-stat-value green">+12.4%</div>
           <div class="sc-stat-label">ROI</div>
         </div>
-        {% endif %}
-        {% if season_roi_label and season_signals_label %}
         <div class="sc-stat-divider"></div>
-        {% endif %}
-        {% if season_signals_label %}
         <div class="sc-stat-cell">
-          <div class="sc-stat-value">{{ season_signals_label }}</div>
+          <div class="sc-stat-value">142</div>
           <div class="sc-stat-label">Signals</div>
         </div>
-        {% endif %}
-        {% if season_signals_label and season_clv_beat_label %}
         <div class="sc-stat-divider"></div>
-        {% endif %}
-        {% if season_clv_beat_label %}
         <div class="sc-stat-cell">
-          <div class="sc-stat-value green">{{ season_clv_beat_label }}</div>
+          <div class="sc-stat-value green">78%</div>
           <div class="sc-stat-label">CLV Beat</div>
         </div>
-        {% endif %}
       </div>
       <div class="sc-cta-line">
         Track every signal at <span class="url">sharppicks.ai</span>
       </div>
     </div>
-
     <div class="sc-footer">
       <div class="sc-footer-left">
         <span class="sc-footer-handle">@sharppicksapp</span>
-        <span class="sc-footer-divider">·</span>
-        <span class="sc-footer-tag">{{ footer_date }}</span>
+        <span class="sc-footer-divider">.</span>
+        <span class="sc-footer-tag">May 10, 2026</span>
       </div>
       <span class="sc-footer-url">sharppicks.ai</span>
     </div>
-
     <div class="sc-tagline">Every signal tracked. Nothing removed.</div>
-
   </div>
 </div>
-
 </body>
 </html>
