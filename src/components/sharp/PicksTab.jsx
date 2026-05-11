@@ -33,10 +33,10 @@ import { FEATURE_EVAN_COLE_READ, FEATURE_DISCIPLINE_ARTICLES, FEATURE_EVENING_RE
 // MLB and WNBA in calibration phase share the same framing pattern.
 const CALIBRATION_COPY = {
   mlb: {
-    body: <><strong>MLB signals use the same model pipeline as NBA.</strong> While we build the live track record, MLB is labeled Preview. Edges are real. Sizing is identical. Every signal is tracked and graded.</>,
+    body: <><strong>MLB signals use the same model pipeline as NBA.</strong> We're still building MLB's live track record. Edges are real. Sizing is identical. Every signal is tracked and graded.</>,
   },
   wnba: {
-    body: <><strong>WNBA signals use the same model pipeline as NBA.</strong> While we build the live track record, WNBA is labeled Preview. Edges are real. Sizing is identical. Every signal is tracked and graded.</>,
+    body: <><strong>WNBA signals use the same model pipeline as NBA.</strong> We're still building WNBA's live track record. Edges are real. Sizing is identical. Every signal is tracked and graded.</>,
   },
 };
 
