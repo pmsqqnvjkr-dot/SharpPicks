@@ -20,11 +20,11 @@ import time
 logger = logging.getLogger(__name__)
 
 
-async def _render(html_string: str):
+async def _render(html_string: str, width: int = 1080, height: int = 1350):
     from playwright.async_api import async_playwright
     async with async_playwright() as p:
         browser = await p.chromium.launch()
-        page = await browser.new_page(viewport={"width": 1080, "height": 1350})
+        page = await browser.new_page(viewport={"width": width, "height": height})
 
         start = time.monotonic()
         await page.set_content(html_string, wait_until="domcontentloaded")
@@ -69,18 +69,18 @@ async def _render(html_string: str):
         return png_bytes, diagnostics
 
 
-async def _generate_card_png(html_string: str) -> bytes:
-    png_bytes, _ = await _render(html_string)
+async def _generate_card_png(html_string: str, width: int = 1080, height: int = 1350) -> bytes:
+    png_bytes, _ = await _render(html_string, width=width, height=height)
     return png_bytes
 
 
-async def _generate_card_png_with_diagnostics(html_string: str):
+async def _generate_card_png_with_diagnostics(html_string: str, width: int = 1080, height: int = 1350):
     """Async renderer that also returns a diagnostics dict.
 
     diagnostics keys: content_loaded_at, fonts_ready_at, total,
     loaded_fonts (list of {family, weight, status}), failed_fonts.
     """
-    return await _render(html_string)
+    return await _render(html_string, width=width, height=height)
 
 
 def _run_async(coro):
@@ -96,23 +96,29 @@ def _run_async(coro):
         return asyncio.run(coro)
 
 
-def generate_card_png(html_string: str) -> bytes:
-    """Synchronous wrapper for Playwright screenshot generation."""
+def generate_card_png(html_string: str, width: int = 1080, height: int = 1350) -> bytes:
+    """Synchronous wrapper for Playwright screenshot generation.
+
+    width/height default to the legacy 1080x1350 portrait used by older
+    cards (signal, weekly report, etc). The outcome share card switched
+    to 1200x1200 in May 2026 (cards_api.py:result_card) — it passes
+    explicit dimensions.
+    """
     try:
-        return _run_async(_generate_card_png(html_string))
+        return _run_async(_generate_card_png(html_string, width=width, height=height))
     except Exception as e:
         logging.error(f"Card generation failed: {e}")
         raise
 
 
-def generate_card_png_with_diagnostics(html_string: str):
+def generate_card_png_with_diagnostics(html_string: str, width: int = 1080, height: int = 1350):
     """Synchronous wrapper returning (png_bytes, diagnostics_dict).
 
     Used by the admin /api/admin/render-test-card endpoint to verify
     font health after each deploy.
     """
     try:
-        return _run_async(_generate_card_png_with_diagnostics(html_string))
+        return _run_async(_generate_card_png_with_diagnostics(html_string, width=width, height=height))
     except Exception as e:
         logging.error(f"Card generation (diagnostics) failed: {e}")
         raise
