@@ -593,12 +593,16 @@ def today():
 
 @picks_bp.route('/last-resolved')
 def last_resolved():
-    """Return the most recently graded pick (win/loss/push) for resolution banner"""
-    today_str = _get_et_date()
+    """Return the most recently graded pick (win/loss/push) for resolution banner.
+
+    Today's picks ARE included: if a same-day pick resolves (afternoon NBA,
+    early MLB, etc.) the frontend banner needs the data to surface the win
+    immediately on the home screen. PicksTab guards against double-rendering
+    today's resolved pick via its !isResolved check (uses todayData when
+    today's pick has resolved, lastResolved otherwise)."""
     sport = request.args.get('sport', 'nba')
     pick = Pick.query.filter(
         Pick.result.in_(['win', 'loss', 'push']),
-        Pick.game_date != today_str,
         Pick.sport == sport,
     ).order_by(Pick.published_at.desc()).first()
 
