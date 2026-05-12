@@ -102,7 +102,17 @@ SPORT_CONFIG = {
         'sigma': 4.0,
         'model_weight': 0.30,
         'edge_threshold_pct': 4.5,
-        'max_edge_pct': 6.0,
+        # max_edge_pct caps adjusted_edge so absurd outliers (e.g. 30%+ from
+        # a divergent prior) can't ship. Was 6.0, which left only 1.5pt of
+        # headroom above the 4.5% threshold and silently collapsed every
+        # MLB pick to a uniform edge_pct=6.0 in storage. Bumped to 12.0
+        # to give a real distribution; cover_prob already ranges 0.55-0.71
+        # so true edges run roughly -1.5 to +14.5 around -130 implied prob.
+        # NBA and WNBA both run 8.0 against a 3.5% threshold (4.5pt of
+        # headroom). MLB threshold is 4.5%, so 12.0 gives 7.5pt of headroom,
+        # comfortably wider than the basketball sports because run-line
+        # outcomes have higher per-game variance.
+        'max_edge_pct': 12.0,
         'margin_std_floor': 3.5,
         'margin_std_ceiling': 5.5,
         'standard_odds': -130,

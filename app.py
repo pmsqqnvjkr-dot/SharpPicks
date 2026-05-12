@@ -4997,14 +4997,25 @@ def collect_mlb_closing_lines_job():
 
             today_str = _get_et_today()
             now_utc = datetime.utcnow()
-            # mlb_games.game_time format is 'YYYY-MM-DDTHH:MMZ' (no seconds)
+            # mlb_games.game_time format is 'YYYY-MM-DDTHH:MMZ' (no seconds).
+            # Capture window is 30 minutes before first pitch (was 10). MLB
+            # closing-lines cron has historically been scheduled twice per
+            # day on cronjobs.org while NBA fires every minute; a 10-minute
+            # window meant almost every MLB game tipped outside it and the
+            # closing snapshot was silently missed. The wider window plus
+            # the spread_home_close IS NULL idempotency check below means a
+            # sparse cron schedule still catches every game and never
+            # re-captures one we already have. The real fix is the
+            # cronjobs.org schedule (Evan owns), this just makes the code
+            # resilient to whatever cadence ends up running.
             now_iso = now_utc.strftime('%Y-%m-%dT%H:%MZ')
-            window_end = now_utc + timedelta(minutes=10)
+            window_end = now_utc + timedelta(minutes=30)
             end_iso = window_end.strftime('%Y-%m-%dT%H:%MZ')
 
             cursor.execute('''
                 SELECT id, home_team, away_team, spread_home, total,
-                       home_ml, away_ml, game_time, home_score
+                       home_ml, away_ml, game_time, home_score,
+                       spread_home_close
                 FROM mlb_games
                 WHERE game_date LIKE ?
                 AND game_time IS NOT NULL
@@ -5012,6 +5023,7 @@ def collect_mlb_closing_lines_job():
             ''', (f'{today_str}%',))
 
             games = cursor.fetchall()
+            skipped_already = 0
 
             for game in games:
                 gt = game['game_time']
@@ -5020,6 +5032,14 @@ def collect_mlb_closing_lines_job():
                     continue
                 if game['home_score'] is not None:
                     skipped_scored += 1
+                    continue
+                # Idempotency: never overwrite an already-captured closing
+                # snapshot. The first capture inside the window IS the
+                # closing line; later captures during the same window
+                # would re-write the same value and the earliest pre-tip
+                # read is the one we want on the record.
+                if game['spread_home_close'] is not None:
+                    skipped_already += 1
                     continue
                 cursor.execute('''
                     UPDATE mlb_games SET
@@ -5055,7 +5075,7 @@ def collect_mlb_closing_lines_job():
 
             conn.commit()
             db.session.commit()
-            print(f"[{datetime.now()}] MLB closing-lines: {len(games)} today, {updated} snapshotted, {skipped_scored} already scored, {skipped_outside} outside window")
+            print(f"[{datetime.now()}] MLB closing-lines: {len(games)} today, {updated} snapshotted, {skipped_already} already captured, {skipped_scored} already scored, {skipped_outside} outside window")
         except Exception as e:
             print(f"[{datetime.now()}] MLB closing line error: {e}")
         finally:
