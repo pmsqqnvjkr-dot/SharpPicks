@@ -75,100 +75,125 @@ def compute_headline(metrics: dict) -> dict:
 
     # bad_day: only when payment trouble is material, churn is real,
     # AND there's no growth offsetting it. New subs + trial conversions
-    # this week qualify as growth — even one positive signal is enough
+    # this week qualify as growth, even one positive signal is enough
     # to drop into mixed_day instead. The payment-failures action item
     # still surfaces below the headline when material.
     has_growth = (new_subs_7d > 0) or (trial_conv_7d > 0)
     if failed_users >= 2 and canceled_30d >= 1 and not has_growth:
+        cancel_word = 'cancellation' + ('s' if canceled_30d != 1 else '')
         return {
             'template': 'bad_day',
             'sentence': (
-                f'{failed_users} customers in payment failure and {canceled_30d} cancellation'
-                + ('s' if canceled_30d != 1 else '')
-                + ' in 30d, no offsetting growth. Top of the action queue today.'
+                f'Revenue is shrinking. {failed_users} customers in payment '
+                f'failure, {canceled_30d} {cancel_word} in 30d, no new subs '
+                f'offsetting. Open the cancellation list before anything else.'
             ),
             'color': 'red',
         }
 
     # good_day: actual paying customers + new signups this week. Adds
-    # acquisition context (installs, DAU) when present so the headline
-    # carries the full top-of-funnel signal, not just billings.
+    # mid-funnel context (trials, installs) when present so the headline
+    # carries the full top-of-funnel signal, not just MRR. Tail line
+    # ("The funnel is feeding the top.") only renders when the mid bits
+    # have something to feed; otherwise the sentence ends at the lead.
     if new_subs_7d > 0 and mrr_cents > 0:
-        bits = [
-            f'MRR {_money(mrr_cents)}',
-            f'{new_subs_7d} new subscriber' + ('s' if new_subs_7d != 1 else '') + ' this week',
-        ]
+        sub_phrase = _pluralize(new_subs_7d, 'new subscriber')
+        lead = f'{_money(mrr_cents)} MRR with {sub_phrase} this week.'
+        mid_bits = []
         if trials > 0:
-            bits.append(f'{trials} trial' + ('s' if trials != 1 else '') + ' in flight')
+            mid_bits.append(_pluralize(trials, 'trial') + ' still on the card')
         if installs_28d > 0:
-            bits.append(f'{installs_28d} install' + ('s' if installs_28d != 1 else '') + ' (28d)')
+            mid_bits.append(_pluralize(installs_28d, 'install') + ' in 28d')
+        if mid_bits:
+            mid = mid_bits[0][0].upper() + mid_bits[0][1:]
+            for extra in mid_bits[1:]:
+                mid += ', ' + extra
+            return {
+                'template': 'good_day',
+                'sentence': f'{lead} {mid}. The funnel is feeding the top.',
+                'color': 'green',
+            }
         return {
             'template': 'good_day',
-            'sentence': '. '.join(bits) + '.',
+            'sentence': lead,
             'color': 'green',
         }
 
     # trial_day: pipeline filling even if no new paying conversions
     # this week. Distinct from quiet_day so the headline acknowledges
-    # demand exists; the conversion is just downstream.
+    # demand exists; the conversion is just downstream. Two shapes:
+    # trials currently in flight ("Pipeline loaded.") vs the rarer
+    # case where trials are zero but recent conversions are landing
+    # (seed the next cohort).
     if trials > 0 or trial_conv_7d > 0:
-        head = f'MRR {_money(mrr_cents)}.' if mrr_cents > 0 else 'No paying customers yet.'
-        bits = [head]
         if trials > 0:
-            bits.append(
-                f'{trials} trial' + ('s' if trials != 1 else '') + ' in flight'
-                + (f' ({trials_likely} likely to convert)' if trials_likely else '')
+            phrase = _pluralize(trials, 'trial') + ' in flight'
+            if trials_likely:
+                phrase += f', {trials_likely} tracked to convert'
+            if trial_conv_7d > 0:
+                phrase += f', {trial_conv_7d} already paid this week'
+            sentence = f'Pipeline loaded. {phrase}. The next 14 days decide the month.'
+        else:
+            conv_phrase = _pluralize(trial_conv_7d, 'trial converted', 'trials converted')
+            sentence = (
+                f'{conv_phrase} this week, no new trials in flight. '
+                f'Seed the next cohort.'
             )
-        if trial_conv_7d > 0:
-            bits.append(f'{trial_conv_7d} trial' + ('s' if trial_conv_7d != 1 else '') + ' converted this week')
-        if installs_28d > 0:
-            bits.append(f'{installs_28d} install' + ('s' if installs_28d != 1 else '') + ' driving the funnel (28d)')
         return {
             'template': 'trial_day',
-            'sentence': ' '.join(bits) + '.',
+            'sentence': sentence,
             'color': 'blue',
         }
 
     # mixed_day: growth and friction together. Friction is real but
-    # subordinated — the headline still leads with the win.
+    # subordinated, the headline still leads with the win. Tail line
+    # ("The cancellation list needs a pass...") doubles as an action
+    # prompt: do not leave net-positive on the table.
     if new_subs_7d > 0 and (canceled_30d > 0 or cancels_scheduled > 0 or failed_users > 0):
         friction_bits = []
-        if cancels_scheduled > 0:
-            friction_bits.append(
-                f'{cancels_scheduled} cancellation'
-                + ('s' if cancels_scheduled != 1 else '')
-                + ' scheduled'
-            )
         if canceled_30d > 0:
-            friction_bits.append(f'{canceled_30d} cancelled in 30d')
+            friction_bits.append(f'{canceled_30d} churned in 30d')
+        if cancels_scheduled > 0:
+            friction_bits.append(f'{cancels_scheduled} scheduled to cancel')
         if failed_users > 0:
-            friction_bits.append(
-                f'{failed_users} customer'
-                + ('s' if failed_users != 1 else '')
-                + ' in payment failure'
-            )
+            fail_word = 'customer' + ('s' if failed_users != 1 else '') + ' in payment failure'
+            friction_bits.append(f'{failed_users} {fail_word}')
+        sub_phrase = _pluralize(new_subs_7d, 'new sub')
         return {
             'template': 'mixed_day',
             'sentence': (
-                f'{new_subs_7d} new subscriber'
-                + ('s' if new_subs_7d != 1 else '')
-                + f' this week. {", ".join(friction_bits)}. Net positive.'
+                f'{sub_phrase}, ' + ', '.join(friction_bits) + '. Net positive '
+                f'on the week. The cancellation list needs a pass before it '
+                f'stops being net positive.'
             ),
             'color': 'amber',
         }
 
-    # quiet_day: default — nothing happening on the revenue or pipeline
-    # surfaces. Acknowledge install funnel if any.
-    parts = [f'MRR steady at {_money(mrr_cents)}.']
+    # quiet_day: default state. Three variants based on which top-of-
+    # funnel surfaces have any signal at all. The "use the quiet week
+    # on signal quality, not on the dashboard" tail is intentional and
+    # load-bearing: the operator should not be in the dashboard when
+    # the dashboard has nothing to say.
     if installs_28d > 0:
-        parts.append(f'{installs_28d} app install' + ('s' if installs_28d != 1 else '') + ' (28d), no new bookings this week.')
+        install_phrase = _pluralize(installs_28d, 'install') + ' in 28d but no new bookings'
+        sentence = (
+            f'{_money(mrr_cents)} MRR holding. {install_phrase}. '
+            f'Top of funnel works, bottom does not. Use the quiet week on '
+            f'signal quality, not on the dashboard.'
+        )
     elif dau_avg > 0:
-        parts.append(f'{dau_avg:.1f} DAU avg, no new bookings this week.')
+        sentence = (
+            f'{_money(mrr_cents)} MRR holding. {dau_avg:.1f} DAU avg but no new '
+            f'bookings this week. Top of funnel is breathing, bottom is not.'
+        )
     else:
-        parts.append('No new subscribers, no trials in flight, no churn.')
+        sentence = (
+            'No new subscribers, no trials, no churn. Genuinely quiet week. '
+            'The dashboard is not where the work is today.'
+        )
     return {
         'template': 'quiet_day',
-        'sentence': ' '.join(parts),
+        'sentence': sentence,
         'color': 'blue',
     }
 
