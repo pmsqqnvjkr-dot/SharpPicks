@@ -1371,7 +1371,36 @@ def market_report():
     et = ZoneInfo('America/New_York')
     today = datetime.now(et).strftime('%Y-%m-%d')
     date_param = request.args.get('date', today)
-    return jsonify(build_market_report_dict(date_param, sport))
+    report = build_market_report_dict(date_param, sport)
+
+    # Overnight fallback: between midnight ET and the morning model run
+    # (NBA 10 AM, MLB 11 AM, WNBA 10 AM), today's report is genuinely
+    # not available yet. The iOS widget (SharpPicksWidget Build 10) and
+    # any web visitor in that window would see {available: false} and a
+    # placeholder. Fall back to the most recent prior day's run for the
+    # same sport so the widget shows actionable data through the cold-
+    # start hours instead of empty cells for 10 hours every night.
+    # Explicit historical date requests (date in the past) skip this
+    # fallback so historical lookups stay accurate. The `as_of_date`
+    # field tells clients which date the data actually represents so
+    # future widget builds can label it ("Last night" vs "Today").
+    if not report.get('available') and date_param == today:
+        prior = ModelRun.query.filter(
+            ModelRun.date < today,
+        )
+        if sport:
+            prior = prior.filter_by(sport=sport)
+        prior_run = prior.order_by(ModelRun.date.desc(), ModelRun.created_at.desc()).first()
+        if prior_run is not None:
+            fallback = build_market_report_dict(prior_run.date, sport)
+            if fallback.get('available'):
+                fallback['as_of_date'] = prior_run.date
+                fallback['requested_date'] = date_param
+                fallback['is_overnight_fallback'] = True
+                return jsonify(fallback)
+
+    report['as_of_date'] = date_param
+    return jsonify(report)
 
 
 @public_bp.route('/recap')
