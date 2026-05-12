@@ -1374,7 +1374,7 @@ def market_report():
     report = build_market_report_dict(date_param, sport)
 
     # Overnight fallback: between midnight ET and the morning model run
-    # (NBA 10 AM, MLB 11 AM, WNBA 10 AM), today's report is genuinely
+    # (NBA 10 AM, WNBA 10 AM, MLB 1 PM), today's report is genuinely
     # not available yet. The iOS widget (SharpPicksWidget Build 10) and
     # any web visitor in that window would see {available: false} and a
     # placeholder. Fall back to the most recent prior day's run for the
