@@ -52,6 +52,42 @@ def _bet_taps(range_, include_internal):
     return {(surface or 'unknown'): count for surface, count in rows}
 
 
+def _unique_tappers(range_, include_internal):
+    """Distinct users who fired at least one bet_tap event in the window.
+    Powers the 'Unique tappers' tile under the Bet Taps section."""
+    cutoff = _range_cutoff(range_)
+    q = db.session.query(func.count(distinct(UserEvent.user_id))).filter(
+        UserEvent.event_type == 'bet_tap',
+        UserEvent.created_at >= cutoff,
+        UserEvent.user_id.isnot(None),
+    )
+    if not include_internal:
+        q = q.filter(UserEvent.is_internal == False)  # noqa: E712
+    return int(q.scalar() or 0)
+
+
+def _pass_rate(range_):
+    """Fraction of ET days in the window where the model issued zero
+    signals across all sports, expressed as a percent (0-100). Mirrors
+    the 'Pass days' computation in services/weekly_recap_data.py: a day
+    is counted as a pass day only if no sport published a signal that
+    date. Revoked picks don't count as published. Returns None when the
+    window is degenerate (range_ unknown)."""
+    days = 7 if range_ == '7d' else 30 if range_ == '30d' else None
+    if days is None:
+        return None
+    cutoff = _range_cutoff(range_)
+    rows = db.session.query(Pick.game_date).filter(
+        Pick.published_at >= cutoff,
+    ).distinct().all()
+    # Revoked picks were already published_at-stamped before being pulled,
+    # so they still count as a non-pass day for this metric. The "model
+    # tried to fire" semantic is what matters here, not the final result.
+    days_with_signal = len({(r[0] or '')[:10] for r in rows if r[0]})
+    pass_days = max(days - days_with_signal, 0)
+    return round(100.0 * pass_days / days, 1)
+
+
 def _funnel(include_internal):
     """3-step funnel over the last 7 days, regardless of the dashboard
     range. Anonymous users (user_id IS NULL) are excluded from the funnel
@@ -194,9 +230,11 @@ def fetch(range_: Literal['7d', '30d'], include_internal: bool = False) -> dict:
     try:
         payload = {
             'signals_issued': _signals_issued(range_),
-            'bet_taps': _bet_taps(range_, include_internal),
-            'funnel': _funnel(include_internal),
-            'top_signals': _top_signals(include_internal),
+            'pass_rate':      _pass_rate(range_),
+            'bet_taps':       _bet_taps(range_, include_internal),
+            'unique_tappers': _unique_tappers(range_, include_internal),
+            'funnel':         _funnel(include_internal),
+            'top_signals':    _top_signals(include_internal),
             'recent_bet_taps': _recent_bet_taps(include_internal),
             'recent_signals': _recent_signals(),
         }

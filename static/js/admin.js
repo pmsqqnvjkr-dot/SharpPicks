@@ -597,6 +597,21 @@ function bindLiveData(metrics) {
   const stripeTrials = metrics.stripe?.payload?.trial_subs;
   if (stripeTrials != null) setStat('Trials in flight', SP_FMT.num(stripeTrials));
 
+  // MRR 30d delta: derived from the 90-day daily MRR series. Take the
+  // most recent point and the point 30 days back; render the signed
+  // dollar change. Falls back to '--' when the series is shorter than
+  // 31 entries (cold start) or when one of the endpoints is zero.
+  const mrrSeries = metrics.stripe?.payload?.mrr_daily_90d;
+  if (Array.isArray(mrrSeries) && mrrSeries.length >= 31) {
+    const latest = mrrSeries[mrrSeries.length - 1]?.mrr_cents ?? null;
+    const prior  = mrrSeries[mrrSeries.length - 31]?.mrr_cents ?? null;
+    if (latest != null && prior != null) {
+      const deltaCents = latest - prior;
+      const sign = deltaCents > 0 ? '+' : '';
+      setStat('Mrr 30d', `${sign}${SP_FMT.money(deltaCents)}`);
+    }
+  }
+
   // -- What Moved: bind every row with real data. Sources cross-cut
   // multiple metrics envelopes; some rows (DAU, Logins 24h, Free
   // signups today) come in via bindUsersActivity which fires after
@@ -764,17 +779,26 @@ function bindLiveData(metrics) {
     }
   }
 
-  // Bet taps last 24h: events source returns by-surface dict for the
-  // requested range (7d or 30d). The value here is taps in that window,
-  // not strictly 24h, but it's the best we have until events source
-  // exposes a 24h slice. Bind unconditionally so a zero shows zero
-  // instead of leaving the mockup '1'.
+  // Bet taps last 7d: events source returns by-surface dict for the
+  // requested range. Sum across all surfaces (excluding the 'unknown'
+  // bucket is implicit — if surface is missing it still rolls in). HTML
+  // label was relabeled to "Bet taps last 7d" to match the data window.
   const betTapsBySurface = metrics.events?.payload?.bet_taps || {};
   const betTaps = Object.values(betTapsBySurface).reduce((a, b) => a + b, 0);
   const betTapsDelta = betTaps === 0
     ? 'below threshold'
     : (betTaps <= 3 ? 'on track' : 'above typical');
-  setMovedRow('Bet taps last 24h', SP_FMT.num(betTaps), betTapsDelta);
+  setMovedRow('Bet taps last 7d', SP_FMT.num(betTaps), betTapsDelta);
+
+  // Pass rate (signals section): share of days in the window with zero
+  // signals issued. Computed server-side by events._pass_rate.
+  const passRate = metrics.events?.payload?.pass_rate;
+  if (passRate != null) setStat('Pass rate', String(passRate));
+
+  // Unique tappers (bet taps section): distinct user_id count over the
+  // same window as the bet_taps surface breakdown.
+  const uniqueTappers = metrics.events?.payload?.unique_tappers;
+  if (uniqueTappers != null) setStat('Unique tappers', SP_FMT.num(uniqueTappers));
 
   // -- Funnel (last 7d) — replace mockup numbers with real funnel --
   const funnel = metrics.events?.payload?.funnel;
@@ -1806,6 +1830,49 @@ function bindModelPerf(data) {
       meiDist.data.datasets[0].data = counts;
       meiDist.update('none');
     }
+  }
+
+  // -- Model tab stat rows (Win rate section) --
+  // Win rate, sample size, and CLV avg per sport, bound from
+  // win_rate_by_sport_daily (latest non-null entry) + clv_avg_by_sport.
+  // Falls back to '--' when no data, which is the default the markup
+  // already shows; we only overwrite when we have a real value.
+  const _latestSportPoint = (series) => {
+    if (!Array.isArray(series)) return null;
+    for (let i = series.length - 1; i >= 0; i--) {
+      if (series[i].win_rate != null) return series[i];
+    }
+    return null;
+  };
+  const clvBySport = data.clv_avg_by_sport || {};
+  ['nba', 'mlb'].forEach(sport => {
+    const series = (data.win_rate_by_sport_daily || {})[sport]
+                || (data.win_rate_by_sport_daily || {})[sport.toUpperCase()];
+    const latest = _latestSportPoint(series);
+    const cap = sport.toUpperCase();
+    if (latest) {
+      const rateLabel = sport === 'nba' ? `${cap} ats 90d` : `${cap} 90d`;
+      setStat(rateLabel, String(latest.win_rate));
+      setStat(`${cap} sample`, SP_FMT.num(latest.sample_n));
+    }
+    const clv = clvBySport[sport] || clvBySport[sport.toUpperCase()];
+    if (clv && clv.avg_clv != null) {
+      const sign = clv.avg_clv > 0 ? '+' : '';
+      setStat(`${cap} clv avg`, `${sign}${clv.avg_clv}`);
+    }
+  });
+
+  // MLB confidence row: dynamic from sample size. n < 30 prints
+  // 'low (n < 30)' to match the original suffix intent; n >= 30 shows
+  // 'stable (n=N)'. Keeps the operator from misreading a 4-sample
+  // win-rate as a stable signal.
+  const mlbLatest = _latestSportPoint(
+    (data.win_rate_by_sport_daily || {}).mlb
+    || (data.win_rate_by_sport_daily || {}).MLB
+  );
+  if (mlbLatest) {
+    const n = mlbLatest.sample_n || 0;
+    setStat('Mlb confidence', n < 30 ? `low (n < 30)` : `stable (n=${n})`);
   }
 
   // -- Model tab section summaries --
