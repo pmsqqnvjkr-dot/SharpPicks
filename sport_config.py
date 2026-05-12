@@ -95,7 +95,14 @@ SPORT_CONFIG = {
         'active': True,
         'live': True,
         'model_phase': 'calibration',
-        'model_run_hour': 11,
+        # MLB run shifted from 11 AM ET to 1 PM ET on 2026-05-12. The
+        # 11 AM run fired before most starting pitchers were confirmed
+        # and weather/lineup data was settled, which drove a 45%
+        # revocation rate as the market repriced 3+ points between
+        # publish and tip. 1 PM gives the model the confirmed pitcher
+        # matchups + lineup cards + first-pitch weather, so pre-tip
+        # validation rarely needs to flip the line.
+        'model_run_hour': 13,
 
         # Walk-forward raw sigma: 4.4 runs. Previous ceiling of 2.5 inflated
         # z-scores by 1.76x, causing overconfidence in 55-65% buckets.
