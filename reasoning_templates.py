@@ -425,6 +425,30 @@ TEMPLATES = {
         ),
     },
 
+    # Umpire run expectancy delta vs 8.8 league average. High-rpgi
+    # umpires widen typical run margins, which matters more for run-
+    # line picks (a 2-run cover is easier in a 10-3 game than 3-2).
+    # Only renders when the deviation is meaningful (more than 0.3 of
+    # a run) to avoid trivia spam on average-umpire days. Direction
+    # phrasing follows the pick's side: high-scoring ump favors the
+    # team the model already projects to win wider.
+    'ump_deviation': {
+        'category': 'pitching',
+        'render': lambda v, ctx: (
+            f"Home plate umpire trends high-scoring "
+            f"(+{abs(v):.1f} runs/game vs league avg). Wider margins "
+            f"on average. Favors the side already projecting to cover."
+            if v > 0.3
+            else (
+                f"Home plate umpire trends low-scoring "
+                f"(-{abs(v):.1f} runs/game vs league avg). Tighter "
+                f"margins reduce run-line cover probability."
+                if v < -0.3
+                else None
+            )
+        ),
+    },
+
     'rl_ml_agree': {
         'category': 'market',
         'render': lambda v, ctx: (
