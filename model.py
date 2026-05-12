@@ -1727,6 +1727,26 @@ class EnsemblePredictor:
             spread_abs = abs(spread) if spread is not None else 0
             from sport_config import get_edge_threshold_for_spread as sport_edge_threshold
             required_edge = sport_edge_threshold(spread_abs, self.sport)
+
+            # MLB favorite-runline guard: live results audit through 2026-05-12
+            # showed -1.5 favorite picks went 1-4 (20%) over the calibration
+            # window while +1.5 underdog picks went 8-8 (50%, approximately
+            # breakeven). The +1.5 lean is structural: with model_weight=0.30
+            # the blended pred_margin rarely exceeds market_margin enough to
+            # clear the -1.5 cover line, so favorite picks only emerge when
+            # the model strongly disagrees with the market. Those rare
+            # disagreements have been systematically wrong. Until we have a
+            # larger -1.5 sample and a recalibrated cover-prob model, raise
+            # the qualification bar by 3.0 points (floor at 8.0%) so only
+            # high-conviction favorite signals ship. Asymmetric threshold
+            # applies only to MLB and only when the pick is on the favorite
+            # side; +1.5 underdog picks stay on the existing 4.5% threshold.
+            if self.sport == 'mlb':
+                _pick_is_favorite = (pick_side == 'home' and spread < 0) \
+                                 or (pick_side == 'away' and spread > 0)
+                if _pick_is_favorite:
+                    required_edge = max(required_edge + 3.0, 8.0)
+
             if adjusted_edge < required_edge:
                 if spread_abs >= 11:
                     fail_reasons.append(f'spread_too_large ({spread_abs:.1f}, need {required_edge}% edge)')
