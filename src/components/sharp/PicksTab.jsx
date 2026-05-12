@@ -14,6 +14,7 @@ import DailyTopSignalCard from './DailyTopSignalCard';
 import MidnightHero from './MidnightHero';
 import TomorrowSlateCard from './TomorrowSlateCard';
 import LastNightsReadCard from './LastNightsReadCard';
+import OutcomeCard from './OutcomeCard';
 import TodaysReadCard from './TodaysReadCard';
 import OnboardingCard from './OnboardingCard';
 import DailyMarketReport from './DailyMarketReport';
@@ -28,15 +29,16 @@ import DarkDay from '../signals/DarkDay';
 import WNBAPreLaunchScreen from './WNBAPreLaunchScreen';
 import CalibrationBanner from '../brand/CalibrationBanner';
 import { FEATURE_EVAN_COLE_READ, FEATURE_DISCIPLINE_ARTICLES, FEATURE_EVENING_RECAP } from '../../config/featureFlags';
+import { pickPrimaryArticle, pickArticlesForSport } from '../../utils/articleRotation';
 
 // Sport-aware calibration banner copy. NBA in deployment phase -> no banner.
 // MLB and WNBA in calibration phase share the same framing pattern.
 const CALIBRATION_COPY = {
   mlb: {
-    body: <><strong>MLB signals use the same model pipeline as NBA.</strong> While we build the live track record, MLB is labeled Preview. Edges are real. Sizing is identical. Every signal is tracked and graded.</>,
+    body: <><strong>MLB signals use the same model pipeline as NBA.</strong> We're still building MLB's live track record. Edges are real. Sizing is identical. Every signal is tracked and graded.</>,
   },
   wnba: {
-    body: <><strong>WNBA signals use the same model pipeline as NBA.</strong> While we build the live track record, WNBA is labeled Preview. Edges are real. Sizing is identical. Every signal is tracked and graded.</>,
+    body: <><strong>WNBA signals use the same model pipeline as NBA.</strong> We're still building WNBA's live track record. Edges are real. Sizing is identical. Every signal is tracked and graded.</>,
   },
 };
 
@@ -170,12 +172,12 @@ export default function PicksTab({ onNavigate }) {
         const reader = new FileReader();
         const base64 = await new Promise((resolve, reject) => { reader.onloadend = () => resolve(reader.result.split(',')[1]); reader.onerror = reject; reader.readAsDataURL(blob); });
         const file = await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache });
-        await Share.share({ title: 'Sharp Picks Result', text: 'sharppicks.ai', files: [file.uri] });
+        await Share.share({ title: 'SharpPicks Result', text: 'sharppicks.ai', files: [file.uri] });
         try { await Filesystem.deleteFile({ path: filename, directory: Directory.Cache }); } catch {}
       } else {
         const file = new File([blob], filename, { type: 'image/png' });
         if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], text: 'Sharp Picks result' });
+          await navigator.share({ files: [file], text: 'SharpPicks result' });
         } else {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
@@ -283,7 +285,12 @@ export default function PicksTab({ onNavigate }) {
     || (sameDayNight && todayData?.type === 'pass');
 
   useEffect(() => {
-    if (!isNightMode) { setTomorrowGames(null); setTomorrowDate(null); setTonightBets(null); return; }
+    // Also fetch tomorrow's slate when in off-day mode so DarkDay can show
+    // the "Tomorrow's {LEAGUE} slate" preview card. The fetch path is the
+    // same as the night-mode pre-midnight branch (tomorrow's date via
+    // /api/picks/market). tonightBets stays off-day-irrelevant.
+    const isOffDay = todayData?.type === 'off_day';
+    if (!isNightMode && !isOffDay) { setTomorrowGames(null); setTomorrowDate(null); setTonightBets(null); return; }
 
     const isPostMidnight = postMidnightNight;
     const fetchSlatePreview = async () => {
@@ -477,19 +484,21 @@ export default function PicksTab({ onNavigate }) {
             CalibrationBanner above (see CALIBRATION_COPY map). One banner
             per screen, not two stacked cards. */}
 
-        {/* Resolved Pick Banner (suppressed in night mode; recap handles it) */}
+        {/* Resolved outcome card (suppressed in night mode; recap handles it) */}
         {!isNightMode && lastResolved && lastResolved.id && !isResolved && !dismissedOutcomes.has(lastResolved.id) && (
-          <ResolvedPickBanner
+          <OutcomeCard
             pick={lastResolved}
-            onViewDetails={() => { setResolutionPick(lastResolved); setShowResolution(true); }}
+            sport={sport}
+            onViewOutcome={() => { setResolutionPick(lastResolved); setShowResolution(true); }}
             onDismiss={() => handleDismissResolution(lastResolved.id)}
             onShare={isPro ? handleShareResult : undefined}
           />
         )}
         {!isNightMode && todayData?.type === 'pick' && isResolved && isPro && !dismissedOutcomes.has(todayData.id) && (
-          <ResolvedPickBanner
+          <OutcomeCard
             pick={todayData}
-            onViewDetails={() => { setResolutionPick(todayData); setShowResolution(true); }}
+            sport={sport}
+            onViewOutcome={() => { setResolutionPick(todayData); setShowResolution(true); }}
             onDismiss={() => handleDismissResolution(todayData.id)}
             onShare={handleShareResult}
           />
@@ -676,77 +685,17 @@ export default function PicksTab({ onNavigate }) {
               </>
             )}
 
-            {/* Signal Result Card (legacy — same-day evening; LastNightsReadCard replaces during postMidnight) */}
-            {!postMidnightNight && nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'pending' && nightRecapPick.result !== 'revoked' && (() => {
-              const rp = nightRecapPick;
-              const isWin = rp.result === 'win';
-              const isPushR = rp.result === 'push';
-              const borderAccent = isWin ? '#5A9E72' : isPushR ? '#8494a7' : '#D4787B';
-              const resultLabel = isWin ? 'WIN' : isPushR ? 'PUSH' : 'LOSS';
-              const resultBg = isWin ? 'rgba(90,158,114,0.15)' : isPushR ? 'rgba(132,148,167,0.15)' : 'rgba(212,120,123,0.15)';
-              const resultColor = isWin ? '#5A9E72' : isPushR ? '#8494a7' : '#D4787B';
-              const sideLabel = rp.side && rp.line != null && rp.side.includes(String(Math.abs(rp.line)))
-                ? rp.side : `${rp.side} ${rp.line > 0 ? '+' : ''}${rp.line}`;
-              const pnl = rp.profit_units != null ? Number(rp.profit_units) : (isWin ? 0.9 : isPushR ? 0 : -1.0);
-              const coverMargin = (rp.home_score != null && rp.away_score != null && rp.line != null)
-                ? (() => {
-                    const sLow = (rp.side || '').toLowerCase();
-                    const isHome = sLow.includes((rp.home_team || '').split(' ').pop().toLowerCase());
-                    const margin = isHome
-                      ? (rp.home_score - rp.away_score) + rp.line
-                      : (rp.away_score - rp.home_score) + rp.line;
-                    return margin;
-                  })()
-                : null;
-              const mindsetNote = isWin
-                ? 'No victory laps. The model does not feel. Next signal when the edge is there.'
-                : isPushR
-                ? 'Push changes nothing. Next signal when the edge is there.'
-                : 'No revenge bets. Process was correct. Next signal when the edge is there.';
-              return (
-                <div onClick={() => { setResolutionPick(rp); setShowResolution(true); }} style={{
-                  background: '#121725', border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderLeft: `3px solid ${borderAccent}`,
-                  borderRadius: 8, padding: 12, marginBottom: 12, cursor: 'pointer',
-                }}>
-                  <div style={{
-                    fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
-                    letterSpacing: '0.1em', textTransform: 'uppercase', color: '#5A9E72', marginBottom: 8,
-                  }}>OUTCOME RESOLVED</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <div style={{ fontFamily: "'Inter', var(--font-sans), sans-serif", fontSize: '14px', fontWeight: 600, color: '#E8EAED' }}>{sideLabel}</div>
-                    <span style={{
-                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', fontWeight: 700,
-                      padding: '2px 8px', borderRadius: 4, background: resultBg, color: resultColor,
-                    }}>{resultLabel}</span>
-                  </div>
-                  {rp.home_score != null && rp.away_score != null && (
-                    <div style={{
-                      fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '11px', color: 'rgba(232, 234, 237, 0.7)',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
-                    }}>
-                      <span>{teamAbbr(rp.away_team)} {rp.away_score} &middot; {teamAbbr(rp.home_team)} {rp.home_score}</span>
-                      <span style={{ color: resultColor, fontWeight: 600 }}>{pnl >= 0 ? '+' : ''}{pnl.toFixed(1)}u</span>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                    {rp.edge_pct != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.04)', color: 'rgba(232, 234, 237, 0.7)' }}>Edge +{Number(rp.edge_pct).toFixed(1)}%</span>
-                    )}
-                    {rp.clv != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.04)', color: parseFloat(rp.clv) > 0 ? '#5A9E72' : 'rgba(232, 234, 237, 0.7)' }}>CLV {parseFloat(rp.clv) > 0 ? '+' : ''}{parseFloat(rp.clv).toFixed(1)}</span>
-                    )}
-                    {coverMargin != null && (
-                      <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.04)', color: coverMargin > 0 ? '#5A9E72' : '#C4868A' }}>Cover by {Math.abs(coverMargin).toFixed(1)}</span>
-                    )}
-                  </div>
-                  <div style={{
-                    fontFamily: "'IBM Plex Serif', var(--font-serif), serif", fontStyle: 'italic',
-                    fontSize: '12px', color: 'rgba(232, 234, 237, 0.5)', lineHeight: 1.5,
-                  }}>{mindsetNote}</div>
-                </div>
-              );
-            })()}
+            {/* Same-day evening outcome card (post-midnight handled by
+                LastNightsReadCard above). Compact card matches
+                docs/outcome-resolved-compact.html. */}
+            {!postMidnightNight && nightRecapPick && nightRecapPick.result && nightRecapPick.result !== 'pending' && nightRecapPick.result !== 'revoked' && (
+              <OutcomeCard
+                pick={nightRecapPick}
+                sport={sport}
+                onViewOutcome={() => { setResolutionPick(nightRecapPick); setShowResolution(true); }}
+                onShare={isPro ? handleShareResult : undefined}
+              />
+            )}
 
             {/* Combined recap card — "Capital preserved" framing.
                 Replaces the previous three separate cards (Signal Withdrawn,
@@ -979,8 +928,8 @@ export default function PicksTab({ onNavigate }) {
                     const catLabel = catLabels[a.category] || a.category || 'Journal';
                     const isDiscipline = a.category === 'discipline';
                     const isHow = a.category === 'how_it_works';
-                    const catColor = isDiscipline ? '#5A9E72' : isHow ? '#6B8AC4' : '#8C9AB0';
-                    const catBg = isDiscipline ? 'rgba(90,158,114,0.1)' : isHow ? 'rgba(107,138,196,0.1)' : 'rgba(140,154,176,0.08)';
+                    const catColor = isDiscipline ? '#5A9E72' : isHow ? '#4F86F7' : 'rgba(232, 234, 237, 0.5)';
+                    const catBg = isDiscipline ? 'rgba(90,158,114,0.1)' : isHow ? 'rgba(79,134,247,0.1)' : 'rgba(255,255,255,0.04)';
                     return (
                       <button
                         key={a.id || i}
@@ -1006,8 +955,8 @@ export default function PicksTab({ onNavigate }) {
                             color: catColor, background: catBg,
                             padding: '3px 8px', borderRadius: 4,
                           }}>{catLabel}</span>
-                          <span style={{ fontSize: '10px', color: '#5A6886', fontFamily: "'IBM Plex Mono', var(--font-mono), monospace" }}>·</span>
-                          <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', color: '#5A6886' }}>
+                          <span style={{ fontSize: '10px', color: 'rgba(232, 234, 237, 0.5)', fontFamily: "'IBM Plex Mono', var(--font-mono), monospace" }}>·</span>
+                          <span style={{ fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '10px', color: 'rgba(232, 234, 237, 0.5)' }}>
                             {a.reading_time_minutes || a.read_time || 4} min read
                           </span>
                         </div>
@@ -1072,7 +1021,7 @@ export default function PicksTab({ onNavigate }) {
                   color: 'inherit',
                 }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B8AC4" strokeWidth="1.8" style={{ marginBottom: 8 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4F86F7" strokeWidth="1.8" style={{ marginBottom: 8 }}>
                   <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                   <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
                 </svg>
@@ -1132,8 +1081,7 @@ export default function PicksTab({ onNavigate }) {
               const upcoming = (tomorrowGames && tomorrowGames.length > 0
                 ? tomorrowGames.slice(0, 3)
                 : (gameInfo?.games || []).filter(g => g && (g.away_team || g.home_team)).slice(0, 3));
-              const featuredArticle = (insightsData?.insights || [])
-                .find(a => a && a.category !== 'market_notes' && a.title);
+              const featuredArticle = pickPrimaryArticle(insightsData?.insights || [], sport);
 
               const wwCard = {
                 background: '#111e33', border: '0.5px solid #1e3050',
@@ -1239,7 +1187,7 @@ export default function PicksTab({ onNavigate }) {
                           letterSpacing: '0.10em', textTransform: 'uppercase',
                           padding: '2px 8px', borderRadius: 3,
                           background: 'rgba(79,134,247,0.10)', color: '#7AA0E5',
-                        }}>{(featuredArticle.category || 'Field Guide').replace(/_/g, ' ')}</span>
+                        }}>{(featuredArticle.category || 'Sharp Journal').replace(/_/g, ' ')}</span>
                         <span style={{
                           fontFamily: "'IBM Plex Mono', var(--font-mono), monospace", fontSize: '9px',
                           letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8494',
@@ -1631,7 +1579,7 @@ export default function PicksTab({ onNavigate }) {
             } catch { return ''; }
           };
           const passArticles = (() => {
-            const evergreen = insightsData?.insights?.filter(a => a.category !== 'market_notes') || [];
+            const evergreen = pickArticlesForSport(insightsData?.insights || [], sport);
             if (!evergreen.length) return [];
             const catLabels = {
               philosophy: 'Philosophy',
@@ -1704,40 +1652,59 @@ export default function PicksTab({ onNavigate }) {
               return { h: parseInt(p.find(x => x.type === 'hour')?.value || '0', 10), m: parseInt(p.find(x => x.type === 'minute')?.value || '0', 10) };
             } catch { return { h: 12, m: 0 }; }
           })();
+          // Minutes from now until the next slate's model_run_hour. When
+          // resume_date is later than tomorrow (extended off-period), add
+          // the day-gap to the countdown so it stays accurate.
           const minsUntilReturn = (() => {
-            let r = modelRunHour * 60 - (etNow2.h * 60 + etNow2.m);
-            if (r <= 0) r += 24 * 60;
-            return r;
+            const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+            const resumeDate = todayData?.resume_date || '';
+            let baseMins = modelRunHour * 60 - (etNow2.h * 60 + etNow2.m);
+            const wrap = baseMins <= 0 ? 24 * 60 : 0;
+            if (resumeDate && resumeDate > todayET) {
+              try {
+                const [y, mo, da] = resumeDate.split('-').map((x) => parseInt(x, 10));
+                const [ty, tmo, tda] = todayET.split('-').map((x) => parseInt(x, 10));
+                const dToday = Date.UTC(ty, tmo - 1, tda);
+                const dResume = Date.UTC(y, mo - 1, da);
+                const dayGap = Math.max(0, Math.round((dResume - dToday) / (24 * 60 * 60 * 1000)));
+                return baseMins + wrap + (dayGap - 1) * 24 * 60;
+              } catch { /* fall through */ }
+            }
+            return baseMins + wrap;
           })();
-          const darkTotalMins = 24 * 60;
-          const darkElapsedPct = Math.round(((darkTotalMins - minsUntilReturn) / darkTotalMins) * 100);
+          const nextSlateAt = returnDateFmt
+            ? `${returnDateFmt} \u00B7 ${modelRunLabel}`
+            : modelRunLabel;
           const weekRecapData = stats ? {
-            netUsd: Math.round(Number(stats.pnl || 0)),
+            netUnits: Number(stats.pnl || 0),
             record: stats.record || `${stats.wins || 0}-${stats.losses || 0}`,
             passDays: stats.passes_this_week || 0,
             signalsIssued: stats.total_picks || 0,
             daysCovered: 7,
             selectivityPct: stats.selectivity || 0,
-            sparkline: [],
           } : undefined;
+          // Off-day reading: delegated to pickPrimaryArticle so it follows
+          // the same per-sport rotation rules as every other journal-card
+          // surface. See src/utils/articleRotation.js for the priority chain
+          // (universal-today wins, then sport-matched, then sport-rotated
+          // universal, then first evergreen).
+          const offDayArticle = pickPrimaryArticle(insightsData?.insights || [], sport);
           return (
             <DarkDay
               date={darkDateStr}
               sport={sportName}
-              returnDate={returnDateFmt}
-              nextWindow={{
+              nextSlateAt={nextSlateAt}
+              countdown={{
                 hours: Math.floor(minsUntilReturn / 60),
                 minutes: minsUntilReturn % 60,
-                gamesCount: todayData?.next_game_count || 0,
-                openLocal: `${returnDateFmt} \u00B7 ${modelRunLabel}`,
               }}
-              elapsedPct={darkElapsedPct}
-              onSwitchSport={() => {
-                const other = ['nba', 'mlb', 'wnba'].find(s => s !== sport);
-                if (other) setSport(other);
-              }}
+              nextSlateDate={returnDateFmt}
               weekRecap={weekRecapData}
-              weekAhead={[]}
+              offDayArticle={offDayArticle}
+              tomorrowGames={tomorrowGames}
+              tomorrowDate={tomorrowDate}
+              onSelectArticle={(a) => onNavigate && onNavigate('insights', null, { insight: a })}
+              onNavigate={onNavigate}
             />
           );
         })()}
@@ -1754,7 +1721,7 @@ export default function PicksTab({ onNavigate }) {
 
         {/* Recommended Reads — after today's slate (excluded on off-day, pass, and night, which have their own layouts) */}
         {pageState !== 'off-day' && pageState !== 'pass' && pageState !== 'night' && insightsData?.insights?.length > 0 && (() => {
-          const evergreen = insightsData.insights.filter(a => a.category !== 'market_notes');
+          const evergreen = pickArticlesForSport(insightsData.insights, sport);
           if (!evergreen.length) return null;
           return (
           <div style={{ marginTop: '20px', marginBottom: '20px' }}>
@@ -2016,133 +1983,6 @@ function clvNarrative(pick) {
   }
 
   return { clvVal, lineStr, closeStr, movement, narrative };
-}
-
-function ResolvedPickBanner({ pick, onViewDetails, onDismiss, onShare }) {
-  const isWin = pick.result === 'win';
-  const isLoss = pick.result === 'loss';
-  const isPush = pick.result === 'push';
-
-  const brandGreen = '#5A9E72';
-  const neutral = '#616a8a';
-  const muted = '#4a5274';
-
-  const borderColor = isWin ? brandGreen : muted;
-  const dotColor = isWin ? brandGreen : neutral;
-  const labelColor = isWin ? brandGreen : neutral;
-  const statValColor = isWin ? brandGreen : '#9098b3';
-
-  const profitDisplay = pick.profit_units != null ? `${pick.profit_units >= 0 ? '+' : ''}${Number(pick.profit_units).toFixed(1)}u` : isPush ? '0.0u' : isWin ? '+0.9u' : '-1.0u';
-  const edgePct = pick.edge_pct || '--';
-  const modelProb = pick.edge_pct ? `${Math.round(50 + pick.edge_pct)}%` : '--';
-  const sideDisplay = !pick.side ? 'Signal' : (pick.line != null && pick.side.includes(String(Math.abs(pick.line))) ? pick.side : `${pick.side}${pick.line != null ? ` ${pick.line > 0 ? '+' : ''}${pick.line}` : ''}`);
-  const edgeDisplay = pick.edge_pct != null ? `+${Number(pick.edge_pct).toFixed(1)}%` : null;
-  const resultLabel = isPush ? 'OUTCOME RESOLVED \u00B7 PUSH' : isWin ? 'OUTCOME RESOLVED \u00B7 WIN' : 'OUTCOME RESOLVED \u00B7 LOSS';
-  const reviewText = getProcessCopy(pick.result, pick.id);
-  const clv = clvNarrative(pick);
-
-  const scoreDisplay = (pick.home_score != null && pick.away_score != null)
-    ? { away: pick.away_team, home: pick.home_team, awayScore: pick.away_score, homeScore: pick.home_score }
-    : null;
-
-  return (
-    <div style={{
-      background: 'var(--surface-1)', border: '1px solid var(--color-border)',
-      borderLeft: `3px solid ${borderColor}`,
-      borderRadius: '12px', overflow: 'hidden', marginBottom: 'var(--space-md)',
-    }}>
-      {/* Header: OUTCOME RESOLVED · WIN/LOSS/PUSH + dismiss */}
-      <div style={{ padding: '20px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', color: labelColor }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-          {resultLabel}
-        </div>
-        {onDismiss && <button onClick={(e) => { e.stopPropagation(); onDismiss(); }} style={{ background: 'none', border: 'none', color: '#4a5274', cursor: 'pointer', fontSize: '16px', padding: '4px', lineHeight: 1 }} aria-label="Dismiss">&times;</button>}
-      </div>
-
-      {/* Side + Edge */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 20px 0' }}>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)' }}>{sideDisplay}</div>
-        {edgeDisplay && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500, color: brandGreen }}>{edgeDisplay}</div>}
-      </div>
-
-      {/* Final Score Bar */}
-      {scoreDisplay && (
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: 'rgba(74,85,104,0.1)', border: '0.5px solid rgba(74,85,104,0.2)',
-          borderRadius: 5, padding: '6px 10px', margin: '10px 20px 0',
-        }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#4a5568' }}>FINAL</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-mono)' }}>
-            <span style={{ fontSize: '10px', color: '#7A8494' }}>{teamAbbr(scoreDisplay.away)}</span>
-            <span style={{ fontSize: '15px', fontWeight: 500, color: '#E8ECF4' }}>{scoreDisplay.awayScore}</span>
-            <span style={{ fontSize: '10px', color: '#4a5568' }}>&middot;</span>
-            <span style={{ fontSize: '10px', color: '#7A8494' }}>{teamAbbr(scoreDisplay.home)}</span>
-            <span style={{ fontSize: '15px', fontWeight: 500, color: '#E8ECF4' }}>{scoreDisplay.homeScore}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Process Copy */}
-      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: '#616a8a', padding: '10px 20px 0', lineHeight: 1.55, fontStyle: 'italic' }}>{reviewText}</div>
-
-      {/* Stats Grid: P&L | Edge at Entry | Model Prob */}
-      <div style={{ display: 'flex', margin: '16px 20px 0', border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden' }}>
-        {[{ val: profitDisplay, lbl: 'P&L' }, { val: typeof edgePct === 'number' ? `${edgePct}%` : edgePct, lbl: 'EDGE AT ENTRY' }, { val: modelProb, lbl: 'MODEL PROB' }].map((s, i) => (
-          <div key={i} style={{ flex: 1, padding: '10px 12px', textAlign: 'center', borderRight: i < 2 ? '1px solid var(--color-border)' : 'none' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500, color: i === 0 ? statValColor : '#9098b3' }}>{s.val}</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#4a5274', marginTop: '2px' }}>{s.lbl}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* CLV Block */}
-      {clv && (
-        <div style={{
-          margin: '12px 20px 0', padding: '10px 12px',
-          background: 'rgba(15,20,36,0.6)', border: '1px solid var(--color-border)', borderRadius: '8px',
-        }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#9098b3', lineHeight: 1.6 }}>
-            CLV: Pick at {clv.lineStr}, closed at {clv.closeStr}
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#9098b3', lineHeight: 1.6 }}>
-            Line moved {clv.movement} pts {clv.clvVal > 0 ? 'toward' : 'against'} model.
-          </div>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '11px', lineHeight: 1.6, marginTop: '2px',
-            color: clv.clvVal > 0 ? brandGreen : clv.clvVal < 0 ? '#9098b3' : '#9098b3',
-          }}>
-            {clv.narrative}
-          </div>
-        </div>
-      )}
-
-      {/* Footer: View outcome log + Share Result */}
-      <div style={{ padding: '0 20px', marginTop: '14px' }}>
-        <div onClick={onViewDetails} style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-          padding: '12px 0',
-          fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.04em', color: brandGreen, cursor: 'pointer',
-        }}>
-          View outcome log &rarr;
-        </div>
-        {onShare && (
-          <button onClick={(e) => { e.stopPropagation(); onShare(pick); }} style={{
-            width: '100%', padding: '10px', marginBottom: '16px',
-            borderRadius: '8px', cursor: 'pointer',
-            fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '11px',
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: '#9098b3', background: 'transparent',
-            border: '1px solid var(--color-border)',
-          }}>
-            SHARE RESULT
-          </button>
-        )}
-        {!onShare && <div style={{ height: '4px' }} />}
-      </div>
-    </div>
-  );
 }
 
 function PushPromptInline({ onEnable, onDismiss }) {

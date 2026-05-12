@@ -766,13 +766,13 @@ def admin_dashboard():
 
 MANIFESTO_CONTENT = """When I started building SharpPicks, I wasn\u2019t trying to create another betting app. The market already has plenty of those.
 
-Most focus on action \u2014 more picks, more volume, more reasons to bet every game on the board. But anyone who has spent real time studying sports markets eventually arrives at the same conclusion: the majority of opportunities simply aren\u2019t worth taking.
+Most focus on action: more picks, more volume, more reasons to bet every game on the board. But anyone who has spent real time studying sports markets eventually arrives at the same conclusion: the majority of opportunities simply aren\u2019t worth taking.
 
 Sports betting is a market. Every spread, total, and moneyline is a price shaped by probability, information, and behavior. Like any market, it becomes efficient quickly. And when markets are efficient, edges become rare.
 
 That reality is the foundation of SharpPicks.
 
-The model was designed to analyze every game on the board \u2014 measuring statistical signals, market movement, and probability gaps. But identifying edges is only part of the equation. The harder part is restraint. The discipline to wait. The discipline to pass. The discipline to accept that most slates will produce very few genuine opportunities.
+The model was designed to analyze every game on the board, measuring statistical signals, market movement, and probability gaps. But identifying edges is only part of the equation. The harder part is restraint. The discipline to wait. The discipline to pass. The discipline to accept that most slates will produce very few genuine opportunities.
 
 SharpPicks exists to enforce that discipline.
 
@@ -780,7 +780,7 @@ SharpPicks exists to enforce that discipline.
 
 > **WHY THIS MATTERS**
 >
-> The market rewards patience. It punishes unnecessary action. The best bettors aren\u2019t defined by how many bets they make. They\u2019re defined by the bets they refuse to make. Passing on a game is not inactivity \u2014 it\u2019s risk management.
+> The market rewards patience. It punishes unnecessary action. The best bettors aren\u2019t defined by how many bets they make. They\u2019re defined by the bets they refuse to make. Passing on a game is not inactivity. It\u2019s risk management.
 
 ---
 
@@ -798,7 +798,7 @@ Some days the model will generate several signals. Other days it may produce non
 
 Short-term results in sports betting are noisy. Variance is unavoidable. Professional bettors focus on something else: **price**.
 
-If you consistently capture better numbers than where the market closes, you\u2019re making correct decisions \u2014 regardless of individual game outcomes. Over time, the market rewards disciplined pricing decisions.
+If you consistently capture better numbers than where the market closes, you\u2019re making correct decisions, regardless of individual game outcomes. Over time, the market rewards disciplined pricing decisions.
 
 SharpPicks is built around that principle.
 
@@ -806,7 +806,7 @@ SharpPicks is built around that principle.
 
 ## Why SharpPicks Exists
 
-SharpPicks isn\u2019t designed to tell you what to bet on every night. It\u2019s designed to help you understand when the market offers real opportunity \u2014 and when it doesn\u2019t.
+SharpPicks isn\u2019t designed to tell you what to bet on every night. It\u2019s designed to help you understand when the market offers real opportunity, and when it doesn\u2019t.
 
 Most bettors search for certainty. Sharp bettors search for **value**. And value only appears when patience meets preparation.
 
@@ -3144,6 +3144,17 @@ Head of Signal Intelligence, SharpPicks""",
                 db.session.commit()
                 logging.info(f"Backfilled {backfilled} model runs from picks/passes")
 
+            # Sharp Journal articles from content/journal/*.md. Idempotent
+            # upsert keyed by slug, safe to call on every boot. New articles
+            # land the moment Railway redeploys; edits propagate the same
+            # way. See journal_seeder.py for the parser + field mapping.
+            try:
+                from journal_seeder import seed_journal_articles_from_dir
+                content_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'content', 'journal')
+                seed_journal_articles_from_dir(content_dir, Insight, db)
+            except Exception as je:
+                logging.error(f"Journal seeder failed: {je}")
+
             logging.info("Database seed completed")
         except Exception as e:
             logging.error(f"Database seed error: {e}")
@@ -3186,67 +3197,23 @@ def backup_database():
 
 
 def send_weekly_summary_job():
-    """Monday 9 AM ET: Send weekly summary email to all pro users"""
+    """Monday 7 AM ET: send the weekly recap email to all pro users.
+
+    Routes per user into the standard or quiet variant based on whether
+    the model issued at least one signal in the prior 7 ET days. The
+    model stats are computed once at the top of the job and reused
+    across every user; the per-user inset (tracked-bet record, if any)
+    is computed inside the loop. Honors notification_prefs.weekly_summary
+    (default true) and user_metadata (verified email, active sub).
+    """
     with app.app_context():
         try:
-            from email_service import send_weekly_summary
-            from sqlalchemy import text as sql_text
+            from services.lifecycle_emails import dispatch_lifecycle_email
+            from services.weekly_recap_data import (
+                compute_model_stats, compute_user_inset, build_recap_overrides,
+            )
 
-            today_str = _get_et_today()
-            week_ago = (datetime.strptime(today_str, '%Y-%m-%d') - timedelta(days=7)).strftime('%Y-%m-%d')
-
-            picks_result = db.session.execute(sql_text("""
-                SELECT 
-                    COUNT(*) as total,
-                    SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) as wins,
-                    SUM(CASE WHEN result = 'loss' THEN 1 ELSE 0 END) as losses,
-                    SUM(CASE WHEN result IS NULL OR result = 'pending' THEN 1 ELSE 0 END) as pending
-                FROM picks
-                WHERE game_date >= :week_ago AND game_date <= :today
-            """), {'week_ago': week_ago, 'today': today_str})
-            pr = picks_result.fetchone()
-
-            passes_result = db.session.execute(sql_text("""
-                SELECT COUNT(*) FROM passes WHERE date >= :week_ago AND date <= :today
-            """), {'week_ago': week_ago, 'today': today_str})
-            passes_count = passes_result.scalar() or 0
-
-            total_result = db.session.execute(sql_text("""
-                SELECT 
-                    SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) as wins,
-                    SUM(CASE WHEN result = 'loss' THEN 1 ELSE 0 END) as losses
-                FROM picks WHERE result IN ('win', 'loss')
-            """))
-            tr = total_result.fetchone()
-            total_wins = tr[0] or 0 if tr else 0
-            total_losses = tr[1] or 0 if tr else 0
-            total_record = f"{total_wins}W-{total_losses}L" if (total_wins + total_losses) > 0 else ''
-
-            # ROI and top edge for push notifications
-            week_picks_result = db.session.execute(sql_text("""
-                SELECT COALESCE(SUM(profit_units), 0), COALESCE(MAX(edge_pct), 0)
-                FROM picks
-                WHERE game_date >= :week_ago AND game_date <= :today AND result IN ('win', 'loss')
-            """), {'week_ago': week_ago, 'today': today_str})
-            wp = week_picks_result.fetchone()
-            week_profit = wp[0] or 0 if wp else 0
-            top_edge = round(wp[1] or 0, 1) if wp else 0
-            picks_in_week = (pr[1] or 0) + (pr[2] or 0) if pr else 0  # wins + losses
-            roi = round((week_profit / picks_in_week * 100), 1) if picks_in_week > 0 else 0
-            week_num = datetime.strptime(today_str, '%Y-%m-%d').isocalendar()[1]
-
-            stats = {
-                'picks_made': pr[0] or 0 if pr else 0,
-                'wins': pr[1] or 0 if pr else 0,
-                'losses': pr[2] or 0 if pr else 0,
-                'pending': pr[3] or 0 if pr else 0,
-                'passes': passes_count,
-                'total_record': total_record,
-                'next_week_games': 'Full NBA slate',
-                'week_num': week_num,
-                'roi': roi,
-                'top_edge': top_edge,
-            }
+            stats = compute_model_stats(db)
 
             pro_users = User.query.filter(
                 User.subscription_status.in_(['active', 'trial', 'cancelling']),
@@ -3256,15 +3223,30 @@ def send_weekly_summary_job():
             sent_count = 0
             for user in pro_users:
                 prefs = user.notification_prefs or {}
-                if prefs.get('weekly_summary', True):
-                    if send_weekly_summary(user.email, user.first_name, stats):
-                        sent_count += 1
+                if not prefs.get('weekly_summary', True):
+                    continue
+                inset = compute_user_inset(db, user.id, stats['window_start'], stats['window_end'])
+                variant_key, overrides = build_recap_overrides(stats, user_inset=inset)
+                if dispatch_lifecycle_email(user, variant_key, overrides=overrides):
+                    sent_count += 1
 
-            logging.info(f"Weekly summary sent to {sent_count}/{len(pro_users)} pro users")
+            logging.info(
+                "Weekly recap sent to %d/%d pro users (signals_issued=%d, variant=%s)",
+                sent_count, len(pro_users), stats['signals_issued'],
+                'quiet' if stats['signals_issued'] == 0 else 'standard',
+            )
 
             try:
                 from notification_service import send_weekly_summary_notification
-                send_weekly_summary_notification(stats)
+                # Push notification gets the model stats; legacy field names
+                # are preserved for the notification_service consumer.
+                push_stats = {
+                    'wins': stats['wins'],
+                    'losses': stats['losses'],
+                    'picks_made': stats['signals_issued'],
+                    'passes': stats['pass_days'],
+                }
+                send_weekly_summary_notification(push_stats)
             except Exception as e:
                 logging.error(f"Weekly summary push notification error: {e}")
         except Exception as e:
@@ -9571,7 +9553,7 @@ def admin_test_emails():
                                 send_trial_expired_email, send_cancellation_email,
                                 send_payment_failed_email, send_founding_member_email,
                                 send_verification_email, send_password_reset,
-                                send_weekly_summary, get_base_url)
+                                get_base_url)
     from datetime import datetime, timedelta
 
     # 1. Signal email (NBA)
@@ -9640,14 +9622,11 @@ def admin_test_emails():
     except Exception as e:
         results['welcome'] = str(e)
 
-    # 7. Weekly recap
-    try:
-        results['weekly_recap'] = send_weekly_summary(to, stats={
-            'wins': 3, 'losses': 1, 'picks_made': 4, 'passes': 3,
-            'roi': 8.2, 'units': 1.73, 'avg_edge': 6.1, 'week_num': 12,
-        })
-    except Exception as e:
-        results['weekly_recap'] = str(e)
+    # 7. Weekly recap. Now lifecycle-dispatched per user, not a one-shot
+    # send_email call. Test by hitting /api/cron/weekly-summary on
+    # staging with EMAIL_OVERRIDE_TO set, which reroutes every outbound
+    # to your inbox. See send_weekly_summary_job + services/weekly_recap_data.
+    results['weekly_recap'] = 'dispatched via /api/cron/weekly-summary; see EMAIL_OVERRIDE_TO'
 
     # 8. Verification email
     try:

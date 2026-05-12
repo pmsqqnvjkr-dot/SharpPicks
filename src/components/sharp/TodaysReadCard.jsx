@@ -1,11 +1,13 @@
-// TodaysReadCard — Field Guide rotating article tile for the post-midnight
-// home view. Editorial format matching the May 2026 Midnight State mockup:
-// eyebrow (FIELD GUIDE · {category} · {n} min read), serif title, excerpt,
-// and a "From the SharpPicks Field Guide" + Read → CTA footer.
+// TodaysReadCard — Sharp Journal rotating article tile for the post-
+// midnight home view. Editorial format matching the May 2026 Midnight
+// State mockup: eyebrow (SHARP JOURNAL · {category} · {n} min read),
+// serif title, excerpt, and a "From the Sharp Journal" + Read → CTA
+// footer.
 //
-// Picks one evergreen (non-market_notes) article from the insights array
-// using a stable date-seeded rotation so the same article shows for the
-// whole midnight window.
+// Article selection is delegated to src/utils/articleRotation so the
+// hero card stays consistent with the off-day / pass-day / pre-model
+// surfaces when users flip between NBA / MLB / WNBA tabs.
+import { pickPrimaryArticle } from '../../utils/articleRotation';
 
 const SP = {
   surface: '#121725',
@@ -29,31 +31,11 @@ const CAT_LABELS = {
   education: 'Education',
 };
 
-function pickEvergreenArticle(articles, sport) {
-  if (!Array.isArray(articles) || articles.length === 0) return null;
-  // Filter out daily Market Notes — those rotate via the morning report.
-  // Field Guide cards should be evergreen content (Philosophy / Discipline /
-  // How It Works / Founder Notes / Education).
-  const evergreen = articles.filter((a) => a && a.category && a.category !== 'market_notes');
-  if (!evergreen.length) return null;
-  // Date-seeded rotation, offset by sport so NBA / MLB / WNBA tabs each
-  // get a different article on the same ET day instead of all surfacing
-  // the same one. Stable for the whole day per (sport, date) pair.
-  const sportOffset = { nba: 0, mlb: 1, wnba: 2 }[(sport || 'nba').toLowerCase()] ?? 0;
-  const seed = (() => {
-    try {
-      const ymd = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-      return ymd.split('-').reduce((a, b) => a + parseInt(b, 10), 0);
-    } catch { return 0; }
-  })();
-  return evergreen[(seed + sportOffset) % evergreen.length];
-}
-
 export default function TodaysReadCard({ articles, onOpen, sport }) {
-  const article = pickEvergreenArticle(articles, sport);
+  const article = pickPrimaryArticle(articles, sport);
   if (!article) return null;
 
-  const catLabel = CAT_LABELS[article.category] || article.category || 'Field Guide';
+  const catLabel = CAT_LABELS[article.category] || article.category || 'Sharp Journal';
   const minutes = article.reading_time_minutes || article.read_time || 3;
   const isClickable = typeof onOpen === 'function';
   const handleOpen = () => { if (isClickable) onOpen(article); };
@@ -80,7 +62,7 @@ export default function TodaysReadCard({ articles, onOpen, sport }) {
       }}>
         <span style={{ color: SP.green, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
           <span style={{ width: 5, height: 5, background: SP.green, borderRadius: '50%' }} />
-          Field Guide
+          Sharp Journal
         </span>
         <span style={{ color: SP.text4 }}>·</span>
         <span>{catLabel}</span>
@@ -107,7 +89,7 @@ export default function TodaysReadCard({ articles, onOpen, sport }) {
         <span style={{
           fontFamily: SP.fontMono, fontSize: '10px', color: SP.text4,
           letterSpacing: '0.04em',
-        }}>From the SharpPicks Field Guide</span>
+        }}>From the Sharp Journal</span>
         {isClickable && (
           <span style={{
             fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,

@@ -533,7 +533,10 @@ def flush_share_cache():
 
 @cards_bp.route('/result/<signal_id>')
 def result_card(signal_id):
-    """Generate and return the 1080x1350 share card using Playwright + HTML template."""
+    """Generate and return the 1200x1200 outcome share card using Playwright + HTML template.
+
+    Spec: docs/outcome-share-card.html. Cached per-pick as immutable PNG
+    until a property of the pick changes (see _result_cache_key)."""
     from flask import render_template
 
     pick = Pick.query.get(signal_id)
@@ -556,65 +559,144 @@ def result_card(signal_id):
     is_push = pick.result == 'push'
     is_revoked = pick.result == 'revoked'
 
+    # State -> template class + display label.
     if is_win:
-        result_label, result_color, accent_color = 'WIN', 'green', '#5A9E72'
+        state_class, state_label = 'win', 'Win'
     elif is_loss:
-        result_label, result_color, accent_color = 'LOSS', 'red', '#8B6F70'
+        state_class, state_label = 'loss', 'Loss'
     elif is_push:
-        result_label, result_color, accent_color = 'PUSH', 'dim', 'rgba(232,236,241,0.3)'
+        state_class, state_label = 'push', 'Push'
     else:
-        result_label, result_color, accent_color = 'WITHDRAWN', 'dim', 'rgba(232,236,241,0.3)'
+        state_class, state_label = 'dim', 'Withdrawn'
 
+    # P&L value. Revoked picks show 0.0u. Wins/losses use real profit_units.
+    # Minus sign is the typographic U+2212 (not ASCII hyphen) for visual
+    # consistency with the design system. Held as module constants to
+    # avoid backslash-in-f-string-expression syntax issues on Python 3.9.
+    _MINUS = '\u2212'
+    _MIDDOT = '\u00b7'
     uval = pick.profit_units or 0
     if is_revoked:
-        units_fmt, units_color = '0.0u', 'dim'
+        pnl_value = '0.0u'
     elif uval > 0:
-        units_fmt, units_color = f'+{uval:.1f}u', 'green'
+        pnl_value = f'+{uval:.1f}u'
     elif uval < 0:
-        units_fmt, units_color = f'\u2212{abs(uval):.1f}u', 'red'
+        pnl_value = _MINUS + f'{abs(uval):.1f}u'
     else:
-        units_fmt, units_color = '+0.0u', 'dim'
+        pnl_value = '+0.0u'
 
-    edge_pct = f'{pick.edge_pct:.1f}' if pick.edge_pct else '0.0'
-
-    cv = pick.clv
-    if is_revoked or cv is None:
-        clv_fmt, clv_color = '--', 'dim'
-    elif cv > 0:
-        clv_fmt, clv_color = f'+{cv:.1f}', 'green'
-    elif cv < 0:
-        clv_fmt, clv_color = f'{cv:.1f}', 'red'
+    # Dollar conversion at the same 1u flat stake convention used elsewhere
+    # in the app (1u ~= $100 at -110 baseline). Skipped when the unit P&L is
+    # zero/revoked so the meta row stays terse.
+    if not is_revoked and uval != 0:
+        dollar_val = int(round(uval * 100))
+        sign = '+' if dollar_val > 0 else _MINUS
+        pnl_meta = f'{sign}${abs(dollar_val)} {_MIDDOT} 1u flat'
     else:
-        clv_fmt, clv_color = '0.0', 'dim'
+        pnl_meta = ''
 
-    line_fmt = _fmt_spread(pick.line) if not is_revoked else '--'
+    # Pick text split. Most pick.side values look like 'Washington Mystics +5.5';
+    # the team name renders in serif on one line, the line on a second.
+    side_str = pick.side or ''
+    pick_team, pick_line_text = side_str, ''
+    if is_revoked:
+        pick_line_text = ''
+    else:
+        last_space = side_str.rfind(' ')
+        if last_space > 0:
+            tail = side_str[last_space + 1:]
+            # Heuristic: a spread-shaped tail is a leading sign followed by a number.
+            if tail and tail[0] in ('+', '-', '\u2212') and any(c.isdigit() for c in tail):
+                pick_team = side_str[:last_space]
+                pick_line_text = tail.replace('-', '\u2212') if tail.startswith('-') else tail
 
-    score_line = ''
+    # Matchup line. SPORT . Away vs Home.
+    sport_label = (pick.sport or '').upper()
+    if pick.away_team and pick.home_team:
+        matchup_line = f'{sport_label} \u00b7 {pick.away_team} vs {pick.home_team}'
+    else:
+        matchup_line = sport_label
+
+    # Final score line, only when the pick is resolved and scores exist.
+    final_score_line = ''
     if not is_revoked and pick.home_score is not None and pick.away_score is not None:
-        score_line = f'{_abbr(pick.away_team)} {pick.away_score} \u00b7 {_abbr(pick.home_team)} {pick.home_score} \u00b7 Final'
-    elif is_revoked:
-        score_line = 'Withdrawn before tip. Capital preserved.'
+        away_abbr = _abbr(pick.away_team)
+        home_abbr = _abbr(pick.home_team)
+        final_score_line = (
+            f'{away_abbr} <span class="sc-fs-num">{pick.away_score}</span> '
+            f'\u00b7 {home_abbr} <span class="sc-fs-num">{pick.home_score}</span>'
+        )
 
+    # CLV card data. Beat close / Below close / Flat per spec section 4.
+    cv = pick.clv
+    has_clv = not is_revoked and cv is not None
+    clv_grade_class = 'flat'
+    clv_grade_label = 'Flat'
+    clv_value_str = '0.0'
+    clv_explain_str = 'Closing line matched your entry.'
+    if has_clv:
+        if cv > 0.1:
+            clv_grade_class = ''  # default green styling
+            clv_grade_label = 'Beat close'
+            clv_value_str = f'+{cv:.1f}'
+            line_at_entry = _fmt_spread(pick.line) if pick.line is not None else 'entry'
+            line_at_close = _fmt_spread(pick.closing_spread) if pick.closing_spread is not None else 'close'
+            clv_explain_str = f'Entered at {line_at_entry}, closed at {line_at_close}. The market moved your way.'
+        elif cv < -0.1:
+            clv_grade_class = 'below'
+            clv_grade_label = 'Below close'
+            clv_value_str = _MINUS + f'{abs(cv):.1f}'
+            line_at_entry = _fmt_spread(pick.line) if pick.line is not None else 'entry'
+            line_at_close = _fmt_spread(pick.closing_spread) if pick.closing_spread is not None else 'close'
+            clv_explain_str = f'Entered at {line_at_entry}, closed at {line_at_close}. The market moved against your entry.'
+        else:
+            clv_grade_class = 'flat'
+            clv_grade_label = 'Flat'
+            clv_value_str = '0.0'
+            clv_explain_str = 'Closing line matched your entry.'
+
+    # Season-stats marketing block. Fallback: render N stats, hide strip if 0.
     stats = _season_stats(pick.sport)
+    season_signals = stats.get('signals_count') or 0
+    season_roi = stats.get('roi')
+    season_clv_beat = stats.get('beat_close')
+
+    season_signals_label = f'{season_signals}' if season_signals else ''
+    if season_roi is not None and season_signals:
+        season_roi_label = f'{"+" if season_roi >= 0 else ""}{season_roi:.1f}%'
+        season_roi_class = 'green' if season_roi > 0 else ('negative' if season_roi < 0 else '')
+    else:
+        season_roi_label = ''
+        season_roi_class = ''
+    if season_clv_beat is not None and season_signals:
+        season_clv_beat_label = f'{int(round(season_clv_beat))}%'
+    else:
+        season_clv_beat_label = ''
+    season_stats_count = sum(1 for v in (season_roi_label, season_signals_label, season_clv_beat_label) if v)
+
+    footer_date = _date_label(pick) or ''
+
     from services.card_fonts import get_card_fonts
     data = {
-        'accent_color': accent_color,
-        'game_date': _date_label(pick),
-        'matchup': f'{(pick.away_team or "").upper()} @ {(pick.home_team or "").upper()}',
-        'side': pick.side or '',
-        'result_label': result_label,
-        'result_color': result_color,
-        'units_fmt': units_fmt,
-        'units_color': units_color,
-        'edge_pct': edge_pct,
-        'clv_fmt': clv_fmt,
-        'clv_color': clv_color,
-        'line_fmt': line_fmt,
-        'score_line': score_line,
-        'season_wins': stats['wins'],
-        'season_losses': stats['losses'],
-        'season_win_pct': stats['win_pct'],
-        'season_clv': stats['beat_close'],
+        'state_class': state_class,
+        'state_label': state_label,
+        'matchup_line': matchup_line,
+        'pick_team': pick_team,
+        'pick_line': pick_line_text,
+        'pnl_value': pnl_value,
+        'pnl_meta': pnl_meta,
+        'final_score_line': final_score_line,
+        'has_clv': has_clv,
+        'clv_grade_class': clv_grade_class,
+        'clv_grade_label': clv_grade_label,
+        'clv_value': clv_value_str,
+        'clv_explain': clv_explain_str,
+        'season_roi_label': season_roi_label,
+        'season_roi_class': season_roi_class,
+        'season_signals_label': season_signals_label,
+        'season_clv_beat_label': season_clv_beat_label,
+        'season_stats_count': season_stats_count,
+        'footer_date': footer_date,
     }
     data.update(get_card_fonts())
 
@@ -622,7 +704,7 @@ def result_card(signal_id):
 
     try:
         from services.card_generator import generate_card_png
-        png_bytes = generate_card_png(html_string)
+        png_bytes = generate_card_png(html_string, width=1200, height=1200)
     except Exception:
         img = _generate_share_card(pick)
         buf = _to_png(img)
@@ -864,7 +946,14 @@ def _season_stats(sport=None):
     beat_close = round(clv_positive / len(clv_values) * 100, 1) if clv_values else 0
     total_pnl = sum((p.profit_units or 0) for p in decided)
     roi = round((sum((p.pnl or 0) for p in decided) / (len(decided) * 110)) * 100, 1) if decided else 0
-    return {'wins': wins, 'losses': losses, 'win_pct': win_pct, 'beat_close': beat_close, 'pnl': total_pnl, 'roi': roi}
+    # signals_count: total resolved signals in the sport's season-to-date,
+    # used by the outcome share card marketing block (templates/result_card.html).
+    signals_count = len(decided)
+    return {
+        'wins': wins, 'losses': losses, 'win_pct': win_pct,
+        'beat_close': beat_close, 'pnl': total_pnl, 'roi': roi,
+        'signals_count': signals_count,
+    }
 
 
 def _draw_stat_box(draw, x, y, w, h, label, value, color=WHITE):

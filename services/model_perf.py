@@ -181,6 +181,35 @@ def _last_10_signals(now: datetime) -> list:
     return out
 
 
+def _clv_avg_by_sport(now: datetime, days: int = 90) -> dict:
+    """Average CLV per sport over the window, plus the settled sample
+    size used to compute it. Powers the 'NBA CLV avg' / 'MLB CLV avg'
+    rows on the Model tab. NULL clv values are excluded from the mean
+    so picks awaiting closing-line capture don't poison the average.
+
+    Returns {sport: {'avg_clv': float|None, 'sample_n': int}}.
+    """
+    cutoff = now - timedelta(days=days)
+    rows = db.session.query(Pick.sport, Pick.clv).filter(
+        Pick.published_at >= cutoff,
+        Pick.result.in_(RESOLVED),
+        Pick.clv.isnot(None),
+    ).all()
+    bucket = defaultdict(list)
+    for sport, clv in rows:
+        bucket[(sport or 'unknown').lower()].append(float(clv))
+    out = {}
+    for sport, vals in bucket.items():
+        if not vals:
+            out[sport] = {'avg_clv': None, 'sample_n': 0}
+            continue
+        out[sport] = {
+            'avg_clv':  round(sum(vals) / len(vals), 2),
+            'sample_n': len(vals),
+        }
+    return out
+
+
 def fetch(range_: str = '90d') -> dict:
     days = {'7d': 7, '30d': 30, '90d': 90}.get(range_, 90)
     now = datetime.utcnow()
@@ -190,6 +219,7 @@ def fetch(range_: str = '90d') -> dict:
         'calibration':             _calibration(now, days=180),
         'edge_distribution':       _edge_distribution(now, days=30),
         'last_10_signals':         _last_10_signals(now),
+        'clv_avg_by_sport':        _clv_avg_by_sport(now, days=days),
         'note': (
             'edge_pct used as MEI proxy. Pick schema has no dedicated '
             'mei_score column today; tune _hit_rate_by_edge_tier bucket '

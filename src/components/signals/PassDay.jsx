@@ -22,7 +22,7 @@ const PRINCIPLES = [
 
 const FALLBACK_ARTICLES = [
   {
-    category: 'Field Guide',
+    category: 'How it works',
     readMinutes: 3,
     publishedDate: 'Mar 18, 2026',
     title: 'Shadow mode: how we test a model before you see it.',

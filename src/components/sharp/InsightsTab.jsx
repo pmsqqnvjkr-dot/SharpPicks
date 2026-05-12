@@ -3,6 +3,7 @@ import { apiGet } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import { trackEvent } from '../../utils/eventTracker';
 import OnboardingCard from './OnboardingCard';
+import SharpJournalArticle from './SharpJournalArticle';
 
 const CATEGORIES = [
   { id: 'all', label: 'All' },
@@ -98,6 +99,43 @@ export default function InsightsTab({ onNavigate, initialInsight, onInitialInsig
   };
 
   if (selectedInsight) {
+    // Standard articles render through the locked SharpJournalArticle
+    // component. Market notes and the Beginners Guide keep their bespoke
+    // InsightDetail rendering (specialized layouts that don't map onto the
+    // spec).
+    const isMarketNote = selectedInsight.category === 'market_notes'
+      && /^market-note-(\w+-)?[0-9]{4}/.test(selectedInsight.slug || '');
+    const isBeginnersGuide = selectedInsight.slug === 'beginners-guide';
+    if (!isMarketNote && !isBeginnersGuide) {
+      // Pick the next evergreen article for the bottom-of-article 'Read
+      // next' link. Daily dated market notes (slugs like
+      // market-note-YYYY-MM-DD) are excluded since they're stale by
+      // definition once their day passes. Walk forward in the list from
+      // the current article and wrap to the top if needed so the reader
+      // never hits a dead end. The current article itself is always
+      // skipped.
+      const isEvergreen = (a) => !!a && a.id !== selectedInsight.id
+        && !/^market-note-(\w+-)?[0-9]{4}/.test(a.slug || '');
+      const idx = insights.findIndex(i => i.id === selectedInsight.id);
+      const startIdx = idx >= 0 ? idx + 1 : 0;
+      let nextInsight = null;
+      for (let j = startIdx; j < insights.length && !nextInsight; j++) {
+        if (isEvergreen(insights[j])) nextInsight = insights[j];
+      }
+      if (!nextInsight) {
+        for (let j = 0; j < startIdx && !nextInsight; j++) {
+          if (isEvergreen(insights[j])) nextInsight = insights[j];
+        }
+      }
+      return (
+        <SharpJournalArticle
+          insight={selectedInsight}
+          onBack={() => setSelectedInsight(null)}
+          nextInsight={nextInsight}
+          onSelectNext={(insight) => { selectAndTrack(insight); }}
+        />
+      );
+    }
     return (
       <InsightDetail
         insight={selectedInsight}

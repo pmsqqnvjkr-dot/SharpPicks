@@ -58,6 +58,20 @@ export default function UpgradeScreen({ onBack, user }) {
     }
   };
 
+  // Apple doesn't let us cancel subscriptions in-app. Send already-pro
+  // users to App Store account settings. Same path the PaymentFailedGate
+  // uses (SharpPicksApp.jsx:32). Trial users also have is_premium=true
+  // and need this surface so they can cancel before being charged.
+  const isAlreadyPro = !!user?.is_premium;
+  const openManageSubscriptions = async () => {
+    try {
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.open({ url: 'https://apps.apple.com/account/subscriptions' });
+    } catch {
+      try { window.open('https://apps.apple.com/account/subscriptions', '_blank', 'noopener,noreferrer'); } catch { /* swallow */ }
+    }
+  };
+
   const handleStripeSubscribe = async (plan) => {
     if (isNative) {
       const { Browser } = await import('@capacitor/browser');
@@ -333,48 +347,56 @@ export default function UpgradeScreen({ onBack, user }) {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-              <PlanToggle
-                label="Annual"
-                price={yearlyPrice}
-                duration="year"
-                selected={selectedPlan === 'yearly'}
-                onSelect={() => setSelectedPlan('yearly')}
-                badge="14-day trial"
-              />
-              <PlanToggle
-                label="Monthly"
-                price={monthlyPrice}
-                duration="month"
-                selected={selectedPlan === 'monthly'}
-                onSelect={() => setSelectedPlan('monthly')}
-              />
-            </div>
+            {!isAlreadyPro && (
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+                <PlanToggle
+                  label="Annual"
+                  price={yearlyPrice}
+                  duration="year"
+                  selected={selectedPlan === 'yearly'}
+                  onSelect={() => setSelectedPlan('yearly')}
+                  badge="14-day trial"
+                />
+                <PlanToggle
+                  label="Monthly"
+                  price={monthlyPrice}
+                  duration="month"
+                  selected={selectedPlan === 'monthly'}
+                  onSelect={() => setSelectedPlan('monthly')}
+                />
+              </div>
+            )}
 
             <button
-              onClick={handleIAPPurchase}
-              disabled={checkoutLoading || !iapOffering}
+              onClick={isAlreadyPro ? openManageSubscriptions : handleIAPPurchase}
+              disabled={!isAlreadyPro && (checkoutLoading || !iapOffering)}
               style={{
                 width: '100%', padding: '16px',
                 background: 'linear-gradient(135deg, #5A9E72, #4A8E62)',
                 border: 'none', borderRadius: '14px',
                 color: '#fff', fontSize: '16px', fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                opacity: (checkoutLoading || !iapOffering) ? 0.6 : 1,
+                opacity: (!isAlreadyPro && (checkoutLoading || !iapOffering)) ? 0.6 : 1,
                 marginBottom: '12px',
               }}
             >
-              {checkoutLoading ? 'Processing...' : 'Subscribe with Apple'}
+              {isAlreadyPro
+                ? 'Manage Subscription'
+                : (checkoutLoading ? 'Processing...' : 'Subscribe with Apple')}
             </button>
 
-            {/* Apple-required auto-renewal disclosure (3.1.2(c)). */}
-            <p style={{
-              fontFamily: 'var(--font-sans)', fontSize: '11px',
-              lineHeight: 1.5, color: 'var(--text-tertiary)',
-              textAlign: 'left', margin: '0 0 12px',
-            }}>
-              Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless canceled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions in your App Store account settings after purchase.
-            </p>
+            {/* Apple-required auto-renewal disclosure (3.1.2(c)). Only
+                shown pre-purchase; an already-subscribed user doesn't
+                need the renewal terms again. */}
+            {!isAlreadyPro && (
+              <p style={{
+                fontFamily: 'var(--font-sans)', fontSize: '11px',
+                lineHeight: 1.5, color: 'var(--text-tertiary)',
+                textAlign: 'left', margin: '0 0 12px',
+              }}>
+                Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless canceled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions in your App Store account settings after purchase.
+              </p>
+            )}
 
             <button
               onClick={handleRestore}

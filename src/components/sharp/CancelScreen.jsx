@@ -101,7 +101,7 @@ export default function CancelScreen({ onBack, user }) {
           fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.6',
           marginBottom: '28px',
         }}>
-          Sharp Picks is built for long-term discipline. If it's not the right time, we understand.
+          SharpPicks is built for long-term discipline. If it's not the right time, we understand.
         </p>
 
         <div style={{

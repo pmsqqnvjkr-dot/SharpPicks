@@ -143,18 +143,27 @@ if [ "$SKIP_SQLITE" = false ]; then
 
   echo ""
   echo "[sqlite 1/3] Snapshotting prod SQLite via railway ssh..."
-  # Use VACUUM INTO to get a consistent snapshot even if the prod app is
-  # actively writing. Then base64-stream it back to local. The DB lives at
+  # Use sqlite3.Connection.backup() in Python to get a consistent
+  # snapshot even if the prod app is actively writing. Then base64-
+  # stream it back to local. The DB lives at
   # $RAILWAY_VOLUME_MOUNT_PATH/sharp_picks.db on the volume.
+  # Python is used instead of the sqlite3 CLI because the SharpPicks
+  # Railway container does not ship the standalone sqlite3 binary.
   railway ssh --service "$PROD_SVC" --environment "$PROD_ENV" -- \
-    bash -lc '
-      set -euo pipefail
-      DB="${RAILWAY_VOLUME_MOUNT_PATH:-/data}/sharp_picks.db"
-      SNAP="/tmp/sharp_picks.snap.$$.db"
-      sqlite3 "$DB" "VACUUM INTO '"'"'$SNAP'"'"'"
-      base64 < "$SNAP"
-      rm -f "$SNAP"
-    ' > "$TEMP/prod.b64"
+    python3 -c '
+import os, sqlite3, base64, sys
+db = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "/data") + "/sharp_picks.db"
+snap = "/tmp/sharp_picks.snap.db"
+try: os.remove(snap)
+except FileNotFoundError: pass
+src = sqlite3.connect(db)
+dst = sqlite3.connect(snap)
+src.backup(dst)
+src.close(); dst.close()
+sys.stderr.write("snap bytes: " + str(os.path.getsize(snap)) + "\n")
+sys.stdout.buffer.write(base64.b64encode(open(snap, "rb").read()))
+os.remove(snap)
+' > "$TEMP/prod.b64"
 
   echo "[sqlite 2/3] Decoding snapshot locally..."
   base64 -d < "$TEMP/prod.b64" > "$TEMP/sharp_picks.db"
