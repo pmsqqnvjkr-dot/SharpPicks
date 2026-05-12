@@ -3197,14 +3197,17 @@ def backup_database():
 
 
 def send_weekly_summary_job():
-    """Monday 7 AM ET: send the weekly recap email to all pro users.
+    """Weekly recap email dispatcher. Send time is controlled by the
+    cronjobs.org schedule for /api/cron/weekly-summary, currently Monday
+    9 AM ET. This function makes no assumptions about when it fires and
+    can be invoked manually for QA via the same URL with CRON_SECRET.
 
     Routes per user into the standard or quiet variant based on whether
     the model issued at least one signal in the prior 7 ET days. The
     model stats are computed once at the top of the job and reused
     across every user; the per-user inset (tracked-bet record, if any)
     is computed inside the loop. Honors notification_prefs.weekly_summary
-    (default true) and user_metadata (verified email, active sub).
+    (default true) and user metadata (verified email, active sub).
     """
     with app.app_context():
         try:
