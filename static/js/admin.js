@@ -800,19 +800,64 @@ function bindLiveData(metrics) {
   const uniqueTappers = metrics.events?.payload?.unique_tappers;
   if (uniqueTappers != null) setStat('Unique tappers', SP_FMT.num(uniqueTappers));
 
+  // Issued by sport (signals section): NBA / MLB / WNBA stat-row values.
+  // The signals_issued payload is grouped by sport. Labels are 'Nba',
+  // 'Mlb', 'Wnba' in the HTML; setStat's case-insensitive match handles
+  // the casing. Sports with no signals get '0' instead of leaving the
+  // markup placeholder '--'.
+  const issuedBySport = metrics.events?.payload?.signals_issued || {};
+  ['nba', 'mlb', 'wnba'].forEach((sport) => {
+    const count = issuedBySport[sport] ?? issuedBySport[sport.toUpperCase()] ?? 0;
+    setStat(sport.toUpperCase(), SP_FMT.num(count));
+  });
+
   // -- Funnel (last 7d) — replace mockup numbers with real funnel --
   const funnel = metrics.events?.payload?.funnel;
   if (Array.isArray(funnel) && funnel.length) {
     // Funnel rendering uses .funnel-step rows in DOM order matching the
-    // events.funnel array. Update label/users/conversion in place.
+    // events.funnel array. Update label/users/conversion in place. The
+    // HTML uses plain .value spans (legacy 5-step Visit -> Paid mockup);
+    // the data only ships 3 steps (signal_view, bet_tap_signal_card,
+    // bet_tap_place_bet). Pair positionally and clear any HTML steps
+    // that don't have a corresponding data row so trailing rows don't
+    // sit at "--". The fourth selector here, plain .value, catches the
+    // HTML that uses <span class="value">; previously only
+    // .funnel-value, .moved-value were checked which silently no-op'd
+    // every step. Also overwrite the label so step names match the
+    // shipped funnel (the mockup labels Visit/Signup view/etc. don't
+    // map to the events.funnel array's signal-tracking steps).
+    const FUNNEL_LABEL = {
+      signal_view: 'Signal view',
+      bet_tap_signal_card: 'Bet card tap',
+      bet_tap_place_bet: 'Place bet',
+    };
     const steps = document.querySelectorAll('#panel-command .funnel-step');
-    funnel.forEach((step, i) => {
-      const node = steps[i];
-      if (!node) return;
-      const valEl  = node.querySelector('.funnel-value, .moved-value');
+    steps.forEach((node, i) => {
+      const step = funnel[i];
+      const lblEl  = node.querySelector('.label');
+      const valEl  = node.querySelector('.funnel-value, .moved-value, .value');
       const convEl = node.querySelector('.funnel-conv');
-      if (valEl)  valEl.textContent  = SP_FMT.num(step.users);
-      if (convEl && step.conversion_pct != null) convEl.textContent = step.conversion_pct + '%';
+      const barEl  = node.querySelector('.funnel-bar');
+      if (!step) {
+        // No data for this HTML step. Hide the row so the trailing
+        // Trial started / Paid conversion mockup rows don't read as
+        // broken zeros.
+        node.style.display = 'none';
+        return;
+      }
+      if (lblEl && step.step && FUNNEL_LABEL[step.step]) {
+        lblEl.textContent = FUNNEL_LABEL[step.step];
+      }
+      if (valEl) valEl.textContent = SP_FMT.num(step.users);
+      if (convEl) {
+        convEl.textContent = step.conversion_pct != null
+          ? step.conversion_pct + '%'
+          : '';
+      }
+      if (barEl && funnel[0]?.users) {
+        const pct = Math.max(2, Math.round(100 * (step.users || 0) / funnel[0].users));
+        barEl.style.width = pct + '%';
+      }
     });
   }
 
@@ -1837,42 +1882,57 @@ function bindModelPerf(data) {
   // win_rate_by_sport_daily (latest non-null entry) + clv_avg_by_sport.
   // Falls back to '--' when no data, which is the default the markup
   // already shows; we only overwrite when we have a real value.
-  const _latestSportPoint = (series) => {
-    if (!Array.isArray(series)) return null;
-    for (let i = series.length - 1; i >= 0; i--) {
-      if (series[i].win_rate != null) return series[i];
-    }
-    return null;
-  };
-  const clvBySport = data.clv_avg_by_sport || {};
-  ['nba', 'mlb'].forEach(sport => {
-    const series = (data.win_rate_by_sport_daily || {})[sport]
-                || (data.win_rate_by_sport_daily || {})[sport.toUpperCase()];
-    const latest = _latestSportPoint(series);
-    const cap = sport.toUpperCase();
-    if (latest) {
-      const rateLabel = sport === 'nba' ? `${cap} ats 90d` : `${cap} 90d`;
-      setStat(rateLabel, String(latest.win_rate));
-      setStat(`${cap} sample`, SP_FMT.num(latest.sample_n));
-    }
-    const clv = clvBySport[sport] || clvBySport[sport.toUpperCase()];
-    if (clv && clv.avg_clv != null) {
-      const sign = clv.avg_clv > 0 ? '+' : '';
-      setStat(`${cap} clv avg`, `${sign}${clv.avg_clv}`);
-    }
-  });
+  //
+  // Wrapped in a try so a thrown error here (or earlier in this
+  // function) doesn't strangle the bindings. The 2026-05-11 report
+  // showed labels rendering without values, which only happens when
+  // bindModelPerf either never reaches this block or throws inside
+  // it. A try ensures the bindings always attempt and the failure
+  // surfaces in the console rather than the operator-facing UI.
+  try {
+    const _latestSportPoint = (series) => {
+      if (!Array.isArray(series)) return null;
+      for (let i = series.length - 1; i >= 0; i--) {
+        if (series[i].win_rate != null) return series[i];
+      }
+      return null;
+    };
+    const clvBySport = data.clv_avg_by_sport || {};
+    const winBySportSafe = data.win_rate_by_sport_daily || {};
+    ['nba', 'mlb'].forEach(sport => {
+      const series = winBySportSafe[sport] || winBySportSafe[sport.toUpperCase()];
+      const latest = _latestSportPoint(series);
+      const cap = sport.toUpperCase();
+      if (latest) {
+        // HTML labels are 'Nba ats 90d' and 'Mlb 90d' (singular tier).
+        // Case-insensitive match in setStat handles the casing diff.
+        const rateLabel = sport === 'nba' ? `${cap} ats 90d` : `${cap} 90d`;
+        const ok1 = setStat(rateLabel, String(latest.win_rate));
+        const ok2 = setStat(`${cap} sample`, SP_FMT.num(latest.sample_n));
+        if (!ok1 || !ok2) {
+          console.warn('[bindModelPerf] setStat returned no match for', cap, '— check row labels in admin.html');
+        }
+      }
+      const clv = clvBySport[sport] || clvBySport[sport.toUpperCase()];
+      if (clv && clv.avg_clv != null) {
+        const sign = clv.avg_clv > 0 ? '+' : '';
+        setStat(`${cap} clv avg`, `${sign}${clv.avg_clv}`);
+      }
+    });
 
-  // MLB confidence row: dynamic from sample size. n < 30 prints
-  // 'low (n < 30)' to match the original suffix intent; n >= 30 shows
-  // 'stable (n=N)'. Keeps the operator from misreading a 4-sample
-  // win-rate as a stable signal.
-  const mlbLatest = _latestSportPoint(
-    (data.win_rate_by_sport_daily || {}).mlb
-    || (data.win_rate_by_sport_daily || {}).MLB
-  );
-  if (mlbLatest) {
-    const n = mlbLatest.sample_n || 0;
-    setStat('Mlb confidence', n < 30 ? `low (n < 30)` : `stable (n=${n})`);
+    // MLB confidence row: dynamic from sample size. n < 30 prints
+    // 'low (n < 30)' to match the original suffix intent; n >= 30 shows
+    // 'stable (n=N)'. Keeps the operator from misreading a 4-sample
+    // win-rate as a stable signal.
+    const mlbLatest = _latestSportPoint(
+      winBySportSafe.mlb || winBySportSafe.MLB
+    );
+    if (mlbLatest) {
+      const n = mlbLatest.sample_n || 0;
+      setStat('Mlb confidence', n < 30 ? `low (n < 30)` : `stable (n=${n})`);
+    }
+  } catch (err) {
+    console.warn('[bindModelPerf] Model snapshot bindings threw:', err);
   }
 
   // -- Model tab section summaries --
