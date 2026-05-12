@@ -35,10 +35,12 @@ const SP = {
 // model_run_hour exactly so this UI countdown lines up with the backend
 // watchdog threshold (app.py:5577 fires for NBA when et_hour >= 10).
 //   NBA  10:00 AM ET
-//   MLB  11:00 AM ET
+//   MLB   1:00 PM ET   (shifted from 11 AM on 2026-05-12; the late
+//                       morning run was firing before starting pitchers
+//                       were confirmed, driving high pre-tip revocation)
 //   WNBA 10:00 AM ET
-const MODEL_RUN_HOUR_ET = { nba: 10, mlb: 11, wnba: 10 };
-const PUBLISH_HOUR_ET = { nba: 11, mlb: 12, wnba: 11 };
+const MODEL_RUN_HOUR_ET = { nba: 10, mlb: 13, wnba: 10 };
+const PUBLISH_HOUR_ET = { nba: 11, mlb: 14, wnba: 11 };
 
 function fmtClockET(hourEt) {
   const h12 = ((hourEt + 11) % 12) + 1;

@@ -5690,7 +5690,10 @@ def cron_run_model():
             print(f"[model-run] Ratings refresh failed (non-fatal): {e}")
         results = {}
         live = get_live_sports()
-        # MLB has its own dedicated /api/cron/mlb-run-model at 11 AM ET.
+        # MLB has its own dedicated /api/cron/mlb-run-model at 1 PM ET
+        # (shifted from 11 AM on 2026-05-12; the late-morning run fired
+        # before starting pitchers were confirmed and drove high pre-tip
+        # revocation as the market repriced).
         # NBA + WNBA both run on this shared cron at 10 AM ET (one publish
         # per sport per day), with WNBA in calibration mode. The 2:15 PM
         # second run was removed in May 2026 because force=true regenerated
@@ -5760,7 +5763,10 @@ def cron_model_watchdog():
             results['nba'] = 'already_ran' if nba_run else 'not_due_yet'
 
         mlb_run = ModelRun.query.filter_by(date=today_str, sport='mlb').first()
-        if not mlb_run and et_hour >= 11:
+        # MLB scheduled run is 1 PM ET as of 2026-05-12 (was 11 AM).
+        # Watchdog fires at 13 + 1h grace = 14 to avoid racing the
+        # scheduled cron during the normal 1 PM run window.
+        if not mlb_run and et_hour >= 14:
             results['mlb'] = 'triggering'
             try:
                 run_mlb_model_job(force=False)
