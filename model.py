@@ -1586,12 +1586,28 @@ class EnsemblePredictor:
         print(f"   🎚️  Minimum confidence filter: {min_confidence*100:.0f}%\n")
         
         X = self.engineer_features(df)
-        
+
+        # Preserve the full engineered feature matrix BEFORE the trained-
+        # feature-only filter on the next line. Several MLB features
+        # (bullpen_fatigue_diff, ump_deviation, park_factor_runs) were
+        # dropped from self.feature_names at training time because the
+        # historical fallback values collapsed their variance below the
+        # 1e-10 zero-variance filter at line 1210. Those features are
+        # real at PREDICTION time (live ESPN data, current umpire
+        # assignments) and shouldn't be discarded just because the
+        # training set was noisy on them. Post-hoc adjustments below
+        # apply them directly to pred_margin so the ensemble's blind
+        # spot doesn't ship to users. Long-term fix is to retrain with
+        # a cleaner fallback strategy (NaN instead of league average)
+        # so the variance survives; in the meantime this is the live
+        # correction.
+        X_full = X.copy()
+
         missing_features = [f for f in self.feature_names if f not in X.columns]
         for feat in missing_features:
             X[feat] = 0
         X = X[self.feature_names]
-        
+
         X_scaled = self.scaler.transform(X)
         
         ensemble_proba = self.predict_proba(X_scaled)
@@ -1641,6 +1657,61 @@ class EnsemblePredictor:
             if pred_margin_raw is not None and spread is not None:
                 market_margin = -spread
                 pred_margin = self.model_weight * pred_margin_raw + (1 - self.model_weight) * market_margin
+
+                # MLB post-hoc adjustments: bullpen, umpire, park.
+                # The ensemble's input features dropped these three at
+                # training time (zero-variance filter, line 1210, because
+                # the historical fallback values collapsed their spread).
+                # The values are real at prediction time, so we adjust
+                # pred_margin directly here using domain-knowledge
+                # coefficients. Conservative magnitudes; the goal is to
+                # surface signal that was previously zero-weighted, not
+                # to overcorrect. Coefficients can be refit once we have
+                # 3-4 weeks of live data showing how the adjusted picks
+                # compare to closing line value.
+                if self.sport == 'mlb':
+                    try:
+                        feat_row = X_full.iloc[idx]
+
+                        # Bullpen fatigue differential. Positive = away
+                        # team's bullpen is more taxed than home's, so
+                        # home is more likely to score late and widen
+                        # its margin. 0.15 runs per unit of fatigue
+                        # differential is conservative; fatigue scores
+                        # range roughly 0-5, so a one-std-dev gap moves
+                        # pred_margin by ~0.3 runs.
+                        bp_diff = feat_row.get('bullpen_fatigue_diff', 0) or 0
+                        pred_margin += 0.15 * float(bp_diff)
+
+                        # Umpire run expectancy delta vs league average.
+                        # High-scoring umpires widen typical margins,
+                        # which favors whichever side already projects
+                        # to win. Apply sign-aware so a high-rpgi ump
+                        # boosts the side our pred_margin already
+                        # points toward.
+                        ump_dev = feat_row.get('ump_deviation', 0) or 0
+                        if pred_margin != 0:
+                            margin_sign = 1.0 if pred_margin > 0 else -1.0
+                            pred_margin += 0.20 * float(ump_dev) * margin_sign
+
+                        # Park factor (runs-specific). park_factor_runs
+                        # is the multiplicative run expectancy at the
+                        # home park (0.88 in pitcher-friendly Marlins
+                        # Park, 1.32 in Coors). High-run parks widen
+                        # absolute margins; scale pred_margin by the
+                        # park's deviation from neutral (1.0), capped
+                        # at +/- 8% so a single park can't dominate the
+                        # adjustment.
+                        park = feat_row.get('park_factor_runs', 1.0) or 1.0
+                        park_adj = max(-0.08, min(0.08, float(park) - 1.0))
+                        pred_margin *= (1.0 + park_adj)
+                    except (KeyError, IndexError, TypeError, ValueError):
+                        # X_full row may not have the feature column
+                        # (e.g., during a partial retrain) or value may
+                        # be non-numeric; fall through with the original
+                        # blended pred_margin rather than crashing.
+                        pass
+
                 home_cover_prob = float(norm.cdf((pred_margin + spread) / game_sigma))
                 model_only_home_cover = float(norm.cdf((pred_margin_raw + spread) / game_sigma))
             else:
