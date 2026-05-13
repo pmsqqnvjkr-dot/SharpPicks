@@ -647,26 +647,26 @@ def dispatch_lifecycle_email(user, variant_key: str, overrides: dict = None) -> 
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
     }
 
-    # send_email already routes through email_service which respects
-    # EMAIL_OVERRIDE_TO. Resend message_id, tags, and headers go through
-    # via the kwargs we extend below.
-    ok = send_email(
+    # send_email returns the Resend message_id (truthy str) on success or
+    # None on failure. The id is what the Resend webhook keys on to record
+    # delivery, opens, clicks, bounces against this row.
+    message_id = send_email(
         to=user.email,
         subject=variant['subject'],
         html=html,
         from_email=FROM_EMAIL,
         attachments=None,
     )
-    if not ok:
+    if not message_id:
         return False
 
-    # Write to email_events + email_send_history. We do NOT yet have the
-    # Resend message_id from send_email's return value; Phase 1 stores
-    # NULL there, and the webhook handler in Phase 4 will key on it once
-    # we extend send_email to surface the id.
     try:
         from models import db, EmailEvent, EmailSendHistory
-        db.session.add(EmailEvent(user_id=user.id, variant=variant_key))
+        db.session.add(EmailEvent(
+            user_id=user.id,
+            variant=variant_key,
+            resend_message_id=message_id,
+        ))
         db.session.add(EmailSendHistory(user_id=user.id, variant=variant_key))
         db.session.commit()
     except Exception as e:

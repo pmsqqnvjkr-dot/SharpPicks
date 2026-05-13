@@ -7589,6 +7589,97 @@ def revenuecat_webhook():
     return jsonify({'status': 'ok'})
 
 
+@app.route('/api/webhooks/resend', methods=['POST'])
+def resend_webhook():
+    """Receive Resend delivery / open / click / bounce / complaint events
+    and update the matching email_events row. Idempotent: we only set a
+    timestamp column if it's currently NULL, so retries from Resend don't
+    overwrite the first-seen time.
+
+    Signature verification is Svix-style: HMAC-SHA256(secret, "{id}.{ts}.{body}")
+    base64-encoded. The secret env var is `whsec_<base64>`; we strip the
+    prefix and base64-decode to get raw bytes for the HMAC."""
+    import hmac
+    import hashlib
+    import base64 as b64
+    import time as _time
+
+    secret_raw = os.environ.get('RESEND_WEBHOOK_SECRET', '')
+    if not secret_raw:
+        logging.error('Resend webhook: RESEND_WEBHOOK_SECRET not set')
+        return jsonify({'error': 'webhook secret not configured'}), 500
+
+    svix_id = request.headers.get('svix-id', '')
+    svix_ts = request.headers.get('svix-timestamp', '')
+    svix_sig_header = request.headers.get('svix-signature', '')
+    if not svix_id or not svix_ts or not svix_sig_header:
+        return jsonify({'error': 'missing svix headers'}), 401
+
+    try:
+        ts_int = int(svix_ts)
+        if abs(_time.time() - ts_int) > 300:
+            return jsonify({'error': 'timestamp out of tolerance'}), 401
+    except ValueError:
+        return jsonify({'error': 'invalid timestamp'}), 401
+
+    raw_body = request.get_data(as_text=False)
+    signed_payload = f"{svix_id}.{svix_ts}.".encode('utf-8') + raw_body
+
+    secret_b64 = secret_raw[6:] if secret_raw.startswith('whsec_') else secret_raw
+    try:
+        secret_bytes = b64.b64decode(secret_b64)
+    except Exception:
+        return jsonify({'error': 'malformed webhook secret'}), 500
+
+    expected = b64.b64encode(hmac.new(secret_bytes, signed_payload, hashlib.sha256).digest()).decode('utf-8')
+
+    # Header format: "v1,signature1 v1,signature2 ..." (space-separated, any match wins)
+    candidates = [p.split(',', 1)[1] for p in svix_sig_header.split(' ') if p.startswith('v1,')]
+    if not any(hmac.compare_digest(expected, c) for c in candidates):
+        logging.warning('Resend webhook: signature mismatch')
+        return jsonify({'error': 'invalid signature'}), 401
+
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+    except Exception:
+        return jsonify({'error': 'invalid json'}), 400
+
+    event_type = payload.get('type', '')
+    data = payload.get('data') or {}
+    email_id = data.get('email_id')
+    if not email_id:
+        return jsonify({'status': 'ok', 'note': 'no email_id'}), 200
+
+    # event_type → column to set
+    col_map = {
+        'email.delivered': 'delivered_at',
+        'email.opened': 'opened_at',
+        'email.clicked': 'clicked_at',
+        'email.bounced': 'bounced_at',
+        'email.complained': 'complained_at',
+    }
+    col = col_map.get(event_type)
+    if not col:
+        # email.sent, email.delivery_delayed and anything else: ack but no-op.
+        return jsonify({'status': 'ok', 'event': event_type, 'note': 'no-op'}), 200
+
+    try:
+        from models import EmailEvent
+        row = EmailEvent.query.filter_by(resend_message_id=email_id).first()
+        if not row:
+            # Send predates the email_events wiring or row insert failed.
+            # Ack so Resend doesn't retry.
+            return jsonify({'status': 'ok', 'note': 'row not found'}), 200
+        if getattr(row, col) is None:
+            setattr(row, col, datetime.now())
+            db.session.commit()
+        return jsonify({'status': 'ok', 'event': event_type, 'column': col}), 200
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f'Resend webhook DB error: {e}')
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/stripe/products')
 def list_products():
     """List available subscription products"""
