@@ -7,6 +7,13 @@ with preference keys and whether it targets premium users only.
 """
 
 import logging
+import time
+
+# Sleep between sends in bulk dispatch loops. Resend Pro rate-limits at
+# 10/sec; 150ms keeps us at ~6/sec end-to-end (accounting for HTTP
+# round-trip) with headroom for transient bursts. Single-user
+# dispatchers (trial, founding) don't throttle.
+SEND_DELAY_SEC = 0.15
 
 
 NOTIFICATION_EVENTS = {
@@ -141,6 +148,7 @@ def dispatch_signal_emails(pick):
                     sent += 1
             except Exception as e:
                 logging.error(f"Signal email to {email} failed: {e}")
+            time.sleep(SEND_DELAY_SEC)
 
         free_recipients = get_free_email_recipients('email_signals')
         free_sent = 0
@@ -151,6 +159,7 @@ def dispatch_signal_emails(pick):
                     free_sent += 1
             except Exception as e:
                 logging.error(f"Free signal email to {email} failed: {e}")
+            time.sleep(SEND_DELAY_SEC)
 
         logging.info(f"Signal emails dispatched: {sent} pro, {free_sent} free")
         return sent + free_sent
@@ -171,6 +180,7 @@ def dispatch_result_emails(pick):
                     sent += 1
             except Exception as e:
                 logging.error(f"Result email to {email} failed: {e}")
+            time.sleep(SEND_DELAY_SEC)
         logging.info(f"Result emails dispatched: {sent}/{len(recipients)}")
         return sent
     except Exception as e:
@@ -190,6 +200,7 @@ def dispatch_no_signal_emails(games_analyzed=0, edges_detected=0, efficiency=0, 
                     sent += 1
             except Exception as e:
                 logging.error(f"No-signal email to {email} failed: {e}")
+            time.sleep(SEND_DELAY_SEC)
         logging.info(f"No-signal emails dispatched ({sport}): {sent}/{len(recipients)}")
         return sent
     except Exception as e:
