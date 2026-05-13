@@ -16,6 +16,29 @@ import time
 SEND_DELAY_SEC = 0.15
 
 
+def _log_email_event(user_id, variant, message_id):
+    """Write an email_events row so the Resend webhook can match deliveries,
+    opens, clicks, bounces back to the send. Best-effort: a failure here
+    must not block the send loop because the email already went out."""
+    if not message_id or not user_id:
+        return
+    try:
+        from models import db, EmailEvent
+        db.session.add(EmailEvent(
+            user_id=user_id,
+            variant=variant,
+            resend_message_id=message_id,
+        ))
+        db.session.commit()
+    except Exception as e:
+        try:
+            from models import db
+            db.session.rollback()
+        except Exception:
+            pass
+        logging.warning(f"email_events ledger write failed (variant={variant}, msg_id={message_id}): {e}")
+
+
 NOTIFICATION_EVENTS = {
     'pick_published': {
         'push_fn': 'send_pick_notification',
@@ -144,8 +167,10 @@ def dispatch_signal_emails(pick):
         sent = 0
         for user_id, email, first_name in recipients:
             try:
-                if send_signal_email(email, pick):
+                msg_id = send_signal_email(email, pick)
+                if msg_id:
                     sent += 1
+                    _log_email_event(user_id, 'signal_pro', msg_id)
             except Exception as e:
                 logging.error(f"Signal email to {email} failed: {e}")
             time.sleep(SEND_DELAY_SEC)
@@ -155,8 +180,10 @@ def dispatch_signal_emails(pick):
         sport = pick.get('sport', 'nba') if isinstance(pick, dict) else getattr(pick, 'sport', 'nba')
         for user_id, email, first_name in free_recipients:
             try:
-                if send_free_signal_email(email, sport=sport, first_name=first_name):
+                msg_id = send_free_signal_email(email, sport=sport, first_name=first_name)
+                if msg_id:
                     free_sent += 1
+                    _log_email_event(user_id, 'signal_free', msg_id)
             except Exception as e:
                 logging.error(f"Free signal email to {email} failed: {e}")
             time.sleep(SEND_DELAY_SEC)
@@ -176,8 +203,10 @@ def dispatch_result_emails(pick):
         sent = 0
         for user_id, email, first_name in recipients:
             try:
-                if send_result_email(email, pick):
+                msg_id = send_result_email(email, pick)
+                if msg_id:
                     sent += 1
+                    _log_email_event(user_id, 'result', msg_id)
             except Exception as e:
                 logging.error(f"Result email to {email} failed: {e}")
             time.sleep(SEND_DELAY_SEC)
@@ -196,8 +225,10 @@ def dispatch_no_signal_emails(games_analyzed=0, edges_detected=0, efficiency=0, 
         sent = 0
         for user_id, email, first_name in recipients:
             try:
-                if send_no_signal_email(email, games_analyzed, edges_detected, efficiency, sport=sport):
+                msg_id = send_no_signal_email(email, games_analyzed, edges_detected, efficiency, sport=sport)
+                if msg_id:
                     sent += 1
+                    _log_email_event(user_id, 'no_signal', msg_id)
             except Exception as e:
                 logging.error(f"No-signal email to {email} failed: {e}")
             time.sleep(SEND_DELAY_SEC)

@@ -52,9 +52,14 @@ def _get_sig_b64():
     return _sig_b64
 
 def send_email(to, subject, html, reply_to=None, from_email=None, attachments=None):
+    """Send via Resend. Returns the Resend message id on success (truthy
+    string), or None on failure. Callers using `if send_email(...):` keep
+    working because a non-empty id is truthy. Callers that want the id
+    (e.g. to write a row to email_events for webhook correlation) can
+    capture the return value directly."""
     if not resend.api_key:
         logging.warning(f"RESEND_API_KEY not set. Email to {to} not sent.")
-        return False
+        return None
     # QA safety: if EMAIL_OVERRIDE_TO is set (always in the staging
     # environment), reroute every outbound email to that address. Prefix
     # the subject with the originally-intended recipient so the operator
@@ -75,11 +80,17 @@ def send_email(to, subject, html, reply_to=None, from_email=None, attachments=No
         if attachments:
             params["attachments"] = attachments
         r = resend.Emails.send(params)
-        logging.info(f"Email sent to {to}: {r}")
-        return True
+        # SDK returns a dict-like with id; handle both attribute and key access.
+        message_id = None
+        if isinstance(r, dict):
+            message_id = r.get('id')
+        else:
+            message_id = getattr(r, 'id', None)
+        logging.info(f"Email sent to {to}: id={message_id}")
+        return message_id
     except Exception as e:
         logging.error(f"Failed to send email to {to}: {e}")
-        return False
+        return None
 
 
 def check_email_pref(to_email, pref_key):
