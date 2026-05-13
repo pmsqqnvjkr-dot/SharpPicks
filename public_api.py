@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, KillSwitch, User
+from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, KillSwitch, User, Insight
 from sqlalchemy import func
 from sqlalchemy.exc import ProgrammingError, OperationalError
 from sport_config import get_active_sports, get_sport_config, get_phase_label
