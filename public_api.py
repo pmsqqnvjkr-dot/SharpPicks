@@ -1518,6 +1518,88 @@ def _opposing_team(pick):
     return None
 
 
+@public_bp.route('/picks/<pick_id>')
+def public_pick_by_id(pick_id):
+    """Return a single resolved or pending pick by id. Powers the Evan HQ
+    manual draft pipelines (signal_callout) where the operator points at
+    a specific pick to generate a tweet draft. Returns the same fields
+    the in-app surfaces use plus the computed cover margin so callers
+    don't have to recompute it.
+    """
+    pick = Pick.query.filter_by(id=pick_id).first()
+    if not pick:
+        return jsonify({'error': 'Pick not found'}), 404
+
+    cover_margin = None
+    if pick.home_score is not None and pick.away_score is not None and pick.line is not None and pick.side:
+        try:
+            sl = pick.side.lower()
+            is_home = (pick.home_team or '').split(' ')[-1].lower() in sl
+            margin = (pick.home_score - pick.away_score) + pick.line if is_home \
+                else (pick.away_score - pick.home_score) + pick.line
+            cover_margin = round(float(margin), 1)
+        except Exception:
+            cover_margin = None
+
+    return jsonify({
+        'id': pick.id,
+        'sport': pick.sport,
+        'game_date': pick.game_date,
+        'home_team': pick.home_team,
+        'away_team': pick.away_team,
+        'side': pick.side,
+        'line': pick.line,
+        'edge_pct': pick.edge_pct,
+        'cover_prob': pick.cover_prob,
+        'predicted_margin': pick.predicted_margin,
+        'market_odds': pick.market_odds,
+        'sportsbook': pick.sportsbook,
+        'closing_spread': pick.closing_spread,
+        'clv': pick.clv,
+        'home_score': pick.home_score,
+        'away_score': pick.away_score,
+        'cover_margin': cover_margin,
+        'result': pick.result,
+        'profit_units': pick.profit_units,
+        'published_at': pick.published_at.isoformat() if pick.published_at else None,
+        'result_resolved_at': pick.result_resolved_at.isoformat() if pick.result_resolved_at else None,
+        'notes': pick.notes,
+    })
+
+
+@public_bp.route('/insights/<slug>')
+def public_insight_by_slug(slug):
+    """Return a single published Sharp Journal insight by slug. Powers
+    the Evan HQ manual draft pipeline (article_callout) where the
+    operator points at a specific journal article. Mirrors the shape
+    of /api/insights/slug/<slug> but lives under /api/public/ so the
+    Evan HQ client can keep a single base URL for all SharpPicks
+    fetchers (market-report, recap, picks, insights).
+    """
+    insight = Insight.query.filter_by(slug=slug).first()
+    if not insight:
+        return jsonify({'error': 'Insight not found'}), 404
+    return jsonify({
+        'id': insight.id,
+        'title': insight.title,
+        'slug': insight.slug,
+        'category': insight.category,
+        'excerpt': insight.excerpt,
+        'content': insight.content,
+        'status': insight.status,
+        'publish_date': insight.publish_date.isoformat() if insight.publish_date else None,
+        'featured': insight.featured,
+        'pass_day': insight.pass_day,
+        'reading_time_minutes': insight.reading_time_minutes,
+        'related_pick_ids': insight.related_pick_ids or [],
+        'date_range_start': insight.date_range_start,
+        'date_range_end': insight.date_range_end,
+        'story_type': getattr(insight, 'story_type', None),
+        'sport': getattr(insight, 'sport', 'nba') or 'nba',
+        'created_at': insight.created_at.isoformat() if insight.created_at else None,
+    })
+
+
 @public_bp.route('/discipline')
 def discipline_score():
     sport = _get_sport_filter()
