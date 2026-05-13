@@ -669,7 +669,39 @@ function AccessStatusCard({ user, isPro, stats }) {
   useCardAnimations();
   const isFounder = user.founding_member;
   const isTrial = user.subscription_status === 'trial';
+  const isCancelling = user.subscription_status === 'cancelling';
+  // Resume button only works for Stripe subs. RC-tracked subs (iOS App Store
+  // or Google Play) have to be resumed through the platform's subscription
+  // settings; our /api/subscriptions/reactivate is Stripe-only.
+  const canResumeInApp = isCancelling && user.pro_source === 'stripe';
   const displayName = user.display_name || user.username || user.email?.split('@')[0] || '';
+  const [resumeBusy, setResumeBusy] = useState(false);
+  const [resumeError, setResumeError] = useState(null);
+
+  const handleResume = async () => {
+    if (resumeBusy) return;
+    setResumeBusy(true);
+    setResumeError(null);
+    try {
+      const res = await apiPost('/subscriptions/reactivate', {});
+      if (res && res.success) {
+        window.location.reload();
+        return;
+      }
+      setResumeError(res?.error || 'Could not resume. Please try again.');
+    } catch (e) {
+      setResumeError('Network error. Please try again.');
+    } finally {
+      setResumeBusy(false);
+    }
+  };
+
+  // Prefer cancel_effective_at when scheduled to cancel; fall back to
+  // current_period_end (the renewal date) for everyone else. Both fields
+  // are ISO strings from the backend.
+  const accessEndsAt = isCancelling
+    ? (user.cancel_effective_at || user.current_period_end)
+    : user.current_period_end;
 
   const trialDaysLeft = (isTrial && user.trial_end_date)
     ? Math.max(0, Math.ceil((new Date(user.trial_end_date) - new Date()) / (1000 * 60 * 60 * 24)))
@@ -773,12 +805,13 @@ function AccessStatusCard({ user, isPro, stats }) {
               {trialDaysLeft} {trialDaysLeft === 1 ? 'Day' : 'Days'} Remaining
             </span>
           )}
-          {!isTrial && isPro && user.current_period_end && (
+          {!isTrial && isPro && accessEndsAt && (
             <span style={{
               fontFamily: 'var(--font-mono)', fontSize: '11px',
-              fontWeight: 500, color: 'var(--text-tertiary)',
+              fontWeight: 500,
+              color: isCancelling ? '#C4868A' : 'var(--text-tertiary)',
             }}>
-              Renews {new Date(user.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {isCancelling ? 'Access ends' : 'Renews'} {new Date(accessEndsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
           )}
         </div>
@@ -887,6 +920,37 @@ function AccessStatusCard({ user, isPro, stats }) {
           <StatusIndicator label="Edge Data" value="ENABLED" active={true} />
           <StatusIndicator label="Tracking" value={isPro ? 'ACTIVE' : 'OFF'} active={isPro} />
         </div>
+
+        {canResumeInApp && (
+          <div style={{
+            marginTop: '16px', paddingTop: '14px',
+            borderTop: `1px solid ${isFounder ? 'rgba(245,166,35,0.08)' : 'rgba(255,255,255,0.05)'}`,
+            position: 'relative', zIndex: 1,
+          }}>
+            <button
+              onClick={handleResume}
+              disabled={resumeBusy}
+              style={{
+                width: '100%', padding: '12px',
+                backgroundColor: 'var(--blue-primary, #4F86F7)',
+                border: 'none', borderRadius: '10px',
+                color: '#FFFFFF', fontSize: '14px', fontWeight: 600,
+                cursor: resumeBusy ? 'wait' : 'pointer',
+                fontFamily: 'var(--font-sans)',
+                opacity: resumeBusy ? 0.7 : 1,
+              }}
+            >
+              {resumeBusy ? 'Resuming...' : 'Resume subscription'}
+            </button>
+            {resumeError && (
+              <p style={{
+                marginTop: '8px', textAlign: 'center',
+                fontSize: '12px', color: '#C4868A',
+                fontFamily: 'var(--font-sans)',
+              }}>{resumeError}</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
