@@ -5,7 +5,14 @@ from sqlalchemy.exc import ProgrammingError, OperationalError
 from sport_config import get_active_sports, get_sport_config, get_phase_label
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+import json
 import logging
+
+# Near-miss threshold. Games where the model detected an edge but didn't
+# clear the qualification filter need to be at least this strong to be
+# surfaced as a near-miss. Keeps low-signal noise out of public content
+# pipelines (SharpJournal "we passed and it landed" articles, etc.).
+NEAR_MISS_MIN_EDGE = 3.0
 
 public_bp = Blueprint('public', __name__)
 
@@ -1417,14 +1424,16 @@ def public_recap():
       no model run for the date OR no resolved signal:
         { "date": "...", "available": false }
       pass day (model ran, but no signal cleared):
-        { "date": "...", "available": true, "type": "no_signal" }
+        { "date": "...", "available": true, "type": "no_signal",
+          "near_misses": [ ... ] }
       signal exists:
         { "date": "...", "available": true, "type": "signal",
           "sport": "MLB", "team_picked": "Boston Red Sox",
           "opponent": "New York Yankees", "side": "Boston Red Sox -1.5",
           "line": -1.5, "market_odds": -110, "closing_spread": -2.5,
           "clv": 1.0, "result": "won" | "lost" | "push" | "pending" | "revoked",
-          "score_margin": 7, "profit_units": 1.0 }
+          "score_margin": 7, "profit_units": 1.0,
+          "near_misses": [ ... ] }
 
     `clv` is the CLV in points: positive = closing line moved in our
     favor. `score_margin` is signed by the side we picked (positive = we
@@ -1432,6 +1441,21 @@ def public_recap():
     Pending and revoked picks are returned as-is so the caller can skip
     them, different from `available=false` which means there's no Pick
     row at all for that date.
+
+    `near_misses` is an array of games where the model detected an edge
+    but did not pick. Each entry has shape:
+        { "sport": "MLB", "side": "Lakers -7", "team_picked": "Lakers",
+          "opponent": "Warriors", "line": -7, "edge_pct": 3.2,
+          "rating": "LEAN" (optional), "reason": "Confidence below threshold",
+          "result": "won" | "lost" | "push" | null,
+          "covered": true | false | null,
+          "source": "whatif" | "games_detail" }
+    Pass-day near-misses (`source=whatif`) include resolved outcomes
+    because the Pass row's whatif_* fields are graded post-game. Signal
+    -day near-misses (`source=games_detail`) are pre-game model
+    assessments only; result/covered are null. Filtered to edge >=
+    NEAR_MISS_MIN_EDGE (3.0%) to keep low-signal noise out. Sorted by
+    edge_pct desc.
     """
     et = ZoneInfo('America/New_York')
     yesterday = (datetime.now(et).date() - timedelta(days=1)).strftime('%Y-%m-%d')
@@ -1458,7 +1482,12 @@ def public_recap():
 
     if not pick:
         # Model ran but nothing cleared. Pass day.
-        _r = jsonify({'date': date_param, 'available': True, 'type': 'no_signal'})
+        _r = jsonify({
+            'date': date_param,
+            'available': True,
+            'type': 'no_signal',
+            'near_misses': _build_near_misses(date_param, sport),
+        })
         _r.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
         return _r
 
@@ -1490,6 +1519,7 @@ def public_recap():
         'score_margin': score_margin,
         'profit_units': pick.profit_units,
         'edge_pct': pick.edge_pct,
+        'near_misses': _build_near_misses(date_param, sport),
     })
     # Bypass any CDN cache. Without this, Cloudflare was serving cached
     # responses across different ?sport= values (cache key didn't include
@@ -1516,6 +1546,108 @@ def _opposing_team(pick):
     if picked == pick.home_team:
         return pick.away_team
     return None
+
+
+def _pass_to_near_miss(p):
+    """Convert a Pass row's whatif_* fields into a near-miss dict.
+    Returns None if the row has no whatif data (whatif_side IS NULL)."""
+    if not getattr(p, 'whatif_side', None):
+        return None
+    pick_side = (p.whatif_pick_side or '').lower()
+    team_picked = p.whatif_away_team if pick_side == 'away' else p.whatif_home_team
+    opponent = p.whatif_home_team if pick_side == 'away' else p.whatif_away_team
+    return {
+        'sport': (p.sport or '').upper(),
+        'side': p.whatif_side,
+        'team_picked': team_picked,
+        'opponent': opponent,
+        'line': p.whatif_line,
+        'edge_pct': p.whatif_edge,
+        'reason': p.pass_reason,
+        'result': p.whatif_result,
+        'covered': p.whatif_covered,
+        'source': 'whatif',
+    }
+
+
+def _games_detail_to_near_misses(model_run):
+    """Pull non-qualifying games from a ModelRun's games_detail JSON.
+    Filters to passes=False AND edge >= NEAR_MISS_MIN_EDGE so the array
+    doesn't include every low-signal game the model evaluated.
+
+    games_detail is frozen at model-run time so result/covered are NULL
+    here. Pass days surface resolved near-misses via the whatif fields
+    on the Pass row; signal-day misses are pre-game model assessments
+    only.
+    """
+    if not model_run or not model_run.games_detail:
+        return []
+    try:
+        games = json.loads(model_run.games_detail)
+    except (ValueError, TypeError):
+        return []
+    out = []
+    sport_upper = (model_run.sport or '').upper()
+    for g in games:
+        if g.get('passes') is True:
+            continue
+        edge = g.get('edge')
+        if edge is None or edge < NEAR_MISS_MIN_EDGE:
+            continue
+        pick_side = (g.get('pick_side') or '').lower()
+        team_picked = g.get('away') if pick_side == 'away' else g.get('home')
+        opponent = g.get('home') if pick_side == 'away' else g.get('away')
+        out.append({
+            'sport': sport_upper,
+            'side': g.get('pick'),
+            'team_picked': team_picked,
+            'opponent': opponent,
+            'line': g.get('line'),
+            'edge_pct': edge,
+            'rating': g.get('rating'),
+            'reason': g.get('reason'),
+            'result': None,
+            'covered': None,
+            'source': 'games_detail',
+        })
+    return out
+
+
+def _build_near_misses(date_param, sport_filter):
+    """Assemble near-miss list for a given date + optional sport filter.
+
+    Combines pass-day whatif data (resolved outcomes) with signal-day
+    games_detail misses (pre-game assessments only). Each near-miss has
+    a 'source' field so the caller can distinguish the two.
+
+    The Pass.whatif_* row for a given day is a snapshot of one game
+    already inside that day's ModelRun.games_detail blob. To avoid
+    returning the same game twice, dedupe on (sport, side, line),
+    keeping the whatif copy because it carries resolved outcome data.
+    """
+    by_key = {}
+
+    pass_q = Pass.query.filter_by(date=date_param)
+    if sport_filter:
+        pass_q = pass_q.filter_by(sport=sport_filter)
+    for p in pass_q.all():
+        nm = _pass_to_near_miss(p)
+        if nm:
+            key = (nm['sport'], nm['side'], nm['line'])
+            by_key[key] = nm
+
+    run_q = ModelRun.query.filter_by(date=date_param)
+    if sport_filter:
+        run_q = run_q.filter_by(sport=sport_filter)
+    for run in run_q.all():
+        for nm in _games_detail_to_near_misses(run):
+            key = (nm['sport'], nm['side'], nm['line'])
+            if key not in by_key:
+                by_key[key] = nm
+
+    near = list(by_key.values())
+    near.sort(key=lambda n: n.get('edge_pct') or 0, reverse=True)
+    return near
 
 
 @public_bp.route('/picks/<pick_id>')
