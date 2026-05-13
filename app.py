@@ -3939,12 +3939,30 @@ def check_expiring_trials():
 
 
 def expire_trials():
-    """Flip is_premium to false for expired trials"""
+    """Flip is_premium to false for expired trials.
+
+    Only touches trials that aren't being settled by Stripe. For Stripe
+    -tracked trials we let the customer.subscription.updated webhook
+    decide the final state (active / past_due / canceled / etc.) because
+    the cron races the webhook: trial_end_date triggers ~60s before
+    Stripe attempts the auto-charge, so marking 'expired' here sends a
+    misleading "trial ended" email to users whose card is about to be
+    charged. The cron still expires:
+      - users with no Stripe pro_source (manual or other trial paths)
+      - users who explicitly scheduled a cancel via our UI / Stripe portal
+    Everyone else stays in 'trial' until Stripe reports the verdict.
+    """
     with app.app_context():
         try:
+            from sqlalchemy import or_
             expired = User.query.filter(
                 User.subscription_status == 'trial',
-                User.trial_end_date <= datetime.now()
+                User.trial_end_date <= datetime.now(),
+                or_(
+                    User.pro_source != 'stripe',
+                    User.pro_source.is_(None),
+                    User.cancel_scheduled_at.isnot(None),
+                ),
             ).all()
             for user in expired:
                 user.subscription_status = 'expired'
@@ -3956,7 +3974,7 @@ def expire_trials():
                     logging.error(f"Trial expired email failed for {user.email}: {e}")
             db.session.commit()
             if expired:
-                logging.info(f"Expired {len(expired)} trials")
+                logging.info(f"Expired {len(expired)} non-Stripe trials")
         except Exception as e:
             logging.error(f"expire_trials error: {e}")
 
@@ -7290,11 +7308,19 @@ def stripe_webhook():
                         # signals that the trial period ended. It does NOT
                         # mean a payment cleared. invoice.payment_succeeded
                         # with amount_paid > 0 is the real signal. If we
-                        # flipped to 'active' here, users in their post-trial
-                        # pre-charge window render as 'Paid' in the admin
-                        # dashboard while still inside the original trial
-                        # commitment. Hold at 'trial' until the first
-                        # non-zero invoice clears.
+                        # flipped to 'active' here from 'trial', users in
+                        # their post-trial pre-charge window render as
+                        # 'Paid' in the admin dashboard while still inside
+                        # the original trial commitment. Hold at 'trial'
+                        # for that specific transition.
+                        #
+                        # For any OTHER prior state (notably 'expired',
+                        # which our expire_trials cron may have set during
+                        # the race window) we trust Stripe's signal and
+                        # restore active. Without this branch a user whose
+                        # cron mis-fired before the webhook arrived gets
+                        # stuck in 'expired' even after their card is
+                        # successfully charged.
                         if old_status == 'trial':
                             user.is_premium = True  # access continues while we wait for the charge
                         else:
