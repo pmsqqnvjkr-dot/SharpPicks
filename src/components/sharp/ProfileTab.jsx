@@ -912,6 +912,25 @@ function StatusIndicator({ label, value, active }) {
 
 function ControlsSection({ user, onNavigate, isPro, foundingData, onSubscribe, checkoutLoading }) {
   const isMonthly = user?.subscription_plan === 'monthly';
+  const [portalBusy, setPortalBusy] = useState(false);
+
+  // Web Pro subscribers reach the Stripe billing portal to update card,
+  // view receipts, or undo a scheduled cancel. iOS users do the same via
+  // Apple's subscription settings; the platform handles the UI.
+  const openBillingPortal = async () => {
+    if (portalBusy) return;
+    setPortalBusy(true);
+    try {
+      const res = await apiPost('/stripe/billing-portal', {
+        return_url: typeof window !== 'undefined' ? window.location.origin + '/?billing_return=1' : undefined,
+      });
+      if (res && res.url) {
+        window.location.href = res.url;
+        return;
+      }
+    } catch {}
+    setPortalBusy(false);
+  };
 
   const menuItems = [
     ...(isPro ? [{ id: 'notifications', label: 'Signal Alerts', subtitle: 'Pick delivery and result notifications' }] : []),
@@ -919,6 +938,7 @@ function ControlsSection({ user, onNavigate, isPro, foundingData, onSubscribe, c
     ...(user ? [{ id: 'referral', label: 'Referral Program', subtitle: 'Share your link, earn free access' }] : []),
     ...(!isPro && user ? [{ id: 'upgrade', label: isNative ? 'Unlock Pro Features' : 'Upgrade to Pro', subtitle: 'Unlock full decision visibility', badge: 'Pro' }] : []),
     ...(!isNative && isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
+    ...(!isNative && isPro ? [{ id: 'billing', label: portalBusy ? 'Opening...' : 'Manage Billing', subtitle: 'Update card, view receipts, manage renewal', onClick: openBillingPortal }] : []),
     ...(isPro ? [{ id: 'cancel', label: 'Allocation & Access', subtitle: isNative ? 'Plan and membership' : 'Billing, plan, and membership' }] : []),
   ];
 
@@ -935,7 +955,7 @@ function ControlsSection({ user, onNavigate, isPro, foundingData, onSubscribe, c
         color: 'var(--text-tertiary)',
       }}>Controls</div>
       {menuItems.map((item, i) => (
-        <button key={item.id} onClick={() => onNavigate(item.id)} style={{
+        <button key={item.id} onClick={() => (item.onClick ? item.onClick() : onNavigate(item.id))} style={{
           width: '100%', display: 'flex', justifyContent: 'space-between',
           alignItems: 'center', padding: '14px 20px', background: 'none',
           border: 'none',

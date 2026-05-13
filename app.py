@@ -6847,7 +6847,7 @@ def create_checkout():
             },
             'custom_text': {
                 'submit': {
-                    'message': 'Cancel anytime from your account settings — no questions asked.',
+                    'message': 'Cancel anytime from your account settings. No questions asked.',
                 },
             },
         }
