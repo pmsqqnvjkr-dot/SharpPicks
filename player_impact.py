@@ -229,6 +229,111 @@ def get_team_roster(team_abbrev, season=None):
         return []
 
 
+def get_wnba_team_roster(team_abbrev, season=None):
+    """WNBA equivalent of get_team_roster, backed by the wnba_top_players
+    table (populated by wnba_enhanced_backtest.py from basketball-reference).
+    Returns the same dict shape as get_team_roster so the rest of the
+    injury-impact pipeline (match_player, mpg_at_risk_edge_penalty) works
+    unchanged. WNBA top-players are tracked as the top 5 minute-getters
+    per team per season, which captures the stars whose absence actually
+    moves a spread.
+    """
+    if season is None:
+        now = datetime.now()
+        # WNBA season runs May to October. If we're in Jan-April, use the
+        # prior season's stats (last completed). Otherwise current year.
+        season = now.year if now.month >= 5 else now.year - 1
+    try:
+        conn = _get_db()
+        rows = conn.execute(
+            "SELECT player_name, mpg, ppg, games_played FROM wnba_top_players "
+            "WHERE team = ? AND season = ?",
+            (team_abbrev, season)
+        ).fetchall()
+        conn.close()
+        # Schema matches: player_name, mpg, ppg, games_played. Map to
+        # the {'name', 'mpg', 'ppg', 'gp'} shape match_player expects.
+        return [{'name': r['player_name'], 'mpg': r['mpg'], 'ppg': r['ppg'], 'gp': r['games_played']} for r in rows]
+    except Exception:
+        return []
+
+
+def compute_wnba_injury_impact(injury_string, team_abbrev, season=None):
+    """WNBA version of compute_weighted_injury_impact. Same return shape
+    so the downstream check_star_injury_risk branch can swap in this
+    function without changing the call site's expectations.
+
+    Reads top players from wnba_top_players (~5 stars per team) and
+    weights each injured player's mpg by their status multiplier (out
+    = 1.0, doubtful = 0.7, questionable = 0.4, etc.). Returns the
+    aggregate mpg_at_risk so mpg_at_risk_edge_penalty can scale the
+    edge cost.
+    """
+    result = {
+        'weighted_impact': 0.0,
+        'mpg_at_risk': 0.0,
+        'ppg_at_risk': 0.0,
+        'star_out': False,
+        'num_rotation_out': 0,
+    }
+
+    entries = parse_injury_string(injury_string)
+    if not entries:
+        return result
+
+    roster = get_wnba_team_roster(team_abbrev, season)
+
+    total_mpg = 0.0
+    total_ppg = 0.0
+    star_out = False
+    rotation_out = 0
+
+    for entry in entries:
+        name = entry['name']
+        status = entry['status']
+        multiplier = STATUS_MULTIPLIER.get(status, 0.25)
+
+        if multiplier == 0.0:
+            continue
+
+        matched = match_player(name, roster) if roster else None
+
+        if matched and matched.get('gp', 0) >= MIN_GAMES_PLAYED:
+            mpg = matched['mpg'] or 0.0
+            ppg = matched['ppg'] or 0.0
+        else:
+            # Roster lookup miss: assume a rotation player (12 mpg / 6 ppg).
+            # Better to apply a small penalty than zero — the injury report
+            # is real even if our top-5 roster snapshot doesn't include
+            # this player. Without this fallback, a bench player out reads
+            # as no risk; with it, the model picks up a small headwind.
+            mpg = DEFAULT_MPG
+            ppg = DEFAULT_PPG
+
+        total_mpg += mpg * multiplier
+        total_ppg += ppg * multiplier
+
+        # WNBA games are 40 minutes vs NBA's 48, so star/rotation MPG
+        # thresholds scale down proportionally (5/6 ratio). 28 NBA mpg
+        # maps to ~23 WNBA mpg as a "star"; 15 NBA rotation maps to
+        # ~13 WNBA. Hard-code WNBA-specific thresholds here rather than
+        # reuse the NBA constants verbatim.
+        WNBA_STAR_MPG = 23.0
+        WNBA_ROTATION_MPG = 13.0
+        if status == 'out' and mpg >= WNBA_STAR_MPG:
+            star_out = True
+        if status == 'out' and mpg >= WNBA_ROTATION_MPG:
+            rotation_out += 1
+
+    result['weighted_impact'] = round(total_mpg, 1)
+    result['mpg_at_risk'] = round(total_mpg, 1)
+    result['ppg_at_risk'] = round(total_ppg, 1)
+    result['star_out'] = star_out
+    result['num_rotation_out'] = rotation_out
+
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Name matching
 # ---------------------------------------------------------------------------
