@@ -216,7 +216,32 @@ def spread_risk_adjusted_edge(adjusted_edge, spread_abs):
 
 def check_star_injury_risk(home_injuries, away_injuries, pick_side, spread_abs,
                            sport='nba', home_team=None, away_team=None):
-    """Weighted injury edge penalty using mpg_at_risk for NBA, keyword fallback for MLB."""
+    """Weighted injury edge penalty using mpg_at_risk for NBA + WNBA,
+    keyword fallback for MLB. WNBA reads from wnba_top_players (top-5
+    players per team per season, populated by wnba_enhanced_backtest.py)
+    instead of player_impact_cache, which is NBA-only (ESPN endpoint).
+    """
+    if sport == 'wnba':
+        from player_impact import compute_wnba_injury_impact, mpg_at_risk_edge_penalty
+        fav_injuries = home_injuries if pick_side == 'home' else away_injuries
+        fav_team = home_team if pick_side == 'home' else away_team
+        if not fav_injuries or not isinstance(fav_injuries, str):
+            return 0.0, None
+        # wnba_top_players uses 3-letter abbreviations (ATL, NYL, LVA, etc.)
+        # so we need to convert the full team name. wnba_features holds the
+        # canonical mapping.
+        try:
+            from wnba_features import _wnba_abbrev
+            team_abbrev = _wnba_abbrev(fav_team or '')
+        except Exception:
+            team_abbrev = (fav_team or '')[:3].upper()
+        impact = compute_wnba_injury_impact(fav_injuries, team_abbrev)
+        risk = impact['mpg_at_risk']
+        penalty = mpg_at_risk_edge_penalty(risk)
+        if penalty > 0:
+            reason = f"Injury risk: {risk:.0f} mpg at risk on {spread_abs:.0f}pt fav (-{penalty:.1f}% edge)"
+            return penalty, reason
+        return 0.0, None
     if sport != 'mlb':
         from player_impact import compute_weighted_injury_impact, mpg_at_risk_edge_penalty, _resolve_abbrev
         fav_injuries = home_injuries if pick_side == 'home' else away_injuries
@@ -814,8 +839,22 @@ class EnsemblePredictor:
             features['away_continuity'] = pd.Series(0.5, index=df.index)
             features['continuity_diff'] = pd.Series(0.0, index=df.index)
             features['team_hca'] = pd.Series(2.5, index=df.index)
+            # Schedule density features. WNBA's 40-game schedule in 5
+            # months creates frequent back-to-back / 3-in-5 stretches
+            # that meaningfully affect cover rate. compute_wnba_schedule_density
+            # returns (g5, g7) — games in the last 5d and last 7d for
+            # each team. We expose both windows plus the differential
+            # so the ensemble can pick up either short-rest or long-
+            # stretch fatigue, and the diff for matchup-level fatigue
+            # advantage. Defaults to neutral (2 games/5d, 3 games/7d,
+            # diff 0) when the helper can't resolve a team.
+            features['home_density_g5'] = pd.Series(2.0, index=df.index)
+            features['home_density_g7'] = pd.Series(3.0, index=df.index)
+            features['away_density_g5'] = pd.Series(2.0, index=df.index)
+            features['away_density_g7'] = pd.Series(3.0, index=df.index)
+            features['density_diff_g5'] = pd.Series(0.0, index=df.index)
             try:
-                from wnba_features import get_team_continuity, get_team_hca
+                from wnba_features import get_team_continuity, get_team_hca, compute_wnba_schedule_density, _wnba_abbrev
                 if 'home_team' in df.columns:
                     for idx, row in df.iterrows():
                         ht = str(row.get('home_team', '')).strip()
@@ -826,12 +865,28 @@ class EnsemblePredictor:
                             hc = get_team_continuity(ht, season)
                             features.at[idx, 'home_continuity'] = hc
                             features.at[idx, 'team_hca'] = get_team_hca(ht, season)
+                            # Schedule density expects abbreviations.
+                            try:
+                                h_abbr = _wnba_abbrev(ht)
+                                h_g5, h_g7 = compute_wnba_schedule_density(h_abbr, gd)
+                                features.at[idx, 'home_density_g5'] = float(h_g5 or 2.0)
+                                features.at[idx, 'home_density_g7'] = float(h_g7 or 3.0)
+                            except Exception:
+                                pass
                         if at:
                             ac = get_team_continuity(at, season)
                             features.at[idx, 'away_continuity'] = ac
+                            try:
+                                a_abbr = _wnba_abbrev(at)
+                                a_g5, a_g7 = compute_wnba_schedule_density(a_abbr, gd)
+                                features.at[idx, 'away_density_g5'] = float(a_g5 or 2.0)
+                                features.at[idx, 'away_density_g7'] = float(a_g7 or 3.0)
+                            except Exception:
+                                pass
                         features.at[idx, 'continuity_diff'] = features.at[idx, 'home_continuity'] - features.at[idx, 'away_continuity']
+                        features.at[idx, 'density_diff_g5'] = features.at[idx, 'home_density_g5'] - features.at[idx, 'away_density_g5']
             except Exception as e:
-                print(f"   ⚠️ WNBA continuity/HCA feature error: {e}")
+                print(f"   ⚠️ WNBA continuity/HCA/density feature error: {e}")
 
         # GATED: historical CLV profile disabled — insufficient graded picks for meaningful signal.
         # Re-enable after 200+ graded picks with CLV data.
