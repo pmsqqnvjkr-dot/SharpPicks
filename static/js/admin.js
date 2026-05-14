@@ -2032,29 +2032,83 @@ function _hasRealValues(arr, minCount = 5) {
 function bindModelPerf(data) {
   if (!data) return;
 
-  // ── Model tab headline ──
-  // Each sport's rate gets a Wilson CI suffix so the operator can see
-  // when a hot/cold number is noise (small n, wide band) vs signal.
-  (() => {
+  // ── Model tab headline + subhead ──
+  // Directional read: classify each league on two axes (win rate vs
+  // 52.4% breakeven, CLV avg vs zero) and compose a "X running hot,
+  // cold on Y" sentence. Surface levels noise: when every league is
+  // sub-n=10 with no CLV signal, fall back to an "All samples in
+  // low-confidence window" headline rather than naming directions
+  // that don't have statistical support.
+  const _modelRead = (() => {
     const headlineEl = document.querySelector('#panel-model .headline');
-    if (!headlineEl) return;
-    const sportSeries = data.win_rate_by_sport_daily || {};
-    const sportNames = Object.keys(sportSeries);
-    const phrases = sportNames.map(s => {
-      const series = sportSeries[s] || [];
+    const subheadEl = document.querySelector('#panel-model .model-subhead');
+    if (!headlineEl) return null;
+    const wins = data.win_rate_by_sport_daily || {};
+    const clvs = data.clv_avg_by_sport || {};
+    const leagues = ['nba', 'mlb', 'wnba'].map(k => {
+      const series = wins[k] || wins[k.toUpperCase()] || [];
+      let latest = null;
       for (let i = series.length - 1; i >= 0; i--) {
-        if (series[i].win_rate != null) {
-          return `${s.toUpperCase()} at ${series[i].win_rate}%${_ciSuffix(series[i].win_rate, series[i].sample_n)}`;
-        }
+        if (series[i].win_rate != null) { latest = series[i]; break; }
       }
-      return null;
-    }).filter(Boolean);
-    if (phrases.length === 0) {
-      headlineEl.textContent = 'Not enough resolved picks per sport for a 14d-rolling read yet. Data accumulates as games settle.';
-    } else {
-      const breakeven = phrases.length === 1 ? '. 52.4% is breakeven against -110 lines.' : '. Breakeven is 52.4%.';
-      headlineEl.textContent = phrases.join(', ') + breakeven;
+      const clv = clvs[k] || clvs[k.toUpperCase()] || {};
+      return {
+        key: k,
+        label: k.toUpperCase(),
+        win_rate: latest ? latest.win_rate : null,
+        sample_n: latest ? latest.sample_n : 0,
+        clv_avg: clv.avg_clv,
+        clv_n: clv.sample_n || 0,
+      };
+    }).filter(l => (l.sample_n || 0) > 0 || l.clv_avg != null);
+    const haveAny = leagues.length > 0;
+    const allCalibrating = haveAny && leagues.every(l => (l.sample_n || 0) < 10 && (l.clv_avg == null || l.clv_n < 3));
+    if (!haveAny) {
+      headlineEl.textContent = 'Model calibrating. No resolved picks yet.';
+      if (subheadEl) subheadEl.textContent = '';
+      return { allCalibrating: true, leagues: [] };
     }
+    if (allCalibrating) {
+      headlineEl.textContent = 'Model calibrating. No read yet.';
+      if (subheadEl) subheadEl.textContent = 'Every league below n=10 with no resolved CLV. Hold for sample.';
+      return { allCalibrating: true, leagues };
+    }
+    const classifyResult = (r) => r == null ? null : (r > 52.4 ? 'hot' : (r < 52.4 ? 'cold' : 'flat'));
+    const classifyCLV = (c) => c == null ? null : (c > 0.1 ? 'positive' : (c < -0.1 ? 'negative' : 'flat'));
+    const phrases = leagues.map(l => {
+      const r = classifyResult(l.win_rate);
+      const c = classifyCLV(l.clv_avg);
+      if (r == null && c == null) return `${l.label} no read`;
+      if (r === c) {
+        if (r === 'hot' || r === 'positive') return `${l.label} running hot on both`;
+        if (r === 'cold' || r === 'negative') return `${l.label} cold on both`;
+        return `${l.label} flat on both`;
+      }
+      const resultWord = r === 'hot' ? 'hot on results' : r === 'cold' ? 'cold on results' : r === 'flat' ? 'flat on results' : null;
+      const clvWord = c === 'positive' ? 'positive CLV' : c === 'negative' ? 'negative CLV' : c === 'flat' ? 'flat CLV' : null;
+      if (resultWord && clvWord) return `${l.label} ${resultWord}, ${clvWord}`;
+      return `${l.label} ${resultWord || clvWord}`;
+    });
+    const tail = leagues.every(l => (l.sample_n || 0) < 30)
+      ? '. Small samples across the board. Read CLV, not W-L.'
+      : '. Read CLV alongside W-L.';
+    headlineEl.textContent = phrases.join('. ') + tail;
+
+    if (subheadEl) {
+      const lowConfCount = leagues.filter(l => (l.sample_n || 0) > 0 && (l.sample_n || 0) < 30).length;
+      const preserved = leagues.find(l => l.clv_avg != null && l.clv_avg >= 0 && l.win_rate != null && l.win_rate < 52.4);
+      const subBits = [];
+      if (lowConfCount === leagues.length) {
+        subBits.push(`All ${leagues.length} leagues below the n=30 confidence threshold`);
+      } else if (lowConfCount > 0) {
+        subBits.push(`${lowConfCount} of ${leagues.length} leagues below the n=30 confidence threshold`);
+      }
+      if (preserved) {
+        subBits.push(`Capital preserved on ${preserved.label} despite a ${preserved.win_rate}% surface read`);
+      }
+      subheadEl.textContent = subBits.length ? subBits.join('. ') + '.' : '';
+    }
+    return { allCalibrating: false, leagues };
   })();
 
   // Win rate vs market chart (NBA + MLB rolling 14d). Skip update if
@@ -2065,26 +2119,43 @@ function bindModelPerf(data) {
   if (winChart && data.win_rate_by_sport_daily) {
     const sports = Object.keys(data.win_rate_by_sport_daily);
     if (sports.length > 0) {
-      const datasets = sports.map((s, i) => {
+      const latestSampleBySport = {};
+      sports.forEach(s => {
+        const series = data.win_rate_by_sport_daily[s] || [];
+        for (let i = series.length - 1; i >= 0; i--) {
+          if (series[i].win_rate != null) { latestSampleBySport[s] = series[i].sample_n || 0; break; }
+        }
+      });
+      const datasets = sports.map((s) => {
         const series = data.win_rate_by_sport_daily[s].map(d => d.win_rate);
-        // Three-sport palette: NBA blue solid, MLB emerald dashed,
-        // WNBA violet dotted. Distinct enough from each other and from
-        // the amber breakeven reference that the operator can read a
-        // crowded chart at a glance.
         const lc = s.toLowerCase();
         let borderColor, borderDash;
         if (lc.includes('mlb')) {
-          borderColor = '#34D399';
-          borderDash = [4, 4];
+          borderColor = '#5A9E72';
+          borderDash = [4, 3];
         } else if (lc.includes('wnba')) {
-          borderColor = '#A78BFA';
-          borderDash = [2, 3];
+          borderColor = '#8B7FB8';
+          borderDash = [2, 2];
         } else {
-          borderColor = '#4F86F7';
+          borderColor = '#5BA0D9';
           borderDash = [];
         }
+        const n = latestSampleBySport[s] || 0;
+        if (n < 2) {
+          return {
+            label: `${s.toUpperCase()} (insufficient)`,
+            data: series.map(() => null),
+            borderColor: 'rgba(139,144,153,0.4)',
+            borderDash: [],
+            borderWidth: 1,
+            pointRadius: 0,
+            tension: 0,
+            fill: false,
+            hidden: true,
+          };
+        }
         return {
-          label: `${s.toUpperCase()} (rolling 14d)`,
+          label: `${s.toUpperCase()} (n=${n})`,
           data: series,
           borderColor,
           borderDash,
@@ -2098,15 +2169,11 @@ function bindModelPerf(data) {
       const anyReal = datasets.some(ds => _hasRealValues(ds.data, 14));
       if (anyReal) {
         const labels = (data.win_rate_by_sport_daily[sports[0]] || []).map(d => d.date.slice(5));
-        // 52.4% breakeven against -110 lines, drawn as a thin amber
-        // reference line so the operator can read above/below at a
-        // glance. Flat dataset across the full x-range; no points,
-        // no tension, no fill.
         datasets.push({
-          label: 'Breakeven (52.4%)',
+          label: 'Breakeven',
           data: labels.map(() => 52.4),
-          borderColor: 'rgba(245,158,11,0.55)',
-          borderDash: [2, 4],
+          borderColor: 'rgba(196,134,138,0.7)',
+          borderDash: [3, 3],
           borderWidth: 1,
           pointRadius: 0,
           tension: 0,
@@ -2115,6 +2182,12 @@ function bindModelPerf(data) {
         winChart.data.labels = labels;
         winChart.data.datasets = datasets;
         winChart.update('none');
+
+        const allLowConf = sports.every(s => (latestSampleBySport[s] || 0) > 0 && (latestSampleBySport[s] || 0) < 30);
+        const hatch = document.querySelector('#panel-model .lowconf-hatch');
+        const note = document.querySelector('#panel-model .lowconf-note');
+        if (hatch) hatch.style.display = allLowConf ? 'block' : 'none';
+        if (note) note.style.display = allLowConf ? 'block' : 'none';
       }
     }
   }
@@ -2227,38 +2300,86 @@ function bindModelPerf(data) {
     };
     const clvBySport = data.clv_avg_by_sport || {};
     const winBySportSafe = data.win_rate_by_sport_daily || {};
-    ['nba', 'mlb', 'wnba'].forEach(sport => {
+    const SUPPRESS_THRESHOLD = 3;
+    const CONFIDENCE_THRESHOLD = 30;
+    const rail = document.getElementById('model-snapshot-rail');
+    const leagueRows = ['nba', 'mlb', 'wnba'].map(sport => {
       const series = winBySportSafe[sport] || winBySportSafe[sport.toUpperCase()];
       const latest = _latestSportPoint(series);
-      const cap = sport.toUpperCase();
-      if (latest) {
-        // HTML labels: 'Nba ats 90d' (NBA only uses ats prefix),
-        // 'Mlb 90d', 'Wnba 90d'. Case-insensitive match in setStat
-        // handles the title-case label difference.
-        const rateLabel = sport === 'nba' ? `${cap} ats 90d` : `${cap} 90d`;
-        const ok1 = setStat(rateLabel, String(latest.win_rate));
-        const ok2 = setStat(`${cap} sample`, SP_FMT.num(latest.sample_n));
-        if (!ok1 || !ok2) {
-          console.warn('[bindModelPerf] setStat returned no match for', cap, '— check row labels in admin.html');
-        }
-      }
-      const clv = clvBySport[sport] || clvBySport[sport.toUpperCase()];
-      if (clv && clv.avg_clv != null) {
-        const sign = clv.avg_clv > 0 ? '+' : '';
-        setStat(`${cap} clv avg`, `${sign}${clv.avg_clv}`);
-      }
+      const clv = clvBySport[sport] || clvBySport[sport.toUpperCase()] || {};
+      const n = latest ? (latest.sample_n || 0) : 0;
+      return {
+        key: sport,
+        label: sport.toUpperCase(),
+        win_rate: latest ? latest.win_rate : null,
+        clv_avg: clv.avg_clv,
+        sample_n: n,
+      };
     });
-
-    // MLB confidence row: dynamic from sample size. n < 30 prints
-    // 'low (n < 30)' to match the original suffix intent; n >= 30 shows
-    // 'stable (n=N)'. Keeps the operator from misreading a 4-sample
-    // win-rate as a stable signal.
-    const mlbLatest = _latestSportPoint(
-      winBySportSafe.mlb || winBySportSafe.MLB
-    );
-    if (mlbLatest) {
-      const n = mlbLatest.sample_n || 0;
-      setStat('Mlb confidence', n < 30 ? `low (n < 30)` : `stable (n=${n})`);
+    const largestSample = Math.max(0, ...leagueRows.map(l => l.sample_n));
+    const pillLeague = leagueRows.find(l => l.sample_n === largestSample && largestSample > 0);
+    if (rail) {
+      rail.innerHTML = '';
+      leagueRows.forEach((l, idx) => {
+        const insufficient = l.sample_n < SUPPRESS_THRESHOLD;
+        let clvColor, clvText, clvSubtext;
+        if (insufficient || l.clv_avg == null) {
+          clvColor = '#8B9099';
+          clvText = '&mdash;'.replace('&mdash;', '—');
+          clvSubtext = 'insufficient';
+        } else if (l.clv_avg > 0.1) {
+          clvColor = '#5A9E72';
+          clvText = `+${l.clv_avg.toFixed(2)}`;
+          clvSubtext = 'pts';
+        } else if (l.clv_avg < -0.1) {
+          clvColor = '#C4868A';
+          clvText = l.clv_avg.toFixed(2);
+          clvSubtext = 'pts';
+        } else {
+          clvColor = '#B8BCC4';
+          clvText = l.clv_avg.toFixed(2);
+          clvSubtext = 'pts';
+        }
+        let winText, winSubtext;
+        if (insufficient || l.win_rate == null) {
+          winText = '—';
+          winSubtext = 'suppressed';
+        } else {
+          winText = `${l.win_rate}%`;
+          winSubtext = '';
+        }
+        const showPill = pillLeague && pillLeague.key === l.key && l.sample_n > 0 && l.sample_n < CONFIDENCE_THRESHOLD;
+        const block = document.createElement('div');
+        block.style.cssText = idx === 0
+          ? 'padding-bottom:1rem;'
+          : 'border-top:0.5px solid rgba(229,231,235,0.08);padding-top:1rem;padding-bottom:1rem;margin-top:0.25rem;';
+        block.innerHTML = `
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8B9099;margin-bottom:8px;">${l.label}</div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+            <span style="font-size:13px;color:#8B9099;">CLV avg</span>
+            <span>
+              <span style="font-size:15px;font-weight:500;color:${clvColor};">${clvText}</span>
+              <span style="font-size:10px;color:#8B9099;margin-left:4px;">${clvSubtext}</span>
+            </span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+            <span style="font-size:13px;color:#8B9099;">ATS 90d</span>
+            <span>
+              <span style="font-size:13px;color:#B8BCC4;">${winText}</span>
+              ${winSubtext ? `<span style="font-size:10px;color:#8B9099;margin-left:4px;">${winSubtext}</span>` : ''}
+            </span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;${showPill ? 'margin-bottom:8px;' : ''}">
+            <span style="font-size:13px;color:#8B9099;">Sample</span>
+            <span style="font-size:13px;color:#B8BCC4;">${l.sample_n} <span style="font-size:10px;color:#8B9099;">games</span></span>
+          </div>
+          ${showPill ? `
+          <div style="display:flex;justify-content:flex-end;">
+            <span style="display:inline-block;padding:2px 8px;border:0.5px solid rgba(212,165,116,0.4);border-radius:3px;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#D4A574;">LOW N &lt; 30</span>
+          </div>` : ''}
+        `;
+        rail.appendChild(block);
+      });
     }
 
     // Revoke rate (signal stability section). Surfaces a class of model
