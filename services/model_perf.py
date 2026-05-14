@@ -160,12 +160,30 @@ def _edge_distribution(now: datetime, days: int = 30) -> list:
     return [{'tier': k, 'count': v} for k, v in buckets.items()]
 
 
+_REVOKE_TOKEN = 'REVOKED:'
+
+
+def _extract_revoke_reason(notes):
+    """Parse the revoke reason out of the Pick.notes string. The model
+    pipeline appends ' | REVOKED: <reason>' to notes when a signal is
+    revoked pre-tip (line move, scratched starter, weather, injury).
+    Returns the trimmed reason or None if the marker is absent."""
+    if not notes or _REVOKE_TOKEN not in notes:
+        return None
+    tail = notes.rsplit(_REVOKE_TOKEN, 1)[-1].strip()
+    return tail or None
+
+
 def _last_10_signals(now: datetime) -> list:
-    """Most recent 10 picks ordered by published_at desc."""
+    """Most recent 10 picks ordered by published_at desc. Preserves the
+    'revoked' status so the operator sees revoked signals on the Last 10
+    table; the prior mapping silently converted 'revoked' to 'pending'
+    and hid an important class of model behavior. revoke_reason is
+    parsed from the notes column when present."""
     rows = Pick.query.order_by(Pick.published_at.desc()).limit(10).all()
     out = []
     for p in rows:
-        result = p.result if p.result in ('win', 'loss', 'push') else 'pending'
+        result = p.result if p.result in ('win', 'loss', 'push', 'revoked') else 'pending'
         out.append({
             'id': p.id,
             'sport': p.sport,
@@ -177,8 +195,27 @@ def _last_10_signals(now: datetime) -> list:
             'published_at': p.published_at.isoformat() if p.published_at else None,
             'result': result,
             'profit_units': p.profit_units,
+            'revoke_reason': _extract_revoke_reason(p.notes) if result == 'revoked' else None,
         })
     return out
+
+
+def _revoke_rate(now: datetime, days: int) -> dict:
+    """Revoke rate over the trailing `days` window. Top-line metric for
+    the Model tab. Returns {'rate': float|None, 'revoked': int,
+    'total': int}. Revoke rate = revoked / (total non-pending picks).
+    Pending picks excluded because their final state is unknown."""
+    cutoff = now - timedelta(days=days)
+    total = Pick.query.filter(
+        Pick.published_at >= cutoff,
+        Pick.result.in_(('win', 'loss', 'push', 'revoked')),
+    ).count()
+    revoked = Pick.query.filter(
+        Pick.published_at >= cutoff,
+        Pick.result == 'revoked',
+    ).count()
+    rate = round(100.0 * revoked / total, 1) if total else None
+    return {'rate': rate, 'revoked': revoked, 'total': total}
 
 
 def _clv_avg_by_sport(now: datetime, days: int = 90) -> dict:
@@ -220,6 +257,8 @@ def fetch(range_: str = '90d') -> dict:
         'edge_distribution':       _edge_distribution(now, days=30),
         'last_10_signals':         _last_10_signals(now),
         'clv_avg_by_sport':        _clv_avg_by_sport(now, days=days),
+        'revoke_rate_7d':          _revoke_rate(now, days=7),
+        'revoke_rate_30d':         _revoke_rate(now, days=30),
         'note': (
             'edge_pct used as MEI proxy. Pick schema has no dedicated '
             'mei_score column today; tune _hit_rate_by_edge_tier bucket '
