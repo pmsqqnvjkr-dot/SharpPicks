@@ -441,18 +441,30 @@ def compute_summaries(metrics: dict) -> dict:
                 f'{failed_attempts_30d} attempts total. Per-user breakdown below.'
             )
 
-    # ── user activity · 30d ──
+    # ── Active users · DAU, WAU, MAU ──
+    # Narrative uses funnel step counts (signal_view = engaged users)
+    # because that's what the events source actually exposes. The
+    # DAU/WAU/MAU stat column to the right of this card binds from a
+    # different endpoint (/api/admin/users/activity); keeping the
+    # narrative aligned to events-source data avoids a cross-endpoint
+    # data-staleness mismatch. Diagnostic empty-state copy points at
+    # the eventTracker path so the operator knows where to look.
     funnel = events.get('funnel') or []
     signal_views = next((s.get('users') for s in funnel if s.get('step') == 'signal_view'), 0) or 0
-    if signal_views == 0:
+    unique_tappers = events.get('unique_tappers') or 0
+    if signal_views == 0 and unique_tappers == 0:
         summaries['section-user-activity'] = (
-            'No tracked user activity in the last 7 days. Login + event tracking populates from this point forward.'
+            'No tracked engagement in the last 7 days. If users are opening the app, '
+            'the SPA eventTracker is not reporting signal_view / bet_tap to /api/events.'
         )
     else:
-        summaries['section-user-activity'] = (
-            f'{_pluralize(signal_views, "user")} viewed a signal in the last 7 days. '
-            f'Bet-tap conversion follows in the funnel section below.'
-        )
+        bits = []
+        if signal_views:
+            bits.append(f'{_pluralize(signal_views, "user")} viewed a signal')
+        if unique_tappers:
+            bits.append(f'{_pluralize(unique_tappers, "tapper")} placed a bet')
+        head = '; '.join(bits) if bits else 'no engagement recorded'
+        summaries['section-user-activity'] = f'Last 7 days: {head}. DAU / WAU / MAU snapshot to the right pulls from session_start events.'
 
     # ── signals · 7d ──
     signals_by_sport = events.get('signals_issued') or {}
