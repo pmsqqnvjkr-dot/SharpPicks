@@ -201,6 +201,21 @@ def _record_request_metric(response):
 
 
 @app.after_request
+def set_noindex_on_staging(response):
+    """Tell search engines to drop everything served from the QA staging
+    environment. ENVIRONMENT=qa is set on the staging Railway service
+    (per memory project_qa_workflow). The X-Robots-Tag header is the
+    server-side equivalent of <meta name="robots" content="noindex"> and
+    works for non-HTML responses too. Pairs with the /robots.txt route
+    below that returns a hard Disallow on staging. We had one staging
+    URL (qa.sharppicks.ai/?view=signin) end up indexed in Google before
+    this fix landed."""
+    if (os.environ.get('ENVIRONMENT') or '').lower() == 'qa':
+        response.headers['X-Robots-Tag'] = 'noindex, nofollow'
+    return response
+
+
+@app.after_request
 def set_cache_headers(response):
     if request.path.startswith('/assets/'):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
@@ -10256,6 +10271,22 @@ a{color:#4f86f7}
 <p>Questions? Email <a href="mailto:support@sharppicks.ai">support@sharppicks.ai</a></p>
 </body></html>"""
     return Response(html, content_type='text/html')
+
+
+@app.route('/robots.txt')
+def serve_robots_txt():
+    """Env-aware robots.txt. On QA staging (ENVIRONMENT=qa) we issue a
+    hard Disallow so Google stops crawling and drops any already-indexed
+    pages (paired with the X-Robots-Tag: noindex after_request hook).
+    On production we allow everything; Cloudflare's managed robots.txt
+    layer still injects its standard AI-bot blocks on top of this
+    response so we don't need to duplicate those here."""
+    is_qa = (os.environ.get('ENVIRONMENT') or '').lower() == 'qa'
+    if is_qa:
+        body = "User-agent: *\nDisallow: /\n"
+    else:
+        body = "User-agent: *\nAllow: /\n"
+    return Response(body, content_type='text/plain; charset=utf-8')
 
 
 @app.route('/manifest.webmanifest')
