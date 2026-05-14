@@ -26,6 +26,14 @@ SPORT_CONFIG = {
         'margin_std_ceiling': 15.0,
         'standard_odds': -110,
 
+        # Pre-tip revalidation thresholds. Pick is revoked at pretip-validate
+        # time if edge has decayed below pretip_min_edge OR the line has
+        # moved more than pretip_line_drift points from publication.
+        # NBA spreads are typically 4-12pt; a 2pt drift on a 6.5pt line is
+        # a moderate but not always decisive move, so 2.0 stays as the bar.
+        'pretip_min_edge': 2.0,
+        'pretip_line_drift': 2.0,
+
         'spread_edge_curve': [
             (0, 7, 3.5),
             (7, 11, 5.0),
@@ -71,6 +79,11 @@ SPORT_CONFIG = {
         'margin_std_ceiling': 18.0,
         'standard_odds': -110,
 
+        # Pre-tip revalidation: same thresholds as NBA. WNBA spreads behave
+        # similarly enough (4-15pt range) that the 2.0/2.0 bar holds.
+        'pretip_min_edge': 2.0,
+        'pretip_line_drift': 2.0,
+
         'spread_edge_curve': [
             (0, 7, 3.5),
             (7, 11, 5.0),
@@ -114,6 +127,16 @@ SPORT_CONFIG = {
         'sigma': 4.0,
         'model_weight': 0.30,
         'edge_threshold_pct': 4.5,
+
+        # Pre-tip revalidation thresholds — TIGHTER than NBA/WNBA. Run-lines
+        # are typically ±1.5; a 2pt drift on a -1.5 line means the line
+        # crossed zero AND moved another 0.5, an obviously decisive shift.
+        # 1.5pt drift catches the bulk of edge-evaporation moves before
+        # they fully collapse. pretip_min_edge stays at 2.0 — MLB publishes
+        # at 4.5% threshold so 2.0% means >half the edge has decayed, the
+        # right time to pull regardless of line movement.
+        'pretip_min_edge': 2.0,
+        'pretip_line_drift': 1.5,
         # max_edge_pct caps adjusted_edge so absurd outliers (e.g. 30%+ from
         # a divergent prior) can't ship. Was 6.0, which left only 1.5pt of
         # headroom above the 4.5% threshold and silently collapsed every

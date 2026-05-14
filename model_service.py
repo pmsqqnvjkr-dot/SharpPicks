@@ -12,8 +12,27 @@ import time
 import sqlite3
 from db_path import get_sqlite_path, get_sqlite_conn
 
+# Default pre-tip revalidation thresholds. Sports may override these in
+# sport_config.py via 'pretip_min_edge' and 'pretip_line_drift' keys.
+# MLB tightens line_drift to 1.5 because run-lines are typically ±1.5
+# and a 2pt drift would let the line cross zero before we revoke. NBA
+# and WNBA keep both at 2.0.
 PRETIP_MIN_EDGE = 2.0       # Revoke if edge decays below this (was 1.5, raised 2026-03-07)
 PRETIP_LINE_DRIFT = 2.0     # Revoke if line moves this many points from publication
+
+
+def _pretip_thresholds(sport):
+    """Resolve per-sport pretip revalidation thresholds, falling back to
+    module defaults for sports that haven't declared overrides."""
+    try:
+        from sport_config import get_sport_config
+        cfg = get_sport_config(sport) or {}
+        return (
+            cfg.get('pretip_min_edge', PRETIP_MIN_EDGE),
+            cfg.get('pretip_line_drift', PRETIP_LINE_DRIFT),
+        )
+    except Exception:
+        return PRETIP_MIN_EDGE, PRETIP_LINE_DRIFT
 
 # Cache loaded model per sport (avoid re-loading pickle on each run)
 _model_cache = {}  # sport -> (model, filepath, mtime)
@@ -395,16 +414,18 @@ def pretip_revalidate(app, sport='nba'):
 
             line_drift = abs((new_line or 0) - (old_line or 0)) if new_line is not None and old_line is not None else 0
 
+            min_edge_threshold, line_drift_threshold = _pretip_thresholds(sport)
+
             revoke = False
             revoke_reason = None
 
             if not still_passes:
                 revoke = True
                 revoke_reason = f"Pre-tip re-check: no longer passes filters. {matching.get('pass_reason', 'edge evaporated').capitalize()}"
-            elif new_edge < PRETIP_MIN_EDGE:
+            elif new_edge < min_edge_threshold:
                 revoke = True
                 revoke_reason = f"Pre-tip re-check: edge dropped to {new_edge:+.1f}% (was {old_edge:+.1f}%)"
-            elif line_drift >= PRETIP_LINE_DRIFT:
+            elif line_drift >= line_drift_threshold:
                 revoke = True
                 revoke_reason = f"Pre-tip re-check: line moved {line_drift:.1f}pts since publication ({old_line:+.1f} → {new_line:+.1f})"
 

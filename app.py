@@ -5818,10 +5818,20 @@ def cron_model_watchdog():
 @app.route('/api/cron/pretip-validate', methods=['GET', 'POST'])
 @verify_cron
 def cron_pretip_validate():
+    """Pre-tip re-validation. With no ?sport= query param, fans out over
+    every live sport (the default 9:55 AM and 4:55 PM runs use this).
+    With ?sport=<sport>, runs that sport only — used by the 12:25 PM
+    MLB-only run that catches 12:30 ET first pitches without redundantly
+    re-checking NBA/WNBA picks that don't tip for hours."""
     from model_service import pretip_revalidate
+    sport_filter = (request.args.get('sport') or '').lower().strip() or None
     def _validate():
         results = {}
-        for sport in get_live_sports():
+        sports = [sport_filter] if sport_filter else get_live_sports()
+        for sport in sports:
+            if sport not in get_live_sports():
+                results[sport] = {'status': 'sport_not_live'}
+                continue
             results[sport] = pretip_revalidate(app, sport=sport)
         return results
     return log_cron('pretip_validate', _validate)
