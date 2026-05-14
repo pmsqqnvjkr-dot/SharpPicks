@@ -74,6 +74,7 @@ def _empty(note: str, configured: bool = False) -> dict:
         'redownloads_28d': 0,
         'active_device_installs': 0,  # Always 0 from Apple; UserEvent
         # provides iOS DAU via a different path.
+        'daily_28d': [],
         'days_with_data': 0,
         'note': note,
     }
@@ -156,6 +157,27 @@ def _fetch_sales_report(token: str, vendor: str, report_date: date) -> list[dict
     return list(reader)
 
 
+def _classify_day(rows: list) -> dict:
+    """Aggregate one day's TSV rows into per-bucket Unit counts."""
+    first = 0
+    total = 0
+    for row in rows:
+        ptype = (row.get('Product Type Identifier') or '').strip()
+        try:
+            units = int(row.get('Units') or '0')
+        except ValueError:
+            units = 0
+        if ptype in FIRST_INSTALL_PRODUCT_TYPES:
+            first += units
+        if ptype in ANY_INSTALL_PRODUCT_TYPES:
+            total += units
+    return {
+        'first_opens': first,
+        'installs': total,
+        'redownloads': max(0, total - first),
+    }
+
+
 def _sum_window(rows_by_date: dict, window_days: int) -> dict:
     """Sum first-install + any-install units across the trailing window."""
     first = 0
@@ -166,22 +188,33 @@ def _sum_window(rows_by_date: dict, window_days: int) -> dict:
         if d < cutoff:
             continue
         days_with_data += 1
-        for row in rows:
-            ptype = (row.get('Product Type Identifier') or '').strip()
-            try:
-                units = int(row.get('Units') or '0')
-            except ValueError:
-                units = 0
-            if ptype in FIRST_INSTALL_PRODUCT_TYPES:
-                first += units
-            if ptype in ANY_INSTALL_PRODUCT_TYPES:
-                total += units
+        counts = _classify_day(rows)
+        first += counts['first_opens']
+        total += counts['installs']
     return {
         'first_opens_28d': first,
         'device_installs_28d': total,
         'redownloads_28d': max(0, total - first),
         'days_with_data': days_with_data,
     }
+
+
+def _daily_series(rows_by_date: dict, window_days: int) -> list:
+    """Build a zero-filled daily series across the trailing window so
+    sparklines have consistent length. Sales data lags 1-2 days, so the
+    most-recent 2 days are typically zero even when Apple has the data.
+    Returns oldest-first."""
+    out = []
+    today = date.today()
+    for offset in range(window_days, -1, -1):
+        d = today - timedelta(days=offset)
+        rows = rows_by_date.get(d)
+        if rows is None:
+            out.append({'date': d.isoformat(), 'first_opens': 0, 'installs': 0, 'redownloads': 0})
+            continue
+        counts = _classify_day(rows)
+        out.append({'date': d.isoformat(), **counts})
+    return out
 
 
 def _fetch_raw() -> dict:
@@ -205,12 +238,14 @@ def _fetch_raw() -> dict:
     if not rows_by_date:
         return _empty('Auth ok, vendor number set, but no sales reports returned for any date in the trailing 30d window. Either the vendor number is wrong or the app has not generated any sales/download activity.', configured=True)
     sums = _sum_window(rows_by_date, window_days=28)
+    daily = _daily_series(rows_by_date, window_days=28)
     return {
         'configured': True,
         'first_opens_28d': sums['first_opens_28d'],
         'device_installs_28d': sums['device_installs_28d'],
         'redownloads_28d': sums['redownloads_28d'],
         'active_device_installs': 0,
+        'daily_28d': daily,
         'days_with_data': sums['days_with_data'],
         'note': 'Apple Sales reports lag 1-2 days. DAU is computed from UserEvent (oauth_provider=apple) outside this source.',
     }

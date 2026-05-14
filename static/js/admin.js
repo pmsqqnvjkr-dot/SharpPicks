@@ -436,6 +436,10 @@ function _renderAcquisition(gp, asc) {
   const gpFirstOpens = gpDaily.map(d => d.first_opens || 0);
   const gpInstalls   = gpDaily.map(d => d.installs || 0);
   const gpActive     = gpDaily.map(d => d.active_devices || 0);
+  const ascDaily = Array.isArray(asc?.daily_28d) ? asc.daily_28d : [];
+  const ascFirstOpens = ascDaily.map(d => d.first_opens || 0);
+  const ascInstalls   = ascDaily.map(d => d.installs || 0);
+  const ascRedl       = ascDaily.map(d => d.redownloads || 0);
   const platforms = [
     {
       key: 'android',
@@ -454,9 +458,9 @@ function _renderAcquisition(gp, asc) {
       configured: !!asc?.configured,
       missing_note: asc?.note || 'Not configured',
       kpis: [
-        { label: 'User acquisitions', value: asc?.first_opens_28d, hint: 'first downloads · 28d', spark: [] },
-        { label: 'Total installs',    value: asc?.device_installs_28d, hint: 'downloads + redownloads · 28d', spark: [] },
-        { label: 'Redownloads',       value: asc?.redownloads_28d, hint: '28d', spark: [] },
+        { label: 'User acquisitions', value: asc?.first_opens_28d, hint: 'first downloads · 28d', spark: ascFirstOpens },
+        { label: 'Total installs',    value: asc?.device_installs_28d, hint: 'downloads + redownloads · 28d', spark: ascInstalls },
+        { label: 'Redownloads',       value: asc?.redownloads_28d, hint: '28d', spark: ascRedl },
       ],
     },
   ];
