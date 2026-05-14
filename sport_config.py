@@ -95,14 +95,19 @@ SPORT_CONFIG = {
         'active': True,
         'live': True,
         'model_phase': 'calibration',
-        # MLB run shifted from 11 AM ET to 1 PM ET on 2026-05-12. The
-        # 11 AM run fired before most starting pitchers were confirmed
-        # and weather/lineup data was settled, which drove a 45%
-        # revocation rate as the market repriced 3+ points between
-        # publish and tip. 1 PM gives the model the confirmed pitcher
-        # matchups + lineup cards + first-pitch weather, so pre-tip
-        # validation rarely needs to flip the line.
-        'model_run_hour': 13,
+        # MLB run schedule:
+        #   11 AM ET (pre-2026-05-12): fired before starting pitchers were
+        #     confirmed, drove a 45% revocation rate.
+        #   1 PM ET (2026-05-12 to 2026-05-14): better pitcher/lineup data
+        #     but missed 12:30 ET first pitches entirely — the model would
+        #     publish after games had already started.
+        #   12:15 PM ET (2026-05-14+): publishes ~15 min before the
+        #     earliest possible first pitch (12:30 ET), still late enough
+        #     that confirmed pitchers + lineup cards + first-pitch weather
+        #     are settled. Pre-tip validation handles the residual 15-min
+        #     window before tip.
+        'model_run_hour': 12,
+        'model_run_minute': 15,
 
         # Walk-forward raw sigma: 4.4 runs. Previous ceiling of 2.5 inflated
         # z-scores by 1.76x, causing overconfidence in 55-65% buckets.
