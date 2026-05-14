@@ -533,7 +533,10 @@ def today():
 
     espn_sport_map = {
         'nba': 'basketball/nba',
-        'wnba': 'womens-basketball/wnba',
+        # ESPN's WNBA path is basketball/wnba, not womens-basketball/wnba.
+        # The wrong path returns 404, games_preview stays empty, and the
+        # /today endpoint falsely flips to off_day on real game days.
+        'wnba': 'basketball/wnba',
         'mlb': 'baseball/mlb',
     }
     espn_sport = espn_sport_map.get(sport, 'basketball/nba')
@@ -1215,7 +1218,7 @@ def market_view():
     games = deduped_games
 
     # ESPN enrichment: fetch the full schedule and add placeholder entries for missing games.
-    espn_sport_map = {'nba': 'basketball/nba', 'mlb': 'baseball/mlb', 'wnba': 'womens-basketball/wnba'}
+    espn_sport_map = {'nba': 'basketball/nba', 'mlb': 'baseball/mlb', 'wnba': 'basketball/wnba'}
     espn_slug = espn_sport_map.get(sport)
     if espn_slug:
         try:
