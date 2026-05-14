@@ -2813,6 +2813,7 @@ def admin_metrics():
     from services.sources import gsc as gsc_source
     from services.sources import revenuecat as rc_source
     from services.sources import google_play as gp_source
+    from services.sources import app_store_connect as asc_source
     from services.sources import model_perf as model_perf_source
 
     # When ?nocache=1 is set (manual refresh from the dashboard), expire
@@ -2824,18 +2825,19 @@ def admin_metrics():
         from services.metrics_cache import invalidate
         for key in (f'cloudflare:{range_}', 'stripe:summary', f'ga4:{range_}',
                     'gsc:summary', 'revenuecat:summary', 'google_play:summary',
-                    'model_perf:summary'):
+                    'app_store_connect:summary', 'model_perf:summary'):
             invalidate(key)
 
     sources = {
-        'cloudflare':   lambda: cf_source.fetch(range_),
-        'stripe':       lambda: stripe_source.fetch(),
-        'events':       lambda: events_source.fetch(range_, include_internal),
-        'ga4':          lambda: ga4_source.fetch(range_),
-        'gsc':          lambda: gsc_source.fetch(),
-        'revenuecat':   lambda: rc_source.fetch(),
-        'google_play':  lambda: gp_source.fetch(),
-        'model_perf':   lambda: model_perf_source.fetch(),
+        'cloudflare':         lambda: cf_source.fetch(range_),
+        'stripe':             lambda: stripe_source.fetch(),
+        'events':             lambda: events_source.fetch(range_, include_internal),
+        'ga4':                lambda: ga4_source.fetch(range_),
+        'gsc':                lambda: gsc_source.fetch(),
+        'revenuecat':         lambda: rc_source.fetch(),
+        'google_play':        lambda: gp_source.fetch(),
+        'app_store_connect':  lambda: asc_source.fetch(),
+        'model_perf':         lambda: model_perf_source.fetch(),
     }
 
     # Each worker thread needs its own Flask app context for db.session.
