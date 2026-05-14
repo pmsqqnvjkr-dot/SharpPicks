@@ -668,3 +668,140 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
         'offset': offset,
         'users': users_payload,
     }
+
+
+def fetch_attention_segments(now: datetime = None) -> dict:
+    """Compute the Needs Attention card's segment counts + top entries.
+
+    Each segment is a distinct outreach motion: trials about to convert,
+    ex-Pro users still using the product (winback candidates), accounts
+    that never verified their email and are sitting unverified, payment
+    failures, and scheduled cancels. Returns counts + the first two
+    users per segment so the operator can take action without a second
+    round trip. The full list per segment is reachable via the existing
+    /api/admin/users/list endpoint once segments are wired there in a
+    follow-up. Engaged → Light decay is intentionally not included; it
+    requires a two-window login comparison that isn't cheap and lands
+    in a follow-up alongside its UI surface."""
+    now = now or datetime.utcnow()
+    cutoff_48h_forward = now + timedelta(hours=48)
+    cutoff_14d_back = now - timedelta(days=14)
+    cutoff_7d_back = now - timedelta(days=7)
+
+    def _serialize(u, extra=None):
+        out = {
+            'id': u.id,
+            'email': u.email,
+            'first_name': u.first_name,
+            'subscription_status': u.subscription_status,
+            'pro_source': u.pro_source,
+            'trial_end_date': u.trial_end_date.isoformat() if u.trial_end_date else None,
+            'cancel_effective_at': u.cancel_effective_at.isoformat() if u.cancel_effective_at else None,
+            'created_at': u.created_at.isoformat() if u.created_at else None,
+        }
+        if extra:
+            out.update(extra)
+        return out
+
+    # Trials ending in next 48h. Soonest-first so the most-urgent
+    # outreach is at the top.
+    trials_q = User.query.filter(
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+        User.subscription_status == 'trial',
+        User.trial_end_date.isnot(None),
+        User.trial_end_date >= now,
+        User.trial_end_date <= cutoff_48h_forward,
+    ).order_by(User.trial_end_date.asc())
+    trials_top = trials_q.limit(4).all()
+    trials_count = trials_q.count()
+
+    # Was-Pro still active: status cancelled/expired AND has a UserEvent
+    # in the last 14 days. These are users the product is still
+    # holding after they stopped paying; primary winback candidate.
+    real = _real_user_subq()
+    recent_active_ids = db.session.query(distinct(UserEvent.user_id)).filter(
+        UserEvent.created_at >= cutoff_14d_back,
+        UserEvent.user_id.in_(db.session.query(real.c.id)),
+        UserEvent.is_internal == False,  # noqa: E712
+    )
+    was_pro_q = User.query.filter(
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+        User.subscription_status.in_(('cancelled', 'expired')),
+        User.id.in_(recent_active_ids),
+    ).order_by(User.updated_at.desc())
+    was_pro_top = was_pro_q.limit(4).all()
+    was_pro_count = was_pro_q.count()
+
+    # Unverified email for more than 7 days. The signup flow's verify
+    # email step is a leak point; users who signed up over a week ago
+    # and never verified are candidates for a Resend reminder.
+    unverified_q = User.query.filter(
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+        User.email_verified == False,  # noqa: E712
+        User.created_at < cutoff_7d_back,
+    ).order_by(User.created_at.desc())
+    unverified_top = unverified_q.limit(4).all()
+    unverified_count = unverified_q.count()
+
+    # Cancel scheduled (existing motion but worth surfacing in its own
+    # row). Anything where cancel_effective_at is still ahead of now.
+    cancel_q = User.query.filter(
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+        User.cancel_scheduled_at.isnot(None),
+        or_(User.cancel_effective_at.is_(None), User.cancel_effective_at >= now),
+    ).order_by(User.cancel_effective_at.asc().nulls_last())
+    cancel_top = cancel_q.limit(4).all()
+    cancel_count = cancel_q.count()
+
+    # Past due / payment failures.
+    past_due_q = User.query.filter(
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+        User.subscription_status == 'past_due',
+    ).order_by(User.updated_at.desc())
+    past_due_top = past_due_q.limit(4).all()
+    past_due_count = past_due_q.count()
+
+    return {
+        'segments': [
+            {
+                'key': 'trials_ending_48h',
+                'label': 'Trials ending in 48h',
+                'subtitle': 'Card on file. Auto-renew window opens soon.',
+                'count': trials_count,
+                'top': [_serialize(u) for u in trials_top],
+            },
+            {
+                'key': 'was_pro_still_active',
+                'label': 'Was Pro, still active',
+                'subtitle': 'Cancelled but logged in within last 14d. Winback candidates.',
+                'count': was_pro_count,
+                'top': [_serialize(u) for u in was_pro_top],
+            },
+            {
+                'key': 'unverified_email_7d',
+                'label': 'Unverified email > 7d',
+                'subtitle': 'Signed up but never verified. Resend reminder candidate.',
+                'count': unverified_count,
+                'top': [_serialize(u) for u in unverified_top],
+            },
+            {
+                'key': 'cancel_scheduled',
+                'label': 'Cancel scheduled',
+                'subtitle': 'Active sub with cancel queued. Save window open until effective date.',
+                'count': cancel_count,
+                'top': [_serialize(u) for u in cancel_top],
+            },
+            {
+                'key': 'past_due',
+                'label': 'Payment failed',
+                'subtitle': 'Card declined. Retry pending; access may have already been revoked.',
+                'count': past_due_count,
+                'top': [_serialize(u) for u in past_due_top],
+            },
+        ],
+    }

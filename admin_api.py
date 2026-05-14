@@ -2761,6 +2761,29 @@ def admin_users_list():
         return jsonify({'error': str(e)[:200]}), 500
 
 
+@admin_bp.route('/api/admin/users/attention-segments')
+def admin_attention_segments():
+    """Needs Attention segment counts + top entries per segment. Powers
+    the Needs Attention card at the top of the Users tab. Returns
+    multiple distinct outreach groups (trials ending soon, was-pro
+    still active, unverified email, cancel scheduled, past due) in a
+    single round trip so the dashboard doesn't have to fan out to the
+    /list endpoint per segment."""
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    try:
+        from services import users_metrics
+        return jsonify(users_metrics.fetch_attention_segments())
+    except Exception as e:
+        logging.exception('admin_attention_segments failed')
+        return jsonify({'error': str(e)[:200]}), 500
+
+
 @admin_bp.route('/api/admin/metrics')
 def admin_metrics():
     """Unified metrics endpoint for the command center dashboard."""
