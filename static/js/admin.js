@@ -401,12 +401,41 @@ const SP_FMT = {
   pct:   (n) => (n == null ? '—' : n.toFixed(1) + '%'),
 };
 
+// Inline SVG sparkline from an array of numeric values. Returns the
+// SVG string with `width`x`height` and a `color`-stroked polyline.
+// Designed for KPI tiles — small, decorative, no axes. Empty array
+// returns an empty span. Flat series renders a flat line at the
+// midline rather than NaN. Zero-fills shorter series.
+function _sparklineSvg(values, width, height, color) {
+  if (!Array.isArray(values) || values.length === 0) return '';
+  const nums = values.map(v => Number(v) || 0);
+  const max = Math.max(...nums, 1);
+  const min = Math.min(...nums, 0);
+  const range = max - min || 1;
+  const step = nums.length > 1 ? width / (nums.length - 1) : 0;
+  const pad = 2;
+  const drawH = height - pad * 2;
+  const pts = nums.map((v, i) => {
+    const x = i * step;
+    const y = pad + drawH - ((v - min) / range) * drawH;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="display:block;margin-top:6px;overflow:visible;">
+    <polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="${pts}" />
+  </svg>`;
+}
+
 function _renderAcquisition(gp, asc) {
   const grid = document.getElementById('acquisition-grid');
   if (!grid) return;
-  // iOS DAU pulled from our own UserEvent table later via a separate
-  // call. For v1 we surface Play Console + ASC totals only and show
-  // '--' for DAU on both platforms with a configuration hint.
+  // Daily series for sparklines. google_play source returns daily_28d;
+  // ASC source doesn't have daily series yet (Sales API returns daily
+  // reports but our fetch sums them — daily series for ASC ships in a
+  // follow-up).
+  const gpDaily = Array.isArray(gp?.daily_28d) ? gp.daily_28d : [];
+  const gpFirstOpens = gpDaily.map(d => d.first_opens || 0);
+  const gpInstalls   = gpDaily.map(d => d.installs || 0);
+  const gpActive     = gpDaily.map(d => d.active_devices || 0);
   const platforms = [
     {
       key: 'android',
@@ -414,9 +443,9 @@ function _renderAcquisition(gp, asc) {
       configured: !!gp?.configured,
       missing_note: gp?.note || 'Not configured',
       kpis: [
-        { label: 'User acquisitions', value: gp?.first_opens_28d, hint: 'first opens · 28d' },
-        { label: 'Total installs',    value: gp?.device_installs_28d, hint: 'device installs · 28d' },
-        { label: 'Active devices',    value: gp?.active_device_installs, hint: 'currently active' },
+        { label: 'User acquisitions', value: gp?.first_opens_28d, hint: 'first opens · 28d', spark: gpFirstOpens },
+        { label: 'Total installs',    value: gp?.device_installs_28d, hint: 'device installs · 28d', spark: gpInstalls },
+        { label: 'Active devices',    value: gp?.active_device_installs, hint: 'latest snapshot', spark: gpActive },
       ],
     },
     {
@@ -425,9 +454,9 @@ function _renderAcquisition(gp, asc) {
       configured: !!asc?.configured,
       missing_note: asc?.note || 'Not configured',
       kpis: [
-        { label: 'User acquisitions', value: asc?.first_opens_28d, hint: 'first downloads · 28d' },
-        { label: 'Total installs',    value: asc?.device_installs_28d, hint: 'downloads + redownloads · 28d' },
-        { label: 'Redownloads',       value: asc?.redownloads_28d, hint: '28d' },
+        { label: 'User acquisitions', value: asc?.first_opens_28d, hint: 'first downloads · 28d', spark: [] },
+        { label: 'Total installs',    value: asc?.device_installs_28d, hint: 'downloads + redownloads · 28d', spark: [] },
+        { label: 'Redownloads',       value: asc?.redownloads_28d, hint: '28d', spark: [] },
       ],
     },
   ];
@@ -439,13 +468,20 @@ function _renderAcquisition(gp, asc) {
     let kpiHtml = '';
     if (hasData) {
       kpiHtml = '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;">' +
-        p.kpis.map(k => `
-          <div>
-            <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-faint);margin-bottom:4px;">${k.label}</div>
-            <div style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--text-primary);">${k.value != null ? SP_FMT.num(k.value) : '--'}</div>
-            <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);margin-top:2px;">${k.hint}</div>
-          </div>
-        `).join('') + '</div>';
+        p.kpis.map(k => {
+          const sparkColor = p.key === 'android' ? '#34D399' : '#A78BFA';
+          const sparkHtml = (k.spark && k.spark.length > 1)
+            ? _sparklineSvg(k.spark, 90, 28, sparkColor)
+            : '';
+          return `
+            <div>
+              <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-faint);margin-bottom:4px;">${k.label}</div>
+              <div style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--text-primary);">${k.value != null ? SP_FMT.num(k.value) : '--'}</div>
+              <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);margin-top:2px;">${k.hint}</div>
+              ${sparkHtml}
+            </div>
+          `;
+        }).join('') + '</div>';
     } else {
       kpiHtml = `<div style="font-size:12px;color:var(--text-secondary);line-height:1.5;padding:8px 0;">${p.missing_note}</div>`;
     }
