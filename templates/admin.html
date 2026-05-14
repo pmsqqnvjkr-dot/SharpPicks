@@ -567,6 +567,7 @@
     <section class="stack-status">
       <div class="label">model read</div>
       <h1 class="headline"></h1>
+      <p class="model-subhead" style="font-size:13px;color:#8B9099;margin-top:8px;line-height:1.5;"></p>
     </section>
 
     <!-- WIN RATE OVER TIME -->
@@ -579,22 +580,15 @@
 
       <div class="section-content chart-plus-stats">
         <div>
-          <div class="chart-wrap tall">
+          <div class="chart-wrap tall" style="position:relative;">
+            <div class="lowconf-note" style="display:none;position:absolute;top:6px;left:0;right:0;text-align:center;font-style:italic;font-size:9px;color:rgba(139,144,153,0.7);z-index:2;pointer-events:none;">All samples in low-confidence window (n &lt; 30)</div>
             <canvas id="chart-winrate" role="img" aria-label="Rolling 14-day win rate by sport over 90 days"></canvas>
+            <div class="lowconf-hatch" style="display:none;position:absolute;inset:0;pointer-events:none;background-image:repeating-linear-gradient(45deg,rgba(139,144,153,0.18) 0,rgba(139,144,153,0.18) 1px,transparent 1px,transparent 6px);z-index:1;"></div>
           </div>
         </div>
         <div>
           <div class="col-title">snapshot</div>
-          <div class="stat-row"><span class="label">Nba ats 90d</span><span class="value">--<span class="value-suffix">%</span></span></div>
-          <div class="stat-row"><span class="label">Nba sample</span><span class="value">--<span class="value-suffix">games</span></span></div>
-          <div class="stat-row"><span class="label">Nba clv avg</span><span class="value">--<span class="value-suffix">pts</span></span></div>
-          <div class="stat-row"><span class="label">Mlb 90d</span><span class="value">--<span class="value-suffix">%</span></span></div>
-          <div class="stat-row"><span class="label">Mlb sample</span><span class="value">--<span class="value-suffix">games</span></span></div>
-          <div class="stat-row"><span class="label">Mlb clv avg</span><span class="value">--<span class="value-suffix">pts</span></span></div>
-          <div class="stat-row"><span class="label">Mlb confidence</span><span class="value">--<span class="value-suffix"></span></span></div>
-          <div class="stat-row"><span class="label">Wnba 90d</span><span class="value">--<span class="value-suffix">%</span></span></div>
-          <div class="stat-row"><span class="label">Wnba sample</span><span class="value">--<span class="value-suffix">games</span></span></div>
-          <div class="stat-row"><span class="label">Wnba clv avg</span><span class="value">--<span class="value-suffix">pts</span></span></div>
+          <div id="model-snapshot-rail"></div>
         </div>
       </div>
     </section>
