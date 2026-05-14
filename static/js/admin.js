@@ -1965,12 +1965,27 @@ function bindModelPerf(data) {
     if (sports.length > 0) {
       const datasets = sports.map((s, i) => {
         const series = data.win_rate_by_sport_daily[s].map(d => d.win_rate);
-        const isMlb = s.toLowerCase().includes('mlb');
+        // Three-sport palette: NBA blue solid, MLB emerald dashed,
+        // WNBA violet dotted. Distinct enough from each other and from
+        // the amber breakeven reference that the operator can read a
+        // crowded chart at a glance.
+        const lc = s.toLowerCase();
+        let borderColor, borderDash;
+        if (lc.includes('mlb')) {
+          borderColor = '#34D399';
+          borderDash = [4, 4];
+        } else if (lc.includes('wnba')) {
+          borderColor = '#A78BFA';
+          borderDash = [2, 3];
+        } else {
+          borderColor = '#4F86F7';
+          borderDash = [];
+        }
         return {
           label: `${s.toUpperCase()} (rolling 14d)`,
           data: series,
-          borderColor: isMlb ? '#34D399' : '#4F86F7',
-          borderDash: isMlb ? [4, 4] : [],
+          borderColor,
+          borderDash,
           tension: 0.4,
           pointRadius: 0,
           borderWidth: 2,
@@ -2110,13 +2125,14 @@ function bindModelPerf(data) {
     };
     const clvBySport = data.clv_avg_by_sport || {};
     const winBySportSafe = data.win_rate_by_sport_daily || {};
-    ['nba', 'mlb'].forEach(sport => {
+    ['nba', 'mlb', 'wnba'].forEach(sport => {
       const series = winBySportSafe[sport] || winBySportSafe[sport.toUpperCase()];
       const latest = _latestSportPoint(series);
       const cap = sport.toUpperCase();
       if (latest) {
-        // HTML labels are 'Nba ats 90d' and 'Mlb 90d' (singular tier).
-        // Case-insensitive match in setStat handles the casing diff.
+        // HTML labels: 'Nba ats 90d' (NBA only uses ats prefix),
+        // 'Mlb 90d', 'Wnba 90d'. Case-insensitive match in setStat
+        // handles the title-case label difference.
         const rateLabel = sport === 'nba' ? `${cap} ats 90d` : `${cap} 90d`;
         const ok1 = setStat(rateLabel, String(latest.win_rate));
         const ok2 = setStat(`${cap} sample`, SP_FMT.num(latest.sample_n));
