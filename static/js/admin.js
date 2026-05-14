@@ -985,7 +985,17 @@ function bindLiveData(metrics) {
         else if (r === 'push')                  { tag = 'push';    tagStyle = 'class="tag"'; }
         else if (r === 'revoked')               { tag = 'revoked'; tagStyle = 'class="tag" style="color: var(--text-faint); border-color: var(--border);"'; }
         else                                    { tag = 'live';    tagStyle = 'class="tag"'; }
-        row.innerHTML = `<span class="ts">${ts}</span><span class="meta">${s.meta}</span><span ${tagStyle}>${tag}</span>`;
+        // Revoke reason renders as a hover tooltip on the row (full
+        // string) plus a short inline appendix on the meta line so it's
+        // visible without hovering. Truncated at 80 chars to keep the
+        // row from wrapping. Full reason still in the tooltip.
+        const reasonStr = s.revoke_reason || '';
+        const titleAttr = reasonStr ? ` title="${reasonStr.replace(/"/g, '&quot;')}"` : '';
+        const reasonShort = reasonStr.length > 80 ? reasonStr.slice(0, 77) + '...' : reasonStr;
+        const metaWithReason = reasonStr
+          ? `${s.meta}<span class="muted" style="margin-left:8px;font-size:11px;color:var(--text-faint);">${reasonShort}</span>`
+          : s.meta;
+        row.innerHTML = `<span class="ts"${titleAttr}>${ts}</span><span class="meta"${titleAttr}>${metaWithReason}</span><span ${tagStyle}>${tag}</span>`;
         sigsEl.appendChild(row);
       });
     }
@@ -1931,8 +1941,40 @@ function bindModelPerf(data) {
       const n = mlbLatest.sample_n || 0;
       setStat('Mlb confidence', n < 30 ? `low (n < 30)` : `stable (n=${n})`);
     }
+
+    // Revoke rate (signal stability section). Surfaces a class of model
+    // behavior previously invisible to the operator: pre-tip revocations
+    // due to line moves, scratched starters, weather, injury. Computed
+    // server-side over (resolved + revoked) picks; pending excluded.
+    const rev7 = data.revoke_rate_7d || {};
+    const rev30 = data.revoke_rate_30d || {};
+    if (rev7.rate != null) setStat('Revoke rate 7d', String(rev7.rate));
+    if (rev30.rate != null) setStat('Revoke rate 30d', String(rev30.rate));
+    if (rev30.revoked != null) setStat('Revoked 30d', SP_FMT.num(rev30.revoked));
   } catch (err) {
     console.warn('[bindModelPerf] Model snapshot bindings threw:', err);
+  }
+
+  // Signal stability section summary — dynamic narrative that calls
+  // attention to elevated revoke rates. Anything above 25% over 30d is
+  // worth a callout because the operator and the user both feel revoked
+  // signals (the user sees them disappear from the feed).
+  try {
+    const rev7 = data.revoke_rate_7d || {};
+    const rev30 = data.revoke_rate_30d || {};
+    let stability = '';
+    if (rev30.rate == null) {
+      stability = 'Not enough resolved picks for a revoke-rate read yet.';
+    } else if (rev30.rate >= 40) {
+      stability = `Elevated: ${rev30.rate}% of resolved signals in the last 30 days were revoked pre-tip (${rev30.revoked}/${rev30.total}). Most common cause: line moved past the model's publication price before tip. Worth auditing the publication-to-tipoff window.`;
+    } else if (rev30.rate >= 25) {
+      stability = `${rev30.rate}% revoke rate over 30d (${rev30.revoked}/${rev30.total}). Higher than ideal but inside normal range for line-move-driven pre-tip revocations.`;
+    } else {
+      stability = `${rev30.rate}% revoke rate over 30d (${rev30.revoked}/${rev30.total}). Inside the healthy band.`;
+    }
+    _bySectionTitle('signal stability', stability);
+  } catch (err) {
+    console.warn('[bindModelPerf] revoke summary threw:', err);
   }
 
   // -- Model tab section summaries --

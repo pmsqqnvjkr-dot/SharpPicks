@@ -170,6 +170,18 @@ def _recent_bet_taps(include_internal, limit=5):
     ]
 
 
+_REVOKE_TOKEN = 'REVOKED:'
+
+
+def _extract_revoke_reason(notes):
+    """Pull the revoke reason out of Pick.notes. The model pipeline appends
+    ' | REVOKED: <reason>' to notes on revocation."""
+    if not notes or _REVOKE_TOKEN not in notes:
+        return None
+    tail = notes.rsplit(_REVOKE_TOKEN, 1)[-1].strip()
+    return tail or None
+
+
 def _recent_signals(limit=10):
     """Most recent issued picks with sport + selection + line + MEI + result."""
     rows = Pick.query.order_by(Pick.published_at.desc()).limit(limit).all()
@@ -212,6 +224,7 @@ def _recent_signals(limit=10):
             'sport': sport,
             'meta': ' · '.join(bits),
             'result': result,
+            'revoke_reason': _extract_revoke_reason(p.notes) if result == 'revoked' else None,
         })
     return out
 
