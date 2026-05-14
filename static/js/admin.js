@@ -1817,6 +1817,47 @@ document.querySelectorAll('[data-deep-link="users"]').forEach(l => l.addEventLis
 // hit_rate_by_edge_tier, calibration, edge_distribution, last_10_signals}
 // ─────────────────────────────────────────────────────────────────────────
 
+// Wilson score interval for a proportion. Returns 95% CI [low, high]
+// in percentage points, or null when the sample is too small to be
+// meaningful. Used to badge model-perf stat cells like
+// 'NBA 28.6% (n=7, 95% CI: 6%-67%)' so the operator doesn't read a
+// 4-sample win rate as a stable signal. z=1.96 for 95% confidence.
+function _wilsonCI(winsOrPct, totalOrSampleN) {
+  const n = Number(totalOrSampleN) || 0;
+  if (n < 1) return null;
+  // Accept either raw wins or a percentage. If first arg looks like a
+  // rate (0-100), convert to wins. If looks like a count (integer >=
+  // n), trust it directly.
+  let wins = Number(winsOrPct);
+  if (wins > n) {
+    // Treat as percentage 0-100
+    wins = Math.round((wins / 100) * n);
+  }
+  wins = Math.max(0, Math.min(n, wins));
+  const z = 1.96;
+  const phat = wins / n;
+  const denom = 1 + (z * z) / n;
+  const center = (phat + (z * z) / (2 * n)) / denom;
+  const margin = z * Math.sqrt((phat * (1 - phat)) / n + (z * z) / (4 * n * n)) / denom;
+  return {
+    low: Math.max(0, (center - margin) * 100),
+    high: Math.min(100, (center + margin) * 100),
+    n,
+  };
+}
+
+// Format a Wilson CI suffix for inline display in narrative text.
+// '(n=7, 95% CI: 6%-67%)' for small samples (n < 30); empty string
+// otherwise because the band is tight enough that showing it just
+// adds noise.
+function _ciSuffix(rate, sampleN) {
+  if (sampleN == null || sampleN < 1) return '';
+  if (sampleN >= 30) return ` (n=${sampleN})`;
+  const ci = _wilsonCI(rate, sampleN);
+  if (!ci) return ` (n=${sampleN})`;
+  return ` (n=${sampleN}, 95% CI: ${Math.round(ci.low)}%-${Math.round(ci.high)}%)`;
+}
+
 // Helper: returns true if a numeric series has at least `minCount`
 // non-null, non-zero values. Used to guard chart updates so we don't
 // blank out the mockup placeholder with sparse real-data responses
@@ -1838,6 +1879,8 @@ function bindModelPerf(data) {
   if (!data) return;
 
   // ── Model tab headline ──
+  // Each sport's rate gets a Wilson CI suffix so the operator can see
+  // when a hot/cold number is noise (small n, wide band) vs signal.
   (() => {
     const headlineEl = document.querySelector('#panel-model .headline');
     if (!headlineEl) return;
@@ -1846,7 +1889,9 @@ function bindModelPerf(data) {
     const phrases = sportNames.map(s => {
       const series = sportSeries[s] || [];
       for (let i = series.length - 1; i >= 0; i--) {
-        if (series[i].win_rate != null) return `${s.toUpperCase()} at ${series[i].win_rate}% (n=${series[i].sample_n})`;
+        if (series[i].win_rate != null) {
+          return `${s.toUpperCase()} at ${series[i].win_rate}%${_ciSuffix(series[i].win_rate, series[i].sample_n)}`;
+        }
       }
       return null;
     }).filter(Boolean);
@@ -1883,34 +1928,100 @@ function bindModelPerf(data) {
       });
       const anyReal = datasets.some(ds => _hasRealValues(ds.data, 14));
       if (anyReal) {
-        winChart.data.labels = (data.win_rate_by_sport_daily[sports[0]] || []).map(d => d.date.slice(5));
+        const labels = (data.win_rate_by_sport_daily[sports[0]] || []).map(d => d.date.slice(5));
+        // 52.4% breakeven against -110 lines, drawn as a thin amber
+        // reference line so the operator can read above/below at a
+        // glance. Flat dataset across the full x-range; no points,
+        // no tension, no fill.
+        datasets.push({
+          label: 'Breakeven (52.4%)',
+          data: labels.map(() => 52.4),
+          borderColor: 'rgba(245,158,11,0.55)',
+          borderDash: [2, 4],
+          borderWidth: 1,
+          pointRadius: 0,
+          tension: 0,
+          fill: false,
+        });
+        winChart.data.labels = labels;
         winChart.data.datasets = datasets;
         winChart.update('none');
       }
     }
   }
 
-  // Hit rate by edge tier
+  // Hit rate by edge tier (with 52.4% breakeven reference overlay)
   const meiChart = Chart.getChart(document.getElementById('chart-meihit'));
   if (meiChart && Array.isArray(data.hit_rate_by_edge_tier)) {
     const values = data.hit_rate_by_edge_tier.map(t => t.hit_rate);
     if (_hasRealValues(values)) {
-      meiChart.data.labels = data.hit_rate_by_edge_tier.map(t => t.tier);
+      const labels = data.hit_rate_by_edge_tier.map(t => t.tier);
+      // Preserve the existing bar dataset's styling; overwrite only data.
+      meiChart.data.labels = labels;
       meiChart.data.datasets[0].data = values.map(v => v || 0);
+      // Add or replace a line dataset for the 52.4% reference. Chart.js
+      // mixed charts use 'type' on the dataset itself.
+      const referenceData = labels.map(() => 52.4);
+      const referenceDataset = {
+        type: 'line',
+        label: 'Breakeven (52.4%)',
+        data: referenceData,
+        borderColor: 'rgba(245,158,11,0.55)',
+        borderDash: [2, 4],
+        borderWidth: 1,
+        pointRadius: 0,
+        tension: 0,
+        fill: false,
+        order: -1,
+      };
+      const refIdx = meiChart.data.datasets.findIndex(d => d.label && d.label.startsWith('Breakeven'));
+      if (refIdx >= 0) {
+        meiChart.data.datasets[refIdx] = referenceDataset;
+      } else {
+        meiChart.data.datasets.push(referenceDataset);
+      }
       meiChart.update('none');
     }
   }
 
-  // Calibration plots: NBA + MLB. Already guarded against empty
-  // series; preserve the existing skip behavior.
+  // Calibration plots: NBA + MLB. Hide entirely when the sport's
+  // calibration sample is too small to be honest — fewer than 3 active
+  // buckets or fewer than 30 total resolved picks. Replaces the
+  // canvas with a 'insufficient data' placeholder so the operator
+  // doesn't read a 2-point plot as model behavior.
   ['nba', 'mlb'].forEach(sport => {
-    const chart = Chart.getChart(document.getElementById('chart-cal-' + sport));
+    const canvas = document.getElementById('chart-cal-' + sport);
+    if (!canvas) return;
+    const chart = Chart.getChart(canvas);
     if (!chart) return;
     const series = (data.calibration || {})[sport] || (data.calibration || {})[sport.toUpperCase()] || [];
-    if (!series.length) return;
-    if (!series.some(p => p.observed != null)) return;
-    chart.data.labels = series.map(p => p.predicted);
-    chart.data.datasets[0].data = series.map(p => ({ x: p.predicted, y: p.observed }));
+    const realPoints = series.filter(p => p.observed != null);
+    const totalN = realPoints.reduce((a, p) => a + (p.sample_n || 0), 0);
+    const buckets = realPoints.length;
+    const wrap = canvas.parentElement;
+    const MIN_BUCKETS = 3;
+    const MIN_N = 30;
+    if (buckets < MIN_BUCKETS || totalN < MIN_N) {
+      // Mark insufficient. Replace the canvas visually with a
+      // placeholder div. Idempotent: only inserts once per sport.
+      if (wrap && !wrap.querySelector('.cal-insufficient')) {
+        canvas.style.display = 'none';
+        const ph = document.createElement('div');
+        ph.className = 'cal-insufficient';
+        ph.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;min-height:160px;padding:16px;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--text-faint);letter-spacing:0.04em;line-height:1.5;';
+        ph.textContent = `Insufficient data — ${sport.toUpperCase()} calibration needs at least ${MIN_BUCKETS} buckets and ${MIN_N} resolved picks. Currently ${buckets} bucket${buckets === 1 ? '' : 's'}, n=${totalN}.`;
+        wrap.appendChild(ph);
+      }
+      return;
+    }
+    // Sufficient data path — restore canvas if it was previously hidden.
+    if (wrap) {
+      const ph = wrap.querySelector('.cal-insufficient');
+      if (ph) ph.remove();
+      canvas.style.display = '';
+    }
+    chart.data.labels = realPoints.map(p => p.predicted);
+    chart.data.datasets[0].data = realPoints.map(p => ({ x: p.predicted, y: p.observed }));
     chart.update('none');
   });
 
@@ -2028,19 +2139,22 @@ function bindModelPerf(data) {
       return null;
     }).filter(Boolean);
     if (lastValues.length > 0) {
-      const phrase = lastValues.map(lv => `${lv.sport} ${lv.rate}% (n=${lv.n})`).join(', ');
+      const phrase = lastValues.map(lv => `${lv.sport} ${lv.rate}%${_ciSuffix(lv.rate, lv.n)}`).join(', ');
       _bySectionTitle('win rate', `Latest 14d-rolling win rate: ${phrase}. 52.4% is breakeven against -110 lines.`);
     } else {
       _bySectionTitle('win rate', 'Not enough resolved picks per sport for a 14d rolling read yet.');
     }
   }
 
-  // Hit rate by edge tier
+  // Hit rate by edge tier — surface the top tier's hit rate with a
+  // Wilson CI suffix. At low n the band can be wider than the gap to
+  // breakeven; the operator needs to see that explicitly before
+  // reading 50% on 6 picks as evidence the model works.
   const tiers = Array.isArray(data.hit_rate_by_edge_tier) ? data.hit_rate_by_edge_tier : [];
   if (tiers.length > 0 && tiers.some(t => t.hit_rate != null)) {
     const top = tiers[tiers.length - 1];
     if (top && top.hit_rate != null) {
-      _bySectionTitle('hit rate', `Top edge tier (${top.tier}) hits ${top.hit_rate}% on ${top.sample_n} picks. Higher edge tiers should out-hit lower — that's the threshold doing real work.`);
+      _bySectionTitle('hit rate', `Top edge tier (${top.tier}) hits ${top.hit_rate}%${_ciSuffix(top.hit_rate, top.sample_n)}. Breakeven is 52.4%. Higher edge tiers should out-hit lower — that's the threshold doing real work.`);
     }
   } else {
     _bySectionTitle('hit rate', 'Edge tier hit-rate computation needs resolved picks. Currently sparse.');
