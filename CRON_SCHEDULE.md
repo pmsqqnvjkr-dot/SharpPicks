@@ -28,6 +28,7 @@ All times **Eastern (ET)**. Use `X-Cron-Secret` header with your `CRON_SECRET` v
 | grade_picks | `https://app.sharppicks.ai/api/cron/grade-picks` | 3:45 AM, 11:30 AM |
 | grade_whatifs | `https://app.sharppicks.ai/api/cron/grade-whatifs` | 4:05 AM, 4:05 PM |
 | pretip_validate | `https://app.sharppicks.ai/api/cron/pretip-validate` | 9:55 AM, 4:55 PM |
+| pretip_validate (MLB) | `https://app.sharppicks.ai/api/cron/pretip-validate?sport=mlb` | 12:25 PM |
 | model_watchdog | `https://app.sharppicks.ai/api/cron/model-watchdog` | 9:30 AM, 11:30 AM, 1:00 PM |
 | backup | `https://app.sharppicks.ai/api/cron/backup` | 3:20 AM daily |
 | data_quality | `https://app.sharppicks.ai/api/cron/check-data-quality` | 4:15 AM, 12:15 PM |
