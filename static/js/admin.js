@@ -1196,6 +1196,16 @@ function bindUsersActivity(data) {
     const bits = [];
     if (mau != null && mau > 0) bits.push(`${mau} monthly active${mau === 1 ? '' : 's'}`);
     if (paying != null) bits.push(`${paying} paying`);
+    // Paid conversion rate. The single number that determines whether
+    // the business works: paying customers / total registered users.
+    // Computed only when both numerator + denominator are real so we
+    // don't print "0.0% paid conversion" before any users exist.
+    const totalReg = s.total_registered;
+    if (paying != null && totalReg != null && totalReg > 0) {
+      const convPct = (100 * paying / totalReg);
+      const convFmt = convPct < 10 ? convPct.toFixed(1) : convPct.toFixed(0);
+      bits.push(`${convFmt}% paid conversion`);
+    }
     let sentence;
     if (bits.length === 0) {
       sentence = 'No active users in the last 30 days. Either the events table is empty or every user is internal.';
@@ -1299,12 +1309,17 @@ function bindUsersActivity(data) {
     if (freqChartWrap) freqChartWrap.style.display = 'none';
   } else {
     if (freqChartWrap) freqChartWrap.style.display = '';
-    const power = (buckets['15-19'] || 0) + (buckets['20-29'] || 0) + (buckets['30+'] || 0);
-    const light = (buckets['1'] || 0) + (buckets['2-3'] || 0) + (buckets['4-5'] || 0);
-    const lightPct = Math.round(100 * light / totalUsers);
-    const powerPct = Math.round(100 * power / totalUsers);
+    // Use server-computed tier_counts (light = 1-4 logins, power = 15+)
+    // so the narrative matches the stat row labels exactly. Previously
+    // recomputed light client-side from histogram buckets that included
+    // 4-5 grouped together, producing a "Light tier (1-5)" claim that
+    // mismatched the "Light (1-4)" stat row by a few percentage points.
+    const lightCount = tiers.light || 0;
+    const powerCount = tiers.power || 0;
+    const lightPct = Math.round(100 * lightCount / totalUsers);
+    const powerPct = Math.round(100 * powerCount / totalUsers);
     _bySectionTitle('login frequency',
-      `${loggedInUsers} of ${totalUsers} users active this month. Light tier (1-5 logins) is ${lightPct}%, power tier (15+) is ${powerPct}%.`);
+      `${loggedInUsers} of ${totalUsers} users active this month. Light tier (1-4 logins) is ${lightPct}%, power tier (15+) is ${powerPct}%.`);
   }
 
   // Cohort retention summary — section title is "retention · weekly cohorts"
@@ -1649,8 +1664,12 @@ function bindPowerUsersList(data) {
   _replaceUserRows('section-power-users', data.users);
 
   // Per-power-user breakdown for the chips. Tags reflect the user's
-  // actual subscription state.
-  let paid = 0, trial = 0, free = 0;
+  // actual subscription state. wasPro counts users in the power tier
+  // whose billing-state classifier returns 'churned' — currently free
+  // but had a prior paid sub. These are the winback story: they
+  // cancelled but stayed engaged, so the product is holding them at a
+  // different price point.
+  let paid = 0, trial = 0, free = 0, wasPro = 0;
   data.users.forEach(u => {
     const tags = u.tags || [];
     if (tags.includes('paid_annual') || tags.includes('paid_monthly') || tags.includes('founding') || tags.includes('comped')) {
@@ -1660,11 +1679,30 @@ function bindPowerUsersList(data) {
     } else {
       free += 1;
     }
+    if (_billingStatus(u).kind === 'churned') wasPro += 1;
   });
   const POWER_CHIPS = '#section-power-users .segment-chips';
   _setSegmentCount(POWER_CHIPS, 'Paid', paid);
   _setSegmentCount(POWER_CHIPS, 'Trial', trial);
   _setSegmentCount(POWER_CHIPS, 'Free', free);
+
+  // ex-Pro callout. When a meaningful fraction of power users churned
+  // but stayed engaged, the product is working at a different price
+  // point than the one we charge. That's the winback story — surface
+  // it as the section summary so it's the first thing the operator
+  // reads on this card.
+  const totalPower = data.users.length;
+  if (totalPower > 0) {
+    if (wasPro > 0) {
+      const ratio = `${wasPro} of ${totalPower}`;
+      const pct = Math.round(100 * wasPro / totalPower);
+      _bySectionTitle('power users',
+        `${ratio} power users (${pct}%) are ex-Pro — they churned but stayed engaged. Winback candidates: the product is holding them, the price point isn't.`);
+    } else {
+      _bySectionTitle('power users',
+        `${totalPower} user${totalPower === 1 ? '' : 's'} in the power tier (15+ logins/30d). All currently paying or trialing.`);
+    }
+  }
 }
 
 // Needs Attention — small list of users in concerning states.
