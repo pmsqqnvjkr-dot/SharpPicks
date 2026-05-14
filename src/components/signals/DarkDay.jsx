@@ -141,6 +141,29 @@ export default function DarkDay({
   useEffect(() => { setMounted(true); }, []);
 
   const leagueLabel = (sport || '').toUpperCase();
+
+  // Absolute date labels read better than relative "Today" / "Tomorrow" on
+  // off-day screens, which can show across multiple sessions and across
+  // day boundaries. fmtDayDate(isoStr) returns "Fri May 15"; fmtDayShort
+  // (used by the today header) prepends the weekday to whatever
+  // pre-formatted date string the parent passed in. Self-contained so the
+  // reader doesn't need to know what "today" means in context.
+  const fmtDayDate = (isoStr) => {
+    if (!isoStr || typeof isoStr !== 'string') return '';
+    const m = isoStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return isoStr;
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+    return `${days[d.getDay()]} ${months[parseInt(m[2]) - 1]} ${parseInt(m[3])}`;
+  };
+  const todayDayPrefix = (() => {
+    // The parent passes a pre-formatted month+day string like "May 14".
+    // Append the weekday in front for symmetry with the slate eyebrow.
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return days[new Date().getDay()];
+  })();
+  const tomorrowDayDate = fmtDayDate(tomorrowDate);
   const totalCountdownHours = Math.max(0, (countdown.hours || 0));
   const isMultiDayGap = totalCountdownHours >= 72;
   const isNewUser = (weekRecap.signalsIssued || 0) === 0;
@@ -180,7 +203,7 @@ export default function DarkDay({
           <span style={{
             fontFamily: SP.fontMono, fontSize: '10px', fontWeight: 500,
             letterSpacing: '0.22em', textTransform: 'uppercase', color: SP.green,
-          }}>{date ? `Today · ${date}` : 'Today'}</span>
+          }}>{date ? `${todayDayPrefix} · ${date}` : 'Today'}</span>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
             padding: '4px 10px',
@@ -321,7 +344,9 @@ export default function DarkDay({
       {showSlatePreview && (
         <>
           <SectionHeader
-            eyebrow={`Tomorrow's ${leagueLabel} slate`}
+            eyebrow={tomorrowDayDate
+              ? `${tomorrowDayDate} · ${leagueLabel} slate`
+              : `Tomorrow's ${leagueLabel} slate`}
             rightLabel={`${previewGames.length} game${previewGames.length === 1 ? '' : 's'}`}
           />
           <div style={{
