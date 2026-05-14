@@ -5,3 +5,13 @@ https://www.sharppicks.ai/* https://sharppicks.ai/:splat 301
 
 # App redirect
 /app https://app.sharppicks.ai 302
+
+# Catch-all 404 for any unmatched path. Must stay last (Cloudflare
+# Pages matches _redirects rules top-down). Without this, Pages falls
+# back to serving index.html for unmatched paths, which makes Google
+# index phantom URLs: GSC reported /blog/<missing-slug> as 'Alternate
+# page with proper canonical tag' pointing at the homepage because
+# the homepage HTML and canonical were what got served. Specific
+# routes above this rule still take precedence; only truly unmatched
+# paths reach here.
+/* /404.html 404
