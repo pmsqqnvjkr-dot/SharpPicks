@@ -52,7 +52,7 @@ echo "==> Deploying to Cloudflare Pages..."
 # wrangler picks it up and hits code 9109 / 10000 errors. Empty value
 # tells wrangler to fall back to cached OAuth credentials in
 # ~/.wrangler/config/default.toml (set up via `npx wrangler login`).
-CLOUDFLARE_API_TOKEN= npx wrangler pages deploy landing --project-name sharppicks-landing --branch main
+CLOUDFLARE_API_TOKEN= npx wrangler pages deploy landing --project-name sharppicks --commit-dirty=true --branch main
 
 echo
 echo "==> Cleaning generated (untracked) blog posts..."
