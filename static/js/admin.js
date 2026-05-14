@@ -401,6 +401,62 @@ const SP_FMT = {
   pct:   (n) => (n == null ? '—' : n.toFixed(1) + '%'),
 };
 
+function _renderAcquisition(gp, asc) {
+  const grid = document.getElementById('acquisition-grid');
+  if (!grid) return;
+  // iOS DAU pulled from our own UserEvent table later via a separate
+  // call. For v1 we surface Play Console + ASC totals only and show
+  // '--' for DAU on both platforms with a configuration hint.
+  const platforms = [
+    {
+      key: 'android',
+      label: 'Android · Google Play',
+      configured: !!gp?.configured,
+      missing_note: gp?.note || 'Not configured',
+      kpis: [
+        { label: 'User acquisitions', value: gp?.first_opens_28d, hint: 'first opens · 28d' },
+        { label: 'Total installs',    value: gp?.device_installs_28d, hint: 'device installs · 28d' },
+        { label: 'Active devices',    value: gp?.active_device_installs, hint: 'currently active' },
+      ],
+    },
+    {
+      key: 'ios',
+      label: 'iOS · App Store Connect',
+      configured: !!asc?.configured,
+      missing_note: asc?.note || 'Not configured',
+      kpis: [
+        { label: 'User acquisitions', value: asc?.first_opens_28d, hint: 'first downloads · 28d' },
+        { label: 'Total installs',    value: asc?.device_installs_28d, hint: 'downloads + redownloads · 28d' },
+        { label: 'Redownloads',       value: asc?.redownloads_28d, hint: '28d' },
+      ],
+    },
+  ];
+  grid.innerHTML = '';
+  platforms.forEach(p => {
+    const card = document.createElement('div');
+    card.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:14px;background:rgba(255,255,255,0.01);';
+    const hasData = p.configured && p.kpis.some(k => k.value != null && k.value > 0);
+    let kpiHtml = '';
+    if (hasData) {
+      kpiHtml = '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;">' +
+        p.kpis.map(k => `
+          <div>
+            <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-faint);margin-bottom:4px;">${k.label}</div>
+            <div style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--text-primary);">${k.value != null ? SP_FMT.num(k.value) : '--'}</div>
+            <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);margin-top:2px;">${k.hint}</div>
+          </div>
+        `).join('') + '</div>';
+    } else {
+      kpiHtml = `<div style="font-size:12px;color:var(--text-secondary);line-height:1.5;padding:8px 0;">${p.missing_note}</div>`;
+    }
+    card.innerHTML = `
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:${p.configured ? 'var(--accent)' : 'var(--text-faint)'};margin-bottom:10px;">${p.label}</div>
+      ${kpiHtml}
+    `;
+    grid.appendChild(card);
+  });
+}
+
 function setStat(label, value, suffixText) {
   // Find every .stat-row whose .label text matches `label` (case-insensitive),
   // replace its .value text, and optionally update the .value-suffix.
@@ -694,6 +750,12 @@ function bindLiveData(metrics) {
   const trafficSource = metrics.ga4?.payload || metrics.cloudflare?.payload;
   const traffic24h = trafficSource?.visitors_24h ?? trafficSource?.sessions_24h;
   if (traffic24h != null) setMovedRow('Traffic last 24h', SP_FMT.num(traffic24h));
+
+  // ── Acquisition section: Android (Google Play Console) + iOS (App
+  // Store Connect). Mirrors the Play Console KPI card layout: 3 tiles
+  // per platform, side by side. Sparklines come in a follow-up once
+  // the underlying sources return daily series; v1 shows totals only.
+  _renderAcquisition(metrics.google_play?.payload, metrics.app_store_connect?.payload);
 
   // -- Traffic section overview stats. Every label-row below was
   // hardcoded mockup (2,840 / 1,820 / 9,120 / 486 / 12.4k / 14.2) and
