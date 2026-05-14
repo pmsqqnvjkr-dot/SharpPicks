@@ -528,6 +528,11 @@
             <canvas id="chart-winrate" role="img" aria-label="Rolling 14-day win rate by sport over 90 days"></canvas>
             <div class="lowconf-hatch" style="display:none;position:absolute;inset:0;pointer-events:none;opacity:0.18;background-image:repeating-linear-gradient(45deg,rgba(139,144,153,0.5) 0,rgba(139,144,153,0.5) 1px,transparent 1px,transparent 10px);z-index:1;"></div>
           </div>
+          <div id="winrate-insufficient" style="display:none;padding:3rem 1rem;text-align:center;">
+            <div style="font-size:13px;color:#8B9099;max-width:320px;margin:0 auto;line-height:1.6;">
+              Insufficient sample for rolling window view. 14d rolling becomes unstable below n=10. Showing snapshot only.
+            </div>
+          </div>
         </div>
         <div>
           <div class="col-title">snapshot</div>
