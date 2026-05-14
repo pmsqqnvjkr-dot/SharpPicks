@@ -225,15 +225,25 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
 
     store_badge_html = ''
     if show_store_badge:
+        # Apple's official badge generator (tools.applemediaservices.com)
+        # produces the canonical 'Download on the App Store' image and is
+        # the URL Apple themselves recommend in their marketing guidelines.
+        # Sized to roughly match the Google Play badge at 40px tall.
         store_badge_html = '''
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td align="center" style="padding: 24px 28px 8px;">
+              <a href="https://apps.apple.com/us/app/sharppicks-signals/id6762053011"
+                 style="text-decoration:none; display:inline-block; margin:0 6px;" target="_blank">
+                <img src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"
+                     alt="Download on the App Store"
+                     style="height:40px; border:0; vertical-align:middle;" height="40">
+              </a>
               <a href="https://play.google.com/store/apps/details?id=com.sharppicksllc.app"
-                 style="text-decoration:none;" target="_blank">
+                 style="text-decoration:none; display:inline-block; margin:0 6px;" target="_blank">
                 <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
                      alt="Get it on Google Play"
-                     style="height:40px; border:0;" height="40">
+                     style="height:40px; border:0; vertical-align:middle;" height="40">
               </a>
             </td>
           </tr>
