@@ -913,6 +913,21 @@ function bindLiveData(metrics) {
     setStat(sport.toUpperCase(), SP_FMT.num(count));
   });
 
+  // Record by sport (signals section, right column): W-L per sport for
+  // resolved picks in the window. Plus a Pending tile summing unresolved
+  // picks across sports. Empty buckets render as 0-0.
+  const recordBySport = metrics.events?.payload?.signal_record_by_sport || {};
+  ['nba', 'mlb', 'wnba'].forEach((sport) => {
+    const rec = recordBySport[sport] || recordBySport[sport.toUpperCase()] || {};
+    const wins = rec.wins || 0;
+    const losses = rec.losses || 0;
+    const cap = sport.charAt(0).toUpperCase() + sport.slice(1);
+    setStat(`${cap} record`, `${wins}-${losses}`);
+  });
+  const totalPending = Object.values(recordBySport)
+    .reduce((sum, r) => sum + (r.pending || 0), 0);
+  setStat('Pending', SP_FMT.num(totalPending));
+
   // -- Funnel (last 7d) — replace mockup numbers with real funnel --
   const funnel = metrics.events?.payload?.funnel;
   if (Array.isArray(funnel) && funnel.length) {
@@ -2111,11 +2126,16 @@ function bindModelPerf(data) {
     return { allCalibrating: false, leagues };
   })();
 
-  // Win rate vs market chart (NBA + MLB rolling 14d). Skip update if
-  // there are not enough resolved picks per sport — keeps the mockup
-  // line visible until real data accumulates. Need >= 14 days of
-  // resolved picks per sport for a 14d rolling line to be honest.
+  // Win rate vs market chart. The 14d rolling window oscillates wildly
+  // below n=10 (one win flips the line 10+ points), so we refuse to draw
+  // a league until it clears that threshold. If no league qualifies we
+  // hide the canvas entirely and surface a calibration placeholder —
+  // the brand pact is "don't perform confidence we don't have."
   const winChart = Chart.getChart(document.getElementById('chart-winrate'));
+  const winChartWrap = document.querySelector('#panel-model .chart-wrap.tall');
+  const winPlaceholder = document.getElementById('winrate-insufficient');
+  const winHatch = document.querySelector('#panel-model .lowconf-hatch');
+  const winNote = document.querySelector('#panel-model .lowconf-note');
   if (winChart && data.win_rate_by_sport_daily) {
     const sports = Object.keys(data.win_rate_by_sport_daily);
     if (sports.length > 0) {
@@ -2126,49 +2146,58 @@ function bindModelPerf(data) {
           if (series[i].win_rate != null) { latestSampleBySport[s] = series[i].sample_n || 0; break; }
         }
       });
-      const datasets = sports.map((s) => {
-        const series = data.win_rate_by_sport_daily[s].map(d => d.win_rate);
-        const lc = s.toLowerCase();
-        let borderColor, borderDash;
-        if (lc.includes('mlb')) {
-          borderColor = '#5A9E72';
-          borderDash = [4, 3];
-        } else if (lc.includes('wnba')) {
-          borderColor = '#8B7FB8';
-          borderDash = [2, 2];
-        } else {
-          borderColor = '#5BA0D9';
-          borderDash = [];
-        }
-        const n = latestSampleBySport[s] || 0;
-        if (n < 2) {
+      const RENDER_THRESHOLD = 10;
+      const renderableSports = sports.filter(s => (latestSampleBySport[s] || 0) >= RENDER_THRESHOLD);
+
+      if (renderableSports.length === 0) {
+        // Nothing clears n=10. Swap to the placeholder and suppress the
+        // hatch + note (no chart to shade).
+        if (winChartWrap) winChartWrap.style.display = 'none';
+        if (winPlaceholder) winPlaceholder.style.display = 'block';
+        if (winHatch) winHatch.style.display = 'none';
+        if (winNote) winNote.style.display = 'none';
+      } else {
+        if (winChartWrap) winChartWrap.style.display = '';
+        if (winPlaceholder) winPlaceholder.style.display = 'none';
+
+        const datasets = renderableSports.map((s) => {
+          const series = data.win_rate_by_sport_daily[s].map(d => d.win_rate);
+          const lc = s.toLowerCase();
+          let borderColor, borderDash;
+          if (lc.includes('mlb')) {
+            borderColor = '#5A9E72';
+            borderDash = [4, 3];
+          } else if (lc.includes('wnba')) {
+            borderColor = '#8B7FB8';
+            borderDash = [2, 2];
+          } else {
+            borderColor = '#5BA0D9';
+            borderDash = [];
+          }
+          const n = latestSampleBySport[s] || 0;
           return {
-            label: `${s.toUpperCase()} (insufficient)`,
-            data: series.map(() => null),
-            borderColor: 'rgba(139,144,153,0.4)',
-            borderDash: [],
-            borderWidth: 1,
+            label: `${s.toUpperCase()} (n=${n})`,
+            data: series,
+            borderColor,
+            borderDash,
+            tension: 0.4,
             pointRadius: 0,
-            tension: 0,
+            borderWidth: 2,
             fill: false,
-            hidden: true,
+            spanGaps: true,
           };
-        }
-        return {
-          label: `${s.toUpperCase()} (n=${n})`,
-          data: series,
-          borderColor,
-          borderDash,
-          tension: 0.4,
-          pointRadius: 0,
-          borderWidth: 2,
-          fill: false,
-          spanGaps: true,
-        };
-      });
-      const anyReal = datasets.some(ds => _hasRealValues(ds.data, 14));
-      if (anyReal) {
-        const labels = (data.win_rate_by_sport_daily[sports[0]] || []).map(d => d.date.slice(5));
+        });
+
+        const labels = (data.win_rate_by_sport_daily[renderableSports[0]] || []).map(d => d.date.slice(5));
+        // Compute a snug y-axis that contains the data + the 52.4
+        // breakeven line + a small padding. Fixed 40-65% range hid
+        // small-sample swings (e.g. 16.7% on n=6) entirely.
+        const allVals = datasets.flatMap(ds => ds.data).filter(v => v != null);
+        allVals.push(52.4);
+        const rawMin = Math.min(...allVals);
+        const rawMax = Math.max(...allVals);
+        const yMin = Math.max(0, Math.floor((rawMin - 5) / 5) * 5);
+        const yMax = Math.min(100, Math.ceil((rawMax + 5) / 5) * 5);
         datasets.push({
           label: 'Breakeven',
           data: labels.map(() => 52.4),
@@ -2181,13 +2210,15 @@ function bindModelPerf(data) {
         });
         winChart.data.labels = labels;
         winChart.data.datasets = datasets;
+        if (winChart.options?.scales?.y) {
+          winChart.options.scales.y.min = yMin;
+          winChart.options.scales.y.max = yMax;
+        }
         winChart.update('none');
 
-        const allLowConf = sports.every(s => (latestSampleBySport[s] || 0) > 0 && (latestSampleBySport[s] || 0) < 30);
-        const hatch = document.querySelector('#panel-model .lowconf-hatch');
-        const note = document.querySelector('#panel-model .lowconf-note');
-        if (hatch) hatch.style.display = allLowConf ? 'block' : 'none';
-        if (note) note.style.display = allLowConf ? 'block' : 'none';
+        const allLowConf = renderableSports.every(s => (latestSampleBySport[s] || 0) < 30);
+        if (winHatch) winHatch.style.display = allLowConf ? 'block' : 'none';
+        if (winNote) winNote.style.display = allLowConf ? 'block' : 'none';
       }
     }
   }
@@ -2430,8 +2461,16 @@ function bindModelPerf(data) {
       return null;
     }).filter(Boolean);
     if (lastValues.length > 0) {
-      const phrase = lastValues.map(lv => `${lv.sport} ${lv.rate}%${_ciSuffix(lv.rate, lv.n)}`).join(', ');
-      _bySectionTitle('win rate', `Latest 14d-rolling win rate: ${phrase}. 52.4% is breakeven against -110 lines.`);
+      const phrase = lastValues.map(lv => `${lv.sport} ${lv.rate}% (n=${lv.n})`).join(', ');
+      // The shaded-region copy is only honest when there *is* a chart to
+      // shade. Below n=10 the canvas swaps out for a placeholder; no
+      // shading to reference, so suppress the tail.
+      const rendered = lastValues.filter(lv => (lv.n || 0) >= 10);
+      const allLowConf = rendered.length > 0 && rendered.every(lv => (lv.n || 0) < 30);
+      const tail = allLowConf
+        ? ' Shaded region indicates low-confidence window (n < 30).'
+        : '';
+      _bySectionTitle('win rate', `14d rolling win rate: ${phrase}. Breakeven 52.4% against -110.${tail}`);
     } else {
       _bySectionTitle('win rate', 'Not enough resolved picks per sport for a 14d rolling read yet.');
     }
