@@ -1705,25 +1705,76 @@ function bindPowerUsersList(data) {
   }
 }
 
-// Needs Attention — small list of users in concerning states.
-function bindNeedsAttention(data) {
-  // Summary comes from Stripe payload counts (truth source for billing
-  // states). data.users gives us per-user detail for the rows below.
+// Needs Attention — segment cards + the underlying user detail rows.
+// Now rendered AT THE TOP of the Users tab so the operator sees the
+// outreach work first. The card has two layers:
+//   1. Segment header band: one tile per actionable group (trials
+//      ending in 48h, was-Pro still active, unverified > 7d, cancel
+//      scheduled, past due). Each tile shows count + brief.
+//   2. Detail rows: the original up-to-4 attention-segment user rows
+//      with cancel countdowns and payment-failed badges.
+function bindNeedsAttention(data, attentionSegments) {
+  // Summary line at the top of the section. Prefer the new segments
+  // payload counts when available; fall back to Stripe counts so the
+  // narrative still renders if /api/admin/users/attention-segments
+  // hasn't deployed yet.
+  const segs = (attentionSegments && Array.isArray(attentionSegments.segments)) ? attentionSegments.segments : [];
+  let total = 0;
+  let urgent = 0;
+  segs.forEach(s => { total += s.count || 0; if (s.key === 'trials_ending_48h' || s.key === 'past_due') urgent += (s.count || 0); });
   const sp = window.__SP_METRICS?.stripe?.payload || {};
-  const cancelTrials = sp.trials_with_cancel_scheduled || 0;
-  const cancelPaid = sp.paid_with_cancel_scheduled || 0;
-  const failedUsers = sp.failed_payment_users_30d || 0;
-  const churned30d = sp.canceled_30d || 0;
-  const total = cancelTrials + cancelPaid + failedUsers;
-  if (total === 0 && churned30d === 0) {
-    _bySectionTitle('needs attention', `No users in concerning states this week. Revenue collection is clean and no cancellations queued.`);
+  if (segs.length > 0) {
+    if (total === 0) {
+      _bySectionTitle('needs attention', 'No users in concerning states this week. Revenue collection is clean, no trials about to convert, no verification gaps.');
+    } else {
+      const bits = segs
+        .filter(s => (s.count || 0) > 0)
+        .map(s => `${s.count} ${s.label.toLowerCase()}`);
+      const callout = urgent > 0
+        ? ` Most-urgent: trials ending in 48h and payment failures.`
+        : '';
+      _bySectionTitle('needs attention', `${bits.join(', ')}.${callout}`);
+    }
   } else {
-    const bits = [];
-    if (cancelTrials > 0) bits.push(`${cancelTrials} trial${cancelTrials === 1 ? '' : 's'} with cancel scheduled`);
-    if (cancelPaid > 0) bits.push(`${cancelPaid} paid sub${cancelPaid === 1 ? '' : 's'} with cancel scheduled`);
-    if (failedUsers > 0) bits.push(`${failedUsers} customer${failedUsers === 1 ? '' : 's'} with failed payments in 30d`);
-    if (churned30d > 0) bits.push(`${churned30d} cancelled in the last 30 days`);
-    _bySectionTitle('needs attention', `${bits.join(', ')}. Highest-leverage outreach is the cancel-scheduled cohort — the save window closes at cancel_effective_at.`);
+    // Fallback to the legacy Stripe-based narrative.
+    const cancelTrials = sp.trials_with_cancel_scheduled || 0;
+    const cancelPaid = sp.paid_with_cancel_scheduled || 0;
+    const failedUsers = sp.failed_payment_users_30d || 0;
+    const churned30d = sp.canceled_30d || 0;
+    const legacyTotal = cancelTrials + cancelPaid + failedUsers;
+    if (legacyTotal === 0 && churned30d === 0) {
+      _bySectionTitle('needs attention', `No users in concerning states this week. Revenue collection is clean and no cancellations queued.`);
+    } else {
+      const bits = [];
+      if (cancelTrials > 0) bits.push(`${cancelTrials} trial${cancelTrials === 1 ? '' : 's'} with cancel scheduled`);
+      if (cancelPaid > 0) bits.push(`${cancelPaid} paid sub${cancelPaid === 1 ? '' : 's'} with cancel scheduled`);
+      if (failedUsers > 0) bits.push(`${failedUsers} customer${failedUsers === 1 ? '' : 's'} with failed payments in 30d`);
+      if (churned30d > 0) bits.push(`${churned30d} cancelled in the last 30 days`);
+      _bySectionTitle('needs attention', `${bits.join(', ')}. Highest-leverage outreach is the cancel-scheduled cohort — the save window closes at cancel_effective_at.`);
+    }
+  }
+
+  // Render the segment tiles. Empty segments are skipped so the strip
+  // only shows actionable groups.
+  const segContainer = document.getElementById('needs-attention-segments');
+  if (segContainer) {
+    segContainer.innerHTML = '';
+    segContainer.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px;';
+    segs.filter(s => (s.count || 0) > 0).forEach(seg => {
+      const urgent = seg.key === 'trials_ending_48h' || seg.key === 'past_due';
+      const accent = urgent ? 'var(--danger)' : (seg.key === 'was_pro_still_active' ? 'var(--accent)' : 'var(--warn)');
+      const accentBorder = urgent ? 'rgba(228,129,129,0.25)' : 'rgba(228,160,59,0.20)';
+      const tile = document.createElement('div');
+      tile.style.cssText = `padding:12px 14px;border:1px solid ${accentBorder};border-radius:8px;background:rgba(255,255,255,0.02);`;
+      tile.innerHTML = `
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px;">
+          <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-faint);">${seg.label}</span>
+          <span style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:${accent};">${seg.count}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-secondary);line-height:1.4;">${seg.subtitle || ''}</div>
+      `;
+      segContainer.appendChild(tile);
+    });
   }
 
   const container = document.getElementById('needs-attention-rows');
@@ -1798,10 +1849,11 @@ function loadUsersTabData() {
     _allUsersFetch(),
     fetch('/api/admin/users/list?segment=power&limit=20', opts).then(r => r.ok ? r.json() : null),
     fetch('/api/admin/users/list?segment=attention&limit=10', opts).then(r => r.ok ? r.json() : null),
-  ]).then(([activity, _all, powerUsers, attention]) => {
+    fetch('/api/admin/users/attention-segments', opts).then(r => r.ok ? r.json() : null),
+  ]).then(([activity, _all, powerUsers, attention, attentionSegments]) => {
     bindUsersActivity(activity);
     bindPowerUsersList(powerUsers);
-    bindNeedsAttention(attention);
+    bindNeedsAttention(attention, attentionSegments);
   }).finally(() => {
     _usersDataPromise = null;  // clear so next call re-fetches
   });
