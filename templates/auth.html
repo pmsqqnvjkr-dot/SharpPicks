@@ -291,7 +291,13 @@ async function handleSignup(e,accountType){
     const r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({email:em,password:pw,first_name:fn,account_type:accountType})});
     const d=await r.json();
     if(r.ok&&d.success){
-      if(d.needs_verification){showAlert('signup-alert','Check your email for a verification link to activate your account.','success');b.classList.remove('ld');b.disabled=false}
+      // Trial signups get a Stripe checkout URL in the response so the
+      // user is taken to card collection immediately, no inbox detour.
+      // The verification email still arrives in parallel and can be
+      // confirmed in-app later. Free signups don't have a checkout_url
+      // and go straight to the app.
+      if(d.checkout_url){window.location.href=d.checkout_url}
+      else if(d.needs_verification){showAlert('signup-alert','Check your email for a verification link to activate your account.','success');b.classList.remove('ld');b.disabled=false}
       else{window.location.href='/'}
     }else{showAlert('signup-alert',d.error||'Could not create account.','error');b.classList.remove('ld');b.disabled=false}
   }catch(err){showAlert('signup-alert','Connection error. Please try again.','error');b.classList.remove('ld');b.disabled=false}

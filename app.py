@@ -6093,11 +6093,27 @@ def register():
     except Exception as e:
         logging.error(f"Verification email failed: {e}")
 
+    # Industry-standard trial flow: route the user to Stripe checkout
+    # immediately after signup so they don't have to detour through the
+    # inbox before seeing the card form. The verification email above
+    # still gets sent in parallel; verification is enforced later in-app,
+    # not blocking the trial start. iOS native users skip Stripe (App
+    # Store IAP per 3.1.1) and complete trial via RevenueCat instead.
+    checkout_url = None
+    ua = request.headers.get('User-Agent', '').lower()
+    is_ios_native = 'capacitor' in ua and ('iphone' in ua or 'ipad' in ua or 'ipod' in ua)
+    if not is_ios_native:
+        try:
+            checkout_url = _create_trial_checkout_url(user)
+        except Exception as e:
+            logging.error(f"Trial checkout session create failed for {user.email}: {e}")
+
     return jsonify({
         'success': True,
         'user': serialize_user(user),
         'needs_verification': True,
         'token': generate_auth_token(user),
+        'checkout_url': checkout_url,
     })
 
 @app.route('/api/auth/verify-email')
