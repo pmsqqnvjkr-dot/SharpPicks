@@ -46,6 +46,7 @@ SCOPES = ['https://www.googleapis.com/auth/devstorage.read_only']
 def _empty(note: str) -> dict:
     return {
         'configured': False,
+        'daily_28d': [],
         'device_installs_28d': 0,
         'device_uninstalls_28d': 0,
         'first_opens_28d': 0,
@@ -130,6 +131,44 @@ def _sum_window(rows: list, days: int, date_col: str, value_cols: list) -> dict:
     return totals
 
 
+def _daily_series(rows: list, days: int, date_col: str, value_cols: list) -> list:
+    """Return one row per day across the trailing window, each row a
+    dict {date, <col1>, <col2>, ...}. Missing days are zero-filled so
+    the resulting series has uniform length for sparkline rendering.
+    Skips CSV rows with un-parseable dates or numeric values (they're
+    typically header carryovers or empty cells)."""
+    cutoff = date.today() - timedelta(days=days)
+    today = date.today()
+    by_date = {}
+    for r in rows:
+        raw_date = (r.get(date_col) or '').strip()
+        try:
+            d = datetime.strptime(raw_date, '%Y-%m-%d').date()
+        except ValueError:
+            continue
+        if d < cutoff or d > today:
+            continue
+        bucket = by_date.setdefault(d, {col: 0 for col in value_cols})
+        for col in value_cols:
+            val = (r.get(col) or '').strip()
+            if not val:
+                continue
+            try:
+                bucket[col] += int(val)
+            except ValueError:
+                try:
+                    bucket[col] += int(float(val))
+                except ValueError:
+                    pass
+    out = []
+    for offset in range(days, -1, -1):
+        d = today - timedelta(days=offset)
+        row = {'date': d.isoformat()}
+        row.update(by_date.get(d, {col: 0 for col in value_cols}))
+        out.append(row)
+    return out
+
+
 def _latest_active_devices(rows: list, date_col: str, value_col: str) -> int:
     """Active devices is a snapshot, not a sum. Take the latest row's
     value, parsed as int. Returns 0 if no parseable value."""
@@ -206,6 +245,20 @@ def _fetch_raw() -> dict:
     sums = _sum_window(rows, 28, DATE_COL, [
         DEVICE_INSTALLS, DEVICE_UNINSTALLS, USER_ACQUISITIONS, USER_INSTALLS,
     ])
+    daily = _daily_series(rows, 28, DATE_COL, [
+        DEVICE_INSTALLS, DEVICE_UNINSTALLS, USER_ACQUISITIONS, USER_INSTALLS,
+        ACTIVE_DEVICES,
+    ])
+    # Reshape daily rows to the dashboard-friendly key names so the
+    # frontend doesn't need to know Google's column titles.
+    daily_clean = [{
+        'date': r['date'],
+        'first_opens': r[USER_ACQUISITIONS],
+        'installs':    r[DEVICE_INSTALLS],
+        'uninstalls':  r[DEVICE_UNINSTALLS],
+        'user_installs': r[USER_INSTALLS],
+        'active_devices': r[ACTIVE_DEVICES],
+    } for r in daily]
     active = _latest_active_devices(rows, DATE_COL, ACTIVE_DEVICES)
 
     return {
@@ -215,6 +268,9 @@ def _fetch_raw() -> dict:
         'first_opens_28d':       sums[USER_ACQUISITIONS],
         'user_installs_28d':     sums[USER_INSTALLS],
         'active_device_installs': active,
+        # Daily series for sparklines. 29 rows: trailing 28 days + today.
+        # Zero-filled for any date Google's CSV didn't cover.
+        'daily_28d': daily_clean,
         # MAU and DAU live in a different CSV (stats/store_performance/)
         # that's harder to align. Stub for now; populate in a follow-up
         # commit once we confirm the column names against a real export.
