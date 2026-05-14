@@ -37,6 +37,33 @@ def _signals_issued(range_):
     return {sport or 'unknown': count for sport, count in rows}
 
 
+def _signal_record_by_sport(range_):
+    """Resolved record per sport in window. Returns
+    {sport: {wins, losses, pushes, revoked, pending}}.
+    Surfaces alongside _signals_issued on the dashboard so the operator
+    sees both volume and outcome on the same card."""
+    cutoff = _range_cutoff(range_)
+    rows = db.session.query(
+        Pick.sport, Pick.result, func.count(Pick.id),
+    ).filter(Pick.published_at >= cutoff).group_by(Pick.sport, Pick.result).all()
+    out = {}
+    for sport, result, count in rows:
+        key = sport or 'unknown'
+        bucket = out.setdefault(key, {'wins': 0, 'losses': 0, 'pushes': 0, 'revoked': 0, 'pending': 0})
+        r = (result or 'pending').lower()
+        if r == 'win':
+            bucket['wins'] += count
+        elif r == 'loss':
+            bucket['losses'] += count
+        elif r == 'push':
+            bucket['pushes'] += count
+        elif r == 'revoked':
+            bucket['revoked'] += count
+        else:
+            bucket['pending'] += count
+    return out
+
+
 def _bet_taps(range_, include_internal):
     """Count of bet_tap events grouped by surface, with internal toggle."""
     cutoff = _range_cutoff(range_)
@@ -243,6 +270,7 @@ def fetch(range_: Literal['7d', '30d'], include_internal: bool = False) -> dict:
     try:
         payload = {
             'signals_issued': _signals_issued(range_),
+            'signal_record_by_sport': _signal_record_by_sport(range_),
             'pass_rate':      _pass_rate(range_),
             'bet_taps':       _bet_taps(range_, include_internal),
             'unique_tappers': _unique_tappers(range_, include_internal),

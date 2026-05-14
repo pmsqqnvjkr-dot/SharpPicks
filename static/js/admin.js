@@ -913,6 +913,21 @@ function bindLiveData(metrics) {
     setStat(sport.toUpperCase(), SP_FMT.num(count));
   });
 
+  // Record by sport (signals section, right column): W-L per sport for
+  // resolved picks in the window. Plus a Pending tile summing unresolved
+  // picks across sports. Empty buckets render as 0-0.
+  const recordBySport = metrics.events?.payload?.signal_record_by_sport || {};
+  ['nba', 'mlb', 'wnba'].forEach((sport) => {
+    const rec = recordBySport[sport] || recordBySport[sport.toUpperCase()] || {};
+    const wins = rec.wins || 0;
+    const losses = rec.losses || 0;
+    const cap = sport.charAt(0).toUpperCase() + sport.slice(1);
+    setStat(`${cap} record`, `${wins}-${losses}`);
+  });
+  const totalPending = Object.values(recordBySport)
+    .reduce((sum, r) => sum + (r.pending || 0), 0);
+  setStat('Pending', SP_FMT.num(totalPending));
+
   // -- Funnel (last 7d) — replace mockup numbers with real funnel --
   const funnel = metrics.events?.payload?.funnel;
   if (Array.isArray(funnel) && funnel.length) {
@@ -2126,7 +2141,11 @@ function bindModelPerf(data) {
           if (series[i].win_rate != null) { latestSampleBySport[s] = series[i].sample_n || 0; break; }
         }
       });
-      const datasets = sports.map((s) => {
+      // Drop sports with no real data so the legend doesn't fill up with
+      // greyed-out "(insufficient)" placeholders. A sport with n<2 is
+      // statistically silent; suppressing it here keeps the canvas clean.
+      const realSports = sports.filter(s => (latestSampleBySport[s] || 0) >= 2);
+      const datasets = realSports.map((s) => {
         const series = data.win_rate_by_sport_daily[s].map(d => d.win_rate);
         const lc = s.toLowerCase();
         let borderColor, borderDash;
@@ -2141,19 +2160,6 @@ function bindModelPerf(data) {
           borderDash = [];
         }
         const n = latestSampleBySport[s] || 0;
-        if (n < 2) {
-          return {
-            label: `${s.toUpperCase()} (insufficient)`,
-            data: series.map(() => null),
-            borderColor: 'rgba(139,144,153,0.4)',
-            borderDash: [],
-            borderWidth: 1,
-            pointRadius: 0,
-            tension: 0,
-            fill: false,
-            hidden: true,
-          };
-        }
         return {
           label: `${s.toUpperCase()} (n=${n})`,
           data: series,
@@ -2166,9 +2172,18 @@ function bindModelPerf(data) {
           spanGaps: true,
         };
       });
-      const anyReal = datasets.some(ds => _hasRealValues(ds.data, 14));
+      const anyReal = datasets.some(ds => _hasRealValues(ds.data, 1));
       if (anyReal) {
-        const labels = (data.win_rate_by_sport_daily[sports[0]] || []).map(d => d.date.slice(5));
+        const labels = (data.win_rate_by_sport_daily[realSports[0]] || []).map(d => d.date.slice(5));
+        // Compute a snug y-axis that contains the data + the 52.4
+        // breakeven line + a small padding. Fixed 40-65% range hid
+        // small-sample swings (e.g. 16.7% on n=6) entirely.
+        const allVals = datasets.flatMap(ds => ds.data).filter(v => v != null);
+        allVals.push(52.4);
+        const rawMin = Math.min(...allVals);
+        const rawMax = Math.max(...allVals);
+        const yMin = Math.max(0, Math.floor((rawMin - 5) / 5) * 5);
+        const yMax = Math.min(100, Math.ceil((rawMax + 5) / 5) * 5);
         datasets.push({
           label: 'Breakeven',
           data: labels.map(() => 52.4),
@@ -2181,9 +2196,18 @@ function bindModelPerf(data) {
         });
         winChart.data.labels = labels;
         winChart.data.datasets = datasets;
+        if (winChart.options?.scales?.y) {
+          winChart.options.scales.y.min = yMin;
+          winChart.options.scales.y.max = yMax;
+        }
         winChart.update('none');
 
-        const allLowConf = sports.every(s => (latestSampleBySport[s] || 0) > 0 && (latestSampleBySport[s] || 0) < 30);
+        // Hatch + note only render when we actually have lines on the
+        // canvas (no point overlaying a stripe on an empty plot). The
+        // hatch is cosmetic context for low-confidence; the note is the
+        // explainer. Both gate on at-least-one real sport AND every
+        // shown sport being under n=30.
+        const allLowConf = realSports.every(s => (latestSampleBySport[s] || 0) > 0 && (latestSampleBySport[s] || 0) < 30);
         const hatch = document.querySelector('#panel-model .lowconf-hatch');
         const note = document.querySelector('#panel-model .lowconf-note');
         if (hatch) hatch.style.display = allLowConf ? 'block' : 'none';
@@ -2430,8 +2454,12 @@ function bindModelPerf(data) {
       return null;
     }).filter(Boolean);
     if (lastValues.length > 0) {
-      const phrase = lastValues.map(lv => `${lv.sport} ${lv.rate}%${_ciSuffix(lv.rate, lv.n)}`).join(', ');
-      _bySectionTitle('win rate', `Latest 14d-rolling win rate: ${phrase}. 52.4% is breakeven against -110 lines.`);
+      const phrase = lastValues.map(lv => `${lv.sport} ${lv.rate}% (n=${lv.n})`).join(', ');
+      const allLowConf = lastValues.every(lv => (lv.n || 0) > 0 && (lv.n || 0) < 30);
+      const tail = allLowConf
+        ? ' All samples below n=30 confidence threshold; shaded region indicates low-confidence window.'
+        : '';
+      _bySectionTitle('win rate', `14d rolling win rate: ${phrase}. Breakeven 52.4% against -110.${tail}`);
     } else {
       _bySectionTitle('win rate', 'Not enough resolved picks per sport for a 14d rolling read yet.');
     }

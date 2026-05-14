@@ -225,61 +225,24 @@
       <div class="section-content two-col">
         <div>
           <div class="col-title">issued by sport</div>
-          <div class="stat-row"><span class="label">Nba</span><span class="value">--<span class="value-suffix">of 7 scanned</span></span></div>
-          <div class="stat-row"><span class="label">Mlb</span><span class="value">--<span class="value-suffix">of 6 scanned</span></span></div>
-          <div class="stat-row"><span class="label">Wnba</span><span class="value">--<span class="value-suffix">paused</span></span></div>
+          <div class="stat-row"><span class="label">Nba</span><span class="value">--<span class="value-suffix">signals</span></span></div>
+          <div class="stat-row"><span class="label">Mlb</span><span class="value">--<span class="value-suffix">signals</span></span></div>
+          <div class="stat-row"><span class="label">Wnba</span><span class="value">--<span class="value-suffix">signals</span></span></div>
           <div class="stat-row"><span class="label">Pass rate</span><span class="value">--<span class="value-suffix">%</span></span></div>
         </div>
         <div>
-          <div class="col-title">top by tap rate · 30d</div>
-          <div class="top-list" id="top-signals-list">
-            <div class="top-list-row"><span class="top-list-rank">—</span><span class="top-list-label">Loading…</span><span class="top-list-value">—</span></div>
-          </div>
+          <div class="col-title">record by sport</div>
+          <div class="stat-row"><span class="label">Nba record</span><span class="value">--<span class="value-suffix">W-L</span></span></div>
+          <div class="stat-row"><span class="label">Mlb record</span><span class="value">--<span class="value-suffix">W-L</span></span></div>
+          <div class="stat-row"><span class="label">Wnba record</span><span class="value">--<span class="value-suffix">W-L</span></span></div>
+          <div class="stat-row"><span class="label">Pending</span><span class="value">--<span class="value-suffix">unresolved</span></span></div>
         </div>
       </div>
     </section>
 
-    <!-- FUNNEL -->
-    <section class="section" id="section-funnel">
-      <div class="section-header">
-        <span class="section-title">funnel · 7d</span>
-        <span class="section-meta">events · stripe · live</span>
-      </div>
-      <p class="section-summary"></p>
-
-      <div>
-        <div class="funnel-step">
-          <span class="label">Visit</span>
-          <span class="value" style="font-family: var(--mono); font-size: 16px;">--</span>
-          <span class="funnel-conv">--</span>
-          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width: 0;"></div></div>
-        </div>
-        <div class="funnel-step">
-          <span class="label">Signup view</span>
-          <span class="value" style="font-family: var(--mono); font-size: 16px;">--</span>
-          <span class="funnel-conv">--</span>
-          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width: 0;"></div></div>
-        </div>
-        <div class="funnel-step">
-          <span class="label">Signup complete</span>
-          <span class="value" style="font-family: var(--mono); font-size: 16px;">--</span>
-          <span class="funnel-conv">--</span>
-          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width: 0;"></div></div>
-        </div>
-        <div class="funnel-step">
-          <span class="label">Trial started</span>
-          <span class="value" style="font-family: var(--mono); font-size: 16px;">--</span>
-          <span class="funnel-conv">--</span>
-          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width: 0;"></div></div>
-        </div>
-        <div class="funnel-step">
-          <span class="label">Paid conversion</span>
-          <span class="value" style="font-family: var(--mono); font-size: 16px;">--</span>
-          <span class="funnel-conv">--</span>
-          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width: 0;"></div></div>
-        </div>
-      </div>
-    </section>
+    <!-- FUNNEL section removed pending instrumentation; bring back when
+         /api/events surfaces session_start + signup_view counts that
+         actually populate. -->
 
     <!-- ACQUISITION · ANDROID + IOS · 28D -->
     <section class="section" id="section-acquisition">
@@ -356,29 +319,9 @@
       </div>
     </section>
 
-    <!-- BET TAPS -->
-    <section class="section" id="section-bet-taps">
-      <div class="section-header">
-        <span class="section-title">bet taps · 7d</span>
-        <span class="section-meta">events · live · external only</span>
-      </div>
-      <p class="section-summary"></p>
-
-      <div class="section-content two-col">
-        <div>
-          <div class="col-title">by surface</div>
-          <div class="stat-row"><span class="label">Signal card</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Place own bet</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Unique tappers</span><span class="value">--</span></div>
-        </div>
-        <div>
-          <div class="col-title">recent</div>
-          <div class="recent-rows" id="recent-bet-taps">
-            <div class="recent-row empty"><span class="meta">No bet taps in the last 7 days.</span></div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <!-- BET TAPS section removed; instrumentation has been zero for
+         weeks. Restore when external-bet-tap events start firing
+         consistently. -->
 
     <!-- FRESHNESS / TOGGLE -->
     <div class="freshness">
@@ -581,10 +524,10 @@
       <div class="section-content chart-plus-stats">
         <div>
           <div class="chart-wrap tall" style="position:relative;">
-            <div class="lowconf-note" style="display:none;position:absolute;top:6px;left:0;right:0;text-align:center;font-style:italic;font-size:9px;color:rgba(139,144,153,0.7);z-index:2;pointer-events:none;">All samples in low-confidence window (n &lt; 30)</div>
             <canvas id="chart-winrate" role="img" aria-label="Rolling 14-day win rate by sport over 90 days"></canvas>
-            <div class="lowconf-hatch" style="display:none;position:absolute;inset:0;pointer-events:none;background-image:repeating-linear-gradient(45deg,rgba(139,144,153,0.18) 0,rgba(139,144,153,0.18) 1px,transparent 1px,transparent 6px);z-index:1;"></div>
+            <div class="lowconf-hatch" style="display:none;position:absolute;inset:0;pointer-events:none;background-image:repeating-linear-gradient(45deg,rgba(139,144,153,0.10) 0,rgba(139,144,153,0.10) 1px,transparent 1px,transparent 8px);z-index:1;"></div>
           </div>
+          <div class="lowconf-note" style="display:none;margin-top:6px;text-align:center;font-style:italic;font-size:9px;color:rgba(139,144,153,0.7);">All samples in low-confidence window (n &lt; 30)</div>
         </div>
         <div>
           <div class="col-title">snapshot</div>
