@@ -47,7 +47,12 @@ python3 scripts/generate_missing_blog_posts.py --target landing/blog
 
 echo
 echo "==> Deploying to Cloudflare Pages..."
-npx wrangler pages deploy landing --project-name sharppicks-landing --branch main
+# Clear CLOUDFLARE_API_TOKEN for the wrangler invocation only. If it's
+# set in the shell (e.g. via .zshrc) with IP allowlist restrictions,
+# wrangler picks it up and hits code 9109 / 10000 errors. Empty value
+# tells wrangler to fall back to cached OAuth credentials in
+# ~/.wrangler/config/default.toml (set up via `npx wrangler login`).
+CLOUDFLARE_API_TOKEN= npx wrangler pages deploy landing --project-name sharppicks-landing --branch main
 
 echo
 echo "==> Cleaning generated (untracked) blog posts..."
