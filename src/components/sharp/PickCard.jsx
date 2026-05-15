@@ -86,6 +86,20 @@ export default function PickCard({ pick, isPro, liveScore, onUpgrade, onTrack, o
 
   const [showTrackForm, setShowTrackForm] = useState(false);
 
+  // Fire view_pick once per mount. eventTracker promotes surface,
+  // signal_id, and sport into dedicated user_events columns server
+  // side, which is what the dashboard funnel + top_signals queries
+  // filter on. Defensive guards skip the call when pick is partial
+  // (rare, but happens during early hydration of the today screen).
+  useEffect(() => {
+    if (!pick?.id || !pick?.sport) return;
+    trackEvent('view_pick', {
+      surface: 'signal_screen',
+      signal_id: pick.id,
+      sport: pick.sport,
+    });
+  }, []);
+
   const handleTrackPick = async (betData) => {
     setTracking(true);
     setTrackError(null);

@@ -67,9 +67,18 @@ class EventTracker {
 
   track(eventType, eventData = {}, page = null) {
     this.lastActivity = Date.now();
+    // The server route at app.py:4242 accepts both flat and nested
+    // shapes. The dashboard funnel, bet_tap, and top_signals queries
+    // filter on dedicated columns (surface, signal_id, sport). Promote
+    // those three out of event_data so they land in the columns rather
+    // than buried in the JSON blob. Everything else stays nested.
+    const { surface, signal_id, sport, ...rest } = eventData || {};
     this.queue.push({
       event_type: eventType,
-      event_data: eventData,
+      event_data: rest,
+      ...(surface !== undefined ? { surface } : {}),
+      ...(signal_id !== undefined ? { signal_id } : {}),
+      ...(sport !== undefined ? { sport } : {}),
       page: page || this.currentPage,
       session_id: this.sessionId,
       timestamp: new Date().toISOString(),
