@@ -225,11 +225,11 @@ def get_team_bullpen_fatigue(team_abbrev, game_date=None):
         if not _warned_no_data:
             logger.warning(
                 f"No ESPN bullpen data for {team_abbrev} game_date={game_date}; "
-                f"falling back to league-average fatigue ({LEAGUE_AVG_FATIGUE} IP). "
+                f"returning NaN (model imputer fills). "
                 f"This warning is suppressed for the rest of the process."
             )
             _warned_no_data = True
-        return LEAGUE_AVG_FATIGUE, LEAGUE_AVG_HEAVY_USAGE
+        return None, None
     result = compute_bullpen_fatigue(logs)
     return result['fatigue_score'], result['heavy_usage_yesterday']
 
@@ -245,7 +245,7 @@ def _cached_bullpen(team_abbrev, game_date):
     directory, which is gitignored.
     """
     if not team_abbrev or not game_date:
-        return LEAGUE_AVG_FATIGUE, LEAGUE_AVG_HEAVY_USAGE
+        return None, None
     try:
         key = hashlib.md5(f"{team_abbrev}:{game_date}".encode()).hexdigest()
         cache_path = os.path.join(_BULLPEN_CACHE_DIR, f"{key}.json")
@@ -256,7 +256,14 @@ def _cached_bullpen(team_abbrev, game_date):
         try:
             with open(cache_path) as f:
                 d = json.load(f)
-            return float(d.get('fatigue', LEAGUE_AVG_FATIGUE)), int(d.get('heavy', LEAGUE_AVG_HEAVY_USAGE))
+            # Cached value may be JSON null (real missing data) or a
+            # legacy league-average write from before the NaN switch.
+            # Pass None through; the model imputer handles it.
+            fat = d.get('fatigue')
+            hvy = d.get('heavy')
+            fat_out = float(fat) if fat is not None else None
+            hvy_out = int(hvy) if hvy is not None else None
+            return fat_out, hvy_out
         except Exception:
             pass
 

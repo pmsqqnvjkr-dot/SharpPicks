@@ -18,6 +18,7 @@ from sport_config import get_sport_config
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier, AdaBoostClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
 from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 from sklearn.metrics import accuracy_score, classification_report, brier_score_loss
 import xgboost as xgb
@@ -314,6 +315,14 @@ class EnsemblePredictor:
         self.models = {}
         self.margin_model = None
         self.scaler = StandardScaler()
+        # Imputer fits on training X with strategy='mean'. Replaces the
+        # previous module-level fillna(0) blanket so true-missing data
+        # (e.g., no umpire assignment) reaches the variance filter as
+        # NaN, survives, and gets a learned weight. None on a fresh
+        # instance; set during train(). load_model() restores from
+        # pickle; older pickles without an imputer set this to None and
+        # the predict path falls back to fillna(0).
+        self.imputer = None
         self.trained = False
         self.feature_names = []
         self.dropped_features = []
@@ -972,15 +981,21 @@ class EnsemblePredictor:
                 'OAK': {'factor': 0.89, 'runs': 0.91, 'outdoor': 1},
                 'MIA': {'factor': 0.88, 'runs': 0.90, 'outdoor': 0},
             }
-            _neutral = {'factor': 1.0, 'runs': 1.0, 'outdoor': 1}
+            # Park factors fall back to NaN for unknown abbreviations so
+            # the model imputer handles the missing case rather than
+            # forcing every unmapped team to a synthetic neutral value
+            # that collapses cross-park variance. The 28 mapped parks
+            # cover every active MLB stadium; NaN here means a data bug
+            # (renamed team abbrev, expansion club) worth seeing.
+            _missing = {'factor': np.nan, 'runs': np.nan, 'outdoor': np.nan}
             features['park_factor'] = df['home_team'].apply(
-                lambda t: MLB_PARK_FACTORS.get(_mlb_abbrev(t), _neutral)['factor']
+                lambda t: MLB_PARK_FACTORS.get(_mlb_abbrev(t), _missing)['factor']
             ).astype(float)
             features['park_factor_runs'] = df['home_team'].apply(
-                lambda t: MLB_PARK_FACTORS.get(_mlb_abbrev(t), _neutral)['runs']
+                lambda t: MLB_PARK_FACTORS.get(_mlb_abbrev(t), _missing)['runs']
             ).astype(float)
             features['park_is_outdoor'] = df['home_team'].apply(
-                lambda t: MLB_PARK_FACTORS.get(_mlb_abbrev(t), _neutral)['outdoor']
+                lambda t: MLB_PARK_FACTORS.get(_mlb_abbrev(t), _missing)['outdoor']
             ).astype(float)
 
             league_avg_era = 4.20
@@ -1141,6 +1156,11 @@ class EnsemblePredictor:
             ml_implies_home = (home_implied > 0.5).astype(float)
             features['rl_ml_agree'] = (spread_implies_home == ml_implies_home).astype(int)
 
+            # Umpire RPGI: real value for games with a confirmed plate
+            # umpire, NaN otherwise. The model imputer fills the gaps
+            # downstream. The previous league-average fallback at this
+            # site flattened variance and got ump_rpgi/ump_deviation
+            # dropped at training as zero-variance.
             league_avg_rpgi = 8.8
             existing_ump = pd.to_numeric(df.get('ump_rpgi', pd.Series([None]*len(df), index=df.index)), errors='coerce')
             ump_rpgi_series = existing_ump.copy()
@@ -1157,11 +1177,6 @@ class EnsemblePredictor:
                             date_to_assignments[d] = _cached_assignments(d) or {}
                         except Exception:
                             date_to_assignments[d] = {}
-                    # MLB Stats API serves umpire assignments back to ~2023 reliably,
-                    # but older or off-season rows may return empty -> league-average
-                    # fallback. That's still better than zero-variance: rows with real
-                    # assignments contribute genuine signal, and the model can learn
-                    # whether the umpire effect is informative.
                     for idx in df.index[needs_lookup]:
                         gd = str(df.at[idx, 'game_date']) if pd.notna(df.at[idx, 'game_date']) else ''
                         ht = _mlb_abbrev(str(df.at[idx, 'home_team']).strip())
@@ -1172,17 +1187,24 @@ class EnsemblePredictor:
                             try:
                                 rpgi = get_umpire_features(ump_name)[0]
                             except Exception:
-                                rpgi = league_avg_rpgi
-                            ump_rpgi_series.at[idx] = float(rpgi)
+                                rpgi = None
+                            if rpgi is not None:
+                                ump_rpgi_series.at[idx] = float(rpgi)
             except Exception as e:
                 print(f"   ⚠️ MLB umpire RPGI lookup error: {e}")
-            features['ump_rpgi'] = ump_rpgi_series.fillna(league_avg_rpgi).astype(float)
+            features['ump_rpgi'] = ump_rpgi_series.astype(float)
             features['ump_deviation'] = features['ump_rpgi'] - league_avg_rpgi
 
-            features['home_bullpen_fatigue'] = pd.Series(0.0, index=df.index)
-            features['away_bullpen_fatigue'] = pd.Series(0.0, index=df.index)
-            features['bullpen_fatigue_diff'] = pd.Series(0.0, index=df.index)
-            features['bullpen_usage_yesterday'] = pd.Series(0.0, index=df.index)
+            # Bullpen features: NaN when ESPN has no usable pitching
+            # logs (historical season, off-season, transient API
+            # failure). Previously these initialized to 0.0 and any
+            # missing-data row carried zero through, which made the
+            # cross-row variance collapse and the variance filter
+            # dropped all four columns at training time.
+            features['home_bullpen_fatigue'] = pd.Series(np.nan, index=df.index, dtype=float)
+            features['away_bullpen_fatigue'] = pd.Series(np.nan, index=df.index, dtype=float)
+            features['bullpen_fatigue_diff'] = pd.Series(np.nan, index=df.index, dtype=float)
+            features['bullpen_usage_yesterday'] = pd.Series(np.nan, index=df.index, dtype=float)
             try:
                 if 'game_date' in df.columns:
                     from mlb_bullpen import _cached_bullpen
@@ -1193,10 +1215,19 @@ class EnsemblePredictor:
                         if ht and at and gd:
                             h_fat, h_heavy = _cached_bullpen(ht, gd)
                             a_fat, a_heavy = _cached_bullpen(at, gd)
-                            features.at[idx, 'home_bullpen_fatigue'] = h_fat
-                            features.at[idx, 'away_bullpen_fatigue'] = a_fat
-                            features.at[idx, 'bullpen_fatigue_diff'] = a_fat - h_fat
-                            features.at[idx, 'bullpen_usage_yesterday'] = float(max(h_heavy, a_heavy))
+                            # Only write a real value when both sides
+                            # resolved; partial data on one team would
+                            # produce a one-sided diff that misleads.
+                            if h_fat is not None:
+                                features.at[idx, 'home_bullpen_fatigue'] = float(h_fat)
+                            if a_fat is not None:
+                                features.at[idx, 'away_bullpen_fatigue'] = float(a_fat)
+                            if h_fat is not None and a_fat is not None:
+                                features.at[idx, 'bullpen_fatigue_diff'] = float(a_fat) - float(h_fat)
+                            if h_heavy is not None or a_heavy is not None:
+                                features.at[idx, 'bullpen_usage_yesterday'] = float(
+                                    max(h_heavy or 0, a_heavy or 0)
+                                )
             except Exception as e:
                 print(f"   ⚠️ MLB bullpen fatigue error: {e}")
 
@@ -1246,7 +1277,14 @@ class EnsemblePredictor:
         else:
             sample_weights = np.ones(len(df))
         
-        X = X.fillna(0)
+        # Variance filter on raw X. pandas .var() ignores NaN by
+        # default, so a column that has real values on 40% of rows and
+        # NaN on the rest contributes the real-data variance — which is
+        # the whole point of switching away from the blanket fillna(0)
+        # that used to live here. Features like ump_deviation,
+        # bullpen_fatigue_diff, and park_factor_runs survive now that
+        # their missing-data rows are NaN instead of league-average
+        # constants.
         variances = X.var()
         zero_var_cols = variances[variances < 1e-10].index.tolist()
         candidate_count = X.shape[1]
@@ -1267,20 +1305,73 @@ class EnsemblePredictor:
         self.dropped_features_by_category = by_category
         self.feature_names = X.columns.tolist()
         print(f"   📋 Using {len(self.feature_names)} features\n")
-        
+
+        # Visibility: report which previously-dropped MLB features
+        # survived the variance filter. Pre-fix these were all dropped
+        # because constant fallbacks collapsed their variance. After the
+        # fix they should appear in self.feature_names. The training
+        # logs are the cheapest way to confirm the fix worked without
+        # opening a pickle.
+        if self.sport == 'mlb':
+            mlb_recovered = [f for f in (
+                'ump_rpgi', 'ump_deviation',
+                'home_bullpen_fatigue', 'away_bullpen_fatigue',
+                'bullpen_fatigue_diff', 'bullpen_usage_yesterday',
+                'park_factor', 'park_factor_runs', 'park_is_outdoor',
+            ) if f in self.feature_names]
+            mlb_still_dropped = [f for f in (
+                'ump_rpgi', 'ump_deviation',
+                'home_bullpen_fatigue', 'away_bullpen_fatigue',
+                'bullpen_fatigue_diff', 'bullpen_usage_yesterday',
+                'park_factor', 'park_factor_runs', 'park_is_outdoor',
+            ) if f in zero_var_cols]
+            print(f"   ✓ MLB features in model: {mlb_recovered}")
+            if mlb_still_dropped:
+                print(f"   ⚠️  MLB features still dropped (insufficient real-data variance): {mlb_still_dropped}")
+
         # Temporal split: sort by date, use most recent 20% as test to avoid data leakage
         sort_order = np.argsort(df['game_date'].values)
         split_point = int(len(sort_order) * 0.8)
         train_idx = sort_order[:split_point]
         test_idx = sort_order[split_point:]
-        
+
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
         weights_train = sample_weights[train_idx]
-        
+
+        # feature_means/stds computed BEFORE imputation so they reflect
+        # the real-data distribution (used by SHAP / scoring at
+        # line 1470). pandas .mean()/.std() ignore NaN by default.
         self.feature_means = X_train.mean().to_dict()
         self.feature_stds = X_train.std().to_dict()
-        
+
+        # Fit the mean-imputer on training X. The imputer is then
+        # applied to both train and test before the scaler. Mean is a
+        # standard, well-understood choice; learns the same value for
+        # every missing cell in a column, which preserves the variance
+        # already captured by the rows with real data.
+        self.imputer = SimpleImputer(strategy='mean')
+        X_train_imputed = pd.DataFrame(
+            self.imputer.fit_transform(X_train),
+            columns=X_train.columns,
+            index=X_train.index,
+        )
+        X_test_imputed = pd.DataFrame(
+            self.imputer.transform(X_test),
+            columns=X_test.columns,
+            index=X_test.index,
+        )
+        # Replace X with the imputed version downstream so any later
+        # consumer (e.g. the KFold block at line 1376) sees consistent
+        # data. X_train / X_test are reassigned for the scaler call.
+        X = pd.DataFrame(
+            self.imputer.transform(X),
+            columns=X.columns,
+            index=X.index,
+        )
+        X_train = X_train_imputed
+        X_test = X_test_imputed
+
         X_train_scaled = self.scaler.fit_transform(X_train)
         X_test_scaled = self.scaler.transform(X_test)
         
@@ -1491,6 +1582,20 @@ class EnsemblePredictor:
     def predict_proba(self, X):
         """Get averaged probability predictions from all models"""
         if isinstance(X, pd.DataFrame):
+            # If X reached here un-imputed (any caller path that hands
+            # raw engineered features straight to predict_proba), run
+            # the imputer first. Most callers in the predict() flow
+            # already imputed upstream; this branch makes the function
+            # robust to that being skipped. Backward-compat: pickles
+            # without an imputer fall back to fillna(0).
+            if self.imputer is not None and X.isna().any().any():
+                X = pd.DataFrame(
+                    self.imputer.transform(X),
+                    columns=X.columns,
+                    index=X.index,
+                )
+            elif self.imputer is None:
+                X = X.fillna(0)
             X = self.scaler.transform(X)
         
         predictions = []
@@ -1663,6 +1768,21 @@ class EnsemblePredictor:
             X[feat] = 0
         X = X[self.feature_names]
 
+        # Imputer applies the column means learned at training. Old
+        # pickles saved before the imputer was added load with
+        # self.imputer = None; fall back to the historical fillna(0)
+        # for those so prod doesn't break on the first deploy after
+        # this change. Once every sport has retrained, this branch is
+        # dead.
+        if self.imputer is not None:
+            X = pd.DataFrame(
+                self.imputer.transform(X),
+                columns=X.columns,
+                index=X.index,
+            )
+        else:
+            X = X.fillna(0)
+
         X_scaled = self.scaler.transform(X)
         
         ensemble_proba = self.predict_proba(X_scaled)
@@ -1728,38 +1848,44 @@ class EnsemblePredictor:
                     try:
                         feat_row = X_full.iloc[idx]
 
+                        # Each adjustment runs ONLY when the feature
+                        # was dropped at training (not in
+                        # self.feature_names). When the imputer fix
+                        # works and the feature survives, the ensemble
+                        # learns a weight directly and applying a
+                        # post-hoc bump here would double-count. The
+                        # adjustment block stays as a graceful fallback
+                        # for any feature that still gets pruned (e.g.,
+                        # a future column with too little real data).
+
                         # Bullpen fatigue differential. Positive = away
                         # team's bullpen is more taxed than home's, so
                         # home is more likely to score late and widen
                         # its margin. 0.15 runs per unit of fatigue
-                        # differential is conservative; fatigue scores
-                        # range roughly 0-5, so a one-std-dev gap moves
-                        # pred_margin by ~0.3 runs.
-                        bp_diff = feat_row.get('bullpen_fatigue_diff', 0) or 0
-                        pred_margin += 0.15 * float(bp_diff)
+                        # differential is conservative.
+                        if 'bullpen_fatigue_diff' not in self.feature_names:
+                            bp_diff = feat_row.get('bullpen_fatigue_diff', 0) or 0
+                            pred_margin += 0.15 * float(bp_diff)
 
                         # Umpire run expectancy delta vs league average.
                         # High-scoring umpires widen typical margins,
-                        # which favors whichever side already projects
-                        # to win. Apply sign-aware so a high-rpgi ump
-                        # boosts the side our pred_margin already
-                        # points toward.
-                        ump_dev = feat_row.get('ump_deviation', 0) or 0
-                        if pred_margin != 0:
-                            margin_sign = 1.0 if pred_margin > 0 else -1.0
-                            pred_margin += 0.20 * float(ump_dev) * margin_sign
+                        # boosting the side pred_margin already points
+                        # toward.
+                        if 'ump_deviation' not in self.feature_names:
+                            ump_dev = feat_row.get('ump_deviation', 0) or 0
+                            if pred_margin != 0:
+                                margin_sign = 1.0 if pred_margin > 0 else -1.0
+                                pred_margin += 0.20 * float(ump_dev) * margin_sign
 
                         # Park factor (runs-specific). park_factor_runs
-                        # is the multiplicative run expectancy at the
-                        # home park (0.88 in pitcher-friendly Marlins
-                        # Park, 1.32 in Coors). High-run parks widen
-                        # absolute margins; scale pred_margin by the
-                        # park's deviation from neutral (1.0), capped
-                        # at +/- 8% so a single park can't dominate the
-                        # adjustment.
-                        park = feat_row.get('park_factor_runs', 1.0) or 1.0
-                        park_adj = max(-0.08, min(0.08, float(park) - 1.0))
-                        pred_margin *= (1.0 + park_adj)
+                        # is multiplicative run expectancy at the home
+                        # park (0.88 Marlins Park, 1.32 Coors). Scale
+                        # pred_margin by the park's deviation from
+                        # neutral 1.0, capped at +/- 8%.
+                        if 'park_factor_runs' not in self.feature_names:
+                            park = feat_row.get('park_factor_runs', 1.0) or 1.0
+                            park_adj = max(-0.08, min(0.08, float(park) - 1.0))
+                            pred_margin *= (1.0 + park_adj)
                     except (KeyError, IndexError, TypeError, ValueError):
                         # X_full row may not have the feature column
                         # (e.g., during a partial retrain) or value may
@@ -3056,6 +3182,7 @@ class EnsemblePredictor:
             'models': self.models,
             'base_models': self.base_models,
             'scaler': self.scaler,
+            'imputer': self.imputer,
             'feature_names': self.feature_names,
             'trained': self.trained,
             'calibration_stats': self.calibration_stats,
@@ -3087,6 +3214,10 @@ class EnsemblePredictor:
             self.models = model_data['models']
             self.base_models = model_data.get('base_models', self.base_models)
             self.scaler = model_data['scaler']
+            # Older pickles don't carry an imputer. None signals to the
+            # predict path to fall back to fillna(0) until the next
+            # retrain regenerates the pickle with a fitted imputer.
+            self.imputer = model_data.get('imputer', None)
             self.feature_names = model_data['feature_names']
             self.trained = model_data['trained']
             self.calibration_stats = model_data.get('calibration_stats', {})

@@ -133,8 +133,14 @@ export default function PicksTab({ onNavigate }) {
   const [tonightBets, setTonightBets] = useState(null);
   const [yesterdayReport, setYesterdayReport] = useState(null);
   const modelRunHour = todayData?.model_run_hour
-    || ({ mlb: 11, wnba: 10 }[sport])
+    || ({ mlb: 12, wnba: 10 }[sport])
     || 10;
+  // model_runs_at from the API includes minutes ("12:15 PM ET"). The
+  // fallback only triggers when the API field is missing and is
+  // hour-resolution only; that's an acceptable degradation for an
+  // already-degraded code path. MLB shows "12:00 PM ET" in that case
+  // — off by 15 min vs the real 12:15 schedule, but no longer the
+  // pre-2026-05-14 "11:00 AM ET" or post-fix "1:00 PM ET" miss.
   const modelRunLabel = todayData?.model_runs_at || (modelRunHour <= 12 ? `${modelRunHour}:00 AM ET` : `${modelRunHour - 12}:00 PM ET`);
   const countdown = useCountdownTo(modelRunHour);
 

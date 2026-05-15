@@ -219,9 +219,16 @@ def get_umpire_features(umpire_name):
     """
     Return umpire run-scoring features for a given umpire name.
     Returns (rpgi, runs_delta, k_rate_delta).
+
+    Returns (None, None, None) when the umpire is unknown. Callers
+    must persist these as NULL/NaN — the previous league-average
+    fallback collapsed cross-game variance and got every umpire
+    feature dropped at training as zero-variance. NaN preserves real
+    variance from games with known umpires; the model's imputer
+    handles the missing-data case.
     """
     if not umpire_name:
-        return LEAGUE_AVG_RPGI, 0.0, 0.0
+        return None, None, None
 
     stats = UMP_CAREER_STATS.get(umpire_name)
     if not stats:
@@ -231,7 +238,7 @@ def get_umpire_features(umpire_name):
                 break
 
     if not stats:
-        return LEAGUE_AVG_RPGI, 0.0, 0.0
+        return None, None, None
 
     rpgi = stats['rpgi']
     runs_delta = rpgi - LEAGUE_AVG_RPGI
