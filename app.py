@@ -9810,11 +9810,40 @@ def admin_test_emails():
     except Exception as e:
         results['welcome'] = str(e)
 
-    # 7. Weekly recap. Now lifecycle-dispatched per user, not a one-shot
-    # send_email call. Test by hitting /api/cron/weekly-summary on
-    # staging with EMAIL_OVERRIDE_TO set, which reroutes every outbound
-    # to your inbox. See send_weekly_summary_job + services/weekly_recap_data.
-    results['weekly_recap'] = 'dispatched via /api/cron/weekly-summary; see EMAIL_OVERRIDE_TO'
+    # 7. Weekly recap. Lifecycle-dispatched per user. To exercise the
+    # template without firing to every pro user, we set EMAIL_OVERRIDE_TO
+    # for the duration of this single dispatch, find the first eligible
+    # pro user (any one works since the override reroutes the recipient),
+    # and call dispatch_lifecycle_email directly. Real prod env vars are
+    # restored in the finally block so a stuck override can't leak into
+    # later sends.
+    try:
+        from services.lifecycle_emails import dispatch_lifecycle_email
+        from services.weekly_recap_data import (
+            compute_model_stats, compute_user_inset, build_recap_overrides,
+        )
+        prev_override = os.environ.get('EMAIL_OVERRIDE_TO', '')
+        os.environ['EMAIL_OVERRIDE_TO'] = to
+        try:
+            stats = compute_model_stats(db)
+            sample_user = User.query.filter(
+                User.subscription_status.in_(['active', 'trial', 'cancelling']),
+                User.email_verified == True,  # noqa: E712
+            ).first()
+            if sample_user is None:
+                results['weekly_recap'] = 'no eligible pro user to template against'
+            else:
+                inset = compute_user_inset(db, sample_user.id, stats['window_start'], stats['window_end'])
+                variant_key, overrides = build_recap_overrides(stats, user_inset=inset)
+                sent = dispatch_lifecycle_email(sample_user, variant_key, overrides=overrides)
+                results['weekly_recap'] = f'{variant_key} dispatched' if sent else 'dispatch returned false'
+        finally:
+            if prev_override:
+                os.environ['EMAIL_OVERRIDE_TO'] = prev_override
+            else:
+                os.environ.pop('EMAIL_OVERRIDE_TO', None)
+    except Exception as e:
+        results['weekly_recap'] = str(e)
 
     # 8. Verification email
     try:
