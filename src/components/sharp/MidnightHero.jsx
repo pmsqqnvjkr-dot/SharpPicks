@@ -32,20 +32,35 @@ const SP = {
 };
 
 // Sport-specific morning model-run time (ET). Mirrors sport_config.py
-// model_run_hour exactly so this UI countdown lines up with the backend
-// watchdog threshold (app.py:5577 fires for NBA when et_hour >= 10).
+// model_run_hour/model_run_minute so this UI countdown lines up with
+// the backend watchdog thresholds. Structure carries {hour, minute}
+// pairs because MLB now runs at 12:15 — whole-hour values were too
+// coarse and were silently showing 1:00 PM after the schedule shift.
 //   NBA  10:00 AM ET
-//   MLB   1:00 PM ET   (shifted from 11 AM on 2026-05-12; the late
-//                       morning run was firing before starting pitchers
-//                       were confirmed, driving high pre-tip revocation)
+//   MLB  12:15 PM ET   (shifted from 1 PM on 2026-05-14 because 1 PM
+//                       missed 12:30 ET first pitches; the earlier
+//                       11 AM run fired before pitchers were confirmed)
 //   WNBA 10:00 AM ET
-const MODEL_RUN_HOUR_ET = { nba: 10, mlb: 13, wnba: 10 };
-const PUBLISH_HOUR_ET = { nba: 11, mlb: 14, wnba: 11 };
+const MODEL_RUN_TIME_ET = {
+  nba:  { hour: 10, minute: 0 },
+  mlb:  { hour: 12, minute: 15 },
+  wnba: { hour: 10, minute: 0 },
+};
+// Edges publish ~30 min after the model run completes — covers the
+// run duration + DB write + push notification fanout. MLB collapses
+// to ~15 min because the 12:15 publish needs to land before 12:30 ET
+// first pitches.
+const PUBLISH_TIME_ET = {
+  nba:  { hour: 11, minute: 0 },
+  mlb:  { hour: 12, minute: 30 },
+  wnba: { hour: 11, minute: 0 },
+};
 
-function fmtClockET(hourEt) {
-  const h12 = ((hourEt + 11) % 12) + 1;
-  const ampm = hourEt < 12 ? 'AM' : 'PM';
-  return `${h12}:00 ${ampm} ET`;
+function fmtClockET({ hour, minute = 0 }) {
+  const h12 = ((hour + 11) % 12) + 1;
+  const ampm = hour < 12 ? 'AM' : 'PM';
+  const mm = String(minute).padStart(2, '0');
+  return `${h12}:${mm} ${ampm} ET`;
 }
 
 // Format a YYYY-MM-DD string (already in the slate's ET calendar day)
@@ -87,7 +102,9 @@ function useNowET() {
   }, [now]);
 }
 
-function useNextRunCountdown(targetHourEt) {
+function useNextRunCountdown(target) {
+  const targetHour = target?.hour ?? 0;
+  const targetMinute = target?.minute ?? 0;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60000);
@@ -102,7 +119,7 @@ function useNextRunCountdown(targetHourEt) {
       const hour = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
       const min = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
       const currentMin = hour * 60 + min;
-      const targetMin = targetHourEt * 60;
+      const targetMin = targetHour * 60 + targetMinute;
       let diff = targetMin - currentMin;
       if (diff <= 0) diff += 24 * 60;
       const h = Math.floor(diff / 60);
@@ -110,14 +127,14 @@ function useNextRunCountdown(targetHourEt) {
       if (h === 0) return `${m}m`;
       return `${h}h ${String(m).padStart(2, '0')}m`;
     } catch { return ''; }
-  }, [now, targetHourEt]);
+  }, [now, targetHour, targetMinute]);
 }
 
 export default function MidnightHero({ sport = 'nba', yesterdayGames, yesterdaySignals, tomorrowGameCount, nextSlateDate }) {
   const sportLabel = (sport || 'nba').toUpperCase();
-  const runHour = MODEL_RUN_HOUR_ET[sport] ?? 9;
-  const publishHour = PUBLISH_HOUR_ET[sport] ?? 10;
-  const countdown = useNextRunCountdown(runHour);
+  const runTime = MODEL_RUN_TIME_ET[sport] ?? { hour: 9, minute: 0 };
+  const publishTime = PUBLISH_TIME_ET[sport] ?? { hour: 10, minute: 0 };
+  const countdown = useNextRunCountdown(runTime);
   const { dateLine: nowDateET, timeLine: nowTimeET } = useNowET();
 
   const scannedLine = (yesterdayGames != null && yesterdayGames > 0)
@@ -177,9 +194,9 @@ export default function MidnightHero({ sport = 'nba', yesterdayGames, yesterdayS
       }}>
         {scannedLine && <><strong style={{ color: SP.text, fontWeight: 500 }}>{scannedLine}</strong>{' '}</>}
         The next {sportLabel} slate enters the model at{' '}
-        <strong style={{ color: SP.text, fontWeight: 500 }}>{fmtClockET(runHour)}</strong>.{' '}
+        <strong style={{ color: SP.text, fontWeight: 500 }}>{fmtClockET(runTime)}</strong>.{' '}
         Edges publish after the run completes, typically by{' '}
-        <strong style={{ color: SP.text, fontWeight: 500 }}>{fmtClockET(publishHour)}</strong>.
+        <strong style={{ color: SP.text, fontWeight: 500 }}>{fmtClockET(publishTime)}</strong>.
       </p>
 
       <div style={{
@@ -192,7 +209,7 @@ export default function MidnightHero({ sport = 'nba', yesterdayGames, yesterdayS
             textTransform: 'uppercase', color: SP.text3,
           }}>Next model run</span>
           <span style={{ fontFamily: SP.fontMono, fontSize: '13px', fontWeight: 500, color: SP.text, letterSpacing: '0.04em' }}>
-            {fmtClockET(runHour)}
+            {fmtClockET(runTime)}
             {countdown && <span style={{ color: SP.text3, marginLeft: '6px' }}>· in {countdown}</span>}
           </span>
         </div>
