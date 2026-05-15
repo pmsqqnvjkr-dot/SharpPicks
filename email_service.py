@@ -649,7 +649,27 @@ def send_signal_email(to, pick):
         'unsubscribe_url': _make_unsub_url(to, 'email_signals'),
     })
 
-    html = _render_jinja('signal.html', ctx)
+    html = None
+    if _email_v2_enabled():
+        v2_tpl = '02-signal_mlb.html' if sport == 'mlb' else '01-signal_nba.html'
+        v2_ctx = {
+            'sport_label': sport_tag,
+            'side': side,
+            'matchup_short': f"{ctx['away_team_abbr']} @ {ctx['home_team_abbr']}",
+            'game_time': ctx['game_time'],
+            'edge_pct': ctx['edge_pct'],
+            'edge_strength': ctx['edge_strength'],
+            'model_prob': ctx['model_prob'],
+            'market_prob': ctx['market_prob'],
+            'margin_projection': ctx['margin_projection'] if ctx['margin_projection'] is not None else '—',
+            'pick_line': ctx['pick_line'],
+            'sportsbook': sportsbook,
+            'signal_url': f'{base}/picks',
+        }
+        html = _render_jinja_v2(v2_tpl, v2_ctx)
+
+    if html is None:
+        html = _render_jinja('signal.html', ctx)
     if not html:
         body = f'''
         <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:28px;font-weight:700;color:#E8EAED;margin:0 0 8px;">{side}</p>
@@ -791,7 +811,37 @@ def send_result_email(to, pick):
         'unsubscribe_url': _make_unsub_url(to, 'email_results'),
     })
 
-    html = _render_jinja('grading.html', ctx)
+    html = None
+    if _email_v2_enabled() and result in ('win', 'loss'):
+        # v2 result templates exist for win + loss only. Pushes fall back
+        # to legacy grading.html which renders them with neutral styling.
+        v2_tpl = '03-result_win.html' if is_win else '04-result_loss.html'
+        profit_val = ctx.get('profit_units') if ctx.get('profit_units') is not None else 0
+        units_str = (f"+{profit_val:.1f}u" if is_win else f"{profit_val:.1f}u")
+        score_line = f"{ctx['away_team_abbr']} {ctx['final_score_away']} · {ctx['home_team_abbr']} {ctx['final_score_home']}"
+        cm = ctx.get('cover_margin')
+        cm_str = (f"+{cm}" if cm is not None and cm > 0 else (str(cm) if cm is not None else '--'))
+        if cm is not None:
+            cover_desc = f"Covered by {abs(cm)} points" if is_win else f"Missed by {abs(cm)} points"
+        else:
+            cover_desc = ''
+        html = _render_jinja_v2(v2_tpl, {
+            'side': side,
+            'result_label': 'WIN' if is_win else 'LOSS',
+            'units': units_str,
+            'score_line': score_line,
+            'cover_description': cover_desc,
+            'matchup_short': f"{ctx['away_team_abbr']} @ {ctx['home_team_abbr']}",
+            'cover_margin': cm_str,
+            'edge_at_entry': ctx.get('edge_at_entry'),
+            'pick_line': ctx.get('pick_line'),
+            'closing_line': ctx.get('closing_line'),
+            'season_record': f"{ctx.get('updated_wins', 0)}-{ctx.get('updated_losses', 0)}",
+            'season_roi': ctx.get('updated_roi', 0),
+            'updated_clv': ctx.get('updated_clv', 0),
+        })
+    if html is None:
+        html = _render_jinja('grading.html', ctx)
     if not html:
         badge_bg = '#5A9E72' if is_win else ('#8B6F70' if result == 'loss' else 'rgba(232,234,237,0.08)')
         badge_text_color = '#E8EAED' if (is_win or result == 'loss') else 'rgba(232,234,237,0.5)'
