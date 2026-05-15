@@ -9732,9 +9732,17 @@ def admin_sync_all_stripe():
 @app.route('/api/admin/test-emails', methods=['GET', 'POST'])
 @verify_cron
 def admin_test_emails():
-    """Send test versions of all email types."""
+    """Send test versions of all email types. ?v2=1 temporarily flips
+    EMAIL_V2 on for this request so send_* functions that have a v2
+    branch render from templates/emails/v2/ instead of the legacy
+    templates/emails/. Restored in a finally block so a stuck flag
+    can't leak into later cron runs."""
     to = request.args.get('to', 'evan@sharppicks.ai')
+    v2 = (request.args.get('v2') or '').strip().lower() in ('1', 'true', 'yes')
     results = {}
+    prev_v2 = os.environ.get('EMAIL_V2', '')
+    if v2:
+        os.environ['EMAIL_V2'] = '1'
     from email_service import (send_signal_email, send_result_email,
                                 send_no_signal_email, send_welcome_email,
                                 send_trial_started_email, send_trial_expiring_email,
@@ -9867,7 +9875,17 @@ def admin_test_emails():
     except Exception as e:
         results['founding_member'] = str(e)
 
-    return jsonify({'status': 'sent', 'to': to, 'results': results})
+    # Restore EMAIL_V2 to whatever it was before this request. Without
+    # this a ?v2=1 test send would leave the flag set, causing every
+    # subsequent send_* call (signals, results, lifecycle) to render
+    # through v2 templates that may not yet be wired.
+    if v2:
+        if prev_v2:
+            os.environ['EMAIL_V2'] = prev_v2
+        else:
+            os.environ.pop('EMAIL_V2', None)
+
+    return jsonify({'status': 'sent', 'to': to, 'results': results, 'v2': v2})
 
 
 @app.route('/api/admin/stats')

@@ -16,6 +16,35 @@ _jinja_env = Environment(
     autoescape=select_autoescape(['html']),
 )
 
+# v2 templates live alongside the legacy set in templates/emails/v2/.
+# They render via the same Jinja engine but only when EMAIL_V2 is true,
+# which lets us swap one send_* function at a time during the cutover
+# without disturbing the others.
+_jinja_env_v2 = Environment(
+    loader=FileSystemLoader(os.path.join(SCRIPT_DIR, 'templates', 'emails', 'v2')),
+    autoescape=select_autoescape(['html']),
+)
+
+
+def _email_v2_enabled():
+    """Per-process check of the EMAIL_V2 feature flag. Allowed truthy
+    values: '1', 'true', 'yes'. Anything else (including unset) keeps
+    the legacy render path. /api/admin/test-emails?v2=1 sets this in
+    os.environ for the duration of the test request."""
+    val = (os.environ.get('EMAIL_V2', '') or '').strip().lower()
+    return val in ('1', 'true', 'yes')
+
+
+def _render_jinja_v2(template_name, context):
+    """Render a v2 Jinja email template from templates/emails/v2/.
+    Returns None on failure so callers can fall back to the legacy path."""
+    try:
+        tpl = _jinja_env_v2.get_template(template_name)
+        return tpl.render(**context)
+    except Exception as e:
+        logging.warning(f"v2 Jinja render failed for '{template_name}': {e}")
+        return None
+
 def get_base_url():
     custom = os.environ.get('APP_BASE_URL', '')
     if custom:
@@ -336,12 +365,25 @@ def send_welcome_email(to, first_name=None):
     from zoneinfo import ZoneInfo
     now_et = datetime.now(ZoneInfo('America/New_York'))
 
-    html = _render_jinja('welcome.html', {
-        'signal_date': now_et.strftime('%b %d, %Y').upper(),
-        'app_url': f'{base}/',
-        'guide_url': 'https://sharppicks.ai/guide.html',
-        'unsubscribe_url': _make_unsub_url(to),
-    })
+    html = None
+    if _email_v2_enabled():
+        # v2: ships the static design package from templates/emails/v2/.
+        # Personalization is intentionally light because the v2 welcome
+        # is a generic onboarding email; per-user data plumbing arrives
+        # when later send_* functions get their v2 path.
+        html = _render_jinja_v2('06-welcome.html', {
+            'first_name': first_name or 'there',
+            'app_url': f'{base}/',
+            'unsubscribe_url': _make_unsub_url(to),
+        })
+
+    if html is None:
+        html = _render_jinja('welcome.html', {
+            'signal_date': now_et.strftime('%b %d, %Y').upper(),
+            'app_url': f'{base}/',
+            'guide_url': 'https://sharppicks.ai/guide.html',
+            'unsubscribe_url': _make_unsub_url(to),
+        })
     if not html:
         body = f'''
         <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:24px;font-weight:700;color:#E8EAED;margin:0 0 20px;">
