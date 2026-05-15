@@ -447,7 +447,25 @@ function _renderAcquisition(gp, asc) {
       configured: !!gp?.configured,
       missing_note: gp?.note || 'Not configured',
       kpis: [
-        { label: 'User acquisitions', value: gp?.first_opens_28d, hint: 'first opens · 28d', spark: gpFirstOpens },
+        {
+          label: 'User acquisitions',
+          value: gp?.first_opens_28d,
+          hint: 'first opens · 28d (Play Console)',
+          spark: gpFirstOpens,
+          // Play Console reports Daily User Acquisitions as new-user
+          // installs only (first-time across any of a user's devices).
+          // For a mature app, most current installs are existing users
+          // on new devices or reinstalls, which drops this metric to
+          // near-zero while Daily Device Installs registers all the
+          // activity. iOS measures first-device-install regardless of
+          // user history, so the iOS column reads ~equal to Total
+          // Installs. Until the Android source is migrated to the Play
+          // Developer Reporting API's firstTimeAppInstalls metric, the
+          // two platforms aren't measuring the same thing.
+          note: gp?.first_opens_28d === 0 && gp?.device_installs_28d > 0
+            ? 'Returns 0 from Play Console while device installs register. Definition mismatch with iOS; investigating.'
+            : null,
+        },
         { label: 'Total installs',    value: gp?.device_installs_28d, hint: 'device installs · 28d', spark: gpInstalls },
         { label: 'Active devices',    value: gp?.active_device_installs, hint: 'latest snapshot', spark: gpActive },
       ],
@@ -483,6 +501,7 @@ function _renderAcquisition(gp, asc) {
               <div style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--text-primary);">${k.value != null ? SP_FMT.num(k.value) : '--'}</div>
               <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);margin-top:2px;">${k.hint}</div>
               ${sparkHtml}
+              ${k.note ? `<div style="font-size:10px;color:#C4868A;margin-top:6px;line-height:1.4;">${k.note}</div>` : ''}
             </div>
           `;
         }).join('') + '</div>';
@@ -608,7 +627,9 @@ function bindLiveData(metrics) {
   const stripeMrr = metrics.stripe?.payload?.mrr_cents || 0;
   const rcMrr     = metrics.revenuecat?.payload?.mrr_cents || 0;
   const totalMrr  = stripeMrr + rcMrr;
-  const heroNum   = document.querySelector('.hero-number');
+  // Selector scoped to #status-mrr so the Save Window tile sibling
+  // (also with .hero-number) doesn't get overwritten by the MRR value.
+  const heroNum   = document.querySelector('#status-mrr .hero-number');
   if (heroNum && totalMrr > 0) heroNum.textContent = SP_FMT.money(totalMrr);
 
   // Annotate the hero meta with the expected MRR upside if it differs
@@ -617,7 +638,7 @@ function bindLiveData(metrics) {
   const expectedTotal = stripeExpected + rcMrr;
   if (expectedTotal > totalMrr) {
     const upside = expectedTotal - totalMrr;
-    const heroMeta = document.querySelector('.hero-meta .label');
+    const heroMeta = document.querySelector('#status-mrr .hero-meta .label');
     if (heroMeta) {
       heroMeta.textContent = `current mrr · combined web + ios · +${SP_FMT.money(upside)} expected if trials convert`;
     }
@@ -736,17 +757,24 @@ function bindLiveData(metrics) {
   setMovedRow('Paid signups today', SP_FMT.num(newPaidSubs24h), paidDelta.text, paidDelta.cls);
 
   // Failed payments — segmented by user. The headline number is
-  // distinct USERS with failed payments 7d; we annotate with the total
-  // attempt count when retries inflate it (one user with 14 retries
-  // would otherwise look like 14 churn-risk customers).
+  // total ATTEMPTS in 7d (the volume number people read first when
+  // scanning a payment-failure row); the distinct user count lives in
+  // the descriptor so retries don't disguise themselves as N
+  // independent customers. Prior layout put the user count in the
+  // value cell and the attempts in the annotation, which made the two
+  // numbers sit adjacent across the moved-row grid gap and read as
+  // one mashed number ("9 13 attempts across 9 users").
   const sp = metrics.stripe?.payload || {};
   const failedUsers7d = sp.failed_payment_users_7d;
   const failedAttempts7d = sp.failed_payment_attempts_7d;
   if (failedUsers7d != null) {
-    const annotation = (failedAttempts7d > failedUsers7d)
-      ? `${failedAttempts7d} attempts across ${failedUsers7d} user${failedUsers7d === 1 ? '' : 's'}`
-      : (failedUsers7d === 0 ? 'clean' : 'attention');
-    setMovedRow('Failed payments 7d', SP_FMT.num(failedUsers7d), annotation, failedUsers7d === 0 ? 'up' : 'down');
+    const showAttempts = failedAttempts7d != null && failedAttempts7d > 0;
+    const value = showAttempts ? SP_FMT.num(failedAttempts7d) : SP_FMT.num(failedUsers7d);
+    let annotation;
+    if (failedUsers7d === 0) annotation = 'clean';
+    else if (showAttempts) annotation = `attempts · ${failedUsers7d} user${failedUsers7d === 1 ? '' : 's'}`;
+    else annotation = `user${failedUsers7d === 1 ? '' : 's'}`;
+    setMovedRow('Failed payments 7d', value, annotation, failedUsers7d === 0 ? 'up' : 'down');
   }
 
   // -- Trial pipeline section (Phase 3 audit follow-up) --
@@ -892,10 +920,15 @@ function bindLiveData(metrics) {
     : (betTaps <= 3 ? 'on track' : 'above typical');
   setMovedRow('Bet taps last 7d', SP_FMT.num(betTaps), betTapsDelta);
 
-  // Pass rate (signals section): share of days in the window with zero
-  // signals issued. Computed server-side by events._pass_rate.
+  // Pass rate + Pass days (signals section): share of days in the
+  // window with zero signals issued, plus the raw count. The raw
+  // integer is the institutional-discipline number (Capital Preserved
+  // framing); the percentage is the derived ratio. Computed server-side
+  // by events._pass_rate_and_days.
   const passRate = metrics.events?.payload?.pass_rate;
   if (passRate != null) setStat('Pass rate', String(passRate));
+  const passDays = metrics.events?.payload?.pass_days;
+  if (passDays != null) setStat('Pass days', SP_FMT.num(passDays));
 
   // Unique tappers (bet taps section): distinct user_id count over the
   // same window as the bet_taps surface breakdown.
@@ -1831,6 +1864,26 @@ function bindPowerUsersList(data) {
 //   2. Detail rows: the original up-to-4 attention-segment user rows
 //      with cancel countdowns and payment-failed badges.
 function bindNeedsAttention(data, attentionSegments) {
+  // Save Window tile in Today's Read top row. Pulls the strict trial
+  // subset (subscription_status='trial' + cancel_scheduled_at set)
+  // from the same payload as the segment grid below, so no extra
+  // fetch is needed. Stays empty when there are no queued trial
+  // cancels — operator sees "--" rather than a misleading zero.
+  const tcq = attentionSegments?.trial_cancels_queued;
+  if (tcq) {
+    const tileNum = document.querySelector('#status-save-window .hero-number');
+    const tileSecondary = document.querySelector('#status-save-window .hero-secondary');
+    if (tileNum) tileNum.textContent = tcq.count > 0 ? String(tcq.count) : '0';
+    if (tileSecondary && tcq.earliest_effective_at) {
+      const d = new Date(tcq.earliest_effective_at);
+      const formatted = isNaN(d) ? tcq.earliest_effective_at
+        : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      tileSecondary.textContent = `Earliest effective: ${formatted}`;
+    } else if (tileSecondary) {
+      tileSecondary.textContent = tcq.count > 0 ? 'Earliest effective: --' : 'No trial cancels queued';
+    }
+  }
+
   // Summary line at the top of the section. Prefer the new segments
   // payload counts when available; fall back to Stripe counts so the
   // narrative still renders if /api/admin/users/attention-segments

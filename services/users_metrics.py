@@ -768,7 +768,31 @@ def fetch_attention_segments(now: datetime = None) -> dict:
     past_due_top = past_due_q.limit(4).all()
     past_due_count = past_due_q.count()
 
+    # Trials specifically with cancel_scheduled. The high-signal Save
+    # Window: each row is a trial that explicitly chose to cancel,
+    # with a known effective date. Surfaced as a top-row tile on
+    # Today's Read because the response window is finite (closes when
+    # cancel_effective_at passes) and the conversion path is well-
+    # defined. Distinct from the broader cancel_scheduled segment
+    # below which mixes trials + active paid subs.
+    trial_cancel_q = User.query.filter(
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+        User.subscription_status.in_(('trial', 'trialing')),
+        User.cancel_scheduled_at.isnot(None),
+        or_(User.cancel_effective_at.is_(None), User.cancel_effective_at >= now),
+    ).order_by(User.cancel_effective_at.asc().nulls_last())
+    trial_cancel_users = trial_cancel_q.all()
+    trial_cancel_earliest = next(
+        (u.cancel_effective_at for u in trial_cancel_users if u.cancel_effective_at),
+        None,
+    )
+
     return {
+        'trial_cancels_queued': {
+            'count': len(trial_cancel_users),
+            'earliest_effective_at': trial_cancel_earliest.isoformat() if trial_cancel_earliest else None,
+        },
         'segments': [
             {
                 'key': 'trials_ending_48h',

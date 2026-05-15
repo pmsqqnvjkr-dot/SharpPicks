@@ -93,26 +93,29 @@ def _unique_tappers(range_, include_internal):
     return int(q.scalar() or 0)
 
 
-def _pass_rate(range_):
-    """Fraction of ET days in the window where the model issued zero
-    signals across all sports, expressed as a percent (0-100). Mirrors
-    the 'Pass days' computation in services/weekly_recap_data.py: a day
-    is counted as a pass day only if no sport published a signal that
-    date. Revoked picks don't count as published. Returns None when the
-    window is degenerate (range_ unknown)."""
+def _pass_rate_and_days(range_):
+    """Pass-day stats for the window. Returns (rate_pct, days_count).
+    Mirrors the 'Pass days' computation in services/weekly_recap_data.py:
+    a day is counted as a pass day only if no sport published a signal
+    that date. Revoked picks don't count as published. Both values are
+    None when the window is degenerate (range_ unknown).
+
+    Surfacing the raw integer count alongside the percentage lets the
+    Signals tile show "Pass days: N" as institutional discipline (the
+    Capital Preserved framing) rather than just a derived ratio."""
     days = 7 if range_ == '7d' else 30 if range_ == '30d' else None
     if days is None:
-        return None
+        return None, None
     cutoff = _range_cutoff(range_)
     rows = db.session.query(Pick.game_date).filter(
         Pick.published_at >= cutoff,
     ).distinct().all()
-    # Revoked picks were already published_at-stamped before being pulled,
-    # so they still count as a non-pass day for this metric. The "model
-    # tried to fire" semantic is what matters here, not the final result.
+    # Revoked picks were published_at-stamped before being pulled, so
+    # they count as a non-pass day. "Model tried to fire" is the
+    # semantic that matters; the final result doesn't.
     days_with_signal = len({(r[0] or '')[:10] for r in rows if r[0]})
     pass_days = max(days - days_with_signal, 0)
-    return round(100.0 * pass_days / days, 1)
+    return round(100.0 * pass_days / days, 1), pass_days
 
 
 def _funnel(include_internal):
@@ -268,10 +271,12 @@ def fetch(range_: Literal['7d', '30d'], include_internal: bool = False) -> dict:
         raise ValueError(f'invalid range: {range_}')
     now = datetime.now(timezone.utc)
     try:
+        pass_rate, pass_days = _pass_rate_and_days(range_)
         payload = {
             'signals_issued': _signals_issued(range_),
             'signal_record_by_sport': _signal_record_by_sport(range_),
-            'pass_rate':      _pass_rate(range_),
+            'pass_rate':      pass_rate,
+            'pass_days':      pass_days,
             'bet_taps':       _bet_taps(range_, include_internal),
             'unique_tappers': _unique_tappers(range_, include_internal),
             'funnel':         _funnel(include_internal),
