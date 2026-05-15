@@ -645,6 +645,8 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
             'id': u.id,
             'email': u.email,
             'first_name': u.first_name or '',
+            'oauth_provider': u.oauth_provider or None,
+            'email_verified': bool(getattr(u, 'email_verified', False)),
             'tags': _user_tags(u, l30, u.id in ios_purchase_ids),
             'logins_30d': l30,
             'bet_taps_30d': bet_tap_counts.get(u.id, 0),
