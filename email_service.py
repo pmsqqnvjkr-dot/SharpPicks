@@ -328,32 +328,46 @@ def _base_template(type_label, body_html, cta_text=None, cta_url=None,
 # ── 1. Password Reset ──
 
 def send_password_reset(to, reset_url, first_name=None):
-    body = '''
-        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
-          A password reset was requested for this account.
-        </p>'''
-    html = _base_template(
-        'PASSWORD RESET', body,
-        cta_text='RESET PASSWORD', cta_url=reset_url,
-        fine_print='This link expires in 1 hour. If you did not request this, no action is needed.',
-        to_email=to,
-    )
+    html = None
+    if _email_v2_enabled():
+        html = _render_jinja_v2('14-password_reset.html', {
+            'first_name': first_name or 'there',
+            'reset_url': reset_url,
+        })
+    if html is None:
+        body = '''
+            <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+              A password reset was requested for this account.
+            </p>'''
+        html = _base_template(
+            'PASSWORD RESET', body,
+            cta_text='RESET PASSWORD', cta_url=reset_url,
+            fine_print='This link expires in 1 hour. If you did not request this, no action is needed.',
+            to_email=to,
+        )
     return send_email(to, 'SharpPicks: Password reset requested', html)
 
 
 # ── 2. Email Verification ──
 
 def send_verification_email(to, verify_url, first_name=None):
-    body = '''
-        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
-          An account was created with this email address. Verify your email to activate access.
-        </p>'''
-    html = _base_template(
-        'ACCOUNT VERIFICATION', body,
-        cta_text='VERIFY EMAIL', cta_url=verify_url,
-        fine_print='This link expires in 24 hours. If you did not create this account, no action is needed.',
-        to_email=to,
-    )
+    html = None
+    if _email_v2_enabled():
+        html = _render_jinja_v2('13-verification.html', {
+            'first_name': first_name or 'there',
+            'verify_url': verify_url,
+        })
+    if html is None:
+        body = '''
+            <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+              An account was created with this email address. Verify your email to activate access.
+            </p>'''
+        html = _base_template(
+            'ACCOUNT VERIFICATION', body,
+            cta_text='VERIFY EMAIL', cta_url=verify_url,
+            fine_print='This link expires in 24 hours. If you did not create this account, no action is needed.',
+            to_email=to,
+        )
     return send_email(to, 'SharpPicks: Verify your email', html)
 
 
@@ -408,22 +422,45 @@ def send_trial_started_email(to, trial_start=None, trial_end=None):
     if trial_start and trial_end:
         days = (trial_end - trial_start).days
 
-    body = '''
-        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
-          Your trial is active. You will receive signals when the model finds qualifying edges.
-        </p>'''
-    html = _base_template(
-        'TRIAL ACTIVE', body,
-        cta_text='OPEN SHARPPICKS', cta_url=f'{base}/',
-        fine_print=f'Trial period: {days} days from today.',
-        to_email=to,
-    )
+    html = None
+    if _email_v2_enabled():
+        end_str = trial_end.strftime('%b %-d, %Y') if trial_end else None
+        html = _render_jinja_v2('07-trial_started.html', {
+            'days': days,
+            'trial_end_date': end_str,
+            'app_url': f'{base}/',
+        })
+    if html is None:
+        body = '''
+            <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+              Your trial is active. You will receive signals when the model finds qualifying edges.
+            </p>'''
+        html = _base_template(
+            'TRIAL ACTIVE', body,
+            cta_text='OPEN SHARPPICKS', cta_url=f'{base}/',
+            fine_print=f'Trial period: {days} days from today.',
+            to_email=to,
+        )
     return send_email(to, 'SharpPicks: Trial period active', html)
 
 
 # ── 5. Trial Expiring ──
 
-def send_trial_expiring_email(to, first_name=None, trial_end_date=None, picks_record=None, founding_spots=None):
+def send_trial_expiring_email(to, first_name=None, trial_end_date=None, picks_record=None,
+                              founding_spots=None, has_payment_method=True, cancel_scheduled=False):
+    """Trial expiring soon. v2 routes to one of two templates based on user state:
+      08a auto_renew      — trial converts automatically; no CTA
+      08b action_required — needs to subscribe to keep access; CTA stays
+
+    Routing:
+      cancel_scheduled = True  -> 08b (user opted out, must re-subscribe)
+      has_payment_method = False -> 08b (nothing to bill)
+      otherwise -> 08a (Stripe / RevenueCat will auto-charge)
+
+    Callers should pass has_payment_method=True for Stripe trials (which
+    require a card at checkout) and for RevenueCat/Apple Pay trials.
+    Pass cancel_scheduled=True when user.cancel_scheduled_at is set.
+    """
     base = get_base_url()
     days_left = 1
     if trial_end_date:
@@ -440,16 +477,36 @@ def send_trial_expiring_email(to, first_name=None, trial_end_date=None, picks_re
         body_text = f'Your trial ends in {days_left} days. Subscribe to keep receiving signals.'
         subject = f'SharpPicks: Trial expires in {days_left} days'
 
-    body = f'''
-        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
-          {body_text}
-        </p>'''
-    html = _base_template(
-        label, body,
-        cta_text='SUBSCRIBE', cta_url=f'{base}/subscribe',
-        fine_print='After expiration, you will lose access to signal details and result breakdowns.',
-        to_email=to,
-    )
+    html = None
+    if _email_v2_enabled():
+        end_str = trial_end_date.strftime('%b %-d, %Y') if trial_end_date else None
+        auto_renew = has_payment_method and not cancel_scheduled
+        ctx = {
+            'first_name': first_name or 'there',
+            'trial_end_date': end_str,
+            'days_left': days_left,
+            'cta_url': f'{base}/subscribe',
+        }
+        if auto_renew:
+            html = _render_jinja_v2('08a-trial_expiring_auto_renew.html', ctx)
+            subject = ('SharpPicks: Trial converts tomorrow'
+                       if days_left <= 1
+                       else f'SharpPicks: Trial converts in {days_left} days')
+        else:
+            html = _render_jinja_v2('08b-trial_expiring_action_required.html', ctx)
+            # Subject for action_required keeps the original expires phrasing
+
+    if html is None:
+        body = f'''
+            <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+              {body_text}
+            </p>'''
+        html = _base_template(
+            label, body,
+            cta_text='SUBSCRIBE', cta_url=f'{base}/subscribe',
+            fine_print='After expiration, you will lose access to signal details and result breakdowns.',
+            to_email=to,
+        )
     return send_email(to, subject, html)
 
 
@@ -457,16 +514,23 @@ def send_trial_expiring_email(to, first_name=None, trial_end_date=None, picks_re
 
 def send_trial_expired_email(to, first_name=None):
     base = get_base_url()
-    body = '''
-        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
-          Your trial has ended. Subscribe to restore access to signals and results.
-        </p>'''
-    html = _base_template(
-        'TRIAL ENDED', body,
-        cta_text='SUBSCRIBE', cta_url=f'{base}/subscribe',
-        fine_print='Questions: support@sharppicks.ai',
-        to_email=to,
-    )
+    html = None
+    if _email_v2_enabled():
+        html = _render_jinja_v2('09-trial_expired.html', {
+            'first_name': first_name or 'there',
+            'cta_url': f'{base}/subscribe',
+        })
+    if html is None:
+        body = '''
+            <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+              Your trial has ended. Subscribe to restore access to signals and results.
+            </p>'''
+        html = _base_template(
+            'TRIAL ENDED', body,
+            cta_text='SUBSCRIBE', cta_url=f'{base}/subscribe',
+            fine_print='Questions: support@sharppicks.ai',
+            to_email=to,
+        )
     return send_email(to, 'SharpPicks: Trial period ended', html)
 
 
@@ -476,16 +540,25 @@ def send_cancellation_email(to, first_name=None, access_end_date=None, is_foundi
     base = get_base_url()
     end_str = access_end_date.strftime('%b %-d, %Y') if access_end_date else 'end of billing period'
 
-    body = '''
-        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
-          Your subscription has been cancelled. You will retain access until the end of your current billing period.
-        </p>'''
-    html = _base_template(
-        'SUBSCRIPTION CANCELLED', body,
-        cta_text='RESUBSCRIBE', cta_url=f'{base}/subscribe',
-        fine_print=f'Access ends: {end_str}. Questions: support@sharppicks.ai',
-        to_email=to,
-    )
+    html = None
+    if _email_v2_enabled():
+        html = _render_jinja_v2('10-cancellation.html', {
+            'first_name': first_name or 'there',
+            'access_end_date': end_str,
+            'cta_url': f'{base}/subscribe',
+            'is_founding': is_founding,
+        })
+    if html is None:
+        body = '''
+            <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+              Your subscription has been cancelled. You will retain access until the end of your current billing period.
+            </p>'''
+        html = _base_template(
+            'SUBSCRIPTION CANCELLED', body,
+            cta_text='RESUBSCRIBE', cta_url=f'{base}/subscribe',
+            fine_print=f'Access ends: {end_str}. Questions: support@sharppicks.ai',
+            to_email=to,
+        )
     return send_email(to, 'SharpPicks: Subscription cancelled', html)
 
 
@@ -493,20 +566,27 @@ def send_cancellation_email(to, first_name=None, access_end_date=None, is_foundi
 
 def send_payment_failed_email(to, first_name=None):
     base = get_base_url()
-    body = '''
-        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.85);line-height:1.6;margin:0 0 12px;">
-          Your latest invoice didn't go through, so we've paused your Pro access.
-        </p>
-        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:14px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
-          Update your payment method and we'll restore access immediately. Every day's signal stays in your history once your subscription is current.
-        </p>'''
-    html = _base_template(
-        'ACCESS PAUSED', body,
-        cta_text='UPDATE PAYMENT METHOD', cta_url=f'{base}/',
-        fine_print='Already updated? Disregard this email. Questions: support@sharppicks.ai',
-        to_email=to,
-    )
-    return send_email(to, 'SharpPicks: Access paused — update payment method', html)
+    html = None
+    if _email_v2_enabled():
+        html = _render_jinja_v2('11-payment_failed.html', {
+            'first_name': first_name or 'there',
+            'cta_url': f'{base}/billing',
+        })
+    if html is None:
+        body = '''
+            <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.85);line-height:1.6;margin:0 0 12px;">
+              Your latest invoice didn't go through, so we've paused your Pro access.
+            </p>
+            <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:14px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+              Update your payment method and we'll restore access immediately. Every day's signal stays in your history once your subscription is current.
+            </p>'''
+        html = _base_template(
+            'ACCESS PAUSED', body,
+            cta_text='UPDATE PAYMENT METHOD', cta_url=f'{base}/',
+            fine_print='Already updated? Disregard this email. Questions: support@sharppicks.ai',
+            to_email=to,
+        )
+    return send_email(to, 'SharpPicks: Access paused, update payment method', html)
 
 
 # ── 9. Signal Generated ──
@@ -751,16 +831,23 @@ def send_result_email(to, pick):
 
 def send_founding_member_email(to, member_number=None, total=100, joined_date=None):
     base = get_base_url()
-    body = '''
-        <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
-          Your founding member status is confirmed. Locked rate: $99/year. This rate is permanent and will not increase.
-        </p>'''
-    html = _base_template(
-        'FOUNDING MEMBER', body,
-        cta_text='OPEN SHARPPICKS', cta_url=f'{base}/',
-        fine_print='Questions: support@sharppicks.ai',
-        to_email=to,
-    )
+    html = None
+    if _email_v2_enabled():
+        html = _render_jinja_v2('12-founding_member.html', {
+            'member_number': member_number,
+            'total': total,
+        })
+    if html is None:
+        body = '''
+            <p style="font-family:'SF Pro Display','Helvetica Neue','Arial',sans-serif;font-size:15px;color:rgba(232,234,237,0.6);line-height:1.6;margin:0;">
+              Your founding member status is confirmed. Your rate is locked for life and will not increase.
+            </p>'''
+        html = _base_template(
+            'FOUNDING MEMBER', body,
+            cta_text='OPEN SHARPPICKS', cta_url=f'{base}/',
+            fine_print='Questions: support@sharppicks.ai',
+            to_email=to,
+        )
     return send_email(to, 'SharpPicks: Founding member status confirmed', html)
 
 
@@ -808,7 +895,17 @@ def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0, s
         'unsubscribe_url': _make_unsub_url(to, 'email_marketing'),
     })
 
-    html = _render_jinja('no_signal.html', ctx)
+    html = None
+    if _email_v2_enabled():
+        html = _render_jinja_v2('05-no_signal.html', {
+            'sport_label': sport_tag,
+            'games_analyzed': games_analyzed,
+            'qualified_edges': 0,
+            'closest_edge': f"{ctx.get('closest_edge'):.1f}%" if ctx.get('closest_edge') else '—',
+            'market_report_url': f'{base}/market-report',
+        })
+    if html is None:
+        html = _render_jinja('no_signal.html', ctx)
     if not html:
         html = _base_template(
             'NO SIGNAL', f'''

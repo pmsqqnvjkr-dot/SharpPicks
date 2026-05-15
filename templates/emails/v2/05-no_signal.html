@@ -43,7 +43,7 @@
 
 <body style="margin:0; padding:0; background-color:#0A0D14;">
 
-  <div class="preheader">6 games analyzed, none above the 3.5% minimum edge threshold. Capital preserved.</div>
+  <div class="preheader">{{ games_analyzed }} games analyzed, none above the 3.5% minimum edge threshold. Capital preserved.</div>
 
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#0A0D14" style="background-color:#0A0D14;">
     <tr>
@@ -126,7 +126,7 @@
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#121725" style="background-color:#121725;">
                 <tr>
                   <td class="px-mobile" style="padding:32px 36px 0 36px; font-family:'Courier New', Courier, monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,0.45);">
-                    NO SIGNAL &middot; NBA
+                    NO SIGNAL &middot; {{ sport_label }}
                   </td>
                 </tr>
                 <tr>
@@ -136,7 +136,7 @@
                 </tr>
                 <tr>
                   <td class="px-mobile" style="padding:18px 36px 0 36px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size:15px; line-height:1.55; color:rgba(255,255,255,0.7);">
-                    The model scanned today&rsquo;s NBA slate and found no edge above the 3.5% threshold. No signal published.
+                    The model scanned today&rsquo;s {{ sport_label }} slate and found no edge above the 3.5% threshold. No signal published.
                   </td>
                 </tr>
                 <tr>
@@ -148,7 +148,7 @@
                             GAMES SCANNED
                           </div>
                           <div class="units" style="font-family: 'Courier New', Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;">
-                            6
+                            {{ games_analyzed }}
                           </div>
                         </td>
                         <td class="stat-divider-row" width="1" style="border-left:1px solid rgba(255,255,255,0.08); width:1px;"></td>
@@ -157,7 +157,7 @@
                             QUALIFYING EDGES
                           </div>
                           <div class="units" style="font-family: 'Courier New', Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;">
-                            0
+                            {{ qualified_edges }}
                           </div>
                         </td>
                         <td class="stat-divider-row" width="1" style="border-left:1px solid rgba(255,255,255,0.08); width:1px;"></td>
@@ -166,7 +166,7 @@
                             CLOSEST EDGE
                           </div>
                           <div class="units" style="font-family: 'Courier New', Courier, monospace; font-size:22px; font-weight:500; color:#FFFFFF; letter-spacing:-0.01em;">
-                            1.6%
+                            {{ closest_edge }}
                           </div>
                         </td>
                       </tr>
@@ -184,13 +184,13 @@
                       <tr>
                         <td align="center" bgcolor="#4F86F7" style="background-color:#4F86F7;">
                           <!--[if mso]>
-                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://app.sharppicks.ai/market-report" style="height:46px; v-text-anchor:middle; width:240px;" arcsize="0%" stroke="f" fillcolor="#4F86F7">
+                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ market_report_url }}" style="height:46px; v-text-anchor:middle; width:240px;" arcsize="0%" stroke="f" fillcolor="#4F86F7">
                             <w:anchorlock/>
                             <center style="color:#ffffff; font-family:Arial, sans-serif; font-size:14px; font-weight:500;">VIEW MARKET REPORT</center>
                           </v:roundrect>
                           <![endif]-->
                           <!--[if !mso]><!-- -->
-                          <a href="https://app.sharppicks.ai/market-report" style="display:inline-block; background-color:#4F86F7; color:#FFFFFF; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size:14px; font-weight:500; letter-spacing:0.02em; line-height:46px; text-align:center; text-decoration:none; min-width:240px; padding:0 28px; mso-hide:all;">
+                          <a href="{{ market_report_url }}" style="display:inline-block; background-color:#4F86F7; color:#FFFFFF; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size:14px; font-weight:500; letter-spacing:0.02em; line-height:46px; text-align:center; text-decoration:none; min-width:240px; padding:0 28px; mso-hide:all;">
                             VIEW MARKET REPORT
                           </a>
                           <!--<![endif]-->
