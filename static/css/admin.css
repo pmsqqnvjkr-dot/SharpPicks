@@ -189,6 +189,23 @@
 
   /* STACK 1 — STATUS */
   .stack-status { margin-bottom: 36px; }
+  .status-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  .status-col { min-width: 0; }
+  .hero-secondary {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 6px;
+    letter-spacing: 0.02em;
+  }
+  @media (max-width: 720px) {
+    .status-row { grid-template-columns: 1fr; gap: 20px; }
+  }
   .headline {
     font-family: var(--serif);
     font-weight: 400;

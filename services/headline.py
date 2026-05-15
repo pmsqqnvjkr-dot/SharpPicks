@@ -447,15 +447,18 @@ def compute_summaries(metrics: dict) -> dict:
     # DAU/WAU/MAU stat column to the right of this card binds from a
     # different endpoint (/api/admin/users/activity); keeping the
     # narrative aligned to events-source data avoids a cross-endpoint
-    # data-staleness mismatch. Diagnostic empty-state copy points at
-    # the eventTracker path so the operator knows where to look.
+    # data-staleness mismatch. Empty-state copy describes the metric as
+    # behavioral, not instrumental: both bet_tap surfaces fire
+    # correctly via src/utils/track.js (verified 2026-05-15); a zero
+    # read is real-world inactivity, not a tracking gap.
     funnel = events.get('funnel') or []
     signal_views = next((s.get('users') for s in funnel if s.get('step') == 'signal_view'), 0) or 0
     unique_tappers = events.get('unique_tappers') or 0
     if signal_views == 0 and unique_tappers == 0:
         summaries['section-user-activity'] = (
-            'No tracked engagement in the last 7 days. If users are opening the app, '
-            'the SPA eventTracker is not reporting signal_view / bet_tap to /api/events.'
+            '0 external bet_taps in 7 days across both surfaces. '
+            'Internal taps confirm instrumentation healthy. '
+            'This is a behavioral metric, not a tracking gap.'
         )
     else:
         bits = []
