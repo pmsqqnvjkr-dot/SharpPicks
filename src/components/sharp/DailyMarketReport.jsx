@@ -192,6 +192,12 @@ export default function DailyMarketReport({ report: reportProp, isPro = false, o
   // morning/mixed/evening always reads coherently without backend changes.
   const headline = (() => {
     if (isMorning) {
+      // Off-day path runs BEFORE the signalsFired === 0 branch. Pass
+      // days and off days both register zero signals, but they are
+      // different states: pass = model scanned and rejected, off = no
+      // games to scan. Conflating them mislabels a calendar gap as
+      // institutional discipline.
+      if (totalGames === 0) return 'No slate scheduled today.';
       if (signalsFired === 0) return 'No signal cleared the threshold today. Capital preserved.';
       if (leanSide === 'underdogs' && leanCounts.underdogs >= leanCounts.favorites * 2) {
         return `Value sitting with the underdogs tonight. ${signalsFired} signal${signalsFired === 1 ? '' : 's'}, mostly dogs.`;
@@ -206,12 +212,16 @@ export default function DailyMarketReport({ report: reportProp, isPro = false, o
       const remaining = totalGames - settled;
       return `${signalsFired} signal${signalsFired === 1 ? '' : 's'} on the board. ${remaining} game${remaining === 1 ? '' : 's'} still running.`;
     }
+    if (totalGames === 0) return 'No slate today. Off day, not a pass.';
     if (signalsFired === 0) return 'The slate closed quiet. Capital preserved on the pass.';
     return 'Slate closed. Receipts in the ledger.';
   })();
 
   const observation = (() => {
     if (isMorning) {
+      if (totalGames === 0) {
+        return 'No games on the board. The model has nothing to scan, and that is the calendar, not a position. The next slate enters the system on schedule.';
+      }
       if (signalsFired === 0) {
         return `${totalGames} games analyzed, none cleared the qualification threshold. Pass days are part of the system.`;
       }
@@ -227,10 +237,12 @@ export default function DailyMarketReport({ report: reportProp, isPro = false, o
       const settled = data.games_settled || 0;
       return `${signalsFired} signal${signalsFired === 1 ? '' : 's'} issued across the slate. ${settled} of ${totalGames} games settled, with the rest still in progress. Numbers below are preliminary and update as games close.`;
     }
+    if (totalGames === 0) return 'No games on the board for this league today.';
     return `${signalsFired} signal${signalsFired === 1 ? '' : 's'} issued. Final closing-line audit and per-game grading below.`;
   })();
 
   const implication = (() => {
+    if (totalGames === 0) return 'Off day. The model rests when the league rests; no edge, no risk, no work.';
     if (signalsFired === 0) return 'No qualifying edge detected. Discipline preserved on a slate the model read as efficient.';
     if (regimeRaw && regimeRaw.toLowerCase().includes('active')) return 'Moderate opportunity detected. Signals fired where the threshold cleared.';
     if (regimeRaw && regimeRaw.toLowerCase().includes('high')) return 'High opportunity slate. Model finding meaningful gaps the market has not corrected.';
@@ -239,6 +251,7 @@ export default function DailyMarketReport({ report: reportProp, isPro = false, o
   })();
 
   const sharpPrinciple = (() => {
+    if (totalGames === 0) return 'Off days are calendar, not strategy. The system rests when the league rests.';
     if (signalsFired === 0) return 'Pass days are not missed opportunities. They are proof the system is working.';
     if (leanSide === 'underdogs' && leanCounts.underdogs > leanCounts.favorites) {
       return 'An underdog lean suggests the spread market is running a point or two wide on several games. Small inefficiencies add up.';
