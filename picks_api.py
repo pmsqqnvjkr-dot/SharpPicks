@@ -437,7 +437,15 @@ def today():
         return jsonify(pick_data)
 
     pass_entry = Pass.query.filter_by(date=today_str, sport=sport).first()
-    if pass_entry:
+    # An off day can register as a Pass row (games_analyzed=0) because
+    # the model writes a Pass for every day it runs, regardless of
+    # whether games were on the calendar. Treating that as type='pass'
+    # makes the frontend render the PassDay card with "no signal
+    # cleared the threshold" copy on a WNBA off day, which is a
+    # category error. Skip the pass branch when there were no games to
+    # analyze; the function falls through to the off_day return below,
+    # which renders DarkDay with the next-slate countdown.
+    if pass_entry and (pass_entry.games_analyzed or 0) > 0:
         from datetime import timedelta
         try:
             from zoneinfo import ZoneInfo
