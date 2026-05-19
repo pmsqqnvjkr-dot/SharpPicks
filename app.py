@@ -6945,6 +6945,11 @@ def cancel_subscription():
         db_user = db.session.get(User, user['id'])
         if not db_user or not db_user.stripe_customer_id:
             return jsonify({'error': 'No active subscription'}), 400
+        body = request.get_json(silent=True) or {}
+        reasons = body.get('reasons') or []
+        if not isinstance(reasons, list):
+            reasons = []
+        reasons = [str(r)[:100] for r in reasons if r][:10]
         # status='all' catches both 'active' and 'trialing' subs — trial
         # users were previously unable to cancel through this endpoint.
         def _sg(o, k, d=None):
@@ -6963,6 +6968,26 @@ def cancel_subscription():
             if cancel_at:
                 db_user.cancel_effective_at = datetime.fromtimestamp(cancel_at)
             db.session.commit()
+
+            try:
+                ev = UserEvent(
+                    user_id=db_user.id,
+                    event_type='subscription_cancel_requested',
+                    event_data={
+                        'reasons': reasons,
+                        'plan': db_user.subscription_plan,
+                        'founding_member': bool(db_user.founding_member),
+                        'cancel_effective_at': db_user.cancel_effective_at.isoformat() if db_user.cancel_effective_at else None,
+                    },
+                    session_id=session.get('session_token') or None,
+                    is_internal=bool(getattr(db_user, 'is_internal', False)),
+                    created_at=datetime.utcnow(),
+                )
+                db.session.add(ev)
+                db.session.commit()
+            except Exception as ev_err:
+                logging.error(f'cancel reason logging failed: {ev_err}')
+                db.session.rollback()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -8769,43 +8794,63 @@ def delete_fcm_token():
 
 @app.route('/api/account/delete', methods=['DELETE'])
 def delete_account():
-    """Delete user account and all associated data. Required by App Store / Play Store."""
+    """Delete user account and all associated data. Required by App Store / Play Store.
+
+    Ordering note: local DB deletes happen FIRST and are committed BEFORE any Stripe
+    call. The prior version called Subscription.delete() first; an FK IntegrityError
+    on the local delete would then roll back the local txn but leave the Stripe sub
+    gone (see Cooper Reynolds / Spiffy incident 2026-05-16).
+
+    Stripe behavior: paid subs are soft-cancelled (cancel_at_period_end=true) so the
+    user gets through what they paid for. Trial subs are deleted outright.
+    """
     user = get_current_user_obj()
     if not user:
         return jsonify({'error': 'Not authenticated'}), 401
 
+    user_id = user.id
+    stripe_customer_id = user.stripe_customer_id
+
     try:
-        # Cancel Stripe subscription if active
-        if user.stripe_customer_id:
-            try:
-                from stripe_client import get_stripe_client
-                stripe = get_stripe_client()
-                subs = stripe.Subscription.list(customer=user.stripe_customer_id, status='active', limit=10)
-                for sub in subs.data:
-                    stripe.Subscription.delete(sub.id)
-            except Exception:
-                pass  # Don't block deletion if Stripe fails
+        from models import FCMToken, WatchedGame, UserBet, Referral, UserEvent, EmailEvent, EmailSendHistory
 
-        user_id = user.id
-
-        # Delete associated data
-        from models import FCMToken, WatchedGame
+        UserEvent.query.filter_by(user_id=user_id).update({'user_id': None})
+        EmailSendHistory.query.filter_by(user_id=user_id).delete()
+        EmailEvent.query.filter_by(user_id=user_id).delete()
+        Referral.query.filter_by(referrer_id=user_id).delete()
+        Referral.query.filter_by(referred_id=user_id).delete()
+        UserBet.query.filter_by(user_id=user_id).delete()
         TrackedBet.query.filter_by(user_id=user_id).delete()
         FCMToken.query.filter_by(user_id=user_id).delete()
         WatchedGame.query.filter_by(user_id=user_id).delete()
 
-        # Delete the user
+        User.query.filter_by(referred_by=user_id).update({'referred_by': None})
+
         db.session.delete(user)
         db.session.commit()
-
-        # Clear session
-        from flask import session as flask_session
-        flask_session.clear()
-
-        return jsonify({'success': True, 'message': 'Account deleted'}), 200
     except Exception:
         db.session.rollback()
+        logging.exception("[account_delete] local delete failed for user_id=%s", user_id)
         return jsonify({'error': 'Failed to delete account'}), 500
+
+    if stripe_customer_id:
+        try:
+            from stripe_client import get_stripe_client
+            stripe = get_stripe_client()
+            subs = stripe.Subscription.list(customer=stripe_customer_id, status='all', limit=20)
+            for sub in subs.data:
+                sub_status = getattr(sub, 'status', None)
+                if sub_status == 'trialing':
+                    stripe.Subscription.delete(sub.id)
+                elif sub_status in ('active', 'past_due'):
+                    stripe.Subscription.modify(sub.id, cancel_at_period_end=True)
+        except Exception:
+            logging.exception("[account_delete] stripe cleanup failed for customer_id=%s (local user already deleted)", stripe_customer_id)
+
+    from flask import session as flask_session
+    flask_session.clear()
+
+    return jsonify({'success': True, 'message': 'Account deleted'}), 200
 
 
 def _normalize_pem_private_key(pk):
