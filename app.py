@@ -5998,6 +5998,94 @@ def cron_cleanup_events():
     return log_cron('cleanup_events', _cleanup)
 
 
+@app.route('/api/cron/send-apple-bridge', methods=['POST'])
+@verify_cron
+def cron_send_apple_bridge():
+    """One-off batch: send the Apple IAP bridge email to free Apple
+    signups who haven't received it yet. Idempotent via email_send_history
+    so re-running adds only the new recipients since the last run.
+
+    Query params:
+      dry_run=1  -> return recipient list, don't actually send
+      limit=N    -> cap send count this batch (default 100)
+    """
+    from models import EmailSendHistory, EmailEvent
+    from email_service import _render_jinja_v2, _make_unsub_url, send_email
+
+    dry_run = request.args.get('dry_run') in ('1', 'true', 'yes')
+    try:
+        limit = max(1, min(int(request.args.get('limit', '100')), 500))
+    except ValueError:
+        limit = 100
+
+    variant = 'apple_iap_bridge'
+
+    already_sent_ids = {
+        row.user_id for row in
+        EmailSendHistory.query.filter_by(variant=variant).with_entities(EmailSendHistory.user_id).all()
+    }
+
+    candidates = User.query.filter(
+        User.oauth_provider == 'apple',
+        User.is_premium == False,  # noqa: E712
+        User.deleted_at.is_(None),
+        User.is_internal == False,  # noqa: E712
+        User.comped == False,  # noqa: E712
+    ).all()
+
+    eligible = [u for u in candidates if u.id not in already_sent_ids and u.email]
+
+    if dry_run:
+        return jsonify({
+            'dry_run': True,
+            'eligible_count': len(eligible),
+            'already_sent_count': len(already_sent_ids),
+            'sample': [
+                {'email': u.email, 'first_name': u.first_name, 'created_at': u.created_at.isoformat() if u.created_at else None}
+                for u in eligible[:20]
+            ],
+        })
+
+    subject = "SharpPicks Pro is open · founding rate while we wait on Apple"
+    sent_ok = []
+    sent_fail = []
+
+    for u in eligible[:limit]:
+        first_name = u.first_name or (u.email.split('@')[0] if u.email else 'there')
+        ctx = {
+            'first_name': first_name,
+            'unsubscribe_url': _make_unsub_url(u.email, 'campaigns'),
+        }
+        html = _render_jinja_v2('15-apple_iap_bridge.html', ctx)
+        if not html:
+            sent_fail.append({'email': u.email, 'reason': 'render_failed'})
+            continue
+        try:
+            msg_id = send_email(u.email, subject, html)
+        except Exception as send_err:
+            sent_fail.append({'email': u.email, 'reason': f'send_error: {send_err}'})
+            continue
+        if not msg_id:
+            sent_fail.append({'email': u.email, 'reason': 'send_returned_none'})
+            continue
+        try:
+            db.session.add(EmailSendHistory(user_id=u.id, sent_at=datetime.utcnow(), variant=variant))
+            db.session.add(EmailEvent(user_id=u.id, variant=variant, sent_at=datetime.utcnow(), resend_message_id=msg_id))
+            db.session.commit()
+        except Exception as log_err:
+            db.session.rollback()
+            logging.error(f'apple-bridge log write failed for {u.email}: {log_err}')
+        sent_ok.append(u.email)
+
+    return jsonify({
+        'sent': len(sent_ok),
+        'failed': len(sent_fail),
+        'remaining_eligible': max(0, len(eligible) - limit),
+        'sent_emails': sent_ok,
+        'failures': sent_fail,
+    })
+
+
 def start_background_services():
     import time
     time.sleep(5)
