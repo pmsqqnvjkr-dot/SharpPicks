@@ -6086,6 +6086,221 @@ def cron_send_apple_bridge():
     })
 
 
+# ─────────────────────────────────────────────────────────────────────
+# Android rating prompt — two-step pattern (soft-prompt -> Google
+# In-App Review or feedback form). Per locked spec:
+#   - 21-day install floor
+#   - all gating state lives in user_events (no new User columns)
+#   - feedback emails go to support@sharppicks.ai with reply-to=user
+#   - this flow is Android-only; the frontend platform-gates the trigger
+# ─────────────────────────────────────────────────────────────────────
+
+_RATING_PROMPT_POSITIVE_EVENT_TYPES = (
+    'view_pick', 'pick_tap', 'signal_view', 'view_journal', 'login',
+)
+_RATING_PROMPT_COOLDOWN_DAYS = 60
+_RATING_PROMPT_FEEDBACK_COOLDOWN_DAYS = 90
+_RATING_PROMPT_DAYS_SINCE_INSTALL = 21
+_RATING_PROMPT_MAX_DAYS_INACTIVE = 7
+_RATING_PROMPT_TRIAL_CONVERSION_BUFFER_DAYS = 3
+_RATING_PROMPT_RECENT_CANCEL_BUFFER_DAYS = 7
+_RATING_PROMPT_LOSS_LOOKBACK_HOURS = 24
+
+
+def _rating_prompt_eligibility(user):
+    """Evaluate all 9 spec conditions. Returns (eligible, reason).
+
+    Reason is a short slug for client-side debugging; never user-facing.
+    """
+    if not user:
+        return False, 'no_user'
+    now = datetime.utcnow()
+
+    install_date = user.created_at or now
+    days_since_install = (now - install_date).days
+    if days_since_install < _RATING_PROMPT_DAYS_SINCE_INSTALL:
+        return False, f'too_new:{days_since_install}d'
+
+    if user.subscription_status == 'cancelled' and user.cancel_scheduled_at:
+        if (now - user.cancel_scheduled_at).days <= _RATING_PROMPT_RECENT_CANCEL_BUFFER_DAYS:
+            return False, 'recent_cancel'
+
+    if user.trial_end_date and user.trial_end_date > now:
+        if (user.trial_end_date - now).days <= _RATING_PROMPT_TRIAL_CONVERSION_BUFFER_DAYS:
+            return False, 'trial_conversion_window'
+
+    cutoff = now - timedelta(days=90)
+    events = UserEvent.query.filter(
+        UserEvent.user_id == user.id,
+        UserEvent.created_at >= cutoff,
+    ).all()
+    if not events:
+        return False, 'no_activity'
+
+    last_active = max(e.created_at for e in events)
+    if (now - last_active).days > _RATING_PROMPT_MAX_DAYS_INACTIVE:
+        return False, 'inactive'
+
+    if not any(e.event_type in _RATING_PROMPT_POSITIVE_EVENT_TYPES for e in events):
+        return False, 'no_positive_interaction'
+
+    rating_events = [e for e in events if (e.event_type or '').startswith('rating_prompt.')]
+    if any(e.event_type == 'rating_prompt.tapped_positive' for e in rating_events):
+        return False, 'already_rated_via_flow'
+
+    if rating_events:
+        last_prompt = max(e.created_at for e in rating_events)
+        submitted_feedback = any(e.event_type == 'rating_prompt.feedback_submitted' for e in rating_events)
+        cooldown = _RATING_PROMPT_FEEDBACK_COOLDOWN_DAYS if submitted_feedback else _RATING_PROMPT_COOLDOWN_DAYS
+        if (now - last_prompt).days < cooldown:
+            return False, f'cooldown:{cooldown - (now - last_prompt).days}d_remaining'
+
+    loss_cutoff = now - timedelta(hours=_RATING_PROMPT_LOSS_LOOKBACK_HOURS)
+    recent_loss = Pick.query.filter(
+        Pick.result == 'loss',
+        Pick.settled_at.isnot(None),
+        Pick.settled_at >= loss_cutoff,
+    ).first()
+    if recent_loss:
+        return False, 'recent_loss'
+
+    return True, 'eligible'
+
+
+@app.route('/api/rating-prompt/eligibility', methods=['GET'])
+def rating_prompt_eligibility():
+    """Frontend pings this on app open (after 10s natural-pause delay).
+    Returns {eligible: bool, reason: string}."""
+    user_dict = get_current_user_from_session()
+    if not user_dict:
+        return jsonify({'eligible': False, 'reason': 'not_authenticated'}), 200
+    user = db.session.get(User, user_dict['id'])
+    eligible, reason = _rating_prompt_eligibility(user)
+    return jsonify({'eligible': eligible, 'reason': reason})
+
+
+_RATING_PROMPT_VALID_EVENTS = {
+    'shown', 'tapped_positive', 'tapped_negative', 'dismissed',
+    'google_api_triggered', 'feedback_submitted', 'feedback_skipped',
+}
+
+
+@app.route('/api/rating-prompt/event', methods=['POST'])
+def rating_prompt_event():
+    """Log a rating-prompt analytics event to user_events."""
+    user_dict = get_current_user_from_session()
+    if not user_dict:
+        return jsonify({'error': 'Authentication required'}), 401
+    body = request.get_json(silent=True) or {}
+    raw = (body.get('event') or '').strip().lower()
+    if raw not in _RATING_PROMPT_VALID_EVENTS:
+        return jsonify({'error': f'Unknown event: {raw}'}), 400
+    try:
+        ev = UserEvent(
+            user_id=user_dict['id'],
+            event_type=f'rating_prompt.{raw}',
+            event_data=body.get('data') or {},
+            session_id=session.get('session_token') or None,
+            is_internal=bool(user_dict.get('is_internal', False)),
+            created_at=datetime.utcnow(),
+        )
+        db.session.add(ev)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f'rating-prompt event log failed: {e}')
+        return jsonify({'error': 'log_failed'}), 500
+    return jsonify({'success': True})
+
+
+@app.route('/api/rating-prompt/feedback', methods=['POST'])
+def rating_prompt_feedback():
+    """Path B: receive feedback text, email support@sharppicks.ai,
+    log the submission event."""
+    user_dict = get_current_user_from_session()
+    if not user_dict:
+        return jsonify({'error': 'Authentication required'}), 401
+    user = db.session.get(User, user_dict['id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    body = request.get_json(silent=True) or {}
+    message = (body.get('message') or '').strip()
+    if not message:
+        return jsonify({'error': 'Message required'}), 400
+    if len(message) > 2000:
+        message = message[:2000]
+
+    user_label = user.first_name or (user.email.split('@')[0] if user.email else 'anonymous')
+    platform = (body.get('platform') or 'android').strip()[:20]
+    app_version = (body.get('app_version') or '').strip()[:50]
+    account_age_days = ((datetime.utcnow() - user.created_at).days
+                        if user.created_at else None)
+
+    subject = f"App feedback · {user_label}"
+    metadata_lines = [
+        '',
+        '---',
+        f'From: {user.email or "(no email)"}',
+        f'Platform: {platform}',
+        f'App version: {app_version or "(unknown)"}',
+        f'Account age: {account_age_days}d' if account_age_days is not None else 'Account age: unknown',
+        f'Subscription: {user.subscription_status or "free"}'
+            + (' · founding' if user.founding_member else ''),
+        f'User ID: {user.id}',
+    ]
+    html_body = (
+        '<div style="font-family: -apple-system, system-ui, sans-serif; max-width: 600px;">'
+        f'<p>{message.replace(chr(10), "<br>")}</p>'
+        '<hr style="border: none; border-top: 1px solid #ddd; margin: 24px 0;">'
+        '<div style="color: #666; font-size: 12px; line-height: 1.6;">'
+        f'From: {user.email or "(no email)"}<br>'
+        f'Platform: {platform}<br>'
+        f'App version: {app_version or "(unknown)"}<br>'
+        + (f'Account age: {account_age_days}d<br>' if account_age_days is not None else '')
+        + f'Subscription: {user.subscription_status or "free"}'
+        + (' &middot; founding' if user.founding_member else '') + '<br>'
+        f'User ID: {user.id}'
+        '</div></div>'
+    )
+
+    try:
+        from email_service import send_email
+        msg_id = send_email(
+            to='support@sharppicks.ai',
+            subject=subject,
+            html=html_body,
+            reply_to=user.email,
+        )
+    except Exception as e:
+        logging.error(f'rating-prompt feedback send failed: {e}')
+        return jsonify({'error': 'send_failed'}), 500
+    if not msg_id:
+        return jsonify({'error': 'send_failed'}), 500
+
+    try:
+        ev = UserEvent(
+            user_id=user.id,
+            event_type='rating_prompt.feedback_submitted',
+            event_data={
+                'message_length': len(message),
+                'platform': platform,
+                'app_version': app_version,
+                'resend_message_id': msg_id,
+            },
+            session_id=session.get('session_token') or None,
+            is_internal=bool(user.is_internal),
+            created_at=datetime.utcnow(),
+        )
+        db.session.add(ev)
+        db.session.commit()
+    except Exception as log_err:
+        db.session.rollback()
+        logging.error(f'rating-prompt feedback event log failed: {log_err}')
+
+    return jsonify({'success': True})
+
+
 def start_background_services():
     import time
     time.sleep(5)
