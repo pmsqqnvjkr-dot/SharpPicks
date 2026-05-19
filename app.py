@@ -5998,6 +5998,133 @@ def cron_cleanup_events():
     return log_cron('cleanup_events', _cleanup)
 
 
+@app.route('/api/cron/user-resync', methods=['POST'])
+@verify_cron
+def cron_user_resync():
+    """One-off ops repair: re-derive a user's local subscription state
+    from their current Stripe subscription. Useful when a webhook was
+    missed and the local row has the wrong status / plan / is_premium /
+    period_end (Leon Vukelja + Ken Suther on 2026-05-19 were both
+    trialing in Stripe but admin classified them as PAID with no plan
+    tag — the webhook never wrote subscription_plan, likely because
+    metadata.plan='trial' AND the fallback inference also missed).
+
+    Query: ?email=foo@bar.com (URL-encoded). CRON_SECRET-gated.
+    Returns the before/after diff so the operator can verify.
+    """
+    email = (request.args.get('email') or '').strip().lower()
+    if not email:
+        return jsonify({'error': 'email required'}), 400
+
+    user = User.query.filter(func.lower(User.email) == email).first()
+    if not user:
+        return jsonify({'error': 'user not found', 'email': email}), 404
+    if not user.stripe_customer_id:
+        return jsonify({'error': 'user has no stripe_customer_id'}), 400
+
+    before = {
+        'subscription_status': user.subscription_status,
+        'subscription_plan': user.subscription_plan,
+        'is_premium': bool(user.is_premium),
+        'trial_used': bool(user.trial_used),
+        'trial_end_date': user.trial_end_date.isoformat() if user.trial_end_date else None,
+        'current_period_end': user.current_period_end.isoformat() if user.current_period_end else None,
+        'founding_member': bool(user.founding_member),
+    }
+
+    try:
+        from stripe_client import get_stripe_client
+        stripe = get_stripe_client()
+        subs = stripe.Subscription.list(customer=user.stripe_customer_id, status='all', limit=10)
+    except Exception as e:
+        return jsonify({'error': f'stripe lookup failed: {e}'}), 500
+
+    def _sg(o, k, d=None):
+        return o.get(k, d) if isinstance(o, dict) else getattr(o, k, d)
+
+    # Prefer trialing > active > most recent. Anything else is irrelevant
+    # for state inference (canceled subs do not represent the user's
+    # current relationship).
+    target = None
+    for s in subs.data:
+        if _sg(s, 'status') == 'trialing':
+            target = s
+            break
+    if not target:
+        for s in subs.data:
+            if _sg(s, 'status') == 'active':
+                target = s
+                break
+
+    if not target:
+        return jsonify({
+            'error': 'no active/trialing sub in Stripe to sync from',
+            'before': before,
+        }), 400
+
+    status = _sg(target, 'status')
+    items = _sg(target, 'items') or {}
+    item_data = _sg(items, 'data') or []
+    interval = None
+    if item_data:
+        price = _sg(item_data[0], 'price') or {}
+        recurring = _sg(price, 'recurring') or {}
+        interval = _sg(recurring, 'interval')
+    plan = 'annual' if interval == 'year' else 'monthly' if interval == 'month' else None
+
+    if status == 'trialing':
+        user.subscription_status = 'trial'
+        user.is_premium = True
+        user.trial_used = True
+        trial_end_ts = _sg(target, 'trial_end')
+        if trial_end_ts:
+            user.trial_end_date = datetime.fromtimestamp(trial_end_ts)
+            user.trial_ends = datetime.fromtimestamp(trial_end_ts)
+    elif status == 'active':
+        user.subscription_status = 'active'
+        user.is_premium = True
+        user.trial_used = True
+
+    if plan:
+        user.subscription_plan = plan
+
+    period_end_ts = _sg(target, 'current_period_end')
+    if period_end_ts:
+        user.current_period_end = datetime.fromtimestamp(period_end_ts)
+
+    cancel_at_period_end = bool(_sg(target, 'cancel_at_period_end'))
+    if cancel_at_period_end and status in ('active', 'trialing'):
+        if user.cancel_scheduled_at is None:
+            user.cancel_scheduled_at = datetime.utcnow()
+        cancel_at = _sg(target, 'cancel_at')
+        if cancel_at:
+            user.cancel_effective_at = datetime.fromtimestamp(cancel_at)
+        if status == 'active':
+            user.subscription_status = 'cancelling'
+
+    db.session.commit()
+
+    after = {
+        'subscription_status': user.subscription_status,
+        'subscription_plan': user.subscription_plan,
+        'is_premium': bool(user.is_premium),
+        'trial_used': bool(user.trial_used),
+        'trial_end_date': user.trial_end_date.isoformat() if user.trial_end_date else None,
+        'current_period_end': user.current_period_end.isoformat() if user.current_period_end else None,
+        'founding_member': bool(user.founding_member),
+    }
+    diff = {k: {'before': before[k], 'after': after[k]} for k in before if before[k] != after[k]}
+
+    return jsonify({
+        'email': user.email,
+        'stripe_sub_id': _sg(target, 'id'),
+        'stripe_status': status,
+        'before': before,
+        'after': after,
+        'changed': diff,
+    })
+
+
 @app.route('/api/cron/user-snapshot', methods=['GET'])
 @verify_cron
 def cron_user_snapshot():
