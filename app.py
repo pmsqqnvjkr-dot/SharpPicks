@@ -5998,6 +5998,97 @@ def cron_cleanup_events():
     return log_cron('cleanup_events', _cleanup)
 
 
+@app.route('/api/cron/user-snapshot', methods=['GET'])
+@verify_cron
+def cron_user_snapshot():
+    """One-off ops lookup: return a user's local row + their Stripe
+    customer/subscription state. Used for diagnosing "user shows as
+    paid but with no plan tag" anomalies and the like.
+
+    Query: ?email=foo@bar.com (URL-encoded). CRON_SECRET-gated.
+    """
+    email = (request.args.get('email') or '').strip().lower()
+    if not email:
+        return jsonify({'error': 'email required'}), 400
+
+    user = User.query.filter(func.lower(User.email) == email).first()
+    if not user:
+        return jsonify({'error': 'user not found', 'email': email}), 404
+
+    local = {
+        'id': user.id,
+        'email': user.email,
+        'first_name': user.first_name,
+        'oauth_provider': user.oauth_provider,
+        'subscription_status': user.subscription_status,
+        'subscription_plan': user.subscription_plan,
+        'is_premium': bool(user.is_premium),
+        'founding_member': bool(user.founding_member),
+        'comped': bool(getattr(user, 'comped', False)),
+        'is_internal': bool(user.is_internal),
+        'pro_source': getattr(user, 'pro_source', None),
+        'trial_end_date': user.trial_end_date.isoformat() if user.trial_end_date else None,
+        'trial_converted_at': user.trial_converted_at.isoformat() if user.trial_converted_at else None,
+        'cancel_scheduled_at': user.cancel_scheduled_at.isoformat() if user.cancel_scheduled_at else None,
+        'cancel_effective_at': user.cancel_effective_at.isoformat() if user.cancel_effective_at else None,
+        'current_period_end': user.current_period_end.isoformat() if user.current_period_end else None,
+        'created_at': user.created_at.isoformat() if user.created_at else None,
+        'stripe_customer_id': user.stripe_customer_id,
+        'referred_by': user.referred_by,
+    }
+
+    stripe_data = {'has_customer': False, 'subscriptions': [], 'charges': []}
+    if user.stripe_customer_id:
+        stripe_data['has_customer'] = True
+        try:
+            from stripe_client import get_stripe_client
+            stripe = get_stripe_client()
+            subs = stripe.Subscription.list(customer=user.stripe_customer_id, status='all', limit=10)
+            def _sg(o, k, d=None):
+                return o.get(k, d) if isinstance(o, dict) else getattr(o, k, d)
+            for s in subs.data:
+                items_container = _sg(s, 'items') or {}
+                items_data = _sg(items_container, 'data') or []
+                price_info = []
+                for it in items_data:
+                    price = _sg(it, 'price') or {}
+                    recurring = _sg(price, 'recurring') or {}
+                    price_info.append({
+                        'price_id': _sg(price, 'id'),
+                        'unit_amount': _sg(price, 'unit_amount'),
+                        'currency': _sg(price, 'currency'),
+                        'interval': _sg(recurring, 'interval'),
+                    })
+                stripe_data['subscriptions'].append({
+                    'id': _sg(s, 'id'),
+                    'status': _sg(s, 'status'),
+                    'cancel_at_period_end': bool(_sg(s, 'cancel_at_period_end')),
+                    'created': _sg(s, 'created'),
+                    'trial_end': _sg(s, 'trial_end'),
+                    'current_period_end': _sg(s, 'current_period_end'),
+                    'canceled_at': _sg(s, 'canceled_at'),
+                    'cancel_at': _sg(s, 'cancel_at'),
+                    'prices': price_info,
+                    'metadata': dict(_sg(s, 'metadata') or {}),
+                })
+            charges = stripe.Charge.list(customer=user.stripe_customer_id, limit=10)
+            for c in charges.data:
+                stripe_data['charges'].append({
+                    'id': _sg(c, 'id'),
+                    'amount': _sg(c, 'amount'),
+                    'currency': _sg(c, 'currency'),
+                    'status': _sg(c, 'status'),
+                    'paid': bool(_sg(c, 'paid')),
+                    'refunded': bool(_sg(c, 'refunded')),
+                    'created': _sg(c, 'created'),
+                    'description': _sg(c, 'description'),
+                })
+        except Exception as e:
+            stripe_data['error'] = str(e)
+
+    return jsonify({'local': local, 'stripe': stripe_data})
+
+
 @app.route('/api/cron/send-apple-bridge', methods=['POST'])
 @verify_cron
 def cron_send_apple_bridge():
