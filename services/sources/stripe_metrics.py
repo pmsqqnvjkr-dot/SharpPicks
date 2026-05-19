@@ -78,20 +78,26 @@ def _fetch_raw() -> dict:
     excluded_customer_ids = set()
     excluded_count_internal = 0
     excluded_count_comped = 0
+    excluded_count_app_reviewer = 0
+    import re as _re
+    _AR_PATTERN = _re.compile(r'^ar_user[0-9]+@icloud\.com$')
     try:
         from models import User
         users_with_stripe = User.query.filter(
             User.stripe_customer_id.isnot(None),
         ).with_entities(
-            User.stripe_customer_id, User.is_internal, User.comped, User.deleted_at,
+            User.stripe_customer_id, User.is_internal, User.comped, User.deleted_at, User.email,
         ).all()
-        for cust_id, is_internal, comped, deleted_at in users_with_stripe:
-            if is_internal or comped or deleted_at is not None:
+        for cust_id, is_internal, comped, deleted_at, email in users_with_stripe:
+            is_app_reviewer = bool(email and _AR_PATTERN.match(email))
+            if is_internal or comped or deleted_at is not None or is_app_reviewer:
                 excluded_customer_ids.add(cust_id)
                 if is_internal:
                     excluded_count_internal += 1
                 if comped:
                     excluded_count_comped += 1
+                if is_app_reviewer:
+                    excluded_count_app_reviewer += 1
     except Exception as e:
         logger.warning('stripe_metrics: exclusion-set build failed (counts will include internal/comped): %s', e)
 
@@ -410,6 +416,7 @@ def _fetch_raw() -> dict:
         'comped_pro_users': comped_count,             # complimentary pro access, not in MRR
         'excluded_internal_subs': excluded_count_internal,
         'excluded_comped_subs': excluded_count_comped,
+        'excluded_app_reviewer_subs': excluded_count_app_reviewer,
         'orphan_mrr_cents': orphan_mrr_cents,         # paying users invisible to Stripe (delete-bug victims, etc.)
         'orphan_paying_subs': orphan_count,
         'orphan_emails': orphan_emails,
