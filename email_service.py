@@ -333,6 +333,7 @@ def send_password_reset(to, reset_url, first_name=None):
         html = _render_jinja_v2('14-password_reset.html', {
             'first_name': first_name or 'there',
             'reset_url': reset_url,
+            'unsubscribe_url': _make_unsub_url(to),
         })
     if html is None:
         body = '''
@@ -356,6 +357,7 @@ def send_verification_email(to, verify_url, first_name=None):
         html = _render_jinja_v2('13-verification.html', {
             'first_name': first_name or 'there',
             'verify_url': verify_url,
+            'unsubscribe_url': _make_unsub_url(to),
         })
     if html is None:
         body = '''
@@ -429,6 +431,7 @@ def send_trial_started_email(to, trial_start=None, trial_end=None):
             'days': days,
             'trial_end_date': end_str,
             'app_url': f'{base}/',
+            'unsubscribe_url': _make_unsub_url(to),
         })
     if html is None:
         body = '''
@@ -486,6 +489,7 @@ def send_trial_expiring_email(to, first_name=None, trial_end_date=None, picks_re
             'trial_end_date': end_str,
             'days_left': days_left,
             'cta_url': f'{base}/subscribe',
+            'unsubscribe_url': _make_unsub_url(to),
         }
         if auto_renew:
             html = _render_jinja_v2('08a-trial_expiring_auto_renew.html', ctx)
@@ -519,6 +523,7 @@ def send_trial_expired_email(to, first_name=None):
         html = _render_jinja_v2('09-trial_expired.html', {
             'first_name': first_name or 'there',
             'cta_url': f'{base}/subscribe',
+            'unsubscribe_url': _make_unsub_url(to),
         })
     if html is None:
         body = '''
@@ -547,6 +552,7 @@ def send_cancellation_email(to, first_name=None, access_end_date=None, is_foundi
             'access_end_date': end_str,
             'cta_url': f'{base}/subscribe',
             'is_founding': is_founding,
+            'unsubscribe_url': _make_unsub_url(to),
         })
     if html is None:
         body = '''
@@ -571,6 +577,7 @@ def send_payment_failed_email(to, first_name=None):
         html = _render_jinja_v2('11-payment_failed.html', {
             'first_name': first_name or 'there',
             'cta_url': f'{base}/billing',
+            'unsubscribe_url': _make_unsub_url(to),
         })
     if html is None:
         body = '''
@@ -665,6 +672,7 @@ def send_signal_email(to, pick):
             'pick_line': ctx['pick_line'],
             'sportsbook': sportsbook,
             'signal_url': f'{base}/picks',
+            'unsubscribe_url': _make_unsub_url(to, 'email_signals'),
         }
         html = _render_jinja_v2(v2_tpl, v2_ctx)
 
@@ -839,6 +847,7 @@ def send_result_email(to, pick):
             'season_record': f"{ctx.get('updated_wins', 0)}-{ctx.get('updated_losses', 0)}",
             'season_roi': ctx.get('updated_roi', 0),
             'updated_clv': ctx.get('updated_clv', 0),
+            'unsubscribe_url': _make_unsub_url(to, 'email_results'),
         })
     if html is None:
         html = _render_jinja('grading.html', ctx)
@@ -886,6 +895,7 @@ def send_founding_member_email(to, member_number=None, total=100, joined_date=No
         html = _render_jinja_v2('12-founding_member.html', {
             'member_number': member_number,
             'total': total,
+            'unsubscribe_url': _make_unsub_url(to),
         })
     if html is None:
         body = '''
@@ -953,6 +963,7 @@ def send_no_signal_email(to, games_analyzed=0, edges_detected=0, efficiency=0, s
             'qualified_edges': 0,
             'closest_edge': f"{ctx.get('closest_edge'):.1f}%" if ctx.get('closest_edge') else '—',
             'market_report_url': f'{base}/market-report',
+            'unsubscribe_url': _make_unsub_url(to, 'email_marketing'),
         })
     if html is None:
         html = _render_jinja('no_signal.html', ctx)
