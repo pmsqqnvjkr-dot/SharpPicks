@@ -339,6 +339,58 @@ def _fetch_raw() -> dict:
     except Exception as e:
         logger.warning('stripe_metrics: comped count failed: %s', e)
 
+    # Orphaned-paying-customer adjustment. Users whose Stripe subscription
+    # was deleted by the /api/account/delete ordering bug (fixed in
+    # commit ad1480d7) are still paying customers — they paid through a
+    # future period_end — but invisible to Stripe.Subscription.list, so
+    # the loop above missed them. Cooper Reynolds and Spiffy are the
+    # known cases as of 2026-05-18; any future divergence between local
+    # is_premium and Stripe sub status surfaces here too.
+    #
+    # We add their monthly-equivalent contribution to mrr_cents +
+    # expected_mrr_cents, and expose `mrr_orphan_cents` + a count so the
+    # discrepancy is visible in the dashboard rather than hidden.
+    orphan_mrr_cents = 0
+    orphan_count = 0
+    orphan_emails: list[str] = []
+    try:
+        from models import User, db as _db
+        now_dt = datetime.utcnow()
+        orphan_candidates = User.query.filter(
+            User.is_premium == True,  # noqa: E712
+            User.subscription_status.in_(('active', 'cancelling', 'trial')),
+            User.current_period_end.isnot(None),
+            User.current_period_end > now_dt,
+            User.is_internal == False,  # noqa: E712
+            User.comped == False,  # noqa: E712
+            User.deleted_at.is_(None),
+        ).all()
+        for u in orphan_candidates:
+            cust_id = u.stripe_customer_id
+            if cust_id and (cust_id in paying_customer_ids or cust_id in trial_customer_ids):
+                continue
+            plan = (u.subscription_plan or '').lower()
+            if u.founding_member:
+                contrib = round(9900 / 12)
+            elif 'annual' in plan:
+                contrib = round(14999 / 12)
+            elif 'month' in plan:
+                contrib = 1999
+            else:
+                contrib = 0
+            if contrib <= 0:
+                continue
+            orphan_mrr_cents += contrib
+            orphan_count += 1
+            if u.email:
+                orphan_emails.append(u.email)
+    except Exception as e:
+        logger.warning('stripe_metrics: orphan MRR augmentation failed: %s', e)
+
+    if orphan_mrr_cents > 0:
+        mrr_cents += orphan_mrr_cents
+        expected_mrr_cents += orphan_mrr_cents
+
     # Render the 90-day MRR series with date strings so the frontend
     # can use them as chart labels directly.
     mrr_daily_90d = [
@@ -358,6 +410,9 @@ def _fetch_raw() -> dict:
         'comped_pro_users': comped_count,             # complimentary pro access, not in MRR
         'excluded_internal_subs': excluded_count_internal,
         'excluded_comped_subs': excluded_count_comped,
+        'orphan_mrr_cents': orphan_mrr_cents,         # paying users invisible to Stripe (delete-bug victims, etc.)
+        'orphan_paying_subs': orphan_count,
+        'orphan_emails': orphan_emails,
         'trials': trials,
         'new_subs_24h': new_subs_24h,
         'new_subs_7d': new_subs_7d,
