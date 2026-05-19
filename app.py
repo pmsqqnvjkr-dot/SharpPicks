@@ -3954,22 +3954,31 @@ def check_expiring_trials():
 
 
 def expire_trials():
-    """Flip is_premium to false for expired trials.
+    """Flip is_premium to false for expired trials, plus expire
+    'cancelling' subs whose cancel_effective_at has passed.
 
-    Only touches trials that aren't being settled by Stripe. For Stripe
-    -tracked trials we let the customer.subscription.updated webhook
-    decide the final state (active / past_due / canceled / etc.) because
-    the cron races the webhook: trial_end_date triggers ~60s before
-    Stripe attempts the auto-charge, so marking 'expired' here sends a
-    misleading "trial ended" email to users whose card is about to be
-    charged. The cron still expires:
+    Trial path: only touches trials not settled by Stripe. For
+    Stripe-tracked trials we let customer.subscription.updated
+    decide the final state because the cron races the webhook:
+    trial_end_date triggers ~60s before Stripe attempts the auto-
+    charge, so marking 'expired' here sends a misleading
+    "trial ended" email to users whose card is about to be charged.
+    The cron still expires:
       - users with no Stripe pro_source (manual or other trial paths)
       - users who explicitly scheduled a cancel via our UI / Stripe portal
-    Everyone else stays in 'trial' until Stripe reports the verdict.
+
+    Cancelling path: customer.subscription.deleted keeps paying users
+    in 'cancelling' + is_premium=True until cancel_effective_at hits.
+    Once the period elapses, hard-flip them here. Without this, a
+    deleted Stripe sub whose paid period extends into the future
+    would stay premium forever (no future webhook will fire — the
+    sub is gone).
     """
     with app.app_context():
         try:
             from sqlalchemy import or_
+            now = datetime.utcnow()
+
             expired = User.query.filter(
                 User.subscription_status == 'trial',
                 User.trial_end_date <= datetime.now(),
@@ -3987,9 +3996,22 @@ def expire_trials():
                     send_trial_expired_email(user.email, user.first_name)
                 except Exception as e:
                     logging.error(f"Trial expired email failed for {user.email}: {e}")
+
+            cancelling_done = User.query.filter(
+                User.subscription_status == 'cancelling',
+                User.cancel_effective_at.isnot(None),
+                User.cancel_effective_at <= now,
+                User.is_premium == True,  # noqa: E712
+            ).all()
+            for user in cancelling_done:
+                user.subscription_status = 'cancelled'
+                user.is_premium = False
+
             db.session.commit()
             if expired:
                 logging.info(f"Expired {len(expired)} non-Stripe trials")
+            if cancelling_done:
+                logging.info(f"Expired {len(cancelling_done)} cancelling subs past period_end")
         except Exception as e:
             logging.error(f"expire_trials error: {e}")
 
@@ -7415,8 +7437,25 @@ def stripe_webhook():
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
-                    user.subscription_status = 'cancelled'
-                    user.is_premium = False
+                    now = datetime.utcnow()
+                    paid_through_future = bool(user.current_period_end and user.current_period_end > now)
+                    if paid_through_future:
+                        # User paid for time that hasn't elapsed. Keep
+                        # pro access until period_end actually passes;
+                        # expire_trials cron flips them when
+                        # cancel_effective_at hits. Without this gate,
+                        # deleting a freshly-paid annual sub (Stripe
+                        # dashboard delete, /api/account/delete, etc.)
+                        # revoked is_premium immediately. Cooper and
+                        # Spiffy both hit this 2026-05-16 and
+                        # 2026-05-18; their rows were manually repaired.
+                        user.subscription_status = 'cancelling'
+                        user.cancel_scheduled_at = now
+                        user.cancel_effective_at = user.current_period_end
+                    else:
+                        # Period already elapsed; hard cancel is correct.
+                        user.subscription_status = 'cancelled'
+                        user.is_premium = False
                     db.session.commit()
                     logging.info(f'Subscription cancelled for user {user.email}')
                     _log_revenue_alert('subscription_deleted', user.email,
