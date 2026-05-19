@@ -9,11 +9,11 @@
 //      universal (sport tag empty, null, or 'all'), it wins on every
 //      tab. Same hero card across sports, by design, so a fresh
 //      broadly-applicable piece gets max distribution on launch day.
-//   2. Otherwise the most recent article tagged for the current sport.
-//   3. Otherwise a universal article rotated by a stable sport offset
-//      (NBA=0, MLB=1, WNBA=2) so each tab lands on a different one
-//      instead of all surfacing the same fallback.
-//   4. Final fallback: the first evergreen article in the list.
+//   2. Otherwise rotate through sport-tagged + universal articles using
+//      (day_of_year + sportOffset) % pool.length so consecutive
+//      no-signal days surface different pieces instead of repeating the
+//      same hero card.
+//   3. Final fallback: the first evergreen article in the list.
 //
 // "Universal" = the article applies to all sports (philosophy, how-it-
 // works, broad discipline pieces). We mark these by leaving the sport
@@ -32,6 +32,18 @@ function etDateString(d = new Date()) {
 
 function sportOffset(sport) {
   return SPORT_OFFSETS[(sport || 'nba').toLowerCase()] ?? 0;
+}
+
+// Day-of-year in ET as a stable rotation key. Same value all day across
+// any user; ticks over at midnight ET so the off-day hero changes each
+// calendar day.
+function dayOfYearET(d = new Date()) {
+  const iso = etDateString(d);
+  if (!iso) return 0;
+  const [y, m, day] = iso.split('-').map(Number);
+  const start = Date.UTC(y, 0, 0);
+  const date = Date.UTC(y, (m || 1) - 1, day || 1);
+  return Math.floor((date - start) / 86400000);
 }
 
 function isMarketNote(a) {
@@ -64,16 +76,30 @@ export function pickPrimaryArticle(articles, sport) {
   }
 
   const sportLower = (sport || '').toLowerCase();
-  const sportMatch = evergreen.find(
-    (a) => (a.sport || '').toLowerCase() === sportLower
-  );
-  if (sportMatch) return sportMatch;
+  const dayIdx = dayOfYearET();
+  const offset = (dayIdx + sportOffset(sport)) % Math.max(evergreen.length, 1);
 
-  const universals = evergreen.filter(isUniversalSport);
-  if (universals.length) {
-    return universals[sportOffset(sport) % universals.length];
-  }
-  return evergreen[0];
+  // Rotation pool: sport-tagged articles for this sport first, then
+  // universal articles, deduped. This way the day-of-year rotation
+  // surfaces different content on consecutive no-signal days while a
+  // fresh article published today still wins via the priority above.
+  const pool = [];
+  const seen = new Set();
+  evergreen.forEach((a) => {
+    if ((a.sport || '').toLowerCase() === sportLower && !seen.has(a)) {
+      pool.push(a);
+      seen.add(a);
+    }
+  });
+  evergreen.forEach((a) => {
+    if (isUniversalSport(a) && !seen.has(a)) {
+      pool.push(a);
+      seen.add(a);
+    }
+  });
+
+  if (pool.length) return pool[offset % pool.length];
+  return evergreen[offset % evergreen.length];
 }
 
 // Returns evergreen articles ordered for the current sport tab. Primary
