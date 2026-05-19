@@ -280,7 +280,7 @@ function SettingsSection({ user, onNavigate }) {
     { id: 'notifications', label: 'Signal Alerts', subtitle: 'Pick delivery and result notifications' },
     ...(!isPro && user ? [{ id: 'upgrade', label: isNative ? 'Unlock Pro Features' : 'Upgrade to Pro', subtitle: isNative ? 'Full pick details and analytics' : 'Full pick details and analytics', badge: 'Pro' }] : []),
     ...(!isNative && isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
-    ...(isPro ? [{ id: 'cancel', label: 'Allocation & Access', subtitle: isNative ? 'Plan and membership' : 'Billing, plan, and membership', requiresAuth: true }] : []),
+    ...(isPro ? [{ id: 'cancel', label: 'Manage Subscription', subtitle: 'Plan, renewal, and cancellation', requiresAuth: true }] : []),
   ];
 
   const visibleItems = user
@@ -1027,7 +1027,7 @@ function ControlsSection({ user, onNavigate, isPro, foundingData, onSubscribe, c
     ...(!isPro && user ? [{ id: 'upgrade', label: isNative ? 'Unlock Pro Features' : 'Upgrade to Pro', subtitle: 'Unlock full decision visibility', badge: 'Pro' }] : []),
     ...(!isNative && isPro && isMonthly ? [{ id: 'annual', label: 'Switch to Annual', subtitle: 'Save vs monthly billing' }] : []),
     ...(!isNative && isPro ? [{ id: 'billing', label: portalBusy ? 'Opening...' : 'Manage Billing', subtitle: 'Update card, view receipts, manage renewal', onClick: openBillingPortal }] : []),
-    ...(isPro ? [{ id: 'cancel', label: 'Allocation & Access', subtitle: isNative ? 'Plan and membership' : 'Billing, plan, and membership' }] : []),
+    ...(isPro ? [{ id: 'cancel', label: 'Manage Subscription', subtitle: 'Plan, renewal, and cancellation' }] : []),
   ];
 
   return (

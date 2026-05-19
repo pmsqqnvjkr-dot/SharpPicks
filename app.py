@@ -6945,6 +6945,11 @@ def cancel_subscription():
         db_user = db.session.get(User, user['id'])
         if not db_user or not db_user.stripe_customer_id:
             return jsonify({'error': 'No active subscription'}), 400
+        body = request.get_json(silent=True) or {}
+        reasons = body.get('reasons') or []
+        if not isinstance(reasons, list):
+            reasons = []
+        reasons = [str(r)[:100] for r in reasons if r][:10]
         # status='all' catches both 'active' and 'trialing' subs — trial
         # users were previously unable to cancel through this endpoint.
         def _sg(o, k, d=None):
@@ -6963,6 +6968,26 @@ def cancel_subscription():
             if cancel_at:
                 db_user.cancel_effective_at = datetime.fromtimestamp(cancel_at)
             db.session.commit()
+
+            try:
+                ev = UserEvent(
+                    user_id=db_user.id,
+                    event_type='subscription_cancel_requested',
+                    event_data={
+                        'reasons': reasons,
+                        'plan': db_user.subscription_plan,
+                        'founding_member': bool(db_user.founding_member),
+                        'cancel_effective_at': db_user.cancel_effective_at.isoformat() if db_user.cancel_effective_at else None,
+                    },
+                    session_id=session.get('session_token') or None,
+                    is_internal=bool(getattr(db_user, 'is_internal', False)),
+                    created_at=datetime.utcnow(),
+                )
+                db.session.add(ev)
+                db.session.commit()
+            except Exception as ev_err:
+                logging.error(f'cancel reason logging failed: {ev_err}')
+                db.session.rollback()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
