@@ -8812,11 +8812,12 @@ def delete_account():
         try:
             from stripe_client import get_stripe_client
             stripe = get_stripe_client()
-            subs = stripe.Subscription.list(customer=stripe_customer_id, status='active', limit=10)
+            subs = stripe.Subscription.list(customer=stripe_customer_id, status='all', limit=20)
             for sub in subs.data:
-                if getattr(sub, 'status', None) == 'trialing':
+                sub_status = getattr(sub, 'status', None)
+                if sub_status == 'trialing':
                     stripe.Subscription.delete(sub.id)
-                else:
+                elif sub_status in ('active', 'past_due'):
                     stripe.Subscription.modify(sub.id, cancel_at_period_end=True)
         except Exception:
             logging.exception("[account_delete] stripe cleanup failed for customer_id=%s (local user already deleted)", stripe_customer_id)
