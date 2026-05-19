@@ -18,6 +18,8 @@ import ProfileTab from '../components/sharp/ProfileTab';
 import LandingPage from '../components/sharp/LandingPage';
 import OnboardingFlow from '../components/sharp/OnboardingFlow';
 import AuthModal from '../components/sharp/AuthModal';
+import RatingPrompt from '../components/sharp/RatingPrompt';
+import useRatingPrompt from '../hooks/useRatingPrompt';
 
 function PaymentFailedGate({ user }) {
   const [busy, setBusy] = useState(false);
@@ -548,6 +550,21 @@ function AppContent() {
     ? <OnboardingFlow onComplete={handleOnboardingComplete} />
     : null;
 
+  // Android rating prompt. The hook handles platform gating
+  // (Capacitor.getPlatform() === 'android'), backend eligibility
+  // (21-day floor, cooldowns, recent loss, trial conversion window),
+  // and the native In-App Review API trigger on Path A. Only enabled
+  // while the user is sitting on the picks home tab (natural-pause
+  // moment), authenticated, and not in onboarding / pending verify.
+  const ratingPromptEnabled = (
+    !!user
+    && !showOnboarding
+    && !showWelcome
+    && activeTab === 'picks'
+    && (user.subscription_status !== 'pending_verification')
+  );
+  const ratingPrompt = useRatingPrompt({ enabled: ratingPromptEnabled, user });
+
   if (user && user.subscription_status === 'pending_verification') {
     return (
       <div style={{
@@ -703,6 +720,11 @@ function AppContent() {
           initialAccountType="trial"
         />
       )}
+      <RatingPrompt
+        open={ratingPrompt.open}
+        onPositive={ratingPrompt.onPositive}
+        onClose={ratingPrompt.onClose}
+      />
     </div>
   );
 }
