@@ -85,6 +85,9 @@ def _fetch_raw():
         User.is_internal == False,  # noqa: E712 — exclude employees
         User.comped == False,       # noqa: E712 — exclude gifted accounts
         User.deleted_at.is_(None),  # exclude soft-deleted spam/test
+        # Apple App Reviewers use ar_user<digits>@icloud.com accounts and
+        # show up as PAID via IAP sandbox. Strip them out of paid metrics.
+        ~User.email.op('~')(r'^ar_user[0-9]+@icloud\.com$'),
     ).all()
 
     monthly_count = 0

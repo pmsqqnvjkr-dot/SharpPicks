@@ -23,19 +23,38 @@ def _get_admin_serializer():
 ADMIN_EMAIL = 'evan@sharppicks.ai'
 
 
+# Apple App Store reviewers sign up through TestFlight / App Review with
+# emails matching ar_user<digits>@icloud.com. They appear as PAID in our
+# admin metrics because Apple's IAP sandbox flags their subs active.
+# Exclude them from real-user counts so MRR, active subs, and acquisition
+# funnels reflect actual customers only. Pattern is conservative (must
+# start with "ar_user" plus a digit, end at @icloud.com) so it doesn't
+# accidentally drop legitimate users whose handles happen to start
+# with "ar_".
+_AR_REVIEWER_EMAIL_PATTERN = r'^ar_user[0-9]+@icloud\.com$'
+
+
 def _real_users_query():
     """Returns a User query scoped to real, non-internal, non-deleted users.
     Use this in admin metrics aggregations (signup totals, funnels, user
     lists, etc.) so internal employees and soft-deleted test/spam accounts
     don't pollute customer-facing numbers. See migrations from 2026-05-03."""
-    return User.query.filter(User.is_internal == False, User.deleted_at.is_(None))  # noqa: E712
+    return User.query.filter(
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+        ~User.email.op('~')(_AR_REVIEWER_EMAIL_PATTERN),
+    )
 
 
 def _real_user_filter():
     """SQLAlchemy filter expression equivalent to _real_users_query, for
     use inside .filter() chains on subqueries/joins where we already have
     a User reference."""
-    return db.and_(User.is_internal == False, User.deleted_at.is_(None))  # noqa: E712
+    return db.and_(
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+        ~User.email.op('~')(_AR_REVIEWER_EMAIL_PATTERN),
+    )
 
 def require_superuser():
     from flask_login import current_user
@@ -3696,4 +3715,117 @@ def admin_diagnose_revoked_clv():
         ),
     })
 
+
+@admin_bp.route('/api/admin/funnels')
+def admin_funnels():
+    """Rating-prompt funnel + lifecycle-email open/click rates for the
+    admin dashboard tile. 7-day and 30-day windows side by side so trend
+    is visible at a glance.
+
+    rating_prompt: counts events from user_events grouped by sub-type.
+    Computes positive-response-rate and feedback-capture-rate.
+
+    apple_bridge / lifecycle_emails: joins email_send_history against
+    email_events for delivered/opened/clicked counts. The Resend webhook
+    updates email_events.*_at columns as deliverability state changes.
+    """
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    from models import EmailEvent, EmailSendHistory
+    from sqlalchemy import func as _func, case
+
+    now = datetime.utcnow()
+    cutoff_7d = now - timedelta(days=7)
+    cutoff_30d = now - timedelta(days=30)
+
+    def _rating_funnel(cutoff):
+        rows = db.session.query(
+            UserEvent.event_type, _func.count(UserEvent.id)
+        ).filter(
+            UserEvent.event_type.like('rating_prompt.%'),
+            UserEvent.created_at >= cutoff,
+        ).group_by(UserEvent.event_type).all()
+        counts = {row[0].replace('rating_prompt.', ''): row[1] for row in rows}
+        shown = counts.get('shown', 0)
+        pos   = counts.get('tapped_positive', 0)
+        neg   = counts.get('tapped_negative', 0)
+        feedback_submitted = counts.get('feedback_submitted', 0)
+        return {
+            'shown': shown,
+            'tapped_positive': pos,
+            'tapped_negative': neg,
+            'dismissed': counts.get('dismissed', 0),
+            'google_api_triggered': counts.get('google_api_triggered', 0),
+            'feedback_submitted': feedback_submitted,
+            'feedback_skipped': counts.get('feedback_skipped', 0),
+            'positive_rate_pct': round(100.0 * pos / shown, 1) if shown else 0.0,
+            'negative_rate_pct': round(100.0 * neg / shown, 1) if shown else 0.0,
+            'feedback_capture_rate_pct': round(100.0 * feedback_submitted / neg, 1) if neg else 0.0,
+        }
+
+    def _email_funnel(variant, cutoff):
+        # Sent count from email_send_history (frequency-cap ledger,
+        # one row per attempted+successful send). Delivery / open /
+        # click counts from email_events (webhook-updated rows).
+        sent = db.session.query(_func.count(EmailSendHistory.id)).filter(
+            EmailSendHistory.variant == variant,
+            EmailSendHistory.sent_at >= cutoff,
+        ).scalar() or 0
+
+        agg = db.session.query(
+            _func.count(EmailEvent.id),
+            _func.count(EmailEvent.delivered_at),
+            _func.count(EmailEvent.opened_at),
+            _func.count(EmailEvent.clicked_at),
+            _func.count(EmailEvent.bounced_at),
+            _func.count(EmailEvent.unsubscribed_at),
+        ).filter(
+            EmailEvent.variant == variant,
+            EmailEvent.sent_at >= cutoff,
+        ).first()
+        ev_count = agg[0] or 0
+        delivered = agg[1] or 0
+        opened = agg[2] or 0
+        clicked = agg[3] or 0
+        bounced = agg[4] or 0
+        unsub = agg[5] or 0
+
+        denom = max(ev_count, sent, 1)
+        return {
+            'sent': sent,
+            'events_logged': ev_count,
+            'delivered': delivered,
+            'opened': opened,
+            'clicked': clicked,
+            'bounced': bounced,
+            'unsubscribed': unsub,
+            'open_rate_pct': round(100.0 * opened / denom, 1),
+            'click_rate_pct': round(100.0 * clicked / denom, 1),
+            'bounce_rate_pct': round(100.0 * bounced / denom, 1),
+        }
+
+    KNOWN_VARIANTS = (
+        'apple_iap_bridge', 'welcome', 'trial_started',
+        'trial_expiring_auto_renew', 'trial_expiring_action_required',
+        'trial_expired', 'cancellation', 'payment_failed',
+        'founding_member', 'signal_nba', 'signal_mlb',
+        'result_win', 'result_loss', 'no_signal',
+    )
+
+    email_funnels_7d = {v: _email_funnel(v, cutoff_7d) for v in KNOWN_VARIANTS}
+    email_funnels_30d = {v: _email_funnel(v, cutoff_30d) for v in KNOWN_VARIANTS}
+
+    return jsonify({
+        'rating_prompt': {
+            'last_7d': _rating_funnel(cutoff_7d),
+            'last_30d': _rating_funnel(cutoff_30d),
+        },
+        'email_variants': {
+            'last_7d': email_funnels_7d,
+            'last_30d': email_funnels_30d,
+        },
+        'generated_at': now.isoformat(),
+    })
 
