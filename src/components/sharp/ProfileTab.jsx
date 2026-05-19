@@ -191,13 +191,37 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
               <p style={{
                 fontSize: '14px', color: 'var(--text-primary)',
                 fontWeight: 600, marginBottom: '8px',
-              }}>Are you sure?</p>
+              }}>Delete your account?</p>
               <p style={{
                 fontSize: '13px', color: 'var(--text-secondary)',
-                lineHeight: '1.5', marginBottom: '16px',
+                lineHeight: '1.5', marginBottom: '12px',
               }}>
-                This will permanently delete your account, cancel any active subscription, and remove all your data. This action cannot be undone.
+                This removes your account and all your data permanently. This action cannot be undone.
               </p>
+              {isPro && (
+                <>
+                  <p style={{
+                    fontSize: '13px', color: 'var(--text-secondary)',
+                    lineHeight: '1.5', marginBottom: '12px',
+                  }}>
+                    Your subscription will be set to cancel at the end of the current billing period. You keep access until then. No refund for time already paid.
+                  </p>
+                  <p style={{
+                    fontSize: '13px', color: 'var(--text-secondary)',
+                    lineHeight: '1.5', marginBottom: '16px',
+                  }}>
+                    Just want to stop renewing? Use <button
+                      onClick={() => { setDeleteConfirm(false); navigate('cancel'); }}
+                      style={{
+                        background: 'none', border: 'none', padding: 0,
+                        color: 'var(--text-primary)', fontSize: '13px',
+                        fontWeight: 600, textDecoration: 'underline',
+                        cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                      }}
+                    >Cancel Subscription</button> instead, which keeps your account.
+                  </p>
+                </>
+              )}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   onClick={async () => {
@@ -235,7 +259,7 @@ export default function ProfileTab({ initialScreen, onScreenChange, pickToTrack,
                     fontWeight: 600, cursor: 'pointer',
                     fontFamily: 'var(--font-sans)',
                   }}
-                >Cancel</button>
+                >Keep Account</button>
               </div>
             </div>
           )}
