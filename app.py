@@ -438,12 +438,13 @@ def _upsert_market_note_insight(report, sport='nba'):
     content = '\n'.join(content_parts)
     excerpt = body[:160] if body else title[:160]
 
-    try:
-        from zoneinfo import ZoneInfo
-        et = ZoneInfo('America/New_York')
-        pub = datetime.strptime(date_str, '%Y-%m-%d').replace(tzinfo=et)
-    except Exception:
-        pub = datetime.utcnow()
+    # Publish timestamp = now, not midnight-of-date. The market note is
+    # written immediately after the model runs (and after the day's pick
+    # is published, if any). Using midnight ET made the note appear
+    # BEFORE the pick in chronological feeds — visually suggesting the
+    # report fires earlier than the signal. Setting it to now keeps the
+    # journal-feed order right (pick first, then market note).
+    pub = datetime.utcnow()
 
     existing = Insight.query.filter_by(slug=slug).first()
     if existing:
