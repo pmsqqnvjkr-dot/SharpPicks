@@ -6126,6 +6126,58 @@ def cron_user_resync():
     })
 
 
+@app.route('/api/cron/recent-trials', methods=['GET'])
+@verify_cron
+def cron_recent_trials():
+    """List all users who started a trial (or upgraded to active) in
+    the last N days. Used to spot trial-starters who might have come
+    from the Apple bridge campaign but signed up via a different path
+    (web email/password instead of re-using their iOS Apple OAuth).
+
+    Query: ?days=7 (default 7, max 60).
+    """
+    try:
+        days = min(max(int(request.args.get('days', '7')), 1), 60)
+    except ValueError:
+        days = 7
+    cutoff = datetime.utcnow() - timedelta(days=days)
+
+    users = User.query.filter(
+        User.created_at >= cutoff,
+        User.subscription_status.in_(('trial', 'trialing', 'active')),
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+    ).order_by(User.created_at.asc()).all()
+
+    rows = []
+    for u in users:
+        rows.append({
+            'id': u.id,
+            'email': u.email,
+            'first_name': u.first_name,
+            'created_at': u.created_at.isoformat() if u.created_at else None,
+            'oauth_provider': u.oauth_provider,
+            'subscription_status': u.subscription_status,
+            'subscription_plan': u.subscription_plan,
+            'founding_member': bool(u.founding_member),
+            'trial_converted_at': u.trial_converted_at.isoformat() if u.trial_converted_at else None,
+            'has_stripe_customer': bool(u.stripe_customer_id),
+        })
+
+    by_provider = {}
+    for r in rows:
+        p = r['oauth_provider'] or 'email'
+        by_provider[p] = by_provider.get(p, 0) + 1
+
+    return jsonify({
+        'days': days,
+        'cutoff': cutoff.isoformat(),
+        'total': len(rows),
+        'by_provider': by_provider,
+        'users': rows,
+    })
+
+
 @app.route('/api/cron/apple-bridge-funnel', methods=['GET'])
 @verify_cron
 def cron_apple_bridge_funnel():
