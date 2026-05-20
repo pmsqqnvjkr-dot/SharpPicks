@@ -6126,6 +6126,115 @@ def cron_user_resync():
     })
 
 
+@app.route('/api/cron/apple-bridge-funnel', methods=['GET'])
+@verify_cron
+def cron_apple_bridge_funnel():
+    """Conversion funnel for the apple_iap_bridge email campaign.
+
+    For each user who got the bridge email, report their current
+    subscription state so we can see who converted to trial/paid since
+    the send. CRON_SECRET-gated.
+    """
+    from models import EmailSendHistory, EmailEvent
+
+    sent_rows = (
+        EmailSendHistory.query
+        .filter_by(variant='apple_iap_bridge')
+        .order_by(EmailSendHistory.sent_at.asc())
+        .all()
+    )
+    sent_user_ids = [r.user_id for r in sent_rows]
+    if not sent_user_ids:
+        return jsonify({
+            'sent_total': 0,
+            'message': 'No apple_iap_bridge sends logged yet.',
+        })
+
+    users = User.query.filter(User.id.in_(sent_user_ids)).all()
+    users_by_id = {u.id: u for u in users}
+
+    event_rows = (
+        EmailEvent.query
+        .filter_by(variant='apple_iap_bridge')
+        .filter(EmailEvent.user_id.in_(sent_user_ids))
+        .all()
+    )
+    events_by_user = {e.user_id: e for e in event_rows}
+
+    buckets = {
+        'trial': [],
+        'active': [],
+        'cancelled_or_other': [],
+        'free_still': [],
+        'missing_user_row': [],
+    }
+    opened = 0
+    clicked = 0
+    bounced = 0
+    unsubscribed = 0
+
+    for row in sent_rows:
+        u = users_by_id.get(row.user_id)
+        ev = events_by_user.get(row.user_id)
+        if ev:
+            if ev.opened_at:
+                opened += 1
+            if ev.clicked_at:
+                clicked += 1
+            if ev.bounced_at:
+                bounced += 1
+            if ev.unsubscribed_at:
+                unsubscribed += 1
+
+        if not u:
+            buckets['missing_user_row'].append({'user_id': row.user_id, 'sent_at': row.sent_at.isoformat() if row.sent_at else None})
+            continue
+
+        snap = {
+            'email': u.email,
+            'first_name': u.first_name,
+            'sent_at': row.sent_at.isoformat() if row.sent_at else None,
+            'subscription_status': u.subscription_status,
+            'subscription_plan': u.subscription_plan,
+            'is_premium': bool(u.is_premium),
+            'has_stripe_customer': bool(u.stripe_customer_id),
+            'opened_at': ev.opened_at.isoformat() if ev and ev.opened_at else None,
+            'clicked_at': ev.clicked_at.isoformat() if ev and ev.clicked_at else None,
+        }
+
+        status = (u.subscription_status or '').lower()
+        if status in ('trial', 'trialing'):
+            buckets['trial'].append(snap)
+        elif status == 'active':
+            buckets['active'].append(snap)
+        elif status in ('cancelled', 'cancelling', 'past_due', 'expired'):
+            buckets['cancelled_or_other'].append(snap)
+        else:
+            buckets['free_still'].append(snap)
+
+    converted = len(buckets['trial']) + len(buckets['active'])
+
+    return jsonify({
+        'sent_total': len(sent_rows),
+        'opened': opened,
+        'clicked': clicked,
+        'bounced': bounced,
+        'unsubscribed': unsubscribed,
+        'open_rate_pct': round(100.0 * opened / len(sent_rows), 1) if sent_rows else 0,
+        'click_rate_pct': round(100.0 * clicked / len(sent_rows), 1) if sent_rows else 0,
+        'converted_total': converted,
+        'conversion_rate_pct': round(100.0 * converted / len(sent_rows), 1) if sent_rows else 0,
+        'breakdown': {
+            'trial': len(buckets['trial']),
+            'active': len(buckets['active']),
+            'free_still': len(buckets['free_still']),
+            'cancelled_or_other': len(buckets['cancelled_or_other']),
+            'missing_user_row': len(buckets['missing_user_row']),
+        },
+        'converters': buckets['trial'] + buckets['active'],
+    })
+
+
 @app.route('/api/cron/user-snapshot', methods=['GET'])
 @verify_cron
 def cron_user_snapshot():
