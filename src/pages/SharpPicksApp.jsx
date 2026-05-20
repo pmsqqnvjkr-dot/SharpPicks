@@ -324,6 +324,19 @@ function AppContent() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState('register');
 
+  // Android rating prompt. Hook must be called unconditionally before
+  // any early-return paths below to satisfy the rules of hooks. The
+  // `enabled` flag inside the hook gates the actual eligibility ping
+  // and modal mount, so calling this on every render is safe.
+  const ratingPromptEnabled = (
+    !!user
+    && !showOnboarding
+    && !showWelcome
+    && activeTab === 'picks'
+    && (user.subscription_status !== 'pending_verification')
+  );
+  const ratingPrompt = useRatingPrompt({ enabled: ratingPromptEnabled, user });
+
   useEffect(() => {
     const tabToPage = { picks: '/picks', insights: '/journal', performance: '/performance', profile: '/profile' };
     trackPageView(tabToPage[activeTab] || `/${activeTab}`);
@@ -549,21 +562,6 @@ function AppContent() {
   const onboardingOverlay = showOnboarding
     ? <OnboardingFlow onComplete={handleOnboardingComplete} />
     : null;
-
-  // Android rating prompt. The hook handles platform gating
-  // (Capacitor.getPlatform() === 'android'), backend eligibility
-  // (21-day floor, cooldowns, recent loss, trial conversion window),
-  // and the native In-App Review API trigger on Path A. Only enabled
-  // while the user is sitting on the picks home tab (natural-pause
-  // moment), authenticated, and not in onboarding / pending verify.
-  const ratingPromptEnabled = (
-    !!user
-    && !showOnboarding
-    && !showWelcome
-    && activeTab === 'picks'
-    && (user.subscription_status !== 'pending_verification')
-  );
-  const ratingPrompt = useRatingPrompt({ enabled: ratingPromptEnabled, user });
 
   if (user && user.subscription_status === 'pending_verification') {
     return (
