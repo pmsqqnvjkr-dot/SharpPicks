@@ -6168,15 +6168,22 @@ def cron_apple_bridge_funnel():
         'free_still': [],
         'missing_user_row': [],
     }
+    delivered = 0
     opened = 0
     clicked = 0
     bounced = 0
     unsubscribed = 0
+    complained = 0
+    no_event_row = 0
 
     for row in sent_rows:
         u = users_by_id.get(row.user_id)
         ev = events_by_user.get(row.user_id)
-        if ev:
+        if not ev:
+            no_event_row += 1
+        else:
+            if ev.delivered_at:
+                delivered += 1
             if ev.opened_at:
                 opened += 1
             if ev.clicked_at:
@@ -6185,6 +6192,8 @@ def cron_apple_bridge_funnel():
                 bounced += 1
             if ev.unsubscribed_at:
                 unsubscribed += 1
+            if ev.complained_at:
+                complained += 1
 
         if not u:
             buckets['missing_user_row'].append({'user_id': row.user_id, 'sent_at': row.sent_at.isoformat() if row.sent_at else None})
@@ -6216,10 +6225,14 @@ def cron_apple_bridge_funnel():
 
     return jsonify({
         'sent_total': len(sent_rows),
+        'delivered': delivered,
         'opened': opened,
         'clicked': clicked,
         'bounced': bounced,
         'unsubscribed': unsubscribed,
+        'complained': complained,
+        'no_event_row': no_event_row,
+        'delivery_rate_pct': round(100.0 * delivered / len(sent_rows), 1) if sent_rows else 0,
         'open_rate_pct': round(100.0 * opened / len(sent_rows), 1) if sent_rows else 0,
         'click_rate_pct': round(100.0 * clicked / len(sent_rows), 1) if sent_rows else 0,
         'converted_total': converted,
