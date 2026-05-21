@@ -3829,3 +3829,58 @@ def admin_funnels():
         'generated_at': now.isoformat(),
     })
 
+
+
+@admin_bp.route('/api/admin/model-clv')
+def admin_model_clv():
+    """Internal monitoring for moneyline CLV. Surfaces avg + beat/match/miss
+    bucketing per sport so we can track model calibration without exposing
+    the numbers in the public stats endpoint while we're still tuning.
+
+    Returns spread CLV alongside moneyline CLV so both signals are visible
+    in the same call.
+    """
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    _SPREAD_EPS = 0.25
+    _ML_EPS = 0.5
+
+    def _bucket(values, eps):
+        beats = sum(1 for v in values if v > eps)
+        misses = sum(1 for v in values if v < -eps)
+        matches = sum(1 for v in values if -eps <= v <= eps)
+        denom = beats + misses
+        rate = round(beats / denom * 100, 1) if denom > 0 else 0
+        avg = round(sum(values) / len(values), 2) if values else None
+        return {
+            'n': len(values),
+            'beat': beats,
+            'matched': matches,
+            'missed': misses,
+            'beat_rate_pct': rate,
+            'avg': avg,
+        }
+
+    out = {}
+    for sport in ('nba', 'wnba', 'mlb'):
+        picks = Pick.query.filter(
+            Pick.sport == sport,
+            Pick.result.in_(('win', 'loss', 'push')),
+        ).all()
+        clv_vals = [p.clv for p in picks if p.clv is not None]
+        ml_vals = [p.clv_ml for p in picks if p.clv_ml is not None]
+        out[sport] = {
+            'total_graded_picks': len(picks),
+            'spread_clv': _bucket(clv_vals, _SPREAD_EPS),
+            'moneyline_clv': _bucket(ml_vals, _ML_EPS),
+        }
+    return jsonify({
+        'sports': out,
+        'note': (
+            'Moneyline CLV is captured but hidden from public payloads while '
+            'the model is in calibration. Promote to public when beat rate '
+            'clears ~52% sustained for the sport.'
+        ),
+    })

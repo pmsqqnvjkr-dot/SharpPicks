@@ -183,6 +183,10 @@ Two parallel CLV measurements per pick (see `utils/clv.py`):
   three sports — this is the canonical sharp-money signal for MLB and a
   useful complement for NBA / WNBA where moneyline movement diverges from
   the spread (e.g., spread holds but ML drifts on a sharp moneyline-only bet).
+  **Captured in DB but hidden from public payloads while the model is in
+  calibration**. Admin endpoint `/api/admin/model-clv` exposes the numbers
+  for internal tuning. Promote to public stats once sustained beat rate
+  clears ~52% per sport.
 
 Stored fields on `picks`: `clv`, `closing_spread`, `clv_ml`, `closing_ml`.
 Helpers: `utils/clv.clv_points`, `utils/clv.clv_ml_prob`, `utils/clv.implied_prob`.

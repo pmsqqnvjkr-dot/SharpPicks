@@ -247,8 +247,11 @@ def stats():
         'capital_preserved_days': total_passes,
         'avg_clv': avg_clv,
         'clv_beat_rate': clv_beat_rate,
-        'avg_clv_ml': avg_clv_ml,
-        'clv_ml_beat_rate': clv_ml_beat_rate,
+        # Moneyline CLV captured in DB (closing_ml + clv_ml on picks) but
+        # NOT surfaced to users while the model is in calibration. The
+        # admin endpoint /api/admin/model-clv exposes the same numbers
+        # for internal monitoring. Re-enable here once beat rate clears
+        # ~52% sustained for the model phase to graduate from calibration.
         'last_signal_units': last_signal_units,
         'last_signal_result': last_signal_result,
         'last_signal_date': last_signal_date,
@@ -588,14 +591,11 @@ def dashboard_stats():
             'beat': clv_beats,
             'matched': clv_matches,
             'missed': clv_misses,
-            # Moneyline parallel — real MLB CLV lives here since run-line
-            # spreads are structurally flat at ±1.5.
-            'avg_clv_ml': avg_clv_ml,
-            'ml_beat_rate': clv_ml_beat_rate,
-            'ml_total_tracked': len(clv_ml_values),
-            'ml_beat': clv_ml_beats,
-            'ml_matched': clv_ml_matches,
-            'ml_missed': clv_ml_misses,
+            # Moneyline CLV captured in DB but NOT surfaced here while
+            # the model is in calibration. Admin endpoint
+            # /api/admin/model-clv exposes the same numbers for internal
+            # tuning. Re-add the ml_* fields here once beat rate clears
+            # ~52% sustained for graduation from calibration.
         },
         'risk': {
             'max_drawdown_pct': drawdown_pct,
