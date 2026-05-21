@@ -6195,16 +6195,24 @@ def cron_backfill_mlb_clv():
                 failures.append({'pick_id': pick.id, 'reason': 'no_game_time'})
                 continue
             gt = row['game_time']
-            try:
-                if gt.endswith('Z'):
-                    first_pitch = datetime.strptime(gt, '%Y-%m-%dT%H:%MZ').replace(tzinfo=timezone.utc)
-                else:
-                    first_pitch = datetime.fromisoformat(gt)
+            # mlb_games.game_time observed in two formats:
+            #   'YYYY-MM-DDTHH:MMZ' (no seconds, old)
+            #   'YYYY-MM-DDTHH:MM:SSZ' (with seconds, current)
+            first_pitch = None
+            for fmt in ('%Y-%m-%dT%H:%M:%SZ', '%Y-%m-%dT%H:%MZ'):
+                try:
+                    first_pitch = datetime.strptime(gt, fmt).replace(tzinfo=timezone.utc)
+                    break
+                except ValueError:
+                    continue
+            if first_pitch is None:
+                try:
+                    first_pitch = datetime.fromisoformat(gt.replace('Z', '+00:00'))
                     if first_pitch.tzinfo is None:
                         first_pitch = first_pitch.replace(tzinfo=timezone.utc)
-            except Exception as parse_err:
-                failures.append({'pick_id': pick.id, 'reason': f'bad_game_time:{parse_err}'})
-                continue
+                except Exception as parse_err:
+                    failures.append({'pick_id': pick.id, 'reason': f'bad_game_time:{parse_err}'})
+                    continue
 
             snapshot_at = (first_pitch - timedelta(minutes=10)).strftime('%Y-%m-%dT%H:%M:%SZ')
             url = f"https://api.the-odds-api.com/v4/historical/sports/{sport_key}/odds"
