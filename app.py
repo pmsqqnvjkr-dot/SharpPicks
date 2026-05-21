@@ -6126,6 +6126,164 @@ def cron_user_resync():
     })
 
 
+@app.route('/api/cron/backfill-mlb-clv', methods=['POST'])
+@verify_cron
+def cron_backfill_mlb_clv():
+    """One-off ops: backfill closing-line + CLV for historical MLB picks
+    by pulling snapshots from the-odds-api historical endpoint.
+
+    Each historical query costs 10 credits (vs 1 for live). For ~51
+    picks the total is ~510 credits, fine on Pro tier.
+
+    Query:
+      ?dry_run=1   -> return pick list + count, no API calls or writes
+      ?limit=N     -> cap to N picks (default 100)
+    """
+    import requests
+    from sport_config import get_sport_config
+
+    dry_run = request.args.get('dry_run') in ('1', 'true', 'yes')
+    try:
+        limit = max(1, min(int(request.args.get('limit', '100')), 500))
+    except ValueError:
+        limit = 100
+
+    api_key = os.environ.get('ODDS_API_KEY')
+    if not api_key and not dry_run:
+        return jsonify({'error': 'ODDS_API_KEY not configured'}), 500
+
+    cfg = get_sport_config('mlb')
+    sport_key = cfg.get('odds_api_sport_key', 'baseball_mlb')
+
+    candidates = Pick.query.filter(
+        Pick.sport == 'mlb',
+        Pick.clv.is_(None),
+    ).order_by(Pick.game_date.desc()).limit(limit).all()
+
+    if dry_run:
+        return jsonify({
+            'dry_run': True,
+            'eligible_count': len(candidates),
+            'sample': [
+                {
+                    'id': p.id,
+                    'game_date': p.game_date,
+                    'away_team': p.away_team,
+                    'home_team': p.home_team,
+                    'side': p.side,
+                    'line': p.line,
+                }
+                for p in candidates[:20]
+            ],
+        })
+
+    conn = get_sqlite_conn()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    backfilled = []
+    failures = []
+
+    for pick in candidates:
+        try:
+            cursor.execute(
+                "SELECT game_time FROM mlb_games WHERE home_team = ? AND away_team = ? AND game_date LIKE ?",
+                (pick.home_team, pick.away_team, f'{pick.game_date}%'),
+            )
+            row = cursor.fetchone()
+            if not row or not row['game_time']:
+                failures.append({'pick_id': pick.id, 'reason': 'no_game_time'})
+                continue
+            gt = row['game_time']
+            try:
+                if gt.endswith('Z'):
+                    first_pitch = datetime.strptime(gt, '%Y-%m-%dT%H:%MZ').replace(tzinfo=timezone.utc)
+                else:
+                    first_pitch = datetime.fromisoformat(gt)
+                    if first_pitch.tzinfo is None:
+                        first_pitch = first_pitch.replace(tzinfo=timezone.utc)
+            except Exception as parse_err:
+                failures.append({'pick_id': pick.id, 'reason': f'bad_game_time:{parse_err}'})
+                continue
+
+            snapshot_at = (first_pitch - timedelta(minutes=10)).strftime('%Y-%m-%dT%H:%M:%SZ')
+            url = f"https://api.the-odds-api.com/v4/historical/sports/{sport_key}/odds"
+            params = {
+                'apiKey': api_key,
+                'regions': 'us',
+                'markets': 'spreads',
+                'oddsFormat': 'american',
+                'bookmakers': 'draftkings,fanduel,betmgm,caesars_sportsbook',
+                'date': snapshot_at,
+            }
+            resp = requests.get(url, params=params, timeout=20)
+            if resp.status_code != 200:
+                failures.append({'pick_id': pick.id, 'reason': f'api_{resp.status_code}', 'body': resp.text[:200]})
+                continue
+
+            payload = resp.json()
+            games = payload.get('data') if isinstance(payload, dict) else payload
+            if not games:
+                failures.append({'pick_id': pick.id, 'reason': 'no_games_in_snapshot'})
+                continue
+
+            spread_close = None
+            for game in games:
+                if game.get('home_team') == pick.home_team and game.get('away_team') == pick.away_team:
+                    for bk in game.get('bookmakers', []):
+                        for market in bk.get('markets', []):
+                            if market.get('key') != 'spreads':
+                                continue
+                            for outcome in market.get('outcomes', []):
+                                if outcome.get('name') == pick.home_team:
+                                    spread_close = outcome.get('point')
+                                    break
+                            if spread_close is not None:
+                                break
+                        if spread_close is not None:
+                            break
+                    break
+
+            if spread_close is None:
+                failures.append({'pick_id': pick.id, 'reason': 'matchup_not_found_in_snapshot'})
+                continue
+
+            side = resolve_pick_side(pick)
+            if side is None:
+                failures.append({'pick_id': pick.id, 'reason': 'cannot_resolve_side'})
+                continue
+
+            pick.line_close = spread_close
+            pick.closing_spread = spread_close
+            if pick.line is not None:
+                pick.clv = clv_points(pick.line, to_picked_perspective(spread_close, side))
+            db.session.commit()
+
+            backfilled.append({
+                'pick_id': pick.id,
+                'game': f"{pick.away_team} @ {pick.home_team}",
+                'date': pick.game_date,
+                'pick_line': pick.line,
+                'closing_spread': spread_close,
+                'clv': pick.clv,
+            })
+        except Exception as e:
+            db.session.rollback()
+            failures.append({'pick_id': pick.id, 'reason': f'exception:{str(e)[:200]}'})
+
+    try:
+        conn.close()
+    except Exception:
+        pass
+
+    return jsonify({
+        'backfilled_count': len(backfilled),
+        'failed_count': len(failures),
+        'backfilled': backfilled,
+        'failures': failures,
+    })
+
+
 @app.route('/api/cron/recent-trials', methods=['GET'])
 @verify_cron
 def cron_recent_trials():
