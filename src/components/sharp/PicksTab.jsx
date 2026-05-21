@@ -1717,8 +1717,17 @@ export default function PicksTab({ onNavigate }) {
 
 
         {/* ═══════════════ GAME SLATE (pre-model, pick, pass) ═══════════════ */}
-        {/* Always render to drive onGameCount; hidden visually in night/off-day */}
-        <div style={pageState === 'night' || pageState === 'off-day' || pageState === 'pass' ? { position: 'absolute', width: 0, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none' } : undefined}>
+        {/* Always render to drive onGameCount; hidden visually in night/off-day.
+            Visible on pass days too (as of 2026-05-21) so users still see the
+            day's schedule cards even when the model didn't issue a signal. */}
+        {pageState === 'pass' && (
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: '#7A8494', marginTop: '28px', marginBottom: '14px',
+          }}>TODAY'S SLATE</div>
+        )}
+        <div style={pageState === 'night' || pageState === 'off-day' ? { position: 'absolute', width: 0, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none' } : undefined}>
           <GameSlate
             preModel={pageState === 'pre-model'}
             onGameCount={setGameInfo}
