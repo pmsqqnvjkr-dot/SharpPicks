@@ -769,7 +769,10 @@
     color: var(--text-muted);
   }
   .user-tag.power { color: var(--edge-green); border-color: rgba(52, 211, 153, 0.3); }
-  .user-tag.trial { color: var(--warn); border-color: rgba(228, 160, 59, 0.3); }
+  /* Trialing converting to Pro: signal blue (reads as "future pro").
+     Previously shared warn-amber with cancel_scheduled, making the
+     conversion pipeline impossible to eyeball at a glance. */
+  .user-tag.trial { color: var(--signal-blue); border-color: rgba(79, 134, 247, 0.35); background: rgba(79, 134, 247, 0.04); }
   .user-tag.trial_annual,
   .user-tag.trial_monthly,
   .user-tag.trial_founding { color: var(--text-muted); border-color: var(--border-strong); font-size: 7px; }
