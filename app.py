@@ -855,6 +855,14 @@ def seed_database():
                 db.session.execute(db.text("ALTER TABLE watched_games ADD COLUMN IF NOT EXISTS sport VARCHAR(10) DEFAULT 'nba'"))
                 db.session.execute(db.text("ALTER TABLE insights ADD COLUMN IF NOT EXISTS sport VARCHAR(10) DEFAULT 'nba'"))
                 db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS pro_source VARCHAR"))
+                # Moneyline CLV (2026-05-21). Spread CLV is structurally ~0
+                # for MLB because run lines are fixed at ±1.5. Moneyline
+                # movement is the real signal — closing_ml stores the
+                # picked-side closing American odds, clv_ml the
+                # implied-probability-point delta. See utils/clv.py
+                # clv_ml_prob + migrations/2026-05-21-pick-clv-ml.sql.
+                db.session.execute(db.text("ALTER TABLE picks ADD COLUMN IF NOT EXISTS closing_ml INTEGER"))
+                db.session.execute(db.text("ALTER TABLE picks ADD COLUMN IF NOT EXISTS clv_ml DOUBLE PRECISION"))
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
@@ -3645,13 +3653,20 @@ def collect_closing_lines():
                     closing = game['spread_home']
                     today_pick.line_close = closing
                     today_pick.closing_spread = closing
-                    if today_pick.line is not None and closing is not None:
-                        side = resolve_pick_side(today_pick)
-                        if side is not None:
-                            today_pick.clv = clv_points(
-                                today_pick.line,
-                                to_picked_perspective(closing, side),
-                            )
+                    side = resolve_pick_side(today_pick)
+                    if today_pick.line is not None and closing is not None and side is not None:
+                        today_pick.clv = clv_points(
+                            today_pick.line,
+                            to_picked_perspective(closing, side),
+                        )
+                    # Moneyline CLV — see utils/clv.py clv_ml_prob and
+                    # the matching block in collect_mlb_closing_lines_job.
+                    from utils.clv import picked_ml, clv_ml_prob
+                    close_ml = picked_ml(today_pick, game['home_ml'], game['away_ml'])
+                    if close_ml is not None:
+                        today_pick.closing_ml = int(close_ml)
+                        if today_pick.market_odds is not None:
+                            today_pick.clv_ml = clv_ml_prob(today_pick.market_odds, close_ml)
 
             conn.commit()
             db.session.commit()
@@ -3752,13 +3767,19 @@ def collect_wnba_closing_lines_job():
                     if today_pick.line_close is None:
                         today_pick.line_close = closing
                     today_pick.closing_spread = closing
-                    if today_pick.line is not None and closing is not None:
-                        side = resolve_pick_side(today_pick)
-                        if side is not None:
-                            today_pick.clv = clv_points(
-                                today_pick.line,
-                                to_picked_perspective(closing, side),
-                            )
+                    side = resolve_pick_side(today_pick)
+                    if today_pick.line is not None and closing is not None and side is not None:
+                        today_pick.clv = clv_points(
+                            today_pick.line,
+                            to_picked_perspective(closing, side),
+                        )
+                    # Moneyline CLV — see utils/clv.py clv_ml_prob.
+                    from utils.clv import picked_ml, clv_ml_prob
+                    close_ml = picked_ml(today_pick, game['home_ml'], game['away_ml'])
+                    if close_ml is not None:
+                        today_pick.closing_ml = int(close_ml)
+                        if today_pick.market_odds is not None:
+                            today_pick.clv_ml = clv_ml_prob(today_pick.market_odds, close_ml)
 
             conn.commit()
             db.session.commit()
@@ -5124,13 +5145,24 @@ def collect_mlb_closing_lines_job():
                     if today_pick.line_close is None:
                         today_pick.line_close = closing
                     today_pick.closing_spread = closing
-                    if today_pick.line is not None and closing is not None:
-                        side = resolve_pick_side(today_pick)
-                        if side is not None:
-                            today_pick.clv = clv_points(
-                                today_pick.line,
-                                to_picked_perspective(closing, side),
-                            )
+                    side = resolve_pick_side(today_pick)
+                    if today_pick.line is not None and closing is not None and side is not None:
+                        today_pick.clv = clv_points(
+                            today_pick.line,
+                            to_picked_perspective(closing, side),
+                        )
+                    # Moneyline CLV (added 2026-05-21). Picks up the
+                    # closing moneyline for the picked side and stores
+                    # the implied-probability delta vs pick.market_odds.
+                    # MLB needs this because run-line spreads are
+                    # structurally fixed at ±1.5 — moneyline is where
+                    # the real movement is.
+                    from utils.clv import picked_ml, clv_ml_prob
+                    close_ml = picked_ml(today_pick, game['home_ml'], game['away_ml'])
+                    if close_ml is not None:
+                        today_pick.closing_ml = int(close_ml)
+                        if today_pick.market_odds is not None:
+                            today_pick.clv_ml = clv_ml_prob(today_pick.market_odds, close_ml)
 
             conn.commit()
             db.session.commit()
@@ -6155,9 +6187,13 @@ def cron_backfill_mlb_clv():
     cfg = get_sport_config('mlb')
     sport_key = cfg.get('odds_api_sport_key', 'baseball_mlb')
 
+    # Now that we capture both spread CLV and moneyline CLV, pick up any
+    # MLB row that's missing EITHER one. Rows backfilled in the first
+    # pass (before clv_ml existed) are eligible to come back through and
+    # get clv_ml populated without re-touching clv.
     candidates = Pick.query.filter(
         Pick.sport == 'mlb',
-        Pick.clv.is_(None),
+        db.or_(Pick.clv.is_(None), Pick.clv_ml.is_(None)),
     ).order_by(Pick.game_date.desc()).limit(limit).all()
 
     if dry_run:
@@ -6219,7 +6255,10 @@ def cron_backfill_mlb_clv():
             params = {
                 'apiKey': api_key,
                 'regions': 'us',
-                'markets': 'spreads',
+                # Pull both spreads and h2h so we backfill spread CLV and
+                # moneyline CLV in the same historical call (10 credits
+                # either way).
+                'markets': 'spreads,h2h',
                 'oddsFormat': 'american',
                 'bookmakers': 'draftkings,fanduel,betmgm,caesars_sportsbook',
                 'date': snapshot_at,
@@ -6236,23 +6275,29 @@ def cron_backfill_mlb_clv():
                 continue
 
             spread_close = None
+            home_ml = None
+            away_ml = None
             for game in games:
                 if game.get('home_team') == pick.home_team and game.get('away_team') == pick.away_team:
                     for bk in game.get('bookmakers', []):
                         for market in bk.get('markets', []):
-                            if market.get('key') != 'spreads':
-                                continue
-                            for outcome in market.get('outcomes', []):
-                                if outcome.get('name') == pick.home_team:
-                                    spread_close = outcome.get('point')
-                                    break
-                            if spread_close is not None:
-                                break
-                        if spread_close is not None:
+                            mk = market.get('key')
+                            if mk == 'spreads' and spread_close is None:
+                                for outcome in market.get('outcomes', []):
+                                    if outcome.get('name') == pick.home_team:
+                                        spread_close = outcome.get('point')
+                                        break
+                            elif mk == 'h2h':
+                                for outcome in market.get('outcomes', []):
+                                    if outcome.get('name') == pick.home_team and home_ml is None:
+                                        home_ml = outcome.get('price')
+                                    elif outcome.get('name') == pick.away_team and away_ml is None:
+                                        away_ml = outcome.get('price')
+                        if spread_close is not None and home_ml is not None and away_ml is not None:
                             break
                     break
 
-            if spread_close is None:
+            if spread_close is None and home_ml is None and away_ml is None:
                 failures.append({'pick_id': pick.id, 'reason': 'matchup_not_found_in_snapshot'})
                 continue
 
@@ -6261,10 +6306,19 @@ def cron_backfill_mlb_clv():
                 failures.append({'pick_id': pick.id, 'reason': 'cannot_resolve_side'})
                 continue
 
-            pick.line_close = spread_close
-            pick.closing_spread = spread_close
-            if pick.line is not None:
-                pick.clv = clv_points(pick.line, to_picked_perspective(spread_close, side))
+            if spread_close is not None:
+                pick.line_close = spread_close
+                pick.closing_spread = spread_close
+                if pick.line is not None:
+                    pick.clv = clv_points(pick.line, to_picked_perspective(spread_close, side))
+
+            from utils.clv import picked_ml as _picked_ml, clv_ml_prob as _clv_ml_prob
+            close_ml = _picked_ml(pick, home_ml, away_ml)
+            if close_ml is not None:
+                pick.closing_ml = int(close_ml)
+                if pick.market_odds is not None:
+                    pick.clv_ml = _clv_ml_prob(pick.market_odds, close_ml)
+
             db.session.commit()
 
             backfilled.append({
@@ -6274,6 +6328,9 @@ def cron_backfill_mlb_clv():
                 'pick_line': pick.line,
                 'closing_spread': spread_close,
                 'clv': pick.clv,
+                'pick_ml': pick.market_odds,
+                'closing_ml': pick.closing_ml,
+                'clv_ml': pick.clv_ml,
             })
         except Exception as e:
             db.session.rollback()

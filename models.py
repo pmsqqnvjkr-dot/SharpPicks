@@ -180,6 +180,13 @@ class Pick(db.Model):
     sportsbook = db.Column(db.String, default='DraftKings')
     closing_spread = db.Column(db.Float, nullable=True)
     clv = db.Column(db.Float, nullable=True)
+    # Closing moneyline (picked-side perspective) and moneyline CLV in
+    # implied-probability percentage points. Added 2026-05-21 because
+    # spread CLV reads ~0 across MLB picks (run lines are structurally
+    # fixed at ±1.5). Moneyline movement is the real MLB sharp-money
+    # signal. See utils/clv.py clv_ml_prob for the math.
+    closing_ml = db.Column(db.Integer, nullable=True)
+    clv_ml = db.Column(db.Float, nullable=True)
     home_score = db.Column(db.Integer, nullable=True)
     away_score = db.Column(db.Integer, nullable=True)
     result = db.Column(db.String, default='pending')

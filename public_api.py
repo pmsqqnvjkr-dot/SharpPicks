@@ -156,12 +156,44 @@ def stats():
         logging.warning(f"Public stats DB error: {e}")
         return jsonify({'record': '0-0', 'wins': 0, 'losses': 0, 'pending': 0, 'total_picks': 0, 'total_passes': 0, 'pnl': 0, 'roi': 0, 'win_rate': 0, 'selectivity': 0, 'capital_preserved_days': 0})
 
+    # Beat / match / miss bucketing. A pick that closes at the exact
+    # number we picked is "matched the close" — neutral, not a loss.
+    # beat_rate is measured against beats + misses only, with matches
+    # excluded from the denominator. avg_clv still includes matches
+    # since they contribute 0 to the mean.
+    #
+    # Match thresholds:
+    #   spread CLV — |clv| < 0.25 (smallest meaningful move is 0.5)
+    #   moneyline CLV — |clv_ml| < 0.5 percentage points
+    _SPREAD_MATCH_EPS = 0.25
+    _ML_MATCH_EPS = 0.5
+
+    def _bucket(values, eps):
+        beats = sum(1 for v in values if v > eps)
+        misses = sum(1 for v in values if v < -eps)
+        matches = sum(1 for v in values if -eps <= v <= eps)
+        denom = beats + misses
+        rate = round(beats / denom * 100, 1) if denom > 0 else 0
+        return beats, matches, misses, rate
+
     clv_q = pick_q.filter(Pick.clv.isnot(None), Pick.result.in_(['win', 'loss', 'push']))
     clv_picks = clv_q.all()
     clv_values = [p.clv for p in clv_picks if p.clv is not None]
-    clv_positive = sum(1 for v in clv_values if v > 0)
     avg_clv = round(sum(clv_values) / len(clv_values), 2) if clv_values else None
-    clv_beat_rate = round(clv_positive / len(clv_values) * 100, 1) if clv_values else 0
+    clv_beats, clv_matches, clv_misses, clv_beat_rate = _bucket(clv_values, _SPREAD_MATCH_EPS)
+
+    # Moneyline CLV (added 2026-05-21). Spread CLV reads ~0 across MLB
+    # because run lines are structurally fixed at ±1.5. Moneyline CLV
+    # is the real sharp-money signal for MLB and a useful complement
+    # for NBA / WNBA. avg_clv_ml is in implied-probability percentage
+    # points; clv_ml_beat_rate is the % of decisive picks (beat + miss,
+    # matches excluded) where the closing implied probability moved
+    # toward our side.
+    clv_ml_q = pick_q.filter(Pick.clv_ml.isnot(None), Pick.result.in_(['win', 'loss', 'push']))
+    clv_ml_picks = clv_ml_q.all()
+    clv_ml_values = [p.clv_ml for p in clv_ml_picks if p.clv_ml is not None]
+    avg_clv_ml = round(sum(clv_ml_values) / len(clv_ml_values), 2) if clv_ml_values else None
+    clv_ml_beats, clv_ml_matches, clv_ml_misses, clv_ml_beat_rate = _bucket(clv_ml_values, _ML_MATCH_EPS)
 
     cfg = get_sport_config(sport or 'nba')
     phase = cfg.get('model_phase', 'deployment')
@@ -215,6 +247,8 @@ def stats():
         'capital_preserved_days': total_passes,
         'avg_clv': avg_clv,
         'clv_beat_rate': clv_beat_rate,
+        'avg_clv_ml': avg_clv_ml,
+        'clv_ml_beat_rate': clv_ml_beat_rate,
         'last_signal_units': last_signal_units,
         'last_signal_result': last_signal_result,
         'last_signal_date': last_signal_date,
@@ -437,10 +471,31 @@ def dashboard_stats():
                 line_moves.append(mv)
     avg_line_move = round(sum(line_moves) / len(line_moves), 1) if line_moves else 0
 
+    # Beat / match / miss bucketing. A pick that closes at the exact
+    # number we picked is "matched the close" — neutral. beat_rate is
+    # measured against (beat + miss), matches excluded from the
+    # denominator. See public_api.public_stats for the same convention.
+    _SPREAD_MATCH_EPS = 0.25
+    _ML_MATCH_EPS = 0.5
+
+    def _bucket(values, eps):
+        beats = sum(1 for v in values if v > eps)
+        misses = sum(1 for v in values if v < -eps)
+        matches = sum(1 for v in values if -eps <= v <= eps)
+        denom = beats + misses
+        rate = round(beats / denom * 100, 1) if denom > 0 else 0
+        return beats, matches, misses, rate
+
     clv_values = [p.clv for p in picks if p.clv is not None]
-    clv_positive = sum(1 for v in clv_values if v > 0)
     avg_clv = round(sum(clv_values) / len(clv_values), 2) if clv_values else None
-    clv_beat_rate = round(clv_positive / len(clv_values) * 100, 1) if clv_values else 0
+    clv_beats, clv_matches, clv_misses, clv_beat_rate = _bucket(clv_values, _SPREAD_MATCH_EPS)
+    # Backwards-compat alias for older client code that referenced `positive`.
+    clv_positive = clv_beats
+
+    # Moneyline CLV bucketing (added 2026-05-21).
+    clv_ml_values = [p.clv_ml for p in picks if getattr(p, 'clv_ml', None) is not None]
+    avg_clv_ml = round(sum(clv_ml_values) / len(clv_ml_values), 2) if clv_ml_values else None
+    clv_ml_beats, clv_ml_matches, clv_ml_misses, clv_ml_beat_rate = _bucket(clv_ml_values, _ML_MATCH_EPS)
 
     selectivity = round((total_picks / total_days) * 100, 1) if total_days > 0 else 0
 
@@ -529,7 +584,18 @@ def dashboard_stats():
             'avg_clv': avg_clv,
             'beat_rate': clv_beat_rate,
             'total_tracked': len(clv_values),
-            'positive': clv_positive,
+            'positive': clv_positive,  # legacy alias for `beat`
+            'beat': clv_beats,
+            'matched': clv_matches,
+            'missed': clv_misses,
+            # Moneyline parallel — real MLB CLV lives here since run-line
+            # spreads are structurally flat at ±1.5.
+            'avg_clv_ml': avg_clv_ml,
+            'ml_beat_rate': clv_ml_beat_rate,
+            'ml_total_tracked': len(clv_ml_values),
+            'ml_beat': clv_ml_beats,
+            'ml_matched': clv_ml_matches,
+            'ml_missed': clv_ml_misses,
         },
         'risk': {
             'max_drawdown_pct': drawdown_pct,

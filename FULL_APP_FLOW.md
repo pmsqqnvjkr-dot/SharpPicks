@@ -170,8 +170,27 @@ Educational content on:
 - Pending: 17
 
 **Closing Line Value (CLV) Tracking:**
-- Beat closing rate: tracked per pick
-- Average line movement: monitored
+
+Two parallel CLV measurements per pick (see `utils/clv.py`):
+
+- **Spread CLV (`clv` column)** — points-space delta between pick.line and the
+  closing spread, both in picked-side perspective. Captures spread drift well
+  for NBA / WNBA. Reads ~0 for nearly all MLB picks because MLB run lines are
+  structurally fixed at ±1.5 and almost never drift continuously.
+- **Moneyline CLV (`clv_ml` column, added 2026-05-21)** — implied-probability
+  percentage-point delta: `(close_implied - entry_implied) * 100`. Positive
+  means the market moved toward our pick after entry. Continuous across all
+  three sports — this is the canonical sharp-money signal for MLB and a
+  useful complement for NBA / WNBA where moneyline movement diverges from
+  the spread (e.g., spread holds but ML drifts on a sharp moneyline-only bet).
+
+Stored fields on `picks`: `clv`, `closing_spread`, `clv_ml`, `closing_ml`.
+Helpers: `utils/clv.clv_points`, `utils/clv.clv_ml_prob`, `utils/clv.implied_prob`.
+Public stats endpoint exposes `avg_clv`, `clv_beat_rate`, `avg_clv_ml`,
+`clv_ml_beat_rate`. Captured by the per-sport closing-lines crons
+(`/api/cron/closing-lines`, `/api/cron/wnba-closing-lines`,
+`/api/cron/mlb-closing-lines`); historical picks backfilled via
+`/api/cron/backfill-mlb-clv`.
 
 **Model Calibration:**
 - Confidence buckets: 50-55%, 55-60%, 60-65%, 65-70%, 70-75%, 80-100%

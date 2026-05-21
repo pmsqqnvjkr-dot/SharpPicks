@@ -1,7 +1,18 @@
 """Closing Line Value (CLV) calculation.
 
-Single source of truth for CLV math. Replaces the brittle substring
-is_home_pick detector previously inlined at three sites in app.py.
+Two parallel CLV measurements per pick:
+
+1. Spread CLV (clv_points, stored on Pick.clv)
+   - Points-space delta in PICKED-SIDE perspective.
+   - Works well for NBA / WNBA where spreads drift continuously.
+   - Reads ~0 across MLB picks because MLB run lines are structurally
+     fixed at ±1.5 — they almost never drift.
+
+2. Moneyline CLV (clv_ml_prob, stored on Pick.clv_ml; added 2026-05-21)
+   - Implied-probability-points delta computed from American odds.
+   - Continuous across all sports; the canonical sharp-money signal
+     for MLB and a useful complement for NBA / WNBA.
+   - Picked-side closing odds stored on Pick.closing_ml.
 
 Convention
 ----------
@@ -13,6 +24,10 @@ Convention
   directly from game['spread_home'] by the closing-lines crons).
 - clv_points expects both inputs in PICKED-SIDE perspective. Callers
   convert closing_spread via to_picked_perspective() before passing in.
+- pick.market_odds and pick.closing_ml are American odds (negative
+  favorite, positive dog) for the picked side specifically.
+- clv_ml_prob takes the picked-side closing odds; picked_ml() resolves
+  which of home_ml_close / away_ml_close to feed in.
 - Positive CLV = market moved toward the picked side after entry
   (you got the better number).
 - Negative CLV = market moved away from the picked side.
@@ -26,7 +41,8 @@ PicksTab.jsx, PickCard.jsx.
 
 TODO (out of scope): port these helpers to src/utils/clv.js so the
 frontend has a real fallback path that also mirrors picked-side
-convention.
+convention. clv_ml_prob is especially valuable on the frontend for
+MLB where spread CLV is structurally uninformative.
 """
 import logging
 
@@ -104,6 +120,105 @@ def clv_points(pick_line, closing_picked):
     if pick_line is None or closing_picked is None:
         return None
     return float(pick_line) - float(closing_picked)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Moneyline CLV (clv_ml)
+# ─────────────────────────────────────────────────────────────────────
+#
+# Spread CLV (clv_points above) returns 0 for nearly every MLB pick
+# because MLB run-lines are structurally fixed at +/-1.5 — they almost
+# never drift the way NBA spreads do. The real MLB sharp-money signal
+# lives in moneyline movement, which is continuous.
+#
+# We compute moneyline CLV in two forms:
+#   1. clv_ml_cents: American-odds delta (closing_odds_picked - pick_odds).
+#      Positive means we got a better price than the close. Reported
+#      directly as "cents beat the close" (e.g. +15 = got 15 cents
+#      better than the closing line).
+#   2. clv_ml_prob: implied-probability delta (in percentage points).
+#      Probability-space is easier to average across odds ranges
+#      because cent-deltas don't scale linearly between -110 and -300.
+#      Positive means closing implied probability was higher than our
+#      entry implied probability — i.e. the market moved toward us.
+#
+# The Pick model carries `clv_ml` as the probability-space delta
+# (clv_ml_prob) because it averages cleanly and matches the convention
+# in the spread-CLV column. clv_ml_cents is available for display.
+#
+# We use the simple "no-vig dropped" implied probability rather than
+# the consensus-vig-removed probability for now; the bias washes out
+# in deltas. If we add a sharp/efficient-line normalization later, this
+# is the function to swap.
+
+def implied_prob(american_odds):
+    """American odds -> implied probability (0..1).
+
+    Returns None if input is None or zero (zero is not a valid line).
+    """
+    if american_odds is None:
+        return None
+    try:
+        o = float(american_odds)
+    except (TypeError, ValueError):
+        return None
+    if o == 0:
+        return None
+    if o < 0:
+        return (-o) / ((-o) + 100.0)
+    return 100.0 / (o + 100.0)
+
+
+def picked_ml(pick, home_ml_close, away_ml_close):
+    """Return the closing moneyline for the side the pick is on.
+
+    Returns None if pick side cannot be resolved or the relevant
+    closing odds column is null.
+    """
+    side = resolve_pick_side(pick)
+    if side == 'home':
+        return home_ml_close
+    if side == 'away':
+        return away_ml_close
+    return None
+
+
+def clv_ml_cents(pick_odds, closing_odds_picked):
+    """Moneyline CLV in American-odds cents.
+
+    Positive means our entry odds were better (higher payout) than the
+    close. Note: American odds aren't linear, so cents differ in value
+    at different ranges. Use clv_ml_prob for averaging.
+
+    Returns None on missing inputs.
+    """
+    if pick_odds is None or closing_odds_picked is None:
+        return None
+    try:
+        return float(pick_odds) - float(closing_odds_picked)
+    except (TypeError, ValueError):
+        return None
+
+
+def clv_ml_prob(pick_odds, closing_odds_picked):
+    """Moneyline CLV in implied-probability percentage points.
+
+    closing_implied - entry_implied. Positive = market shifted toward
+    the picked side after entry (closing line agrees with us more than
+    our entry line did). Multiplied by 100 so the value reads as
+    percentage points (e.g. +2.4 = "the close priced our side 2.4
+    points higher than our entry did").
+
+    Use this for averaging across picks — it scales linearly and
+    behaves well in the typical -300 .. +300 American-odds range.
+
+    Returns None on missing inputs.
+    """
+    p_entry = implied_prob(pick_odds)
+    p_close = implied_prob(closing_odds_picked)
+    if p_entry is None or p_close is None:
+        return None
+    return round((p_close - p_entry) * 100.0, 3)
 
 
 def compute_cover_margin(home_score, away_score, line, side, home_team, away_team):

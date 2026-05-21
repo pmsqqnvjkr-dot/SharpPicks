@@ -233,8 +233,18 @@ function PerformanceCore({ perf, equityCurve }) {
 function CLVTracker({ clv }) {
   if (!clv || !clv.total_tracked) return null;
   const avgClv = clv.avg_clv;
+  // Three-bucket display: beat / matched / missed. beat_rate is
+  // measured against (beat + miss), with matches excluded — matching
+  // the close is neutral, not a loss. Server-side bucketing in
+  // public_api.dashboard_stats uses a ±0.25 epsilon around 0.
+  const total = clv.total_tracked || 0;
+  const beatCount = clv.beat ?? clv.positive ?? 0;
+  const matchedCount = clv.matched ?? 0;
+  const missedCount = clv.missed ?? Math.max(0, total - beatCount - matchedCount);
   const beatRate = clv.beat_rate ?? 0;
-  const missedRate = (100 - beatRate);
+  const beatPct = total > 0 ? (beatCount / total) * 100 : 0;
+  const matchedPct = total > 0 ? (matchedCount / total) * 100 : 0;
+  const missedPct = Math.max(0, 100 - beatPct - matchedPct);
   const isPositive = avgClv != null && avgClv > 0;
   const clvColor = avgClv == null ? 'var(--text-tertiary)' : isPositive ? 'var(--green-profit)' : 'var(--red-loss)';
 
@@ -300,7 +310,7 @@ function CLVTracker({ clv }) {
               fontFamily: 'var(--font-mono)', fontSize: '10px',
               color: 'var(--text-tertiary)', marginTop: '4px',
             }}>
-              {clv.positive ?? 0}/{clv.total_tracked} signals
+              {beatCount} beat / {missedCount} miss / {matchedCount} match
             </div>
           </div>
         </div>
@@ -316,24 +326,33 @@ function CLVTracker({ clv }) {
           }}>CLV Distribution</div>
           <div style={{ width: '100%', height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', display: 'flex' }}>
             <div style={{
-              width: `${beatRate}%`, height: '100%',
+              width: `${beatPct}%`, height: '100%',
               background: 'var(--green-profit)',
               transition: 'width 0.3s ease',
             }} />
             <div style={{
-              width: `${missedRate}%`, height: '100%',
+              width: `${matchedPct}%`, height: '100%',
+              background: 'var(--text-tertiary)',
+              opacity: 0.45,
+            }} />
+            <div style={{
+              width: `${missedPct}%`, height: '100%',
               background: 'var(--red-loss)',
               opacity: 0.5,
             }} />
           </div>
           <div style={{
             display: 'flex', justifyContent: 'space-between', marginTop: '4px',
+            fontFamily: 'var(--font-mono)', fontSize: '10px',
           }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--green-profit)' }}>
-              Beat close {beatRate}%
+            <span style={{ color: 'var(--green-profit)' }}>
+              Beat {beatPct.toFixed(1)}%
             </span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-tertiary)' }}>
-              Missed {missedRate.toFixed(1)}%
+            <span style={{ color: 'var(--text-secondary)' }}>
+              Match {matchedPct.toFixed(1)}%
+            </span>
+            <span style={{ color: 'var(--text-tertiary)' }}>
+              Miss {missedPct.toFixed(1)}%
             </span>
           </div>
         </div>
