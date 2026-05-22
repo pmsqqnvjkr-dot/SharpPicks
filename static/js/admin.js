@@ -485,8 +485,13 @@ function _renderTodaysReadV2(metrics) {
   const androidInstalls28 = play.device_installs_28d || play.first_opens_28d || 0;
   const totalInstalls = iosInstalls28 + androidInstalls28;
   _tr2SetValue('tr2-hero-installs', SP_FMT.num(totalInstalls), 'installs');
-  const gscClicks28 = gsc.clicks_28d || 0;
-  const ga4Sessions7 = ga4.sessions_7d || 0;
+  // GSC payload field names (verified in services/sources/gsc.py):
+  //   clicks, impressions, ctr (0..1 fraction), avg_position
+  // GA4 payload field names (services/sources/ga4.py):
+  //   sessions, users, engaged_sessions, engagement_rate
+  // Earlier code read *_28d / *_7d aliases that never existed → all 0.
+  const gscClicks28 = gsc.clicks || 0;
+  const ga4Sessions7 = ga4.sessions || 0;
   _tr2SetText('tr2-hero-installs-note', `${SP_FMT.num(gscClicks28)} GSC clicks · ${SP_FMT.num(ga4Sessions7)} web sessions`);
 
   // ── MONEY FUNNEL ──────────────────────────────────────────────────
@@ -543,10 +548,13 @@ function _renderTodaysReadV2(metrics) {
 
   // ── TOP OF FUNNEL ─────────────────────────────────────────────────
   _tr2SetText('tr2-gsc-clicks', SP_FMT.num(gscClicks28));
-  const gscImpressions = gsc.impressions_28d || 0;
-  const gscCtr = gsc.ctr_28d || (gscImpressions ? (gscClicks28 / gscImpressions * 100) : 0);
-  _tr2SetText('tr2-gsc-clicks-meta', `${SP_FMT.num(gscImpressions)} imp · ${gscCtr.toFixed(1)}% CTR`);
-  const gscPos = gsc.avg_position_28d || gsc.avg_position;
+  const gscImpressions = gsc.impressions || 0;
+  // gsc.ctr is a 0..1 fraction; convert to percentage for display.
+  const gscCtrPct = gsc.ctr != null
+    ? gsc.ctr * 100
+    : (gscImpressions ? (gscClicks28 / gscImpressions * 100) : 0);
+  _tr2SetText('tr2-gsc-clicks-meta', `${SP_FMT.num(gscImpressions)} imp · ${gscCtrPct.toFixed(1)}% CTR`);
+  const gscPos = gsc.avg_position;
   _tr2SetText('tr2-gsc-position', gscPos != null ? gscPos.toFixed(1) : '--');
 
   _tr2SetText('tr2-ios-installs', SP_FMT.num(iosInstalls28));
@@ -580,10 +588,14 @@ function _renderTodaysReadV2(metrics) {
   }
   window.__tr2ActivityPromise.then(activity => {
     if (!activity) return;
-    const s = activity.summary || activity;
+    // services/users_metrics.fetch_activity returns {snapshot: {...}, ...}.
+    // Earlier code read s.dau off the root payload, which only ever
+    // populated when a hypothetical .summary alias existed; in production
+    // every field came back undefined → 0. Pull from .snapshot first.
+    const s = activity.snapshot || activity.summary || activity;
     const dauToday = s.dau != null ? s.dau : (s.dau_today || 0);
     _tr2SetText('tr2-dau', SP_FMT.num(dauToday));
-    const dauAvg = s.dau_avg_7d || s.dau_avg_30d;
+    const dauAvg = s.dau_7d_avg;
     if (dauAvg && dauAvg > 0) {
       const delta = Math.round((dauToday - dauAvg) / dauAvg * 100);
       const sign = delta >= 0 ? '+' : '';
@@ -592,7 +604,7 @@ function _renderTodaysReadV2(metrics) {
 
     const logins24h = s.logins_24h || 0;
     _tr2SetText('tr2-logins-24h', SP_FMT.num(logins24h));
-    const loginsAvg = s.logins_24h_avg_7d || s.logins_24h_avg_30d;
+    const loginsAvg = s.logins_7d_avg;
     if (loginsAvg && loginsAvg > 0) {
       const delta = Math.round((logins24h - loginsAvg) / loginsAvg * 100);
       const sign = delta >= 0 ? '+' : '';
