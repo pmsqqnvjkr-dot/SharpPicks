@@ -50,301 +50,176 @@
   <!-- ============================================ -->
   <div class="panel active" id="panel-command">
 
-    <!-- STACK 1: STATUS -->
-    <section class="stack-status">
-      <div class="label">today's read</div>
-      <h1 class="headline"></h1>
+    <!-- ====================================================
+         Today's Read v2 (2026-05-22): cockpit layout.
+         Replaces the old stack-status + stack-moved + stacked
+         sections that read like a directory of data sources.
+         The serif read line + 3-cell hero strip lead; grouped
+         stat sections follow with consistent grammar.
+         See static/css/admin.css "Today's Read v2" block for
+         the styling. Wired in static/js/admin.js bindLiveData.
+         ==================================================== -->
 
-      <div class="status-row">
-        <div class="status-col" id="status-mrr">
-          <div class="hero-number">--</div>
-          <div class="hero-meta">
-            <span class="label">current mrr · combined web + ios</span>
-          </div>
-        </div>
-        <div class="status-col" id="status-save-window">
-          <div class="hero-number">--</div>
-          <div class="hero-meta">
-            <span class="label">save window · trial cancels queued</span>
-          </div>
-          <div class="hero-secondary">Earliest effective: --</div>
-        </div>
-      </div>
+    <!-- THE READ — single serif sentence (daily summary) -->
+    <p class="tr2-read-line" id="tr2-read-line">Loading the day's read.</p>
 
-      <div class="sparkline-wrap" aria-label="14-day MRR trend">
-        <svg viewBox="0 0 600 56" preserveAspectRatio="none">
-          <polyline points=""
-            fill="none" stroke="#34D399" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-        </svg>
+    <!-- HERO STRIP — three cells -->
+    <div class="tr2-hero">
+      <div class="tr2-hero-cell">
+        <div class="tr2-hero-label">Current MRR</div>
+        <div class="tr2-hero-value" id="tr2-hero-mrr">--<span class="unit">/mo</span></div>
+        <div class="tr2-hero-note" id="tr2-hero-mrr-note">Combined web + iOS</div>
       </div>
-
-      <div class="actions"></div>
-    </section>
-
-    <!-- WHAT MOVED -->
-    <section class="stack-moved">
-      <div class="moved-header">
-        <span class="label">what moved</span>
-        <button class="compare-toggle" type="button">vs 7d ago</button>
+      <div class="tr2-hero-cell">
+        <div class="tr2-hero-label">Save window</div>
+        <div class="tr2-hero-value-sm tr2-warn" id="tr2-hero-save">--</div>
+        <div class="tr2-hero-note" id="tr2-hero-save-note">Trial cancels queued</div>
       </div>
-
-      <div class="moved-row">
-        <span class="moved-label">Free signups today</span>
-        <span class="moved-value">--</span>
-        <span class="moved-delta">--</span>
+      <div class="tr2-hero-cell">
+        <div class="tr2-hero-label">Top of funnel · 28d</div>
+        <div class="tr2-hero-value-sm" id="tr2-hero-installs">--<span class="unit">installs</span></div>
+        <div class="tr2-hero-note" id="tr2-hero-installs-note">GSC clicks · web sessions</div>
       </div>
-      <div class="moved-row">
-        <span class="moved-label">Trials started today</span>
-        <span class="moved-value">--</span>
-        <span class="moved-delta">--</span>
-      </div>
-      <div class="moved-row">
-        <span class="moved-label">Paid signups today</span>
-        <span class="moved-value">--</span>
-        <span class="moved-delta">--</span>
-      </div>
-      <div class="moved-row">
-        <span class="moved-label">Daily active users</span>
-        <span class="moved-value">--</span>
-        <span class="moved-delta up">--</span>
-      </div>
-      <div class="moved-row">
-        <span class="moved-label">Logins last 24h</span>
-        <span class="moved-value">--</span>
-        <span class="moved-delta">--</span>
-      </div>
-      <div class="moved-row">
-        <span class="moved-label">Bet taps last 7d</span>
-        <span class="moved-value">--</span>
-        <span class="moved-delta">--</span>
-        
-      </div>
-      <div class="moved-row">
-        <span class="moved-label">Traffic last 24h</span>
-        <span class="moved-value">--</span>
-        <span class="moved-delta down">--</span>
-      </div>
-      <div class="moved-row">
-        <span class="moved-label">Failed payments 7d</span>
-        <span class="moved-value">--</span>
-        <span class="moved-delta up">--</span>
-      </div>
-    </section>
-
-    <!-- REVENUE -->
-    <section class="section" id="section-revenue">
-      <div class="section-header">
-        <span class="section-title">revenue · 90d</span>
-        <span class="section-meta">stripe + revenuecat · 2m ago</span>
-      </div>
-      <p class="section-summary"></p>
-
-      <div class="section-content chart-plus-stats">
-        <div>
-          <div class="chart-wrap">
-            <canvas id="chart-mrr" role="img" aria-label="90 day MRR over time, Stripe and RevenueCat stacked"></canvas>
-          </div>
-        </div>
-        <div>
-          <div class="col-title">snapshot</div>
-          <div class="stat-row"><span class="label">Mrr</span><span class="value">--<span class="value-suffix">/mo</span></span></div>
-          <div class="stat-row"><span class="label">Stripe (web)</span><span class="value">--<span class="value-suffix">/mo</span></span></div>
-          <div class="stat-row"><span class="label">Revenuecat (ios)</span><span class="value">--<span class="value-suffix">/mo</span></span></div>
-          <div class="stat-row"><span class="label">Active subs</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Trials in flight</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Mrr 30d</span><span class="value">--</span></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TRIAL PIPELINE (Phase 3 audit follow-up) -->
-    <section class="section" id="section-trial-pipeline">
-      <div class="section-header">
-        <span class="section-title">trial pipeline · stripe</span>
-        <span class="section-meta">live</span>
-      </div>
-      <p class="section-summary"></p>
-      <div class="section-content two-col">
-        <div>
-          <div class="col-title">trials</div>
-          <div class="stat-row"><span class="label">Trials in flight</span><span class="value" id="stat-trials-in-flight">--</span></div>
-          <div class="stat-row"><span class="label">Trials likely to convert</span><span class="value" id="stat-trials-likely-convert">--</span></div>
-          <div class="stat-row"><span class="label">Trials with cancel scheduled</span><span class="value" id="stat-trials-cancel-scheduled">--</span></div>
-          <div class="stat-row"><span class="label">Trial conversions 7d</span><span class="value" id="stat-trial-conv-7d">--</span></div>
-          <div class="stat-row"><span class="label">Trial conversions 30d</span><span class="value" id="stat-trial-conv-30d">--</span></div>
-        </div>
-        <div>
-          <div class="col-title">paid · cancellation queue</div>
-          <div class="stat-row"><span class="label">Paid with cancel scheduled</span><span class="value" id="stat-paid-cancel-scheduled">--</span></div>
-          <div class="stat-row"><span class="label">Cancellations 30d (final)</span><span class="value" id="stat-canceled-30d">--</span></div>
-          <div class="stat-row"><span class="label">Comped (free pro)</span><span class="value" id="stat-comped-pro">--</span></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- FAILING PAYMENT CUSTOMERS (Phase 3 audit follow-up) -->
-    <section class="section" id="section-failing-customers">
-      <div class="section-header">
-        <span class="section-title">failed payments · top offenders</span>
-        <span class="section-meta">last 30d, by user</span>
-      </div>
-      <p class="section-summary"></p>
-      <div class="top-list" id="failing-customers-list">
-        <div class="top-list-row"><span class="top-list-rank">—</span><span class="top-list-label">Loading…</span><span class="top-list-value">—</span></div>
-      </div>
-    </section>
-
-    <!-- USER ACTIVITY -->
-    <section class="section" id="section-user-activity">
-      <div class="section-header">
-        <span class="section-title">Active users · DAU, WAU, MAU</span>
-        <span class="section-meta">last 30 days · session_start events</span>
-      </div>
-      <p class="section-summary"></p>
-
-      <div class="section-content chart-plus-stats">
-        <div>
-          <div class="chart-wrap">
-            <canvas id="chart-dau" role="img" aria-label="Daily active users over 30 days"></canvas>
-          </div>
-        </div>
-        <div>
-          <div class="col-title">activity snapshot</div>
-          <div class="stat-row"><span class="label">Dau today</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Wau (7d)</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Mau (30d)</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Power users</span><span class="value">--<span class="value-suffix">15+ logins</span></span></div>
-          <div class="stat-row"><span class="label">Logins last 24h</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">New users 7d</span><span class="value">--</span></div>
-        </div>
-      </div>
-
-      <a href="#" class="deep-link" data-deep-link="users">
-        <span class="deep-link-text">View full user activity · users tab</span>
-        <span class="deep-link-arrow">→</span>
-      </a>
-    </section>
-
-    <!-- SIGNALS -->
-    <section class="section" id="section-signals">
-      <div class="section-header">
-        <span class="section-title">signals · 7d</span>
-        <span class="section-meta">postgres · live</span>
-      </div>
-      <p class="section-summary"></p>
-
-      <div class="section-content two-col">
-        <div>
-          <div class="col-title">issued by sport</div>
-          <div class="stat-row"><span class="label">Nba</span><span class="value">--<span class="value-suffix">signals</span></span></div>
-          <div class="stat-row"><span class="label">Mlb</span><span class="value">--<span class="value-suffix">signals</span></span></div>
-          <div class="stat-row"><span class="label">Wnba</span><span class="value">--<span class="value-suffix">signals</span></span></div>
-          <div class="stat-row"><span class="label">Pass days</span><span class="value">--<span class="value-suffix">days</span></span></div>
-          <div class="stat-row"><span class="label">Pass rate</span><span class="value">--<span class="value-suffix">%</span></span></div>
-        </div>
-        <div>
-          <div class="col-title">record by sport</div>
-          <div class="stat-row"><span class="label">Nba record</span><span class="value">--<span class="value-suffix">W-L</span></span></div>
-          <div class="stat-row"><span class="label">Mlb record</span><span class="value">--<span class="value-suffix">W-L</span></span></div>
-          <div class="stat-row"><span class="label">Wnba record</span><span class="value">--<span class="value-suffix">W-L</span></span></div>
-          <div class="stat-row"><span class="label">Pending</span><span class="value">--<span class="value-suffix">unresolved</span></span></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- FUNNEL section removed pending instrumentation; bring back when
-         /api/events surfaces session_start + signup_view counts that
-         actually populate. -->
-
-    <!-- ACQUISITION · ANDROID + IOS · 28D -->
-    <section class="section" id="section-acquisition">
-      <div class="section-header">
-        <span class="section-title">acquisition · 28d</span>
-        <span class="section-meta">play console · app store connect</span>
-      </div>
-      <p class="section-summary"></p>
-      <div class="section-content" id="acquisition-grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;"></div>
-    </section>
-
-    <!-- TRAFFIC -->
-    <section class="section" id="section-traffic">
-      <div class="section-header">
-        <span class="section-title">traffic · 7d</span>
-        <span class="section-meta">cloudflare · ga4 · gsc</span>
-      </div>
-      <p class="section-summary"></p>
-
-      <div class="section-content chart-plus-stats">
-        <div>
-          <div class="chart-wrap">
-            <canvas id="chart-traffic" role="img" aria-label="Sessions over 30 days"></canvas>
-          </div>
-        </div>
-        <div>
-          <div class="col-title">overview</div>
-          <div class="stat-row"><span class="label">Sessions (ga4)</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Engaged sessions</span><span class="value">--<span class="value-suffix">64%</span></span></div>
-          <div class="stat-row"><span class="label">Requests (cloudflare)</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Gsc clicks 28d</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Gsc impressions 28d</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Avg position</span><span class="value">--</span></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SEARCH PERFORMANCE -->
-    <section class="section" id="section-search">
-      <div class="section-header">
-        <span class="section-title">search · gsc 28d</span>
-        <span class="section-meta">google search console · 12h cache</span>
-      </div>
-      <p class="section-summary"></p>
-
-      <div class="section-content chart-plus-stats">
-        <div>
-          <div class="chart-wrap">
-            <canvas id="chart-search" role="img" aria-label="GSC clicks and impressions over 28 days"></canvas>
-          </div>
-        </div>
-        <div>
-          <div class="col-title">28d totals</div>
-          <div class="stat-row"><span class="label">Clicks</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Impressions</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">CTR</span><span class="value">--<span class="value-suffix">%</span></span></div>
-          <div class="stat-row"><span class="label">Avg position (search)</span><span class="value">--</span></div>
-        </div>
-      </div>
-
-      <div class="section-content two-col" style="margin-top: 12px;">
-        <div>
-          <div class="col-title">top queries</div>
-          <div class="top-list" id="gsc-top-queries">
-            <div class="top-list-row"><span class="top-list-rank">—</span><span class="top-list-label">Loading…</span><span class="top-list-value">—</span></div>
-          </div>
-        </div>
-        <div>
-          <div class="col-title">top pages</div>
-          <div class="top-list" id="gsc-top-pages">
-            <div class="top-list-row"><span class="top-list-rank">—</span><span class="top-list-label">Loading…</span><span class="top-list-value">—</span></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- BET TAPS section removed; instrumentation has been zero for
-         weeks. Restore when external-bet-tap events start firing
-         consistently. -->
-
-    <!-- FRESHNESS / TOGGLE -->
-    <div class="freshness">
-      fresh ·
-      <span class="ok">cloudflare 14m</span> ·
-      <span class="ok">stripe 2m</span> ·
-      <span class="ok">ga4 38m</span> ·
-      <span class="ok">gsc 4h</span> ·
-      <span class="ok">revenuecat 3m</span> ·
-      <span class="ok">events live</span>
     </div>
+
+    <!-- MONEY FUNNEL -->
+    <section class="tr2-section" id="tr2-section-money">
+      <div class="tr2-section-head">
+        <span class="tr2-section-title">Money funnel · Revenue, trials, failures</span>
+        <span class="tr2-section-meta">Stripe · live</span>
+      </div>
+      <p class="tr2-section-lede" id="tr2-money-lede"></p>
+
+      <div class="tr2-grid-3">
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">MRR</div>
+          <div class="tr2-stat-value" id="tr2-mrr-value">--<span class="unit">/mo</span></div>
+          <div class="tr2-stat-delta" id="tr2-mrr-delta">--</div>
+        </div>
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">Active subs</div>
+          <div class="tr2-stat-value" id="tr2-active-subs">--</div>
+          <div class="tr2-stat-delta" id="tr2-cancellations-30d">--</div>
+        </div>
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">Comped</div>
+          <div class="tr2-stat-value" id="tr2-comped">--</div>
+          <div class="tr2-stat-delta">Free pro access</div>
+        </div>
+      </div>
+
+      <div class="tr2-two-col">
+        <div>
+          <div class="tr2-detail-head">Trial pipeline</div>
+          <div class="tr2-row"><span class="tr2-row-label">In flight</span><span class="tr2-row-value" id="tr2-trials-in-flight">--</span></div>
+          <div class="tr2-row"><span class="tr2-row-label">Likely to bill</span><span class="tr2-row-value pos" id="tr2-trials-likely">--</span></div>
+          <div class="tr2-row"><span class="tr2-row-label">Cancel scheduled</span><span class="tr2-row-value warn" id="tr2-trials-cancel">--</span></div>
+          <div class="tr2-row"><span class="tr2-row-label">Converted · 7d</span><span class="tr2-row-value" id="tr2-trial-conv-7d">--</span></div>
+          <div class="tr2-row"><span class="tr2-row-label">Converted · 30d</span><span class="tr2-row-value" id="tr2-trial-conv-30d">--</span></div>
+        </div>
+        <div>
+          <div class="tr2-detail-head">Failed payments · top offenders 30d</div>
+          <div id="tr2-failed-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOP OF FUNNEL — Acquisition + search consolidated -->
+    <section class="tr2-section" id="tr2-section-funnel">
+      <div class="tr2-section-head">
+        <span class="tr2-section-title">Top of funnel · Acquisition + search</span>
+        <span class="tr2-section-meta">GA4 · GSC · Play · ASC</span>
+      </div>
+      <p class="tr2-section-lede" id="tr2-funnel-lede"></p>
+
+      <div class="tr2-grid-4">
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">GSC clicks · 28d</div>
+          <div class="tr2-stat-value" id="tr2-gsc-clicks">--</div>
+          <div class="tr2-stat-delta" id="tr2-gsc-clicks-meta">--</div>
+        </div>
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">Avg position</div>
+          <div class="tr2-stat-value" id="tr2-gsc-position">--</div>
+          <div class="tr2-stat-delta">Search</div>
+        </div>
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">iOS installs · 28d</div>
+          <div class="tr2-stat-value" id="tr2-ios-installs">--</div>
+          <div class="tr2-stat-delta" id="tr2-ios-installs-meta">First downloads</div>
+        </div>
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">Android · 28d</div>
+          <div class="tr2-stat-value" id="tr2-android-installs">--</div>
+          <div class="tr2-stat-delta" id="tr2-android-installs-meta">Device installs</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OPERATING HEALTH — Activity + signals -->
+    <section class="tr2-section" id="tr2-section-ops">
+      <div class="tr2-section-head">
+        <span class="tr2-section-title">Operating health · Activity + signals</span>
+        <span class="tr2-section-meta">Postgres · events</span>
+      </div>
+      <p class="tr2-section-lede" id="tr2-ops-lede"></p>
+
+      <div class="tr2-grid-3">
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">DAU today</div>
+          <div class="tr2-stat-value" id="tr2-dau">--</div>
+          <div class="tr2-stat-delta" id="tr2-dau-delta">--</div>
+        </div>
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">Logins · 24h</div>
+          <div class="tr2-stat-value" id="tr2-logins-24h">--</div>
+          <div class="tr2-stat-delta" id="tr2-logins-delta">--</div>
+        </div>
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">Signals · 7d</div>
+          <div class="tr2-stat-value" id="tr2-signals-7d">--</div>
+          <div class="tr2-stat-delta" id="tr2-signals-mix">--</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TODAY'S SIGNUPS -->
+    <section class="tr2-section" id="tr2-section-signups">
+      <div class="tr2-section-head">
+        <span class="tr2-section-title">Today's signups</span>
+        <span class="tr2-section-meta">Events · live</span>
+      </div>
+
+      <div class="tr2-grid-3">
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">Free signups</div>
+          <div class="tr2-stat-value" id="tr2-signups-free">--</div>
+          <div class="tr2-stat-delta" id="tr2-signups-free-delta">--</div>
+        </div>
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">Trials started</div>
+          <div class="tr2-stat-value" id="tr2-signups-trial">--</div>
+          <div class="tr2-stat-delta">Today</div>
+        </div>
+        <div class="tr2-stat">
+          <div class="tr2-stat-label">Paid signups</div>
+          <div class="tr2-stat-value" id="tr2-signups-paid">--</div>
+          <div class="tr2-stat-delta">Today</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATUS BAR — data source freshness chips -->
+    <div class="tr2-status-bar">
+      <span class="tr2-status-item"><span class="dot"></span>Stripe</span>
+      <span class="tr2-status-item"><span class="dot"></span>RevenueCat</span>
+      <span class="tr2-status-item"><span class="dot"></span>Events</span>
+      <span class="tr2-status-item"><span class="dot"></span>GA4</span>
+      <span class="tr2-status-item"><span class="dot"></span>GSC</span>
+      <span class="tr2-status-item"><span class="dot"></span>Cloudflare</span>
+    </div>
+
+    <!-- Internal-events toggle preserved (controls dashboard-wide filter) -->
     <div class="internal-toggle">
       <button class="toggle-switch" type="button" aria-label="Toggle internal events"></button>
       <span>show internal (evan) events</span>

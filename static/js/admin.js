@@ -578,9 +578,216 @@ function setMovedRow(label, value, deltaText, deltaClass) {
 // which has webhook-ordering drift).
 window.__SP_METRICS = null;
 
+// ─────────────────────────────────────────────────────────────────────
+// Today's Read v2 cockpit (added 2026-05-22)
+// Writes to the tr2-* IDs in panel-command. All data sourced from the
+// existing /api/admin/metrics envelope; no new endpoints. Helpers
+// below are local to this section. Format: read line + 3-cell hero +
+// money / top-of-funnel / operating-health / signups sections.
+// ─────────────────────────────────────────────────────────────────────
+function _tr2SetText(id, value, fallback) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (value === undefined || value === null || value === '') {
+    el.textContent = fallback != null ? fallback : '--';
+    return;
+  }
+  el.textContent = value;
+}
+
+function _tr2SetValue(id, value, unitHtml) {
+  // For stat-value elements that include an inline <span class="unit">.
+  const el = document.getElementById(id);
+  if (!el) return;
+  const u = unitHtml ? `<span class="unit">${unitHtml}</span>` : '';
+  el.innerHTML = `${value}${u}`;
+}
+
+function _tr2SetDelta(id, text, kind) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove('pos', 'warn', 'neg');
+  if (kind) el.classList.add(kind);
+}
+
+function _renderTodaysReadV2(metrics) {
+  if (!document.getElementById('tr2-read-line')) return; // panel not mounted
+
+  const stripe = metrics?.stripe?.payload || {};
+  const rc     = metrics?.revenuecat?.payload || {};
+  const activity = metrics?.activity?.payload || metrics?.activity || {};
+  const gsc = metrics?.gsc?.payload || {};
+  const ga4 = metrics?.ga4?.payload || {};
+  const play = metrics?.play?.payload || {};
+  const asc = metrics?.appstore?.payload || metrics?.asc?.payload || {};
+  const headline = metrics.headline || {};
+
+  // -- Read line (the serif sentence). Reuses the headline sentence the
+  //    Phase 3.3 services/headline.py already produces.
+  if (headline.sentence) {
+    _tr2SetText('tr2-read-line', headline.sentence);
+  }
+
+  // -- Hero cell 1: MRR
+  const stripeMrr = stripe.mrr_cents || 0;
+  const rcMrr     = rc.mrr_cents || 0;
+  const totalMrrCents = stripeMrr + rcMrr;
+  const mrrDollars = Math.round(totalMrrCents / 100);
+  _tr2SetValue('tr2-hero-mrr', `$${mrrDollars}`, '/mo');
+
+  const stripeExpected = stripe.expected_mrr_cents || stripe.mrr_cents || 0;
+  const expectedTotal = stripeExpected + rcMrr;
+  const upsideCents = Math.max(0, expectedTotal - totalMrrCents);
+  if (upsideCents > 0) {
+    const upsideDollars = Math.round(upsideCents / 100);
+    _tr2SetText('tr2-hero-mrr-note', `Combined web + iOS · +$${upsideDollars} expected if trials convert`);
+  } else {
+    _tr2SetText('tr2-hero-mrr-note', 'Combined web + iOS');
+  }
+
+  // -- Hero cell 2: Save window (trial cancels queued)
+  const trialsCancel = stripe.trials_with_cancel_scheduled || 0;
+  _tr2SetText('tr2-hero-save', trialsCancel);
+  const earliestCancel = stripe.earliest_trial_cancel_effective_at || stripe.earliest_cancel_effective_at;
+  if (earliestCancel) {
+    try {
+      const d = new Date(earliestCancel);
+      const month = d.toLocaleString('en-US', { month: 'short' });
+      _tr2SetText('tr2-hero-save-note', `Trial cancels queued · earliest effective ${month} ${d.getDate()}`);
+    } catch {
+      _tr2SetText('tr2-hero-save-note', 'Trial cancels queued');
+    }
+  } else {
+    _tr2SetText('tr2-hero-save-note', 'Trial cancels queued');
+  }
+
+  // -- Hero cell 3: Top of funnel · 28d installs
+  const iosInstalls28 = asc.first_downloads_28d || asc.installs_28d || 0;
+  const androidInstalls28 = play.device_installs_28d || play.installs_28d || 0;
+  const totalInstalls = iosInstalls28 + androidInstalls28;
+  _tr2SetValue('tr2-hero-installs', SP_FMT.num(totalInstalls), 'installs');
+  const gscClicks28 = gsc.clicks_28d || 0;
+  const ga4Sessions7 = ga4.sessions_7d || 0;
+  _tr2SetText('tr2-hero-installs-note', `${SP_FMT.num(gscClicks28)} GSC clicks · ${SP_FMT.num(ga4Sessions7)} web sessions`);
+
+  // ── MONEY FUNNEL ──────────────────────────────────────────────────
+  _tr2SetValue('tr2-mrr-value', `$${mrrDollars}`, '/mo');
+  const mrr30Delta = stripe.mrr_change_30d_cents;
+  if (mrr30Delta != null) {
+    const sign = mrr30Delta >= 0 ? '+' : '';
+    _tr2SetDelta('tr2-mrr-delta', `${sign}$${Math.round(mrr30Delta / 100)} last 30d`, mrr30Delta > 0 ? 'pos' : (mrr30Delta < 0 ? 'neg' : null));
+  }
+
+  const activeSubs = (stripe.active_subs || 0) + (stripe.orphan_paying_subs || 0);
+  _tr2SetText('tr2-active-subs', SP_FMT.num(activeSubs));
+  const canceled30 = stripe.canceled_30d || 0;
+  _tr2SetText('tr2-cancellations-30d', `${canceled30} cancellation${canceled30 === 1 ? '' : 's'} · 30d`);
+
+  const comped = stripe.comped_pro_users || 0;
+  _tr2SetText('tr2-comped', SP_FMT.num(comped));
+
+  // Money funnel lede
+  const trialsInFlight = stripe.trials || 0;
+  const trialsLikely = stripe.trials_likely_to_convert || 0;
+  const failedUsers30 = stripe.failed_payment_users_30d || 0;
+  const ledeParts = [];
+  ledeParts.push(`MRR is $${(totalMrrCents / 100).toFixed(2)} from ${activeSubs} paying customer${activeSubs === 1 ? '' : 's'}.`);
+  if (trialsInFlight) {
+    ledeParts.push(`${trialsInFlight} trial${trialsInFlight === 1 ? '' : 's'} in flight, ${trialsLikely} likely to bill.`);
+  }
+  if (failedUsers30) {
+    ledeParts.push(`${failedUsers30} user${failedUsers30 === 1 ? '' : 's'} ha${failedUsers30 === 1 ? 's' : 've'} failed payments in the last 30 days.`);
+  }
+  _tr2SetText('tr2-money-lede', ledeParts.join(' '));
+
+  // Trial pipeline rows
+  _tr2SetText('tr2-trials-in-flight', SP_FMT.num(trialsInFlight));
+  _tr2SetText('tr2-trials-likely', SP_FMT.num(trialsLikely));
+  _tr2SetText('tr2-trials-cancel', SP_FMT.num(trialsCancel));
+  _tr2SetText('tr2-trial-conv-7d', SP_FMT.num(stripe.trial_conversions_7d || 0));
+  _tr2SetText('tr2-trial-conv-30d', SP_FMT.num(stripe.trial_conversions_30d || 0));
+
+  // Failed payments — top 5
+  const failedList = document.getElementById('tr2-failed-list');
+  if (failedList) {
+    const offenders = Array.isArray(stripe.failing_users) ? stripe.failing_users.slice(0, 5) : [];
+    if (offenders.length === 0) {
+      failedList.innerHTML = '<div class="tr2-row"><span class="tr2-row-label" style="color:var(--text-faint);">No failed payments in the last 30 days.</span><span></span></div>';
+    } else {
+      failedList.innerHTML = offenders.map(u => {
+        const handle = (u.email || u.customer_id || 'unknown').split('@')[0] + '@';
+        const attempts = u.attempts_30d || 0;
+        return `<div class="tr2-row"><span class="tr2-row-label">${handle}</span><span class="tr2-row-value">${attempts} attempt${attempts === 1 ? '' : 's'}</span></div>`;
+      }).join('');
+    }
+  }
+
+  // ── TOP OF FUNNEL ─────────────────────────────────────────────────
+  _tr2SetText('tr2-gsc-clicks', SP_FMT.num(gscClicks28));
+  const gscImpressions = gsc.impressions_28d || 0;
+  const gscCtr = gsc.ctr_28d || (gscImpressions ? (gscClicks28 / gscImpressions * 100) : 0);
+  _tr2SetText('tr2-gsc-clicks-meta', `${SP_FMT.num(gscImpressions)} imp · ${gscCtr.toFixed(1)}% CTR`);
+  const gscPos = gsc.avg_position_28d || gsc.avg_position;
+  _tr2SetText('tr2-gsc-position', gscPos != null ? gscPos.toFixed(1) : '--');
+
+  _tr2SetText('tr2-ios-installs', SP_FMT.num(iosInstalls28));
+  _tr2SetText('tr2-android-installs', SP_FMT.num(androidInstalls28));
+  if ((play.first_opens_28d || 0) === 0 && androidInstalls28 > 0) {
+    _tr2SetDelta('tr2-android-installs-meta', 'Device installs · Play first-opens at 0', 'warn');
+  }
+
+  const funnelLede = `${SP_FMT.num(ga4Sessions7)} web sessions and ${SP_FMT.num(gscClicks28)} GSC clicks over the last 28 days. ${SP_FMT.num(iosInstalls28)} first downloads on iOS, ${SP_FMT.num(androidInstalls28)} device installs on Android.`;
+  _tr2SetText('tr2-funnel-lede', funnelLede);
+
+  // ── OPERATING HEALTH ──────────────────────────────────────────────
+  const dauToday = activity.dau_today != null ? activity.dau_today : (activity.dau || 0);
+  _tr2SetText('tr2-dau', SP_FMT.num(dauToday));
+  const dauAvg = activity.dau_avg_30d;
+  if (dauAvg && dauAvg > 0) {
+    const delta = Math.round((dauToday - dauAvg) / dauAvg * 100);
+    const sign = delta >= 0 ? '+' : '';
+    _tr2SetDelta('tr2-dau-delta', `${sign}${delta}% vs avg`, delta > 0 ? 'pos' : (delta < 0 ? 'neg' : null));
+  }
+
+  const logins24h = activity.logins_24h || 0;
+  _tr2SetText('tr2-logins-24h', SP_FMT.num(logins24h));
+  const loginsAvg = activity.logins_24h_avg_30d;
+  if (loginsAvg && loginsAvg > 0) {
+    const delta = Math.round((logins24h - loginsAvg) / loginsAvg * 100);
+    const sign = delta >= 0 ? '+' : '';
+    _tr2SetDelta('tr2-logins-delta', `${sign}${delta}% vs avg`, delta > 0 ? 'pos' : (delta < 0 ? 'neg' : null));
+  }
+
+  const signals = metrics.signals?.payload || {};
+  const sig7 = signals.signals_7d || 0;
+  const sigMix = signals.signals_by_sport_7d || {};
+  _tr2SetText('tr2-signals-7d', SP_FMT.num(sig7));
+  const mixParts = ['nba', 'mlb', 'wnba']
+    .map(s => `${s.toUpperCase()} ${sigMix[s] || 0}`)
+    .join(' · ');
+  _tr2SetText('tr2-signals-mix', mixParts);
+
+  _tr2SetText('tr2-ops-lede', `${dauToday} DAU today, ${logins24h} logins in the last 24 hours, ${sig7} signals issued this week.`);
+
+  // ── TODAY'S SIGNUPS ───────────────────────────────────────────────
+  const signups = activity.signups_today || {};
+  _tr2SetText('tr2-signups-free', SP_FMT.num(signups.free || activity.free_signups_today || 0));
+  _tr2SetText('tr2-signups-trial', SP_FMT.num(signups.trial || activity.trial_starts_today || 0));
+  _tr2SetText('tr2-signups-paid', SP_FMT.num(signups.paid || activity.paid_signups_today || 0));
+}
+
+
 function bindLiveData(metrics) {
   if (!metrics) return;
   window.__SP_METRICS = metrics;
+
+  // Today's Read v2 cockpit (added 2026-05-22). Writes to the tr2-*
+  // IDs in the new panel-command markup. Runs first so the new layout
+  // is populated before the legacy selectors below (which still target
+  // other tabs) execute. Old #panel-command selectors silently no-op
+  // since their elements were removed in the restructure.
+  _renderTodaysReadV2(metrics);
 
   // -- Headline + actions (Phase 3.3) --
   // services/headline.py emits {sentence, color} for the headline and a
