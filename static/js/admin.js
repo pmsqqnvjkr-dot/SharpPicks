@@ -2081,6 +2081,298 @@ function bindNeedsAttention(data, attentionSegments) {
 // the next call re-fetches fresh — no time-based caching here, the dashboard
 // trusts every call.
 let _usersDataPromise = null;
+// ─────────────────────────────────────────────────────────────────────────
+// User Read v2 (2026-05-22) — targets the ur2-* IDs added to #panel-users
+// in the chunk A scaffold. Pulls activity + stripe + power users +
+// attention segments, all of which the Users loader already fetches.
+// ─────────────────────────────────────────────────────────────────────────
+
+function _urSetText(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+}
+function _urSetWidth(id, pct) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+}
+function _urEscape(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function _renderUserReadV2(activity, powerUsers, attentionSegments) {
+  if (!document.getElementById('ur2-read-line')) return; // panel not mounted
+
+  const snapshot = (activity && activity.snapshot) || {};
+  const tiers    = (activity && activity.tier_counts) || {};
+  const freqBuckets = (activity && Array.isArray(activity.login_frequency_buckets))
+    ? activity.login_frequency_buckets : [];
+  const cohorts  = (activity && Array.isArray(activity.cohort_retention))
+    ? activity.cohort_retention : [];
+
+  const stripe = (window.__SP_METRICS && window.__SP_METRICS.stripe?.payload) || {};
+  const rc     = (window.__SP_METRICS && window.__SP_METRICS.revenuecat?.payload) || {};
+
+  const mau = snapshot.mau != null ? snapshot.mau : 0;
+  const totalReg = snapshot.total_registered || 0;
+  const stickiness = snapshot.stickiness_pct;
+  const paying = (stripe.active_subs || 0) + (stripe.orphan_paying_subs || 0);
+  const rcPaying = rc.active_subs || 0;
+  const payingTotal = paying + rcPaying;
+  const trials = stripe.trials || 0;
+  const trialsLikely = stripe.trials_likely_to_convert || 0;
+  const trialsCancel = stripe.trials_with_cancel_scheduled || 0;
+  const trialConv7 = stripe.trial_conversions_7d || 0;
+  const trialConv30 = stripe.trial_conversions_30d || 0;
+  const comped = stripe.comped_pro_users || 0;
+  const powerCount = tiers.power || 0;
+  const segs = (attentionSegments && Array.isArray(attentionSegments.segments))
+    ? attentionSegments.segments : [];
+  const segCount = key => {
+    const s = segs.find(x => x.key === key);
+    return s ? (s.count || 0) : 0;
+  };
+  const segEntries = key => {
+    const s = segs.find(x => x.key === key);
+    return s && Array.isArray(s.top) ? s.top : [];
+  };
+
+  // ── Read line ───────────────────────────────────────────────────────
+  const bits = [];
+  bits.push(`${mau.toLocaleString()} MAU of ${totalReg.toLocaleString()} registered`);
+  if (payingTotal > 0) bits.push(`${payingTotal} paying`);
+  if (trials > 0) bits.push(`${trials} on trial`);
+  if (powerCount > 0) bits.push(`${powerCount} power users`);
+  _urSetText('ur2-read-line', bits.join(', ') + '.');
+
+  // ── Hero strip ──────────────────────────────────────────────────────
+  _urSetText('ur2-hero-mau', mau.toLocaleString());
+  _urSetText('ur2-hero-mau-note', `of ${totalReg.toLocaleString()} registered`);
+
+  _urSetText('ur2-hero-paying', payingTotal.toLocaleString());
+  if (totalReg > 0) {
+    const pct = (payingTotal / totalReg) * 100;
+    _urSetText('ur2-hero-paid-conv', `${pct.toFixed(1)}% paid conversion`);
+  } else {
+    _urSetText('ur2-hero-paid-conv', '—');
+  }
+
+  _urSetText('ur2-hero-power', powerCount.toLocaleString());
+  // ex-pro count needs chunk C; placeholder for now.
+  _urSetText('ur2-hero-expro', powerCount > 0
+    ? `${(tiers.engaged || 0)} engaged in the same window`
+    : 'No power users yet');
+
+  const stickEl = document.getElementById('ur2-hero-sticky');
+  if (stickEl && stickiness != null) {
+    stickEl.innerHTML = `${stickiness.toFixed(stickiness % 1 === 0 ? 0 : 1)}<span class="pct">%</span>`;
+  }
+
+  // ── Conversion funnel ───────────────────────────────────────────────
+  // Stages: Registered → MAU → Trials in flight → Paying.
+  const stages = [
+    { c: 'ur2-funnel-c1', b: 'ur2-funnel-b1', val: totalReg },
+    { c: 'ur2-funnel-c2', b: 'ur2-funnel-b2', val: mau },
+    { c: 'ur2-funnel-c3', b: 'ur2-funnel-b3', val: trials },
+    { c: 'ur2-funnel-c4', b: 'ur2-funnel-b4', val: payingTotal },
+  ];
+  const maxStage = Math.max(1, ...stages.map(s => s.val));
+  stages.forEach(s => {
+    _urSetText(s.c, s.val.toLocaleString());
+    _urSetWidth(s.b, (s.val / maxStage) * 100);
+  });
+  // Drop labels between stages
+  const dropPct = (a, b) => {
+    if (!a || a === 0) return '—';
+    const lossRate = ((a - b) / a) * 100;
+    return `${lossRate >= 0 ? '−' : '+'}${Math.abs(lossRate).toFixed(0)}%`;
+  };
+  _urSetText('ur2-funnel-d1', dropPct(totalReg, mau));
+  _urSetText('ur2-funnel-d2', dropPct(mau, trials));
+  _urSetText('ur2-funnel-d3', dropPct(trials, payingTotal));
+  if (totalReg > 0 && payingTotal > 0) {
+    const conv = (payingTotal / totalReg) * 100;
+    _urSetText('ur2-funnel-lede',
+      `${payingTotal} paying out of ${totalReg.toLocaleString()} registered = ${conv.toFixed(1)}% lifetime conversion. ${mau} active in the last 30 days, ${trials} on trial.`);
+  } else {
+    _urSetText('ur2-funnel-lede', `${mau} active of ${totalReg.toLocaleString()} registered. Trial pipeline below.`);
+  }
+
+  // ── Trial pipeline stacked bar ──────────────────────────────────────
+  _urSetText('ur2-pipeline-title', `${trials} trial${trials === 1 ? '' : 's'} in flight`);
+  const totalTrialStake = trialsLikely + trialsCancel;
+  if (totalTrialStake > 0) {
+    _urSetWidth('ur2-pipeline-likely', (trialsLikely / totalTrialStake) * 100);
+    _urSetWidth('ur2-pipeline-cancel', (trialsCancel / totalTrialStake) * 100);
+  }
+  _urSetText('ur2-pipeline-stake', `${trialsLikely + trialsCancel} actionable`);
+  _urSetText('ur2-pipeline-legend-likely', `Likely to bill · ${trialsLikely}`);
+  _urSetText('ur2-pipeline-legend-cancel', `Cancel scheduled · ${trialsCancel}`);
+  _urSetText('ur2-pipeline-conv-7d', trialConv7);
+  _urSetText('ur2-pipeline-conv-30d', trialConv30);
+  // "If all bill" estimate at $19.99 per likely-to-bill (matches the
+  // monthly headline plan). Coarse — chunk C can mix in plan tier.
+  const upsideDollars = Math.round(trialsLikely * 19.99);
+  _urSetText('ur2-pipeline-upside', `+$${upsideDollars}/mo`);
+  if (trials > 0) {
+    _urSetText('ur2-pipeline-lede',
+      `${trials} trials in flight. ${trialsLikely} likely to bill on auto-renew, ${trialsCancel} scheduled to cancel. ${trialConv7} converted in the last 7 days, ${trialConv30} in 30.`);
+  } else {
+    _urSetText('ur2-pipeline-lede', 'No trials in flight. Pipeline rebuilds when next signups start trialing.');
+  }
+
+  // ── Needs attention cells ───────────────────────────────────────────
+  _urSetText('ur2-attn-trials-48h',       segCount('trials_ending_48h'));
+  _urSetText('ur2-attn-payment-failed',   segCount('past_due'));
+  _urSetText('ur2-attn-cancel-scheduled', segCount('cancel_scheduled'));
+  _urSetText('ur2-attn-was-pro',          segCount('was_pro_still_active'));
+  _urSetText('ur2-attn-unverified',       segCount('unverified_email_7d'));
+
+  // ── Winback queue ───────────────────────────────────────────────────
+  const winbackEntries = segEntries('was_pro_still_active');
+  const winbackList = document.getElementById('ur2-winback-list');
+  if (winbackList) {
+    if (winbackEntries.length === 0) {
+      winbackList.innerHTML = '<div class="ur2-winback-row"><span class="ur2-winback-meta"><span class="ur2-winback-when">—</span><span class="ur2-winback-email">No ex-pro logins in the last 14 days.</span></span><span class="ur2-winback-detail"></span></div>';
+    } else {
+      winbackList.innerHTML = winbackEntries.slice(0, 6).map(u => {
+        const email = u.email || u.user_id || 'unknown';
+        const last = u.days_since_login != null
+          ? `${u.days_since_login}d ago`
+          : (u.last_active ? new Date(u.last_active).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—');
+        const detail = u.subscription_plan || u.subscription_status || '';
+        return `<div class="ur2-winback-row"><span class="ur2-winback-meta"><span class="ur2-winback-when">${_urEscape(last)}</span><span class="ur2-winback-email">${_urEscape(email)}</span></span><span class="ur2-winback-detail">${_urEscape(detail)}</span></div>`;
+      }).join('');
+    }
+  }
+
+  // ── Login frequency histogram ───────────────────────────────────────
+  // Server returns login_frequency_buckets as either [{label, count}] or
+  // [{bucket, count}] depending on the version. Map onto the 7 template
+  // slots (0, 1, 2-3, 4-5, 6-9, 10-14, 15+).
+  if (freqBuckets.length > 0) {
+    const chartEl = document.getElementById('ur2-histo-chart');
+    if (chartEl) {
+      const bars = chartEl.querySelectorAll('.ur2-histo-bar');
+      const maxCount = Math.max(1, ...freqBuckets.map(b => b.count || 0));
+      bars.forEach((bar, idx) => {
+        const b = freqBuckets[idx];
+        if (!b) return;
+        const count = b.count || 0;
+        const fill = bar.querySelector('.ur2-histo-bar-fill');
+        const value = bar.querySelector('.ur2-histo-bar-value');
+        if (fill) fill.style.height = `${(count / maxCount) * 100}%`;
+        if (value) value.textContent = count;
+      });
+    }
+  }
+  const totalUsersInHisto = freqBuckets.reduce((s, b) => s + (b.count || 0), 0);
+  _urSetText('ur2-histo-avg',
+    activity && activity.avg_logins != null ? activity.avg_logins.toFixed(1) : '—');
+  _urSetText('ur2-histo-median',
+    activity && activity.median_logins != null ? String(activity.median_logins) : '—');
+  _urSetText('ur2-histo-power', powerCount);
+  _urSetText('ur2-histo-dormant', tiers.dormant || 0);
+  if (totalUsersInHisto > 0) {
+    const dormantPct = (((tiers.dormant || 0) / totalUsersInHisto) * 100).toFixed(0);
+    _urSetText('ur2-histo-lede',
+      `${powerCount} power users (15+ logins), ${tiers.engaged || 0} engaged, ${tiers.light || 0} light, ${tiers.dormant || 0} dormant. Dormant tail is ${dormantPct}% of the 30-day population.`);
+  } else {
+    _urSetText('ur2-histo-lede', 'Awaiting active users to populate the histogram.');
+  }
+
+  // ── Retention heatmap ───────────────────────────────────────────────
+  const body = document.getElementById('ur2-heatmap-body');
+  if (body) {
+    if (cohorts.length === 0) {
+      body.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text-faint);padding:24px;">No cohort data yet.</td></tr>';
+    } else {
+      const recent = cohorts.slice(-9);
+      const cellHTML = (pct, n, isCohortSize) => {
+        if (isCohortSize) {
+          return `<td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--text-muted);">${n}</td>`;
+        }
+        if (pct == null) return '<td style="background:transparent;color:var(--text-faint);">—</td>';
+        const alpha = Math.min(1, pct / 100);
+        const dim = n != null && n < 10 ? 0.5 : 1;
+        const bg = `rgba(90,158,114,${(alpha * dim).toFixed(2)})`;
+        const fg = alpha > 0.5 ? '#0A0D14' : 'var(--text)';
+        return `<td style="background:${bg};color:${fg};text-align:center;font-family:var(--mono);font-size:10px;">${pct.toFixed(0)}%</td>`;
+      };
+      body.innerHTML = recent.map(c => {
+        const week = c.cohort_week || c.week || '—';
+        const size = c.size || 0;
+        const ret = Array.isArray(c.retention_by_week) ? c.retention_by_week : [];
+        let cells = `<td style="font-family:var(--mono);font-size:11px;color:var(--text-muted);">${_urEscape(week)}</td>${cellHTML(null, size, true)}`;
+        for (let w = 0; w < 9; w++) {
+          cells += cellHTML(ret[w] != null ? ret[w] : null, size, false);
+        }
+        return `<tr>${cells}</tr>`;
+      }).join('');
+    }
+  }
+  if (cohorts.length > 0) {
+    const w1Vals = cohorts.map(c => c.retention_by_week?.[1]).filter(v => v != null);
+    const w4Vals = cohorts.map(c => c.retention_by_week?.[4]).filter(v => v != null);
+    const avgW1 = w1Vals.length ? (w1Vals.reduce((a, b) => a + b, 0) / w1Vals.length) : null;
+    const avgW4 = w4Vals.length ? (w4Vals.reduce((a, b) => a + b, 0) / w4Vals.length) : null;
+    const largest = cohorts.reduce((max, c) => (c.size > (max?.size || 0) ? c : max), null);
+    _urSetText('ur2-heatmap-avg-w1', avgW1 != null ? `${avgW1.toFixed(0)}%` : '—');
+    _urSetText('ur2-heatmap-avg-w4', avgW4 != null ? `${avgW4.toFixed(0)}%` : '—');
+    _urSetText('ur2-heatmap-largest', largest ? `${largest.cohort_week || ''} (n=${largest.size})` : '—');
+    if (avgW1 != null && avgW4 != null) {
+      _urSetText('ur2-heatmap-lede',
+        `Average week-1 retention: ${avgW1.toFixed(0)}%. Holds at ${avgW4.toFixed(0)}% by week 4. Cells dim past n < 10 to discourage reading small cohorts as a signal.`);
+    }
+  }
+
+  // ── Power user cards ────────────────────────────────────────────────
+  const powerGrid = document.getElementById('ur2-power-grid');
+  if (powerGrid) {
+    const list = (powerUsers && Array.isArray(powerUsers.users)) ? powerUsers.users : [];
+    if (list.length === 0) {
+      powerGrid.innerHTML = '<div class="ur2-power-card"><span style="color:var(--text-faint);font-family:var(--mono);font-size:12px;">No power users in the last 30 days.</span></div>';
+    } else {
+      powerGrid.innerHTML = list.slice(0, 12).map(u => {
+        const email = u.email || u.user_id || 'unknown';
+        const handle = email.split('@')[0];
+        const tag = (u.tags && u.tags[0]) || u.subscription_status || 'free';
+        const tagClass = tag === 'founding' ? 'founding'
+          : (String(tag).startsWith('paid') ? 'paid'
+          : (String(tag).startsWith('trial') ? 'trial' : 'free'));
+        const logins = u.logins_30d != null ? u.logins_30d : 0;
+        const daysActive = u.days_active_30d != null ? u.days_active_30d : 0;
+        const lastSeen = u.days_since_login != null ? `${u.days_since_login}d` : '—';
+        return `<div class="ur2-power-card">
+          <div class="ur2-power-head">
+            <span class="ur2-power-email" title="${_urEscape(email)}">${_urEscape(handle)}</span>
+            <span class="ur2-power-pill ${tagClass}">${_urEscape(tag)}</span>
+          </div>
+          <div class="ur2-power-status">${logins} logins · ${daysActive} active days</div>
+          <div class="ur2-power-bottom">
+            <div class="ur2-power-stats">
+              <div>
+                <div class="ur2-power-stat-label">Last seen</div>
+                <div class="ur2-power-stat-value">${_urEscape(lastSeen)}</div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+  if (powerUsers && powerUsers.users) {
+    _urSetText('ur2-power-lede',
+      `${powerUsers.users.length} power users ranked by 30-day logins. Sparklines and ex-pro labels ship with the next data add.`);
+  }
+}
+
 function loadUsersTabData() {
   if (_usersDataPromise) return _usersDataPromise;
   const opts = { credentials: 'same-origin' };
@@ -2097,6 +2389,11 @@ function loadUsersTabData() {
     bindUsersActivity(activity);
     bindPowerUsersList(powerUsers);
     bindNeedsAttention(attention, attentionSegments);
+    try {
+      _renderUserReadV2(activity, powerUsers, attentionSegments);
+    } catch (e) {
+      console.error('[ur2] _renderUserReadV2 threw:', e);
+    }
   }).finally(() => {
     _usersDataPromise = null;  // clear so next call re-fetches
   });
