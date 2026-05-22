@@ -484,16 +484,28 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
     if sort not in SORT_KEYS:
         sort = 'created'
 
-    # Base query
+    # Base query. Apple App Reviewer accounts (ar_user<digits>@icloud.com)
+    # are excluded everywhere — they sign up via TestFlight / App Review
+    # and would otherwise inflate user / paid metrics.
+    _AR_RE = r'^ar_user[0-9]+@icloud\.com$'
     q = User.query.filter(
         User.is_internal == False,  # noqa: E712
         User.deleted_at.is_(None),
+        ~User.email.op('~')(_AR_RE),
     )
     if search:
         q = q.filter(func.lower(User.email).contains(search.lower()))
 
     if segment == 'paid':
-        q = q.filter(User.subscription_status == 'active')
+        # Paid = anyone actually paying us now. Includes:
+        #   - active subscribers (founding annual + paid monthly + paid annual)
+        #   - 'cancelling' subs that have paid through a future period_end
+        #     (still using what they paid for — Cooper Reynolds case)
+        # Excludes comped users (gifted access, not paying).
+        q = q.filter(
+            User.subscription_status.in_(('active', 'cancelling')),
+            User.comped == False,  # noqa: E712
+        )
     elif segment == 'trial':
         q = q.filter(User.subscription_status.in_(('trial', 'trialing')))
     elif segment == 'churned':

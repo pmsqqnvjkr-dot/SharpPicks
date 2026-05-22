@@ -1135,7 +1135,10 @@ def command_center_data():
     # PAID buckets exclude comped (gifted) users so MRR and active-sub
     # counts reflect actual paying customers only. Comped users still
     # count toward total_users.
-    active_subs = [u for u in users if u.subscription_status == 'active' and not u.comped]
+    # Paid = active OR cancelling-but-paid-through-period. Excludes comped.
+    # _real_users_query already strips internal/deleted/AR-reviewer rows
+    # so the comped filter is the only inline exclusion left.
+    active_subs = [u for u in users if u.subscription_status in ('active', 'cancelling') and not u.comped]
     trial_users = [u for u in users if u.subscription_status in ('trial', 'trialing') and not u.comped]
     free_users = [u for u in users if u.subscription_status in ('free', None, '')]
     annual_subs = [u for u in active_subs if u.subscription_plan and 'annual' in u.subscription_plan.lower()]
@@ -3063,7 +3066,11 @@ def admin_funnel_metrics():
     total_signups = len(users)
     with_trial = [u for u in users if u.trial_start_date is not None]
     total_trials = len(with_trial)
-    paid = [u for u in users if u.subscription_status == 'active']
+    # Paid count for the conversion funnel. Matches the segment filter
+    # in services/users_metrics.py and the command-center active_subs
+    # bucket: active OR cancelling, minus comped. AR users + internal +
+    # deleted already stripped by _real_users_query.
+    paid = [u for u in users if u.subscription_status in ('active', 'cancelling') and not u.comped]
     total_paid = len(paid)
 
     signup_to_trial_rate = round(total_trials / total_signups * 100, 2) if total_signups else 0.0
