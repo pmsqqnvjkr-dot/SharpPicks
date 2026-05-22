@@ -614,6 +614,30 @@ function _tr2SetDelta(id, text, kind) {
 function _renderTodaysReadV2(metrics) {
   if (!document.getElementById('tr2-read-line')) return; // panel not mounted
 
+  // Debug instrumentation (2026-05-22). Reports the shape of the
+  // metrics envelope so we can diagnose missing data fast. Logged
+  // once per render. Safe to leave in until Today's Read v2 is
+  // verified populating in production for a few days.
+  try {
+    const dbg = {
+      hasStripe:    !!metrics?.stripe?.payload,
+      hasRC:        !!metrics?.revenuecat?.payload,
+      hasGSC:       !!metrics?.gsc?.payload,
+      hasGA4:       !!metrics?.ga4?.payload,
+      hasPlay:      !!metrics?.google_play?.payload,
+      hasASC:       !!metrics?.app_store_connect?.payload,
+      hasEvents:    !!metrics?.events?.payload,
+      hasHeadline:  !!metrics?.headline?.sentence,
+      stripeMrrCents: metrics?.stripe?.payload?.mrr_cents,
+      topLevelKeys: metrics ? Object.keys(metrics) : null,
+    };
+    console.log('[tr2] _renderTodaysReadV2 metrics shape:', dbg);
+  } catch (e) {
+    console.error('[tr2] debug log failed:', e);
+  }
+
+  try {
+
   const stripe = metrics?.stripe?.payload || {};
   const rc     = metrics?.revenuecat?.payload || {};
   // Correct envelope keys (verified against admin_api routes + sources):
@@ -811,6 +835,10 @@ function _renderTodaysReadV2(metrics) {
     _tr2SetText('tr2-signups-trial', SP_FMT.num(s.trial_starts_24h || 0));
     _tr2SetText('tr2-signups-paid', SP_FMT.num(s.paid_signups_24h || 0));
   });
+
+  } catch (e) {
+    console.error('[tr2] _renderTodaysReadV2 threw:', e);
+  }
 }
 
 
