@@ -534,109 +534,146 @@
   <!-- ============================================ -->
   <div class="panel" id="panel-model">
 
-    <section class="stack-status">
-      <div class="label">model read</div>
-      <h1 class="headline"></h1>
-      <p class="model-subhead" style="font-size:13px;color:#8B9099;margin-top:8px;line-height:1.5;"></p>
+    <p class="mr-read-line" id="mr-read-line">Model calibrating. Resolved-pick read drops in as the sample lands.</p>
+
+    <div class="mr-caveat" id="mr-caveat" style="display:none;">
+      <span id="mr-caveat-text"></span>
+    </div>
+
+    <div class="mr-hero">
+      <div class="mr-hero-cell">
+        <div class="mr-hero-label">Signals · 7d</div>
+        <div class="mr-hero-value" id="mr-hero-signals-value">&mdash;</div>
+        <div class="mr-hero-note" id="mr-hero-signals-note">&mdash;</div>
+      </div>
+      <div class="mr-hero-cell">
+        <div class="mr-hero-label">Hit rate · top tier</div>
+        <div class="mr-hero-value" id="mr-hero-toprate-value">&mdash;</div>
+        <div class="mr-hero-note" id="mr-hero-toprate-note">&mdash;</div>
+      </div>
+      <div class="mr-hero-cell">
+        <div class="mr-hero-label">Revoke rate · 30d</div>
+        <div class="mr-hero-value" id="mr-hero-revoke-value">&mdash;</div>
+        <div class="mr-hero-note" id="mr-hero-revoke-note">&mdash;</div>
+      </div>
+      <div class="mr-hero-cell">
+        <div class="mr-hero-label">Pass rate · 7d</div>
+        <div class="mr-hero-value" id="mr-hero-pass-value">&mdash;</div>
+        <div class="mr-hero-note" id="mr-hero-pass-note">&mdash;</div>
+      </div>
+    </div>
+
+    <!-- CLV TRAJECTORY -->
+    <section class="mr-section">
+      <div class="mr-section-head">
+        <span class="mr-section-title">CLV vs Market · 30d trajectory</span>
+        <span class="mr-section-meta" id="mr-clv-meta">Closed games</span>
+      </div>
+      <p class="mr-section-lede" id="mr-clv-lede">CLV by league across the last 30 days. Each point is a resolved signal. Zero line is breakeven against market close, points above it captured edge regardless of W-L result.</p>
+      <div class="mr-clv-grid">
+        <div class="mr-clv-card" id="mr-clv-nba">
+          <div class="mr-clv-card-head"><span class="mr-clv-league">NBA</span><span class="mr-clv-n" data-mr="n">n=&mdash;</span></div>
+          <div class="mr-clv-label">CLV avg</div>
+          <div class="mr-clv-value" data-mr="value">&mdash;</div>
+          <svg class="mr-clv-chart" data-mr="svg" viewBox="0 0 200 70" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="mr-clv-footer"><span data-mr="ats">ATS &mdash;</span><span class="mr-pill warn" data-mr="conf">Low n</span></div>
+        </div>
+        <div class="mr-clv-card" id="mr-clv-mlb">
+          <div class="mr-clv-card-head"><span class="mr-clv-league">MLB</span><span class="mr-clv-n" data-mr="n">n=&mdash;</span></div>
+          <div class="mr-clv-label">CLV avg</div>
+          <div class="mr-clv-value" data-mr="value">&mdash;</div>
+          <svg class="mr-clv-chart" data-mr="svg" viewBox="0 0 200 70" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="mr-clv-footer"><span data-mr="ats">ATS &mdash;</span><span class="mr-pill warn" data-mr="conf">Low n</span></div>
+        </div>
+        <div class="mr-clv-card" id="mr-clv-wnba">
+          <div class="mr-clv-card-head"><span class="mr-clv-league">WNBA</span><span class="mr-clv-n" data-mr="n">n=&mdash;</span></div>
+          <div class="mr-clv-label">CLV avg</div>
+          <div class="mr-clv-value" data-mr="value">&mdash;</div>
+          <svg class="mr-clv-chart" data-mr="svg" viewBox="0 0 200 70" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="mr-clv-footer"><span data-mr="ats">ATS &mdash;</span><span class="mr-pill warn" data-mr="conf">Low n</span></div>
+        </div>
+      </div>
     </section>
 
-    <!-- WIN RATE OVER TIME -->
-    <section class="section">
-      <div class="section-header">
-        <span class="section-title">win rate vs market · 90d</span>
-        <span class="section-meta">closed games · ats</span>
+    <!-- REVOKE RATE TIMELINE -->
+    <section class="mr-section">
+      <div class="mr-section-head">
+        <span class="mr-section-title">Signal stability · Revoke timeline</span>
+        <span class="mr-section-meta">30d · pre-tip revocations</span>
       </div>
-      <p class="section-summary"></p>
-
-      <div class="section-content chart-plus-stats">
-        <div>
-          <div class="chart-wrap tall" style="position:relative;">
-            <div class="lowconf-note" style="display:none;position:absolute;top:8px;left:0;right:0;text-align:center;font-style:italic;font-size:10px;color:rgba(139,144,153,0.75);z-index:3;pointer-events:none;">All samples in low-confidence window (n &lt; 30)</div>
-            <canvas id="chart-winrate" role="img" aria-label="Rolling 14-day win rate by sport over 90 days"></canvas>
-            <div class="lowconf-hatch" style="display:none;position:absolute;inset:0;pointer-events:none;opacity:0.18;background-image:repeating-linear-gradient(45deg,rgba(139,144,153,0.5) 0,rgba(139,144,153,0.5) 1px,transparent 1px,transparent 10px);z-index:1;"></div>
+      <p class="mr-section-lede" id="mr-revoke-lede">Pre-tip revoke trend over the last 30 days. Bars stack daily resolved vs revoked counts. Line overlays a 7d rolling revoke rate so spikes are easy to read against the trend.</p>
+      <div class="mr-card">
+        <div class="mr-card-head">
+          <span class="mr-card-title">Issued vs revoked · 30d</span>
+          <div class="mr-card-stats">
+            <span>7d rate: <strong class="mr-stat-val warn" id="mr-revoke-7d">&mdash;</strong></span>
+            <span>30d rate: <strong class="mr-stat-val warn" id="mr-revoke-30d">&mdash;</strong></span>
+            <span>Revoked: <strong class="mr-stat-val" id="mr-revoke-totals">&mdash;</strong></span>
           </div>
-          <div id="winrate-insufficient" style="display:none;padding:3rem 1rem;text-align:center;">
-            <div style="font-size:13px;color:#8B9099;max-width:320px;margin:0 auto;line-height:1.6;">
-              Insufficient sample for rolling window view. 14d rolling becomes unstable below n=10. Showing snapshot only.
-            </div>
-          </div>
         </div>
-        <div>
-          <div class="col-title">snapshot</div>
-          <div id="model-snapshot-rail"></div>
+        <svg class="mr-revoke-chart" id="mr-revoke-svg" viewBox="0 0 600 160" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div class="mr-legend">
+          <span class="mr-legend-item"><span class="mr-dot resolved"></span>Resolved</span>
+          <span class="mr-legend-item"><span class="mr-dot revoked"></span>Revoked pre-tip</span>
+          <span class="mr-legend-item"><span class="mr-line-key"></span>7d rolling revoke rate</span>
         </div>
       </div>
     </section>
 
-    <!-- SIGNAL STABILITY · REVOKE RATE -->
-    <section class="section">
-      <div class="section-header">
-        <span class="section-title">signal stability · revoke rate</span>
-        <span class="section-meta">pre-tip revocations vs resolved picks</span>
+    <!-- TIER HIT RATE -->
+    <section class="mr-section">
+      <div class="mr-section-head">
+        <span class="mr-section-title">Hit rate by edge tier</span>
+        <span class="mr-section-meta">Closed signals &middot; with 95% CI</span>
       </div>
-      <p class="section-summary"></p>
-      <div class="section-content">
-        <div class="stat-row"><span class="label">Revoke rate 7d</span><span class="value">--<span class="value-suffix">%</span></span></div>
-        <div class="stat-row"><span class="label">Revoke rate 30d</span><span class="value">--<span class="value-suffix">%</span></span></div>
-        <div class="stat-row"><span class="label">Revoked 30d</span><span class="value">--<span class="value-suffix">picks</span></span></div>
-      </div>
-    </section>
-
-    <!-- SIGNAL HIT RATE -->
-    <section class="section">
-      <div class="section-header">
-        <span class="section-title">signal hit rate · by mei tier</span>
-        <span class="section-meta">closed signals only</span>
-      </div>
-      <p class="section-summary"></p>
-
-      <div class="chart-wrap">
-        <canvas id="chart-meihit" role="img" aria-label="Signal hit rate by MEI tier"></canvas>
-      </div>
-    </section>
-
-    <!-- CALIBRATION -->
-    <section class="section">
-      <div class="section-header">
-        <span class="section-title">calibration · model probability vs observed</span>
-        <span class="section-meta">90d closed</span>
-      </div>
-      <p class="section-summary"></p>
-
-      <div class="calibration-grid">
-        <div class="calibration-tile">
-          <div class="calibration-tile-title">nba calibration</div>
-          <div class="chart-wrap"><canvas id="chart-cal-nba" role="img" aria-label="NBA calibration plot"></canvas></div>
-        </div>
-        <div class="calibration-tile">
-          <div class="calibration-tile-title">mlb calibration</div>
-          <div class="chart-wrap"><canvas id="chart-cal-mlb" role="img" aria-label="MLB calibration plot"></canvas></div>
-        </div>
+      <p class="mr-section-lede" id="mr-tier-lede">Hit rate per MEI edge tier with 95% Wilson confidence intervals. Bars above the dashed 52.4% line clear breakeven against -110 vig.</p>
+      <div class="mr-card">
+        <svg class="mr-tier-chart" id="mr-tier-svg" viewBox="0 0 600 240" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        <div class="mr-foot-note"><span class="mr-breakeven-key"></span>Breakeven against -110 vig is 52.4%. Error bars are 95% Wilson CI.</div>
       </div>
     </section>
 
     <!-- MEI DISTRIBUTION -->
-    <section class="section">
-      <div class="section-header">
-        <span class="section-title">mei distribution · last 30d</span>
-        <span class="section-meta">all scored games</span>
+    <section class="mr-section">
+      <div class="mr-section-head">
+        <span class="mr-section-title">MEI distribution · Last 30d</span>
+        <span class="mr-section-meta" id="mr-mei-meta">&mdash; scored signals</span>
       </div>
-      <p class="section-summary"></p>
+      <p class="mr-section-lede" id="mr-mei-lede">Edge distribution across scored signals in the last 30 days. The vertical line marks the 4% publication threshold, and high-edge bars get called out so the top-tier cohort is easy to find.</p>
+      <div class="mr-card">
+        <svg class="mr-mei-chart" id="mr-mei-svg" viewBox="0 0 600 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+      </div>
+    </section>
 
-      <div class="chart-wrap">
-        <canvas id="chart-mei" role="img" aria-label="MEI score distribution histogram"></canvas>
+    <!-- CALIBRATION -->
+    <section class="mr-section">
+      <div class="mr-section-head">
+        <span class="mr-section-title">Calibration &middot; Model probability vs observed</span>
+        <span class="mr-section-meta">90d closed &middot; preview</span>
+      </div>
+      <p class="mr-section-lede">Closer the points sit to the diagonal, the better the model's probability estimates. Both leagues sit just below the n=30 threshold for confidence, so points show as preview only.</p>
+      <div class="mr-cal-grid">
+        <div class="mr-cal-card" id="mr-cal-nba">
+          <div class="mr-cal-head"><span class="mr-cal-title">NBA</span><span class="mr-pill warn" data-mr="n">preview &middot; n=&mdash;</span></div>
+          <svg class="mr-cal-chart" data-mr="svg" viewBox="0 0 240 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+          <div class="mr-cal-note" data-mr="note">need n &ge; 30 for confidence</div>
+        </div>
+        <div class="mr-cal-card" id="mr-cal-mlb">
+          <div class="mr-cal-head"><span class="mr-cal-title">MLB</span><span class="mr-pill warn" data-mr="n">preview &middot; n=&mdash;</span></div>
+          <svg class="mr-cal-chart" data-mr="svg" viewBox="0 0 240 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+          <div class="mr-cal-note" data-mr="note">need n &ge; 30 for confidence</div>
+        </div>
       </div>
     </section>
 
     <!-- LAST 10 SIGNALS -->
-    <section class="section" id="section-recent-signals">
-      <div class="section-header">
-        <span class="section-title">last 10 issued signals</span>
-        <span class="section-meta">postgres · live</span>
+    <section class="mr-section" id="section-recent-signals">
+      <div class="mr-section-head">
+        <span class="mr-section-title">Last 10 signals &middot; Issued</span>
+        <span class="mr-section-meta">Postgres &middot; live</span>
       </div>
-
       <div class="recent-rows" id="recent-signals" style="border-top: none; padding-top: 0;">
-        <div class="recent-row empty"><span class="meta">Loading…</span></div>
+        <div class="recent-row empty"><span class="meta">Loading&hellip;</span></div>
       </div>
     </section>
   </div>

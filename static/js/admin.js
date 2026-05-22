@@ -2660,11 +2660,374 @@ function bindModelPerf(data) {
 }
 
 let _modelDataPromise = null;
+// ─────────────────────────────────────────────────────────────────────────
+// Model Read v2 (2026-05-22) — hand-built inline SVG cockpit. Targets the
+// mr-* IDs added to #panel-model when Today's Read v2 grew its sibling
+// redesigns. Reads /api/admin/model/perf which already exposes hit rate
+// by tier, calibration buckets, edge distribution, last-10 signals,
+// revoke-rate totals, and CLV averages by sport.
+//
+// What's not on the endpoint yet (chunk C): per-league daily CLV series
+// for the CLV sparklines, per-day issued/revoked counts for the timeline
+// bars, and the 7d rolling revoke-rate overlay. Those sections render
+// their headers + totals now and the SVG canvas stays empty until the
+// server gains those series.
+// ─────────────────────────────────────────────────────────────────────────
+
+function _mrSetText(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+}
+
+function _mrSetSubAttr(parentId, attrName, value) {
+  // mr-clv-* and mr-cal-* cards use data-mr="value|n|svg|conf|ats|note"
+  // on inner elements to avoid id collisions across sport cards. Helper
+  // sets the inner element's textContent (or innerHTML for svg) by
+  // attribute lookup inside the parent card.
+  const parent = document.getElementById(parentId);
+  if (!parent) return;
+  const el = parent.querySelector(`[data-mr="${attrName}"]`);
+  if (!el) return;
+  if (attrName === 'svg') {
+    el.innerHTML = value;
+  } else {
+    el.textContent = value;
+  }
+}
+
+function _mrFormatCLV(v) {
+  if (v == null) return '—';
+  const sign = v >= 0 ? '+' : '';
+  return `${sign}${v.toFixed(2)} pts`;
+}
+
+function _renderModelRead(perf) {
+  if (!document.getElementById('mr-read-line')) return; // panel not mounted
+  if (!perf) return;
+
+  const clvBySport = perf.clv_avg_by_sport || {};
+  const winBySport = perf.win_rate_by_sport_daily || {};
+  const tiers = Array.isArray(perf.hit_rate_by_edge_tier) ? perf.hit_rate_by_edge_tier : [];
+  const dist  = Array.isArray(perf.edge_distribution) ? perf.edge_distribution : [];
+  const cal   = perf.calibration || {};
+  const rev7  = perf.revoke_rate_7d || {};
+  const rev30 = perf.revoke_rate_30d || {};
+
+  // ── Read line + caveat ──────────────────────────────────────────────
+  // Compose the lead from CLV directionality per sport. Below-n=30 in
+  // every sport flips the caveat banner on; otherwise it stays hidden.
+  const leagues = ['nba', 'mlb', 'wnba'].map(k => {
+    const clv = clvBySport[k] || clvBySport[k.toUpperCase()] || {};
+    const series = winBySport[k] || winBySport[k.toUpperCase()] || [];
+    let latest = null;
+    for (let i = series.length - 1; i >= 0; i--) {
+      if (series[i].win_rate != null) { latest = series[i]; break; }
+    }
+    return {
+      key: k,
+      label: k.toUpperCase(),
+      clv_avg: clv.avg_clv != null ? clv.avg_clv : null,
+      clv_n:   clv.sample_n || 0,
+      win_rate: latest ? latest.win_rate : null,
+      win_n:    latest ? (latest.sample_n || 0) : 0,
+    };
+  });
+
+  const topTier = tiers.length ? tiers[tiers.length - 1] : null;
+  const topHit  = topTier && topTier.hit_rate != null ? topTier.hit_rate : null;
+  const topN    = topTier ? (topTier.sample_n || 0) : 0;
+
+  const clvBits = leagues
+    .filter(l => l.clv_avg != null)
+    .map(l => {
+      if (l.clv_avg > 0.1)  return `${l.label} positive`;
+      if (l.clv_avg < -0.1) return `${l.label} negative`;
+      return `${l.label} tracking`;
+    });
+  let readLine;
+  if (clvBits.length === 0) {
+    readLine = 'CLV is the scoreboard. No resolved signals yet, hold for sample.';
+  } else if (topHit != null && topN >= 3) {
+    readLine = `CLV is the scoreboard. ${clvBits.join(', ')}. Top edge tier hits ${topHit}%, the threshold is doing real work.`;
+  } else {
+    readLine = `CLV is the scoreboard. ${clvBits.join(', ')}.`;
+  }
+  _mrSetText('mr-read-line', readLine);
+
+  const allLowConf = leagues.length > 0 && leagues.every(l => (l.clv_n || 0) < 30 && (l.win_n || 0) < 30);
+  const caveatBox = document.getElementById('mr-caveat');
+  if (caveatBox) {
+    if (allLowConf) {
+      caveatBox.style.display = '';
+      _mrSetText('mr-caveat-text', '⚠ All leagues below the n=30 confidence threshold. Read CLV, not W-L.');
+    } else {
+      caveatBox.style.display = 'none';
+    }
+  }
+
+  // ── Hero strip ──────────────────────────────────────────────────────
+  const signals7d = leagues.reduce((sum, l) => sum + (l.win_n || 0), 0);
+  _mrSetText('mr-hero-signals-value', signals7d || '—');
+  const mixParts = leagues.map(l => `${l.label} ${l.win_n || 0}`).join(' · ');
+  _mrSetText('mr-hero-signals-note', mixParts);
+
+  const topRateEl = document.getElementById('mr-hero-toprate-value');
+  if (topRateEl) {
+    if (topHit != null) {
+      topRateEl.textContent = `${topHit}%`;
+      topRateEl.classList.remove('pos', 'warn', 'neg');
+      if (topHit >= 52.4) topRateEl.classList.add('pos');
+      else if (topHit < 50) topRateEl.classList.add('neg');
+    } else {
+      topRateEl.textContent = '—';
+    }
+  }
+  _mrSetText('mr-hero-toprate-note',
+    topTier ? `${topTier.tier} edge · n=${topN} · breakeven 52.4%` : 'Awaiting resolved picks');
+
+  const revEl = document.getElementById('mr-hero-revoke-value');
+  if (revEl) {
+    revEl.classList.remove('pos', 'warn', 'neg');
+    if (rev30.rate != null) {
+      revEl.textContent = `${rev30.rate}%`;
+      if (rev30.rate >= 40) revEl.classList.add('warn');
+    } else {
+      revEl.textContent = '—';
+    }
+  }
+  _mrSetText('mr-hero-revoke-note',
+    rev30.revoked != null && rev30.total != null
+      ? `${rev30.revoked} of ${rev30.total} picks revoked pre-tip`
+      : 'Awaiting resolved picks');
+
+  // Pass rate · 7d is not on the model/perf payload yet. Show placeholder
+  // until the endpoint surfaces pass-table data (chunk C).
+  _mrSetText('mr-hero-pass-value', '—');
+  _mrSetText('mr-hero-pass-note', 'Pass rate ships in next data add');
+
+  // ── CLV trajectory cards ────────────────────────────────────────────
+  // Per-league daily CLV series is not on the payload yet, so the inline
+  // SVG stays empty (just the zero-band background). Values + N populate
+  // normally. ATS reads from win_rate_by_sport_daily's latest entry.
+  ['nba', 'mlb', 'wnba'].forEach(sport => {
+    const cardId = `mr-clv-${sport}`;
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    const clv = clvBySport[sport] || clvBySport[sport.toUpperCase()] || {};
+    const win = winBySport[sport] || winBySport[sport.toUpperCase()] || [];
+    let latest = null;
+    for (let i = win.length - 1; i >= 0; i--) {
+      if (win[i].win_rate != null) { latest = win[i]; break; }
+    }
+    const n = clv.sample_n || 0;
+    const v = clv.avg_clv;
+    _mrSetSubAttr(cardId, 'n', `n=${n}`);
+    const valueEl = card.querySelector('[data-mr="value"]');
+    if (valueEl) {
+      valueEl.textContent = _mrFormatCLV(v);
+      valueEl.classList.remove('pos', 'neg');
+      if (v != null && v > 0.05) valueEl.classList.add('pos');
+      else if (v != null && v < -0.05) valueEl.classList.add('neg');
+    }
+    // Empty SVG with just the zero-band background. The polyline fills
+    // in when the per-day CLV series ships on the endpoint.
+    _mrSetSubAttr(cardId, 'svg',
+      '<rect x="0" y="0" width="200" height="35" fill="rgba(90,158,114,0.04)"/>' +
+      '<rect x="0" y="35" width="200" height="35" fill="rgba(196,134,138,0.04)"/>' +
+      '<line x1="0" y1="35" x2="200" y2="35" stroke="rgba(139,146,165,0.3)" stroke-width="0.5" stroke-dasharray="2,2"/>'
+    );
+    const atsText = latest && latest.win_rate != null
+      ? `ATS: ${latest.win_rate}% (n=${latest.sample_n || 0})`
+      : 'ATS: —';
+    _mrSetSubAttr(cardId, 'ats', atsText);
+    const confEl = card.querySelector('[data-mr="conf"]');
+    if (confEl) {
+      if (n >= 30) {
+        confEl.textContent = 'OK';
+        confEl.classList.remove('warn');
+        confEl.classList.add('ok');
+      } else {
+        confEl.textContent = 'Low n';
+        confEl.classList.remove('ok');
+        confEl.classList.add('warn');
+      }
+    }
+  });
+
+  // ── Revoke timeline ─────────────────────────────────────────────────
+  // Header stats wire now; daily bars + 7d rolling line wait on chunk C.
+  if (rev7.rate != null)   _mrSetText('mr-revoke-7d', `${rev7.rate}%`);
+  if (rev30.rate != null)  _mrSetText('mr-revoke-30d', `${rev30.rate}%`);
+  if (rev30.revoked != null && rev30.total != null) {
+    _mrSetText('mr-revoke-totals', `${rev30.revoked} of ${rev30.total}`);
+  }
+  const revLedeEl = document.getElementById('mr-revoke-lede');
+  if (revLedeEl && rev30.rate != null && rev30.total != null) {
+    if (rev30.rate >= 40) {
+      revLedeEl.textContent = `Elevated: ${rev30.rate}% of resolved signals in the last 30 days were revoked pre-tip (${rev30.revoked} of ${rev30.total}). Most common cause: line moved past publication price before tip. Worth auditing the publication-to-tipoff window.`;
+    } else if (rev30.rate >= 25) {
+      revLedeEl.textContent = `${rev30.rate}% revoke rate over 30d (${rev30.revoked} of ${rev30.total}). Higher than ideal but inside the normal band for line-move-driven pre-tip revocations.`;
+    } else {
+      revLedeEl.textContent = `${rev30.rate}% revoke rate over 30d (${rev30.revoked} of ${rev30.total}). Inside the healthy band.`;
+    }
+  }
+
+  // ── Tier hit rate with Wilson 95% CI ────────────────────────────────
+  const tierSvg = document.getElementById('mr-tier-svg');
+  if (tierSvg && tiers.length > 0) {
+    const VBW = 600, VBH = 240;
+    const LEFT = 40, RIGHT = 595, TOP = 10, AXIS_Y = 170, LABEL_Y = 190, N_Y = 206, X_LABEL_Y = 230;
+    const PLOT_TOP = TOP, PLOT_H = AXIS_Y - TOP;
+    const BREAKEVEN = 52.4;
+    const yFor = pct => PLOT_TOP + (1 - pct / 100) * PLOT_H;
+    const BAR_W = Math.min(100, (RIGHT - LEFT - 40) / tiers.length - 20);
+    const STRIDE = (RIGHT - LEFT) / tiers.length;
+    let parts = [];
+    [100, 75, 50, 25, 0].forEach((pct, i) => {
+      const y = yFor(pct);
+      parts.push(`<text x="0" y="${y + 4}" font-family="JetBrains Mono" font-size="10" fill="rgba(139,146,165,0.6)">${pct}%</text>`);
+      parts.push(`<line x1="${LEFT}" y1="${y}" x2="${RIGHT}" y2="${y}" stroke="rgba(139,146,165,0.08)" stroke-width="0.5"/>`);
+    });
+    parts.push(`<line x1="${LEFT}" y1="${yFor(BREAKEVEN)}" x2="${RIGHT}" y2="${yFor(BREAKEVEN)}" stroke="#E48181" stroke-width="1" stroke-dasharray="4,3"/>`);
+    parts.push(`<text x="${RIGHT}" y="${yFor(BREAKEVEN) - 4}" font-family="JetBrains Mono" font-size="9" fill="#E48181" text-anchor="end">52.4% breakeven (-110)</text>`);
+
+    tiers.forEach((t, i) => {
+      const hit = t.hit_rate != null ? Number(t.hit_rate) : null;
+      const n = t.sample_n || 0;
+      const cx = LEFT + STRIDE * (i + 0.5);
+      const x = cx - BAR_W / 2;
+      let fill = 'rgba(139,146,165,0.6)';
+      if (hit != null) {
+        if (hit >= BREAKEVEN && i === tiers.length - 1) fill = '#5A9E72';
+        else if (hit >= BREAKEVEN) fill = '#4F86F7';
+      }
+      const yTop = hit != null ? yFor(hit) : AXIS_Y;
+      const h = AXIS_Y - yTop;
+      if (hit != null && n > 0) {
+        parts.push(`<rect x="${x}" y="${yTop}" width="${BAR_W}" height="${h}" fill="${fill}" rx="2"/>`);
+        parts.push(`<text x="${cx}" y="${yTop - 6}" font-family="JetBrains Mono" font-size="12" font-weight="500" fill="#E5E7EB" text-anchor="middle">${hit}%</text>`);
+        // _wilsonCI returns {low, high} in percentage points (0-100).
+        const ci = _wilsonCI(hit, n);
+        if (ci) {
+          const yLo = yFor(ci.high);
+          const yHi = yFor(ci.low);
+          parts.push(`<line x1="${cx}" y1="${yLo}" x2="${cx}" y2="${yHi}" stroke="rgba(229,231,235,0.6)" stroke-width="1"/>`);
+          parts.push(`<line x1="${cx - 6}" y1="${yLo}" x2="${cx + 6}" y2="${yLo}" stroke="rgba(229,231,235,0.6)" stroke-width="1"/>`);
+          parts.push(`<line x1="${cx - 6}" y1="${yHi}" x2="${cx + 6}" y2="${yHi}" stroke="rgba(229,231,235,0.6)" stroke-width="1"/>`);
+        }
+      }
+      parts.push(`<text x="${cx}" y="${LABEL_Y}" font-family="JetBrains Mono" font-size="10" fill="rgba(139,146,165,0.8)" text-anchor="middle">${t.tier || ''}</text>`);
+      parts.push(`<text x="${cx}" y="${N_Y}" font-family="JetBrains Mono" font-size="10" fill="rgba(139,146,165,0.5)" text-anchor="middle">n=${n}</text>`);
+    });
+    parts.push(`<text x="${(LEFT + RIGHT) / 2}" y="${X_LABEL_Y}" font-family="JetBrains Mono" font-size="11" fill="rgba(139,146,165,0.7)" text-anchor="middle">MEI tier</text>`);
+    tierSvg.innerHTML = parts.join('');
+  }
+
+  // ── MEI distribution ────────────────────────────────────────────────
+  const meiSvg = document.getElementById('mr-mei-svg');
+  if (meiSvg && dist.length > 0) {
+    const VBW = 600, AXIS_Y = 170, PLOT_TOP = 10, PLOT_H = AXIS_Y - PLOT_TOP, LEFT = 30;
+    const total = dist.reduce((sum, b) => sum + (b.count || 0), 0);
+    const maxCount = Math.max(...dist.map(b => b.count || 0), 1);
+    const yScaleMax = Math.ceil(maxCount / 5) * 5;
+    const yFor = c => PLOT_TOP + (1 - c / yScaleMax) * PLOT_H;
+    const stride = (VBW - LEFT - 10) / dist.length;
+    const barW = Math.min(32, stride - 4);
+    let parts = [];
+    [yScaleMax, Math.round(yScaleMax * 0.75), Math.round(yScaleMax * 0.5), Math.round(yScaleMax * 0.25), 0].forEach(v => {
+      const y = yFor(v);
+      parts.push(`<text x="0" y="${y + 4}" font-family="JetBrains Mono" font-size="10" fill="rgba(139,146,165,0.6)">${v}</text>`);
+      parts.push(`<line x1="${LEFT}" y1="${y}" x2="${VBW - 5}" y2="${y}" stroke="rgba(139,146,165,0.08)" stroke-width="0.5"/>`);
+    });
+    dist.forEach((b, i) => {
+      const cx = LEFT + stride * (i + 0.5);
+      const x = cx - barW / 2;
+      const count = b.count || 0;
+      const y = yFor(count);
+      const h = AXIS_Y - y;
+      // Color: green for top-edge cohort (top 20% of tiers), blue otherwise.
+      const isHighEdge = i >= Math.floor(dist.length * 0.8);
+      const fill = isHighEdge && count > 0 ? '#5A9E72' : '#4F86F7';
+      if (count > 0) {
+        parts.push(`<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="${fill}" rx="2"/>`);
+        parts.push(`<text x="${cx}" y="${y - 4}" font-family="JetBrains Mono" font-size="11" fill="#E5E7EB" text-anchor="middle">${count}</text>`);
+      }
+      // X-axis tick label every other bar to avoid crowding
+      if (i % 2 === 0) {
+        parts.push(`<text x="${cx}" y="190" font-family="JetBrains Mono" font-size="10" fill="rgba(139,146,165,0.6)" text-anchor="middle">${b.tier || ''}</text>`);
+      }
+    });
+    parts.push(`<text x="${VBW / 2}" y="210" font-family="JetBrains Mono" font-size="11" fill="rgba(139,146,165,0.7)" text-anchor="middle">Model edge</text>`);
+    meiSvg.innerHTML = parts.join('');
+    const meiMeta = document.getElementById('mr-mei-meta');
+    if (meiMeta) meiMeta.textContent = `${total} scored signals`;
+  }
+
+  // ── Calibration scatter previews ────────────────────────────────────
+  ['nba', 'mlb'].forEach(sport => {
+    const cardId = `mr-cal-${sport}`;
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    const series = cal[sport] || cal[sport.toUpperCase()] || [];
+    const real = series.filter(p => p.observed != null);
+    const totalN = real.reduce((sum, p) => sum + (p.sample_n || 0), 0);
+    const nPill = card.querySelector('[data-mr="n"]');
+    if (nPill) {
+      if (totalN >= 30) {
+        nPill.textContent = `n=${totalN}`;
+        nPill.classList.remove('warn');
+        nPill.classList.add('ok');
+      } else {
+        nPill.textContent = `preview · n=${totalN}`;
+        nPill.classList.remove('ok');
+        nPill.classList.add('warn');
+      }
+    }
+    const noteEl = card.querySelector('[data-mr="note"]');
+    if (noteEl) {
+      noteEl.textContent = `${real.length} bucket${real.length === 1 ? '' : 's'} · need n ≥ 30 for confidence`;
+    }
+    const VBW = 240, PLOT_LEFT = 30, PLOT_RIGHT = 230, PLOT_TOP = 10, PLOT_BOT = 180;
+    const color = sport === 'mlb' ? '#5A9E72' : '#4F86F7';
+    let parts = [];
+    parts.push(`<line x1="${PLOT_LEFT}" y1="${PLOT_TOP}" x2="${PLOT_LEFT}" y2="${PLOT_BOT}" stroke="rgba(139,146,165,0.3)" stroke-width="0.5"/>`);
+    parts.push(`<line x1="${PLOT_LEFT}" y1="${PLOT_BOT}" x2="${PLOT_RIGHT}" y2="${PLOT_BOT}" stroke="rgba(139,146,165,0.3)" stroke-width="0.5"/>`);
+    parts.push(`<line x1="${PLOT_LEFT}" y1="${PLOT_BOT}" x2="${PLOT_RIGHT}" y2="${PLOT_TOP}" stroke="rgba(139,146,165,0.5)" stroke-width="1" stroke-dasharray="3,3"/>`);
+    parts.push(`<text x="25" y="14" font-family="JetBrains Mono" font-size="9" fill="rgba(139,146,165,0.6)" text-anchor="end">100%</text>`);
+    parts.push(`<text x="25" y="${(PLOT_TOP + PLOT_BOT) / 2 + 4}" font-family="JetBrains Mono" font-size="9" fill="rgba(139,146,165,0.6)" text-anchor="end">50%</text>`);
+    parts.push(`<text x="25" y="${PLOT_BOT + 4}" font-family="JetBrains Mono" font-size="9" fill="rgba(139,146,165,0.6)" text-anchor="end">0%</text>`);
+    parts.push(`<text x="${PLOT_LEFT}" y="196" font-family="JetBrains Mono" font-size="9" fill="rgba(139,146,165,0.6)" text-anchor="middle">0%</text>`);
+    parts.push(`<text x="${(PLOT_LEFT + PLOT_RIGHT) / 2}" y="196" font-family="JetBrains Mono" font-size="9" fill="rgba(139,146,165,0.6)" text-anchor="middle">50%</text>`);
+    parts.push(`<text x="${PLOT_RIGHT}" y="196" font-family="JetBrains Mono" font-size="9" fill="rgba(139,146,165,0.6)" text-anchor="middle">100%</text>`);
+    real.forEach(p => {
+      const pred = Math.max(0, Math.min(1, p.predicted));
+      const obs = Math.max(0, Math.min(1, p.observed));
+      const cx = PLOT_LEFT + pred * (PLOT_RIGHT - PLOT_LEFT);
+      const cy = PLOT_BOT - obs * (PLOT_BOT - PLOT_TOP);
+      parts.push(`<circle cx="${cx}" cy="${cy}" r="4.5" fill="${color}" opacity="0.55" stroke="${color}" stroke-width="1"/>`);
+    });
+    parts.push(`<text x="${(PLOT_LEFT + PLOT_RIGHT) / 2}" y="212" font-family="JetBrains Mono" font-size="10" fill="rgba(139,146,165,0.7)" text-anchor="middle">Model probability</text>`);
+    const svg = card.querySelector('[data-mr="svg"]');
+    if (svg) svg.innerHTML = parts.join('');
+  });
+}
+
 function loadModelTabData() {
   if (_modelDataPromise) return _modelDataPromise;
   _modelDataPromise = fetch('/api/admin/model/perf?range=90d', { credentials: 'same-origin' })
     .then(r => r.ok ? r.json() : null)
-    .then(bindModelPerf)
+    .then(perf => {
+      // bindModelPerf targets the legacy DOM and now silently no-ops on
+      // every selector (Wave 1A removed the targets). Kept in the call
+      // chain so any future debug instrumentation it picks up still runs.
+      bindModelPerf(perf);
+      try {
+        _renderModelRead(perf);
+      } catch (e) {
+        console.error('[mr] _renderModelRead threw:', e);
+      }
+    })
     .finally(() => { _modelDataPromise = null; });
   return _modelDataPromise;
 }
