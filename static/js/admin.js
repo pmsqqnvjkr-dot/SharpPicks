@@ -2205,7 +2205,14 @@ function bindModelPerf(data) {
           if (series[i].win_rate != null) { latestSampleBySport[s] = series[i].sample_n || 0; break; }
         }
       });
-      const RENDER_THRESHOLD = 10;
+      // Lowered from 10 -> 3 on 2026-05-22. n=10 was meant to keep the
+      // 14d rolling line from oscillating wildly, but with selectivity
+      // running 50%+ across sports we rarely clear 10 in a rolling
+      // window — and the page was rendering BLANK for the operator.
+      // n=3 matches the rail's SUPPRESS_THRESHOLD; below-30 confidence
+      // is already flagged by the hatch overlay + LOW N pill. Showing
+      // the noisy chart with a warning beats showing nothing.
+      const RENDER_THRESHOLD = 3;
       const renderableSports = sports.filter(s => (latestSampleBySport[s] || 0) >= RENDER_THRESHOLD);
 
       if (renderableSports.length === 0) {
