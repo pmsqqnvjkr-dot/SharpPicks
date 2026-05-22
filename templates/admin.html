@@ -231,123 +231,263 @@
   <!-- ============================================ -->
   <div class="panel" id="panel-users">
 
-    <section class="stack-status">
-      <div class="label">user read</div>
-      <h1 class="headline"></h1>
+    <!-- ====================================================
+         User Read v2 (2026-05-22): cockpit layout for #panel-users.
+         Replaces stack-status + needs-attention + activity-overview +
+         login-frequency + cohort retention + power-users-leaderboard
+         with serif lede + 4-cell hero + funnel + pipeline + tiered
+         attention + winback + histogram + heatmap + power cards with
+         sparklines. CSS lives in static/css/admin.css "User Read v2".
+         Wired by _renderUserReadV2 in static/js/admin.js (added in
+         the same commit chain as Today's Read v2).
+         ==================================================== -->
+
+    <!-- THE READ — single serif sentence -->
+    <p class="ur2-read-line" id="ur2-read-line">Loading user read.</p>
+
+    <!-- HERO STRIP — four cells -->
+    <div class="ur2-hero">
+      <div class="ur2-hero-cell">
+        <div class="ur2-hero-label">MAU · 30d</div>
+        <div class="ur2-hero-value" id="ur2-hero-mau">--</div>
+        <div class="ur2-hero-note" id="ur2-hero-mau-note">of -- registered</div>
+      </div>
+      <div class="ur2-hero-cell">
+        <div class="ur2-hero-label">Paying</div>
+        <div class="ur2-hero-value" id="ur2-hero-paying">--</div>
+        <div class="ur2-hero-note" id="ur2-hero-paid-conv">--% paid conversion</div>
+      </div>
+      <div class="ur2-hero-cell">
+        <div class="ur2-hero-label">Power users · 15+ logins</div>
+        <div class="ur2-hero-value" id="ur2-hero-power">--</div>
+        <div class="ur2-hero-note" id="ur2-hero-expro">-- ex-pro, winback open</div>
+      </div>
+      <div class="ur2-hero-cell">
+        <div class="ur2-hero-label">Stickiness</div>
+        <div class="ur2-hero-value" id="ur2-hero-sticky">--<span class="pct">%</span></div>
+        <div class="ur2-hero-note">DAU / MAU</div>
+      </div>
+    </div>
+
+    <!-- CONVERSION FUNNEL -->
+    <section class="ur2-section" id="ur2-section-funnel">
+      <div class="ur2-section-head">
+        <span class="ur2-section-title">Conversion funnel · Registered to paying</span>
+        <span class="ur2-section-meta">Live · 30d</span>
+      </div>
+      <p class="ur2-lede" id="ur2-funnel-lede"></p>
+      <div class="ur2-funnel-wrap" id="ur2-funnel-wrap">
+        <div class="ur2-funnel-stage">
+          <span class="ur2-funnel-label">Registered</span>
+          <div class="ur2-funnel-bar-track"><div class="ur2-funnel-bar s1" id="ur2-funnel-b1" style="width:0%;"></div></div>
+          <span class="ur2-funnel-count" id="ur2-funnel-c1">--</span>
+        </div>
+        <div class="ur2-funnel-drop" id="ur2-funnel-d1">--</div>
+        <div class="ur2-funnel-stage">
+          <span class="ur2-funnel-label">MAU · 30d</span>
+          <div class="ur2-funnel-bar-track"><div class="ur2-funnel-bar s2" id="ur2-funnel-b2" style="width:0%;"></div></div>
+          <span class="ur2-funnel-count" id="ur2-funnel-c2">--</span>
+        </div>
+        <div class="ur2-funnel-drop" id="ur2-funnel-d2">--</div>
+        <div class="ur2-funnel-stage">
+          <span class="ur2-funnel-label">Trial · in flight</span>
+          <div class="ur2-funnel-bar-track"><div class="ur2-funnel-bar s3" id="ur2-funnel-b3" style="width:0%;"></div></div>
+          <span class="ur2-funnel-count" id="ur2-funnel-c3">--</span>
+        </div>
+        <div class="ur2-funnel-drop" id="ur2-funnel-d3">--</div>
+        <div class="ur2-funnel-stage">
+          <span class="ur2-funnel-label">Paying</span>
+          <div class="ur2-funnel-bar-track"><div class="ur2-funnel-bar s4" id="ur2-funnel-b4" style="width:0%;"></div></div>
+          <span class="ur2-funnel-count" id="ur2-funnel-c4">--</span>
+        </div>
+      </div>
     </section>
 
-    <!-- NEEDS ATTENTION (top of Users tab — first thing the operator should see) -->
-    <section class="section" id="section-needs-attention">
-      <div class="section-header">
-        <span class="section-title">needs attention</span>
-        <span class="section-meta">computed · live</span>
+    <!-- TRIAL PIPELINE STACKED BAR -->
+    <section class="ur2-section" id="ur2-section-pipeline">
+      <div class="ur2-section-head">
+        <span class="ur2-section-title">Trial pipeline · In flight</span>
+        <span class="ur2-section-meta">Stripe · live</span>
       </div>
-      <p class="section-summary"></p>
-
-      <div class="needs-attention-segments" id="needs-attention-segments"></div>
-
-      <div class="recent-rows" id="needs-attention-rows" style="border-top: none; padding-top: 0;">
-        <div class="recent-row empty"><span class="meta">Loading…</span></div>
-      </div>
-    </section>
-
-    <!-- ACTIVITY OVERVIEW -->
-    <section class="section">
-      <div class="section-header">
-        <span class="section-title">activity overview</span>
-        <span class="section-meta">events · live</span>
-      </div>
-      <p class="section-summary"></p>
-
-      <div class="section-content chart-plus-stats">
-        <div>
-          <div class="chart-wrap">
-            <canvas id="chart-users-dau" role="img" aria-label="Daily active users over 90 days"></canvas>
+      <p class="ur2-lede" id="ur2-pipeline-lede"></p>
+      <div class="ur2-pipeline">
+        <div class="ur2-pipeline-head">
+          <span class="ur2-pipeline-title" id="ur2-pipeline-title">-- trials in flight</span>
+          <span class="ur2-pipeline-total" id="ur2-pipeline-stake">--</span>
+        </div>
+        <div class="ur2-pipeline-bar">
+          <div class="ur2-pipeline-seg likely" id="ur2-pipeline-likely" style="width:0%;"></div>
+          <div class="ur2-pipeline-seg cancel" id="ur2-pipeline-cancel" style="width:0%;"></div>
+        </div>
+        <div class="ur2-pipeline-legend">
+          <span class="ur2-pipeline-legend-item"><span class="ur2-pipeline-dot likely"></span><span id="ur2-pipeline-legend-likely">Likely to bill · --</span></span>
+          <span class="ur2-pipeline-legend-item"><span class="ur2-pipeline-dot cancel"></span><span id="ur2-pipeline-legend-cancel">Cancel scheduled · --</span></span>
+        </div>
+        <div class="ur2-pipeline-meta">
+          <div>
+            <div class="ur2-pipeline-meta-label">Converted · 7d</div>
+            <div class="ur2-pipeline-meta-value" id="ur2-pipeline-conv-7d">--</div>
+          </div>
+          <div>
+            <div class="ur2-pipeline-meta-label">Converted · 30d</div>
+            <div class="ur2-pipeline-meta-value" id="ur2-pipeline-conv-30d">--</div>
+          </div>
+          <div>
+            <div class="ur2-pipeline-meta-label">If all bill</div>
+            <div class="ur2-pipeline-meta-value" id="ur2-pipeline-upside" style="color: var(--edge-green);">--</div>
           </div>
         </div>
-        <div>
-          <div class="col-title">snapshot</div>
-          <div class="stat-row"><span class="label">Dau today</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Wau (7d)</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Mau (30d)</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Total registered</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Stickiness</span><span class="value">--<span class="value-suffix">% dau/mau</span></span></div>
-          <div class="stat-row"><span class="label">New 7d</span><span class="value">--</span></div>
-        </div>
       </div>
     </section>
 
-    <!-- LOGIN FREQUENCY -->
-    <section class="section">
-      <div class="section-header">
-        <span class="section-title">login frequency · 30d</span>
-        <span class="section-meta">events</span>
+    <!-- NEEDS ATTENTION · ACT TODAY -->
+    <section class="ur2-section" id="ur2-section-attn-today">
+      <div class="ur2-section-head">
+        <span class="ur2-section-title">Needs attention · Act today</span>
+        <span class="ur2-section-meta">Computed · live</span>
       </div>
-      <p class="section-summary"></p>
-
-      <div class="section-content chart-plus-stats">
-        <div>
-          <div class="chart-wrap">
-            <canvas id="chart-login-freq" role="img" aria-label="Login frequency distribution histogram"></canvas>
+      <p class="ur2-lede">Two cohorts inside their hard window. Trials renew automatically on the card; failed payments may have already lost access.</p>
+      <div class="ur2-attn-grid cols-2">
+        <div class="ur2-attn-cell urgent">
+          <div class="ur2-attn-head">
+            <span class="ur2-attn-label">Trials ending in 48h</span>
+            <span class="ur2-attn-count urgent" id="ur2-attn-trials-48h">--</span>
           </div>
+          <div class="ur2-attn-note">Card on file. Auto-renew window opens soon.</div>
         </div>
-        <div>
-          <div class="col-title">tiers</div>
-          <div class="stat-row"><span class="label">Power (15+)</span><span class="value">--<span class="value-suffix">7%</span></span></div>
-          <div class="stat-row"><span class="label">Engaged (5-14)</span><span class="value">--<span class="value-suffix">23%</span></span></div>
-          <div class="stat-row"><span class="label">Light (1-4)</span><span class="value">--<span class="value-suffix">53%</span></span></div>
-          <div class="stat-row"><span class="label">Dormant (0)</span><span class="value">--<span class="value-suffix">17%</span></span></div>
-          <div class="stat-row"><span class="label">Avg logins/user</span><span class="value">--</span></div>
-          <div class="stat-row"><span class="label">Median logins</span><span class="value">--</span></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- COHORT RETENTION -->
-    <section class="section">
-      <div class="section-header">
-        <span class="section-title">retention · weekly cohorts</span>
-        <span class="section-meta">last 8 weeks</span>
-      </div>
-      <p class="section-summary"></p>
-
-      <div class="cohort-table">
-        <div class="cohort-grid">
-          <div class="cohort-cell header">Cohort</div>
-          <div class="cohort-cell header">W0</div>
-          <div class="cohort-cell header">W1</div>
-          <div class="cohort-cell header">W2</div>
-          <div class="cohort-cell header">W3</div>
-          <div class="cohort-cell header">W4</div>
-          <div class="cohort-cell header">W5</div>
-          <div class="cohort-cell header">W6</div>
-          <div class="cohort-cell header">W7</div>
-
+        <div class="ur2-attn-cell urgent">
+          <div class="ur2-attn-head">
+            <span class="ur2-attn-label">Payment failed</span>
+            <span class="ur2-attn-count urgent" id="ur2-attn-payment-failed">--</span>
+          </div>
+          <div class="ur2-attn-note">Card declined. Retry pending; access may have been revoked.</div>
         </div>
       </div>
     </section>
 
-    <!-- POWER USERS LEADERBOARD -->
-    <section class="section" id="section-power-users">
-      <div class="section-header">
-        <span class="section-title">power users · 30d</span>
-        <span class="section-meta">15+ logins · ranked by activity</span>
+    <!-- NEEDS ATTENTION · THIS WEEK -->
+    <section class="ur2-section" id="ur2-section-attn-week">
+      <div class="ur2-section-head">
+        <span class="ur2-section-title">Needs attention · This week</span>
+        <span class="ur2-section-meta">Save window open</span>
       </div>
-      <p class="section-summary"></p>
-
-      <div class="segment-chips">
-        <button class="segment-chip active">All <span class="count">--</span></button>
-        <button class="segment-chip">Paid <span class="count">--</span></button>
-        <button class="segment-chip">Trial <span class="count">--</span></button>
-        <button class="segment-chip">Free <span class="count">--</span></button>
+      <div class="ur2-attn-grid cols-2">
+        <div class="ur2-attn-cell week">
+          <div class="ur2-attn-head">
+            <span class="ur2-attn-label">Cancel scheduled</span>
+            <span class="ur2-attn-count warn" id="ur2-attn-cancel-scheduled">--</span>
+          </div>
+          <div class="ur2-attn-note">Active sub with cancel queued. Save window open until effective date.</div>
+        </div>
+        <div class="ur2-attn-cell week">
+          <div class="ur2-attn-head">
+            <span class="ur2-attn-label">Was pro, still active</span>
+            <span class="ur2-attn-count warn" id="ur2-attn-was-pro">--</span>
+          </div>
+          <div class="ur2-attn-note">Cancelled but logged in within last 14d. Winback candidates.</div>
+        </div>
       </div>
+    </section>
 
-      <div class="users-grid-header">
-        <span>User</span>
-        <span>Logins</span>
-        <span>Bet taps</span>
-        <span>Days active</span>
-        <span>Last seen</span>
+    <!-- MARKETING NUDGE · QUIET -->
+    <section class="ur2-section" id="ur2-section-attn-quiet">
+      <div class="ur2-section-head">
+        <span class="ur2-section-title">Marketing nudge · Quiet</span>
+        <span class="ur2-section-meta">Email queue</span>
+      </div>
+      <div class="ur2-attn-grid cols-1">
+        <div class="ur2-attn-cell quiet">
+          <div class="ur2-attn-head">
+            <span class="ur2-attn-label">Unverified email · &gt; 7d</span>
+            <span class="ur2-attn-count" id="ur2-attn-unverified">--</span>
+          </div>
+          <div class="ur2-attn-note">Signed up but never verified. Resend reminder candidate.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WINBACK QUEUE -->
+    <section class="ur2-section" id="ur2-section-winback">
+      <div class="ur2-section-head">
+        <span class="ur2-section-title">Recent cancellations · Winback queue</span>
+        <span class="ur2-section-meta">Last 14d</span>
+      </div>
+      <p class="ur2-lede" id="ur2-winback-lede">Churned accounts still logging in. The product is holding them; price or fit is not.</p>
+      <div id="ur2-winback-list">
+        <div class="ur2-winback-row"><span class="ur2-winback-meta"><span class="ur2-winback-when">--</span><span class="ur2-winback-email">Loading…</span></span><span class="ur2-winback-detail">--</span></div>
+      </div>
+    </section>
+
+    <!-- LOGIN FREQUENCY HISTOGRAM -->
+    <section class="ur2-section" id="ur2-section-histo">
+      <div class="ur2-section-head">
+        <span class="ur2-section-title">Login frequency · 30d distribution</span>
+        <span class="ur2-section-meta">Tiers</span>
+      </div>
+      <p class="ur2-lede" id="ur2-histo-lede"></p>
+      <div class="ur2-histo">
+        <div class="ur2-histo-chart" id="ur2-histo-chart">
+          <div class="ur2-histo-bar"><div class="ur2-histo-bar-fill dormant" style="height:0%;"></div><div class="ur2-histo-bar-value">--</div><div class="ur2-histo-bar-label">0</div></div>
+          <div class="ur2-histo-bar"><div class="ur2-histo-bar-fill"          style="height:0%;"></div><div class="ur2-histo-bar-value">--</div><div class="ur2-histo-bar-label">1</div></div>
+          <div class="ur2-histo-bar"><div class="ur2-histo-bar-fill"          style="height:0%;"></div><div class="ur2-histo-bar-value">--</div><div class="ur2-histo-bar-label">2-3</div></div>
+          <div class="ur2-histo-bar"><div class="ur2-histo-bar-fill"          style="height:0%;"></div><div class="ur2-histo-bar-value">--</div><div class="ur2-histo-bar-label">4-5</div></div>
+          <div class="ur2-histo-bar"><div class="ur2-histo-bar-fill"          style="height:0%;"></div><div class="ur2-histo-bar-value">--</div><div class="ur2-histo-bar-label">6-9</div></div>
+          <div class="ur2-histo-bar"><div class="ur2-histo-bar-fill"          style="height:0%;"></div><div class="ur2-histo-bar-value">--</div><div class="ur2-histo-bar-label">10-14</div></div>
+          <div class="ur2-histo-bar"><div class="ur2-histo-bar-fill power"    style="height:0%;"></div><div class="ur2-histo-bar-value">--</div><div class="ur2-histo-bar-label">15+</div></div>
+        </div>
+        <div class="ur2-histo-summary">
+          <span>Avg: <span class="v" id="ur2-histo-avg">--</span></span>
+          <span>Median: <span class="v" id="ur2-histo-median">--</span></span>
+          <span>Power tier: <span class="v" id="ur2-histo-power">--</span></span>
+          <span>Dormant: <span class="v" id="ur2-histo-dormant">--</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RETENTION HEATMAP -->
+    <section class="ur2-section" id="ur2-section-heatmap">
+      <div class="ur2-section-head">
+        <span class="ur2-section-title">Retention · Weekly cohorts</span>
+        <span class="ur2-section-meta">Last 9 cohorts · heatmap</span>
+      </div>
+      <p class="ur2-lede" id="ur2-heatmap-lede"></p>
+      <table class="ur2-heatmap-table" id="ur2-heatmap-table">
+        <thead>
+          <tr><th>Cohort</th><th>Size</th><th>W0</th><th>W1</th><th>W2</th><th>W3</th><th>W4</th><th>W5</th><th>W6</th><th>W7</th><th>W8</th></tr>
+        </thead>
+        <tbody id="ur2-heatmap-body">
+          <tr><td colspan="11" style="text-align:center;color:var(--text-faint);padding:24px;">Loading cohort data…</td></tr>
+        </tbody>
+      </table>
+      <div class="ur2-heatmap-legend">
+        <span>Retention</span>
+        <div class="ur2-heatmap-scale">
+          <span class="ur2-heatmap-scale-cell" style="background: rgba(90,158,114,0.05);"></span>
+          <span class="ur2-heatmap-scale-cell" style="background: rgba(90,158,114,0.15);"></span>
+          <span class="ur2-heatmap-scale-cell" style="background: rgba(90,158,114,0.30);"></span>
+          <span class="ur2-heatmap-scale-cell" style="background: rgba(90,158,114,0.50);"></span>
+          <span class="ur2-heatmap-scale-cell" style="background: rgba(90,158,114,0.75);"></span>
+          <span class="ur2-heatmap-scale-cell" style="background: rgba(90,158,114,1.0);"></span>
+        </div>
+        <span>0% → 100%</span>
+        <span style="margin-left:auto;">Cells with n &lt; 10 shown dimmer</span>
+      </div>
+      <div class="ur2-heatmap-callout">
+        <span>Avg W1: <span class="v" id="ur2-heatmap-avg-w1">--</span></span>
+        <span>Avg W4: <span class="v" id="ur2-heatmap-avg-w4">--</span></span>
+        <span>Largest cohort: <span class="v" id="ur2-heatmap-largest">--</span></span>
+      </div>
+    </section>
+
+    <!-- POWER USERS V2 (cards with sparklines) -->
+    <section class="ur2-section" id="ur2-section-power">
+      <div class="ur2-section-head">
+        <span class="ur2-section-title">Power users · 30d</span>
+        <span class="ur2-section-meta">15+ logins · ranked</span>
+      </div>
+      <p class="ur2-lede" id="ur2-power-lede"></p>
+      <div class="ur2-power-grid" id="ur2-power-grid">
+        <div class="ur2-power-card"><span style="color:var(--text-faint);font-family:var(--mono);font-size:12px;">Loading power users…</span></div>
       </div>
     </section>
 
