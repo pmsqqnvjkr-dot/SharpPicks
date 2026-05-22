@@ -1384,7 +1384,13 @@ function bindUsersActivity(data) {
   const metrics = window.__SP_METRICS;
   const stripePayload = metrics?.stripe?.payload || {};
   const total = s.total_registered;
-  const paid = stripePayload.active_subs;
+  // PAID chip = Stripe-side active subs + orphan paying users (people
+  // whose Stripe sub was deleted by the /api/account/delete bug but
+  // still hold paid access through current_period_end — Cooper Reynolds,
+  // Spiffy as of 2026-05-19). orphan_paying_subs is computed in
+  // services/sources/stripe_metrics.py against local DB. Without it
+  // the chip count diverged from the PAID filter result.
+  const paid = (stripePayload.active_subs || 0) + (stripePayload.orphan_paying_subs || 0);
   const trial = stripePayload.trial_subs;
   const power = tiers.power;
   const dormant = tiers.dormant;
@@ -2803,12 +2809,11 @@ document.querySelectorAll('#section-all-users .segment-chips .segment-chip').for
 // key. Updates the header to mark the active sort column with a
 // caret indicator.
 function _setActiveSortHeader(activeKey) {
+  // Visual indicator now lives in CSS via the .sortable::after / .sortable.active-sort::after
+  // pseudo-elements. JS just toggles the active-sort class.
   document.querySelectorAll('#section-all-users .users-grid-header .sortable').forEach(el => {
     const key = el.dataset.sortKey;
     el.classList.toggle('active-sort', key === activeKey);
-    // Strip any prior caret then re-apply for active.
-    const base = el.textContent.replace(/[▼↓•]\s*$/, '').trim();
-    el.textContent = key === activeKey ? `${base} ↓` : base;
   });
 }
 

@@ -721,9 +721,20 @@
     cursor: pointer;
     user-select: none;
     transition: color 120ms ease;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+    padding-bottom: 1px;
   }
-  .users-grid-header .sortable:hover { color: var(--text-secondary); }
-  .users-grid-header .sortable.active-sort { color: var(--edge-green); }
+  .users-grid-header .sortable::after {
+    content: ' \2195'; /* ↕ vertical arrows hint that it's sortable */
+    opacity: 0.4;
+    font-size: 0.85em;
+  }
+  .users-grid-header .sortable.active-sort::after {
+    content: ' \2193'; /* ↓ when actively sorted */
+    opacity: 1;
+  }
+  .users-grid-header .sortable:hover { color: var(--text-secondary); border-bottom-color: rgba(255, 255, 255, 0.28); }
+  .users-grid-header .sortable.active-sort { color: var(--edge-green); border-bottom-color: rgba(52, 211, 153, 0.5); }
 
   .user-row {
     display: grid;
