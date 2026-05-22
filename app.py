@@ -5782,12 +5782,21 @@ def cron_run_model():
         # (shifted from 1 PM on 2026-05-14 because 1 PM missed 12:30 ET
         # first pitches entirely; the earlier 11 AM run had the opposite
         # problem of firing before starting pitchers were confirmed).
-        # NBA + WNBA both run on this shared cron at 10 AM ET (one publish
-        # per sport per day), with WNBA in calibration mode. The 2:15 PM
-        # second run was removed in May 2026 because force=true regenerated
-        # the morning pick and re-fired push notifications. The /api/cron/
-        # wnba-run-model endpoint stays available for manual force-fires
-        # but isn't needed in the daily schedule.
+        # NBA + WNBA both run on this shared cron at 9:57 AM ET (one
+        # publish per sport per day), with WNBA in calibration mode.
+        # Shifted from 10:00 on 2026-05-22 because the 10:00 slot also
+        # held /api/cron/nba-scores (yesterday-scores collector). Both
+        # crons take the same SQLite advisory lock; back-to-back fires
+        # at the exact same minute would queue the second one and
+        # occasionally time out, and Railway deploys landing inside the
+        # window 502'd the cron entirely. Moving the model up by 3
+        # minutes removes the collision and finishes before nba-scores
+        # ever fires.
+        # The 2:15 PM second run was removed in May 2026 because
+        # force=true regenerated the morning pick and re-fired push
+        # notifications. The /api/cron/wnba-run-model endpoint stays
+        # available for manual force-fires but isn't needed in the
+        # daily schedule.
         sports_with_own_cron = {'mlb'}
         run_sports = [s for s in live if s not in sports_with_own_cron]
         # Per-sport synchronous push notifications. send_notifications=True
