@@ -70,80 +70,14 @@
   };
   const noLegend = { plugins: { legend: { display: false } } };
 
-  // MRR chart - stacked area, Stripe + RevenueCat
-  new Chart(document.getElementById('chart-mrr'), {
-    type: 'line',
-    data: {
-      labels: Array.from({length: 90}, (_, i) => i),
-      datasets: [
-        {
-          label: 'Stripe',
-          data: Array.from({length: 90}, (_, i) => 1100 + i * 4 + Math.sin(i/8)*30),
-          borderColor: '#4F86F7',
-          backgroundColor: 'rgba(79, 134, 247, 0.12)',
-          fill: 'origin',
-          tension: 0.3,
-          pointRadius: 0,
-          borderWidth: 1.5,
-        },
-        {
-          label: 'RevenueCat',
-          data: Array.from({length: 90}, (_, i) => 1100 + i * 4 + 600 + i * 2.8 + Math.cos(i/6)*40),
-          borderColor: '#34D399',
-          backgroundColor: 'rgba(52, 211, 153, 0.12)',
-          fill: '-1',
-          tension: 0.3,
-          pointRadius: 0,
-          borderWidth: 1.5,
-        },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 8, boxHeight: 8, padding: 12, font: { size: 10 } } } },
-      scales: { x: { ...baseGrid, ticks: { display: false } }, y: { ...baseGrid, ticks: { ...baseGrid.ticks, callback: v => '$' + v } } }
-    }
-  });
-
-  // DAU chart
-  new Chart(document.getElementById('chart-dau'), {
-    type: 'bar',
-    data: {
-      labels: Array.from({length: 30}, (_, i) => i),
-      datasets: [{
-        data: Array.from({length: 30}, () => 30 + Math.floor(Math.random() * 30)),
-        backgroundColor: '#4F86F7',
-        borderWidth: 0,
-        barPercentage: 0.7,
-        categoryPercentage: 0.85,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, ...noLegend,
-      scales: { x: { ...baseGrid, ticks: { display: false } }, y: { ...baseGrid, beginAtZero: true } }
-    }
-  });
-
-  // Traffic
-  new Chart(document.getElementById('chart-traffic'), {
-    type: 'line',
-    data: {
-      labels: Array.from({length: 30}, (_, i) => i),
-      datasets: [{
-        data: Array.from({length: 30}, (_, i) => 350 + Math.sin(i/5) * 80 + Math.random() * 40),
-        borderColor: '#4F86F7',
-        backgroundColor: 'rgba(79, 134, 247, 0.08)',
-        fill: true,
-        tension: 0.3,
-        pointRadius: 0,
-        borderWidth: 1.5,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, ...noLegend,
-      scales: { x: { ...baseGrid, ticks: { display: false } }, y: { ...baseGrid, beginAtZero: true } }
-    }
-  });
+  // Today's Read v2 (2026-05-22) removed the legacy chart-mrr, chart-dau,
+  // and chart-traffic canvases from #panel-command. Their original
+  // `new Chart(document.getElementById(...), ...)` inits used to live
+  // here and would throw at module-init the moment the canvases were
+  // gone — aborting every subsequent script registration and leaving
+  // the dashboard rendered as '--' placeholders. Decorative mockup
+  // charts with hardcoded Math.random data, no live binding, removed
+  // wholesale rather than guarded.
 
   // Search Performance: dual-axis line chart, clicks (left) + impressions (right)
   const searchEl = document.getElementById('chart-search');
@@ -188,178 +122,18 @@
     });
   }
 
-  // Users tab — DAU 90d (bigger window than Command tab's 30d)
-  new Chart(document.getElementById('chart-users-dau'), {
-    type: 'bar',
-    data: {
-      labels: Array.from({length: 90}, (_, i) => i),
-      datasets: [{
-        data: Array.from({length: 90}, (_, i) => {
-          // bake in the april 18 lift
-          const base = 28 + Math.floor(Math.random() * 18);
-          return i > 60 ? base + 10 + Math.floor(Math.random() * 8) : base;
-        }),
-        backgroundColor: (ctx) => ctx.dataIndex > 60 ? '#34D399' : '#4F86F7',
-        borderWidth: 0,
-        barPercentage: 0.85,
-        categoryPercentage: 0.95,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, ...noLegend,
-      scales: { x: { ...baseGrid, ticks: { display: false } }, y: { ...baseGrid, beginAtZero: true } }
-    }
-  });
+  // User Read v2 (2026-05-22) removed the legacy chart-users-dau and
+  // chart-login-freq canvases from #panel-users. Same crash story as
+  // the chart-mrr removal above — their inits used to live here and
+  // would throw at module-init once the canvases were gone, aborting
+  // the dashboard. Deleted wholesale since they were decorative mockup
+  // charts with no live binding.
 
-  // Users tab — login frequency histogram
-  new Chart(document.getElementById('chart-login-freq'), {
-    type: 'bar',
-    data: {
-      labels: ['0', '1', '2-3', '4-5', '6-9', '10-14', '15-19', '20-29', '30+'],
-      datasets: [{
-        data: [72, 86, 132, 88, 56, 38, 18, 8, 2],
-        backgroundColor: (ctx) => {
-          // Highlight power user tiers (15+) in green
-          return ctx.dataIndex >= 6 ? '#34D399' : '#4F86F7';
-        },
-        borderWidth: 0,
-        barPercentage: 0.85,
-        categoryPercentage: 0.95,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, ...noLegend,
-      scales: {
-        x: { ...baseGrid, grid: { display: false } },
-        y: { ...baseGrid, beginAtZero: true }
-      }
-    }
-  });
-
-  // Win rate
-  new Chart(document.getElementById('chart-winrate'), {
-    type: 'line',
-    data: {
-      labels: Array.from({length: 90}, (_, i) => i),
-      datasets: [
-        {
-          label: 'NBA (rolling 14d)',
-          data: Array.from({length: 90}, (_, i) => 50 + Math.sin(i/12) * 6 + 4),
-          borderColor: '#4F86F7',
-          tension: 0.4,
-          pointRadius: 0,
-          borderWidth: 2,
-          fill: false,
-        },
-        {
-          label: 'MLB (rolling 14d)',
-          data: Array.from({length: 90}, (_, i) => i < 50 ? null : 50 + Math.cos(i/8) * 8 + 6),
-          borderColor: '#34D399',
-          borderDash: [4, 4],
-          tension: 0.4,
-          pointRadius: 0,
-          borderWidth: 2,
-          fill: false,
-        },
-        {
-          label: 'Break-even (52.4%)',
-          data: Array.from({length: 90}, () => 52.4),
-          borderColor: '#525a6e',
-          borderDash: [2, 4],
-          pointRadius: 0,
-          borderWidth: 1,
-          fill: false,
-        }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 8, boxHeight: 8, padding: 12, font: { size: 10 } } } },
-      scales: { x: { ...baseGrid, ticks: { display: false } }, y: { ...baseGrid, min: 40, max: 65, ticks: { ...baseGrid.ticks, callback: v => v + '%' } } }
-    }
-  });
-
-  // MEI tier hit rate
-  new Chart(document.getElementById('chart-meihit'), {
-    type: 'bar',
-    data: {
-      labels: ['0.50-0.65', '0.65-0.75', '0.75-0.85', '≥ 0.85'],
-      datasets: [{
-        data: [49, 52, 56, 61],
-        backgroundColor: ['#525a6e', '#525a6e', '#4F86F7', '#34D399'],
-        borderWidth: 0,
-        barPercentage: 0.6,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, ...noLegend,
-      scales: {
-        x: { ...baseGrid, grid: { display: false } },
-        y: { ...baseGrid, min: 40, max: 70, ticks: { ...baseGrid.ticks, callback: v => v + '%' } }
-      }
-    }
-  });
-
-  // Calibration plots
-  function calibrationData(jitter) {
-    const buckets = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9];
-    return buckets.map(p => ({ x: p, y: p + (Math.random() - 0.5) * jitter }));
-  }
-  function calibrationConfig(data, color) {
-    return {
-      type: 'scatter',
-      data: {
-        datasets: [
-          {
-            label: 'Observed',
-            data: data,
-            backgroundColor: color,
-            borderColor: color,
-            pointRadius: 4,
-            pointHoverRadius: 5,
-          },
-          {
-            label: 'Perfect calibration',
-            type: 'line',
-            data: [{x:0.5,y:0.5},{x:0.9,y:0.9}],
-            borderColor: '#525a6e',
-            borderDash: [3, 3],
-            pointRadius: 0,
-            borderWidth: 1,
-            fill: false,
-          }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, ...noLegend,
-        scales: {
-          x: { ...baseGrid, type: 'linear', min: 0.45, max: 0.95, ticks: { ...baseGrid.ticks, stepSize: 0.1, callback: v => v.toFixed(1) } },
-          y: { ...baseGrid, type: 'linear', min: 0.45, max: 0.95, ticks: { ...baseGrid.ticks, stepSize: 0.1, callback: v => v.toFixed(1) } }
-        }
-      }
-    };
-  }
-  new Chart(document.getElementById('chart-cal-nba'), calibrationConfig(calibrationData(0.04), '#4F86F7'));
-  new Chart(document.getElementById('chart-cal-mlb'), calibrationConfig(calibrationData(0.08), '#34D399'));
-
-  // MEI distribution
-  new Chart(document.getElementById('chart-mei'), {
-    type: 'bar',
-    data: {
-      labels: ['0.30', '0.35', '0.40', '0.45', '0.50', '0.55', '0.60', '0.65', '0.70', '0.75', '0.80', '0.85', '0.90', '0.95'],
-      datasets: [{
-        data: [2, 5, 9, 14, 22, 28, 30, 26, 18, 11, 6, 3, 1, 1],
-        backgroundColor: (ctx) => ctx.dataIndex >= 11 ? '#34D399' : '#4F86F7',
-        borderWidth: 0,
-        barPercentage: 0.85,
-        categoryPercentage: 0.95,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, ...noLegend,
-      scales: { x: { ...baseGrid, grid: { display: false } }, y: { ...baseGrid, beginAtZero: true } }
-    }
-  });
+  // Model Read v2 (2026-05-22): the win-rate, MEI-hit, calibration, and
+  // MEI distribution Chart.js inits used to live here. They've been
+  // replaced by hand-built inline SVG in the new #panel-model markup
+  // (mr-* IDs). Removing the inits here so module-init does not throw
+  // on `new Chart(null, ...)` once their canvases come out of the DOM.
 
   // Latency
   new Chart(document.getElementById('chart-latency'), {
