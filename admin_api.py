@@ -1653,6 +1653,7 @@ def cron_health():
         jobs.append({
             'name': config.get('label', job_name),
             'schedule': config['schedule'],
+            'expected_h': config['expected_h'],
             'health': health,
             'last_run': last_log.executed_at.isoformat() if last_log else None,
             'last_status': last_log.status if last_log else None,

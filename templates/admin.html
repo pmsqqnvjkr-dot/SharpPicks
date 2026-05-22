@@ -684,169 +684,128 @@
   <!-- ============================================ -->
   <div class="panel" id="panel-infra">
 
-    <section class="stack-status">
-      <div class="label">infra read</div>
-      <h1 class="headline"></h1>
-    </section>
+    <p class="ir-read-line" id="ir-read-line">System holding. Awaiting infra signals.</p>
 
-    <!-- SERVER HEALTH -->
-    <section class="section">
-      <div class="section-header">
-        <span class="section-title">server health · railway</span>
-        <span class="section-meta">live · 30s polling</span>
-      </div>
-      <p class="section-summary"></p>
+    <div class="ir-caveat" id="ir-caveat" style="display:none;">
+      <span id="ir-caveat-text"></span>
+      <span class="ir-caveat-detail" id="ir-caveat-detail"></span>
+    </div>
 
-      <div class="health-grid">
-        <div class="health-chip ok">
-          <div class="label">Uptime 30d</div>
-          <div class="v">100<span style="color: var(--text-faint); font-size: 12px;">%</span></div>
-        </div>
-        <div class="health-chip ok">
-          <div class="label">P95 latency</div>
-          <div class="v">340<span style="color: var(--text-faint); font-size: 12px;">ms</span></div>
-        </div>
-        <div class="health-chip ok">
-          <div class="label">Errors 24h</div>
-          <div class="v">0</div>
-        </div>
-        <div class="health-chip ok">
-          <div class="label">Memory</div>
-          <div class="v">42<span style="color: var(--text-faint); font-size: 12px;">% / 1gb</span></div>
-        </div>
+    <div class="ir-hero">
+      <div class="ir-hero-cell">
+        <div class="ir-hero-label">Uptime &middot; 30d</div>
+        <div class="ir-hero-value" id="ir-hero-uptime">&mdash;<span class="unit">%</span></div>
+        <div class="ir-hero-note" id="ir-hero-uptime-note">&mdash;</div>
       </div>
+      <div class="ir-hero-cell">
+        <div class="ir-hero-label">P95 latency</div>
+        <div class="ir-hero-value" id="ir-hero-p95">&mdash;<span class="unit">ms</span></div>
+        <div class="ir-hero-note" id="ir-hero-p95-note">&mdash;</div>
+      </div>
+      <div class="ir-hero-cell">
+        <div class="ir-hero-label">5xx errors &middot; 24h</div>
+        <div class="ir-hero-value" id="ir-hero-errors">&mdash;</div>
+        <div class="ir-hero-note" id="ir-hero-errors-note">&mdash;</div>
+      </div>
+      <div class="ir-hero-cell">
+        <div class="ir-hero-label">Cron jobs healthy</div>
+        <div class="ir-hero-value" id="ir-hero-crons">&mdash;</div>
+        <div class="ir-hero-note" id="ir-hero-crons-note">&mdash;</div>
+      </div>
+    </div>
 
-      <div class="col-title">response time · 7d</div>
-      <div class="chart-wrap short">
-        <canvas id="chart-latency" role="img" aria-label="p50 p95 p99 response time over 7 days"></canvas>
+    <!-- RESPONSE TIME -->
+    <section class="ir-section">
+      <div class="ir-section-head">
+        <span class="ir-section-title">Response time &middot; 7d</span>
+        <span class="ir-section-meta">Railway &middot; p50 / p95 / p99</span>
       </div>
-    </section>
-
-    <!-- DEPLOY HISTORY -->
-    <section class="section">
-      <div class="section-header">
-        <span class="section-title">recent deploys</span>
-        <span class="section-meta">git · railway</span>
-      </div>
-
-      <div class="deploy-row">
-        <span class="ts" style="color: var(--text-faint);">2h ago</span>
-        <span class="sha">--</span>
-        <span class="msg">Phase 1 done: append ground-truth snapshot to audit doc</span>
-        <span class="status success">deployed</span>
-      </div>
-      <div class="deploy-row">
-        <span class="ts" style="color: var(--text-faint);">3h ago</span>
-        <span class="sha">--</span>
-        <span class="msg">Phase 1.3: track.js helper + wire bet_tap on signal_card and place_own_bet</span>
-        <span class="status success">deployed</span>
-      </div>
-      <div class="deploy-row">
-        <span class="ts" style="color: var(--text-faint);">4h ago</span>
-        <span class="sha">--</span>
-        <span class="msg">Phase 1.1+1.2: extend user_events; fix /api/events to drop auth wall</span>
-        <span class="status success">deployed</span>
-      </div>
-      <div class="deploy-row">
-        <span class="ts" style="color: var(--text-faint);">5h ago</span>
-        <span class="sha">--</span>
-        <span class="msg">docs: add Phase 0 command center audit findings</span>
-        <span class="status success">deployed</span>
-      </div>
-    </section>
-
-    <!-- DATA PIPELINE HEALTH -->
-    <section class="section">
-      <div class="section-header">
-        <span class="section-title">data pipeline · cron + sync</span>
-        <span class="section-meta">last 24h</span>
-      </div>
-      <p class="section-summary"></p>
-
-      <div>
-        <div class="pipeline-row">
-          <div>
-            <div class="pipeline-name">NBA daily scan</div>
-            <div class="label" style="margin-top: 4px;">Cron · 11:30 et</div>
+      <p class="ir-section-lede" id="ir-rt-lede">Hourly latency percentiles across the last seven days. Flat lines are the healthy state; p99 spikes are worth correlating against deploy times below.</p>
+      <div class="ir-card">
+        <div class="ir-card-head">
+          <span class="ir-card-title">Latency &middot; 7d</span>
+          <div class="ir-card-stats">
+            <span>p50: <strong class="ir-stat-val" id="ir-rt-p50">&mdash;</strong></span>
+            <span>p95: <strong class="ir-stat-val" id="ir-rt-p95">&mdash;</strong></span>
+            <span>p99: <strong class="ir-stat-val" id="ir-rt-p99">&mdash;</strong></span>
           </div>
-          <span class="pipeline-time">--</span>
-          <span class="pipeline-status-dot"></span>
         </div>
-        <div class="pipeline-row">
-          <div>
-            <div class="pipeline-name">MLB daily scan</div>
-            <div class="label" style="margin-top: 4px;">Cron · 13:00 et</div>
-          </div>
-          <span class="pipeline-time">--</span>
-          <span class="pipeline-status-dot"></span>
+        <div class="ir-chart-wrap">
+          <canvas id="chart-latency" role="img" aria-label="p50 p95 p99 response time over 7 days"></canvas>
         </div>
-        <div class="pipeline-row">
-          <div>
-            <div class="pipeline-name">Stripe webhooks</div>
-            <div class="label" style="margin-top: 4px;">Inbound · live</div>
-          </div>
-          <span class="pipeline-time">--</span>
-          <span class="pipeline-status-dot"></span>
-        </div>
-        <div class="pipeline-row">
-          <div>
-            <div class="pipeline-name">Revenuecat webhooks</div>
-            <div class="label" style="margin-top: 4px;">Inbound · live</div>
-          </div>
-          <span class="pipeline-time">--</span>
-          <span class="pipeline-status-dot"></span>
-        </div>
-        <div class="pipeline-row">
-          <div>
-            <div class="pipeline-name">Cloudflare analytics sync</div>
-            <div class="label" style="margin-top: 4px;">Cache · 30m</div>
-          </div>
-          <span class="pipeline-time">--</span>
-          <span class="pipeline-status-dot"></span>
-        </div>
-        <div class="pipeline-row">
-          <div>
-            <div class="pipeline-name">Ga4 sync</div>
-            <div class="label" style="margin-top: 4px;">Cache · 60m</div>
-          </div>
-          <span class="pipeline-time">--</span>
-          <span class="pipeline-status-dot"></span>
-        </div>
-        <div class="pipeline-row">
-          <div>
-            <div class="pipeline-name">Gsc sync</div>
-            <div class="label" style="margin-top: 4px;">Cache · 12h</div>
-          </div>
-          <span class="pipeline-time">--</span>
-          <span class="pipeline-status-dot"></span>
+        <div class="ir-legend">
+          <span class="ir-legend-item"><span class="ir-legend-line p50"></span>p50</span>
+          <span class="ir-legend-item"><span class="ir-legend-line p95"></span>p95</span>
+          <span class="ir-legend-item"><span class="ir-legend-line p99"></span>p99 (spikes)</span>
         </div>
       </div>
     </section>
 
-    <!-- DATABASE -->
-    <section class="section">
-      <div class="section-header">
-        <span class="section-title">database · railway postgres</span>
-        <span class="section-meta">live</span>
+    <!-- CRON PIPELINE -->
+    <section class="ir-section">
+      <div class="ir-section-head">
+        <span class="ir-section-title">Data pipeline &middot; Cron schedule</span>
+        <span class="ir-section-meta">Last 24h &middot; expected vs actual</span>
       </div>
+      <p class="ir-section-lede" id="ir-cron-lede">Per-job drift across the cron pipeline. Window bar shows where the current run sits against the expected cadence; jobs past 1.5x cadence get flagged.</p>
+      <div class="ir-cron-grid">
+        <div class="ir-cron-header">
+          <span>Job</span>
+          <span>Schedule</span>
+          <span>Last run</span>
+          <span>Drift</span>
+          <span>Window</span>
+          <span></span>
+        </div>
+        <div id="ir-cron-rows">
+          <div class="ir-cron-empty">Loading&hellip;</div>
+        </div>
+      </div>
+    </section>
 
-      <div class="health-grid">
-        <div class="health-chip ok">
-          <div class="label">Connections</div>
-          <div class="v">3<span style="color: var(--text-faint); font-size: 12px;"> / 20</span></div>
+    <!-- DB RESOURCE -->
+    <section class="ir-section">
+      <div class="ir-section-head">
+        <span class="ir-section-title">Database &middot; Railway Postgres</span>
+        <span class="ir-section-meta">Live &middot; headroom</span>
+      </div>
+      <p class="ir-section-lede" id="ir-db-lede">Connection pool, storage, and slow-query headroom. Threshold markers sit at 80% so warning is visible before saturation.</p>
+      <div class="ir-db-grid">
+        <div class="ir-db-card" id="ir-db-conn">
+          <div class="ir-db-head"><span class="ir-db-label">Connections</span><span class="ir-db-pct" data-ir="pct">&mdash;</span></div>
+          <div class="ir-db-value" data-ir="value">&mdash;<span class="ir-db-max" data-ir="max"></span></div>
+          <div class="ir-db-bar-wrap"><div class="ir-db-bar-fill" data-ir="fill" style="width:0%;"></div><div class="ir-db-bar-threshold" style="left:80%;"></div></div>
+          <div class="ir-db-note" data-ir="note">Warn threshold at 80%</div>
         </div>
-        <div class="health-chip ok">
-          <div class="label">Storage</div>
-          <div class="v">412<span style="color: var(--text-faint); font-size: 12px;">mb / 1gb</span></div>
+        <div class="ir-db-card" id="ir-db-storage">
+          <div class="ir-db-head"><span class="ir-db-label">Storage</span><span class="ir-db-pct" data-ir="pct">&mdash;</span></div>
+          <div class="ir-db-value" data-ir="value">&mdash;<span class="ir-db-max" data-ir="max"></span></div>
+          <div class="ir-db-bar-wrap"><div class="ir-db-bar-fill" data-ir="fill" style="width:0%;"></div><div class="ir-db-bar-threshold" style="left:80%;"></div></div>
+          <div class="ir-db-note" data-ir="note">Warn threshold at 80%</div>
         </div>
-        <div class="health-chip ok">
-          <div class="label">User events</div>
-          <div class="v">7,931<span style="color: var(--text-faint); font-size: 12px;"> rows</span></div>
+        <div class="ir-db-card" id="ir-db-events">
+          <div class="ir-db-head"><span class="ir-db-label">User events</span><span class="ir-db-pct">&mdash;</span></div>
+          <div class="ir-db-value" data-ir="value">&mdash;<span class="ir-db-max"> rows</span></div>
+          <div class="ir-db-bar-wrap"><div class="ir-db-bar-fill" style="width:100%;background:rgba(79,134,247,0.5);"></div></div>
+          <div class="ir-db-note" data-ir="note">Lifetime row count</div>
         </div>
-        <div class="health-chip ok">
-          <div class="label">Slow queries 24h</div>
-          <div class="v">0</div>
+        <div class="ir-db-card" id="ir-db-slow">
+          <div class="ir-db-head"><span class="ir-db-label">Longest query</span><span class="ir-db-pct">&mdash;</span></div>
+          <div class="ir-db-value" data-ir="value">&mdash;<span class="ir-db-max">s</span></div>
+          <div class="ir-db-bar-wrap"><div class="ir-db-bar-fill" data-ir="fill" style="width:100%;background:rgba(90,158,114,0.25);"></div></div>
+          <div class="ir-db-note" data-ir="note">Active queries only</div>
         </div>
+      </div>
+    </section>
+
+    <!-- DEPLOYS -->
+    <section class="ir-section">
+      <div class="ir-section-head">
+        <span class="ir-section-title">Recent deploys</span>
+        <span class="ir-section-meta">Git &middot; Railway</span>
+      </div>
+      <div id="ir-deploys-list">
+        <div class="ir-deploy-empty">Loading&hellip;</div>
       </div>
     </section>
   </div>

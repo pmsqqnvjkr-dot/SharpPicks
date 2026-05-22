@@ -3209,14 +3209,343 @@ function bindCronHealth(data) {
 }
 
 let _infraDataPromise = null;
+// ─────────────────────────────────────────────────────────────────────────
+// Infra Read v2 (2026-05-22) — targets the ir-* IDs added to #panel-infra.
+// Consumes the same two endpoints the legacy binds use, just renders them
+// into the cockpit layout (hero, cron drift grid, DB cards, deploys).
+// ─────────────────────────────────────────────────────────────────────────
+
+function _irSetText(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+}
+
+function _irFormatHoursAgo(h) {
+  if (h == null) return 'never';
+  if (h < 1) return `${Math.round(h * 60)}m ago`;
+  if (h < 48) return `${h.toFixed(1)}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+}
+
+function _irFormatCadence(h) {
+  if (!h) return '—';
+  if (h >= 168 && h % 168 === 0) return `weekly`;
+  if (h >= 24 && h % 24 === 0) return `every ${h / 24}d`;
+  if (h < 1) return `every ${Math.round(h * 60)}m`;
+  return `every ${h}h`;
+}
+
+function _irComputeDrift(hoursAgo, expectedH) {
+  if (hoursAgo == null) return { label: 'never', status: 'warn' };
+  const overdue = hoursAgo - expectedH;
+  if (overdue > expectedH * 0.5) {
+    return { label: `+${overdue.toFixed(1)}h late`, status: 'warn' };
+  }
+  if (overdue > 0) {
+    return { label: `+${overdue.toFixed(1)}h over`, status: 'warn' };
+  }
+  const remaining = -overdue;
+  if (remaining < 0.5) return { label: 'due now', status: 'ok' };
+  if (remaining < expectedH * 0.25) return { label: `due in ${remaining.toFixed(1)}h`, status: 'ok' };
+  return { label: `due in ${remaining.toFixed(1)}h`, status: 'neutral' };
+}
+
+function _renderInfraRead(health, cron) {
+  if (!document.getElementById('ir-read-line')) return; // panel not mounted
+
+  const chips = (health && health.chips) || {};
+  const dbh   = (health && health.database_health) || {};
+  const deploys = (health && Array.isArray(health.recent_deploys)) ? health.recent_deploys : [];
+  const jobs    = (cron && Array.isArray(cron.jobs)) ? cron.jobs : [];
+
+  // ── Lead sentence + caveat ──────────────────────────────────────────
+  // Find the most-overdue job. If any are late, name the worst one;
+  // otherwise lead with "System holding" + uptime/p95/errors summary.
+  const late = jobs.filter(j => j.hours_ago != null && j.hours_ago > j.expected_h);
+  late.sort((a, b) => (b.hours_ago - b.expected_h) - (a.hours_ago - a.expected_h));
+  const worstLate = late[0] || null;
+  const errors24h = chips.errors_24h != null ? chips.errors_24h : null;
+  const p95 = chips.p95_24h_ms;
+  const uptime = chips.uptime_30d_pct;
+  const errPhrase = errors24h === 0 ? 'no 5xx errors today'
+    : (errors24h != null ? `${errors24h} 5xx error${errors24h === 1 ? '' : 's'} in 24h` : '5xx unknown');
+  const p95Phrase = p95 != null ? `p95 at ${Math.round(p95)}ms` : '';
+  const uptPhrase = uptime != null ? `uptime ${uptime.toFixed(uptime % 1 === 0 ? 0 : 1)}%` : '';
+  let readLine;
+  if (worstLate) {
+    const overdueH = (worstLate.hours_ago - worstLate.expected_h);
+    readLine = `${worstLate.name} is ${overdueH.toFixed(1)}h late. Everything else holding, ${[uptPhrase, p95Phrase, errPhrase].filter(Boolean).join(', ')}.`;
+  } else if (uptPhrase || p95Phrase) {
+    readLine = `System holding. ${[uptPhrase, p95Phrase, errPhrase].filter(Boolean).join(', ')}.`;
+  } else {
+    readLine = 'System holding. Awaiting infra signals.';
+  }
+  _irSetText('ir-read-line', readLine);
+
+  const caveat = document.getElementById('ir-caveat');
+  if (caveat) {
+    if (worstLate) {
+      caveat.style.display = '';
+      _irSetText('ir-caveat-text',
+        `⚠ ${worstLate.name} cron has not run inside its ${_irFormatCadence(worstLate.expected_h)} window. Last run ${_irFormatHoursAgo(worstLate.hours_ago)}.`);
+      _irSetText('ir-caveat-detail', 'Investigate before next slate');
+    } else {
+      caveat.style.display = 'none';
+    }
+  }
+
+  // ── Hero strip ──────────────────────────────────────────────────────
+  if (uptime != null) {
+    _irSetText('ir-hero-uptime', `${uptime.toFixed(uptime % 1 === 0 ? 0 : 1)}`);
+    // Re-attach the unit span since textContent wiped it.
+    const upEl = document.getElementById('ir-hero-uptime');
+    if (upEl) {
+      upEl.innerHTML = `${uptime.toFixed(uptime % 1 === 0 ? 0 : 1)}<span class="unit">%</span>`;
+      upEl.classList.remove('pos', 'warn', 'neg');
+      if (uptime >= 99.9) upEl.classList.add('pos');
+      else if (uptime < 99) upEl.classList.add('warn');
+    }
+  }
+  _irSetText('ir-hero-uptime-note',
+    chips.requests_24h != null ? `${chips.requests_24h.toLocaleString()} requests · 24h` : '—');
+
+  if (p95 != null) {
+    const p95El = document.getElementById('ir-hero-p95');
+    if (p95El) p95El.innerHTML = `${Math.round(p95)}<span class="unit">ms</span>`;
+  }
+  _irSetText('ir-hero-p95-note',
+    chips.requests_24h != null ? `${chips.requests_24h.toLocaleString()} requests · 24h` : '—');
+
+  if (errors24h != null) {
+    const errEl = document.getElementById('ir-hero-errors');
+    if (errEl) {
+      errEl.textContent = errors24h;
+      errEl.classList.remove('pos', 'warn', 'neg');
+      if (errors24h === 0) errEl.classList.add('pos');
+      else if (errors24h >= 10) errEl.classList.add('warn');
+    }
+    const rate = chips.requests_24h ? (errors24h / chips.requests_24h * 100) : null;
+    _irSetText('ir-hero-errors-note',
+      rate != null ? `${rate.toFixed(3)}% error rate` : 'No requests measured');
+  }
+
+  const healthyCount = jobs.filter(j => j.health === 'ok').length;
+  const totalCount = jobs.length;
+  const cronEl = document.getElementById('ir-hero-crons');
+  if (cronEl) {
+    cronEl.innerHTML = `${healthyCount}<span class="unit"> / ${totalCount}</span>`;
+    cronEl.classList.remove('pos', 'warn', 'neg');
+    if (healthyCount === totalCount && totalCount > 0) cronEl.classList.add('pos');
+    else if (healthyCount < totalCount) cronEl.classList.add('warn');
+  }
+  _irSetText('ir-hero-crons-note',
+    worstLate ? `${late.length} late · ${worstLate.name}`
+    : (totalCount > 0 ? 'All on schedule' : 'No cron history yet'));
+
+  // ── Response time stats header ──────────────────────────────────────
+  if (chips.p50_24h_ms != null) _irSetText('ir-rt-p50', `${Math.round(chips.p50_24h_ms)}ms`);
+  if (chips.p95_24h_ms != null) _irSetText('ir-rt-p95', `${Math.round(chips.p95_24h_ms)}ms`);
+  if (chips.p99_24h_ms != null) _irSetText('ir-rt-p99', `${Math.round(chips.p99_24h_ms)}ms`);
+
+  // chart-latency is already wired by bindInfraHealth, which writes the
+  // latency_series into the existing Chart.js instance. Recolor its
+  // three datasets to the v4.3 token palette (p50 green, p95 blue, p99
+  // amber) — the legacy init used #4F86F7/#E4A03B/#E48181 which doesn't
+  // match the legend keys in the new card. update('none') is no-op cost.
+  try {
+    const latCanvas = document.getElementById('chart-latency');
+    if (latCanvas && window.Chart) {
+      const latChart = Chart.getChart(latCanvas);
+      if (latChart && latChart.data && latChart.data.datasets.length >= 3) {
+        const palette = ['#5A9E72', '#4F86F7', '#E4A03B'];
+        latChart.data.datasets.forEach((ds, i) => {
+          if (palette[i]) ds.borderColor = palette[i];
+        });
+        latChart.update('none');
+      }
+    }
+  } catch (e) {
+    console.warn('[ir] latency recolor failed:', e);
+  }
+
+  // ── Cron pipeline grid ──────────────────────────────────────────────
+  const cronRows = document.getElementById('ir-cron-rows');
+  if (cronRows) {
+    if (jobs.length === 0) {
+      cronRows.innerHTML = '<div class="ir-cron-empty">No cron jobs registered yet.</div>';
+    } else {
+      const lateName = worstLate && worstLate.name;
+      const html = jobs.map(j => {
+        const drift = _irComputeDrift(j.hours_ago, j.expected_h);
+        const ratio = j.hours_ago != null && j.expected_h
+          ? Math.min(100, (j.hours_ago / j.expected_h) * 100)
+          : 0;
+        const fillClass = drift.status === 'warn' ? 'warn' : '';
+        const isLate = drift.status === 'warn';
+        const dotClass = j.health === 'error' ? 'err' : (j.health === 'ok' ? 'ok' : 'warn');
+        return `<div class="ir-cron-row${isLate ? ' late' : ''}">
+          <span class="ir-cron-name${isLate ? ' late' : ''}">${_irEscape(j.name || '—')}</span>
+          <span class="ir-cron-cadence">${_irEscape(j.schedule || _irFormatCadence(j.expected_h))}</span>
+          <span class="ir-cron-actual">${_irFormatHoursAgo(j.hours_ago)}</span>
+          <span class="ir-cron-drift ${drift.status}">${drift.label}</span>
+          <div class="ir-cron-bar-wrap"><div class="ir-cron-bar-fill ${fillClass}" style="width:${ratio}%;"></div><div class="ir-cron-bar-marker" style="left:100%;"></div></div>
+          <span class="ir-cron-status-dot ${dotClass}"></span>
+        </div>`;
+      }).join('');
+      cronRows.innerHTML = html;
+    }
+  }
+  const cronLede = document.getElementById('ir-cron-lede');
+  if (cronLede && jobs.length > 0) {
+    if (worstLate) {
+      const overdueH = (worstLate.hours_ago - worstLate.expected_h);
+      cronLede.textContent = `${healthyCount} of ${totalCount} jobs running inside their expected window. ${worstLate.name} is ${overdueH.toFixed(1)}h overdue against a ${_irFormatCadence(worstLate.expected_h)} cadence, investigate before the next slate.`;
+    } else {
+      cronLede.textContent = `${healthyCount} of ${totalCount} jobs running inside their expected window. Pipeline is clean.`;
+    }
+  }
+
+  // ── DB resource cards ───────────────────────────────────────────────
+  _irFillDbCard('ir-db-conn', {
+    raw: dbh.connections_active != null ? dbh.connections_active : null,
+    max: 20,
+    unit: ' / 20',
+    note: 'Warn threshold at 16 connections (80%)',
+    pctSuffix: '%',
+  });
+  _irFillDbCard('ir-db-storage', {
+    raw: dbh.database_size_mb,
+    max: 1024,
+    unit: 'mb / 1gb',
+    note: 'Warn at 800mb (80%)',
+    pctSuffix: '%',
+    valueFmt: v => `${Math.round(v)}`,
+  });
+
+  // user events — informational only
+  const eventsCard = document.getElementById('ir-db-events');
+  if (eventsCard) {
+    const valueEl = eventsCard.querySelector('[data-ir="value"]');
+    if (valueEl && chips.requests_24h != null) {
+      // Server doesn't yet ship a user_events row count; surface "—" for
+      // now. Chunk C will wire the real lifetime count from the events
+      // source. Leave the static "rows" suffix in place.
+      valueEl.innerHTML = `&mdash;<span class="ir-db-max"> rows</span>`;
+    }
+  }
+
+  const slowCard = document.getElementById('ir-db-slow');
+  if (slowCard) {
+    const valueEl = slowCard.querySelector('[data-ir="value"]');
+    const noteEl = slowCard.querySelector('[data-ir="note"]');
+    const fillEl = slowCard.querySelector('[data-ir="fill"]');
+    const v = dbh.longest_running_query_seconds;
+    if (valueEl) {
+      if (v == null) {
+        valueEl.innerHTML = `&mdash;<span class="ir-db-max">s</span>`;
+      } else {
+        const tinted = v >= 0.5;
+        valueEl.innerHTML = `${v.toFixed(1)}<span class="ir-db-max">s</span>`;
+        valueEl.classList.remove('pos', 'warn');
+        valueEl.classList.add(tinted ? 'warn' : 'pos');
+        if (fillEl) fillEl.style.background = tinted ? 'rgba(228,160,59,0.4)' : 'rgba(90,158,114,0.25)';
+      }
+    }
+    if (noteEl) {
+      noteEl.textContent = v == null ? 'No active queries'
+        : (v >= 0.5 ? 'Over the 0.5s warn line' : 'Inside the healthy band');
+    }
+  }
+
+  // ── Recent deploys ──────────────────────────────────────────────────
+  const deployList = document.getElementById('ir-deploys-list');
+  if (deployList) {
+    if (deploys.length === 0) {
+      deployList.innerHTML = '<div class="ir-deploy-empty">No deploys yet.</div>';
+    } else {
+      const html = deploys.slice(0, 6).map(d => {
+        let ago = '—';
+        if (d.date) {
+          const t = new Date(d.date);
+          if (!isNaN(t.getTime())) {
+            const diff = (Date.now() - t.getTime()) / 1000;
+            if (diff < 60) ago = 'just now';
+            else if (diff < 3600) ago = `${Math.round(diff / 60)}m ago`;
+            else if (diff < 86400) ago = `${Math.round(diff / 3600)}h ago`;
+            else ago = `${Math.round(diff / 86400)}d ago`;
+          }
+        }
+        const statusClass = d.status === 'failed' ? 'failed' : 'live';
+        const statusLabel = d.status === 'failed' ? 'Failed' : 'Live';
+        return `<div class="ir-deploy-row">
+          <span class="ir-deploy-time">${ago}</span>
+          <span class="ir-deploy-msg">${_irEscape(d.message || '—')}</span>
+          <span class="ir-deploy-sha">${_irEscape((d.sha || '').slice(0, 7))}</span>
+          <span class="ir-deploy-status ${statusClass}">${statusLabel}</span>
+        </div>`;
+      }).join('');
+      deployList.innerHTML = html;
+    }
+  }
+}
+
+function _irEscape(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function _irFillDbCard(id, opts) {
+  const card = document.getElementById(id);
+  if (!card) return;
+  const valueEl = card.querySelector('[data-ir="value"]');
+  const fillEl  = card.querySelector('[data-ir="fill"]');
+  const pctEl   = card.querySelector('[data-ir="pct"]');
+  const maxEl   = card.querySelector('[data-ir="max"]');
+  const noteEl  = card.querySelector('[data-ir="note"]');
+  const raw = opts.raw;
+  if (raw == null) {
+    if (valueEl) valueEl.innerHTML = `&mdash;${opts.unit ? `<span class="ir-db-max">${opts.unit}</span>` : ''}`;
+    if (pctEl) pctEl.textContent = '—';
+    if (fillEl) fillEl.style.width = '0%';
+    return;
+  }
+  const pct = opts.max ? (raw / opts.max) * 100 : null;
+  const fmt = opts.valueFmt || (v => String(v));
+  if (valueEl) {
+    valueEl.innerHTML = `${fmt(raw)}<span class="ir-db-max">${opts.unit || ''}</span>`;
+  }
+  if (pctEl && pct != null) {
+    pctEl.textContent = `${Math.round(pct)}${opts.pctSuffix || '%'}`;
+    pctEl.classList.toggle('warn', pct >= 80);
+  }
+  if (fillEl && pct != null) {
+    fillEl.style.width = `${Math.min(100, pct)}%`;
+    fillEl.classList.toggle('warn', pct >= 80);
+  }
+  if (noteEl && opts.note) noteEl.textContent = opts.note;
+}
+
 function loadInfraTabData() {
   if (_infraDataPromise) return _infraDataPromise;
   _infraDataPromise = Promise.all([
     fetch('/api/admin/infra/health', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
     fetch('/api/admin/cron-health',  { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
   ]).then(([health, cron]) => {
+    // Legacy binds silently no-op on the v2 DOM (selectors miss), but
+    // bindInfraHealth still feeds chart-latency which the v2 layout
+    // reuses. Keep both calls.
     bindInfraHealth(health);
     bindCronHealth(cron);
+    try {
+      _renderInfraRead(health, cron);
+    } catch (e) {
+      console.error('[ir] _renderInfraRead threw:', e);
+    }
   }).finally(() => { _infraDataPromise = null; });
   return _infraDataPromise;
 }

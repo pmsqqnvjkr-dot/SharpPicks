@@ -2042,3 +2042,419 @@
     text-align: center;
     letter-spacing: 0.08em;
   }
+
+  /* ─────────────────────────────────────────────────────────────
+   * Infra Read v2 (2026-05-22): #panel-infra cockpit redesign.
+   * Lead with what's drifting (serif sentence + amber caveat),
+   * 4-cell hero with cron health swapped in for memory, cron
+   * grid that visualizes expected vs actual cadence, DB resource
+   * bars with 80% threshold markers, then deploys. Reuses the
+   * existing chart-latency canvas wrapped in v2 card grammar.
+   * ───────────────────────────────────────────────────────────── */
+
+  .ir-read-line {
+    font-family: var(--serif);
+    font-size: 22px;
+    line-height: 1.5;
+    color: var(--text);
+    margin: 0 0 12px 0;
+    max-width: 88%;
+  }
+  .ir-caveat {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--warn);
+    letter-spacing: 0.04em;
+    line-height: 1.55;
+    padding: 10px 14px;
+    background: rgba(228, 160, 59, 0.08);
+    border-left: 2px solid var(--warn);
+    border-radius: 0 3px 3px 0;
+    margin: 0 0 28px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .ir-caveat-detail {
+    color: var(--text-muted);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  .ir-hero {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 0.5px solid var(--border-strong);
+    border-bottom: 0.5px solid var(--border-strong);
+    margin-bottom: 40px;
+  }
+  .ir-hero-cell {
+    padding: 22px 24px;
+    border-right: 0.5px solid var(--border);
+  }
+  .ir-hero-cell:last-child { border-right: none; }
+  .ir-hero-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .ir-hero-value {
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 8px;
+    font-feature-settings: "tnum";
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .ir-hero-value.pos  { color: var(--edge-green); }
+  .ir-hero-value.warn { color: var(--warn); }
+  .ir-hero-value.neg  { color: var(--danger); }
+  .ir-hero-value .unit {
+    font-size: 16px;
+    color: var(--text-faint);
+    font-weight: 400;
+    margin-left: 2px;
+  }
+  .ir-hero-note {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  @media (max-width: 760px) {
+    .ir-hero { grid-template-columns: repeat(2, 1fr); }
+    .ir-hero-cell { border-right: none; border-bottom: 0.5px solid var(--border); }
+    .ir-hero-cell:nth-last-child(-n+2) { border-bottom: none; }
+  }
+
+  .ir-section { margin-bottom: 40px; }
+  .ir-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    border-bottom: 0.5px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .ir-section-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--text);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .ir-section-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+  .ir-section-lede {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+    margin: 0 0 20px 0;
+    max-width: 92%;
+  }
+  .ir-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 22px;
+  }
+  .ir-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .ir-card-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+  .ir-card-stats {
+    display: flex;
+    gap: 22px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+  }
+  .ir-stat-val {
+    color: var(--text);
+    font-weight: 500;
+    font-feature-settings: "tnum";
+  }
+  .ir-chart-wrap {
+    width: 100%;
+    height: 200px;
+    position: relative;
+  }
+  .ir-chart-wrap canvas { width: 100% !important; height: 100% !important; }
+
+  .ir-legend {
+    display: flex;
+    gap: 22px;
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+  }
+  .ir-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ir-legend-line {
+    width: 20px;
+    height: 2px;
+  }
+  .ir-legend-line.p50 { background: var(--edge-green); }
+  .ir-legend-line.p95 { background: var(--signal-blue); }
+  .ir-legend-line.p99 { background: var(--warn); }
+
+  /* Cron pipeline grid ------------------------------------- */
+  .ir-cron-grid {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .ir-cron-header,
+  .ir-cron-row {
+    display: grid;
+    grid-template-columns: 200px 150px 100px 110px 1fr 16px;
+    gap: 18px;
+    padding: 13px 18px;
+    border-bottom: 0.5px solid var(--border);
+    align-items: center;
+  }
+  .ir-cron-header {
+    background: var(--surface-2);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+  .ir-cron-row:last-child { border-bottom: none; }
+  .ir-cron-row.late { background: rgba(228, 160, 59, 0.05); }
+  .ir-cron-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+  }
+  .ir-cron-name.late { color: var(--warn); }
+  .ir-cron-cadence {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .ir-cron-actual {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-feature-settings: "tnum";
+  }
+  .ir-cron-drift {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-feature-settings: "tnum";
+    font-weight: 500;
+  }
+  .ir-cron-drift.ok      { color: var(--edge-green); }
+  .ir-cron-drift.warn    { color: var(--warn); }
+  .ir-cron-drift.neutral { color: var(--text-muted); }
+  .ir-cron-bar-wrap {
+    position: relative;
+    height: 8px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .ir-cron-bar-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--edge-green);
+    border-radius: 2px;
+  }
+  .ir-cron-bar-fill.warn { background: var(--warn); }
+  .ir-cron-bar-marker {
+    position: absolute;
+    top: -2px; bottom: -2px;
+    width: 1px;
+    background: var(--text-faint);
+  }
+  .ir-cron-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .ir-cron-status-dot.ok   { background: var(--edge-green); }
+  .ir-cron-status-dot.warn { background: var(--warn); }
+  .ir-cron-status-dot.err  { background: var(--danger); }
+  .ir-cron-empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--text-faint);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  @media (max-width: 760px) {
+    .ir-cron-header, .ir-cron-row {
+      grid-template-columns: 1fr 90px 14px;
+      gap: 8px;
+    }
+    .ir-cron-header span:nth-child(2),
+    .ir-cron-header span:nth-child(3),
+    .ir-cron-header span:nth-child(5),
+    .ir-cron-row > :nth-child(2),
+    .ir-cron-row > :nth-child(3),
+    .ir-cron-row > :nth-child(5) { display: none; }
+  }
+
+  /* DB resource cards -------------------------------------- */
+  .ir-db-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 760px) { .ir-db-grid { grid-template-columns: 1fr; } }
+  .ir-db-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+  }
+  .ir-db-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .ir-db-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+  .ir-db-pct {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-feature-settings: "tnum";
+  }
+  .ir-db-pct.warn { color: var(--warn); }
+  .ir-db-value {
+    font-size: 24px;
+    font-weight: 500;
+    font-feature-settings: "tnum";
+    line-height: 1;
+    margin-bottom: 14px;
+    font-family: var(--mono);
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .ir-db-value.pos { color: var(--edge-green); }
+  .ir-db-value.warn { color: var(--warn); }
+  .ir-db-max {
+    font-size: 13px;
+    color: var(--text-faint);
+    font-weight: 400;
+    margin-left: 6px;
+  }
+  .ir-db-bar-wrap {
+    position: relative;
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .ir-db-bar-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--edge-green);
+    border-radius: 3px;
+  }
+  .ir-db-bar-fill.warn { background: var(--warn); }
+  .ir-db-bar-threshold {
+    position: absolute;
+    top: -2px; bottom: -2px;
+    width: 1px;
+    background: rgba(228, 129, 129, 0.5);
+  }
+  .ir-db-note {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+  }
+
+  /* Recent deploys ----------------------------------------- */
+  .ir-deploy-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 80px 100px;
+    gap: 18px;
+    padding: 12px 0;
+    border-bottom: 0.5px solid var(--border);
+    align-items: center;
+    font-size: 13px;
+  }
+  .ir-deploy-row:last-child { border-bottom: none; }
+  .ir-deploy-time {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .ir-deploy-msg {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ir-deploy-sha {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .ir-deploy-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .ir-deploy-status.live   { color: var(--edge-green); background: rgba(90, 158, 114, 0.12); }
+  .ir-deploy-status.failed { color: var(--danger); background: rgba(228, 129, 129, 0.12); }
+  .ir-deploy-empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--text-faint);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  @media (max-width: 760px) {
+    .ir-deploy-row { grid-template-columns: 80px 1fr 90px; gap: 8px; }
+    .ir-deploy-sha { display: none; }
+  }
