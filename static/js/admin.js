@@ -624,8 +624,12 @@ function _renderTodaysReadV2(metrics) {
       const sign = delta >= 0 ? '+' : '';
       _tr2SetDelta('tr2-signups-free-delta', `${sign}${Math.round(delta)} vs avg`, delta > 0 ? 'pos' : null);
     }
-    _tr2SetText('tr2-signups-trial', SP_FMT.num(s.trial_starts_24h || 0));
-    _tr2SetText('tr2-signups-paid', SP_FMT.num(s.paid_signups_24h || 0));
+    // Trial-started + paid-signup counts live on the Stripe envelope
+    // (new_trial_subs_24h / new_paid_subs_24h), not the activity payload.
+    // _snapshot() doesn't compute them; rather than wait on chunk C just
+    // read them off the metrics dict the outer function already captured.
+    _tr2SetText('tr2-signups-trial', SP_FMT.num(stripe.new_trial_subs_24h || 0));
+    _tr2SetText('tr2-signups-paid', SP_FMT.num(stripe.new_paid_subs_24h || 0));
   });
 
   } catch (e) {

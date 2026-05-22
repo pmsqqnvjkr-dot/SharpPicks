@@ -3891,3 +3891,183 @@ def admin_model_clv():
             'clears ~52% sustained for the sport.'
         ),
     })
+
+
+@admin_bp.route('/api/admin/trial-audit')
+def admin_trial_audit():
+    """End-to-end trial sanity check. Reconciles three independent views of
+    the same data and exposes the deltas:
+
+      1. **Stripe live**  every status='trialing' Stripe subscription right now
+      2. **DB**           User rows with subscription_status='trial' + recent
+                          User.trial_converted_at entries (the source the
+                          dashboard trial-conversion counters read from)
+      3. **Likely-miss**  paid invoices in the last 30d whose user has no
+                          trial_converted_at on file (conversion happened in
+                          Stripe but the webhook never landed)
+
+    Use this when the dashboard trial pipeline or conversion counts look off.
+    A delta between Stripe-live trials and DB status='trial' rows usually
+    means subscription.updated webhooks aren't getting through; a non-empty
+    `likely_missed_conversions` list is the canonical sign Cooper/Spiffy-style
+    silent failures are happening.
+    """
+    admin, err_code = require_superuser()
+    if not admin:
+        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+
+    import stripe as _stripe
+    import re as _re
+
+    try:
+        _stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+        if not _stripe.api_key:
+            return jsonify({'error': 'STRIPE_SECRET_KEY missing'}), 500
+    except Exception as e:
+        return jsonify({'error': f'stripe init failed: {e}'}), 500
+
+    now = datetime.utcnow()
+    cutoff_7d  = now - timedelta(days=7)
+    cutoff_30d = now - timedelta(days=30)
+
+    # ── Build exclusion set (mirrors stripe_metrics.py) ──
+    _AR_PATTERN = _re.compile(r'^ar_user[0-9]+@icloud\.com$')
+    excluded_cust_ids = set()
+    try:
+        users_with_stripe = User.query.filter(User.stripe_customer_id.isnot(None)).with_entities(
+            User.stripe_customer_id, User.is_internal, User.comped, User.deleted_at, User.email,
+        ).all()
+        for cust_id, is_internal, comped, deleted_at, email in users_with_stripe:
+            is_app_reviewer = bool(email and _AR_PATTERN.match(email))
+            if is_internal or comped or deleted_at is not None or is_app_reviewer:
+                excluded_cust_ids.add(cust_id)
+    except Exception as e:
+        return jsonify({'error': f'exclusion-set build failed: {e}'}), 500
+
+    # ── 1. Live Stripe trialing subs ──
+    stripe_trials = []
+    try:
+        sub_iter = _stripe.Subscription.list(status='trialing', limit=100).auto_paging_iter()
+        for n, sub in enumerate(sub_iter, start=1):
+            if n > 500:
+                break
+            cust = sub.get('customer')
+            cust_id = cust if isinstance(cust, str) else (cust.get('id') if cust else None)
+            if cust_id in excluded_cust_ids:
+                continue
+            stripe_trials.append({
+                'customer_id': cust_id,
+                'sub_id': sub.get('id'),
+                'cancel_at_period_end': bool(sub.get('cancel_at_period_end')),
+                'trial_end': sub.get('trial_end'),
+                'created': sub.get('created'),
+            })
+    except Exception as e:
+        return jsonify({'error': f'stripe.Subscription.list failed: {e}'}), 500
+
+    stripe_likely    = sum(1 for t in stripe_trials if not t['cancel_at_period_end'])
+    stripe_scheduled = sum(1 for t in stripe_trials if t['cancel_at_period_end'])
+
+    # ── 2. DB-side counts ──
+    db_trial_users = User.query.filter(
+        User.subscription_status == 'trial',
+        User.is_internal == False,  # noqa: E712
+        User.comped == False,  # noqa: E712
+        User.deleted_at.is_(None),
+    ).count()
+    db_converted_7d = User.query.filter(
+        User.trial_converted_at.isnot(None),
+        User.trial_converted_at >= cutoff_7d,
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+    ).count()
+    db_converted_30d = User.query.filter(
+        User.trial_converted_at.isnot(None),
+        User.trial_converted_at >= cutoff_30d,
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+    ).count()
+
+    # ── 3. Suspected webhook misses ──
+    # Scan recent paid invoices. For each, if the underlying sub's customer
+    # maps to a User whose status is 'active' but trial_converted_at is NULL,
+    # the conversion-detect webhook didn't fire. We can't know retroactively
+    # whether the user actually started on trial, so we surface them as
+    # "suspected" — operator decides whether to backfill via the existing
+    # backfill_stripe_cancel_state script.
+    cutoff_30d_ts = int(cutoff_30d.timestamp())
+    likely_missed = []
+    try:
+        inv_iter = _stripe.Invoice.list(
+            status='paid', created={'gte': cutoff_30d_ts}, limit=100,
+        ).auto_paging_iter()
+        seen_cust_ids = set()
+        for n, inv in enumerate(inv_iter, start=1):
+            if n > 500:
+                break
+            if (inv.get('amount_paid') or 0) <= 0:
+                continue
+            cust = inv.get('customer')
+            cust_id = cust if isinstance(cust, str) else (cust.get('id') if cust else None)
+            if not cust_id or cust_id in excluded_cust_ids or cust_id in seen_cust_ids:
+                continue
+            seen_cust_ids.add(cust_id)
+            u = User.query.filter_by(stripe_customer_id=cust_id).first()
+            if not u or u.deleted_at is not None:
+                continue
+            if u.subscription_status == 'active' and u.trial_converted_at is None and u.trial_end_date is not None:
+                likely_missed.append({
+                    'user_id': u.id,
+                    'email': u.email,
+                    'customer_id': cust_id,
+                    'invoice_id': inv.get('id'),
+                    'paid_at': inv.get('status_transitions', {}).get('paid_at'),
+                    'amount_paid_cents': inv.get('amount_paid'),
+                    'trial_end_date': u.trial_end_date.isoformat() if u.trial_end_date else None,
+                })
+    except Exception as e:
+        # Don't fail the whole audit if invoice scan trips; just note it.
+        likely_missed = [{'error': f'invoice scan failed: {e}'}]
+
+    # ── Reconciliation ──
+    trial_delta = len(stripe_trials) - db_trial_users  # > 0 means Stripe sees more trials than DB
+    conv_30d_likely_miss = sum(1 for r in likely_missed if 'user_id' in r)
+
+    return jsonify({
+        'generated_at': now.isoformat() + 'Z',
+        'dashboard': {
+            'note': 'Mirrors what Today\'s Read v2 displays. Pulled from the same fields as stripe_metrics.fetch().',
+            'trials':                       len(stripe_trials),
+            'trials_with_cancel_scheduled': stripe_scheduled,
+            'trials_likely_to_convert':     stripe_likely,
+            'trial_conversions_7d':         db_converted_7d,
+            'trial_conversions_30d':        db_converted_30d,
+        },
+        'stripe_live': {
+            'trial_count':              len(stripe_trials),
+            'cancel_scheduled_count':   stripe_scheduled,
+            'likely_to_convert_count':  stripe_likely,
+            'sample':                   stripe_trials[:25],
+        },
+        'db': {
+            'subscription_status_trial_count': db_trial_users,
+            'trial_converted_at_7d':           db_converted_7d,
+            'trial_converted_at_30d':          db_converted_30d,
+        },
+        'reconciliation': {
+            'stripe_trials_vs_db_trial_status':  trial_delta,
+            'suspected_webhook_misses_30d':      conv_30d_likely_miss,
+            'verdict': (
+                'OK' if trial_delta == 0 and conv_30d_likely_miss == 0
+                else 'INVESTIGATE'
+            ),
+        },
+        'likely_missed_conversions': likely_missed,
+        'hint': (
+            'Non-zero stripe_trials_vs_db_trial_status: customer.subscription.updated '
+            'webhooks may be failing; check Stripe webhook delivery logs. '
+            'Non-empty likely_missed_conversions: invoice.paid arrived but '
+            'trial_converted_at never got set; run scripts/backfill_stripe_cancel_state.py '
+            'to retroactively populate trial_converted_at from trial_end_date.'
+        ),
+    })

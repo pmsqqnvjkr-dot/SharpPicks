@@ -39,6 +39,26 @@ def _payload(metrics: dict, source: str) -> dict:
     return env.get('payload') or {}
 
 
+def _combined_installs_28d(gp: dict, asc: dict) -> int:
+    """iOS + Android 28-day installs, mirroring the field-preference rules the
+    Today's Read v2 hero uses (admin.js _renderTodaysReadV2). Android prefers
+    Play's device_installs_28d, falling back to first_opens_28d; iOS prefers
+    ASC first_opens_28d (=downloads), falling back to device_installs_28d.
+
+    Headline copy used to read only Android (via gp.user_installs_28d) which
+    quietly dropped iOS from the count. 2026-05-22: combined so the install
+    figure in the read-line matches the iOS + Android hero cell.
+    """
+    android = (gp.get('device_installs_28d')
+               or gp.get('first_opens_28d')
+               or gp.get('user_installs_28d')
+               or 0)
+    ios = (asc.get('first_opens_28d')
+           or asc.get('device_installs_28d')
+           or 0)
+    return int(android) + int(ios)
+
+
 def compute_headline(metrics: dict) -> dict:
     """Growth-led headline. Lead with MRR + new signups + trial pipeline,
     not payment failures. Order: bad_day (only if material) > good_day
@@ -56,6 +76,7 @@ def compute_headline(metrics: dict) -> dict:
     stripe = _payload(metrics, 'stripe')
     rc     = _payload(metrics, 'revenuecat')
     gp     = _payload(metrics, 'google_play')
+    asc    = _payload(metrics, 'app_store_connect')
 
     # mrr_cents is the ACTUAL paying revenue (status='active' only).
     # Trial subs are counted separately in stripe.trial_subs and
@@ -70,7 +91,7 @@ def compute_headline(metrics: dict) -> dict:
     failed_users = stripe.get('failed_payment_users_30d')
     if failed_users is None:
         failed_users = stripe.get('failed_payments_30d') or 0  # legacy fallback
-    installs_28d   = gp.get('user_installs_28d') or 0
+    installs_28d   = _combined_installs_28d(gp, asc)
     dau_avg        = gp.get('dau_avg_28d') or 0
 
     # bad_day: only when payment trouble is material, churn is real,
@@ -220,6 +241,7 @@ def compute_actions(metrics: dict) -> list:
     gsc    = _payload(metrics, 'gsc')
     ga4    = _payload(metrics, 'ga4')
     gp     = _payload(metrics, 'google_play')
+    asc    = _payload(metrics, 'app_store_connect')
     model  = _payload(metrics, 'model_perf')
 
     items = []
@@ -244,10 +266,10 @@ def compute_actions(metrics: dict) -> list:
             'message': ', '.join(bits) + '.',
         })
 
-    # 2. acquisition — GSC + GA4 + Play Store
+    # 2. acquisition — GSC + GA4 + Play Store + App Store
     gsc_clicks   = gsc.get('clicks') or 0
     ga4_sessions = ga4.get('sessions') or ga4.get('sessions_30d') or 0
-    installs_28d = gp.get('user_installs_28d') or 0
+    installs_28d = _combined_installs_28d(gp, asc)
     dau_avg      = gp.get('dau_avg_28d') or 0
     if gsc_clicks or ga4_sessions or installs_28d:
         bits = []
