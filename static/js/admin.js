@@ -616,11 +616,21 @@ function _renderTodaysReadV2(metrics) {
 
   const stripe = metrics?.stripe?.payload || {};
   const rc     = metrics?.revenuecat?.payload || {};
-  const activity = metrics?.activity?.payload || metrics?.activity || {};
+  // Correct envelope keys (verified against admin_api routes + sources):
+  //   metrics.google_play.payload       → Android install metrics
+  //   metrics.app_store_connect.payload → iOS install metrics
+  //   metrics.gsc.payload               → Google Search Console
+  //   metrics.ga4.payload               → Google Analytics
+  //   metrics.events.payload            → Signals, pass rate, bet taps
+  // Activity (DAU / logins / signups today) is NOT in this envelope —
+  // it lives at /api/admin/users/activity which we fetch separately
+  // below so the Today's Read panel populates without requiring the
+  // user to click the Users tab first.
   const gsc = metrics?.gsc?.payload || {};
   const ga4 = metrics?.ga4?.payload || {};
-  const play = metrics?.play?.payload || {};
-  const asc = metrics?.appstore?.payload || metrics?.asc?.payload || {};
+  const play = metrics?.google_play?.payload || {};
+  const asc = metrics?.app_store_connect?.payload || {};
+  const events = metrics?.events?.payload || {};
   const headline = metrics.headline || {};
 
   // -- Read line (the serif sentence). Reuses the headline sentence the
@@ -663,8 +673,12 @@ function _renderTodaysReadV2(metrics) {
   }
 
   // -- Hero cell 3: Top of funnel · 28d installs
-  const iosInstalls28 = asc.first_downloads_28d || asc.installs_28d || 0;
-  const androidInstalls28 = play.device_installs_28d || play.installs_28d || 0;
+  // Field naming on the install sources (verified against _renderAcquisition
+  // which already consumes the same envelope):
+  //   ASC:  first_opens_28d (downloads), device_installs_28d (total)
+  //   Play: first_opens_28d, device_installs_28d
+  const iosInstalls28 = asc.first_opens_28d || asc.device_installs_28d || 0;
+  const androidInstalls28 = play.device_installs_28d || play.first_opens_28d || 0;
   const totalInstalls = iosInstalls28 + androidInstalls28;
   _tr2SetValue('tr2-hero-installs', SP_FMT.num(totalInstalls), 'installs');
   const gscClicks28 = gsc.clicks_28d || 0;
@@ -733,48 +747,70 @@ function _renderTodaysReadV2(metrics) {
 
   _tr2SetText('tr2-ios-installs', SP_FMT.num(iosInstalls28));
   _tr2SetText('tr2-android-installs', SP_FMT.num(androidInstalls28));
-  if ((play.first_opens_28d || 0) === 0 && androidInstalls28 > 0) {
+  if ((play.first_opens_28d || 0) === 0 && (play.device_installs_28d || 0) > 0) {
     _tr2SetDelta('tr2-android-installs-meta', 'Device installs · Play first-opens at 0', 'warn');
   }
 
   const funnelLede = `${SP_FMT.num(ga4Sessions7)} web sessions and ${SP_FMT.num(gscClicks28)} GSC clicks over the last 28 days. ${SP_FMT.num(iosInstalls28)} first downloads on iOS, ${SP_FMT.num(androidInstalls28)} device installs on Android.`;
   _tr2SetText('tr2-funnel-lede', funnelLede);
 
-  // ── OPERATING HEALTH ──────────────────────────────────────────────
-  const dauToday = activity.dau_today != null ? activity.dau_today : (activity.dau || 0);
-  _tr2SetText('tr2-dau', SP_FMT.num(dauToday));
-  const dauAvg = activity.dau_avg_30d;
-  if (dauAvg && dauAvg > 0) {
-    const delta = Math.round((dauToday - dauAvg) / dauAvg * 100);
-    const sign = delta >= 0 ? '+' : '';
-    _tr2SetDelta('tr2-dau-delta', `${sign}${delta}% vs avg`, delta > 0 ? 'pos' : (delta < 0 ? 'neg' : null));
-  }
-
-  const logins24h = activity.logins_24h || 0;
-  _tr2SetText('tr2-logins-24h', SP_FMT.num(logins24h));
-  const loginsAvg = activity.logins_24h_avg_30d;
-  if (loginsAvg && loginsAvg > 0) {
-    const delta = Math.round((logins24h - loginsAvg) / loginsAvg * 100);
-    const sign = delta >= 0 ? '+' : '';
-    _tr2SetDelta('tr2-logins-delta', `${sign}${delta}% vs avg`, delta > 0 ? 'pos' : (delta < 0 ? 'neg' : null));
-  }
-
-  const signals = metrics.signals?.payload || {};
-  const sig7 = signals.signals_7d || 0;
-  const sigMix = signals.signals_by_sport_7d || {};
+  // ── OPERATING HEALTH (signals come from events envelope) ──────────
+  // Signals_issued is a {sport: count} object summed across the window.
+  const sigBySport = events.signals_issued || {};
+  const sig7 = Object.values(sigBySport).reduce((sum, n) => sum + (n || 0), 0);
   _tr2SetText('tr2-signals-7d', SP_FMT.num(sig7));
   const mixParts = ['nba', 'mlb', 'wnba']
-    .map(s => `${s.toUpperCase()} ${sigMix[s] || 0}`)
+    .map(s => `${s.toUpperCase()} ${sigBySport[s] || 0}`)
     .join(' · ');
   _tr2SetText('tr2-signals-mix', mixParts);
 
-  _tr2SetText('tr2-ops-lede', `${dauToday} DAU today, ${logins24h} logins in the last 24 hours, ${sig7} signals issued this week.`);
+  // DAU / logins / signups today come from a SEPARATE endpoint
+  // (/api/admin/users/activity), not the metrics envelope. Fetch once
+  // and write to the tr2 IDs. Promise dedup keyed off the existing
+  // _activityCachePromise (we'd reuse the Users-tab promise if it ran
+  // already, but on the Command tab it hasn't fired yet).
+  if (!window.__tr2ActivityPromise) {
+    window.__tr2ActivityPromise = fetch('/api/admin/users/activity?range=30d', { credentials: 'same-origin' })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null);
+  }
+  window.__tr2ActivityPromise.then(activity => {
+    if (!activity) return;
+    const s = activity.summary || activity;
+    const dauToday = s.dau != null ? s.dau : (s.dau_today || 0);
+    _tr2SetText('tr2-dau', SP_FMT.num(dauToday));
+    const dauAvg = s.dau_avg_7d || s.dau_avg_30d;
+    if (dauAvg && dauAvg > 0) {
+      const delta = Math.round((dauToday - dauAvg) / dauAvg * 100);
+      const sign = delta >= 0 ? '+' : '';
+      _tr2SetDelta('tr2-dau-delta', `${sign}${delta}% vs avg`, delta > 0 ? 'pos' : (delta < 0 ? 'neg' : null));
+    }
 
-  // ── TODAY'S SIGNUPS ───────────────────────────────────────────────
-  const signups = activity.signups_today || {};
-  _tr2SetText('tr2-signups-free', SP_FMT.num(signups.free || activity.free_signups_today || 0));
-  _tr2SetText('tr2-signups-trial', SP_FMT.num(signups.trial || activity.trial_starts_today || 0));
-  _tr2SetText('tr2-signups-paid', SP_FMT.num(signups.paid || activity.paid_signups_today || 0));
+    const logins24h = s.logins_24h || 0;
+    _tr2SetText('tr2-logins-24h', SP_FMT.num(logins24h));
+    const loginsAvg = s.logins_24h_avg_7d || s.logins_24h_avg_30d;
+    if (loginsAvg && loginsAvg > 0) {
+      const delta = Math.round((logins24h - loginsAvg) / loginsAvg * 100);
+      const sign = delta >= 0 ? '+' : '';
+      _tr2SetDelta('tr2-logins-delta', `${sign}${delta}% vs avg`, delta > 0 ? 'pos' : (delta < 0 ? 'neg' : null));
+    }
+
+    // Operating-health lede uses both signals (from events envelope
+    // above) and DAU/logins (from this activity payload).
+    _tr2SetText('tr2-ops-lede', `${dauToday} DAU today, ${logins24h} logins in the last 24 hours, ${sig7} signals issued this week.`);
+
+    // Today's signups
+    const freeToday = s.free_signups_24h || 0;
+    _tr2SetText('tr2-signups-free', SP_FMT.num(freeToday));
+    const freeAvg = s.free_signups_7d_avg;
+    if (freeAvg != null) {
+      const delta = freeToday - freeAvg;
+      const sign = delta >= 0 ? '+' : '';
+      _tr2SetDelta('tr2-signups-free-delta', `${sign}${Math.round(delta)} vs avg`, delta > 0 ? 'pos' : null);
+    }
+    _tr2SetText('tr2-signups-trial', SP_FMT.num(s.trial_starts_24h || 0));
+    _tr2SetText('tr2-signups-paid', SP_FMT.num(s.paid_signups_24h || 0));
+  });
 }
 
 
