@@ -31,11 +31,17 @@
     });
   });
 
-  // Toggle interactions
-  document.querySelector('.toggle-switch').addEventListener('click', function() {
+  // Toggle interactions. Both elements are optional — .compare-toggle
+  // was inside the legacy "what moved" block that Today's Read v2
+  // removed (2026-05-22), and .toggle-switch is conditionally rendered.
+  // Without the null guards, missing element threw at module init and
+  // every subsequent script registration was aborted — which is why the
+  // entire dashboard rendered as '--' placeholders for ~30 minutes
+  // after the v2 redesign shipped.
+  document.querySelector('.toggle-switch')?.addEventListener('click', function() {
     this.classList.toggle('on');
   });
-  document.querySelector('.compare-toggle').addEventListener('click', function() {
+  document.querySelector('.compare-toggle')?.addEventListener('click', function() {
     const states = ['vs 7d ago', 'vs 30d ago'];
     const current = this.textContent.trim();
     const next = states[(states.indexOf(current) + 1) % states.length];
