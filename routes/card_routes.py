@@ -74,7 +74,7 @@ def _compute_weekly_data(week_start_str=None, week_end_str=None):
     weekly_picks = Pick.query.filter(
         Pick.game_date >= ws_str,
         Pick.game_date <= we_str,
-        Pick.result.in_(['win', 'loss', 'push']),
+        Pick.result.in_(['win', 'loss', 'push', 'postponed']),
     ).all()
 
     weekly_window_picks = Pick.query.filter(
@@ -100,7 +100,7 @@ def _compute_weekly_data(week_start_str=None, week_end_str=None):
     weekly_edges = [p.edge_pct for p in weekly_picks if p.edge_pct is not None]
     weekly_avg_edge = round(sum(weekly_edges) / len(weekly_edges), 1) if weekly_edges else 0.0
 
-    all_picks = Pick.query.filter(Pick.result.in_(['win', 'loss', 'push'])).all()
+    all_picks = Pick.query.filter(Pick.result.in_(['win', 'loss', 'push', 'postponed'])).all()
     season_wins = sum(1 for p in all_picks if p.result == 'win')
     season_losses = sum(1 for p in all_picks if p.result == 'loss')
     season_decided = season_wins + season_losses

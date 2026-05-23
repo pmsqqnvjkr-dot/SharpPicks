@@ -31,7 +31,7 @@ def _fetch_raw() -> dict:
         Pick.sport, Pick.result, Pick.profit_units,
     ).filter(
         Pick.published_at >= cutoff,
-        Pick.result.in_(('win', 'loss', 'push')),
+        Pick.result.in_(('win', 'loss', 'push', 'postponed')),
     ).all()
 
     by_sport: dict = {}

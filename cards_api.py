@@ -731,7 +731,7 @@ def user_results_card():
         pick_q = pick_q.filter_by(sport=sport)
         pass_q = pass_q.filter_by(sport=sport)
 
-    decided = pick_q.filter(Pick.result.in_(['win', 'loss', 'push'])).all()
+    decided = pick_q.filter(Pick.result.in_(['win', 'loss', 'push', 'postponed'])).all()
     wins = sum(1 for p in decided if p.result == 'win')
     losses = sum(1 for p in decided if p.result == 'loss')
     total_pnl = sum((p.profit_units or 0) for p in decided)
@@ -934,7 +934,7 @@ SHARE_URL = os.environ.get('SHARE_BASE_URL', 'https://sharppicks.ai')
 
 
 def _season_stats(sport=None):
-    q = Pick.query.filter(Pick.result.in_(['win', 'loss', 'push']))
+    q = Pick.query.filter(Pick.result.in_(['win', 'loss', 'push', 'postponed']))
     if sport:
         q = q.filter(Pick.sport == sport)
     decided = q.all()

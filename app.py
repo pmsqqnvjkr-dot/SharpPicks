@@ -3523,7 +3523,7 @@ def grade_pending_picks():
                 TrackedBet.result.is_(None),
                 TrackedBet.pick_id.isnot(None)
             ).join(Pick, TrackedBet.pick_id == Pick.id).filter(
-                Pick.result.in_(['win', 'loss', 'push'])
+                Pick.result.in_(['win', 'loss', 'push', 'postponed'])
             ).all()
             for tb in orphaned:
                 lp = tb.linked_pick

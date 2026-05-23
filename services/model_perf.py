@@ -208,7 +208,7 @@ def _revoke_rate(now: datetime, days: int) -> dict:
     cutoff = now - timedelta(days=days)
     total = Pick.query.filter(
         Pick.published_at >= cutoff,
-        Pick.result.in_(('win', 'loss', 'push', 'revoked')),
+        Pick.result.in_(('win', 'loss', 'push', 'revoked', 'postponed')),
     ).count()
     revoked = Pick.query.filter(
         Pick.published_at >= cutoff,

@@ -1886,7 +1886,7 @@ def control_room():
     ks_result = evaluate_kill_switch(sport)
 
     resolved = Pick.query.filter(
-        Pick.result.in_(['win', 'loss', 'push']),
+        Pick.result.in_(['win', 'loss', 'push', 'postponed']),
         Pick.sport == sport,
     ).order_by(Pick.game_date.desc()).limit(200).all()
 
@@ -1898,7 +1898,7 @@ def control_room():
     from models import EdgeSnapshot
     snapshots = db.session.query(EdgeSnapshot).join(Pick).filter(
         Pick.sport == sport,
-        Pick.result.in_(['win', 'loss', 'push']),
+        Pick.result.in_(['win', 'loss', 'push', 'postponed']),
     ).order_by(EdgeSnapshot.created_at.desc()).limit(100).all()
 
     open_edges = [s.edge_pct for s in snapshots if s.edge_pct is not None and s.snapshot_label == 'open']
@@ -2064,7 +2064,7 @@ def model_signal():
     sport = request.args.get('sport', 'nba')
 
     resolved = Pick.query.filter(
-        Pick.result.in_(['win', 'loss', 'push']),
+        Pick.result.in_(['win', 'loss', 'push', 'postponed']),
         Pick.sport == sport,
     ).order_by(Pick.game_date.desc()).all()
 
@@ -3693,7 +3693,7 @@ def admin_diagnose_revoked_clv():
     # negative?" without flipping the filter and breaking the existing
     # number.
     settled_30d = Pick.query.filter(
-        Pick.result.in_(['win', 'loss', 'push']),
+        Pick.result.in_(['win', 'loss', 'push', 'postponed']),
         Pick.published_at >= cutoff_30d,
         Pick.clv.isnot(None),
     ).all()
@@ -3875,7 +3875,7 @@ def admin_model_clv():
     for sport in ('nba', 'wnba', 'mlb'):
         picks = Pick.query.filter(
             Pick.sport == sport,
-            Pick.result.in_(('win', 'loss', 'push')),
+            Pick.result.in_(('win', 'loss', 'push', 'postponed')),
         ).all()
         clv_vals = [p.clv for p in picks if p.clv is not None]
         ml_vals = [p.clv_ml for p in picks if p.clv_ml is not None]

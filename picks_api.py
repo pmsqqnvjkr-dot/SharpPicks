@@ -654,7 +654,7 @@ def last_resolved():
     today's pick has resolved, lastResolved otherwise)."""
     sport = request.args.get('sport', 'nba')
     pick = Pick.query.filter(
-        Pick.result.in_(['win', 'loss', 'push']),
+        Pick.result.in_(['win', 'loss', 'push', 'postponed']),
         Pick.sport == sport,
     ).order_by(Pick.published_at.desc()).first()
 

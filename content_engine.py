@@ -615,7 +615,7 @@ def _evening_has_data(date_str, sport):
         return Pick.query.filter(
             Pick.sport == sport,
             Pick.game_date == date_str,
-            Pick.result.in_(('win', 'loss', 'push')),
+            Pick.result.in_(('win', 'loss', 'push', 'postponed')),
         ).count() > 0
     except Exception:
         return False
@@ -1482,7 +1482,7 @@ def get_proof_module(sport='nba', limit=7):
     try:
         recent = Pick.query.filter(
             Pick.sport == sport,
-            Pick.result.in_(['win', 'loss', 'push']),
+            Pick.result.in_(['win', 'loss', 'push', 'postponed']),
         ).order_by(Pick.game_date.desc()).limit(limit).all()
 
         if not recent:

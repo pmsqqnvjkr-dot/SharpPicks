@@ -176,7 +176,7 @@ def stats():
         rate = round(beats / denom * 100, 1) if denom > 0 else 0
         return beats, matches, misses, rate
 
-    clv_q = pick_q.filter(Pick.clv.isnot(None), Pick.result.in_(['win', 'loss', 'push']))
+    clv_q = pick_q.filter(Pick.clv.isnot(None), Pick.result.in_(['win', 'loss', 'push', 'postponed']))
     clv_picks = clv_q.all()
     clv_values = [p.clv for p in clv_picks if p.clv is not None]
     avg_clv = round(sum(clv_values) / len(clv_values), 2) if clv_values else None
@@ -189,7 +189,7 @@ def stats():
     # points; clv_ml_beat_rate is the % of decisive picks (beat + miss,
     # matches excluded) where the closing implied probability moved
     # toward our side.
-    clv_ml_q = pick_q.filter(Pick.clv_ml.isnot(None), Pick.result.in_(['win', 'loss', 'push']))
+    clv_ml_q = pick_q.filter(Pick.clv_ml.isnot(None), Pick.result.in_(['win', 'loss', 'push', 'postponed']))
     clv_ml_picks = clv_ml_q.all()
     clv_ml_values = [p.clv_ml for p in clv_ml_picks if p.clv_ml is not None]
     avg_clv_ml = round(sum(clv_ml_values) / len(clv_ml_values), 2) if clv_ml_values else None
@@ -212,7 +212,7 @@ def stats():
     last_signal_date = None
     try:
         last_pick = pick_q.filter(
-            Pick.result.in_(['win', 'loss', 'push'])
+            Pick.result.in_(['win', 'loss', 'push', 'postponed'])
         ).order_by(Pick.published_at.desc()).first()
         if last_pick:
             units = last_pick.profit_units
