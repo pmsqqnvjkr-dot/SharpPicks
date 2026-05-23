@@ -4774,6 +4774,53 @@ def _grade_picks_for_final_games(final_games):
             logging.info(f"[Live-grade] Graded {graded} picks from {len(final_games)} final games")
 
 
+def _mark_picks_postponed(postponed_games):
+    """Auto-mark pending picks as `result='postponed'` when their game gets
+    postponed/canceled in the live scores collector. P&L-neutral (profit=0,
+    pnl=0) like a push, but distinct so analytics can break out rainouts
+    from genuine line-cover pushes. CLV stays as captured at publication.
+
+    Idempotent: only picks still in `pending` get flipped. Already-revoked
+    picks are left alone (operator-revoked, line-move-revoked, etc. take
+    precedence over the postponement).
+    """
+    with app.app_context():
+        marked = 0
+        for pg in postponed_games:
+            sport      = pg['sport']
+            home_team  = pg['home_team']
+            away_team  = pg['away_team']
+            game_date  = pg['game_date']
+            picks = Pick.query.filter(
+                Pick.sport == sport,
+                Pick.home_team == home_team,
+                Pick.away_team == away_team,
+                Pick.game_date == game_date,
+                Pick.result == 'pending',
+            ).all()
+            for pick in picks:
+                pick.result = 'postponed'
+                pick.result_ats = 'P'  # treat as push at the ATS level
+                pick.profit_units = 0.0
+                pick.pnl = 0.0
+                pick.result_resolved_at = datetime.now()
+                logging.info(f"[Live-postpone] {pick.side} ({away_team} @ {home_team} {game_date}) -> postponed")
+
+                # Settle any tracked bets as a push so the user-facing
+                # ledger shows the bet returned, not pending forever.
+                linked_bets = TrackedBet.query.filter_by(pick_id=pick.id, result=None).all()
+                for tb in linked_bets:
+                    tb.result = 'P'
+                    tb.profit = 0.0
+                    tb.settled_at = datetime.now()
+
+                marked += 1
+
+        if marked:
+            db.session.commit()
+            logging.info(f"[Live-postpone] Marked {marked} picks postponed from {len(postponed_games)} games")
+
+
 @app.route('/api/cron/live-scores', methods=['GET', 'POST'])
 @verify_cron
 def cron_live_scores():
@@ -4884,6 +4931,7 @@ def cron_live_scores():
 
             updated = 0
             newly_final = []
+            newly_postponed = []
             for row in today_games:
                 try:
                     game_id, home_team, away_team = row['id'], row['home_team'], row['away_team']
@@ -4898,6 +4946,14 @@ def cron_live_scores():
                         game_status = 'final'
                     elif state in ('STATUS_IN_PROGRESS', 'STATUS_HALFTIME'):
                         game_status = 'in_progress'
+                    elif state in ('STATUS_POSTPONED', 'STATUS_CANCELED',
+                                   'STATUS_RAIN_DELAY', 'STATUS_SUSPENDED'):
+                        # ESPN postpones rainouts to a future date that gets
+                        # its own row; the original row's game has effectively
+                        # gone away. Mark distinct from 'scheduled' so any
+                        # pending pick on this row auto-resolves to
+                        # result='postponed' below (P&L-neutral, like push).
+                        game_status = 'postponed'
                     else:
                         game_status = 'scheduled'
 
@@ -4916,6 +4972,15 @@ def cron_live_scores():
                             'away_team': away_team,
                             'home_score': live['home_score'],
                             'away_score': live['away_score'],
+                        })
+                    if game_status == 'postponed' and prev_status != 'postponed':
+                        # today_games query already filters WHERE game_date = today,
+                        # so every row in this loop is the current ET date.
+                        newly_postponed.append({
+                            'sport': sport,
+                            'home_team': home_team,
+                            'away_team': away_team,
+                            'game_date': now_et.strftime('%Y-%m-%d'),
                         })
 
                     period_str = None
@@ -4960,6 +5025,12 @@ def cron_live_scores():
                     _grade_picks_for_final_games(newly_final)
                 except Exception as e:
                     logging.error(f"Live auto-grade error: {e}")
+
+            if newly_postponed:
+                try:
+                    _mark_picks_postponed(newly_postponed)
+                except Exception as e:
+                    logging.error(f"Live auto-postpone error: {e}")
 
         return {'updated': updated_total, 'errors': errors[:5] if errors else None}
 
