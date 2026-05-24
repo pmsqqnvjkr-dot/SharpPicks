@@ -4946,13 +4946,20 @@ def cron_live_scores():
                         game_status = 'final'
                     elif state in ('STATUS_IN_PROGRESS', 'STATUS_HALFTIME'):
                         game_status = 'in_progress'
-                    elif state in ('STATUS_POSTPONED', 'STATUS_CANCELED',
-                                   'STATUS_RAIN_DELAY', 'STATUS_SUSPENDED'):
+                    elif state in ('STATUS_POSTPONED', 'STATUS_CANCELED'):
                         # ESPN postpones rainouts to a future date that gets
                         # its own row; the original row's game has effectively
                         # gone away. Mark distinct from 'scheduled' so any
                         # pending pick on this row auto-resolves to
                         # result='postponed' below (P&L-neutral, like push).
+                        # NOTE (2026-05-24): STATUS_RAIN_DELAY and
+                        # STATUS_SUSPENDED used to live in this bucket and
+                        # caused today's live Cards-Reds pick to flip to
+                        # 'postponed' mid-game when ESPN briefly reported a
+                        # rain delay. Those states are temporary halts, not
+                        # terminal — the game resumes. Only POSTPONED and
+                        # CANCELED are real terminal states for our pick
+                        # resolution logic.
                         game_status = 'postponed'
                     else:
                         game_status = 'scheduled'
