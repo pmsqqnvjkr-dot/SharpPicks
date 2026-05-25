@@ -589,6 +589,55 @@ def delete_live_pick():
     return jsonify({'deleted': True, 'pick': info, 'game_date': today_str})
 
 
+@admin_bp.route('/api/admin/notify-pick', methods=['POST'])
+def admin_notify_pick():
+    """Fire the push notification for an already-published pick. Used when a
+    pick was force-triggered with notify=false and we want to send the
+    'Signal Locked' notification after the fact.
+
+    Body: {"pick_id": "..."} OR {"sport": "nba|mlb|wnba", "date": "YYYY-MM-DD"}.
+    If only sport is given, uses today's published pick for that sport.
+    """
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Unauthorized'}), err_code
+
+    data = request.get_json() or {}
+    pick_id = (data.get('pick_id') or '').strip() or None
+    sport = (data.get('sport') or '').strip().lower() or None
+    date_str = (data.get('date') or '').strip() or None
+
+    pick = None
+    if pick_id:
+        pick = Pick.query.get(pick_id)
+    elif sport:
+        q = Pick.query.filter(Pick.sport == sport)
+        if date_str:
+            q = q.filter(Pick.game_date == date_str)
+        else:
+            q = q.filter(Pick.game_date == datetime.now(ET).strftime('%Y-%m-%d'))
+        pick = q.order_by(Pick.published_at.desc()).first()
+    if not pick:
+        return jsonify({'error': 'Pick not found'}), 404
+    if pick.result and pick.result not in ('pending',):
+        return jsonify({'error': f'Pick is {pick.result}, refusing to notify'}), 400
+
+    try:
+        from notification_service import send_pick_notification
+        sent = send_pick_notification(pick)
+        return jsonify({
+            'notified': bool(sent),
+            'pick_id': pick.id,
+            'sport': pick.sport,
+            'side': pick.side,
+        })
+    except Exception as e:
+        return jsonify({'error': f'send_pick_notification raised: {e}'}), 500
+
+
 @admin_bp.route('/api/admin/reset-game-state', methods=['POST'])
 def reset_game_state():
     """Clear game_status + scores on a games-table row so the next
