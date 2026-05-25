@@ -1668,9 +1668,12 @@ def health_checks():
 
 @admin_bp.route('/api/admin/cron-health')
 def cron_health():
-    admin, err_code = require_superuser()
-    if not admin:
-        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
     now_et = datetime.now(ET)
 
