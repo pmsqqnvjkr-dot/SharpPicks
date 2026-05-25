@@ -674,10 +674,13 @@ def ungrade_pick(pick_id):
 
 @admin_bp.route('/api/admin/trigger-model', methods=['POST'])
 def trigger_model():
-    """Run model without clearing (admin auth). Use force=true in body to clear and rerun."""
-    admin, err_code = require_superuser()
-    if not admin:
-        return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
+    """Run model without clearing (admin auth or cron secret). Use force=true in body to clear and rerun."""
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Login required' if err_code == 401 else 'Unauthorized'}), err_code
 
     data = request.get_json() or {}
     force = data.get('force', False)
