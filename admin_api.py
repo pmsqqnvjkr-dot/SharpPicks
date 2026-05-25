@@ -615,23 +615,37 @@ def reset_game_state():
 
     table = 'games' if sport == 'nba' else f'{sport}_games'
 
-    from sqlalchemy import text as _sql_text
+    # Games rows live in SQLite (collector uses get_sqlite_conn), not the
+    # Postgres ORM. Use the same connection helper the scores collector uses.
+    from db_path import get_sqlite_conn
+    conn = get_sqlite_conn()
     try:
-        result = db.session.execute(_sql_text(
+        cursor = conn.cursor()
+        cursor.execute(
             f"UPDATE {table} SET game_status = NULL, home_score = NULL, "
             f"away_score = NULL, current_period = NULL, game_clock = NULL "
-            f"WHERE id = :gid"
-        ), {'gid': game_id})
-        db.session.commit()
+            f"WHERE id = ?",
+            (game_id,),
+        )
+        rows = cursor.rowcount
+        conn.commit()
         return jsonify({
             'reset': True,
             'sport': sport,
             'game_id': game_id,
-            'rows_updated': result.rowcount,
+            'rows_updated': rows,
         })
     except Exception as e:
-        db.session.rollback()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         return jsonify({'error': str(e)[:200]}), 500
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 @admin_bp.route('/api/admin/ungrade-pick/<pick_id>', methods=['POST'])
