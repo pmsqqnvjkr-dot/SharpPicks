@@ -589,6 +589,51 @@ def delete_live_pick():
     return jsonify({'deleted': True, 'pick': info, 'game_date': today_str})
 
 
+@admin_bp.route('/api/admin/reset-game-state', methods=['POST'])
+def reset_game_state():
+    """Clear game_status + scores on a games-table row so the next
+    live-scores cron tick repopulates from ESPN cleanly. Built for the
+    2026-05-24 incident where a brief rain-delay made our collector
+    momentarily write game_status='final' + scores=0; even after the
+    pick was un-graded the games row served the bad snapshot to the
+    slate.
+
+    Body: {"sport": "mlb", "game_id": "<row_id>"}.
+    """
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Unauthorized'}), err_code
+
+    data = request.get_json() or {}
+    sport = (data.get('sport') or '').strip().lower()
+    game_id = (data.get('game_id') or '').strip()
+    if sport not in ('nba', 'mlb', 'wnba') or not game_id:
+        return jsonify({'error': 'sport (nba/mlb/wnba) and game_id required'}), 400
+
+    table = 'games' if sport == 'nba' else f'{sport}_games'
+
+    from sqlalchemy import text as _sql_text
+    try:
+        result = db.session.execute(_sql_text(
+            f"UPDATE {table} SET game_status = NULL, home_score = NULL, "
+            f"away_score = NULL, current_period = NULL, game_clock = NULL "
+            f"WHERE id = :gid"
+        ), {'gid': game_id})
+        db.session.commit()
+        return jsonify({
+            'reset': True,
+            'sport': sport,
+            'game_id': game_id,
+            'rows_updated': result.rowcount,
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)[:200]}), 500
+
+
 @admin_bp.route('/api/admin/ungrade-pick/<pick_id>', methods=['POST'])
 def ungrade_pick(pick_id):
     """Reset a pick back to pending (reverses an incorrect grade)."""
