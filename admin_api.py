@@ -625,9 +625,30 @@ def admin_notify_pick():
     if pick.result and pick.result not in ('pending',):
         return jsonify({'error': f'Pick is {pick.result}, refusing to notify'}), 400
 
+    # Idempotency guard: mark the pick once via a notes marker. Re-calls
+    # return already_notified=true without firing. Built after a poll-loop
+    # bug fired 5 duplicate pushes for the same NBA pick on 2026-05-25.
+    # Use the existing `notes` column so we don't need a schema migration.
+    NOTIFY_MARKER = 'NOTIFIED:1'
+    if pick.notes and NOTIFY_MARKER in pick.notes:
+        return jsonify({
+            'notified': False,
+            'already_notified': True,
+            'pick_id': pick.id,
+            'sport': pick.sport,
+            'side': pick.side,
+        })
+
+    force = bool(data.get('force'))
+    if pick.notes and NOTIFY_MARKER in pick.notes and not force:
+        return jsonify({'notified': False, 'already_notified': True, 'pick_id': pick.id})
+
     try:
         from notification_service import send_pick_notification
         sent = send_pick_notification(pick)
+        if sent:
+            pick.notes = (pick.notes + ' | ' if pick.notes else '') + NOTIFY_MARKER
+            db.session.commit()
         return jsonify({
             'notified': bool(sent),
             'pick_id': pick.id,
