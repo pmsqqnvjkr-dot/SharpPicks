@@ -16,6 +16,35 @@ print(f"BOOT: pid={os.getpid()} python={sys.version_info[:2]} PORT={os.environ.g
 log_level = logging.INFO if os.environ.get("REPLIT_DEPLOYMENT") == "1" else logging.DEBUG
 logging.basicConfig(level=log_level)
 
+# Sentry must initialize BEFORE Flask is constructed so the integration
+# can hook the WSGI app. Falls through quietly when SENTRY_DSN is unset
+# (local dev). traces_sample_rate stays low — we want exception coverage,
+# not full-trace APM volume.
+_sentry_dsn = os.environ.get('SENTRY_DSN', '').strip()
+if _sentry_dsn:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+        sentry_sdk.init(
+            dsn=_sentry_dsn,
+            integrations=[FlaskIntegration(), SqlalchemyIntegration()],
+            environment='production' if (
+                os.environ.get('RAILWAY_PROJECT_ID')
+                or os.environ.get('REPLIT_DEPLOYMENT') == '1'
+            ) else 'dev',
+            release=os.environ.get('RAILWAY_GIT_COMMIT_SHA', '')[:7] or None,
+            # Sample 10% of transactions for performance traces; capture
+            # 100% of exceptions (the default for the events stream).
+            traces_sample_rate=0.1,
+            # PII off by default — emails can leak through breadcrumbs
+            # otherwise. Flask integration still tags request URL + status.
+            send_default_pii=False,
+        )
+        logging.info(f"Sentry initialized (env={'prod' if os.environ.get('RAILWAY_PROJECT_ID') else 'dev'})")
+    except Exception as _sentry_err:
+        logging.warning(f"Sentry init failed (non-fatal): {_sentry_err}")
+
 from flask import Flask, jsonify, Response, session, request, redirect, send_from_directory
 from sport_config import get_live_sports
 
