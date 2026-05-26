@@ -863,6 +863,11 @@ def seed_database():
                 # clv_ml_prob + migrations/2026-05-21-pick-clv-ml.sql.
                 db.session.execute(db.text("ALTER TABLE picks ADD COLUMN IF NOT EXISTS closing_ml INTEGER"))
                 db.session.execute(db.text("ALTER TABLE picks ADD COLUMN IF NOT EXISTS clv_ml DOUBLE PRECISION"))
+                # Past-due grace tracking (2026-05-26). Stamped on
+                # invoice.payment_failed; cleared on invoice.paid; consumed
+                # by User.is_pro + the expire_past_due_grace cron.
+                db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS past_due_since TIMESTAMP"))
+                db.session.execute(db.text("CREATE INDEX IF NOT EXISTS idx_users_past_due_since ON users(past_due_since) WHERE past_due_since IS NOT NULL"))
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
@@ -5611,6 +5616,7 @@ def cron_expire_trials():
     def _expire():
         check_expiring_trials()
         expire_trials()
+        expire_past_due_grace()
         now = datetime.now()
         scheduled = Insight.query.filter(Insight.status == 'scheduled', Insight.publish_date <= now).all()
         for ins in scheduled:
@@ -5619,6 +5625,41 @@ def cron_expire_trials():
         if scheduled:
             db.session.commit()
     return log_cron('expire_trials', _expire)
+
+
+def expire_past_due_grace():
+    """Revoke pro access for users whose 72h past-due grace window has
+    expired. Mirrors expire_trials in shape — runs hourly inside the
+    expire-trials cron. Flips is_premium=False but leaves
+    subscription_status='past_due' so the next invoice.paid still finds
+    them. Sends an admin alert per revoked user so the operator can see
+    when the grace window is doing real work.
+    """
+    from models import PAST_DUE_GRACE_HOURS
+    cutoff = datetime.utcnow() - timedelta(hours=PAST_DUE_GRACE_HOURS)
+    expired = User.query.filter(
+        User.subscription_status == 'past_due',
+        User.past_due_since.isnot(None),
+        User.past_due_since < cutoff,
+        User.is_premium == True,  # noqa: E712
+        User.deleted_at.is_(None),
+    ).all()
+    if not expired:
+        return
+    for u in expired:
+        u.is_premium = False
+        logging.warning(
+            f'[past_due_grace] Revoking {u.email} — past_due since '
+            f'{u.past_due_since.isoformat()} ({PAST_DUE_GRACE_HOURS}h elapsed)'
+        )
+        try:
+            _log_revenue_alert('past_due_grace_expired', u.email,
+                f'Grace window expired: {u.email} ({u.subscription_plan}) — access revoked '
+                f'after {PAST_DUE_GRACE_HOURS}h')
+        except Exception:
+            pass
+    db.session.commit()
+    logging.info(f'[past_due_grace] Revoked {len(expired)} users')
 
 
 @app.route('/api/cron/weekly-summary', methods=['GET', 'POST'])
@@ -8434,8 +8475,13 @@ def stripe_webhook():
                         user.subscription_status = 'expired'
                         user.is_premium = False
                     elif status == 'past_due':
+                        # Mirror the invoice.payment_failed grace logic so a
+                        # Stripe-side status flip via subscription.updated
+                        # doesn't bypass the 72h window.
                         user.subscription_status = 'past_due'
-                        user.is_premium = False
+                        if user.past_due_since is None:
+                            user.past_due_since = datetime.utcnow()
+                        # is_premium stays True; cron will revoke after grace.
 
                     period_end = _safe_get(data_obj, 'current_period_end')
                     if period_end:
@@ -8512,10 +8558,18 @@ def stripe_webhook():
                     amount_paid = _safe_get(data_obj, 'amount_paid', 0) or 0
                     if amount_paid > 0:
                         was_trial = user.subscription_status == 'trial'
+                        was_past_due = user.subscription_status == 'past_due'
                         if was_trial and user.trial_converted_at is None:
                             user.trial_converted_at = datetime.utcnow()
                         user.subscription_status = 'active'
                         user.is_premium = True
+                        # Clear past-due grace marker so a recovered customer
+                        # gets fresh grace next time payment fails.
+                        if user.past_due_since is not None:
+                            user.past_due_since = None
+                            if was_past_due:
+                                _log_revenue_alert('payment_recovered', user.email,
+                                    f'Payment recovered: {user.email} ({user.subscription_plan}) — out of past_due grace')
                     lines_obj = _safe_get(data_obj, 'lines', {})
                     lines = _safe_get(lines_obj, 'data', []) if lines_obj else []
                     for line in lines:
@@ -8549,20 +8603,32 @@ def stripe_webhook():
             if cust_id:
                 user = User.query.filter_by(stripe_customer_id=cust_id).first()
                 if user:
-                    # Revoke immediately on the first failed attempt — no grace period.
-                    # The User.is_pro property already excludes past_due, but we flip the
-                    # underlying is_premium column so the DB matches the access decision.
+                    # 2026-05-26: Replaced immediate revoke with a 72h grace
+                    # window. We flip subscription_status='past_due' so the
+                    # billing-state surfaces correctly, but keep
+                    # is_premium=True for the grace period. User.is_pro
+                    # honors past_due + past_due_since via PAST_DUE_GRACE_HOURS;
+                    # expire_past_due_grace() cron revokes once the window
+                    # closes. invoice.paid clears past_due_since so a
+                    # recovered customer gets fresh grace next time.
+                    is_new_failure = user.subscription_status != 'past_due'
                     user.subscription_status = 'past_due'
-                    user.is_premium = False
+                    if user.past_due_since is None:
+                        user.past_due_since = datetime.utcnow()
+                    # is_premium intentionally NOT flipped to False here.
                     db.session.commit()
-                    logging.warning(f'Payment failed for user {user.email} — access revoked')
-                    _log_revenue_alert('payment_failed', user.email,
-                        f'Failed payment: {user.email} ({user.subscription_plan}) — access revoked')
-                    try:
-                        from email_service import send_payment_failed_email
-                        send_payment_failed_email(user.email, user.first_name)
-                    except Exception as e:
-                        logging.error(f"Payment failed email error: {e}")
+                    logging.warning(
+                        f'Payment failed for user {user.email} — entered '
+                        f'past_due grace (since {user.past_due_since.isoformat()})'
+                    )
+                    if is_new_failure:
+                        _log_revenue_alert('payment_failed', user.email,
+                            f'Failed payment: {user.email} ({user.subscription_plan}) — 72h grace window opened')
+                        try:
+                            from email_service import send_payment_failed_email
+                            send_payment_failed_email(user.email, user.first_name)
+                        except Exception as e:
+                            logging.error(f"Payment failed email error: {e}")
 
         db.session.commit()
 

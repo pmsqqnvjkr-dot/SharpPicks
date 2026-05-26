@@ -1,6 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
+
+# Grace window (hours) between a payment failure and pro access revocation.
+# Used by User.is_pro to keep is_premium effectively True while Stripe
+# retries the payment. expire_past_due_grace() cron flips the underlying
+# is_premium=False once the window closes.
+PAST_DUE_GRACE_HOURS = 72
 from sqlalchemy import event
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -95,6 +101,12 @@ class User(UserMixin, db.Model):
     cancel_scheduled_at = db.Column(db.DateTime, nullable=True)
     cancel_effective_at = db.Column(db.DateTime, nullable=True)
     trial_converted_at = db.Column(db.DateTime, nullable=True)
+    # Past-due grace tracking (2026-05-26). When Stripe fires
+    # invoice.payment_failed we set past_due_since=now and keep is_premium=True
+    # for PAST_DUE_GRACE_HOURS before the expire-past-due cron flips access
+    # off. On invoice.paid the column clears so a recovered customer gets
+    # their grace credit back next time.
+    past_due_since = db.Column(db.DateTime, nullable=True, index=True)
     # Complimentary pro access. These users have is_premium=True but
     # are NOT paying — gifted access from Evan to friends/family. They
     # must be excluded from MRR, paid totals, and paid_* labels.
@@ -140,6 +152,16 @@ class User(UserMixin, db.Model):
         if self.subscription_status == 'cancelling':
             if self.current_period_end and self.current_period_end > datetime.now():
                 return True
+            return False
+        if self.subscription_status == 'past_due':
+            # 72h grace window after the first payment failure. The cron
+            # job expire_past_due_grace() flips is_premium=False once the
+            # window closes; until then we honor pro access so a single
+            # declined card doesn't lock out a paying customer.
+            if self.past_due_since:
+                grace_end = self.past_due_since + timedelta(hours=PAST_DUE_GRACE_HOURS)
+                if datetime.now() < grace_end:
+                    return True
             return False
         return False
 
