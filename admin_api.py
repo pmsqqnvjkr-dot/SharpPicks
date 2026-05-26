@@ -589,6 +589,26 @@ def delete_live_pick():
     return jsonify({'deleted': True, 'pick': info, 'game_date': today_str})
 
 
+@admin_bp.route('/api/admin/_sentry-test', methods=['GET', 'POST'])
+def admin_sentry_test():
+    """Deliberate exception path to verify Sentry capture is live. Hit with
+    cron-secret to confirm Sentry receives the event and groups it under
+    'SentryWiringTest'. Safe to leave in — never invoked except manually.
+    """
+    cron_secret = os.environ.get('CRON_SECRET', '')
+    cron_auth = cron_secret and request.headers.get('X-Cron-Secret') == cron_secret
+    if not cron_auth:
+        admin, err_code = require_superuser()
+        if not admin:
+            return jsonify({'error': 'Unauthorized'}), err_code
+
+    class SentryWiringTest(Exception):
+        pass
+
+    note = (request.args.get('note') or 'manual sentry verification').strip()[:200]
+    raise SentryWiringTest(f"intentional exception for Sentry wiring test: {note}")
+
+
 @admin_bp.route('/api/admin/notify-pick', methods=['POST'])
 def admin_notify_pick():
     """Fire the push notification for an already-published pick. Used when a
