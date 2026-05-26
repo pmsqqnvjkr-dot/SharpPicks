@@ -6097,7 +6097,36 @@ def cron_pretip_validate():
 @app.route('/api/cron/check-data-quality', methods=['GET', 'POST'])
 @verify_cron
 def cron_data_quality():
-    return log_cron('data_quality', check_data_quality)
+    def _run():
+        check_data_quality()
+        # Roll up: trim request_metrics rows older than 14 days so the
+        # table doesn't grow unbounded. Comment on the model class itself
+        # has been promising this trim "with a periodic cleanup cron"
+        # since the table shipped; the cron never existed.
+        cleanup_request_metrics(days=14)
+    return log_cron('data_quality', _run)
+
+
+def cleanup_request_metrics(days: int = 14):
+    """Delete RequestMetric rows older than `days`. Logs the row count
+    deleted at INFO so we can see retention working in cron-health.
+
+    Runs twice a day inside the data-quality cron. With ~200k requests
+    per day at current volume, the 14-day window keeps the table near
+    3M rows — small enough to query fast, large enough for p99 + 5xx
+    rollups on the Infra Read.
+    """
+    from models import RequestMetric
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    try:
+        deleted = RequestMetric.query.filter(RequestMetric.created_at < cutoff).delete(synchronize_session=False)
+        db.session.commit()
+        logging.info(f"[cleanup] Trimmed {deleted} request_metrics row(s) older than {days}d")
+        return {'deleted': deleted, 'kept_window_days': days}
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"[cleanup] request_metrics trim failed: {e}")
+        return {'error': str(e)[:200]}
 
 
 @app.route('/api/cron/retrain-model', methods=['GET', 'POST'])
