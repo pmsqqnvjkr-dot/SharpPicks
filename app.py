@@ -9958,6 +9958,102 @@ def delete_fcm_token():
     return jsonify({'success': True})
 
 
+@app.route('/api/account/export', methods=['GET'])
+def export_account():
+    """GDPR/CCPA data-export endpoint. The privacy policy at
+    /legal/privacy promises 'Export your pick tracking history' — this is
+    the implementation. Authenticated user only; returns a JSON download
+    of EVERY row we hold that's tied to them.
+
+    Excludes credentials + internal hashes (password_hash, session_token,
+    oauth_id) — those are not 'user data' under GDPR-data-portability
+    semantics, they're authentication state we own.
+
+    Stripe state is included from our DB columns (not a live Stripe call),
+    so the file is self-contained and doesn't depend on Stripe being up
+    when the user pulls it.
+    """
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    from models import (UserBet, TrackedBet, WatchedGame, UserEvent,
+                        EmailEvent, EmailSendHistory, Referral)
+
+    def _ser_value(v):
+        if isinstance(v, datetime):
+            return v.isoformat() + 'Z'
+        if hasattr(v, 'isoformat'):
+            return v.isoformat()
+        return v
+
+    def _row(obj, exclude=()):
+        from sqlalchemy import inspect as sa_inspect
+        out = {}
+        for c in sa_inspect(obj.__class__).columns:
+            if c.key in exclude:
+                continue
+            out[c.key] = _ser_value(getattr(obj, c.key, None))
+        return out
+
+    # Profile (with credentials stripped). Notification prefs already
+    # JSONB-shaped — include as-is.
+    SENSITIVE = {'password_hash', 'session_token', 'oauth_id'}
+    profile = _row(user, exclude=SENSITIVE)
+
+    user_bets = [_row(r) for r in UserBet.query.filter_by(user_id=user.id).all()]
+    tracked_bets = [_row(r) for r in TrackedBet.query.filter_by(user_id=user.id).all()]
+    watched = [_row(r) for r in WatchedGame.query.filter_by(user_id=user.id).all()]
+    referrals = [_row(r) for r in Referral.query.filter_by(referrer_user_id=user.id).all()]
+
+    # Activity + email events scoped to this user. user_events can be a
+    # big table — we cap to last 5,000 rows ordered by most-recent first
+    # so the export stays a sensible size while still satisfying the
+    # portability promise. Older rows can be requested via support if
+    # someone genuinely needs them.
+    events = [
+        _row(r)
+        for r in UserEvent.query.filter_by(user_id=user.id)
+                                .order_by(UserEvent.created_at.desc())
+                                .limit(5000).all()
+    ]
+    email_events = [_row(r) for r in EmailEvent.query.filter_by(user_id=user.id).all()]
+    email_sends  = [_row(r) for r in EmailSendHistory.query.filter_by(user_id=user.id).all()]
+
+    payload = {
+        'export_meta': {
+            'generated_at': datetime.utcnow().isoformat() + 'Z',
+            'user_id': user.id,
+            'spec': 'sharppicks-v1',
+            'event_cap': 5000,
+            'event_total_in_db': UserEvent.query.filter_by(user_id=user.id).count(),
+            'notice': (
+                'Authentication credentials (password_hash, session_token, '
+                'oauth_id) are intentionally excluded.'
+            ),
+        },
+        'profile':            profile,
+        'user_bets':          user_bets,
+        'tracked_bets':       tracked_bets,
+        'watched_games':      watched,
+        'referrals':          referrals,
+        'user_events':        events,
+        'email_events':       email_events,
+        'email_send_history': email_sends,
+    }
+
+    import json as _json
+    body = _json.dumps(payload, indent=2, default=str)
+    handle = (user.email or user.id).split('@')[0].replace('.', '_')
+    ts = datetime.utcnow().strftime('%Y%m%d')
+    filename = f'sharppicks-export-{handle}-{ts}.json'
+    return Response(
+        body,
+        mimetype='application/json',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+    )
+
+
 @app.route('/api/account/delete', methods=['DELETE'])
 def delete_account():
     """Delete user account and all associated data. Required by App Store / Play Store.
