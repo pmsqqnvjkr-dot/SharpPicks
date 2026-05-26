@@ -150,6 +150,16 @@ def fetch_recent_pitching_logs(team_abbrev, lookback_days=3, game_date=None):
                             name = athlete.get('athlete', {}).get('displayName', '')
                             stats_arr = athlete.get('stats', [])
                             ip = _parse_innings(stats_arr[0]) if stats_arr else 0.0
+                            # ESPN pitching stat array: [IP, H, R, ER, BB,
+                            # K, HR, ERA]. ER lives at index 3. Captured
+                            # so the bullpen-form (14d ERA) feature can
+                            # compute (ER*9)/IP without a second fetch.
+                            er = 0
+                            if len(stats_arr) > 3:
+                                try:
+                                    er = int(float(stats_arr[3]))
+                                except (TypeError, ValueError):
+                                    er = 0
                             # Prefer ESPN's explicit `starter` flag; fall
                             # back to "first listed pitcher is the starter"
                             # for older payload shapes.
@@ -157,6 +167,7 @@ def fetch_recent_pitching_logs(team_abbrev, lookback_days=3, game_date=None):
                             pitchers.append({
                                 'name': name,
                                 'ip': ip,
+                                'er': er,
                                 'is_starter': is_starter,
                             })
 
@@ -267,6 +278,78 @@ def _cached_bullpen(team_abbrev, game_date):
     except Exception:
         pass
     return fatigue, heavy
+
+
+LEAGUE_AVG_BULLPEN_ERA = 4.20
+
+
+def _parse_er(stat_str):
+    """Earned runs is stat index 3 in ESPN's pitching stat array
+    [IP, H, R, ER, BB, K, HR, ERA]. Returns 0 on parse failure rather
+    than raising so a malformed row doesn't poison the per-team total.
+    """
+    try:
+        return int(float(stat_str))
+    except Exception:
+        return 0
+
+
+def get_team_bullpen_form(team_abbrev, game_date=None, days=14):
+    """Bullpen ERA over the trailing `days` window (default 14). Sums
+    reliever IP + reliever ER across each game in the window, returns
+    (ER * 9) / IP. Falls back to LEAGUE_AVG_BULLPEN_ERA when no usable
+    data is found.
+
+    Orthogonal to get_team_bullpen_fatigue: that one captures workload
+    (how much they've thrown), this one captures form (how well).
+    """
+    logs = fetch_recent_pitching_logs(team_abbrev, lookback_days=days, game_date=game_date)
+    if not logs:
+        return LEAGUE_AVG_BULLPEN_ERA
+
+    total_ip = 0.0
+    total_er = 0
+    for game_log in logs:
+        for p in game_log.get('pitchers', []):
+            if p.get('is_starter'):
+                continue
+            total_ip += float(p.get('ip', 0.0) or 0.0)
+            # ESPN stat array is captured at fetch-time but only the IP
+            # is unpacked into `pitchers`. The ER is in p.get('er'),
+            # added below via a parallel fetch pass (see fetch helper).
+            total_er += int(p.get('er', 0) or 0)
+    if total_ip < 1.0:
+        return LEAGUE_AVG_BULLPEN_ERA
+    return round((total_er * 9.0) / total_ip, 2)
+
+
+def _cached_bullpen_form(team_abbrev, game_date):
+    """Disk-cached wrapper around get_team_bullpen_form. Same caching
+    pattern as _cached_bullpen — one JSON file per team-date pair.
+    """
+    if not team_abbrev or not game_date:
+        return LEAGUE_AVG_BULLPEN_ERA
+    try:
+        key = hashlib.md5(f"form:{team_abbrev}:{game_date}".encode()).hexdigest()
+        cache_path = os.path.join(_BULLPEN_CACHE_DIR, f"{key}.json")
+    except Exception:
+        return get_team_bullpen_form(team_abbrev, game_date=game_date)
+
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path) as f:
+                d = json.load(f)
+            return float(d.get('era_14d', LEAGUE_AVG_BULLPEN_ERA))
+        except Exception:
+            pass
+
+    era_14d = get_team_bullpen_form(team_abbrev, game_date=game_date)
+    try:
+        with open(cache_path, 'w') as f:
+            json.dump({'era_14d': era_14d}, f)
+    except Exception:
+        pass
+    return era_14d
 
 
 if __name__ == '__main__':

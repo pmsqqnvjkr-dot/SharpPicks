@@ -1183,9 +1183,15 @@ class EnsemblePredictor:
             features['away_bullpen_fatigue'] = pd.Series(0.0, index=df.index)
             features['bullpen_fatigue_diff'] = pd.Series(0.0, index=df.index)
             features['bullpen_usage_yesterday'] = pd.Series(0.0, index=df.index)
+            # Bullpen FORM (last 14d ERA) — orthogonal to fatigue. A pen
+            # with 4 IP yesterday + a 6.50 ERA is a different prior than
+            # 4 IP yesterday + 2.80 ERA. League-avg fallback ≈ 4.20.
+            features['home_bullpen_era_14d'] = pd.Series(4.20, index=df.index)
+            features['away_bullpen_era_14d'] = pd.Series(4.20, index=df.index)
+            features['bullpen_era_diff'] = pd.Series(0.0, index=df.index)
             try:
                 if 'game_date' in df.columns:
-                    from mlb_bullpen import _cached_bullpen
+                    from mlb_bullpen import _cached_bullpen, _cached_bullpen_form
                     for idx, row in df.iterrows():
                         ht = _mlb_abbrev(str(row.get('home_team', '')).strip())
                         at = _mlb_abbrev(str(row.get('away_team', '')).strip())
@@ -1197,8 +1203,81 @@ class EnsemblePredictor:
                             features.at[idx, 'away_bullpen_fatigue'] = a_fat
                             features.at[idx, 'bullpen_fatigue_diff'] = a_fat - h_fat
                             features.at[idx, 'bullpen_usage_yesterday'] = float(max(h_heavy, a_heavy))
+                            h_era = _cached_bullpen_form(ht, gd)
+                            a_era = _cached_bullpen_form(at, gd)
+                            features.at[idx, 'home_bullpen_era_14d'] = h_era
+                            features.at[idx, 'away_bullpen_era_14d'] = a_era
+                            features.at[idx, 'bullpen_era_diff'] = a_era - h_era
             except Exception as e:
-                print(f"   ⚠️ MLB bullpen fatigue error: {e}")
+                print(f"   ⚠️ MLB bullpen fatigue/form error: {e}")
+
+            # Series game number (G1 / G2 / G3 / G4). Same (home, away)
+            # pair on consecutive days = a series; this captures G1 vs G3
+            # behavioral differences (lineup rest, bullpen carryover,
+            # pitcher fatigue from the prior game's bench usage).
+            features['series_game_num'] = pd.Series(1, index=df.index, dtype=int)
+            try:
+                if 'game_date' in df.columns:
+                    series_dates = pd.to_datetime(df['game_date'], errors='coerce')
+                    # Pair-level prior-games lookup. For the live predict
+                    # path the df has only today's games, so we also peek
+                    # at history (5-day window) the same way the rest-day
+                    # block does above.
+                    pair_to_dates = {}
+                    for idx, row in df.iterrows():
+                        d = series_dates.get(idx)
+                        if pd.isna(d):
+                            continue
+                        key = (row.get('home_team', ''), row.get('away_team', ''))
+                        pair_to_dates.setdefault(key, []).append(d)
+                    try:
+                        ref = series_dates.dropna().max()
+                        if pd.notna(ref):
+                            start = (pd.Timestamp(ref) - pd.Timedelta(days=5)).strftime('%Y-%m-%d')
+                            end = pd.Timestamp(ref).strftime('%Y-%m-%d')
+                            tbl = self._games_table()
+                            hc = get_sqlite_conn()
+                            hist = hc.execute(
+                                f"SELECT game_date, home_team, away_team FROM {tbl} "
+                                f"WHERE game_date >= ? AND game_date <= ?",
+                                (start, end)
+                            ).fetchall()
+                            hc.close()
+                            for gd_str, ht_full, at_full in hist:
+                                # Series are pair-orientation-agnostic: a
+                                # Pirates-at-Cubs game today and Cubs-at-
+                                # Pirates yesterday is still G2 of a sweep
+                                # series. Track both orientations under
+                                # the same key.
+                                key1 = (ht_full, at_full)
+                                key2 = (at_full, ht_full)
+                                gd_ts = pd.Timestamp(gd_str)
+                                pair_to_dates.setdefault(key1, []).append(gd_ts)
+                                if key1 != key2:
+                                    pair_to_dates.setdefault(key2, []).append(gd_ts)
+                    except Exception:
+                        pass
+
+                    for key in pair_to_dates:
+                        pair_to_dates[key].sort()
+
+                    gnums = []
+                    for idx, row in df.iterrows():
+                        d = series_dates.get(idx)
+                        if pd.isna(d):
+                            gnums.append(1)
+                            continue
+                        key = (row.get('home_team', ''), row.get('away_team', ''))
+                        # Count distinct prior dates within 4 days
+                        # (typical max series length = 4). Add 1 to
+                        # count today's game.
+                        cutoff = d - pd.Timedelta(days=4)
+                        priors = {gd for gd in pair_to_dates.get(key, [])
+                                  if gd < d and gd >= cutoff}
+                        gnums.append(min(4, len(priors) + 1))
+                    features['series_game_num'] = pd.Series(gnums, index=df.index, dtype=int)
+            except Exception as e:
+                print(f"   ⚠️ MLB series_game_num calc error: {e}")
 
         return features
     
