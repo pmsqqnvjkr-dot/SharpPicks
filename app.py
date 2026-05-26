@@ -10416,21 +10416,28 @@ def send_push_to_all(title, body, data=None, premium_only=False, notification_ty
             if pref_key and not u.notification_prefs.get(pref_key, True):
                 continue
 
-            quiet_start = u.notification_prefs.get('quiet_hours_start')
-            quiet_end = u.notification_prefs.get('quiet_hours_end')
-            if quiet_start and quiet_end:
-                try:
-                    now_et = datetime.now(pytz.timezone('US/Eastern'))
-                    now_t = now_et.hour * 60 + now_et.minute
-                    qs = int(quiet_start.split(':')[0]) * 60 + int(quiet_start.split(':')[1])
-                    qe = int(quiet_end.split(':')[0]) * 60 + int(quiet_end.split(':')[1])
-                    if qs > qe:
-                        if now_t >= qs or now_t < qe:
+            # Quiet hours: honor the explicit enabled toggle. The default
+            # form ships with start='23:00' / end='08:00' but
+            # enabled=False, so any user who'd touched their prefs was
+            # being silently muted overnight even though they had the
+            # feature switched off. Defense-in-depth: gate on enabled
+            # before looking at the window.
+            if u.notification_prefs.get('quiet_hours_enabled'):
+                quiet_start = u.notification_prefs.get('quiet_hours_start')
+                quiet_end = u.notification_prefs.get('quiet_hours_end')
+                if quiet_start and quiet_end:
+                    try:
+                        now_et = datetime.now(pytz.timezone('US/Eastern'))
+                        now_t = now_et.hour * 60 + now_et.minute
+                        qs = int(quiet_start.split(':')[0]) * 60 + int(quiet_start.split(':')[1])
+                        qe = int(quiet_end.split(':')[0]) * 60 + int(quiet_end.split(':')[1])
+                        if qs > qe:
+                            if now_t >= qs or now_t < qe:
+                                continue
+                        elif qs <= now_t < qe:
                             continue
-                    elif qs <= now_t < qe:
-                        continue
-                except Exception:
-                    pass
+                    except Exception:
+                        pass
 
         if is_pro:
             total += send_push_notification(u.id, title, body, data)
