@@ -2179,10 +2179,16 @@ function _renderUserReadV2(activity, powerUsers, attentionSegments) {
   }
 
   _urSetText('ur2-hero-power', powerCount.toLocaleString());
-  // ex-pro count needs chunk C; placeholder for now.
-  _urSetText('ur2-hero-expro', powerCount > 0
-    ? `${(tiers.engaged || 0)} engaged in the same window`
-    : 'No power users yet');
+  // ex_pro_count shipped on snapshot with chunk C — users who churned
+  // or expired (subscription_status in cancelled/expired/past_due).
+  const exProCount = snapshot.ex_pro_count != null ? snapshot.ex_pro_count : 0;
+  if (exProCount > 0) {
+    _urSetText('ur2-hero-expro', `${exProCount} ex-pro · winback open`);
+  } else if (powerCount > 0) {
+    _urSetText('ur2-hero-expro', `${(tiers.engaged || 0)} engaged in the same window`);
+  } else {
+    _urSetText('ur2-hero-expro', 'No power users yet');
+  }
 
   const stickEl = document.getElementById('ur2-hero-sticky');
   if (stickEl && stickiness != null) {
@@ -2379,6 +2385,14 @@ function _renderUserReadV2(activity, powerUsers, attentionSegments) {
             lastSeen = days <= 0 ? 'today' : `${days}d`;
           }
         }
+        // Per-user 30d login sparkline (chunk C). server emits an
+        // oldest-first array of integer counts when segment='power'.
+        // Render inline SVG (100x32) using the shared _sparklineSvg
+        // helper from earlier in this file. Skipped when no series.
+        const series = Array.isArray(u.login_series_30d) ? u.login_series_30d : null;
+        const sparkSvg = series && series.length > 0
+          ? _sparklineSvg(series, 100, 32, '#5A9E72')
+          : '';
         return `<div class="ur2-power-card">
           <div class="ur2-power-head">
             <span class="ur2-power-email" title="${_urEscape(email)}">${_urEscape(handle)}</span>
@@ -2392,6 +2406,7 @@ function _renderUserReadV2(activity, powerUsers, attentionSegments) {
                 <div class="ur2-power-stat-value">${_urEscape(lastSeen)}</div>
               </div>
             </div>
+            ${sparkSvg ? `<div class="ur2-spark-wrap"><div class="ur2-spark-label">30d logins</div>${sparkSvg}</div>` : ''}
           </div>
         </div>`;
       }).join('');

@@ -150,6 +150,16 @@ def _snapshot(now: datetime) -> dict:
 
     stickiness_pct = round(100.0 * dau / mau, 1) if mau else 0.0
 
+    # Ex-pro count: users with a non-active billing tier who were once
+    # paying. Drives the User Read v2 hero subtitle ("N ex-pro, winback
+    # open"). cancelling stays in the paid bucket (still on their paid
+    # period); cancelled / expired / past_due are out of pro access.
+    ex_pro_count = db.session.query(func.count(User.id)).filter(
+        User.is_internal == False,  # noqa: E712
+        User.deleted_at.is_(None),
+        User.subscription_status.in_(('cancelled', 'expired', 'past_due')),
+    ).scalar() or 0
+
     return {
         'dau': dau,
         'wau': wau,
@@ -163,6 +173,7 @@ def _snapshot(now: datetime) -> dict:
         'logins_24h': logins_24h,
         'logins_7d_avg': round(logins_7d / 7.0, 1),
         'dau_7d_avg': round(wau / 7.0, 1),
+        'ex_pro_count': ex_pro_count,
     }
 
 
@@ -643,17 +654,47 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
 
         # iOS purchase signal: any user whose pro_source is 'revenuecat'
         ios_purchase_ids = {u.id for u in page if (u.pro_source or '').lower() == 'revenuecat'}
+
+        # Per-user daily login series for the User Read v2 power-card
+        # sparklines. 30 ints, oldest-first. Only computed for the
+        # 'power' segment to keep the cost bounded — pre-emptively
+        # generating it for every page would multiply the query count
+        # by N for a feature only the power-cards section consumes.
+        login_series_by_user = {}
+        if segment == 'power':
+            series_rows = db.session.query(
+                UserEvent.user_id,
+                func.date(UserEvent.created_at).label('day'),
+                func.count(UserEvent.id).label('n'),
+            ).filter(
+                UserEvent.event_type == ACTIVE_EVENT_TYPE,
+                UserEvent.created_at >= cutoff_30d,
+                UserEvent.user_id.in_(page_ids),
+                UserEvent.is_internal == False,  # noqa: E712
+            ).group_by(UserEvent.user_id, func.date(UserEvent.created_at)).all()
+            day_by_user = {}
+            for uid, day, n in series_rows:
+                d = day if isinstance(day, str) else (day.isoformat() if day else '')
+                day_by_user.setdefault(uid, {})[d[:10]] = int(n)
+            today = now.date()
+            for uid, days in day_by_user.items():
+                series = []
+                for i in range(29, -1, -1):
+                    iso = (today - timedelta(days=i)).isoformat()
+                    series.append(days.get(iso, 0))
+                login_series_by_user[uid] = series
     else:
         login_counts = {}
         bet_tap_counts = {}
         days_active = {}
         last_seen = {}
         ios_purchase_ids = set()
+        login_series_by_user = {}
 
     users_payload = []
     for u in page:
         l30 = login_counts.get(u.id, 0)
-        users_payload.append({
+        row = {
             'id': u.id,
             'email': u.email,
             'first_name': u.first_name or '',
@@ -673,7 +714,10 @@ def fetch_list(segment: str = 'all', search: str = '', limit: int = 50, offset: 
             'trial_converted_at': u.trial_converted_at.isoformat() if u.trial_converted_at else None,
             'trial_end_date': u.trial_end_date.isoformat() if u.trial_end_date else None,
             'created_at': u.created_at.isoformat() if u.created_at else None,
-        })
+        }
+        if segment == 'power' and u.id in login_series_by_user:
+            row['login_series_30d'] = login_series_by_user[u.id]
+        users_payload.append(row)
 
     return {
         'total': total,
