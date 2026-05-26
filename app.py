@@ -3188,12 +3188,42 @@ Head of Signal Intelligence, SharpPicks""",
         except Exception as e:
             logging.error(f"Database seed error: {e}")
 
+def _get_backup_dir():
+    """Resolve the backup destination. Prefers the Railway volume so backups
+    survive deploys; falls back to /tmp for local dev or unmounted environments.
+
+    Order of preference:
+      1. $BACKUP_DIR (explicit override)
+      2. $RAILWAY_VOLUME_MOUNT_PATH/backups (production durable storage)
+      3. /tmp/backups (dev fallback — ephemeral; logs a warning)
+
+    Returns the resolved path (created if missing).
+    """
+    explicit = os.environ.get('BACKUP_DIR')
+    if explicit:
+        backup_dir = explicit
+    else:
+        vol = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+        if vol and os.path.isdir(vol):
+            backup_dir = os.path.join(vol, 'backups')
+        else:
+            backup_dir = '/tmp/backups'
+            logging.warning(
+                '[backup] Falling back to /tmp/backups — ephemeral. '
+                'Set RAILWAY_VOLUME_MOUNT_PATH or BACKUP_DIR for durable storage.'
+            )
+    os.makedirs(backup_dir, exist_ok=True)
+    return backup_dir
+
+
 def backup_database():
-    """Daily database backup via pg_dump.
-    NOTE: /tmp backups are ephemeral on Replit deploys. For production durability,
-    configure BACKUP_S3_BUCKET env var to upload to S3/GCS, or use Replit's
-    built-in PostgreSQL snapshot feature. Local backups serve as a safety net
-    during development and provide point-in-time recovery within a single deploy.
+    """Daily database backup via pg_dump. Target resolved by _get_backup_dir
+    — Railway volume in prod, /tmp for local dev. Retention: 7 most-recent
+    files. Older backups deleted on each run.
+
+    A successful run logs the path + size at INFO; on failure both stderr
+    and the exception type land in the cron log so the operator can
+    diagnose without shelling into the container.
     """
     try:
         db_url = _database_url()
@@ -3201,8 +3231,7 @@ def backup_database():
             logging.warning("No database URL (SQLALCHEMY_DATABASE_URI/DATABASE_URL) set, skipping backup")
             return
         timestamp = datetime.now().strftime('%Y%m%d_%H%M')
-        backup_dir = '/tmp/backups'
-        os.makedirs(backup_dir, exist_ok=True)
+        backup_dir = _get_backup_dir()
 
         backup_path = f'{backup_dir}/sharppicks_backup_{timestamp}.sql'
         result = subprocess.run(
@@ -3215,7 +3244,8 @@ def backup_database():
             logging.info(f"Database backup created: {backup_path} ({file_size:.0f} KB)")
 
             old_backups = sorted([
-                f for f in os.listdir(backup_dir) if f.startswith('sharppicks_backup_')
+                f for f in os.listdir(backup_dir)
+                if f.startswith('sharppicks_backup_') and f.endswith('.sql')
             ])
             while len(old_backups) > 7:
                 os.remove(os.path.join(backup_dir, old_backups.pop(0)))
@@ -5710,14 +5740,29 @@ def cron_backup():
             'users': users
         }, indent=2, default=str)
 
-        backup_dir = '/tmp/backups'
-        os.makedirs(backup_dir, exist_ok=True)
+        backup_dir = _get_backup_dir()
         backup_path = f'{backup_dir}/sharppicks_backup_{datetime.now().strftime("%Y%m%d_%H%M")}.json'
         with open(backup_path, 'w') as f:
             f.write(backup_data)
 
+        # Trim JSON snapshots to 7 most recent — mirrors the .sql retention.
+        try:
+            old_json = sorted([
+                f for f in os.listdir(backup_dir)
+                if f.startswith('sharppicks_backup_') and f.endswith('.json')
+            ])
+            while len(old_json) > 7:
+                os.remove(os.path.join(backup_dir, old_json.pop(0)))
+        except Exception as e:
+            logging.warning(f"[backup] JSON retention trim failed: {e}")
+
         backup_database()
-        return {'picks': len(picks), 'users': len(users)}
+        return {
+            'picks': len(picks),
+            'users': len(users),
+            'backup_dir': backup_dir,
+            'backup_path': backup_path,
+        }
     return log_cron('backup', _backup)
 
 
