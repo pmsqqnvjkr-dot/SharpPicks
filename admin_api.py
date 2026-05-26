@@ -1816,16 +1816,50 @@ def cron_health():
         # data_failure / no_spreads / off_day / pass) are visible at the
         # cron-health surface. Added 2026-05-25 after the-odds-api quota
         # exhaustion masked itself as ok+data_failure for hours.
+        # Sport-aware inner_status parse. The Run-Model wrapper logs a
+        # multi-sport dict like {'nba': {'status': 'pass'},
+        # 'wnba': {'status': 'data_failure'}, ...}. The old parser would
+        # greedily catch the first failing status it found (typically
+        # WNBA off-day-as-data_failure) and flag the whole job, masking
+        # NBA's actual outcome. Now we extract per-sport status and only
+        # escalate health when a PUBLISHING sport (nba/mlb) actually
+        # failed. WNBA-only failures stay quiet — off-day on a
+        # piggyback sport is expected.
         inner_status = None
+        worst_sport_status = None
         if last_log and last_log.message:
             msg = last_log.message
-            for needle in ('data_failure', 'no_spreads', 'off_day',
-                           'stale_data', 'inactive', 'error'):
-                if f"'status': '{needle}'" in msg:
-                    inner_status = needle
-                    break
-        # If the wrapper logged ok but the inner status is a non-publish
-        # outcome that should be flagged, escalate display to 'warn'.
+            # Look for sport-prefixed statuses first (run_model wrapper).
+            import re as _re
+            sport_matches = _re.findall(
+                r"'(nba|mlb|wnba)':\s*\{[^{}]*?'status':\s*'([a-z_]+)'", msg
+            )
+            if sport_matches:
+                # Rank statuses by severity (worst first).
+                BAD = ('data_failure', 'error', 'no_spreads', 'stale_data')
+                FAIL_SPORTS = ('nba', 'mlb')
+                for sport, st in sport_matches:
+                    if st in BAD and sport in FAIL_SPORTS:
+                        inner_status = st
+                        break
+                # If no publishing sport failed, surface the first bad
+                # status seen (still informational, but downgraded).
+                if inner_status is None:
+                    for sport, st in sport_matches:
+                        if st in BAD:
+                            worst_sport_status = f'{sport}_{st}'
+                            break
+            else:
+                # Single-sport wrapper (mlb_run_model, wnba_run_model)
+                # logs a flat dict; fall back to the legacy needle scan.
+                for needle in ('data_failure', 'no_spreads', 'off_day',
+                               'stale_data', 'inactive', 'error'):
+                    if f"'status': '{needle}'" in msg:
+                        inner_status = needle
+                        break
+        # Escalate health only when a publishing sport's job actually
+        # failed; informational worst_sport_status is exposed below for
+        # visibility but does not change the dot color.
         if health == 'ok' and inner_status in ('data_failure', 'no_spreads',
                                                 'stale_data', 'error'):
             health = 'warn'
@@ -1838,8 +1872,9 @@ def cron_health():
             'last_run': last_log.executed_at.isoformat() if last_log else None,
             'last_status': last_log.status if last_log else None,
             'inner_status': inner_status,
+            'sport_status': worst_sport_status,
             'last_duration_ms': last_log.duration_ms if last_log else None,
-            'last_message': last_log.message[:200] if last_log and last_log.message else None,
+            'last_message': last_log.message[:500] if last_log and last_log.message else None,
             'last_error': last_err.executed_at.isoformat() if last_err else None,
             'last_error_msg': last_err.message[:200] if last_err and last_err.message else None,
             'hours_ago': round(hours_ago, 1) if hours_ago is not None else None,
