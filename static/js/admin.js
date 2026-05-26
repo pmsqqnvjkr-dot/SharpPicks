@@ -2111,8 +2111,23 @@ function _renderUserReadV2(activity, powerUsers, attentionSegments) {
 
   const snapshot = (activity && activity.snapshot) || {};
   const tiers    = (activity && activity.tier_counts) || {};
-  const freqBuckets = (activity && Array.isArray(activity.login_frequency_buckets))
-    ? activity.login_frequency_buckets : [];
+  // services/users_metrics returns login_frequency_buckets as a dict keyed
+  // by bucket label ('0', '1', '2-3', '4-5', '6-9', '10-14', '15-19',
+  // '20-29', '30+'). Earlier code expected an array which silently fell
+  // through to [], leaving every histogram bar empty. Template has 7 bars
+  // ending at '15+', so we collapse the server's three top buckets
+  // (15-19 + 20-29 + 30+) into one for display.
+  const rawFreq = (activity && activity.login_frequency_buckets) || {};
+  const _bucketCount = k => Number(rawFreq[k] || 0);
+  const freqBuckets = [
+    { label: '0',     count: _bucketCount('0') },
+    { label: '1',     count: _bucketCount('1') },
+    { label: '2-3',   count: _bucketCount('2-3') },
+    { label: '4-5',   count: _bucketCount('4-5') },
+    { label: '6-9',   count: _bucketCount('6-9') },
+    { label: '10-14', count: _bucketCount('10-14') },
+    { label: '15+',   count: _bucketCount('15-19') + _bucketCount('20-29') + _bucketCount('30+') },
+  ];
   const cohorts  = (activity && Array.isArray(activity.cohort_retention))
     ? activity.cohort_retention : [];
 
@@ -2243,9 +2258,15 @@ function _renderUserReadV2(activity, powerUsers, attentionSegments) {
     } else {
       winbackList.innerHTML = winbackEntries.slice(0, 6).map(u => {
         const email = u.email || u.user_id || 'unknown';
-        const last = u.days_since_login != null
-          ? `${u.days_since_login}d ago`
-          : (u.last_active ? new Date(u.last_active).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—');
+        // Server emits last_seen_at as ISO timestamp; compute days client-side.
+        let last = '—';
+        if (u.last_seen_at) {
+          const ts = new Date(u.last_seen_at);
+          if (!isNaN(ts.getTime())) {
+            const days = Math.floor((Date.now() - ts.getTime()) / 86400000);
+            last = days <= 0 ? 'today' : `${days}d ago`;
+          }
+        }
         const detail = u.subscription_plan || u.subscription_status || '';
         return `<div class="ur2-winback-row"><span class="ur2-winback-meta"><span class="ur2-winback-when">${_urEscape(last)}</span><span class="ur2-winback-email">${_urEscape(email)}</span></span><span class="ur2-winback-detail">${_urEscape(detail)}</span></div>`;
       }).join('');
@@ -2348,7 +2369,16 @@ function _renderUserReadV2(activity, powerUsers, attentionSegments) {
           : (String(tag).startsWith('trial') ? 'trial' : 'free'));
         const logins = u.logins_30d != null ? u.logins_30d : 0;
         const daysActive = u.days_active_30d != null ? u.days_active_30d : 0;
-        const lastSeen = u.days_since_login != null ? `${u.days_since_login}d` : '—';
+        // Server emits last_seen_at as an ISO timestamp, not a days-since
+        // integer. Compute days client-side; show 'today' / 'Nd' / em-dash.
+        let lastSeen = '—';
+        if (u.last_seen_at) {
+          const ts = new Date(u.last_seen_at);
+          if (!isNaN(ts.getTime())) {
+            const days = Math.floor((Date.now() - ts.getTime()) / 86400000);
+            lastSeen = days <= 0 ? 'today' : `${days}d`;
+          }
+        }
         return `<div class="ur2-power-card">
           <div class="ur2-power-head">
             <span class="ur2-power-email" title="${_urEscape(email)}">${_urEscape(handle)}</span>
