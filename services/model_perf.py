@@ -22,7 +22,7 @@ from collections import defaultdict
 
 from sqlalchemy import func
 
-from models import db, Pick
+from models import db, Pick, Pass
 
 
 # Resolved means we know the outcome (not pending and not push).
@@ -247,6 +247,114 @@ def _clv_avg_by_sport(now: datetime, days: int = 90) -> dict:
     return out
 
 
+def _clv_daily_by_sport(now: datetime, days: int = 30) -> dict:
+    """Per-league daily CLV series for the Model Read v2 sparklines on the
+    CLV trajectory cards. Each entry is an individual resolved signal
+    plotted in chronological order (not a per-day average), so the line
+    moves point-to-point across the window. Returns
+    {sport: [{date: YYYY-MM-DD, clv: float}]}.
+
+    Reads the same set the CLV avg uses (RESOLVED + clv not null) so the
+    sparkline endpoints reconcile with the headline avg value.
+    """
+    cutoff = now - timedelta(days=days)
+    rows = db.session.query(Pick.sport, Pick.game_date, Pick.clv).filter(
+        Pick.published_at >= cutoff,
+        Pick.result.in_(RESOLVED),
+        Pick.clv.isnot(None),
+    ).order_by(Pick.game_date.asc(), Pick.id.asc()).all()
+    out = defaultdict(list)
+    for sport, game_date, clv in rows:
+        s = (sport or 'unknown').lower()
+        d = game_date if isinstance(game_date, str) else (game_date.isoformat() if game_date else '')
+        out[s].append({'date': d[:10], 'clv': round(float(clv), 2)})
+    return dict(out)
+
+
+def _revoke_timeline(now: datetime, days: int = 30) -> dict:
+    """Per-day stacked bars + 7d rolling revoke-rate overlay for the
+    Model Read v2 revoke timeline chart. Returns:
+
+      {
+        'daily':      [{date, resolved, revoked, total}],
+        'rolling_7d': [{date, rate}]   # revoked/total over trailing 7d
+      }
+
+    Aligned on game_date (not published_at) so each bar corresponds to
+    the slate's date rather than when the pick first hit the queue.
+    Resolved = win + loss + push + postponed. Pending excluded.
+    """
+    cutoff = now - timedelta(days=days)
+    rows = db.session.query(Pick.game_date, Pick.result).filter(
+        Pick.published_at >= cutoff,
+        Pick.result.in_(('win', 'loss', 'push', 'revoked', 'postponed')),
+    ).all()
+
+    by_day = defaultdict(lambda: [0, 0])  # [resolved, revoked]
+    for game_date, result in rows:
+        d = game_date if isinstance(game_date, str) else (game_date.isoformat() if game_date else '')
+        d = d[:10]
+        if not d:
+            continue
+        if result == 'revoked':
+            by_day[d][1] += 1
+        else:
+            by_day[d][0] += 1
+
+    today = now.date()
+    daily = []
+    for i in range(days - 1, -1, -1):
+        d = (today - timedelta(days=i)).isoformat()
+        resolved, revoked = by_day.get(d, [0, 0])
+        total = resolved + revoked
+        daily.append({
+            'date':     d,
+            'resolved': resolved,
+            'revoked':  revoked,
+            'total':    total,
+        })
+
+    rolling = []
+    window = 7
+    for i, _ in enumerate(daily):
+        lo = max(0, i - window + 1)
+        slice_ = daily[lo:i + 1]
+        sum_total   = sum(x['total']   for x in slice_)
+        sum_revoked = sum(x['revoked'] for x in slice_)
+        rate = round(100.0 * sum_revoked / sum_total, 1) if sum_total else None
+        rolling.append({'date': daily[i]['date'], 'rate': rate})
+
+    return {'daily': daily, 'rolling_7d': rolling}
+
+
+def _pass_rate(now: datetime, days: int = 7, sport: str = None) -> dict:
+    """Pass rate over the trailing `days` window for the hero cell.
+    pass_rate = passes / (picks + passes). Sport=None aggregates across
+    sports; pass a specific sport to narrow.
+
+    Returns {'rate', 'passes', 'picks', 'total_days', 'sport'}.
+    """
+    cutoff_date = (now - timedelta(days=days)).strftime('%Y-%m-%d')
+
+    pq = Pass.query.filter(Pass.date >= cutoff_date)
+    pickq = Pick.query.filter(Pick.game_date >= cutoff_date)
+    if sport:
+        pq = pq.filter(Pass.sport == sport)
+        pickq = pickq.filter(Pick.sport == sport)
+
+    passes = pq.count()
+    picks = pickq.count()
+    denom = picks + passes
+    rate = round(100.0 * passes / denom, 1) if denom else None
+    return {
+        'rate':       rate,
+        'passes':     passes,
+        'picks':      picks,
+        'total_days': denom,
+        'sport':      sport,
+    }
+
+
 def fetch(range_: str = '90d') -> dict:
     days = {'7d': 7, '30d': 30, '90d': 90}.get(range_, 90)
     now = datetime.utcnow()
@@ -257,8 +365,11 @@ def fetch(range_: str = '90d') -> dict:
         'edge_distribution':       _edge_distribution(now, days=30),
         'last_10_signals':         _last_10_signals(now),
         'clv_avg_by_sport':        _clv_avg_by_sport(now, days=days),
+        'clv_daily_by_sport':      _clv_daily_by_sport(now, days=30),
         'revoke_rate_7d':          _revoke_rate(now, days=7),
         'revoke_rate_30d':         _revoke_rate(now, days=30),
+        'revoke_timeline_30d':     _revoke_timeline(now, days=30),
+        'pass_rate_7d':            _pass_rate(now, days=7),
         'note': (
             'edge_pct used as MEI proxy. Pick schema has no dedicated '
             'mei_score column today; tune _hit_rate_by_edge_tier bucket '

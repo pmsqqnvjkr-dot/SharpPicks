@@ -3034,12 +3034,15 @@ function _renderModelRead(perf) {
   if (!perf) return;
 
   const clvBySport = perf.clv_avg_by_sport || {};
+  const clvDailyBySport = perf.clv_daily_by_sport || {};
   const winBySport = perf.win_rate_by_sport_daily || {};
   const tiers = Array.isArray(perf.hit_rate_by_edge_tier) ? perf.hit_rate_by_edge_tier : [];
   const dist  = Array.isArray(perf.edge_distribution) ? perf.edge_distribution : [];
   const cal   = perf.calibration || {};
   const rev7  = perf.revoke_rate_7d || {};
   const rev30 = perf.revoke_rate_30d || {};
+  const revTimeline = perf.revoke_timeline_30d || {};
+  const passRate7d = perf.pass_rate_7d || {};
 
   // ── Read line + caveat ──────────────────────────────────────────────
   // Compose the lead from CLV directionality per sport. Below-n=30 in
@@ -3128,10 +3131,21 @@ function _renderModelRead(perf) {
       ? `${rev30.revoked} of ${rev30.total} picks revoked pre-tip`
       : 'Awaiting resolved picks');
 
-  // Pass rate · 7d is not on the model/perf payload yet. Show placeholder
-  // until the endpoint surfaces pass-table data (chunk C).
-  _mrSetText('mr-hero-pass-value', '—');
-  _mrSetText('mr-hero-pass-note', 'Pass rate ships in next data add');
+  // Pass rate · 7d sourced from the Pass + Pick tables (chunk C add).
+  const passRateEl = document.getElementById('mr-hero-pass-value');
+  if (passRateEl) {
+    if (passRate7d.rate != null) {
+      passRateEl.textContent = `${passRate7d.rate}%`;
+    } else {
+      passRateEl.textContent = '—';
+    }
+  }
+  if (passRate7d.passes != null && passRate7d.total_days != null) {
+    _mrSetText('mr-hero-pass-note',
+      `${passRate7d.passes} of ${passRate7d.total_days} days passed`);
+  } else {
+    _mrSetText('mr-hero-pass-note', 'Awaiting daily pass history');
+  }
 
   // ── CLV trajectory cards ────────────────────────────────────────────
   // Per-league daily CLV series is not on the payload yet, so the inline
@@ -3157,13 +3171,43 @@ function _renderModelRead(perf) {
       if (v != null && v > 0.05) valueEl.classList.add('pos');
       else if (v != null && v < -0.05) valueEl.classList.add('neg');
     }
-    // Empty SVG with just the zero-band background. The polyline fills
-    // in when the per-day CLV series ships on the endpoint.
-    _mrSetSubAttr(cardId, 'svg',
+    // Per-league CLV sparkline (chunk C). Each point is one resolved
+    // signal plotted in publication order. Zero-band background still
+    // renders even with no data so the card has visual weight.
+    const series = Array.isArray(clvDailyBySport[sport]) ? clvDailyBySport[sport]
+      : Array.isArray(clvDailyBySport[sport.toUpperCase()]) ? clvDailyBySport[sport.toUpperCase()]
+      : [];
+    const svgBg =
       '<rect x="0" y="0" width="200" height="35" fill="rgba(90,158,114,0.04)"/>' +
       '<rect x="0" y="35" width="200" height="35" fill="rgba(196,134,138,0.04)"/>' +
-      '<line x1="0" y1="35" x2="200" y2="35" stroke="rgba(139,146,165,0.3)" stroke-width="0.5" stroke-dasharray="2,2"/>'
-    );
+      '<line x1="0" y1="35" x2="200" y2="35" stroke="rgba(139,146,165,0.3)" stroke-width="0.5" stroke-dasharray="2,2"/>';
+    if (series.length === 0) {
+      _mrSetSubAttr(cardId, 'svg', svgBg);
+    } else {
+      // Map CLV values onto a 0-70 viewBox with zero centered at y=35.
+      // Symmetric scaling around zero: bound by max(|min|, |max|, 1.5) so
+      // the zero line stays visually meaningful even on small-edge weeks.
+      const vals = series.map(p => p.clv);
+      const bound = Math.max(1.5, Math.max(...vals.map(v => Math.abs(v))));
+      const stepX = series.length > 1 ? 200 / (series.length - 1) : 0;
+      const color = sport === 'mlb' ? '#5A9E72' : (sport === 'wnba' ? '#4F86F7' : '#C4868A');
+      const pts = series.map((p, i) => {
+        const x = (i * stepX).toFixed(1);
+        const y = (35 - (p.clv / bound) * 30).toFixed(1);
+        return `${x},${y}`;
+      }).join(' ');
+      const dots = series.map((p, i) => {
+        const x = (i * stepX).toFixed(1);
+        const y = (35 - (p.clv / bound) * 30).toFixed(1);
+        const c = p.clv >= 0 ? '#5A9E72' : '#C4868A';
+        return `<circle cx="${x}" cy="${y}" r="2.5" fill="${c}"/>`;
+      }).join('');
+      _mrSetSubAttr(cardId, 'svg',
+        svgBg +
+        `<polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/>` +
+        dots
+      );
+    }
     const atsText = latest && latest.win_rate != null
       ? `ATS: ${latest.win_rate}% (n=${latest.sample_n || 0})`
       : 'ATS: —';
@@ -3183,11 +3227,69 @@ function _renderModelRead(perf) {
   });
 
   // ── Revoke timeline ─────────────────────────────────────────────────
-  // Header stats wire now; daily bars + 7d rolling line wait on chunk C.
   if (rev7.rate != null)   _mrSetText('mr-revoke-7d', `${rev7.rate}%`);
   if (rev30.rate != null)  _mrSetText('mr-revoke-30d', `${rev30.rate}%`);
   if (rev30.revoked != null && rev30.total != null) {
     _mrSetText('mr-revoke-totals', `${rev30.revoked} of ${rev30.total}`);
+  }
+
+  // Daily stacked bars + 7d rolling rate overlay (chunk C). Bars span
+  // a 600x160 viewBox; left 20px reserved for y-axis labels.
+  const revSvg = document.getElementById('mr-revoke-svg');
+  const daily = Array.isArray(revTimeline.daily) ? revTimeline.daily : [];
+  const rolling = Array.isArray(revTimeline.rolling_7d) ? revTimeline.rolling_7d : [];
+  if (revSvg && daily.length > 0) {
+    const VBW = 600, VBH = 160;
+    const LEFT = 20, RIGHT = 595, TOP = 10, BAR_BOTTOM = 112, X_LABEL_Y = 135;
+    const maxBar = Math.max(1, ...daily.map(d => d.total || 0));
+    const barH = BAR_BOTTOM - TOP;
+    const stride = (RIGHT - LEFT) / daily.length;
+    const barW = Math.max(4, Math.min(16, stride - 4));
+    let parts = [];
+    // gridlines + y-axis labels
+    [maxBar, Math.round(maxBar * 0.75), Math.round(maxBar * 0.5), Math.round(maxBar * 0.25), 0].forEach(v => {
+      const y = TOP + (1 - v / maxBar) * barH;
+      parts.push(`<text x="0" y="${y + 4}" font-family="JetBrains Mono" font-size="9" fill="rgba(139,146,165,0.5)">${v}</text>`);
+      parts.push(`<line x1="${LEFT}" y1="${y}" x2="${RIGHT}" y2="${y}" stroke="rgba(139,146,165,0.08)" stroke-width="0.5"/>`);
+    });
+    // stacked bars: green (resolved) on bottom, amber (revoked) on top
+    daily.forEach((d, i) => {
+      const cx = LEFT + stride * (i + 0.5);
+      const x = cx - barW / 2;
+      const resolvedH = (d.resolved / maxBar) * barH;
+      const revokedH  = (d.revoked  / maxBar) * barH;
+      if (resolvedH > 0) {
+        const y = BAR_BOTTOM - resolvedH;
+        parts.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW}" height="${resolvedH.toFixed(1)}" fill="#5A9E72"/>`);
+      }
+      if (revokedH > 0) {
+        const y = BAR_BOTTOM - resolvedH - revokedH;
+        parts.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW}" height="${revokedH.toFixed(1)}" fill="#E4A03B"/>`);
+      }
+    });
+    // 7d rolling rate overlay (0..100% mapped to barH)
+    const linePts = rolling.map((r, i) => {
+      const cx = LEFT + stride * (i + 0.5);
+      const rate = r.rate == null ? 0 : r.rate;
+      const y = TOP + (1 - rate / 100) * barH;
+      return `${cx.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    if (linePts) {
+      parts.push(`<polyline fill="none" stroke="#4F86F7" stroke-width="1.5" stroke-linecap="round" points="${linePts}"/>`);
+    }
+    // x-axis labels (first, middle, last date as MMM DD)
+    const fmt = iso => {
+      try {
+        const d = new Date(iso + 'T00:00:00');
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } catch { return iso || ''; }
+    };
+    if (daily.length > 1) {
+      parts.push(`<text x="${LEFT}" y="${X_LABEL_Y}" font-family="JetBrains Mono" font-size="9" fill="rgba(139,146,165,0.5)">${fmt(daily[0].date)}</text>`);
+      parts.push(`<text x="${((LEFT + RIGHT) / 2).toFixed(0)}" y="${X_LABEL_Y}" font-family="JetBrains Mono" font-size="9" fill="rgba(139,146,165,0.5)" text-anchor="middle">${fmt(daily[Math.floor(daily.length / 2)].date)}</text>`);
+      parts.push(`<text x="${RIGHT - 40}" y="${X_LABEL_Y}" font-family="JetBrains Mono" font-size="9" fill="rgba(139,146,165,0.5)">${fmt(daily[daily.length - 1].date)}</text>`);
+    }
+    revSvg.innerHTML = parts.join('');
   }
   const revLedeEl = document.getElementById('mr-revoke-lede');
   if (revLedeEl && rev30.rate != null && rev30.total != null) {
