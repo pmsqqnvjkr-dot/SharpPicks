@@ -1782,6 +1782,7 @@ def cron_health():
         'mlb_collect':     {'label': 'SP — MLB Collect', 'schedule': '11:30 AM + 4 PM ET', 'expected_h': 24},
         'mlb_run_model':   {'label': 'SP — MLB Run Model', 'schedule': '12:15 PM ET', 'expected_h': 24},
         'mlb_grade':       {'label': 'SP — MLB Grade', 'schedule': '4 AM + 12 PM ET', 'expected_h': 24},
+        'mlb_retrain':     {'label': 'SP — MLB Retrain', 'schedule': 'Weekly + force', 'expected_h': 168},
         'refresh_lines':   {'label': 'SP — Refresh Lines', 'schedule': 'Every 10 min, 6 AM–2 AM', 'expected_h': 1},
         'closing_lines':   {'label': 'SP — Closing Lines', 'schedule': 'Every min, 10 AM–1 AM (×4 shards)', 'expected_h': 1},
         'grade_picks':     {'label': 'SP — Grade Picks', 'schedule': '3:45 AM + 11:30 AM', 'expected_h': 24},
