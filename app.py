@@ -8297,8 +8297,28 @@ def stripe_webhook():
         elif webhook_secret and not sig:
             logging.warning('Stripe webhook: signature header missing but secret configured')
             return jsonify({'error': 'Missing Stripe-Signature header'}), 400
+        elif is_production:
+            # No webhook secret in production = open relay. Reject hard so
+            # an attacker can't post a forged payload that would flip any
+            # subscription state. Send admin alert so we notice the
+            # misconfiguration loudly instead of silently processing junk.
+            logging.error('Stripe webhook: STRIPE_WEBHOOK_SECRET unset in production — rejecting')
+            try:
+                send_admin_alert(
+                    "Stripe Webhook Secret Missing",
+                    "STRIPE_WEBHOOK_SECRET is not set in production. The webhook is rejecting every request until the env var is configured.",
+                )
+            except Exception:
+                pass
+            return jsonify({'error': 'Webhook secret not configured'}), 503
         else:
-            logging.warning(f'Stripe webhook: no STRIPE_WEBHOOK_SECRET configured (production={is_production}), processing unverified')
+            # Dev only: log loudly and process unsigned so local testing
+            # without a tunnel works. Production path above never reaches
+            # this branch.
+            logging.warning(
+                'Stripe webhook: no STRIPE_WEBHOOK_SECRET configured (DEV mode), processing UNVERIFIED. '
+                'Set STRIPE_WEBHOOK_SECRET to enable signature verification.'
+            )
             import json
             event = json.loads(payload)
 
