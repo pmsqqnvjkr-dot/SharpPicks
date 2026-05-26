@@ -7436,6 +7436,7 @@ def login():
     })
 
 @app.route('/api/auth/nonce-exchange')
+@limiter.limit("30 per minute")
 def nonce_exchange():
     nonce = request.args.get('nonce', '')
     token = _pop_oauth_nonce(nonce)
@@ -7681,6 +7682,7 @@ def _create_trial_checkout_url(user):
 
 
 @app.route('/auth/google')
+@limiter.limit("20 per minute")
 def google_login():
     if not _oauth_ready or not _google_client_id:
         return jsonify({'error': 'Google sign-in not configured'}), 501
@@ -7694,6 +7696,7 @@ def google_login():
 
 
 @app.route('/auth/google/callback')
+@limiter.limit("20 per minute")
 def google_callback():
     try:
         token = _oauth.google.authorize_access_token()
@@ -7737,6 +7740,7 @@ _apple_jwks_client_built_at = 0
 
 
 @app.route('/auth/apple')
+@limiter.limit("20 per minute")
 def apple_login():
     if not _oauth_ready or not _apple_client_id:
         return jsonify({'error': 'Apple sign-in not configured'}), 501
@@ -7750,6 +7754,7 @@ def apple_login():
 
 
 @app.route('/auth/apple/callback', methods=['POST'])
+@limiter.limit("20 per minute")
 def apple_callback():
     try:
         token = _oauth.apple.authorize_access_token()
