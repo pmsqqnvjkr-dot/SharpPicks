@@ -1791,6 +1791,25 @@ def cron_health():
             overdue = True
             health = 'never'
 
+        # Parse inner result_status from last_message so silent failures
+        # (cron returned status='ok' but the wrapped fn produced
+        # data_failure / no_spreads / off_day / pass) are visible at the
+        # cron-health surface. Added 2026-05-25 after the-odds-api quota
+        # exhaustion masked itself as ok+data_failure for hours.
+        inner_status = None
+        if last_log and last_log.message:
+            msg = last_log.message
+            for needle in ('data_failure', 'no_spreads', 'off_day',
+                           'stale_data', 'inactive', 'error'):
+                if f"'status': '{needle}'" in msg:
+                    inner_status = needle
+                    break
+        # If the wrapper logged ok but the inner status is a non-publish
+        # outcome that should be flagged, escalate display to 'warn'.
+        if health == 'ok' and inner_status in ('data_failure', 'no_spreads',
+                                                'stale_data', 'error'):
+            health = 'warn'
+
         jobs.append({
             'name': config.get('label', job_name),
             'schedule': config['schedule'],
@@ -1798,6 +1817,7 @@ def cron_health():
             'health': health,
             'last_run': last_log.executed_at.isoformat() if last_log else None,
             'last_status': last_log.status if last_log else None,
+            'inner_status': inner_status,
             'last_duration_ms': last_log.duration_ms if last_log else None,
             'last_message': last_log.message[:200] if last_log and last_log.message else None,
             'last_error': last_err.executed_at.isoformat() if last_err else None,

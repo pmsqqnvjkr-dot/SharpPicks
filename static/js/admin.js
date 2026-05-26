@@ -3701,14 +3701,23 @@ function _renderInfraRead(health, cron) {
   const chips = (health && health.chips) || {};
   const dbh   = (health && health.database_health) || {};
   const deploys = (health && Array.isArray(health.recent_deploys)) ? health.recent_deploys : [];
+  const oddsQuota = (health && health.odds_api_quota) || {};
   const jobs    = (cron && Array.isArray(cron.jobs)) ? cron.jobs : [];
 
   // ── Lead sentence + caveat ──────────────────────────────────────────
   // Find the most-overdue job. If any are late, name the worst one;
   // otherwise lead with "System holding" + uptime/p95/errors summary.
+  // Quota exhaustion (the-odds-api) takes precedence over late-cron in
+  // the caveat banner since it blocks publish across all sports.
   const late = jobs.filter(j => j.hours_ago != null && j.hours_ago > j.expected_h);
   late.sort((a, b) => (b.hours_ago - b.expected_h) - (a.hours_ago - a.expected_h));
   const worstLate = late[0] || null;
+  // Also detect crons that returned 'ok' but had an inner data_failure
+  // (chunk C parses last_message and sets inner_status). These don't
+  // count as "late" but they ARE silent publish failures.
+  const innerFails = jobs.filter(j => j.inner_status === 'data_failure'
+                                   || j.inner_status === 'no_spreads'
+                                   || j.inner_status === 'stale_data');
   const errors24h = chips.errors_24h != null ? chips.errors_24h : null;
   const p95 = chips.p95_24h_ms;
   const uptime = chips.uptime_30d_pct;
@@ -3729,11 +3738,30 @@ function _renderInfraRead(health, cron) {
 
   const caveat = document.getElementById('ir-caveat');
   if (caveat) {
-    if (worstLate) {
+    // Priority: odds_api quota empty > odds_api quota warn > late cron
+    // > inner cron fail > nothing. Quota issues are top priority because
+    // they block ALL sports' publish path silently.
+    if (oddsQuota.status === 'empty') {
+      caveat.style.display = '';
+      _irSetText('ir-caveat-text',
+        `⚠ the-odds-api quota exhausted (${oddsQuota.used} of ${oddsQuota.used} used this cycle). Publish path blocked across all sports.`);
+      _irSetText('ir-caveat-detail', 'Top up plan or wait for cycle reset');
+    } else if (oddsQuota.status === 'warn') {
+      caveat.style.display = '';
+      _irSetText('ir-caveat-text',
+        `⚠ the-odds-api quota low (${oddsQuota.remaining} requests remaining). Top up before next slate.`);
+      _irSetText('ir-caveat-detail', 'Plan limit approaching');
+    } else if (worstLate) {
       caveat.style.display = '';
       _irSetText('ir-caveat-text',
         `⚠ ${worstLate.name} cron has not run inside its ${_irFormatCadence(worstLate.expected_h)} window. Last run ${_irFormatHoursAgo(worstLate.hours_ago)}.`);
       _irSetText('ir-caveat-detail', 'Investigate before next slate');
+    } else if (innerFails.length > 0) {
+      caveat.style.display = '';
+      const worstInner = innerFails[0];
+      _irSetText('ir-caveat-text',
+        `⚠ ${worstInner.name} cron returned ok but the inner job hit ${worstInner.inner_status.replace('_', ' ')}. Publish skipped silently.`);
+      _irSetText('ir-caveat-detail', 'Check upstream data source');
     } else {
       caveat.style.display = 'none';
     }
@@ -3826,13 +3854,26 @@ function _renderInfraRead(health, cron) {
           ? Math.min(100, (j.hours_ago / j.expected_h) * 100)
           : 0;
         const fillClass = drift.status === 'warn' ? 'warn' : '';
-        const isLate = drift.status === 'warn';
-        const dotClass = j.health === 'error' ? 'err' : (j.health === 'ok' ? 'ok' : 'warn');
+        // Row gets the late style for either drift OR inner-status fail.
+        const innerFail = j.inner_status === 'data_failure'
+                       || j.inner_status === 'no_spreads'
+                       || j.inner_status === 'stale_data'
+                       || j.inner_status === 'error';
+        const isLate = drift.status === 'warn' || innerFail;
+        const dotClass = j.health === 'error' ? 'err'
+                       : (j.health === 'warn' ? 'warn'
+                       : (j.health === 'ok' ? 'ok' : 'warn'));
+        // Drift label overrides: show inner_status when it's failing,
+        // since the cadence is fine but the publish path is broken.
+        const driftLabel = innerFail && drift.status !== 'warn'
+          ? `${j.inner_status.replace('_', ' ')}`
+          : drift.label;
+        const driftCls = innerFail ? 'warn' : drift.status;
         return `<div class="ir-cron-row${isLate ? ' late' : ''}">
           <span class="ir-cron-name${isLate ? ' late' : ''}">${_irEscape(j.name || '—')}</span>
           <span class="ir-cron-cadence">${_irEscape(j.schedule || _irFormatCadence(j.expected_h))}</span>
           <span class="ir-cron-actual">${_irFormatHoursAgo(j.hours_ago)}</span>
-          <span class="ir-cron-drift ${drift.status}">${drift.label}</span>
+          <span class="ir-cron-drift ${driftCls}">${_irEscape(driftLabel)}</span>
           <div class="ir-cron-bar-wrap"><div class="ir-cron-bar-fill ${fillClass}" style="width:${ratio}%;"></div><div class="ir-cron-bar-marker" style="left:100%;"></div></div>
           <span class="ir-cron-status-dot ${dotClass}"></span>
         </div>`;
@@ -3867,15 +3908,17 @@ function _renderInfraRead(health, cron) {
     valueFmt: v => `${Math.round(v)}`,
   });
 
-  // user events — informational only
+  // user events — real lifetime row count shipped in chunk C.
   const eventsCard = document.getElementById('ir-db-events');
   if (eventsCard) {
     const valueEl = eventsCard.querySelector('[data-ir="value"]');
-    if (valueEl && chips.requests_24h != null) {
-      // Server doesn't yet ship a user_events row count; surface "—" for
-      // now. Chunk C will wire the real lifetime count from the events
-      // source. Leave the static "rows" suffix in place.
-      valueEl.innerHTML = `&mdash;<span class="ir-db-max"> rows</span>`;
+    const eventsCount = dbh.user_events_rows;
+    if (valueEl) {
+      if (eventsCount == null) {
+        valueEl.innerHTML = `&mdash;<span class="ir-db-max"> rows</span>`;
+      } else {
+        valueEl.innerHTML = `${eventsCount.toLocaleString()}<span class="ir-db-max"> rows</span>`;
+      }
     }
   }
 

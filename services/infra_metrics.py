@@ -149,6 +149,7 @@ def _database_health() -> dict:
         'connections_idle': None,
         'database_size_mb': None,
         'longest_running_query_seconds': None,
+        'user_events_rows': None,
     }
     try:
         # connection counts
@@ -184,6 +185,73 @@ def _database_health() -> dict:
             out['longest_running_query_seconds'] = round(float(longest), 1)
     except Exception as e:
         logger.warning('infra: database_health query failed: %s', e)
+
+    # user_events row count for the DB card (chunk C). Separate try so a
+    # transient connection blip on the pg_stat queries above doesn't bury
+    # this one. Uses the ORM table to stay portable across SQLite/Postgres.
+    try:
+        from models import UserEvent
+        out['user_events_rows'] = db.session.query(UserEvent).count()
+    except Exception as e:
+        logger.warning('infra: user_events count failed: %s', e)
+    return out
+
+
+def _odds_api_quota() -> dict:
+    """Surface the-odds-api remaining quota. Reads off the x-requests-*
+    response headers from a cheap /sports call. Returns
+    {'remaining', 'used', 'last', 'status', 'fetched_at'}.
+
+    Built after 2026-05-25 incident where a silent quota exhaustion
+    surfaced as model data_failure across both sports. status:
+      'ok'    — remaining > 1000
+      'warn'  — remaining 1..1000
+      'empty' — remaining == 0
+      'error' — call failed
+    """
+    import os as _os
+    import requests as _req
+    key = _os.environ.get('ODDS_API_KEY') or _os.environ.get('THE_ODDS_API_KEY')
+    out = {
+        'remaining': None,
+        'used': None,
+        'last': None,
+        'status': 'unknown',
+        'fetched_at': datetime.utcnow().isoformat() + 'Z',
+    }
+    if not key:
+        out['status'] = 'no_key'
+        return out
+    try:
+        r = _req.get(
+            'https://api.the-odds-api.com/v4/sports/',
+            params={'apiKey': key},
+            timeout=5,
+        )
+        rem = r.headers.get('x-requests-remaining')
+        used = r.headers.get('x-requests-used')
+        last = r.headers.get('x-requests-last')
+        if rem is not None:
+            out['remaining'] = int(rem)
+        if used is not None:
+            out['used'] = int(used)
+        if last is not None:
+            try:
+                out['last'] = int(last)
+            except ValueError:
+                out['last'] = last
+        if out['remaining'] is None:
+            out['status'] = 'error'
+        elif out['remaining'] == 0:
+            out['status'] = 'empty'
+        elif out['remaining'] <= 1000:
+            out['status'] = 'warn'
+        else:
+            out['status'] = 'ok'
+    except Exception as e:
+        logger.warning('infra: odds_api quota fetch failed: %s', e)
+        out['status'] = 'error'
+        out['error'] = str(e)[:200]
     return out
 
 
@@ -194,4 +262,5 @@ def fetch() -> dict:
         'latency_series':   _latency_series(now),
         'recent_deploys':   _recent_deploys(),
         'database_health':  _database_health(),
+        'odds_api_quota':   _odds_api_quota(),
     }
