@@ -9963,6 +9963,160 @@ def delete_fcm_token():
     return jsonify({'success': True})
 
 
+@app.route('/api/account/profile', methods=['PATCH'])
+@limiter.limit("10 per minute")
+def update_profile():
+    """Update display fields on the authenticated user. Email + password
+    have their own endpoints because each needs its own verification
+    flow (email-change requires a new-email confirmation token; password
+    requires the current password).
+    """
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json() or {}
+    EDITABLE = {'first_name', 'last_name', 'display_name'}
+    changed = {}
+    for k in EDITABLE:
+        if k in data:
+            v = (data.get(k) or '').strip()
+            if len(v) > 80:
+                return jsonify({'error': f'{k} too long (max 80 chars)'}), 400
+            setattr(user, k, v)
+            changed[k] = v
+    if not changed:
+        return jsonify({'error': 'No editable fields supplied'}), 400
+    db.session.commit()
+    return jsonify({'success': True, 'updated': changed, 'user': serialize_user(user)})
+
+
+@app.route('/api/account/change-password', methods=['POST'])
+@limiter.limit("5 per minute")
+def change_password():
+    """Authenticated password change. Requires the current password —
+    /auth/forgot-password remains the only reset path for users locked
+    out of their account.
+    """
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
+    if not user.password_hash:
+        return jsonify({
+            'error': 'No password on file. This account uses OAuth — set a password via Forgot Password.'
+        }), 400
+
+    data = request.get_json() or {}
+    current = data.get('current_password', '')
+    new = data.get('new_password', '')
+    if not current or not new:
+        return jsonify({'error': 'current_password and new_password required'}), 400
+    if len(new) < 8:
+        return jsonify({'error': 'New password must be at least 8 characters'}), 400
+    if new == current:
+        return jsonify({'error': 'New password matches current password'}), 400
+
+    from werkzeug.security import check_password_hash
+    if not check_password_hash(user.password_hash, current):
+        return jsonify({'error': 'Current password incorrect'}), 401
+
+    user.set_password(new)
+    # Rotate session_token so other devices get logged out — a password
+    # change should invalidate other sessions, not just the current one.
+    import secrets
+    user.session_token = secrets.token_urlsafe(32)
+    db.session.commit()
+
+    # Re-establish current session with the new token.
+    session['session_token'] = user.session_token
+    return jsonify({'success': True, 'token': generate_auth_token(user)})
+
+
+@app.route('/api/account/change-email', methods=['POST'])
+@limiter.limit("3 per minute")
+def request_email_change():
+    """Start an email-change. Sends a verification link to the NEW email;
+    only after the link is clicked does the change commit. Until then the
+    existing email is what's used for login + Stripe customer linkage.
+
+    Token format: itsdangerous time-signed, salt='email-change', payload
+    = {'uid': user.id, 'new': new_email}. 24h expiry.
+    """
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json() or {}
+    new_email = (data.get('new_email') or '').strip().lower()
+    if not new_email or '@' not in new_email:
+        return jsonify({'error': 'Valid new_email required'}), 400
+    if new_email == (user.email or '').lower():
+        return jsonify({'error': 'New email matches current email'}), 400
+    # Block taking an email already on another account.
+    existing = User.query.filter(func.lower(User.email) == new_email).first()
+    if existing and existing.id != user.id:
+        return jsonify({'error': 'That email is already registered'}), 409
+
+    from itsdangerous import URLSafeTimedSerializer
+    s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    token = s.dumps({'uid': user.id, 'new': new_email}, salt='email-change')
+
+    base = os.environ.get('APP_BASE_URL', request.host_url.rstrip('/'))
+    confirm_url = f"{base}/api/account/confirm-email-change?token={token}"
+
+    try:
+        from email_service import send_verification_email
+        # Reuses the existing verification template; the user sees a
+        # "verify your new email" message routed to the NEW address.
+        send_verification_email(new_email, confirm_url, user.first_name)
+    except Exception as e:
+        logging.error(f"Email-change verification send failed: {e}")
+        return jsonify({'error': 'Could not send verification email'}), 500
+
+    return jsonify({
+        'success': True,
+        'message': f'Verification link sent to {new_email}. Click it within 24h to complete the change.',
+    })
+
+
+@app.route('/api/account/confirm-email-change', methods=['GET'])
+@limiter.limit("10 per minute")
+def confirm_email_change():
+    """Finalize an email-change started via /api/account/change-email."""
+    token = request.args.get('token', '')
+    if not token:
+        return jsonify({'error': 'Missing token'}), 400
+
+    from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+    s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    try:
+        payload = s.loads(token, salt='email-change', max_age=86400)
+    except SignatureExpired:
+        return jsonify({'error': 'Token expired — request a new email change'}), 400
+    except BadSignature:
+        return jsonify({'error': 'Invalid token'}), 400
+    if not isinstance(payload, dict):
+        return jsonify({'error': 'Malformed token'}), 400
+
+    user = db.session.get(User, payload.get('uid'))
+    new_email = (payload.get('new') or '').strip().lower()
+    if not user or not new_email:
+        return jsonify({'error': 'User or new email missing from token'}), 400
+
+    # Re-check ownership at confirmation time — another account could've
+    # taken the email between request and confirm.
+    existing = User.query.filter(func.lower(User.email) == new_email).first()
+    if existing and existing.id != user.id:
+        return jsonify({'error': 'That email was claimed by another account before you confirmed'}), 409
+
+    old_email = user.email
+    user.email = new_email
+    user.email_verified = True  # the click-through verified it
+    db.session.commit()
+    logging.info(f"Email change confirmed: {old_email} -> {new_email} (user {user.id})")
+    return jsonify({'success': True, 'old_email': old_email, 'new_email': new_email})
+
+
 @app.route('/api/account/export', methods=['GET'])
 def export_account():
     """GDPR/CCPA data-export endpoint. The privacy policy at
