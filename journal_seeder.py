@@ -122,6 +122,7 @@ def seed_journal_articles_from_dir(content_dir, Insight, db):
         return 0
 
     count = 0
+    failed = 0
     for filename in sorted(os.listdir(content_dir)):
         if not filename.endswith('.md'):
             continue
@@ -151,35 +152,55 @@ def seed_journal_articles_from_dir(content_dir, Insight, db):
         if len(excerpt) > 500:
             excerpt = excerpt[:497] + '...'
 
-        existing = Insight.query.filter_by(slug=slug).first()
-        if existing:
-            existing.title = title
-            existing.category = category
-            existing.sport = sport
-            existing.status = status
-            existing.reading_time_minutes = reading_time
-            existing.publish_date = publish_date
-            existing.excerpt = excerpt
-            existing.content = body.strip()
-        else:
-            inst = Insight(
-                title=title,
-                slug=slug,
-                category=category,
-                sport=sport,
-                status=status,
-                reading_time_minutes=reading_time,
-                publish_date=publish_date,
-                excerpt=excerpt,
-                content=body.strip(),
+        # Commit each row inside its own try-block so a single bad article
+        # doesn't poison the whole batch via Query-invoked autoflush. Use
+        # no_autoflush around the existence check so the previous row's
+        # pending state doesn't surface here as a confusing 'autoflush
+        # raised...' wrapper around the real error.
+        try:
+            with db.session.no_autoflush:
+                existing = Insight.query.filter_by(slug=slug).first()
+            if existing:
+                existing.title = title
+                existing.category = category
+                existing.sport = sport
+                existing.status = status
+                existing.reading_time_minutes = reading_time
+                existing.publish_date = publish_date
+                existing.excerpt = excerpt
+                existing.content = body.strip()
+            else:
+                inst = Insight(
+                    title=title,
+                    slug=slug,
+                    category=category,
+                    sport=sport,
+                    status=status,
+                    reading_time_minutes=reading_time,
+                    publish_date=publish_date,
+                    excerpt=excerpt,
+                    content=body.strip(),
+                )
+                db.session.add(inst)
+            db.session.commit()
+            count += 1
+        except Exception as e:
+            db.session.rollback()
+            failed += 1
+            # Log the file + the exception type/message so the operator
+            # can fix the offending frontmatter without spelunking through
+            # SQLAlchemy stack traces. Sentry will also capture the raw
+            # exception if SENTRY_DSN is configured.
+            logger.error(
+                f'Journal seeder: {filename} (slug={slug}, category={category}, '
+                f'sport={sport}) failed: {type(e).__name__}: {e}'
             )
-            db.session.add(inst)
-        count += 1
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f'Journal seeder commit failed: {e}')
-        return 0
-    logger.info(f'Journal seeder: upserted {count} article(s) from {content_dir}')
+
+    if failed:
+        logger.warning(
+            f'Journal seeder: {count} upserted, {failed} failed from {content_dir}. '
+            f'Check logs for per-file errors.'
+        )
+    else:
+        logger.info(f'Journal seeder: upserted {count} article(s) from {content_dir}')
     return count
