@@ -1279,6 +1279,69 @@ class EnsemblePredictor:
             except Exception as e:
                 print(f"   ⚠️ MLB series_game_num calc error: {e}")
 
+            # Closer availability (last 3 games). 0 = closer rested, 2-3 =
+            # used in 2+ of last 3 → likely unavailable or short-leashed.
+            # Reuses the bullpen log fetcher's cache so this is essentially
+            # free after the first run per team-date.
+            features['home_closer_used_last_3'] = pd.Series(0, index=df.index, dtype=int)
+            features['away_closer_used_last_3'] = pd.Series(0, index=df.index, dtype=int)
+            features['closer_used_diff'] = pd.Series(0, index=df.index, dtype=int)
+            try:
+                if 'game_date' in df.columns:
+                    from mlb_bullpen import _cached_closer_usage
+                    for idx, row in df.iterrows():
+                        ht = _mlb_abbrev(str(row.get('home_team', '')).strip())
+                        at = _mlb_abbrev(str(row.get('away_team', '')).strip())
+                        gd = str(row.get('game_date', ''))
+                        if ht and at and gd:
+                            h_cl = _cached_closer_usage(ht, gd)
+                            a_cl = _cached_closer_usage(at, gd)
+                            features.at[idx, 'home_closer_used_last_3'] = h_cl
+                            features.at[idx, 'away_closer_used_last_3'] = a_cl
+                            features.at[idx, 'closer_used_diff'] = a_cl - h_cl
+            except Exception as e:
+                print(f"   ⚠️ MLB closer availability error: {e}")
+
+            # Cold streak flag: 3+ losses in last 5. home_form/away_form
+            # are computed earlier in this block (1 per win, 0.5 per close
+            # loss, 0 per blowout). Form < 1.5 ≈ 1 win or fewer in 5 →
+            # cold-streak territory. Captures the bounce-back / piling-on
+            # behavioral spread we saw flagged in the audit.
+            if 'home_form' in features.columns:
+                features['home_cold_streak'] = (features['home_form'] < 1.5).astype(int)
+                features['away_cold_streak'] = (features['away_form'] < 1.5).astype(int)
+                features['cold_streak_diff'] = features['away_cold_streak'] - features['home_cold_streak']
+            else:
+                features['home_cold_streak'] = pd.Series(0, index=df.index, dtype=int)
+                features['away_cold_streak'] = pd.Series(0, index=df.index, dtype=int)
+                features['cold_streak_diff'] = pd.Series(0, index=df.index, dtype=int)
+
+            # RL/ML implied gap. American odds → implied probability, then
+            # difference between ML-implied and RL-implied for the same
+            # side. When the market thinks the team will WIN but is less
+            # confident they cover -1.5, the gap widens. Useful signal
+            # for close-game vs blowout expectation built into the line.
+            def _amer_to_prob(o):
+                if o is None:
+                    return 0.5
+                try:
+                    o = float(o)
+                except (TypeError, ValueError):
+                    return 0.5
+                if o == 0:
+                    return 0.5
+                return (-o) / (-o + 100.0) if o < 0 else 100.0 / (o + 100.0)
+            if 'home_spread_odds' in df.columns:
+                features['home_spread_implied'] = df['home_spread_odds'].apply(_amer_to_prob).astype(float)
+                features['away_spread_implied'] = df.get('away_spread_odds', pd.Series(-110, index=df.index)).apply(_amer_to_prob).astype(float)
+                features['ml_rl_implied_gap_home'] = (features['home_ml_implied'] - features['home_spread_implied']).astype(float)
+                features['ml_rl_implied_gap_away'] = (features['away_ml_implied'] - features['away_spread_implied']).astype(float)
+            else:
+                features['home_spread_implied'] = pd.Series(0.5, index=df.index)
+                features['away_spread_implied'] = pd.Series(0.5, index=df.index)
+                features['ml_rl_implied_gap_home'] = pd.Series(0.0, index=df.index)
+                features['ml_rl_implied_gap_away'] = pd.Series(0.0, index=df.index)
+
         return features
     
     def prepare_target(self, df):

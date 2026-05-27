@@ -352,6 +352,67 @@ def _cached_bullpen_form(team_abbrev, game_date):
     return era_14d
 
 
+def get_team_closer_usage(team_abbrev, game_date=None, lookback=3):
+    """Count how many of the trailing `lookback` games the team's closer
+    pitched. Closer is heuristically the last non-starter in the pitcher
+    list with >=0.5 IP — ESPN doesn't tag the role explicitly, but the
+    last reliever in a game's box score is almost always the high-leverage
+    9th-inning arm. Returns int in [0, lookback].
+
+    Reuses fetch_recent_pitching_logs, so this shares the in-process
+    network path with fatigue but lives behind its own disk cache.
+    """
+    logs = fetch_recent_pitching_logs(team_abbrev, lookback_days=lookback, game_date=game_date)
+    if not logs:
+        return 0
+
+    closer_per_game = []
+    for game_log in logs:
+        relievers = [p for p in game_log.get('pitchers', [])
+                     if not p.get('is_starter') and float(p.get('ip', 0.0) or 0.0) >= 0.5]
+        if relievers:
+            # Last reliever listed is the closer in ESPN's pitching order
+            closer_per_game.append(relievers[-1].get('name', '').strip())
+
+    if not closer_per_game:
+        return 0
+    # Modal closer name across the window. If the same arm closed 2+ of
+    # the last 3, return the count — that's the "is the closer rested?"
+    # signal we care about.
+    from collections import Counter
+    most_common = Counter(closer_per_game).most_common(1)
+    if not most_common:
+        return 0
+    return int(most_common[0][1])
+
+
+def _cached_closer_usage(team_abbrev, game_date):
+    """Disk-cached wrapper around get_team_closer_usage."""
+    if not team_abbrev or not game_date:
+        return 0
+    try:
+        key = hashlib.md5(f"closer:{team_abbrev}:{game_date}".encode()).hexdigest()
+        cache_path = os.path.join(_BULLPEN_CACHE_DIR, f"{key}.json")
+    except Exception:
+        return get_team_closer_usage(team_abbrev, game_date=game_date)
+
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path) as f:
+                d = json.load(f)
+            return int(d.get('closer_used', 0))
+        except Exception:
+            pass
+
+    n = get_team_closer_usage(team_abbrev, game_date=game_date)
+    try:
+        with open(cache_path, 'w') as f:
+            json.dump({'closer_used': n}, f)
+    except Exception:
+        pass
+    return n
+
+
 if __name__ == '__main__':
     import sys
     team = sys.argv[1] if len(sys.argv) > 1 else 'NYY'
