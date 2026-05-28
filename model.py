@@ -2235,6 +2235,7 @@ class EnsemblePredictor:
     def _generate_signal_reasoning(self, row, X_features, game_idx, proba, confidence, edge, pred_margin=None):
         """Generate 3 dynamic reasoning bullets using feature-importance-driven templates.
         Falls back to _generate_explanation on any error."""
+        feat_dict = None
         try:
             from reasoning_templates import generate_reasoning_bullets
 
@@ -2284,14 +2285,14 @@ class EnsemblePredictor:
         except Exception as e:
             print(f"[reasoning] Fallback for {row.get('home_team', '?')}: {e}")
 
-        return self._generate_explanation(row, proba, confidence, edge, pred_margin)
+        return self._generate_explanation(row, proba, confidence, edge, pred_margin, feat_dict=feat_dict)
 
-    def _generate_explanation(self, row, proba, confidence, edge, pred_margin=None):
+    def _generate_explanation(self, row, proba, confidence, edge, pred_margin=None, feat_dict=None):
         """Generate exactly 3 structured reasoning bullets from data.
         Always picks from: rest advantage, net rating gap, pace/matchup, line value.
         Same structure every time."""
         if self.sport == 'mlb':
-            return self._generate_mlb_explanation(row, proba, confidence, edge, pred_margin)
+            return self._generate_mlb_explanation(row, proba, confidence, edge, pred_margin, feat_dict=feat_dict)
 
         spread = row.get('spread_home', 0) or 0
         open_spread = row.get('spread_home_open', None)
@@ -2431,7 +2432,7 @@ class EnsemblePredictor:
         
         return result[:3]
     
-    def _generate_mlb_explanation(self, row, proba, confidence, edge, pred_margin=None):
+    def _generate_mlb_explanation(self, row, proba, confidence, edge, pred_margin=None, feat_dict=None):
         """Generate 3 structured reasoning bullets for MLB games."""
         spread = row.get('spread_home', 0) or 0
         open_spread = row.get('spread_home_open', None)
@@ -2593,6 +2594,63 @@ class EnsemblePredictor:
                 candidates.append(('market_note', 2, f"Bullpen fatigue: {opp_team} on back-to-back — potential bullpen wear creates late-game value"))
         except (ValueError, TypeError):
             pass
+
+        # New engineered features (2026-05): bullpen form, closer availability,
+        # cold streak, RL/ML implied gap, series game number. Only renders when
+        # feat_dict is provided (caller passes it through from the predict path)
+        # so backfill/eval contexts that lack the feature matrix still work.
+        if feat_dict:
+            try:
+                bp_diff = feat_dict.get('bullpen_era_diff')
+                if bp_diff is not None:
+                    pick_bp = float(bp_diff) if pick_home else -float(bp_diff)
+                    if pick_bp > 0.75:
+                        candidates.append(('bullpen_form', 3, f"Bullpen form: {opp_team} pen carrying a {abs(pick_bp):.2f} ERA disadvantage over last 14d, late-inning edge"))
+                    elif pick_bp < -0.75:
+                        candidates.append(('bullpen_form', 1, f"Bullpen form note: {pick_team} pen running {abs(pick_bp):.2f} ERA hotter than opp's; edge sustains despite gap"))
+            except (ValueError, TypeError):
+                pass
+
+            try:
+                cl_diff = feat_dict.get('closer_used_diff')
+                if cl_diff is not None:
+                    pick_cl = float(cl_diff) if pick_home else -float(cl_diff)
+                    if pick_cl >= 2:
+                        candidates.append(('closer_avail', 3, f"Closer availability: {opp_team}'s closer used in {int(abs(pick_cl))}+ of last 3, late-inning leverage to {pick_team}"))
+                    elif pick_cl <= -2:
+                        candidates.append(('closer_avail', 1, f"Closer note: {pick_team}'s closer worked the last few games; model factors in the workload"))
+            except (ValueError, TypeError):
+                pass
+
+            try:
+                cs_diff = feat_dict.get('cold_streak_diff')
+                if cs_diff is not None:
+                    pick_cs = float(cs_diff) if pick_home else -float(cs_diff)
+                    if pick_cs >= 1:
+                        candidates.append(('cold_streak', 2, f"Opponent cold streak: {opp_team} coming off a rough 5-game stretch"))
+                    elif pick_cs <= -1:
+                        candidates.append(('cold_streak', 1, f"Cold streak note: {pick_team} coming off a rough stretch; edge persists despite recent form"))
+            except (ValueError, TypeError):
+                pass
+
+            try:
+                gap_key = 'ml_rl_implied_gap_home' if pick_home else 'ml_rl_implied_gap_away'
+                gap_val = feat_dict.get(gap_key)
+                if gap_val is not None:
+                    gap = float(gap_val)
+                    if gap >= 0.12:
+                        candidates.append(('market_shape', 2, f"Market shape: book pricing implies a close game for {pick_team} ({gap * 100:.0f}pp gap between win and cover odds)"))
+                    elif 0 <= gap <= 0.04:
+                        candidates.append(('market_shape', 1, f"Market shape: book pricing implies blowout potential for {pick_team}, narrow gap between win and cover odds"))
+            except (ValueError, TypeError):
+                pass
+
+            try:
+                series_num = feat_dict.get('series_game_num')
+                if series_num is not None and int(series_num) >= 2:
+                    candidates.append(('series', 1, f"Series context: game {int(series_num)} of the set, model factors in bullpen carryover and lineup state from the prior game"))
+            except (ValueError, TypeError):
+                pass
 
         max_bullets = 4
         candidates.sort(key=lambda x: x[1], reverse=True)

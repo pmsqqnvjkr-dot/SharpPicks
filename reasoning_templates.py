@@ -425,6 +425,106 @@ TEMPLATES = {
         ),
     },
 
+    # 14-day bullpen ERA gap. Diff is away minus home, so _pick_val flips it
+    # to the pick's perspective. League-average bullpen ERA hovers near 4.20;
+    # a 0.75-run gap is the threshold where this stops being noise.
+    'bullpen_era_diff': {
+        'category': 'pitching',
+        'render': lambda v, ctx: (
+            f"Bullpen form: {ctx['opp_team']}'s pen carrying a {abs(_pick_val(v, ctx)):.2f} "
+            f"ERA disadvantage over the last 14 days. Late-inning edge to {ctx['pick_team']}."
+            if _pick_val(v, ctx) > 0.75
+            else (
+                f"Bullpen form: {ctx['pick_team']}'s pen running a {abs(_pick_val(v, ctx)):.2f} "
+                f"ERA worse than the opponent's over 14 days. Edge sustains despite the gap."
+                if _pick_val(v, ctx) < -0.75
+                else None
+            )
+        ),
+    },
+
+    # Closer usage over the last 3 games. Diff is away minus home. 2+ uses
+    # in 3 days = likely unavailable or short-leashed. Only renders when the
+    # gap is meaningful (>= 2 appearances apart) to keep the bullets crisp.
+    'closer_used_diff': {
+        'category': 'bullpen_avail',
+        'render': lambda v, ctx: (
+            f"Closer availability: {ctx['opp_team']}'s closer used in "
+            f"{int(abs(_pick_val(v, ctx)))}+ of last 3. Late-inning leverage favors {ctx['pick_team']}."
+            if _pick_val(v, ctx) >= 2
+            else (
+                f"Closer note: {ctx['pick_team']}'s closer worked the last few games. "
+                f"Model factors in the workload."
+                if _pick_val(v, ctx) <= -2
+                else None
+            )
+        ),
+    },
+
+    # Cold streak: 3+ losses in last 5 (or equivalent low form). Diff is
+    # away minus home. Picks the bounce-back / piling-on side without
+    # over-claiming when both teams are humming.
+    'cold_streak_diff': {
+        'category': 'form',
+        'render': lambda v, ctx: (
+            f"Opponent cold streak: {ctx['opp_team']} coming off a rough 5-game stretch. "
+            f"Bounce-back risk priced low into the model's read."
+            if _pick_val(v, ctx) >= 1
+            else (
+                f"Cold streak note: {ctx['pick_team']} coming off a rough stretch. "
+                f"Edge persists despite recent form."
+                if _pick_val(v, ctx) <= -1
+                else None
+            )
+        ),
+    },
+
+    # ML/RL implied probability gap. Larger gap = market expects a close game
+    # (favorite wins but does not cover -1.5). Tighter gap = blowout pricing.
+    # Renders for the pick's own side (home or away) so it stays directional.
+    'ml_rl_implied_gap_home': {
+        'category': 'market_shape',
+        'render': lambda v, ctx: (
+            f"Market shape: book pricing implies a close game for {ctx['pick_team']} "
+            f"({abs(v) * 100:.0f}pp gap between win and cover probability)."
+            if ctx.get('is_pick_home') and v >= 0.12
+            else (
+                f"Market shape: book pricing implies blowout potential for {ctx['pick_team']} "
+                f"(narrow gap between win and cover odds)."
+                if ctx.get('is_pick_home') and v <= 0.04 and v >= 0
+                else None
+            )
+        ),
+    },
+
+    'ml_rl_implied_gap_away': {
+        'category': 'market_shape',
+        'render': lambda v, ctx: (
+            f"Market shape: book pricing implies a close game for {ctx['pick_team']} "
+            f"({abs(v) * 100:.0f}pp gap between win and cover probability)."
+            if (not ctx.get('is_pick_home')) and v >= 0.12
+            else (
+                f"Market shape: book pricing implies blowout potential for {ctx['pick_team']} "
+                f"(narrow gap between win and cover odds)."
+                if (not ctx.get('is_pick_home')) and v <= 0.04 and v >= 0
+                else None
+            )
+        ),
+    },
+
+    # Series game number: G1 is read fresh, G2/G3 layer in carryover from
+    # the prior day (bullpen state, lineup rest, pitcher fatigue from bench
+    # pulls). Most informative when not G1.
+    'series_game_num': {
+        'category': 'series',
+        'render': lambda v, ctx: (
+            f"Series context: game {int(v)} of the set. Model factors in "
+            f"bullpen carryover and lineup state from the prior game."
+            if int(v) >= 2
+            else None
+        ),
+    },
+
     # Umpire run expectancy delta vs 8.8 league average. High-rpgi
     # umpires widen typical run margins, which matters more for run-
     # line picks (a 2-run cover is easier in a 10-3 game than 3-2).
