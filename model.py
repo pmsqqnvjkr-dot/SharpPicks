@@ -2315,11 +2315,11 @@ class EnsemblePredictor:
                     candidates.append(('rest', 3, f"Rest advantage: {pick_team} {max(h_rest,a_rest)}d rest vs {opp_team} on {min(h_rest,a_rest)}d ({rest_diff:+d}d edge)"))
                 elif h_rest == a_rest:
                     if h_rest == 0:
-                        candidates.append(('rest', 1, f"Both teams on back-to-back — rest neutral"))
+                        candidates.append(('rest', 1, f"Both teams on back-to-back, rest neutral"))
                     else:
-                        candidates.append(('rest', 1, f"Both teams on {h_rest}d rest — rest neutral"))
+                        candidates.append(('rest', 1, f"Both teams on {h_rest}d rest, rest neutral"))
                 elif rest_diff < 0:
-                    candidates.append(('rest', 1, f"Rest disadvantage: {pick_team} {h_rest if pick_home else a_rest}d vs {opp_team} {a_rest if pick_home else h_rest}d — statistical edge overcomes"))
+                    candidates.append(('rest', 1, f"Rest disadvantage: {pick_team} {h_rest if pick_home else a_rest}d vs {opp_team} {a_rest if pick_home else h_rest}d, statistical edge overcomes"))
                 else:
                     candidates.append(('rest', 1, f"Rest neutral: {home} {h_rest}d, {away} {a_rest}d"))
             else:
@@ -2341,7 +2341,7 @@ class EnsemblePredictor:
                 elif net_diff > 0:
                     candidates.append(('net_rating', 2, f"Net rating: {pick_team} +{abs(net_diff):.1f} per 100 vs {opp_team} (slight edge)"))
                 else:
-                    candidates.append(('net_rating', 1, f"Net rating: {opp_team} +{abs(net_diff):.1f} per 100 — spread accounts for differential"))
+                    candidates.append(('net_rating', 1, f"Net rating: {opp_team} +{abs(net_diff):.1f} per 100, spread accounts for differential"))
             elif home_margin is not None and away_margin is not None:
                 h_margin = float(home_margin)
                 a_margin = float(away_margin)
@@ -2351,7 +2351,7 @@ class EnsemblePredictor:
                 elif margin_diff > 0:
                     candidates.append(('net_rating', 2, f"Scoring margin: {pick_team} +{abs(margin_diff):.1f} PPG vs {opp_team} (slight edge)"))
                 else:
-                    candidates.append(('net_rating', 1, f"Scoring margin: {opp_team} +{abs(margin_diff):.1f} PPG — spread accounts for differential"))
+                    candidates.append(('net_rating', 1, f"Scoring margin: {opp_team} +{abs(margin_diff):.1f} PPG, spread accounts for differential"))
             else:
                 candidates.append(('net_rating', 0, f"Rating data unavailable"))
         except (ValueError, TypeError):
@@ -2375,11 +2375,11 @@ class EnsemblePredictor:
                     if margin_diff > 3:
                         candidates.append(('matchup', 3, f"Scoring margin: {pick_team} +{abs(margin_diff):.1f} PPG, pace {(h_pace+a_pace)/2:.1f}"))
                     else:
-                        candidates.append(('matchup', 1, f"Pace: {(h_pace+a_pace)/2:.1f} combined, margins close — neutral factor"))
+                        candidates.append(('matchup', 1, f"Pace: {(h_pace+a_pace)/2:.1f} combined, margins close, neutral factor"))
                 elif pace_diff > 3:
                     candidates.append(('matchup', 2, f"Pace mismatch: {h_pace:.1f} vs {a_pace:.1f} poss/game ({pace_diff:.1f} differential)"))
                 else:
-                    candidates.append(('matchup', 1, f"Pace neutral ({(h_pace+a_pace)/2:.1f} combined) — no matchup edge"))
+                    candidates.append(('matchup', 1, f"Pace neutral ({(h_pace+a_pace)/2:.1f} combined), no matchup edge"))
             elif home_avg_against is not None and away_avg_against is not None:
                 h_against = float(home_avg_against)
                 a_against = float(away_avg_against)
@@ -2407,14 +2407,14 @@ class EnsemblePredictor:
             move = spread - open_spread
             move_abs = abs(move)
             if move_abs < 0.5:
-                candidates.append(('line_value', 2, f"Line stable: opened {open_spread:+.1f}, current {spread:+.1f} — market consensus intact"))
+                candidates.append(('line_value', 2, f"Line stable: opened {open_spread:+.1f}, current {spread:+.1f}, market consensus intact"))
             elif (pick_home and move < -0.5) or (not pick_home and move > 0.5):
-                candidates.append(('line_value', 3, f"Line value: {move_abs:.1f}pts better than open ({open_spread:+.1f} \u2192 {spread:+.1f}) — buying below market"))
+                candidates.append(('line_value', 3, f"Line value: {move_abs:.1f}pts better than open ({open_spread:+.1f} \u2192 {spread:+.1f}), buying below market"))
             else:
-                candidates.append(('line_value', 1, f"Line moved {move_abs:.1f}pts against ({open_spread:+.1f} \u2192 {spread:+.1f}) — edge sustains at current number"))
+                candidates.append(('line_value', 1, f"Line moved {move_abs:.1f}pts against ({open_spread:+.1f} \u2192 {spread:+.1f}), edge sustains at current number"))
         else:
             implied = abs(STANDARD_ODDS) / (abs(STANDARD_ODDS) + 100) if STANDARD_ODDS < 0 else 100 / (STANDARD_ODDS + 100)
-            candidates.append(('line_value', 2, f"Model confidence {confidence:.0%} vs implied {implied:.0%} — {(confidence - implied) * 100:.1f}pp probability edge"))
+            candidates.append(('line_value', 2, f"Model confidence {confidence:.0%} vs implied {implied:.0%}, {(confidence - implied) * 100:.1f}pp probability edge"))
         
         candidates.sort(key=lambda x: x[1], reverse=True)
         
@@ -2458,11 +2458,11 @@ class EnsemblePredictor:
                 if rest_diff > 0:
                     candidates.append(('rest', 3, f"Schedule edge: {pick_team} off {max(h_rest,a_rest)}d rest vs {opp_team} {min(h_rest,a_rest)}d ({rest_diff:+d}d advantage)"))
                 elif h_rest == 0 and a_rest == 0:
-                    candidates.append(('rest', 1, "Both teams played yesterday — fatigue neutral"))
+                    candidates.append(('rest', 1, "Both teams played yesterday, fatigue neutral"))
                 elif h_rest == a_rest:
-                    candidates.append(('rest', 1, f"Both teams on {h_rest}d rest — schedule neutral"))
+                    candidates.append(('rest', 1, f"Both teams on {h_rest}d rest, schedule neutral"))
                 else:
-                    candidates.append(('rest', 1, f"Schedule disadvantage: {pick_team} on shorter rest — edge still overcomes"))
+                    candidates.append(('rest', 1, f"Schedule disadvantage: {pick_team} on shorter rest, edge still overcomes"))
             elif h_rest == 0 or a_rest == 0:
                 team_0 = home if h_rest == 0 else away
                 candidates.append(('rest', 2, f"Possible fatigue: {team_0} on back-to-back"))
@@ -2487,11 +2487,11 @@ class EnsemblePredictor:
                 pick_rec = home_record if pick_home else away_record
                 opp_rec = away_record if pick_home else home_record
                 if diff > 0.08:
-                    candidates.append(('record', 3, f"Season form: {pick_team} ({pick_rec}) vs {opp_team} ({opp_rec}) — {diff:.0%} win rate gap"))
+                    candidates.append(('record', 3, f"Season form: {pick_team} ({pick_rec}) vs {opp_team} ({opp_rec}), {diff:.0%} win rate gap"))
                 elif diff > 0:
                     candidates.append(('record', 2, f"Record edge: {pick_team} ({pick_rec}) vs {opp_team} ({opp_rec})"))
                 else:
-                    candidates.append(('record', 1, f"Records close: {pick_team} ({pick_rec}) vs {opp_team} ({opp_rec}) — spread accounts for differential"))
+                    candidates.append(('record', 1, f"Records close: {pick_team} ({pick_rec}) vs {opp_team} ({opp_rec}), spread accounts for differential"))
 
             pick_split = home_home_rec if pick_home else away_away_rec
             opp_split = away_away_rec if pick_home else home_home_rec
@@ -2511,11 +2511,11 @@ class EnsemblePredictor:
             try:
                 ml_val = int(pick_ml)
                 if ml_val > 0:
-                    candidates.append(('value', 3, f"Underdog value: {pick_team} at +{ml_val} — model sees {confidence:.0%} win probability vs implied {1/(1+ml_val/100):.0%}"))
+                    candidates.append(('value', 3, f"Underdog value: {pick_team} at +{ml_val}, model sees {confidence:.0%} win probability vs implied {1/(1+ml_val/100):.0%}"))
                 elif abs(ml_val) < 150:
-                    candidates.append(('value', 2, f"Market price: {pick_team} {ml_val} — model identifies probability edge at current moneyline"))
+                    candidates.append(('value', 2, f"Market price: {pick_team} {ml_val}, model identifies probability edge at current moneyline"))
                 else:
-                    candidates.append(('value', 1, f"Heavy favorite: {pick_team} {ml_val} — edge detected despite chalk price"))
+                    candidates.append(('value', 1, f"Heavy favorite: {pick_team} {ml_val}, edge detected despite chalk price"))
             except (ValueError, TypeError):
                 pass
 
@@ -2523,17 +2523,17 @@ class EnsemblePredictor:
             move = spread - open_spread
             move_abs = abs(move)
             if move_abs < 0.5:
-                candidates.append(('line_value', 2, f"Run line stable: opened {open_spread:+.1f}, current {spread:+.1f} — market consensus intact"))
+                candidates.append(('line_value', 2, f"Run line stable: opened {open_spread:+.1f}, current {spread:+.1f}, market consensus intact"))
             elif (pick_home and move < -0.5) or (not pick_home and move > 0.5):
-                candidates.append(('line_value', 3, f"Line value: {move_abs:.1f}pts better than open ({open_spread:+.1f} → {spread:+.1f}) — buying below market"))
+                candidates.append(('line_value', 3, f"Line value: {move_abs:.1f}pts better than open ({open_spread:+.1f} → {spread:+.1f}), buying below market"))
             else:
-                candidates.append(('line_value', 1, f"Line moved {move_abs:.1f}pts against ({open_spread:+.1f} → {spread:+.1f}) — edge sustains at current number"))
+                candidates.append(('line_value', 1, f"Line moved {move_abs:.1f}pts against ({open_spread:+.1f} → {spread:+.1f}), edge sustains at current number"))
         else:
             from sport_config import get_sport_config
             cfg = get_sport_config('mlb')
             std_odds = cfg.get('standard_odds', -130)
             implied = abs(std_odds) / (abs(std_odds) + 100) if std_odds < 0 else 100 / (std_odds + 100)
-            candidates.append(('line_value', 2, f"Model confidence {confidence:.0%} vs implied {implied:.0%} — {(confidence - implied) * 100:.1f}pp probability edge"))
+            candidates.append(('line_value', 2, f"Model confidence {confidence:.0%} vs implied {implied:.0%}, {(confidence - implied) * 100:.1f}pp probability edge"))
 
         home_pitcher = row.get('home_pitcher')
         away_pitcher = row.get('away_pitcher')
@@ -2547,15 +2547,15 @@ class EnsemblePredictor:
                     p_era, o_era = float(pick_era), float(opp_era)
                     era_diff = o_era - p_era
                     if era_diff > 1.0:
-                        candidates.append(('pitcher', 3, f"Pitching edge: {pick_pitcher} ({p_era:.2f} ERA) vs {opp_pitcher} ({o_era:.2f} ERA) — {era_diff:.2f} ERA advantage"))
+                        candidates.append(('pitcher', 3, f"Pitching edge: {pick_pitcher} ({p_era:.2f} ERA) vs {opp_pitcher} ({o_era:.2f} ERA), {era_diff:.2f} ERA advantage"))
                     elif era_diff > 0:
                         candidates.append(('pitcher', 2, f"Probables: {pick_pitcher} ({p_era:.2f} ERA) vs {opp_pitcher} ({o_era:.2f} ERA)"))
                     else:
-                        candidates.append(('pitcher', 1, f"Pitching disadvantage: {pick_pitcher} ({p_era:.2f} ERA) vs {opp_pitcher} ({o_era:.2f} ERA) — edge sustains despite matchup"))
+                        candidates.append(('pitcher', 1, f"Pitching disadvantage: {pick_pitcher} ({p_era:.2f} ERA) vs {opp_pitcher} ({o_era:.2f} ERA), edge sustains despite matchup"))
                 except (ValueError, TypeError):
-                    candidates.append(('pitcher', 2, f"Probables: {away_pitcher} vs {home_pitcher} — pitching matchup factored into model"))
+                    candidates.append(('pitcher', 2, f"Probables: {away_pitcher} vs {home_pitcher}, pitching matchup factored into model"))
             else:
-                candidates.append(('pitcher', 2, f"Probables: {away_pitcher} vs {home_pitcher} — pitching matchup factored into model"))
+                candidates.append(('pitcher', 2, f"Probables: {away_pitcher} vs {home_pitcher}, pitching matchup factored into model"))
         elif pick_pitcher:
             era_str = f" ({float(pick_era):.2f} ERA)" if pick_era is not None else ""
             candidates.append(('pitcher', 2, f"Starting pitcher: {pick_pitcher}{era_str} on the mound for {pick_team}"))
@@ -2567,9 +2567,9 @@ class EnsemblePredictor:
                 a_ml = int(away_ml)
                 fav_ml = min(h_ml, a_ml)
                 if pick_ml > 0 and fav_ml < -180:
-                    candidates.append(('market_note', 3, f"Public favorite inflation: {opp_team} priced at {fav_ml} — market overvaluing chalk, underdog value detected"))
+                    candidates.append(('market_note', 3, f"Public favorite inflation: {opp_team} priced at {fav_ml}, market overvaluing chalk, underdog value detected"))
                 elif pick_ml > 0 and fav_ml < -140:
-                    candidates.append(('market_note', 2, f"Market pricing gap: {pick_team} at +{int(pick_ml)} — model sees value the market has not fully corrected"))
+                    candidates.append(('market_note', 2, f"Market pricing gap: {pick_team} at +{int(pick_ml)}, model sees value the market has not fully corrected"))
 
             def _pr(rec):
                 if not rec or rec == 'N/A':
@@ -2582,7 +2582,7 @@ class EnsemblePredictor:
                 ml_v = int(pick_ml)
                 ml_implied = abs(ml_v) / (abs(ml_v) + 100) if ml_v < 0 else 100 / (ml_v + 100)
                 if pick_pct_val - ml_implied > 0.06:
-                    candidates.append(('market_note', 2, f"Form mismatch: {pick_team} win rate ({pick_pct_val:.0%}) exceeds moneyline implied probability ({ml_implied:.0%}) — line has not adjusted"))
+                    candidates.append(('market_note', 2, f"Form mismatch: {pick_team} win rate ({pick_pct_val:.0%}) exceeds moneyline implied probability ({ml_implied:.0%}), line has not adjusted"))
         except (ValueError, TypeError, ZeroDivisionError):
             pass
 
@@ -2591,7 +2591,7 @@ class EnsemblePredictor:
             pick_rest_val = int(home_rest if pick_home else away_rest) if (home_rest if pick_home else away_rest) is not None else None
             opp_rest_val = int(away_rest if pick_home else home_rest) if (away_rest if pick_home else home_rest) is not None else None
             if opp_rest_val is not None and opp_rest_val == 0:
-                candidates.append(('market_note', 2, f"Bullpen fatigue: {opp_team} on back-to-back — potential bullpen wear creates late-game value"))
+                candidates.append(('market_note', 2, f"Bullpen fatigue: {opp_team} on back-to-back, potential bullpen wear creates late-game value"))
         except (ValueError, TypeError):
             pass
 
@@ -2607,7 +2607,7 @@ class EnsemblePredictor:
                     if pick_bp > 0.75:
                         candidates.append(('bullpen_form', 3, f"Bullpen form: {opp_team} pen carrying a {abs(pick_bp):.2f} ERA disadvantage over last 14d, late-inning edge"))
                     elif pick_bp < -0.75:
-                        candidates.append(('bullpen_form', 1, f"Bullpen form note: {pick_team} pen running {abs(pick_bp):.2f} ERA hotter than opp's; edge sustains despite gap"))
+                        candidates.append(('bullpen_form', 1, f"Bullpen form note: {pick_team} pen running {abs(pick_bp):.2f} ERA hotter than opp's, edge sustains despite gap"))
             except (ValueError, TypeError):
                 pass
 
@@ -2618,7 +2618,7 @@ class EnsemblePredictor:
                     if pick_cl >= 2:
                         candidates.append(('closer_avail', 3, f"Closer availability: {opp_team}'s closer used in {int(abs(pick_cl))}+ of last 3, late-inning leverage to {pick_team}"))
                     elif pick_cl <= -2:
-                        candidates.append(('closer_avail', 1, f"Closer note: {pick_team}'s closer worked the last few games; model factors in the workload"))
+                        candidates.append(('closer_avail', 1, f"Closer note: {pick_team}'s closer worked the last few games, model factors in the workload"))
             except (ValueError, TypeError):
                 pass
 
@@ -2629,7 +2629,7 @@ class EnsemblePredictor:
                     if pick_cs >= 1:
                         candidates.append(('cold_streak', 2, f"Opponent cold streak: {opp_team} coming off a rough 5-game stretch"))
                     elif pick_cs <= -1:
-                        candidates.append(('cold_streak', 1, f"Cold streak note: {pick_team} coming off a rough stretch; edge persists despite recent form"))
+                        candidates.append(('cold_streak', 1, f"Cold streak note: {pick_team} coming off a rough stretch, edge persists despite recent form"))
             except (ValueError, TypeError):
                 pass
 
