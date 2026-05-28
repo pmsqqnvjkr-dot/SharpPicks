@@ -54,6 +54,24 @@ def _opp_rest(ctx):
     return ctx.get('away_rest') if ctx.get('is_pick_home') else ctx.get('home_rest')
 
 
+def _opp_leverage_depleted(ctx):
+    """Opponent's leverage-arm depletion count (closer + setup taxed), or 0."""
+    raw = ctx.get('away_leverage_depleted') if ctx.get('is_pick_home') else ctx.get('home_leverage_depleted')
+    n = _num(raw)
+    return n if n is not None else 0
+
+
+def _starter_rest_fields(ctx):
+    """pick/opp starter rest-day counts from ctx, or None if unavailable."""
+    if ctx.get('is_pick_home'):
+        pdays, odays = _num(ctx.get('home_starter_rest_days')), _num(ctx.get('away_starter_rest_days'))
+    else:
+        pdays, odays = _num(ctx.get('away_starter_rest_days')), _num(ctx.get('home_starter_rest_days'))
+    if pdays is None or odays is None:
+        return None
+    return {'pick_days': round(pdays), 'opp_days': round(odays)}
+
+
 def _num(x):
     """Coerce to float, or None if not a finite number."""
     if x is None:
@@ -896,6 +914,38 @@ TEMPLATES = {
         ],
     },
 
+    # WNBA rotation-share lost: minutes-per-game at risk as a fraction of the
+    # team's 200 game-minutes (5 x 40). WNBA rotations run ~8 deep, so a 15%+
+    # loss is a structural blow. Keyed on the existing mpg_at_risk features so
+    # no new model feature / retrain is needed; WNBA-gated on sport.
+    'home_mpg_at_risk': {
+        'category': 'injuries',
+        'tiers': [
+            {
+                'when': lambda v, ctx: ctx.get('sport') == 'wnba' and _num(v) is not None and (_num(v) / 200.0) > 0.15,
+                'fields': lambda v, ctx: {'team': ctx.get('home_team'), 'pct': round((_num(v) / 200.0) * 100)},
+                'variants': [
+                    "Rotation hit: {team} missing {pct}% of normal rotation minutes. WNBA depth is shallow, a bigger impact than an equivalent NBA absence.",
+                    "{team} down {pct}% of standard rotation. In an 8-deep league, a structural lineup blow.",
+                ],
+            },
+        ],
+    },
+
+    'away_mpg_at_risk': {
+        'category': 'injuries',
+        'tiers': [
+            {
+                'when': lambda v, ctx: ctx.get('sport') == 'wnba' and _num(v) is not None and (_num(v) / 200.0) > 0.15,
+                'fields': lambda v, ctx: {'team': ctx.get('away_team'), 'pct': round((_num(v) / 200.0) * 100)},
+                'variants': [
+                    "Rotation hit: {team} missing {pct}% of normal rotation minutes. WNBA depth is shallow, a bigger impact than an equivalent NBA absence.",
+                    "{team} down {pct}% of standard rotation. In an 8-deep league, a structural lineup blow.",
+                ],
+            },
+        ],
+    },
+
     'home_star_out': {
         'category': 'injuries',
         'tiers': [
@@ -982,6 +1032,27 @@ TEMPLATES = {
                 'fields': lambda v, ctx: {'n': round(abs(_pick_val(v, ctx)), 2)},
                 'variants': [
                     "Pitching disadvantage: opposing starter ERA is {n} runs lower. Edge sits in the lineup matchup.",
+                ],
+            },
+        ],
+    },
+
+    'starter_days_rest_diff': {  # home-minus-away; higher rest favorable
+        'category': 'pitching',
+        'tiers': [
+            {  # Tier A: pick's starter on >= 2 more days rest
+                'when': lambda v, ctx: _pick_val(v, ctx) >= 2 and ctx.get('pick_sp') and ctx.get('opp_sp'),
+                'fields': lambda v, ctx: _starter_rest_fields(ctx),
+                'variants': [
+                    "Starter rest: {pick_team}'s {pick_sp} on {pick_days}d vs {opp_team}'s {opp_sp} on {opp_days}d. Extra rest correlates with sharper command early.",
+                    "{pick_sp} ({pick_team}) on {pick_days} days, opposite {opp_sp} on {opp_days}. Rest gap favors the pick.",
+                ],
+            },
+            {  # Tier B: opponent's starter on >= 2 more days rest, edge persists
+                'when': lambda v, ctx: _pick_val(v, ctx) <= -2 and ctx.get('pick_sp') and ctx.get('opp_sp'),
+                'fields': lambda v, ctx: _starter_rest_fields(ctx),
+                'variants': [
+                    "Starter rest disadvantage: {pick_sp} on {pick_days}d vs {opp_sp} on {opp_days}d. Edge holds despite the gap.",
                 ],
             },
         ],
@@ -1106,10 +1177,16 @@ TEMPLATES = {
     'closer_used_diff': {
         'category': 'bullpen',
         'tiers': [
-            # Tier A (closer + setup arms unavailable) added with leverage-arm
-            # feature in Phase 2; Tier B/C available now from the closer heuristic.
+            {  # Tier A: opponent's closer AND setup arms depleted
+                'when': lambda v, ctx: _pick_val(v, ctx) >= 2 and _opp_leverage_depleted(ctx) >= 2,
+                'fields': lambda v, ctx: {},
+                'variants': [
+                    "Closer availability: {opp_team}'s closer and top setup arms unavailable. Late-inning leverage flips hard to {pick_team}.",
+                    "{opp_team} down their closer and high-leverage arms. Back-end pitching gap is decisive.",
+                ],
+            },
             {  # Tier B: opposing closer unavailable
-                'when': lambda v, ctx: _pick_val(v, ctx) == 2,
+                'when': lambda v, ctx: _pick_val(v, ctx) >= 2,
                 'fields': lambda v, ctx: {},
                 'variants': [
                     "Closer availability: {opp_team}'s closer used in 2+ of last 3. Late-inning leverage favors {pick_team}.",

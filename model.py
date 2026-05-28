@@ -1125,6 +1125,76 @@ class EnsemblePredictor:
             features['away_back_to_back'] = (features['away_rest'] <= 1).astype(int)
             features['b2b_advantage'] = features['away_back_to_back'] - features['home_back_to_back']
 
+            # Starter days-rest: days since each listed starter's previous
+            # start. Mirrors the team-rest history peek but keys on pitcher
+            # name. 5d = typical rotation turn, used as the no-history default.
+            # Convention is home-minus-away (higher rest is favorable, unlike
+            # ERA where higher is worse), so _pick_val gives pick-minus-opp.
+            features['home_starter_rest_days'] = pd.Series(5.0, index=df.index, dtype=float)
+            features['away_starter_rest_days'] = pd.Series(5.0, index=df.index, dtype=float)
+            features['starter_days_rest_diff'] = pd.Series(0.0, index=df.index, dtype=float)
+            try:
+                if 'game_date' in df.columns and 'home_pitcher' in df.columns:
+                    sp_dates = pd.to_datetime(df['game_date'], errors='coerce')
+
+                    def _norm_sp(x):
+                        s = str(x).strip()
+                        return s if s and s.upper() not in ('', 'TBD', 'NONE', 'NAN') else None
+
+                    pitcher_to_dates = {}
+                    for idx, row in df.iterrows():
+                        d = sp_dates.get(idx)
+                        if pd.isna(d):
+                            continue
+                        for col in ('home_pitcher', 'away_pitcher'):
+                            nm = _norm_sp(row.get(col))
+                            if nm:
+                                pitcher_to_dates.setdefault(nm, []).append(d)
+                    # Extend with recent history so a live single-day slate has
+                    # priors to compute rest against.
+                    try:
+                        ref = sp_dates.dropna().max()
+                        if pd.notna(ref):
+                            start = (pd.Timestamp(ref) - pd.Timedelta(days=10)).strftime('%Y-%m-%d')
+                            end = pd.Timestamp(ref).strftime('%Y-%m-%d')
+                            tbl = self._games_table()
+                            hc = get_sqlite_conn()
+                            hrows = hc.execute(
+                                f"SELECT game_date, home_pitcher, away_pitcher FROM {tbl} "
+                                f"WHERE game_date >= ? AND game_date <= ?",
+                                (start, end)
+                            ).fetchall()
+                            hc.close()
+                            for gd_str, hp, ap in hrows:
+                                gd = pd.Timestamp(gd_str)
+                                for nm in (_norm_sp(hp), _norm_sp(ap)):
+                                    if nm:
+                                        pitcher_to_dates.setdefault(nm, []).append(gd)
+                    except Exception:
+                        pass
+                    for nm in pitcher_to_dates:
+                        pitcher_to_dates[nm].sort()
+
+                    h_sr, a_sr = [], []
+                    for idx, row in df.iterrows():
+                        d = sp_dates.get(idx)
+                        hp = _norm_sp(row.get('home_pitcher'))
+                        ap = _norm_sp(row.get('away_pitcher'))
+
+                        def _sp_rest(nm):
+                            if not nm or pd.isna(d):
+                                return 5.0
+                            priors = [gd for gd in pitcher_to_dates.get(nm, []) if gd < d]
+                            return float((d - priors[-1]).days) if priors else 5.0
+
+                        h_sr.append(_sp_rest(hp))
+                        a_sr.append(_sp_rest(ap))
+                    features['home_starter_rest_days'] = pd.Series(h_sr, index=df.index, dtype=float).clip(0, 12)
+                    features['away_starter_rest_days'] = pd.Series(a_sr, index=df.index, dtype=float).clip(0, 12)
+                    features['starter_days_rest_diff'] = features['home_starter_rest_days'] - features['away_starter_rest_days']
+            except Exception as e:
+                print(f"   ⚠️ MLB starter rest calc error: {e}")
+
             home_pitcher_present = df.get('home_pitcher', pd.Series([None]*len(df)))
             away_pitcher_present = df.get('away_pitcher', pd.Series([None]*len(df)))
             features['home_pitcher_listed'] = home_pitcher_present.apply(
@@ -1286,9 +1356,16 @@ class EnsemblePredictor:
             features['home_closer_used_last_3'] = pd.Series(0, index=df.index, dtype=int)
             features['away_closer_used_last_3'] = pd.Series(0, index=df.index, dtype=int)
             features['closer_used_diff'] = pd.Series(0, index=df.index, dtype=int)
+            # Leverage depletion: how many of the team's high-leverage arms
+            # (closer + primary setup) are taxed over the last 3 games. Powers
+            # the closer_used_diff Tier A reasoning ("closer + setup arms
+            # unavailable"), which is a stronger signal than closer alone.
+            features['home_leverage_depleted'] = pd.Series(0, index=df.index, dtype=int)
+            features['away_leverage_depleted'] = pd.Series(0, index=df.index, dtype=int)
+            features['leverage_depleted_diff'] = pd.Series(0, index=df.index, dtype=int)
             try:
                 if 'game_date' in df.columns:
-                    from mlb_bullpen import _cached_closer_usage
+                    from mlb_bullpen import _cached_closer_usage, _cached_leverage_depletion
                     for idx, row in df.iterrows():
                         ht = _mlb_abbrev(str(row.get('home_team', '')).strip())
                         at = _mlb_abbrev(str(row.get('away_team', '')).strip())
@@ -1299,6 +1376,11 @@ class EnsemblePredictor:
                             features.at[idx, 'home_closer_used_last_3'] = h_cl
                             features.at[idx, 'away_closer_used_last_3'] = a_cl
                             features.at[idx, 'closer_used_diff'] = a_cl - h_cl
+                            h_lv = _cached_leverage_depletion(ht, gd)
+                            a_lv = _cached_leverage_depletion(at, gd)
+                            features.at[idx, 'home_leverage_depleted'] = h_lv
+                            features.at[idx, 'away_leverage_depleted'] = a_lv
+                            features.at[idx, 'leverage_depleted_diff'] = a_lv - h_lv
             except Exception as e:
                 print(f"   ⚠️ MLB closer availability error: {e}")
 
@@ -2271,7 +2353,9 @@ class EnsemblePredictor:
 
             feat_dict = dict(zip(self.feature_names, feature_row))
             for key in ('home_form', 'away_form', 'home_win_pct', 'away_win_pct',
-                        'home_home_pct', 'away_away_pct'):
+                        'home_home_pct', 'away_away_pct',
+                        'home_starter_rest_days', 'away_starter_rest_days',
+                        'home_leverage_depleted', 'away_leverage_depleted'):
                 if key in feat_dict:
                     game_context[key] = feat_dict[key]
             # _pct() expects {side}_{stat}; the model stores BDL win pct as

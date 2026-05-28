@@ -413,6 +413,57 @@ def _cached_closer_usage(team_abbrev, game_date):
     return n
 
 
+def get_team_leverage_depletion(team_abbrev, game_date=None, lookback=3):
+    """Count the team's high-leverage arms (closer + primary setup) that have
+    been worked hard over the trailing `lookback` games. The last two
+    relievers in each game's ESPN pitching order are the 8th/9th-inning arms;
+    an arm appearing in 2+ of those games is 'depleted'. Returns int:
+    0 = fresh back end, 2+ = closer and setup both taxed (Tier A territory).
+    Extends the closer heuristic, which only tracks the single last arm.
+    """
+    logs = fetch_recent_pitching_logs(team_abbrev, lookback_days=lookback, game_date=game_date)
+    if not logs:
+        return 0
+    from collections import Counter
+    appearances = Counter()
+    for game_log in logs:
+        relievers = [p for p in game_log.get('pitchers', [])
+                     if not p.get('is_starter') and float(p.get('ip', 0.0) or 0.0) >= 0.5]
+        # Last two listed relievers are the high-leverage arms (setup + closer).
+        for p in relievers[-2:]:
+            nm = p.get('name', '').strip()
+            if nm:
+                appearances[nm] += 1
+    return int(sum(1 for _, c in appearances.items() if c >= 2))
+
+
+def _cached_leverage_depletion(team_abbrev, game_date):
+    """Disk-cached wrapper around get_team_leverage_depletion."""
+    if not team_abbrev or not game_date:
+        return 0
+    try:
+        key = hashlib.md5(f"leverage:{team_abbrev}:{game_date}".encode()).hexdigest()
+        cache_path = os.path.join(_BULLPEN_CACHE_DIR, f"{key}.json")
+    except Exception:
+        return get_team_leverage_depletion(team_abbrev, game_date=game_date)
+
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path) as f:
+                d = json.load(f)
+            return int(d.get('leverage_depleted', 0))
+        except Exception:
+            pass
+
+    n = get_team_leverage_depletion(team_abbrev, game_date=game_date)
+    try:
+        with open(cache_path, 'w') as f:
+            json.dump({'leverage_depleted': n}, f)
+    except Exception:
+        pass
+    return n
+
+
 if __name__ == '__main__':
     import sys
     team = sys.argv[1] if len(sys.argv) > 1 else 'NYY'
