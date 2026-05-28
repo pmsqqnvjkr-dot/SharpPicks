@@ -2256,18 +2256,30 @@ class EnsemblePredictor:
                 'is_pick_home': pick_home,
                 'spread': row.get('spread_home', 0) or 0,
                 'edge': edge,
+                'sport': self.sport,
+                # Stable per-game seed so variant choice is consistent across
+                # re-renders but varies between adjacent picks.
+                'pick_id': f"{away}@{home}:{row.get('game_date', '')}",
                 'home_rest': float(row.get('home_rest_days', 1) or 1),
                 'away_rest': float(row.get('away_rest_days', 1) or 1),
                 'home_pace': float(row.get('home_pace', 100) or 100),
                 'away_pace': float(row.get('away_pace', 100) or 100),
+                'pick_sp': (row.get('home_pitcher') if pick_home else row.get('away_pitcher')),
+                'opp_sp': (row.get('away_pitcher') if pick_home else row.get('home_pitcher')),
+                'venue': row.get('venue'),
             }
 
             feat_dict = dict(zip(self.feature_names, feature_row))
             for key in ('home_form', 'away_form', 'home_win_pct', 'away_win_pct',
-                        'home_home_pct', 'away_away_pct', 'bdl_home_win_pct',
-                        'bdl_away_win_pct'):
+                        'home_home_pct', 'away_away_pct'):
                 if key in feat_dict:
                     game_context[key] = feat_dict[key]
+            # _pct() expects {side}_{stat}; the model stores BDL win pct as
+            # bdl_{side}_win_pct, so remap to home_bdl_win_pct / away_bdl_win_pct.
+            if 'bdl_home_win_pct' in feat_dict:
+                game_context['home_bdl_win_pct'] = feat_dict['bdl_home_win_pct']
+            if 'bdl_away_win_pct' in feat_dict:
+                game_context['away_bdl_win_pct'] = feat_dict['bdl_away_win_pct']
 
             market_data = {
                 'line_movement': float(row.get('line_movement', 0) or 0),
@@ -2280,7 +2292,10 @@ class EnsemblePredictor:
             }
 
             bullets = generate_reasoning_bullets(top_features, game_context, market_data)
-            if bullets and len(bullets) == 3 and all(bullets):
+            # v2 returns 2-3 bullets (2 primary + optional contrarian). Accept
+            # any non-empty, fully-populated result; fall back only if the
+            # engine produced nothing usable.
+            if bullets and len(bullets) >= 2 and all(bullets):
                 return bullets
         except Exception as e:
             print(f"[reasoning] Fallback for {row.get('home_team', '?')}: {e}")
@@ -2288,9 +2303,9 @@ class EnsemblePredictor:
         return self._generate_explanation(row, proba, confidence, edge, pred_margin, feat_dict=feat_dict)
 
     def _generate_explanation(self, row, proba, confidence, edge, pred_margin=None, feat_dict=None):
-        """Generate exactly 3 structured reasoning bullets from data.
-        Always picks from: rest advantage, net rating gap, pace/matchup, line value.
-        Same structure every time."""
+        """v2 fallback: build candidate bullets from raw row/feat_dict, then
+        assemble 2 category-distinct primaries + one contrarian (or none).
+        Used when the template path can't render."""
         if self.sport == 'mlb':
             return self._generate_mlb_explanation(row, proba, confidence, edge, pred_margin, feat_dict=feat_dict)
 
@@ -2416,24 +2431,52 @@ class EnsemblePredictor:
             implied = abs(STANDARD_ODDS) / (abs(STANDARD_ODDS) + 100) if STANDARD_ODDS < 0 else 100 / (STANDARD_ODDS + 100)
             candidates.append(('line_value', 2, f"Model confidence {confidence:.0%} vs implied {implied:.0%}, {(confidence - implied) * 100:.1f}pp probability edge"))
         
+        return self._assemble_fallback(candidates, row, proba, edge)
+
+    def _assemble_fallback(self, candidates, row, proba, edge, n_primary=2):
+        """Shared v2 assembly for the fallback paths: take up to n_primary
+        category-distinct bullets by priority, then one contrarian market
+        bullet (or none). No filler; degenerate case cites the edge once."""
+        from reasoning_templates import generate_contrarian
         candidates.sort(key=lambda x: x[1], reverse=True)
-        
         seen_types = set()
         result = []
         for cat, score, text in candidates:
-            if cat not in seen_types:
-                seen_types.add(cat)
-                result.append(text)
-            if len(result) == 3:
+            if cat in seen_types:
+                continue
+            seen_types.add(cat)
+            result.append(text)
+            if len(result) == n_primary:
                 break
-        
-        while len(result) < 3:
-            result.append(f"Adjusted edge {edge:+.1f}% exceeds {self.edge_threshold_pct}% qualification threshold")
-        
-        return result[:3]
-    
+
+        pick_home = proba >= 0.5
+        ctx = {
+            'is_pick_home': pick_home,
+            'pick_team': (row.get('home_team') if pick_home else row.get('away_team')),
+            'opp_team': (row.get('away_team') if pick_home else row.get('home_team')),
+            'pick_id': f"{row.get('away_team')}@{row.get('home_team')}:{row.get('game_date', '')}",
+        }
+        market_data = {
+            'line_movement': float(row.get('line_movement', 0) or 0),
+            'spread_home': float(row.get('spread_home', 0) or 0),
+            'spread_home_open': row.get('spread_home_open'),
+            'rundown_spread_std': float(row.get('rundown_spread_std', 0) or 0),
+            'rundown_spread_range': row.get('rundown_spread_range', 0) or 0,
+            'spread_vs_consensus': float(row.get('spread_vs_consensus', 0) or 0),
+        }
+        try:
+            contrarian = generate_contrarian(market_data, ctx)
+        except Exception:
+            contrarian = None
+        if contrarian:
+            result.append(contrarian)
+
+        if not result:
+            result.append(f"Adjusted edge {edge:+.1f}% clears the qualification threshold.")
+        return result
+
     def _generate_mlb_explanation(self, row, proba, confidence, edge, pred_margin=None, feat_dict=None):
-        """Generate 3 structured reasoning bullets for MLB games."""
+        """Generate v2 reasoning bullets for MLB games (fallback path)."""
         spread = row.get('spread_home', 0) or 0
         open_spread = row.get('spread_home_open', None)
         home = row['home_team']
@@ -2511,11 +2554,11 @@ class EnsemblePredictor:
             try:
                 ml_val = int(pick_ml)
                 if ml_val > 0:
-                    candidates.append(('value', 3, f"Underdog value: {pick_team} at +{ml_val}, model sees {confidence:.0%} win probability vs implied {1/(1+ml_val/100):.0%}"))
+                    candidates.append(('value', 3, f"Underdog value: {pick_team} at +{ml_val}, {confidence:.0%} win probability vs implied {1/(1+ml_val/100):.0%}"))
                 elif abs(ml_val) < 150:
-                    candidates.append(('value', 2, f"Market price: {pick_team} {ml_val}, model identifies probability edge at current moneyline"))
+                    candidates.append(('value', 2, f"Market price: {pick_team} {ml_val}, win probability exceeds the implied moneyline odds"))
                 else:
-                    candidates.append(('value', 1, f"Heavy favorite: {pick_team} {ml_val}, edge detected despite chalk price"))
+                    candidates.append(('value', 1, f"Heavy favorite: {pick_team} {ml_val}, projection clears the chalk price"))
             except (ValueError, TypeError):
                 pass
 
@@ -2567,9 +2610,9 @@ class EnsemblePredictor:
                 a_ml = int(away_ml)
                 fav_ml = min(h_ml, a_ml)
                 if pick_ml > 0 and fav_ml < -180:
-                    candidates.append(('market_note', 3, f"Public favorite inflation: {opp_team} priced at {fav_ml}, market overvaluing chalk, underdog value detected"))
+                    candidates.append(('market_note', 3, f"Public favorite inflation: {opp_team} priced at {fav_ml}, chalk priced above its win probability"))
                 elif pick_ml > 0 and fav_ml < -140:
-                    candidates.append(('market_note', 2, f"Market pricing gap: {pick_team} at +{int(pick_ml)}, model sees value the market has not fully corrected"))
+                    candidates.append(('market_note', 2, f"Market pricing gap: {pick_team} at +{int(pick_ml)}, priced above the model's projected win probability"))
 
             def _pr(rec):
                 if not rec or rec == 'N/A':
@@ -2652,19 +2695,7 @@ class EnsemblePredictor:
             except (ValueError, TypeError):
                 pass
 
-        max_bullets = 4
-        candidates.sort(key=lambda x: x[1], reverse=True)
-        seen_types = set()
-        result = []
-        for cat, score, text in candidates:
-            if cat not in seen_types:
-                seen_types.add(cat)
-                result.append(text)
-            if len(result) == max_bullets:
-                break
-        while len(result) < 3:
-            result.append(f"Adjusted edge {edge:+.1f}% exceeds {self.edge_threshold_pct}% qualification threshold")
-        return result[:max_bullets]
+        return self._assemble_fallback(candidates, row, proba, edge)
 
     def walk_forward_validate(self):
         """Walk-forward validation using margin GBR model with production filters.
