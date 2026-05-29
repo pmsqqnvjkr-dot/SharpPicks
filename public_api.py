@@ -151,7 +151,12 @@ def stats():
             total_pnl_units = total_pnl_dollars / 100 if total_pnl_dollars else 0
 
         total_decided = wins + losses
-        roi = round((total_pnl_dollars / (total_decided * 110)) * 100, 1) if total_decided > 0 else 0
+        # ROI on a 1-unit-standardized basis: profit_units already bakes in the
+        # -110 payout (win = +0.91u, loss = -1u), so ROI = sum(units)/decided.
+        # Using profit_units (not pnl dollars) keeps this scale-independent;
+        # the old pnl_dollars/(decided*110) form read ~0.3% for sports whose
+        # pnl column is stored in unit scale rather than dollars (e.g. WNBA).
+        roi = round((total_pnl_units / total_decided) * 100, 1) if total_decided > 0 else 0
     except (ProgrammingError, OperationalError) as e:
         logging.warning(f"Public stats DB error: {e}")
         return jsonify({'record': '0-0', 'wins': 0, 'losses': 0, 'pending': 0, 'total_picks': 0, 'total_passes': 0, 'pnl': 0, 'roi': 0, 'win_rate': 0, 'selectivity': 0, 'capital_preserved_days': 0})

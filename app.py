@@ -5417,6 +5417,21 @@ def grade_mlb_picks_job():
                 pick.result_resolved_at = datetime.utcnow()
                 print(f"  Graded: {pick.away_team} @ {pick.home_team} → {pick.result}")
 
+                # Win/loss/push push + email, same as the NBA/WNBA auto-grade
+                # path. Without these, MLB results graded by this dedicated job
+                # pre-empt grade_pending_picks (pick is no longer 'pending'),
+                # so MLB users never got result notifications.
+                try:
+                    from notification_service import send_result_notification
+                    send_result_notification(pick, pick.result)
+                except Exception as e:
+                    print(f"[MLB grade] Result notification error: {e}")
+                try:
+                    from notification_events import dispatch_result_emails
+                    dispatch_result_emails(pick)
+                except Exception as e:
+                    print(f"[MLB grade] Result email dispatch error: {e}")
+
             conn.close()
             db.session.commit()
         except Exception as e:

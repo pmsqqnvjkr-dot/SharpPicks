@@ -1384,14 +1384,14 @@ class EnsemblePredictor:
             except Exception as e:
                 print(f"   ⚠️ MLB closer availability error: {e}")
 
-            # Cold streak flag: 3+ losses in last 5. home_form/away_form
-            # are computed earlier in this block (1 per win, 0.5 per close
-            # loss, 0 per blowout). Form < 1.5 ≈ 1 win or fewer in 5 →
-            # cold-streak territory. Captures the bounce-back / piling-on
-            # behavioral spread we saw flagged in the audit.
+            # Cold streak flag: 3+ losses in last 5. home_form/away_form are
+            # parse_form() win RATES on a 0-1 scale (wins/games, 0.5 when
+            # last5 is missing), NOT a 0-5 sum. So "3+ losses in 5" = 2 or
+            # fewer wins = win rate <= 0.4. The 0.5 no-data default stays
+            # above the line and is correctly not flagged cold.
             if 'home_form' in features.columns:
-                features['home_cold_streak'] = (features['home_form'] < 1.5).astype(int)
-                features['away_cold_streak'] = (features['away_form'] < 1.5).astype(int)
+                features['home_cold_streak'] = (features['home_form'] <= 0.4).astype(int)
+                features['away_cold_streak'] = (features['away_form'] <= 0.4).astype(int)
                 features['cold_streak_diff'] = features['away_cold_streak'] - features['home_cold_streak']
             else:
                 features['home_cold_streak'] = pd.Series(0, index=df.index, dtype=int)
