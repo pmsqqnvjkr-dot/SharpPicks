@@ -8247,6 +8247,7 @@ def create_billing_portal_session():
         }), 400
 
     try:
+        from stripe_client import get_stripe_client
         stripe_obj = get_stripe_client()
     except Exception as e:
         logging.error(f'Stripe client unavailable: {e}')
