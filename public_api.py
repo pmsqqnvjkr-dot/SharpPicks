@@ -1721,6 +1721,123 @@ def _build_near_misses(date_param, sport_filter):
     return near
 
 
+@public_bp.route('/results')
+def public_results():
+    """Settled picks for a given sport + date, plus a season-to-date aggregate.
+
+    Feeds the Evan Cole HQ result-card pipeline: each entry has every field
+    the win/loss card needs (team, line, units, score, cover margin, edge at
+    entry, CLV), and the top-level `season` block has the rolling ROI /
+    record / CLV-beat numbers shown in the card's ledger.
+
+    Query params:
+      sport — nba | mlb | wnba (required; mirrors /market-report)
+      date  — YYYY-MM-DD (default today). Picks with this game_date AND a
+              terminal result (win/loss/push) are returned.
+    """
+    sport = (request.args.get('sport') or '').lower().strip()
+    if sport not in ('nba', 'mlb', 'wnba'):
+        return jsonify({'error': 'sport query param required (nba|mlb|wnba)'}), 400
+    date_str = (request.args.get('date') or datetime.now().strftime('%Y-%m-%d')).strip()
+
+    settled = ('win', 'loss', 'push')
+
+    day_picks = (Pick.query
+                 .filter(Pick.sport == sport)
+                 .filter(Pick.game_date == date_str)
+                 .filter(Pick.result.in_(settled))
+                 .order_by(Pick.published_at.asc())
+                 .all())
+
+    def _cover_margin(p):
+        if p.home_score is None or p.away_score is None or p.line is None or not p.side:
+            return None
+        try:
+            side_lower = p.side.lower()
+            home_token = (p.home_team or '').split(' ')[-1].lower()
+            is_home = home_token in side_lower
+            margin = (p.home_score - p.away_score) + p.line if is_home \
+                else (p.away_score - p.home_score) + p.line
+            return round(float(margin), 1)
+        except Exception:
+            return None
+
+    picks_out = []
+    for p in day_picks:
+        picks_out.append({
+            'id': p.id,
+            'sport': p.sport,
+            'game_date': p.game_date,
+            'home_team': p.home_team,
+            'away_team': p.away_team,
+            'side': p.side,
+            'line': p.line,
+            'edge_pct': p.edge_pct,
+            'cover_prob': p.cover_prob,
+            'market_odds': p.market_odds,
+            'sportsbook': p.sportsbook,
+            'home_score': p.home_score,
+            'away_score': p.away_score,
+            'cover_margin': _cover_margin(p),
+            'result': p.result,
+            'result_ats': p.result_ats,
+            'profit_units': p.profit_units,
+            'closing_spread': p.closing_spread,
+            'clv': p.clv,
+            'clv_ml': p.clv_ml,
+            'published_at': p.published_at.isoformat() if p.published_at else None,
+            'result_resolved_at': p.result_resolved_at.isoformat() if p.result_resolved_at else None,
+        })
+
+    # Season aggregate for the same sport. Picks with null profit_units fall
+    # back to the derive-from-odds path so older rows don't drag the ROI to 0.
+    season_q = Pick.query.filter(Pick.sport == sport,
+                                 Pick.result.in_(('win', 'loss'))).all()
+    wins = sum(1 for p in season_q if p.result == 'win')
+    losses = sum(1 for p in season_q if p.result == 'loss')
+    decided = wins + losses
+    total_units = 0.0
+    for p in season_q:
+        u = p.profit_units
+        if u is None:
+            if p.result == 'win':
+                ml = p.market_odds or -110
+                u = (100.0 / abs(ml)) if ml < 0 else (ml / 100.0)
+            elif p.result == 'loss':
+                u = -1.0
+            else:
+                u = 0.0
+        total_units += float(u)
+    roi_pct = round((total_units / decided) * 100, 1) if decided > 0 else 0.0
+
+    # CLV beat: positive spread CLV across decided picks. Matches the rule
+    # used by /stats so the win card's "Beat close" number matches the
+    # public stats page when both are filtered to the same sport.
+    clv_q = [p for p in season_q if p.clv is not None]
+    clv_beats = sum(1 for p in clv_q if (p.clv or 0) > 0.25)
+    clv_misses = sum(1 for p in clv_q if (p.clv or 0) < -0.25)
+    clv_decisive = clv_beats + clv_misses
+    clv_beat_pct = round((clv_beats / clv_decisive) * 100, 1) if clv_decisive > 0 else 0.0
+
+    return jsonify({
+        'sport': sport,
+        'date': date_str,
+        'count': len(picks_out),
+        'picks': picks_out,
+        'season': {
+            'roi_pct': roi_pct,
+            'units': round(total_units, 2),
+            'record': f'{wins}-{losses}',
+            'wins': wins,
+            'losses': losses,
+            'decided': decided,
+            'clv_beat_pct': clv_beat_pct,
+            'clv_beats': clv_beats,
+            'clv_decisive': clv_decisive,
+        },
+    })
+
+
 @public_bp.route('/picks/<pick_id>')
 def public_pick_by_id(pick_id):
     """Return a single resolved or pending pick by id. Powers the Evan HQ
@@ -1767,6 +1884,35 @@ def public_pick_by_id(pick_id):
         'published_at': pick.published_at.isoformat() if pick.published_at else None,
         'result_resolved_at': pick.result_resolved_at.isoformat() if pick.result_resolved_at else None,
         'notes': pick.notes,
+    })
+
+
+@public_bp.route('/journal/latest')
+def public_journal_latest():
+    """Most recent published Sharp Journal article. HQ's hourly journal poll
+    diffs `slug` against its seen_articles table to detect new releases and
+    fire a release post when the slug is new. Optional ?sport= filter
+    matches /insights/<slug>'s sport column. URL field is the canonical
+    article URL (X unfurls the article's own OG card)."""
+    sport = (request.args.get('sport') or '').lower().strip() or None
+    q = (Insight.query
+         .filter(Insight.status == 'published')
+         .filter(Insight.publish_date.isnot(None)))
+    if sport in ('nba', 'mlb', 'wnba'):
+        q = q.filter(Insight.sport == sport)
+    article = q.order_by(Insight.publish_date.desc()).first()
+    if not article:
+        return jsonify({'article': None})
+    return jsonify({
+        'article': {
+            'slug': article.slug,
+            'title': article.title,
+            'dek': article.excerpt,
+            'category': article.category,
+            'sport': article.sport,
+            'published_at': article.publish_date.isoformat() if article.publish_date else None,
+            'url': f'https://sharppicks.ai/journal/{article.slug}',
+        },
     })
 
 
