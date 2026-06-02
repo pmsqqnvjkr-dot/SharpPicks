@@ -1398,6 +1398,101 @@ def build_market_report_dict(date_param, sport=None):
     except Exception:
         pass
 
+    # ─── top_signal + season blocks (HQ card pipeline) ──────────────────
+    # The Evan Cole HQ card route needs per-pick fields (team / line / edge /
+    # odds / cover prob) and a season aggregate (ROI / record / CLV beat).
+    # Embedding them here saves HQ a separate /api/public/picks/<id> call
+    # for every morning read and keeps the season numbers consistent with
+    # what /stats / /results expose.
+    top_signal = None
+    season_block = None
+    try:
+        if sport in ('nba', 'mlb', 'wnba'):
+            lead = (Pick.query
+                    .filter(Pick.sport == sport, Pick.game_date == date_param)
+                    .order_by(Pick.published_at.desc())
+                    .first())
+            if lead:
+                def _team_from_side(side, home, away):
+                    if not side:
+                        return home or away
+                    sl = side.lower()
+                    if home and (home.split(' ')[-1].lower() in sl):
+                        return home
+                    if away and (away.split(' ')[-1].lower() in sl):
+                        return away
+                    return home or away
+
+                def _abbrev3(name):
+                    if not name:
+                        return ''
+                    return (name.split(' ')[-1] or '')[:3].upper()
+
+                top_signal = {
+                    'pick_id': lead.id,
+                    'team': _team_from_side(lead.side, lead.home_team, lead.away_team),
+                    'line': lead.line,
+                    'side': lead.side,
+                    'home_team': lead.home_team,
+                    'away_team': lead.away_team,
+                    'matchup': f"{_abbrev3(lead.away_team)} vs {_abbrev3(lead.home_team)}",
+                    'edge_pct': lead.edge_pct,
+                    'cover_prob': lead.cover_prob,
+                    'predicted_margin': lead.predicted_margin,
+                    'market_odds': lead.market_odds,
+                    'sportsbook': lead.sportsbook,
+                    'position_size_pct': lead.position_size_pct,
+                    'result': lead.result,
+                    'published_at': lead.published_at.isoformat() if lead.published_at else None,
+                }
+
+            season_q = Pick.query.filter(
+                Pick.sport == sport,
+                Pick.result.in_(('win', 'loss')),
+            ).all()
+            wins = sum(1 for p in season_q if p.result == 'win')
+            losses = sum(1 for p in season_q if p.result == 'loss')
+            decided = wins + losses
+            total_units = 0.0
+            for p in season_q:
+                u = p.profit_units
+                if u is None:
+                    if p.result == 'win':
+                        ml = p.market_odds or -110
+                        u = (100.0 / abs(ml)) if ml < 0 else (ml / 100.0)
+                    else:
+                        u = -1.0
+                total_units += float(u)
+            roi_pct = round((total_units / decided) * 100, 1) if decided > 0 else 0.0
+            clv_pool = [p for p in season_q if p.clv is not None]
+            clv_beats = sum(1 for p in clv_pool if (p.clv or 0) > 0.25)
+            clv_misses = sum(1 for p in clv_pool if (p.clv or 0) < -0.25)
+            clv_decisive = clv_beats + clv_misses
+            clv_beat_pct = round((clv_beats / clv_decisive) * 100, 1) if clv_decisive > 0 else 0.0
+            signals_count = Pick.query.filter(Pick.sport == sport).count()
+            season_block = {
+                'roi_pct': roi_pct,
+                'units': round(total_units, 2),
+                'record': f'{wins}-{losses}',
+                'wins': wins,
+                'losses': losses,
+                'decided': decided,
+                'signals_count': signals_count,
+                'clv_beat_pct': clv_beat_pct,
+                'clv_decisive': clv_decisive,
+            }
+    except Exception:
+        pass
+
+    # Sport's edge threshold (used by the HQ pass card's "short by" math).
+    edge_threshold_pct = 4.0
+    try:
+        if sport:
+            _cfg = get_sport_config(sport)
+            edge_threshold_pct = float(_cfg.get('edge_threshold_pct', 4.0))
+    except Exception:
+        pass
+
     return {
         'available': True,
         'date': date_param,
@@ -1440,6 +1535,9 @@ def build_market_report_dict(date_param, sport=None):
         'briefing': briefing_lines,
         'last_updated': updated_at,
         'board': board,
+        'top_signal': top_signal,
+        'season': season_block,
+        'edge_threshold_pct': edge_threshold_pct,
     }
 
 
