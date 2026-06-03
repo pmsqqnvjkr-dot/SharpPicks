@@ -25,7 +25,8 @@
     }
   },
   "ios": {
-    "contentInset": "always"
+    "contentInset": "never",
+    "backgroundColor": "#0A0D14"
   },
   "android": {
     "backgroundColor": "#0A0D14"
