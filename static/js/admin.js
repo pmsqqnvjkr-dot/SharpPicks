@@ -79,6 +79,58 @@
   // charts with hardcoded Math.random data, no live binding, removed
   // wholesale rather than guarded.
 
+  // Revenue · 90d: stacked-area chart, Stripe + RevenueCat (iOS).
+  // Initial datasets are empty; renderTr2Money() at line ~716 swaps real
+  // mrr_daily_90d into the Stripe dataset on each refresh, and drops the
+  // RevenueCat dataset entirely when ios_prod_live is false. Canvas is
+  // null-guarded so other admin routes that lack it don't throw at init.
+  const mrrEl = document.getElementById('chart-mrr');
+  if (mrrEl) {
+    new Chart(mrrEl, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Stripe',
+            data: [],
+            borderColor: '#4F86F7',
+            backgroundColor: 'rgba(79, 134, 247, 0.12)',
+            fill: 'origin',
+            tension: 0.3,
+            pointRadius: 0,
+            borderWidth: 1.5,
+          },
+          {
+            label: 'RevenueCat',
+            data: [],
+            borderColor: '#34D399',
+            backgroundColor: 'rgba(52, 211, 153, 0.12)',
+            fill: '-1',
+            tension: 0.3,
+            pointRadius: 0,
+            borderWidth: 1.5,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { boxWidth: 8, boxHeight: 8, padding: 12, font: { size: 10 } },
+          },
+        },
+        scales: {
+          x: { ...baseGrid, ticks: { display: false } },
+          y: { ...baseGrid, ticks: { ...baseGrid.ticks, callback: v => '$' + v } },
+        },
+      },
+    });
+  }
+
   // Search Performance: dual-axis line chart, clicks (left) + impressions (right)
   const searchEl = document.getElementById('chart-search');
   if (searchEl) {
