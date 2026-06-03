@@ -104,6 +104,56 @@ def _fetch_raw():
 
     mrr_cents = monthly_count * PRO_MONTHLY_CENTS + annual_count * PRO_YEARLY_MONTHLY_CENTS
 
+    # Daily MRR series, last 90 days (oldest -> newest). Each entry sums
+    # monthly-equivalent cents of RC subs that were paying on that day.
+    # The User row only carries the current period end, not the original
+    # sub-start timestamp, so we derive sub-start as current_period_end
+    # minus the plan duration. For first periods this is exact; after a
+    # renewal it gives the start of the current period, which still
+    # captures all paying days within a 90-day window. Unknown-plan subs
+    # are excluded to match the static mrr_cents calculation.
+    DAYS = 90
+    today_utc_date = now.date()
+    window_start_date = today_utc_date - timedelta(days=DAYS - 1)
+    mrr_daily_cents = [0] * DAYS
+
+    for u in rc_users:
+        bucket = _plan_key(u.subscription_plan)
+        if bucket == 'monthly':
+            user_monthly_cents = PRO_MONTHLY_CENTS
+            if u.current_period_end:
+                sub_start_date = (u.current_period_end - timedelta(days=30)).date()
+            elif u.created_at:
+                sub_start_date = u.created_at.date()
+            else:
+                continue
+        elif bucket == 'annual':
+            user_monthly_cents = PRO_YEARLY_MONTHLY_CENTS
+            if u.current_period_end:
+                sub_start_date = (u.current_period_end - timedelta(days=365)).date()
+            elif u.created_at:
+                sub_start_date = u.created_at.date()
+            else:
+                continue
+        else:
+            continue
+
+        range_start = max(sub_start_date, window_start_date)
+        range_end = today_utc_date
+        if range_start <= range_end:
+            start_idx = (range_start - window_start_date).days
+            end_idx = (range_end - window_start_date).days
+            for i in range(max(0, start_idx), min(DAYS - 1, end_idx) + 1):
+                mrr_daily_cents[i] += user_monthly_cents
+
+    mrr_daily_90d = [
+        {
+            'date': (window_start_date + timedelta(days=i)).isoformat(),
+            'mrr_cents': mrr_daily_cents[i],
+        }
+        for i in range(DAYS)
+    ]
+
     def _event_count(event_type, since):
         return ProcessedEvent.query.filter(
             ProcessedEvent.event_type == event_type,
@@ -121,6 +171,7 @@ def _fetch_raw():
         'annual_subs': annual_count,
         'unknown_plan_subs': other_count,
         'mrr_cents': mrr_cents,
+        'mrr_daily_90d': mrr_daily_90d,
         'new_subs_7d': new_subs_7d,
         'new_subs_30d': new_subs_30d,
         'canceled_30d': canceled_30d,

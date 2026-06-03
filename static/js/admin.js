@@ -782,7 +782,17 @@ function bindLiveData(metrics) {
       }
     }
 
-    if (!iosLive) {
+    if (iosLive) {
+      const rcDaily = metrics.revenuecat?.payload?.mrr_daily_90d;
+      if (Array.isArray(rcDaily) && rcDaily.length > 0) {
+        const rcIdx = mrrChart.data.datasets.findIndex(
+          ds => (ds.label || '').toLowerCase().includes('revenuecat')
+        );
+        if (rcIdx >= 0) {
+          mrrChart.data.datasets[rcIdx].data = rcDaily.map(d => (d.mrr_cents || 0) / 100);
+        }
+      }
+    } else {
       // Drop any RevenueCat / iOS dataset entirely while iOS is gated off.
       const before = mrrChart.data.datasets.length;
       mrrChart.data.datasets = mrrChart.data.datasets.filter(
