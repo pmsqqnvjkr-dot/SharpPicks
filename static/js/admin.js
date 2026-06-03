@@ -782,33 +782,31 @@ function bindLiveData(metrics) {
       }
     }
 
-    if (iosLive) {
-      const rcDaily = metrics.revenuecat?.payload?.mrr_daily_90d;
-      if (Array.isArray(rcDaily) && rcDaily.length > 0) {
-        const rcIdx = mrrChart.data.datasets.findIndex(
-          ds => (ds.label || '').toLowerCase().includes('revenuecat')
-        );
-        if (rcIdx >= 0) {
-          mrrChart.data.datasets[rcIdx].data = rcDaily.map(d => (d.mrr_cents || 0) / 100);
+    // Toggle the RevenueCat dataset's visibility rather than removing
+    // it, so a transient iosLive=false (e.g. RC source fetch failure or
+    // a cold cache read before the env var lands) doesn't permanently
+    // strip the dataset and require a page reload to restore.
+    const rcIdx = mrrChart.data.datasets.findIndex(
+      ds => (ds.label || '').toLowerCase().includes('revenuecat')
+        || (ds.label || '').toLowerCase().includes('ios')
+    );
+    if (rcIdx >= 0) {
+      const rcDs = mrrChart.data.datasets[rcIdx];
+      rcDs.hidden = !iosLive;
+      if (iosLive) {
+        const rcDaily = metrics.revenuecat?.payload?.mrr_daily_90d;
+        if (Array.isArray(rcDaily) && rcDaily.length > 0) {
+          rcDs.data = rcDaily.map(d => (d.mrr_cents || 0) / 100);
         }
       }
-    } else {
-      // Drop any RevenueCat / iOS dataset entirely while iOS is gated off.
-      const before = mrrChart.data.datasets.length;
-      mrrChart.data.datasets = mrrChart.data.datasets.filter(
-        ds => !(ds.label || '').toLowerCase().includes('revenuecat')
-          && !(ds.label || '').toLowerCase().includes('ios')
-      );
-      if (mrrChart.data.datasets.length !== before) {
-        // Stripe dataset was previously fill='-1' (stacked above RC).
-        // With RC removed, fill from origin so the area still shades.
-        mrrChart.data.datasets.forEach(ds => {
-          if ((ds.label || '').toLowerCase().includes('stripe')) {
-            ds.fill = 'origin';
-          }
-        });
-      }
     }
+    // Stripe fill: 'origin' when RC is hidden (so the area still shades
+    // from $0), '-1' (stacked above RC) when RC is visible.
+    mrrChart.data.datasets.forEach(ds => {
+      if ((ds.label || '').toLowerCase().includes('stripe')) {
+        ds.fill = iosLive ? '-1' : 'origin';
+      }
+    });
     mrrChart.update('none');
   }
 
