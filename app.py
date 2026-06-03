@@ -8814,13 +8814,15 @@ def revenuecat_webhook():
         event = payload.get('event', {})
         event_type = event.get('type', '')
         event_id = event.get('id', '')
-        app_user_id = event.get('app_user_id', '')
+        app_user_id_raw = event.get('app_user_id', '') or ''
+        original_app_user_id_raw = event.get('original_app_user_id', '') or ''
+        aliases = event.get('aliases') or []
         expiration_ms = event.get('expiration_at_ms')
 
         if not event_type or not event_id:
             return jsonify({'error': 'Missing event type or id'}), 400
 
-        logging.info(f'RevenueCat webhook: {event_type} (event_id={event_id}, user={app_user_id})')
+        logging.info(f'RevenueCat webhook: {event_type} (event_id={event_id}, user={app_user_id_raw})')
 
         if event_id:
             try:
@@ -8831,13 +8833,55 @@ def revenuecat_webhook():
                 logging.info(f'Skipping duplicate RevenueCat event: {event_id}')
                 return jsonify({'status': 'ok', 'duplicate': True}), 200
 
-        if not app_user_id:
+        # Resolve the SharpPicks user from any candidate identifier RC sent.
+        # On 2026-06-03 eoinymurt@gmail.com paid for pro_monthly but stayed on
+        # the free tier because his INITIAL_PURCHASE arrived with an
+        # app_user_id our exact-PK lookup missed (RC may deliver the
+        # $RCAnonymousID: prefix, an uppercased UUID, or only original_app_user_id /
+        # aliases when the customer was aliased post-purchase). The event was
+        # already deduped into processed_events so the bug was silent.
+        def _strip_rc_prefix(s):
+            return s.split(':', 1)[1] if isinstance(s, str) and s.startswith('$RCAnonymousID:') else s
+
+        candidates = []
+        for raw in [app_user_id_raw, original_app_user_id_raw, *aliases]:
+            if not raw:
+                continue
+            cleaned = _strip_rc_prefix(raw).strip()
+            if cleaned and cleaned not in candidates:
+                candidates.append(cleaned)
+
+        if not candidates:
             logging.warning(f'RevenueCat webhook: no app_user_id in event {event_id}')
             return jsonify({'status': 'ok', 'note': 'no user id'}), 200
 
-        user = db.session.get(User, app_user_id)
+        user = None
+        for cand in candidates:
+            user = db.session.get(User, cand)
+            if user:
+                break
+            user = User.query.filter(func.lower(User.id) == cand.lower()).first()
+            if user:
+                break
+
+        # Keep app_user_id bound to whatever we logged on entry, for downstream
+        # log strings.
+        app_user_id = app_user_id_raw
+
         if not user:
-            logging.warning(f'RevenueCat webhook: user {app_user_id} not found')
+            logging.warning(
+                f'RevenueCat webhook: user not found. event={event_id} type={event_type} '
+                f'candidates={candidates}'
+            )
+            try:
+                send_admin_alert(
+                    'RC user not found',
+                    f'RC {event_type} (event {event_id}) had no matching SharpPicks '
+                    f'user. Tried: {candidates}. Customer is paid in RC but cannot be '
+                    f'upgraded locally. Manual remediation required.',
+                )
+            except Exception:
+                pass
             return jsonify({'status': 'ok', 'note': 'user not found'}), 200
 
         expires_at = None
