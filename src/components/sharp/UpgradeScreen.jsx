@@ -201,48 +201,6 @@ export default function UpgradeScreen({ onBack, user }) {
           </p>
         </div>
 
-        {isIOS && (
-          <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: '12px',
-            padding: '14px 16px',
-            marginBottom: '16px',
-            borderRadius: '12px',
-            background: 'rgba(10,13,20,0.6)',
-            border: '1px solid rgba(79, 134, 247, 0.25)',
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4F86F7" strokeWidth="2" style={{ flexShrink: 0, marginTop: '2px' }}>
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <div style={{ minWidth: 0 }}>
-              <div style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '10px', fontWeight: 600,
-                letterSpacing: '0.16em', textTransform: 'uppercase',
-                color: 'var(--text-tertiary)',
-                marginBottom: '4px',
-              }}>Subscription notice</div>
-              <div style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: '14px', lineHeight: 1.5,
-                color: 'var(--text-primary)',
-              }}>
-                If in-app purchases fail to load, sign up directly at{' '}
-                <a
-                  href="https://sharppicks.ai"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    color: '#4F86F7', textDecoration: 'none', fontWeight: 500,
-                  }}
-                >sharppicks.ai</a>
-              </div>
-            </div>
-          </div>
-        )}
-
         {isTrial && (
           <div style={{
             textAlign: 'center',
