@@ -82,6 +82,10 @@ def _fetch_raw():
     rc_users = User.query.filter(
         User.pro_source == 'revenuecat',
         User.is_premium == True,  # noqa: E712 (SQLAlchemy)
+        # Trials carry is_premium=True for access but no money has moved
+        # yet, so they must not contribute to MRR. Matches Stripe's rule
+        # in stripe_metrics that only counts status='active' subs.
+        User.subscription_status != 'trial',
         User.is_internal == False,  # noqa: E712 — exclude employees
         User.comped == False,       # noqa: E712 — exclude gifted accounts
         User.deleted_at.is_(None),  # exclude soft-deleted spam/test

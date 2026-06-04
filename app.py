@@ -8890,10 +8890,23 @@ def revenuecat_webhook():
 
         if event_type in ('INITIAL_PURCHASE', 'RENEWAL', 'PRODUCT_CHANGE', 'UNCANCELLATION'):
             user.is_premium = True
-            user.subscription_status = 'active'
             user.pro_source = 'revenuecat'
+            # period_type distinguishes trial from paid. NORMAL=paid,
+            # TRIAL=free trial (no charge yet), INTRO=introductory
+            # pricing. On 2026-06-04 Nathan DeSilva started a 14-day
+            # Pro Yearly TRIAL and the old code flipped him to 'active'
+            # which would have inflated MRR. Route trial events to
+            # subscription_status='trial' instead and stamp the trial
+            # end date so the UI shows the right badge.
+            period_type = (event.get('period_type') or 'NORMAL').upper()
+            is_trial = period_type == 'TRIAL'
+            user.subscription_status = 'trial' if is_trial else 'active'
+            user.trial_used = True
             if expires_at:
                 user.current_period_end = expires_at
+                if is_trial:
+                    user.trial_end_date = expires_at
+                    user.trial_ends = expires_at
             product_id = event.get('product_id', '')
             if product_id:
                 user.subscription_plan = 'annual' if 'yearly' in product_id or 'annual' in product_id else 'monthly'
@@ -8905,11 +8918,11 @@ def revenuecat_webhook():
                 user.cancel_scheduled_at = None
                 user.cancel_effective_at = None
             db.session.commit()
-            logging.info(f'RevenueCat: Pro activated for {user.email} via {event_type}')
+            logging.info(f'RevenueCat: Pro {"trial started" if is_trial else "activated"} for {user.email} via {event_type}')
             try:
                 send_admin_alert(
                     f'RC {event_type}',
-                    f'{user.email} — Pro activated via iOS IAP ({product_id})',
+                    f'{user.email} — {"Trial started" if is_trial else "Pro activated"} via iOS IAP ({product_id})',
                 )
             except Exception:
                 pass
@@ -10690,6 +10703,22 @@ def send_push_to_all(title, body, data=None, premium_only=False, notification_ty
 
 
 def send_admin_alert(title, body, data=None):
+    # Persist to admin_alerts so the body survives the push dismissal.
+    # Without this, a notification swiped away (eg. Nathan DeSilva's
+    # 2026-06-04 RC mismatch) takes the candidates list with it and we
+    # lose the diagnostic. event_type column is 50 chars so titles must
+    # be trimmed; full title goes into detail along with the body.
+    try:
+        alert = AdminAlert(
+            event_type=(title or 'alert')[:50],
+            detail=f'{title}\n\n{body}' if title else body,
+        )
+        db.session.add(alert)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logging.warning(f'Failed to persist admin alert: {e}')
+
     admins = User.query.filter_by(is_superuser=True).all()
     total = 0
     alert_data = data or {}
