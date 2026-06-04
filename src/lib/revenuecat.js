@@ -40,6 +40,9 @@ export async function initializeRevenueCat(userId) {
     await Purchases.configure(config);
     _configured = true;
     console.log('[RC] RevenueCat configured successfully', userId ? '(identified)' : '(anonymous)');
+    if (userId) {
+      await _setSharppicksUserAttribute(userId);
+    }
   } catch (e) {
     console.error('[RC] configure failed:', e?.message || e, 'code:', e?.code);
   }
@@ -50,16 +53,41 @@ export function isRevenueCatConfigured() {
   return _configured;
 }
 
-export async function rcLogin(userId) {
+// Stamp the SharpPicks user id as a custom RC subscriber attribute. This
+// travels with every webhook event the way appUserID does, but unlike the
+// appUserID it survives RC's anonymous-vs-aliased state. On 2026-06-04
+// Nathan DeSilva's INITIAL_PURCHASE fired with app_user_id=$RCAnonymousID:
+// <hex> because his rcLogin hadn't aliased yet at purchase time. The
+// webhook had no way to map that anonymous id back to his SharpPicks
+// user.id. With this attribute on the customer record, the webhook can
+// read event.subscriber_attributes.sharppicksUserId.value and resolve
+// the right user regardless of alias state.
+async function _setSharppicksUserAttribute(userId) {
   if (!isIOS || !userId) return;
-  const ready = await initializeRevenueCat(String(userId));
-  if (!ready) return;
   const Purchases = _getPurchases();
   if (!Purchases) return;
   try {
+    await Purchases.setAttributes({
+      attributes: { sharppicksUserId: String(userId) },
+    });
+  } catch (e) {
+    console.error('[RC] setAttributes failed:', e);
+  }
+}
+
+export async function rcLogin(userId) {
+  if (!isIOS || !userId) return false;
+  const ready = await initializeRevenueCat(String(userId));
+  if (!ready) return false;
+  const Purchases = _getPurchases();
+  if (!Purchases) return false;
+  try {
     await Purchases.logIn({ appUserID: String(userId) });
+    await _setSharppicksUserAttribute(userId);
+    return true;
   } catch (e) {
     console.error('[RC] logIn failed:', e);
+    return false;
   }
 }
 

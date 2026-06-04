@@ -8817,6 +8817,13 @@ def revenuecat_webhook():
         app_user_id_raw = event.get('app_user_id', '') or ''
         original_app_user_id_raw = event.get('original_app_user_id', '') or ''
         aliases = event.get('aliases') or []
+        # Custom subscriber attribute set by src/lib/revenuecat.js. Carries
+        # the SharpPicks user.id independent of RC's anonymous/aliased
+        # customer id state, so the user lookup resolves even when the
+        # purchase fires before Purchases.logIn has aliased the customer.
+        sub_attrs = event.get('subscriber_attributes') or {}
+        sp_uid_attr = sub_attrs.get('sharppicksUserId') or {}
+        sharppicks_user_id_raw = (sp_uid_attr.get('value') if isinstance(sp_uid_attr, dict) else '') or ''
         expiration_ms = event.get('expiration_at_ms')
 
         if not event_type or not event_id:
@@ -8844,7 +8851,11 @@ def revenuecat_webhook():
             return s.split(':', 1)[1] if isinstance(s, str) and s.startswith('$RCAnonymousID:') else s
 
         candidates = []
-        for raw in [app_user_id_raw, original_app_user_id_raw, *aliases]:
+        # Prepend the sharppicksUserId subscriber attribute so it's tried
+        # FIRST. When set, this resolves the user directly regardless of
+        # alias state and avoids the candidate-string-massaging that
+        # could never recover Nathan DeSilva's anonymous-id purchase.
+        for raw in [sharppicks_user_id_raw, app_user_id_raw, original_app_user_id_raw, *aliases]:
             if not raw:
                 continue
             cleaned = _strip_rc_prefix(raw).strip()

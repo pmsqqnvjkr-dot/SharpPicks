@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useApi, apiPost } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
 import { Capacitor } from '@capacitor/core';
-import { getOfferings, purchasePackage, restorePurchases, isPurchaseCancelled } from '../../lib/revenuecat';
+import { getOfferings, purchasePackage, restorePurchases, isPurchaseCancelled, rcLogin } from '../../lib/revenuecat';
 
 const platform = Capacitor.getPlatform();
 const isIOS = platform === 'ios';
@@ -108,6 +108,16 @@ export default function UpgradeScreen({ onBack, user }) {
     setCheckoutLoading(true);
     setIapError('');
     try {
+      // Belt-and-suspenders alias before the purchase fires. rcLogin is
+      // idempotent (RC's native logIn is a no-op when the customer is
+      // already aliased to this userId) so this is cheap on the happy
+      // path, but it closes the race where boot rcLogin from useAuth
+      // hadn't completed yet when the user tapped Start Trial. Nathan
+      // DeSilva on 2026-06-04 got stuck because his purchase event
+      // arrived with the anonymous customer id.
+      if (user?.id) {
+        await rcLogin(user.id);
+      }
       const customerInfo = await purchasePackage(pkg);
       const isPro = !!customerInfo?.entitlements?.active?.pro;
       if (isPro) {
