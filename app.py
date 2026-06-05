@@ -7225,6 +7225,8 @@ def register():
     from models import normalize_email
     import uuid
 
+    import re
+
     data = request.get_json() or {}
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
@@ -7233,6 +7235,16 @@ def register():
 
     if not email or not password:
         return jsonify({'error': 'Email and password required'}), 400
+    # Block obviously-malformed emails before they create a User row and
+    # blow up the Stripe checkout call. On 2026-06-05 someone registered
+    # with email="lucas" which passed the not-empty check, persisted a
+    # garbage row, then surfaced as a Stripe 400 at the trial checkout
+    # creation step (Sentry req_uBlMcylABwEiHc). Regex is intentionally
+    # loose (one @, one dot in the domain) to avoid false rejection of
+    # weird-but-valid addresses; format edge cases are still caught by
+    # Stripe and verification email delivery downstream.
+    if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
+        return jsonify({'error': 'Please enter a valid email address'}), 400
     if len(password) < 6:
         return jsonify({'error': 'Password must be at least 6 characters'}), 400
     if not first_name:
