@@ -8264,7 +8264,7 @@ def create_billing_portal_session():
             customer=db_user.stripe_customer_id,
             return_url=return_url,
         )
-        portal_url = _safe_get(portal, 'url') if hasattr(portal, '__getitem__') else getattr(portal, 'url', None)
+        portal_url = portal.get('url') if isinstance(portal, dict) else getattr(portal, 'url', None)
         if not portal_url:
             raise Exception('Portal URL missing in Stripe response')
         return jsonify({'url': portal_url})
