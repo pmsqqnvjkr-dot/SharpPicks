@@ -6277,6 +6277,56 @@ def cron_cleanup_events():
     return log_cron('cleanup_events', _cleanup)
 
 
+@app.route('/api/cron/fix-stripe-standard-price', methods=['POST'])
+@verify_cron
+def cron_fix_stripe_standard_price():
+    """One-off ops: the 'SharpPicks Pro Annual - Standard Rate' product
+    (prod_TzBxxUbBFexcPj) has a price attached with recurring.interval='month'
+    and unit_amount=14999 ($149.99). _create_trial_checkout_url filters its
+    yearly_prices set by interval=='year' so this misconfigured price is
+    invisible to the trial picker. Today it's harmless (founding at 13/50
+    is still serving every new trial) but the day founding closes, the
+    standard fallback returns None and trial signups silently get
+    checkout_url=null. This endpoint creates a corrected yearly $149.99
+    price on the same product and archives the monthly one. Idempotent:
+    re-running after the fix detects the existing yearly price and exits."""
+    PRODUCT_ID = 'prod_TzBxxUbBFexcPj'
+    TARGET_CENTS = 14999
+
+    from stripe_client import get_stripe_client
+    stripe = get_stripe_client()
+
+    existing = stripe.Price.list(product=PRODUCT_ID, active=True, limit=20)
+    for p in existing.data:
+        if (p.recurring and p.recurring.interval == 'year'
+                and p.unit_amount == TARGET_CENTS):
+            return jsonify({
+                'status': 'noop',
+                'message': f'Yearly $149.99 price already active on product: {p.id}',
+            })
+
+    new_price = stripe.Price.create(
+        product=PRODUCT_ID,
+        currency='usd',
+        unit_amount=TARGET_CENTS,
+        recurring={'interval': 'year'},
+        nickname='SharpPicks Pro Annual - Standard Rate (yearly $149.99)',
+    )
+
+    archived = []
+    for p in existing.data:
+        if (p.recurring and p.recurring.interval == 'month'
+                and p.unit_amount == TARGET_CENTS):
+            stripe.Price.modify(p.id, active=False)
+            archived.append(p.id)
+
+    return jsonify({
+        'status': 'ok',
+        'new_price_id': new_price.id,
+        'archived_price_ids': archived,
+    })
+
+
 @app.route('/api/cron/user-resync', methods=['POST'])
 @verify_cron
 def cron_user_resync():
