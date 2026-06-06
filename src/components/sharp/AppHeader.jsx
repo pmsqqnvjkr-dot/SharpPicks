@@ -26,6 +26,11 @@ export default function AppHeader({ onNavigate }) {
     <div style={{
       background: 'linear-gradient(to bottom, #0E1A2B, #08121F)',
       borderBottom: '1px solid rgba(255,255,255,0.06)',
+      // env(safe-area-inset-top) extends the gradient up through the
+      // iOS status bar / notch area so the SHARPPICKS wordmark and
+      // Welcome text aren't clobbered by the 5G/battery icons. The
+      // 0px fallback keeps web/Android rendering unchanged.
+      paddingTop: 'env(safe-area-inset-top, 0px)',
     }}>
       <div style={{
         padding: '16px 20px 10px',
