@@ -510,6 +510,11 @@ export default function SharpJournalArticle({
         zIndex: 200,
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
+        // env(safe-area-inset-top) pushes the nav bar (and the sticky
+        // reading progress bar) below the iOS notch / Dynamic Island
+        // so the back arrow is reachable. 0px fallback keeps web and
+        // Android pixel-identical.
+        paddingTop: 'env(safe-area-inset-top, 0px)',
       }}
     >
       {/* Reading progress bar (sticky, 2px) */}

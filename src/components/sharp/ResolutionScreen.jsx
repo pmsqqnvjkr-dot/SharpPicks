@@ -49,6 +49,9 @@ export default function ResolutionScreen({ pick, onBack, onNavigate }) {
       backgroundColor: C.bg,
       zIndex: 200,
       overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+      // Push the sticky header (and the back arrow inside it) below the
+      // iOS notch / Dynamic Island. 0px fallback keeps web identical.
+      paddingTop: 'env(safe-area-inset-top, 0px)',
     }}>
     <div style={{ maxWidth: '420px', margin: '0 auto', padding: '0 16px', paddingBottom: '100px' }}>
       {/* Header */}
