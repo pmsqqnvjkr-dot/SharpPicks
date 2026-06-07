@@ -19,6 +19,12 @@
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0;
+    /* env(safe-area-inset-top) keeps the SharpPicks wordmark + last-
+       refresh badge from being clobbered by the iOS Dynamic Island
+       when /admin is opened in the Capacitor WebView. The viewport
+       meta in admin.html has viewport-fit=cover so this resolves to
+       the real inset on iOS (~47-59px) and 0px elsewhere. */
+    padding-top: env(safe-area-inset-top, 0px);
     background: var(--bg);
     color: var(--text);
     font-family: var(--sans);
