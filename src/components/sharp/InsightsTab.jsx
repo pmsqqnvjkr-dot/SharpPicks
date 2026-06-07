@@ -1384,6 +1384,9 @@ function InsightDetail({ insight, allInsights, onBack, onSelectInsight, onNaviga
         backgroundColor: 'var(--bg-primary)',
         zIndex: 200,
         overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+        // Push the sticky progress bar + nav (back arrow) below the
+        // iOS notch / Dynamic Island. 0px fallback keeps web identical.
+        paddingTop: 'env(safe-area-inset-top, 0px)',
       }}
     >
       {/* Progress bar */}

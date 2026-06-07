@@ -151,6 +151,11 @@ export default function OnboardingFlow({ onComplete }) {
       display: 'flex', flexDirection: 'column',
       fontFamily: sans,
       overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+      // The inner column has 60px topPad which barely clears the
+      // Dynamic Island on iPhone 15 Pro+. Add the explicit inset so
+      // the progress bar + skip control aren't clobbered. 0px
+      // fallback keeps web identical.
+      paddingTop: 'env(safe-area-inset-top, 0px)',
     }}>
       <div
         onTouchStart={handleTouchStart}
