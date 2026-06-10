@@ -618,6 +618,38 @@ function _renderTodaysReadV2(metrics) {
   const funnelLede = `${SP_FMT.num(ga4Sessions7)} web sessions and ${SP_FMT.num(gscClicks28)} GSC clicks over the last 28 days. ${SP_FMT.num(iosInstalls28)} first downloads on iOS, ${SP_FMT.num(androidInstalls28)} device installs on Android.`;
   _tr2SetText('tr2-funnel-lede', funnelLede);
 
+  // Per-source freshness on the section meta. Each source surfaces lag
+  // differently: GSC and GA4 expose date_range.end; Play and ASC don't
+  // expose end dates but ship ~24-48h lagged per their own notes. The
+  // section meta used to read "GA4 · GSC · Play · ASC" statically, which
+  // hid that GSC and Play data are 2-3 days behind real-time while the
+  // headline number reads as "today". Replace with each source's lag in
+  // days so the operator can scan freshness at a glance.
+  const _lagDays = (endDateStr) => {
+    if (!endDateStr) return null;
+    const end = new Date(endDateStr + 'T00:00:00Z');
+    if (Number.isNaN(end.getTime())) return null;
+    const todayUtc = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
+    const ms = todayUtc - end;
+    return Math.max(0, Math.round(ms / 86400000));
+  };
+  const _chip = (label, days) => {
+    if (days === null || days === undefined) return `${label}`;
+    if (days === 0) return `${label} live`;
+    return `${label} -${days}d`;
+  };
+  const ga4Lag = _lagDays(ga4?.date_range?.end);
+  const gscLag = _lagDays(gsc?.date_range?.end);
+  // Play and ASC don't publish a date_range; default to the lag their
+  // own source notes claim (Play: 24-48h, ASC: 1-2d). Use 1d as the
+  // conservative chip.
+  const playLag = (gp && gp.configured) ? 1 : null;
+  const ascLag = (asc && asc.configured) ? 1 : null;
+  _tr2SetText('tr2-funnel-meta',
+    [_chip('GA4', ga4Lag), _chip('GSC', gscLag), _chip('Play', playLag), _chip('ASC', ascLag)]
+      .join(' · ')
+  );
+
   // ── OPERATING HEALTH (signals come from events envelope) ──────────
   // Signals_issued is a {sport: count} object summed across the window.
   const sigBySport = events.signals_issued || {};
