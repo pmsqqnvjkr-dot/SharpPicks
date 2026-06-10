@@ -361,6 +361,7 @@ def _fetch_raw() -> dict:
     orphan_emails: list[str] = []
     try:
         from models import User, db as _db
+        from sqlalchemy import or_
         now_dt = datetime.utcnow()
         orphan_candidates = User.query.filter(
             User.is_premium == True,  # noqa: E712
@@ -370,6 +371,16 @@ def _fetch_raw() -> dict:
             User.is_internal == False,  # noqa: E712
             User.comped == False,  # noqa: E712
             User.deleted_at.is_(None),
+            # iOS users paying through RevenueCat are billed via Apple,
+            # not Stripe, so they don't have a stripe_customer_id by
+            # design. The orphan list is supposed to catch web users
+            # whose Stripe link broke (Cooper / Spiffy on 2026-05-18),
+            # not every iOS subscriber. Without this filter, every iOS
+            # RC user (Eoin, Nathan, Mike, and all the privaterelay
+            # aliases) inflates orphan_paying_subs ~2x and overstates
+            # orphan_mrr_cents. Keep pro_source IS NULL because most
+            # historical web users predate the column being populated.
+            or_(User.pro_source.is_(None), User.pro_source != 'revenuecat'),
         ).all()
         for u in orphan_candidates:
             cust_id = u.stripe_customer_id
