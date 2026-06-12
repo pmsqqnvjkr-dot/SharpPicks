@@ -12039,15 +12039,51 @@ def serve_robots_txt():
     """Env-aware robots.txt. On QA staging (ENVIRONMENT=qa) we issue a
     hard Disallow so Google stops crawling and drops any already-indexed
     pages (paired with the X-Robots-Tag: noindex after_request hook).
-    On production we allow everything; Cloudflare's managed robots.txt
-    layer still injects its standard AI-bot blocks on top of this
-    response so we don't need to duplicate those here."""
+    On production we serve landing/robots.txt which declares our
+    citation-friendly Content-Signal policy (search=yes, ai-input=yes,
+    ai-train=no). Note that Cloudflare's managed "Block AI bots" feature
+    used to prepend additional Disallow blocks for ClaudeBot, GPTBot,
+    etc.; that feature has been disabled in the Cloudflare dashboard so
+    this is now the canonical robots policy."""
     is_qa = (os.environ.get('ENVIRONMENT') or '').lower() == 'qa'
     if is_qa:
         body = "User-agent: *\nDisallow: /\n"
-    else:
+        return Response(body, content_type='text/plain; charset=utf-8')
+    landing_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'landing', 'robots.txt')
+    try:
+        with open(landing_path, 'r') as f:
+            body = f.read()
+    except Exception:
         body = "User-agent: *\nAllow: /\n"
     return Response(body, content_type='text/plain; charset=utf-8')
+
+
+@app.route('/llms.txt')
+def serve_llms_txt():
+    """AI-crawler site overview (emerging /llms.txt convention).
+    Concise markdown summary of SharpPicks for LLMs to ingest as
+    citation source. Paired with /llms-full.txt for the fuller
+    reference. Declared in robots.txt as ai-input=yes."""
+    landing_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'landing', 'llms.txt')
+    try:
+        with open(landing_path, 'r') as f:
+            body = f.read()
+    except Exception:
+        return Response("llms.txt not found", status=404, content_type='text/plain')
+    return Response(body, content_type='text/markdown; charset=utf-8')
+
+
+@app.route('/llms-full.txt')
+def serve_llms_full_txt():
+    """Fuller markdown reference for AI citation. Methodology,
+    editorial principles, sitemap, pricing, and citation hints."""
+    landing_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'landing', 'llms-full.txt')
+    try:
+        with open(landing_path, 'r') as f:
+            body = f.read()
+    except Exception:
+        return Response("llms-full.txt not found", status=404, content_type='text/plain')
+    return Response(body, content_type='text/markdown; charset=utf-8')
 
 
 @app.route('/manifest.webmanifest')

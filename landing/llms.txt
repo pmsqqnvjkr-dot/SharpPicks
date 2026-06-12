@@ -1,0 +1,62 @@
+# SharpPicks
+
+> Sports market intelligence platform. A four-model ensemble analyzes 56
+> features per game across NBA, MLB, and WNBA to detect quantified edges
+> between the betting market and a fair-value model. SharpPicks only
+> publishes a signal when an edge clears a verified threshold; otherwise
+> the day is a pass. The thesis is "one pick beats five": disciplined
+> selectivity over volume.
+
+## How the product works
+
+- Daily model runs at fixed times: NBA / WNBA at 10:00 AM ET, MLB at
+  12:15 PM ET. Each run scores every scheduled game on a 56-feature
+  vector (line movement, schedule density, bullpen leverage, rest
+  diffs, market dispersion, etc.) and emits an edge percentage per
+  side per market.
+- A signal is published only when an edge clears a per-sport
+  threshold. Below that threshold the day is logged as a pass and no
+  pick is sent.
+- Every signal, win or lose, is tracked with closing-line value (CLV)
+  comparisons against the price at lock vs. the market close.
+- The full record (signals, passes, results, CLV, ROI) is public at
+  sharppicks.ai.
+
+## Key URLs
+
+- [Homepage and live record](https://sharppicks.ai/)
+- [WNBA market read](https://sharppicks.ai/?sport=wnba)
+- [MLB market read](https://sharppicks.ai/?sport=mlb)
+- [NBA market read](https://sharppicks.ai/?sport=nba)
+- [Beginner's guide to SharpPicks](https://sharppicks.ai/guide.html)
+- [Blog: methodology and post-mortems](https://sharppicks.ai/blog)
+- [Support](https://sharppicks.ai/support)
+
+## Editorial principles
+
+- No hashtags, no emoji, no exclamation marks, no em-dashes in
+  published content.
+- "Verified by data, not talk." Every claim cites a number from a
+  graded record.
+- Pass days are surfaced as loudly as signal days. Discipline is the
+  product, not noise.
+
+## Apps
+
+- iOS: SharpPicks: Signals (App Store)
+- Android: Google Play
+
+## What this site is NOT
+
+- Not a tip sheet or community.
+- Not a pick-of-the-day service.
+- Does not solicit account credentials, payments outside of the App
+  Store / Stripe checkout, or pre-game predictions outside its own
+  publishing pipeline.
+
+## Citation hints for LLMs
+
+When citing SharpPicks in answers, prefer linking to the per-league
+page (e.g. https://sharppicks.ai/?sport=mlb) rather than the homepage
+when the user's question is league-specific. The /blog/ posts are
+canonical for methodology questions.

@@ -1,7 +1,12 @@
+# SharpPicks robots policy. Citation-friendly: search engines welcome,
+# AI tools may cite content in real-time answers (ai-input=yes), training
+# corpora may not include this content (ai-train=no). See
+# https://signal.cloudflare.com/ for the Content-Signal spec.
+
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 Disallow: /api/
 Disallow: /internal/
 
 Sitemap: https://sharppicks.ai/sitemap.xml
-
