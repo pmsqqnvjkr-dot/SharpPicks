@@ -12058,6 +12058,7 @@ def serve_robots_txt():
     return Response(body, content_type='text/plain; charset=utf-8')
 
 
+# Deploy marker: 20260612-121837 (forces Railway rebuild for landing/* + /llms*)
 @app.route('/llms.txt')
 def serve_llms_txt():
     """AI-crawler site overview (emerging /llms.txt convention).
