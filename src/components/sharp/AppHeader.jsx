@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../hooks/useAuth';
 import { useSport } from '../../hooks/useSport';
+import { useLaunchConfig } from '../../hooks/useLaunchConfig';
+import { getStateTokens } from '../empty-state/stateTokens';
 import Wordmark from './Wordmark';
 
 const PROD_URL = 'https://app.sharppicks.ai';
@@ -77,37 +79,55 @@ export default function AppHeader({ onNavigate }) {
   );
 }
 
-// Sport pills use the v4.3 brand palette: sage Edge Green for the active
-// pill, neutral text-3 for inactive. Per-sport identity colors (NBA orange,
-// MLB blue, WNBA pink) were retired 2026-05-06 in favor of brand consistency.
-// Calibration badge stays amber.
+// Sport pills use the v4.3 brand palette. Active pill: state-colored
+// border + fill + label (sage for live, steel for off-season, amber for
+// pre-launch calibration). Per-sport identity colors (NBA orange, MLB
+// blue, WNBA pink) were retired 2026-05-06.
+//
+// Per-sport state comes from /api/public/launch-config:
+//   nba.in_season=false       -> 'offseason' (steel dot)
+//   nfl.launched=false        -> 'calibration' (amber dot)
+//   otherwise                 -> 'live' (green dot)
 const SPORT_CONFIG = {
-  nba: { label: 'NBA', active: true },
-  mlb: { label: 'MLB', active: true },
-  wnba: { label: 'WNBA', active: true },
+  nba:  { label: 'NBA' },
+  mlb:  { label: 'MLB' },
+  wnba: { label: 'WNBA' },
+  nfl:  { label: 'NFL' },
 };
+const PILL_ORDER = ['nba', 'mlb', 'wnba', 'nfl'];
 
-const SP_GREEN = '#5A9E72';
-const SP_GREEN_SOFT = 'rgba(90, 158, 114, 0.10)';
-const SP_GREEN_BORDER = 'rgba(90, 158, 114, 0.45)';
 const SP_BORDER = 'rgba(255, 255, 255, 0.08)';
 const SP_TEXT_2 = 'rgba(232, 234, 237, 0.7)';
-const SP_TEXT_3 = 'rgba(232, 234, 237, 0.5)';
+
+function sportState(key, config) {
+  const entry = config?.sports?.[key];
+  if (!entry) return 'live';
+  if (entry.launched === false) return 'calibration';
+  if (entry.in_season === false) return 'offseason';
+  return 'live';
+}
+
+function chipAccent(state) {
+  if (state === 'offseason') return getStateTokens('steel');
+  if (state === 'calibration') return getStateTokens('amber');
+  return getStateTokens('green');
+}
 
 function SportFilterPills({ sport, setSport }) {
-  const pills = ['nba', 'mlb', 'wnba'];
+  const { config } = useLaunchConfig();
   return (
     <div style={{
       display: 'flex', gap: '8px', padding: '0 20px 10px',
+      flexWrap: 'wrap',
     }}>
-      {pills.map(key => {
+      {PILL_ORDER.map(key => {
         const cfg = SPORT_CONFIG[key];
         const selected = sport === key;
-        const comingSoon = !cfg.active;
+        const accent = chipAccent(sportState(key, config));
         return (
           <button
             key={key}
-            onClick={() => { if (!comingSoon) setSport(key); }}
+            onClick={() => setSport(key)}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '10px 16px', borderRadius: '999px',
@@ -116,37 +136,18 @@ function SportFilterPills({ sport, setSport }) {
               fontFamily: '"JetBrains Mono", "JetBrains Mono Variable", monospace',
               textTransform: 'uppercase',
               letterSpacing: '0.16em',
-              border: `1px solid ${selected ? SP_GREEN_BORDER : SP_BORDER}`,
-              backgroundColor: selected ? SP_GREEN_SOFT : 'transparent',
-              color: comingSoon ? SP_TEXT_3 : selected ? SP_GREEN : SP_TEXT_2,
-              cursor: comingSoon ? 'default' : 'pointer',
-              opacity: comingSoon ? 0.5 : 1,
+              border: `1px solid ${selected ? accent.border : SP_BORDER}`,
+              backgroundColor: selected ? accent.soft : 'transparent',
+              color: selected ? accent.color : SP_TEXT_2,
+              cursor: 'pointer',
               transition: 'background-color 0.15s, border-color 0.15s, color 0.15s',
             }}
           >
             <span style={{
               width: '6px', height: '6px', borderRadius: '50%',
-              backgroundColor: selected ? SP_GREEN : comingSoon ? SP_TEXT_3 : SP_TEXT_3,
+              backgroundColor: accent.color,
             }} />
             {cfg.label}
-            {cfg.badge && (
-              <span style={{
-                fontSize: '8px', fontWeight: 600,
-                padding: '1px 5px', borderRadius: '4px',
-                backgroundColor: 'rgba(245, 158, 11, 0.18)',
-                color: '#F59E0B',
-                letterSpacing: '0.18em',
-              }}>{cfg.badge}</span>
-            )}
-            {comingSoon && (
-              <span style={{
-                fontSize: '8px', fontWeight: 600,
-                padding: '1px 5px', borderRadius: '4px',
-                backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                color: SP_TEXT_3,
-                letterSpacing: '0.18em',
-              }}>SOON</span>
-            )}
           </button>
         );
       })}
