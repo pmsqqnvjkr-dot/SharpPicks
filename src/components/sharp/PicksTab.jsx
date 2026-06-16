@@ -27,6 +27,9 @@ import NoPickCard from './NoPickCard';
 import PassDay from '../signals/PassDay';
 import DarkDay from '../signals/DarkDay';
 import WNBAPreLaunchScreen from './WNBAPreLaunchScreen';
+import NBAOffSeasonScreen from './NBAOffSeasonScreen';
+import { useLaunchConfig } from '../../hooks/useLaunchConfig';
+import { resolveSportEmptyState } from '../../utils/sportState';
 import CalibrationBanner from '../brand/CalibrationBanner';
 import { FEATURE_EVAN_COLE_READ, FEATURE_DISCIPLINE_ARTICLES, FEATURE_EVENING_RECAP } from '../../config/featureFlags';
 import { pickPrimaryArticle, pickArticlesForSport } from '../../utils/articleRotation';
@@ -115,6 +118,7 @@ export default function PicksTab({ onNavigate }) {
   const { data: lastResolved } = useApi(sportQuery('/picks/last-resolved', sport), { skip: !isPro });
   const { data: insightsData } = useApi('/insights?limit=8&rotate=1');
   const { data: allSportsStats } = useApi('/public/stats');
+  const { config: launchConfig } = useLaunchConfig();
   const [showAuth, setShowAuth] = useState(false);
   const [showResolution, setShowResolution] = useState(false);
   const [resolutionPick, setResolutionPick] = useState(null);
@@ -417,6 +421,20 @@ export default function PicksTab({ onNavigate }) {
   // WNBA pre-launch gate: render the bare-minimum pre-launch screen until
   // the season opens. Skips all of the normal slate / signal / pass logic
   // below since none of it has anything meaningful to show pre-launch.
+  // Special-state short-circuit: skips the normal slate / signal / pass
+  // logic when a sport has no live slate for a long-horizon reason. Uses
+  // launch_config (calibration > offseason priority) per the empty-state
+  // handoff. Returns null for in-season sports so existing pageState
+  // selector below handles them unchanged.
+  const specialState = resolveSportEmptyState(sport, launchConfig);
+  if (specialState === 'offseason' && sport === 'nba') {
+    return (
+      <div style={{ padding: '0' }}>
+        <NBAOffSeasonScreen onNavigate={onNavigate} />
+      </div>
+    );
+  }
+
   if (sport === 'wnba' && isWNBAPreLaunch()) {
     return (
       <div style={{ padding: '0' }}>
