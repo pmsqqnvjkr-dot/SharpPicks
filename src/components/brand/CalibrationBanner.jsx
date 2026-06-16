@@ -6,8 +6,10 @@ import { useEffect, useState } from 'react';
 // or a market-intelligence read is settling in real time.
 //
 // Replaces the older blue "Model Phase: Calibration" strip and the green
-// "CALIBRATION BETA" onboarding callout. Per BRAND_SPEC v4.3:
-//   - amber #F59E0B is the calibration / live state color (not blue, not green)
+// "CALIBRATION BETA" onboarding callout. Per BRAND_SPEC v4.3.1:
+//   - amber #C9A35C is the calibration / live state color (muted brass;
+//     retoned from #C9A35C in June 2026, was too saturated against v4.3
+//     surfaces)
 //   - blue is reserved for active signals only
 //   - green is reserved for verified results only
 //
@@ -35,9 +37,9 @@ function injectStyles() {
   style.id = 'sp-calibration-banner-styles';
   style.textContent = `
     @keyframes sp-banner-pulse {
-      0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
-      70%  { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+      0%   { box-shadow: 0 0 0 0 rgba(201, 163, 92, 0.6); }
+      70%  { box-shadow: 0 0 0 8px rgba(201, 163, 92, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(201, 163, 92, 0); }
     }
     .sp-calibration-pulse { animation: sp-banner-pulse 2s infinite; }
     @media (prefers-reduced-motion: reduce) {
@@ -76,8 +78,8 @@ export default function CalibrationBanner({ eyebrow, children, style, dismissKey
       role="status"
       style={{
         position: 'relative',
-        background: 'var(--sp-amber-soft, rgba(245, 158, 11, 0.08))',
-        border: '1px solid rgba(245, 158, 11, 0.22)',
+        background: 'var(--sp-amber-soft, rgba(201, 163, 92, 0.12))',
+        border: '1px solid var(--sp-amber-border, rgba(201, 163, 92, 0.40))',
         borderRadius: '10px',
         padding: '14px 16px',
         marginBottom: '16px',
@@ -94,7 +96,7 @@ export default function CalibrationBanner({ eyebrow, children, style, dismissKey
           width: '8px',
           height: '8px',
           marginTop: '4px',
-          background: 'var(--sp-amber, #F59E0B)',
+          background: 'var(--sp-amber, #C9A35C)',
           borderRadius: '50%',
         }}
       />
@@ -106,7 +108,7 @@ export default function CalibrationBanner({ eyebrow, children, style, dismissKey
               fontSize: '9px',
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
-              color: 'var(--sp-amber, #F59E0B)',
+              color: 'var(--sp-amber, #C9A35C)',
               fontWeight: 600,
               marginBottom: '4px',
             }}
@@ -141,12 +143,12 @@ export default function CalibrationBanner({ eyebrow, children, style, dismissKey
             background: 'transparent',
             border: 'none',
             cursor: 'pointer',
-            color: 'rgba(245, 158, 11, 0.6)',
+            color: 'rgba(201, 163, 92, 0.6)',
             padding: 0,
             borderRadius: '6px',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(245, 158, 11, 1)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(245, 158, 11, 0.6)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(201, 163, 92, 1)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(201, 163, 92, 0.6)'; }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 6L6 18M6 6l12 12" />

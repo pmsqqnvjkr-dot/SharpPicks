@@ -1,0 +1,156 @@
+{
+  "version": "2026.06.12.1",
+  "generated_at": "2026-06-12T00:00:00Z",
+  "_doc": [
+    "Source of truth for sport season windows + NFL pre-launch state.",
+    "Served by /api/public/launch-config. Read by both the iOS/Android",
+    "in-app screens (PicksTab state selector + sport chip row) and the",
+    "sharppicks.ai landing 'Today at the desk' grid.",
+    "",
+    "To flip NFL live: set sports.nfl.launched to true and bump version.",
+    "No app rebuild required; clients re-fetch on launch + every 1 hour.",
+    "Server-side public_bp gate (is_sport_publicly_visible) reads the",
+    "same flag and stops serving NFL rows via ?sport=nfl until launched.",
+    "",
+    "Date fields are ISO-8601. Display strings derived client-side from",
+    "the device's local date so the date pill matches the user's clock.",
+    "Entries flagged `tbd: true` are best-guess placeholders pending an",
+    "official league announcement; update when the league publishes."
+  ],
+  "sports": {
+    "nba": {
+      "in_season": false,
+      "season_label": "2025-26",
+      "next_season_label": "2026-27",
+      "season_end": "2026-06-13",
+      "season_end_note": "Knicks 4-1 over Spurs. Game 5 in San Antonio.",
+      "opening_night": {
+        "date": "2026-10-20",
+        "tbd": true,
+        "tbd_note": "Official NBA 2026-27 schedule release pending (typically late summer)."
+      },
+      "road_back": [
+        {
+          "id": "nba_draft",
+          "date_start": "2026-06-23",
+          "date_end": "2026-06-24",
+          "title": "NBA Draft",
+          "pill": "PRIORS",
+          "note": "Roster priors start moving. The model reads depth charts, not green rooms."
+        },
+        {
+          "id": "nba_free_agency",
+          "date_start": "2026-06-30",
+          "title": "Free agency opens",
+          "pill": "DRIFT",
+          "note": "Player movement reprices every team prior. The noisiest stretch of the calendar."
+        },
+        {
+          "id": "nba_summer_league",
+          "date_start": "2026-07-09",
+          "date_end": "2026-07-19",
+          "title": "Summer League",
+          "pill": "NO SIGNAL",
+          "note": "Exhibition data never enters the model. Nothing here is tradeable."
+        },
+        {
+          "id": "nba_training_camp",
+          "date_start": "2026-09-28",
+          "tbd": true,
+          "title": "Training camps",
+          "pill": "MINUTES",
+          "note": "Rotations take shape. Minutes projections come back online."
+        },
+        {
+          "id": "nba_preseason",
+          "date_start": "2026-10-09",
+          "date_end": "2026-10-18",
+          "tbd": true,
+          "title": "Preseason",
+          "pill": "CALIBRATION",
+          "note": "The retrained model is checked against its error bands before a single signal ships."
+        },
+        {
+          "id": "nba_opening_night",
+          "date_start": "2026-10-20",
+          "tbd": true,
+          "title": "Opening night",
+          "pill": "SLATE OPENS",
+          "is_final": true,
+          "note": "First signals pending threshold. No edge, no pick. Same rules as last year."
+        }
+      ]
+    },
+    "mlb": {
+      "in_season": true,
+      "season_label": "2026",
+      "season_start": "2026-03-26",
+      "season_end": "2026-09-27"
+    },
+    "wnba": {
+      "in_season": true,
+      "season_label": "2026",
+      "season_start": "2026-05-16",
+      "season_end": "2026-09-13"
+    },
+    "nfl": {
+      "launched": false,
+      "season_label": "2026",
+      "kickoff_at": "2026-09-09T20:00:00-04:00",
+      "kickoff_note": "Wed Sep 9, 2026. Seahawks (Super Bowl champion) host Patriots.",
+      "notify_endpoint": "/api/account/nfl-launch-notify",
+      "journal_article_slug": null,
+      "_journal_article_slug_doc": "Set to the slug of 'What an NFL Model Has to Prove' when published. While null, MODEL NOTES card links to /blog/.",
+      "gates": [
+        {
+          "id": "backtest",
+          "status": "cleared",
+          "title": "Historical backtest",
+          "note": "Seven seasons. Every game graded against the closing line, walk-forward, no peeking."
+        },
+        {
+          "id": "edge_threshold",
+          "status": "cleared",
+          "title": "Edge threshold locked",
+          "note": "The model only signals where the backtest proved an edge. Everything outside it is a pass."
+        },
+        {
+          "id": "live_dry_run",
+          "status": "in_progress",
+          "title": "Live-line dry run",
+          "note": "The model runs against real markets all summer. Picks are tracked internally, none are issued."
+        },
+        {
+          "id": "calibration_gate",
+          "status": "pending",
+          "title": "Calibration gate",
+          "note": "Error bands checked one final time before week one. If it misses, launch waits."
+        }
+      ],
+      "road_to_week_one": [
+        {
+          "id": "nfl_training_camp",
+          "date_start": "2026-07-22",
+          "title": "Training camps open",
+          "pill": "DEPTH CHARTS",
+          "note": "Rosters and rotations start to settle. The model watches the depth charts, not the drills."
+        },
+        {
+          "id": "nfl_preseason",
+          "date_start": "2026-08-06",
+          "date_end": "2026-08-23",
+          "title": "Preseason",
+          "pill": "NO SIGNAL",
+          "note": "Exhibition data never enters the model, and no preseason picks will be issued. Same rule as every sport here."
+        },
+        {
+          "id": "nfl_roster_cuts",
+          "date_start": "2026-08-30",
+          "title": "Final roster cuts",
+          "pill": "PRIORS LOCK",
+          "note": "Fifty-three man rosters lock. Team priors are set for the final calibration pass."
+        }
+      ]
+    }
+  }
+}

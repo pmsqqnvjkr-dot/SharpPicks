@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SharpPicks · Empty State Screens · NBA Off-Season + NFL Calibration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* v4.3 tokens */
+    --bg:#0A0D14;
+    --card-2:#0E1320;
+    --hairline:rgba(139,147,163,0.16);
+    --hairline-strong:rgba(139,147,163,0.28);
+    --text:#E7EAF0;
+    --text-2:#AEB6C4;
+    --muted:#8B93A3;
+    --faint:#5B6373;
+    --green:#5A9E72;
+    --green-dim:rgba(90,158,114,0.14);
+    --rose:#C4868A;
+    /* state tokens */
+    --steel:#8FA3C2;
+    --steel-dim:rgba(143,163,194,0.12);
+    --steel-border:rgba(143,163,194,0.38);
+    --amber:#C9A35C;
+    --amber-dim:rgba(201,163,92,0.12);
+    --amber-border:rgba(201,163,92,0.40);
+
+    --sans:'IBM Plex Sans',sans-serif;
+    --mono:'IBM Plex Mono',monospace;
+    --serif:'IBM Plex Serif',serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{background:#04060B;}
+  body{font-family:var(--sans);color:var(--text);padding:40px 16px 80px;}
+
+  .page-head{max-width:1040px;margin:0 auto 36px;}
+  .page-title{font-family:var(--mono);font-size:13px;letter-spacing:0.3em;color:var(--muted);font-weight:600;margin-bottom:10px;}
+  .page-sub{font-size:13px;color:var(--faint);line-height:1.6;max-width:640px;}
+
+  .frames{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;align-items:flex-start;}
+  .frame-col{width:100%;max-width:480px;}
+  .frame-label{font-family:var(--mono);font-size:11px;letter-spacing:0.24em;color:var(--muted);font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+  .frame-label .swatch{width:10px;height:10px;border-radius:2px;}
+
+  /* state scoping: each .phone sets its own --state vars */
+  .phone.s-steel{--state:var(--steel);--state-dim:var(--steel-dim);--state-border:var(--steel-border);}
+  .phone.s-amber{--state:var(--amber);--state-dim:var(--amber-dim);--state-border:var(--amber-border);}
+
+  .phone{
+    width:100%;background:var(--bg);border:1px solid var(--hairline);
+    border-radius:18px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.55);
+  }
+
+  /* header */
+  .hdr{background:linear-gradient(180deg,#0D1422 0%,#0A0D14 100%);border-bottom:1px solid var(--hairline);padding:18px 20px 16px;}
+  .hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .wordmark{font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:0.32em;display:flex;align-items:center;}
+  .wordmark .bars{display:inline-flex;gap:3px;margin:0 4px 0 2px;}
+  .wordmark .bars i{display:block;width:2.5px;height:17px;background:var(--text);}
+  .hdr-right{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:12px;}
+  .gear{width:18px;height:18px;border:1.5px solid var(--muted);border-radius:50%;position:relative;}
+  .gear::after{content:'';position:absolute;inset:4px;border:1.5px solid var(--muted);border-radius:50%;}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{font-family:var(--mono);font-size:10.5px;letter-spacing:0.18em;font-weight:500;padding:8px 14px;border-radius:999px;border:1px solid var(--hairline-strong);color:var(--muted);display:flex;align-items:center;gap:7px;}
+  .chip .dot{width:5px;height:5px;border-radius:50%;background:var(--green);}
+  .chip.state .dot{background:var(--state);}
+  .chip.active{border-color:var(--state-border);background:var(--state-dim);color:var(--text);}
+
+  .body{padding:22px 20px 0;}
+
+  /* date row */
+  .daterow{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .date{font-family:var(--mono);font-size:11px;letter-spacing:0.22em;color:var(--green);font-weight:500;}
+  .statepill{font-family:var(--mono);font-size:10px;letter-spacing:0.16em;font-weight:600;color:var(--state);background:var(--state-dim);border:1px solid var(--state-border);padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:7px;}
+  .statepill .dot{width:5px;height:5px;border-radius:50%;background:var(--state);}
+
+  /* hero */
+  h1{font-family:var(--serif);font-weight:600;font-size:34px;line-height:1.12;margin-bottom:14px;letter-spacing:-0.01em;}
+  .hero-body{font-size:14.5px;line-height:1.6;color:var(--text-2);margin-bottom:22px;}
+  .hero-body strong{color:var(--text);font-weight:600;}
+
+  /* countdown */
+  .countdown{background:var(--card-2);border:1px solid var(--hairline);border-radius:10px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .cd-label{font-family:var(--mono);font-size:10px;letter-spacing:0.2em;color:var(--muted);}
+  .cd-value{font-family:var(--mono);font-size:21px;font-weight:600;}
+  .cd-value span{font-size:12px;color:var(--muted);font-weight:400;margin-left:1px;}
+  .cd-sub{font-family:var(--mono);font-size:10px;letter-spacing:0.06em;color:var(--faint);text-align:right;margin:0 2px 26px;}
+
+  /* section heads */
+  .secrow{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;}
+  .seclabel{font-family:var(--mono);font-size:10.5px;letter-spacing:0.2em;color:var(--muted);font-weight:500;}
+  .seclink{font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;color:#6E9BD8;font-weight:600;text-decoration:none;}
+
+  /* season ledger (off-season) */
+  .ledger{background:var(--card-2);border:1px solid var(--hairline);border-radius:12px;overflow:hidden;margin-bottom:28px;}
+  .ledger-grid{display:grid;grid-template-columns:1fr 1fr 1fr;}
+  .ledger-cell{padding:20px 8px 16px;text-align:center;}
+  .ledger-cell + .ledger-cell{border-left:1px solid var(--hairline);}
+  .stat-v{font-family:var(--mono);font-size:22px;font-weight:600;letter-spacing:-0.01em;}
+  .stat-v.green{color:var(--green);}
+  .stat-v span{font-size:13px;font-weight:400;}
+  .stat-k{font-family:var(--mono);font-size:9.5px;letter-spacing:0.2em;color:var(--muted);margin-top:7px;}
+  .ledger-strip{border-top:1px solid var(--hairline);padding:11px 16px;text-align:center;font-family:var(--mono);font-size:10.5px;letter-spacing:0.08em;color:var(--faint);}
+  .ledger-foot{border-top:1px solid var(--hairline);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;background:rgba(90,158,114,0.05);}
+  .ledger-tag{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--green);}
+
+  /* shared timeline component: date color keys off --state */
+  .road{margin-bottom:28px;}
+  .tl{border-left:1px solid var(--hairline-strong);margin-left:5px;}
+  .tl-item{position:relative;padding:0 0 19px 22px;}
+  .tl-item:last-child{padding-bottom:4px;}
+  .tl-item::before{content:'';position:absolute;left:-4.5px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--bg);border:1.5px solid var(--faint);}
+  .tl-item.final::before{background:var(--green);border-color:var(--green);box-shadow:0 0 0 4px var(--green-dim);}
+  .tl-date{font-family:var(--mono);font-size:10px;letter-spacing:0.18em;color:var(--state);font-weight:600;margin-bottom:4px;}
+  .tl-item.final .tl-date{color:var(--green);}
+  .tl-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px;}
+  .tl-note{font-size:12.5px;line-height:1.55;color:var(--muted);}
+  .tl-pill{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:0.14em;font-weight:600;color:var(--faint);border:1px solid var(--hairline-strong);border-radius:4px;padding:2px 7px;margin-left:8px;vertical-align:1px;}
+  .tl-item.final .tl-pill{color:var(--green);border-color:rgba(90,158,114,0.45);background:var(--green-dim);}
+
+  /* live markets (off-season) */
+  .markets{margin-bottom:28px;}
+  .mkt{background:var(--card-2);border:1px solid var(--hairline);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .mkt-l{display:flex;align-items:center;gap:12px;}
+  .livedot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px var(--green-dim);}
+  .mkt-name{font-family:var(--mono);font-size:12.5px;font-weight:600;letter-spacing:0.14em;}
+  .mkt-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .mkt-btn{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;font-weight:600;color:var(--green);border:1px solid rgba(90,158,114,0.45);background:var(--green-dim);padding:7px 14px;border-radius:6px;}
+
+  /* gate ledger (nfl) */
+  .gates{background:var(--card-2);border:1px solid var(--hairline);border-radius:12px;overflow:hidden;margin-bottom:10px;}
+  .gate{display:flex;align-items:flex-start;gap:14px;padding:15px 16px;}
+  .gate + .gate{border-top:1px solid var(--hairline);}
+  .g-mark{flex:none;width:18px;height:18px;border-radius:50%;margin-top:1px;display:flex;align-items:center;justify-content:center;}
+  .g-mark.done{border:1.5px solid var(--green);}
+  .g-mark.done::after{content:'';width:7px;height:4px;border-left:1.5px solid var(--green);border-bottom:1.5px solid var(--green);transform:rotate(-45deg) translate(0.5px,-1px);}
+  .g-mark.live{border:1.5px solid var(--state);}
+  .g-mark.live::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--state);}
+  .g-mark.wait{border:1.5px solid var(--faint);}
+  .g-main{flex:1;}
+  .g-title{font-size:13.5px;font-weight:600;}
+  .g-note{font-size:12px;line-height:1.5;color:var(--muted);margin-top:2px;}
+  .g-status{flex:none;font-family:var(--mono);font-size:9px;letter-spacing:0.14em;font-weight:600;border-radius:4px;padding:3px 7px;margin-top:2px;}
+  .g-status.done{color:var(--green);background:var(--green-dim);border:1px solid rgba(90,158,114,0.45);}
+  .g-status.live{color:var(--state);background:var(--state-dim);border:1px solid var(--state-border);}
+  .g-status.wait{color:var(--faint);border:1px solid var(--hairline-strong);}
+  .gates-foot{font-family:var(--mono);font-size:10px;letter-spacing:0.08em;color:var(--faint);text-align:center;margin-bottom:28px;}
+
+  /* narrative cards */
+  .narr{background:var(--card-2);border:1px solid var(--hairline);border-radius:12px;padding:18px;margin-bottom:28px;}
+  .narr-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .narr-pill{font-family:var(--mono);font-size:9.5px;letter-spacing:0.14em;font-weight:600;color:var(--state);background:var(--state-dim);border:1px solid var(--state-border);padding:4px 9px;border-radius:4px;}
+  .narr-title{font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:7px;}
+  .narr-body{font-size:13px;line-height:1.6;color:var(--muted);}
+
+  /* notify (nfl) */
+  .notify{background:var(--card-2);border:1px solid var(--hairline);border-radius:12px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:28px;}
+  .n-title{font-size:13.5px;font-weight:600;}
+  .n-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .n-btn{flex:none;font-family:var(--mono);font-size:10px;letter-spacing:0.14em;font-weight:600;color:var(--green);border:1px solid rgba(90,158,114,0.45);background:var(--green-dim);padding:9px 14px;border-radius:6px;}
+
+  /* journal article */
+  .article{background:var(--card-2);border:1px solid var(--hairline);border-radius:12px;padding:18px;margin-bottom:24px;}
+  .cat{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:0.16em;font-weight:600;padding:4px 9px;border-radius:4px;margin-bottom:11px;}
+  .cat.green{color:var(--green);background:var(--green-dim);}
+  .cat.state{color:var(--state);background:var(--state-dim);}
+  .a-title{font-family:var(--serif);font-size:19px;font-weight:600;line-height:1.25;margin-bottom:8px;}
+  .a-body{font-size:13px;line-height:1.6;color:var(--muted);margin-bottom:14px;}
+  .a-meta{display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--faint);}
+  .a-read{color:var(--text-2);}
+
+  /* principle */
+  .principle{border-left:2px solid var(--faint);background:var(--card-2);border-radius:0 10px 10px 0;padding:16px 18px;margin-bottom:30px;}
+  .p-label{font-family:var(--mono);font-size:9.5px;letter-spacing:0.22em;color:var(--muted);margin-bottom:8px;}
+  .p-text{font-family:var(--serif);font-size:15px;line-height:1.5;color:var(--text);}
+
+  .disclaimer{font-size:10.5px;color:var(--faint);text-align:center;line-height:1.55;padding:0 24px;margin-bottom:26px;}
+
+  /* tab bar */
+  .tabbar{border-top:1px solid var(--hairline);background:#0B0F18;display:grid;grid-template-columns:repeat(4,1fr);padding:12px 0 16px;}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);}
+  .tab.on{color:var(--green);}
+  .tab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <div class="page-title">SHARPPICKS &middot; EMPTY STATE SCREENS</div>
+  <div class="page-sub">
+    Left: NBA off-season (steel state token, fourth empty state). Right: NFL pre-launch
+    calibration (amber CAL state at the sport level). Both screens share the timeline
+    component; the date accent keys off a per-screen state variable. Stat values and
+    dates are placeholders.
+  </div>
+</div>
+
+<div class="frames">
+
+<!-- NBA OFF-SEASON -->
+<div class="frame-col">
+<div class="frame-label"><span class="swatch" style="background:var(--steel)"></span>NBA OFF-SEASON</div>
+<div class="phone s-steel">
+
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="wordmark">SHARP<span class="bars"><i></i><i></i></span>PICKS</div>
+      <div class="hdr-right">Welcome back, Evan <span class="gear"></span></div>
+    </div>
+    <div class="chips">
+      <div class="chip state active"><span class="dot"></span>NBA</div>
+      <div class="chip"><span class="dot"></span>MLB</div>
+      <div class="chip"><span class="dot"></span>WNBA</div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <div class="daterow">
+      <div class="date">FRI &middot; JUN 19</div>
+      <div class="statepill"><span class="dot"></span>NBA OFF-SEASON</div>
+    </div>
+
+    <h1>Season closed.</h1>
+    <p class="hero-body">
+      The 2025&ndash;26 NBA season is settled. Every signal graded, nothing removed.
+      <strong>This isn't a pass day.</strong> It's the calendar. The model is in the lab
+      until opening night.
+    </p>
+
+    <div class="countdown">
+      <div class="cd-label">NEXT NBA SLATE OPENS IN</div>
+      <div class="cd-value">123<span>d</span></div>
+    </div>
+    <div class="cd-sub">OPENING NIGHT &middot; TUE OCT 20 &middot; 2026</div>
+
+    <div class="secrow">
+      <div class="seclabel">2025&ndash;26 SEASON LEDGER</div>
+      <a class="seclink" href="#">FULL LEDGER &rsaquo;</a>
+    </div>
+    <div class="ledger">
+      <div class="ledger-grid">
+        <div class="ledger-cell">
+          <div class="stat-v green">58.2<span>%</span></div>
+          <div class="stat-k">CLV BEAT</div>
+        </div>
+        <div class="ledger-cell">
+          <div class="stat-v green">+34.6<span>u</span></div>
+          <div class="stat-k">NET</div>
+        </div>
+        <div class="ledger-cell">
+          <div class="stat-v">348-291</div>
+          <div class="stat-k">RECORD</div>
+        </div>
+      </div>
+      <div class="ledger-strip">639 signals issued &middot; 47 pass days &middot; 38.9% selectivity</div>
+      <div class="ledger-foot">
+        <div class="ledger-tag">EVERY SIGNAL TRACKED. NOTHING REMOVED.</div>
+      </div>
+    </div>
+
+    <div class="road">
+      <div class="secrow">
+        <div class="seclabel">THE ROAD BACK</div>
+      </div>
+      <div class="tl">
+        <div class="tl-item">
+          <div class="tl-date">JUN 24&ndash;25</div>
+          <div class="tl-title">NBA Draft<span class="tl-pill">PRIORS</span></div>
+          <div class="tl-note">Roster priors start moving. The model reads depth charts, not green rooms.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-date">JUL 1</div>
+          <div class="tl-title">Free agency opens<span class="tl-pill">DRIFT</span></div>
+          <div class="tl-note">Player movement reprices every team prior. The noisiest stretch of the calendar.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-date">JUL 10&ndash;20</div>
+          <div class="tl-title">Summer League<span class="tl-pill">NO SIGNAL</span></div>
+          <div class="tl-note">Exhibition data never enters the model. Nothing here is tradeable.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-date">SEP 29</div>
+          <div class="tl-title">Training camps<span class="tl-pill">MINUTES</span></div>
+          <div class="tl-note">Rotations take shape. Minutes projections come back online.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-date">OCT 13&ndash;16</div>
+          <div class="tl-title">Preseason<span class="tl-pill">CALIBRATION</span></div>
+          <div class="tl-note">The retrained model is checked against its error bands before a single signal ships.</div>
+        </div>
+        <div class="tl-item final">
+          <div class="tl-date">OCT 20</div>
+          <div class="tl-title">Opening night<span class="tl-pill">SLATE OPENS</span></div>
+          <div class="tl-note">First signals pending threshold. No edge, no pick. Same rules as last year.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="markets">
+      <div class="secrow">
+        <div class="seclabel">THE MARKET DOESN'T CLOSE</div>
+      </div>
+      <div class="mkt">
+        <div class="mkt-l">
+          <span class="livedot"></span>
+          <div>
+            <div class="mkt-name">MLB</div>
+            <div class="mkt-sub">Slate today &middot; 12 games on the board</div>
+          </div>
+        </div>
+        <div class="mkt-btn">VIEW SLATE</div>
+      </div>
+      <div class="mkt">
+        <div class="mkt-l">
+          <span class="livedot"></span>
+          <div>
+            <div class="mkt-name">WNBA</div>
+            <div class="mkt-sub">Slate today &middot; 3 games on the board</div>
+          </div>
+        </div>
+        <div class="mkt-btn">VIEW SLATE</div>
+      </div>
+    </div>
+
+    <div class="narr">
+      <div class="narr-head">
+        <div class="seclabel">MODEL STATUS</div>
+        <div class="narr-pill">IN THE LAB</div>
+      </div>
+      <div class="narr-title">The off-season retrain is underway.</div>
+      <div class="narr-body">
+        The full 2025&ndash;26 ledger goes back through the model. Features are audited,
+        weak ones are cut, and nothing ships until calibration clears. The version you
+        see on opening night will have earned it.
+      </div>
+    </div>
+
+    <div class="reading">
+      <div class="secrow">
+        <div class="seclabel">OFF-SEASON READING</div>
+        <a class="seclink" href="#">JOURNAL &rsaquo;</a>
+      </div>
+      <div class="article">
+        <span class="cat green">SEASON REVIEW</span>
+        <div class="a-title">What 639 Signals Taught the Model</div>
+        <div class="a-body">
+          The season is graded and the ledger is public. Where the edge held, where it
+          thinned, and what changes before October. No highlight reel. Just the audit.
+        </div>
+        <div class="a-meta">
+          <span>6 min read &middot; Sharp Journal</span>
+          <span class="a-read">Read &rarr;</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="principle">
+      <div class="p-label">SHARP PRINCIPLE</div>
+      <div class="p-text">The work between games is the work.</div>
+    </div>
+
+    <div class="disclaimer">
+      For entertainment and informational purposes. Past results do not guarantee future performance.
+    </div>
+
+  </div>
+
+  <div class="tabbar">
+    <div class="tab on">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/></svg>
+      Signals
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24"><path d="M4 19 L4 13 M10 19 L10 8 M16 19 L16 11 M21 19 L3 19"/></svg>
+      Results
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24"><path d="M4 5 C7 3.5 10 3.5 12 5 C14 3.5 17 3.5 20 5 L20 19 C17 17.5 14 17.5 12 19 C10 17.5 7 17.5 4 19 Z M12 5 L12 19"/></svg>
+      Insights
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20 C6 15.5 9 14 12 14 C15 14 18 15.5 19 20"/></svg>
+      Account
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- NFL CALIBRATION -->
+<div class="frame-col">
+<div class="frame-label"><span class="swatch" style="background:var(--amber)"></span>NFL CALIBRATION (PRE-LAUNCH)</div>
+<div class="phone s-amber">
+
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="wordmark">SHARP<span class="bars"><i></i><i></i></span>PICKS</div>
+      <div class="hdr-right">Welcome back, Evan <span class="gear"></span></div>
+    </div>
+    <div class="chips">
+      <div class="chip"><span class="dot"></span>NBA</div>
+      <div class="chip"><span class="dot"></span>MLB</div>
+      <div class="chip"><span class="dot"></span>WNBA</div>
+      <div class="chip state active"><span class="dot"></span>NFL</div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <div class="daterow">
+      <div class="date">FRI &middot; JUN 12</div>
+      <div class="statepill"><span class="dot"></span>NFL CALIBRATION</div>
+    </div>
+
+    <h1>Built. Not shipped.</h1>
+    <p class="hero-body">
+      The NFL model exists. It has been trained, backtested, and held to the same
+      standard as every other sport on this app. <strong>It ships when it clears, not
+      when the season starts.</strong> No edge, no pick applies before week one too.
+    </p>
+
+    <div class="countdown">
+      <div class="cd-label">NFL KICKOFF IN</div>
+      <div class="cd-value">90<span>d</span></div>
+    </div>
+    <div class="cd-sub">WEEK 1 &middot; THU SEP 10 &middot; 2026</div>
+
+    <div class="secrow">
+      <div class="seclabel">THE GATE LEDGER</div>
+    </div>
+    <div class="gates">
+      <div class="gate">
+        <div class="g-mark done"></div>
+        <div class="g-main">
+          <div class="g-title">Historical backtest</div>
+          <div class="g-note">Seven seasons. Every game graded against the closing line, walk-forward, no peeking.</div>
+        </div>
+        <div class="g-status done">CLEARED</div>
+      </div>
+      <div class="gate">
+        <div class="g-mark done"></div>
+        <div class="g-main">
+          <div class="g-title">Edge threshold locked</div>
+          <div class="g-note">The model only signals where the backtest proved an edge. Everything outside it is a pass.</div>
+        </div>
+        <div class="g-status done">CLEARED</div>
+      </div>
+      <div class="gate">
+        <div class="g-mark live"></div>
+        <div class="g-main">
+          <div class="g-title">Live-line dry run</div>
+          <div class="g-note">The model runs against real markets all summer. Picks are tracked internally, none are issued.</div>
+        </div>
+        <div class="g-status live">IN PROGRESS</div>
+      </div>
+      <div class="gate">
+        <div class="g-mark wait"></div>
+        <div class="g-main">
+          <div class="g-title">Calibration gate</div>
+          <div class="g-note">Error bands checked one final time before week one. If it misses, launch waits.</div>
+        </div>
+        <div class="g-status wait">PENDING</div>
+      </div>
+    </div>
+    <div class="gates-foot">SIGNALS SHIP ONLY AFTER EVERY GATE CLEARS</div>
+
+    <div class="road">
+      <div class="secrow">
+        <div class="seclabel">ROAD TO WEEK ONE</div>
+      </div>
+      <div class="tl">
+        <div class="tl-item">
+          <div class="tl-date">JUL 22</div>
+          <div class="tl-title">Training camps open<span class="tl-pill">DEPTH CHARTS</span></div>
+          <div class="tl-note">Rosters and rotations start to settle. The model watches the depth charts, not the drills.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-date">AUG 6&ndash;23</div>
+          <div class="tl-title">Preseason<span class="tl-pill">NO SIGNAL</span></div>
+          <div class="tl-note">Exhibition data never enters the model, and no preseason picks will be issued. Same rule as every sport here.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-date">AUG 25</div>
+          <div class="tl-title">Final roster cuts<span class="tl-pill">PRIORS LOCK</span></div>
+          <div class="tl-note">Fifty-three man rosters lock. Team priors are set for the final calibration pass.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="narr">
+      <div class="narr-title">Why the wait.</div>
+      <div class="narr-body">
+        Most NFL picks products launch the day the schedule drops. SharpPicks holds
+        signals until the model proves it deserves your attention. A season of
+        discipline starts before the season does.
+      </div>
+    </div>
+
+    <div class="notify">
+      <div>
+        <div class="n-title">Get the launch signal.</div>
+        <div class="n-sub">One notification when NFL clears calibration. Nothing before.</div>
+      </div>
+      <div class="n-btn">NOTIFY ME</div>
+    </div>
+
+    <div class="article">
+      <span class="cat state">MODEL NOTES</span>
+      <div class="a-title">What an NFL Model Has to Prove</div>
+      <div class="a-body">
+        Seventeen games per team is a small sample. Quarterbacks move the number more
+        than any player in any sport. Here is how the model handles both, and why it
+        passes more than it picks.
+      </div>
+      <div class="a-meta">
+        <span>5 min read &middot; Sharp Journal</span>
+        <span class="a-read">Read &rarr;</span>
+      </div>
+    </div>
+
+    <div class="principle">
+      <div class="p-label">SHARP PRINCIPLE</div>
+      <div class="p-text">No edge, no pick.</div>
+    </div>
+
+    <div class="disclaimer">
+      For entertainment and informational purposes. Past results do not guarantee future performance.
+    </div>
+
+  </div>
+
+  <div class="tabbar">
+    <div class="tab on">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/></svg>
+      Signals
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24"><path d="M4 19 L4 13 M10 19 L10 8 M16 19 L16 11 M21 19 L3 19"/></svg>
+      Results
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24"><path d="M4 5 C7 3.5 10 3.5 12 5 C14 3.5 17 3.5 20 5 L20 19 C17 17.5 14 17.5 12 19 C10 17.5 7 17.5 4 19 Z M12 5 L12 19"/></svg>
+      Insights
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20 C6 15.5 9 14 12 14 C15 14 18 15.5 19 20"/></svg>
+      Account
+    </div>
+  </div>
+
+</div>
+</div>
+
+</div>
+</body>
+</html>

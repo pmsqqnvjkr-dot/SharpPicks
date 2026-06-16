@@ -7,7 +7,8 @@
 //   green     #5A9E72   sage; positive/edge/verified result
 //   blue      #4F86F7   signal blue; active signal/info
 //   blueHover #3D72E0   signal blue hover/deep variant
-//   amber     #F59E0B   institutional warning/calibration
+//   amber     #C9A35C   institutional warning/calibration (muted brass; was #F59E0B pre-v4.3.1)
+//   steel     #8FA3C2   off-season / long-horizon empty state
 //   negative  #C4868A   muted rose; loss/negative (NEVER fire-truck red)
 //
 //   bg        #0A0D14   page root
@@ -27,7 +28,12 @@ export const colors = {
   edgeGreen: '#5A9E72',
   deepGreen: '#5A9E72',
   alertRed: '#C4868A',
-  premiumGold: '#F59E0B',
+  premiumGold: '#C9A35C',       // amber; retoned from #F59E0B in v4.3.1
+  premiumGoldSoft: 'rgba(201, 163, 92, 0.12)',
+  premiumGoldBorder: 'rgba(201, 163, 92, 0.40)',
+  steel: '#8FA3C2',             // off-season state
+  steelSoft: 'rgba(143, 163, 194, 0.12)',
+  steelBorder: 'rgba(143, 163, 194, 0.38)',
   text: '#E8EAED',              // canonical (was #EEF2FF)
   text2: 'rgba(232, 234, 237, 0.7)',
   text3: 'rgba(232, 234, 237, 0.5)',

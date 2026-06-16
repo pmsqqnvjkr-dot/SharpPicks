@@ -57,8 +57,8 @@ LEGAL_STYLE = """
     line-height: 1.7;
   }
   .callout-warn {
-    background: rgba(245,158,11,0.06);
-    border-left: 3px solid #F59E0B;
+    background: rgba(201,163,92,0.10);
+    border-left: 3px solid #C9A35C;
   }
   .callout-green {
     background: rgba(52,211,153,0.06);

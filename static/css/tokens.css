@@ -33,8 +33,13 @@
   --sp-green-soft:         rgba(90, 158, 114, 0.12);
   --sp-green-muted:        rgba(90, 158, 114, 0.4);
 
-  --sp-amber:              #F59E0B;            /* calibration / live state */
-  --sp-amber-soft:         rgba(245, 158, 11, 0.08);
+  --sp-amber:              #C9A35C;            /* calibration / live state, muted brass */
+  --sp-amber-soft:         rgba(201, 163, 92, 0.12);
+  --sp-amber-border:       rgba(201, 163, 92, 0.40);
+
+  --sp-steel:              #8FA3C2;            /* off-season / long-horizon empty state */
+  --sp-steel-soft:         rgba(143, 163, 194, 0.12);
+  --sp-steel-border:       rgba(143, 163, 194, 0.38);
 
   --sp-negative:           #C4868A;            /* muted rose, NEVER fire-truck red */
   --sp-negative-soft:      rgba(196, 134, 138, 0.08);
@@ -76,6 +81,15 @@
 
 /* ═══════════════════════════════════════════════════════════════
    Changelog
+
+   v4.3.1 (June 2026)
+   - --sp-amber retoned from #F59E0B to #C9A35C (muted brass) for the
+     NFL pre-launch calibration screen + existing CalibrationBanner.
+     #F59E0B was too saturated against v4.3 surface palette.
+   - --sp-amber-soft opacity bumped 0.08 -> 0.12 to read at small sizes.
+   - Added --sp-amber-border (0.40 opacity) for state-pill borders.
+   - Added --sp-steel #8FA3C2 + soft + border. Off-season state color,
+     used by NBA off-season screen and similar long-horizon empty states.
 
    v4.3 (May 2026)
    - Reorganized: shorthand canonical, verbose aliases for compat

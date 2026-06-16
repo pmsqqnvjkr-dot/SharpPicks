@@ -1,12 +1,15 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, abort
 from models import db, Pick, Pass, ModelRun, FoundingCounter, EdgeSnapshot, KillSwitch, User, Insight
 from sqlalchemy import func
 from sqlalchemy.exc import ProgrammingError, OperationalError
 from sport_config import get_active_sports, get_sport_config, get_phase_label
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from pathlib import Path
 import json
 import logging
+import os
+import time
 
 # Near-miss threshold. Games where the model detected an edge but didn't
 # clear the qualification filter need to be at least this strong to be
@@ -24,6 +27,90 @@ def _get_sport_filter():
     if sport in get_active_sports():
         return sport
     return 'nba'
+
+
+_LAUNCH_CONFIG_PATH = Path(__file__).parent / 'config' / 'launch_config.json'
+_LAUNCH_CONFIG_CACHE = {'mtime': 0.0, 'data': None, 'checked_at': 0.0}
+_LAUNCH_CONFIG_TTL_SECONDS = 60
+
+
+def _load_launch_config():
+    """Read config/launch_config.json with a 60s TTL + mtime invalidation.
+    Returns the parsed dict, or a minimal safe default if the file is
+    missing or unreadable. Never raises to the request handler.
+    """
+    now = time.time()
+    cache = _LAUNCH_CONFIG_CACHE
+    if cache['data'] is not None and (now - cache['checked_at']) < _LAUNCH_CONFIG_TTL_SECONDS:
+        return cache['data']
+    try:
+        st = os.stat(_LAUNCH_CONFIG_PATH)
+        if cache['data'] is not None and st.st_mtime == cache['mtime']:
+            cache['checked_at'] = now
+            return cache['data']
+        with open(_LAUNCH_CONFIG_PATH, 'r') as f:
+            data = json.load(f)
+        cache['data'] = data
+        cache['mtime'] = st.st_mtime
+        cache['checked_at'] = now
+        return data
+    except (OSError, json.JSONDecodeError) as e:
+        logging.warning(f"launch_config load failed: {e}")
+        # Fail closed: report all sports in season, NFL not launched, so
+        # the gate below stays restrictive even when the config is gone.
+        return {
+            'version': '0',
+            'sports': {
+                'nba': {'in_season': True},
+                'mlb': {'in_season': True},
+                'wnba': {'in_season': True},
+                'nfl': {'launched': False},
+            },
+        }
+
+
+def is_sport_publicly_visible(sport):
+    """Whether a given sport should accept public reads via ?sport= today.
+
+    Visibility rules:
+      - Sports in SPORT_CONFIG with active=True are always visible. NBA,
+        MLB, WNBA. (Off-season status does not affect API visibility:
+        season-archive reads still need to work after a season ends.)
+      - NFL is visible only when launch_config sports.nfl.launched is true.
+        Default: not launched, not visible.
+      - Unknown sports: not visible.
+    """
+    if not sport:
+        return False
+    s = sport.lower().strip()
+    if s in ('nba', 'mlb', 'wnba'):
+        return s in get_active_sports()
+    if s == 'nfl':
+        cfg = _load_launch_config()
+        return bool(cfg.get('sports', {}).get('nfl', {}).get('launched'))
+    return False
+
+
+def _require_visible_sport(sport):
+    """Abort with 404 if the sport is not currently publicly visible.
+    Returns None on success. 404 (not 403) so we don't signal that NFL
+    data exists in the DB before launch.
+    """
+    if not is_sport_publicly_visible(sport):
+        abort(404)
+
+
+@public_bp.route('/launch-config')
+def launch_config():
+    """Serve config/launch_config.json verbatim. Drives the in-app sport
+    chip row, the NBA off-season / NFL calibration screens, and the
+    landing 'Today at the desk' grid. Cache 60s at the edge; clients
+    refetch on launch + once per hour.
+    """
+    cfg = _load_launch_config()
+    resp = jsonify(cfg)
+    resp.headers['Cache-Control'] = 'public, max-age=60, s-maxage=60'
+    return resp
 
 
 
@@ -1834,8 +1921,9 @@ def public_results():
               terminal result (win/loss/push) are returned.
     """
     sport = (request.args.get('sport') or '').lower().strip()
-    if sport not in ('nba', 'mlb', 'wnba'):
-        return jsonify({'error': 'sport query param required (nba|mlb|wnba)'}), 400
+    if not is_sport_publicly_visible(sport):
+        # Gate keys off launch_config.json; NFL stays 400 until launched=true.
+        return jsonify({'error': 'sport query param required (one of currently-live sports)'}), 400
     date_str = (request.args.get('date') or datetime.now().strftime('%Y-%m-%d')).strip()
 
     settled = ('win', 'loss', 'push')
@@ -1996,7 +2084,7 @@ def public_journal_latest():
     q = (Insight.query
          .filter(Insight.status == 'published')
          .filter(Insight.publish_date.isnot(None)))
-    if sport in ('nba', 'mlb', 'wnba'):
+    if sport and is_sport_publicly_visible(sport):
         q = q.filter(Insight.sport == sport)
     article = q.order_by(Insight.publish_date.desc()).first()
     if not article:
