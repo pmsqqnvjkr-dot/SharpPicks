@@ -1,6 +1,8 @@
 import { useApi } from '../../hooks/useApi';
 import { useSport, sportQuery } from '../../hooks/useSport';
 import CalibrationBanner from '../brand/CalibrationBanner';
+import { useLaunchConfig } from '../../hooks/useLaunchConfig';
+import { NEUTRAL_TOKENS, getStateTokens } from '../empty-state/stateTokens';
 
 // v4.3 inline Market Intelligence report. Renders below the MI card
 // when the user expands it on home (pick day or pass day).
@@ -89,10 +91,90 @@ function getPhase(data) {
   return 'morning';
 }
 
+// Inline banner for off-season sports. Replaces the market report when
+// the sport is between seasons (e.g. NBA from mid-June through mid-October).
+// Steel state to match the in-app NBA off-season screen + landing pill.
+// Renders inside any surface that mounts DailyMarketReport (MarketView,
+// PassDay, MIPill); PicksTab itself short-circuits NBA off-season earlier
+// so the same user does not see both the screen and this banner.
+const SPORT_NAME_DMR = { nba: 'NBA', mlb: 'MLB', wnba: 'WNBA', nfl: 'NFL' };
+const MONTHS_DMR = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const WEEKDAYS_DMR = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+function formatOpeningNightDmr(iso) {
+  if (!iso || typeof iso !== 'string') return '';
+  const [y, m, d] = iso.slice(0, 10).split('-').map((x) => parseInt(x, 10));
+  if (!y || !m || !d) return '';
+  const dt = new Date(y, m - 1, d);
+  return `${WEEKDAYS_DMR[dt.getDay()]} ${MONTHS_DMR[dt.getMonth()]} ${dt.getDate()}, ${dt.getFullYear()}`;
+}
+
+function MarketReportOffseasonBanner({ sport, sportCfg }) {
+  const steel = getStateTokens('steel');
+  const sportLabel = SPORT_NAME_DMR[sport] || sport.toUpperCase();
+  const seasonLabel = sportCfg?.season_label || '';
+  const nextSlate = formatOpeningNightDmr(sportCfg?.opening_night?.date);
+  return (
+    <div
+      role="status"
+      style={{
+        background: steel.soft,
+        border: `1px solid ${steel.border}`,
+        borderRadius: '10px',
+        padding: '14px 16px',
+        marginBottom: '16px',
+      }}
+    >
+      <div
+        style={{
+          fontFamily: NEUTRAL_TOKENS.fontMono,
+          fontSize: '10px',
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+          color: steel.color,
+          fontWeight: 600,
+          marginBottom: '6px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '7px',
+        }}
+      >
+        <span style={{
+          width: '5px', height: '5px', borderRadius: '50%',
+          background: steel.color,
+        }} />
+        {sportLabel} OFF-SEASON
+      </div>
+      <div style={{
+        fontSize: '13px',
+        lineHeight: 1.5,
+        color: NEUTRAL_TOKENS.text2,
+      }}>
+        The {seasonLabel ? `${seasonLabel} ` : ''}{sportLabel} season is settled.
+        Every signal graded, nothing removed.
+        {nextSlate && (
+          <>
+            {' '}Next slate opens <strong style={{ color: NEUTRAL_TOKENS.text, fontWeight: 600 }}>{nextSlate}</strong>.
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function DailyMarketReport({ report: reportProp, isPro = false, onUpgrade }) {
   const { sport } = useSport();
   const { data: fetchedData, loading } = useApi(sportQuery('/public/market-report', sport), { pollInterval: 300000 });
   const data = reportProp ?? fetchedData;
+  const { config: launchConfig } = useLaunchConfig();
+
+  // Off-season takes precedence: when a sport is between seasons there
+  // is no market to read, so the normal report (or null silence) is
+  // wrong. Render a steel banner with the next-slate date instead.
+  const sportCfg = launchConfig?.sports?.[sport];
+  if (sportCfg && sportCfg.in_season === false) {
+    return <MarketReportOffseasonBanner sport={sport} sportCfg={sportCfg} />;
+  }
 
   if (reportProp ? !data?.available : (loading || !data || !data.available)) return null;
 
